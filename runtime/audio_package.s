@@ -25,26 +25,43 @@
 ; be noise. Everything else is rearranged again from the start of ARAM,
 ; skipping those. See "Each map's audio package" in
 ; tasks/music-through-the-spc700.md.
-FAR_ARAM_OF = $7E3100           ; one word per sample
-FAR_WANTS   = $7E3300           ; one byte per sample: 2 for the ones that do not move
-APU_READY   = $7E30D0           ; whether the driver is already running
-PKG_EXTRA   = $7E30D1           ; a song that goes first, or $FF
-PKG_COMPACT = $7E30D2           ; 1 if the package is being rearranged again
+.pushseg
+.segment "FARBSS"
+FAR_ARAM_OF: .res $200           ; one word per sample
+.popseg
+.pushseg
+.segment "FARBSS"
+FAR_WANTS: .res $100           ; one byte per sample: 2 for the ones that do not move
+.popseg
+.pushseg
+.segment "FARBSS"
+APU_READY: .res $12           ; whether the driver is already running
+.popseg
+PKG_EXTRA   = APU_READY + $01           ; a song that goes first, or $FF
+PKG_COMPACT = APU_READY + $02           ; 1 if the package is being rearranged again
                                 ; from scratch, 2 if that could not make it
                                 ; fit: see `package_load_done`
-PKG_LENGTH  = $7E30D4
-PKG_DEST    = $7E30D6
-PKG_S       = $7E30D8           ; the sample being placed
-PKG_X7      = $7E30DA           ; its row in `sample_table`
-PKG_A       = $7E30DC           ; where placing it is tried
-PKG_MAP     = $7E30DE           ; the package's map, in a word since the
+PKG_LENGTH  = APU_READY + $04
+PKG_DEST    = APU_READY + $06
+PKG_S       = APU_READY + $08           ; the sample being placed
+PKG_X7      = APU_READY + $0A           ; its row in `sample_table`
+PKG_A       = APU_READY + $0C           ; where placing it is tried
+PKG_MAP     = APU_READY + $0E           ; the package's map, in a word since the
                                 ; map index does not fit in a byte
-INT_N       = $7E30E0           ; how many are occupied, in bytes: two for each
-                                ; $30E2 to $30E6 belong to the battle animation
-PKG_PARTIAL = $7E30E7           ; 1 if something of the package did not fit: see
+INT_N       = APU_READY + $10           ; how many are occupied, in bytes: two for each
+.pushseg
+.segment "FARBSS"
+PKG_PARTIAL: .res $1           ; 1 if something of the package did not fit: see
+.popseg
                                 ; `song_ensure`. What follows is MSU_HAS
-INT_INIT    = $7E3400           ; what is occupied, in order: where it starts
-INT_END     = $7E3500           ; and where it ends
+.pushseg
+.segment "FARBSS"
+INT_INIT: .res $100           ; what is occupied, in order: where it starts
+.popseg
+.pushseg
+.segment "FARBSS"
+INT_END: .res $100           ; and where it ends
+.popseg
 
 ; Nothing in ARAM. At reset: the driver is not running yet.
 .proc aram_clear

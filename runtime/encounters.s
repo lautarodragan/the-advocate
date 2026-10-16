@@ -25,7 +25,7 @@
 ; It lives here and not in bank 0 because there were eighty-five bytes left
 ; there: all that remains on the other side are the four `jsl` and the bridge
 ; to the battle. **The data bank is $7E while this runs**, as in battle: that
-; way the state at $3900 is read with absolute addressing and low RAM —`temp`,
+; way its state in far RAM is read with absolute addressing and low RAM —`temp`,
 ; `tile_x`, `map_current`— is still read the same, because in bank $7E the
 ; addresses from $0000 to $1FFF **are** bank 0's.
 

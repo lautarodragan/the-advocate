@@ -40,36 +40,37 @@
 ;
 ; Everything here is reached with `jsl` and goes back with `rtl`.
 
-; The state, in far RAM: $7E7E00 to $7E7EDF, allotted on 2026-10-05 between
-; the end of `FAR_GROWTH`'s, which was then at $7E7D00, and `CARRY_MAP`. A
-; word per axis goes across first and down after, so that one routine does
+; The state, in far RAM. A word per axis goes across first and down after, so that one routine does
 ; both with Y at 0 or 2.
-PANO_ON    = $7E7E00            ; 0, or the mode the map shows its panorama in
-PANO_WAS1  = $7E7E01            ; whether the PPU is in mode 1 because of one
-PANO_ENT   = $7E7E02            ; the map's record, an offset into pano_table
-PANO_AX    = $7E7E04            ; what it scrolled on its own, 1/32 px, a word per axis
-PANO_UX    = $7E7E08            ; the running position
-PANO_OX    = $7E7E0C            ; where in the panorama the screen starts
-PANO_WX    = $7E7E10            ; the running position over 8 the ring was filled for
-PANO_COLV  = $7E7E14            ; the VRAM word of the column waiting, 0 none
-PANO_ROWV  = $7E7E16            ; and of the row
-PANO_T     = $7E7E18            ; four words of scratch
-PANO_STRIP_COL = $7E7E20        ; a column of the ring: 32 entries
-PANO_STRIP_ROW = $7E7E60        ; a row: 64 entries
-; $7E7EE0 to $7E7EE6, allotted on 2026-10-05 for `ChangePBG`, the saved
+.pushseg
+.segment "FARBSS"
+PANO_ON: .res $F0            ; 0, or the mode the map shows its panorama in
+.popseg
+PANO_WAS1  = PANO_ON + $01            ; whether the PPU is in mode 1 because of one
+PANO_ENT   = PANO_ON + $02            ; the map's record, an offset into pano_table
+PANO_AX    = PANO_ON + $04            ; what it scrolled on its own, 1/32 px, a word per axis
+PANO_UX    = PANO_ON + $08            ; the running position
+PANO_OX    = PANO_ON + $0C            ; where in the panorama the screen starts
+PANO_WX    = PANO_ON + $10            ; the running position over 8 the ring was filled for
+PANO_COLV  = PANO_ON + $14            ; the VRAM word of the column waiting, 0 none
+PANO_ROWV  = PANO_ON + $16            ; and of the row
+PANO_T     = PANO_ON + $18            ; four words of scratch
+PANO_STRIP_COL = PANO_ON + $20        ; a column of the ring: 32 entries
+PANO_STRIP_ROW = PANO_ON + $60        ; a row: 64 entries
+; And, since 2026-10-05, for `ChangePBG`, the saved
 ; game and BG1 under the window: how it loops and scrolls now, which starts
 ; as the record says and an
 ; `OP_PANORAMA` changes. `PANO_AX`, `PANO_FLAGS` and `PANO_AUTO` go in the
 ; saved game —see `save_table`—, as RM2k saves its panorama's position and
 ; its `ChangeBG`.
-PANO_FLAGS = $7E7EE0            ; bit 0: it loops across; bit 1: down
-PANO_AUTO  = $7E7EE1            ; what it scrolls on its own each frame, a word per axis
-PANO_KEEP  = $7E7EE5            ; set by `load_game`: the next `pano_find` keeps the above
-PANO_HDMA  = $7E7EE6            ; `HDMA_ABOVE_BG1` in a map whose cells above the hero are BG1 1, else 0
-PANO_END   = $7E7EE7
+PANO_FLAGS = PANO_ON + $E0            ; bit 0: it loops across; bit 1: down
+PANO_AUTO  = PANO_ON + $E1            ; what it scrolls on its own each frame, a word per axis
+PANO_KEEP  = PANO_ON + $E5            ; set by `load_game`: the next `pano_find` keeps the above
+PANO_HDMA  = PANO_ON + $E6            ; `HDMA_ABOVE_BG1` in a map whose cells above the hero are BG1 1, else 0
+PANO_END   = PANO_ON + $E7
 P_AUTO = PANO_AUTO & $FFFF
 P_FLAGS = PANO_FLAGS & $FFFF
-.assert PANO_END <= CARRY_MAP, error, "the panorama's state goes into the carried map"
+.assert PANO_END <= PANO_ON + $F0, error, "the panorama's state overflows its block"
 ; With the data bank at $7E, as `pano_tick` runs.
 P_AX   = PANO_AX & $FFFF
 P_UX   = PANO_UX & $FFFF

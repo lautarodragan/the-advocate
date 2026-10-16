@@ -41,27 +41,30 @@
 
 .ifdef paint_table
 
-; The state, in far RAM: $7E7900 to $7E791F, taken on 2026-10-11 from the gap
-; between `FAR_EFFECT_IN`'s range and `TRANSITION_ERASE`.
-PAINT_ON   = $7E7900            ; 1 while the loaded map is painted, else 0
-PAINT_ENT  = $7E7901            ; word: its record, an offset into paint_table
-PAINT_TX   = $7E7903            ; word, signed: the first column the slots hold
-PAINT_TY   = $7E7905            ; word: and the first row
-PAINT_QN   = $7E7907            ; word: bytes of `PAINT_Q` waiting, 0 none
-PAINT_COST = $7E7909            ; what they take from the poses' budget
-PAINT_ARG  = $7E790A            ; word: the column or row a strip is built for
-PAINT_T    = $7E790C            ; eight words of scratch
-PAINT_M    = $7E791C            ; and two for `mul16`, `mod8` and `times_rows`
-PAINT_END  = $7E7920
-.assert PAINT_END <= $7E7920, error, "the painted maps' state goes into TRANSITION_ERASE"
-; And the row being uploaded ahead, from $7E79A0, taken on 2026-10-11 from
-; the gap between `NPC_ROW_SEPARATE`'s range and `ENC_THR`: see `paint_tick`.
-PAINT_JOB   = $7E79A0           ; word: the row being uploaded, $FFFF none
-PAINT_JK    = $7E79A2           ; word: how many of its 33 columns are up
-PAINT_LASTY = $7E79A4           ; word: last frame's camera, down
-PAINT_DIR   = $7E79A6           ; 0 the camera last went down, 1 up
-PAINT_END2  = $7E79A7
-.assert PAINT_END2 <= $7E79C0, error, "the painted maps' row goes into ENC_THR"
+; The state, in far RAM.
+.pushseg
+.segment "FARBSS"
+PAINT_ON: .res $20            ; 1 while the loaded map is painted, else 0
+.popseg
+PAINT_ENT  = PAINT_ON + $01            ; word: its record, an offset into paint_table
+PAINT_TX   = PAINT_ON + $03            ; word, signed: the first column the slots hold
+PAINT_TY   = PAINT_ON + $05            ; word: and the first row
+PAINT_QN   = PAINT_ON + $07            ; word: bytes of `PAINT_Q` waiting, 0 none
+PAINT_COST = PAINT_ON + $09            ; what they take from the poses' budget
+PAINT_ARG  = PAINT_ON + $0A            ; word: the column or row a strip is built for
+PAINT_T    = PAINT_ON + $0C            ; eight words of scratch
+PAINT_M    = PAINT_ON + $1C            ; and two for `mul16`, `mod8` and `times_rows`
+PAINT_END  = PAINT_ON + $20
+; And the row being uploaded ahead: see `paint_tick`.
+.pushseg
+.segment "FARBSS"
+PAINT_JOB: .res $20           ; word: the row being uploaded, $FFFF none
+.popseg
+PAINT_JK    = PAINT_JOB + $02           ; word: how many of its 33 columns are up
+PAINT_LASTY = PAINT_JOB + $04           ; word: last frame's camera, down
+PAINT_DIR   = PAINT_JOB + $06           ; 0 the camera last went down, 1 up
+PAINT_END2  = PAINT_JOB + $07
+.assert PAINT_END2 <= PAINT_JOB + $20, error, "the painted maps' row overflows its block"
 ; Tiles of the row ahead a frame: a row in three frames, and the camera
 ; crosses one every four at the walk's two pixels a frame.
 PAINT_STEP  = 11

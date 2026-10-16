@@ -118,10 +118,11 @@ CM_PORTRAIT_ROWS_PER_VBLANK = 2
 .assert CM_BORDER_CGRAM + CM_BORDER_COLORS <= 128 + 16 * CM_PORTRAIT_PALETTE, error, "the windows' colours step on the portrait's"
 .assert CM_INKS_FIRST + CM_INKS_N <= 8, error, "the custom menus' inks do not fit in BG2's eight palettes"
 
-; The state, in far RAM: $3640 to $367F, which nobody used —between the
-; message arrow's, which ends at $3623, and `FAR_HP`—. Allotted on
-; 2026-10-04.
-CM_RAM      = $7E3640
+; The state, in far RAM.
+.pushseg
+.segment "FARBSS"
+CM_RAM: .res $C0
+.popseg
 CM_MENU     = CM_RAM + 0        ; which menu
 CM_SUBJ     = CM_RAM + 1        ; which subject, in the menu's list
 CM_TAB      = CM_RAM + 2
@@ -153,7 +154,7 @@ CM_CALLS    = CM_RAM + 48       ; the call stack, while a `before` runs
 ; The depth and the stack, as one block —see common_events.s—: forty-one
 ; bytes with eight levels, where there were sixteen with three.
 CM_CALL_BYTES = CALL_LEVELS * CALL_ENTRY + 1
-.assert (CM_RAM & $FFFF) >= $3624 && CM_CALLS + CM_CALL_BYTES <= $7E3700, error, "the custom menus' state steps on its neighbours"
+.assert CM_CALLS + CM_CALL_BYTES <= CM_RAM + $C0, error, "the custom menus' state overflows its block"
 
 ; --- the pause menu's column ------------------------------------------------
 ;

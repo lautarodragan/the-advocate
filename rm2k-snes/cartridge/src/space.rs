@@ -19,9 +19,8 @@
 //!   nothing comes after it in its area.
 //! * **Bank `$C1`**: the fourth, [`banks::FAR3`], the same way.
 //! * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take; and
-//!   the same for **far RAM**, the `FARRAM` area minus `FARBSS`: see
-//!   [`banks::FAR_POOL_START`].
-//!   And the switch table's, `SWITCHRAM` minus `SWITCHES`.
+//!   the same for **far RAM**, the `FARRAM` area minus `FARBSS` and
+//!   `SWITCHES`, the two segments it holds: see [`banks::FAR_POOL_START`].
 //! * **Texts**: `MESSAGES_BYTES` against `MESSAGES_CAP`, which the converter
 //!   emits next to the text block.
 
@@ -53,9 +52,6 @@ pub struct Measure {
     pub bss: i64,
     pub zeropage: i64,
     pub far: i64,
-    /// What the switch table leaves of its 256 bytes: see
-    /// [`banks::SWITCH_POOL_START`].
-    pub switches: i64,
     pub texts: Option<i64>,
     pub texts_cap: Option<i64>,
 }
@@ -174,9 +170,7 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         bank_far3: area(&segment_of(banks::FAR3.bank))? - used_of("FAR3"),
         bss: area("RAM")? - used_of("BSS"),
         zeropage: area("ZP")? - used_of("ZEROPAGE"),
-        far: area("FARRAM")? - used_of("FARBSS"),
-        // A ROM built before the table had its area has none: zero.
-        switches: areas.get("SWITCHRAM").copied().unwrap_or(0) - used_of("SWITCHES"),
+        far: area("FARRAM")? - used_of("FARBSS") - used_of("SWITCHES"),
         texts: symbols.get("MESSAGES_BYTES").copied(),
         texts_cap: symbols.get("MESSAGES_CAP").copied(),
     })
@@ -218,7 +212,6 @@ pub fn show(title: &str, m: &Measure) -> String {
     out += &format!("  BSS              {}\n", b(m.bss));
     out += &format!("  ZEROPAGE         {}\n", b(m.zeropage));
     out += &format!("  far RAM          {}\n", b(m.far));
-    out += &format!("  switch table     {}\n", b(m.switches));
     match (m.texts, m.texts_cap) {
         (Some(texts), Some(cap)) => {
             out += &format!(
@@ -252,7 +245,6 @@ mod tests {
         assert_eq!(areas["ROM"], 0x7FC0);
         assert_eq!(areas["RAM"], 0x1F00 - banks::STACK as i64);
         assert_eq!(areas["FARRAM"], banks::FAR_POOL_SIZE as i64);
-        assert_eq!(areas["SWITCHRAM"], banks::SWITCH_POOL_SIZE as i64);
         assert_eq!(areas["BANKC2"], 0x10000);
         assert_eq!(areas["BANKC0"], 0x8000, "the third code bank");
         assert_eq!(areas["BANKC1"], 0x8000, "the fourth code bank");

@@ -37,18 +37,23 @@
 ; gets there with long addressing, which carries the bank in the
 ; instruction. The only thing the main code writes here is the pending one,
 ; in `sound_play`, and it does so with interrupts disabled.
-FAR_SE       = $30A0
+; Each voice's state is a block of $20 bytes: the counters from SE_FRAMES,
+; and the shadow of its registers at +$10.
+.pushseg
+.segment "FARBSS"
+far_se:  .res $20
+far_se2: .res $20
+.popseg
+FAR_SE       = .loword(far_se)
 SE_FRAMES    = $7E0000 + FAR_SE
 SE_PENDING = SE_FRAMES + 2
 SE_RETURN    = SE_FRAMES + 3
 SE_LOWER     = SE_FRAMES + 4
 SE_NEW       = SE_FRAMES + 5
-SE_SHADOW    = $7E0000 + $30B0
+SE_SHADOW    = SE_FRAMES + $10
 SE_KOF_SHADOW = SE_SHADOW + 8
-; The second voice, at $3D00: the far RAM map above ends at the battle,
-; which does not go past $3CFF, and the next thing is `FAR_SKILL`, at $6000. It
-; uses $3D00 to $3D17.
-SE2_OFS      = $3D00 - FAR_SE
+; The second voice, the same block further on.
+SE2_OFS      = far_se2 - far_se
 SE2_FRAMES   = SE_FRAMES + SE2_OFS
 SE2_PENDING = SE_PENDING + SE2_OFS
 SE2_RETURN = SE_RETURN + SE2_OFS

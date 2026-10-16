@@ -22,8 +22,11 @@ MSU_SIGNATURE = $2002
 MSU_TRACK   = $2004
 MSU_VOLUME = $2006
 MSU_CONTROL = $2007
-MSU_HAS     = $7E30E8           ; whether the signature is there
-MSU_PLAYING = $7E30E9           ; whether the track is playing right now
+.pushseg
+.segment "FARBSS"
+MSU_HAS: .res $2           ; whether the signature is there
+.popseg
+MSU_PLAYING = MSU_HAS + $01           ; whether the track is playing right now
 
 ; The volume the track plays at, 0 to 255, and **it is not 255**: the MSU-1 is
 ; added to the SPC700's output instead of being mixed with it, so music at full
@@ -42,7 +45,10 @@ MSU_VOLUME_MAX = $D8
 ; And two bytes for the fade factor, in far RAM because bank 0's is full. The
 ; high byte always stays at zero: the loop adds it as sixteen bits. It lives
 ; here and not in `temp` because the fade runs inside `irq_music`.
-MSU_FACTOR  = $7E30EA
+.pushseg
+.segment "FARBSS"
+MSU_FACTOR: .res $2
+.popseg
 
 ; The signature, once, at reset.
 .proc msu_detect

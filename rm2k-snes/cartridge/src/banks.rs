@@ -157,43 +157,26 @@ pub const STACK: usize = 128;
 
 /// The far RAM the linker hands out: the `FARBSS` segment, where the runtime
 /// declares a variable of bank `$7E` with a `.res` in the file of the
-/// subsystem that owns it, instead of writing its address by hand. Two
-/// variables that land here cannot overlap, and when they no longer fit the
-/// link fails, the same as with the `BSS`.
+/// subsystem that owns it, instead of writing its address by hand, and the
+/// `SWITCHES` one, the RM2k switches' table, sized by the game —a bit per
+/// switch up to the highest the game names, `SWITCH_BYTES`; the event
+/// compiler's `SWITCH_TABLE_MAX` caps it at 2048—. Two variables that land
+/// here cannot overlap, and when they no longer fit the link fails, the same
+/// as with the `BSS`.
 ///
-/// The rest of `$7E2000`–`$7E7FFF` is still a map of addresses written by
-/// hand —`far_ram.s` and its neighbours, in the runtime—, and this is a
-/// stretch of it nobody used: the end of the battle scene's reservation,
-/// after `SCN_DP_SAVE`, which the runtime asserts ends before it. It grows by
-/// taking over another stretch of that map and moving whatever lived there
-/// into the segment: on 2026-10-12 it took a medicine's, `$7E6800` to
-/// `$7E68FF` —its twenty-one bytes went into the segment—, when the battle's
-/// conditions did not fit in what was left; on 2026-10-14 it took the
-/// flash palettes', `$7E6900` to `$7E69FF` —they take half of it—, when
-/// the materials' table went into the segment and had to have room for every
-/// actor of the whole game. On 2026-10-15 it took the map's spare strips'
-/// and the VRAM map's, `$7E6A00` to `$7E6BFF` —the strips take 384 of the
-/// 512 and the map two bytes—, when the message's face did not fit in what
-/// was left: A Blurred Line's release cartridge had 12 bytes free and the
-/// face asked for 123. `$7E6C00` is the music decoder's.
+/// **It is the whole of `$7E2000`–`$7E7FFF`**: below is bank 0's low RAM,
+/// which the console mirrors there, and above is the map's grid. Until
+/// 2026-10-16 most of it was a map of addresses written by hand in the
+/// runtime, with holes between its regions and regions sized for any game,
+/// and this was a stretch of it that grew by taking over its neighbours';
+/// that day every region went into the segment. `just space` says what is
+/// left of it.
 ///
 /// The address carries the bank, so a label in the segment is a 24-bit one:
 /// read plainly it is a long access, which works whatever the data bank;
 /// code that runs with the data bank at `$7E` takes its `.loword`.
-pub const FAR_POOL_START: usize = 0x7E66C0;
-pub const FAR_POOL_SIZE: usize = 0x0540;
-
-/// The RM2k switches' table: the `SWITCHES` segment, a bit per switch up to
-/// the highest the game names —`SWITCH_BYTES`, which the converter
-/// writes—, so 256 bytes are 2048 switches. It is its own area and not part
-/// of `FARBSS` because neither that pool nor the bank 0 `BSS`, where the
-/// table lived with 128 bytes for every game until 2026-10-15, had room for
-/// Vampires Dawn's 206; and this stretch of the hand-written map was free:
-/// the materials' table left it on 2026-10-14. Its labels carry the bank,
-/// like `FARBSS`'s. The event compiler's `SWITCH_TABLE_MAX` is this size in
-/// bits.
-pub const SWITCH_POOL_START: usize = 0x7E7D00;
-pub const SWITCH_POOL_SIZE: usize = 0x0100;
+pub const FAR_POOL_START: usize = 0x7E2000;
+pub const FAR_POOL_SIZE: usize = 0x6000;
 
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
@@ -1070,20 +1053,15 @@ pub fn cfg() -> String {
             "RAM:  start = $0100, size = ${:04X}, type = rw, file = \"\";",
             0x1F00 - STACK
         ),
-        // `define` gives the runtime `__FARRAM_START__`, to assert that the
-        // map written by hand stays out of it.
         format!(
-            "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\", define = yes;"
-        ),
-        format!(
-            "SWITCHRAM: start = ${SWITCH_POOL_START:06X}, size = ${SWITCH_POOL_SIZE:04X}, type = rw, file = \"\";"
+            "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\";"
         ),
     ];
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
         "BSS:      load = RAM,  type = bss;".to_string(),
         "FARBSS:   load = FARRAM, type = bss;".to_string(),
-        "SWITCHES: load = SWITCHRAM, type = bss;".to_string(),
+        "SWITCHES: load = FARRAM, type = bss;".to_string(),
         "CODE:    load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),

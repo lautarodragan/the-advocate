@@ -463,4 +463,4 @@ none:
     rts
 .endproc
 
-.assert CACHE_EV + EV_MAX <= $7E7D00, error, "the cache's events overflow its RAM"
+.assert CACHE_EV + EV_MAX <= CACHE_N + $100, error, "the cache's events overflow its RAM"
