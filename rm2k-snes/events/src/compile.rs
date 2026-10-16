@@ -5106,9 +5106,27 @@ pub fn compile_command(
                 return cannot();
             }
             let frames = q(5) * FRAMES_PER_TENTH;
-            if !(0 < frames && frames <= 255) {
+            if frames <= 0 {
                 return cannot();
             }
+            // The console counts a flash's frames in a byte, and divides by
+            // them with the hardware's eight-bit divisor: see `one_flash`.
+            // A longer one fades out in 255 frames instead, which is the
+            // same flash going out sooner; the page's wait, if it waits, is
+            // still the whole time. Sunset over Imdahl flashes the hero for
+            // six seconds —360 frames— on thirteen pages, the statue's
+            // among them, and until 2026-10-16 that left them out and the
+            // game stuck on its first square.
+            let shown = if frames > 255 {
+                ctx.lose(
+                    cmd,
+                    "flash-shortened",
+                    format!("a flash of {frames} frames fades out in 255"),
+                );
+                255
+            } else {
+                frames
+            };
             // The hero's is the converter's to look at: whom he shares a
             // palette with depends on the party.
             if let Some(me) = map_events.filter(|_| target != 0) {
@@ -5128,7 +5146,7 @@ pub fn compile_command(
                 p[2] as u8,
                 p[3] as u8,
                 p[4] as u8,
-                frames as u8,
+                shown as u8,
             ];
             if q(6) != 0 {
                 // Waiting is exactly the Wait command: `SetupWait(tenths)`,
@@ -6258,6 +6276,21 @@ mod tests {
         // Up two cells at speed 4, waiting: -512 in y, a step of 32.
         assert_eq!(one(&[2, 0, 2, 4, 1]).unwrap(), [OP_PAN, 2, 0, 0, 0x00, 0xFE, 32, 1, OP_DONE]);
         assert_eq!(one(&[4, 0, 2, 4, 1]), None, "Maniac's pixel pans do not compile");
+    }
+
+    /// A flash longer than the byte the console counts it in fades out in
+    /// 255 frames, noted as a loss; the page's wait keeps the whole time.
+    #[test]
+    fn a_flash_past_255_frames_is_shortened_and_its_wait_is_not() {
+        let game = Game::default();
+        let (out, losses) = losses_on_a_map(&game, &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 60, 1], "")]);
+        let out = out.unwrap();
+        assert_eq!(out[..7], [OP_FLASH, 0, 31, 31, 31, 31, 255]);
+        assert_eq!(out[7..10], [OP_DELAY, (360 & 0xFF) as u8, (360 >> 8) as u8]);
+        assert_eq!(losses.iter().map(|l| l.kind).collect::<Vec<_>>(), ["flash-shortened"]);
+        let (short, losses) = losses_on_a_map(&game, &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 20, 0], "")]);
+        assert_eq!(short.unwrap()[..7], [OP_FLASH, 0, 31, 31, 31, 31, 120]);
+        assert!(losses.is_empty());
     }
 
     /// The long forms of `KeyInputProc` that ask for the same keys as the
