@@ -21,6 +21,15 @@
   },
   {
     "id": 3,
+    "name": "Tileset",
+    "trigger": "call",
+    "event_commands": [
+      {"code": "ChangeMapTileset", "parameters": [2]},
+      {"code": "ControlSwitches", "parameters": [0, 1290, 1290, 0]}
+    ]
+  },
+  {
+    "id": 4,
     "name": "Plain Letters",
     "trigger": "call",
     "event_commands": [

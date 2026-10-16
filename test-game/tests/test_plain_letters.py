@@ -13,7 +13,7 @@ Latin-1: the cartridge carries the letters its boxes use, after the
 console's 96 glyphs. The compiler notes the letters of each command that go
 plain as one `letter-plain` loss.
 
-Common event 3, `Plain Letters`, in `src/db/commonevents.json`, shows a box
+Common event 4, `Plain Letters`, in `src/db/commonevents.json`, shows a box
 with Spanish, German, French and Danish letters, the guillemets, the
 ellipsis and `Œ`. The case `plain-letters` calls it.
 
@@ -27,7 +27,7 @@ import os
 
 from game import MESSAGE_SHOWN, Session, cartridge, golden
 
-COMMON = 3
+COMMON = 4
 LETTERS = "… as ..., ø as o, Œ as OE"
 
 
