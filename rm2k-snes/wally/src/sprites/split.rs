@@ -117,6 +117,16 @@ struct Splitter<'a> {
 }
 
 impl Splitter<'_> {
+    /// Whether the character's colours go into a palette there already is
+    /// —a leader's too— without passing fifteen.
+    fn merges(&self, key: &Key) -> Result<bool> {
+        let image = sheet(self.ask.sheets, &key.0)?;
+        let (palette, _, _) = character_palette(image, key.1, None, self.ask.poses.get(key))?;
+        Ok(self.split.palettes.iter().any(|existing| {
+            existing.len() + palette.iter().filter(|c| !existing.contains(c)).count() <= OBJ_COLORS
+        }))
+    }
+
     /// The first palette the character's colours fit in; a new one if there
     /// is room or it is `force`d; and otherwise **someone else's**, the one
     /// that moves the fewest pixels. A character with odd colours is a
@@ -200,20 +210,14 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     let npc_keys: HashSet<Key> = npcs.iter().flat_map(Npc::keys).collect();
     let mut seen: HashSet<Key> = HashSet::new();
     let mut slot_leader: Option<usize> = None;
-    let mut needs_slot = false;
-    for key in ask.leaders {
-        if !npc_keys.contains(key) && !sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
-            needs_slot = true;
-        }
-    }
     for key in ask.leaders {
         if seen.contains(key) || sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
             continue;
         }
-        // Room for the rest: one palette for the other events and, while
-        // it is missing, the leaders' slot.
-        let kept = 1 + usize::from(slot_leader.is_none() && needs_slot);
-        if npc_keys.contains(key) && sp.split.palettes.len() + kept >= ask.cap {
+        // Room for the rest: one palette for the other events. Only if it
+        // asks for a new one: a leader whose colours go into another
+        // leader's costs nothing.
+        if npc_keys.contains(key) && sp.split.palettes.len() + 1 >= ask.cap && !sp.merges(key)? {
             sp.split.shared_leaders.insert(key.clone());
             continue;
         }
