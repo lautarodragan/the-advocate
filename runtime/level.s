@@ -979,12 +979,15 @@ none:
 ACTOR_STAT_HP = 2
 
 ; `ControlVars` with an actor's data, class 5, for `op_var`: Y on its `a`
-; —the actor— with `b` —which one— after it. The ones the game asks for: 2
-; the HP, 3 the SP, 4 and 5 their maximums, which are `ControlVariables::Actor`'s
-; numbers. The first two are the saved game's —in battle, the battle's, through
-; `ba_sync_out`—; the maximums, those of its current level, like
-; `GetMaxHp` without equipment. The compiler lets no other through. Returns
-; the value in A16 **with the accumulator at sixteen bits**, and Y as it came.
+; —the actor— with `b` —which one— after it, with `ControlVariables::Actor`'s
+; numbers. Here, the four A Blurred Line asks for: 2 the HP, 3 the SP, 4 and
+; 5 their maximums. The first two are the saved game's —in battle, the
+; battle's, through `ba_sync_out`—; the maximums, those of its current
+; level, like `GetMaxHp` without equipment. The other eleven —the level, the
+; experience, the four parameters with the equipment and the five equipped
+; items— go to `actor_stat_other`, in actor_stats.s, which lives in `FAR3`
+; because this bank was nearly full when they came (2026-10-16). Returns the
+; value in A16 **with the accumulator at sixteen bits**, and Y as it came.
 ; Clobbers X.
 .proc actor_stat
 .a8
@@ -1001,7 +1004,14 @@ ACTOR_STAT_HP = 2
     sec
     sbc #ACTOR_STAT_HP
     cmp #2
-    bcs maximum
+    bcc hp_or_sp
+    cmp #4
+    bcc maximum
+    ; The level and the experience come out as $FFFE and $FFFF, above
+    ; everything; the parameters and the equipment as 4 to 12. The stack is
+    ; this routine's —the actor, then Y— and the other one undoes it.
+    jml f:actor_stat_other
+hp_or_sp:
     tax                         ; 0 the HP, 1 the SP
     pla
     asl a

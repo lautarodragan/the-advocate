@@ -114,11 +114,16 @@ const ITEM_COUNT_EQUIPPED: i64 = 1;
 // were left out until 2026-10-11, when the pictures still did not speak
 // RM2k's screen; the two uses are map 207's smoke over its chimney.
 pub const VAR_CHARACTER: i64 = 6;
-// And kind 5, an actor's data, of which the ROM does 2 to 5: the HP, the SP
-// and their maximums. See `actor_stat` in runtime/level.s.
+// And kind 5, an actor's data, with `ControlVariables::Actor`'s numbers: 0
+// the level, 1 the experience, 2 to 5 the HP, the SP and their maximums, 6
+// to 9 attack, defense, spirit and agility with the equipment, and 10 to 14
+// the equipped items. The ROM does all fifteen —`actor_stat` in
+// runtime/level.s and `actor_stat_other` in runtime/actor_stats.s— and the
+// experience is the one that does not fit: see the arm.
 const VAR_ACTOR: i64 = 5;
-const ACTOR_STAT_HP: i64 = 2;
-const ACTOR_STAT_SP_MAX: i64 = 5;
+const ACTOR_STAT_LEVEL: i64 = 0;
+const ACTOR_STAT_EXP: i64 = 1;
+const ACTOR_STAT_ACCESSORY: i64 = 14;
 const VAR_OTHER: i64 = 7;
 const OTHER_GOLD: i64 = 0;
 const OTHER_TIMER: i64 = 1;
@@ -4029,21 +4034,72 @@ pub fn compile_command(
             // one that waits **rewinds its own cursor** and runs again frame
             // after frame, so it cannot tell the first turn from the others.
             //
-            // [variable, wait, the four directions, the action one, cancel].
-            // The game's 32 occurrences have the five and no more: with six or
-            // more RM2k 1.50 goes on to look at each direction separately,
-            // which is another program, so the length is required instead of
-            // assumed.
-            if n != 5 {
+            // [variable, wait, the four directions, the action one, cancel]
+            // is the short form, the only one until RM2k 1.50; the editors
+            // after it write more, **and which key each extra parameter is
+            // depends on the engine and on the count**, so the layout is
+            // read by both and not assumed —easyrpg's `CommandKeyInputProc`,
+            // which supports every editor's—:
+            //
+            //   2000, 10        [.., shift, down, left, right, up]: 1.50's,
+            //                   and 2003 1.05+ reads a 10 the same way, as
+            //                   a 2000 game imported into it. Parameter 2
+            //                   is not read.
+            //   2003, not 10    [.., numbers, operators, time variable,
+            //                   timed, shift, down, left, right, up]: the
+            //                   four directions as a block in parameter 2
+            //                   with fewer than 10, and one by one from 10
+            //                   on, where 2 is not read (1.05+).
+            //
+            // The pad has no shift, no number keys and no operators, so a
+            // page asking for them waits for an edge that never comes
+            // —which is also what RM2k does on a keyboard without them— and
+            // they are noted as lost, not refused. Two things are another
+            // program and do not compile: **some directions and not
+            // others** —no game of the nine asks for it, measured
+            // 2026-10-16— and the **timed** form, which also stores in the
+            // time variable how long the player took.
+            if n < 5 {
                 return cannot();
             }
-            let flags = (if q(1) != 0 { KEY_WAIT } else { 0 })
-                | (if q(2) != 0 { KEY_DIRS } else { 0 })
-                | (if q(3) != 0 { KEY_DECISION } else { 0 })
-                | (if q(4) != 0 { KEY_CANCEL } else { 0 });
-            if flags & (KEY_DIRS | KEY_DECISION | KEY_CANCEL) == 0 {
-                // With no key asked for, the waiting form never comes out.
+            let at = |i: usize| i < n && q(i) != 0;
+            let (dirs, shift, numbers, operators, timed) = if n == 5 {
+                ([at(2); 4], false, false, false, false)
+            } else if n == 10 {
+                ([at(6), at(7), at(8), at(9)], at(5), false, false, false)
+            } else if ctx.game.is_2003 {
+                let dirs = if n < 10 { [at(2); 4] } else { [at(10), at(11), at(12), at(13)] };
+                (dirs, at(9) && n > 10, at(5), at(6), at(8))
+            } else {
+                // A 2000 game with six to nine or more than ten: 1.50's
+                // layout, with what is missing as not asked for, which is
+                // easyrpg's `check_key`.
+                ([at(6), at(7), at(8), at(9)], at(5), false, false, false)
+            };
+            if timed {
                 return cannot();
+            }
+            if dirs.iter().any(|&d| d) && !dirs.iter().all(|&d| d) {
+                return cannot();
+            }
+            let flags = (if at(1) { KEY_WAIT } else { 0 })
+                | (if dirs[0] { KEY_DIRS } else { 0 })
+                | (if at(3) { KEY_DECISION } else { 0 })
+                | (if at(4) { KEY_CANCEL } else { 0 });
+            if flags & (KEY_DIRS | KEY_DECISION | KEY_CANCEL) == 0 {
+                // With no key asked for, the waiting form never comes out;
+                // and asking only for keys the pad does not have is the same
+                // wait.
+                return cannot();
+            }
+            for (asked, key) in [(shift, "shift"), (numbers, "the number keys"), (operators, "the operator keys")] {
+                if asked {
+                    ctx.lose(
+                        cmd,
+                        "key-not-on-the-pad",
+                        format!("variable {} never gets {key}: the pad does not have it", q(0)),
+                    );
+                }
             }
             if q(1) == 0 {
                 // The form that does not wait: it reads what is pressed and
@@ -5158,17 +5214,37 @@ pub fn compile_command(
                 b = 0;
             } else if operand_kind == VAR_ACTOR {
                 // An actor's data: `a` the actor and `b` which one, with the
-                // numbers of `ControlVariables::Actor`. The ROM does the HP,
-                // the SP and their maximums, 2 to 5, which is what the game
-                // asks for: the characters' systems read Talan's HP in
-                // battle —where they are the battle's, see `ba_sync_out`—
-                // and `ResetAfterBattles` the four. See `actor_stat` in
-                // runtime/level.s.
-                if !(ACTOR_STAT_HP..=ACTOR_STAT_SP_MAX).contains(&b)
+                // numbers of `ControlVariables::Actor`. The HP, the SP and
+                // their maximums are the saved game's —in battle, the
+                // battle's, see `ba_sync_out`—; the level and the experience
+                // are its `FAR_EXP` slot's, and an actor who never fights has
+                // no slot and answers its database level and zero
+                // experience; the four parameters are the level's plus the
+                // equipment's, `GetAtk` and its siblings; the equipment is
+                // `FAR_EQUIPMENT`. See `actor_stat` in runtime/level.s and
+                // `actor_stat_other` in runtime/actor_stats.s.
+                //
+                // Until 2026-10-16 only 2 to 5 compiled, which is what A
+                // Blurred Line asks for; Zounds reads the level and the
+                // experience of its hero every frame, and Vampires Dawn the
+                // level and the spirit.
+                if !(ACTOR_STAT_LEVEL..=ACTOR_STAT_ACCESSORY).contains(&b)
                     || !(1..=0xFF).contains(&a)
                     || !ctx.game.actors.contains_key(&(a as i32))
                 {
                     return cannot();
+                }
+                if b == ACTOR_STAT_EXP {
+                    // RM2k's experience reaches 999999 and the variable is a
+                    // word: the ROM saturates it at 32767, like a constant
+                    // past the word. It is noted because it is silent at
+                    // run time, and a game that compares the experience
+                    // against the next level's would see it stuck there.
+                    ctx.lose(
+                        cmd,
+                        "variable-saturated",
+                        format!("variable {} takes actor {a}'s experience saturated at 32767: the word", q(1)),
+                    );
                 }
             } else if operand_kind == VAR_CHARACTER {
                 // A character's cell. `a` becomes the same target byte
@@ -6161,6 +6237,74 @@ mod tests {
         let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[0, 0], "blue")]);
         assert_eq!(out.unwrap().unwrap(), [OP_CHANGE_SYSTEM, 1, OP_DONE]);
         assert!(!ACCEPTED_UNDONE.contains(&CHANGE_SYSTEM_GRAPHICS));
+    }
+
+    /// The long forms of `KeyInputProc` that ask for the same keys as the
+    /// short one compile to the same bytes as it; the ones that ask for
+    /// another program do not compile.
+    #[test]
+    fn key_input_proc_long_forms_that_are_the_short_form_compile_as_it() {
+        let game_2000 = Game::default();
+        let game_2003 = Game {
+            is_2003: true,
+            ..Game::default()
+        };
+        // Variable 48 is slot 5 in `compile_with`. The waiting form, every
+        // key: KEY_START first, then the one that looks, both with the
+        // refresh bit, since there is no map to say nobody reads it.
+        let all = |game: &Game, p: &[i32]| compile_with(game, &[cmd(KEY_INPUT_PROC, p, "")]).unwrap();
+        let short = all(&game_2000, &[48, 1, 1, 1, 1]).unwrap();
+        assert_eq!(short, [OP_KEY, 5, 0x9F, OP_KEY, 5, 0x8F, OP_DONE]);
+        // RM2k 1.50's ten, the four directions one by one and shift: the
+        // same program, and the shift is noted as a key the pad lacks.
+        assert_eq!(all(&game_2000, &[48, 1, 1, 1, 1, 1, 1, 1, 1, 1]).unwrap(), short);
+        assert_eq!(all(&game_2000, &[48, 1, 0, 1, 1, 0, 1, 1, 1, 1]).unwrap(), short);
+        // 2003 1.05+'s fourteen, the way Zounds writes it: numbers,
+        // operators, the time variable, not timed, shift and the four.
+        assert_eq!(all(&game_2003, &[48, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]).unwrap(), short);
+        assert_eq!(all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]).unwrap(), short);
+        // And 2003's nine, before 1.05: the directions as a block.
+        assert_eq!(all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 1, 0]).unwrap(), short);
+        // The decision key alone, long: the same as the short one's.
+        assert_eq!(
+            all(&game_2000, &[48, 1, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            all(&game_2000, &[48, 1, 0, 1, 0]).unwrap()
+        );
+        // A 2000 game's ten and a 2003 game's fourteen read parameter 2
+        // for nothing: the directions come from their own parameters.
+        assert_eq!(
+            all(&game_2000, &[48, 1, 1, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            all(&game_2000, &[48, 1, 0, 1, 0]).unwrap()
+        );
+        assert_eq!(
+            all(&game_2003, &[48, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            all(&game_2000, &[48, 1, 0, 1, 0]).unwrap()
+        );
+        // Another program: some directions and not others, in both engines;
+        // the timed form; and only keys the pad does not have.
+        assert!(all(&game_2000, &[48, 1, 0, 1, 1, 0, 1, 0, 0, 0]).is_none());
+        assert!(all(&game_2003, &[48, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0]).is_none());
+        assert!(all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 7, 1, 1, 1, 1, 1, 1]).is_none());
+        assert!(all(&game_2003, &[48, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0]).is_none());
+        assert!(all(&game_2000, &[48, 1, 0, 0, 0, 1, 0, 0, 0, 0]).is_none());
+    }
+
+    /// `ControlVars` from an actor: every number of
+    /// `ControlVariables::Actor`, and the experience noted as saturated.
+    #[test]
+    fn control_vars_from_an_actor_takes_every_stat() {
+        let mut game = Game::default();
+        game.actors.insert(14, vec![]);
+        for b in 0..=14 {
+            assert_eq!(
+                compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, b], "")]).unwrap().unwrap(),
+                [OP_VAR, 5, 0x80, 5, 14, 0, b as u8, 0, OP_DONE],
+                "stat {b}"
+            );
+        }
+        assert!(compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 15], "")]).unwrap().is_none());
+        // An actor the database lacks, no.
+        assert!(compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 13, 0], "")]).unwrap().is_none());
     }
 
     #[test]
@@ -8270,8 +8414,9 @@ mod tests {
         let mut game = Game::default();
         game.actors.insert(14, vec![]);
         let fails = |c: Command| compile_with(&game, &[c]).unwrap().is_none();
-        // An actor's level, and one the database does not have.
-        assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 0], "")));
+        // A number `ControlVariables::Actor` does not have —the level, 0, is
+        // one it does since 2026-10-16— and an actor the database does not.
+        assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 15], "")));
         assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 15, 2], "")));
         // An enemy's HP by a percentage, and adding a state.
         assert!(fails(cmd(CHANGE_MONSTER_HP, &[0, 1, 2, 50, 1], "")));

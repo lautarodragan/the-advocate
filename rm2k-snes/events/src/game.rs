@@ -236,6 +236,10 @@ pub struct Game {
     /// its switch skills'. The ROM's table has to hold them too: see
     /// [`crate::indices::switch_top`].
     pub database_switches: BTreeSet<i32>,
+    /// Whether the database is RPG Maker 2003's —`System.ldb_id` 2003, the
+    /// way Ditto tells them apart—. The one command whose parameters are
+    /// laid out by engine is `KeyInputProc`: see its arm in `compile.rs`.
+    pub is_2003: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -476,6 +480,7 @@ impl Game {
             two_handed,
             two_weapons,
             database_switches,
+            is_2003: system.ldb_id == 2003,
         })
     }
 

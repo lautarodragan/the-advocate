@@ -1,4 +1,5 @@
 [
   {"id": 1, "name": "Hero", "character_name": "People1", "character_index": 2},
-  {"id": 2, "name": "Alda", "character_name": "People1", "character_index": 0}
+  {"id": 2, "name": "Alda", "character_name": "People1", "character_index": 0},
+  {"id": 3, "name": "Bram", "character_name": "People1", "character_index": 1, "initial_level": 7}
 ]

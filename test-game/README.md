@@ -16,7 +16,9 @@ the garden and the showcase, where the console loses colours: a little,
 and too much. They are the book's examples of the lossy optimizations,
 next to RM2k's drawing of the same. And a fourth, the clearing, with no
 events at all. And a common event that shows a box with escapes the console
-cannot show, which it drops and the build lists.
+cannot show, which it drops and the build lists. The database has three
+actors —the Hero, Alda and Bram, who is in no party— and one item, the
+Sword, for the cases that read an actor's stats.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json
@@ -100,6 +102,14 @@ go.
                         is cleared
     test_empty_map.py   the clearing, a map with no events, reached by a
                         Teleport: it arrives and draws
+    test_key_long_form.py
+                        `KeyInputProc` with RM2k 1.50's ten parameters,
+                        the four directions one by one: the action key,
+                        cancel and down read into a variable
+    test_actor_stats.py `ControlVars` from an actor: the Hero's level,
+                        experience, attack and defense with the Sword and
+                        his weapon and shield; Bram's level, who never
+                        fights; and the experience saturating at the word
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a
