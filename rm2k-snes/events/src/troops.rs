@@ -12,10 +12,10 @@
 //! `Scene_Battle_Rpg2k`; see `ba_page_test` in runtime/battle_troop.s.
 
 use crate::codes::*;
-use crate::compile::{compile_page, Ctx, ACCEPTED_UNDONE};
+use crate::compile::{compile_page, Ctx, ACCEPTED_UNDONE, CALL_MAX};
 use crate::losses::Origin;
 use crate::fail::Result;
-use crate::game::{Command, TroopPage};
+use crate::game::{Command, Game, TroopPage};
 use crate::indices::battle_branch;
 use crate::messages::Messages;
 use crate::registry::Package;
@@ -54,8 +54,20 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 /// Three asks for it. `TerminateBattle` ends the battle with no victory.
 /// `ChangeMonsterCondition` came in the same day as a debt, and is done since
 /// the battle keeps conditions: OP_MONSTER_STATE, see `battle_states.s`.
-const TROOP_COMMANDS: [i32; 30] = [
+///
+/// **RPG Maker 2003's**, since 2026-10-15, for a 2003 game fought with
+/// this battle: `ChangeSP`, like `ChangeHP`, through the sync; `ForceFlee`
+/// for the party —OP_BATTLE_FLEE, an escape that cannot fail—, not for an
+/// enemy, which the 2000 battle has no way to send off; and
+/// `CallCommonEvent`, which is not here but in [`runs_in_battle`], with a
+/// `CallEvent` to a common event: both are expanded before this list is
+/// asked, see [`expand_calls`]. A page conditioned on what only 2003 has
+/// —an actor's command, a turn of one actor or enemy— never runs here, and
+/// is left out: see [`trigger`].
+const TROOP_COMMANDS: [i32; 32] = [
     END,
+    CHANGE_SP,
+    FORCE_FLEE,
     SHOW_MESSAGE,
     SHOW_MESSAGE_2,
     CONTROL_SWITCHES,
@@ -203,6 +215,14 @@ pub(crate) fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
     if f.fatigue {
         return None;
     }
+    // RPG Maker 2003's conditions —an actor's command, a turn of one actor
+    // or one enemy— **and** one of 2000's: the page asks for both, and the
+    // 2000 battle has no event for the first, so it never runs. A page on a
+    // 2003 condition alone fell to the test above. In Zounds that is the 36
+    // pages of its own Escape command, measured on 2026-10-15.
+    if f.command_actor || f.turn_actor || f.turn_enemy {
+        return None;
+    }
     let mut t = Trigger::default();
     for (on, bit) in [
         (f.switch_a, SWITCH_A),
@@ -305,7 +325,7 @@ pub(crate) fn reflow_from(
 }
 
 /// A troop page's commands as a map's, or None if one does not run in a
-/// troop page.
+/// troop page. The calls are already expanded: see [`expand_calls`].
 fn commands(raw: &[Command]) -> Option<Vec<Command>> {
     if !raw.iter().all(runs_in_battle) {
         return None;
@@ -315,13 +335,92 @@ fn commands(raw: &[Command]) -> Option<Vec<Command>> {
 
 /// Whether a command can be in a troop page: see `TROOP_COMMANDS`. The
 /// battle's branch only with the two questions the map's has, a switch and
-/// a variable.
+/// a variable; `ForceFlee` only for the party; a call only to a common
+/// event, which [`expand_calls`] pastes before this is asked.
 pub(crate) fn runs_in_battle(cmd: &Command) -> bool {
     if cmd.code == BATTLE_COND_BRANCH && !matches!(cmd.parameters.first(), Some(0) | Some(1)) {
         return false;
     }
+    if cmd.code == FORCE_FLEE && cmd.parameters.first() != Some(&0) {
+        return false;
+    }
+    if called_common(cmd).is_some() {
+        return true;
+    }
     let code = battle_branch(cmd.code);
     TROOP_COMMANDS.contains(&code) || TROOP_ACCEPTED_UNDONE.contains(&code)
+}
+
+/// The common event a command calls, if it is a call to one: RPG Maker
+/// 2003's `CallCommonEvent`, by number, or a `CallEvent` of type 0.
+fn called_common(cmd: &Command) -> Option<i32> {
+    match (cmd.code, cmd.parameters.as_slice()) {
+        (CALL_COMMON_EVENT, [id, ..]) => Some(*id),
+        (CALL_EVENT, [0, id, ..]) => Some(*id),
+        _ => None,
+    }
+}
+
+/// A troop page's commands with every call to a common event replaced by
+/// the callee's body, the index in `raw` each one comes from —a pasted
+/// command's is the call's—, and the calls that were skipped instead,
+/// as (index, common event).
+///
+/// On a map a call is `OP_CALL` or a pasted body; in a battle it is only
+/// the second, because what a troop page accepts is decided here, before
+/// compiling, and a pasted body has to pass the same list. EasyRPG's
+/// `CommandCallCommonEvent` is a `Push`, so pasting gives the same result:
+/// the callee runs whole before the caller goes on. A callee with a command
+/// outside the list, or missing, is **skipped**, like a call to a body that
+/// does not compile on a map; one nested past `CALL_MAX`, or in a loop, the
+/// same. The pasted commands' indent is shifted by the call's, so that the
+/// callee's branches close inside the caller's. In Zounds this is the steal
+/// mechanic: 18 pages calling common event 2, which calls two more.
+pub(crate) fn expand_calls(game: &Game, raw: &[Command]) -> (Vec<(usize, Command)>, Vec<(usize, i32)>) {
+    /// Common event `id`'s body into `out`, shifted by `shift`, with the
+    /// calls inside it pasted the same way: `None` if a command of its own
+    /// does not run in a battle, and then nothing of it is pasted; the
+    /// calls it makes that are skipped go to `skipped`.
+    fn paste(game: &Game, id: i32, shift: i32, stack: &mut Vec<i32>, skipped: &mut Vec<i32>) -> Option<Vec<Command>> {
+        let body = game.common_events.get(&id).map(|c| c.commands.as_slice()).unwrap_or(&[]);
+        let mut out = Vec::with_capacity(body.len());
+        for cmd in body {
+            if let Some(callee) = called_common(cmd) {
+                if stack.len() >= CALL_MAX || stack.contains(&callee) {
+                    skipped.push(callee);
+                    continue;
+                }
+                stack.push(callee);
+                let pasted = paste(game, callee, shift + cmd.indent, stack, skipped);
+                stack.pop();
+                match pasted {
+                    Some(pasted) => out.extend(pasted),
+                    None => skipped.push(callee),
+                }
+                continue;
+            }
+            if !runs_in_battle(cmd) {
+                return None;
+            }
+            out.push(Command { indent: cmd.indent + shift, ..cmd.clone() });
+        }
+        Some(out)
+    }
+    let mut out = Vec::with_capacity(raw.len());
+    let mut skipped = Vec::new();
+    for (i, cmd) in raw.iter().enumerate() {
+        let Some(id) = called_common(cmd) else {
+            out.push((i, cmd.clone()));
+            continue;
+        };
+        let mut inner = Vec::new();
+        match paste(game, id, cmd.indent, &mut vec![id], &mut inner) {
+            Some(pasted) => out.extend(pasted.into_iter().map(|c| (i, c))),
+            None => skipped.push((i, id)),
+        }
+        skipped.extend(inner.into_iter().map(|id| (i, id)));
+    }
+    (out, skipped)
 }
 
 /// A troop page's command as the map's: the battle's branch is the map's.
@@ -404,13 +503,16 @@ impl TroopPages {
             self.pages += 1;
             let t = trigger(ctx, page);
             let window = self.messages.window;
-            // The rebuilt boxes move the indices: each command keeps the one
-            // it comes from, to say where a loss is.
+            // The pasted calls and the rebuilt boxes move the indices: each
+            // command keeps the one it comes from, to say where a loss is.
+            let (expanded, skipped) = expand_calls(ctx.game, &page.commands);
+            let origin: Vec<usize> = expanded.iter().map(|(i, _)| *i).collect();
+            let expanded: Vec<Command> = expanded.into_iter().map(|(_, c)| c).collect();
             let cmds = t
                 .as_ref()
-                .and_then(|_| commands(&page.commands))
+                .and_then(|_| commands(&expanded))
                 .map(|cmds| reflow_from(cmds, &window.measure(), window.lines));
-            let from: Vec<usize> = cmds.iter().flatten().map(|(i, _)| *i).collect();
+            let from: Vec<usize> = cmds.iter().flatten().map(|(i, _)| origin[*i]).collect();
             let cmds = cmds.map(|c| c.into_iter().map(|(_, c)| c).collect::<Vec<_>>());
             let code = match cmds {
                 None => None,
@@ -434,6 +536,17 @@ impl TroopPages {
                     let code = compile_page(&mut inner, &cmds, None, 0, 0);
                     inner.losses.leave();
                     inner.losses.reindex_from(mark, |i| from.get(i).copied().unwrap_or(i));
+                    // The calls `expand_calls` skipped, at the call's own
+                    // index: after the reindexing, which is for the rebuilt
+                    // list's.
+                    for (i, id) in &skipped {
+                        inner.losses.lose_on(
+                            vec![(Origin::Troop { troop: number, page: k as i32 + 1 }, Some(*i))],
+                            Some(page.commands[*i].code),
+                            "call-skipped",
+                            format!("common event {id} uses a command the battle has no opcode for, and the call is skipped"),
+                        );
+                    }
                     ctx.losses = std::mem::take(&mut inner.losses);
                     code?
                 }
@@ -580,6 +693,105 @@ mod tests {
         assert_eq!(&pages.bodies[at..at + 3], &[OP_DELAY, 20, 0]);
         assert_eq!(pages.bodies[at + 3], OP_BATTLE_ABORT);
         assert_eq!(pages.debts[&SHOW_BATTLE_ANIMATION_B], vec![(96, 0)]);
+    }
+
+    /// Zounds' steal mechanic: a page on switch 3 calls common event 2,
+    /// which changes SP, shows a box and calls common event 65; one of its
+    /// calls goes to a common event with a `Teleport`, which the battle has
+    /// no stand-in for, and that call alone is skipped.
+    #[test]
+    fn a_call_to_a_common_event_is_pasted_in_the_battle_and_a_callee_the_battle_cannot_run_is_skipped() {
+        let mut game = Game::default();
+        let common = |commands: Vec<Command>| crate::game::CommonEvent {
+            trigger: 0,
+            switch_flag: false,
+            switch_id: 1,
+            commands,
+        };
+        game.common_events.insert(
+            2,
+            common(vec![
+                Command::new(CHANGE_SP, 0, "", vec![0, 1, 1, 0, 5]),
+                Command::new(CALL_EVENT, 0, "", vec![0, 65, 0]),
+                Command::new(CALL_EVENT, 0, "", vec![0, 70, 0]),
+                Command::new(END, 0, "", vec![]),
+            ]),
+        );
+        game.common_events.insert(65, common(vec![Command::new(CONTROL_SWITCHES, 0, "", vec![0, 4, 4, 0])]));
+        game.common_events.insert(70, common(vec![Command::new(TELEPORT, 0, "", vec![1, 1, 1])]));
+        let page = vec![
+            Command::new(COND_BRANCH, 0, "", vec![0, 3, 0]),
+            Command::new(CALL_COMMON_EVENT, 1, "", vec![2]),
+            Command::new(COND_END, 0, "", vec![]),
+        ];
+        let (expanded, skipped) = expand_calls(&game, &page);
+        let codes: Vec<(usize, i32, i32)> = expanded.iter().map(|(i, c)| (*i, c.code, c.indent)).collect();
+        assert_eq!(
+            codes,
+            vec![
+                (0, COND_BRANCH, 0),
+                (1, CHANGE_SP, 1),
+                (1, CONTROL_SWITCHES, 1),
+                (1, END, 1),
+                (2, COND_END, 0),
+            ],
+            "the callee's body in the call's place, at the call's indent, with the call it makes pasted too"
+        );
+        assert_eq!(skipped, vec![(1, 70)], "the callee with the teleport is skipped, by the call's index");
+        assert!(commands(&expanded.into_iter().map(|(_, c)| c).collect::<Vec<_>>()).is_some());
+        // A call to a map event's page has no place in a battle; one to a
+        // common event does, and so does RPG Maker 2003's own command.
+        assert!(!runs_in_battle(&Command::new(CALL_EVENT, 0, "", vec![1, 5, 1])));
+        assert!(runs_in_battle(&Command::new(CALL_EVENT, 0, "", vec![0, 5, 0])));
+        assert!(runs_in_battle(&Command::new(CALL_COMMON_EVENT, 0, "", vec![2])));
+    }
+
+    /// Zounds' own Escape command: `ForceFlee` for the party, and nothing
+    /// for an enemy, which the 2000 battle has no way to send off.
+    #[test]
+    fn force_flee_is_the_party_s_and_not_an_enemy_s() {
+        assert!(runs_in_battle(&Command::new(FORCE_FLEE, 0, "", vec![0, 0, 1])));
+        assert!(!runs_in_battle(&Command::new(FORCE_FLEE, 0, "", vec![1, 0, 1])));
+        assert!(!runs_in_battle(&Command::new(FORCE_FLEE, 0, "", vec![2, 3, 0])));
+        assert!(runs_in_battle(&Command::new(CHANGE_SP, 0, "", vec![0, 1, 1, 0, 5])));
+    }
+
+    /// A page conditioned on what only RPG Maker 2003 asks —an actor's
+    /// command, here together with a switch— never runs in the 2000 battle,
+    /// and is left out instead of running on the switch alone.
+    #[test]
+    fn a_page_on_a_2003_condition_never_runs() {
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+        };
+        let mut condition = ditto::schema::TroopPageCondition::default();
+        condition.flags.switch_a = true;
+        condition.switch_a_id = 3;
+        let on_switch = TroopPage { condition: condition.clone(), commands: vec![] };
+        assert!(trigger(&ctx, &on_switch).is_some());
+        for set in [
+            |f: &mut ditto::schema::TroopPageConditionFlags| f.command_actor = true,
+            |f: &mut ditto::schema::TroopPageConditionFlags| f.turn_actor = true,
+            |f: &mut ditto::schema::TroopPageConditionFlags| f.turn_enemy = true,
+        ] {
+            let mut condition = condition.clone();
+            set(&mut condition.flags);
+            assert!(trigger(&ctx, &TroopPage { condition, commands: vec![] }).is_none());
+        }
     }
 
     #[test]
