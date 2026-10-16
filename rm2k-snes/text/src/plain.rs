@@ -122,7 +122,7 @@ pub fn plain_loss(letters: &[char]) -> String {
         .iter()
         .map(|&c| format!("{c} as {}", plain(c).unwrap_or("?")))
         .collect();
-    format!("letters the font does not have are shown plain: {}", each.join(", "))
+    format!("letters the box does not draw are shown plain: {}", each.join(", "))
 }
 
 #[cfg(test)]
@@ -193,7 +193,7 @@ mod tests {
     fn the_loss_says_each_letter_and_what_is_drawn() {
         assert_eq!(
             plain_loss(&['é', 'ß']),
-            "letters the font does not have are shown plain: é as e, ß as ss"
+            "letters the box does not draw are shown plain: é as e, ß as ss"
         );
     }
 }

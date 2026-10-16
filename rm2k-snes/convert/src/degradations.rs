@@ -149,7 +149,7 @@ impl Degradations {
         }
         (commands > 0).then(|| {
             format!(
-                "  WARNING, letter-plain: {commands} command(s) show letters the font does not have as plain ASCII: {}",
+                "  WARNING, letter-plain: {commands} command(s) show letters their box does not draw as plain ASCII: {}",
                 letters.join(", ")
             )
         })
@@ -164,12 +164,12 @@ mod tests {
     fn the_plain_letters_are_one_warning_with_every_letter_once() {
         let mut d = Degradations::default();
         assert_eq!(d.plain_warning(), None);
-        let text = |t: &str| format!("letters the font does not have are shown plain: {t}");
+        let text = |t: &str| format!("letters the box does not draw are shown plain: {t}");
         d.losses.push(json!({"map": 8, "event": 3, "page": 1, "command": 0, "kind": "letter-plain", "text": text("é as e, ¿ as ?")}));
         d.losses.push(json!({"map": 8, "event": 3, "page": 1, "command": 2, "kind": "letter-plain", "text": text("é as e, ß as ss")}));
         assert_eq!(
             d.plain_warning().unwrap(),
-            "  WARNING, letter-plain: 2 command(s) show letters the font does not have as plain ASCII: é as e, ¿ as ?, ß as ss"
+            "  WARNING, letter-plain: 2 command(s) show letters their box does not draw as plain ASCII: é as e, ¿ as ?, ß as ss"
         );
     }
 
