@@ -198,12 +198,14 @@ MESSAGE_WAIT = $FE
 MESSAGE_NAME = $FD
 
 ; The characters of the variable's value being written, and how many are
-; still to hand out: at most a sign and five digits, sixteen bits. $6120 to
-; $6127, behind the call stack. **They do not travel in the save**, and
+; still to hand out: at most a sign and five digits, sixteen bits. **They do not travel in the save**, and
 ; `message_tick` clears the count at each line's start, like the second
 ; letter of a pair. A name's letters are counted here too, with bit 7 set,
 ; and the first three bytes keep where the line goes on: see `msg_name_mark`
 ; in actor_names.s.
-MSG_DIGITS_N = $7E6120
-MSG_DIGITS   = $7E6121
-.assert MSG_DIGITS + 6 <= $7E6128, error, "the digits of a variable overflow their RAM"
+.pushseg
+.segment "FARBSS"
+MSG_DIGITS_N: .res 7
+.popseg
+MSG_DIGITS   = MSG_DIGITS_N + $01
+.assert MSG_DIGITS + 6 <= MSG_DIGITS_N + 7, error, "the digits of a variable overflow their RAM"

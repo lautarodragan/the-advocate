@@ -6,10 +6,6 @@
 ; normal addressing —it cannot be indexed— so it is good for what is stored
 ; and walked a little at a time, not for what is drawn.
 ;
-; Today it holds the state of the parallel interpreters: 840 bytes that did
-; not fit in bank 0. The day there are RM2k variables —five thousand, ten
-; kilobytes— they go here too.
-;
 ; **A new variable in far RAM does not get an address written by hand**: it
 ; goes in the file of its subsystem, with a `.res` in `FARBSS`, and the
 ; linker places it —
@@ -21,9 +17,9 @@
 ;
 ; — the same as a new one in the `BSS` or the `ZEROPAGE`, which are declared
 ; the same way. Two branches that each add one do not touch the same line,
-; and their variables cannot overlap: the addresses below were chosen by
-; hand as "the next free one", and more than once two branches chose the
-; same one without git seeing it. When `FARBSS` no longer fits, the link
+; and their variables cannot overlap: until 2026-10-16 the addresses were
+; chosen by hand as "the next free one", and more than once two branches
+; chose the same one without git seeing it. When `FARBSS` no longer fits, the link
 ; fails, and `just space` says how much is left.
 ;
 ; The segment is declared `far` here, before anyone uses it, so its labels
@@ -35,64 +31,57 @@
 ; taken as sixteen bits, and the link fails with a range error: that use
 ; goes with `f:`.
 ;
-; What follows is the map of what was placed by hand before, which stays
-; where it is so as not to move the ROM. `FARBSS` lives in a stretch of it
-; nobody used —see `FAR_POOL_START` in rm2k-snes/cartridge/src/banks.rs—,
-; and nothing of the map may reach it: the scene's state asserts it, and
-; ABL's `test_wram_reservations.py` checks it for every symbol.
+; **All of `$7E2000-$7E7FFF` is the segment's**, since 2026-10-16: what
+; follows was a map of addresses written by hand until that day, with holes
+; between its regions, and each region went into a `.res` of its own size
+; in the same order —see `FAR_POOL_START` in
+; rm2k-snes/cartridge/src/banks.rs—. Many keep their old names as sixteen-bit
+; constants, `.loword` of the label, because the code that reads them runs
+; with the data bank at `$7E` or points the WMADD window at them: the label
+; is lowercase and the constant uppercase, `far_battle` and `FAR_BATTLE`.
+; **A block that is walked as a range is one `.res` with offsets**, or
+; several in a row with an `.assert` that they are adjacent: the linker
+; places them in the order of the text, and nothing else promises it.
 .pushseg
 .segment "FARBSS": far
 .popseg
-.import __FARRAM_START__
-FAR_PAIR_STATE = $2000      ; EV_MAX entries of PAIR_BYTES
-FAR_PAIR_LIST  = $2400      ; PARALLEL_MAX entries of PAIR_LIST_BYTES
+;
+; **What the game sizes is declared in far_ram_game.s**, after the
+; cartridge's `.inc` says how big it is: the names stay here, with their
+; why, and the `.res` goes there. What does not depend on the game goes
+; here, at its own size.
+FAR_PAIR_STATE = .loword(far_pair_state)    ; EV_MAX entries of PAIR_BYTES
+FAR_PAIR_LIST  = .loword(far_pair_list)     ; PARALLEL_MAX entries of PAIR_LIST_BYTES
 ; The RM2k variables, one signed word per slot. How many there are is said by
 ; the converter —`VARIABLES_N`—, which gives a slot only to the ones named by
 ; the pages of the maps in the ROM; the bytecode talks in slots. They are read
 ; and written with `var_read` and `var_write`, and they travel in the save:
 ; `save_table` copies them from here, which the DMA reaches just like bank
 ; 0 because WMADD is a seventeen-bit address.
-FAR_VARIABLES  = $2600
-; And the inventory, after the variables —which are at most 256, the
-; converter guarantees it—: one byte per LDB item, indexed by the RM2k number
-; —0 is unused— and capped at ITEM_MAX, like `Game_Party::AddItem`. It
-; travels in the save and is cleared with the variables.
-FAR_ITEMS      = $2800
-; And the list of the items screen —and of the equipment's, the shop's selling
-; one and the battle's—, one `k` per word: see items.s.
-FAR_ITEM_LIST  = $2A00
-; And the equipment of each LDB actor, by actor number: five words —weapon,
-; shield, armor, helmet, accessory— with the item number or 0. It starts with
-; the database's initial equipment, which `initial_equipment_set` copies on
-; reset, and travels in the save.
-FAR_EQUIPMENT  = $2C00
-; And the random state, two bytes before: a sixteen-bit xorshift, the same as
-; `random_next` in events.py, seeded on reset. It goes here and not in the
-; direct page because the direct page ended up at 258 of 256 when that was
-; tried; randomness is asked for rarely and the port does not notice.
-FAR_RANDOM     = $25FE
-; And the hero's speed, 1 to 6, one byte before: move commands 28 and 29 of a
-; forced move route raise and lower it and **it stays that way**, for the pad
-; too —RM2k only restores the frequency when the move route ends,
+FAR_VARIABLES  = .loword(far_variables)
+; And the inventory, after the variables: one byte per LDB item, indexed by
+; the RM2k number —0 is unused— and capped at ITEM_MAX, like
+; `Game_Party::AddItem`. It travels in the save and is cleared with the
+; variables.
+FAR_ITEMS      = .loword(far_items)
+; And the random state: a sixteen-bit xorshift, the same as `random_next` in
+; events.py, seeded on reset. It goes here and not in the direct page
+; because the direct page ended up at 258 of 256 when that was tried;
+; randomness is asked for rarely and the port does not notice.
+FAR_RANDOM     = .loword(far_random)
+; And the hero's speed, 1 to 6: move commands 28 and 29 of a forced move
+; route raise and lower it and **it stays that way**, for the pad too —RM2k
+; only restores the frequency when the move route ends,
 ; `original_move_frequency`; not the speed—. It travels in the save. It is
 ; read once per step.
-FAR_HERO_SPEED = $25FD
-; And how much the player added to that speed with L and R, signed, and which
-; of the two were held on the last frame, for the edge: see
-; `hero_speed_keys.s`. They do **not** travel in the save —it is a taste of
-; whoever is playing, not world state— and reset clears them. They sit apart
-; from the ones above, in the gap between `FAR_PAIR_LIST`'s end ($2580) and
-; them, so that whoever takes "the next free byte" below `FAR_ACCESS` does not
-; land on them.
-FAR_SPEED_BONUS = $25F0
-FAR_SPEED_KEYS  = $25F1
-; And the permissions, one byte before: `ChangeSaveAccess`,
-; `ChangeMainMenuAccess` and `ChangeEscapeAccess` turn them off and on, and
-; bit 7 is RM2k's menu request, `menu_calling`: B sets it and the hero
-; handles it when standing still. The bits are stored as "forbidden" so that
-; the zero from reset means "everything allowed", which is how RM2k starts.
-; It travels in the save, as it does there. And entering a map writes its
-; save, escape and teleport over them: see `map_access_enter`.
+FAR_HERO_SPEED = .loword(far_hero_speed)
+; And the permissions: `ChangeSaveAccess`, `ChangeMainMenuAccess` and
+; `ChangeEscapeAccess` turn them off and on, and bit 7 is RM2k's menu
+; request, `menu_calling`: B sets it and the hero handles it when standing
+; still. The bits are stored as "forbidden" so that the zero from reset
+; means "everything allowed", which is how RM2k starts. It travels in the
+; save, as it does there. And entering a map writes its save, escape and
+; teleport over them: see `map_access_enter`.
 ;
 ; The escape one is stored and **nobody reads it yet**: it is the Escape
 ; skill's —not the battle's Escape command, which RM2k does not tie to it—,
@@ -100,36 +89,57 @@ FAR_SPEED_KEYS  = $25F1
 ; one bit and because without it 30 of the game's 39 pages with
 ; `EnemyEncounter` that fail today do not compile; see `ACCESS_BIT` in the
 ; event compiler.
-FAR_ACCESS     = $25FC
-; And `MessageOptions`, one byte before: where and how the message window is
-; drawn, which lasts until the next one and travels in the save, like
-; `SaveSystem`'s four fields. `OP_MESSAGE_OPTIONS` writes it whole and
-; `clear_variables` puts RM2k's default at reset: at the bottom, with its
-; frame, moving out of the hero's way —`message_prevent_overlap` is 1 in
-; liblcf— and with the events stopped.
-FAR_MSG_OPTIONS = $25FB
+FAR_ACCESS     = .loword(far_access)
+; And `MessageOptions`: where and how the message window is drawn, which
+; lasts until the next one and travels in the save, like `SaveSystem`'s four
+; fields. `OP_MESSAGE_OPTIONS` writes it whole and `clear_variables` puts
+; RM2k's default at reset: at the bottom, with its frame, moving out of the
+; hero's way —`message_prevent_overlap` is 1 in liblcf— and with the events
+; stopped.
+FAR_MSG_OPTIONS = .loword(far_msg_options)
 MSG_WHERE    = $03              ; 0 top, 1 middle, 2 bottom
 MSG_BARE     = $04              ; without the frame and the background
 MSG_DODGE    = $08              ; moves if it would cover the hero
 MSG_CONTINUE = $10              ; the events go on moving during a page
 MSG_DEFAULT  = 2 | MSG_DODGE
+; **These six are one block, in this order**, in far_ram_game.s:
+; `clear_variables` writes the first five bytes and clears the rest up to
+; the inventory's end in one pass through the WMADD window.
+; And the list of the items screen —and of the equipment's, the shop's selling
+; one and the battle's—, one `k` per word: see items.s, which declares it.
+FAR_ITEM_LIST  = .loword(far_item_list)
+; And the equipment of each LDB actor, by actor number: five words —weapon,
+; shield, armor, helmet, accessory— with the item number or 0. It starts with
+; the database's initial equipment, which `initial_equipment_set` copies on
+; reset, and travels in the save.
+FAR_EQUIPMENT  = .loword(far_equipment)
+; And how much the player added to that speed with L and R, signed, and which
+; of the two were held on the last frame, for the edge: see
+; `hero_speed_keys.s`. They do **not** travel in the save —it is a taste of
+; whoever is playing, not world state— and reset clears them.
+FAR_SPEED_BONUS = .loword(far_speed_bonus)
+FAR_SPEED_KEYS  = .loword(far_speed_keys)
 ; And what the window that is on screen took from it when it opened, and the
 ; HDMA that puts it there: see `msg_place` and `msg_hdma_build`, in
 ; message_place.s. They do not travel in the save: they are the open window's,
-; and `FAR_MSG_OPTIONS` is what lasts. $25F6 to $25F9, allotted on 2026-10-04
-; in the gap below it; $2580 to $25EF is all taken.
-MSG_PLACE = $7E25F6             ; the position the window really took, plus MSG_BARE
-MSG_SC    = $7E25F7             ; BG2SC of the window's tilemap: a big picture moves it
-MSG_ENTRY = $7E25F8             ; the window's stretch in `hdma_ofs`: 0, 5 or 10
-MSG_VOFS  = $7E25F9             ; BG2VOFS while the window is drawn
-.assert FAR_SPEED_KEYS < $25F6 && MSG_VOFS & $FFFF < FAR_MSG_OPTIONS, error, "the window's place steps on its neighbours"
+; and `FAR_MSG_OPTIONS` is what lasts.
+.pushseg
+.segment "FARBSS"
+far_speed_bonus: .res 1
+far_speed_keys:  .res 1
+MSG_PLACE:       .res 1         ; the position the window really took, plus MSG_BARE
+MSG_SC:          .res 1         ; BG2SC of the window's tilemap: a big picture moves it
+MSG_ENTRY:       .res 1         ; the window's stretch in `hdma_ofs`: 0, 5 or 10
+MSG_VOFS:        .res 1         ; BG2VOFS while the window is drawn
 ; And the arrow of a message waiting for a key: how long it has been up, and
-; what its cells say. See message_arrow.s. Not in that gap, which is
-; full, but after the battle animation's, which ends at $3618; from there to
-; `FAR_HP`, at $3700, nobody was. Allotted on 2026-10-04.
-MSG_ARROW_T = $7E3620
-MSG_ARROW_WAY = $7E3621         ; two bytes, `msg_arrow`'s scratch
-MSG_ARROW_UP = $7E3623          ; whether its cells say it is up; $FF is not known
+; what its cells say. See message_arrow.s.
+MSG_ARROW_T:     .res 1
+MSG_ARROW_WAY:   .res 2         ; `msg_arrow`'s scratch
+MSG_ARROW_UP:    .res 1         ; whether its cells say it is up; $FF is not known
+; And the +15 of the page `active_layer` found —its speed, and whether its
+; graphic is fixed—, beside `found_flags`, for which bank 0 has no room left.
+FOUND_SPEED:     .res 1
+.popseg
 ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU     = $02
 ACCESS_NO_ESCAPE = $04
@@ -139,26 +149,13 @@ ACCESS_NO_TELEPORT = $08
 ; The ones a map writes when it is entered: see `map_access_enter`.
 ACCESS_MAP = ACCESS_NO_SAVE | ACCESS_NO_ESCAPE | ACCESS_NO_TELEPORT
 ACCESS_REQUESTED   = $80
-; And the +15 of the page `active_layer` found —its speed, and whether its
-; graphic is fixed—, beside `found_flags`, for which bank 0 has no room left.
-; $30CB, in the gap between the turn's —`PICK_POSE` is $30CA— and the audio
-; package's, which starts at $30D0. Allotted on 2026-10-05.
-FOUND_SPEED = $7E30CB
-; --- the battle: its state in far RAM -------------------------------------------
-;
-; **Far RAM has a map and it has to be respected.** On 2026-09-12 the picture
-; was put at $30E8, which was where the MSU-1 state lived, and the ROM stopped
-; detecting the chip: the music went silent and no test saw it. From $2000 to
-; $30FA everything is taken —the parallel interpreters, the variables, the
-; inventory, the equipment, the weather, the sound effects, the rotation, the
-; picture— and from $3100 to $3600 goes the ARAM allocation. So this starts at
-; $3700, which is the first place where nobody is.
+; --- the actors: their state in far RAM ----------------------------------------
 ;
 ; The HP of each LDB actor, one word per actor number. **They are real state
 ; since there are battles**: until 2026-09-12 nobody went below their maximum
 ; and `ChangeHP` compiled to nothing. They travel in the save, after the
 ; equipment, and reset fills them up.
-FAR_HP = $3700
+FAR_HP = .loword(far_hp)
 
 ; Far RAM with the bank in front, for the few who read it from outside with
 ; `lda f:`: it is the same as `BAT_LENGTH`, which kept a battle name.
@@ -167,9 +164,8 @@ FAR_LENGTH = $7E0000
 ; And the SP, which are state for the same reason as the HP since skills can
 ; be used: each one costs its `sp_cost` and `Scene_Battle` deducts it from
 ; whoever uses it. They start full from `actor_spmax` and travel in the save,
-; after the HP. `FAR_HP` is ACTORS_N words —61 actors, 122 bytes— so it
-; reaches $3779; this starts at $3780 and ends before $3800.
-FAR_SP = $3780
+; after the HP.
+FAR_SP = .loword(far_sp)
 
 ; And which graphic a `ChangeSpriteAssociation` changed each LDB actor's
 ; sprite to, one byte per actor number: the index in the map's graphics table
@@ -177,51 +173,54 @@ FAR_SP = $3780
 ; the LDB one. It travels in the save, as in RM2k, and **survives the
 ; teleport**: that is what sets it apart from move command 34 on the hero,
 ; which is restored on load.
-;
-; It goes at $3800 and the battle moves to $3A00. It could have gone right
-; after `FAR_HP` —today there is more than enough room up to $37FF— but then
-; its address would depend on `ACTORS_N`, which the converter emits, and the
-; far RAM map would be at the mercy of a number not written here. See above:
-; this map was stepped on once already and the music was silent for a whole
-; day.
-FAR_ACTOR_GFX = $3800
+FAR_ACTOR_GFX = .loword(far_actor_gfx)
 ACTOR_GFX_NONE = $FF
+; The equipment, the HP, the SP and the graphic are tables by LDB actor
+; number, `ACTORS_N` entries each —the highest number plus one—: they are
+; declared in far_ram_game.s, sized by the game, so no game's actors can
+; run one table into the next.
 
 ; The text layer of the screens: what each text row of the menu, the slots,
 ; the items, equipment, the shop and the battle says, the row being typeset
-; and which tiles each cell took. See `text_layer.s`.
-;
-; **$3D20 to $5FFF belongs to this**, reserved on 2026-10-03: the battle
-; ends at $3CFF, the second sound-effect voice takes $3D00 to $3D17, and
-; nothing else lived between there and `FAR_SKILL`. It is named with a
+; and which tiles each cell took. See `text_layer.s`. It is named with a
 ; sixteen-bit address, like the battle's, and read with the data bank at
 ; $7E. It does not travel in the save: a screen fills it from scratch when it
 ; opens.
-FAR_TEXT_LAYER = $3D20
-FAR_TEXT_LAYER_END = $6000
+;
+; `TL_BYTES` is what text_layer.s lays out, written as a number because
+; the `.res` needs one before the layout exists; text_layer.s asserts that
+; it is exactly that.
+TL_BYTES = $224A
+.pushseg
+.segment "FARBSS"
+far_text_layer: .res TL_BYTES
+far_text_layer_end:
+.popseg
+FAR_TEXT_LAYER = .loword(far_text_layer)
+FAR_TEXT_LAYER_END = .loword(far_text_layer_end)
 
 ; And which skills each actor knows, since 2026-09-21: one bit per (actor,
 ; skill) pair, with the slot the converter gave each pair —see
 ; `SKILL_SLOT` in events.py—. It starts with what the LDB says for the
 ; initial level, which `initial_skills_set` copies on reset, `ChangeSkills`
 ; sets and clears it, and it travels in the save. How many bytes it takes is
-; said by `SKILL_BYTES`, and the converter stops if they go past 256.
-;
-; **$6000 to $60FF belongs to this**: the range was reserved in advance, when
-; splitting work among three jobs that ran at the same time and touched far
-; RAM.
-FAR_SKILL = $6000
+; said by `SKILL_BYTES`, and the converter stops if they go past 256. It
+; is declared in far_ram_game.s.
+FAR_SKILL = .loword(far_skill)
 
 ; --- random encounters: their state in far RAM -------------------------------
 ;
-; Nine bytes at $3900, which is the gap left between `FAR_ACTOR_GFX` —61
-; bytes from $3800— and the battle. **It does not travel in the save**, just
+; Nine bytes. **It does not travel in the save**, just
 ; as the HP of an unfinished battle do not: on load, the accumulated count
 ; starts at zero, which is the same thing that happens on entering a map.
 ;
 ; It did not fit in bank 0: the BSS is at 7680 of 7680, measured on
 ; 2026-09-13 by adding a `.res 64` and looking at the assembler's cut.
-FAR_ENCOUNTER = $3900
+.pushseg
+.segment "FARBSS"
+far_encounter: .res 9
+.popseg
+FAR_ENCOUNTER = .loword(far_encounter)
 ENC_N     = FAR_ENCOUNTER + 0   ; steps taken since the last encounter
 ENC_IDX   = FAR_ENCOUNTER + 1   ; the table row, which never goes down
 ENC_ASKS  = FAR_ENCOUNTER + 2   ; one came up and is collected next frame
@@ -244,11 +243,13 @@ ENC_STRIDE = 8
 ; read from the table because `ChangeEncounterSteps` changes them along with
 ; `ENC_BASE`: the chance and the rows come from the same `encounter_steps`.
 ;
-; $7E79C0 to $7E79C7, out of what was allotted to world milestone 2 on
-; 2026-09-27 —$79C0 to $79DF—. Like the rest of the encounters, with a
-; sixteen-bit address: it is read with the data bank at $7E.
-ENC_THR   = $79C0
-.assert ENC_THR + ENC_STRIDE <= $79E0, error, "the thresholds overflow their range"
+; Like the rest of the encounters, with a sixteen-bit address: it is read
+; with the data bank at $7E.
+.pushseg
+.segment "FARBSS"
+far_enc_thr: .res ENC_STRIDE
+.popseg
+ENC_THR   = .loword(far_enc_thr)
 
 ; --- experience and level: their state in far RAM ----------------------------
 ;
@@ -258,29 +259,28 @@ ENC_THR   = $79C0
 ; Having the level right next to the experience is what makes the save carry
 ; a single line for both. It starts from `exp_initial` on reset and travels
 ; in the save.
-;
-; $6200 to $63FF is the place given to this on 2026-09-21, split among three
-; branches: the map above ends at the battle, which does not go past $3CFF.
-FAR_EXP     = $6200
+; `EXP_K` slots: declared in far_ram_game.s.
+FAR_EXP     = .loword(far_exp)
 EXP_LEVEL   = 3             ; the level, the fourth byte
-; And, at the end of the same place, eight bytes where `text_level` and its
-; siblings compose the level and the maximum the menu writes: they are
-; numbers from the save and no longer strips from the cartridge. The slots
-; reach 128 before stepping on them, and the converter stops much earlier:
-; see `tables` in rm2k-snes-battle's `experience.rs`.
-EXP_TEXT    = $7E63F8
+; And eight bytes where `text_level` and its siblings compose the level and
+; the maximum the menu writes: they are numbers from the save and no longer
+; strips from the cartridge.
+.pushseg
+.segment "FARBSS"
+EXP_TEXT: .res 8
+.popseg
 ; RM2k's `MaxExpValue()`, in its two halves.
 EXP_CAP_HI = $0F
 EXP_CAP_LO = $423F
 
 ; --- troop pages: their state in far RAM --------------------------------------
 ;
-; $6400 to $65FF is the place given to this on 2026-09-21. **It does not
-; travel in the save**, like nothing in the battle. It is named with a
+; **It does not travel in the save**, like nothing in the battle. It is named with a
 ; sixteen-bit address, same as `FAR_BATTLE`, because the battle code reads
 ; it with the data bank at $7E; the bridge from bank 0 puts `BAT_LENGTH` in
 ; front of it.
-FAR_PAGE      = $6400
+; Sixteen bytes and `TROOP_PAGE_MAX`: declared in far_ram_game.s.
+FAR_PAGE      = .loword(far_page)
 BA_PAGE_N     = FAR_PAGE + 0    ; how many pages this battle's troop brings
 BA_PAGE_INIT  = FAR_PAGE + 1    ; word: the first, in the `tpage_*` tables
 BA_PAGE_CODE  = FAR_PAGE + 3    ; word: where the running one starts, in the
@@ -295,19 +295,23 @@ BA_PAGE_I     = FAR_PAGE + 11   ; which one the sweep is on
 BA_PAGE_G     = FAR_PAGE + 12   ; word: that same one, in the `tpage_*` tables
 BA_PAGE_DONE  = FAR_PAGE + 16   ; TROOP_PAGE_MAX bytes: already ran this turn
 ; And what the turn and HP conditions and the commands that come with them
-; added, on 2026-09-28: $7E7A10 to $7E7A3F, which is what was allotted to
-; this. With a sixteen-bit address, like the rest of the battle.
-BA_TURN       = $7A10           ; word: the turn, `Game_Party::GetTurns`
-BA_PAGE_WAIT = $7A12            ; word: frames left in the wait of the
+; added, on 2026-09-28: one block of $20 bytes, with a sixteen-bit address,
+; like the rest of the battle.
+.pushseg
+.segment "FARBSS"
+far_ba_turn: .res $1B
+.popseg
+BA_TURN       = .loword(far_ba_turn)    ; word: the turn, `Game_Party::GetTurns`
+BA_PAGE_WAIT = BA_TURN + $02    ; word: frames left in the wait of the
                                 ; running page
-BA_PCT_MIN    = $7A14           ; the HP range, in percent, that is checked
-BA_PCT_MAX    = $7A15
-BA_P24        = $7A16           ; three bytes: what `ba_mul24` leaves
-BA_P_HP       = $7A19           ; three bytes: a hundred times the HP checked
-BA_PAGE_FL    = $7A1C           ; the triggers of the page being tested
+BA_PCT_MIN    = BA_TURN + $04   ; the HP range, in percent, that is checked
+BA_PCT_MAX    = BA_TURN + $05
+BA_P24        = BA_TURN + $06   ; three bytes: what `ba_mul24` leaves
+BA_P_HP       = BA_TURN + $09   ; three bytes: a hundred times the HP checked
+BA_PAGE_FL    = BA_TURN + $0C   ; the triggers of the page being tested
 ; And its header, copied from in front of its code: `Trigger::header` in
 ; the event compiler, in the same order.
-BA_COND       = $7A20
+BA_COND       = BA_TURN + $10
 BA_COND_BASE  = 0               ; word: the turn base, `turn_b`
 BA_COND_MULT  = 2               ; word: and its multiple, `turn_a`
 BA_COND_ENEMY = 4               ; the enemy's place in the troop
@@ -316,21 +320,19 @@ BA_COND_EMAX  = 6
 BA_COND_ACT   = 7               ; the actor, by LDB number
 BA_COND_AMIN  = 8
 BA_COND_AMAX  = 9
-.assert BA_COND + TPAGE_HEADER <= $7A40, error, "the pages' state overflows its range"
+.assert BA_COND + TPAGE_HEADER <= BA_SYNC_I, error, "the pages' state overflows its range"
 ; And the one for the party a page changes, on 2026-09-30, after the header:
 ; which place of `party` `ba_sync_in` is on, which `ba_actor_setup` does not
 ; clobber.
-BA_SYNC_I     = $7A2A
-.assert BA_SYNC_I < $7A40, error, "the pages' state overflows its range"
+BA_SYNC_I     = BA_TURN + $1A
+.assert BA_SYNC_I < BA_TURN + $1B, error, "the pages' state overflows its range"
 .assert BA_SYNC_I >= BA_COND + TPAGE_HEADER, error, "BA_SYNC_I steps on the header"
 
 ; --- a medicine outside battle: its scratch space in far RAM -----------------
 ;
 ; **It does not travel in the save**: it lasts as long as one A press in the
 ; actor choice. `medicine_use` runs with the data bank at $7E, so it names
-; them by their `.loword`. From 2026-09-21 to 2026-10-12 it was $6800 to
-; $68FF, written by hand; it went into `FARBSS` so the linker's stretch could
-; grow over that place —see `FAR_POOL_START` in rm2k-snes/cartridge—.
+; them by their `.loword`.
 .pushseg
 .segment "FARBSS"
 MED_ACTOR:    .res 1            ; the actor, by LDB number
@@ -367,10 +369,7 @@ MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GRO
 ;
 ; The table itself is a `.res` in `FARBSS`, in medicine.s, sized by the game
 ; —`EXP_K` rows—: it cannot be declared here, which comes before the
-; cartridge's `.inc` says how many slots there are. Until 2026-10-14 it was
-; placed by hand at $7E7D00 with room up to the panorama's state, 21 slots,
-; and ABL's whole game has 23. $7E7D00 to $7E7DFF was free after that, and
-; since 2026-10-15 it is the switch table's: see switches.s.
+; cartridge's `.inc` says how many slots there are.
 GROWTH_BYTES  = 12
 GROWTH_MAX    = 999             ; `MaxHpValue`, `MaxSpValue` and `MaxStatBaseValue` of RM2k
 
@@ -382,7 +381,13 @@ PAIR_BATTLE = $FE
 
 ; And the battle state, which does **not** travel in the save: a battle cannot
 ; be saved in RM2k either.
-FAR_BATTLE = $3A00
+; How many bytes the battle's state takes: up to `BA_HOFS_HDMA`'s ten.
+BA_BATTLE_BYTES = 713
+.pushseg
+.segment "FARBSS"
+far_battle: .res BA_BATTLE_BYTES
+.popseg
+FAR_BATTLE = .loword(far_battle)
 ; The same address but long, for the few who touch it from outside the
 ; battle: `op_battle` runs with the bytecode's data bank.
 BAT_LENGTH = $7E0000
@@ -501,50 +506,55 @@ BA_WIN_KEY    = FAR_BATTLE + 694
 BA_WIN_SHOWN  = FAR_BATTLE + 698
 BA_WIN_DID    = FAR_BATTLE + 702
 BA_HOFS_HDMA  = FAR_BATTLE + 703    ; 10 bytes
-BA_BATTLE_END = FAR_BATTLE + 713
-.assert BA_BATTLE_END <= $3D00, error, "the battle's state reaches the second sound-effect voice"
+BA_BATTLE_END = FAR_BATTLE + BA_BATTLE_BYTES
+.assert BA_HOFS_HDMA + 10 = BA_BATTLE_END, error, "BA_BATTLE_BYTES is not what the battle's state takes"
 BA_ACC     = FAR_BATTLE + 48      ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72      ; the execution order, one combatant per byte
 BA_CAND    = FAR_BATTLE + 88      ; the living on one side, to pick a target
 BA_ONE     = FAR_BATTLE + 96      ; the combatants, BA_BYTES each
 ; Whether the current message's item revived a fallen one: the second line
-; changes. **Outside `FAR_BATTLE`**, at $7E7850-$7E785F, which is what was
-; allotted to this on 2026-09-26 —other agents were choosing RAM at the same
-; time—. Like everything in the battle, with a sixteen-bit address and the
+; changes. **Outside `FAR_BATTLE`**, in a block of its own. Like everything in the battle, with a sixteen-bit address and the
 ; data bank at $7E.
-BA_MREVIVED = $7850
+.pushseg
+.segment "FARBSS"
+far_ba_mrevived: .res 6
+.popseg
+BA_MREVIVED = .loword(far_ba_mrevived)
 ; And, in the same place, since 2026-10-04: whether the HP line goes, the SP
 ; the item got back —a word—, and whether its line is still to be shown, in a
 ; message of its own: see `ba_item_use`.
-BA_MHPLINE  = $7851
-BA_MSP      = $7852
-BA_MSP_NEXT = $7854
-.assert BA_MSP_NEXT < $7860, error, "the item's message steps on FADE_N"
+BA_MHPLINE  = BA_MREVIVED + $01
+BA_MSP      = BA_MREVIVED + $02
+BA_MSP_NEXT = BA_MREVIVED + $04
+.assert BA_MSP_NEXT < BA_MREVIVED + 6, error, "the item's message overflows its block"
 
 ; The battle's message, put together before it is drawn: see `ba_message` and
-; `ba_flow`. $7E7B00 to $7E7BFF, taken on 2026-10-02: no symbol of any
-; cartridge fell there —measured on the symbol table of the three—. It lasts
+; `ba_flow`. It lasts
 ; as long as one message is composed, so it does not travel in the save.
-BA_MBUF       = $7B00           ; RM2k's two lines, BA_MBUF_MAX letters each
+.pushseg
+.segment "FARBSS"
+far_ba_mbuf: .res $D6 + 3 * 4
+.popseg
+BA_MBUF       = .loword(far_ba_mbuf)           ; RM2k's two lines, BA_MBUF_MAX letters each
 BA_MBUF_MAX   = 96
-BA_MPTR       = $7BC0           ; word: where the next letter goes
-BA_MLIM       = $7BC2           ; word: where the line being written ends
-BA_MSTART     = $7BC4           ; two words: where each line starts
-BA_MEND       = $7BC8           ; two words: and where it ends
-BA_MP         = $7BCC           ; word: where `ba_flow` is cutting
-BA_ME         = $7BCE           ; word: the end of what it cuts
-BA_MB         = $7BD0           ; word: the space it cuts at
-BA_MN         = $7BD2           ; how many of RM2k's lines: 1 or 2
-BA_MCOUNT     = $7BD3           ; the letters a text has left to copy, or
+BA_MPTR       = BA_MBUF + $C0           ; word: where the next letter goes
+BA_MLIM       = BA_MBUF + $C2           ; word: where the line being written ends
+BA_MSTART     = BA_MBUF + $C4           ; two words: where each line starts
+BA_MEND       = BA_MBUF + $C8           ; two words: and where it ends
+BA_MP         = BA_MBUF + $CC           ; word: where `ba_flow` is cutting
+BA_ME         = BA_MBUF + $CE           ; word: the end of what it cuts
+BA_MB         = BA_MBUF + $D0           ; word: the space it cuts at
+BA_MN         = BA_MBUF + $D2           ; how many of RM2k's lines: 1 or 2
+BA_MCOUNT     = BA_MBUF + $D3           ; the letters a text has left to copy, or
                                 ; whether a number wrote a digit already
-BA_MDN        = $7BD4           ; how many lines go on the screen
-BA_MI         = $7BD5           ; which one `ba_flow` is on
-BA_MDL        = $7BD6           ; BA_MLINES_MAX of three bytes: where each
+BA_MDN        = BA_MBUF + $D4           ; how many lines go on the screen
+BA_MI         = BA_MBUF + $D5           ; which one `ba_flow` is on
+BA_MDL        = BA_MBUF + $D6           ; BA_MLINES_MAX of three bytes: where each
                                 ; line on the screen starts, and its length
 BA_MLINES_MAX = 4               ; the two message lines and the last two
                                 ; of the party's
 .assert BA_MBUF + 2 * BA_MBUF_MAX <= BA_MPTR, error, "the battle's message overflows its buffer"
-.assert BA_MDL + 3 * BA_MLINES_MAX <= $7C00, error, "the battle's message overflows its range"
+.assert BA_MDL + 3 * BA_MLINES_MAX <= BA_MBUF + $D6 + 3 * 4, error, "the battle's message overflows its range"
 
 ; The combatants: the first four are the party and the next eight the troop.
 ; That the place is fixed and not a compacted list is what keeps a dead one
@@ -796,11 +806,8 @@ MARGIN_COLS = 4
 ; uploads both. The second set lives here and not in bank 0 because it does
 ; not fit there: the BSS has 84 bytes left and this asks for 384.
 ;
-; **It does not travel in the save**: it lasts one frame. $6A00 to $6B7F
-; was its by hand from 2026-09-22; on 2026-10-15 `FARBSS` took that stretch
-; over, and the one after it, when the message's face did not fit in the
-; pool —see `FAR_POOL_SIZE` in rm2k-snes/cartridge/src/banks.rs—, and the
-; four went into the segment, in this order: adjacent, which is what
+; **It does not travel in the save**: it lasts one frame. The four go in
+; this order and adjacent, which is what
 ; `push_one_row` takes advantage of to reach the upper layer's by adding the
 ; length of the other, same as with the bank 0 ones.
 .pushseg
@@ -821,18 +828,11 @@ FAR_STRIP_COL2: .res WINDOW_ROWS * 2
 ; see LAYOUT_VENTANA_AMBOS. It does not fit in the BSS.
 ;
 ; **It does not travel in the save**: loading it loads the map, and that
-; sets it again. $6B80 and $6B81 were its by hand from 2026-09-25, the
-; rest of that stretch nobody's; `FARBSS` took it over with the strips' on
-; 2026-10-15.
+; sets it again.
 .pushseg
 .segment "FARBSS"
 FAR_VRAM_MAP: .res 2
 .popseg
-
-; $6900 to $69FF was the flash palettes', reserved on 2026-09-23. On
-; 2026-10-14 `FARBSS` took the stretch over and they went into it, in
-; character_flash.s: `FLASH_MAX * 32` is 128 bytes, and the other 128 is
-; what the materials' table needed to grow with the game.
 
 ; --- the music decoder, in far RAM -------------------------------------------
 ;
@@ -841,8 +841,8 @@ FAR_VRAM_MAP: .res 2
 ; and written by `irq_music`, which lands at any point in the main code, so
 ; it is reached with long addressing and never through the WMADD window.
 ;
-; $6C00 to $6FFF belongs to this, reserved on 2026-09-26. **It does not
-; travel in the save**: starting the song zeroes it.
+; One block of 1 KB, with the log at its second half. **It does not travel
+; in the save**: starting the song zeroes it.
 ;
 ;   MUS_SHADOW   the last thing the stream wrote to each voice register,
 ;                indexed by the register number —$v0 to $v7—, and in $v8,
@@ -860,7 +860,10 @@ FAR_VRAM_MAP: .res 2
 ;   MUS_BACK_TO  long: where an `OP_REPEAT` comes back to
 ;   MUS_LEFT     the events the `OP_REPEAT` has left to read, plus one; zero
 ;                outside one. See `music_frame::read`
-FAR_MUSIC    = $7E6C00
+.pushseg
+.segment "FARBSS"
+FAR_MUSIC: .res $400
+.popseg
 MUS_SHADOW   = FAR_MUSIC
 MUS_WAIT     = FAR_MUSIC + $80
 MUS_KON      = FAR_MUSIC + $82
@@ -892,17 +895,18 @@ MUS_LOG_ON = FAR_MUSIC + $F0
 MUS_LOG_I       = FAR_MUSIC + $F2      ; word
 MUS_LOG         = FAR_MUSIC + $200
 MUS_LOG_LENGTH = $200
-.assert MUS_LOG + MUS_LOG_LENGTH <= $7E7000, error, "the log overflows its range"
+.assert MUS_LOG + MUS_LOG_LENGTH <= FAR_MUSIC + $400, error, "the log overflows its range"
 
 ; The `FadeOutBGM` factor on the voices' volume, from 0 to 256 —256 is full
 ; volume—: this frame's and the previous one's, which is the one the DSP has.
 ; `bgm_fade_tick` writes them and the music reads them, both inside
 ; `irq_music`. See `volume_refresh`.
-;
-; $7860 to $7863, out of what was allotted to this on 2026-09-26 —$7860 to
-; $786F—: other agents were choosing RAM at the same time.
-FADE_N        = $7E7860          ; word
-FADE_BEFORE = $7E7862            ; word
+
+.pushseg
+.segment "FARBSS"
+FADE_N: .res 4          ; word
+.popseg
+FADE_BEFORE = FADE_N + $02            ; word
 
 ; How loud and how fast the song plays, which is what a `PlayBGM` asks for
 ; besides the song: see `bgm_level_set`, in bgm_level.s. Each level is four
@@ -923,19 +927,19 @@ FADE_BEFORE = $7E7862            ; word
 ;               the volume of every voice
 ;
 ; **They do not travel in the save**: a loaded game plays its song as
-; written. $25C6 to $25DF, from the $25E0 down that was allotted to this on
-; 2026-09-30 —other agents were choosing RAM at the same time—, in the gap
-; between `FAR_PAIR_LIST`'s end and `FAR_SPEED_BONUS`. Reset gives them a
-; value: see `bgm_level_reset`.
-BGM_ASK           = $7E25DC        ; 4 bytes
-BGM_NOW           = $7E25D8        ; 4 bytes
-BGM_BEFORE_BATTLE = $7E25D4        ; 4 bytes
-BGM_REMEMBERED    = $7E25D0        ; 4 bytes
-SONG_GAIN         = $7E25CC        ; 2 words
-TEMPO_ACC         = $7E25CA        ; word
-GAIN_DIRTY        = $7E25C9
-SONG_SCALED       = $7E25C8
-MSU_BASE          = $7E25C6        ; word
+; written. Reset gives them a value: see `bgm_level_reset`.
+BGM_ASK           = MSU_BASE + $16        ; 4 bytes
+BGM_NOW           = MSU_BASE + $12        ; 4 bytes
+BGM_BEFORE_BATTLE = MSU_BASE + $0E        ; 4 bytes
+BGM_REMEMBERED    = MSU_BASE + $0A        ; 4 bytes
+SONG_GAIN         = MSU_BASE + $06        ; 2 words
+TEMPO_ACC         = MSU_BASE + $04        ; word
+GAIN_DIRTY        = MSU_BASE + $03
+SONG_SCALED       = MSU_BASE + $02
+.pushseg
+.segment "FARBSS"
+MSU_BASE: .res $1A        ; word
+.popseg
 
 ; --- the ShowPicture pictures: their slots -------------------------------------
 ;
@@ -948,25 +952,28 @@ MSU_BASE          = $7E25C6        ; word
 ; never moves two pictures at once; if a page does, the one that was moving
 ; arrives where it was going in that same frame.
 ;
-; In two places, and that is why the arrays do not share a base: $30EC to
-; $30FA is what the one picture of before had —see battle_animation.s, the
-; MSU-1 is right below and the message's tail right above—, and $2580 to
-; $258F was allotted on 2026-10-01 with other agents choosing RAM at the
-; same time. **They do not travel in the save**, and a map change clears
+; In two blocks, because until 2026-10-16 they were two places of a map
+; written by hand. **They do not travel in the save**, and a map change clears
 ; them: RM2k 2000 erases its pictures there (`erase_on_map_change`).
 PIC_SLOTS   = 2
-PIC_IMG     = $7E30EC              ; PIC_SLOTS bytes
-PIC_X       = $7E30EE              ; PIC_SLOTS words
-PIC_Y       = $7E30F2              ; PIC_SLOTS words
-PIC_TRANS   = $7E30F6              ; PIC_SLOTS bytes
-PIC_FLAGS   = $7E30F8              ; PIC_SLOTS bytes
-PIC_STEPS   = $7E30FA
-.assert PIC_STEPS < $7E30FB, error, "the pictures step on FAR_MSG_PAUSE"
-PIC_TONE    = $7E2580              ; three bytes per slot
-PIC_RAMP    = $7E2586              ; the slot the ramp moves, or PIC_NONE
-PIC_FROM    = $7E2587              ; r, g, b and transparency
-PIC_TO      = $7E258B
-PIC_STEP    = $7E258F
+.pushseg
+.segment "FARBSS"
+PIC_IMG: .res $F              ; PIC_SLOTS bytes
+.popseg
+PIC_X       = PIC_IMG + $02              ; PIC_SLOTS words
+PIC_Y       = PIC_IMG + $06              ; PIC_SLOTS words
+PIC_TRANS   = PIC_IMG + $0A              ; PIC_SLOTS bytes
+PIC_FLAGS   = PIC_IMG + $0C              ; PIC_SLOTS bytes
+PIC_STEPS   = PIC_IMG + $0E
+.assert PIC_STEPS < PIC_IMG + $F, error, "the pictures overflow their block"
+.pushseg
+.segment "FARBSS"
+PIC_TONE: .res $10              ; three bytes per slot
+.popseg
+PIC_RAMP    = PIC_TONE + $06              ; the slot the ramp moves, or PIC_NONE
+PIC_FROM    = PIC_TONE + $07              ; r, g, b and transparency
+PIC_TO      = PIC_TONE + $0B
+PIC_STEP    = PIC_TONE + $0F
 .assert PIC_TONE + 3 * PIC_SLOTS <= PIC_RAMP, error, "the pictures' tones overflow"
 PIC_NONE    = $FF
 ; OP_PICTURE's mode, which the slot keeps in its flags: the centre came from
@@ -985,24 +992,22 @@ PIC_PENDING     = $80
 ; and `PIC_TO`, and what only it moves —the scroll and the wave— through
 ; its own bytes here.
 ;
-; $7E25E0 to $7E25EF, taken on 2026-10-02 from the gap between the music's
-; and `FAR_SPEED_BONUS`. The one allotted, $2570 to $257F, is the last two
-; entries of `FAR_PAIR_LIST`: $2400 plus PARALLEL_MAX times eight is $2580.
 ; They do not travel in the save, and a map change clears them.
-BIG_IMG       = $7E25E0          ; its entry of `big_table`, or PIC_NONE
-BIG_FLAGS     = $7E25E1          ; BIG_ON, BIG_DOWN, BIG_WAVE_ON, BIG_B, BIG_PENDING
-BIG_TONE      = $7E25E2          ; r, g, b
-BIG_TRANS     = $7E25E5
-BIG_SAT       = $7E25E6
-BIG_WAVE      = $7E25E7          ; the wave's strength, 0 to 10
-BIG_PHASE     = $7E25E8          ; and where it is, 256 to a turn
-BIG_Y         = $7E25E9          ; word: the scroll, in lines
-BIG_Y_FROM    = $7E25EB          ; word: where the ramp's started
-BIG_DY        = $7E25ED          ; how far it goes from there
-BIG_WAVE_FROM = $7E25EE
-BIG_WAVE_TO   = $7E25EF
-.assert BIG_WAVE_TO < FAR_SPEED_BONUS + $7E0000, error, "the big picture steps on the speed keys"
-.assert BIG_IMG >= BGM_ASK + 4, error, "the big picture steps on the music"
+.pushseg
+.segment "FARBSS"
+BIG_IMG: .res $10          ; its entry of `big_table`, or PIC_NONE
+.popseg
+BIG_FLAGS     = BIG_IMG + $01          ; BIG_ON, BIG_DOWN, BIG_WAVE_ON, BIG_B, BIG_PENDING
+BIG_TONE      = BIG_IMG + $02          ; r, g, b
+BIG_TRANS     = BIG_IMG + $05
+BIG_SAT       = BIG_IMG + $06
+BIG_WAVE      = BIG_IMG + $07          ; the wave's strength, 0 to 10
+BIG_PHASE     = BIG_IMG + $08          ; and where it is, 256 to a turn
+BIG_Y         = BIG_IMG + $09          ; word: the scroll, in lines
+BIG_Y_FROM    = BIG_IMG + $0B          ; word: where the ramp's started
+BIG_DY        = BIG_IMG + $0D          ; how far it goes from there
+BIG_WAVE_FROM = BIG_IMG + $0E
+BIG_WAVE_TO   = BIG_IMG + $0F
 ; The flags. BIG_ON is bit 0, so `lsr` leaves it in the carry; BIG_WAVE_ON
 ; is HDMA channel 4's bit, so it goes straight into HDMAEN; BIG_PENDING is
 ; bit 7, so `bpl` asks for it.
@@ -1049,13 +1054,15 @@ BIG_M7_END   = $7F650D
 ; uploaded the bank. **They do not travel in the save**: they describe VRAM,
 ; and loading a map uploads it again.
 ;
-; $2590 to $259F, allotted on 2026-10-01 with other agents choosing RAM at
-; the same time. `SHARE_MAX` is also `SHARED_MAX` in `rm2k-snes-mapdata` and
+; `SHARE_MAX` is also `SHARED_MAX` in `rm2k-snes-mapdata` and
 ; in Wally's `sprites`: the `.inc` asserts every map against it.
-SHARE_N      = $7E2590
-SHARE_OWNER  = $7E2591             ; SHARE_MAX bytes
+.pushseg
+.segment "FARBSS"
+SHARE_N: .res $10
+.popseg
+SHARE_OWNER  = SHARE_N + $01             ; SHARE_MAX bytes
 SHARE_MAX    = 15
-.assert SHARE_OWNER + SHARE_MAX <= $7E25A0, error, "the shared slots overflow their RAM"
+.assert SHARE_OWNER + SHARE_MAX <= SHARE_N + $10, error, "the shared slots overflow their RAM"
 ; And bit 7 of `SHARE_N` says the map has a cache of slots instead: see
 ; cache_slots.s.
 
@@ -1069,21 +1076,20 @@ SHARE_MAX    = 15
 ; `cache_load` sets up when loading it, and **they do not travel in the
 ; save**: they describe VRAM.
 ;
-; $7E7C00 to $7E7CFF, reserved on 2026-10-03: no symbol of any cartridge fell
-; there —measured on `release`'s symbol table, as the battle's message
-; buffer below it was—. `CACHE_MAX` is also Wally's, in `sprites::cache`,
+; `CACHE_MAX` is also Wally's, in `sprites::cache`,
 ; and the `.inc` asserts every map against it.
-CACHE_N      = $7E7C00
-CACHE_REC    = $7E7C01             ; word
-CACHE_T_KEY  = $7E7C03
-CACHE_T_SLOT = $7E7C04
-CACHE_T_AGE  = $7E7C05
-CACHE_T_EV   = $7E7C06
-CACHE_T_POSE = $7E7C07
-CACHE_T_ROW  = $7E7C08             ; word
-CACHE_KEY    = $7E7C10             ; CACHE_MAX bytes
-CACHE_AGE    = $7E7C30             ; CACHE_MAX bytes
-CACHE_EV     = $7E7C50             ; EV_MAX bytes: asserted in cache_slots.s
+; `CACHE_N` and what follows, `$50` bytes and `EV_MAX`, are declared in
+; far_ram_game.s.
+CACHE_REC    = CACHE_N + $01             ; word
+CACHE_T_KEY  = CACHE_N + $03
+CACHE_T_SLOT = CACHE_N + $04
+CACHE_T_AGE  = CACHE_N + $05
+CACHE_T_EV   = CACHE_N + $06
+CACHE_T_POSE = CACHE_N + $07
+CACHE_T_ROW  = CACHE_N + $08             ; word
+CACHE_KEY    = CACHE_N + $10             ; CACHE_MAX bytes
+CACHE_AGE    = CACHE_N + $30             ; CACHE_MAX bytes
+CACHE_EV     = CACHE_N + $50             ; EV_MAX bytes: asserted in cache_slots.s
 CACHE_MAX    = 32
 .assert CACHE_KEY + CACHE_MAX <= CACHE_AGE, error, "the cache's keys overflow"
 .assert CACHE_AGE + CACHE_MAX <= CACHE_EV, error, "the cache's ages overflow"
@@ -1096,11 +1102,13 @@ CACHE_MAX    = 32
 ; the digits the player has entered are the ones on it: there is no other copy.
 ; And the number, once A is pressed, before it goes to the variable.
 ;
-; $25B0 to $25BF, allotted on 2026-10-01 with other agents choosing RAM at the
-; same time. **They do not travel in the save**: an open number input is a
+; **They do not travel in the save**: an open number input is a
 ; page blocked in the middle, which the save does not keep either.
-NUMBER_LINE  = $7E25B0             ; 1 + 2 * NUMBER_DIGITS_MAX bytes
-NUMBER_VALUE = $7E25BE             ; word
+.pushseg
+.segment "FARBSS"
+NUMBER_LINE: .res $10             ; 1 + 2 * NUMBER_DIGITS_MAX bytes
+.popseg
+NUMBER_VALUE = NUMBER_LINE + $0E             ; word
 NUMBER_DIGITS_MAX = 6
 .assert NUMBER_LINE + 1 + 2 * NUMBER_DIGITS_MAX <= NUMBER_VALUE, error, "the digits' line overflows"
 
@@ -1112,22 +1120,24 @@ NUMBER_DIGITS_MAX = 6
 ; them here, outside the vblank. The DMA in `anim_drawing_dma` comes from
 ; here and not from the cartridge.
 ;
-; $7000 to $77FF belongs to this, reserved on 2026-09-26. **It does not
-; travel in the save**: loading a map zeroes it.
+; 2 KB. **It does not travel in the save**: loading a map zeroes it.
 ;
 ; **And while a screen is up it is the text layer's stage**, `TL_STAGE`,
 ; since 2026-10-04: the frame is only built on the map, and every way back
 ; to it clears the buffer —`anim_buf_clear`, in `back_to_map` and in
 ; `enter_map`—, because it is rebuilt from nothing. A screen that went back
 ; to the map some other way would show the stage's garbage in the box.
-ANIMB_BUF = $7E7000
+.pushseg
+.segment "FARBSS"
+ANIMB_BUF: .res $800
+.popseg
 
 ; --- LZ2: what the cartridge carries compressed, in WRAM --------------------
 ;
-; See `lz2_decompress` in decompress.s. Reserved on 2026-09-26:
+; See `lz2_decompress` in decompress.s:
 ;
-;   $7E7800  the literal's `mvn` trampoline, four bytes built with each
-;            call's banks, and the output bank
+;   LZ2_TRAMPOLINE_LIT  the literal's `mvn` trampoline, four bytes built with each
+;            call's banks, and the output bank, in far RAM
 ;   $7F0000  the load buffer: each tile block is decompressed here and
 ;            uploaded to VRAM with the same DMA as before. It is valid only
 ;            while loading; the battle scene uses all of bank $7F —see
@@ -1141,17 +1151,24 @@ ANIMB_BUF = $7E7000
 ;
 ; The limits of each block are enforced by `decompress.s` against the ones
 ; the converter emits.
-LZ2_TRAMPOLINE_LIT = $7E7800    ; mvn output, stream; rtl
-LZ2_BANK       = $7E7804        ; the output bank
+.pushseg
+.segment "FARBSS"
+LZ2_TRAMPOLINE_LIT: .res 5    ; mvn output, stream; rtl
+.popseg
+LZ2_BANK       = LZ2_TRAMPOLINE_LIT + $04        ; the output bank
 
 ; --- what the victory counts -------------------------------------------------
 ;
-; $7E7810 to $7E781F, reserved on 2026-09-26: the "N EXP" and "Level up!"
+; The "N EXP" and "Level up!"
 ; pages of `battle_victory.s`. Like `FAR_BATTLE`, they are named with a
 ; sixteen-bit address because the battle reads them, with the data bank at
 ; $7E. `ba_vic_start` writes all of them on winning and nobody reads them
 ; before, so there is no need to set them to anything at startup.
-BA_VIC        = $7810
+.pushseg
+.segment "FARBSS"
+far_ba_vic: .res 8
+.popseg
+BA_VIC        = .loword(far_ba_vic)
 BA_VIC_ACTOR  = BA_VIC + 0      ; whose page it is, or $FF the first
 BA_VIC_BEFORE = BA_VIC + 1      ; the level before winning, one per party
                                 ; slot; 0 if it has no experience
@@ -1161,40 +1178,50 @@ BA_VIC_NEXT   = BA_VIC + 6      ; this one's and the earlier ones': what
                                 ; the next one skips
 BA_VIC_MORE   = BA_VIC + 7      ; whether skills were left for another page
 BA_VIC_END    = BA_VIC + 8
-.assert BA_VIC_END <= $7820, error, "the victory's state overflows its range"
+.assert BA_VIC_END <= BA_VIC + 8, error, "the victory's state overflows its range"
 
 ; --- what the enemies dropped ------------------------------------------------
 ;
-; $7E79E0 to $7E79FF, reserved on 2026-09-27: the items the victory won, so
+; The items the victory won, so
 ; its page can list them. Like `BA_VIC`, with a sixteen-bit address, and
 ; `ba_vic_drop` writes them on winning before anyone reads them.
-BA_DROP       = $79E0
+.pushseg
+.segment "FARBSS"
+far_ba_drop: .res 1 + 2 * BA_ENEMIES_MAX
+.popseg
+BA_DROP       = .loword(far_ba_drop)
 BA_DROP_N     = BA_DROP + 0     ; how many
 BA_DROP_K     = BA_DROP + 1     ; the `k` of each one, a word since
                                 ; 2026-10-15, in troop order: its name is
                                 ; text `3k`
 BA_DROP_END   = BA_DROP_K + 2 * BA_ENEMIES_MAX
-.assert BA_DROP_END <= $7A00, error, "what the enemies dropped overflows its range"
+.assert BA_DROP_END <= BA_DROP + 1 + 2 * BA_ENEMIES_MAX, error, "what the enemies dropped overflows its range"
 
 ; --- experience in the menu --------------------------------------------------
 ;
-; $7E7A40 to $7E7A4F, reserved on 2026-09-28: the thirteen letters of the
+; The thirteen letters of the
 ; experience line of a party row, which `menu_exp_paint` builds before
 ; turning them into sprites. It lives as long as that routine.
-MENU_EXP_TEXT = $7E7A40
-MENU_EXP_TEXT_END = $7E7A50
+.pushseg
+.segment "FARBSS"
+MENU_EXP_TEXT: .res $10
+.popseg
+MENU_EXP_TEXT_END = MENU_EXP_TEXT + $10
 
 ; --- `ChangeExp` and `ChangeLevel` from an event ------------------------------
 ;
-; $7E7A50 to $7E7AFF, allotted on 2026-10-04: from the end of the menu's
-; experience line to `BA_MBUF` nobody was. What `exp_change` works with, and
+; What `exp_change` works with, and
 ; the lines of the level-up message it notes for `OP_LEVEL_PAGE`: a word
 ; each, `$8000 | level << 8 | actor` for an actor's level line —which is
 ; also where its page starts— and the pair's slot for a skill's. Sixteen-bit
 ; addresses, like the battle's: `level.s` runs this with the data bank at
 ; $7E. **It does not travel in the save**: the lines live from the `OP_EXP`
 ; to the `OP_LEVEL_PAGE` right behind it, inside the same page.
-LVL         = $7A50
+.pushseg
+.segment "FARBSS"
+far_lvl: .res $B0
+.popseg
+LVL         = .loword(far_lvl)
 LVL_WHAT    = LVL + 0           ; OP_EXP's `what`
 LVL_ACTOR   = LVL + 1           ; the actor being changed
 LVL_K       = LVL + 2           ; word: its experience slot
@@ -1212,28 +1239,35 @@ LVL_LEN     = LVL + 26          ; its letters
 LVL_ROWS    = LVL + 27          ; the page's lines
 LVL_LEFT    = LVL + 28          ; letters of a text still to copy
 LVL_LINES   = LVL + 30          ; LVL_LINES_MAX words
-LVL_LINES_MAX = ($7B00 - LVL_LINES) / 2
-.assert LVL_LINES + 2 * LVL_LINES_MAX <= BA_MBUF, error, "the level-up lines overflow their range"
+; A constant, and not `(end - LVL_LINES) / 2`: it is an 8-bit immediate,
+; and an address the linker places would not fit one for the assembler.
+LVL_LINES_MAX = ($B0 - 30) / 2
+.assert LVL_LINES = LVL + 30, error, "LVL_LINES_MAX counts from LVL_LINES"
+.assert LVL_LINES + 2 * LVL_LINES_MAX <= LVL + $B0, error, "the level-up lines overflow their range"
 
 ; And the page of that message the window is showing, composed as the text
 ; block's boxes are —a header with how many lines, and each line's length
 ; before its letters, which are the font's: ASCII minus 32— so that
-; `msg_start` reads it like any other. $7E6128 to $7E61FF, allotted on
-; 2026-10-04: from `MSG_DIGITS`' end to `FAR_EXP` nobody was. It only has
+; `msg_start` reads it like any other. It only has
 ; to last while the composer reads it, which is before the window opens.
-LVL_BOX       = $7E6128
 LVL_LINE_MAX  = 48              ; letters a line keeps: the window cuts sooner
-.assert LVL_BOX + 1 + 4 * (1 + LVL_LINE_MAX) <= $7E6200, error, "the level-up page overflows its range"
+.pushseg
+.segment "FARBSS"
+LVL_BOX: .res 1 + 4 * (1 + LVL_LINE_MAX)
+.popseg
 
 ; --- the MSU-1 tracks that were missing --------------------------------------
 ;
-; $7E7820 to $7E782F, reserved on 2026-09-26: one bit per song, set when the
+; One bit per song, set when the
 ; song had a track and the MSU-1 could not play it —it was not on the card,
 ; or it did not finish opening it in time— and it played through the SPC700.
 ; See `song_per_msu` in audio_package.s. `msu_detect` clears it on
 ; reset; it does not travel in the save, because what it says is about the
 ; card and not about the game.
-MSU_MISSING    = $7E7820
+.pushseg
+.segment "FARBSS"
+MSU_MISSING: .res $10
+.popseg
 MSU_MISSING_BYTES = 16
 
 ; --- what goes on running after a teleport -----------------------------------
@@ -1244,10 +1278,10 @@ MSU_MISSING_BYTES = 16
 ; case of the harness— would read the new map's: `code_carry_before` and
 ; `code_carry_after`, in decompress.s, carry it.
 ;
-; $7E7EF0 to $7E7FFF, reserved on 2026-10-01:
+; Two blocks of far RAM:
 ;
-;   $7E7EF0  which map's bytecode is in `CODE_CARRY`, word; $FFFF none
-;   $7E7F00  the hero's move route, copied whole when the map changes under
+;   CARRY_MAP    which map's bytecode is in `CODE_CARRY`, word; $FFFF none
+;   ROUTE_CARRY  the hero's move route, copied whole when the map changes under
 ;            it: it is at most 255 bytes, which is what `route_n` counts
 ;
 ; And `CODE_CARRY`, in `LZ2_BUFFER`, which on the map is free once it is
@@ -1255,8 +1289,14 @@ MSU_MISSING_BYTES = 16
 ; `anim_frame_build`— and below the ChipSet animation's drawings. Loading a
 ; map overwrites it, and so does `back_to_map` —after the menu, the shop, the
 ; slots or a battle—: both decompress it again at the end.
-CARRY_MAP      = $7E7EF0
-ROUTE_CARRY    = $7E7F00
+.pushseg
+.segment "FARBSS"
+CARRY_MAP: .res 2
+.popseg
+.pushseg
+.segment "FARBSS"
+ROUTE_CARRY: .res $100
+.popseg
 .assert ROUTE_CARRY + 256 <= GRID, error, "the carried move route would go into the grid"
 CODE_CARRY     = LZ2_BUFFER + $1100
 LZ2_BUFFER     = $7F0000
@@ -1265,44 +1305,49 @@ ANIM_DRAWINGS_END = $7F8000
 
 ; --- sound effects with MSU-1 ------------------------------------------------
 ;
-; $7E78B0 to $7E78CF, reserved on 2026-09-26. See `msu_effects.s`: voices
+; See `msu_effects.s`: voices
 ; 0 to 5 when the SPC700 is not playing music, and the `.msu`'s quality sound
 ; effects. `se_clear` zeroes it, on reset; it does not travel in the save.
-EX_FRAMES   = $7E78B0           ; six words: how many frames the sound effect
+.pushseg
+.segment "FARBSS"
+EX_FRAMES: .res $1F           ; six words: how many frames the sound effect
+.popseg
                                 ; on each voice has left, from 0 to 5
-EX_IDX      = $7E78BC           ; six words: its row in `sound_table`
-EX_PEND     = $7E78C8           ; one bit per voice: the sound effect has not started yet
-EX_BUSY     = $7E78C9           ; one bit per voice: it belongs to a sound effect
+EX_IDX      = EX_FRAMES + $0C           ; six words: its row in `sound_table`
+EX_PEND     = EX_FRAMES + $18           ; one bit per voice: the sound effect has not started yet
+EX_BUSY     = EX_FRAMES + $19           ; one bit per voice: it belongs to a sound effect
                                 ; —pending, playing or being handed back— and
                                 ; not to the music
-EX_RETURN = $7E78CA             ; one bit per voice: it finished, and next frame
+EX_RETURN = EX_FRAMES + $1A             ; one bit per voice: it finished, and next frame
                                 ; it is handed back to the music
-MSU_SE      = $7E78CB           ; 0 not checked, 1 the `.msu` is this
+MSU_SE      = EX_FRAMES + $1B           ; 0 not checked, 1 the `.msu` is this
                                 ; cartridge's, 2 it is not or there is no MSU-1
-MSU_SE_NEXT = $7E78CC           ; three bytes: where the `.msu` stream was left
-EX_END      = $7E78CF
-.assert EX_END <= $7E78D0, error, "the MSU-1 sound effects overflow their range"
+MSU_SE_NEXT = EX_FRAMES + $1C           ; three bytes: where the `.msu` stream was left
+EX_END      = EX_FRAMES + $1F
+.assert EX_END <= EX_FRAMES + $1F, error, "the MSU-1 sound effects overflow their range"
 
 ; --- which sound effect is in each directory place ---------------------------
 ;
-; $7E78D0 to $7E78FF, reserved on 2026-09-26: one byte for each of the
+; One byte for each of the
 ; SE_PLACES of the SPC700 directory that the sound effects share, with the
 ; number of the sound effect recorded there, or $FF. Several sound effects go
 ; to the same place —the ones that are never in the same package: see
 ; `effect_places` in rm2k-snes/rm2k-snes-audio/src/bank.rs— and the directory does
 ; not say which one is there. See `record_effect` in audio_package.s.
 ; `aram_clear` sets it to $FF; it does not travel in the save.
-FAR_EFFECT_IN = $7E78D0
-.assert FAR_EFFECT_IN + SE_PLACES <= $7E7900, error, "the sound effect places do not fit in FAR_EFFECT_IN: see SE_PLACES_MAX in rm2k-snes-audio's emit.rs"
+; `SE_PLACES` bytes, declared in far_ram_game.s.
 
 ; --- the battle transition ---------------------------------------------------
 ;
-; $7E7840 to $7E784F, reserved on 2026-09-26. See `battle_fade.s`.
-BATTLE_ON = $7E7840             ; 1 if the battle got to turn its screen on
+; See `battle_fade.s`.
+.pushseg
+.segment "FARBSS"
+BATTLE_ON: .res 1             ; 1 if the battle got to turn its screen on
+.popseg
 
 ; --- the teleport transition ------------------------------------------------
 ;
-; $7E7920 to $7E793F, reserved on 2026-09-27: the transition with which the
+; The transition with which the
 ; teleport erases the screen and the one with which it shows it again, which
 ; `ChangeScreenTransitions` changes —`op_transition`— and `fade_mosaic`,
 ; `fade_from` and `fade_tick` read: TRANSITION_MOSAIC, TRANSITION_CUTOFF,
@@ -1323,12 +1368,15 @@ BATTLE_ON = $7E7840             ; 1 if the battle got to turn its screen on
 ; and the only thing that notices is the jump with which 95 sends Eisen back
 ; to the start when his fortitude runs out. The one that leaves the minigame
 ; asks for the cut itself before jumping.
-TRANSITION_ERASE   = $7E7920
-TRANSITION_SHOW = $7E7921
+.pushseg
+.segment "FARBSS"
+TRANSITION_ERASE: .res 2
+.popseg
+TRANSITION_SHOW = TRANSITION_ERASE + $01
 
 ; --- the memorized song -------------------------------------------------------
 ;
-; $7E7940 to $7E795F, reserved on 2026-09-27. `MemorizeBGM` records here
+; `MemorizeBGM` records here
 ; which song was playing —its index in `Songs`, or $FF if none— and
 ; `PlayMemorizedBGM` plays it again: see `op_memorized_bgm`. Reset leaves it
 ; at $FF.
@@ -1337,36 +1385,42 @@ TRANSITION_SHOW = $7E7921
 ; in the system part). The two commands always go together in the same
 ; autorun page —the game's four tutorials, 58 and 162 to 164—, with no menu
 ; in between, so there is nowhere to save between one and the other.
-REMEMBERED_SONG = $7E7940
+.pushseg
+.segment "FARBSS"
+REMEMBERED_SONG: .res 1
+.popseg
 
 ; --- the weapons' SP, and the target of multi-target skills -----------------
 ;
-; $7E7960 to $7E797F, reserved on 2026-09-27 for Lashe City milestone 4.
 ; `ba_build` builds it at the start of each battle, so it does not travel in
 ; the save and there is no need to set it on reset.
-BA_WEAPON_SP = $7E7960          ; BA_PARTY_MAX bytes: what attacking costs
+.pushseg
+.segment "FARBSS"
+BA_WEAPON_SP: .res BA_PARTY_MAX + 1          ; BA_PARTY_MAX bytes: what attacking costs
+.popseg
                                 ; each party place, `weapon_sp_of`
-BA_SKILL_I = $7E7964            ; which combatant a multi-target skill is on:
+BA_SKILL_I = BA_WEAPON_SP + $04            ; which combatant a multi-target skill is on:
                                 ; `ba_skill_use` calls `ba_skill_one` for each
                                 ; one, and that one clobbers the `BA_S*`
-.assert BA_SKILL_I < $7E7980, error, "milestone 4 overflows its range in far RAM"
 
 ; --- an NPC row, set aside ---------------------------------------------------
 ;
-; $7E7980 to $7E799F, reserved on 2026-09-27 for the race's milestone 2.
 ; `fit_far` keeps here the row that changes place while it moves the
 ; others; it lasts as long as that routine.
-NPC_ROW_SEPARATE = $7E7980          ; NPC_STRIDE bytes
+; `NPC_STRIDE` bytes, declared in far_ram_game.s: NPC_ROW_SEPARATE.
 
 ; --- the Game Over screen ------------------------------------------------------
 ;
-; $7E7A30 to $7E7A3F, reserved on 2026-09-28. See runtime/game_over.s.
-GO_LOSES   = $7E7A30            ; word: where losing the battle being fought
+; See runtime/game_over.s.
+.pushseg
+.segment "FARBSS"
+GO_LOSES: .res 5            ; word: where losing the battle being fought
+.popseg
                                 ; leads; $FFFF is Game Over
-GO_WAIT    = $7E7A32            ; 1 while the screen waits for the button: it is
+GO_WAIT    = GO_LOSES + $02            ; 1 while the screen waits for the button: it is
                                 ; what the harness looks at, which has no other clock
-GO_LEVEL   = $7E7A33            ; the fade's brightness
-GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
+GO_LEVEL   = GO_LOSES + $03            ; the fade's brightness
+GO_FRAMES = GO_LOSES + $04             ; how many frames each fade level lasts
 
 ; --- the map grid, in WRAM --------------------------------------------------
 ;

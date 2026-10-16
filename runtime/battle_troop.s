@@ -26,7 +26,7 @@ ba_abort: .res 1
 .popseg
 BA_ABORT_FLEE = 2
 
-.assert BA_PAGE_DONE + TROOP_PAGE_MAX <= FAR_PAGE + $200, error, "BA_PAGE_DONE goes past the troop pages' range of far RAM"
+.assert BA_PAGE_DONE + TROOP_PAGE_MAX <= FAR_PAGE + 16 + TROOP_PAGE_MAX, error, "BA_PAGE_DONE goes past the troop pages' block"
 
 ; The pages of this battle's troop, from `BA_TROOP_K`. A troop the cartridge
 ; does not carry has none.

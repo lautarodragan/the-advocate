@@ -28,12 +28,12 @@
 ; What the shop sells, one `k` per word since 2026-10-15. It borrows the
 ; battle's state, as the skills screen does: a shop opens from a map page and
 ; no battle is alive while it is open. Until then it was 256 bytes of its own
-; at $2B00, which the item list took over when its `k` went to a word. It
+; after the item list, which took them over when its `k` went to a word. It
 ; skips the battle's first bytes —`BA_RESULT`, which the Game Over reads
 ; after the battle— and goes where the combatants go.
 FAR_SHOP = FAR_BATTLE + 96
 SHOP_MAX = 255                  ; the opcode's count is a byte
-.assert FAR_SHOP + 2 * SHOP_MAX <= FAR_BATTLE + $300, error, "the shop's list overflows the battle's state"
+.assert FAR_SHOP + 2 * SHOP_MAX <= BA_BATTLE_END, error, "the shop's list overflows the battle's state"
 TI_MAIN = 0
 TI_BUY = 1
 TI_COUNT_BUY = 2

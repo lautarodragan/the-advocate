@@ -32,8 +32,10 @@
 ; shop's had right after it —`FAR_SHOP`, which went to the battle's—, so it
 ; still holds 255: `pick_n` is a byte, and the items past it are not listed.
 ITEM_LIST_MAX = 255
-.assert FAR_ITEM_LIST + 2 * ITEM_LIST_MAX <= FAR_EQUIPMENT, error, "the item list reaches the equipment"
-.assert FAR_ITEMS + ITEMS_N <= FAR_ITEM_LIST, error, "the inventory reaches the item list"
+.pushseg
+.segment "FARBSS"
+far_item_list: .res 2 * ITEM_LIST_MAX
+.popseg
 
 ; The `k` of the item the screen is on: the one under the cursor when A is
 ; pressed, which the actor choice and `medicine_use` read. Until 2026-10-15

@@ -7,16 +7,12 @@
 ; frame before the flashes and fires the tick's entries: a sound effect, a
 ; screen flash or one on the target event. The animation's drawing is not
 ; done.
-ANIM_PTR   = $7E30E2            ; three bytes
-ANIM_N     = $7E30E5
-ANIM_T     = $7E30E6
-
-; And $30EC to $30FA, the pictures' slots: see `PIC_IMG` in far_ram.s.
-; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
-; `MSU_FACTOR`—, so they start at $30EC; the next block is the message's
-; tail, at $30FB. The one picture of before started at $30E8 and overwrote
-; them: the ROM stopped detecting the MSU-1 and the title music went silent.
-; No test saw it —the suite compares pixels— and taro found it by listening.
+.pushseg
+.segment "FARBSS"
+ANIM_PTR: .res $5            ; three bytes
+.popseg
+ANIM_N     = ANIM_PTR + $03
+ANIM_T     = ANIM_PTR + $04
 
 ; And the tail of escapes of whatever text box is open: how many frames are
 ; left in the `\|` pause and whether it closes by itself when done —the `\^`—.
@@ -25,15 +21,17 @@ ANIM_T     = $7E30E6
 ;
 ; **They go in far RAM for the same reason as the picture**: bank 0 has no
 ; room. The 7680 bytes of BSS were at 7679 when this was written, that is, one
-; byte fit and three are needed. Here there are five spare, left between the
-; picture —which ends at $30FA— and `FAR_ARAM_OF`, at $3100. They are read
+; byte fit and three are needed. They are read
 ; once per frame and never indexed, so the long addressing does not show.
-FAR_MSG_PAUSE = $7E30FB         ; word: up to PAUSAS_MAX times PAUSE_FRAMES
-FAR_MSG_AUTO  = $7E30FD
+.pushseg
+.segment "FARBSS"
+FAR_MSG_PAUSE: .res $5         ; word: up to PAUSAS_MAX times PAUSE_FRAMES
+.popseg
+FAR_MSG_AUTO  = FAR_MSG_PAUSE + $02
 ; And the second letter of a pair the composer has drawn half of, with bit 7
 ; set, or 0: see `msg_letter`. It is the fourth of those five bytes; read
 ; once per letter, which the long addressing does not show either.
-FAR_MSG_SECOND = $7E30FE
+FAR_MSG_SECOND = FAR_MSG_PAUSE + $03
 
 .proc battle_anim_clear
 .a8
@@ -139,22 +137,25 @@ ready:
 ; picture's ($30EC to $30FA) and the audio package's tables ($3100 to $35FF):
 ; on 2026-09-12 an agent overwrote the MSU-1 for not looking at this RAM's
 ; map.
-ANIMB_HAS    = $7E3600          ; this map draws animations
-ANIMB_TILE   = $7E3601          ; the box's first tile, word
-ANIMB_ATTR   = $7E3603          ; vhoopppN already built for the four objects
-ANIMB_VRAM   = $7E3604          ; where the frame's DMA goes, in words
-ANIMB_CGADD  = $7E3606          ; its palette's CGRAM entry
-ANIMB_SHADOW = $7E3607          ; and its offset in `cgram_shadow`, word
-ANIMB_ACTIVE = $7E3609          ; one is being drawn
-ANIMB_ROW    = $7E360A          ; its row in `anim_battle_table`, word
-ANIMB_TARGET = $7E360C          ; what it goes on; $FF is the screen
-ANIMB_T      = $7E360D          ; the tick, word
-ANIMB_FRAME = $7E360F           ; the current frame, word
-ANIMB_N      = $7E3611          ; how many frames it has, word
-ANIMB_UPLOAD = $7E3613          ; a frame is waiting for vblank
-ANIMB_PAL    = $7E3614          ; and a palette
-ANIMB_I      = $7E3615          ; which of the four objects is being built
-ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
+.pushseg
+.segment "FARBSS"
+ANIMB_HAS: .res $19          ; this map draws animations
+.popseg
+ANIMB_TILE   = ANIMB_HAS + $01          ; the box's first tile, word
+ANIMB_ATTR   = ANIMB_HAS + $03          ; vhoopppN already built for the four objects
+ANIMB_VRAM   = ANIMB_HAS + $04          ; where the frame's DMA goes, in words
+ANIMB_CGADD  = ANIMB_HAS + $06          ; its palette's CGRAM entry
+ANIMB_SHADOW = ANIMB_HAS + $07          ; and its offset in `cgram_shadow`, word
+ANIMB_ACTIVE = ANIMB_HAS + $09          ; one is being drawn
+ANIMB_ROW    = ANIMB_HAS + $0A          ; its row in `anim_battle_table`, word
+ANIMB_TARGET = ANIMB_HAS + $0C          ; what it goes on; $FF is the screen
+ANIMB_T      = ANIMB_HAS + $0D          ; the tick, word
+ANIMB_FRAME = ANIMB_HAS + $0F           ; the current frame, word
+ANIMB_N      = ANIMB_HAS + $11          ; how many frames it has, word
+ANIMB_UPLOAD = ANIMB_HAS + $13          ; a frame is waiting for vblank
+ANIMB_PAL    = ANIMB_HAS + $14          ; and a palette
+ANIMB_I      = ANIMB_HAS + $15          ; which of the four objects is being built
+ANIMB_PREV   = ANIMB_HAS + $16          ; three bytes: the last frame built in
                                 ; ANIMB_BUF, with the bank at 0 if none
 
 ; This map's layout, when loading it. The byte is 0 —"nothing is drawn here"—

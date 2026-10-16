@@ -34,7 +34,11 @@
 ; so to turn it moves to the map's turn slot, `M_TURN_TILE4`, and the new pose
 ; is uploaded there. One that walks or animates in place has its own and turns
 ; where it is.
-FAR_TURN   = $30C0
+.pushseg
+.segment "FARBSS"
+far_turn: .res $B
+.popseg
+FAR_TURN   = .loword(far_turn)
 TURN_EV    = $7E0000 + FAR_TURN
 TURN_K     = TURN_EV + 3
 TURN_PPOSE = TURN_EV + 4

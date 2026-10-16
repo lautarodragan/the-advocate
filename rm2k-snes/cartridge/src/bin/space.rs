@@ -100,7 +100,6 @@ fn run() -> Result<(), String> {
                     "bank_far3": m.bank_far3,
                     "bss": m.bss,
                     "far": m.far,
-                    "switches": m.switches,
                     "zeropage": m.zeropage,
                     "texts": m.texts,
                     "texts_cap": m.texts_cap,

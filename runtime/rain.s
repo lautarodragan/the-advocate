@@ -15,8 +15,16 @@
 ; `rain_tick` and `rain_oam` run on every frame it rains and read with
 ; long addressing, which is one instruction per byte: with the WMADD window
 ; every drop paid for pointing at it.
-FAR_WEATHER = $2EF0
-FAR_RAIN = $2F00
+.pushseg
+.segment "FARBSS"
+far_weather: .res 5
+.popseg
+FAR_WEATHER = .loword(far_weather)
+.pushseg
+.segment "FARBSS"
+far_rain: .res 3 * RAIN_DROPS_MAX
+.popseg
+FAR_RAIN = .loword(far_rain)
 WEATHER_L  = $7E0000 + FAR_WEATHER
 RAIN_L     = $7E0000 + FAR_RAIN
 

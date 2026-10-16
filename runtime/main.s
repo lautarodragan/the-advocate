@@ -107,6 +107,8 @@
 
 .include "musicdata.inc"
 .include "mapdata.inc"
+; The far RAM the game sizes, which needs the `.inc`: see far_ram.s.
+.include "far_ram_game.s"
 
 ; The text area is eight cell rows, that is four lines of two rows each, and
 ; the composer's buffer is one line long. They go down here and not above

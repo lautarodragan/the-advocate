@@ -8,11 +8,10 @@
 ; Until 2026-10-15 the table was 128 bytes in bank 0's BSS for every game:
 ; ABL names up to 1008, but Vampires Dawn goes up to 1643 and The Frozen
 ; World to 1077, and their `ControlSwitches` wrote past it while their page
-; conditions read whatever followed. Neither the BSS nor `FARBSS` had room
-; for 206 bytes, so the table has its own 256 bytes of far RAM, the
-; `SWITCHRAM` area —see `SWITCH_POOL_START` in
-; rm2k-snes/cartridge/src/banks.rs—, and a game that names more than 2047 is
-; refused by the converter.
+; conditions read whatever followed. It is a segment of its own, `SWITCHES`,
+; which the linker places in far RAM next to `FARBSS` —see `FAR_POOL_START`
+; in rm2k-snes/cartridge/src/banks.rs—, and a game that names more than 2047
+; is refused by the converter.
 ;
 ; **The label carries the bank, `$7E`**: it is reached with `f:switches, x`
 ; whatever the data bank, and `.loword(switches)` only where the data bank

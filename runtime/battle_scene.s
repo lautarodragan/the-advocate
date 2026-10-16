@@ -11,56 +11,58 @@
 ; It runs from `battle_run` with the data bank at $7E, so the PPU
 ; registers and the cartridge's tables all go with `f:`, and the state here
 ; is named with a sixteen-bit address, like `FAR_BATTLE`.
-;
-; **$7E6600 to $7E67FF belongs to this**: the range was reserved in advance
-; on 2026-09-21, when splitting work among tasks that touched far RAM.
-SCN_ORIGIN   = $6600    ; 1: a random encounter started the battle
+
+.pushseg
+.segment "FARBSS"
+far_scene: .res $80 + 48
+.popseg
+SCN_ORIGIN   = .loword(far_scene)    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or BACKDROP_PLAIN.
 ; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Which
 ; backdrops there are" in rm2k-snes/convert/src/scene.rs.
-SCN_BACKDROP = $6601
-SCN_VIS      = $6602    ; one bit per enemy: still drawn
-SCN_PAL_N    = $6603    ; how many battler palettes were handed out
-SCN_PAL_BAT  = $6604    ; 8 bytes: which battler each one holds
-SCN_E_BAT    = $6610    ; 8 bytes: each enemy's battler, or $FF
-SCN_E_PAL    = $6618    ; 8 bytes: its palette, 0 to 7
-SCN_E_X      = $6620    ; 8 bytes: its corner in the scene
-SCN_E_Y      = $6628
+SCN_BACKDROP = SCN_ORIGIN + $01
+SCN_VIS      = SCN_ORIGIN + $02    ; one bit per enemy: still drawn
+SCN_PAL_N    = SCN_ORIGIN + $03    ; how many battler palettes were handed out
+SCN_PAL_BAT  = SCN_ORIGIN + $04    ; 8 bytes: which battler each one holds
+SCN_E_BAT    = SCN_ORIGIN + $10    ; 8 bytes: each enemy's battler, or $FF
+SCN_E_PAL    = SCN_ORIGIN + $18    ; 8 bytes: its palette, 0 to 7
+SCN_E_X      = SCN_ORIGIN + $20    ; 8 bytes: its corner in the scene
+SCN_E_Y      = SCN_ORIGIN + $28
 ; What is left to upload to VRAM of an enemy that was just erased: whole tile
 ; rows of the scene, `SCN_SUB_BUDGET` bytes per vblank.
-SCN_SUB_N    = $6630    ; word: how many tile rows are left; 0 is none
-SCN_SUB_ROW = $6632     ; word: the next one
-SCN_SUB_COL  = $6634    ; word: the first tile column
-SCN_SUB_LENGTH = $6636  ; word: how many bytes each row is
+SCN_SUB_N    = SCN_ORIGIN + $30    ; word: how many tile rows are left; 0 is none
+SCN_SUB_ROW = SCN_ORIGIN + $32     ; word: the next one
+SCN_SUB_COL  = SCN_ORIGIN + $34    ; word: the first tile column
+SCN_SUB_LENGTH = SCN_ORIGIN + $36  ; word: how many bytes each row is
 ; How many frames composing took, counted with `boot_frames`: the ROM does
 ; not read it; the tests read it, and so does whoever wants to measure it with
 ; the emulator.
-SCN_FRAMES   = $6638
-SCN_T0       = $663A    ; scratch
-SCN_E        = $663C    ; the enemy being placed or erased
-SCN_I        = $663D
+SCN_FRAMES   = SCN_ORIGIN + $38
+SCN_T0       = SCN_ORIGIN + $3A    ; scratch
+SCN_E        = SCN_ORIGIN + $3C    ; the enemy being placed or erased
+SCN_I        = SCN_ORIGIN + $3D
 ; The rectangle a battler is clipped to when placed: pixel rows [Y0, Y1)
 ; and tile columns [C0, C1) of the scene, in words.
-SCN_CLIP_Y0  = $6640
-SCN_CLIP_Y1  = $6642
-SCN_CLIP_C0  = $6644
-SCN_CLIP_C1  = $6646
+SCN_CLIP_Y0  = SCN_ORIGIN + $40
+SCN_CLIP_Y1  = SCN_ORIGIN + $42
+SCN_CLIP_C0  = SCN_ORIGIN + $44
+SCN_CLIP_C1  = SCN_ORIGIN + $46
 ; Where the walk is in the drawing order. See `scn_by_command`. The byte
 ; after it kept where the troop starts in the `member_*` tables until
 ; 2026-10-10, when that became a word: `ba_member_x` reads it from
-; `troop_init` each time, and $6649 is free.
-SCN_K        = $6648
+; `troop_init` each time, and the byte is free.
+SCN_K        = SCN_ORIGIN + $48
 ; 1 if this battle's background comes from the MSU-1 and not from the
 ; cartridge: see `scn_fill`. The tests read it too, to know which path
 ; ran.
-SCN_MSU      = $664A
+SCN_MSU      = SCN_ORIGIN + $4A
 ; Which of the ROM's backgrounds is drawn without MSU-1: SCN_BACKDROP's if the
 ; cartridge carries it, the replacement if not. Only valid with SCN_BACKDROP
 ; set.
-SCN_FALLBACK = $664B
+SCN_FALLBACK = SCN_ORIGIN + $4B
 ; Where each palette slot's battler was decompressed, in bank $7E: one word
 ; per slot, in the order of `SCN_PAL_BAT`. See `scn_battlers_load`.
-SCN_BAT_PTR  = $6650            ; 8 words
+SCN_BAT_PTR  = SCN_ORIGIN + $50            ; 8 words
 SCN_BAT_PTR_END = SCN_BAT_PTR + 16
 ; Where a troop's battlers are decompressed, when the battle starts: the
 ; grid's half of bank $7E. Before them, for a moment, the background's light
@@ -71,14 +73,13 @@ SCN_BAT_PTR_END = SCN_BAT_PTR + 16
 SCN_BATTLERS = GRID
 .assert SCN_BATTLERS + LZ2_CAP_BATTLERS <= GRID_END, error, "a troop's battlers do not fit in the grid's half of bank $7E"
 ; What was on the direct page that gets borrowed: see `scn_dp_take`.
-SCN_DP_SAVE = $6680
+SCN_DP_SAVE = SCN_ORIGIN + $80
 SCN_DP_BYTES = 48
-; The rest of the reservation is `FARBSS`'s: see far_ram.s.
-.assert SCN_DP_SAVE + SCN_DP_BYTES <= .loword(__FARRAM_START__), error, "the scene's state reaches FARBSS"
+.assert SCN_DP_SAVE + SCN_DP_BYTES <= SCN_ORIGIN + $80 + 48, error, "the scene's state overflows its block"
 
 ; The clean background and the composed scene, 32 KB each, in WRAM bank
 ; $7F, which nobody used: everything else in the ROM lives in $7E —far RAM
-; goes up to $7E67FF— and no `WMADDH` is written with anything but zero. The
+; goes up to $7E7FFF— and no `WMADDH` is written with anything but zero. The
 ; clean one is what lets an enemy be erased without reading anything from
 ; the cartridge again: see `scene_tick`.
 SCN_CLEAN    = $7F0000
