@@ -1,6 +1,7 @@
 # The test game's assets, and whose they are
 
-Every picture in this folder comes from **EasyRPG's RTP**, the free
+Every picture in this folder but the `Picture/` ones, which are this
+project's own, comes from **EasyRPG's RTP**, the free
 replacement for RPG Maker 2000's run-time package:
 <https://github.com/EasyRPG/RTP>, taken at commit `993d88c`
 (2025-04-05). Its materials are licensed under the [Creative Commons
@@ -17,6 +18,7 @@ this file: the RTP's `COPYING`, unchanged.
 | `CharSet/People1.png` | 2023 | VictorSena | CC BY 4.0 | <https://vashmaker.blogspot.com/p/works.html> | none: the RTP's file, byte for byte |
 | `FaceSet/Actor1.png` | 2024 | Garakuta | CC0 | <http://garakutamaker.blog.fc2.com/> | none: the RTP's file, byte for byte |
 | `System/System.png` | 2011 | andwhyisit | CC BY 4.0, OGA-BY 3.0 | none given | none: the RTP's file, byte for byte |
+| `Picture/Night.png` | 2026 | this project | CC0 | none | ours, not the RTP's: a near-black mask with a cone of light, 64 indices, drawn by a script for `tests/test_map_picture.py` |
 
 **The files are not changed; the cartridge does change them.** What the
 console cannot show —more colours in the message window than its palette
