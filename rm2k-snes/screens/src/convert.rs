@@ -136,45 +136,73 @@ fn strips_fit(asked: (usize, usize, usize), bank: &slots::Slots) -> bool {
 /// their composed names: as they are drawn, and if that does not, with the
 /// slot screen's text last —see [`slots::Order`]—. What the error says is
 /// what is missing in the second.
+///
+/// And if it does not fit even so, **faces are left out, one at a time,
+/// the last actor's first**, until it does: the third thing returned is
+/// who lost theirs. An actor without a face shows without one, which is
+/// what the cartridge already draws for RM2k's DummyHero —see
+/// `slot_face_vram` in `slots.s`—, so nothing else changes. Since
+/// 2026-10-16, for Dooms 2's first map, where the character is chosen
+/// among seven candidates and each brings a face: ten faces and the text
+/// gather 481 tiles of 448, and until then the whole cartridge stopped and
+/// the map was left out. The last actors first because RM2k's databases
+/// put the story's characters first and the alternates after, and that is
+/// what the choice there does: 1 to 6 are the ones the story adds, 7 to 11
+/// the candidates.
 fn slots_with_room(
     game: &Game,
     skin: &crate::game::Skin,
     request: &Request,
     medicines: &[(i32, String)],
     custom: &[String],
-) -> Result<(slots::Slots, String)> {
+) -> Result<(slots::Slots, String, Vec<i32>)> {
     let asked = strips_asked(game, request, medicines)?;
     let (party, medicine, slot_names) = asked;
-    let mut bank =
-        slots::slots_screen_with(game, skin, request.slots, &request.actors, slots::Order::Drawn, custom)?;
-    let mut order = "";
-    if !strips_fit(asked, &bank) {
-        bank =
-            slots::slots_screen_with(game, skin, request.slots, &request.actors, slots::Order::MenuFirst, custom)?;
-        order = ", the slot screen's text last";
+    // Only the actors with a face: leaving out one without changes nothing.
+    let mut with_faces: Vec<i32> = Vec::new();
+    for &actor in &request.actors {
+        if game.face(actor)?.is_some() {
+            with_faces.push(actor);
+        }
     }
-    let tiles = bank.tiles.len();
-    let menu_free = free_after(bank.menu_tiles);
-    let slot_free = free_after(tiles);
-    if !strips_fit(asked, &bank) {
-        return Err(Bad::answer(format!(
-            "the menu's bank has no room for the composed names, even with the slot screen's text \
-             last: the menu shows {} tiles and leaves {menu_free} free up to its tilemap, and its \
-             names can ask for {}: {party} the party's and {medicine} a medicine's; the slot \
-             screen shows {tiles} and leaves {slot_free}, and its leaders can ask for {slot_names}",
-            bank.menu_tiles,
-            party + medicine,
-        )));
+    let mut faceless: Vec<i32> = Vec::new();
+    loop {
+        let build = |order| slots::slots_screen_with(game, skin, request.slots, &with_faces, order, custom);
+        let fits = |bank: &slots::Slots| bank.fits() && strips_fit(asked, bank);
+        let mut bank = build(slots::Order::Drawn)?;
+        let mut order = "";
+        if !fits(&bank) {
+            bank = build(slots::Order::MenuFirst)?;
+            order = ", the slot screen's text last";
+        }
+        let tiles = bank.tiles.len();
+        let menu_free = free_after(bank.menu_tiles);
+        let slot_free = free_after(tiles);
+        if fits(&bank) {
+            let said = format!(
+                "  menu bank: {tiles} tiles of {SLOT_TILES_MAX}{order}; the composed names ask for \
+                 {} of the {menu_free} the menu leaves and {slot_names} of the {slot_free} the slot \
+                 screen does",
+                party + medicine
+            );
+            return Ok((bank, said, faceless));
+        }
+        match with_faces.pop() {
+            Some(actor) => faceless.push(actor),
+            None => {
+                let without = if faceless.is_empty() { "" } else { " and without any face" };
+                return Err(Bad::answer(format!(
+                    "the menu's bank has no room for the composed names, even with the slot screen's \
+                     text last{without}: the menu shows {} tiles and leaves {menu_free} free up to its \
+                     tilemap, and its names can ask for {}: {party} the party's and {medicine} a \
+                     medicine's; the slot screen shows {tiles} of {SLOT_TILES_MAX} and leaves \
+                     {slot_free}, and its leaders can ask for {slot_names}",
+                    bank.menu_tiles,
+                    party + medicine,
+                )));
+            }
+        }
     }
-    Ok((
-        bank,
-        format!(
-            "  menu bank: {tiles} tiles of {SLOT_TILES_MAX}{order}; the composed names ask for \
-             {} of the {menu_free} the menu leaves and {slot_names} of the {slot_free} the slot \
-             screen does",
-            party + medicine
-        ),
-    ))
 }
 
 /// What a place leaves out of the names it writes in counted cells: for
@@ -455,8 +483,21 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             lose(&mut says, &mut losses, "names-cut", Some(line));
         }
     }
-    let (slots, said) = slots_with_room(game, &skin, request, &medicines, &labels)?;
+    let (slots, said, faceless) = slots_with_room(game, &skin, request, &medicines, &labels)?;
     says.push(said);
+    if !faceless.is_empty() {
+        let mut who = faceless.clone();
+        who.sort_unstable();
+        // With the number: Dooms 2 has two Junes and two Wills.
+        let names: Vec<String> =
+            who.iter().map(|a| Ok(format!("{} ({a})", game.actor_name(*a)?))).collect::<Result<_>>()?;
+        let line = format!(
+            "  WARNING, the slot screen and the menu have no room for every face: the ones of {} are left \
+             out, and in the menu and the saves those actors show without one",
+            names.join(", ")
+        );
+        lose(&mut says, &mut losses, "faces-left-out", Some(line));
+    }
     for line in names_in_cells(game, request, &medicines)? {
         lose(&mut says, &mut losses, "names-cut", Some(line));
     }
