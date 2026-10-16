@@ -273,6 +273,11 @@ impl MapEvents {
     /// The rest does not change, and not because it is right: an event named
     /// by id after the jump is translated against this map and not against
     /// the destination. No page of the game that compiles today does it.
+    ///
+    /// A **parallel** page does not keep running there: it goes on in the
+    /// same frame, on this map, until it waits or ends, and the new map's
+    /// load ends it —`op_teleport` in the runtime—. For it the event ids are
+    /// right as they are, and the rest of this is only cautious.
     pub fn after_jump(&self) -> MapEvents {
         MapEvents {
             watched: None,
