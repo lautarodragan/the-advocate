@@ -247,7 +247,9 @@ party_ready:
     sta brightness
     stz bgm_fade                ; and the same with the song's
     lda #0
-    sta f:MSG_SWAP              ; no message traded BG1 and BG2: see vblank.s
+    sta f:PAN_LOCKED            ; the camera follows the hero
+    sta f:MSG_SWAP              ; and no message traded BG1 and BG2: see vblank.s
+    jsr pan_recentre
     jsl f:boot_transition           ; and the teleport, with fade
     jsl f:encounter_boot        ; the encounters' random seed
     jsl f:walk_boot + FAST      ; and the walkers'

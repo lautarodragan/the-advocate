@@ -207,9 +207,10 @@ const PLACE_BY_VARIABLE: i64 = 1;
 // x and y—.
 const PLACE_JUMP: u8 = 0x01;
 const PLACE_REFRESHES: [u8; 3] = [0x80, 0x40, 0x20];
-// PanScreen. Of its four operations the game uses two —112 `pan` and 21
-// `reset`, and not one `lock` or `unlock`— so those are the ones that
-// compile.
+// PanScreen's four operations. ABL uses only `pan` and `reset`; Sunset over
+// Imdahl and Zounds lock and unlock the camera too.
+const PAN_LOCK: i64 = 0;
+const PAN_UNLOCK: i64 = 1;
 const PAN_SHIFT: i64 = 2;
 const PAN_RETURN: i64 = 3;
 /// The camera's units inside RM2k: `SCREEN_TILE_SIZE`, that is 1/16 of a
@@ -4455,13 +4456,16 @@ pub fn compile_command(
             Ok(vec![OP_BGM, (index & 0xFF) as u8, left, right, step as u8, (step >> 8) as u8])
         }
         PAN_SCREEN => {
-            // Moving the camera without the hero: `CommandPanScreen`.
-            // Locking and unlocking the camera are used by no page of the
-            // game, so they do not compile: modeling them with nothing
-            // exercising them is making up a difference. Moving and resetting
-            // do, which are the 133 there are.
+            // Moving the camera without the hero: `CommandPanScreen`, in its
+            // four operations. Locking and unlocking only say whether the
+            // camera follows the hero, and never wait —`LockPan`,
+            // `UnlockPan`—: they carry the same operands as the other two,
+            // at zero, so the opcode keeps one length. ABL used neither, and
+            // until 2026-10-16 they did not compile; Sunset over Imdahl's
+            // GateStreet locks the camera for its main scene, which was left
+            // out.
             //
-            // OP_PAN: operation (byte: PAN_SHIFT or PAN_RETURN), how far the
+            // OP_PAN: operation (byte: RM2k's `p[0]`), how far the
             // destination moves in x and in y (a signed word each, in 1/16 of
             // a pixel), the step per frame (byte) and whether the page waits
             // (byte).
@@ -4473,6 +4477,9 @@ pub fn compile_command(
             // has left when the command runs, and with one still in progress
             // that is not what this command asked for. See `GetPanWait` and
             // `CommandPanScreen`'s comment on the maximum.
+            if n >= 1 && (q(0) == PAN_LOCK || q(0) == PAN_UNLOCK) {
+                return Ok(vec![OP_PAN, q(0) as u8, 0, 0, 0, 0, 0, 0]);
+            }
             if n < 5 || !(q(0) == PAN_SHIFT || q(0) == PAN_RETURN) {
                 return cannot();
             }
@@ -6237,6 +6244,20 @@ mod tests {
         let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[0, 0], "blue")]);
         assert_eq!(out.unwrap().unwrap(), [OP_CHANGE_SYSTEM, 1, OP_DONE]);
         assert!(!ACCEPTED_UNDONE.contains(&CHANGE_SYSTEM_GRAPHICS));
+    }
+
+    /// `PanScreen`'s lock and unlock compile as OP_PAN with their operation
+    /// and the rest at zero, the length of the other two; on 2026-10-16 they
+    /// left out Sunset over Imdahl's GateStreet scene.
+    #[test]
+    fn pan_screen_lock_and_unlock_compile_with_the_shift_and_the_return() {
+        let game = Game::default();
+        let one = |p: &[i32]| compile_with(&game, &[cmd(PAN_SCREEN, p, "")]).unwrap();
+        assert_eq!(one(&[0, 0, 1, 4, 1]).unwrap(), [OP_PAN, 0, 0, 0, 0, 0, 0, 0, OP_DONE]);
+        assert_eq!(one(&[1, 0, 10, 1, 1]).unwrap(), [OP_PAN, 1, 0, 0, 0, 0, 0, 0, OP_DONE]);
+        // Up two cells at speed 4, waiting: -512 in y, a step of 32.
+        assert_eq!(one(&[2, 0, 2, 4, 1]).unwrap(), [OP_PAN, 2, 0, 0, 0x00, 0xFE, 32, 1, OP_DONE]);
+        assert_eq!(one(&[4, 0, 2, 4, 1]), None, "Maniac's pixel pans do not compile");
     }
 
     /// The long forms of `KeyInputProc` that ask for the same keys as the

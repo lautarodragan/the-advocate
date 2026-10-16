@@ -83,7 +83,9 @@ pub const COND_ACTOR_EQUIPMENT: u32 = 5;
 pub const COND_ACTOR_HP: u32 = 3;
 /// `MaxGoldValue()`.
 pub const GOLD_MAX: u32 = 999_999;
-/// The two `PanScreen` operations that compile, and the timer's two.
+/// `PanScreen`'s four operations —its `p[0]`—, and the timer's two.
+pub const PAN_LOCK: u32 = 0;
+pub const PAN_UNLOCK: u32 = 1;
 pub const PAN_SHIFT: u32 = 2;
 pub const PAN_RETURN: u32 = 3;
 pub const TIMER_SET: u32 = 0;
@@ -198,7 +200,7 @@ pub fn numbers() -> Vec<(&'static str, serde_json::Value)> {
         VAR_ACTOR, CELL_Y, CELL_REFRESH, RANDOM_SEED, ENC_SEED, TIMER_SET_VAR, TIMER_SLOT,
         COND_TIMER, COND_GOLD, COND_ITEM, COND_ACTOR, COND_ACTOR_SKILL, COND_ACTOR_EQUIPMENT,
         COND_ACTOR_HP,
-        GOLD_MAX, PAN_SHIFT, PAN_RETURN, TIMER_SET, TIMER_START, FRAMES_PER_SECOND,
+        GOLD_MAX, PAN_LOCK, PAN_UNLOCK, PAN_SHIFT, PAN_RETURN, TIMER_SET, TIMER_START, FRAMES_PER_SECOND,
         TIMER_EXTRA_FRAMES, TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_COLLISION, TRIGGER_AUTOSTART,
         TRIGGER_PARALLEL, FRAMES_PER_CELL, ROUTE_FREQUENCY, ROUTE_FREQUENCY_MIN,
         ROUTE_WAIT_FRAMES, JUMP_STEP, FADE_TOTAL, FADE_RAMP, BRIGHTNESS_MAX, TRANSITION_MOSAIC,
