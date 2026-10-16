@@ -223,18 +223,53 @@ pub fn party_changes(maps: &[&GameMap], scan: &Value) -> Result<Vec<Vec<Vec<(i32
 /// compiles puts first. **The party is reset in each map**: the actor table
 /// is per map, so the question is who can lead while that map is loaded,
 /// and not what happened in the directory's previous maps.
+///
+/// Within a map each batch is also played **on its own**, from the
+/// cartridge's party and, if some batch can leave the party empty, from the
+/// empty one: the pages of a map's events are alternatives as often as a
+/// sequence, and which one runs —and with which party the map was entered—
+/// depends on switches that are not known here. Dooms 2 is both: map 1 is
+/// a row of candidates, each taking the narrator out and putting its
+/// character in, and some take him out alone and teleport, so the party
+/// arrives empty at the map where the story's hero joins. Played only in
+/// file order, the second candidate went in behind the first one, the hero
+/// who joined an empty party went in behind the narrator, and none of them
+/// was in any map's actor table: their story's hero walked undrawn.
 pub fn possible_leaders(changes: &[Vec<Vec<(i32, i32)>>], party: &[i32]) -> Vec<i32> {
+    let played = |start: &[i32], batch: &[(i32, i32)]| {
+        let mut state = PartyState::new(start);
+        for &(operation, actor) in batch {
+            state.change_party(operation, actor);
+        }
+        state
+    };
+    let can_empty = changes.iter().flatten().any(|batch| played(party, batch).leader().is_none())
+        || changes.iter().any(|map_changes| {
+            let mut state = PartyState::new(party);
+            map_changes.iter().any(|batch| {
+                state = played(&state.party, batch);
+                state.leader().is_none()
+            })
+        });
+    let mut starts = vec![party.to_vec()];
+    if can_empty {
+        starts.push(Vec::new());
+    }
     let mut actors: Vec<i32> = party.iter().take(1).copied().collect();
+    let mut add = |leader: Option<i32>| {
+        if let Some(leader) = leader {
+            if !actors.contains(&leader) {
+                actors.push(leader);
+            }
+        }
+    };
     for map_changes in changes {
         let mut state = PartyState::new(party);
         for batch in map_changes {
-            for &(who, operation) in batch {
-                state.change_party(who, operation);
-            }
-            if let Some(leader) = state.leader() {
-                if !actors.contains(&leader) {
-                    actors.push(leader);
-                }
+            state = played(&state.party, batch);
+            add(state.leader());
+            for start in &starts {
+                add(played(start, batch).leader());
             }
         }
     }
@@ -414,6 +449,33 @@ mod tests {
         let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
         assert_eq!(changes[0], vec![vec![(PARTY_REMOVE, 10), (PARTY_ADD, 11)], vec![(PARTY_ADD, 12)]]);
         assert_eq!(possible_leaders(&changes, &[10]), [10, 11, 13]);
+    }
+
+    #[test]
+    fn each_choice_of_a_map_and_a_party_emptied_elsewhere_bring_their_leader() {
+        // Dooms 2's map 1: Will (5) tells the story, and each candidate is an
+        // event whose page takes him out and puts its character in. Pages of
+        // different events are alternatives, not a sequence: Bryan (3) leads
+        // after his own page, even if Jonathan's (7) ran first in the file.
+        // And Bob's (2) takes Will out alone and teleports: the party arrives
+        // empty at map 3, where Bob joins and leads.
+        let one = map(
+            1,
+            vec![
+                vec![party(PARTY_REMOVE, 5), party(PARTY_ADD, 7)],
+                vec![party(PARTY_REMOVE, 5), party(PARTY_ADD, 3)],
+                vec![party(PARTY_REMOVE, 5)],
+            ],
+        );
+        let three = map(3, vec![vec![party(PARTY_ADD, 2)]]);
+        let maps = [&one, &three];
+        let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
+        assert_eq!(possible_leaders(&changes, &[5]), [5, 7, 3, 2]);
+        // Without a page that can leave the party empty, an actor who joins
+        // goes behind the one leading: the empty party is not supposed.
+        let three_alone = [&three];
+        let changes = party_changes(&three_alone, &everything_compiles(&three_alone)).unwrap();
+        assert_eq!(possible_leaders(&changes, &[5]), [5]);
     }
 
     #[test]
