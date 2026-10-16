@@ -87,8 +87,9 @@ enum Command {
     stores them, End Game, the texts the cartridge composes, the geometry, and what the \
     conversion says. Its request carries `font` and `letter_spacing`, as `boxes` takes \
     them, `slots`, `actors`, `items`, `title`, \
-    `cgram_reserved` and `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
-    [name, from, to]).\n\n\
+    `cgram_reserved`, `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
+    [name, from, to]) and, optional, `letters`: the Latin-1 the message boxes draw, whose \
+    glyphs go after the console's 96 in the message window's tables.\n\n\
     `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
     slots, equipment, shop, end_game or title— and that screen's state: see `render.rs`.")]
 struct GameArgs {
@@ -348,11 +349,24 @@ fn do_render(args: &GameArgs) -> Result<()> {
 /// How a request's window measures a line: `font` —the project file's
 /// `[text] font`, spaced by `letter_spacing`— and `width` in pixels; or `advances`, each glyph's from
 /// the space on, and `width`, which is the window the converter hands the
-/// event compiler; or, without either, `columns` characters of RM2k's
+/// event compiler, with its `letters`, the Latin-1 the font draws, each with
+/// its advance; or, without either, `columns` characters of RM2k's
 /// fixed-width font, which is how it was asked until 2026-10-03.
 fn measure_of(json: &Json) -> Result<Measure> {
     if json.data.get("advances").is_some_and(|f| !f.is_null()) {
-        let advances = json.numbers("advances")?.into_iter().map(|a| a as u8).collect();
+        let mut advances: Vec<u8> = json.numbers("advances")?.into_iter().map(|a| a as u8).collect();
+        for pair in json.data.get("letters").and_then(|l| l.as_array()).into_iter().flatten() {
+            let letter = pair.get(0).and_then(|l| l.as_str()).and_then(|l| l.chars().next());
+            let advance = pair.get(1).and_then(|a| a.as_u64());
+            let (Some(letter), Some(advance)) = (letter, advance) else {
+                return Err(Bad::answer(format!("a window's `letters` are pairs of a letter and its advance: {pair}")));
+            };
+            let at = (letter as u32).saturating_sub(32) as usize;
+            if advances.len() <= at {
+                advances.resize(at + 1, 0);
+            }
+            advances[at] = advance as u8;
+        }
         return Ok(Measure::from_advances(advances, json.index_or("width", 0)?));
     }
     if json.data.get("font").is_some_and(|f| !f.is_null()) {
