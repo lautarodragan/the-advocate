@@ -608,31 +608,32 @@ map_each:
 ; write a colour on every line, and where in `MSG_FACE_DATA` the four bytes
 ; of a line are. An entry's count is seven bits, so the 144 lines above
 ; the bottom window are two entries, as in `place_rows`.
-.macro face_entry count, data
+; An entry: its lines, and the four bytes of `MSG_FACE_DATA` it writes
+; from, as the line of the face's palette (0 to 14) or of the map's (15 to
+; 29). The places are spelled out as the label plus its offset and not as
+; constants, because a constant that falls in the pool's area is what
+; ABL's `test_wram_reservations.py` forbids.
+.macro face_entry count, line
     .byte count
-    .word data
+    .word .loword(MSG_FACE_DATA) + (line) * 4
 .endmacro
-FACE_DATA_FACE = .loword(MSG_FACE_DATA)
-FACE_DATA_MAP = FACE_DATA_FACE + 15 * 4
-FACE_DATA_FACE_LAST = FACE_DATA_FACE + 14 * 4
-FACE_DATA_MAP_LAST = FACE_DATA_MAP + 14 * 4
 face_table_top:
-    face_entry $80 | 15, FACE_DATA_FACE
-    face_entry FACE_HOLD_LINES, FACE_DATA_FACE_LAST
-    face_entry $80 | 15, FACE_DATA_MAP
+    face_entry $80 | 15, 0
+    face_entry FACE_HOLD_LINES, 14
+    face_entry $80 | 15, 15
     .byte 0
 face_table_middle:
-    face_entry PLACE_MIDDLE, FACE_DATA_MAP_LAST
-    face_entry $80 | 15, FACE_DATA_FACE
-    face_entry FACE_HOLD_LINES, FACE_DATA_FACE_LAST
-    face_entry $80 | 15, FACE_DATA_MAP
+    face_entry PLACE_MIDDLE, 29
+    face_entry $80 | 15, 0
+    face_entry FACE_HOLD_LINES, 14
+    face_entry $80 | 15, 15
     .byte 0
 face_table_bottom:
-    face_entry 127, FACE_DATA_MAP_LAST
-    face_entry PLACE_BOTTOM - 127, FACE_DATA_MAP_LAST
-    face_entry $80 | 15, FACE_DATA_FACE
-    face_entry FACE_HOLD_LINES, FACE_DATA_FACE_LAST
-    face_entry $80 | 15, FACE_DATA_MAP
+    face_entry 127, 29
+    face_entry PLACE_BOTTOM - 127, 29
+    face_entry $80 | 15, 0
+    face_entry FACE_HOLD_LINES, 14
+    face_entry $80 | 15, 15
     .byte 0
 face_tables:
     .word .loword(face_table_top), .loword(face_table_middle), .loword(face_table_bottom)
