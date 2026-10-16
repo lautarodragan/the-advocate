@@ -15,7 +15,9 @@ far_hero_speed:  .res 1
 far_random:      .res 2
 far_variables:   .res VARIABLES_N * 2
 far_items:       .res ITEMS_N
-; By LDB actor number: ACTORS_N is the highest number plus one.
+; By LDB actor number. **ACTORS_N is the highest number plus one**, and an
+; actor number is a byte everywhere —the party, `BA_NUMBER`—, so the
+; converter has to keep it under 256 for these tables to be indexed whole.
 far_equipment:   .res ACTORS_N * 10
 far_hp:          .res ACTORS_N * 2
 far_sp:          .res ACTORS_N * 2
@@ -28,3 +30,4 @@ FAR_EFFECT_IN:   .res SE_PLACES
 NPC_ROW_SEPARATE: .res NPC_STRIDE
 .popseg
 .assert far_variables = far_msg_options + 5, error, "clear_variables walks a block that is not contiguous"
+.assert ACTORS_N <= 256, error, "an actor number is a byte: the actors' tables are indexed by it"
