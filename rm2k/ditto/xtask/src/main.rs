@@ -414,9 +414,12 @@ fn enc(ty: &str, enums: &BTreeMap<String, Vec<(String, i64)>>, enum_name: &str) 
         "Double" => Enc::F64,
         "String" | "DBString" => Enc::Text,
         "DBBitArray" | "Vector<Boolean>" => Enc::VecBool,
-        // A block liblcf declares empty and never reads: its bytes, so that
-        // whatever a file carries there comes back.
-        "Vector<UInt8>" | "EmptyBlock" => Enc::VecU8,
+        "Vector<UInt8>" => Enc::VecU8,
+        // A block liblcf declares empty and never reads (`EmptyField`): the
+        // three 2003 sections of `Database` that hold nothing. A `bool` that
+        // stays false, so that it is a scalar of `database.json` and not a
+        // file of the directory dump; `emit_codec` writes it with no body.
+        "EmptyBlock" => Enc::Bool,
         "Vector<Int16>" => Enc::VecI16,
         "Vector<Int32>" | "Vector<Ref<BattleCommand:Int32>>" => Enc::VecI32,
         "Vector<UInt32>" => Enc::VecU32,
@@ -949,7 +952,9 @@ fn emit_codec(
         let e = enc(&c.ty, enums, &enum_name(c, enums));
         let field = field_ident(&c.name);
         let (open, close) = guard(c, &format!("self.{field} != p.{field}"), in_ldb);
-        let value = if c.ty == "DatabaseVersion" {
+        let value = if c.ty == "EmptyBlock" {
+            "Vec::new()".to_string()
+        } else if c.ty == "DatabaseVersion" {
             // liblcf's `DatabaseVersionField`: in a 2003 file the chunk is
             // always there, and it is **empty** when the version is 0; in a
             // 2000 one it is there only when it is not 0. RPG Maker 2003

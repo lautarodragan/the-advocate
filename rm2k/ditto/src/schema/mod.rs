@@ -6938,15 +6938,15 @@ pub struct Database {
     /// field 0x1a of the binary
     pub version: i32 = 0,
     /// field 0x1b of the binary, stored even when it holds the default; RPG Maker 2003 only
-    pub commoneventD2: Vec<u8> = Vec::new(),
+    pub commoneventD2: bool = false,
     /// field 0x1c of the binary, stored even when it holds the default; RPG Maker 2003 only
-    pub commoneventD3: Vec<u8> = Vec::new(),
+    pub commoneventD3: bool = false,
     /// field 0x1d of the binary, stored even when it holds the default; RPG Maker 2003 only
     pub battlecommands: BattleCommands = Default::default(),
     /// field 0x1e of the binary, stored even when it holds the default; RPG Maker 2003 only
     pub classes: Vec<Class> = Default::default(),
     /// field 0x1f of the binary, stored even when it holds the default; RPG Maker 2003 only
-    pub classD1: Vec<u8> = Vec::new(),
+    pub classD1: bool = false,
     /// field 0x20 of the binary, stored even when it holds the default; RPG Maker 2003 only
     pub battleranimations: Vec<BattlerAnimation> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
@@ -11118,11 +11118,11 @@ impl Chunked for Database {
             0x18 => self.variables = dec_array::<Variable>(d, is2k3)?,
             0x19 => self.commonevents = dec_array::<CommonEvent>(d, is2k3)?,
             0x1a => self.version = dec_ber(d),
-            0x1b => self.commoneventD2 = d.to_vec(),
-            0x1c => self.commoneventD3 = d.to_vec(),
+            0x1b => self.commoneventD2 = dec_bool(d),
+            0x1c => self.commoneventD3 = dec_bool(d),
             0x1d => self.battlecommands = dec_struct::<BattleCommands>(d, is2k3)?,
             0x1e => self.classes = dec_array::<Class>(d, is2k3)?,
-            0x1f => self.classD1 = d.to_vec(),
+            0x1f => self.classD1 = dec_bool(d),
             0x20 => self.battleranimations = dec_array::<BattlerAnimation>(d, is2k3)?,
             _ => return Ok(false),
         }
@@ -11147,11 +11147,11 @@ impl Chunked for Database {
         c.push((0x18, enc_array(&self.variables, e.is2k3)?));
         c.push((0x19, enc_array(&self.commonevents, e.is2k3)?));
         if e.is2k3 || self.version != p.version { c.push((0x1a, if self.version == 0 { Vec::new() } else { enc_ber(self.version) })); }
-        if e.is2k3 { c.push((0x1b, self.commoneventD2.clone())); }
-        if e.is2k3 { c.push((0x1c, self.commoneventD3.clone())); }
+        if e.is2k3 { c.push((0x1b, Vec::new())); }
+        if e.is2k3 { c.push((0x1c, Vec::new())); }
         if e.is2k3 { c.push((0x1d, enc_struct(&self.battlecommands, e.is2k3)?)); }
         if e.is2k3 { c.push((0x1e, enc_array(&self.classes, e.is2k3)?)); }
-        if e.is2k3 { c.push((0x1f, self.classD1.clone())); }
+        if e.is2k3 { c.push((0x1f, Vec::new())); }
         if e.is2k3 { c.push((0x20, enc_array(&self.battleranimations, e.is2k3)?)); }
         e.dump(c, &self.unknown);
         Ok(())
