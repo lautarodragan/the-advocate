@@ -227,11 +227,150 @@ framed:
     lda f:MSG_VOFS
     sta hdma_ofs + 3, x
     stz hdma_ofs + 4, x
+
+    ; Channels 2, 3 and 6 to BG2's scroll and the two masks, as always,
+    ; unless the window goes over a painting: see `msg_swap_build`. Here and
+    ; not only in `build_hdma` because a window over a painting points them
+    ; elsewhere, and the next one has to bring them back.
+    lda #<BG2HOFS
+    sta BBAD2
+    lda #<WOBJSEL
+    sta BBAD3
+    lda #<W12SEL
+    sta BBAD6
+    lda #0
+    sta f:MSG_SWAP
+.ifdef paint_table
+    lda msg_open                ; a map's load builds the tables with none up
+    beq no_swap
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq no_swap
+    lda f:PAINT_ON
+    beq no_swap
+    lda f:BIG_FLAGS
+    lsr a                       ; a big picture is BG1: no painting to trade
+    bcs no_swap
+    jsr msg_swap_build
+no_swap:
+.endif
     ply
     plx
     plp
     rtl
 .endproc
+
+; What `msg_swap_build` leaves for the HDMA and for `flush_video`. Far RAM:
+; HDMA reads any bank, and channels 3 and 6 take it from `A1B3` and `A1B6`.
+.pushseg
+.segment "FARBSS"
+MSG_SWAP:     .res 1            ; 1 while the window on screen trades BG1 and BG2
+MSG_SWAP_SC1: .res 7            ; BG1SC by stretch, as `hdma_sc` is BG2SC
+MSG_SWAP_NBA: .res 7            ; and BG12NBA
+.popseg
+
+.ifdef paint_table
+; A window without its background over a painted map: on its lines BG1 and
+; BG2 trade places, so the letters are BG1 and the painting BG2.
+;
+; The painting is BG1, and its cells in front of the hero —the pictures
+; drawn into the map: roofs, lights, fogs— are priority 1. The window is
+; BG2, and in mode 1 BG2 never goes in front of BG1 priority 1, whatever its
+; own priority. With the frame that is solved by hiding BG1 on the window's
+; lines —channel 6, see `pano_ppu`—, but without it what is under the window
+; has to be seen, and so the mask was `mask_none` and the cells in front
+; covered the letters: on Sunset over Imdahl's GateStreet, whose fog is
+; drawn into the map, the scene's messages came out with a glyph or two, on
+; 2026-10-16. RM2k draws the text above everything.
+;
+; So on the window's lines BG1 shows the window's tilemap, with BG2's tile
+; base and the window's scroll, and BG2 shows the painting, with BG1's tile
+; base and the camera's scroll. In mode 1 both are 4bpp, so trading them is
+; only tilemap, base and scroll. The letters are priority 1 —the window's
+; cells carry the layer above's—, in front of the painting's cells in front
+; of the hero; and those, now BG2 priority 1, keep their place against the
+; objects, between priority 3 and 2 as BG1 priority 1 was. What those lines
+; lose is the layer above —BG2's on a painted map—, which a window without
+; its background already hid: there BG2 was the window.
+;
+; The channels are the two masks', which a window without its background
+; does not use: 6 writes BG1SC and 3 BG12NBA, from `MSG_SWAP_SC1` and
+; `MSG_SWAP_NBA` in the same stretches as `hdma_sc`; 2 writes BG1's scroll
+; instead of BG2's, from the same `hdma_ofs` —the camera on the map's
+; stretches, the window's on its own—; and BG2's scroll is the camera on
+; every line, which `flush_video` writes anyway. When the window closes,
+; `flush_video` puts BG1SC and BG12NBA back: the HDMA leaves them as its last
+; line wrote them.
+.proc msg_swap_build
+.a8
+.i16
+    lda #1
+    sta f:MSG_SWAP
+    ; Every stretch with the map's values and `hdma_sc`'s lines...
+    ldx map_ofs
+    lda f:map_table + M_VRAM_MAP + 1, x
+    ora #MAP_LAYOUT
+    sta f:MSG_SWAP_SC1 + 1
+    sta f:MSG_SWAP_SC1 + 3
+    sta f:MSG_SWAP_SC1 + 5
+    lda f:map_table + M_BG12NBA_VALUE, x
+    sta f:MSG_SWAP_NBA + 1
+    sta f:MSG_SWAP_NBA + 3
+    sta f:MSG_SWAP_NBA + 5
+    ldx #0
+lines:
+    lda hdma_sc, x
+    sta f:MSG_SWAP_SC1, x
+    sta f:MSG_SWAP_NBA, x
+    inx
+    inx
+    cpx #8                      ; the three counts and the end's zero
+    bne lines
+    ; ...and the window's stretch traded: the window to BG1 and the painting
+    ; to BG2, whose entry in `hdma_sc` is the same as in these two.
+    lda f:MSG_PLACE
+    and #MSG_WHERE
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    tax
+    lda f:place_rows + 5, x
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:MSG_SWAP_SC1 + 1, x   ; the painting's tilemap
+    sta hdma_sc + 1, x
+    lda f:MSG_SC
+    sta f:MSG_SWAP_SC1 + 1, x
+    lda f:MSG_SWAP_NBA + 1, x
+    asl a                       ; the two nibbles traded: BG12NBA has BG1's
+    adc #$80                    ; base in the low one and BG2's in the high
+    rol a
+    asl a
+    adc #$80
+    rol a
+    sta f:MSG_SWAP_NBA + 1, x
+    ; And the channels to their registers and tables.
+    lda #<BG1HOFS
+    sta BBAD2
+    lda #<BG12NBA
+    sta BBAD3
+    lda #<BG1SC
+    sta BBAD6
+    ldx #.loword(MSG_SWAP_NBA)
+    stx A1T3L
+    ldx #.loword(MSG_SWAP_SC1)
+    stx A1T6L
+    lda #^MSG_SWAP_SC1
+    sta A1B3
+    sta A1B6
+    rts
+.endproc
+.endif
 
 ; Per position, eight bytes: the three stretches' lines from the top, the
 ; window's entry in `hdma_ofs` —five bytes per stretch—, its first line, its
