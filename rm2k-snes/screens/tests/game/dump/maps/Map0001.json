@@ -99,7 +99,7 @@
       {
        "code": 10110,
        "indent": 0,
-       "string": "a \\$ in the middle, which does not compile and stays as it is, however long",
+       "string": "sixteen pauses at the end, which do not compile, so it stays as it is, however long\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|",
        "parameters": []
       }
      ]

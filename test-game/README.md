@@ -15,7 +15,8 @@ of nested calls that returns. And two more maps with the same ChipSet,
 the garden and the showcase, where the console loses colours: a little,
 and too much. They are the book's examples of the lossy optimizations,
 next to RM2k's drawing of the same. And a fourth, the clearing, with no
-events at all.
+events at all. And a common event that shows a box with escapes the console
+cannot show, which it drops and the build lists.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json

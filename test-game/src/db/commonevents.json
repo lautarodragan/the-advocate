@@ -8,5 +8,15 @@
       {"code": "Wait", "parameters": [10]},
       {"code": "ControlSwitches", "parameters": [0, 1241, 1241, 0]}
     ]
+  },
+  {
+    "id": 2,
+    "name": "Escapes",
+    "trigger": "call",
+    "event_commands": [
+      {"code": "ShowMessage", "string": "\\c[2]Escapes\\c[0] the console cannot show:"},
+      {"code": "ShowMessage_2", "string": "\\$ the gold window, \\>instant\\< text,"},
+      {"code": "ShowMessage_2", "string": "a half\\_space, and an unknown\\q letter."}
+    ]
   }
 ]
