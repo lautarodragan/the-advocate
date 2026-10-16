@@ -207,9 +207,10 @@ const PLACE_BY_VARIABLE: i64 = 1;
 // x and y—.
 const PLACE_JUMP: u8 = 0x01;
 const PLACE_REFRESHES: [u8; 3] = [0x80, 0x40, 0x20];
-// PanScreen. Of its four operations the game uses two —112 `pan` and 21
-// `reset`, and not one `lock` or `unlock`— so those are the ones that
-// compile.
+// PanScreen's four operations. ABL uses only `pan` and `reset`; Sunset over
+// Imdahl and Zounds lock and unlock the camera too.
+const PAN_LOCK: i64 = 0;
+const PAN_UNLOCK: i64 = 1;
 const PAN_SHIFT: i64 = 2;
 const PAN_RETURN: i64 = 3;
 /// The camera's units inside RM2k: `SCREEN_TILE_SIZE`, that is 1/16 of a
@@ -451,7 +452,7 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 6] = [
+pub const ACCEPTED_UNDONE: [i32; 7] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -460,6 +461,8 @@ pub const ACCEPTED_UNDONE: [i32; 6] = [
     // Debt: the actor's face in the database stays as it was; see its arm.
     // `ChangeFaceGraphic`, the message's face, is done since 2026-10-15.
     CHANGE_ACTOR_FACE,
+    // Debt: the map keeps the tileset it was converted with; see its arm.
+    CHANGE_MAP_TILESET,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -4455,13 +4458,16 @@ pub fn compile_command(
             Ok(vec![OP_BGM, (index & 0xFF) as u8, left, right, step as u8, (step >> 8) as u8])
         }
         PAN_SCREEN => {
-            // Moving the camera without the hero: `CommandPanScreen`.
-            // Locking and unlocking the camera are used by no page of the
-            // game, so they do not compile: modeling them with nothing
-            // exercising them is making up a difference. Moving and resetting
-            // do, which are the 133 there are.
+            // Moving the camera without the hero: `CommandPanScreen`, in its
+            // four operations. Locking and unlocking only say whether the
+            // camera follows the hero, and never wait —`LockPan`,
+            // `UnlockPan`—: they carry the same operands as the other two,
+            // at zero, so the opcode keeps one length. ABL used neither, and
+            // until 2026-10-16 they did not compile; Sunset over Imdahl's
+            // GateStreet locks the camera for its main scene, which was left
+            // out.
             //
-            // OP_PAN: operation (byte: PAN_SHIFT or PAN_RETURN), how far the
+            // OP_PAN: operation (byte: RM2k's `p[0]`), how far the
             // destination moves in x and in y (a signed word each, in 1/16 of
             // a pixel), the step per frame (byte) and whether the page waits
             // (byte).
@@ -4473,6 +4479,9 @@ pub fn compile_command(
             // has left when the command runs, and with one still in progress
             // that is not what this command asked for. See `GetPanWait` and
             // `CommandPanScreen`'s comment on the maximum.
+            if n >= 1 && (q(0) == PAN_LOCK || q(0) == PAN_UNLOCK) {
+                return Ok(vec![OP_PAN, q(0) as u8, 0, 0, 0, 0, 0, 0]);
+            }
             if n < 5 || !(q(0) == PAN_SHIFT || q(0) == PAN_RETURN) {
                 return cannot();
             }
@@ -4662,6 +4671,43 @@ pub fn compile_command(
                 .position(|(a, n)| *a == actor && *n == cmd.string)
                 .ok_or(Stop::Cannot)?;
             Ok(vec![OP_CHANGE_NAME, byte(place as i64)?, byte(which as i64 + 1)?])
+        }
+        // `ChangeMapTileset` (11710): the map drawn, from here on and until
+        // the next teleport, with another ChipSet —its graphics, its
+        // passability and its animated tiles—, the same cells. RPG_RT's
+        // `Game_Map::SetChipset`; 0 is the map's own.
+        //
+        // It is dropped, and the page runs: until 2026-10-16 the page was
+        // left out whole, and on Frozen World's map 9 that page is the intro
+        // —a parallel EV0006 flashes, changes the tileset, turns a switch on
+        // and teleports to map 10—, so the game stopped there. taro's, from
+        // 2026-10-15: a command not done yet degrades, noted, instead of
+        // taking its page with it.
+        //
+        // **What is lost**: the map keeps the ChipSet it was converted with,
+        // its graphics and its passability. In the two games that use it the
+        // swaps are of two kinds. Frozen World's show the same place with
+        // time stopped or set going —the water and the waterfalls still, in
+        // a ChipSet of their own—, for a moment inside a scene, and one
+        // (map 129) changes only passability for a route that walks through
+        // anyway. Vampires Dawn's are the bat's: the same graphics, every
+        // cell open and nothing above the hero, while switch 29 is on —a bat
+        // that keeps the ground's passability—. Doing it for real is
+        // converting the map with each ChipSet it asks for and swapping
+        // blocks, tiles, palettes and passability at run time: measured in
+        // `tasks/changemaptileset-is-not-compiled.md`, in the-advocate-work.
+        CHANGE_MAP_TILESET => {
+            let asked = cmd.p(0).unwrap_or(0);
+            ctx.lose(
+                cmd,
+                "tileset-not-changed",
+                if asked == 0 {
+                    "the map's own tileset is not put back: it keeps the one it was converted with".to_string()
+                } else {
+                    format!("the map keeps the tileset it was converted with instead of changing to tileset {asked}")
+                },
+            );
+            Ok(vec![])
         }
         CHANGE_HERO_TITLE => {
             ctx.lose(cmd, "hero-title-not-changed", format!("actor {}'s title is not changed to {:?}", p.first().unwrap_or(&0), cmd.string));
@@ -5099,9 +5145,27 @@ pub fn compile_command(
                 return cannot();
             }
             let frames = q(5) * FRAMES_PER_TENTH;
-            if !(0 < frames && frames <= 255) {
+            if frames <= 0 {
                 return cannot();
             }
+            // The console counts a flash's frames in a byte, and divides by
+            // them with the hardware's eight-bit divisor: see `one_flash`.
+            // A longer one fades out in 255 frames instead, which is the
+            // same flash going out sooner; the page's wait, if it waits, is
+            // still the whole time. Sunset over Imdahl flashes the hero for
+            // six seconds —360 frames— on thirteen pages, the statue's
+            // among them, and until 2026-10-16 that left them out and the
+            // game stuck on its first square.
+            let shown = if frames > 255 {
+                ctx.lose(
+                    cmd,
+                    "flash-shortened",
+                    format!("a flash of {frames} frames fades out in 255"),
+                );
+                255
+            } else {
+                frames
+            };
             // The hero's is the converter's to look at: whom he shares a
             // palette with depends on the party.
             if let Some(me) = map_events.filter(|_| target != 0) {
@@ -5121,7 +5185,7 @@ pub fn compile_command(
                 p[2] as u8,
                 p[3] as u8,
                 p[4] as u8,
-                frames as u8,
+                shown as u8,
             ];
             if q(6) != 0 {
                 // Waiting is exactly the Wait command: `SetupWait(tenths)`,
@@ -6237,6 +6301,35 @@ mod tests {
         let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[0, 0], "blue")]);
         assert_eq!(out.unwrap().unwrap(), [OP_CHANGE_SYSTEM, 1, OP_DONE]);
         assert!(!ACCEPTED_UNDONE.contains(&CHANGE_SYSTEM_GRAPHICS));
+    }
+
+    /// `PanScreen`'s lock and unlock compile as OP_PAN with their operation
+    /// and the rest at zero, the length of the other two; on 2026-10-16 they
+    /// left out Sunset over Imdahl's GateStreet scene.
+    #[test]
+    fn pan_screen_lock_and_unlock_compile_with_the_shift_and_the_return() {
+        let game = Game::default();
+        let one = |p: &[i32]| compile_with(&game, &[cmd(PAN_SCREEN, p, "")]).unwrap();
+        assert_eq!(one(&[0, 0, 1, 4, 1]).unwrap(), [OP_PAN, 0, 0, 0, 0, 0, 0, 0, OP_DONE]);
+        assert_eq!(one(&[1, 0, 10, 1, 1]).unwrap(), [OP_PAN, 1, 0, 0, 0, 0, 0, 0, OP_DONE]);
+        // Up two cells at speed 4, waiting: -512 in y, a step of 32.
+        assert_eq!(one(&[2, 0, 2, 4, 1]).unwrap(), [OP_PAN, 2, 0, 0, 0x00, 0xFE, 32, 1, OP_DONE]);
+        assert_eq!(one(&[4, 0, 2, 4, 1]), None, "Maniac's pixel pans do not compile");
+    }
+
+    /// A flash longer than the byte the console counts it in fades out in
+    /// 255 frames, noted as a loss; the page's wait keeps the whole time.
+    #[test]
+    fn a_flash_past_255_frames_is_shortened_and_its_wait_is_not() {
+        let game = Game::default();
+        let (out, losses) = losses_on_a_map(&game, &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 60, 1], "")]);
+        let out = out.unwrap();
+        assert_eq!(out[..7], [OP_FLASH, 0, 31, 31, 31, 31, 255]);
+        assert_eq!(out[7..10], [OP_DELAY, (360 & 0xFF) as u8, (360 >> 8) as u8]);
+        assert_eq!(losses.iter().map(|l| l.kind).collect::<Vec<_>>(), ["flash-shortened"]);
+        let (short, losses) = losses_on_a_map(&game, &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 20, 0], "")]);
+        assert_eq!(short.unwrap()[..7], [OP_FLASH, 0, 31, 31, 31, 31, 120]);
+        assert!(losses.is_empty());
     }
 
     /// The long forms of `KeyInputProc` that ask for the same keys as the
@@ -8536,6 +8629,23 @@ mod tests {
         let want: Vec<(Option<usize>, String)> = want.iter().map(|(i, e)| (Some(*i), e.to_string())).collect();
         assert_eq!(dropped, want);
         assert!(losses[0].text.contains("gold window"), "{}", losses[0].text);
+    }
+
+    /// `ChangeMapTileset` is dropped and the page runs: Frozen World's
+    /// intro on map 9 is the page that asks for one. Until 2026-10-16 the
+    /// page was left out whole.
+    #[test]
+    fn a_tileset_change_is_dropped_and_the_page_runs() {
+        let page = [cmd(CHANGE_MAP_TILESET, &[11], ""), cmd(WAIT, &[1], ""), cmd(CHANGE_MAP_TILESET, &[0], "")];
+        let (code, losses) = losses_on_a_map(&Game::default(), &page);
+        assert!(code.is_some(), "the page compiles");
+        let kinds: Vec<(&str, Option<usize>)> = losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
+        assert_eq!(kinds, [("tileset-not-changed", Some(0)), ("tileset-not-changed", Some(2))]);
+        assert!(losses[0].text.contains("tileset 11"), "{}", losses[0].text);
+        assert_eq!(losses[0].to_json()["name"], "ChangeMapTileset");
+        // A debt the converter warns about, map by map.
+        let debts = page_debts(&Game::default(), &Indices::default(), &page, None).unwrap();
+        assert_eq!(debts, [CHANGE_MAP_TILESET]);
     }
 
     /// `ChangeHeroName` is the actor's place among the renamed ones and

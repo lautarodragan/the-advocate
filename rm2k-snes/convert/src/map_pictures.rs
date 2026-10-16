@@ -40,7 +40,10 @@
 
 use crate::fail::{Result, Stop};
 use crate::game::{Command, GameMap};
-use rm2k_snes_events::codes::{MOVE_PICTURE, SHOW_PICTURE, TELEPORT};
+use rm2k_snes_events::codes::{
+    COND_BRANCH, COND_ELSE, DEFEAT_HANDLER, ESCAPE_HANDLER, MOVE_PICTURE, SHOW_CHOICE, SHOW_CHOICE_OPTION,
+    SHOW_PICTURE, TELEPORT, VICTORY_HANDLER,
+};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -227,9 +230,26 @@ fn walk(from: i32, (event, at): (i32, (i32, i32)), commands: &[Command], sizes: 
     let mut cam = sizes.get(&from).filter(|s| one_screen(**s)).map(|_| (0, 0));
     // The page's last `ShowPicture` under each number, which its moves act on.
     let mut last: HashMap<i32, usize> = HashMap::new();
+    // Where each branching command at an indent was seen from: each of its
+    // branches starts there, and not where the one before it ended. Read in
+    // a row, a choice's second branch moved the first one's pictures: the
+    // statue's portal on Sunset over Imdahl's map 15 shows the spring
+    // pictures after its teleport to map 13 and the summer branch moves
+    // pictures 2 and 3 before its own, which took the spring ones out of
+    // map 13 and left them big pictures over it, on 2026-10-16.
+    let mut branched: HashMap<i32, (i32, Option<(i32, i32)>)> = HashMap::new();
     for c in commands {
         let p = &c.parameters;
         match c.code {
+            SHOW_CHOICE | COND_BRANCH => {
+                branched.insert(c.indent, (seen, cam));
+            }
+            SHOW_CHOICE_OPTION | COND_ELSE | VICTORY_HANDLER | ESCAPE_HANDLER | DEFEAT_HANDLER => {
+                if let Some(&(s, k)) = branched.get(&c.indent) {
+                    (seen, cam) = (s, k);
+                }
+                last.clear();
+            }
             TELEPORT if p.len() >= 3 => {
                 seen = p[0];
                 cam = sizes.get(&seen).map(|&s| camera(s, (p[1], p[2])));
@@ -373,6 +393,35 @@ mod tests {
     fn one_a_move_picture_moves_is_not_whether_it_goes_with_the_map_or_the_screen() {
         assert_eq!(placed(&shown(true, true), &SCREEN_SIZED, SCROLLS), Err(Some("a MovePicture moves it")));
         assert_eq!(placed(&shown(false, true), &SCREEN_SIZED, SCROLLS), Err(Some("a MovePicture moves it")));
+    }
+
+    fn c(code: i32, indent: i32, string: &str, parameters: &[i32]) -> Command {
+        Command { code, indent, string: string.to_string(), parameters: parameters.to_vec() }
+    }
+
+    /// Each branch of a choice starts where the choice was: the second one
+    /// neither moves the first one's picture nor sees it on the first one's
+    /// map. The statue's portal on Sunset over Imdahl's map 15, shrunk.
+    #[test]
+    fn a_branch_does_not_move_the_picture_of_the_branch_before() {
+        let show = |name: &str| c(SHOW_PICTURE, 1, name, &[2, 0, 160, 192, 1, 100, 80, 1, 100, 100, 100, 100, 0, 0]);
+        let moved = c(MOVE_PICTURE, 1, "", &[2, 0, 160, 0, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 15, 0]);
+        let page = [
+            c(SHOW_CHOICE, 0, "Spring/Summer", &[0]),
+            c(SHOW_CHOICE_OPTION, 0, "Spring", &[0]),
+            c(TELEPORT, 1, "", &[13, 10, 10]),
+            show("Spring"),
+            c(SHOW_CHOICE_OPTION, 0, "Summer", &[1]),
+            moved.clone(),
+            show("Before"),
+            moved,
+            c(TELEPORT, 1, "", &[14, 10, 10]),
+        ];
+        let sizes = HashMap::from([(13, (20, 15)), (14, (20, 15)), (15, (20, 15))]);
+        let mut out = Vec::new();
+        walk(15, (4, (10, 10)), &page, &sizes, &mut out);
+        let seen: Vec<_> = out.iter().map(|s| (s.name.as_str(), s.seen, s.moves_place)).collect();
+        assert_eq!(seen, [("Spring", 13, false), ("Before", 15, true)]);
     }
 
     #[test]

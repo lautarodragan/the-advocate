@@ -988,6 +988,14 @@ fn without_faces(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text with `PanScreen`'s two operations, as it was: since 2026-10-16
+/// the header names all four, because the lock and the unlock compile.
+fn with_two_pan_operations_as_before(text: &str) -> String {
+    let now = "; PanScreen's four operations.\nPAN_LOCK    = 0\nPAN_UNLOCK  = 1\n";
+    assert!(text.contains(now));
+    text.replace(now, "; The two PanScreen operations that compile.\n")
+}
+
 /// The text without each actor's starting level, which came on 2026-10-16
 /// for `ControlVars` from an actor who never fights: its `.block`, the
 /// label and the bytes. See the runtime's `actor_stats.s`.
@@ -1004,7 +1012,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "bare");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&text))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&text)))))))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&text))))))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -1017,7 +1025,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "whole");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&text))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&text)))))))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&text))))))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),

@@ -8,14 +8,26 @@
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::other` or ends the frame with `rts`.
 
-; `PanScreen`, in its two operations: move the camera away from the hero and
-; bring it back. The offset comes signed and in 1/16 of a pixel, and the
+; `PanScreen`, in its four operations: lock the camera and unlock it —see
+; `pan_lock_set`, in camera.s—, and move it away from the hero and bring it
+; back. The offset comes signed and in 1/16 of a pixel, and the
 ; per-frame step already resolved; what is counted here are the frames the
 ; page waits, which come from **what is left** after moving the target and
 ; not from what this command asked for. See `GetPanWait`.
 .proc op_pan
     lda [code_ptr], y           ; the operation
     iny
+    cmp #PAN_RUN
+    bcs moves
+    jsr pan_lock_set            ; lock or unlock, which never wait
+    iny                         ; their six bytes, at zero
+    iny
+    iny
+    iny
+    iny
+    iny
+    jmp run_code::other
+moves:
     cmp #PAN_RETURN
     bne pan_run
     rep #$20
