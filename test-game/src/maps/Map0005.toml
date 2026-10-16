@@ -1,0 +1,36 @@
+# The lantern's two tile layers, sketched like the meadow's —see
+# `Map0001.toml`—. What makes it worth a map is in `Map0005.json`: a
+# parallel event lays `Picture/Night` over it, a dark mask with a cone of
+# light, fixed to the map at transparency 35. The two trees are under the
+# mask, and the one at (10, 5) is in the cone: their crowns are the layer
+# above the hero, which the mask has to shade too. `tests/test_map_picture.py`.
+
+grid = '''
+####################
+#..................#
+#..................#
+#............*.....#
+#..................#
+#.........T........#
+#.........t........#
+#..*...........T...#
+#..............t...#
+#..................#
+#......*...........#
+#..................#
+#..................#
+#..................#
+####################
+'''
+
+[legend]
+# The field: terrain autotile 0, the light grass, in its plain middle
+# pattern. Every cell has it below.
+"." = { lower = 4000 }
+# A green bush, which does not let the hero through.
+"#" = { lower = 4000, upper = 10007 }
+# A tree: its crown, drawn above the hero, and its trunk, which blocks.
+"T" = { lower = 4000, upper = 10002 }
+"t" = { lower = 4000, upper = 10008 }
+# Flowers, walked over.
+"*" = { lower = 4000, upper = 10018 }
