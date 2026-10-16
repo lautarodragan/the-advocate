@@ -198,11 +198,16 @@ pub fn compose(
                     layers.upper.rgba[at..at + 4].copy_from_slice(&[px[0], px[1], px[2], 255]);
                 }
                 None => {
-                    for lower in std::iter::once(&mut layers.lower)
+                    // Into the layer above the hero too: RM2k's picture
+                    // is over the whole map, and with only the lower one
+                    // blended, a dark mask left the top edge of a room's
+                    // walls lit (Desert Nightmare's WC, map 7).
+                    for layer in std::iter::once(&mut layers.lower)
+                        .chain(std::iter::once(&mut layers.upper))
                         .chain(layers.variants.iter_mut().flat_map(|(_, gs)| gs.iter_mut()))
                     {
-                        if lower.rgba[at + 3] != 0 {
-                            blend(&mut lower.rgba[at..at + 4], px, a);
+                        if layer.rgba[at + 3] != 0 {
+                            blend(&mut layer.rgba[at..at + 4], px, a);
                         }
                     }
                 }

@@ -187,19 +187,42 @@ fn lend(
     (which, index)
 }
 
+impl Slots {
+    /// Whether the bank fits its VRAM: see the VRAM checks.
+    pub fn fits(&self) -> bool {
+        self.tiles.len() <= SLOT_TILES_MAX
+    }
+
+    /// The error a bank that does not fit is reported with.
+    pub fn too_many(&self) -> Bad {
+        Bad::answer(format!(
+            "the slot screen and the menu gather {} tiles and their bank fits {SLOT_TILES_MAX}",
+            self.tiles.len()
+        ))
+    }
+}
+
 /// The slot screen's and the menu's bank, for `slots` save slots and the
-/// `actors` that can be in the party, whose faces it carries.
+/// `actors` that can be in the party, whose faces it carries; an error if
+/// it does not fit its VRAM.
 ///
 /// A face that finds no free palette **borrows one**: without it, a game
 /// with more actors that can join than palettes would have to leave some
 /// out, and they can be the path of the story.
 pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], order: Order) -> Result<Slots> {
-    slots_screen_with(game, skin, slots, actors, order, &[])
+    let bank = slots_screen_with(game, skin, slots, actors, order, &[])?;
+    if !bank.fits() {
+        return Err(bank.too_many());
+    }
+    Ok(bank)
 }
 
 /// The same, with the pause menu's options the custom menus add: their
 /// labels, which go after the five of RM2k as commands 5 and on —see
-/// `custom_menu`—.
+/// `custom_menu`—. **It does not check that the bank fits**: the caller
+/// does, with [`Slots::fits`], because the converter leaves faces out
+/// until it does —see `slots_with_room` in `convert`— and needs the bank
+/// that was too big to say by how much.
 pub fn slots_screen_with(
     game: &Game,
     skin: &Skin,
@@ -418,12 +441,6 @@ pub fn slots_screen_with(
     out.menu_tiles = bank.len();
     for (kind, image) in after {
         place(kind, image, &mut bank, &mut out)?;
-    }
-    if bank.len() > SLOT_TILES_MAX {
-        return Err(Bad::answer(format!(
-            "the slot screen and the menu gather {} tiles and their bank fits {SLOT_TILES_MAX}",
-            bank.len()
-        )));
     }
     out.tiles = bank.tiles;
     out.palettes = palettes;

@@ -295,6 +295,27 @@ pub fn run(options: Options) -> Result<()> {
             decided.per_map.len(),
             order.len()
         );
+        for (map, shows) in &decided.per_map {
+            let names: Vec<String> = shows.iter().map(|p| format!("'{}' at {} %", p.name, 100 - p.transparency)).collect();
+            println!("  map {map}: drawn into the map: {}", names.join(", "));
+        }
+        // The translucent big ones the rule leaves as pictures stay over
+        // black, with the map hidden: a loss, next to the ROM.
+        for h in &decided.hidden {
+            let text = format!(
+                "the picture '{}', at {} % over the map, is shown over black with the map hidden: {}",
+                h.name,
+                100 - h.transparency,
+                h.why
+            );
+            degradations.event(
+                h.map as i64,
+                h.event as i64,
+                (h.at.0 as i64, h.at.1 as i64),
+                "translucent-picture-hides-the-map",
+                &text,
+            );
+        }
         decided
     } else {
         crate::map_pictures::MapPictures::default()

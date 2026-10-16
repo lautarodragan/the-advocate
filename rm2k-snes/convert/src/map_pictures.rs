@@ -105,6 +105,23 @@ impl OnMap {
 pub struct MapPictures {
     pub per_map: BTreeMap<i32, Vec<OnMap>>,
     pub done_from: BTreeMap<i32, BTreeSet<String>>,
+    /// The translucent big ones the rule could not take, which stay big
+    /// pictures: shown over black, with the map hidden. For the
+    /// degradations.
+    pub hidden: Vec<Hidden>,
+}
+
+/// A translucent `ShowPicture` that is not part of its map and does not
+/// fit the objects: the map the page is on, its event and cell, the
+/// picture, its transparency, and why.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Hidden {
+    pub map: i32,
+    pub event: i32,
+    pub at: (i32, i32),
+    pub name: String,
+    pub transparency: i32,
+    pub why: &'static str,
 }
 
 impl MapPictures {
@@ -160,6 +177,9 @@ struct Shown {
     /// The map whose page shows it, and the map it is seen on.
     from: i32,
     seen: i32,
+    /// The event whose page shows it, and its cell: where a loss is noted.
+    event: i32,
+    at: (i32, i32),
     number: i32,
     name: String,
     /// Its centre on the map, if RM2k's camera is known; or on the screen.
@@ -193,14 +213,16 @@ fn shown(maps: &[&GameMap]) -> Vec<Shown> {
     let sizes: HashMap<i32, (i32, i32)> = maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
     let mut out = Vec::new();
     for map in maps {
-        for page in map.events.iter().flat_map(|e| &e.pages) {
-            walk(map.id, &page.commands, &sizes, &mut out);
+        for event in &map.events {
+            for page in &event.pages {
+                walk(map.id, (event.id, (event.x, event.y)), &page.commands, &sizes, &mut out);
+            }
         }
     }
     out
 }
 
-fn walk(from: i32, commands: &[Command], sizes: &HashMap<i32, (i32, i32)>, out: &mut Vec<Shown>) {
+fn walk(from: i32, (event, at): (i32, (i32, i32)), commands: &[Command], sizes: &HashMap<i32, (i32, i32)>, out: &mut Vec<Shown>) {
     let mut seen = from;
     let mut cam = sizes.get(&from).filter(|s| one_screen(**s)).map(|_| (0, 0));
     // The page's last `ShowPicture` under each number, which its moves act on.
@@ -226,6 +248,8 @@ fn walk(from: i32, commands: &[Command], sizes: &HashMap<i32, (i32, i32)>, out: 
                 out.push(Shown {
                     from,
                     seen,
+                    event,
+                    at,
                     number: p[0],
                     name: c.string.clone(),
                     on_map,
@@ -261,34 +285,104 @@ fn walk(from: i32, commands: &[Command], sizes: &HashMap<i32, (i32, i32)>, out: 
 }
 
 /// Whether a `ShowPicture` is part of its map, and if so where: its corner
-/// and whether it repeats.
-fn placed(s: &Shown, file: &File, size: (i32, i32)) -> Option<((i32, i32), bool)> {
+/// and whether it repeats. If not, why, when it is a translucent one the
+/// objects do not take —one that stays a big picture, over black, with the
+/// map hidden—; `None` for the rest, which lose nothing by this rule.
+fn placed(s: &Shown, file: &File, size: (i32, i32)) -> std::result::Result<((i32, i32), bool), Option<&'static str>> {
     let fits_objects = file.size.0 <= SMALL.0 && file.size.1 <= SMALL.1;
-    if s.by_variable || s.zoom != 100 || s.moves_size || fits_objects || s.transparency >= 100 {
-        return None;
+    let opaque = s.transparency <= 0;
+    let translucent = !opaque && s.transparency < 100;
+    let hidden = |why| Err(translucent.then_some(why));
+    if fits_objects || s.transparency >= 100 {
+        return Err(None);
+    }
+    if s.by_variable {
+        return hidden("its place is by a variable");
+    }
+    if s.zoom != 100 || s.moves_size {
+        return hidden("it is zoomed");
     }
     if s.effect != EFFECT_NONE && s.effect != EFFECT_WAVE {
-        return None;
+        return hidden("it rotates");
     }
-    let opaque = s.transparency <= 0;
     if opaque && (!s.transparent_color || file.holes < OPAQUE_HOLES_MIN) {
-        return None;
+        return Err(None);
     }
     let half = (file.size.0 / 2, file.size.1 / 2);
     if s.on_map {
         if s.moves_place {
-            return None;
+            return hidden("a MovePicture moves it");
         }
         let (cx, cy) = s.centre.unwrap_or((size.0 * TILE / 2, size.1 * TILE / 2));
-        return Some(((cx - half.0, cy - half.1), false));
+        return Ok(((cx - half.0, cy - half.1), false));
     }
     // With the screen, on a map that scrolls: only something to see
     // through, a mist, and repeated. Where it drifts to is not done.
     if opaque {
-        return None;
+        return Err(None);
     }
-    let (cx, cy) = s.centre?;
-    Some(((cx - half.0, cy - half.1), true))
+    // And not one a `MovePicture` moves: Desert Nightmare's game-over
+    // text comes in from off the screen that way, on a map that scrolls,
+    // and repeated it was drawn into the map six times over. None of
+    // Sunset's mists is moved (measured on 2026-10-16).
+    if s.moves_place {
+        return hidden("a MovePicture moves it");
+    }
+    let Some((cx, cy)) = s.centre else {
+        return hidden("its place is by a variable");
+    };
+    Ok(((cx - half.0, cy - half.1), true))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn shown(on_map: bool, moves_place: bool) -> Shown {
+        Shown {
+            from: 1,
+            seen: 1,
+            event: 1,
+            at: (0, 0),
+            number: 3,
+            name: "Mask".to_string(),
+            on_map,
+            centre: Some((160, 120)),
+            zoom: 100,
+            by_variable: false,
+            effect: EFFECT_NONE,
+            transparent_color: true,
+            transparency: 35,
+            tone: [100; 4],
+            screen: (160, 120),
+            moves_place,
+            moves_size: false,
+        }
+    }
+
+    const SCREEN_SIZED: File = File { size: (320, 240), holes: 0.5 };
+    const SCROLLS: (i32, i32) = (20, 19);
+
+    #[test]
+    fn a_translucent_mask_that_stays_put_is_part_of_its_map() {
+        assert_eq!(placed(&shown(true, false), &SCREEN_SIZED, SCROLLS), Ok(((0, 0), false)));
+        assert_eq!(placed(&shown(false, false), &SCREEN_SIZED, SCROLLS), Ok(((0, 0), true)));
+    }
+
+    #[test]
+    fn one_a_move_picture_moves_is_not_whether_it_goes_with_the_map_or_the_screen() {
+        assert_eq!(placed(&shown(true, true), &SCREEN_SIZED, SCROLLS), Err(Some("a MovePicture moves it")));
+        assert_eq!(placed(&shown(false, true), &SCREEN_SIZED, SCROLLS), Err(Some("a MovePicture moves it")));
+    }
+
+    #[test]
+    fn what_loses_nothing_by_the_rule_has_no_why() {
+        let small = File { size: (64, 64), holes: 0.5 };
+        assert_eq!(placed(&shown(true, true), &small, SCROLLS), Err(None));
+        let mut invisible = shown(true, false);
+        invisible.transparency = 100;
+        assert_eq!(placed(&invisible, &SCREEN_SIZED, SCROLLS), Err(None));
+    }
 }
 
 /// The rule, over the cartridge's maps: see the module.
@@ -299,6 +393,7 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
     // By the map whose pages show it and the name: whether every show is
     // part of its map.
     let mut all_in: BTreeMap<(i32, String), bool> = BTreeMap::new();
+    let mut hidden = Vec::new();
     for s in shown(maps) {
         let lower = s.name.to_lowercase();
         if !files.contains_key(&lower) {
@@ -309,7 +404,22 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
             files.insert(lower.clone(), found);
         }
         let place = match (&files[&lower], sizes.get(&s.seen)) {
-            (Some((path, file)), Some(&size)) => placed(&s, file, size).map(|p| (path.clone(), p)),
+            (Some((path, file)), Some(&size)) => match placed(&s, file, size) {
+                Ok(p) => Some((path.clone(), p)),
+                Err(why) => {
+                    if let Some(why) = why {
+                        hidden.push(Hidden {
+                            map: s.from,
+                            event: s.event,
+                            at: s.at,
+                            name: s.name.clone(),
+                            transparency: s.transparency,
+                            why,
+                        });
+                    }
+                    None
+                }
+            },
             _ => None,
         };
         let entry = all_in.entry((s.from, lower)).or_insert(true);
@@ -349,5 +459,6 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
             out.done_from.entry(from).or_default().insert(name);
         }
     }
+    out.hidden = hidden;
     Ok(out)
 }

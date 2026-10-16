@@ -47,6 +47,9 @@ debug_map_entry = "debug-map"
 [graphics]
 opaque = []
 timer_never_runs_in = []
+# The lantern's night mask, map 5, drawn into the map: see
+# `tests/test_map_picture.py`.
+map_pictures = true
 
 [graphics.palette_weight]
 

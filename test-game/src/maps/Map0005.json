@@ -1,0 +1,23 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Night",
+      "x": 19,
+      "y": 0,
+      "pages": [
+        {
+          "id": 1,
+          "trigger": "parallel",
+          "event_commands": [
+            {"code": "ShowPicture", "parameters": [1, 0, 160, 120, 1, 100, 35, 1, 100, 100, 100, 100, 0, 60], "string": "Night"},
+            {"code": "EraseEvent"}
+          ]
+        }
+      ]
+    }
+  ]
+}
