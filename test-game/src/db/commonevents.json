@@ -18,5 +18,14 @@
       {"code": "ShowMessage_2", "string": "\\$ the gold window, \\>instant\\< text,"},
       {"code": "ShowMessage_2", "string": "a half\\_space, and an unknown\\q letter."}
     ]
+  },
+  {
+    "id": 3,
+    "name": "Tileset",
+    "trigger": "call",
+    "event_commands": [
+      {"code": "ChangeMapTileset", "parameters": [2]},
+      {"code": "ControlSwitches", "parameters": [0, 1290, 1290, 0]}
+    ]
   }
 ]

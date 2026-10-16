@@ -452,7 +452,7 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 6] = [
+pub const ACCEPTED_UNDONE: [i32; 7] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -461,6 +461,8 @@ pub const ACCEPTED_UNDONE: [i32; 6] = [
     // Debt: the actor's face in the database stays as it was; see its arm.
     // `ChangeFaceGraphic`, the message's face, is done since 2026-10-15.
     CHANGE_ACTOR_FACE,
+    // Debt: the map keeps the tileset it was converted with; see its arm.
+    CHANGE_MAP_TILESET,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -4670,6 +4672,43 @@ pub fn compile_command(
                 .ok_or(Stop::Cannot)?;
             Ok(vec![OP_CHANGE_NAME, byte(place as i64)?, byte(which as i64 + 1)?])
         }
+        // `ChangeMapTileset` (11710): the map drawn, from here on and until
+        // the next teleport, with another ChipSet —its graphics, its
+        // passability and its animated tiles—, the same cells. RPG_RT's
+        // `Game_Map::SetChipset`; 0 is the map's own.
+        //
+        // It is dropped, and the page runs: until 2026-10-16 the page was
+        // left out whole, and on Frozen World's map 9 that page is the intro
+        // —a parallel EV0006 flashes, changes the tileset, turns a switch on
+        // and teleports to map 10—, so the game stopped there. taro's, from
+        // 2026-10-15: a command not done yet degrades, noted, instead of
+        // taking its page with it.
+        //
+        // **What is lost**: the map keeps the ChipSet it was converted with,
+        // its graphics and its passability. In the two games that use it the
+        // swaps are of two kinds. Frozen World's show the same place with
+        // time stopped or set going —the water and the waterfalls still, in
+        // a ChipSet of their own—, for a moment inside a scene, and one
+        // (map 129) changes only passability for a route that walks through
+        // anyway. Vampires Dawn's are the bat's: the same graphics, every
+        // cell open and nothing above the hero, while switch 29 is on —a bat
+        // that keeps the ground's passability—. Doing it for real is
+        // converting the map with each ChipSet it asks for and swapping
+        // blocks, tiles, palettes and passability at run time: measured in
+        // `tasks/changemaptileset-is-not-compiled.md`, in the-advocate-work.
+        CHANGE_MAP_TILESET => {
+            let asked = cmd.p(0).unwrap_or(0);
+            ctx.lose(
+                cmd,
+                "tileset-not-changed",
+                if asked == 0 {
+                    "the map's own tileset is not put back: it keeps the one it was converted with".to_string()
+                } else {
+                    format!("the map keeps the tileset it was converted with instead of changing to tileset {asked}")
+                },
+            );
+            Ok(vec![])
+        }
         CHANGE_HERO_TITLE => {
             ctx.lose(cmd, "hero-title-not-changed", format!("actor {}'s title is not changed to {:?}", p.first().unwrap_or(&0), cmd.string));
             Ok(vec![])
@@ -8590,6 +8629,23 @@ mod tests {
         let want: Vec<(Option<usize>, String)> = want.iter().map(|(i, e)| (Some(*i), e.to_string())).collect();
         assert_eq!(dropped, want);
         assert!(losses[0].text.contains("gold window"), "{}", losses[0].text);
+    }
+
+    /// `ChangeMapTileset` is dropped and the page runs: Frozen World's
+    /// intro on map 9 is the page that asks for one. Until 2026-10-16 the
+    /// page was left out whole.
+    #[test]
+    fn a_tileset_change_is_dropped_and_the_page_runs() {
+        let page = [cmd(CHANGE_MAP_TILESET, &[11], ""), cmd(WAIT, &[1], ""), cmd(CHANGE_MAP_TILESET, &[0], "")];
+        let (code, losses) = losses_on_a_map(&Game::default(), &page);
+        assert!(code.is_some(), "the page compiles");
+        let kinds: Vec<(&str, Option<usize>)> = losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
+        assert_eq!(kinds, [("tileset-not-changed", Some(0)), ("tileset-not-changed", Some(2))]);
+        assert!(losses[0].text.contains("tileset 11"), "{}", losses[0].text);
+        assert_eq!(losses[0].to_json()["name"], "ChangeMapTileset");
+        // A debt the converter warns about, map by map.
+        let debts = page_debts(&Game::default(), &Indices::default(), &page, None).unwrap();
+        assert_eq!(debts, [CHANGE_MAP_TILESET]);
     }
 
     /// `ChangeHeroName` is the actor's place among the renamed ones and

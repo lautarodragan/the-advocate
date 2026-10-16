@@ -66,6 +66,7 @@ pub const MEMORIZE_BGM: i32 = 11530;
 pub const PLAY_MEMORIZED_BGM: i32 = 11540;
 pub const PLAY_SOUND: i32 = 11550;
 pub const KEY_INPUT_PROC: i32 = 11610;
+pub const CHANGE_MAP_TILESET: i32 = 11710;
 pub const CHANGE_PBG: i32 = 11720;
 pub const CHANGE_ENCOUNTER_STEPS: i32 = 11740;
 pub const TILE_SUBSTITUTION: i32 = 11750;
@@ -245,6 +246,7 @@ mod tests {
             (PLAY_MEMORIZED_BGM, C::PlayMemorizedBGM),
             (PLAY_SOUND, C::PlaySound),
             (KEY_INPUT_PROC, C::KeyInputProc),
+            (CHANGE_MAP_TILESET, C::ChangeMapTileset),
             (CHANGE_PBG, C::ChangePBG),
             (CHANGE_ENCOUNTER_STEPS, C::ChangeEncounterSteps),
             (TILE_SUBSTITUTION, C::TileSubstitution),
