@@ -16,7 +16,8 @@ the garden and the showcase, where the console loses colours: a little,
 and too much. They are the book's examples of the lossy optimizations,
 next to RM2k's drawing of the same. And a fourth, the clearing, with no
 events at all. And a common event that shows a box with escapes the console
-cannot show, which it drops and the build lists. The database has three
+cannot show, which it drops and the build lists, and another with letters
+the console's font does not have, which it shows plain. The database has three
 actors —the Hero, Alda and Bram, who is in no party— and one item, the
 Sword, for the cases that read an actor's stats.
 
