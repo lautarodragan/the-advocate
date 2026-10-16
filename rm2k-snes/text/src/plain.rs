@@ -79,6 +79,7 @@ pub fn plain(c: char) -> Option<&'static str> {
         '¥' => "Y",
         '€' => "E",
         '¦' => "|",
+        '¤' => "*",
         '¸' => ",",
         'ˆ' => "^",
         '˜' => "~",
@@ -92,10 +93,16 @@ pub fn plain(c: char) -> Option<&'static str> {
 /// `text` with every letter that has a stand-in replaced by it, and the
 /// letters replaced, in order and once each.
 pub fn plain_text(text: &str) -> (String, Vec<char>) {
+    plain_text_but(text, |_| false)
+}
+
+/// [`plain_text`], but the letters `drawn` says yes to stay as they are:
+/// the ones the cartridge draws.
+pub fn plain_text_but(text: &str, drawn: impl Fn(char) -> bool) -> (String, Vec<char>) {
     let mut out = String::with_capacity(text.len());
     let mut replaced = Vec::new();
     for c in text.chars() {
-        match plain(c) {
+        match plain(c).filter(|_| !drawn(c)) {
             Some(p) => {
                 out.push_str(p);
                 if !replaced.contains(&c) {
@@ -133,6 +140,16 @@ mod tests {
         );
     }
 
+    /// Every Latin-1 character has one, so a box never stops its page for
+    /// a letter of RM2k's font: what the cartridge does not draw, it shows
+    /// plain.
+    #[test]
+    fn every_latin_1_character_has_a_stand_in() {
+        for c in '\u{a0}'..='\u{ff}' {
+            assert!(plain(c).is_some(), "{c:?}");
+        }
+    }
+
     #[test]
     fn ascii_and_what_has_no_stand_in_stay() {
         assert_eq!(plain('e'), None);
@@ -153,12 +170,23 @@ mod tests {
     }
 
     /// The reflow measures a letter as what will be drawn for it, so a box
-    /// with `…` is not cut short once it becomes three periods.
+    /// with `…` is not cut short once it becomes three periods; and a
+    /// letter the font draws, as its own glyph.
     #[test]
     fn a_stand_in_is_measured_as_what_is_drawn() {
         let m = crate::refit::Measure::columns(39);
         assert_eq!(m.of("é"), m.of("e"));
         assert_eq!(m.of("Weiß…"), m.of("Weiss..."));
+        let font = crate::font::Font::named("low-variable", crate::font::MINCHO).unwrap();
+        let m = crate::refit::Measure::new(&font, 248);
+        assert_eq!(m.of("í"), font.advance('í'));
+        assert_ne!(m.of("í"), m.of("i"));
+        assert_eq!(m.of("…"), m.of("..."));
+    }
+
+    #[test]
+    fn what_is_drawn_stays() {
+        assert_eq!(plain_text_but("Ñandú…", |c| c == 'ú'), ("Nandú...".to_string(), vec!['Ñ', '…']));
     }
 
     #[test]
