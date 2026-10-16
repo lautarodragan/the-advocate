@@ -30,6 +30,7 @@ pub const FULL_HEAL: i32 = 10490;
 pub const CHANGE_HERO_NAME: i32 = 10610;
 pub const CHANGE_HERO_TITLE: i32 = 10620;
 pub const CHANGE_SPRITE_ASSOCIATION: i32 = 10630;
+pub const CHANGE_ACTOR_FACE: i32 = 10640;
 pub const CHANGE_SYSTEM_BGM: i32 = 10660;
 pub const CHANGE_SYSTEM_GRAPHICS: i32 = 10680;
 pub const CHANGE_SCREEN_TRANSITIONS: i32 = 10690;
@@ -204,6 +205,7 @@ mod tests {
             (FULL_HEAL, C::FullHeal),
             (CHANGE_HERO_TITLE, C::ChangeHeroTitle),
             (CHANGE_SPRITE_ASSOCIATION, C::ChangeSpriteAssociation),
+            (CHANGE_ACTOR_FACE, C::ChangeActorFace),
             (CHANGE_SYSTEM_BGM, C::ChangeSystemBGM),
             (CHANGE_SYSTEM_GRAPHICS, C::ChangeSystemGraphics),
             (CHANGE_SCREEN_TRANSITIONS, C::ChangeScreenTransitions),

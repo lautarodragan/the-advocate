@@ -706,6 +706,24 @@ pub const WINDOW_TEXT_COLS: usize = 30;
 /// own window takes about 50 of its letters, and the variable-width font
 /// about 49.
 pub const MESSAGE_WIDTH: usize = WINDOW_TEXT_COLS * CELL;
+/// A box's face, `ChangeFaceGraphic`'s: 48x48 in the text area's cells,
+/// where RM2k draws it. On the left at (16, 16) of the window —`LeftMargin`
+/// and `TopMargin`, 8, past the border, easyrpg's `Window_Message`—, that is
+/// cells 1 to 6 of rows 1 to 6; on the right with RM2k's 8 pixels to the
+/// edge, cells 23 to 28. The text of a box with a face on the left starts
+/// at `MSG_FACE_TEXT_X` of the text area —`LeftMargin + FaceSize +
+/// RightFaceMargin`, 8 + 48 + 16— and with one on the right it stops where
+/// the face starts, `MSG_FACE_RIGHT_X`. The same 72 is `FACE_TEXT_X` in the
+/// event compiler's `messages.rs`, which lays the lines out for it.
+pub const MSG_FACE_ROW: usize = 1;
+pub const MSG_FACE_COL_LEFT: usize = 1;
+pub const MSG_FACE_COL_RIGHT: usize = (MESSAGE_WIDTH - 8 - FACE) / CELL;
+pub const MSG_FACE_TEXT_X: usize = 8 + FACE + 16;
+pub const MSG_FACE_RIGHT_X: usize = MSG_FACE_COL_RIGHT * CELL;
+/// Where the face lands in the window, in pixels: what its transparent
+/// pixels show of the window's background.
+pub const MSG_FACE_X: usize = BORDER + MSG_FACE_COL_LEFT * CELL;
+pub const MSG_FACE_Y: usize = BORDER + MSG_FACE_ROW * CELL;
 /// The glyph, which is what the cartridge composes. `FONT_WIDTH` is RM2k's
 /// fixed advance, which the menu's experience line still steps by.
 pub const FONT_WIDTH: usize = font::WIDTH;
@@ -807,6 +825,7 @@ pub fn publish() -> Value {
         WINDOW_TEXT_ROWS, WINDOW_TEXT_COL, WINDOW_TEXT_COLS, FONT_WIDTH, FONT_HEIGHT,
         FONT_PRE_ROWS, FONT_PRE_CHAR, MESSAGE_WIDTH, FONT_GLYPHS, FONT_PHASES, WINDOW_LINE,
         CHOICE_INDENT, WINDOW_ARROW_COL, WINDOW_ARROW_ROW, WINDOW_ARROW_CELLS,
+        MSG_FACE_ROW, MSG_FACE_COL_LEFT, MSG_FACE_COL_RIGHT, MSG_FACE_TEXT_X, MSG_FACE_RIGHT_X,
     );
     m.insert("TEXT_POOL_PAIRS".into(), json!(crate::checks::TEXT_POOL_PAIRS));
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));

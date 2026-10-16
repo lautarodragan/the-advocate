@@ -394,6 +394,14 @@ bytecode! {
     /// actor's name, and the `\N[n]` of a message, asks `actor_name_txt`. See
     /// `op_change_name` in the runtime's `actor_names.s`.
     OP_CHANGE_NAME = 0x54 (place: byte, name: byte);
+
+    /// `ChangeFaceGraphic`: from the next box on, the message window draws
+    /// face `face` of the cartridge's —its place in `message_face_ptr`,
+    /// $FFFF for none— on the left or, with `right` at 1, on the right. It
+    /// lasts, as `Game_System`'s face does, until the next one. A mirrored
+    /// face is a face of its own: the converter emits it flipped. See
+    /// `face_change` in the runtime's `message_face.s`.
+    OP_FACE = 0x55 (face: word, right: byte);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and

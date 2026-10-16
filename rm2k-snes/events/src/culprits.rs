@@ -332,6 +332,7 @@ fn judge(
         commons,
         shared: None,
         losses: Losses::default(),
+        face: None,
     };
     judged_page(&mut ctx, commands, map_events, 0, 0).map(|_| ())
 }
@@ -362,6 +363,7 @@ fn chase_troop_page(
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         found.trigger = troops::trigger(&ctx, page).is_none();
     }
@@ -392,6 +394,7 @@ fn chase_troop_page(
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         judged_page(&mut ctx, commands, None, 0, 0).map(|_| ())
     });

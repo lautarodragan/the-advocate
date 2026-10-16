@@ -423,6 +423,55 @@ pub fn command_renames(commands: &[Command]) -> Vec<(i32, String)> {
         .collect()
 }
 
+/// A face the message window can show: its FaceSet, its index in it, 0 to
+/// 15, and whether it is drawn mirrored.
+pub type Face = (String, i32, bool);
+
+/// Every face a `ChangeFaceGraphic` of the game names, each once, in the
+/// order they are first found —the maps' pages, the troops' and the common
+/// events'—, like [`renames`]. A face is a literal in the command, so the
+/// faces the window can show are all known when building, and the converter
+/// draws each one once: `OP_FACE` names one by its place here. A mirrored
+/// face is another face, since it is the converter that flips it.
+pub fn faces(game: &Game, maps: &[Map]) -> Vec<Face> {
+    let mut out: Vec<Face> = Vec::new();
+    let mut sweep = |commands: &[Command]| {
+        for face in command_faces(commands) {
+            if !out.contains(&face) {
+                out.push(face);
+            }
+        }
+    };
+    for map in maps {
+        for event in &map.events {
+            for page in &event.pages {
+                sweep(&page.commands);
+            }
+        }
+    }
+    for commands in troop_page_commands(game) {
+        sweep(&commands);
+    }
+    for c in game.common_events.values() {
+        sweep(&c.commands);
+    }
+    out
+}
+
+/// The face of each `ChangeFaceGraphic` among these commands that sets one
+/// —an empty name clears the face—, in their order. The parameters are
+/// `[index, right, flipped]`: `CommandChangeFaceGraphic`, easyrpg.
+pub fn command_faces(commands: &[Command]) -> Vec<Face> {
+    commands
+        .iter()
+        .filter(|c| c.code == CHANGE_FACE_GRAPHIC && !c.string.is_empty())
+        .map(|c| {
+            let p = |i: usize| c.parameters.get(i).copied().unwrap_or(0);
+            (c.string.clone(), p(0), p(2) != 0)
+        })
+        .collect()
+}
+
 /// The switches these commands name: a `ControlSwitches` on one or on a
 /// range, and a branch on one. The one by variable names a variable, and
 /// does not compile.
@@ -507,6 +556,7 @@ pub fn build(
         skills: skills(game, maps, extra_pairs)?,
         hero_names: hero_names(game, maps),
         renames: renames(game, maps),
+        faces: faces(game, maps),
         switch_top: switch_top(game, maps, extra_switches)?,
     })
 }

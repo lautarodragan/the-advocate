@@ -1193,6 +1193,30 @@ pub fn run(options: Options) -> Result<()> {
     // And the names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
     // counts them, apart for the same reason.
     request["names"] = json!(indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>());
+    // And the faces the message window shows, in the order `OP_FACE` counts
+    // them, drawn by the screens. One whose FaceSet is nowhere comes as the
+    // window's own background —blank, the text still moves over for it—
+    // and is a degradation: the page runs, the face is what is lost.
+    let faces = screens::faces(&game, &indices.faces)?;
+    let mut missing = 0;
+    for (drawn, (name, index, _)) in faces.iter().zip(&indices.faces) {
+        if drawn["missing"].as_bool().unwrap_or(false) {
+            missing += 1;
+            degradations.cartridge(
+                "face-missing",
+                &format!("FaceSet {name:?} is neither in the game nor in the RTP: its face {index} shows blank in the message window"),
+            );
+        }
+    }
+    if !faces.is_empty() {
+        println!(
+            "  message faces: {}, {} B ({} with a missing FaceSet)",
+            faces.len(),
+            faces.len() * rm2k_snes_mapdata::emit::MESSAGE_FACE_BYTES,
+            missing
+        );
+    }
+    request["faces"] = Value::Array(faces);
     let emitted = emit::emit(&output, &request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",

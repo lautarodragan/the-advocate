@@ -194,6 +194,12 @@ pub struct Emit {
     /// The pair table its letters are written with: see `Pairs` in the
     /// event compiler's `messages.rs`.
     pub message_pairs: MessagePairs,
+    /// The faces the message window shows, in the order `OP_FACE` counts
+    /// them: as `rm2k-snes-screens faces` drew each, with a face the
+    /// converter could not draw already replaced by what it shows instead.
+    /// Absent in a request from before 2026-10-15: none.
+    #[serde(default)]
+    pub faces: Vec<MessageFace>,
     /// The title's picture and the Game Over's, each one stream.
     pub title: Option<FullScreen>,
     pub game_over: Option<FullScreen>,
@@ -336,6 +342,17 @@ pub struct MessagePairs {
     pub first: i64,
     #[serde(deserialize_with = "hex::bytes")]
     pub table: Vec<u8>,
+}
+
+/// A face of the message window: its 36 4bpp tiles, row by row, and the
+/// fifteen colour words of its palette, entries 1 to 15. See `faces.rs` in
+/// `rm2k-snes-screens`, which draws them, and `message_face.s` in the
+/// runtime, which reads them.
+#[derive(Deserialize)]
+pub struct MessageFace {
+    #[serde(deserialize_with = "hex::bytes")]
+    pub tiles: Vec<u8>,
+    pub palette: Vec<u16>,
 }
 
 /// A picture that fills the screen, as one LZ2 stream with its tiles,

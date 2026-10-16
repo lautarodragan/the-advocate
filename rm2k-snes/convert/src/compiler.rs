@@ -387,6 +387,10 @@ pub struct Indices {
     /// `OP_CHANGE_NAME` counts them: the screens and the emission write
     /// their texts in it.
     pub names: Vec<(i64, String)>,
+    /// Every face a `ChangeFaceGraphic` names, as (FaceSet, index,
+    /// mirrored), in the order `OP_FACE` counts them: the screens draw them
+    /// in it, for the emission.
+    pub faces: Vec<(String, i64, bool)>,
 }
 
 impl Indices {
@@ -422,6 +426,14 @@ impl Indices {
                 .map(|list| {
                     list.iter()
                         .filter_map(|e| Some((e[0].as_i64()?, e[1].as_str()?.to_string())))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            faces: answer["faces"]
+                .as_array()
+                .map(|list| {
+                    list.iter()
+                        .filter_map(|e| Some((e[0].as_str()?.to_string(), e[1].as_i64()?, e[2].as_bool()?)))
                         .collect()
                 })
                 .unwrap_or_default(),
