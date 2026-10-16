@@ -27,11 +27,11 @@
 ; tasks/music-through-the-spc700.md.
 .pushseg
 .segment "FARBSS"
-FAR_ARAM_OF: .res $200           ; one word per sample
+FAR_ARAM_OF: .res 2 * SAMPLES_N           ; one word per sample
 .popseg
 .pushseg
 .segment "FARBSS"
-FAR_WANTS: .res $100           ; one byte per sample: 2 for the ones that do not move
+FAR_WANTS: .res SAMPLES_N           ; one byte per sample: 2 for the ones that do not move
 .popseg
 .pushseg
 .segment "FARBSS"

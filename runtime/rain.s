@@ -17,12 +17,12 @@
 ; every drop paid for pointing at it.
 .pushseg
 .segment "FARBSS"
-far_weather: .res $10
+far_weather: .res 5
 .popseg
 FAR_WEATHER = .loword(far_weather)
 .pushseg
 .segment "FARBSS"
-far_rain: .res $1A0
+far_rain: .res 3 * RAIN_DROPS_MAX
 .popseg
 FAR_RAIN = .loword(far_rain)
 WEATHER_L  = $7E0000 + FAR_WEATHER

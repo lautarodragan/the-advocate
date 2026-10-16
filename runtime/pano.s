@@ -44,7 +44,7 @@
 ; both with Y at 0 or 2.
 .pushseg
 .segment "FARBSS"
-PANO_ON: .res $F0            ; 0, or the mode the map shows its panorama in
+PANO_ON: .res $E7            ; 0, or the mode the map shows its panorama in
 .popseg
 PANO_WAS1  = PANO_ON + $01            ; whether the PPU is in mode 1 because of one
 PANO_ENT   = PANO_ON + $02            ; the map's record, an offset into pano_table
@@ -70,7 +70,7 @@ PANO_HDMA  = PANO_ON + $E6            ; `HDMA_ABOVE_BG1` in a map whose cells ab
 PANO_END   = PANO_ON + $E7
 P_AUTO = PANO_AUTO & $FFFF
 P_FLAGS = PANO_FLAGS & $FFFF
-.assert PANO_END <= PANO_ON + $F0, error, "the panorama's state overflows its block"
+.assert PANO_END <= PANO_ON + $E7, error, "the panorama's state overflows its block"
 ; With the data bank at $7E, as `pano_tick` runs.
 P_AX   = PANO_AX & $FFFF
 P_UX   = PANO_UX & $FFFF

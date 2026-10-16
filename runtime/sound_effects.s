@@ -37,12 +37,12 @@
 ; gets there with long addressing, which carries the bank in the
 ; instruction. The only thing the main code writes here is the pending one,
 ; in `sound_play`, and it does so with interrupts disabled.
-; Each voice's state is a block of $20 bytes: the counters from SE_FRAMES,
+; Each voice's state is a block of $18 bytes: the counters from SE_FRAMES,
 ; and the shadow of its registers at +$10.
 .pushseg
 .segment "FARBSS"
-far_se:  .res $20
-far_se2: .res $20
+far_se:  .res $18
+far_se2: .res $18
 .popseg
 FAR_SE       = .loword(far_se)
 SE_FRAMES    = $7E0000 + FAR_SE

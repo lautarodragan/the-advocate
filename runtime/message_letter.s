@@ -205,7 +205,7 @@ MESSAGE_NAME = $FD
 ; in actor_names.s.
 .pushseg
 .segment "FARBSS"
-MSG_DIGITS_N: .res $8
+MSG_DIGITS_N: .res 7
 .popseg
 MSG_DIGITS   = MSG_DIGITS_N + $01
-.assert MSG_DIGITS + 6 <= MSG_DIGITS_N + 8, error, "the digits of a variable overflow their RAM"
+.assert MSG_DIGITS + 6 <= MSG_DIGITS_N + 7, error, "the digits of a variable overflow their RAM"

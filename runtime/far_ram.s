@@ -45,13 +45,13 @@
 .pushseg
 .segment "FARBSS": far
 .popseg
-.pushseg
-.segment "FARBSS"
-far_pair_state: .res $400   ; EV_MAX entries of PAIR_BYTES
-far_pair_list:  .res $180   ; PARALLEL_MAX entries of PAIR_LIST_BYTES
-.popseg
-FAR_PAIR_STATE = .loword(far_pair_state)
-FAR_PAIR_LIST  = .loword(far_pair_list)
+;
+; **What the game sizes is declared in far_ram_game.s**, after the
+; cartridge's `.inc` says how big it is: the names stay here, with their
+; why, and the `.res` goes there. What does not depend on the game goes
+; here, at its own size.
+FAR_PAIR_STATE = .loword(far_pair_state)    ; EV_MAX entries of PAIR_BYTES
+FAR_PAIR_LIST  = .loword(far_pair_list)     ; PARALLEL_MAX entries of PAIR_LIST_BYTES
 ; The RM2k variables, one signed word per slot. How many there are is said by
 ; the converter —`VARIABLES_N`—, which gives a slot only to the ones named by
 ; the pages of the maps in the ROM; the bytecode talks in slots. They are read
@@ -59,10 +59,10 @@ FAR_PAIR_LIST  = .loword(far_pair_list)
 ; `save_table` copies them from here, which the DMA reaches just like bank
 ; 0 because WMADD is a seventeen-bit address.
 FAR_VARIABLES  = .loword(far_variables)
-; And the inventory, after the variables —which are at most 256, the
-; converter guarantees it—: one byte per LDB item, indexed by the RM2k number
-; —0 is unused— and capped at ITEM_MAX, like `Game_Party::AddItem`. It
-; travels in the save and is cleared with the variables.
+; And the inventory, after the variables: one byte per LDB item, indexed by
+; the RM2k number —0 is unused— and capped at ITEM_MAX, like
+; `Game_Party::AddItem`. It travels in the save and is cleared with the
+; variables.
 FAR_ITEMS      = .loword(far_items)
 ; And the random state: a sixteen-bit xorshift, the same as `random_next` in
 ; events.py, seeded on reset. It goes here and not in the direct page
@@ -102,32 +102,17 @@ MSG_BARE     = $04              ; without the frame and the background
 MSG_DODGE    = $08              ; moves if it would cover the hero
 MSG_CONTINUE = $10              ; the events go on moving during a page
 MSG_DEFAULT  = 2 | MSG_DODGE
-; **These six are one block, in this order**: `clear_variables` writes the
-; first five bytes and clears the rest up to the inventory's end in one pass
-; through the WMADD window.
-.pushseg
-.segment "FARBSS"
-far_msg_options: .res 1
-far_access:      .res 1
-far_hero_speed:  .res 1
-far_random:      .res 2
-far_variables:   .res $200
-far_items:       .res $200
-.popseg
-.assert far_variables = far_msg_options + 5, error, "clear_variables walks a block that is not contiguous"
+; **These six are one block, in this order**, in far_ram_game.s:
+; `clear_variables` writes the first five bytes and clears the rest up to
+; the inventory's end in one pass through the WMADD window.
 ; And the list of the items screen —and of the equipment's, the shop's selling
-; one and the battle's—, one `k` per word: see items.s.
+; one and the battle's—, one `k` per word: see items.s, which declares it.
 FAR_ITEM_LIST  = .loword(far_item_list)
 ; And the equipment of each LDB actor, by actor number: five words —weapon,
 ; shield, armor, helmet, accessory— with the item number or 0. It starts with
 ; the database's initial equipment, which `initial_equipment_set` copies on
 ; reset, and travels in the save.
 FAR_EQUIPMENT  = .loword(far_equipment)
-.pushseg
-.segment "FARBSS"
-far_item_list:   .res $200
-far_equipment:   .res $2F0
-.popseg
 ; And how much the player added to that speed with L and R, signed, and which
 ; of the two were held on the last frame, for the edge: see
 ; `hero_speed_keys.s`. They do **not** travel in the save —it is a taste of
@@ -190,12 +175,10 @@ FAR_SP = .loword(far_sp)
 ; which is restored on load.
 FAR_ACTOR_GFX = .loword(far_actor_gfx)
 ACTOR_GFX_NONE = $FF
-.pushseg
-.segment "FARBSS"
-far_hp:        .res $80
-far_sp:        .res $80
-far_actor_gfx: .res $100
-.popseg
+; The equipment, the HP, the SP and the graphic are tables by LDB actor
+; number, `ACTORS_N` entries each —the highest number plus one—: they are
+; declared in far_ram_game.s, sized by the game, so no game's actors can
+; run one table into the next.
 
 ; The text layer of the screens: what each text row of the menu, the slots,
 ; the items, equipment, the shop and the battle says, the row being typeset
@@ -203,9 +186,14 @@ far_actor_gfx: .res $100
 ; sixteen-bit address, like the battle's, and read with the data bank at
 ; $7E. It does not travel in the save: a screen fills it from scratch when it
 ; opens.
+;
+; `TL_BYTES` is what text_layer.s lays out, written as a number because
+; the `.res` needs one before the layout exists; text_layer.s asserts that
+; it is exactly that.
+TL_BYTES = $224A
 .pushseg
 .segment "FARBSS"
-far_text_layer: .res $6000 - $3D20
+far_text_layer: .res TL_BYTES
 far_text_layer_end:
 .popseg
 FAR_TEXT_LAYER = .loword(far_text_layer)
@@ -216,11 +204,8 @@ FAR_TEXT_LAYER_END = .loword(far_text_layer_end)
 ; `SKILL_SLOT` in events.py—. It starts with what the LDB says for the
 ; initial level, which `initial_skills_set` copies on reset, `ChangeSkills`
 ; sets and clears it, and it travels in the save. How many bytes it takes is
-; said by `SKILL_BYTES`, and the converter stops if they go past 256.
-.pushseg
-.segment "FARBSS"
-far_skill: .res $100
-.popseg
+; said by `SKILL_BYTES`, and the converter stops if they go past 256. It
+; is declared in far_ram_game.s.
 FAR_SKILL = .loword(far_skill)
 
 ; --- random encounters: their state in far RAM -------------------------------
@@ -233,7 +218,7 @@ FAR_SKILL = .loword(far_skill)
 ; 2026-09-13 by adding a `.res 64` and looking at the assembler's cut.
 .pushseg
 .segment "FARBSS"
-far_encounter: .res $100
+far_encounter: .res 9
 .popseg
 FAR_ENCOUNTER = .loword(far_encounter)
 ENC_N     = FAR_ENCOUNTER + 0   ; steps taken since the last encounter
@@ -262,10 +247,9 @@ ENC_STRIDE = 8
 ; with the data bank at $7E.
 .pushseg
 .segment "FARBSS"
-far_enc_thr: .res $20
+far_enc_thr: .res ENC_STRIDE
 .popseg
 ENC_THR   = .loword(far_enc_thr)
-.assert ENC_STRIDE <= $20, error, "the thresholds overflow their range"
 
 ; --- experience and level: their state in far RAM ----------------------------
 ;
@@ -275,17 +259,12 @@ ENC_THR   = .loword(far_enc_thr)
 ; Having the level right next to the experience is what makes the save carry
 ; a single line for both. It starts from `exp_initial` on reset and travels
 ; in the save.
-.pushseg
-.segment "FARBSS"
-far_exp: .res $1F8
-.popseg
+; `EXP_K` slots: declared in far_ram_game.s.
 FAR_EXP     = .loword(far_exp)
 EXP_LEVEL   = 3             ; the level, the fourth byte
-; And, right after it, eight bytes where `text_level` and its siblings
-; compose the level and the maximum the menu writes: they are numbers from
-; the save and no longer strips from the cartridge. The slots reach 126
-; before stepping on them, and the converter stops much earlier: see
-; `tables` in rm2k-snes-battle's `experience.rs`.
+; And eight bytes where `text_level` and its siblings compose the level and
+; the maximum the menu writes: they are numbers from the save and no longer
+; strips from the cartridge.
 .pushseg
 .segment "FARBSS"
 EXP_TEXT: .res 8
@@ -300,10 +279,7 @@ EXP_CAP_LO = $423F
 ; sixteen-bit address, same as `FAR_BATTLE`, because the battle code reads
 ; it with the data bank at $7E; the bridge from bank 0 puts `BAT_LENGTH` in
 ; front of it.
-.pushseg
-.segment "FARBSS"
-far_page: .res $200
-.popseg
+; Sixteen bytes and `TROOP_PAGE_MAX`: declared in far_ram_game.s.
 FAR_PAGE      = .loword(far_page)
 BA_PAGE_N     = FAR_PAGE + 0    ; how many pages this battle's troop brings
 BA_PAGE_INIT  = FAR_PAGE + 1    ; word: the first, in the `tpage_*` tables
@@ -323,7 +299,7 @@ BA_PAGE_DONE  = FAR_PAGE + 16   ; TROOP_PAGE_MAX bytes: already ran this turn
 ; like the rest of the battle.
 .pushseg
 .segment "FARBSS"
-far_ba_turn: .res $20
+far_ba_turn: .res $1B
 .popseg
 BA_TURN       = .loword(far_ba_turn)    ; word: the turn, `Game_Party::GetTurns`
 BA_PAGE_WAIT = BA_TURN + $02    ; word: frames left in the wait of the
@@ -344,12 +320,12 @@ BA_COND_EMAX  = 6
 BA_COND_ACT   = 7               ; the actor, by LDB number
 BA_COND_AMIN  = 8
 BA_COND_AMAX  = 9
-.assert BA_COND + TPAGE_HEADER <= BA_TURN + $20, error, "the pages' state overflows its range"
+.assert BA_COND + TPAGE_HEADER <= BA_SYNC_I, error, "the pages' state overflows its range"
 ; And the one for the party a page changes, on 2026-09-30, after the header:
 ; which place of `party` `ba_sync_in` is on, which `ba_actor_setup` does not
 ; clobber.
 BA_SYNC_I     = BA_TURN + $1A
-.assert BA_SYNC_I < BA_TURN + $20, error, "the pages' state overflows its range"
+.assert BA_SYNC_I < BA_TURN + $1B, error, "the pages' state overflows its range"
 .assert BA_SYNC_I >= BA_COND + TPAGE_HEADER, error, "BA_SYNC_I steps on the header"
 
 ; --- a medicine outside battle: its scratch space in far RAM -----------------
@@ -405,9 +381,11 @@ PAIR_BATTLE = $FE
 
 ; And the battle state, which does **not** travel in the save: a battle cannot
 ; be saved in RM2k either.
+; How many bytes the battle's state takes: up to `BA_HOFS_HDMA`'s ten.
+BA_BATTLE_BYTES = 713
 .pushseg
 .segment "FARBSS"
-far_battle: .res $300
+far_battle: .res BA_BATTLE_BYTES
 .popseg
 FAR_BATTLE = .loword(far_battle)
 ; The same address but long, for the few who touch it from outside the
@@ -528,8 +506,8 @@ BA_WIN_KEY    = FAR_BATTLE + 694
 BA_WIN_SHOWN  = FAR_BATTLE + 698
 BA_WIN_DID    = FAR_BATTLE + 702
 BA_HOFS_HDMA  = FAR_BATTLE + 703    ; 10 bytes
-BA_BATTLE_END = FAR_BATTLE + 713
-.assert BA_BATTLE_END <= FAR_BATTLE + $300, error, "the battle's state overflows its block"
+BA_BATTLE_END = FAR_BATTLE + BA_BATTLE_BYTES
+.assert BA_HOFS_HDMA + 10 = BA_BATTLE_END, error, "BA_BATTLE_BYTES is not what the battle's state takes"
 BA_ACC     = FAR_BATTLE + 48      ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72      ; the execution order, one combatant per byte
 BA_CAND    = FAR_BATTLE + 88      ; the living on one side, to pick a target
@@ -539,7 +517,7 @@ BA_ONE     = FAR_BATTLE + 96      ; the combatants, BA_BYTES each
 ; data bank at $7E.
 .pushseg
 .segment "FARBSS"
-far_ba_mrevived: .res $10
+far_ba_mrevived: .res 6
 .popseg
 BA_MREVIVED = .loword(far_ba_mrevived)
 ; And, in the same place, since 2026-10-04: whether the HP line goes, the SP
@@ -548,14 +526,14 @@ BA_MREVIVED = .loword(far_ba_mrevived)
 BA_MHPLINE  = BA_MREVIVED + $01
 BA_MSP      = BA_MREVIVED + $02
 BA_MSP_NEXT = BA_MREVIVED + $04
-.assert BA_MSP_NEXT < BA_MREVIVED + $10, error, "the item's message overflows its block"
+.assert BA_MSP_NEXT < BA_MREVIVED + 6, error, "the item's message overflows its block"
 
 ; The battle's message, put together before it is drawn: see `ba_message` and
 ; `ba_flow`. It lasts
 ; as long as one message is composed, so it does not travel in the save.
 .pushseg
 .segment "FARBSS"
-far_ba_mbuf: .res $100
+far_ba_mbuf: .res $D6 + 3 * 4
 .popseg
 BA_MBUF       = .loword(far_ba_mbuf)           ; RM2k's two lines, BA_MBUF_MAX letters each
 BA_MBUF_MAX   = 96
@@ -576,7 +554,7 @@ BA_MDL        = BA_MBUF + $D6           ; BA_MLINES_MAX of three bytes: where ea
 BA_MLINES_MAX = 4               ; the two message lines and the last two
                                 ; of the party's
 .assert BA_MBUF + 2 * BA_MBUF_MAX <= BA_MPTR, error, "the battle's message overflows its buffer"
-.assert BA_MDL + 3 * BA_MLINES_MAX <= BA_MBUF + $100, error, "the battle's message overflows its range"
+.assert BA_MDL + 3 * BA_MLINES_MAX <= BA_MBUF + $D6 + 3 * 4, error, "the battle's message overflows its range"
 
 ; The combatants: the first four are the party and the next eight the troop.
 ; That the place is fixed and not a compacted list is what keeps a dead one
@@ -926,7 +904,7 @@ MUS_LOG_LENGTH = $200
 
 .pushseg
 .segment "FARBSS"
-FADE_N: .res $10          ; word
+FADE_N: .res 4          ; word
 .popseg
 FADE_BEFORE = FADE_N + $02            ; word
 
@@ -1100,10 +1078,8 @@ SHARE_MAX    = 15
 ;
 ; `CACHE_MAX` is also Wally's, in `sprites::cache`,
 ; and the `.inc` asserts every map against it.
-.pushseg
-.segment "FARBSS"
-CACHE_N: .res $100
-.popseg
+; `CACHE_N` and what follows, `$50` bytes and `EV_MAX`, are declared in
+; far_ram_game.s.
 CACHE_REC    = CACHE_N + $01             ; word
 CACHE_T_KEY  = CACHE_N + $03
 CACHE_T_SLOT = CACHE_N + $04
@@ -1177,7 +1153,7 @@ ANIMB_BUF: .res $800
 ; the converter emits.
 .pushseg
 .segment "FARBSS"
-LZ2_TRAMPOLINE_LIT: .res $10    ; mvn output, stream; rtl
+LZ2_TRAMPOLINE_LIT: .res 5    ; mvn output, stream; rtl
 .popseg
 LZ2_BANK       = LZ2_TRAMPOLINE_LIT + $04        ; the output bank
 
@@ -1190,7 +1166,7 @@ LZ2_BANK       = LZ2_TRAMPOLINE_LIT + $04        ; the output bank
 ; before, so there is no need to set them to anything at startup.
 .pushseg
 .segment "FARBSS"
-far_ba_vic: .res $10
+far_ba_vic: .res 8
 .popseg
 BA_VIC        = .loword(far_ba_vic)
 BA_VIC_ACTOR  = BA_VIC + 0      ; whose page it is, or $FF the first
@@ -1202,7 +1178,7 @@ BA_VIC_NEXT   = BA_VIC + 6      ; this one's and the earlier ones': what
                                 ; the next one skips
 BA_VIC_MORE   = BA_VIC + 7      ; whether skills were left for another page
 BA_VIC_END    = BA_VIC + 8
-.assert BA_VIC_END <= BA_VIC + $10, error, "the victory's state overflows its range"
+.assert BA_VIC_END <= BA_VIC + 8, error, "the victory's state overflows its range"
 
 ; --- what the enemies dropped ------------------------------------------------
 ;
@@ -1211,7 +1187,7 @@ BA_VIC_END    = BA_VIC + 8
 ; `ba_vic_drop` writes them on winning before anyone reads them.
 .pushseg
 .segment "FARBSS"
-far_ba_drop: .res $20
+far_ba_drop: .res 1 + 2 * BA_ENEMIES_MAX
 .popseg
 BA_DROP       = .loword(far_ba_drop)
 BA_DROP_N     = BA_DROP + 0     ; how many
@@ -1219,7 +1195,7 @@ BA_DROP_K     = BA_DROP + 1     ; the `k` of each one, a word since
                                 ; 2026-10-15, in troop order: its name is
                                 ; text `3k`
 BA_DROP_END   = BA_DROP_K + 2 * BA_ENEMIES_MAX
-.assert BA_DROP_END <= BA_DROP + $20, error, "what the enemies dropped overflows its range"
+.assert BA_DROP_END <= BA_DROP + 1 + 2 * BA_ENEMIES_MAX, error, "what the enemies dropped overflows its range"
 
 ; --- experience in the menu --------------------------------------------------
 ;
@@ -1274,12 +1250,11 @@ LVL_LINES_MAX = ($B0 - 30) / 2
 ; before its letters, which are the font's: ASCII minus 32— so that
 ; `msg_start` reads it like any other. It only has
 ; to last while the composer reads it, which is before the window opens.
+LVL_LINE_MAX  = 48              ; letters a line keeps: the window cuts sooner
 .pushseg
 .segment "FARBSS"
-LVL_BOX: .res $D8
+LVL_BOX: .res 1 + 4 * (1 + LVL_LINE_MAX)
 .popseg
-LVL_LINE_MAX  = 48              ; letters a line keeps: the window cuts sooner
-.assert LVL_BOX + 1 + 4 * (1 + LVL_LINE_MAX) <= LVL_BOX + $D8, error, "the level-up page overflows its range"
 
 ; --- the MSU-1 tracks that were missing --------------------------------------
 ;
@@ -1316,7 +1291,7 @@ MSU_MISSING_BYTES = 16
 ; slots or a battle—: both decompress it again at the end.
 .pushseg
 .segment "FARBSS"
-CARRY_MAP: .res $10
+CARRY_MAP: .res 2
 .popseg
 .pushseg
 .segment "FARBSS"
@@ -1335,7 +1310,7 @@ ANIM_DRAWINGS_END = $7F8000
 ; effects. `se_clear` zeroes it, on reset; it does not travel in the save.
 .pushseg
 .segment "FARBSS"
-EX_FRAMES: .res $20           ; six words: how many frames the sound effect
+EX_FRAMES: .res $1F           ; six words: how many frames the sound effect
 .popseg
                                 ; on each voice has left, from 0 to 5
 EX_IDX      = EX_FRAMES + $0C           ; six words: its row in `sound_table`
@@ -1349,7 +1324,7 @@ MSU_SE      = EX_FRAMES + $1B           ; 0 not checked, 1 the `.msu` is this
                                 ; cartridge's, 2 it is not or there is no MSU-1
 MSU_SE_NEXT = EX_FRAMES + $1C           ; three bytes: where the `.msu` stream was left
 EX_END      = EX_FRAMES + $1F
-.assert EX_END <= EX_FRAMES + $20, error, "the MSU-1 sound effects overflow their range"
+.assert EX_END <= EX_FRAMES + $1F, error, "the MSU-1 sound effects overflow their range"
 
 ; --- which sound effect is in each directory place ---------------------------
 ;
@@ -1360,18 +1335,14 @@ EX_END      = EX_FRAMES + $1F
 ; `effect_places` in rm2k-snes/rm2k-snes-audio/src/bank.rs— and the directory does
 ; not say which one is there. See `record_effect` in audio_package.s.
 ; `aram_clear` sets it to $FF; it does not travel in the save.
-.pushseg
-.segment "FARBSS"
-FAR_EFFECT_IN: .res $30
-.popseg
-.assert FAR_EFFECT_IN + SE_PLACES <= FAR_EFFECT_IN + $30, error, "the sound effect places do not fit in FAR_EFFECT_IN: see SE_PLACES_MAX in rm2k-snes-audio's emit.rs"
+; `SE_PLACES` bytes, declared in far_ram_game.s.
 
 ; --- the battle transition ---------------------------------------------------
 ;
 ; See `battle_fade.s`.
 .pushseg
 .segment "FARBSS"
-BATTLE_ON: .res $10             ; 1 if the battle got to turn its screen on
+BATTLE_ON: .res 1             ; 1 if the battle got to turn its screen on
 .popseg
 
 ; --- the teleport transition ------------------------------------------------
@@ -1399,7 +1370,7 @@ BATTLE_ON: .res $10             ; 1 if the battle got to turn its screen on
 ; asks for the cut itself before jumping.
 .pushseg
 .segment "FARBSS"
-TRANSITION_ERASE: .res $20
+TRANSITION_ERASE: .res 2
 .popseg
 TRANSITION_SHOW = TRANSITION_ERASE + $01
 
@@ -1416,7 +1387,7 @@ TRANSITION_SHOW = TRANSITION_ERASE + $01
 ; in between, so there is nowhere to save between one and the other.
 .pushseg
 .segment "FARBSS"
-REMEMBERED_SONG: .res $20
+REMEMBERED_SONG: .res 1
 .popseg
 
 ; --- the weapons' SP, and the target of multi-target skills -----------------
@@ -1425,29 +1396,25 @@ REMEMBERED_SONG: .res $20
 ; the save and there is no need to set it on reset.
 .pushseg
 .segment "FARBSS"
-BA_WEAPON_SP: .res $20          ; BA_PARTY_MAX bytes: what attacking costs
+BA_WEAPON_SP: .res BA_PARTY_MAX + 1          ; BA_PARTY_MAX bytes: what attacking costs
 .popseg
                                 ; each party place, `weapon_sp_of`
 BA_SKILL_I = BA_WEAPON_SP + $04            ; which combatant a multi-target skill is on:
                                 ; `ba_skill_use` calls `ba_skill_one` for each
                                 ; one, and that one clobbers the `BA_S*`
-.assert BA_SKILL_I < BA_WEAPON_SP + $20, error, "milestone 4 overflows its range in far RAM"
 
 ; --- an NPC row, set aside ---------------------------------------------------
 ;
 ; `fit_far` keeps here the row that changes place while it moves the
 ; others; it lasts as long as that routine.
-.pushseg
-.segment "FARBSS"
-NPC_ROW_SEPARATE: .res $20          ; NPC_STRIDE bytes
-.popseg
+; `NPC_STRIDE` bytes, declared in far_ram_game.s: NPC_ROW_SEPARATE.
 
 ; --- the Game Over screen ------------------------------------------------------
 ;
 ; See runtime/game_over.s.
 .pushseg
 .segment "FARBSS"
-GO_LOSES: .res $10            ; word: where losing the battle being fought
+GO_LOSES: .res 5            ; word: where losing the battle being fought
 .popseg
                                 ; leads; $FFFF is Game Over
 GO_WAIT    = GO_LOSES + $02            ; 1 while the screen waits for the button: it is

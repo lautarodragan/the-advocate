@@ -50,7 +50,7 @@ TI_P_KIND = TI_P + 17           ; four: its arrow, $FF none
 TI_P_UP = TI_P + 21             ; four: the frame its slot has, $FF unknown
 TI_P_PAL = TI_P + 25            ; four: 0 colour, 1 grey, $FF unknown
 TI_P_END = TI_P + 29
-.assert TI_P_END <= FAR_BATTLE + $300, error, "the shop's party does not fit after its list"
+.assert TI_P_END <= BA_BATTLE_END, error, "the shop's party does not fit after its list"
 
 TI_PARTY_OAM_ARROWS = TI_PARTY_MEMBERS * TI_FRAME_TILES
 TI_PARTY_HIDDEN = 224           ; a y below the last visible line

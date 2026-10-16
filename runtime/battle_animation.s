@@ -139,7 +139,7 @@ ready:
 ; map.
 .pushseg
 .segment "FARBSS"
-ANIMB_HAS: .res $20          ; this map draws animations
+ANIMB_HAS: .res $19          ; this map draws animations
 .popseg
 ANIMB_TILE   = ANIMB_HAS + $01          ; the box's first tile, word
 ANIMB_ATTR   = ANIMB_HAS + $03          ; vhoopppN already built for the four objects

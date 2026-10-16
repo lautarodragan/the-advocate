@@ -179,7 +179,7 @@ TL_END       = TL_WIN_KEY + 16
 ; A run's colour byte with this bit says it goes by reference: three bytes
 ; of address after its count, and no letters.
 TL_REF_BIT   = $80
-.assert TL_END <= FAR_TEXT_LAYER_END, error, "the text layer does not fit in its RAM"
+.assert TL_END = FAR_TEXT_LAYER_END, error, "TL_BYTES, in far_ram.s, is not what the text layer takes: TL_END - TL_MAP"
 
 ; A letter that is not in the font: a blank as wide as a digit, which pads a
 ; number on the left so that numbers line up in a column. `FIGURE_BLANK` in

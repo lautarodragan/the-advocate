@@ -14,7 +14,7 @@
 
 .pushseg
 .segment "FARBSS"
-far_scene: .res $C0
+far_scene: .res $80 + 48
 .popseg
 SCN_ORIGIN   = .loword(far_scene)    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or BACKDROP_PLAIN.
@@ -75,7 +75,7 @@ SCN_BATTLERS = GRID
 ; What was on the direct page that gets borrowed: see `scn_dp_take`.
 SCN_DP_SAVE = SCN_ORIGIN + $80
 SCN_DP_BYTES = 48
-.assert SCN_DP_SAVE + SCN_DP_BYTES <= SCN_ORIGIN + $C0, error, "the scene's state overflows its block"
+.assert SCN_DP_SAVE + SCN_DP_BYTES <= SCN_ORIGIN + $80 + 48, error, "the scene's state overflows its block"
 
 ; The clean background and the composed scene, 32 KB each, in WRAM bank
 ; $7F, which nobody used: everything else in the ROM lives in $7E —far RAM

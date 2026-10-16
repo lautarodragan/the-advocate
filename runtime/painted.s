@@ -58,13 +58,13 @@ PAINT_END  = PAINT_ON + $20
 ; And the row being uploaded ahead: see `paint_tick`.
 .pushseg
 .segment "FARBSS"
-PAINT_JOB: .res $20           ; word: the row being uploaded, $FFFF none
+PAINT_JOB: .res 7           ; word: the row being uploaded, $FFFF none
 .popseg
 PAINT_JK    = PAINT_JOB + $02           ; word: how many of its 33 columns are up
 PAINT_LASTY = PAINT_JOB + $04           ; word: last frame's camera, down
 PAINT_DIR   = PAINT_JOB + $06           ; 0 the camera last went down, 1 up
 PAINT_END2  = PAINT_JOB + $07
-.assert PAINT_END2 <= PAINT_JOB + $20, error, "the painted maps' row overflows its block"
+.assert PAINT_END2 <= PAINT_JOB + 7, error, "the painted maps' row overflows its block"
 ; Tiles of the row ahead a frame: a row in three frames, and the camera
 ; crosses one every four at the walk's two pixels a frame.
 PAINT_STEP  = 11

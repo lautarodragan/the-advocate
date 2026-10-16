@@ -121,7 +121,7 @@ CM_PORTRAIT_ROWS_PER_VBLANK = 2
 ; The state, in far RAM.
 .pushseg
 .segment "FARBSS"
-CM_RAM: .res $C0
+CM_RAM: .res 48 + 1 + 8 * 5
 .popseg
 CM_MENU     = CM_RAM + 0        ; which menu
 CM_SUBJ     = CM_RAM + 1        ; which subject, in the menu's list
@@ -154,7 +154,7 @@ CM_CALLS    = CM_RAM + 48       ; the call stack, while a `before` runs
 ; The depth and the stack, as one block —see common_events.s—: forty-one
 ; bytes with eight levels, where there were sixteen with three.
 CM_CALL_BYTES = CALL_LEVELS * CALL_ENTRY + 1
-.assert CM_CALLS + CM_CALL_BYTES <= CM_RAM + $C0, error, "the custom menus' state overflows its block"
+.assert CM_CALLS + CM_CALL_BYTES = CM_RAM + 48 + 1 + 8 * 5, error, "the custom menus' block is not CM_CALLS plus CM_CALL_BYTES"
 
 ; --- the pause menu's column ------------------------------------------------
 ;

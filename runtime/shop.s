@@ -33,7 +33,7 @@
 ; after the battle— and goes where the combatants go.
 FAR_SHOP = FAR_BATTLE + 96
 SHOP_MAX = 255                  ; the opcode's count is a byte
-.assert FAR_SHOP + 2 * SHOP_MAX <= FAR_BATTLE + $300, error, "the shop's list overflows the battle's state"
+.assert FAR_SHOP + 2 * SHOP_MAX <= BA_BATTLE_END, error, "the shop's list overflows the battle's state"
 TI_MAIN = 0
 TI_BUY = 1
 TI_COUNT_BUY = 2
