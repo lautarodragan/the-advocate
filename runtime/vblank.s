@@ -297,6 +297,24 @@ no_window:
     ; closing a message.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta BG2SC
+    ; And BG1's tilemap and the two bases, if the window that closed traded
+    ; BG1 and BG2 over a painting: see `msg_swap_build`.
+    lda f:MSG_SWAP
+    beq not_traded
+    lda #0
+    sta f:MSG_SWAP
+    lda f:BIG_FLAGS
+    lsr a                       ; a big picture put up since owns BG1: leave it
+    bcs not_traded
+    phx
+    ldx map_ofs
+    lda f:map_table + M_VRAM_MAP + 1, x
+    ora #MAP_LAYOUT
+    sta BG1SC
+    lda f:map_table + M_BG12NBA_VALUE, x
+    sta BG12NBA
+    plx
+not_traded:
 
     ; And last of all, the master brightness.
     ;

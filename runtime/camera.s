@@ -274,12 +274,180 @@ save:
     rts
 .endproc
 
+; --- the camera locked: `PanScreen`'s lock and unlock ----------------------
+; `Game_Player::LockPan` stops the camera following the hero —`UpdateScroll`
+; returns at once— and `UnlockPan` lets it follow again **from where it
+; is**: RM2k's camera does not jump back to the hero. It scrolls only when
+; the hero walks away from its centre, at his pace, so the gap the lock left
+; is kept while he walks away and closes while he walks back, until it is
+; gone. A pan —`pan_x`— still moves a locked camera: `UpdatePan` does not
+; look at the lock.
+;
+; Here that is a point the camera centres on before the pan, `PAN_BASE`:
+; the hero plus `PAN_GAP` while it follows, `PAN_ANCHOR` while locked. The
+; lock **survives a map change**, as `pan_state` does in RM2k, and the gap
+; does not: arriving, the camera is centred on the hero —`MoveTo`—, and a
+; locked one stays there. It does not travel in the save, which RM2k's
+; does: a game saved with the camera locked loads with it free.
+.pushseg
+.segment "FARBSS"
+PAN_LOCKED: .res 1              ; 1 while the camera does not follow the hero
+PAN_ANCHOR: .res 4              ; x, y: where a locked camera centres
+PAN_GAP:    .res 4              ; x, y: the camera's centre minus the hero, after an unlock
+PAN_LAST:   .res 4              ; x, y: the hero on the last frame
+PAN_BASE:   .res 4              ; x, y: where the camera centres this frame, before the pan
+PAN_D:      .res 2              ; scratch: how far the hero moved on an axis
+.popseg
+
+; `OP_PAN`'s lock (A = PAN_LOCK) and unlock (A = PAN_UNLOCK). Keeps X and Y.
+.proc pan_lock_set
+.a8
+.i16
+    phx
+    cmp #PAN_UNLOCK
+    beq unlock
+    lda f:PAN_LOCKED
+    bne done                    ; locked again: it stays where it is
+    lda #1
+    sta f:PAN_LOCKED
+    rep #$20
+.a16
+    ldx #0
+anchor:
+    lda hero_x, x               ; where it was centring, gap included
+    clc
+    adc f:PAN_GAP, x
+    sta f:PAN_ANCHOR, x
+    inx
+    inx
+    cpx #4
+    bne anchor
+    sep #$20
+.a8
+    bra done
+unlock:
+    lda f:PAN_LOCKED
+    beq done
+    lda #0
+    sta f:PAN_LOCKED
+    rep #$20
+.a16
+    ldx #0
+gap:
+    lda f:PAN_ANCHOR, x         ; the camera stays: the gap is what the hero left
+    sec
+    sbc hero_x, x
+    sta f:PAN_GAP, x
+    lda hero_x, x
+    sta f:PAN_LAST, x
+    inx
+    inx
+    cpx #4
+    bne gap
+    sep #$20
+.a8
+done:
+    plx
+    rts
+.endproc
+
+; The camera centred on the hero, as a map change or a jump to the same map
+; leaves it —`Game_Player::MoveTo`—: no gap, and a locked one anchored where
+; he arrived. From `enter_map` and `move_hero_to`, with the hero already
+; there. Keeps X.
+.proc pan_recentre
+.a8
+.i16
+    phx
+    rep #$20
+.a16
+    ldx #0
+axis:
+    lda #0
+    sta f:PAN_GAP, x
+    lda hero_x, x
+    sta f:PAN_ANCHOR, x
+    sta f:PAN_LAST, x
+    inx
+    inx
+    cpx #4
+    bne axis
+    sep #$20
+.a8
+    plx
+    rts
+.endproc
+
+; `PAN_BASE` for this frame, and the gap closed by what the hero walked
+; towards the camera's centre. Keeps X.
+.proc pan_follow
+.a8
+.i16
+    phx
+    lda f:PAN_LOCKED
+    rep #$20
+.a16
+    ldx #0
+    and #$00FF
+    bne locked
+axis:
+    lda f:PAN_GAP, x
+    beq follows                 ; the usual case: centred on the hero
+    lda hero_x, x
+    sec
+    sbc f:PAN_LAST, x           ; how far he moved
+    beq follows
+    sta f:PAN_D
+    eor f:PAN_GAP, x
+    bmi follows                 ; away from the centre: the camera goes with him
+    lda f:PAN_GAP, x            ; towards it: the camera stays, the gap closes
+    sec
+    sbc f:PAN_D
+    eor f:PAN_GAP, x
+    bmi closed                  ; it went past the centre: closed
+    eor f:PAN_GAP, x
+    bra keep
+closed:
+    lda #0
+keep:
+    sta f:PAN_GAP, x
+follows:
+    lda hero_x, x
+    sta f:PAN_LAST, x
+    clc
+    adc f:PAN_GAP, x
+    sta f:PAN_BASE, x
+    inx
+    inx
+    cpx #4
+    bne axis
+    sep #$20
+.a8
+    plx
+    rts
+.a16
+locked:
+    lda f:PAN_ANCHOR, x
+    sta f:PAN_BASE, x
+    lda hero_x, x
+    sta f:PAN_LAST, x
+    inx
+    inx
+    cpx #4
+    bne locked
+    sep #$20
+.a8
+    plx
+    rts
+.endproc
+
 .proc follow_camera
 .a8
 .i16
+    jsr pan_follow
     rep #$20
 .a16
-    lda hero_x
+    lda f:PAN_BASE              ; the hero, unless the camera was locked
     clc
     adc #8                      ; the center of its 16x16 cell
     sec
@@ -303,7 +471,7 @@ limit_x:
 saves_x:
     sta camera_x
 
-    lda hero_y
+    lda f:PAN_BASE + 2
     clc
     adc #8
     sec

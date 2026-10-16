@@ -191,6 +191,7 @@ set:
     stz pan_py
     sep #$20
 .a8
+    jsr pan_recentre            ; and the camera on the hero, locked or not
 
     ; Whether the map shows its panorama, before loading anything: the
     ; loads ask. See pano.s.
@@ -703,6 +704,7 @@ ready:
     stz moving
     jsr menu_forget             ; and a menu request too: `MoveTo`
     jsl f:encounter_move        ; and the distance walked, which is the other thing it erases
+    jsr pan_recentre            ; the camera on him: `MoveTo` sets the map's position
     jsr follow_camera
     jsr fill_window             ; the camera jumped: the tilemap is filled again
     jsr init_hero_ptr
