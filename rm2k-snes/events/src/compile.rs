@@ -676,6 +676,22 @@ impl Ctx<'_> {
         }
     }
 
+    /// Notes each escape the boxes `cmd` just added dropped, once per
+    /// command, as `message-escape-dropped`: see
+    /// [`crate::messages::escape_tail`]. Whoever adds a box calls it right
+    /// after, so what one command dropped is never noted on the next.
+    fn lose_dropped(&mut self, cmd: &Command) {
+        let Some(messages) = self.messages.as_deref_mut() else {
+            return;
+        };
+        let mut seen = BTreeSet::new();
+        for escape in messages.take_dropped() {
+            if seen.insert(escape.clone()) {
+                self.losses.lose(Some(cmd.code), "message-escape-dropped", crate::messages::dropped_escape(&escape));
+            }
+        }
+    }
+
     /// What ends the frame being compiled: the page, or the shared body back
     /// to whoever called it. It is RM2k's `END` of a frame, and also its
     /// `EndEventProcessing`, which ends **only** the frame it runs in
@@ -1388,6 +1404,7 @@ fn page(
             // The destination is absolute within the page, like OP_IF's, and
             // each option's body ends in an OP_GOTO to the end of the choice.
             let frames = choice_boxes(options, ctx.indices, ctx.messages.as_deref_mut().unwrap())?;
+            ctx.lose_dropped(cmd);
             choices.push(Choice {
                 at: pieces.len(),
                 n: options.len(),
@@ -2090,6 +2107,7 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     let greeting = format!("{} {}{} {}", t[0], price, ctx.game.gold_term, t[1]);
     let at = messages.add(&[greeting, t[2].clone()])?;
     let frames = choice_boxes(&[(0, t[3].clone()), (1, t[4].clone())], ctx.indices, messages)?;
+    ctx.lose_dropped(cmd);
     let end = length + 30;
     let mut out = vec![OP_MESSAGE];
     out.extend(usize_word(at)?);
@@ -2223,6 +2241,7 @@ fn compile_number(
     // The same escapes as the `ShowMessage` it stands for.
     let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
     let at = messages.add(&lines)?;
+    ctx.lose_dropped(cmd);
     let mut out = vec![OP_NUMBER, slot, digits as u8];
     out.extend(usize_word(at)?);
     Ok(out)
@@ -3380,7 +3399,7 @@ fn target_of(who: i64, map_events: Option<&MapEvents>) -> Step<u8> {
 /// what grows past the window's edge is cut there.
 ///
 /// An actor past 255 and a malformed one are left as they are, so the escape
-/// still stops the page in `escape_tail`.
+/// is dropped in `escape_tail`, and noted as a loss.
 pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
     lines
         .iter()
@@ -3430,8 +3449,8 @@ pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
 /// Only the plain form, `\V[` digits `]` with either case of the `V`, which
 /// is the only one the game uses —three boxes, all of the portable
 /// console—. The nested one, `\V[\V[n]]`, and one without brackets are left
-/// as they are, so the escape still stops the page in `escape_tail`. A
-/// variable without a slot does not compile.
+/// as they are, so the escape is dropped in `escape_tail` and noted as a
+/// loss. A variable without a slot does not compile.
 pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> {
     let mut out = Vec::with_capacity(lines.len());
     for line in lines {
@@ -5604,8 +5623,8 @@ pub fn compile_command(
             lines.extend_from_slice(extra);
             // `Messages::add_waiting` removes the escape tail, since every
             // box goes through it, and keeps the waits in the middle; any
-            // other escape still cuts the page from there —see
-            // `escape_tail`—, except `\V[n]`, which comes off here.
+            // other escape it drops, and the loss is noted right after —see
+            // `escape_tail`—, except `\V[n]` and `\N[n]`, which come off here.
             let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
             // A box with a face has `FACE_TEXT_X` fewer pixels a line: it is
             // reflowed again for them, here and not in the project's boxes
@@ -5622,9 +5641,11 @@ pub fn compile_command(
                     out.push(OP_MESSAGE);
                     out.extend(usize_word(at)?);
                 }
+                ctx.lose_dropped(cmd);
                 return Ok(out);
             }
             let at = messages.add_waiting(&lines)?;
+            ctx.lose_dropped(cmd);
             let mut out = vec![OP_MESSAGE];
             out.extend(usize_word(at)?);
             Ok(out)
@@ -6139,11 +6160,100 @@ mod tests {
         assert!(compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]).unwrap().is_none());
     }
 
+    /// A `ChangeFaceGraphic` is the face's place among the game's and its
+    /// side, and a clear is $FFFF; the mirrored face is another place.
     #[test]
-    fn change_face_graphic_is_accepted_without_emitting() {
+    fn change_face_graphic_is_its_face_and_side() {
         let game = Game::default();
-        let out = compile_with(&game, &[cmd(CHANGE_FACE_GRAPHIC, &[], "Jack")]);
-        assert!(out.unwrap().is_some(), "the page was left out");
+        let indices = Indices {
+            faces: vec![("Jack".into(), 2, false), ("Jack".into(), 2, true)],
+            ..Default::default()
+        };
+        let compile = |commands: &[Command]| {
+            let sound = SoundSettings::default();
+            let mut ctx = Ctx {
+                game: &game,
+                indices: &indices,
+                sound: &sound,
+                map_index: &|_| None,
+                messages: None,
+                songs: None,
+                graphics: None,
+                pictures: None,
+                troops: None,
+                commons: None,
+                shared: None,
+                losses: Losses::default(),
+                face: None,
+            };
+            compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+        };
+        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 0, 0], "Jack")]), [OP_FACE, 0, 0, 0, OP_DONE]);
+        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 1, 1], "Jack")]), [OP_FACE, 1, 0, 1, OP_DONE]);
+        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "")]), [OP_FACE, 0xFF, 0xFF, 0, OP_DONE]);
+        assert!(!ACCEPTED_UNDONE.contains(&CHANGE_FACE_GRAPHIC));
+    }
+
+    /// A box after a face is set is laid out for the room the face takes,
+    /// and so is one before any face command in a game that shows faces;
+    /// one after a clear gets the whole line. The window is 39 letters of
+    /// six pixels, 234; with a face, 162, that is 27 letters.
+    #[test]
+    fn a_box_with_a_face_makes_room_for_it() {
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let faces = Indices { faces: vec![("Jack".into(), 0, false)], ..Default::default() };
+        let none = Indices::default();
+        let lines_of = |indices: &Indices, commands: &[Command]| -> Vec<u8> {
+            let sound = SoundSettings::default();
+            let mut messages = Messages::new(1, Window::columns(39, 4));
+            let mut ctx = Ctx {
+                game: &game,
+                indices,
+                sound: &sound,
+                map_index: &|_| None,
+                messages: Some(&mut messages),
+                songs: None,
+                graphics: None,
+                pictures: None,
+                troops: None,
+                commons: None,
+                shared: None,
+                losses: Losses::default(),
+                face: None,
+            };
+            let code = compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap();
+            // The lines of each box opened, from its header's low bits.
+            let mut out = Vec::new();
+            let mut i = 0;
+            while i < code.len() {
+                if code[i] == OP_MESSAGE {
+                    let at = code[i + 1] as usize | (code[i + 2] as usize) << 8;
+                    out.push(messages.data[at] & crate::messages::HEADER_LINES);
+                    i += 3;
+                } else if code[i] == OP_FACE {
+                    i += 4;
+                } else {
+                    i += 1;
+                }
+            }
+            out
+        };
+        let long = "a".repeat(30); // 180 px: one line whole, two with a face
+        let box_ = cmd(SHOW_MESSAGE, &[], &long);
+        assert_eq!(lines_of(&none, &[box_.clone()]), [1]);
+        assert_eq!(lines_of(&faces, &[box_.clone()]), [2], "the page does not say, and the game shows faces");
+        assert_eq!(lines_of(&faces, &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "Jack"), box_.clone()]), [2]);
+        assert_eq!(lines_of(&faces, &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], ""), box_.clone()]), [1]);
+    }
+
+    /// `ChangeActorFace` runs its page and changes nothing: a debt.
+    #[test]
+    fn change_actor_face_is_a_debt() {
+        let game = Game::default();
+        let command = cmd(CHANGE_ACTOR_FACE, &[1, 3], "Jack");
+        assert_eq!(compile_with(&game, std::slice::from_ref(&command)).unwrap().unwrap(), [OP_DONE]);
+        assert_eq!(page_debts(&game, &Indices::default(), &[command], None).unwrap(), [CHANGE_ACTOR_FACE]);
     }
 
     #[test]
@@ -6199,16 +6309,6 @@ mod tests {
         assert_eq!(victory, 11, "the victory's body, right after the opcode");
         assert!(abort > victory);
         assert_eq!(code[abort..abort + 3], [OP_SWITCH, 8, 0], "the command after `EndBattle`");
-    }
-
-    #[test]
-    fn change_face_graphic_is_reported_as_debt() {
-        let game = Game::default();
-        let command = cmd(CHANGE_FACE_GRAPHIC, &[], "Jack");
-        assert_eq!(
-            page_debts(&game, &Indices::default(), &[command], None).unwrap(),
-            [CHANGE_FACE_GRAPHIC]
-        );
     }
 
     fn compile_with(game: &Game, commands: &[Command]) -> Result<Option<Vec<u8>>> {
@@ -8242,11 +8342,42 @@ mod tests {
         let out = with_names(&["Hi \\N[2]! \\n[2] \\N[0] \\N[03] \\N[4]".to_string()], &indices);
         let (leader, three) = (crate::messages::name_mark(0), crate::messages::name_mark(3));
         assert_eq!(out, [format!("Hi Kai! Kai {leader} {three} \\N[4]")]);
-        // The page compiles with them, and not without.
+        // The box takes them whole; without them the escape is dropped, and
+        // the box compiles without the name and says so.
         let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
         assert!(messages.add(&with_names(&["\\N[2] \\N[0] \\N[3]".to_string()], &indices)).is_ok());
-        assert!(messages.add(&["\\N[2]".to_string()]).is_err());
-        assert!(messages.add(&with_names(&["\\N[4]".to_string()], &indices)).is_err());
+        assert!(messages.take_dropped().is_empty());
+        assert!(messages.add(&["\\N[2]".to_string()]).is_ok());
+        assert!(messages.add(&with_names(&["\\N[4]".to_string()], &indices)).is_ok());
+        assert_eq!(messages.take_dropped(), ["\\N[2]", "\\N[4]"]);
+    }
+
+    /// An escape the console cannot show is dropped, the box compiles, and
+    /// each one is a loss of its command, once per command: a
+    /// `ShowMessage`'s and a choice's options'.
+    #[test]
+    fn an_escape_the_console_cannot_show_is_dropped_and_noted() {
+        let mut page = vec![
+            cmd(SHOW_MESSAGE, &[], "\\$\\c[2]Gold\\c[0] on \\c[2]hand\\q"),
+            cmd(SHOW_MESSAGE, &[], "plain"),
+            cmd(SHOW_CHOICE, &[1], "\\>Yes/No"),
+        ];
+        for (n, text) in ["\\>Yes", "No\\_"].iter().enumerate() {
+            page.push(Command::new(SHOW_CHOICE_OPTION, 0, text, vec![n as i32]));
+            page.push(Command::new(END, 1, "", vec![]));
+        }
+        page.push(cmd(SHOW_CHOICE_END, &[], ""));
+        let (code, losses) = losses_on_a_map(&Game::default(), &page);
+        assert!(code.is_some(), "the page compiles");
+        let dropped: Vec<(Option<usize>, String)> = losses
+            .iter()
+            .filter(|l| l.kind == "message-escape-dropped")
+            .map(|l| (l.path[0].1, l.text.split(' ').next().unwrap().to_string()))
+            .collect();
+        let want = [(0, "\\$"), (0, "\\c[2]"), (0, "\\c[0]"), (0, "\\q"), (2, "\\>"), (2, "\\_")];
+        let want: Vec<(Option<usize>, String)> = want.iter().map(|(i, e)| (Some(*i), e.to_string())).collect();
+        assert_eq!(dropped, want);
+        assert!(losses[0].text.contains("gold window"), "{}", losses[0].text);
     }
 
     /// `ChangeHeroName` is the actor's place among the renamed ones and
@@ -8275,10 +8406,11 @@ mod tests {
             ..Default::default()
         };
         let fails = |text: &str| on_a_map_with(&indices, &[cmd(SHOW_MESSAGE, &[], text)]).is_none();
-        // One without a slot, the nested one and one without brackets.
+        // One without a slot stops the page; the nested one and one without
+        // brackets are escapes the console cannot show, and are dropped.
         assert!(fails("\\V[0174]"));
-        assert!(fails("\\V[\\V[0173]]"));
-        assert!(fails("\\V173"));
+        assert!(!fails("\\V[\\V[0173]]"));
+        assert!(!fails("\\V173"));
         assert!(!fails("\\V[173]"));
     }
 

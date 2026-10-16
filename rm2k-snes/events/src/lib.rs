@@ -788,6 +788,9 @@ fn compile_pass(
         }
         i = j;
     }
+    // What the test pages' boxes drop is the harness's, like their other
+    // losses: the page notes it again when it compiles the same box.
+    messages.take_dropped();
 
     // Which common events get a shared body: the automatic ones, the ones
     // the pages that run in the foreground call —the maps' and the test
