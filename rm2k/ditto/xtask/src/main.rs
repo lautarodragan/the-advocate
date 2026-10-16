@@ -55,7 +55,9 @@ struct Field {
     default: String,
     /// Whether the binary stores the field even when it holds the default.
     persist: bool,
-    /// Fields that only exist in RPG Maker 2003. Ditto targets 2000.
+    /// Fields that only exist in RPG Maker 2003. They are read whenever their
+    /// chunk is there; what the version changes is on the writing side, and it
+    /// is listed on `Writer::is2k3` in `src/lcf.rs`.
     is_2k3: bool,
 }
 
@@ -67,6 +69,15 @@ struct StructDef {
     /// Whether every element of the array carries its ID in front.
     with_id: bool,
 }
+
+/// Fields `fields.csv` marks `PersistIfDefault` and RPG Maker 2003 1.08 does
+/// **not** write when they hold the default, measured on a game it saved:
+/// `Terms.battle_start` (0x26) and `Terms.miss` (0x27), two terms that later
+/// versions of the editor added. Written as persisting, as liblcf does, the
+/// database comes back four bytes longer than it went in. A game saved by a
+/// 2003 that writes them empty would come back four bytes shorter, which is
+/// where to look if one ever does.
+const NOT_PERSISTED: &[(&str, u32)] = &[("Terms", 0x26), ("Terms", 0x27)];
 
 /// The structs liblcf reads by hand because they are not chunk-based.
 const RAW_STRUCTS: &[&str] = &[
@@ -106,6 +117,21 @@ fn main() {
     let csv = liblcf.join("generator/csv");
     let fields = read_fields(&csv.join("fields.csv"));
     let enums = read_enums(&csv.join("enums.csv"));
+    // liblcf nests each enum in its struct (`BattlerAnimation::Pose`); laid
+    // flat in one namespace, that one collides with the struct
+    // `BattlerAnimationPose`, so an enum named like a struct gets an `Enum`
+    // suffix. `enum_name` looks for it under both names.
+    let struct_names: BTreeSet<String> = fields.iter().map(|f| type_ident(&f.structure)).collect();
+    let enums: BTreeMap<String, Vec<(String, i64)>> = enums
+        .into_iter()
+        .map(|(name, variants)| {
+            if struct_names.contains(&name) {
+                (format!("{name}Enum"), variants)
+            } else {
+                (name, variants)
+            }
+        })
+        .collect();
     let flags = read_flags(&csv.join("flags.csv"));
     let structs = read_structs(&csv.join("structs.csv"));
     let constants = read_constants(&csv.join("constants.csv"));
@@ -116,9 +142,6 @@ fn main() {
     // kept as it comes.
     let mut by_structure: BTreeMap<&str, Vec<&Field>> = BTreeMap::new();
     for f in &fields {
-        if f.is_2k3 {
-            continue; // Ditto targets RPG Maker 2000
-        }
         by_structure.entry(&f.structure).or_default().push(f);
     }
 
@@ -209,7 +232,7 @@ fn header(out: &mut String) {
          pub mod description;\n\
          \n\
          use crate::lcf::*;\n\
-         use serde::{Deserialize, Serialize};\n\n",
+         use serde::Deserialize;\n\n",
     );
 }
 
@@ -260,7 +283,7 @@ fn read_fields(path: &Path) -> Vec<Field> {
             ty: c[3].clone(),
             index,
             default: c[5].clone(),
-            persist: c[6] == "1",
+            persist: c[6] == "1" && !NOT_PERSISTED.contains(&(c[0].as_str(), index)),
             is_2k3: c[7] == "1",
         });
     }
@@ -285,21 +308,32 @@ fn read_enums(path: &Path) -> BTreeMap<String, Vec<(String, i64)>> {
     out
 }
 
-/// `flags.csv`: Structure, Field, Is2k3. The order **is** the order of the bits.
-fn read_flags(path: &Path) -> BTreeMap<String, Vec<String>> {
+/// `flags.csv`: Structure, Field, Is2k3. The order **is** the order of the
+/// bits, and each one says whether it is 2003's: those are not written into a
+/// 2000 file, and neither is the bit they would occupy (`pack_bits`).
+///
+/// Reading is positional, in liblcf too (`Flags::ReadLcf` skips nothing), so
+/// a 2000 file reads right only if every 2003 bit comes **after** the 2000
+/// ones of its struct: that is how the table is, and it is checked here so
+/// that a row added in the middle does not misread every 2000 game quietly.
+fn read_flags(path: &Path) -> BTreeMap<String, Vec<(String, bool)>> {
     let text = fs::read_to_string(path).expect("could not find flags.csv");
-    let mut out: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut out: BTreeMap<String, Vec<(String, bool)>> = BTreeMap::new();
     for (n, c) in rows(&text).into_iter().enumerate() {
         if n == 0 || c.len() < 3 || c[0].is_empty() {
             continue;
         }
-        // The 2003 flags are not written into a 2000 file, and neither is the
-        // bit they would occupy: liblcf skips them when packing.
-        if c[2] == "1" {
-            out.entry(c[0].clone()).or_default();
-            continue;
+        out.entry(c[0].clone())
+            .or_default()
+            .push((c[1].clone(), c[2] == "1"));
+    }
+    for (structure, bits) in &out {
+        if let Some(i) = bits.iter().position(|(_, only_2003)| *only_2003) {
+            assert!(
+                bits[i..].iter().all(|(_, only_2003)| *only_2003),
+                "flags.csv: {structure} has a 2000 bit after a 2003 one, and a 2000 file would misread"
+            );
         }
-        out.entry(c[0].clone()).or_default().push(c[1].clone());
     }
     out
 }
@@ -380,7 +414,9 @@ fn enc(ty: &str, enums: &BTreeMap<String, Vec<(String, i64)>>, enum_name: &str) 
         "Double" => Enc::F64,
         "String" | "DBString" => Enc::Text,
         "DBBitArray" | "Vector<Boolean>" => Enc::VecBool,
-        "Vector<UInt8>" => Enc::VecU8,
+        // A block liblcf declares empty and never reads: its bytes, so that
+        // whatever a file carries there comes back.
+        "Vector<UInt8>" | "EmptyBlock" => Enc::VecU8,
         "Vector<Int16>" => Enc::VecI16,
         "Vector<Int32>" | "Vector<Ref<BattleCommand:Int32>>" => Enc::VecI32,
         "Vector<UInt32>" => Enc::VecU32,
@@ -422,10 +458,16 @@ fn enum_name(field: &Field, enums: &BTreeMap<String, Vec<(String, i64)>>) -> Str
         if enums.contains_key(&n) {
             return n;
         }
+        if enums.contains_key(&format!("{n}Enum")) {
+            return format!("{n}Enum");
+        }
     }
     let candidate = format!("{}{}", field.structure, capitalize(&field.name));
     if enums.contains_key(&candidate) {
         return candidate;
+    }
+    if enums.contains_key(&format!("{candidate}Enum")) {
+        return format!("{candidate}Enum");
     }
     String::new()
 }
@@ -561,19 +603,54 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
 }
 
 /// A `*_Flags` field is a bitfield: `flags.csv` gives the order of the bits and
-/// liblcf packs them from the least significant one, skipping the 2003 ones.
-fn emit_flags(out: &mut String, structure: &str, fields: &[String]) {
+/// liblcf packs them from the least significant one, skipping the 2003 ones in
+/// a 2000 file. Reading is in position, whatever the version: a 2000 file's
+/// chunk stops before the 2003 bits and `bit` reads them as `false`.
+fn emit_flags(out: &mut String, structure: &str, fields: &[(String, bool)]) {
     let name = format!("{}Flags", type_ident(structure));
     out.push_str(&format!(
         "/// Generated from `flags.csv`: the order of the fields **is** the order\n\
          /// of the bits, from the least significant one upwards.\n\
-         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]\n\
+         #[derive(Debug, Clone, Default, PartialEq, Deserialize)]\n\
+         #[serde(default)]\n\
          pub struct {name} {{\n"
     ));
-    for f in fields {
+    for (f, only_2003) in fields {
+        if *only_2003 {
+            out.push_str("    /// RPG Maker 2003 only.\n");
+        }
         out.push_str(&format!("    pub {}: bool,\n", field_ident(f)));
     }
     out.push_str("}\n\n");
+    // `Serialize` is written out, not derived, for one reason: in the exact
+    // dump a 2003 bit is written only when it is set, so that a 2000 game's
+    // dump is the same it was before the bits existed. The 2000 bits are
+    // always written, as they always were; the resolved view writes them all.
+    out.push_str(&format!(
+        "impl serde::Serialize for {name} {{\n    \
+         fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {{\n        \
+         use serde::ser::SerializeStruct;\n        \
+         let all = crate::lcf::resolved();\n        \
+         let keep = [\n"
+    ));
+    for (f, only_2003) in fields {
+        out.push_str(&format!(
+            "            all || !{only_2003} || self.{},\n",
+            field_ident(f)
+        ));
+    }
+    out.push_str(&format!(
+        "        ];\n        \
+         let mut m = s.serialize_struct(\"{name}\", keep.iter().filter(|k| **k).count())?;\n"
+    ));
+    for (i, (f, _)) in fields.iter().enumerate() {
+        let ident = field_ident(f);
+        out.push_str(&format!(
+            "        if keep[{i}] {{ m.serialize_field(\"{}\", &self.{ident})?; }}\n",
+            ident.trim_start_matches("r#")
+        ));
+    }
+    out.push_str("        m.end()\n    }\n}\n\n");
     out.push_str(&format!("impl {name} {{\n"));
     out.push_str("    pub fn read(d: &[u8]) -> Self {\n");
     out.push_str(if fields.is_empty() {
@@ -581,25 +658,16 @@ fn emit_flags(out: &mut String, structure: &str, fields: &[String]) {
     } else {
         "        let mut f = Self::default();\n"
     });
-    for (i, c) in fields.iter().enumerate() {
+    for (i, (c, _)) in fields.iter().enumerate() {
         out.push_str(&format!("        f.{} = bit(d, {i});\n", field_ident(c)));
     }
     out.push_str("        f\n    }\n");
-    out.push_str("    pub fn write(&self) -> Vec<u8> {\n");
-    out.push_str(&format!(
-        "        let {}b = vec![0u8; {}];\n",
-        if fields.is_empty() { "" } else { "mut " },
-        (fields.len() + 7) / 8
-    ));
-    for (i, c) in fields.iter().enumerate() {
-        out.push_str(&format!(
-            "        if self.{} {{ b[{}] |= 1 << {}; }}\n",
-            field_ident(c),
-            i / 8,
-            i % 8
-        ));
+    out.push_str("    pub fn write(&self, is2k3: bool) -> Vec<u8> {\n");
+    out.push_str("        pack_bits(&[\n");
+    for (c, only_2003) in fields {
+        out.push_str(&format!("            (self.{}, {only_2003}),\n", field_ident(c)));
     }
-    out.push_str("        b\n    }\n}\n\n");
+    out.push_str("        ], is2k3)\n    }\n}\n\n");
 }
 
 fn emit_struct(
@@ -627,12 +695,17 @@ fn emit_struct(
     // that a field holding its default is left out of the JSON the same way the
     // binary leaves out its chunk. See the macro for why it cannot be an
     // attribute.
+    //
+    // A field keeps the name liblcf gives it, which is the one the JSON
+    // carries, even when it is not snake case: `Database.commoneventD2`.
+    let odd_case = visible(fields).any(|c| field_ident(&c.name).chars().any(|ch| ch.is_uppercase()));
     out.push_str(&format!(
         "schema_struct! {{\n\
          /// Generated from `fields.csv`.\n\
          #[derive(Debug, Clone, PartialEq, Deserialize)]\n\
          #[serde(default)]\n\
-         pub struct {name} {{\n"
+         {}pub struct {name} {{\n",
+        if odd_case { "#[allow(non_snake_case)]\n" } else { "" }
     ));
     if with_id {
         out.push_str("    /// The number the array names this element with.\n");
@@ -641,13 +714,14 @@ fn emit_struct(
     for c in visible(fields) {
         let e = enc(&c.ty, enums, &enum_name(c, enums));
         out.push_str(&format!(
-            "    /// field {:#04x} of the binary{}\n",
+            "    /// field {:#04x} of the binary{}{}\n",
             c.index,
             if c.persist {
                 ", stored even when it holds the default"
             } else {
                 ""
-            }
+            },
+            if c.is_2k3 { "; RPG Maker 2003 only" } else { "" }
         ));
         // A field the CSV declares no default for still carries one written
         // out: left implicit it would fall back to the zero of the type.
@@ -782,8 +856,24 @@ fn emit_codec(
         if def.with_id { "self.id = v;" } else { "let _ = v;" },
     ));
 
+    // --- the version's defaults ---
+    // `fields.csv` writes a default that changes with the version as `a|b`:
+    // `Actor`'s `final_level` is `50|99`. `Default` holds the 2000 one and
+    // this override gives the 2003 one; only the codec asks for it.
+    let versioned: Vec<&&Field> = visible(fields)
+        .filter(|c| c.default.contains('|') && matches!(enc(&c.ty, enums, ""), Enc::Ber))
+        .collect();
+    if !versioned.is_empty() {
+        out.push_str("    fn default_for(is2k3: bool) -> Self {\n        let mut d = Self::default();\n        if is2k3 {\n");
+        for c in &versioned {
+            let v = c.default.trim().split('|').nth(1).expect("a `|` default has two values").trim();
+            out.push_str(&format!("            d.{} = {v};\n", field_ident(&c.name)));
+        }
+        out.push_str("        }\n        d\n    }\n");
+    }
+
     // --- read ---
-    out.push_str("    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {\n        match id {\n");
+    out.push_str("    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {\n        match id {\n");
     for c in fields {
         if c.kind == "t" {
             out.push_str(&format!(
@@ -803,8 +893,11 @@ fn emit_codec(
     out.push_str("            _ => return Ok(false),\n        }\n        Ok(true)\n    }\n");
 
     // --- write ---
+    // Only the database says which version it is, so only there can a 2003
+    // field be kept out of a 2000 file; see `guard`.
+    let in_ldb = def.file == "ldb";
     out.push_str("    fn write_chunks(&self, e: &mut Writer) -> Result<()> {\n");
-    out.push_str(&format!("        let p = {name}::default();\n"));
+    out.push_str(&format!("        let p = {name}::default_for(e.is2k3);\n"));
     out.push_str("        let mut c: Vec<(u32, Vec<u8>)> = Vec::new();\n");
     let mut i = 0;
     while i < fields.len() {
@@ -823,40 +916,26 @@ fn emit_codec(
             ));
             if c.ty.starts_with("Count<") {
                 // `Count` stores the number of elements, not the bytes.
+                let (open, close) = guard(c, &format!("self.{field}.len() != p.{field}.len()"), in_ldb);
                 out.push_str(&format!(
-                    "        {}c.push(({:#04x}, enc_ber(self.{field}.len() as i32)));{}\n",
-                    if c.persist {
-                        String::new()
-                    } else {
-                        format!("if self.{field}.len() != p.{field}.len() {{ ")
-                    },
+                    "        {open}c.push(({:#04x}, enc_ber(self.{field}.len() as i32)));{close}\n",
                     c.index,
-                    if c.persist { "" } else { " }" },
                 ));
             } else {
+                let (open, close) = guard(
+                    c,
+                    &format!("v_{field}.len() != {}.len()", write_expr(&e, &format!("p.{field}"))),
+                    in_ldb,
+                );
                 out.push_str(&format!(
-                    "        {}c.push(({:#04x}, enc_ber(v_{field}.len() as i32)));{}\n",
-                    if c.persist {
-                        String::new()
-                    } else {
-                        format!(
-                            "if v_{field}.len() != {}.len() {{ ",
-                            write_expr(&e, &format!("p.{field}"))
-                        )
-                    },
+                    "        {open}c.push(({:#04x}, enc_ber(v_{field}.len() as i32)));{close}\n",
                     c.index,
-                    if c.persist { "" } else { " }" },
                 ));
             }
+            let (open, close) = guard(data, &format!("self.{field} != p.{field}"), in_ldb);
             out.push_str(&format!(
-                "        {}c.push(({:#04x}, v_{field}));{}\n",
-                if data.persist {
-                    String::new()
-                } else {
-                    format!("if self.{field} != p.{field} {{ ")
-                },
+                "        {open}c.push(({:#04x}, v_{field}));{close}\n",
                 data.index,
-                if data.persist { "" } else { " }" },
             ));
             i += 1;
             // The data field was already emitted here; skip it when its turn comes.
@@ -869,21 +948,61 @@ fn emit_codec(
         }
         let e = enc(&c.ty, enums, &enum_name(c, enums));
         let field = field_ident(&c.name);
+        let (open, close) = guard(c, &format!("self.{field} != p.{field}"), in_ldb);
+        let value = if c.ty == "DatabaseVersion" {
+            // liblcf's `DatabaseVersionField`: in a 2003 file the chunk is
+            // always there, and it is **empty** when the version is 0; in a
+            // 2000 one it is there only when it is not 0. RPG Maker 2003
+            // writes it that way.
+            format!("if self.{field} == 0 {{ Vec::new() }} else {{ enc_ber(self.{field}) }}")
+        } else {
+            write_expr(&e, &format!("self.{field}"))
+        };
         out.push_str(&format!(
-            "        {}c.push(({:#04x}, {}));{}\n",
-            if c.persist {
-                String::new()
-            } else {
-                format!("if self.{field} != p.{field} {{ ")
-            },
+            "        {open}c.push(({:#04x}, {value}));{close}\n",
             c.index,
-            write_expr(&e, &format!("self.{field}")),
-            if c.persist { "" } else { " }" },
         ));
         i += 1;
     }
     out.push_str("        e.dump(c, &self.unknown);\n        Ok(())\n    }\n}\n\n");
     let _ = structs;
+}
+
+/// The condition under which a chunk is written, as the `if` that opens it
+/// and the brace that closes it: liblcf's `Struct::WriteLcf`, case by case.
+///
+/// * A field is written when it does not hold its default, `cmp`; one marked
+///   `PersistIfDefault` always.
+/// * A 2003-only field of the database is written in a 2003 file —always, if
+///   it is marked `PersistIfDefault`— and **never** in a 2000 one, whatever it
+///   holds: that is liblcf's `if (!db_is2k3 && field->is2k3) continue`, and
+///   it keeps a hand-edited JSON from putting a chunk RPG Maker 2000 never
+///   wrote into its file. The structs of a map or a tree have no version to
+///   ask (`Writer::is2k3`), so there a 2003 field is written when it does not
+///   hold its default, like any other; none of them persists.
+/// * `Database.version` is always present in a 2003 file.
+///
+/// liblcf has one more case, which is **not** done here: it leaves `Terms`
+/// 0x01 and 0x03 (`encounter`, `escape_success`) out of a 2003 file when
+/// they hold the default (`Field::isPresentIfDefault`). The one 2003 game
+/// measured —made with RPG Maker 2003 1.08— has both chunks, empty, and the
+/// round trip is exact only writing them like the persisting fields they
+/// are; a game saved by a version that leaves them out would come back two
+/// chunks longer, which is where to look if one ever does.
+fn guard(c: &Field, cmp: &str, in_ldb: bool) -> (String, &'static str) {
+    let open = if c.ty == "DatabaseVersion" {
+        format!("if e.is2k3 || {cmp} {{ ")
+    } else if c.persist && c.is_2k3 {
+        "if e.is2k3 { ".to_string()
+    } else if c.is_2k3 && in_ldb {
+        format!("if e.is2k3 && {cmp} {{ ")
+    } else if c.persist {
+        String::new()
+    } else {
+        format!("if {cmp} {{ ")
+    };
+    let close = if open.is_empty() { "" } else { " }" };
+    (open, close)
 }
 
 fn read_expr(e: &Enc) -> String {
@@ -902,9 +1021,9 @@ fn read_expr(e: &Enc) -> String {
         Enc::VecBool => "dec_vec_bool(d)".into(),
         Enc::Enum(n) => format!("{n}::from_i32(dec_ber(d))"),
         Enc::Flags(n) => format!("{n}::read(d)"),
-        Enc::Struct(n) => format!("dec_struct::<{n}>(d)?"),
+        Enc::Struct(n) => format!("dec_struct::<{n}>(d, is2k3)?"),
         Enc::Raw(n) => format!("{n}::read_raw(d)?"),
-        Enc::Array(n) => format!("dec_array::<{n}>(d)?"),
+        Enc::Array(n) => format!("dec_array::<{n}>(d, is2k3)?"),
         Enc::EventCommands => "dec_event_commands(d)?".into(),
         Enc::MoveCommands => "dec_move_commands(d)?".into(),
     }
@@ -925,10 +1044,10 @@ fn write_expr(e: &Enc, v: &str) -> String {
         Enc::VecU32 => format!("enc_vec_u32(&{v})"),
         Enc::VecBool => format!("enc_vec_bool(&{v})"),
         Enc::Enum(_) => format!("enc_ber({v}.to_i32())"),
-        Enc::Flags(_) => format!("{v}.write()"),
-        Enc::Struct(_) => format!("enc_struct(&{v})?"),
+        Enc::Flags(_) => format!("{v}.write(e.is2k3)"),
+        Enc::Struct(_) => format!("enc_struct(&{v}, e.is2k3)?"),
         Enc::Raw(_) => format!("{v}.write_raw()"),
-        Enc::Array(_) => format!("enc_array(&{v})?"),
+        Enc::Array(_) => format!("enc_array(&{v}, e.is2k3)?"),
         Enc::EventCommands => format!("enc_event_commands(&{v})"),
         Enc::MoveCommands => format!("enc_move_commands(&{v})"),
     }
@@ -1035,6 +1154,8 @@ fn emit_description(
          \x20   pub persist: bool,\n\
          \x20   /// The struct it carries inside, one or a list of them.\n\
          \x20   pub nested: Option<&'static str>,\n\
+         \x20   /// RPG Maker 2003 only: a 2000 file never has the chunk.\n\
+         \x20   pub only_2003: bool,\n\
          }\n\
          \n\
          /// Every struct of the schema, with its fields in the order of the\n\
@@ -1048,7 +1169,7 @@ fn emit_description(
         if with_id {
             out.push_str(
                 "        FieldDesc { name: \"id\", chunk: None, default: Some(\"0\"), \
-                 enumeration: None, persist: false, nested: None },\n",
+                 enumeration: None, persist: false, nested: None, only_2003: false },\n",
             );
         }
         for c in visible(fields) {
@@ -1069,8 +1190,8 @@ fn emit_description(
             out.push_str(&format!(
                 "        FieldDesc {{ name: {field:?}, chunk: Some({:#04x}), \
                  default: {default}, enumeration: {enumeration}, persist: {}, \
-                 nested: {nested} }},\n",
-                c.index, c.persist
+                 nested: {nested}, only_2003: {} }},\n",
+                c.index, c.persist, c.is_2k3
             ));
         }
         out.push_str("    ]),\n");
