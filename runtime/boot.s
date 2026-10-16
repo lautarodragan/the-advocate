@@ -272,6 +272,7 @@ party_ready:
     jsl f:compar_clear          ; and no parallel common event running
     jsr actor_gfx_clear
     jsl f:actor_names_clear     ; and no one renamed
+    jsl f:msg_face_clear        ; and no face in the message window
     jsr weather_clear
     jsr se_clear
     jsr music_clear

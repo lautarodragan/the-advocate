@@ -114,6 +114,10 @@ fn level_term(game: &Game, skin: &Skin, dest: &mut Picture, x: usize, y: usize) 
 /// almost all of it and a dozen details of two or three pixels each —the
 /// glint of an eye, the edge of a lock of hair—, and the fifteen most used
 /// were fifteen variants of the same tone: the face came out flat.
+///
+/// The message window's faces do not come through here: there a black
+/// pixel is a colour and not a hole —the map would show through—, see
+/// `faces::palette`.
 fn face_palette(face: &Picture) -> Result<(Vec<Color>, HashMap<Color, u8>)> {
     let mut used = Counts::default();
     for p in face.rgba.chunks_exact(4) {

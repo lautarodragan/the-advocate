@@ -68,6 +68,23 @@ impl Picture {
         }
     }
 
+    /// The same picture mirrored left to right: a face `ChangeFaceGraphic`
+    /// flips, which RM2k draws with `Bitmap::FlipBlit`.
+    pub fn mirrored(&self) -> Picture {
+        let mut rgba = Vec::with_capacity(self.rgba.len());
+        for y in 0..self.height {
+            let row = &self.rgba[y * self.width * 4..(y + 1) * self.width * 4];
+            for pixel in row.chunks_exact(4).rev() {
+                rgba.extend_from_slice(pixel);
+            }
+        }
+        Picture {
+            width: self.width,
+            height: self.height,
+            rgba,
+        }
+    }
+
     /// Copies `src` over this one from its top left corner, ignoring alpha:
     /// what does not fit is cut, and what `src` does not cover is left alone.
     pub fn paste(&mut self, src: &Picture) {

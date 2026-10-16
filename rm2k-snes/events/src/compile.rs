@@ -14,8 +14,9 @@ use crate::codes::*;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Game, Sound};
 use crate::losses::{Losses, Origin};
-use crate::messages::Messages;
+use crate::messages::{Messages, Window, FACE_TEXT_X};
 use rm2k_snes_bytecode::events::*;
+use rm2k_snes_text::refit::refit_measured;
 use crate::pages::MapEvents;
 use crate::registry::{Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::route;
@@ -451,8 +452,9 @@ pub const ACCEPTED_UNDONE: [i32; 6] = [
     ERASE_PICTURE,
     CHANGE_SYSTEM_BGM,
     CHANGE_HERO_TITLE,
-    // Debt: the face is not drawn; see its arm.
-    CHANGE_FACE_GRAPHIC,
+    // Debt: the actor's face in the database stays as it was; see its arm.
+    // `ChangeFaceGraphic`, the message's face, is done since 2026-10-15.
+    CHANGE_ACTOR_FACE,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -504,6 +506,12 @@ pub struct Indices {
     /// its place here, and the converter writes their texts in the same
     /// order.
     pub renames: Vec<(i32, String)>,
+    /// Every face a `ChangeFaceGraphic` names, as (FaceSet, index,
+    /// mirrored), each once: see [`crate::indices::faces`]. `OP_FACE` names
+    /// one by its place here, and the converter draws them in the same
+    /// order. Empty in a game that never shows a face in a box, which is
+    /// what tells the compiler not to make room for one.
+    pub faces: Vec<crate::indices::Face>,
     /// The highest switch the game names anywhere: see
     /// [`crate::indices::switch_top`]. The ROM's table holds 0 to it and no
     /// more, so a command, a branch or a condition past it does not
@@ -520,6 +528,7 @@ impl Default for Indices {
             skills: BTreeMap::new(),
             hero_names: BTreeMap::new(),
             renames: Vec::new(),
+            faces: Vec::new(),
             switch_top: SWITCH_TABLE_MAX - 1,
         }
     }
@@ -634,6 +643,15 @@ pub struct Ctx<'a> {
     /// [`crate::losses`]. Whoever builds the context enters the page's
     /// frame; a page that does not compile takes its losses back.
     pub losses: Losses,
+    /// Whether the page has a face in its boxes where it is: `Some(true)`
+    /// after a `ChangeFaceGraphic` that sets one, `Some(false)` after one
+    /// that clears it, `None` before any —the page's start, where the face
+    /// is whatever the last page left—. It decides how wide a box's lines
+    /// are compiled: see [`Ctx::box_faced`]. Walked in the page's order,
+    /// like RM2k walks it; a branch that sets different faces on its two
+    /// arms leaves the last one seen, which costs a line cut at the edge
+    /// and no more.
+    pub face: Option<bool>,
 }
 
 impl Ctx<'_> {
@@ -641,6 +659,21 @@ impl Ctx<'_> {
     /// slug, `text` what is lost.
     fn lose(&mut self, cmd: &Command, kind: &'static str, text: impl Into<String>) {
         self.losses.lose(Some(cmd.code), kind, text);
+    }
+
+    /// Whether a box compiled now makes room for a face: it does when the
+    /// page set one before it, and when nothing in the page says and the
+    /// game shows faces at all. The second case is the leak measured in
+    /// the task —in Vampires Dawn 2,160 of the 2,686 pages with a face
+    /// command end with a face still set, and 1,865 boxes name none—: a
+    /// line clipped at the edge is worse than one box more, and a face the
+    /// ROM draws from its own state over text laid out for the whole line
+    /// is clipped. A page that cleared the face gets the whole line.
+    fn box_faced(&self) -> bool {
+        match self.face {
+            Some(faced) => faced,
+            None => !self.indices.faces.is_empty(),
+        }
     }
 
     /// Notes each escape the boxes `cmd` just added dropped, once per
@@ -1017,6 +1050,12 @@ pub fn judged_page(
     // The losses of a page that does not compile go with it, like its
     // texts: it does not run, so it loses nothing.
     let lost = ctx.losses.mark();
+    // A page starts not knowing which face the last one left: see
+    // `Ctx::face`. A body pasted into it —depth above zero— goes on with the
+    // page's.
+    if depth == 0 {
+        ctx.face = None;
+    }
     let mut at = None;
     match page(ctx, commands, map_events, base, depth, &mut at) {
         Ok(code) => {
@@ -4625,10 +4664,51 @@ pub fn compile_command(
             let op = if cmd.code == ERASE_SCREEN { OP_ERASE_SCREEN } else { OP_SHOW_SCREEN };
             Ok(vec![op, kind])
         }
-        // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
-        // `tasks/draw-the-faces-and-really-wait-on-the-escapes.md` in the-advocate-work.
+        // `ChangeFaceGraphic` (10130): [index, right, flipped] and the
+        // FaceSet's name, empty to clear the face —`CommandChangeFaceGraphic`,
+        // easyrpg—. OP_FACE: the face's place among the game's, which the
+        // converter draws in that order, or $FFFF for none; and the side.
+        // The flip is baked into the face the converter draws, so a flipped
+        // face is another entry. Until 2026-10-15 it was a debt that
+        // compiled to nothing: see `tasks/draw-the-faces.md` in
+        // the-advocate-work.
         CHANGE_FACE_GRAPHIC => {
-            ctx.lose(cmd, "face-not-drawn", format!("actor {}'s face {:?} is not drawn", p.first().unwrap_or(&0), cmd.string));
+            if cmd.string.is_empty() {
+                ctx.face = Some(false);
+                return Ok(vec![OP_FACE, 0xFF, 0xFF, 0]);
+            }
+            let wanted = crate::indices::command_faces(std::slice::from_ref(cmd));
+            let Some(face) = wanted.first() else {
+                return cannot();
+            };
+            // Every face of the game is in the indices: one that is not is
+            // a test page's that `prepare` did not see, and that is a bug
+            // of ours and not of the game.
+            let Some(at) = ctx.indices.faces.iter().position(|f| f == face) else {
+                return Err(Stop::Fatal(Bad::answer(format!(
+                    "face {face:?} is not among the game's {} faces",
+                    ctx.indices.faces.len()
+                ))));
+            };
+            ctx.face = Some(true);
+            let mut out = vec![OP_FACE];
+            out.extend(usize_word(at)?);
+            out.push(if n > 1 && q(1) != 0 { 1 } else { 0 });
+            Ok(out)
+        }
+        // `ChangeActorFace` (10640): [actor, index] and the FaceSet's name,
+        // the actor's face in the database from here on. Debt: the slot
+        // screen and the menu bake each actor's database face into their
+        // bank —see `slots_screen` in `rm2k-snes-screens`— and keep showing
+        // it; the page runs. Frozen World uses it 13 times on 7 pages,
+        // Vampires Dawn 5, Dooms 2 1. See `tasks/changeactorface-is-not-compiled.md`
+        // in the-advocate-work.
+        CHANGE_ACTOR_FACE => {
+            ctx.lose(
+                cmd,
+                "actor-face-not-changed",
+                format!("actor {}'s face stays the database's, not {:?} {}", q(0), cmd.string, if n > 1 { q(1) } else { 0 }),
+            );
             Ok(vec![])
         }
         CHANGE_MONSTER_CONDITION => {
@@ -5547,6 +5627,7 @@ pub fn compile_command(
             // `bloque()` emits it with `.block`, which keeps it whole in one
             // bank. If some day it does not fit, what has to grow is the
             // pointer, not the operand.
+            let faced = ctx.box_faced();
             let Some(messages) = ctx.messages.as_deref_mut() else {
                 // This ROM carries no window: nowhere to put it.
                 return cannot();
@@ -5558,6 +5639,24 @@ pub fn compile_command(
             // other escape it drops, and the loss is noted right after —see
             // `escape_tail`—, except `\V[n]` and `\N[n]`, which come off here.
             let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
+            // A box with a face has `FACE_TEXT_X` fewer pixels a line: it is
+            // reflowed again for them, here and not in the project's boxes
+            // table, which knows nothing of the page's face. A box that no
+            // longer fits in one window is two: one `OP_MESSAGE` each, one
+            // key press each, as a box the table splits. The marks of a
+            // name or a variable measure as a space here, about a digit.
+            if faced {
+                let window = messages.window;
+                let narrow = Window { width: window.width.saturating_sub(FACE_TEXT_X), ..window }.measure();
+                let mut out = Vec::new();
+                for frame in refit_measured(&lines, &narrow, window.lines) {
+                    let at = messages.add_waiting(&frame)?;
+                    out.push(OP_MESSAGE);
+                    out.extend(usize_word(at)?);
+                }
+                ctx.lose_dropped(cmd);
+                return Ok(out);
+            }
             let at = messages.add_waiting(&lines)?;
             ctx.lose_dropped(cmd);
             let mut out = vec![OP_MESSAGE];
@@ -6020,6 +6119,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -6073,11 +6173,100 @@ mod tests {
         assert!(compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]).unwrap().is_none());
     }
 
+    /// A `ChangeFaceGraphic` is the face's place among the game's and its
+    /// side, and a clear is $FFFF; the mirrored face is another place.
     #[test]
-    fn change_face_graphic_is_accepted_without_emitting() {
+    fn change_face_graphic_is_its_face_and_side() {
         let game = Game::default();
-        let out = compile_with(&game, &[cmd(CHANGE_FACE_GRAPHIC, &[], "Jack")]);
-        assert!(out.unwrap().is_some(), "the page was left out");
+        let indices = Indices {
+            faces: vec![("Jack".into(), 2, false), ("Jack".into(), 2, true)],
+            ..Default::default()
+        };
+        let compile = |commands: &[Command]| {
+            let sound = SoundSettings::default();
+            let mut ctx = Ctx {
+                game: &game,
+                indices: &indices,
+                sound: &sound,
+                map_index: &|_| None,
+                messages: None,
+                songs: None,
+                graphics: None,
+                pictures: None,
+                troops: None,
+                commons: None,
+                shared: None,
+                losses: Losses::default(),
+                face: None,
+            };
+            compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+        };
+        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 0, 0], "Jack")]), [OP_FACE, 0, 0, 0, OP_DONE]);
+        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 1, 1], "Jack")]), [OP_FACE, 1, 0, 1, OP_DONE]);
+        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "")]), [OP_FACE, 0xFF, 0xFF, 0, OP_DONE]);
+        assert!(!ACCEPTED_UNDONE.contains(&CHANGE_FACE_GRAPHIC));
+    }
+
+    /// A box after a face is set is laid out for the room the face takes,
+    /// and so is one before any face command in a game that shows faces;
+    /// one after a clear gets the whole line. The window is 39 letters of
+    /// six pixels, 234; with a face, 162, that is 27 letters.
+    #[test]
+    fn a_box_with_a_face_makes_room_for_it() {
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let faces = Indices { faces: vec![("Jack".into(), 0, false)], ..Default::default() };
+        let none = Indices::default();
+        let lines_of = |indices: &Indices, commands: &[Command]| -> Vec<u8> {
+            let sound = SoundSettings::default();
+            let mut messages = Messages::new(1, Window::columns(39, 4));
+            let mut ctx = Ctx {
+                game: &game,
+                indices,
+                sound: &sound,
+                map_index: &|_| None,
+                messages: Some(&mut messages),
+                songs: None,
+                graphics: None,
+                pictures: None,
+                troops: None,
+                commons: None,
+                shared: None,
+                losses: Losses::default(),
+                face: None,
+            };
+            let code = compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap();
+            // The lines of each box opened, from its header's low bits.
+            let mut out = Vec::new();
+            let mut i = 0;
+            while i < code.len() {
+                if code[i] == OP_MESSAGE {
+                    let at = code[i + 1] as usize | (code[i + 2] as usize) << 8;
+                    out.push(messages.data[at] & crate::messages::HEADER_LINES);
+                    i += 3;
+                } else if code[i] == OP_FACE {
+                    i += 4;
+                } else {
+                    i += 1;
+                }
+            }
+            out
+        };
+        let long = "a".repeat(30); // 180 px: one line whole, two with a face
+        let box_ = cmd(SHOW_MESSAGE, &[], &long);
+        assert_eq!(lines_of(&none, &[box_.clone()]), [1]);
+        assert_eq!(lines_of(&faces, &[box_.clone()]), [2], "the page does not say, and the game shows faces");
+        assert_eq!(lines_of(&faces, &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "Jack"), box_.clone()]), [2]);
+        assert_eq!(lines_of(&faces, &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], ""), box_.clone()]), [1]);
+    }
+
+    /// `ChangeActorFace` runs its page and changes nothing: a debt.
+    #[test]
+    fn change_actor_face_is_a_debt() {
+        let game = Game::default();
+        let command = cmd(CHANGE_ACTOR_FACE, &[1, 3], "Jack");
+        assert_eq!(compile_with(&game, std::slice::from_ref(&command)).unwrap().unwrap(), [OP_DONE]);
+        assert_eq!(page_debts(&game, &Indices::default(), &[command], None).unwrap(), [CHANGE_ACTOR_FACE]);
     }
 
     #[test]
@@ -6135,16 +6324,6 @@ mod tests {
         assert_eq!(code[abort..abort + 3], [OP_SWITCH, 8, 0], "the command after `EndBattle`");
     }
 
-    #[test]
-    fn change_face_graphic_is_reported_as_debt() {
-        let game = Game::default();
-        let command = cmd(CHANGE_FACE_GRAPHIC, &[], "Jack");
-        assert_eq!(
-            page_debts(&game, &Indices::default(), &[command], None).unwrap(),
-            [CHANGE_FACE_GRAPHIC]
-        );
-    }
-
     fn compile_with(game: &Game, commands: &[Command]) -> Result<Option<Vec<u8>>> {
         let indices = Indices {
             variables: BTreeMap::from([(48, 5)]),
@@ -6164,6 +6343,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
     }
@@ -6260,6 +6440,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let me = MapEvents::new(map, None);
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
@@ -6285,6 +6466,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let map = crate::game::Map { id: 5, events: Vec::new() };
         ctx.losses.enter(Origin::Page { map: 5, event: 1, page: Some(1), x: 2, y: 3 });
@@ -6366,6 +6548,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let map = crate::game::Map { id: 5, events: Vec::new() };
         let me = MapEvents::new(&map, None);
@@ -6397,6 +6580,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let map = watching(5, 123);
         let me = MapEvents::new(&map, None).for_event(1);
@@ -6944,6 +7128,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let me = MapEvents::new(&map, None);
         let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap().unwrap();
@@ -7050,6 +7235,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
@@ -7529,6 +7715,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
     }
@@ -7551,6 +7738,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         match judged_page(&mut ctx, commands, None, 0, 0) {
             Ok(_) => None,
@@ -7592,6 +7780,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -7676,6 +7865,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
     }
@@ -7806,6 +7996,7 @@ mod tests {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let commands = [
             moving(20, (160, 120), 0, 0, 20, true),
@@ -8435,6 +8626,7 @@ mod tests {
             commons: None,
             shared: Some(shared),
             losses: Losses::default(),
+            face: None,
         };
         let map = Map { id: 5, events: Vec::new() };
         let me = MapEvents::new(&map, None);
@@ -8541,6 +8733,7 @@ mod tests {
                 commons: None,
                 shared: None,
                 losses: Losses::default(),
+                face: None,
             };
             compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap().unwrap()
         };
@@ -8585,6 +8778,7 @@ mod tests {
             commons: None,
             shared: Some(&shared),
             losses: Losses::default(),
+            face: None,
         };
         let me = MapEvents::new(map, None);
         let pages = crate::pages::map_pages(&mut ctx, map, &me).unwrap();

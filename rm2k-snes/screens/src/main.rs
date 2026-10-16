@@ -8,7 +8,7 @@ use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::request::Json;
 use rm2k_snes_screens::game::Skin;
-use rm2k_snes_screens::{borders, boxes, convert, fit, layout, message_window, render, Bad, Game, Result};
+use rm2k_snes_screens::{borders, boxes, convert, faces, fit, layout, message_window, render, Bad, Game, Result};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
 use std::path::{Path, PathBuf};
@@ -43,6 +43,16 @@ enum Command {
     Render(GameArgs),
     /// Every message box of the game reflowed for the console's window
     Boxes(BoxesArgs),
+    /// The faces the message window shows, as the cartridge stores them
+    #[command(after_help = "Writes faces.json into --out: {\"faces\": [face, ...]}, one per \
+        entry of the request's `faces` —[FaceSet, index, mirrored], as the event compiler's \
+        indices list them—, in the same order. A face is {\"tiles\": the 36 4bpp tiles in hex, \
+        row by row, \"palette\": its 15 colour words, \"missing\": bool}: 48x48 cut from the \
+        FaceSet, mirrored if asked, its transparent pixels filled with the message window's \
+        background where RM2k draws it, and reduced to fifteen colours like the slot screen's. \
+        A FaceSet that is neither in the game's FaceSet/ nor in the RTP's gives the background \
+        alone, with `missing` set.")]
+    Faces(GameArgs),
     /// The message boxes of the request reflowed for the console's window
     Refit(LayoutArgs),
     /// The geometry the screens are drawn with, by name
@@ -364,6 +374,13 @@ fn do_boxes(args: &BoxesArgs) -> Result<()> {
     write(&args.out, "boxes.json", &table.to_string())
 }
 
+fn do_faces(args: &GameArgs) -> Result<()> {
+    let game = args.game()?;
+    let json = Json::read(&args.request)?;
+    let drawn = faces::draw(&game, &faces::requested(&json.data, &json.whose)?)?;
+    write(&args.out, "faces.json", &faces::answer(&drawn).to_string())
+}
+
 fn do_equip(args: &GameArgs) -> Result<()> {
     let game = args.game()?;
     let json = Json::read(&args.request)?;
@@ -479,6 +496,7 @@ fn main() -> ExitCode {
         Command::Convert(args) => do_convert(args),
         Command::Render(args) => do_render(args),
         Command::Boxes(args) => do_boxes(args),
+        Command::Faces(args) => do_faces(args),
         Command::Layout(args) => do_layout(args),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),

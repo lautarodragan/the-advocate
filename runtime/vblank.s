@@ -207,6 +207,10 @@ big_up:
     lda msg_upload
     beq no_upload
     jsr upload_line
+    ; And, while a box asks for it, one step per line's vblank: the face's
+    ; cells in the window's tilemap and the HDMA table of its palette, if it
+    ; has one. See message_face.s.
+    jsl f:msg_face_vblank
 .if ::WINDOW_SYSTEMS > 1
     bra no_swap
 no_upload:
@@ -276,6 +280,7 @@ no_finished:
     and #BIG_WAVE_ON
     ora #HDMA_WINDOW
     ora f:PANO_HDMA             ; and BG1's mask, in a flattened map
+    ora f:MSG_FACE_HDMA         ; and a face's palette, on the window's lines
     sta HDMAEN
     bra on
 no_window:

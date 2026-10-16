@@ -241,6 +241,15 @@ pub use rm2k_snes_text::refit::PAUSES_MAX;
 pub const HEADER_LINES: u8 = 0x07;
 pub const HEADER_AUTO_CLOSE: u8 = 0x08;
 
+/// Where the text of a box with a face starts, in pixels from the left of
+/// the text area, whichever side the face is on: RM2k's `LeftMargin +
+/// FaceSize + RightFaceMargin`, 8 + 48 + 16 —`Window_Message`, easyrpg—,
+/// and the pixels a line loses to it. The runtime has the same number as
+/// `FACE_TEXT_X`, from the screens' layout; with a face on the right the
+/// text starts at the left and stops where the face starts, which leaves
+/// the line the same width.
+pub const FACE_TEXT_X: usize = 72;
+
 /// The size of the console's message window, which the request brings: the
 /// runtime draws it, and the converter is where its size is written.
 ///

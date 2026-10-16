@@ -25,7 +25,7 @@ use crate::record::{
     FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX, TWIN_STRIDE,
     ROUTE_GFX_MAX, TURN_NONE,
 };
-use crate::request::{Emit, MsuData};
+use crate::request::{Emit, MessageFace, MsuData};
 use crate::snes::{
     cgram_bytes, cgram_word, entry, pack_tile, words_le, Color, BYTES_PER_TILE, COLORS_PER_PALETTE,
 };
@@ -539,6 +539,11 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         t.n("FONT_PRE_ROWS").into(),
         t.n("FONT_PRE_CHAR").into(),
         t.n("CHOICE_INDENT").into(),
+        t.n("MSG_FACE_ROW").into(),
+        t.n("MSG_FACE_COL_LEFT").into(),
+        t.n("MSG_FACE_COL_RIGHT").into(),
+        t.n("MSG_FACE_TEXT_X").into(),
+        t.n("MSG_FACE_RIGHT_X").into(),
         t.n("WINDOW_ARROW_ROW").into(),
         t.n("WINDOW_ARROW_COL").into(),
         t.n("WINDOW_ARROW_CELLS").into(),
@@ -746,6 +751,48 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
     // The pairs its letters are written with, for `message_tick`.
     line(out, &block("message_pairs", &r.message_pairs.table));
     out.push_str(&pyf!("MESSAGE_PAIR_FIRST = %d\n", r.message_pairs.first));
+    message_faces(out, &r.faces)?;
+    Ok(())
+}
+
+/// The bytes one face of the message window takes in the cartridge: its 36
+/// 4bpp tiles and its fifteen colour words. `FACE_BYTES` in the runtime's
+/// `message_face.s`, which reads them.
+pub const MESSAGE_FACE_BYTES: usize = 36 * 32 + 15 * 2;
+
+/// The faces the message window shows, one block each —a block stays whole
+/// in one bank, and all the faces together can be more than one—, and the
+/// table of long pointers `OP_FACE` indexes, `message_face_ptr`. `faces.rs`
+/// in `rm2k-snes-screens` says what each one holds.
+fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
+    out.push_str(&pyf!(
+        "; The faces of the message window: `MESSAGE_FACES` of `MESSAGE_FACE_BYTES`\n\
+         ; each, and a long pointer to each one. See the runtime's message_face.s.\n\
+         MESSAGE_FACES = %d\nMESSAGE_FACE_BYTES = %d\n",
+        faces.len(),
+        MESSAGE_FACE_BYTES
+    ));
+    for (k, face) in faces.iter().enumerate() {
+        if face.tiles.len() != 36 * 32 || face.palette.len() != 15 {
+            return Err(Bad::answer(format!(
+                "message face {k} has {} bytes of tiles and {} colours, not 1152 and 15",
+                face.tiles.len(),
+                face.palette.len()
+            )));
+        }
+        let mut data = face.tiles.clone();
+        data.extend(words_le(face.palette.iter().map(|&w| w as u32)));
+        line(out, &block(&format!("message_face_{k}"), &data));
+    }
+    // The pointers, by hand: a word and a bank each, like `window_systems`.
+    out.push_str(&format!(".block {}\nmessage_face_ptr:\n", (faces.len() * 3).max(1)));
+    if faces.is_empty() {
+        out.push_str("    .byte $FF\n");
+    }
+    for k in 0..faces.len() {
+        out.push_str(&format!("    .word .loword(message_face_{k})\n    .byte ^message_face_{k}\n"));
+    }
+    out.push('\n');
     Ok(())
 }
 

@@ -796,15 +796,20 @@ MARGIN_COLS = 4
 ; uploads both. The second set lives here and not in bank 0 because it does
 ; not fit there: the BSS has 84 bytes left and this asks for 384.
 ;
-; $6A00 to $6B7F belongs to this, reserved on 2026-09-22. **It does not
-; travel in the save**: it lasts one frame.
-FAR_STRIP_ROW = $7E6A00         ; WINDOW_COLS * 2
-FAR_STRIP_ROW2 = $7E6A80        ; and the upper layer, adjacent as in bank 0
-FAR_STRIP_COL = $7E6B00         ; WINDOW_ROWS * 2
-FAR_STRIP_COL2 = $7E6B40
-; Adjacent, which is what `push_one_row` takes advantage of to reach the
-; upper layer's by adding the length of the other, same as with the bank 0
-; ones.
+; **It does not travel in the save**: it lasts one frame. $6A00 to $6B7F
+; was its by hand from 2026-09-22; on 2026-10-15 `FARBSS` took that stretch
+; over, and the one after it, when the message's face did not fit in the
+; pool —see `FAR_POOL_SIZE` in rm2k-snes/cartridge/src/banks.rs—, and the
+; four went into the segment, in this order: adjacent, which is what
+; `push_one_row` takes advantage of to reach the upper layer's by adding the
+; length of the other, same as with the bank 0 ones.
+.pushseg
+.segment "FARBSS"
+FAR_STRIP_ROW:  .res WINDOW_COLS * 2
+FAR_STRIP_ROW2: .res WINDOW_COLS * 2  ; and the upper layer
+FAR_STRIP_COL:  .res WINDOW_ROWS * 2
+FAR_STRIP_COL2: .res WINDOW_ROWS * 2
+.popseg
 .assert FAR_STRIP_ROW2 = FAR_STRIP_ROW + WINDOW_COLS * 2, error, "row strips not adjacent"
 .assert FAR_STRIP_COL2 = FAR_STRIP_COL + WINDOW_ROWS * 2, error, "column strips not adjacent"
 
@@ -815,9 +820,14 @@ FAR_STRIP_COL2 = $7E6B40
 ; read the table because X is in use. It is $5800 in every layout but one:
 ; see LAYOUT_VENTANA_AMBOS. It does not fit in the BSS.
 ;
-; $6B80 and $6B81 belong to this, reserved on 2026-09-25. **It does not
-; travel in the save**: loading it loads the map, and that sets it again.
-FAR_VRAM_MAP = $7E6B80
+; **It does not travel in the save**: loading it loads the map, and that
+; sets it again. $6B80 and $6B81 were its by hand from 2026-09-25, the
+; rest of that stretch nobody's; `FARBSS` took it over with the strips' on
+; 2026-10-15.
+.pushseg
+.segment "FARBSS"
+FAR_VRAM_MAP: .res 2
+.popseg
 
 ; $6900 to $69FF was the flash palettes', reserved on 2026-09-23. On
 ; 2026-10-14 `FARBSS` took the stretch over and they went into it, in

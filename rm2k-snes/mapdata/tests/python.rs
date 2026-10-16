@@ -292,6 +292,8 @@ fn with_the_skills_screen(screens: &mut serde_json::Value) {
         "SK_SP_NUM_COL", "SK_LIST_ROW0", "SK_ROWS", "SK_COLUMNS", "SK_COLUMN_DX", "SK_NAME_DX",
         "SK_NAME_CELLS", "SK_DASH_DX", "SK_COST_DIGITS", "SK_HALF_COLS", "MENU_SKILL",
         "ITEM_WHITE", "ITEM_GRAY", "ITEM_RED",
+        // The message's face, which came on 2026-10-15.
+        "MSG_FACE_ROW", "MSG_FACE_COL_LEFT", "MSG_FACE_COL_RIGHT", "MSG_FACE_TEXT_X", "MSG_FACE_RIGHT_X",
     ];
     for (k, name) in geometry.iter().enumerate() {
         if screens["layout"].get(*name).is_none() {
@@ -810,10 +812,25 @@ fn without_names(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without the message's faces, which came on 2026-10-15: the
+/// header's five constants with their comment, and the faces' block —the
+/// count, the bytes of one, and the pointer table, empty here—. See the
+/// runtime's `message_face.s`.
+fn without_faces(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines.iter().position(|l| l.starts_with("; A box's face, `ChangeFaceGraphic`'s")).unwrap();
+    assert!(lines[at + 9].starts_with("MSG_FACE_RIGHT_X = "));
+    lines.drain(at..at + 10);
+    let at = lines.iter().position(|l| l.starts_with("; The faces of the message window")).unwrap();
+    assert!(lines[at + 5] == "message_face_ptr:" && lines[at + 7].is_empty());
+    lines.drain(at..at + 8);
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&emitted.text)))));
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&emitted.text))))));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&text))))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
@@ -825,7 +842,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&emitted.text)))));
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&emitted.text))))));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&text))))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(

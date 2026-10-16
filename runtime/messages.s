@@ -119,6 +119,18 @@ plane_256:
     win_bank window_cells_256, WS_CELLS_256
 with_plane:
     sta A1B0
+    ; The plane chosen, for the face's cells, which are rewritten from it
+    ; with palette 1 while a face is up: these are the ROM's, palette 0, so
+    ; no face is on them now. See message_face.s.
+    sta f:MSG_CELLS_PTR + 2
+    rep #$20
+.a16
+    lda A1T0L
+    sta f:MSG_CELLS_PTR
+    sep #$20
+.a8
+    lda #0
+    sta f:MSG_FACE_SHOWN
     lda #$01
     sta DMAP0
     lda #$18
@@ -370,6 +382,7 @@ no_pause:
     lda msg_open
     bne placed
     jsl msg_place
+    jsl f:msg_face_begin        ; and which face it draws: see message_face.s
 placed:
     lda #1
     sta msg_state
@@ -425,20 +438,12 @@ no_upload:
 .a8
 void:
     stz msg_col
-    rep #$20
-.a16
-    lda #WINDOW_BORDER
-    sta msg_x                   ; each line starts at the border
-    sep #$20
-.a8
-    ; Or further in, on a choice: `Window_Message::InsertNewLine` adds 12
-    ; on each option's line, which leaves room for the bar's edge.
-    lda pick_active
-    cmp #PICK_CHOICE
-    bne not_indented
-    lda #(WINDOW_BORDER + CHOICE_INDENT)
-    sta msg_x
-not_indented:
+    ; Where the line starts and where it may reach, `msg_x` and `MSG_EDGE`:
+    ; the border, or past a face on the left; further in on a choice, as
+    ; `Window_Message::InsertNewLine` adds 12 on each option's line, which
+    ; leaves room for the bar's edge; and up to the text area's edge, or to
+    ; a face on the right. See message_face.s.
+    jsl f:msg_face_line
     lda #1
     sta msg_primed
 
@@ -486,7 +491,7 @@ other:
     and #$00FF
     clc
     adc comp_col
-    cmp #(WINDOW_BORDER + MESSAGE_WIDTH + 1)
+    cmp f:MSG_EDGE              ; the text area's edge, or a face's on the right
     sep #$20
 .a8
     bcs no_draw
@@ -626,6 +631,8 @@ go:
     sta BBAD0
     lda #$01
     sta MDMAEN
+    ; And the face's tiles over it, on the rows it crosses: see message_face.s.
+    jsl f:msg_face_prime
     rts
 .endproc
 

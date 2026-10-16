@@ -29,7 +29,7 @@ cannot show, which it drops and the build lists.
                         for, which `rm2k-sketch` makes into the dump's
                         `.tiles`. See `rm2k/sketch/`
       RPG_RT.ini        the game's title, for RPG Maker and EasyRPG
-    ChipSet/, CharSet/, System/
+    ChipSet/, CharSet/, FaceSet/, System/
                         the pictures, from EasyRPG's RTP
     AUTHORS.md          whose each picture is, its license and its link;
                         `tests/test_test_game_assets.py`, at the root,
@@ -94,6 +94,10 @@ go.
                         the garden and the showcase as they are reached:
                         what the console draws where it merges colours a
                         little and where it merges too much
+    test_faces.py       `ChangeFaceGraphic`: a box with Actor1's face on
+                        the left, one on the right and mirrored, one that
+                        keeps it, one with another face, and one after it
+                        is cleared
     test_empty_map.py   the clearing, a map with no events, reached by a
                         Teleport: it arrives and draws
 

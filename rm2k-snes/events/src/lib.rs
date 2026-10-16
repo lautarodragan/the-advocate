@@ -529,6 +529,12 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
         "names".into(),
         json!(indices.renames.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>()),
     );
+    // The faces the message window shows, as [FaceSet, index, mirrored], in
+    // the order `OP_FACE` counts them: the converter draws them from this.
+    out.insert(
+        "faces".into(),
+        json!(indices.faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()),
+    );
     out.insert("associations".into(), json!(associations));
     out
 }
@@ -550,6 +556,12 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
         indices.hero_names.remove(&pair.0);
         if !indices.renames.contains(&pair) {
             indices.renames.push(pair);
+        }
+    }
+    // And the faces the test pages show, after the game's.
+    for face in indices::command_faces(&request.test_commands) {
+        if !indices.faces.contains(&face) {
+            indices.faces.push(face);
         }
     }
     let by_id: HashMap<i32, &Map> = every.iter().map(|m| (m.id, m)).collect();
@@ -603,6 +615,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     commons: None,
                     shared: None,
                     losses: Losses::default(),
+                    face: None,
                 };
                 if let Some(code) =
                     compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
@@ -630,6 +643,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             commons: None,
             shared: None,
             losses: Losses::default(),
+            face: None,
         };
         let pages = map_pages(&mut ctx, &map, &me)?;
         // And the pictures the map can show, gathered apart: its pages' first
@@ -668,6 +682,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 commons: None,
                 shared: None,
                 losses: Losses::default(),
+                face: None,
             };
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
             on_events.extend(graphics.on_events);
@@ -829,6 +844,7 @@ fn compile_pass(
                 commons: None,
                 shared: Some(&plan.index),
                 losses: std::mem::take(&mut losses),
+                face: None,
             };
             let pages = map_pages(&mut ctx, &map, &me);
             losses = ctx.losses;
@@ -861,6 +877,7 @@ fn compile_pass(
                 commons: None,
                 shared: Some(&plan.index),
                 losses: Losses::default(),
+                face: None,
             };
             let code = compile_page(
                 &mut ctx,
@@ -894,6 +911,7 @@ fn compile_pass(
                     commons: None,
                     shared: None,
                     losses: Losses::default(),
+                    face: None,
                 };
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
@@ -955,6 +973,7 @@ fn compile_pass(
         commons: None,
         shared: None,
         losses: std::mem::take(&mut losses),
+        face: None,
     };
     let battle_audio = if troops.ids.is_empty() {
         None

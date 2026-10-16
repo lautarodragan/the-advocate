@@ -43,7 +43,7 @@ game:
   done
   ditto pack build/text build/game
   cp src/RPG_RT.ini build/game/
-  cp -r ChipSet CharSet System build/game/
+  cp -r ChipSet CharSet FaceSet System build/game/
   ditto unpack build/game build/exact build/data
 
 # `--rtp-dir` an empty directory: the game uses nothing from any RTP, and

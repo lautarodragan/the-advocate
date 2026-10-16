@@ -24,6 +24,7 @@ pub mod checks;
 pub mod convert;
 pub mod custom_menu;
 pub mod end_game;
+pub mod faces;
 pub mod fail;
 pub mod fit;
 pub mod game;

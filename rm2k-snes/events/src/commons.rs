@@ -224,6 +224,7 @@ fn body_of(
         commons: Some(commons),
         shared: None,
         losses: std::mem::take(losses),
+        face: None,
     };
     ctx.losses.enter(Origin::Common(number));
     let code = compile_page(&mut ctx, commands, None, 0, 0);
@@ -492,6 +493,7 @@ pub fn parallel_commons(
                 commons: None,
                 shared: None,
                 losses: std::mem::take(losses),
+                face: None,
             };
             ctx.losses.enter(Origin::Common(number));
             let code = compile_page(&mut ctx, &c.commands, None, 0, 0);

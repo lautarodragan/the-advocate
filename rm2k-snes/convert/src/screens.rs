@@ -67,6 +67,27 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
     stage::json(&written, "boxes.json")
 }
 
+/// The faces the message window shows —`(FaceSet, index, mirrored)`, the
+/// compiler's `faces` in `OP_FACE`'s order—, each as the cartridge stores
+/// it, `{"tiles": hex, "palette": words, "missing": bool}`: `missing` is
+/// one whose FaceSet is neither the game's nor the RTP's, drawn as the
+/// window's background alone. See `faces.rs` in `rm2k-snes-screens`. The
+/// stage draws with the game's System and the project's window background,
+/// like every screen.
+pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Value>> {
+    if faces.is_empty() {
+        return Ok(Vec::new());
+    }
+    let request = json!({"faces": faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()});
+    let written = stage::run(BINARY, PROJECT, "faces", &request, &game_flags(game))?;
+    let answer = stage::json(&written, "faces.json")?;
+    answer["faces"]
+        .as_array()
+        .cloned()
+        .filter(|drawn| drawn.len() == faces.len())
+        .ok_or_else(|| Stop::new(format!("the screens drew {} faces and {} were asked for", answer["faces"].as_array().map_or(0, Vec::len), faces.len())))
+}
+
 /// The colour-memory entries the message window takes after the backdrop,
 /// counted from the game's System. **The only place they come from**: the
 /// screens get them as `cgram_reserved`, each map's `wally` and the

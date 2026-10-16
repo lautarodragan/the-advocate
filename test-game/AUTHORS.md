@@ -15,6 +15,7 @@ this file: the RTP's `COPYING`, unchanged.
 | :- | :- | :- | :- | :- | :- |
 | `ChipSet/Exterior.png` | 2022 | Jason Perry | CC0 | <https://finalbossblues.itch.io/> | none: the RTP's file, byte for byte |
 | `CharSet/People1.png` | 2023 | VictorSena | CC BY 4.0 | <https://vashmaker.blogspot.com/p/works.html> | none: the RTP's file, byte for byte |
+| `FaceSet/Actor1.png` | 2024 | Garakuta | CC0 | <http://garakutamaker.blog.fc2.com/> | none: the RTP's file, byte for byte |
 | `System/System.png` | 2011 | andwhyisit | CC BY 4.0, OGA-BY 3.0 | none given | none: the RTP's file, byte for byte |
 
 **The files are not changed; the cartridge does change them.** What the

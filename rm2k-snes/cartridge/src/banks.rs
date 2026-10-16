@@ -171,13 +171,17 @@ pub const STACK: usize = 128;
 /// conditions did not fit in what was left; on 2026-10-14 it took the
 /// flash palettes', `$7E6900` to `$7E69FF` —they take half of it—, when
 /// the materials' table went into the segment and had to have room for every
-/// actor of the whole game. `$7E6A00` is the map's strips.
+/// actor of the whole game. On 2026-10-15 it took the map's spare strips'
+/// and the VRAM map's, `$7E6A00` to `$7E6BFF` —the strips take 384 of the
+/// 512 and the map two bytes—, when the message's face did not fit in what
+/// was left: A Blurred Line's release cartridge had 12 bytes free and the
+/// face asked for 123. `$7E6C00` is the music decoder's.
 ///
 /// The address carries the bank, so a label in the segment is a 24-bit one:
 /// read plainly it is a long access, which works whatever the data bank;
 /// code that runs with the data bank at `$7E` takes its `.loword`.
 pub const FAR_POOL_START: usize = 0x7E66C0;
-pub const FAR_POOL_SIZE: usize = 0x0340;
+pub const FAR_POOL_SIZE: usize = 0x0540;
 
 /// The RM2k switches' table: the `SWITCHES` segment, a bit per switch up to
 /// the highest the game names —`SWITCH_BYTES`, which the converter

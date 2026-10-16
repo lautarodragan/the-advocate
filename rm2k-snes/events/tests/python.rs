@@ -208,6 +208,9 @@ fn without_pairs(answer: &mut Value) {
         // And the names `ChangeHeroName` gives, which came on 2026-10-15:
         // see `a_rename_is_the_actors_place_and_the_names` in `compile.rs`.
         m.remove("names");
+        // And the faces the message window shows, which came on 2026-10-15:
+        // see `change_face_graphic_is_its_face_and_side` in `compile.rs`.
+        m.remove("faces");
     }
     if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
         m.remove("pairs");

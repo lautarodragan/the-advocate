@@ -166,11 +166,15 @@ A1B4     = $4344
 
 ; --- HDMA, channel 5 ---------------------------------------------------------
 ; The battle's: BG1's horizontal scroll per band, so the screen's shake moves
-; the scene and not the windows under and over it. See `ba_shake`.
+; the scene and not the windows under and over it. See `ba_shake`. And on
+; the map, a message face's palette on the window's lines, in indirect
+; mode —the table in ROM, the colours at `DASB5`'s bank—: see
+; message_face.s. The two never share a frame.
 DMAP5    = $4350
 BBAD5    = $4351
 A1T5L    = $4352
 A1B5     = $4354
+DASB5    = $4357
 HDMA_BATTLE = $20
 
 ; --- HDMA, channel 6 ---------------------------------------------------------
