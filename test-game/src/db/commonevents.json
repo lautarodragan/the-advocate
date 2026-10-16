@@ -18,5 +18,14 @@
       {"code": "ShowMessage_2", "string": "\\$ the gold window, \\>instant\\< text,"},
       {"code": "ShowMessage_2", "string": "a half\\_space, and an unknown\\q letter."}
     ]
+  },
+  {
+    "id": 3,
+    "name": "Plain Letters",
+    "trigger": "call",
+    "event_commands": [
+      {"code": "ShowMessage", "string": "¿Qué tal? ¡Olé! Straße, señor…"},
+      {"code": "ShowMessage_2", "string": "« Ça va », Ærø, Œuvre, Ünd çà."}
+    ]
   }
 ]
