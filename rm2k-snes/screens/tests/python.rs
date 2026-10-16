@@ -170,18 +170,24 @@ fn everything_a_cartridge_carries() {
     // menu's bank carries only the numbers' glyphs, and the font
     // precomposed for its text palette.
     //
-    // The hash is the one of 28ba001f's answer without its `title`, taken
+    // The hash was the one of 28ba001f's answer without its `title`, taken
     // there on 2026-10-13: with the title it was cf1cf4d5…1b8d, so
-    // everything else is still what it was.
+    // everything else was still what it was. **Until 2026-10-16**, the
+    // System's cursors on the menu's commands and on the slots: the bank
+    // lost the ">" and the rows with it, which renumbers its tiles, the
+    // commands moved two cells left, and the actor choice's tiles carry the
+    // two cursors. What it held before is 7d0558e6…5967; this one is the
+    // answer of that change, looked at in its screens' renders below and in
+    // ABL's goldens.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "7d0558e69505507d4d4e183d95d2a1667cdbb593e574d911da112d4eb2e55967"
+        "b3f8812b3cb837455ccfd5ad8de9650a056a6c7d7d1292da2f0db70dcfcbf645"
     );
     assert_eq!(
         answer["says"],
         serde_json::json!([
-            "  menu bank: 255 tiles of 448; the composed names ask for 62 of the 192 the menu leaves \
-             and 48 of the 192 the slot screen does",
+            "  menu bank: 238 tiles of 448; the composed names ask for 62 of the 210 the menu leaves \
+             and 48 of the 210 the slot screen does",
             "  WARNING, 1 actor names in the menu don't fit in 13 cells (104 px) and are cut: \
              \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
             "  WARNING, 1 leader names in the slot screen don't fit in 7 cells (56 px) and are cut: \
@@ -300,14 +306,14 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, None).unwrap(),
-        "15b3ceaa451f178eebeb0753e8045352c169b1897ee2be3ece1781832a4f7b64",
+        "06cf2dc59dae4c259ec988b9ad36077794461b1b73506df09925c419288936b0",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
     // the Python, which never had it.
     check(
         "menu-choosing",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
-        "8c2196b7442febd47ab61941d6880f63e7e96f63965a0809aecace27ac26c6da",
+        "4a5b495d0fcec60fd1cea120ec612802c92f39115dc83600cd5fbac4bd4f3a5f",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -319,7 +325,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu-state",
         render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
-        "dd2a9d0d6ef9d202c205e57a84b4153f126edf0012bfae582c7bf489b4a2b2d5",
+        "c252a58e29252d837e2c911f116fce4c6876f5ec53de1d9fce0181aed5cedaac",
     );
     check(
         "target-item",
@@ -336,7 +342,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "slots",
         render::slot_screen(&game, &skin, 4, &[true, false, true, false], 2, 1, &parties, &levels).unwrap(),
-        "e95f191de94803a8ca0001347e6c3329c3fa839329783b6920aecb30e21a4b85",
+        "9f86cbe89c8c0de62efe8963d13f919d4923aa01201de7c64d3a380ed93a8e85",
     );
     let worn = [6, 8, 0, 10, 0];
     check(

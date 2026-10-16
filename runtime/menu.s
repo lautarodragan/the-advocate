@@ -285,52 +285,6 @@ needs_party:
     rts
 .endproc
 
-; The cursor on option A: `temp + 3` at 1 paints it and at 0 erases it. It is
-; two cells, one below the other, written one word at a time. With the screen
-; off or inside the vblank.
-.proc menu_cursor_write
-.a8
-.i16
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    tax
-    lda menu_cursor_vram, x
-    tay
-    sep #$20
-.a8
-    lda #$80
-    sta VMAIN
-    sty VMADDL
-    lda temp + 3
-    rep #$20
-.a16
-    beq erase
-    lda menu_cursor_cells
-    sta VMDATAL
-    tya
-    clc
-    adc #32
-    sta VMADDL
-    lda menu_cursor_cells + 2
-    sta VMDATAL
-    sep #$20
-.a8
-    rts
-.a16
-erase:
-    stz VMDATAL
-    tya
-    clc
-    adc #32
-    sta VMADDL
-    stz VMDATAL
-    sep #$20
-.a8
-    rts
-.endproc
-
 ; The gold, right-aligned against the coin: it is divided by ten one byte at
 ; a time —the hardware divider is 16 by 8, and with the carried remainder the
 ; dividend never goes past 2559— and each remainder is a digit, from right to
@@ -458,12 +412,6 @@ other_option:
     cmp f:CM_ROWS
     bcc other_option
 
-    ; --- the cursor ---
-    lda #1
-    sta temp + 3
-    lda title_sel
-    jsr menu_cursor_write
-
     ; --- the gold and the coin ---
     jsr menu_gold_write
     rep #$20
@@ -479,7 +427,12 @@ other_option:
     jsr slot_rect_upload
 
     jsr menu_party_paint
-    jsl f:menu_bar_upload       ; BG1, empty, for choosing an actor
+    jsl f:menu_bar_upload       ; BG1, empty, for the cursor and the bar
+    ; --- the cursor, the System's on BG1: see `system_cursors.s` ---
+    lda #1
+    sta temp + 3
+    lda title_sel
+    jsl f:menu_cmd_cursor
     jsl f:menu_exp_paint        ; the experience, which goes in sprites, and turns on
     lda #1
     sta menu_open
@@ -820,13 +773,14 @@ move:
     pha
     stz temp + 3
     lda title_sel
-    jsr menu_cursor_write
+    jsl f:menu_cmd_cursor
     pla
     sta title_sel
     lda #1
     sta temp + 3
     lda title_sel
-    jmp menu_cursor_write
+    jsl f:menu_cmd_cursor
+    rts
 .endproc
 
 ; --- the actor choice --------------------------------------------------------

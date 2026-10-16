@@ -175,6 +175,59 @@ pub fn menu_bar_layer(skin: &Skin) -> Screen {
     }
 }
 
+/// The pause menu's command cursor, over nothing: with `cursor`, on that
+/// command. It shares the actor choice's tiles and colours —see
+/// `MENU_CMD_BAR`—.
+pub fn menu_cmd_bar(skin: &Skin, cursor: Option<usize>) -> Picture {
+    let mut out = cells::layer();
+    if let Some(k) = cursor {
+        let (x, y, width, height) = MENU_CMD_BAR;
+        bar(skin, &mut out, x, k * MENU_OPT_STEP + y, width, height);
+    }
+    skin.redraw(&mut out);
+    out
+}
+
+/// The command cursor as one more screen for `borders`: the same on every
+/// command, whose rows are whole cells, so only the first one's.
+pub fn menu_cmd_layer(skin: &Skin) -> Screen {
+    let (_, y, _, height) = MENU_CMD_BAR;
+    Screen {
+        background: menu_cmd_bar(skin, None),
+        bars: vec![(menu_cmd_bar(skin, Some(0)), y / CELL, (y % CELL + height).div_ceil(CELL))],
+    }
+}
+
+/// The slot cursor's rectangle on the first slot: `Window_SaveFile`'s,
+/// `width("File") + width(" ") * 5 / 2 + 8` wide —the number goes half a
+/// space after the term, in two places—. See `SLOT_BAR_X`.
+pub fn slot_bar_rect(game: &Game) -> Result<Rect> {
+    let file = game.term("file")?;
+    let width = game.font.width(&file) + game.font.width(" ") * 5 / 2 + 8;
+    Ok((SLOT_BAR_X, SLOT_Y, width, LINE))
+}
+
+/// The slot screen's cursor, over nothing: with `cursor`, on that slot.
+pub fn slot_bar(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result<Picture> {
+    let mut out = cells::layer();
+    if let Some(k) = cursor {
+        let (x, y, width, height) = slot_bar_rect(game)?;
+        bar(skin, &mut out, x, k * SLOT_STEP + y, width, height);
+    }
+    skin.redraw(&mut out);
+    Ok(out)
+}
+
+/// The slot cursor as one more screen for `borders`: the same on every
+/// slot, whose rows are whole cells, so only the first one's.
+pub fn slot_bar_layer(game: &Game, skin: &Skin) -> Result<Screen> {
+    let (_, y, _, height) = slot_bar_rect(game)?;
+    Ok(Screen {
+        background: slot_bar(game, skin, None)?,
+        bars: vec![(slot_bar(game, skin, Some(0))?, y / CELL, (y % CELL + height).div_ceil(CELL))],
+    })
+}
+
 /// The actor choice, with the bar on each party row, from the first cell
 /// row of the actor's row.
 pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
@@ -200,6 +253,20 @@ pub fn target_skill_layer(game: &Game, skin: &Skin) -> Result<Screen> {
             })
             .collect::<Result<_>>()?,
     })
+}
+
+/// Every screen that uploads the actor choice's tiles and colours, in the
+/// order `compact_target` reads their maps: the actor choice for a
+/// medicine, the pause menu's bar, the choice for a skill, the menu's
+/// command cursor and the slot cursor. The last three go over nothing.
+pub fn target_screens(game: &Game, skin: &Skin) -> Result<Vec<Screen>> {
+    Ok(vec![
+        target_layer(game, skin)?,
+        menu_bar_layer(skin),
+        target_skill_layer(game, skin)?,
+        menu_cmd_layer(skin),
+        slot_bar_layer(game, skin)?,
+    ])
 }
 
 /// The windows of several screens as the cartridge uploads them.
@@ -313,14 +380,21 @@ pub struct CompactTarget {
     /// BG1 is empty, so erasing it is writing zeros.
     pub menu_bar: Vec<u16>,
     pub menu_bar_at: (usize, usize, usize, usize),
+    /// The pause menu's command cursor on the first command, the same way:
+    /// its row is counted on the screen, and the others go one command
+    /// further down each.
+    pub menu_cmd: Vec<u16>,
+    pub menu_cmd_at: (usize, usize, usize, usize),
+    /// The slot cursor on the first slot, the same way.
+    pub slot_bar: Vec<u16>,
+    pub slot_bar_at: (usize, usize, usize, usize),
 }
 
-/// The actor choice's windows as the cartridge stores them, with the pause
-/// menu's bar third. If what it assumes does not hold, it is an error and
-/// not a different tilemap.
+/// The actor choice's windows as the cartridge stores them: `maps` are
+/// those of `target_screens`, in its order. If what it assumes does not
+/// hold, it is an error and not a different tilemap.
 pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarget> {
     let (with_map, bars_with) = &maps[0];
-    let (menu_map, menu_bars) = &maps[1];
     let mut distinct = std::collections::BTreeSet::new();
     for (k, bar) in bars_with.iter().enumerate() {
         let base = &with_map[k * MENU_ACTOR_ROWS * COLS..(k + 1) * MENU_ACTOR_ROWS * COLS];
@@ -341,20 +415,9 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
             .collect()
     };
     let bars: Vec<Vec<u16>> = bars_with.iter().map(clip).collect();
-    if menu_map.iter().any(|&w| w != 0) {
-        return Err(Bad::answer("the pause menu's BG1 is not empty without the bar"));
-    }
-    let menu_bar = &menu_bars[0];
-    let used: Vec<(usize, usize)> =
-        (0..menu_bar.len()).filter(|&i| menu_bar[i] != 0).map(|i| (i / COLS, i % COLS)).collect();
-    let m_row0 = used.iter().map(|d| d.0).min().unwrap_or(0);
-    let m_rows = used.iter().map(|d| d.0).max().unwrap_or(0) + 1 - m_row0;
-    let m_col0 = used.iter().map(|d| d.1).min().unwrap_or(0);
-    let m_cols = used.iter().map(|d| d.1).max().unwrap_or(0) + 1 - m_col0;
-    let menu_bar_words = (0..m_rows)
-        .flat_map(|f| (0..m_cols).map(move |c| (f, c)))
-        .map(|(f, c)| menu_bar[(m_row0 + f) * COLS + m_col0 + c])
-        .collect();
+    let (menu_bar, menu_bar_at) = alone(&maps[1], 0, "the pause menu's bar")?;
+    let (menu_cmd, menu_cmd_at) = alone(&maps[3], MENU_CMD_BAR.1 / CELL, "the pause menu's command cursor")?;
+    let (slot_bar, slot_bar_at) = alone(&maps[4], SLOT_Y / CELL, "the slot cursor")?;
     Ok(CompactTarget {
         map: with_map.clone(),
         bars,
@@ -362,9 +425,38 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
         rows,
         col0,
         cols,
-        menu_bar: menu_bar_words,
-        menu_bar_at: (m_row0, m_rows, m_col0, m_cols),
+        menu_bar,
+        menu_bar_at,
+        menu_cmd,
+        menu_cmd_at,
+        slot_bar,
+        slot_bar_at,
     })
+}
+
+/// A bar drawn over nothing —the pause menu's, its command cursor, the
+/// slot cursor—: its words where it is not empty, row by row, and that
+/// rectangle as `(row0, rows, col0, cols)`, with `row0` counted on the
+/// screen —`first` is the cell row its bar picture starts at—. Outside it
+/// BG1 is empty, so erasing it is writing zeros; if the screen without
+/// the bar is not empty, that does not hold, and it is an error.
+type Alone = (Vec<u16>, (usize, usize, usize, usize));
+fn alone(screen: &(Vec<u16>, Vec<Vec<u16>>), first: usize, what: &str) -> Result<Alone> {
+    let (map, bars) = screen;
+    if map.iter().any(|&w| w != 0) {
+        return Err(Bad::answer(format!("{what} is not over an empty BG1")));
+    }
+    let bar = &bars[0];
+    let used: Vec<(usize, usize)> = (0..bar.len()).filter(|&i| bar[i] != 0).map(|i| (i / COLS, i % COLS)).collect();
+    let row0 = used.iter().map(|d| d.0).min().unwrap_or(0);
+    let rows = used.iter().map(|d| d.0).max().unwrap_or(0) + 1 - row0;
+    let col0 = used.iter().map(|d| d.1).min().unwrap_or(0);
+    let cols = used.iter().map(|d| d.1).max().unwrap_or(0) + 1 - col0;
+    let words = (0..rows)
+        .flat_map(|f| (0..cols).map(move |c| (f, c)))
+        .map(|(f, c)| bar[(row0 + f) * COLS + col0 + c])
+        .collect();
+    Ok((words, (first + row0, rows, col0, cols)))
 }
 
 /// What the cartridge stores of the actor choice for a skill, over the

@@ -14,7 +14,8 @@
 ; shifts would have put the same computation here and in the converter,
 ; which is the kind of bug this repo has already paid for three times.
 ;
-; Moving the cursor rewrites **two rows** of 96 cells, not the whole tilemap.
+; Moving the cursor rewrites **two rows** of 96 cells, not the whole tilemap,
+; and moves the System's cursor, which is on BG1: see `system_cursors.s`.
 
 ; Whether the slot in A has a save. Returns A nonzero, and **clobbers
 ; `slot`**: `slots_screen` saves it on entry and restores it on exit.
@@ -78,8 +79,8 @@ no:
     rts
 .endproc
 
-; Paints the row of the slot in A: with the cursor if `title_sel` points at
-; it, and full if the SRAM says it is.
+; Paints the row of the slot in A: full if the SRAM says it is, and the
+; cursor on BG1 if `title_sel` points at it —erased if not—.
 ;
 ; Whether it is full is asked again on every repaint instead of being stored:
 ; it is four bytes of SRAM and it only happens when the cursor moves. Storing
@@ -89,20 +90,22 @@ no:
 .a8
 .i16
     pha
-    jsr slot_full
-    asl a                       ; full counts 2 in the variant index
-    sta temp + 2
-    pla
-    pha
+    stz temp + 3
     cmp title_sel
     bne no_cursor
-    inc temp + 2                ; and the cursor, 1
+    inc temp + 3
 no_cursor:
-    ; The block's index: the two headers first, and then four variants per
+    pla
+    pha
+    jsl f:slot_cursor
+    pla
+    pha
+    jsr slot_full
+    sta temp + 2                ; the variant: 1 full, 0 empty
+    ; The block's index: the two headers first, and then two variants per
     ; slot.
     pla
     pha
-    asl a
     asl a
     clc
     adc temp + 2
@@ -130,12 +133,10 @@ no_cursor:
 .a8
     jsr slot_block_upload
     ; And on top of the row, if it has a save, the leader's name and the faces
-    ; of the party it saved. `temp + 2` was left with the variant: full is 2
-    ; or 3.
+    ; of the party it saved. `temp + 2` was left with the variant: full is 1.
     pla
     lda temp + 2
-    cmp #2
-    bcc no_party
+    beq no_party
     jmp slot_party_paint
 no_party:
     rts
@@ -480,6 +481,7 @@ member_actor:
     stz TM                      ; nothing visible while it is built
 
     jsr slot_bank_upload
+    jsl f:menu_bar_upload       ; BG1, empty, for the cursor
 
     ; --- the header, according to the mode ---
     pla
@@ -529,7 +531,7 @@ paint_all:
     cmp #SRAM_SLOTS_N
     bcc paint_all
 
-    jsr slot_ppu_on
+    jsl f:target_ppu_on         ; `slot_ppu_on` and BG1, with the cursor
     lda #1
     sta menu_open
 

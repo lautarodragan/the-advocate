@@ -220,6 +220,7 @@ pub fn menu(
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::menu_bar(skin, choosing));
+    p.under(&borders::menu_cmd_bar(skin, Some(chosen)));
     for option in 0..MENU_OPTIONS {
         let done = MENU_DONE.contains(&option) && (option != MENU_SAVE || save_allowed);
         p.paste(
@@ -229,7 +230,6 @@ pub fn menu(
             MENU_OPT_COLS,
         );
     }
-    p.paste(&menu.cursor, (MENU_OPT_Y + chosen * MENU_OPT_STEP) / CELL, MENU_CURSOR_COL, 1);
     let digits = texts::digits_of(gold, MENU_GOLD_DIGITS as u32);
     paste_text(&mut p, menu, &digits, MENU_GOLD_Y / CELL, MENU_CURRENCY_COL - digits.len())?;
     p.paste(&menu.currency, MENU_GOLD_Y / CELL, MENU_CURRENCY_COL, MENU_CURRENCY_COLS);
@@ -356,12 +356,13 @@ pub fn slot_screen(
     let actors: Vec<i32> = parties.values().flatten().copied().collect::<BTreeSet<_>>().into_iter().collect();
     let bank = slots::slots_screen(game, skin, slots, &actors, slots::Order::Drawn)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
+    p.under(&borders::slot_bar(game, skin, Some(chosen))?);
     p.paste(&bank.headers[mode], HEADER_Y / CELL, 0, COLS);
     for number in 0..slots {
         let row0 = (SLOT_Y + number * SLOT_STEP) / CELL;
         let is_full = full.get(number).copied().unwrap_or(false) || parties.contains_key(&number);
         p.paste(
-            &bank.rows[number][is_full as usize][(number == chosen) as usize],
+            &bank.rows[number][is_full as usize],
             row0,
             0,
             COLS,

@@ -1546,14 +1546,14 @@ impl Rest<'_> {
             line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
             slot_blocks.push(name);
         }
+        // Two per slot, empty and full: the cursor is the System's, on BG1
+        // —`slot_bar_cells`, below—.
         for (number, row) in list_at(slots, "rows")?.iter().enumerate() {
             for full in 0..2 {
-                for cursor in 0..2 {
-                    let name = format!("slot_{number}_{full}{cursor}");
-                    let cells = &list(&list(row)?[full])?[cursor];
-                    line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
-                    slot_blocks.push(name);
-                }
+                let name = format!("slot_{number}_{full}");
+                let cells = &list(row)?[full];
+                line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
+                slot_blocks.push(name);
             }
         }
         // Per actor that can join the party, its face.
@@ -2242,15 +2242,6 @@ impl Rest<'_> {
             .join(", ")
         ));
         out.push_str(&format!(
-            "menu_cursor_vram:\n    .word {}\n",
-            decimal(
-                option_rows
-                    .iter()
-                    .map(|&f| vram_cell(f, t.n("MENU_CURSOR_COL")))
-            )
-            .join(", ")
-        ));
-        out.push_str(&format!(
             "menu_row_vram:\n     .word {}\n",
             decimal(
                 (0..t.n("MENU_PARTY_ROWS"))
@@ -2258,19 +2249,25 @@ impl Rest<'_> {
             )
             .join(", ")
         ));
-        out.push_str(&format!(
-            "menu_cursor_cells:\n     .word {}\n",
-            hex4(
-                ints_at(menu, "cursor")?
-                    .into_iter()
-                    .map(|c| i64::from(entry(c as u32, false, false, 1)))
-            )
-            .join(", ")
-        ));
         // What the screen composes on the fly goes outside bank 0: it is read
         // with `lda f:`. The glyphs are indexed by character, and the ones
         // this cartridge does not use stay in the empty cell.
         out.push_str(".segment \"RODATA\"\n");
+        // Where the command cursor and the slot cursor start on BG1, per
+        // command and per slot: their rectangles on the first one, which
+        // `alone` in `rm2k-snes-screens` cut, moved down by whole cells.
+        let target = at(screens, "target")?;
+        let bg1_cell = |row: i64, col: i64| t.n("TARGET_MAP") + row * 32 + col;
+        let cmd_at = ints_at(target, "menu_cmd_at")?;
+        let cmd_vram: Vec<String> = (0..t.n("MENU_OPTIONS") + custom_n)
+            .map(|n| bg1_cell(cmd_at[0] + n * t.n("MENU_OPT_STEP").div_euclid(cell), cmd_at[2]).to_string())
+            .collect();
+        words_asm(out, "menu_cursor_vram", &cmd_vram, true);
+        let slot_at = ints_at(target, "slot_bar_at")?;
+        let slot_bar_vram: Vec<String> = (0..i64::from(SLOTS))
+            .map(|n| bg1_cell(slot_at[0] + n * t.n("SLOT_STEP").div_euclid(cell), slot_at[2]).to_string())
+            .collect();
+        words_asm(out, "slot_bar_vram", &slot_bar_vram, true);
         let empty = format!(
             "${:04X}, ${:04X}",
             entry(0, false, false, 0),
@@ -2328,6 +2325,20 @@ impl Rest<'_> {
             bar_at[2],
             bar_at[3]
         ));
+        // The pause menu's command cursor and the slot cursor, each on its
+        // first row and over nothing, like the bar: see `alone` in
+        // `rm2k-snes-screens`.
+        for (cells, at_key, name, prefix) in [
+            ("menu_cmd", "menu_cmd_at", "menu_cmd_cells", "MENU_CMD"),
+            ("slot_bar", "slot_bar_at", "slot_bar_cells", "SLOT_BAR"),
+        ] {
+            line(out, &block(name, &words(at(target, cells)?)?));
+            let bar_at = ints_at(target, at_key)?;
+            out.push_str(&format!(
+                "{prefix}_ROW0 = {}\n{prefix}_ROWS = {}\n{prefix}_COL0 = {}\n{prefix}_COLS = {}\n",
+                bar_at[0], bar_at[1], bar_at[2], bar_at[3]
+            ));
+        }
         line(out, &block("target_cgram", &cgram_bytes(&obj_colors)));
         // The same choice for a skill: the cost's term over the count's,
         // and the bar over the whole party as its distinct cell rows and,

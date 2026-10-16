@@ -88,11 +88,7 @@ impl Redrawn {
 /// The pictures of `screen` that `borders` cuts, drawn with `skin`.
 fn layers(game: &Game, skin: &Skin, screen: Screen) -> Result<Vec<Layer>> {
     Ok(match screen {
-        Screen::Target => vec![
-            borders::target_layer(game, skin)?,
-            borders::menu_bar_layer(skin),
-            borders::target_skill_layer(game, skin)?,
-        ],
+        Screen::Target => borders::target_screens(game, skin)?,
         Screen::Items => vec![borders::item_layers(skin), borders::equipment_layers(skin)],
         Screen::Shop => borders::shop_layers(skin),
         Screen::Battle => crate::battle::layers(skin),
