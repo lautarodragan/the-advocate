@@ -3041,6 +3041,13 @@ impl Rest<'_> {
             .map(|a| Ok(param(a, "maxsp")? & 0xFFFF))
             .collect::<Result<_>>()?;
         words_asm(out, "actor_spmax", &decimal(sp), true);
+        // And each actor's starting level, one byte: what a `ControlVars`
+        // asking for the level of an actor who never fights —no `FAR_EXP`
+        // slot— answers. See `actor_stat_other` in the runtime.
+        let levels: Vec<i64> = (0..n_actors)
+            .map(|a| actor(a).map_or(1, rules::level_of))
+            .collect();
+        bytes_asm(out, "actor_level", &decimal(levels), true);
         // `rm2k-snes-battle` leaves the segment in RODATA.
         out.push_str(&r.battle_tables.experience);
         self.skills_and_troops(out, texts, x, n_actors)
