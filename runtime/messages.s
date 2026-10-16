@@ -160,7 +160,6 @@ with_plane:
     ldx map_ofs
     lda f:map_table + M_VRAM_WINDOW_MAP + 1, x
     sta f:MSG_SC                ; BG2SC carries the address in its high byte
-    jsl msg_hdma_build
 
     lda #$00                    ; one register, one write per stretch
     sta DMAP1
@@ -197,6 +196,9 @@ with_plane:
     stz DMAP6
     lda #<W12SEL
     sta BBAD6
+    ; The tables last, which may point channels 2, 3 and 6 elsewhere: see
+    ; `msg_swap_build`.
+    jsl msg_hdma_build
     rts
 .endproc
 
