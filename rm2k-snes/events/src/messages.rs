@@ -30,8 +30,7 @@ pub const PAIR_FIRST: u8 = 96;
 /// How many Latin-1 letters a cartridge's boxes can draw: the console's
 /// letters have to stay below 128, because the composer keeps the second
 /// letter of a pair waiting with bit 7 set —`FAR_MSG_SECOND`, in
-/// runtime/message_letter.s—. The nine games use 24 among them, and Zounds
-/// 18; past this, the least used are shown plain.
+/// runtime/message_letter.s—. Past this, the least used are shown plain.
 pub const LETTERS_MAX: usize = 128 - PAIR_FIRST as usize;
 
 /// The byte that stands for **a variable's value**, `\V[n]`: the next byte
