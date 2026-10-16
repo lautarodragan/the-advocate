@@ -174,6 +174,23 @@ in_battle:
     jmp op_done
 .endproc
 
+; RPG Maker 2003's `ForceFlee` for the party, from a troop page: the page
+; ends here and the battle with it, as an escape that cannot fail. It is the
+; same flag `TerminateBattle` raises, with another value, and `ba_page_step`
+; tells them apart. On a map it does nothing, like `op_battle_abort`.
+.proc op_battle_flee
+.a8
+.i16
+    lda pair_ev
+    cmp #PAIR_BATTLE
+    beq in_battle
+    jmp run_code::other
+in_battle:
+    lda #BA_ABORT_FLEE
+    sta f:ba_abort
+    jmp op_done
+.endproc
+
 ; `ShowHiddenMonster`, which only exists in a troop page: the member in that
 ; position stops being hidden. `ba_show_hidden` does it, in the battle's
 ; bank, which is where its state lives.

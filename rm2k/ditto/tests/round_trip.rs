@@ -118,8 +118,14 @@ fn a_missing_field_holds_the_format_default() {
     assert_eq!(e.max_sp, 10, "max_sp of an Enemy with no data");
     assert_eq!(e.attack, 10);
     // And the same when reading the binary: an absent chunk is not a zero.
-    let empty = ditto::lcf::dec_struct::<ditto::schema::Enemy>(&[]).unwrap();
+    let empty = ditto::lcf::dec_struct::<ditto::schema::Enemy>(&[], false).unwrap();
     assert_eq!(empty.max_hp, 10);
+    // The one struct whose defaults change with the version: an actor with no
+    // chunks is level 50 in a 2000 database and 99 in a 2003 one.
+    let actor = ditto::lcf::dec_struct::<ditto::schema::Actor>(&[], false).unwrap();
+    assert_eq!((actor.final_level, actor.exp_base, actor.exp_inflation), (50, 30, 30));
+    let actor = ditto::lcf::dec_struct::<ditto::schema::Actor>(&[], true).unwrap();
+    assert_eq!((actor.final_level, actor.exp_base, actor.exp_inflation), (99, 300, 300));
 
     let a: ditto::schema::Actor = serde_json::from_str(r#"{"name":"Alex"}"#).unwrap();
     assert_eq!(a.name, "Alex");

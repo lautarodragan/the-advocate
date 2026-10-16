@@ -30,15 +30,42 @@ impl Document {
     }
 }
 
+/// Whether a database is RPG Maker 2003's: `System.ldb_id == 2003`, the way
+/// liblcf's `GetEngineVersion` tells. The version decides the defaults of
+/// `Actor`, which comes **before** `System` in the file, so it is looked up
+/// first, walking the top-level chunks without decoding anything but the
+/// `System` one. See `Writer::is2k3` for what depends on it.
+fn ldb_is_2k3(d: &[u8], start: usize) -> Result<bool> {
+    const SYSTEM: u32 = 0x16;
+    let mut l = Reader::new(d);
+    l.pos = start;
+    while !l.eof() {
+        let id = l.ber()? as u32;
+        if id == 0 {
+            break;
+        }
+        let length = l.ber()? as usize;
+        let body = l.bytes(length)?;
+        if id == SYSTEM {
+            let system: System = dec_struct(body, false)?;
+            return Ok(system.ldb_id == 2003);
+        }
+    }
+    Ok(false)
+}
+
 pub fn read(d: &[u8]) -> Result<Document> {
     let mut l = Reader::new(d);
     let n = l.ber()? as usize;
     let header = dec_text(l.bytes(n)?);
     match header.as_str() {
-        "LcfDataBase" => Ok(Document::Ldb {
-            header,
-            data: read_struct(&mut l)?,
-        }),
+        "LcfDataBase" => {
+            let is2k3 = ldb_is_2k3(d, l.pos)?;
+            Ok(Document::Ldb {
+                header,
+                data: read_struct(&mut l.version(is2k3))?,
+            })
+        }
         "LcfMapUnit" => Ok(Document::Lmu {
             header,
             data: read_struct(&mut l)?,
@@ -61,7 +88,10 @@ pub fn write(doc: &Document) -> Result<Vec<u8>> {
     e.ber(head.len() as i32);
     e.bytes(&head);
     match doc {
-        Document::Ldb { data, .. } => write_struct(data, &mut e)?,
+        Document::Ldb { data, .. } => {
+            e.is2k3 = data.system.ldb_id == 2003;
+            write_struct(data, &mut e)?
+        }
         Document::Lmu { data, .. } => write_struct(data, &mut e)?,
         Document::Lmt { data, .. } => data.write_tree(&mut e)?,
     }

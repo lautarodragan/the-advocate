@@ -235,6 +235,92 @@ fn a_database_closes() {
     closes(&Document::Ldb { header: "LcfDataBase".into(), data });
 }
 
+/// The same database saved by RPG Maker 2003 —`System.ldb_id` 2003—, with
+/// the things the version changes written out by hand: a troop page condition
+/// is two bytes instead of one, with the 2003 bits after the 2000 ones; the
+/// 2003 sections and terms are written even when empty; `Database.version`
+/// is present and empty; and an actor with no chunks is level 99.
+#[test]
+fn a_2003_database_closes_and_is_two_bytes_wider_where_it_has_to_be() {
+    let condition = TroopPageCondition {
+        flags: TroopPageConditionFlags {
+            switch_a: true,
+            command_actor: true,
+            ..Default::default()
+        },
+        command_actor_id: 4,
+        command_id: 9,
+        ..Default::default()
+    };
+    let troop = Troop {
+        id: 1,
+        pages: vec![TroopPage { id: 1, condition: condition.clone(), ..Default::default() }],
+        ..Default::default()
+    };
+    let as_2000 = Database { troops: vec![troop.clone()], ..Default::default() };
+    let as_2003 = Database {
+        troops: vec![troop],
+        system: System { ldb_id: 2003, ..Default::default() },
+        ..Default::default()
+    };
+    let ldb = |data: &Database| {
+        ditto::file::write(&Document::Ldb { header: "LcfDataBase".into(), data: data.clone() }).unwrap()
+    };
+    let bytes_2000 = ldb(&as_2000);
+    let bytes_2003 = ldb(&as_2003);
+
+    // The flags chunk: id 0x01, then its length and its bytes. In 2000 the
+    // 2003 bit does not exist and the chunk is one byte, `switch_a` alone; in
+    // 2003 it is two, and `command_actor` —the tenth bit— is bit 1 of the second.
+    assert!(bytes_2000.windows(3).any(|w| w == [0x01, 0x01, 0x01]), "2000: one byte of flags");
+    assert!(bytes_2003.windows(4).any(|w| w == [0x01, 0x02, 0x01, 0x02]), "2003: two bytes of flags");
+    // The 2003-only condition fields are omitted from a 2000 file whatever
+    // they hold: `command_actor_id` is 0x16 and `command_id` 0x17.
+    assert!(!bytes_2000.windows(3).any(|w| w == [0x16, 0x01, 0x04]));
+    assert!(bytes_2003.windows(3).any(|w| w == [0x16, 0x01, 0x04]));
+    assert!(bytes_2003.windows(3).any(|w| w == [0x17, 0x01, 0x09]));
+    // `Database.version` (0x1A) is present and empty in 2003, absent in 2000;
+    // the 2003 sections (0x1B..0x20) are there, empty blocks included.
+    let tail_2003 = &bytes_2003[bytes_2003.len() - 24..];
+    assert!(tail_2003.windows(2).any(|w| w == [0x1A, 0x00]), "2003: an empty version chunk");
+    assert!(tail_2003.windows(2).any(|w| w == [0x1B, 0x00]), "2003: the empty block 0x1B");
+    // A 2000 database ends with its common events: no version chunk when it
+    // is 0, and none of the 2003 sections.
+    assert!(bytes_2000.ends_with(&[0x19, 0x01, 0x00]), "2000: nothing after the common events");
+
+    // The 2003 one closes with everything; the 2000 one only without the
+    // 2003 content, which its file cannot carry.
+    closes(&Document::Ldb { header: "LcfDataBase".into(), data: as_2003 });
+    let mut clean_2000 = as_2000;
+    clean_2000.troops[0].pages[0].condition = TroopPageCondition {
+        flags: TroopPageConditionFlags { switch_a: true, ..Default::default() },
+        ..Default::default()
+    };
+    closes(&Document::Ldb { header: "LcfDataBase".into(), data: clean_2000 });
+
+    // The version is told by the file itself when reading back, and it picks
+    // the actor's defaults: level 99 is left out of a 2003 file and read back
+    // as 99; level 50, the same in a 2000 one. Chunk 0x08 is `final_level`.
+    let read = |bytes: &[u8]| -> Database {
+        let Document::Ldb { data, .. } = ditto::file::read(bytes).unwrap() else { panic!() };
+        data
+    };
+    let with_actor = |mut db: Database, final_level: i32| {
+        db.actors = vec![Actor { id: 1, final_level, ..Default::default() }];
+        ldb(&db)
+    };
+    let bytes = with_actor(read(&bytes_2003), 99);
+    assert!(!bytes.windows(3).any(|w| w == [0x08, 0x01, 99]), "2003: level 99 is the default");
+    assert_eq!(read(&bytes).actors[0].final_level, 99);
+    let bytes = with_actor(read(&bytes_2003), 50);
+    assert!(bytes.windows(3).any(|w| w == [0x08, 0x01, 50]), "2003: level 50 is written");
+    assert_eq!(read(&bytes).actors[0].final_level, 50);
+    let bytes = with_actor(read(&bytes_2000), 50);
+    assert!(!bytes.windows(3).any(|w| w == [0x08, 0x01, 50]), "2000: level 50 is the default");
+    assert_eq!(read(&bytes).actors[0].final_level, 50);
+    assert_eq!(read(&bytes_2003).troops[0].pages[0].condition, condition);
+}
+
 /// The map tree is one of the six structures read by position instead of by
 /// chunk id, so nothing in it is optional and a wrong count eats the rest of
 /// the file.

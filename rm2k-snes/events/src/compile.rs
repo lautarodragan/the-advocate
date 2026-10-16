@@ -63,7 +63,7 @@ const PICTURE_FRAMES_MAX: i64 = 255;
 /// A call compiled as a call does not count against it: its depth is the
 /// console's stack, `CALL_LEVELS`, and `map_pages` reports the chains that
 /// go past it.
-const CALL_MAX: usize = 4;
+pub(crate) const CALL_MAX: usize = 4;
 
 // ControlSwitches: the first parameter says where the ids come from and the
 // last what to do with them (liblcf, ControlSwitches::Operation).
@@ -4738,6 +4738,19 @@ pub fn compile_command(
         // arrives from a troop page —see `TROOP_COMMANDS`— and the ROM does
         // nothing with it outside a battle, as EasyRPG's map interpreter.
         TERMINATE_BATTLE => Ok(vec![OP_BATTLE_ABORT]),
+        // RPG Maker 2003's `ForceFlee` (1006): the party escapes, and the
+        // escape cannot fail —EasyRPG's `force_flee_enabled`—. Only the
+        // party's, p[0] == 0: an enemy fleeing (1, 2) has no stand-in in the
+        // 2000 battle, and `runs_in_battle` keeps those out. p[2] says to
+        // check the battle's formation first (pincers); the formations do not
+        // exist here, so the check always passes, as in a normal formation.
+        // It only arrives from a troop page, like `TerminateBattle`.
+        FORCE_FLEE => {
+            if n < 1 || q(0) != 0 {
+                return cannot();
+            }
+            Ok(vec![OP_BATTLE_FLEE])
+        }
         CHANGE_ENCOUNTER_STEPS => {
             // `ChangeEncounterSteps` (11740): every how many steps there is a
             // random encounter. Nineteen occurrences on nine maps, and
