@@ -137,6 +137,38 @@ pub fn replacement(directory: Option<&Path>, name: &str) -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+/// The audio a `<song>.link.wav` points to, or None if `path` is not one.
+///
+/// Desert Nightmare ships its songs as MP3s in an `mp3/` folder next to
+/// `Music/`, and in `Music/` a `.link.wav` per song: not audio, a line of
+/// text with the path —`..\mp3\Credits.mp3loop`—, the convention of a patch
+/// of RPG_RT that plays MP3s, the `loop` after the extension saying it
+/// loops. The track is the MP3 the line names, found case-insensitively from
+/// the link's folder; `ffmpeg` cannot open the link itself.
+pub fn followed_link(path: &Path) -> Option<PathBuf> {
+    let name = path.file_name()?.to_string_lossy().to_lowercase();
+    if !name.ends_with(".link.wav") {
+        return None;
+    }
+    let text = std::fs::read_to_string(path).ok()?;
+    let line = text.lines().next()?.trim();
+    let line = line.strip_suffix("loop").or_else(|| line.strip_suffix("LOOP")).unwrap_or(line);
+    let mut here = path.parent()?.to_path_buf();
+    for part in line.split(['\\', '/']).filter(|p| !p.is_empty()) {
+        if part == ".." {
+            here = here.parent()?.to_path_buf();
+        } else if part != "." {
+            let want = part.to_lowercase();
+            let found = std::fs::read_dir(&here)
+                .ok()?
+                .filter_map(|e| e.ok())
+                .find(|e| e.file_name().to_string_lossy().to_lowercase() == want)?;
+            here = found.path();
+        }
+    }
+    here.is_file().then_some(here)
+}
+
 /// [(name, number)] of the cartridge's songs that have a track, in order of
 /// number: from the `music.json` next to the ROM.
 pub fn cartridge_tracks(rom: &Path) -> Result<Vec<(String, i64)>> {
@@ -345,7 +377,7 @@ impl Tracks {
             if source.to_string_lossy().to_lowercase().ends_with(".mid") {
                 midi = Some(source);
             } else {
-                audio = Some(source);
+                audio = Some(followed_link(&source).unwrap_or(source));
             }
         }
         let key = match (&audio, &midi) {
@@ -540,6 +572,20 @@ fn render(midi: &Path, out: &Path, soundfont: &Path, gain: f64) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_link_wav_is_followed_to_the_mp3_it_names() {
+        let root = std::env::temp_dir().join(format!("rm2k-snes-audio-link-{}", std::process::id()));
+        let music = root.join("Music");
+        std::fs::create_dir_all(&music).unwrap();
+        std::fs::create_dir_all(root.join("mp3")).unwrap();
+        std::fs::write(root.join("mp3").join("Credits.MP3"), b"ID3").unwrap();
+        std::fs::write(music.join("Credits.link.wav"), "..\\mp3\\Credits.mp3loop\r\n").unwrap();
+        std::fs::write(music.join("Plain.wav"), b"RIFF").unwrap();
+        assert_eq!(followed_link(&music.join("Credits.link.wav")), Some(root.join("mp3").join("Credits.MP3")));
+        assert_eq!(followed_link(&music.join("Plain.wav")), None);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
 
     #[test]
     fn a_quiet_track_is_raised_to_the_peak() {
