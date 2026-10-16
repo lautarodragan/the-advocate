@@ -1,0 +1,5 @@
+{
+  "event_commands": [
+    {"code": "ControlSwitches", "parameters": [0, 1400, 1400, 0]}
+  ]
+}

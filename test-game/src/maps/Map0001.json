@@ -160,6 +160,30 @@
           ]
         }
       ]
+    },
+    {
+      "id": 10,
+      "name": "Jump Away",
+      "x": 18,
+      "y": 8,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {"switch_a": true, "switch_b": false, "variable": false,
+                      "item": false, "actor": false, "timer": false},
+            "switch_a_id": 1400
+          },
+          "trigger": "parallel",
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [4, 10, 7, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 1401, 1401, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 1400, 1400, 1]}
+          ]
+        }
+      ]
     }
   ]
 }

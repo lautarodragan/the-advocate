@@ -28,6 +28,21 @@
 jump:
     lda #1
     sta jump_has
+    ; **A parallel goes on to its next command, in this same frame**: the
+    ; `if (!main_flag) return true;` of the same easyrpg function, "parallel
+    ; events should keep on running in 2k and 2k3". The jump is taken at the
+    ; end of the frame —`events_handle_jump` in the main loop—, and what the
+    ; page did until then stays done. Zounds' guard scene on map 7 is a
+    ; parallel that tints the screen black, jumps and tints it back: ending
+    ; the frame here, the map load threw its cursor away with the tint back
+    ; still to run, and the next map stayed black (2026-10-16). Map events
+    ; and parallel common events alike (`pair_ev` below `PAIR_BATTLE`); the
+    ; foreground, $FF, and a troop page, `PAIR_BATTLE`, end the frame.
+    lda pair_ev
+    cmp #PAIR_BATTLE
+    bcs ends_the_frame
+    jmp run_code::other
+ends_the_frame:
     ; And it ends the frame, which is exactly what
     ; `Game_Interpreter_Map::CommandTeleport` does in easyrpg-player: it queues
     ; the transfer, does `index++` and returns false. The map loads between
