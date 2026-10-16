@@ -381,9 +381,17 @@ bytecode! {
     /// screen, a chain of such calls, came to four megabytes of bytecode.
     OP_CALL_PAGE = 0x50 (page: word);
 
+    /// RPG Maker 2003's `ForceFlee` for the party, from a troop page: the
+    /// page ends here and the battle with it, as an escape that cannot fail
+    /// —EasyRPG's `force_flee_enabled`, which `Scene_Battle::TryEscape`
+    /// honours before the dice—: the fled message, the escape sound, and the
+    /// encounter's escape handler. `ba_page_step` sees it when the stretch
+    /// comes back, like `OP_BATTLE_ABORT`; on a map it does nothing. See
+    /// `op_battle_flee` in the runtime's `interpreter_shop_and_battle.s`.
+    OP_BATTLE_FLEE = 0x51 ();
+
     /// Held for opcodes other branches are adding: they end the page until
     /// they land.
-    OP_RESERVED_51 = 0x51 ();
     OP_RESERVED_52 = 0x52 ();
     OP_RESERVED_53 = 0x53 ();
 

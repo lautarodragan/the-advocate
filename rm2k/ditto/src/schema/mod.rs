@@ -17,7 +17,7 @@
 pub mod description;
 
 use crate::lcf::*;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 /// Generated from `constants.csv`.
 #[allow(non_upper_case_globals)]
@@ -1152,121 +1152,6 @@ impl Default for BattlerAnimationItemSkillSpeed {
 
 /// Generated from `enums.csv`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BattlerAnimationPose {
-    Idle,
-    AttackRight,
-    AttackLeft,
-    Skill,
-    Dead,
-    Damage,
-    Dazed,
-    Defend,
-    WalkLeft,
-    WalkRight,
-    Victory,
-    Item,
-    /// A value `enums.csv` does not name. It goes back to the binary as is.
-    Other(i32),
-}
-
-impl BattlerAnimationPose {
-    pub fn to_i32(self) -> i32 {
-        match self {
-            BattlerAnimationPose::Idle => 0,
-            BattlerAnimationPose::AttackRight => 1,
-            BattlerAnimationPose::AttackLeft => 2,
-            BattlerAnimationPose::Skill => 3,
-            BattlerAnimationPose::Dead => 4,
-            BattlerAnimationPose::Damage => 5,
-            BattlerAnimationPose::Dazed => 6,
-            BattlerAnimationPose::Defend => 7,
-            BattlerAnimationPose::WalkLeft => 8,
-            BattlerAnimationPose::WalkRight => 9,
-            BattlerAnimationPose::Victory => 10,
-            BattlerAnimationPose::Item => 11,
-            BattlerAnimationPose::Other(v) => v,
-        }
-    }
-    pub fn from_i32(v: i32) -> Self {
-        match v {
-            0 => BattlerAnimationPose::Idle,
-            1 => BattlerAnimationPose::AttackRight,
-            2 => BattlerAnimationPose::AttackLeft,
-            3 => BattlerAnimationPose::Skill,
-            4 => BattlerAnimationPose::Dead,
-            5 => BattlerAnimationPose::Damage,
-            6 => BattlerAnimationPose::Dazed,
-            7 => BattlerAnimationPose::Defend,
-            8 => BattlerAnimationPose::WalkLeft,
-            9 => BattlerAnimationPose::WalkRight,
-            10 => BattlerAnimationPose::Victory,
-            11 => BattlerAnimationPose::Item,
-            v => BattlerAnimationPose::Other(v),
-        }
-    }
-    /// The name `enums.csv` gives this value, and `None` for one it
-    /// does not name.
-    pub fn json_name(self) -> Option<&'static str> {
-        match self {
-            BattlerAnimationPose::Idle => Some("Idle"),
-            BattlerAnimationPose::AttackRight => Some("AttackRight"),
-            BattlerAnimationPose::AttackLeft => Some("AttackLeft"),
-            BattlerAnimationPose::Skill => Some("Skill"),
-            BattlerAnimationPose::Dead => Some("Dead"),
-            BattlerAnimationPose::Damage => Some("Damage"),
-            BattlerAnimationPose::Dazed => Some("Dazed"),
-            BattlerAnimationPose::Defend => Some("Defend"),
-            BattlerAnimationPose::WalkLeft => Some("WalkLeft"),
-            BattlerAnimationPose::WalkRight => Some("WalkRight"),
-            BattlerAnimationPose::Victory => Some("Victory"),
-            BattlerAnimationPose::Item => Some("Item"),
-            BattlerAnimationPose::Other(_) => None,
-        }
-    }
-    /// The value `enums.csv` gives this name, and `None` for a name it
-    /// does not have.
-    pub fn from_json_name(name: &str) -> Option<Self> {
-        match name {
-            "Idle" => Some(BattlerAnimationPose::Idle),
-            "AttackRight" => Some(BattlerAnimationPose::AttackRight),
-            "AttackLeft" => Some(BattlerAnimationPose::AttackLeft),
-            "Skill" => Some(BattlerAnimationPose::Skill),
-            "Dead" => Some(BattlerAnimationPose::Dead),
-            "Damage" => Some(BattlerAnimationPose::Damage),
-            "Dazed" => Some(BattlerAnimationPose::Dazed),
-            "Defend" => Some(BattlerAnimationPose::Defend),
-            "WalkLeft" => Some(BattlerAnimationPose::WalkLeft),
-            "WalkRight" => Some(BattlerAnimationPose::WalkRight),
-            "Victory" => Some(BattlerAnimationPose::Victory),
-            "Item" => Some(BattlerAnimationPose::Item),
-            _ => None,
-        }
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for BattlerAnimationPose {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        match EnumRepr::deserialize(d)? {
-            EnumRepr::Number(v) => Ok(BattlerAnimationPose::from_i32(v)),
-            EnumRepr::Other { other } => Ok(BattlerAnimationPose::Other(other)),
-            EnumRepr::Name(n) => BattlerAnimationPose::from_json_name(&n)
-                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["Idle", "AttackRight", "AttackLeft", "Skill", "Dead", "Damage", "Dazed", "Defend", "WalkLeft", "WalkRight", "Victory", "Item"])),
-        }
-    }
-}
-
-impl serde::Serialize for BattlerAnimationPose {
-    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        serialize_enum("BattlerAnimationPose", self.json_name(), self.to_i32(), s)
-    }
-}
-
-impl Default for BattlerAnimationPose {
-    fn default() -> Self { BattlerAnimationPose::Idle }
-}
-
-/// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationPoseAnimType {
     Character,
     Battle,
@@ -1328,6 +1213,121 @@ impl serde::Serialize for BattlerAnimationPoseAnimType {
 
 impl Default for BattlerAnimationPoseAnimType {
     fn default() -> Self { BattlerAnimationPoseAnimType::Character }
+}
+
+/// Generated from `enums.csv`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BattlerAnimationPoseEnum {
+    Idle,
+    AttackRight,
+    AttackLeft,
+    Skill,
+    Dead,
+    Damage,
+    Dazed,
+    Defend,
+    WalkLeft,
+    WalkRight,
+    Victory,
+    Item,
+    /// A value `enums.csv` does not name. It goes back to the binary as is.
+    Other(i32),
+}
+
+impl BattlerAnimationPoseEnum {
+    pub fn to_i32(self) -> i32 {
+        match self {
+            BattlerAnimationPoseEnum::Idle => 0,
+            BattlerAnimationPoseEnum::AttackRight => 1,
+            BattlerAnimationPoseEnum::AttackLeft => 2,
+            BattlerAnimationPoseEnum::Skill => 3,
+            BattlerAnimationPoseEnum::Dead => 4,
+            BattlerAnimationPoseEnum::Damage => 5,
+            BattlerAnimationPoseEnum::Dazed => 6,
+            BattlerAnimationPoseEnum::Defend => 7,
+            BattlerAnimationPoseEnum::WalkLeft => 8,
+            BattlerAnimationPoseEnum::WalkRight => 9,
+            BattlerAnimationPoseEnum::Victory => 10,
+            BattlerAnimationPoseEnum::Item => 11,
+            BattlerAnimationPoseEnum::Other(v) => v,
+        }
+    }
+    pub fn from_i32(v: i32) -> Self {
+        match v {
+            0 => BattlerAnimationPoseEnum::Idle,
+            1 => BattlerAnimationPoseEnum::AttackRight,
+            2 => BattlerAnimationPoseEnum::AttackLeft,
+            3 => BattlerAnimationPoseEnum::Skill,
+            4 => BattlerAnimationPoseEnum::Dead,
+            5 => BattlerAnimationPoseEnum::Damage,
+            6 => BattlerAnimationPoseEnum::Dazed,
+            7 => BattlerAnimationPoseEnum::Defend,
+            8 => BattlerAnimationPoseEnum::WalkLeft,
+            9 => BattlerAnimationPoseEnum::WalkRight,
+            10 => BattlerAnimationPoseEnum::Victory,
+            11 => BattlerAnimationPoseEnum::Item,
+            v => BattlerAnimationPoseEnum::Other(v),
+        }
+    }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationPoseEnum::Idle => Some("Idle"),
+            BattlerAnimationPoseEnum::AttackRight => Some("AttackRight"),
+            BattlerAnimationPoseEnum::AttackLeft => Some("AttackLeft"),
+            BattlerAnimationPoseEnum::Skill => Some("Skill"),
+            BattlerAnimationPoseEnum::Dead => Some("Dead"),
+            BattlerAnimationPoseEnum::Damage => Some("Damage"),
+            BattlerAnimationPoseEnum::Dazed => Some("Dazed"),
+            BattlerAnimationPoseEnum::Defend => Some("Defend"),
+            BattlerAnimationPoseEnum::WalkLeft => Some("WalkLeft"),
+            BattlerAnimationPoseEnum::WalkRight => Some("WalkRight"),
+            BattlerAnimationPoseEnum::Victory => Some("Victory"),
+            BattlerAnimationPoseEnum::Item => Some("Item"),
+            BattlerAnimationPoseEnum::Other(_) => None,
+        }
+    }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "Idle" => Some(BattlerAnimationPoseEnum::Idle),
+            "AttackRight" => Some(BattlerAnimationPoseEnum::AttackRight),
+            "AttackLeft" => Some(BattlerAnimationPoseEnum::AttackLeft),
+            "Skill" => Some(BattlerAnimationPoseEnum::Skill),
+            "Dead" => Some(BattlerAnimationPoseEnum::Dead),
+            "Damage" => Some(BattlerAnimationPoseEnum::Damage),
+            "Dazed" => Some(BattlerAnimationPoseEnum::Dazed),
+            "Defend" => Some(BattlerAnimationPoseEnum::Defend),
+            "WalkLeft" => Some(BattlerAnimationPoseEnum::WalkLeft),
+            "WalkRight" => Some(BattlerAnimationPoseEnum::WalkRight),
+            "Victory" => Some(BattlerAnimationPoseEnum::Victory),
+            "Item" => Some(BattlerAnimationPoseEnum::Item),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationPoseEnum {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationPoseEnum::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationPoseEnum::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationPoseEnum::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["Idle", "AttackRight", "AttackLeft", "Skill", "Dead", "Damage", "Dazed", "Defend", "WalkLeft", "WalkRight", "Victory", "Item"])),
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationPoseEnum {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationPoseEnum", self.json_name(), self.to_i32(), s)
+    }
+}
+
+impl Default for BattlerAnimationPoseEnum {
+    fn default() -> Self { BattlerAnimationPoseEnum::Idle }
 }
 
 /// Generated from `enums.csv`.
@@ -6192,7 +6192,8 @@ impl Default for TreeMapMapType {
 
 /// Generated from `flags.csv`: the order of the fields **is** the order
 /// of the bits, from the least significant one upwards.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(default)]
 pub struct EventPageConditionFlags {
     pub switch_a: bool,
     pub switch_b: bool,
@@ -6200,6 +6201,33 @@ pub struct EventPageConditionFlags {
     pub item: bool,
     pub actor: bool,
     pub timer: bool,
+    /// RPG Maker 2003 only.
+    pub timer2: bool,
+}
+
+impl serde::Serialize for EventPageConditionFlags {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let all = crate::lcf::resolved();
+        let keep = [
+            all || !false || self.switch_a,
+            all || !false || self.switch_b,
+            all || !false || self.variable,
+            all || !false || self.item,
+            all || !false || self.actor,
+            all || !false || self.timer,
+            all || !true || self.timer2,
+        ];
+        let mut m = s.serialize_struct("EventPageConditionFlags", keep.iter().filter(|k| **k).count())?;
+        if keep[0] { m.serialize_field("switch_a", &self.switch_a)?; }
+        if keep[1] { m.serialize_field("switch_b", &self.switch_b)?; }
+        if keep[2] { m.serialize_field("variable", &self.variable)?; }
+        if keep[3] { m.serialize_field("item", &self.item)?; }
+        if keep[4] { m.serialize_field("actor", &self.actor)?; }
+        if keep[5] { m.serialize_field("timer", &self.timer)?; }
+        if keep[6] { m.serialize_field("timer2", &self.timer2)?; }
+        m.end()
+    }
 }
 
 impl EventPageConditionFlags {
@@ -6211,57 +6239,150 @@ impl EventPageConditionFlags {
         f.item = bit(d, 3);
         f.actor = bit(d, 4);
         f.timer = bit(d, 5);
+        f.timer2 = bit(d, 6);
         f
     }
-    pub fn write(&self) -> Vec<u8> {
-        let mut b = vec![0u8; 1];
-        if self.switch_a { b[0] |= 1 << 0; }
-        if self.switch_b { b[0] |= 1 << 1; }
-        if self.variable { b[0] |= 1 << 2; }
-        if self.item { b[0] |= 1 << 3; }
-        if self.actor { b[0] |= 1 << 4; }
-        if self.timer { b[0] |= 1 << 5; }
-        b
+    pub fn write(&self, is2k3: bool) -> Vec<u8> {
+        pack_bits(&[
+            (self.switch_a, false),
+            (self.switch_b, false),
+            (self.variable, false),
+            (self.item, false),
+            (self.actor, false),
+            (self.timer, false),
+            (self.timer2, true),
+        ], is2k3)
     }
 }
 
 /// Generated from `flags.csv`: the order of the fields **is** the order
 /// of the bits, from the least significant one upwards.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(default)]
 pub struct SavePictureFlags {
+    /// RPG Maker 2003 only.
+    pub erase_on_map_change: bool,
+    /// RPG Maker 2003 only.
+    pub erase_on_battle_end: bool,
+    /// RPG Maker 2003 only.
+    pub unused_bit: bool,
+    /// RPG Maker 2003 only.
+    pub unused_bit2: bool,
+    /// RPG Maker 2003 only.
+    pub affected_by_tint: bool,
+    /// RPG Maker 2003 only.
+    pub affected_by_flash: bool,
+    /// RPG Maker 2003 only.
+    pub affected_by_shake: bool,
+}
+
+impl serde::Serialize for SavePictureFlags {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let all = crate::lcf::resolved();
+        let keep = [
+            all || !true || self.erase_on_map_change,
+            all || !true || self.erase_on_battle_end,
+            all || !true || self.unused_bit,
+            all || !true || self.unused_bit2,
+            all || !true || self.affected_by_tint,
+            all || !true || self.affected_by_flash,
+            all || !true || self.affected_by_shake,
+        ];
+        let mut m = s.serialize_struct("SavePictureFlags", keep.iter().filter(|k| **k).count())?;
+        if keep[0] { m.serialize_field("erase_on_map_change", &self.erase_on_map_change)?; }
+        if keep[1] { m.serialize_field("erase_on_battle_end", &self.erase_on_battle_end)?; }
+        if keep[2] { m.serialize_field("unused_bit", &self.unused_bit)?; }
+        if keep[3] { m.serialize_field("unused_bit2", &self.unused_bit2)?; }
+        if keep[4] { m.serialize_field("affected_by_tint", &self.affected_by_tint)?; }
+        if keep[5] { m.serialize_field("affected_by_flash", &self.affected_by_flash)?; }
+        if keep[6] { m.serialize_field("affected_by_shake", &self.affected_by_shake)?; }
+        m.end()
+    }
 }
 
 impl SavePictureFlags {
     pub fn read(d: &[u8]) -> Self {
-        let f = Self::default();
+        let mut f = Self::default();
+        f.erase_on_map_change = bit(d, 0);
+        f.erase_on_battle_end = bit(d, 1);
+        f.unused_bit = bit(d, 2);
+        f.unused_bit2 = bit(d, 3);
+        f.affected_by_tint = bit(d, 4);
+        f.affected_by_flash = bit(d, 5);
+        f.affected_by_shake = bit(d, 6);
         f
     }
-    pub fn write(&self) -> Vec<u8> {
-        let b = vec![0u8; 0];
-        b
+    pub fn write(&self, is2k3: bool) -> Vec<u8> {
+        pack_bits(&[
+            (self.erase_on_map_change, true),
+            (self.erase_on_battle_end, true),
+            (self.unused_bit, true),
+            (self.unused_bit2, true),
+            (self.affected_by_tint, true),
+            (self.affected_by_flash, true),
+            (self.affected_by_shake, true),
+        ], is2k3)
     }
 }
 
 /// Generated from `flags.csv`: the order of the fields **is** the order
 /// of the bits, from the least significant one upwards.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(default)]
 pub struct TerrainFlags {
+    /// RPG Maker 2003 only.
+    pub back_party: bool,
+    /// RPG Maker 2003 only.
+    pub back_enemies: bool,
+    /// RPG Maker 2003 only.
+    pub lateral_party: bool,
+    /// RPG Maker 2003 only.
+    pub lateral_enemies: bool,
+}
+
+impl serde::Serialize for TerrainFlags {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let all = crate::lcf::resolved();
+        let keep = [
+            all || !true || self.back_party,
+            all || !true || self.back_enemies,
+            all || !true || self.lateral_party,
+            all || !true || self.lateral_enemies,
+        ];
+        let mut m = s.serialize_struct("TerrainFlags", keep.iter().filter(|k| **k).count())?;
+        if keep[0] { m.serialize_field("back_party", &self.back_party)?; }
+        if keep[1] { m.serialize_field("back_enemies", &self.back_enemies)?; }
+        if keep[2] { m.serialize_field("lateral_party", &self.lateral_party)?; }
+        if keep[3] { m.serialize_field("lateral_enemies", &self.lateral_enemies)?; }
+        m.end()
+    }
 }
 
 impl TerrainFlags {
     pub fn read(d: &[u8]) -> Self {
-        let f = Self::default();
+        let mut f = Self::default();
+        f.back_party = bit(d, 0);
+        f.back_enemies = bit(d, 1);
+        f.lateral_party = bit(d, 2);
+        f.lateral_enemies = bit(d, 3);
         f
     }
-    pub fn write(&self) -> Vec<u8> {
-        let b = vec![0u8; 0];
-        b
+    pub fn write(&self, is2k3: bool) -> Vec<u8> {
+        pack_bits(&[
+            (self.back_party, true),
+            (self.back_enemies, true),
+            (self.lateral_party, true),
+            (self.lateral_enemies, true),
+        ], is2k3)
     }
 }
 
 /// Generated from `flags.csv`: the order of the fields **is** the order
 /// of the bits, from the least significant one upwards.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(default)]
 pub struct TroopPageConditionFlags {
     pub switch_a: bool,
     pub switch_b: bool,
@@ -6270,6 +6391,43 @@ pub struct TroopPageConditionFlags {
     pub fatigue: bool,
     pub enemy_hp: bool,
     pub actor_hp: bool,
+    /// RPG Maker 2003 only.
+    pub turn_enemy: bool,
+    /// RPG Maker 2003 only.
+    pub turn_actor: bool,
+    /// RPG Maker 2003 only.
+    pub command_actor: bool,
+}
+
+impl serde::Serialize for TroopPageConditionFlags {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let all = crate::lcf::resolved();
+        let keep = [
+            all || !false || self.switch_a,
+            all || !false || self.switch_b,
+            all || !false || self.variable,
+            all || !false || self.turn,
+            all || !false || self.fatigue,
+            all || !false || self.enemy_hp,
+            all || !false || self.actor_hp,
+            all || !true || self.turn_enemy,
+            all || !true || self.turn_actor,
+            all || !true || self.command_actor,
+        ];
+        let mut m = s.serialize_struct("TroopPageConditionFlags", keep.iter().filter(|k| **k).count())?;
+        if keep[0] { m.serialize_field("switch_a", &self.switch_a)?; }
+        if keep[1] { m.serialize_field("switch_b", &self.switch_b)?; }
+        if keep[2] { m.serialize_field("variable", &self.variable)?; }
+        if keep[3] { m.serialize_field("turn", &self.turn)?; }
+        if keep[4] { m.serialize_field("fatigue", &self.fatigue)?; }
+        if keep[5] { m.serialize_field("enemy_hp", &self.enemy_hp)?; }
+        if keep[6] { m.serialize_field("actor_hp", &self.actor_hp)?; }
+        if keep[7] { m.serialize_field("turn_enemy", &self.turn_enemy)?; }
+        if keep[8] { m.serialize_field("turn_actor", &self.turn_actor)?; }
+        if keep[9] { m.serialize_field("command_actor", &self.command_actor)?; }
+        m.end()
+    }
 }
 
 impl TroopPageConditionFlags {
@@ -6282,18 +6440,24 @@ impl TroopPageConditionFlags {
         f.fatigue = bit(d, 4);
         f.enemy_hp = bit(d, 5);
         f.actor_hp = bit(d, 6);
+        f.turn_enemy = bit(d, 7);
+        f.turn_actor = bit(d, 8);
+        f.command_actor = bit(d, 9);
         f
     }
-    pub fn write(&self) -> Vec<u8> {
-        let mut b = vec![0u8; 1];
-        if self.switch_a { b[0] |= 1 << 0; }
-        if self.switch_b { b[0] |= 1 << 1; }
-        if self.variable { b[0] |= 1 << 2; }
-        if self.turn { b[0] |= 1 << 3; }
-        if self.fatigue { b[0] |= 1 << 4; }
-        if self.enemy_hp { b[0] |= 1 << 5; }
-        if self.actor_hp { b[0] |= 1 << 6; }
-        b
+    pub fn write(&self, is2k3: bool) -> Vec<u8> {
+        pack_bits(&[
+            (self.switch_a, false),
+            (self.switch_b, false),
+            (self.variable, false),
+            (self.turn, false),
+            (self.fatigue, false),
+            (self.enemy_hp, false),
+            (self.actor_hp, false),
+            (self.turn_enemy, true),
+            (self.turn_actor, true),
+            (self.command_actor, true),
+        ], is2k3)
     }
 }
 
@@ -6346,6 +6510,14 @@ pub struct Actor {
     pub initial_equipment: Equipment = Default::default(),
     /// field 0x38 of the binary
     pub unarmed_animation: i32 = 1,
+    /// field 0x39 of the binary; RPG Maker 2003 only
+    pub class_id: i32 = 0,
+    /// field 0x3b of the binary; RPG Maker 2003 only
+    pub battle_x: i32 = 220,
+    /// field 0x3c of the binary; RPG Maker 2003 only
+    pub battle_y: i32 = 120,
+    /// field 0x3e of the binary; RPG Maker 2003 only
+    pub battler_animation: i32 = 1,
     /// field 0x3f of the binary, stored even when it holds the default
     pub skills: Vec<Learning> = Default::default(),
     /// field 0x42 of the binary
@@ -6356,6 +6528,8 @@ pub struct Actor {
     pub state_ranks: Vec<u8> = Vec::new(),
     /// field 0x4a of the binary, stored even when it holds the default
     pub attribute_ranks: Vec<u8> = Vec::new(),
+    /// field 0x50 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub battle_commands: Vec<i32> = Vec::new(),
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -6510,6 +6684,8 @@ schema_struct! {
 pub struct BattleCommands {
     /// field 0x02 of the binary
     pub placement: BattleCommandsPlacement = BattleCommandsPlacement::from_i32(0),
+    /// field 0x04 of the binary; RPG Maker 2003 only
+    pub death_handler_unused: bool = false,
     /// field 0x06 of the binary
     pub row: BattleCommandsRowShown = BattleCommandsRowShown::from_i32(0),
     /// field 0x07 of the binary
@@ -6518,6 +6694,8 @@ pub struct BattleCommands {
     pub unused_display_normal_parameters: bool = true,
     /// field 0x0a of the binary, stored even when it holds the default
     pub commands: Vec<BattleCommand> = Default::default(),
+    /// field 0x0f of the binary; RPG Maker 2003 only
+    pub death_handler: bool = false,
     /// field 0x10 of the binary
     pub death_event: i32 = 1,
     /// field 0x14 of the binary
@@ -6534,6 +6712,100 @@ pub struct BattleCommands {
     pub death_teleport_y: i32 = 0,
     /// field 0x1d of the binary
     pub death_teleport_face: BattleCommandsFacing = BattleCommandsFacing::from_i32(0),
+    /// The chunks the schema does not name, so the round trip is exact.
+    pub unknown: Vec<RawChunk> = Vec::new(),
+}
+}
+
+schema_struct! {
+/// Generated from `fields.csv`.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct BattlerAnimation {
+    /// The number the array names this element with.
+    pub id: i32 = 0,
+    /// field 0x01 of the binary; RPG Maker 2003 only
+    pub name: String = "".to_string(),
+    /// field 0x02 of the binary; RPG Maker 2003 only
+    pub speed: BattlerAnimationSpeed = BattlerAnimationSpeed::from_i32(20),
+    /// field 0x0a of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub poses: Vec<BattlerAnimationPose> = Default::default(),
+    /// field 0x0b of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub weapons: Vec<BattlerAnimationWeapon> = Default::default(),
+    /// The chunks the schema does not name, so the round trip is exact.
+    pub unknown: Vec<RawChunk> = Vec::new(),
+}
+}
+
+schema_struct! {
+/// Generated from `fields.csv`.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct BattlerAnimationItemSkill {
+    /// The number the array names this element with.
+    pub id: i32 = 0,
+    /// field 0x02 of the binary; RPG Maker 2003 only
+    pub unknown02: i32 = 0,
+    /// field 0x03 of the binary; RPG Maker 2003 only
+    pub r#type: BattlerAnimationItemSkillAnimType = BattlerAnimationItemSkillAnimType::from_i32(0),
+    /// field 0x04 of the binary; RPG Maker 2003 only
+    pub weapon_animation_id: i32 = 0,
+    /// field 0x05 of the binary; RPG Maker 2003 only
+    pub movement: BattlerAnimationItemSkillMovement = BattlerAnimationItemSkillMovement::from_i32(0),
+    /// field 0x06 of the binary; RPG Maker 2003 only
+    pub after_image: BattlerAnimationItemSkillAfterimage = BattlerAnimationItemSkillAfterimage::from_i32(0),
+    /// field 0x07 of the binary; RPG Maker 2003 only
+    pub attacks: i32 = 0,
+    /// field 0x08 of the binary; RPG Maker 2003 only
+    pub ranged: bool = false,
+    /// field 0x09 of the binary; RPG Maker 2003 only
+    pub ranged_animation_id: i32 = 0,
+    /// field 0x0c of the binary; RPG Maker 2003 only
+    pub ranged_speed: BattlerAnimationItemSkillSpeed = BattlerAnimationItemSkillSpeed::from_i32(0),
+    /// field 0x0d of the binary; RPG Maker 2003 only
+    pub battle_animation_id: i32 = 1,
+    /// field 0x0e of the binary; RPG Maker 2003 only
+    pub pose: i32 = 3,
+    /// The chunks the schema does not name, so the round trip is exact.
+    pub unknown: Vec<RawChunk> = Vec::new(),
+}
+}
+
+schema_struct! {
+/// Generated from `fields.csv`.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct BattlerAnimationPose {
+    /// The number the array names this element with.
+    pub id: i32 = 0,
+    /// field 0x01 of the binary; RPG Maker 2003 only
+    pub name: String = "".to_string(),
+    /// field 0x02 of the binary; RPG Maker 2003 only
+    pub battler_name: String = "".to_string(),
+    /// field 0x03 of the binary; RPG Maker 2003 only
+    pub battler_index: i32 = 0,
+    /// field 0x04 of the binary; RPG Maker 2003 only
+    pub animation_type: BattlerAnimationPoseAnimType = BattlerAnimationPoseAnimType::from_i32(0),
+    /// field 0x05 of the binary; RPG Maker 2003 only
+    pub battle_animation_id: i32 = 1,
+    /// The chunks the schema does not name, so the round trip is exact.
+    pub unknown: Vec<RawChunk> = Vec::new(),
+}
+}
+
+schema_struct! {
+/// Generated from `fields.csv`.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct BattlerAnimationWeapon {
+    /// The number the array names this element with.
+    pub id: i32 = 0,
+    /// field 0x01 of the binary; RPG Maker 2003 only
+    pub name: String = "".to_string(),
+    /// field 0x02 of the binary; RPG Maker 2003 only
+    pub weapon_name: String = "".to_string(),
+    /// field 0x03 of the binary; RPG Maker 2003 only
+    pub weapon_index: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -6631,6 +6903,7 @@ schema_struct! {
 /// Generated from `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
+#[allow(non_snake_case)]
 pub struct Database {
     /// field 0x0b of the binary, stored even when it holds the default
     pub actors: Vec<Actor> = Default::default(),
@@ -6664,6 +6937,18 @@ pub struct Database {
     pub commonevents: Vec<CommonEvent> = Default::default(),
     /// field 0x1a of the binary
     pub version: i32 = 0,
+    /// field 0x1b of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub commoneventD2: bool = false,
+    /// field 0x1c of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub commoneventD3: bool = false,
+    /// field 0x1d of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub battlecommands: BattleCommands = Default::default(),
+    /// field 0x1e of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub classes: Vec<Class> = Default::default(),
+    /// field 0x1f of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub classD1: bool = false,
+    /// field 0x20 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub battleranimations: Vec<BattlerAnimation> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -6896,6 +7181,10 @@ pub struct EventPageCondition {
     pub actor_id: i32 = 1,
     /// field 0x08 of the binary
     pub timer_sec: i32 = 0,
+    /// field 0x09 of the binary; RPG Maker 2003 only
+    pub timer2_sec: i32 = 0,
+    /// field 0x0a of the binary; RPG Maker 2003 only
+    pub compare_operator: EventPageConditionComparison = EventPageConditionComparison::from_i32(1),
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -6952,6 +7241,8 @@ pub struct Item {
     pub half_sp_cost: bool = false,
     /// field 0x1c of the binary
     pub no_terrain_damage: bool = false,
+    /// field 0x1d of the binary; RPG Maker 2003 only
+    pub cursed: bool = false,
     /// field 0x1f of the binary, stored even when it holds the default
     pub entire_party: bool = false,
     /// field 0x20 of the binary
@@ -6998,6 +7289,14 @@ pub struct Item {
     pub state_chance: i32 = 0,
     /// field 0x44 of the binary
     pub reverse_state_effect: bool = false,
+    /// field 0x45 of the binary; RPG Maker 2003 only
+    pub weapon_animation: i32 = -1,
+    /// field 0x46 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub animation_data: Vec<BattlerAnimationItemSkill> = Default::default(),
+    /// field 0x47 of the binary; RPG Maker 2003 only
+    pub use_skill: bool = false,
+    /// field 0x49 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub class_set: Vec<bool> = Vec::new(),
     /// field 0x4b of the binary
     pub ranged_trajectory: ItemTrajectory = ItemTrajectory::from_i32(0),
     /// field 0x4c of the binary
@@ -7088,6 +7387,8 @@ pub struct Map {
     pub upper_layer: Vec<i16> = Vec::new(),
     /// field 0x51 of the binary, stored even when it holds the default
     pub events: Vec<Event> = Default::default(),
+    /// field 0x5a of the binary; RPG Maker 2003 only
+    pub save_count_2k3e: i32 = 0,
     /// field 0x5b of the binary
     pub save_count: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
@@ -7322,12 +7623,26 @@ pub struct SaveActor {
     pub current_hp: i32 = -1,
     /// field 0x48 of the binary
     pub current_sp: i32 = -1,
+    /// field 0x50 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub battle_commands: Vec<i32> = vec![-1; 7],
     /// field 0x52 of the binary, stored even when it holds the default
     pub status: Vec<i16> = Vec::new(),
     /// field 0x53 of the binary
     pub changed_battle_commands: bool = false,
     /// field 0x5a of the binary
     pub class_id: i32 = -1,
+    /// field 0x5b of the binary; RPG Maker 2003 only
+    pub row: SaveActorRowType = SaveActorRowType::from_i32(0),
+    /// field 0x5c of the binary; RPG Maker 2003 only
+    pub two_weapon: bool = false,
+    /// field 0x5d of the binary; RPG Maker 2003 only
+    pub lock_equipment: bool = false,
+    /// field 0x5e of the binary; RPG Maker 2003 only
+    pub auto_battle: bool = false,
+    /// field 0x5f of the binary; RPG Maker 2003 only
+    pub super_guard: bool = false,
+    /// field 0x60 of the binary; RPG Maker 2003 only
+    pub battler_animation: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -7712,6 +8027,18 @@ pub struct SavePicture {
     pub current_effect_power: f64 = 0.0,
     /// field 0x12 of the binary
     pub current_bot_trans: f64 = 0.0,
+    /// field 0x13 of the binary; RPG Maker 2003 only
+    pub spritesheet_cols: i32 = 1,
+    /// field 0x14 of the binary; RPG Maker 2003 only
+    pub spritesheet_rows: i32 = 1,
+    /// field 0x15 of the binary; RPG Maker 2003 only
+    pub spritesheet_frame: i32 = 0,
+    /// field 0x16 of the binary; RPG Maker 2003 only
+    pub spritesheet_speed: i32 = 0,
+    /// field 0x17 of the binary; RPG Maker 2003 only
+    pub frames: i32 = 0,
+    /// field 0x18 of the binary; RPG Maker 2003 only
+    pub spritesheet_play_once: bool = false,
     /// field 0x19 of the binary
     pub map_layer: SavePictureMapLayer = SavePictureMapLayer::from_i32(7),
     /// field 0x1a of the binary
@@ -7932,6 +8259,8 @@ pub struct SaveSystem {
     pub save_count: i32 = 0,
     /// field 0x84 of the binary
     pub save_slot: i32 = 1,
+    /// field 0x8c of the binary; RPG Maker 2003 only
+    pub atb_mode: SaveSystemAtbMode = SaveSystemAtbMode::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -8032,6 +8361,10 @@ pub struct Skill {
     pub failure_message: i32 = 0,
     /// field 0x08 of the binary, stored even when it holds the default
     pub r#type: SkillType = SkillType::from_i32(0),
+    /// field 0x09 of the binary; RPG Maker 2003 only
+    pub sp_type: SkillSpType = SkillSpType::from_i32(0),
+    /// field 0x0a of the binary; RPG Maker 2003 only
+    pub sp_percent: i32 = 0,
     /// field 0x0b of the binary
     pub sp_cost: i32 = 0,
     /// field 0x0c of the binary, stored even when it holds the default
@@ -8046,6 +8379,8 @@ pub struct Skill {
     pub occasion_field: bool = true,
     /// field 0x13 of the binary
     pub occasion_battle: bool = false,
+    /// field 0x14 of the binary; RPG Maker 2003 only
+    pub reverse_state_effect: bool = false,
     /// field 0x15 of the binary
     pub physical_rate: i32 = 0,
     /// field 0x16 of the binary
@@ -8078,6 +8413,10 @@ pub struct Skill {
     pub attribute_effects: Vec<bool> = Vec::new(),
     /// field 0x2d of the binary
     pub affect_attr_defence: bool = false,
+    /// field 0x31 of the binary; RPG Maker 2003 only
+    pub battler_animation: i32 = -1,
+    /// field 0x32 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub battler_animation_data: Vec<BattlerAnimationItemSkill> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -8168,6 +8507,8 @@ pub struct State {
     pub auto_release_prob: i32 = 0,
     /// field 0x17 of the binary
     pub release_by_damage: i32 = 0,
+    /// field 0x1e of the binary; RPG Maker 2003 only
+    pub affect_type: StateAffectType = StateAffectType::from_i32(0),
     /// field 0x1f of the binary
     pub affect_attack: bool = false,
     /// field 0x20 of the binary
@@ -8178,6 +8519,14 @@ pub struct State {
     pub affect_agility: bool = false,
     /// field 0x23 of the binary
     pub reduce_hit_ratio: i32 = 100,
+    /// field 0x24 of the binary; RPG Maker 2003 only
+    pub avoid_attacks: bool = false,
+    /// field 0x25 of the binary; RPG Maker 2003 only
+    pub reflect_magic: bool = false,
+    /// field 0x26 of the binary; RPG Maker 2003 only
+    pub cursed: bool = false,
+    /// field 0x27 of the binary; RPG Maker 2003 only
+    pub battler_animation_id: i32 = 100,
     /// field 0x29 of the binary
     pub restrict_skill: bool = false,
     /// field 0x2a of the binary
@@ -8260,8 +8609,12 @@ pub struct System {
     pub gameover_name: String = "".to_string(),
     /// field 0x13 of the binary
     pub system_name: String = "".to_string(),
+    /// field 0x14 of the binary; RPG Maker 2003 only
+    pub system2_name: String = "".to_string(),
     /// field 0x16 of the binary, stored even when it holds the default
     pub party: Vec<i16> = vec![1; 1],
+    /// field 0x1b of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub menu_commands: Vec<i16> = vec![1; 1],
     /// field 0x1f of the binary, stored even when it holds the default
     pub title_music: Music = Default::default(),
     /// field 0x20 of the binary, stored even when it holds the default
@@ -8334,6 +8687,18 @@ pub struct System {
     pub battletest_formation: SystemBattleFormation = SystemBattleFormation::from_i32(0),
     /// field 0x60 of the binary
     pub battletest_condition: SystemBattleCondition = SystemBattleCondition::from_i32(0),
+    /// field 0x61 of the binary; RPG Maker 2003 only
+    pub equipment_setting: SystemEquipmentSetting = SystemEquipmentSetting::from_i32(0),
+    /// field 0x62 of the binary; RPG Maker 2003 only
+    pub battletest_alt_terrain: i32 = -1,
+    /// field 0x63 of the binary; RPG Maker 2003 only
+    pub show_frame: bool = false,
+    /// field 0x64 of the binary; RPG Maker 2003 only
+    pub frame_name: String = "".to_string(),
+    /// field 0x65 of the binary; RPG Maker 2003 only
+    pub invert_animations: bool = false,
+    /// field 0x6f of the binary; RPG Maker 2003 only
+    pub show_title: bool = true,
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -8418,6 +8783,10 @@ pub struct Terms {
     pub level_up: String = "".to_string(),
     /// field 0x25 of the binary, stored even when it holds the default
     pub skill_learned: String = "".to_string(),
+    /// field 0x26 of the binary; RPG Maker 2003 only
+    pub battle_start: String = "".to_string(),
+    /// field 0x27 of the binary; RPG Maker 2003 only
+    pub miss: String = "".to_string(),
     /// field 0x29 of the binary, stored even when it holds the default
     pub shop_greeting1: String = "".to_string(),
     /// field 0x2a of the binary, stored even when it holds the default
@@ -8536,6 +8905,16 @@ pub struct Terms {
     pub load_game: String = "".to_string(),
     /// field 0x75 of the binary, stored even when it holds the default
     pub exit_game: String = "".to_string(),
+    /// field 0x76 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub status: String = "".to_string(),
+    /// field 0x77 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub row: String = "".to_string(),
+    /// field 0x78 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub order: String = "".to_string(),
+    /// field 0x79 of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub wait_on: String = "".to_string(),
+    /// field 0x7a of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub wait_off: String = "".to_string(),
     /// field 0x7b of the binary, stored even when it holds the default
     pub level: String = "".to_string(),
     /// field 0x7c of the binary, stored even when it holds the default
@@ -8614,6 +8993,52 @@ pub struct Terrain {
     pub airship_land: bool = true,
     /// field 0x0b of the binary, stored even when it holds the default
     pub bush_depth: TerrainBushDepth = TerrainBushDepth::from_i32(0),
+    /// field 0x0f of the binary, stored even when it holds the default; RPG Maker 2003 only
+    pub footstep: Sound = Default::default(),
+    /// field 0x10 of the binary; RPG Maker 2003 only
+    pub on_damage_se: bool = false,
+    /// field 0x11 of the binary; RPG Maker 2003 only
+    pub background_type: TerrainBGAssociation = TerrainBGAssociation::from_i32(0),
+    /// field 0x15 of the binary; RPG Maker 2003 only
+    pub background_a_name: String = "".to_string(),
+    /// field 0x16 of the binary; RPG Maker 2003 only
+    pub background_a_scrollh: bool = false,
+    /// field 0x17 of the binary; RPG Maker 2003 only
+    pub background_a_scrollv: bool = false,
+    /// field 0x18 of the binary; RPG Maker 2003 only
+    pub background_a_scrollh_speed: i32 = 0,
+    /// field 0x19 of the binary; RPG Maker 2003 only
+    pub background_a_scrollv_speed: i32 = 0,
+    /// field 0x1e of the binary; RPG Maker 2003 only
+    pub background_b: bool = false,
+    /// field 0x1f of the binary; RPG Maker 2003 only
+    pub background_b_name: String = "".to_string(),
+    /// field 0x20 of the binary; RPG Maker 2003 only
+    pub background_b_scrollh: bool = false,
+    /// field 0x21 of the binary; RPG Maker 2003 only
+    pub background_b_scrollv: bool = false,
+    /// field 0x22 of the binary; RPG Maker 2003 only
+    pub background_b_scrollh_speed: i32 = 0,
+    /// field 0x23 of the binary; RPG Maker 2003 only
+    pub background_b_scrollv_speed: i32 = 0,
+    /// field 0x28 of the binary; RPG Maker 2003 only
+    pub special_flags: TerrainFlags = Default::default(),
+    /// field 0x29 of the binary; RPG Maker 2003 only
+    pub special_back_party: i32 = 15,
+    /// field 0x2a of the binary; RPG Maker 2003 only
+    pub special_back_enemies: i32 = 10,
+    /// field 0x2b of the binary; RPG Maker 2003 only
+    pub special_lateral_party: i32 = 10,
+    /// field 0x2c of the binary; RPG Maker 2003 only
+    pub special_lateral_enemies: i32 = 5,
+    /// field 0x2d of the binary; RPG Maker 2003 only
+    pub grid_location: i32 = 0,
+    /// field 0x2e of the binary; RPG Maker 2003 only
+    pub grid_top_y: i32 = 120,
+    /// field 0x2f of the binary; RPG Maker 2003 only
+    pub grid_elongation: i32 = 392,
+    /// field 0x30 of the binary; RPG Maker 2003 only
+    pub grid_inclination: i32 = 16000,
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -8674,8 +9099,12 @@ pub struct Troop {
     pub name: String = "".to_string(),
     /// field 0x02 of the binary, stored even when it holds the default
     pub members: Vec<TroopMember> = Default::default(),
+    /// field 0x03 of the binary; RPG Maker 2003 only
+    pub auto_alignment: bool = false,
     /// field 0x05 of the binary, stored even when it holds the default
     pub terrain_set: Vec<bool> = Vec::new(),
+    /// field 0x06 of the binary; RPG Maker 2003 only
+    pub appear_randomly: bool = false,
     /// field 0x0b of the binary, stored even when it holds the default
     pub pages: Vec<TroopPage> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
@@ -8754,6 +9183,22 @@ pub struct TroopPageCondition {
     pub actor_hp_min: i32 = 0,
     /// field 0x0f of the binary
     pub actor_hp_max: i32 = 100,
+    /// field 0x10 of the binary; RPG Maker 2003 only
+    pub turn_enemy_id: i32 = 0,
+    /// field 0x11 of the binary; RPG Maker 2003 only
+    pub turn_enemy_a: i32 = 0,
+    /// field 0x12 of the binary; RPG Maker 2003 only
+    pub turn_enemy_b: i32 = 0,
+    /// field 0x13 of the binary; RPG Maker 2003 only
+    pub turn_actor_id: i32 = 1,
+    /// field 0x14 of the binary; RPG Maker 2003 only
+    pub turn_actor_a: i32 = 0,
+    /// field 0x15 of the binary; RPG Maker 2003 only
+    pub turn_actor_b: i32 = 0,
+    /// field 0x16 of the binary; RPG Maker 2003 only
+    pub command_actor_id: i32 = 1,
+    /// field 0x17 of the binary; RPG Maker 2003 only
+    pub command_id: i32 = 1,
     /// The chunks the schema does not name, so the round trip is exact.
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
@@ -8780,7 +9225,7 @@ impl Chunked for Learning {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.level = dec_ber(d),
             0x02 => self.skill_id = dec_ber(d),
@@ -8789,7 +9234,7 @@ impl Chunked for Learning {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Learning::default();
+        let p = Learning::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.level != p.level { c.push((0x01, enc_ber(self.level))); }
         if self.skill_id != p.skill_id { c.push((0x02, enc_ber(self.skill_id))); }
@@ -8805,7 +9250,16 @@ impl Chunked for Actor {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn default_for(is2k3: bool) -> Self {
+        let mut d = Self::default();
+        if is2k3 {
+            d.final_level = 99;
+            d.exp_base = 300;
+            d.exp_inflation = 300;
+        }
+        d
+    }
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.title = dec_text(d),
@@ -8828,19 +9282,24 @@ impl Chunked for Actor {
             0x2b => self.exp_correction = dec_ber(d),
             0x33 => self.initial_equipment = Equipment::read_raw(d)?,
             0x38 => self.unarmed_animation = dec_ber(d),
-            0x3f => self.skills = dec_array::<Learning>(d)?,
+            0x39 => self.class_id = dec_ber(d),
+            0x3b => self.battle_x = dec_ber(d),
+            0x3c => self.battle_y = dec_ber(d),
+            0x3e => self.battler_animation = dec_ber(d),
+            0x3f => self.skills = dec_array::<Learning>(d, is2k3)?,
             0x42 => self.rename_skill = dec_bool(d),
             0x43 => self.skill_name = dec_text(d),
             0x47 => {} // length of `state_ranks`, recomputed when writing
             0x48 => self.state_ranks = d.to_vec(),
             0x49 => {} // length of `attribute_ranks`, recomputed when writing
             0x4a => self.attribute_ranks = d.to_vec(),
+            0x50 => self.battle_commands = dec_vec_i32(d),
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Actor::default();
+        let p = Actor::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.title != p.title { c.push((0x02, enc_text(&self.title))); }
@@ -8863,7 +9322,11 @@ impl Chunked for Actor {
         if self.exp_correction != p.exp_correction { c.push((0x2b, enc_ber(self.exp_correction))); }
         c.push((0x33, self.initial_equipment.write_raw()));
         if self.unarmed_animation != p.unarmed_animation { c.push((0x38, enc_ber(self.unarmed_animation))); }
-        c.push((0x3f, enc_array(&self.skills)?));
+        if e.is2k3 && self.class_id != p.class_id { c.push((0x39, enc_ber(self.class_id))); }
+        if e.is2k3 && self.battle_x != p.battle_x { c.push((0x3b, enc_ber(self.battle_x))); }
+        if e.is2k3 && self.battle_y != p.battle_y { c.push((0x3c, enc_ber(self.battle_y))); }
+        if e.is2k3 && self.battler_animation != p.battler_animation { c.push((0x3e, enc_ber(self.battler_animation))); }
+        c.push((0x3f, enc_array(&self.skills, e.is2k3)?));
         if self.rename_skill != p.rename_skill { c.push((0x42, enc_bool(self.rename_skill))); }
         if self.skill_name != p.skill_name { c.push((0x43, enc_text(&self.skill_name))); }
         let v_state_ranks = self.state_ranks.clone();
@@ -8872,6 +9335,7 @@ impl Chunked for Actor {
         let v_attribute_ranks = self.attribute_ranks.clone();
         if v_attribute_ranks.len() != p.attribute_ranks.clone().len() { c.push((0x49, enc_ber(v_attribute_ranks.len() as i32))); }
         c.push((0x4a, v_attribute_ranks));
+        if e.is2k3 { c.push((0x50, enc_vec_i32(&self.battle_commands))); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -8884,7 +9348,7 @@ impl Chunked for Sound {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x03 => self.volume = dec_ber(d),
@@ -8895,7 +9359,7 @@ impl Chunked for Sound {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Sound::default();
+        let p = Sound::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         c.push((0x01, enc_text(&self.name)));
         if self.volume != p.volume { c.push((0x03, enc_ber(self.volume))); }
@@ -8913,10 +9377,10 @@ impl Chunked for AnimationTiming {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.frame = dec_ber(d),
-            0x02 => self.se = dec_struct::<Sound>(d)?,
+            0x02 => self.se = dec_struct::<Sound>(d, is2k3)?,
             0x03 => self.flash_scope = AnimationTimingFlashScope::from_i32(dec_ber(d)),
             0x04 => self.flash_red = dec_ber(d),
             0x05 => self.flash_green = dec_ber(d),
@@ -8928,10 +9392,10 @@ impl Chunked for AnimationTiming {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = AnimationTiming::default();
+        let p = AnimationTiming::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.frame != p.frame { c.push((0x01, enc_ber(self.frame))); }
-        c.push((0x02, enc_struct(&self.se)?));
+        c.push((0x02, enc_struct(&self.se, e.is2k3)?));
         c.push((0x03, enc_ber(self.flash_scope.to_i32())));
         if self.flash_red != p.flash_red { c.push((0x04, enc_ber(self.flash_red))); }
         if self.flash_green != p.flash_green { c.push((0x05, enc_ber(self.flash_green))); }
@@ -8950,7 +9414,7 @@ impl Chunked for AnimationCellData {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.valid = dec_ber(d),
             0x02 => self.cell_id = dec_ber(d),
@@ -8967,7 +9431,7 @@ impl Chunked for AnimationCellData {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = AnimationCellData::default();
+        let p = AnimationCellData::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.valid != p.valid { c.push((0x01, enc_ber(self.valid))); }
         if self.cell_id != p.cell_id { c.push((0x02, enc_ber(self.cell_id))); }
@@ -8991,17 +9455,17 @@ impl Chunked for AnimationFrame {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
-            0x01 => self.cells = dec_array::<AnimationCellData>(d)?,
+            0x01 => self.cells = dec_array::<AnimationCellData>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = AnimationFrame::default();
+        let p = AnimationFrame::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
-        c.push((0x01, enc_array(&self.cells)?));
+        c.push((0x01, enc_array(&self.cells, e.is2k3)?));
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9014,29 +9478,29 @@ impl Chunked for Animation {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.animation_name = dec_text(d),
             0x03 => self.large = dec_bool(d),
-            0x06 => self.timings = dec_array::<AnimationTiming>(d)?,
+            0x06 => self.timings = dec_array::<AnimationTiming>(d, is2k3)?,
             0x09 => self.scope = AnimationScope::from_i32(dec_ber(d)),
             0x0a => self.position = AnimationPosition::from_i32(dec_ber(d)),
-            0x0c => self.frames = dec_array::<AnimationFrame>(d)?,
+            0x0c => self.frames = dec_array::<AnimationFrame>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Animation::default();
+        let p = Animation::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.animation_name != p.animation_name { c.push((0x02, enc_text(&self.animation_name))); }
         if self.large != p.large { c.push((0x03, enc_bool(self.large))); }
-        c.push((0x06, enc_array(&self.timings)?));
+        c.push((0x06, enc_array(&self.timings, e.is2k3)?));
         c.push((0x09, enc_ber(self.scope.to_i32())));
         c.push((0x0a, enc_ber(self.position.to_i32())));
-        c.push((0x0c, enc_array(&self.frames)?));
+        c.push((0x0c, enc_array(&self.frames, e.is2k3)?));
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9049,7 +9513,7 @@ impl Chunked for Attribute {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.r#type = AttributeType::from_i32(dec_ber(d)),
@@ -9063,7 +9527,7 @@ impl Chunked for Attribute {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Attribute::default();
+        let p = Attribute::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         c.push((0x02, enc_ber(self.r#type.to_i32())));
@@ -9084,7 +9548,7 @@ impl Chunked for BattleCommand {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.r#type = BattleCommandType::from_i32(dec_ber(d)),
@@ -9093,7 +9557,7 @@ impl Chunked for BattleCommand {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = BattleCommand::default();
+        let p = BattleCommand::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         c.push((0x01, enc_text(&self.name)));
         if self.r#type != p.r#type { c.push((0x02, enc_ber(self.r#type.to_i32()))); }
@@ -9109,13 +9573,15 @@ impl Chunked for BattleCommands {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x02 => self.placement = BattleCommandsPlacement::from_i32(dec_ber(d)),
+            0x04 => self.death_handler_unused = dec_bool(d),
             0x06 => self.row = BattleCommandsRowShown::from_i32(dec_ber(d)),
             0x07 => self.battle_type = BattleCommandsBattleType::from_i32(dec_ber(d)),
             0x09 => self.unused_display_normal_parameters = dec_bool(d),
-            0x0a => self.commands = dec_array::<BattleCommand>(d)?,
+            0x0a => self.commands = dec_array::<BattleCommand>(d, is2k3)?,
+            0x0f => self.death_handler = dec_bool(d),
             0x10 => self.death_event = dec_ber(d),
             0x14 => self.window_size = BattleCommandsWindowSize::from_i32(dec_ber(d)),
             0x18 => self.transparency = BattleCommandsTransparency::from_i32(dec_ber(d)),
@@ -9129,13 +9595,15 @@ impl Chunked for BattleCommands {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = BattleCommands::default();
+        let p = BattleCommands::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.placement != p.placement { c.push((0x02, enc_ber(self.placement.to_i32()))); }
+        if e.is2k3 && self.death_handler_unused != p.death_handler_unused { c.push((0x04, enc_bool(self.death_handler_unused))); }
         if self.row != p.row { c.push((0x06, enc_ber(self.row.to_i32()))); }
         if self.battle_type != p.battle_type { c.push((0x07, enc_ber(self.battle_type.to_i32()))); }
         if self.unused_display_normal_parameters != p.unused_display_normal_parameters { c.push((0x09, enc_bool(self.unused_display_normal_parameters))); }
-        c.push((0x0a, enc_array(&self.commands)?));
+        c.push((0x0a, enc_array(&self.commands, e.is2k3)?));
+        if e.is2k3 && self.death_handler != p.death_handler { c.push((0x0f, enc_bool(self.death_handler))); }
         if self.death_event != p.death_event { c.push((0x10, enc_ber(self.death_event))); }
         if self.window_size != p.window_size { c.push((0x14, enc_ber(self.window_size.to_i32()))); }
         if self.transparency != p.transparency { c.push((0x18, enc_ber(self.transparency.to_i32()))); }
@@ -9149,6 +9617,136 @@ impl Chunked for BattleCommands {
     }
 }
 
+impl Chunked for BattlerAnimation {
+    const NAME: &'static str = "BattlerAnimation";
+    const TERMINATOR: bool = true;
+    const WITH_ID: bool = true;
+    fn id(&self) -> i32 { self.id }
+    fn set_id(&mut self, v: i32) { self.id = v; }
+    fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
+        match id {
+            0x01 => self.name = dec_text(d),
+            0x02 => self.speed = BattlerAnimationSpeed::from_i32(dec_ber(d)),
+            0x0a => self.poses = dec_array::<BattlerAnimationPose>(d, is2k3)?,
+            0x0b => self.weapons = dec_array::<BattlerAnimationWeapon>(d, is2k3)?,
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+    fn write_chunks(&self, e: &mut Writer) -> Result<()> {
+        let p = BattlerAnimation::default_for(e.is2k3);
+        let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
+        if e.is2k3 && self.name != p.name { c.push((0x01, enc_text(&self.name))); }
+        if e.is2k3 && self.speed != p.speed { c.push((0x02, enc_ber(self.speed.to_i32()))); }
+        if e.is2k3 { c.push((0x0a, enc_array(&self.poses, e.is2k3)?)); }
+        if e.is2k3 { c.push((0x0b, enc_array(&self.weapons, e.is2k3)?)); }
+        e.dump(c, &self.unknown);
+        Ok(())
+    }
+}
+
+impl Chunked for BattlerAnimationItemSkill {
+    const NAME: &'static str = "BattlerAnimationItemSkill";
+    const TERMINATOR: bool = true;
+    const WITH_ID: bool = true;
+    fn id(&self) -> i32 { self.id }
+    fn set_id(&mut self, v: i32) { self.id = v; }
+    fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
+        match id {
+            0x02 => self.unknown02 = dec_ber(d),
+            0x03 => self.r#type = BattlerAnimationItemSkillAnimType::from_i32(dec_ber(d)),
+            0x04 => self.weapon_animation_id = dec_ber(d),
+            0x05 => self.movement = BattlerAnimationItemSkillMovement::from_i32(dec_ber(d)),
+            0x06 => self.after_image = BattlerAnimationItemSkillAfterimage::from_i32(dec_ber(d)),
+            0x07 => self.attacks = dec_ber(d),
+            0x08 => self.ranged = dec_bool(d),
+            0x09 => self.ranged_animation_id = dec_ber(d),
+            0x0c => self.ranged_speed = BattlerAnimationItemSkillSpeed::from_i32(dec_ber(d)),
+            0x0d => self.battle_animation_id = dec_ber(d),
+            0x0e => self.pose = dec_ber(d),
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+    fn write_chunks(&self, e: &mut Writer) -> Result<()> {
+        let p = BattlerAnimationItemSkill::default_for(e.is2k3);
+        let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
+        if e.is2k3 && self.unknown02 != p.unknown02 { c.push((0x02, enc_ber(self.unknown02))); }
+        if e.is2k3 && self.r#type != p.r#type { c.push((0x03, enc_ber(self.r#type.to_i32()))); }
+        if e.is2k3 && self.weapon_animation_id != p.weapon_animation_id { c.push((0x04, enc_ber(self.weapon_animation_id))); }
+        if e.is2k3 && self.movement != p.movement { c.push((0x05, enc_ber(self.movement.to_i32()))); }
+        if e.is2k3 && self.after_image != p.after_image { c.push((0x06, enc_ber(self.after_image.to_i32()))); }
+        if e.is2k3 && self.attacks != p.attacks { c.push((0x07, enc_ber(self.attacks))); }
+        if e.is2k3 && self.ranged != p.ranged { c.push((0x08, enc_bool(self.ranged))); }
+        if e.is2k3 && self.ranged_animation_id != p.ranged_animation_id { c.push((0x09, enc_ber(self.ranged_animation_id))); }
+        if e.is2k3 && self.ranged_speed != p.ranged_speed { c.push((0x0c, enc_ber(self.ranged_speed.to_i32()))); }
+        if e.is2k3 && self.battle_animation_id != p.battle_animation_id { c.push((0x0d, enc_ber(self.battle_animation_id))); }
+        if e.is2k3 && self.pose != p.pose { c.push((0x0e, enc_ber(self.pose))); }
+        e.dump(c, &self.unknown);
+        Ok(())
+    }
+}
+
+impl Chunked for BattlerAnimationPose {
+    const NAME: &'static str = "BattlerAnimationPose";
+    const TERMINATOR: bool = true;
+    const WITH_ID: bool = true;
+    fn id(&self) -> i32 { self.id }
+    fn set_id(&mut self, v: i32) { self.id = v; }
+    fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
+        match id {
+            0x01 => self.name = dec_text(d),
+            0x02 => self.battler_name = dec_text(d),
+            0x03 => self.battler_index = dec_ber(d),
+            0x04 => self.animation_type = BattlerAnimationPoseAnimType::from_i32(dec_ber(d)),
+            0x05 => self.battle_animation_id = dec_ber(d),
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+    fn write_chunks(&self, e: &mut Writer) -> Result<()> {
+        let p = BattlerAnimationPose::default_for(e.is2k3);
+        let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
+        if e.is2k3 && self.name != p.name { c.push((0x01, enc_text(&self.name))); }
+        if e.is2k3 && self.battler_name != p.battler_name { c.push((0x02, enc_text(&self.battler_name))); }
+        if e.is2k3 && self.battler_index != p.battler_index { c.push((0x03, enc_ber(self.battler_index))); }
+        if e.is2k3 && self.animation_type != p.animation_type { c.push((0x04, enc_ber(self.animation_type.to_i32()))); }
+        if e.is2k3 && self.battle_animation_id != p.battle_animation_id { c.push((0x05, enc_ber(self.battle_animation_id))); }
+        e.dump(c, &self.unknown);
+        Ok(())
+    }
+}
+
+impl Chunked for BattlerAnimationWeapon {
+    const NAME: &'static str = "BattlerAnimationWeapon";
+    const TERMINATOR: bool = true;
+    const WITH_ID: bool = true;
+    fn id(&self) -> i32 { self.id }
+    fn set_id(&mut self, v: i32) { self.id = v; }
+    fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
+        match id {
+            0x01 => self.name = dec_text(d),
+            0x02 => self.weapon_name = dec_text(d),
+            0x03 => self.weapon_index = dec_ber(d),
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+    fn write_chunks(&self, e: &mut Writer) -> Result<()> {
+        let p = BattlerAnimationWeapon::default_for(e.is2k3);
+        let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
+        if e.is2k3 && self.name != p.name { c.push((0x01, enc_text(&self.name))); }
+        if e.is2k3 && self.weapon_name != p.weapon_name { c.push((0x02, enc_text(&self.weapon_name))); }
+        if e.is2k3 && self.weapon_index != p.weapon_index { c.push((0x03, enc_ber(self.weapon_index))); }
+        e.dump(c, &self.unknown);
+        Ok(())
+    }
+}
+
 impl Chunked for Chipset {
     const NAME: &'static str = "Chipset";
     const TERMINATOR: bool = true;
@@ -9156,7 +9754,7 @@ impl Chunked for Chipset {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.chipset_name = dec_text(d),
@@ -9170,7 +9768,7 @@ impl Chunked for Chipset {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Chipset::default();
+        let p = Chipset::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.chipset_name != p.chipset_name { c.push((0x02, enc_text(&self.chipset_name))); }
@@ -9191,7 +9789,7 @@ impl Chunked for Class {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x15 => self.two_weapon = dec_bool(d),
@@ -9203,7 +9801,7 @@ impl Chunked for Class {
             0x2a => self.exp_inflation = dec_ber(d),
             0x2b => self.exp_correction = dec_ber(d),
             0x3e => self.battler_animation = dec_ber(d),
-            0x3f => self.skills = dec_array::<Learning>(d)?,
+            0x3f => self.skills = dec_array::<Learning>(d, is2k3)?,
             0x47 => {} // length of `state_ranks`, recomputed when writing
             0x48 => self.state_ranks = d.to_vec(),
             0x49 => {} // length of `attribute_ranks`, recomputed when writing
@@ -9214,7 +9812,7 @@ impl Chunked for Class {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Class::default();
+        let p = Class::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.two_weapon != p.two_weapon { c.push((0x15, enc_bool(self.two_weapon))); }
@@ -9226,7 +9824,7 @@ impl Chunked for Class {
         if self.exp_inflation != p.exp_inflation { c.push((0x2a, enc_ber(self.exp_inflation))); }
         if self.exp_correction != p.exp_correction { c.push((0x2b, enc_ber(self.exp_correction))); }
         if self.battler_animation != p.battler_animation { c.push((0x3e, enc_ber(self.battler_animation))); }
-        c.push((0x3f, enc_array(&self.skills)?));
+        c.push((0x3f, enc_array(&self.skills, e.is2k3)?));
         let v_state_ranks = self.state_ranks.clone();
         if v_state_ranks.len() != p.state_ranks.clone().len() { c.push((0x47, enc_ber(v_state_ranks.len() as i32))); }
         c.push((0x48, v_state_ranks));
@@ -9246,7 +9844,7 @@ impl Chunked for CommonEvent {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x0b => self.trigger = CommonEventTrigger::from_i32(dec_ber(d)),
@@ -9259,7 +9857,7 @@ impl Chunked for CommonEvent {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = CommonEvent::default();
+        let p = CommonEvent::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         c.push((0x0b, enc_ber(self.trigger.to_i32())));
@@ -9280,7 +9878,7 @@ impl Chunked for Skill {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.description = dec_text(d),
@@ -9288,13 +9886,16 @@ impl Chunked for Skill {
             0x04 => self.using_message2 = dec_text(d),
             0x07 => self.failure_message = dec_ber(d),
             0x08 => self.r#type = SkillType::from_i32(dec_ber(d)),
+            0x09 => self.sp_type = SkillSpType::from_i32(dec_ber(d)),
+            0x0a => self.sp_percent = dec_ber(d),
             0x0b => self.sp_cost = dec_ber(d),
             0x0c => self.scope = SkillScope::from_i32(dec_ber(d)),
             0x0d => self.switch_id = dec_ber(d),
             0x0e => self.animation_id = dec_ber(d),
-            0x10 => self.sound_effect = dec_struct::<Sound>(d)?,
+            0x10 => self.sound_effect = dec_struct::<Sound>(d, is2k3)?,
             0x12 => self.occasion_field = dec_bool(d),
             0x13 => self.occasion_battle = dec_bool(d),
+            0x14 => self.reverse_state_effect = dec_bool(d),
             0x15 => self.physical_rate = dec_ber(d),
             0x16 => self.magical_rate = dec_ber(d),
             0x17 => self.variance = dec_ber(d),
@@ -9313,12 +9914,14 @@ impl Chunked for Skill {
             0x2b => {} // length of `attribute_effects`, recomputed when writing
             0x2c => self.attribute_effects = dec_vec_bool(d),
             0x2d => self.affect_attr_defence = dec_bool(d),
+            0x31 => self.battler_animation = dec_ber(d),
+            0x32 => self.battler_animation_data = dec_array::<BattlerAnimationItemSkill>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Skill::default();
+        let p = Skill::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.description != p.description { c.push((0x02, enc_text(&self.description))); }
@@ -9326,13 +9929,16 @@ impl Chunked for Skill {
         if self.using_message2 != p.using_message2 { c.push((0x04, enc_text(&self.using_message2))); }
         if self.failure_message != p.failure_message { c.push((0x07, enc_ber(self.failure_message))); }
         c.push((0x08, enc_ber(self.r#type.to_i32())));
+        if e.is2k3 && self.sp_type != p.sp_type { c.push((0x09, enc_ber(self.sp_type.to_i32()))); }
+        if e.is2k3 && self.sp_percent != p.sp_percent { c.push((0x0a, enc_ber(self.sp_percent))); }
         if self.sp_cost != p.sp_cost { c.push((0x0b, enc_ber(self.sp_cost))); }
         c.push((0x0c, enc_ber(self.scope.to_i32())));
         if self.switch_id != p.switch_id { c.push((0x0d, enc_ber(self.switch_id))); }
         if self.animation_id != p.animation_id { c.push((0x0e, enc_ber(self.animation_id))); }
-        c.push((0x10, enc_struct(&self.sound_effect)?));
+        c.push((0x10, enc_struct(&self.sound_effect, e.is2k3)?));
         if self.occasion_field != p.occasion_field { c.push((0x12, enc_bool(self.occasion_field))); }
         if self.occasion_battle != p.occasion_battle { c.push((0x13, enc_bool(self.occasion_battle))); }
+        if e.is2k3 && self.reverse_state_effect != p.reverse_state_effect { c.push((0x14, enc_bool(self.reverse_state_effect))); }
         if self.physical_rate != p.physical_rate { c.push((0x15, enc_ber(self.physical_rate))); }
         if self.magical_rate != p.magical_rate { c.push((0x16, enc_ber(self.magical_rate))); }
         if self.variance != p.variance { c.push((0x17, enc_ber(self.variance))); }
@@ -9353,6 +9959,8 @@ impl Chunked for Skill {
         if v_attribute_effects.len() != enc_vec_bool(&p.attribute_effects).len() { c.push((0x2b, enc_ber(v_attribute_effects.len() as i32))); }
         c.push((0x2c, v_attribute_effects));
         if self.affect_attr_defence != p.affect_attr_defence { c.push((0x2d, enc_bool(self.affect_attr_defence))); }
+        if e.is2k3 && self.battler_animation != p.battler_animation { c.push((0x31, enc_ber(self.battler_animation))); }
+        if e.is2k3 { c.push((0x32, enc_array(&self.battler_animation_data, e.is2k3)?)); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9365,7 +9973,7 @@ impl Chunked for Item {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.description = dec_text(d),
@@ -9389,6 +9997,7 @@ impl Chunked for Item {
             0x1a => self.raise_evasion = dec_bool(d),
             0x1b => self.half_sp_cost = dec_bool(d),
             0x1c => self.no_terrain_damage = dec_bool(d),
+            0x1d => self.cursed = dec_bool(d),
             0x1f => self.entire_party = dec_bool(d),
             0x20 => self.recover_hp_rate = dec_ber(d),
             0x21 => self.recover_hp = dec_ber(d),
@@ -9415,6 +10024,11 @@ impl Chunked for Item {
             0x42 => self.attribute_set = dec_vec_bool(d),
             0x43 => self.state_chance = dec_ber(d),
             0x44 => self.reverse_state_effect = dec_bool(d),
+            0x45 => self.weapon_animation = dec_ber(d),
+            0x46 => self.animation_data = dec_array::<BattlerAnimationItemSkill>(d, is2k3)?,
+            0x47 => self.use_skill = dec_bool(d),
+            0x48 => {} // length of `class_set`, recomputed when writing
+            0x49 => self.class_set = dec_vec_bool(d),
             0x4b => self.ranged_trajectory = ItemTrajectory::from_i32(dec_ber(d)),
             0x4c => self.ranged_target = ItemTarget::from_i32(dec_ber(d)),
             _ => return Ok(false),
@@ -9422,7 +10036,7 @@ impl Chunked for Item {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Item::default();
+        let p = Item::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.description != p.description { c.push((0x02, enc_text(&self.description))); }
@@ -9446,6 +10060,7 @@ impl Chunked for Item {
         if self.raise_evasion != p.raise_evasion { c.push((0x1a, enc_bool(self.raise_evasion))); }
         if self.half_sp_cost != p.half_sp_cost { c.push((0x1b, enc_bool(self.half_sp_cost))); }
         if self.no_terrain_damage != p.no_terrain_damage { c.push((0x1c, enc_bool(self.no_terrain_damage))); }
+        if e.is2k3 && self.cursed != p.cursed { c.push((0x1d, enc_bool(self.cursed))); }
         c.push((0x1f, enc_bool(self.entire_party)));
         if self.recover_hp_rate != p.recover_hp_rate { c.push((0x20, enc_ber(self.recover_hp_rate))); }
         if self.recover_hp != p.recover_hp { c.push((0x21, enc_ber(self.recover_hp))); }
@@ -9475,6 +10090,12 @@ impl Chunked for Item {
         c.push((0x42, v_attribute_set));
         if self.state_chance != p.state_chance { c.push((0x43, enc_ber(self.state_chance))); }
         if self.reverse_state_effect != p.reverse_state_effect { c.push((0x44, enc_bool(self.reverse_state_effect))); }
+        if e.is2k3 && self.weapon_animation != p.weapon_animation { c.push((0x45, enc_ber(self.weapon_animation))); }
+        if e.is2k3 { c.push((0x46, enc_array(&self.animation_data, e.is2k3)?)); }
+        if e.is2k3 && self.use_skill != p.use_skill { c.push((0x47, enc_bool(self.use_skill))); }
+        let v_class_set = enc_vec_bool(&self.class_set);
+        if e.is2k3 && v_class_set.len() != enc_vec_bool(&p.class_set).len() { c.push((0x48, enc_ber(v_class_set.len() as i32))); }
+        if e.is2k3 { c.push((0x49, v_class_set)); }
         if self.ranged_trajectory != p.ranged_trajectory { c.push((0x4b, enc_ber(self.ranged_trajectory.to_i32()))); }
         if self.ranged_target != p.ranged_target { c.push((0x4c, enc_ber(self.ranged_target.to_i32()))); }
         e.dump(c, &self.unknown);
@@ -9489,7 +10110,7 @@ impl Chunked for EnemyAction {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.kind = EnemyActionKind::from_i32(dec_ber(d)),
             0x02 => self.basic = EnemyActionBasic::from_i32(dec_ber(d)),
@@ -9509,7 +10130,7 @@ impl Chunked for EnemyAction {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = EnemyAction::default();
+        let p = EnemyAction::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         c.push((0x01, enc_ber(self.kind.to_i32())));
         c.push((0x02, enc_ber(self.basic.to_i32())));
@@ -9536,7 +10157,7 @@ impl Chunked for Enemy {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.battler_name = dec_text(d),
@@ -9560,13 +10181,13 @@ impl Chunked for Enemy {
             0x20 => self.state_ranks = d.to_vec(),
             0x21 => {} // length of `attribute_ranks`, recomputed when writing
             0x22 => self.attribute_ranks = d.to_vec(),
-            0x2a => self.actions = dec_array::<EnemyAction>(d)?,
+            0x2a => self.actions = dec_array::<EnemyAction>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Enemy::default();
+        let p = Enemy::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.battler_name != p.battler_name { c.push((0x02, enc_text(&self.battler_name))); }
@@ -9592,7 +10213,7 @@ impl Chunked for Enemy {
         let v_attribute_ranks = self.attribute_ranks.clone();
         if v_attribute_ranks.len() != p.attribute_ranks.clone().len() { c.push((0x21, enc_ber(v_attribute_ranks.len() as i32))); }
         c.push((0x22, v_attribute_ranks));
-        c.push((0x2a, enc_array(&self.actions)?));
+        c.push((0x2a, enc_array(&self.actions, e.is2k3)?));
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9605,7 +10226,7 @@ impl Chunked for TroopMember {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.enemy_id = dec_ber(d),
             0x02 => self.x = dec_ber(d),
@@ -9616,7 +10237,7 @@ impl Chunked for TroopMember {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = TroopMember::default();
+        let p = TroopMember::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.enemy_id != p.enemy_id { c.push((0x01, enc_ber(self.enemy_id))); }
         if self.x != p.x { c.push((0x02, enc_ber(self.x))); }
@@ -9634,7 +10255,7 @@ impl Chunked for TroopPageCondition {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.flags = TroopPageConditionFlags::read(d),
             0x02 => self.switch_a_id = dec_ber(d),
@@ -9651,14 +10272,22 @@ impl Chunked for TroopPageCondition {
             0x0d => self.actor_id = dec_ber(d),
             0x0e => self.actor_hp_min = dec_ber(d),
             0x0f => self.actor_hp_max = dec_ber(d),
+            0x10 => self.turn_enemy_id = dec_ber(d),
+            0x11 => self.turn_enemy_a = dec_ber(d),
+            0x12 => self.turn_enemy_b = dec_ber(d),
+            0x13 => self.turn_actor_id = dec_ber(d),
+            0x14 => self.turn_actor_a = dec_ber(d),
+            0x15 => self.turn_actor_b = dec_ber(d),
+            0x16 => self.command_actor_id = dec_ber(d),
+            0x17 => self.command_id = dec_ber(d),
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = TroopPageCondition::default();
+        let p = TroopPageCondition::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
-        c.push((0x01, self.flags.write()));
+        c.push((0x01, self.flags.write(e.is2k3)));
         if self.switch_a_id != p.switch_a_id { c.push((0x02, enc_ber(self.switch_a_id))); }
         if self.switch_b_id != p.switch_b_id { c.push((0x03, enc_ber(self.switch_b_id))); }
         if self.variable_id != p.variable_id { c.push((0x04, enc_ber(self.variable_id))); }
@@ -9673,6 +10302,14 @@ impl Chunked for TroopPageCondition {
         if self.actor_id != p.actor_id { c.push((0x0d, enc_ber(self.actor_id))); }
         if self.actor_hp_min != p.actor_hp_min { c.push((0x0e, enc_ber(self.actor_hp_min))); }
         if self.actor_hp_max != p.actor_hp_max { c.push((0x0f, enc_ber(self.actor_hp_max))); }
+        if e.is2k3 && self.turn_enemy_id != p.turn_enemy_id { c.push((0x10, enc_ber(self.turn_enemy_id))); }
+        if e.is2k3 && self.turn_enemy_a != p.turn_enemy_a { c.push((0x11, enc_ber(self.turn_enemy_a))); }
+        if e.is2k3 && self.turn_enemy_b != p.turn_enemy_b { c.push((0x12, enc_ber(self.turn_enemy_b))); }
+        if e.is2k3 && self.turn_actor_id != p.turn_actor_id { c.push((0x13, enc_ber(self.turn_actor_id))); }
+        if e.is2k3 && self.turn_actor_a != p.turn_actor_a { c.push((0x14, enc_ber(self.turn_actor_a))); }
+        if e.is2k3 && self.turn_actor_b != p.turn_actor_b { c.push((0x15, enc_ber(self.turn_actor_b))); }
+        if e.is2k3 && self.command_actor_id != p.command_actor_id { c.push((0x16, enc_ber(self.command_actor_id))); }
+        if e.is2k3 && self.command_id != p.command_id { c.push((0x17, enc_ber(self.command_id))); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9685,9 +10322,9 @@ impl Chunked for TroopPage {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
-            0x02 => self.condition = dec_struct::<TroopPageCondition>(d)?,
+            0x02 => self.condition = dec_struct::<TroopPageCondition>(d, is2k3)?,
             0x0b => {} // length of `event_commands`, recomputed when writing
             0x0c => self.event_commands = dec_event_commands(d)?,
             _ => return Ok(false),
@@ -9695,9 +10332,9 @@ impl Chunked for TroopPage {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = TroopPage::default();
+        let p = TroopPage::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
-        c.push((0x02, enc_struct(&self.condition)?));
+        c.push((0x02, enc_struct(&self.condition, e.is2k3)?));
         let v_event_commands = enc_event_commands(&self.event_commands);
         c.push((0x0b, enc_ber(v_event_commands.len() as i32)));
         c.push((0x0c, v_event_commands));
@@ -9713,26 +10350,30 @@ impl Chunked for Troop {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
-            0x02 => self.members = dec_array::<TroopMember>(d)?,
+            0x02 => self.members = dec_array::<TroopMember>(d, is2k3)?,
+            0x03 => self.auto_alignment = dec_bool(d),
             0x04 => {} // length of `terrain_set`, recomputed when writing
             0x05 => self.terrain_set = dec_vec_bool(d),
-            0x0b => self.pages = dec_array::<TroopPage>(d)?,
+            0x06 => self.appear_randomly = dec_bool(d),
+            0x0b => self.pages = dec_array::<TroopPage>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Troop::default();
+        let p = Troop::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
-        c.push((0x02, enc_array(&self.members)?));
+        c.push((0x02, enc_array(&self.members, e.is2k3)?));
+        if e.is2k3 && self.auto_alignment != p.auto_alignment { c.push((0x03, enc_bool(self.auto_alignment))); }
         let v_terrain_set = enc_vec_bool(&self.terrain_set);
         if v_terrain_set.len() != enc_vec_bool(&p.terrain_set).len() { c.push((0x04, enc_ber(v_terrain_set.len() as i32))); }
         c.push((0x05, v_terrain_set));
-        c.push((0x0b, enc_array(&self.pages)?));
+        if e.is2k3 && self.appear_randomly != p.appear_randomly { c.push((0x06, enc_bool(self.appear_randomly))); }
+        c.push((0x0b, enc_array(&self.pages, e.is2k3)?));
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9745,7 +10386,7 @@ impl Chunked for Terrain {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.damage = dec_ber(d),
@@ -9756,12 +10397,35 @@ impl Chunked for Terrain {
             0x07 => self.airship_pass = dec_bool(d),
             0x09 => self.airship_land = dec_bool(d),
             0x0b => self.bush_depth = TerrainBushDepth::from_i32(dec_ber(d)),
+            0x0f => self.footstep = dec_struct::<Sound>(d, is2k3)?,
+            0x10 => self.on_damage_se = dec_bool(d),
+            0x11 => self.background_type = TerrainBGAssociation::from_i32(dec_ber(d)),
+            0x15 => self.background_a_name = dec_text(d),
+            0x16 => self.background_a_scrollh = dec_bool(d),
+            0x17 => self.background_a_scrollv = dec_bool(d),
+            0x18 => self.background_a_scrollh_speed = dec_ber(d),
+            0x19 => self.background_a_scrollv_speed = dec_ber(d),
+            0x1e => self.background_b = dec_bool(d),
+            0x1f => self.background_b_name = dec_text(d),
+            0x20 => self.background_b_scrollh = dec_bool(d),
+            0x21 => self.background_b_scrollv = dec_bool(d),
+            0x22 => self.background_b_scrollh_speed = dec_ber(d),
+            0x23 => self.background_b_scrollv_speed = dec_ber(d),
+            0x28 => self.special_flags = TerrainFlags::read(d),
+            0x29 => self.special_back_party = dec_ber(d),
+            0x2a => self.special_back_enemies = dec_ber(d),
+            0x2b => self.special_lateral_party = dec_ber(d),
+            0x2c => self.special_lateral_enemies = dec_ber(d),
+            0x2d => self.grid_location = dec_ber(d),
+            0x2e => self.grid_top_y = dec_ber(d),
+            0x2f => self.grid_elongation = dec_ber(d),
+            0x30 => self.grid_inclination = dec_ber(d),
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Terrain::default();
+        let p = Terrain::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.damage != p.damage { c.push((0x02, enc_ber(self.damage))); }
@@ -9772,6 +10436,29 @@ impl Chunked for Terrain {
         if self.airship_pass != p.airship_pass { c.push((0x07, enc_bool(self.airship_pass))); }
         if self.airship_land != p.airship_land { c.push((0x09, enc_bool(self.airship_land))); }
         c.push((0x0b, enc_ber(self.bush_depth.to_i32())));
+        if e.is2k3 { c.push((0x0f, enc_struct(&self.footstep, e.is2k3)?)); }
+        if e.is2k3 && self.on_damage_se != p.on_damage_se { c.push((0x10, enc_bool(self.on_damage_se))); }
+        if e.is2k3 && self.background_type != p.background_type { c.push((0x11, enc_ber(self.background_type.to_i32()))); }
+        if e.is2k3 && self.background_a_name != p.background_a_name { c.push((0x15, enc_text(&self.background_a_name))); }
+        if e.is2k3 && self.background_a_scrollh != p.background_a_scrollh { c.push((0x16, enc_bool(self.background_a_scrollh))); }
+        if e.is2k3 && self.background_a_scrollv != p.background_a_scrollv { c.push((0x17, enc_bool(self.background_a_scrollv))); }
+        if e.is2k3 && self.background_a_scrollh_speed != p.background_a_scrollh_speed { c.push((0x18, enc_ber(self.background_a_scrollh_speed))); }
+        if e.is2k3 && self.background_a_scrollv_speed != p.background_a_scrollv_speed { c.push((0x19, enc_ber(self.background_a_scrollv_speed))); }
+        if e.is2k3 && self.background_b != p.background_b { c.push((0x1e, enc_bool(self.background_b))); }
+        if e.is2k3 && self.background_b_name != p.background_b_name { c.push((0x1f, enc_text(&self.background_b_name))); }
+        if e.is2k3 && self.background_b_scrollh != p.background_b_scrollh { c.push((0x20, enc_bool(self.background_b_scrollh))); }
+        if e.is2k3 && self.background_b_scrollv != p.background_b_scrollv { c.push((0x21, enc_bool(self.background_b_scrollv))); }
+        if e.is2k3 && self.background_b_scrollh_speed != p.background_b_scrollh_speed { c.push((0x22, enc_ber(self.background_b_scrollh_speed))); }
+        if e.is2k3 && self.background_b_scrollv_speed != p.background_b_scrollv_speed { c.push((0x23, enc_ber(self.background_b_scrollv_speed))); }
+        if e.is2k3 && self.special_flags != p.special_flags { c.push((0x28, self.special_flags.write(e.is2k3))); }
+        if e.is2k3 && self.special_back_party != p.special_back_party { c.push((0x29, enc_ber(self.special_back_party))); }
+        if e.is2k3 && self.special_back_enemies != p.special_back_enemies { c.push((0x2a, enc_ber(self.special_back_enemies))); }
+        if e.is2k3 && self.special_lateral_party != p.special_lateral_party { c.push((0x2b, enc_ber(self.special_lateral_party))); }
+        if e.is2k3 && self.special_lateral_enemies != p.special_lateral_enemies { c.push((0x2c, enc_ber(self.special_lateral_enemies))); }
+        if e.is2k3 && self.grid_location != p.grid_location { c.push((0x2d, enc_ber(self.grid_location))); }
+        if e.is2k3 && self.grid_top_y != p.grid_top_y { c.push((0x2e, enc_ber(self.grid_top_y))); }
+        if e.is2k3 && self.grid_elongation != p.grid_elongation { c.push((0x2f, enc_ber(self.grid_elongation))); }
+        if e.is2k3 && self.grid_inclination != p.grid_inclination { c.push((0x30, enc_ber(self.grid_inclination))); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -9784,7 +10471,7 @@ impl Chunked for State {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.r#type = StatePersistence::from_i32(dec_ber(d)),
@@ -9799,11 +10486,16 @@ impl Chunked for State {
             0x15 => self.hold_turn = dec_ber(d),
             0x16 => self.auto_release_prob = dec_ber(d),
             0x17 => self.release_by_damage = dec_ber(d),
+            0x1e => self.affect_type = StateAffectType::from_i32(dec_ber(d)),
             0x1f => self.affect_attack = dec_bool(d),
             0x20 => self.affect_defense = dec_bool(d),
             0x21 => self.affect_spirit = dec_bool(d),
             0x22 => self.affect_agility = dec_bool(d),
             0x23 => self.reduce_hit_ratio = dec_ber(d),
+            0x24 => self.avoid_attacks = dec_bool(d),
+            0x25 => self.reflect_magic = dec_bool(d),
+            0x26 => self.cursed = dec_bool(d),
+            0x27 => self.battler_animation_id = dec_ber(d),
             0x29 => self.restrict_skill = dec_bool(d),
             0x2a => self.restrict_skill_level = dec_ber(d),
             0x2b => self.restrict_magic = dec_bool(d),
@@ -9828,7 +10520,7 @@ impl Chunked for State {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = State::default();
+        let p = State::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         c.push((0x02, enc_ber(self.r#type.to_i32())));
@@ -9843,11 +10535,16 @@ impl Chunked for State {
         if self.hold_turn != p.hold_turn { c.push((0x15, enc_ber(self.hold_turn))); }
         if self.auto_release_prob != p.auto_release_prob { c.push((0x16, enc_ber(self.auto_release_prob))); }
         if self.release_by_damage != p.release_by_damage { c.push((0x17, enc_ber(self.release_by_damage))); }
+        if e.is2k3 && self.affect_type != p.affect_type { c.push((0x1e, enc_ber(self.affect_type.to_i32()))); }
         if self.affect_attack != p.affect_attack { c.push((0x1f, enc_bool(self.affect_attack))); }
         if self.affect_defense != p.affect_defense { c.push((0x20, enc_bool(self.affect_defense))); }
         if self.affect_spirit != p.affect_spirit { c.push((0x21, enc_bool(self.affect_spirit))); }
         if self.affect_agility != p.affect_agility { c.push((0x22, enc_bool(self.affect_agility))); }
         if self.reduce_hit_ratio != p.reduce_hit_ratio { c.push((0x23, enc_ber(self.reduce_hit_ratio))); }
+        if e.is2k3 && self.avoid_attacks != p.avoid_attacks { c.push((0x24, enc_bool(self.avoid_attacks))); }
+        if e.is2k3 && self.reflect_magic != p.reflect_magic { c.push((0x25, enc_bool(self.reflect_magic))); }
+        if e.is2k3 && self.cursed != p.cursed { c.push((0x26, enc_bool(self.cursed))); }
+        if e.is2k3 && self.battler_animation_id != p.battler_animation_id { c.push((0x27, enc_ber(self.battler_animation_id))); }
         if self.restrict_skill != p.restrict_skill { c.push((0x29, enc_bool(self.restrict_skill))); }
         if self.restrict_skill_level != p.restrict_skill_level { c.push((0x2a, enc_ber(self.restrict_skill_level))); }
         if self.restrict_magic != p.restrict_magic { c.push((0x2b, enc_bool(self.restrict_magic))); }
@@ -9879,7 +10576,7 @@ impl Chunked for Terms {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.encounter = dec_text(d),
             0x02 => self.special_combat = dec_text(d),
@@ -9918,6 +10615,8 @@ impl Chunked for Terms {
             0x23 => self.resistance_decrease = dec_text(d),
             0x24 => self.level_up = dec_text(d),
             0x25 => self.skill_learned = dec_text(d),
+            0x26 => self.battle_start = dec_text(d),
+            0x27 => self.miss = dec_text(d),
             0x29 => self.shop_greeting1 = dec_text(d),
             0x2a => self.shop_regreeting1 = dec_text(d),
             0x2b => self.shop_buy1 = dec_text(d),
@@ -9977,6 +10676,11 @@ impl Chunked for Terms {
             0x72 => self.new_game = dec_text(d),
             0x73 => self.load_game = dec_text(d),
             0x75 => self.exit_game = dec_text(d),
+            0x76 => self.status = dec_text(d),
+            0x77 => self.row = dec_text(d),
+            0x78 => self.order = dec_text(d),
+            0x79 => self.wait_on = dec_text(d),
+            0x7a => self.wait_off = dec_text(d),
             0x7b => self.level = dec_text(d),
             0x7c => self.health_points = dec_text(d),
             0x7d => self.spirit_points = dec_text(d),
@@ -10006,7 +10710,7 @@ impl Chunked for Terms {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Terms::default();
+        let p = Terms::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         c.push((0x01, enc_text(&self.encounter)));
         c.push((0x02, enc_text(&self.special_combat)));
@@ -10045,6 +10749,8 @@ impl Chunked for Terms {
         c.push((0x23, enc_text(&self.resistance_decrease)));
         c.push((0x24, enc_text(&self.level_up)));
         c.push((0x25, enc_text(&self.skill_learned)));
+        if e.is2k3 && self.battle_start != p.battle_start { c.push((0x26, enc_text(&self.battle_start))); }
+        if e.is2k3 && self.miss != p.miss { c.push((0x27, enc_text(&self.miss))); }
         c.push((0x29, enc_text(&self.shop_greeting1)));
         c.push((0x2a, enc_text(&self.shop_regreeting1)));
         c.push((0x2b, enc_text(&self.shop_buy1)));
@@ -10104,6 +10810,11 @@ impl Chunked for Terms {
         c.push((0x72, enc_text(&self.new_game)));
         c.push((0x73, enc_text(&self.load_game)));
         c.push((0x75, enc_text(&self.exit_game)));
+        if e.is2k3 { c.push((0x76, enc_text(&self.status))); }
+        if e.is2k3 { c.push((0x77, enc_text(&self.row))); }
+        if e.is2k3 { c.push((0x78, enc_text(&self.order))); }
+        if e.is2k3 { c.push((0x79, enc_text(&self.wait_on))); }
+        if e.is2k3 { c.push((0x7a, enc_text(&self.wait_off))); }
         c.push((0x7b, enc_text(&self.level)));
         c.push((0x7c, enc_text(&self.health_points)));
         c.push((0x7d, enc_text(&self.spirit_points)));
@@ -10140,7 +10851,7 @@ impl Chunked for Music {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.fadein = dec_ber(d),
@@ -10152,7 +10863,7 @@ impl Chunked for Music {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Music::default();
+        let p = Music::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         c.push((0x01, enc_text(&self.name)));
         if self.fadein != p.fadein { c.push((0x02, enc_ber(self.fadein))); }
@@ -10171,7 +10882,7 @@ impl Chunked for TestBattler {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.actor_id = dec_ber(d),
             0x02 => self.level = dec_ber(d),
@@ -10185,7 +10896,7 @@ impl Chunked for TestBattler {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = TestBattler::default();
+        let p = TestBattler::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.actor_id != p.actor_id { c.push((0x01, enc_ber(self.actor_id))); }
         if self.level != p.level { c.push((0x02, enc_ber(self.level))); }
@@ -10206,7 +10917,7 @@ impl Chunked for System {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x0a => self.ldb_id = dec_ber(d),
             0x0b => self.boat_name = dec_text(d),
@@ -10218,28 +10929,31 @@ impl Chunked for System {
             0x11 => self.title_name = dec_text(d),
             0x12 => self.gameover_name = dec_text(d),
             0x13 => self.system_name = dec_text(d),
+            0x14 => self.system2_name = dec_text(d),
             0x15 => {} // length of `party`, recomputed when writing
             0x16 => self.party = dec_vec_i16(d),
-            0x1f => self.title_music = dec_struct::<Music>(d)?,
-            0x20 => self.battle_music = dec_struct::<Music>(d)?,
-            0x21 => self.battle_end_music = dec_struct::<Music>(d)?,
-            0x22 => self.inn_music = dec_struct::<Music>(d)?,
-            0x23 => self.boat_music = dec_struct::<Music>(d)?,
-            0x24 => self.ship_music = dec_struct::<Music>(d)?,
-            0x25 => self.airship_music = dec_struct::<Music>(d)?,
-            0x26 => self.gameover_music = dec_struct::<Music>(d)?,
-            0x29 => self.cursor_se = dec_struct::<Sound>(d)?,
-            0x2a => self.decision_se = dec_struct::<Sound>(d)?,
-            0x2b => self.cancel_se = dec_struct::<Sound>(d)?,
-            0x2c => self.buzzer_se = dec_struct::<Sound>(d)?,
-            0x2d => self.battle_se = dec_struct::<Sound>(d)?,
-            0x2e => self.escape_se = dec_struct::<Sound>(d)?,
-            0x2f => self.enemy_attack_se = dec_struct::<Sound>(d)?,
-            0x30 => self.enemy_damaged_se = dec_struct::<Sound>(d)?,
-            0x31 => self.actor_damaged_se = dec_struct::<Sound>(d)?,
-            0x32 => self.dodge_se = dec_struct::<Sound>(d)?,
-            0x33 => self.enemy_death_se = dec_struct::<Sound>(d)?,
-            0x34 => self.item_se = dec_struct::<Sound>(d)?,
+            0x1a => {} // length of `menu_commands`, recomputed when writing
+            0x1b => self.menu_commands = dec_vec_i16(d),
+            0x1f => self.title_music = dec_struct::<Music>(d, is2k3)?,
+            0x20 => self.battle_music = dec_struct::<Music>(d, is2k3)?,
+            0x21 => self.battle_end_music = dec_struct::<Music>(d, is2k3)?,
+            0x22 => self.inn_music = dec_struct::<Music>(d, is2k3)?,
+            0x23 => self.boat_music = dec_struct::<Music>(d, is2k3)?,
+            0x24 => self.ship_music = dec_struct::<Music>(d, is2k3)?,
+            0x25 => self.airship_music = dec_struct::<Music>(d, is2k3)?,
+            0x26 => self.gameover_music = dec_struct::<Music>(d, is2k3)?,
+            0x29 => self.cursor_se = dec_struct::<Sound>(d, is2k3)?,
+            0x2a => self.decision_se = dec_struct::<Sound>(d, is2k3)?,
+            0x2b => self.cancel_se = dec_struct::<Sound>(d, is2k3)?,
+            0x2c => self.buzzer_se = dec_struct::<Sound>(d, is2k3)?,
+            0x2d => self.battle_se = dec_struct::<Sound>(d, is2k3)?,
+            0x2e => self.escape_se = dec_struct::<Sound>(d, is2k3)?,
+            0x2f => self.enemy_attack_se = dec_struct::<Sound>(d, is2k3)?,
+            0x30 => self.enemy_damaged_se = dec_struct::<Sound>(d, is2k3)?,
+            0x31 => self.actor_damaged_se = dec_struct::<Sound>(d, is2k3)?,
+            0x32 => self.dodge_se = dec_struct::<Sound>(d, is2k3)?,
+            0x33 => self.enemy_death_se = dec_struct::<Sound>(d, is2k3)?,
+            0x34 => self.item_se = dec_struct::<Sound>(d, is2k3)?,
             0x3d => self.transition_out = SystemFadeOut::from_i32(dec_ber(d)),
             0x3e => self.transition_in = SystemFadeIn::from_i32(dec_ber(d)),
             0x3f => self.battle_start_fadeout = SystemFadeOut::from_i32(dec_ber(d)),
@@ -10251,17 +10965,23 @@ impl Chunked for System {
             0x51 => self.selected_condition = dec_ber(d),
             0x52 => self.selected_hero = dec_ber(d),
             0x54 => self.battletest_background = dec_text(d),
-            0x55 => self.battletest_data = dec_array::<TestBattler>(d)?,
+            0x55 => self.battletest_data = dec_array::<TestBattler>(d, is2k3)?,
             0x5b => self.save_count = dec_ber(d),
             0x5e => self.battletest_terrain = dec_ber(d),
             0x5f => self.battletest_formation = SystemBattleFormation::from_i32(dec_ber(d)),
             0x60 => self.battletest_condition = SystemBattleCondition::from_i32(dec_ber(d)),
+            0x61 => self.equipment_setting = SystemEquipmentSetting::from_i32(dec_ber(d)),
+            0x62 => self.battletest_alt_terrain = dec_ber(d),
+            0x63 => self.show_frame = dec_bool(d),
+            0x64 => self.frame_name = dec_text(d),
+            0x65 => self.invert_animations = dec_bool(d),
+            0x6f => self.show_title = dec_bool(d),
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = System::default();
+        let p = System::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.ldb_id != p.ldb_id { c.push((0x0a, enc_ber(self.ldb_id))); }
         if self.boat_name != p.boat_name { c.push((0x0b, enc_text(&self.boat_name))); }
@@ -10273,29 +10993,33 @@ impl Chunked for System {
         if self.title_name != p.title_name { c.push((0x11, enc_text(&self.title_name))); }
         if self.gameover_name != p.gameover_name { c.push((0x12, enc_text(&self.gameover_name))); }
         if self.system_name != p.system_name { c.push((0x13, enc_text(&self.system_name))); }
+        if e.is2k3 && self.system2_name != p.system2_name { c.push((0x14, enc_text(&self.system2_name))); }
         let v_party = enc_vec_i16(&self.party);
         if self.party.len() != p.party.len() { c.push((0x15, enc_ber(self.party.len() as i32))); }
         c.push((0x16, v_party));
-        c.push((0x1f, enc_struct(&self.title_music)?));
-        c.push((0x20, enc_struct(&self.battle_music)?));
-        c.push((0x21, enc_struct(&self.battle_end_music)?));
-        c.push((0x22, enc_struct(&self.inn_music)?));
-        c.push((0x23, enc_struct(&self.boat_music)?));
-        c.push((0x24, enc_struct(&self.ship_music)?));
-        c.push((0x25, enc_struct(&self.airship_music)?));
-        c.push((0x26, enc_struct(&self.gameover_music)?));
-        c.push((0x29, enc_struct(&self.cursor_se)?));
-        c.push((0x2a, enc_struct(&self.decision_se)?));
-        c.push((0x2b, enc_struct(&self.cancel_se)?));
-        c.push((0x2c, enc_struct(&self.buzzer_se)?));
-        c.push((0x2d, enc_struct(&self.battle_se)?));
-        c.push((0x2e, enc_struct(&self.escape_se)?));
-        c.push((0x2f, enc_struct(&self.enemy_attack_se)?));
-        c.push((0x30, enc_struct(&self.enemy_damaged_se)?));
-        c.push((0x31, enc_struct(&self.actor_damaged_se)?));
-        c.push((0x32, enc_struct(&self.dodge_se)?));
-        c.push((0x33, enc_struct(&self.enemy_death_se)?));
-        c.push((0x34, enc_struct(&self.item_se)?));
+        let v_menu_commands = enc_vec_i16(&self.menu_commands);
+        if e.is2k3 && self.menu_commands.len() != p.menu_commands.len() { c.push((0x1a, enc_ber(self.menu_commands.len() as i32))); }
+        if e.is2k3 { c.push((0x1b, v_menu_commands)); }
+        c.push((0x1f, enc_struct(&self.title_music, e.is2k3)?));
+        c.push((0x20, enc_struct(&self.battle_music, e.is2k3)?));
+        c.push((0x21, enc_struct(&self.battle_end_music, e.is2k3)?));
+        c.push((0x22, enc_struct(&self.inn_music, e.is2k3)?));
+        c.push((0x23, enc_struct(&self.boat_music, e.is2k3)?));
+        c.push((0x24, enc_struct(&self.ship_music, e.is2k3)?));
+        c.push((0x25, enc_struct(&self.airship_music, e.is2k3)?));
+        c.push((0x26, enc_struct(&self.gameover_music, e.is2k3)?));
+        c.push((0x29, enc_struct(&self.cursor_se, e.is2k3)?));
+        c.push((0x2a, enc_struct(&self.decision_se, e.is2k3)?));
+        c.push((0x2b, enc_struct(&self.cancel_se, e.is2k3)?));
+        c.push((0x2c, enc_struct(&self.buzzer_se, e.is2k3)?));
+        c.push((0x2d, enc_struct(&self.battle_se, e.is2k3)?));
+        c.push((0x2e, enc_struct(&self.escape_se, e.is2k3)?));
+        c.push((0x2f, enc_struct(&self.enemy_attack_se, e.is2k3)?));
+        c.push((0x30, enc_struct(&self.enemy_damaged_se, e.is2k3)?));
+        c.push((0x31, enc_struct(&self.actor_damaged_se, e.is2k3)?));
+        c.push((0x32, enc_struct(&self.dodge_se, e.is2k3)?));
+        c.push((0x33, enc_struct(&self.enemy_death_se, e.is2k3)?));
+        c.push((0x34, enc_struct(&self.item_se, e.is2k3)?));
         c.push((0x3d, enc_ber(self.transition_out.to_i32())));
         c.push((0x3e, enc_ber(self.transition_in.to_i32())));
         c.push((0x3f, enc_ber(self.battle_start_fadeout.to_i32())));
@@ -10307,11 +11031,17 @@ impl Chunked for System {
         if self.selected_condition != p.selected_condition { c.push((0x51, enc_ber(self.selected_condition))); }
         c.push((0x52, enc_ber(self.selected_hero)));
         if self.battletest_background != p.battletest_background { c.push((0x54, enc_text(&self.battletest_background))); }
-        c.push((0x55, enc_array(&self.battletest_data)?));
+        c.push((0x55, enc_array(&self.battletest_data, e.is2k3)?));
         if self.save_count != p.save_count { c.push((0x5b, enc_ber(self.save_count))); }
         if self.battletest_terrain != p.battletest_terrain { c.push((0x5e, enc_ber(self.battletest_terrain))); }
         if self.battletest_formation != p.battletest_formation { c.push((0x5f, enc_ber(self.battletest_formation.to_i32()))); }
         if self.battletest_condition != p.battletest_condition { c.push((0x60, enc_ber(self.battletest_condition.to_i32()))); }
+        if e.is2k3 && self.equipment_setting != p.equipment_setting { c.push((0x61, enc_ber(self.equipment_setting.to_i32()))); }
+        if e.is2k3 && self.battletest_alt_terrain != p.battletest_alt_terrain { c.push((0x62, enc_ber(self.battletest_alt_terrain))); }
+        if e.is2k3 && self.show_frame != p.show_frame { c.push((0x63, enc_bool(self.show_frame))); }
+        if e.is2k3 && self.frame_name != p.frame_name { c.push((0x64, enc_text(&self.frame_name))); }
+        if e.is2k3 && self.invert_animations != p.invert_animations { c.push((0x65, enc_bool(self.invert_animations))); }
+        if e.is2k3 && self.show_title != p.show_title { c.push((0x6f, enc_bool(self.show_title))); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -10324,7 +11054,7 @@ impl Chunked for Switch {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             _ => return Ok(false),
@@ -10332,7 +11062,7 @@ impl Chunked for Switch {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Switch::default();
+        let p = Switch::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         e.dump(c, &self.unknown);
@@ -10347,7 +11077,7 @@ impl Chunked for Variable {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             _ => return Ok(false),
@@ -10355,7 +11085,7 @@ impl Chunked for Variable {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Variable::default();
+        let p = Variable::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         e.dump(c, &self.unknown);
@@ -10370,47 +11100,59 @@ impl Chunked for Database {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
-            0x0b => self.actors = dec_array::<Actor>(d)?,
-            0x0c => self.skills = dec_array::<Skill>(d)?,
-            0x0d => self.items = dec_array::<Item>(d)?,
-            0x0e => self.enemies = dec_array::<Enemy>(d)?,
-            0x0f => self.troops = dec_array::<Troop>(d)?,
-            0x10 => self.terrains = dec_array::<Terrain>(d)?,
-            0x11 => self.attributes = dec_array::<Attribute>(d)?,
-            0x12 => self.states = dec_array::<State>(d)?,
-            0x13 => self.animations = dec_array::<Animation>(d)?,
-            0x14 => self.chipsets = dec_array::<Chipset>(d)?,
-            0x15 => self.terms = dec_struct::<Terms>(d)?,
-            0x16 => self.system = dec_struct::<System>(d)?,
-            0x17 => self.switches = dec_array::<Switch>(d)?,
-            0x18 => self.variables = dec_array::<Variable>(d)?,
-            0x19 => self.commonevents = dec_array::<CommonEvent>(d)?,
+            0x0b => self.actors = dec_array::<Actor>(d, is2k3)?,
+            0x0c => self.skills = dec_array::<Skill>(d, is2k3)?,
+            0x0d => self.items = dec_array::<Item>(d, is2k3)?,
+            0x0e => self.enemies = dec_array::<Enemy>(d, is2k3)?,
+            0x0f => self.troops = dec_array::<Troop>(d, is2k3)?,
+            0x10 => self.terrains = dec_array::<Terrain>(d, is2k3)?,
+            0x11 => self.attributes = dec_array::<Attribute>(d, is2k3)?,
+            0x12 => self.states = dec_array::<State>(d, is2k3)?,
+            0x13 => self.animations = dec_array::<Animation>(d, is2k3)?,
+            0x14 => self.chipsets = dec_array::<Chipset>(d, is2k3)?,
+            0x15 => self.terms = dec_struct::<Terms>(d, is2k3)?,
+            0x16 => self.system = dec_struct::<System>(d, is2k3)?,
+            0x17 => self.switches = dec_array::<Switch>(d, is2k3)?,
+            0x18 => self.variables = dec_array::<Variable>(d, is2k3)?,
+            0x19 => self.commonevents = dec_array::<CommonEvent>(d, is2k3)?,
             0x1a => self.version = dec_ber(d),
+            0x1b => self.commoneventD2 = dec_bool(d),
+            0x1c => self.commoneventD3 = dec_bool(d),
+            0x1d => self.battlecommands = dec_struct::<BattleCommands>(d, is2k3)?,
+            0x1e => self.classes = dec_array::<Class>(d, is2k3)?,
+            0x1f => self.classD1 = dec_bool(d),
+            0x20 => self.battleranimations = dec_array::<BattlerAnimation>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Database::default();
+        let p = Database::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
-        c.push((0x0b, enc_array(&self.actors)?));
-        c.push((0x0c, enc_array(&self.skills)?));
-        c.push((0x0d, enc_array(&self.items)?));
-        c.push((0x0e, enc_array(&self.enemies)?));
-        c.push((0x0f, enc_array(&self.troops)?));
-        c.push((0x10, enc_array(&self.terrains)?));
-        c.push((0x11, enc_array(&self.attributes)?));
-        c.push((0x12, enc_array(&self.states)?));
-        c.push((0x13, enc_array(&self.animations)?));
-        c.push((0x14, enc_array(&self.chipsets)?));
-        c.push((0x15, enc_struct(&self.terms)?));
-        c.push((0x16, enc_struct(&self.system)?));
-        c.push((0x17, enc_array(&self.switches)?));
-        c.push((0x18, enc_array(&self.variables)?));
-        c.push((0x19, enc_array(&self.commonevents)?));
-        if self.version != p.version { c.push((0x1a, enc_ber(self.version))); }
+        c.push((0x0b, enc_array(&self.actors, e.is2k3)?));
+        c.push((0x0c, enc_array(&self.skills, e.is2k3)?));
+        c.push((0x0d, enc_array(&self.items, e.is2k3)?));
+        c.push((0x0e, enc_array(&self.enemies, e.is2k3)?));
+        c.push((0x0f, enc_array(&self.troops, e.is2k3)?));
+        c.push((0x10, enc_array(&self.terrains, e.is2k3)?));
+        c.push((0x11, enc_array(&self.attributes, e.is2k3)?));
+        c.push((0x12, enc_array(&self.states, e.is2k3)?));
+        c.push((0x13, enc_array(&self.animations, e.is2k3)?));
+        c.push((0x14, enc_array(&self.chipsets, e.is2k3)?));
+        c.push((0x15, enc_struct(&self.terms, e.is2k3)?));
+        c.push((0x16, enc_struct(&self.system, e.is2k3)?));
+        c.push((0x17, enc_array(&self.switches, e.is2k3)?));
+        c.push((0x18, enc_array(&self.variables, e.is2k3)?));
+        c.push((0x19, enc_array(&self.commonevents, e.is2k3)?));
+        if e.is2k3 || self.version != p.version { c.push((0x1a, if self.version == 0 { Vec::new() } else { enc_ber(self.version) })); }
+        if e.is2k3 { c.push((0x1b, Vec::new())); }
+        if e.is2k3 { c.push((0x1c, Vec::new())); }
+        if e.is2k3 { c.push((0x1d, enc_struct(&self.battlecommands, e.is2k3)?)); }
+        if e.is2k3 { c.push((0x1e, enc_array(&self.classes, e.is2k3)?)); }
+        if e.is2k3 { c.push((0x1f, Vec::new())); }
+        if e.is2k3 { c.push((0x20, enc_array(&self.battleranimations, e.is2k3)?)); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -10423,7 +11165,7 @@ impl Chunked for EventPageCondition {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.flags = EventPageConditionFlags::read(d),
             0x02 => self.switch_a_id = dec_ber(d),
@@ -10433,14 +11175,16 @@ impl Chunked for EventPageCondition {
             0x06 => self.item_id = dec_ber(d),
             0x07 => self.actor_id = dec_ber(d),
             0x08 => self.timer_sec = dec_ber(d),
+            0x09 => self.timer2_sec = dec_ber(d),
+            0x0a => self.compare_operator = EventPageConditionComparison::from_i32(dec_ber(d)),
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = EventPageCondition::default();
+        let p = EventPageCondition::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
-        c.push((0x01, self.flags.write()));
+        c.push((0x01, self.flags.write(e.is2k3)));
         if self.switch_a_id != p.switch_a_id { c.push((0x02, enc_ber(self.switch_a_id))); }
         if self.switch_b_id != p.switch_b_id { c.push((0x03, enc_ber(self.switch_b_id))); }
         if self.variable_id != p.variable_id { c.push((0x04, enc_ber(self.variable_id))); }
@@ -10448,6 +11192,8 @@ impl Chunked for EventPageCondition {
         if self.item_id != p.item_id { c.push((0x06, enc_ber(self.item_id))); }
         c.push((0x07, enc_ber(self.actor_id)));
         if self.timer_sec != p.timer_sec { c.push((0x08, enc_ber(self.timer_sec))); }
+        if self.timer2_sec != p.timer2_sec { c.push((0x09, enc_ber(self.timer2_sec))); }
+        if self.compare_operator != p.compare_operator { c.push((0x0a, enc_ber(self.compare_operator.to_i32()))); }
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -10460,7 +11206,7 @@ impl Chunked for MoveRoute {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x0b => {} // length of `move_commands`, recomputed when writing
             0x0c => self.move_commands = dec_move_commands(d)?,
@@ -10471,7 +11217,7 @@ impl Chunked for MoveRoute {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = MoveRoute::default();
+        let p = MoveRoute::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         let v_move_commands = enc_move_commands(&self.move_commands);
         if v_move_commands.len() != enc_move_commands(&p.move_commands).len() { c.push((0x0b, enc_ber(v_move_commands.len() as i32))); }
@@ -10490,9 +11236,9 @@ impl Chunked for EventPage {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
-            0x02 => self.condition = dec_struct::<EventPageCondition>(d)?,
+            0x02 => self.condition = dec_struct::<EventPageCondition>(d, is2k3)?,
             0x15 => self.character_name = dec_text(d),
             0x16 => self.character_index = dec_ber(d),
             0x17 => self.character_direction = EventPageDirection::from_i32(dec_ber(d)),
@@ -10505,7 +11251,7 @@ impl Chunked for EventPage {
             0x23 => self.overlap_forbidden = dec_bool(d),
             0x24 => self.animation_type = EventPageAnimType::from_i32(dec_ber(d)),
             0x25 => self.move_speed = EventPageMoveSpeed::from_i32(dec_ber(d)),
-            0x29 => self.move_route = dec_struct::<MoveRoute>(d)?,
+            0x29 => self.move_route = dec_struct::<MoveRoute>(d, is2k3)?,
             0x33 => {} // length of `event_commands`, recomputed when writing
             0x34 => self.event_commands = dec_event_commands(d)?,
             _ => return Ok(false),
@@ -10513,9 +11259,9 @@ impl Chunked for EventPage {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = EventPage::default();
+        let p = EventPage::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
-        c.push((0x02, enc_struct(&self.condition)?));
+        c.push((0x02, enc_struct(&self.condition, e.is2k3)?));
         if self.character_name != p.character_name { c.push((0x15, enc_text(&self.character_name))); }
         if self.character_index != p.character_index { c.push((0x16, enc_ber(self.character_index))); }
         c.push((0x17, enc_ber(self.character_direction.to_i32())));
@@ -10528,7 +11274,7 @@ impl Chunked for EventPage {
         c.push((0x23, enc_bool(self.overlap_forbidden)));
         c.push((0x24, enc_ber(self.animation_type.to_i32())));
         if self.move_speed != p.move_speed { c.push((0x25, enc_ber(self.move_speed.to_i32()))); }
-        c.push((0x29, enc_struct(&self.move_route)?));
+        c.push((0x29, enc_struct(&self.move_route, e.is2k3)?));
         let v_event_commands = enc_event_commands(&self.event_commands);
         c.push((0x33, enc_ber(v_event_commands.len() as i32)));
         c.push((0x34, v_event_commands));
@@ -10544,23 +11290,23 @@ impl Chunked for Event {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.x = dec_ber(d),
             0x03 => self.y = dec_ber(d),
-            0x05 => self.pages = dec_array::<EventPage>(d)?,
+            0x05 => self.pages = dec_array::<EventPage>(d, is2k3)?,
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Event::default();
+        let p = Event::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.x != p.x { c.push((0x02, enc_ber(self.x))); }
         if self.y != p.y { c.push((0x03, enc_ber(self.y))); }
-        c.push((0x05, enc_array(&self.pages)?));
+        c.push((0x05, enc_array(&self.pages, e.is2k3)?));
         e.dump(c, &self.unknown);
         Ok(())
     }
@@ -10573,7 +11319,7 @@ impl Chunked for Map {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.chipset_id = dec_ber(d),
             0x02 => self.width = dec_ber(d),
@@ -10604,14 +11350,15 @@ impl Chunked for Map {
             0x3e => self.generator_tile_ids = dec_vec_i16(d),
             0x47 => self.lower_layer = dec_vec_i16(d),
             0x48 => self.upper_layer = dec_vec_i16(d),
-            0x51 => self.events = dec_array::<Event>(d)?,
+            0x51 => self.events = dec_array::<Event>(d, is2k3)?,
+            0x5a => self.save_count_2k3e = dec_ber(d),
             0x5b => self.save_count = dec_ber(d),
             _ => return Ok(false),
         }
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Map::default();
+        let p = Map::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.chipset_id != p.chipset_id { c.push((0x01, enc_ber(self.chipset_id))); }
         if self.width != p.width { c.push((0x02, enc_ber(self.width))); }
@@ -10642,7 +11389,8 @@ impl Chunked for Map {
         if self.generator_tile_ids != p.generator_tile_ids { c.push((0x3e, enc_vec_i16(&self.generator_tile_ids))); }
         c.push((0x47, enc_vec_i16(&self.lower_layer)));
         c.push((0x48, enc_vec_i16(&self.upper_layer)));
-        c.push((0x51, enc_array(&self.events)?));
+        c.push((0x51, enc_array(&self.events, e.is2k3)?));
+        if self.save_count_2k3e != p.save_count_2k3e { c.push((0x5a, enc_ber(self.save_count_2k3e))); }
         if self.save_count != p.save_count { c.push((0x5b, enc_ber(self.save_count))); }
         e.dump(c, &self.unknown);
         Ok(())
@@ -10656,7 +11404,7 @@ impl Chunked for Encounter {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.troop_id = dec_ber(d),
             _ => return Ok(false),
@@ -10664,7 +11412,7 @@ impl Chunked for Encounter {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Encounter::default();
+        let p = Encounter::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.troop_id != p.troop_id { c.push((0x01, enc_ber(self.troop_id))); }
         e.dump(c, &self.unknown);
@@ -10679,7 +11427,7 @@ impl Chunked for MapInfo {
     fn id(&self) -> i32 { self.id }
     fn set_id(&mut self, v: i32) { self.id = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.name = dec_text(d),
             0x02 => self.parent_map = dec_ber(d),
@@ -10689,13 +11437,13 @@ impl Chunked for MapInfo {
             0x06 => self.scrollbar_y = dec_ber(d),
             0x07 => self.expanded_node = dec_bool(d),
             0x0b => self.music_type = MapInfoMusicType::from_i32(dec_ber(d)),
-            0x0c => self.music = dec_struct::<Music>(d)?,
+            0x0c => self.music = dec_struct::<Music>(d, is2k3)?,
             0x15 => self.background_type = MapInfoBGMType::from_i32(dec_ber(d)),
             0x16 => self.background_name = dec_text(d),
             0x1f => self.teleport = MapInfoTriState::from_i32(dec_ber(d)),
             0x20 => self.escape = MapInfoTriState::from_i32(dec_ber(d)),
             0x21 => self.save = MapInfoTriState::from_i32(dec_ber(d)),
-            0x29 => self.encounters = dec_array::<Encounter>(d)?,
+            0x29 => self.encounters = dec_array::<Encounter>(d, is2k3)?,
             0x2c => self.encounter_steps = dec_ber(d),
             0x33 => self.area_rect = Rect::read_raw(d)?,
             _ => return Ok(false),
@@ -10703,7 +11451,7 @@ impl Chunked for MapInfo {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = MapInfo::default();
+        let p = MapInfo::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.name != p.name { c.push((0x01, enc_text(&self.name))); }
         if self.parent_map != p.parent_map { c.push((0x02, enc_ber(self.parent_map))); }
@@ -10713,13 +11461,13 @@ impl Chunked for MapInfo {
         if self.scrollbar_y != p.scrollbar_y { c.push((0x06, enc_ber(self.scrollbar_y))); }
         if self.expanded_node != p.expanded_node { c.push((0x07, enc_bool(self.expanded_node))); }
         c.push((0x0b, enc_ber(self.music_type.to_i32())));
-        c.push((0x0c, enc_struct(&self.music)?));
+        c.push((0x0c, enc_struct(&self.music, e.is2k3)?));
         c.push((0x15, enc_ber(self.background_type.to_i32())));
         if self.background_name != p.background_name { c.push((0x16, enc_text(&self.background_name))); }
         c.push((0x1f, enc_ber(self.teleport.to_i32())));
         c.push((0x20, enc_ber(self.escape.to_i32())));
         c.push((0x21, enc_ber(self.save.to_i32())));
-        c.push((0x29, enc_array(&self.encounters)?));
+        c.push((0x29, enc_array(&self.encounters, e.is2k3)?));
         if self.encounter_steps != p.encounter_steps { c.push((0x2c, enc_ber(self.encounter_steps))); }
         c.push((0x33, self.area_rect.write_raw()));
         e.dump(c, &self.unknown);
@@ -10734,7 +11482,7 @@ impl Chunked for Start {
     fn id(&self) -> i32 { 0 }
     fn set_id(&mut self, v: i32) { let _ = v; }
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk> { &mut self.unknown }
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool> {
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool> {
         match id {
             0x01 => self.party_map_id = dec_ber(d),
             0x02 => self.party_x = dec_ber(d),
@@ -10753,7 +11501,7 @@ impl Chunked for Start {
         Ok(true)
     }
     fn write_chunks(&self, e: &mut Writer) -> Result<()> {
-        let p = Start::default();
+        let p = Start::default_for(e.is2k3);
         let mut c: Vec<(u32, Vec<u8>)> = Vec::new();
         if self.party_map_id != p.party_map_id { c.push((0x01, enc_ber(self.party_map_id))); }
         if self.party_x != p.party_x { c.push((0x02, enc_ber(self.party_x))); }

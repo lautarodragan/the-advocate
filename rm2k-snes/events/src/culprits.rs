@@ -365,16 +365,23 @@ fn chase_troop_page(
         };
         found.trigger = troops::trigger(&ctx, page).is_none();
     }
-    let mut commands = Vec::with_capacity(page.commands.len());
-    for (i, cmd) in page.commands.iter().enumerate() {
+    // With the calls to common events pasted, as `TroopPages` compiles them:
+    // a pasted command's index is the call's. A call skipped there is not a
+    // culprit —the page compiles without it— and is not listed.
+    let (expanded, _skipped) = troops::expand_calls(game, &page.commands);
+    let mut commands = Vec::with_capacity(expanded.len());
+    let mut origin = Vec::with_capacity(expanded.len());
+    for (i, cmd) in &expanded {
+        origin.push(*i);
         if troops::runs_in_battle(cmd) {
             commands.push(troops::as_map_command(cmd));
         } else {
-            found.culprits.push((i, cmd.clone()));
+            found.culprits.push((*i, cmd.clone()));
             commands.push(taken_out(&troops::as_map_command(cmd)));
         }
     }
     let reflowed = troops::reflow_from(commands, &window.measure(), window.lines);
+    let reflowed: Vec<(usize, Command)> = reflowed.into_iter().map(|(i, c)| (origin[i], c)).collect();
     let (from, commands): (Vec<usize>, Vec<Command>) = reflowed.into_iter().unzip();
     let rest = chase(commands, |commands| {
         let mut messages = Messages::new(1, window);
@@ -395,9 +402,13 @@ fn chase_troop_page(
         };
         judged_page(&mut ctx, commands, None, 0, 0).map(|_| ())
     });
-    found
-        .culprits
-        .extend(rest.culprits.into_iter().map(|(i, _)| (from[i], page.commands[from[i]].clone())));
+    // A culprit inside a pasted body is named as itself, at the call's
+    // index: the call is where it is in the page, the command is what has
+    // to be looked at.
+    found.culprits.extend(rest.culprits.into_iter().map(|(i, cmd)| {
+        let own = &page.commands[from[i]];
+        (from[i], if troops::called_common(own).is_some() { cmd } else { own.clone() })
+    }));
     found.whole = rest.whole;
     found.fatal = rest.fatal.map(|(at, message)| (at.map(|i| from[i]), message));
     Ok(found)

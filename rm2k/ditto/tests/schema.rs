@@ -32,6 +32,10 @@ macro_rules! for_every_struct {
             Attribute,
             BattleCommand,
             BattleCommands,
+            BattlerAnimation,
+            BattlerAnimationItemSkill,
+            BattlerAnimationPose,
+            BattlerAnimationWeapon,
             Chipset,
             Class,
             CommonEvent,
@@ -251,6 +255,7 @@ fn the_published_json_says_what_the_tables_say() {
                 f.name
             );
             assert_eq!(entry["persist"], serde_json::json!(f.persist));
+            assert_eq!(entry["only_2003"], serde_json::json!(f.only_2003));
         }
     }
     let enums = document["enums"].as_object().unwrap();

@@ -1,8 +1,8 @@
 # Ditto
 
-Reads the RPG Maker 2000 files —`.ldb`, `.lmu`, `.lmt`— and dumps them to
-JSON, **and writes them back from the JSON**. It is called that because it does
-one thing only: copy somebody else's shape.
+Reads the RPG Maker 2000 and 2003 files —`.ldb`, `.lmu`, `.lmt`— and dumps
+them to JSON, **and writes them back from the JSON**. It is called that because
+it does one thing only: copy somebody else's shape.
 
     cargo run --release -- read   Map0001.lmu map1.json
     cargo run --release -- write  map1.json   Map0001.lmu
@@ -382,6 +382,35 @@ shape of their own:
 **4. `Database` and `Save` do not carry the trailing 0.** liblcf warns that
 giving them one breaks RPG_RT's parser. Every other struct does carry it.
 
+**5. RPG Maker 2003 is the same format with a few more chunks, and it is
+told apart by one field.** `System.ldb_id` is 2003 in a 2003 database, which
+is how liblcf and RPG_RT know (`GetEngineVersion`). The 2003-only fields
+—`fields.csv` marks them `Is2k3`: the classes, the battle commands, the
+battler animations, the second timer of an event page, the turn and command
+conditions of a troop page— are read whenever their chunk is there, in any
+file. What the version changes is on the way **back**, and it is all in
+`Writer::is2k3` (`src/lcf.rs`):
+
+* a `*_Flags` field packs the 2003 bits after the 2000 ones, so a troop page
+  condition is 1 byte in 2000 and 2 in 2003; the width is the version's, the
+  positions never move;
+* a 2003-only field of the database is never written into a 2000 file, and
+  the ones marked `PersistIfDefault` are always written into a 2003 one;
+* three of `Actor`'s defaults change —`final_level` 50 → 99, `exp_base` and
+  `exp_inflation` 30 → 300—, and the default is what decides which chunks are
+  omitted, so the version is looked up **before** the actors are decoded;
+* `Database.version` is always present in a 2003 file, empty when it is 0.
+
+A map or a tree has none of those cases —no flag field of theirs changes
+width, no persisting 2003 field, no versioned default— so they are read and
+written without knowing the version. Over a 2003 game of 190 files the round
+trip is 190 of 190; the 2000 corpus and its exact dump do not change by a
+byte. Two things liblcf does are **not** done, both measured against a game
+saved by RPG Maker 2003 1.08: it leaves `Terms` 0x01 and 0x03 out of a 2003
+file when empty —that file has them— and it persists `Terms` 0x26 and 0x27
+—that file does not have them—; `NOT_PERSISTED` in the generator says where
+to look if a game saved by a later 2003 comes back four bytes off.
+
 ### Details that bite
 
 * **`Int32` is BER, `Vector<Int32>` is not.** Inside a vector every integer is
@@ -389,7 +418,8 @@ giving them one breaks RPG_RT's parser. Every other struct does carry it.
 * **`DBBitArray` is not a bitfield**: it is a whole byte per value. The one
   that *is* a bitfield is a `*_Flags` field, and there `flags.csv` gives the
   order of the bits —from the least significant one upwards— and the flags that
-  only exist in 2003 **take no bit** in a 2000 file.
+  only exist in 2003 come **after** the 2000 ones and **take no bit** in a
+  2000 file (point 5 above).
 * **Text is cp1252**, with the five bytes the table leaves undefined (0x81,
   0x8D, 0x8F, 0x90, 0x9D) mapped to their C1 control, so the table is a
   bijection and no byte is lost. A game may carry messages in another encoding

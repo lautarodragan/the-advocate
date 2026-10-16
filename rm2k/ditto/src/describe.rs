@@ -27,7 +27,7 @@ pub fn to_json() -> String {
         for (m, f) in fields.iter().enumerate() {
             out.push_str(&format!(
                 "      {}: {{\"chunk\": {}, \"default\": {}, \"enum\": {}, \
-                 \"persist\": {}, \"nested\": {}}}{}\n",
+                 \"persist\": {}, \"nested\": {}, \"only_2003\": {}}}{}\n",
                 quote(f.name),
                 match f.chunk {
                     Some(c) => c.to_string(),
@@ -37,6 +37,7 @@ pub fn to_json() -> String {
                 option(f.enumeration),
                 f.persist,
                 option(f.nested),
+                f.only_2003,
                 comma(m, fields.len()),
             ));
         }

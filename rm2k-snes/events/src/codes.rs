@@ -91,6 +91,10 @@ pub const CHANGE_BATTLE_BG: i32 = 13210;
 pub const SHOW_BATTLE_ANIMATION_B: i32 = 13260;
 pub const BATTLE_COND_BRANCH: i32 = 13310;
 pub const TERMINATE_BATTLE: i32 = 13410;
+// RPG Maker 2003's, the two a troop page can carry that the 2000 battle
+// stands in for: see `TROOP_COMMANDS`.
+pub const CALL_COMMON_EVENT: i32 = 1005;
+pub const FORCE_FLEE: i32 = 1006;
 pub const SHOW_MESSAGE_2: i32 = 20110;
 pub const SHOW_CHOICE_OPTION: i32 = 20140;
 pub const SHOW_CHOICE_END: i32 = 20141;
@@ -265,6 +269,8 @@ mod tests {
             (SHOW_BATTLE_ANIMATION_B, C::ShowBattleAnimationB),
             (BATTLE_COND_BRANCH, C::ConditionalBranchB),
             (TERMINATE_BATTLE, C::TerminateBattle),
+            (CALL_COMMON_EVENT, C::CallCommonEvent),
+            (FORCE_FLEE, C::ForceFlee),
             (SHOW_MESSAGE_2, C::ShowMessage2),
             (SHOW_CHOICE_OPTION, C::ShowChoiceOption),
             (SHOW_CHOICE_END, C::ShowChoiceEnd),

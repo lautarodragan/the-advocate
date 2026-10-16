@@ -16,13 +16,15 @@
 ; before each action and after the last one —see the callers of
 ; `ba_page_test`—.
 
-; Nonzero once a troop page ran `TerminateBattle`: `op_battle_abort` sets it
-; and `ba_page_step` ends the battle. `battle_run` clears it when the battle
-; starts.
+; Nonzero once a troop page ran `TerminateBattle` or `ForceFlee`:
+; `op_battle_abort` sets it to 1 and `op_battle_flee` to `BA_ABORT_FLEE`, and
+; `ba_page_step` ends the battle, aborted or escaped. `battle_run` clears it
+; when the battle starts.
 .pushseg
 .segment "FARBSS"
 ba_abort: .res 1
 .popseg
+BA_ABORT_FLEE = 2
 
 .assert BA_PAGE_DONE + TROOP_PAGE_MAX <= FAR_PAGE + $200, error, "BA_PAGE_DONE goes past the troop pages' range of far RAM"
 
@@ -552,9 +554,29 @@ other_stretch:
     ; `op_battle_abort`.
     lda f:ba_abort
     beq not_aborted
+    cmp #BA_ABORT_FLEE
+    beq fled
     lda #BA_ABORT_R
     sta BA_RESULT
     lda #BA_M_ABORT
+    sta BA_MODE
+    rts
+fled:
+    ; A `ForceFlee` ended it instead: the party escaped, with the message
+    ; and the sound of an escape that succeeded —`o_flees` in battle_run.s,
+    ; without `ba_flee`'s dice—. See `op_battle_flee`.
+    lda #BA_ESCAPE_R
+    sta BA_RESULT
+    lda #BA_MSG_FLED
+    sta BA_MTYPE
+    jsr ba_show
+    rep #$20
+.a16
+    lda #BA_SE_FLEE
+    jsl f:ba_t_sound
+    sep #$20
+.a8
+    lda #BA_M_END
     sta BA_MODE
     rts
 not_aborted:

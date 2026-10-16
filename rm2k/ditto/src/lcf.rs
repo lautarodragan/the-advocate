@@ -63,11 +63,20 @@ pub struct RawChunk {
 pub struct Reader<'a> {
     d: &'a [u8],
     pub pos: usize,
+    /// Whether the file is RPG Maker 2003's. See `Writer::is2k3`: on this side
+    /// it only picks the default an absent chunk stands for.
+    pub is2k3: bool,
 }
 
 impl<'a> Reader<'a> {
     pub fn new(d: &'a [u8]) -> Self {
-        Reader { d, pos: 0 }
+        Reader { d, pos: 0, is2k3: false }
+    }
+
+    /// The same reader, told which version of the format it reads.
+    pub fn version(mut self, is2k3: bool) -> Self {
+        self.is2k3 = is2k3;
+        self
     }
 
     pub fn eof(&self) -> bool {
@@ -122,11 +131,35 @@ impl<'a> Reader<'a> {
 #[derive(Default)]
 pub struct Writer {
     pub b: Vec<u8>,
+    /// Whether the file is RPG Maker 2003's: `System.ldb_id == 2003`, which is
+    /// how liblcf and RPG_RT tell. The two versions share the format and
+    /// almost every chunk, but not quite, and the differences are all on the
+    /// writing side: a `*_Flags` field packs the 2003 bits after the 2000 ones,
+    /// so a troop page condition is 1 byte in 2000 and 2 in 2003; a 2003-only
+    /// field marked `PersistIfDefault` is written in a 2003 file and never in
+    /// a 2000 one; three of `Actor`'s defaults change (`final_level` 50 → 99,
+    /// `exp_base` and `exp_inflation` 30 → 300), and that decides which chunks
+    /// are omitted; and `Database.version` is always present in 2003, empty
+    /// when it is 0. Reading needs none of this: a chunk is read when it is
+    /// there, whatever the version, and the bits are read in position.
+    ///
+    /// A map or a tree has none of those cases —no flag field of theirs
+    /// changes width, no persisting 2003 field, no versioned default—, so they
+    /// are read and written as 2000's whatever the game: their 2003 fields
+    /// are written when they hold something, like any other, and the bits in
+    /// position (`pack_bits`).
+    pub is2k3: bool,
 }
 
 impl Writer {
     pub fn new() -> Self {
-        Writer { b: Vec::new() }
+        Writer { b: Vec::new(), is2k3: false }
+    }
+
+    /// The same writer, told which version of the format it writes.
+    pub fn version(mut self, is2k3: bool) -> Self {
+        self.is2k3 = is2k3;
+        self
     }
 
     pub fn bytes(&mut self, s: &[u8]) {
@@ -376,14 +409,26 @@ pub trait Chunked: Default + Sized {
     fn id(&self) -> i32;
     fn set_id(&mut self, v: i32);
     fn unknown_mut(&mut self) -> &mut Vec<RawChunk>;
+    /// The default of the struct in that version of the format: what an
+    /// absent chunk stands for when reading, and what decides to omit one when
+    /// writing. It is `Default::default()` —the 2000 one— for every struct but
+    /// `Actor`, whose `fields.csv` row says `50|99`. The JSON side knows
+    /// nothing of this: it compares against `Default::default()` alone, so a
+    /// 2003 actor at its 2003 default carries the value in the JSON, and
+    /// comes back to a file without the chunk, which is what it was.
+    fn default_for(is2k3: bool) -> Self {
+        let _ = is2k3;
+        Self::default()
+    }
     /// Returns `false` if the id does not belong to this struct: the chunk is
-    /// then kept raw.
-    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool>;
+    /// then kept raw. `is2k3` is passed down to the structs it nests, for
+    /// their `default_for`.
+    fn read_chunk(&mut self, id: u32, d: &[u8], is2k3: bool) -> Result<bool>;
     fn write_chunks(&self, e: &mut Writer) -> Result<()>;
 }
 
 pub fn read_struct<T: Chunked>(l: &mut Reader) -> Result<T> {
-    let mut o = T::default();
+    let mut o = T::default_for(l.is2k3);
     while !l.eof() {
         let id = l.ber()? as u32;
         if id == 0 {
@@ -391,7 +436,7 @@ pub fn read_struct<T: Chunked>(l: &mut Reader) -> Result<T> {
         }
         let length = l.ber()? as usize;
         let d = l.bytes(length)?;
-        if !o.read_chunk(id, d)? {
+        if !o.read_chunk(id, d, l.is2k3)? {
             o.unknown_mut().push(RawChunk {
                 id,
                 bytes: d.to_vec(),
@@ -409,12 +454,12 @@ pub fn write_struct<T: Chunked>(o: &T, e: &mut Writer) -> Result<()> {
     Ok(())
 }
 
-pub fn dec_struct<T: Chunked>(d: &[u8]) -> Result<T> {
-    read_struct(&mut Reader::new(d))
+pub fn dec_struct<T: Chunked>(d: &[u8], is2k3: bool) -> Result<T> {
+    read_struct(&mut Reader::new(d).version(is2k3))
 }
 
-pub fn enc_struct<T: Chunked>(o: &T) -> Result<Vec<u8>> {
-    let mut e = Writer::new();
+pub fn enc_struct<T: Chunked>(o: &T, is2k3: bool) -> Result<Vec<u8>> {
+    let mut e = Writer::new().version(is2k3);
     write_struct(o, &mut e)?;
     Ok(e.b)
 }
@@ -442,12 +487,12 @@ pub fn write_array<T: Chunked>(v: &[T], e: &mut Writer) -> Result<()> {
     Ok(())
 }
 
-pub fn dec_array<T: Chunked>(d: &[u8]) -> Result<Vec<T>> {
-    read_array(&mut Reader::new(d))
+pub fn dec_array<T: Chunked>(d: &[u8], is2k3: bool) -> Result<Vec<T>> {
+    read_array(&mut Reader::new(d).version(is2k3))
 }
 
-pub fn enc_array<T: Chunked>(v: &[T]) -> Result<Vec<u8>> {
-    let mut e = Writer::new();
+pub fn enc_array<T: Chunked>(v: &[T], is2k3: bool) -> Result<Vec<u8>> {
+    let mut e = Writer::new().version(is2k3);
     write_array(v, &mut e)?;
     Ok(e.b)
 }
@@ -549,9 +594,37 @@ pub fn enc_vec_bool(v: &[bool]) -> Vec<u8> {
 }
 
 /// One bit of a `*_Flags` field, from the least significant one of the first
-/// byte.
+/// byte. Past the end of the chunk it is `false`: that is how the 2003 bits
+/// read from a 2000 file, whose chunk stops before them.
 pub fn bit(d: &[u8], i: usize) -> bool {
     d.get(i / 8).map_or(false, |b| (b >> (i % 8)) & 1 == 1)
+}
+
+/// The bytes of a `*_Flags` field: each bit at its position, from the least
+/// significant one of the first byte, in as many bytes as the version has
+/// bits —the 2000 ones alone, or every one—. That is `Flags::LcfSize` of
+/// liblcf: 7 bits of a 2000 troop page condition make 1 byte, its 10 bits in
+/// 2003 make 2, and a field whose bits are all 2003's makes **no byte** in a
+/// 2000 file.
+///
+/// The positions do not move with the version because the 2003 bits come
+/// after the 2000 ones in every struct —the generator checks it—, and that
+/// is what lets a map be written without knowing its game's version: its
+/// condition flags are 6 bits in 2000 and 7 in 2003, one byte either way,
+/// and the seventh bit, read in position, goes back in position.
+pub fn pack_bits(bits: &[(bool, bool)], is2k3: bool) -> Vec<u8> {
+    let n = if is2k3 {
+        bits.len()
+    } else {
+        bits.iter().filter(|(_, only_2003)| !only_2003).count()
+    };
+    let mut out = vec![0u8; (n + 7) / 8];
+    for (i, &(set, _)) in bits.iter().enumerate().take(out.len() * 8) {
+        if set {
+            out[i / 8] |= 1 << (i % 8);
+        }
+    }
+    out
 }
 
 // --- Text ------------------------------------------------------------------
