@@ -992,6 +992,16 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             names.join(", ")
         )));
     }
+    if !split.shared_leaders.is_empty() {
+        let mut names: Vec<String> = split.shared_leaders.iter().map(|k| format!("{}:{}", k.0, k.1)).collect();
+        names.sort();
+        notes.push(note(format!(
+            "  map {id}: {} leader candidate(s) that are also events here share a palette with other \
+             characters: {}",
+            split.shared_leaders.len(),
+            names.join(", ")
+        )));
+    }
     // A baked event drawn with someone else's palette can't be hidden: the
     // sprite and the tile would show different colours. It goes back to
     // being a sprite.
@@ -1448,10 +1458,18 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             continue;
         }
         let image = crate::sprites::character::sheet(&sheets, &key.0).map_err(|b| Bad::answer(b.0))?;
-        let (own, _, _) = character_palette(image, key.1, None, None).map_err(|b| Bad::answer(b.0))?;
+        let palette = bank.palette_of.get(key).unwrap_or(0);
+        // One that shares a palette of the map brings that palette's colours,
+        // as they end: the console uploads the leader's into its row, and
+        // its own would repaint whoever shares it. See `shared_leaders`.
+        let own = if split.shared_leaders.contains(key) {
+            palettes[palette].clone()
+        } else {
+            character_palette(image, key.1, None, None).map_err(|b| Bad::answer(b.0))?.0
+        };
         actor_rows.push((
             *actor,
-            bank.palette_of.get(key).unwrap_or(0),
+            palette,
             Some(animated_index[key]),
             own.iter().map(|&[r, g, b]| voodoo::cgram_word((r, g, b))).collect(),
         ));

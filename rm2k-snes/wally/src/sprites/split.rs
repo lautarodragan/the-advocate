@@ -57,6 +57,14 @@ pub struct Split {
     pub own: BTreeSet<Key>,
     /// The palettes of the leader candidates, which nobody else gets.
     pub leader_owned: BTreeSet<usize>,
+    /// The leader candidates that are also an event of this map and found
+    /// no palette of their own: they went into one of the map's like any
+    /// other character, and when one of them leads the console uploads that
+    /// palette's colours, which are already there. A flash of the hero would
+    /// tint whoever shares it, but a map where something flashes the hero
+    /// has no such leaders: the converter gives those events a copy of the
+    /// graphic, which is not a leader's (`separate_from_hero`).
+    pub shared_leaders: BTreeSet<Key>,
     /// Who was brought below fifteen colours to make room for the timer.
     pub caps: BTreeMap<Key, usize>,
     /// Who was drawn with someone else's palette, for lack of one.
@@ -173,6 +181,12 @@ impl Splitter<'_> {
 /// at the same time as the hero. And nobody else goes into a leader's
 /// palette: a flash of the hero is a tint of its palette, and would tint
 /// whoever shared it.
+///
+/// A leader that is also an event gets its own **while one is left for the
+/// rest**: a map that shows several of the leader candidates as events
+/// —Dooms 2's map 1, where they are chosen— would otherwise give all eight
+/// palettes to leaders and leave the other events with none. The ones that
+/// do not get one are split later, with the events: see `shared_leaders`.
 pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     let mut sp = Splitter {
         ask,
@@ -186,8 +200,21 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     let npc_keys: HashSet<Key> = npcs.iter().flat_map(Npc::keys).collect();
     let mut seen: HashSet<Key> = HashSet::new();
     let mut slot_leader: Option<usize> = None;
+    let mut needs_slot = false;
+    for key in ask.leaders {
+        if !npc_keys.contains(key) && !sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
+            needs_slot = true;
+        }
+    }
     for key in ask.leaders {
         if seen.contains(key) || sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
+            continue;
+        }
+        // Room for the rest: one palette for the other events and, while
+        // it is missing, the leaders' slot.
+        let kept = 1 + usize::from(slot_leader.is_none() && needs_slot);
+        if npc_keys.contains(key) && sp.split.palettes.len() + kept >= ask.cap {
+            sp.split.shared_leaders.insert(key.clone());
             continue;
         }
         seen.insert(key.clone());
