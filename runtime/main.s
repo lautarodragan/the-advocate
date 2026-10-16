@@ -239,4 +239,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "items_by_variable.s"
 .include "actor_names.s"
 .include "actor_stats.s"
+.include "system_cursors.s"
 .include "header.s"

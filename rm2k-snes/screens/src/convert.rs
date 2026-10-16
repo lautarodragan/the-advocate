@@ -524,11 +524,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // game's, or with its windows redrawn if they do not fit their bank.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target, 0)?;
     lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the actor choice's", fused));
-    let target_screens = [
-        borders::target_layer(game, &fitted)?,
-        borders::menu_bar_layer(&fitted),
-        borders::target_skill_layer(game, &fitted)?,
-    ];
+    let target_screens = borders::target_screens(game, &fitted)?;
     let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
     request.vram.target(target.tiles.len())?;
     let inks = items::text_inks(&skin, &game.font)?;
@@ -763,7 +759,6 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             "faces": Value::Object(slots.faces.iter().map(|(a, c)| (a.to_string(), json!(c))).collect()),
             "menu": {
                 "options": menu.options,
-                "cursor": menu.cursor,
                 "glyphs": glyphs_json(&menu.glyphs),
                 "currency": menu.currency,
                 "row": menu.row,
@@ -811,6 +806,20 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 target_compact.menu_bar_at.1,
                 target_compact.menu_bar_at.2,
                 target_compact.menu_bar_at.3
+            ],
+            "menu_cmd": target_compact.menu_cmd,
+            "menu_cmd_at": [
+                target_compact.menu_cmd_at.0,
+                target_compact.menu_cmd_at.1,
+                target_compact.menu_cmd_at.2,
+                target_compact.menu_cmd_at.3
+            ],
+            "slot_bar": target_compact.slot_bar,
+            "slot_bar_at": [
+                target_compact.slot_bar_at.0,
+                target_compact.slot_bar_at.1,
+                target_compact.slot_bar_at.2,
+                target_compact.slot_bar_at.3
             ],
             "skill": {
                 "term_at": [

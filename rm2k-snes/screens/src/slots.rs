@@ -27,8 +27,6 @@ pub struct MenuBlocks {
     /// `options[order][disabled]`: each command in white and, in the
     /// disabled palette, in gray.
     pub options: Vec<[Vec<u16>; 2]>,
-    /// The ">", two cells.
-    pub cursor: Vec<u16>,
     /// The two cells of each letter of the numbers, which the cartridge
     /// writes one per cell.
     pub glyphs: BTreeMap<char, Vec<u16>>,
@@ -49,9 +47,9 @@ pub struct Slots {
     pub palettes: Vec<Vec<Color>>,
     /// The screen's title, `[loading, saving]`.
     pub headers: Vec<Vec<u16>>,
-    /// `rows[slot][full][cursor]`: a whole row, with the face, name and
-    /// level cells blank.
-    pub rows: Vec<[[Vec<u16>; 2]; 2]>,
+    /// `rows[slot][full]`: a whole row, with the face, name and level
+    /// cells blank. The cursor is not in them: it is the System's, on BG1.
+    pub rows: Vec<[Vec<u16>; 2]>,
     /// The 36 cells of each actor's face, with its palette set.
     pub faces: BTreeMap<i32, Vec<u16>>,
     pub menu: MenuBlocks,
@@ -85,9 +83,8 @@ pub enum Order {
 /// What each layer drawn is, so the second pass knows where to cut it.
 enum Kind {
     Header(usize),
-    Row(usize, usize, usize),
+    Row(usize, usize),
     Option(usize, usize),
-    Cursor,
     Glyph(char),
     Currency,
     MenuRow,
@@ -249,26 +246,22 @@ pub fn slots_screen_with(
     let file = game.term("file")?;
     for number in 0..slots {
         for full in 0..2 {
-            for cursor in 0..2 {
-                let mut image = cells::layer();
-                let y = SLOT_Y + number * SLOT_STEP;
-                if cursor == 1 {
-                    write(&mut image, SLOT_X - 16, y + 2, ">", 0);
-                }
-                let second = if full == 1 { "" } else { EMPTY };
-                for (n, line) in [format!("{file} {}", number + 1), second.to_string()]
-                    .iter()
-                    .enumerate()
-                {
-                    write(&mut image, SLOT_X, y + 2 + n * LINE, line, 0);
-                }
-                if full == 1 {
-                    // The level term goes in the row: it is the same for
-                    // everyone, and a slot without a save does not show it.
-                    level_term(game, skin, &mut image, SLOT_X, y + 2 + 2 * LINE)?;
-                }
-                layers.push((Kind::Row(number, full, cursor), image));
+            let mut image = cells::layer();
+            let y = SLOT_Y + number * SLOT_STEP;
+            // The term, and the number half a space after it in two places,
+            // `"%2d"`: `Window_SaveFile::Refresh`. The slot cursor's width
+            // counts on it.
+            write(&mut image, SLOT_X, y + 2, &file, 0);
+            let number_x = SLOT_X + font.width(&file) + font.width(" ") / 2;
+            write(&mut image, number_x, y + 2, &format!("{:2}", number + 1), 0);
+            if full == 0 {
+                write(&mut image, SLOT_X, y + 2 + LINE, EMPTY, 0);
+            } else {
+                // The level term goes in the row: it is the same for
+                // everyone, and a slot without a save does not show it.
+                level_term(game, skin, &mut image, SLOT_X, y + 2 + 2 * LINE)?;
             }
+            layers.push((Kind::Row(number, full), image));
         }
     }
     // The pause menu's, in the same bank. Each on the topmost row it gets:
@@ -286,9 +279,6 @@ pub fn slots_screen_with(
             layers.push((Kind::Option(option, disabled), image));
         }
     }
-    let mut image = cells::layer();
-    write(&mut image, MENU_CURSOR_COL * CELL, MENU_OPT_Y + 2, ">", 0);
-    layers.push((Kind::Cursor, image));
     for letter in NUMBER_GLYPHS.chars() {
         let mut image = cells::layer();
         write(&mut image, GLYPH_COL * CELL + GLYPH_DX, GLYPH_ROW * CELL + GLYPH_DY, &letter.to_string(), 0);
@@ -382,7 +372,6 @@ pub fn slots_screen_with(
                     pal,
                 )?;
             }
-            Kind::Cursor => out.menu.cursor = block(MENU_OPT_Y / CELL, 2, &index, MENU_CURSOR_COL, 1, 0)?,
             Kind::Glyph(letter) => {
                 let cells = block(GLYPH_ROW, 2, &index, GLYPH_COL, 1, 0)?;
                 out.menu.glyphs.insert(*letter, cells);
@@ -400,9 +389,9 @@ pub fn slots_screen_with(
             Kind::Header(mode) => {
                 out.headers[*mode] = block(HEADER_Y / CELL, HEADER_ROWS, &index, 0, COLS, 0)?
             }
-            Kind::Row(number, full, cursor) => {
+            Kind::Row(number, full) => {
                 let row0 = (SLOT_Y + number * SLOT_STEP) / CELL;
-                out.rows[*number][*full][*cursor] = block(row0, SLOT_ROWS, &index, 0, COLS, 0)?;
+                out.rows[*number][*full] = block(row0, SLOT_ROWS, &index, 0, COLS, 0)?;
             }
         }
         Ok(())

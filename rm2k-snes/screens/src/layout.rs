@@ -30,8 +30,10 @@ use serde_json::{json, Map, Value};
 // the party.
 //
 // What the cartridge does on the fly is **choose which block of cells it
-// writes on each row**: per slot there are four —empty or full, with cursor
-// or without— and moving the cursor is rewriting two rows.
+// writes on each row**: per slot there are two —empty or full—. The cursor
+// is the System's, on BG1 with the actor choice's tiles —see `slot_bar`—,
+// so moving it is erasing one rectangle and painting another. Until
+// 2026-10-16 it was a ">" baked into two more variants per slot.
 //
 // The row is **48 pixels, six cells**, which is the size of a FaceSet face:
 // `Window_SaveFile::Refresh` in easyrpg draws, per file, the file name, the
@@ -48,6 +50,12 @@ pub const SLOT_STEP: usize = 48;
 pub const SLOT_ROWS: usize = 6;
 /// Where the text starts.
 pub const SLOT_X: usize = 56;
+/// The slot cursor: `Window_SaveFile`'s, only over "File N", from four
+/// pixels left of the text and one line tall; its width is the file term's,
+/// two and a half spaces and eight more —see `slot_bar` in `borders`—.
+/// Measured against RPG_RT 2015 under Wine on 2026-10-16: on the first
+/// window, at y = 40, its red goes from x = 5 to 49 and y = 49 to 62.
+pub const SLOT_BAR_X: usize = SLOT_X - 4;
 /// How far apart the text lines in a row are.
 pub const LINE: usize = 16;
 pub const HEADER_Y: usize = 4;
@@ -114,9 +122,12 @@ pub const GLYPH_DY: usize = 2;
 pub const MENU_OPTIONS: usize = 5;
 pub const MENU_OPT_Y: usize = 8;
 pub const MENU_OPT_STEP: usize = 16;
-pub const MENU_OPT_COL: usize = 3;
+/// x = 8, RM2k's: the command window's frame and nothing else to its left.
+/// Until 2026-10-16 it was 24, with a ">" for a cursor in the column
+/// before; with the System's cursor there, four pixels left of the text and
+/// the column plus eight wide, at 24 it reached under the faces.
+pub const MENU_OPT_COL: usize = 1;
 pub const MENU_OPT_COLS: usize = 9;
-pub const MENU_CURSOR_COL: usize = 1;
 /// Which commands do something. The others would be drawn in the "cannot"
 /// colour, system colour 3, the way RM2k draws "Save" when it is
 /// forbidden; since 2026-10-12, when the skills got their screen, there
@@ -199,7 +210,7 @@ pub const ITEM_DESC_LINES: usize = 2;
 pub const ITEM_LIST_Y: usize = 56;
 pub const ITEM_ROWS: usize = 10;
 pub const ITEM_CURSOR_COL: usize = 1;
-/// x = 24, like the menu's commands.
+/// x = 24.
 pub const ITEM_NAME_COL: usize = 3;
 /// The longest name in A Blurred Line.
 pub const ITEM_NAME_WIDTH: usize = 20;
@@ -318,6 +329,15 @@ pub const TARGET_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE 
 /// bottom of "Ex" was left over black. Starting at 2 and not higher, the
 /// top cells are the actor choice's and the bar costs two tiles.
 pub const MENU_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, MENU_ACTOR_ROWS * CELL + 1);
+/// The command cursor on the pause menu, on the first command:
+/// `Window_Command`'s, four pixels left of the text and the window's width
+/// minus eight —the column's plus eight—, one command tall. Measured against
+/// RPG_RT 2015 under Wine on 2026-10-16: on a command window at x = 0 its
+/// red goes from x = 5 to 82, inside the System's dark pixel of edge. It
+/// goes on BG1 with the actor choice's tiles, like `MENU_BAR`, and stays on
+/// the command while that bar chooses an actor, as in RM2k. Until
+/// 2026-10-16 it was a ">" of the menu's text in the column before.
+pub const MENU_CMD_BAR: Rect = (MENU_OPT_COL * CELL - 4, MENU_OPT_Y, MENU_OPT_COLS * CELL + 8, MENU_OPT_STEP);
 /// BG1's colours: those of sprite palette 0, which on this screen are off
 /// and on the pause menu are not used: the experience goes in palette 1.
 /// There is no room in 0..127: they are the menu bank's palettes.
@@ -788,7 +808,7 @@ pub fn publish() -> Value {
         FACE_CELLS, FACE_COL, FACE_STEP, FACES_MAX, NAME_COL, NAME_COLS, NAME_ROW, LEVEL_ROW,
         LEVEL_DIGITS, LEVEL_COL, FACE_PALETTES_MAX, SLOT_TILES_MAX, GLYPH_COL, GLYPH_ROW,
         GLYPH_DX, GLYPH_DY, MENU_OPTIONS, MENU_OPT_Y, MENU_OPT_STEP, MENU_OPT_COL,
-        MENU_OPT_COLS, MENU_CURSOR_COL, MENU_ITEMS, MENU_SKILL, MENU_EQUIPMENT, MENU_SAVE, MENU_END,
+        MENU_OPT_COLS, MENU_ITEMS, MENU_SKILL, MENU_EQUIPMENT, MENU_SAVE, MENU_END,
         MENU_DONE, MENU_GOLD_Y, MENU_GOLD_COL, MENU_GOLD_DIGITS, MENU_CURRENCY_COL,
         MENU_CURRENCY_COLS, MENU_ACTOR_COL, MENU_ACTOR_COLS, MENU_ACTOR_ROWS, MENU_TEXT_X,
         MENU_STATUS_DX, MENU_PARTY_ROWS, MENU_HP_DIGITS, MENU_HP_COL, MENU_HP_ROW,

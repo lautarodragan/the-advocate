@@ -21,10 +21,11 @@
 ; asking whether the slot was taken, because `Scene_Save::Action` does not
 ; ask either.
 ;
-; The screen overwrote the tiles in VRAM and palette 0, and `back_to_map`
-; puts them back. The game state is not touched: the event table, the move
-; routes, the OAM and the poses in VRAM stay as they were, and that is why
-; `enter_map` is not called: it would reset all of that.
+; The screen overwrote the tiles in VRAM, palette 0 and the sprites' first,
+; and `back_to_map` and `menu_exp_close` put them back. The game state is
+; not touched: the event table, the move routes, the OAM and the poses in
+; VRAM stay as they were, and that is why `enter_map` is not called: it
+; would reset all of that.
 ;
 ; Until 2026-09-10 this saved to the loaded slot —or to the first one—
 ; without showing anything, and the attempt to open the screen gave "black
@@ -40,6 +41,9 @@
     jsr set_slot
     jsr save_game
 cancelled:
+    ; The cursor's colours went in the sprites' palette 0, as on the pause
+    ; menu, which puts them back the same way: see `menu_bar_upload`.
+    jsl f:menu_exp_close
     jsl f:screen_unerase        ; the map comes back even if an event erased it
     jsr back_to_map
     ply

@@ -216,6 +216,12 @@ fn here() -> PathBuf {
 /// A whole cartridge's request: the test maps, each with its timer's mask,
 /// and the rest of `emit-<name>.json`.
 fn emit_request(name: &str) -> Emit {
+    emit_request_with(name, 0)
+}
+
+/// [`emit_request`], with the old slot rows' variant `cursor` as the rows:
+/// see [`with_the_system_cursors`].
+fn emit_request_with(name: &str, cursor: usize) -> Emit {
     let read = |file: &str| -> serde_json::Value {
         serde_json::from_str(&std::fs::read_to_string(here().join(file)).unwrap()).unwrap()
     };
@@ -228,7 +234,29 @@ fn emit_request(name: &str) -> Emit {
     value["maps"] = maps["maps"].take();
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
+    with_the_system_cursors(&mut value["screens"], cursor);
     serde_json::from_value(value).unwrap()
+}
+
+/// The System's cursors in the screens stage's answer, which came on
+/// 2026-10-16, after the requests were written: the slot rows lose their
+/// variant with a ">" —the one without it, `cursor` 0, or the one with it,
+/// 1, which is how [`with_the_cursors_as_before`] gets those blocks back—,
+/// the menu loses its ">", and the actor choice's answer carries the command
+/// cursor and the slot cursor, made up here: one cell each.
+fn with_the_system_cursors(screens: &mut serde_json::Value, cursor: usize) {
+    let rows: Vec<Vec<serde_json::Value>> = screens["slots"]["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row.as_array().unwrap().iter().map(|full| full[cursor].clone()).collect())
+        .collect();
+    screens["slots"]["rows"] = serde_json::json!(rows);
+    screens["slots"]["menu"].as_object_mut().unwrap().remove("cursor");
+    screens["target"]["menu_cmd"] = serde_json::json!([1]);
+    screens["target"]["menu_cmd_at"] = serde_json::json!([1, 1, 1, 1]);
+    screens["target"]["slot_bar"] = serde_json::json!([2]);
+    screens["target"]["slot_bar_at"] = serde_json::json!([3, 1, 6, 1]);
 }
 
 /// The shop's party in the screens stage's answer, which came on
@@ -252,6 +280,139 @@ fn with_the_shop_party(screens: &mut serde_json::Value) {
             screens["layout"][*name] = k.into();
         }
     }
+}
+
+/// The text with the ">" cursors as the Python wrote them, before the
+/// System's cursors of 2026-10-16. Each slot's row had four variants and not
+/// two: the one with the ">" goes back after each, from the answer with
+/// `cursor` 1 —its `.block` the same size—, and the slot block tables, the
+/// faces' indices and the menu's blocks shift by the two variants per slot
+/// that are back. The menu had its ">" in two cells, and where each one went,
+/// in bank 0; what goes out is where the two cursors go on BG1 and their
+/// cells, checked here to be the made-up ones of
+/// [`with_the_system_cursors`].
+fn with_the_cursors_as_before(text: &str, name: &str) -> String {
+    let with_cursor = rm2k_snes_mapdata::emit::emit(&emit_request_with(name, 1), &db()).unwrap().text;
+    let request: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(here().join(format!("tests/emit-{name}.json"))).unwrap()).unwrap();
+    let screens = &request["screens"];
+    let slots = screens["slots"]["rows"].as_array().unwrap().len();
+    let shift = 2 * slots as i64;
+    let is_row = |label: &str| -> bool {
+        let parts: Vec<&str> = label.split('_').collect();
+        parts.len() == 3
+            && parts[0] == "slot"
+            && parts[1].chars().all(|c| c.is_ascii_digit())
+            && parts[2].len() == 1
+            && parts[2].chars().all(|c| c.is_ascii_digit())
+    };
+    let lines: Vec<&str> = text.split('\n').collect();
+    let other: Vec<&str> = with_cursor.split('\n').collect();
+    assert_eq!(lines.len(), other.len());
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        if let Some(label) = line.strip_suffix(':').filter(|l| is_row(l)) {
+            assert!(out.last().unwrap().starts_with(".block "));
+            let size = out.last().unwrap().clone();
+            out.push(format!("{label}0:"));
+            out.push(lines[i + 1].to_string());
+            out.push(size);
+            out.push(format!("{label}1:"));
+            out.push(other[i + 1].to_string());
+            i += 2;
+            continue;
+        }
+        if ["slot_block_lo:", "slot_block_hi:", "slot_block_bk:"].contains(&line) {
+            let size: i64 = out.pop().unwrap().strip_prefix(".block ").unwrap().parse().unwrap();
+            out.push(format!(".block {}", size + shift));
+            out.push(line.to_string());
+            let (indent, list) = lines[i + 1].split_at(lines[i + 1].find(".byte ").unwrap() + 6);
+            let names: Vec<String> = list
+                .split(", ")
+                .flat_map(|n| {
+                    let (prefix, label) = n.split_at(1);
+                    if is_row(label) {
+                        vec![format!("{prefix}{label}0"), format!("{prefix}{label}1")]
+                    } else {
+                        vec![n.to_string()]
+                    }
+                })
+                .collect();
+            out.push(format!("{indent}{}", names.join(", ")));
+            i += 2;
+            continue;
+        }
+        if line == "slot_face_block:" {
+            out.push(line.to_string());
+            let (indent, list) = lines[i + 1].split_at(lines[i + 1].find(".byte ").unwrap() + 6);
+            let blocks: Vec<String> = list
+                .split(", ")
+                .map(|b| match b.parse::<i64>().unwrap() {
+                    255 => "255".to_string(),
+                    n => (n + shift).to_string(),
+                })
+                .collect();
+            out.push(format!("{indent}{}", blocks.join(", ")));
+            i += 2;
+            continue;
+        }
+        if let Some((name, value)) = ["MENU_BLK_OPTION   = ", "MENU_BLK_CURRENCY = ", "MENU_BLK_ROW      = "]
+            .iter()
+            .find_map(|p| line.strip_prefix(p).map(|v| (*p, v)))
+        {
+            out.push(format!("{name}{}", value.parse::<i64>().unwrap() + shift));
+            i += 1;
+            continue;
+        }
+        if line == "menu_option_vram:" {
+            let layout = &screens["layout"];
+            let back = layout["MENU_OPT_COL"].as_i64().unwrap() - layout["MENU_CURSOR_COL"].as_i64().unwrap();
+            let (indent, list) = lines[i + 1].split_at(lines[i + 1].find(".word ").unwrap() + 6);
+            let cursor: Vec<String> = list.split(", ").map(|v| (v.parse::<i64>().unwrap() - back).to_string()).collect();
+            out.push(line.to_string());
+            out.push(lines[i + 1].to_string());
+            out.push("menu_cursor_vram:".to_string());
+            out.push(format!("{indent}{}", cursor.join(", ")));
+            i += 2;
+            continue;
+        }
+        if line == "menu_row_vram:" {
+            let cells: Vec<String> = screens["slots"]["menu"]["cursor"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|c| format!("${:04X}", c.as_i64().unwrap() | 0x2000))
+                .collect();
+            out.push(line.to_string());
+            out.push(lines[i + 1].to_string());
+            out.push("menu_cursor_cells:".to_string());
+            out.push(format!("     .word {}", cells.join(", ")));
+            i += 2;
+            continue;
+        }
+        if line == "menu_cursor_vram:" || line == "slot_bar_vram:" {
+            assert!(out.pop().unwrap().starts_with(".block "));
+            assert!(lines[i + 1].starts_with("    .word "));
+            i += 2;
+            continue;
+        }
+        if line == "menu_cmd_cells:" {
+            out.pop();
+            let cut = [
+                "menu_cmd_cells:", "    .byte $01,$00", "MENU_CMD_ROW0 = 1", "MENU_CMD_ROWS = 1",
+                "MENU_CMD_COL0 = 1", "MENU_CMD_COLS = 1", ".block 2", "slot_bar_cells:", "    .byte $02,$00",
+                "SLOT_BAR_ROW0 = 3", "SLOT_BAR_ROWS = 1", "SLOT_BAR_COL0 = 6", "SLOT_BAR_COLS = 1",
+            ];
+            assert_eq!(&lines[i..i + cut.len()], &cut);
+            i += cut.len();
+            continue;
+        }
+        out.push(line.to_string());
+        i += 1;
+    }
+    out.join("\n")
 }
 
 /// The text without the shop's party, which came on 2026-10-15: its
@@ -841,7 +1002,8 @@ fn without_actor_level(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&emitted.text))))));
+    let text = with_the_cursors_as_before(&emitted.text, "bare");
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&text))))));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&text)))))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
@@ -853,7 +1015,8 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&emitted.text))))));
+    let text = with_the_cursors_as_before(&emitted.text, "whole");
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&text))))));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&text)))))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
@@ -909,6 +1072,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
     }
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
+    with_the_system_cursors(&mut value["screens"], 0);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -1099,6 +1263,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     value["maps"] = maps["maps"].take();
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
+    with_the_system_cursors(&mut value["screens"], 0);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 

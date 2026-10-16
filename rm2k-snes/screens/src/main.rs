@@ -216,7 +216,8 @@ fn do_render(args: &GameArgs) -> Result<()> {
         Ok(fit::skin_for(&game, &skin, screen, text)?.0)
     };
     let screen: Picture = match json.text("screen")?.as_str() {
-        // The pause menu's bar is the actor choice's: see `menu_bar_layer`.
+        // The pause menu's bar and its command cursor are drawn with the
+        // actor choice's tiles: see `target_screens`.
         "menu" => render::menu(
             &game,
             &fitted(fit::Screen::Target)?,
@@ -275,9 +276,11 @@ fn do_render(args: &GameArgs) -> Result<()> {
                 .into_iter()
                 .map(|(k, v)| (k as usize, v))
                 .collect();
+            // The slot cursor is drawn with the actor choice's tiles: see
+            // `slot_bar_layer`.
             render::slot_screen(
                 &game,
-                &skin,
+                &fitted(fit::Screen::Target)?,
                 slots,
                 &json.flags("full")?,
                 chosen,
