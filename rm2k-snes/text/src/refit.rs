@@ -104,26 +104,52 @@ pub const ESCAPE_CLOSE: char = '^';
 /// How many pauses a box's tail may carry.
 pub const PAUSES_MAX: usize = 15;
 
-/// A box whose escapes a console cannot show: it is left as it is.
+/// A box a console cannot show: it is left as it is. Since 2026-10-15 only
+/// a tail of more pauses than [`PAUSES_MAX`] is one; an escape no longer is.
 #[derive(Debug, PartialEq, Eq)]
 pub struct CannotCompile;
 
-/// The lines without their escape tail, how many pauses it has and whether
-/// it closes on its own.
+/// A box without its escape tail: what [`escape_tail`] answers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Untailed {
+    /// The lines, with the waits in the middle as [`wait_mark`]s, a `\\` as
+    /// [`backslash_mark`] and without the escapes in [`Untailed::dropped`].
+    pub lines: Vec<String>,
+    /// How many `\|` the tail carries.
+    pub pauses: usize,
+    /// Whether the box closes on its own: a `\^` in the tail, or anywhere.
+    pub auto_close: bool,
+    /// Each escape the console cannot show, as written —`\c[2]`, `\$`, `\>`—,
+    /// in the order of the box: they are not in `lines`, and whoever
+    /// compiles the box says it lost them.
+    pub dropped: Vec<String>,
+}
+
+/// The lines without their escape tail, how many pauses it has, whether it
+/// closes on its own, and the escapes it drops.
 ///
-/// Both tail escapes are accepted only **as a tail at the end of the box's
-/// last line**, which is where a game puts them; the tail may carry spaces
-/// in between, and it eats them. `\\.`, `\\!` and `\\|` anywhere else are
-/// waits in the middle of the box, and come out as one [`wait_mark`] each;
-/// `\\c[n]` and `\\s[n]` are dropped, without color or speed (debt, see
-/// `with_wait_marks`). Any other escape, or more pauses than
-/// [`PAUSES_MAX`], is [`CannotCompile`].
+/// Both tail escapes are taken **as a tail at the end of the box's last
+/// line**, which is where a game puts them; the tail may carry spaces in
+/// between, and it eats them. `\\.`, `\\!` and `\\|` anywhere else are waits
+/// in the middle of the box, and come out as one [`wait_mark`] each; a `\\^`
+/// anywhere else closes the box on its own all the same, since RPG_RT closes
+/// it at the end of the box and not where the `\\^` is (easyrpg's
+/// `Window_Message`, `kill_page`).
+///
+/// **Any other escape is dropped**, with its argument if it takes one, and
+/// listed in [`Untailed::dropped`]: the box compiles without it, and the
+/// event compiler notes each one as a loss, so it is played without the
+/// color, the speed or the gold window and the build says so. taro's, from
+/// 2026-10-15: a game is played before each escape is done. Until that day
+/// any escape but the tail, the waits, `\c[n]` and `\s[n]` left the page
+/// out. Which ones and what each one loses is in `with_wait_marks`. More
+/// pauses than [`PAUSES_MAX`] is still [`CannotCompile`].
 ///
 /// It is the only copy: the reflow works around it before the event
 /// compiler sees the boxes, and the compiler, `rm2k-snes-events`, cuts the
 /// tail off with it when it compiles the box. Its cases are
 /// `tests/escapes.json`.
-pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), CannotCompile> {
+pub fn escape_tail(lines: &[String]) -> Result<Untailed, CannotCompile> {
     let mut lines = lines.to_vec();
     let mut pauses = 0;
     let mut auto_close = false;
@@ -139,13 +165,16 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
         let n = lines.len();
         lines[n - 1] = text[..cut].iter().collect();
     }
+    let mut dropped = Vec::new();
     for line in lines.iter_mut() {
-        *line = with_wait_marks(line);
+        let (marked, closes) = with_wait_marks(line, &mut dropped);
+        *line = marked;
+        auto_close |= closes;
     }
-    if lines.iter().any(|t| t.contains(ESCAPE)) || pauses > PAUSES_MAX {
+    if pauses > PAUSES_MAX {
         return Err(CannotCompile);
     }
-    Ok((lines, pauses, auto_close))
+    Ok(Untailed { lines, pauses, auto_close, dropped })
 }
 
 /// Where the escape tail of a box's last line starts, in characters: the
@@ -231,55 +260,102 @@ pub fn with_wait_escapes(line: &str) -> String {
     out
 }
 
+/// The escapes that take an argument in brackets, by their letter: the
+/// color, the speed, an actor's name and a variable's value. The last two
+/// the event compiler writes before —see `with_names` and `with_variables`
+/// in `rm2k-snes-events`—, so what reaches here of them is what it could
+/// not: an actor past 255, a variable inside a variable.
+const WITH_ARGUMENT: [char; 8] = ['c', 'C', 's', 'S', 'n', 'N', 'v', 'V'];
+
 /// The line with the waits that are not in the tail as marks: `\.` (a
 /// quarter of a second), `\|` (a second) and `\!` (a key), each a
 /// [`wait_mark`]. The console waits there in the middle of the box as
-/// easyrpg's `Window_Message` does: see `runtime/message_waits.s`.
-/// `\c[n]` and `\s[n]`, either case, are dropped: a color and a speed the
-/// console does not have (`tasks/message-colours-and-speed.md`).
-/// A `\\` is RM2k's literal backslash: it comes out as one [`backslash_mark`],
-/// so the letter after it is not taken as an escape either.
-fn with_wait_marks(line: &str) -> String {
+/// easyrpg's `Window_Message` does: see `runtime/message_waits.s`. A `\\`
+/// is RM2k's literal backslash: it comes out as one [`backslash_mark`], so
+/// the letter after it is not taken as an escape either. A `\^` comes off,
+/// and the second answer says the line had one: the box closes on its own.
+///
+/// **Every other escape is dropped and pushed to `dropped`**, as written:
+/// they take no room on screen, and being dropped here they are not
+/// measured either. What each one loses:
+///
+/// * `\c[n]` the color and `\s[n]` the speed, which the console does not
+///   have (`tasks/message-colours-and-speed.md`); with their argument as
+///   RPG_RT reads it, up to its `]` —past a `\V[n]` inside— or to the end
+///   of the line, and only the letter without a `[`
+///   (easyrpg's `Game_Message::ParseParam`).
+/// * `\n[n]` and `\v[n]` the event compiler did not write, the same way.
+/// * `\$` the gold window, `\>` and `\<` the instant text, and `\_` the
+///   half space, which the line loses: making it a narrow space wants a
+///   mark the composer in `runtime/` advances by, and it is done when a
+///   game misses it.
+/// * Any other letter, and a backslash at the end of the line: RPG_RT
+///   shows nothing for them either (the `default` of easyrpg's
+///   `Window_Message`), and only the letter goes, so a `[3]` after it is
+///   drawn as RPG_RT draws it. They are listed so that a patch's code or a
+///   slip in the game does not go unseen.
+fn with_wait_marks(line: &str, dropped: &mut Vec<String>) -> (String, bool) {
     let mut out = String::with_capacity(line.len());
-    let mut chars = line.chars().peekable();
-    while let Some(c) = chars.next() {
-        if c == ESCAPE {
-            match chars.peek() {
-                Some(&w @ ('.' | '!' | '|')) => {
-                    chars.next();
-                    out.push(wait_mark(w));
-                    continue;
-                }
-                // `\c[n]` (color) and `\s[n]` (speed): ignored, which loses the
-                // color and the speed but compiles the box. They take no room on
-                // screen, and being dropped here they are not measured either.
-                Some('c' | 'C' | 's' | 'S') => {
-                    let mut look = chars.clone();
-                    look.next();
-                    if look.next() == Some('[') {
-                        let mut digits = 0;
-                        let mut rest = look.clone();
-                        while rest.peek().is_some_and(char::is_ascii_digit) {
-                            rest.next();
-                            digits += 1;
-                        }
-                        if digits > 0 && rest.next() == Some(']') {
-                            chars = rest;
-                            continue;
-                        }
-                    }
-                }
-                Some(&ESCAPE) => {
-                    chars.next();
-                    out.push(backslash_mark());
-                    continue;
-                }
-                _ => {}
+    let mut closes = false;
+    let chars: Vec<char> = line.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c != ESCAPE {
+            out.push(c);
+            i += 1;
+            continue;
+        }
+        match chars.get(i + 1) {
+            Some(&w @ ('.' | '!' | '|')) => {
+                out.push(wait_mark(w));
+                i += 2;
+            }
+            Some(&ESCAPE) => {
+                out.push(backslash_mark());
+                i += 2;
+            }
+            Some(&ESCAPE_CLOSE) => {
+                closes = true;
+                i += 2;
+            }
+            Some(&letter) if WITH_ARGUMENT.contains(&letter) && chars.get(i + 2) == Some(&'[') => {
+                let end = argument_end(&chars, i + 2);
+                dropped.push(chars[i..end].iter().collect());
+                i = end;
+            }
+            Some(_) => {
+                dropped.push(chars[i..i + 2].iter().collect());
+                i += 2;
+            }
+            None => {
+                dropped.push(ESCAPE.to_string());
+                i += 1;
             }
         }
-        out.push(c);
     }
-    out
+    (out, closes)
+}
+
+/// Where the argument that opens at `open` —a `[`— ends: past its `]`,
+/// counting the brackets of a `\V[n]` inside, or the end of the line if it
+/// does not close. Another `[` inside is a letter, as RPG_RT reads it.
+fn argument_end(chars: &[char], open: usize) -> usize {
+    let mut depth = 0;
+    for (k, &c) in chars.iter().enumerate().skip(open) {
+        let variable = k >= 2 && chars[k - 2] == ESCAPE && matches!(chars[k - 1], 'v' | 'V');
+        match c {
+            '[' if k == open || variable => depth += 1,
+            ']' => {
+                depth -= 1;
+                if depth == 0 {
+                    return k + 1;
+                }
+            }
+            _ => {}
+        }
+    }
+    chars.len()
 }
 
 /// How a line is measured: the advances of the font it will be drawn
@@ -414,25 +490,37 @@ pub fn is_speaker(line: &str) -> bool {
 
 /// Whether the box is fully visible, not counting its escape tail.
 pub fn fits(lines: &[String], measure: &Measure, rows: usize) -> Result<bool, CannotCompile> {
-    let (untailed, _, _) = escape_tail(lines)?;
+    let untailed = escape_tail(lines)?.lines;
     Ok(untailed.len() <= rows && untailed.iter().all(|t| measure.of(t) <= measure.width))
 }
 
-/// The box's escape tail, exactly as written, and the lines without it.
+/// What a reflow takes apart: the lines without the tail, the tail exactly
+/// as written, and the escapes the box drops, written together.
+struct Parts {
+    untailed: Vec<String>,
+    tail: String,
+    dropped: String,
+}
+
+/// The box's escape tail, exactly as written, the lines without it and
+/// what the box drops.
 ///
 /// The tail is cut from the line as it was written, and not by the length
 /// of what `escape_tail` left: an escape in the middle of the last line is
 /// a mark there, one character for two, and counting with it cut the tail
-/// short.
-fn tail(lines: &[String]) -> Result<(Vec<String>, String), CannotCompile> {
-    let (untailed, _, _) = escape_tail(lines)?;
-    match lines.last() {
-        None => Ok((untailed, String::new())),
-        Some(last) => {
-            let tail = last.chars().skip(tail_start(last)).collect();
-            Ok((untailed, tail))
-        }
+/// short. A `\^` in the middle of the box goes to the tail, which is where
+/// it acts.
+fn tail(lines: &[String]) -> Result<Parts, CannotCompile> {
+    let Untailed { lines: untailed, auto_close, dropped, .. } = escape_tail(lines)?;
+    let mut tail: String = match lines.last() {
+        None => String::new(),
+        Some(last) => last.chars().skip(tail_start(last)).collect(),
+    };
+    if auto_close && !tail.contains(&format!("{ESCAPE}{ESCAPE_CLOSE}")) {
+        tail.push(ESCAPE);
+        tail.push(ESCAPE_CLOSE);
     }
+    Ok(Parts { untailed, tail, dropped: dropped.concat() })
 }
 
 fn prefix(text: &str, n: usize) -> String {
@@ -727,7 +815,7 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
         Err(CannotCompile) | Ok(true) => return vec![lines.to_vec()],
         Ok(false) => {}
     }
-    let (mut untailed, tail) = match tail(lines) {
+    let Parts { mut untailed, tail, dropped } = match tail(lines) {
         Ok(t) => t,
         Err(CannotCompile) => return vec![lines.to_vec()],
     };
@@ -750,6 +838,11 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
         last.push(String::new());
     }
     last.last_mut().expect("a line").push_str(&tail);
+    // What the box drops goes at the start of the first one, where the
+    // compiler finds it to say it was lost: where it was among the words is
+    // gone with the reflow, and it does not matter while the console draws
+    // none of it. A color that is drawn some day will want its place back.
+    frames.iter_mut().flatten().next().expect("a line").insert_str(0, &dropped);
     for line in frames.iter_mut().flatten() {
         *line = with_wait_escapes(line);
     }
@@ -766,10 +859,10 @@ mod tests {
 
     #[test]
     fn the_tail_comes_off_with_its_spaces() {
-        let (lines, pauses, close) = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
-        assert_eq!(lines, s(&["Hi", "there"]));
-        assert_eq!((pauses, close), (2, true));
-        let middle = escape_tail(&s(&["a \\| b\\. c\\!"])).unwrap().0;
+        let t = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
+        assert_eq!(t.lines, s(&["Hi", "there"]));
+        assert_eq!((t.pauses, t.auto_close), (2, true));
+        let middle = escape_tail(&s(&["a \\| b\\. c\\!"])).unwrap().lines;
         let marks: String = ['a', ' ', wait_mark('|'), ' ', 'b', wait_mark('.'), ' ', 'c', wait_mark('!')]
             .iter()
             .collect();
@@ -791,6 +884,22 @@ mod tests {
         for b in &boxes {
             assert!(fits(b, &m, 4).unwrap(), "{b:?}");
         }
+    }
+
+    /// A reflowed box keeps what it drops, at the start of its first box, so
+    /// the compiler still says it lost it; and a `\^` in the middle goes to
+    /// the tail of the last one, where it closes the box.
+    #[test]
+    fn what_a_reflowed_box_drops_is_still_there() {
+        let m = Measure::columns(10);
+        let b = s(&["one \\c[2]two\\c[0] three\\^ four five six seven"]);
+        let boxes = refit_measured(&b, &m, 2);
+        assert!(boxes.len() > 1, "{boxes:?}");
+        assert!(boxes[0][0].starts_with("\\c[2]\\c[0]one"), "{boxes:?}");
+        assert!(boxes.last().unwrap().last().unwrap().ends_with("seven\\^"), "{boxes:?}");
+        let dropped: Vec<String> = boxes.iter().flat_map(|b| escape_tail(b).unwrap().dropped).collect();
+        assert_eq!(dropped, s(&["\\c[2]", "\\c[0]"]));
+        assert!(boxes.iter().all(|b| fits(b, &m, 2).unwrap()), "{boxes:?}");
     }
 
     #[test]

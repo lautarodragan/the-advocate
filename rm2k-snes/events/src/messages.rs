@@ -7,7 +7,7 @@
 
 use crate::fail::{Bad, Result, Step, Stop};
 use rm2k_snes_text::font::{CONSOLE_GLYPHS, WIDTH};
-use rm2k_snes_text::refit::{is_backslash_mark, wait_of, Measure, ESCAPE};
+use rm2k_snes_text::refit::{is_backslash_mark, wait_of, Measure, Untailed, ESCAPE};
 use std::collections::{BTreeMap, HashMap};
 
 /// The first byte value that stands for a pair of letters and not for one.
@@ -333,18 +333,40 @@ impl Window {
 /// be left waiting for an A that RM2k never asked for and the whole page
 /// would last as long as the player takes.
 ///
-/// **Any other escape still does not compile**, and that is on purpose:
-/// drawing one as its letters would show. `\V[n]`, the value of a variable,
-/// is the exception, and it does not come through here: the compiler turns
-/// it into a mark before —see [`VARIABLE`]— and the ROM writes the digits
-/// when the box opens.
+/// **Any other escape is dropped**, and the box compiles without it: the
+/// color, the speed, the gold window, the instant text. Drawing one as its
+/// letters would show, and leaving the page out —what was done until
+/// 2026-10-15— kept games from being played for a color. What is dropped
+/// comes back in `Untailed::dropped`, and [`Messages`] keeps it until the
+/// compiler takes it —[`Messages::take_dropped`]— to note it as a loss, so
+/// the build lists it in `degradations.json`. `\V[n]` and `\N[n]` do not
+/// come through here: the compiler turns them into marks before —see
+/// [`VARIABLE`]— and the ROM writes the digits or the name when the box
+/// opens.
 ///
 /// **The rule is `rm2k-snes-text`'s**, `refit::escape_tail`, with its
 /// cases: the boxes are reflowed around it for the console's window before
 /// the compiler sees them, and the compiler cuts the tail off with the same
 /// one. What it cannot compile stops the page.
-pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
+pub fn escape_tail(lines: &[String]) -> Step<Untailed> {
     rm2k_snes_text::refit::escape_tail(lines).map_err(|_| Stop::Cannot)
+}
+
+/// What a dropped escape loses, said for `degradations.json`: the escape as
+/// written, and what RPG_RT does with it.
+pub fn dropped_escape(escape: &str) -> String {
+    let what = match escape.chars().nth(1) {
+        Some('c' | 'C') => "the text's color",
+        Some('s' | 'S') => "the text's speed",
+        Some('n' | 'N') => "an actor's name the compiler could not write",
+        Some('v' | 'V') => "a variable's value the compiler could not write",
+        Some('$') => "the gold window",
+        Some('>') => "the instant text",
+        Some('<') => "the end of the instant text",
+        Some('_') => "a half space",
+        _ => return format!("{escape} is dropped from a text box, as RPG_RT shows nothing for it either"),
+    };
+    format!("{escape} is dropped from a text box, and with it {what}")
 }
 
 /// The units of what fits of a line: each letter as its font index, that is
@@ -487,6 +509,9 @@ pub struct Messages {
     capped: bool,
     where_: HashMap<Key, usize>,
     texts: BTreeMap<usize, Vec<String>>,
+    /// What the boxes added dropped, until the compiler takes it: see
+    /// [`Messages::take_dropped`].
+    dropped: Vec<String>,
 }
 
 impl Messages {
@@ -499,6 +524,7 @@ impl Messages {
             capped: true,
             where_: HashMap::new(),
             texts: BTreeMap::new(),
+            dropped: Vec::new(),
         }
     }
 
@@ -557,12 +583,24 @@ impl Messages {
     /// ROM draws without stopping. A `ShowMessage` goes through
     /// [`Messages::add_waiting`].
     pub fn add(&mut self, lines: &[String]) -> Step<usize> {
-        let (lines, pauses, auto_close) = escape_tail(lines)?;
-        let lines: Vec<String> = lines
+        let t = escape_tail(lines)?;
+        let lines: Vec<String> = t
+            .lines
             .iter()
             .map(|t| t.chars().filter(|&c| wait_of(c).is_none()).collect())
             .collect();
-        self.store(lines, pauses, auto_close)
+        let at = self.store(lines, t.pauses, t.auto_close)?;
+        self.dropped.extend(t.dropped);
+        Ok(at)
+    }
+
+    /// The escapes the boxes added since the last call dropped, as written
+    /// and in order: see [`escape_tail`]. The compiler takes them after
+    /// each command that adds a box, to note them as losses of that command.
+    /// They are kept only for a box that was stored: one that stops the page
+    /// leaves none behind for the next command to take.
+    pub fn take_dropped(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.dropped)
     }
 
     /// The same as [`Messages::add`], but the box **keeps its waits** in the
@@ -572,8 +610,10 @@ impl Messages {
     /// a number's box is composed with another opcode watching it, and the
     /// troops' is drawn by the battle, which does not know how to stop.
     pub fn add_waiting(&mut self, lines: &[String]) -> Step<usize> {
-        let (lines, pauses, auto_close) = escape_tail(lines)?;
-        self.store(lines, pauses, auto_close)
+        let t = escape_tail(lines)?;
+        let at = self.store(t.lines, t.pauses, t.auto_close)?;
+        self.dropped.extend(t.dropped);
+        Ok(at)
     }
 
     fn store(&mut self, lines: Vec<String>, pauses: usize, auto_close: bool) -> Step<usize> {
@@ -672,11 +712,12 @@ mod tests {
 
     #[test]
     fn the_tail_comes_off_and_says_how_long_the_box_lasts() {
-        let (lines, pauses, close) = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
-        assert_eq!((lines, pauses, close), (s(&["Hi", "there"]), 2, true));
+        let t = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
+        assert_eq!((t.lines, t.pauses, t.auto_close), (s(&["Hi", "there"]), 2, true));
         let middle = format!("a {} b", rm2k_snes_text::refit::wait_mark('|'));
-        assert_eq!(escape_tail(&s(&["a \\| b"])).unwrap().0, vec![middle]);
-        assert!(escape_tail(&s(&["\\V[1]"])).is_err());
+        assert_eq!(escape_tail(&s(&["a \\| b"])).unwrap().lines, vec![middle]);
+        let t = escape_tail(&s(&["\\V[1]"])).unwrap();
+        assert_eq!((t.lines, t.dropped), (s(&[""]), s(&["\\V[1]"])));
     }
 
     #[test]
@@ -700,6 +741,19 @@ mod tests {
         assert!(matches!(m.add(&s(&["Côte"])), Err(Stop::Cannot)));
         assert_eq!(m.count(), 0);
         assert_eq!(m.add(&s(&["Cote"])).ok(), Some(0));
+    }
+
+    /// What a box drops is kept until the compiler takes it, and only if the
+    /// box was stored: one that stops its page leaves nothing for the next.
+    #[test]
+    fn what_a_box_drops_is_taken_once_and_only_if_it_is_stored() {
+        let mut m = Messages::new(1, WINDOW);
+        assert!(m.add(&s(&["Côte \\$"])).is_err());
+        assert!(m.take_dropped().is_empty());
+        m.add(&s(&["\\c[1]A\\c[0]"])).ok().unwrap();
+        m.add_waiting(&s(&["B\\>", "\\c[1]C"])).ok().unwrap();
+        assert_eq!(m.take_dropped(), s(&["\\c[1]", "\\c[0]", "\\>", "\\c[1]"]));
+        assert!(m.take_dropped().is_empty());
     }
 
     #[test]
