@@ -124,13 +124,54 @@ impl Degradations {
             self.losses.len(),
             counts.len()
         );
+        if let Some(line) = self.plain_warning() {
+            println!("{line}");
+        }
         Ok(())
+    }
+
+    /// The warning for the letters the text boxes show plain —see
+    /// `rm2k_snes_text::plain`—, all of them in one line, or `None` if no
+    /// box does. A warning and not only one more count, because it is the
+    /// game's text that changes, which a player reads on every page.
+    fn plain_warning(&self) -> Option<String> {
+        let mut commands = 0;
+        let mut letters: Vec<String> = Vec::new();
+        for l in self.losses.iter().filter(|l| l["kind"] == "letter-plain") {
+            commands += 1;
+            let text = l["text"].as_str().unwrap_or("");
+            let each = text.split_once(": ").map_or("", |(_, e)| e);
+            for one in each.split(", ").filter(|e| !e.is_empty()) {
+                if !letters.iter().any(|x| x == one) {
+                    letters.push(one.to_string());
+                }
+            }
+        }
+        (commands > 0).then(|| {
+            format!(
+                "  WARNING, letter-plain: {commands} command(s) show letters the font does not have as plain ASCII: {}",
+                letters.join(", ")
+            )
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_plain_letters_are_one_warning_with_every_letter_once() {
+        let mut d = Degradations::default();
+        assert_eq!(d.plain_warning(), None);
+        let text = |t: &str| format!("letters the font does not have are shown plain: {t}");
+        d.losses.push(json!({"map": 8, "event": 3, "page": 1, "command": 0, "kind": "letter-plain", "text": text("é as e, ¿ as ?")}));
+        d.losses.push(json!({"map": 8, "event": 3, "page": 1, "command": 2, "kind": "letter-plain", "text": text("é as e, ß as ss")}));
+        assert_eq!(
+            d.plain_warning().unwrap(),
+            "  WARNING, letter-plain: 2 command(s) show letters the font does not have as plain ASCII: é as e, ¿ as ?, ß as ss"
+        );
+    }
 
     #[test]
     fn the_maps_go_first_and_in_order_then_the_rest() {

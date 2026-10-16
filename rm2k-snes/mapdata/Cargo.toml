@@ -19,6 +19,9 @@ lz2 = { path = "../../snes/lz2" }
 # The database as the battle reads it, and its rules for what an actor has
 # at its level: the tables of items, skills, enemies and troops come from it.
 rm2k-snes-battle = { path = "../battle" }
+# The plain ASCII that stands in for a letter the font lacks, in the names
+# and terms the text screens compose.
+rm2k-snes-text = { path = "../text" }
 # The sprite bank as the map's characters are laid out in it —where a
 # 32x32 block starts, how big a pose is— and the timer's glyphs: Wally's
 # numbers, from its `sprites`, written as it decided them.

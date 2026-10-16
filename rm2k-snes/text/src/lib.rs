@@ -10,6 +10,8 @@
 //! * [`refit`]: a `ShowMessage` box spread over as many boxes of `rows`
 //!   lines measured in pixels as it needs, with its speaker and its escape
 //!   tail.
+//! * [`plain`]: the letters RM2k's font has and the console's does not, as
+//!   the plain ASCII that stands in for them.
 //!
 //! It knows nothing about menus, nor about which screen a line lands on:
 //! whoever draws a screen decides that.
@@ -22,4 +24,5 @@ pub mod cells;
 pub mod font;
 mod glyphs;
 pub mod line;
+pub mod plain;
 pub mod refit;

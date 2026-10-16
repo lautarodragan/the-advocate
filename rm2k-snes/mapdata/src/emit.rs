@@ -157,9 +157,18 @@ struct Texts {
     count: usize,
 }
 
+/// A name or a term of the database with each letter the font lacks as its
+/// plain ASCII stand-in —an actor's `Unamë` as `Uname`, see
+/// `rm2k_snes_text::plain`—, where [`Texts::add`] would write a `?`.
+fn plain(text: &str) -> String {
+    rm2k_snes_text::plain::plain_text(text).0
+}
+
 impl Texts {
     /// What the text screens' font can write: the characters it has, a `?`
     /// for the others, cut to `width` —`item_text` in the screens stage—.
+    /// What comes from the screens stage has its plain letters stood in
+    /// already; what comes from the database goes through [`plain`] first.
     fn add(&mut self, text: &str) -> i64 {
         let fitted: String = text
             .chars()
@@ -1957,10 +1966,10 @@ impl Rest<'_> {
                 .actor(a as i32)
                 .map_err(|b| Bad::answer(b.message().to_string()))?
                 .name;
-            actor_text.insert(a, texts.add(name));
+            actor_text.insert(a, texts.add(&plain(name)));
         }
         // And each rename's, in the order `OP_CHANGE_NAME` counts them.
-        let name_text: Vec<i64> = r.names.iter().map(|(_, name)| texts.add(name)).collect();
+        let name_text: Vec<i64> = r.names.iter().map(|(_, name)| texts.add(&plain(name))).collect();
         let mut shop_text = None;
         for messages in list_at(textos, "shop")? {
             for lines in list(messages)? {
@@ -1988,7 +1997,7 @@ impl Rest<'_> {
                 "victory" => victory[0].clone(),
                 _ => term(db, liblcf)?,
             };
-            let k = texts.add(&value);
+            let k = texts.add(&plain(&value));
             battle_text.get_or_insert(k);
         }
         let battle_text = battle_text.unwrap_or(0);

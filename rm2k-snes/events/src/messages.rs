@@ -7,6 +7,7 @@
 
 use crate::fail::{Bad, Result, Step, Stop};
 use rm2k_snes_text::font::{CONSOLE_GLYPHS, WIDTH};
+use rm2k_snes_text::plain::plain_text;
 use rm2k_snes_text::refit::{is_backslash_mark, wait_of, Measure, Untailed, ESCAPE};
 use std::collections::{BTreeMap, HashMap};
 
@@ -279,7 +280,8 @@ impl Window {
     /// is known only when the box opens, and the ROM cuts at the edge what
     /// grows past it, which is what RM2k does with a line a name makes too
     /// long —it does not wrap it again—. A character the font does not have
-    /// is a space, and [`units`] stops the conversion on it anyway.
+    /// is a space: [`Messages::add`] has stood in the plain ASCII for the
+    /// ones that have it, and [`units`] stops the page on the rest.
     pub fn advance(&self, c: char) -> usize {
         if wait_of(c).is_some() {
             return 0; // a wait draws nothing
@@ -381,8 +383,9 @@ pub fn dropped_escape(escape: &str) -> String {
 /// The units of what fits of a line: each letter as its font index, that is
 /// ASCII minus 32 —the cursor's blank, DEL, is 95—, and each variable mark
 /// as its slot; a letter the font does not have is an error. `Messages::add`
-/// asks first, and stops the page that shows one: A Blurred Line does not
-/// have a single accented letter, but a game in French or German does.
+/// stands the plain ASCII in for the ones that have it —see
+/// `rm2k_snes_text::plain`— and asks after, and stops the page that shows
+/// one without it.
 fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
     window
         .fit(text)
@@ -521,6 +524,9 @@ pub struct Messages {
     /// What the boxes added dropped, until the compiler takes it: see
     /// [`Messages::take_dropped`].
     dropped: Vec<String>,
+    /// The letters the boxes added showed plain, until the compiler takes
+    /// them: see [`Messages::take_plain`].
+    plain: Vec<char>,
 }
 
 impl Messages {
@@ -534,6 +540,7 @@ impl Messages {
             where_: HashMap::new(),
             texts: BTreeMap::new(),
             dropped: Vec::new(),
+            plain: Vec::new(),
         }
     }
 
@@ -612,6 +619,14 @@ impl Messages {
         std::mem::take(&mut self.dropped)
     }
 
+    /// The letters the boxes added since the last call showed as their
+    /// plain ASCII stand-ins, once each and in order: see [`Messages::add`].
+    /// The compiler takes them with the dropped escapes, to note them as a
+    /// loss of the command.
+    pub fn take_plain(&mut self) -> Vec<char> {
+        std::mem::take(&mut self.plain)
+    }
+
     /// The same as [`Messages::add`], but the box **keeps its waits** in the
     /// middle —`\.`, `\|`, `\!`—, and the ROM stops at each one: the
     /// `ShowMessage`'s, which is the only window that does it in RM2k too.
@@ -626,15 +641,27 @@ impl Messages {
     }
 
     fn store(&mut self, lines: Vec<String>, pauses: usize, auto_close: bool) -> Step<usize> {
+        // A letter the console's font does not have —RM2k's has Latin-1, the
+        // console's only ASCII— is shown as its plain stand-in, `é` as `e`,
+        // before trimming, because `ß` and `…` take more than one letter.
+        let mut plain = Vec::new();
         let lines: Vec<String> = lines
             .iter()
             .take(self.window.lines)
-            .map(|t| self.window.fit(t))
+            .map(|t| {
+                let (t, letters) = plain_text(t);
+                plain.extend(letters);
+                self.window.fit(&t)
+            })
             .collect();
-        // A letter the console's font does not have stops this page and not
-        // the game: RM2k's font has Latin-1 and the console's only ASCII.
+        // One without a stand-in still stops this page and not the game.
         if lines.iter().any(|t| units(t, self.window).is_err()) {
             return Err(Stop::Cannot);
+        }
+        for c in plain {
+            if !self.plain.contains(&c) {
+                self.plain.push(c);
+            }
         }
         let key = (lines, pauses, auto_close);
         if let Some(&w) = self.where_.get(&key) {
@@ -742,14 +769,38 @@ mod tests {
         assert_eq!(m.bytes(), [1, 1, 33, 0, 1, 1, 35]);
     }
     /// A letter the console's font does not have —RM2k's has Latin-1, and
-    /// the games in French or German use it— stops the page that shows it,
-    /// and not the whole game: it is one more thing a page cannot compile.
+    /// the games in Spanish or German use it— is shown as its plain ASCII
+    /// stand-in, and the compiler takes which ones to note them as a loss.
+    /// Until 2026-10-16 it stopped the page, which left out most of the
+    /// talk of Zounds and Vampires Dawn.
     #[test]
-    fn a_letter_the_font_does_not_have_stops_the_page() {
+    fn a_letter_the_font_does_not_have_is_shown_plain() {
         let mut m = Messages::new(1, WINDOW);
-        assert!(matches!(m.add(&s(&["Côte"])), Err(Stop::Cannot)));
+        let at = m.add(&s(&["¿Côte?", "Weiß…"])).ok().unwrap();
+        assert_eq!(m.take_plain(), ['¿', 'ô', 'ß', '…']);
+        assert!(m.take_plain().is_empty());
+        // The same box as the one written plain: one offset, one copy.
+        assert_eq!(m.add(&s(&["?Cote?", "Weiss..."])).ok(), Some(at));
+        assert_eq!(m.count(), 1);
+    }
+
+    /// `ß` and `…` take more than one letter, so the stand-in goes before
+    /// the line is trimmed to the window: what does not fit is cut.
+    #[test]
+    fn a_stand_in_is_trimmed_to_the_window_like_any_letter() {
+        let mut m = Messages::new(1, Window::columns(4, 4));
+        let at = m.add(&s(&["aß…"])).ok().unwrap();
+        assert_eq!(m.texts[&at], s(&["ass."]));
+    }
+
+    /// A letter with no stand-in still stops the page, and leaves no letter
+    /// behind for the next command.
+    #[test]
+    fn a_letter_without_a_stand_in_stops_the_page() {
+        let mut m = Messages::new(1, WINDOW);
+        assert!(matches!(m.add(&s(&["é ア"])), Err(Stop::Cannot)));
         assert_eq!(m.count(), 0);
-        assert_eq!(m.add(&s(&["Cote"])).ok(), Some(0));
+        assert!(m.take_plain().is_empty());
     }
 
     /// What a box drops is kept until the compiler takes it, and only if the
@@ -757,7 +808,7 @@ mod tests {
     #[test]
     fn what_a_box_drops_is_taken_once_and_only_if_it_is_stored() {
         let mut m = Messages::new(1, WINDOW);
-        assert!(m.add(&s(&["Côte \\$"])).is_err());
+        assert!(m.add(&s(&["Cアte \\$"])).is_err());
         assert!(m.take_dropped().is_empty());
         m.add(&s(&["\\c[1]A\\c[0]"])).ok().unwrap();
         m.add_waiting(&s(&["B\\>", "\\c[1]C"])).ok().unwrap();

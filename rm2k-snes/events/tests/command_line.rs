@@ -69,13 +69,14 @@ fn a_text_the_font_does_not_have_is_a_no() {
         serde_json::from_str(&std::fs::read_to_string(here().join("compile.json")).unwrap())
             .unwrap();
     request["test_commands"] = serde_json::json!([
-        {"code": 10110, "indent": 0, "string": "¡Olé!", "parameters": []}
+        {"code": 10110, "indent": 0, "string": "¡Olé! アー", "parameters": []}
     ]);
     let path = dir.join("request.json");
     std::fs::write(&path, request.to_string()).unwrap();
     let done = run("compile", &here().join("game"), &path, &dir.join("out"));
     assert_eq!(done.status.code(), Some(1));
-    // In a game page it stops only that page; a test page has to compile whole.
+    // In a game page it stops only that page; a test page has to compile
+    // whole. `¡` and `é` have a plain stand-in, the katakana do not.
     let e = String::from_utf8_lossy(&done.stderr);
     assert!(e.contains("text box does not compile"), "{e}");
     std::fs::remove_dir_all(&dir).unwrap();
