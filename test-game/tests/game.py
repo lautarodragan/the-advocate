@@ -84,6 +84,9 @@ class Cartridge:
 
     def __init__(self, data):
         self.rom = data["rom"]
+        # Where the converter left what it built: `degradations.json`, the
+        # `.inc`s.
+        self.directory = data["directory"]
         # The cases it carries, in the order of their test pages: page k
         # runs when the case variable is at least k, and 0 asks for nothing.
         self.cases = data["cases"]
@@ -92,7 +95,7 @@ class Cartridge:
                             in (line.split() for line in file if line.strip())}
         # The order of the map table, which is what `map_current` indexes:
         # from the comment the converter leaves on each entry.
-        with open(os.path.join(data["directory"], "mapdata.inc")) as file:
+        with open(os.path.join(self.directory, "mapdata.inc")) as file:
             inc = file.read()
         index = dict((int(i), int(m)) for i, m in re.findall(
             r"^; --- (\d+): map (\d+) ", inc, re.MULTILINE))
