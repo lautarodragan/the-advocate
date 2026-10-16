@@ -181,12 +181,12 @@ fn the_escape_tail_is_the_compilers() {
         match &case["answer"] {
             serde_json::Value::Null => assert!(got.is_none(), "{lines:?}"),
             answer => {
-                let (untailed, pauses, close) = got.unwrap_or_else(|| panic!("{lines:?} does not compile"));
+                let got = got.unwrap_or_else(|| panic!("{lines:?} does not compile"));
                 // The waits in the middle are marks: the cases write them as
                 // the escapes they were.
-                let untailed: Vec<String> = untailed.iter().map(|t| with_wait_escapes(t)).collect();
-                let want: (Vec<String>, usize, bool) = serde_json::from_value(answer.clone()).unwrap();
-                assert_eq!((untailed, pauses, close), want, "{lines:?}");
+                let untailed: Vec<String> = got.lines.iter().map(|t| with_wait_escapes(t)).collect();
+                let want: (Vec<String>, usize, bool, Vec<String>) = serde_json::from_value(answer.clone()).unwrap();
+                assert_eq!((untailed, got.pauses, got.auto_close, got.dropped), want, "{lines:?}");
             }
         }
     }
