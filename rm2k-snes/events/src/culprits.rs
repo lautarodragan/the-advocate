@@ -402,9 +402,13 @@ fn chase_troop_page(
         };
         judged_page(&mut ctx, commands, None, 0, 0).map(|_| ())
     });
-    found
-        .culprits
-        .extend(rest.culprits.into_iter().map(|(i, _)| (from[i], page.commands[from[i]].clone())));
+    // A culprit inside a pasted body is named as itself, at the call's
+    // index: the call is where it is in the page, the command is what has
+    // to be looked at.
+    found.culprits.extend(rest.culprits.into_iter().map(|(i, cmd)| {
+        let own = &page.commands[from[i]];
+        (from[i], if troops::called_common(own).is_some() { cmd } else { own.clone() })
+    }));
     found.whole = rest.whole;
     found.fatal = rest.fatal.map(|(at, message)| (at.map(|i| from[i]), message));
     Ok(found)

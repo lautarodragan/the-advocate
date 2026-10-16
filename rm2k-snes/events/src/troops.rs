@@ -353,7 +353,7 @@ pub(crate) fn runs_in_battle(cmd: &Command) -> bool {
 
 /// The common event a command calls, if it is a call to one: RPG Maker
 /// 2003's `CallCommonEvent`, by number, or a `CallEvent` of type 0.
-fn called_common(cmd: &Command) -> Option<i32> {
+pub(crate) fn called_common(cmd: &Command) -> Option<i32> {
     match (cmd.code, cmd.parameters.as_slice()) {
         (CALL_COMMON_EVENT, [id, ..]) => Some(*id),
         (CALL_EVENT, [0, id, ..]) => Some(*id),
