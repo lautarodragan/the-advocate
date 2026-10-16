@@ -1,0 +1,14 @@
+{
+  "event_commands": [
+    {"code": "ChangeFaceGraphic", "parameters": [0, 0, 0], "string": "Actor1"},
+    {"code": "ShowMessage", "string": "A face on the left, and the text"},
+    {"code": "ShowMessage_2", "string": "starts past it."},
+    {"code": "ChangeFaceGraphic", "parameters": [1, 1, 1], "string": "Actor1"},
+    {"code": "ShowMessage", "string": "On the right, mirrored."},
+    {"code": "ShowMessage", "string": "The same face stays."},
+    {"code": "ChangeFaceGraphic", "parameters": [2, 0, 0], "string": "Actor1"},
+    {"code": "ShowMessage", "string": "Another face, mid-scene."},
+    {"code": "ChangeFaceGraphic", "parameters": [0, 0, 0], "string": ""},
+    {"code": "ShowMessage", "string": "No face: the whole line is the text's again, all of it."}
+  ]
+}

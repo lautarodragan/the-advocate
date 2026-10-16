@@ -167,3 +167,11 @@ open:
 .endif
     jmp run_code::other
 .endproc
+
+; `ChangeFaceGraphic`: the face the boxes draw from here on. Only the entry
+; is here: the body is `face_change`, in message_face.s, which reads the
+; operands with Y in hand.
+.proc op_face
+    jsl f:face_change
+    jmp run_code::other
+.endproc
