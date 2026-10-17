@@ -326,10 +326,33 @@ load:
     stz anim_timer
 
     jsr build_oam_settled
+    ; **With a title screen the map is not shown, nor its song played**: in
+    ; RM2k the title is the first thing seen and heard, and the first map is
+    ; entered after "New Game". The boot loads it all the same —the suite's
+    ; ROMs have no title, and the loop needs it—, so with one the screen stays
+    ; in forced blank until `title_upload` turns it on, and the music off
+    ; until `title_screen` starts the title's song. `flush_video` is skipped
+    ; too because it ends by writing `brightness` to INIDISP: that alone
+    ; turned the screen on. Leaving the title goes through `enter_map` and its
+    ; own `flush_video`, which upload what this one would have.
+    ;
+    ; Until 2026-10-16 Dooms 2 and Desert Nightmare showed their first map for
+    ; up to a second and a half before the title, and The Book of Three played
+    ; its first map's song; ABL did the same unseen, because its first map is
+    ; black and starts silent. `tests/test_title_first.py`, at the root of
+    ; the-advocate-ports, catches it.
+    lda #<TITLE_TILES
+    ora #>TITLE_TILES
+    beq no_title_first
+    lda #1
+    sta music_off               ; RAM starts with garbage: nothing plays
+    bra screen_decided
+no_title_first:
     jsr flush_video
 
     lda #$0F
     sta INIDISP                 ; screen on, full brightness
+screen_decided:
 
     ; The upload to the SPC700 goes after turning the screen on, not before:
     ; with the map's audio package it is a third of a second, and this way the
@@ -364,7 +387,11 @@ load:
     lda #1
     sta f:APU_READY
     jsl f:package_load_l
+    lda #<TITLE_TILES           ; with a title its song is the first one
+    ora #>TITLE_TILES           ; heard, not the map's: see `screen_decided`
+    bne music_waits
     jsr music_boot
+music_waits:
 
     ; The title image, decompressed to WRAM **before** the wait, which is
     ; where there are frames to spare: decompressing it when showing it was
