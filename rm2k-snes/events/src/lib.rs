@@ -78,6 +78,11 @@ pub struct Request {
     /// The map the test pages boot in, which carries an event without pages
     /// at index 0 so that they run before the game's.
     pub test_event_map: Option<i32>,
+    /// The automatic common events whose body shows pictures, and the maps
+    /// that carry a copy of them as automatic pages of an added last event:
+    /// see [`with_test_event`]. Empty in a cartridge that has none.
+    pub common_pages: Vec<i32>,
+    pub common_page_maps: BTreeSet<i32>,
     // What only `compile` reads.
     pub substitutions: BTreeMap<i32, SubstitutionTable>,
     /// Per map, the pictures it carries and each one's slot: see
@@ -328,6 +333,13 @@ impl Request {
         } else {
             Some(int(t, whose)? as i32)
         };
+        if let Some(c) = data.get("common_pages").filter(|c| !c.is_null()) {
+            let numbers = |name: &str| -> Result<Vec<i32>> {
+                list(c, name, whose)?.iter().map(|m| int(m, whose).map(|x| x as i32)).collect()
+            };
+            r.common_pages = numbers("commons")?;
+            r.common_page_maps = numbers("maps")?.into_iter().collect();
+        }
 
         if let Some(subs) = data.get("substitutions") {
             r.substitutions = by_map(subs, whose, |v| {
@@ -498,10 +510,28 @@ impl Request {
     }
 }
 
-/// The map with an event without pages at index 0, if it is the one the
-/// test pages boot in: it takes that index so that everything that numbers
-/// events numbers the same.
-fn with_test_event(mut map: Map, request: &Request) -> Map {
+/// The map with the events the cartridge adds to it, if any.
+///
+/// **The map the test pages boot in** gets one without pages at index 0: it
+/// takes that index so that everything that numbers events numbers the
+/// same, and the console walks the events from the lowest, so its pages
+/// run before the game's. The caller puts the test pages on it.
+///
+/// **A map of `common_page_maps`** gets one **last**, with the id after the
+/// highest —see [`copy_event`]—, whose pages are the automatic common
+/// events of `common_pages`, each an automatic page on the common event's
+/// switch: last, so no event of the game changes its index. RM2k runs an automatic common event on whatever map, and
+/// the cartridge already does, from the shared body —see [`commons`]—; but a
+/// shared body is compiled without a map, so without pictures, and a menu
+/// built of `ShowPicture`s works blind: Frozen World's `BringUpMenu`, common
+/// 15. The copy is compiled with the map, so its pictures go in the map's
+/// sprite bank like the map's own. It runs instead of the shared body,
+/// which does not start on a map with a copy: see `switch_of` in the
+/// runtime's `common_events.s`. The shared body stays, for the maps that
+/// carry no copy. The pages go from the highest number to the lowest: the
+/// active page is the last whose condition holds, and RM2k starts the
+/// lowest-numbered common event first.
+fn with_test_event(mut map: Map, request: &Request, game: &Game) -> Map {
     if request.test_event_map == Some(map.id) {
         map.events.insert(
             0,
@@ -514,7 +544,64 @@ fn with_test_event(mut map: Map, request: &Request) -> Map {
             },
         );
     }
+    if request.common_page_maps.contains(&map.id) {
+        let id = map.events.iter().map(|e| e.id).max().unwrap_or(0) + 1;
+        map.events.push(Event {
+            id,
+            x: 0,
+            y: 0,
+            pages: common_pages(game, &request.common_pages),
+            starting: None,
+        });
+    }
     map
+}
+
+/// The id of the event with the copies of the common events, on a map
+/// [`with_test_event`] gave one: the last.
+fn copy_event(map: &Map, request: &Request) -> Option<i32> {
+    request
+        .common_page_maps
+        .contains(&map.id)
+        .then(|| map.events.last().map(|e| e.id))
+        .flatten()
+}
+
+/// The automatic common events `numbers` as pages of a map's event: see
+/// [`with_test_event`]. One that is not automatic with a switch is not
+/// taken, nor one a custom menu replaces, whose body is the menu's opcode.
+fn common_pages(game: &Game, numbers: &[i32]) -> Vec<crate::game::Page> {
+    let mut numbers: Vec<i32> = numbers.to_vec();
+    numbers.sort_by(|a, b| b.cmp(a));
+    numbers
+        .into_iter()
+        .filter(|n| !game.patches.menus.replaced.contains_key(n))
+        .filter_map(|n| game.common_events.get(&n))
+        .filter(|c| c.trigger == TRIGGER_AUTOSTART && c.switch_flag && !c.commands.is_empty())
+        .enumerate()
+        .map(|(k, c)| crate::game::Page {
+            trigger: TRIGGER_AUTOSTART,
+            layer: 0,
+            move_type: 0,
+            move_frequency: 3,
+            move_speed: 3,
+            animation_type: 0,
+            character_name: String::new(),
+            character_index: 0,
+            character_pattern: 1,
+            commands: c.commands.clone(),
+            route: Vec::new(),
+            route_repeat: true,
+            route_skippable: false,
+            condition: crate::game::Condition {
+                switch_a: Some(c.switch_id),
+                ..Default::default()
+            },
+            id: k as i32 + 1,
+            translucent: false,
+            overlap_forbidden: false,
+        })
+        .collect()
 }
 
 /// The indices, as the caller keeps them.
@@ -642,7 +729,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         }
         // The pages as the map has them, with a text block of its own and
         // without songs: who walks and which graphics a route changes to.
-        let map = with_test_event(map.clone(), request);
+        let map = with_test_event(map.clone(), request, game);
         let me = MapEvents::new(&map, None).numbered(&map, &indices);
         let mut messages = Messages::new(1, request.window());
         let mut graphics = Graphics::new(&associations);
@@ -669,16 +756,30 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         // `PlayBGM`, and the "Meanwhile" sign of map 81 comes after one—.
         let mut pictures = Pictures::gathering();
         let mut on_events = graphics.on_events.clone();
-        let bodies = map
-            .events
-            .iter()
-            .flat_map(|event| event.pages.iter().map(move |page| (event.id, &page.commands)));
+        //
+        // **The copies of the automatic common events go last** —the pages of
+        // the added last event, see [`with_test_event`]—, and the answer says
+        // how many pictures came before them, `pictures_own`: a map that has
+        // no room for theirs keeps its own.
+        let copy = copy_event(&map, request);
+        let pages_of = |copies: bool| {
+            map.events
+                .iter()
+                .filter(move |event| (Some(event.id) == copy) == copies)
+                .flat_map(|event| event.pages.iter().map(move |page| (event.id, &page.commands)))
+        };
         let cases = request
             .cases
             .iter()
             .filter(|(run_map, _)| *run_map == map.id)
             .map(|(_, case)| (0, case));
-        for (event, commands) in bodies.chain(cases) {
+        let mut own = None;
+        let copies = pages_of(true).map(Some);
+        for event in pages_of(false).chain(cases).map(Some).chain([None]).chain(copies) {
+            let Some((event, commands)) = event else {
+                own = Some(pictures.table.len());
+                continue;
+            };
             // Its texts are only measured, with the cartridge's step: a test
             // page can carry more than sixty-four kilobytes of them —the one
             // that pads the text block does—.
@@ -712,6 +813,11 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             "zooms": pictures.zooms_json(),
             "tinted": pictures.tinted,
         });
+        // Only on a map with copies, so the answer of the rest stays the one
+        // it was.
+        if request.common_page_maps.contains(&map.id) {
+            entry["pictures_own"] = json!(own);
+        }
         // Which of them a route gives an event, the test pages' too: the
         // rest only the hero shows. Only when there are some, like
         // `graphics_dropped`.
@@ -845,7 +951,7 @@ fn compile_pass(
     let mut maps_out = Vec::new();
     let mut cases_out: Vec<Option<String>> = vec![None; request.cases.len()];
     for (k, map) in maps.into_iter().enumerate() {
-        let map = with_test_event(map, request);
+        let map = with_test_event(map, request, game);
         let subs = Rc::new(Substitutions {
             table: request
                 .substitutions
@@ -920,8 +1026,11 @@ fn compile_pass(
         }
         // The debts: what the automatic pages that compile accept without
         // doing. With the text block and nothing else.
+        // Not the copies of the automatic common events, whose shared body
+        // is not looked at either: see [`with_test_event`].
         let mut debts = BTreeSet::new();
-        for event in &map.events {
+        let copy = copy_event(&map, request);
+        for event in map.events.iter().filter(|e| Some(e.id) != copy) {
             for page in &event.pages {
                 if page.trigger != TRIGGER_AUTOSTART {
                     continue;
@@ -1139,4 +1248,52 @@ pub fn write(answer: &Value, dir: &Path) -> Result<()> {
     std::fs::create_dir_all(dir).map_err(|e| io(dir, e))?;
     let path = dir.join(ANSWER_FILE);
     std::fs::write(&path, serde_json::to_string(answer).unwrap() + "\n").map_err(|e| io(&path, e))
+}
+
+#[cfg(test)]
+mod common_page_tests {
+    use super::*;
+    use crate::game::{CommonEvent, Game};
+
+    fn automatic(switch: i32) -> CommonEvent {
+        CommonEvent {
+            trigger: TRIGGER_AUTOSTART,
+            switch_flag: true,
+            switch_id: switch,
+            commands: vec![Command::new(SHOW_PICTURE, 0, "Menu", vec![1; 14])],
+        }
+    }
+
+    /// The copies of the automatic common events go in a last event of
+    /// the maps that carry them, the highest number first, each on its
+    /// switch; not one a custom menu replaces. On the map the test pages
+    /// boot in, after theirs, which is first.
+    #[test]
+    fn a_map_with_copies_gets_a_last_event_with_their_pages() {
+        let mut game = Game::default();
+        game.common_events.insert(15, automatic(220));
+        game.common_events.insert(16, automatic(221));
+        game.common_events.insert(17, automatic(222));
+        game.patches.menus.replaced.insert(17, 0);
+        let request = Request {
+            common_pages: vec![15, 16, 17],
+            common_page_maps: [3, 4].into_iter().collect(),
+            test_event_map: Some(4),
+            ..Default::default()
+        };
+        let map = |id| Map { id, events: vec![Event { id: 1, x: 2, y: 2, pages: vec![], starting: None }] };
+        let three = with_test_event(map(3), &request, &game);
+        assert_eq!(three.events.len(), 2);
+        assert_eq!((three.events[0].id, three.events[1].id), (1, 2));
+        assert_eq!(copy_event(&three, &request), Some(2));
+        let switches: Vec<Option<i32>> = three.events[1].pages.iter().map(|p| p.condition.switch_a).collect();
+        assert_eq!(switches, [Some(221), Some(220)]);
+        assert!(three.events[1].pages.iter().all(|p| p.trigger == TRIGGER_AUTOSTART));
+        let four = with_test_event(map(4), &request, &game);
+        let ids: Vec<i32> = four.events.iter().map(|e| e.id).collect();
+        assert_eq!(ids, [0, 1, 2], "the test pages' event first, the copies' last");
+        assert!(four.events[0].pages.is_empty());
+        assert_eq!(four.events[2].pages.len(), 2);
+        assert_eq!(with_test_event(map(5), &request, &game).events.len(), 1);
+    }
 }

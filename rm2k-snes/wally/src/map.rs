@@ -79,6 +79,12 @@ pub struct MapRequest {
     pub timer: Option<PathBuf>,
     pub rain: bool,
     pub picture: Option<PictureAsked>,
+    /// When `picture` carries the pictures of the common events the map
+    /// runs a copy of —see the event compiler's `with_test_event`—, the
+    /// map's own without them: what goes in instead when theirs cost the
+    /// map anything. None when there are no such copies; `Some(None)` when
+    /// the map has no pictures of its own.
+    pub picture_own: Option<Option<PictureAsked>>,
     /// Whether some page of the map can draw a battle animation.
     pub battle_animation: bool,
     /// The characters that appear in no other map of the cartridge.
@@ -365,6 +371,9 @@ pub struct Whole {
     /// Each substitution the map can run, with its block pairs, and the
     /// ones whose blocks could not be built.
     pub substitutions: SubstitutionAnswer,
+    /// Whether the pictures that went in are `picture_own` and not
+    /// `picture`: see [`MapRequest::picture_own`].
+    pub own_pictures: bool,
 }
 
 /// The final layers and their blocks.
@@ -384,6 +393,51 @@ pub struct Final {
 /// fitting or not. Only a map that does not fit changes: every other map
 /// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
+    // The pictures of the common events' copies go in only if they cost
+    // nothing: the map as it is, with them placed and fitting a layout.
+    // Otherwise the map is converted with its own, as if it had no copies,
+    // and loses none of what it had before them —a still event's
+    // animation, its own pictures—.
+    // What it loses is compared by its notes: the rain, a battle
+    // animation's box, a palette lent, which the pictures' palettes can
+    // take before anything fails to fit.
+    if let Some(own) = &request.picture_own {
+        let without = MapRequest {
+            picture: own.clone(),
+            picture_own: None,
+            ..request.clone()
+        };
+        let mut done = convert(game, &without)?;
+        let plain = convert_with(game, request, Mode::Plain, None)?;
+        let placed = plain.objects.as_ref().is_some_and(|o| o.image.0 != 0);
+        let losses = |w: &Whole| {
+            let mut kinds: Vec<&str> = w.notes.iter().filter_map(|n| n.loss).collect();
+            kinds.sort_unstable();
+            kinds
+        };
+        if placed
+            && (request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request)))
+            && losses(&plain) == losses(&done)
+        {
+            return Ok(plain);
+        }
+        let full = request.picture.as_ref().map_or("", |p| p.name.as_str());
+        let mine: Vec<&str> = own.as_ref().map_or(Vec::new(), |p| p.name.split(", ").collect());
+        // By name: the same picture shown elsewhere is the map's and theirs,
+        // and then the note names them all.
+        let mut theirs: Vec<&str> = full.split(", ").filter(|n| !mine.contains(n)).collect();
+        if theirs.is_empty() {
+            theirs = full.split(", ").collect();
+        }
+        done.notes.push(lost("pictures-not-drawn", vec![], format!(
+            "  map {}: WARNING, the common events' pictures {} aren't drawn here: the map has no room \
+             for them besides its own",
+            request.map,
+            quoted(&theirs.join(", "))
+        )));
+        done.own_pictures = true;
+        return Ok(done);
+    }
     let plain = convert_with(game, request, Mode::Plain, None)?;
     if request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request)) {
         return Ok(plain);
@@ -1074,6 +1128,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         objects: None,
         start,
         moves: who.clone(),
+        own_pictures: false,
         substitutions: substituted,
     };
 
@@ -1804,7 +1859,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
             })
         }
     };
-    let answer = json!({
+    let mut answer = json!({
         "decorative": done.decorative,
         "baked": done.baked.iter().map(|(e, (c, t))| json!([e, c, t])).collect::<Vec<_>>(),
         "notes": done.notes.iter().map(note_json).collect::<Vec<_>>(),
@@ -1823,5 +1878,10 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         },
         "turning": done.moves.turning.iter().map(|(e, pairs)| json!([e, pairs.iter().map(key_json).collect::<Vec<_>>()])).collect::<Vec<_>>(),
     });
+    // Only when it is so: the answer of a map without copies of common
+    // events stays the one it was.
+    if done.own_pictures {
+        answer["pictures_own"] = json!(true);
+    }
     file(ANSWER_FILE, answer.to_string().as_bytes())
 }

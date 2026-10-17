@@ -133,6 +133,11 @@ pub struct Database {
     pub terrain_backdrops: BTreeMap<i32, String>,
     /// The common events' commands, by number.
     pub common_events: BTreeMap<i32, Vec<Command>>,
+    /// The automatic common events with a switch, and their switch: see
+    /// [`crate::common_pages`].
+    pub autostart_commons: BTreeMap<i32, i32>,
+    /// And the parallel ones.
+    pub parallel_commons: BTreeSet<i32>,
     pub animations: BTreeMap<i32, Animation>,
     /// The ChipSets, with the ones the project adds.
     pub chipsets: BTreeMap<i32, schema::Chipset>,
@@ -632,6 +637,12 @@ fn database(dump: &Dump, forks: &Forks) -> Result<Database> {
     }
     for c in dump.section::<Vec<schema::CommonEvent>>("commonevents")? {
         db.common_events.insert(c.id, commands(&c.event_commands));
+        if c.trigger.to_i32() == rm2k_snes_events::codes::TRIGGER_AUTOSTART && c.switch_flag {
+            db.autostart_commons.insert(c.id, c.switch_id);
+        }
+        if c.trigger.to_i32() == rm2k_snes_events::codes::TRIGGER_PARALLEL {
+            db.parallel_commons.insert(c.id);
+        }
     }
     for a in dump.section::<Vec<schema::Animation>>("animations")? {
         db.animations.insert(

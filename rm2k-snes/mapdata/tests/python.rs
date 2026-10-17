@@ -609,9 +609,18 @@ fn without_commons(text: &str) -> String {
         ("comauto_byte:", "    .word 0"),
         ("comauto_mask:", "    .byte 0"),
         ("comauto_body:", "    .byte 0"),
+        // And the copies' —see `Copies` in the request—, which a cartridge
+        // without them carries all at zero: one byte per eight maps.
+        ("comauto_copied:", "    .byte 0"),
+        ("comcopy_maps:", "    .byte 0"),
     ] {
         let at = lines.iter().position(|l| *l == label).unwrap();
-        assert_eq!(lines[at + 1], data, "{label}");
+        if label == "comcopy_maps:" {
+            let zeros = lines[at + 1].strip_prefix("    .byte ").is_some_and(|b| b.split(", ").all(|v| v == "0"));
+            assert!(zeros, "{label}: {}", lines[at + 1]);
+        } else {
+            assert_eq!(lines[at + 1], data, "{label}");
+        }
         let from = if at > 0 && lines[at - 1].starts_with(".block ") { at - 1 } else { at };
         lines.drain(from..at + 2);
     }

@@ -125,6 +125,17 @@ on:
 
 ; Whether the switch of automatic common event X is on: A != 0 and Z clear
 ; if so. Keeps X; clobbers Y.
+;
+; **Off on a map that carries a copy of it**: the converter copies an
+; automatic common event that shows pictures into each map with room for
+; it, as an automatic page of the map's event 0 on the same switch, because
+; this shared body has no map and so no pictures —see `common_pages.rs` in
+; rm2k-snes-convert—. On those maps the copy is the one that runs. It
+; cannot be left to the order, the map's events before the common events:
+; a switch a parallel page turns on —Frozen World's B button— is seen here
+; on that same frame, and the copy's page only on the next one, once the
+; refresh made it the active page. `comauto_copied` says which entries have
+; copies and `comcopy_maps` which maps carry them, a bit per map index.
 .proc switch_of
 .a8
 .i16
@@ -147,6 +158,37 @@ on:
     and temp
     plx
     cmp #0                      ; the `plx` left its own flags
+    beq off
+    lda f:comauto_copied, x
+    beq on
+    phx
+    rep #$20
+.a16
+    lda map_current
+    lsr a
+    lsr a
+    lsr a
+    tax                         ; the map's byte of the bitmap
+    sep #$20
+.a8
+    lda map_current
+    and #7
+    tay                         ; and its bit
+    lda f:comcopy_maps, x
+shift:
+    cpy #0
+    beq shifted
+    lsr a
+    dey
+    bra shift
+shifted:
+    plx
+    and #1
+    eor #1                      ; a copy here: off
+    rts
+on:
+    lda #1
+off:
     rts
 .endproc
 

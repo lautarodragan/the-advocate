@@ -307,6 +307,20 @@ pub struct Commons {
     pub autostart: Vec<(i64, i64)>,
     /// The deepest chain of calls, or None if they loop.
     pub depth: Option<i64>,
+    /// The automatic ones copied into maps, which do not start from here on
+    /// those maps: see [`Copies`]. Missing in a cartridge without copies.
+    #[serde(default)]
+    pub copies: Copies,
+}
+
+/// The automatic common events the converter copies into the maps as pages
+/// of their event 0, by number, and the maps that carry the copies, by
+/// index: see `common_pages.rs` in rm2k-snes-convert and `switch_of` in the
+/// runtime's `common_events.s`.
+#[derive(Deserialize, Default)]
+pub struct Copies {
+    pub commons: Vec<i64>,
+    pub maps: Vec<i64>,
 }
 
 #[derive(Deserialize)]

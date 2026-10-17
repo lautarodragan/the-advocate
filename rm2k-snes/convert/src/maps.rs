@@ -203,6 +203,9 @@ pub struct Cartridge<'a> {
     /// The colour-memory entries the message window takes: see
     /// [`crate::screens::window_colors`].
     pub window_colors: u32,
+    /// The automatic common events copied into the maps: see
+    /// [`crate::common_pages`].
+    pub common_pages: crate::common_pages::CommonPages,
 }
 
 impl Cartridge<'_> {
@@ -223,6 +226,10 @@ pub struct Prepared {
     pub passability: Vec<u8>,
     pub route_graphics: Vec<(String, i64)>,
     pub pictures: Option<ForMap>,
+    /// The map's own pictures, without those of the common events copied
+    /// into it, when those have some: what goes in if theirs do not fit.
+    /// See [`crate::common_pages`].
+    pub pictures_own: Option<Option<ForMap>>,
     pub big_pictures: Vec<Big>,
     pub request: Value,
 }
@@ -260,6 +267,12 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // everything that numbers events after reading the map numbers
         // the same. The stage puts its own.
         map.events.insert(0, Event { id: 0, x: 0, y: 0, pages: Vec::new() });
+    }
+    // And the one with the copies of the automatic common events, last:
+    // see [`crate::common_pages`]. Wally does not know it, as it does not
+    // know a page the compiler adds: it has no graphic and walks nowhere.
+    if let Some(event) = c.common_pages.event(game, &map) {
+        map.events.push(event);
     }
     let case_commands = c.case_commands(map_id);
     separate_from_hero(game, &mut map, &c.leaders, &case_commands)?;
@@ -329,9 +342,20 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
     let mut keys: Vec<Value> = scanned.get("pictures").and_then(Value::as_array).cloned().unwrap_or_default();
+    // The map's own come first, and then those only the copies of the
+    // common events show, if the map carries them: the scan says how many
+    // are its own. See [`crate::common_pages`].
+    let mut own_keys: Option<Vec<Value>> = scanned
+        .get("pictures_own")
+        .and_then(Value::as_u64)
+        .filter(|&n| (n as usize) < keys.len())
+        .map(|n| keys[..n as usize].to_vec());
     // The ones that are part of a map are drawn into it, and their commands
     // are accepted without being done.
     keys.retain(|k| !c.map_pictures.done(map_id, k["name"].as_str().unwrap_or("")));
+    if let Some(own) = own_keys.as_mut() {
+        own.retain(|k| !c.map_pictures.done(map_id, k["name"].as_str().unwrap_or("")));
+    }
     // And the numbers the map tones, which do not share a palette.
     let tinted: Vec<i64> = scanned
         .get("tinted")
@@ -339,6 +363,10 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .map(|t| t.iter().filter_map(Value::as_i64).collect())
         .unwrap_or_default();
     let pictures = pictures::for_map(&game.game_dir, &keys, &tinted, map_id, &game.cropped)?;
+    let pictures_own = match &own_keys {
+        Some(own) => Some(pictures::for_map(&game.game_dir, own, &tinted, map_id, &game.cropped)?),
+        None => None,
+    };
     let singles: Vec<Value> = c
         .maps_per_character
         .iter()
@@ -412,7 +440,12 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     if game.painted_maps {
         request["panorama"]["painted"] = json!(true);
     }
-    Ok(Prepared { map, chipset_filename, passability, route_graphics, pictures, big_pictures, request })
+    // Only on a map whose copies of common events show pictures of their
+    // own: see `picture_own` in Wally.
+    if let Some(own) = &pictures_own {
+        request["picture_own"] = own.as_ref().map_or(Value::Null, |p| p.asked.clone());
+    }
+    Ok(Prepared { map, chipset_filename, passability, route_graphics, pictures, pictures_own, big_pictures, request })
 }
 
 /// Runs the stage on every prepared map, in parallel, and hands back what
@@ -699,7 +732,13 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         );
     }
     // The pictures, if the stage found room for them in the bank.
-    let pictures = match &p.pictures {
+    // The map's own, without the copied common events', if Wally put those
+    // in instead.
+    let went_in = match &p.pictures_own {
+        Some(own) if truthy(answer.get("pictures_own")) => own,
+        _ => &p.pictures,
+    };
+    let pictures = match went_in {
         Some(f) if int(&s["image"][0]) != 0 => Some((s["image"][0].clone(), f.table.clone(), f.images.clone())),
         _ => None,
     };
