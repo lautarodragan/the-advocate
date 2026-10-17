@@ -29,7 +29,7 @@ use crate::sprites::character::{
     block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES, OBJ_ROW,
 };
 use crate::sprites::extras::{
-    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
+    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask, RAIN_COLORS,
     Image,
 };
 use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc, NPC_MAX};
@@ -423,7 +423,8 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
         // A cache where events can wait for a slot loses more than a torch
         // that stands still: in a cache each one that animates wants a slot
-        // of its own while in view. Fewer of them first, and if events wait
+        // of its own while in view —one per speed of a look since
+        // 2026-10-17, when twins share it—. Fewer of them first, and if events wait
         // even with none, none if that is fewer waiting. Vampires Dawn's
         // 236 and 240 went from no wait to waiting when they animated.
         if looks == 0 || waiting(&cached) == 0 {
@@ -904,7 +905,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             .ok_or_else(|| Bad::answer(format!("actor {actor} is not in the database")))
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
-    let animate = Animate { looks, share: mode != Mode::Cache };
+    let animate = Animate { looks, cache: mode == Mode::Cache };
     let who = moves(&pages, &events, &npcs0, &chipset_name, &request.also_walk, animate);
     if !who.still_not_animated.is_empty() {
         let ids: Vec<i32> = who.still_not_animated.iter().map(|&e| events[e].id).collect();
@@ -1228,7 +1229,13 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
                 pose: npc.pose,
             });
         } else if who.follows.contains_key(&npc.event) {
-            // It is drawn with the slot of the one it animates with.
+            // It is drawn with the slot of the one it animates with. In a
+            // cache its row walks, so one that only appears with its page
+            // does it as a walker does: see `Animate::cache`.
+            if mode == Mode::Cache && npc.changes {
+                npc.appears = true;
+                npc.changes = false;
+            }
         } else if plan.as_ref().is_some_and(|p| p.of.contains_key(&npc.event)) {
             // It takes turns in a shared slot, which goes after the turn's.
         } else if mode == Mode::Cache {
@@ -1299,7 +1306,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             out
         };
         let mut stills = BTreeSet::new();
-        for npc in npcs.iter().filter(|n| !who.movable.contains(&n.event)) {
+        for npc in npcs.iter().filter(|n| !who.movable.contains(&n.event) && !who.follows.contains_key(&n.event)) {
             stills.extend(shows(npc));
         }
         let stills: Vec<Graphic> = stills.into_iter().collect();
@@ -1319,7 +1326,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             let mut events = Vec::new();
             let mut wants = Vec::new();
             for npc in &npcs {
-                let walks = who.movable.contains(&npc.event);
+                // A twin animates in its leader's slot —see `moves`—: it
+                // asks the cache for that one, which whoever of them comes
+                // into view first gets, and the leader keeps up to date.
+                let leader = who.follows.get(&npc.event).copied();
+                let walks = who.movable.contains(&npc.event) || leader.is_some();
                 let start = if walks {
                     None
                 } else {
@@ -1327,12 +1338,13 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
                 };
                 let want = match start {
                     Some(v) if shows(npc).len() == 1 => Wants::Still(v),
-                    _ => Wants::Own(npc.event),
+                    _ => Wants::Own(leader.unwrap_or(npc.event)),
                 };
                 events.push((npc.event, start));
                 wants.push((npc.x, npc.y, want));
             }
-            let own = wants.iter().filter(|(_, _, w)| matches!(w, Wants::Own(_))).count();
+            let own: BTreeSet<&Wants> = wants.iter().map(|(_, _, w)| w).filter(|w| matches!(w, Wants::Own(_))).collect();
+            let own = own.len();
             Some(CacheAsked {
                 peak: peak(&wants, raw.width as i32, raw.height as i32),
                 wanted: stills.len() + own,
@@ -1591,7 +1603,7 @@ fn extras(
     let mut notes = Vec::new();
     let mut timer_at = None;
     if let Some(glyphs) = glyphs {
-        match timer_digits(glyphs, &mut tiles, &mut palettes, leader_owned, palette_cap) {
+        match timer_digits(glyphs, &mut tiles, &mut palettes, leader_owned, palette_cap, request.rain) {
             Ok(at) => {
                 let missing: Vec<Color> =
                     timer_colors(glyphs).into_iter().filter(|c| !palettes[at.1].contains(c)).collect();
@@ -1615,9 +1627,26 @@ fn extras(
     let mut rain = (0, 0);
     if request.rain {
         match rain_drops(&mut tiles, &mut palettes, leader_owned, timer_at, palette_cap) {
-            Some(at) => rain = at,
+            Some(at) => {
+                let palette = &palettes[at.1];
+                let drawn: Vec<String> = RAIN_COLORS
+                    .iter()
+                    .filter(|c| !palette.contains(c))
+                    .map(|c| format!("{c:?} as {:?}", nearest(palette, *c)))
+                    .collect();
+                if !drawn.is_empty() {
+                    notes.push(lost("rain-colors-lent", vec![], format!(
+                        "  map {id}: WARNING, the raindrops have no palette with room and are lent {}, \
+                         drawn with its nearest colors: {}",
+                        at.1,
+                        drawn.join(", ")
+                    )));
+                }
+                rain = at;
+            }
             None => notes.push(lost("rain-not-drawn", vec![], format!(
-                "  map {id}: WARNING, the raindrops don't fit in the sprite palettes and it doesn't rain here"
+                "  map {id}: WARNING, the raindrops have no palette but the leaders' and the timer's, \
+                 and it doesn't rain here"
             ))),
         }
     }

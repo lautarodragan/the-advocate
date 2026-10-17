@@ -22,7 +22,11 @@
 ;               `cache_data` says where its pose is in `npc_poses`
 ;   128 + e     event e's own: it walks or animates in place, and changes
 ;               pose by itself through `upload_npc_pose`, which asks
-;               `cache_dest` where its slot is
+;               `cache_dest` where its slot is. The still ones that animate
+;               with it —its twins, `animates_with` in Wally— ask for this
+;               same key, which their rows carry in the tile byte: whichever
+;               comes into view first gets the slot and uploads its column,
+;               and from then on e keeps it up to date, even out of view
 ;   $FF         nothing
 ;
 ; A slot is free when nobody drew it in the last two frames: every frame
@@ -154,10 +158,13 @@ keep:
     clc
     rtl
 asks:
-    ; What it asks for: the still pose its row carries, or its own.
+    ; What it asks for: the still pose its row carries, or its own, or a
+    ; twin's, which its row carries like a still pose.
     lda npc_buf + 9, y
     cmp #NPC_STILL
     beq still
+    lda npc_buf + 6, y
+    bmi keyed                   ; a twin's: 128 plus the one it animates with
     lda npc_buf + 8, y
     ora #$80
     bra keyed
@@ -175,9 +182,7 @@ keyed:
     cmp f:CACHE_T_KEY
     beq drawn
 seek:
-    ; A still pose someone else already has up.
-    lda f:CACHE_T_KEY
-    bmi evict                   ; one's own is nobody else's
+    ; A key someone else already has up: a still pose, or a twin's slot.
     jsr cache_last
 seek_one:
     lda f:CACHE_KEY, x
@@ -352,6 +357,16 @@ source:
     sta f:CACHE_EV, x
     lda f:CACHE_T_KEY
     bpl ready
+    ; A twin's is also the slot of the one it animates with, whose uploads
+    ; keep it up to date: see `cache_dest`.
+    and #$7F
+    cmp f:CACHE_T_EV
+    beq own
+    sta f:CACHE_T_EV
+    jsr cache_event_x
+    lda f:CACHE_T_SLOT
+    sta f:CACHE_EV, x
+own:
     ; Its own: the pose in the slot is the one `upload_npc_pose` compares.
     rep #$20
 .a16
