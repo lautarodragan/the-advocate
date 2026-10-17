@@ -10,8 +10,11 @@
 ; Only the autostart ones are run. The touch ones are already covered by the
 ; doors, and the button ones need a button to press.
 
-; The fields of the page at page_ofs, into variables.
-.proc read_page
+; Up to +13 only —the event, the trigger, the conditions, the code, the layer
+; and the flags—, which is all that choosing the active page looks at:
+; `pick_with_filter` reads every page of the map, and the ten fields after
+; +13 were a third of what each page cost it. Leaves Y on +13.
+.proc read_page_head
 .a8
 .i16
     ldy page_ofs
@@ -25,7 +28,8 @@
     iny
     iny
     lda [page_ptr], y           ; +3  what triggers it. One byte at a time: reading it two
-    sta pg_trigger              ;     at a time would take the next switch along with it
+    and #$7F                    ;     at a time would take the next switch along with it.
+    sta pg_trigger              ;     Bit 7 is a pure parallel's: see `record_parallel`
     iny
     rep #$20
 .a16
@@ -54,6 +58,14 @@
     iny
     lda [page_ptr], y           ; +13 the flags of its own move route
     sta pg_flags
+    rts
+.endproc
+
+; The fields of the page at page_ofs, into variables.
+.proc read_page
+.a8
+.i16
+    jsr read_page_head
     iny
     lda [page_ptr], y           ; +14 its frequency
     sta pg_freq
@@ -217,7 +229,7 @@ with_filter:
     bne look_page
     jmp next                    ; the walk grew and no longer fits in a beq
 look_page:
-    jsr read_page
+    jsr read_page_head          ; the conditions are all it looks at
     ; The first page of an event with autostart pages clears its `FLAG_AUTO`:
     ; the last of its pages that meets its conditions sets it again, further
     ; down. An event's pages come together, so checking whether it changed is
@@ -393,7 +405,8 @@ no_pages:
 .a8
     lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
-    stz pair_n                  ; the list of parallels is rebuilt from scratch
+    stz pair_n                  ; the list of parallels is rebuilt from scratch,
+    jsl f:compar_owe + FAST     ; and its pure ones run on the next frame
     stz rp_ev
     stz rp_ev + 1
 each_event:
@@ -415,6 +428,7 @@ each_event:
     ; which is none for the events with nothing but a static graphic —the
     ; pick skips them—: they are the ones that only this hides. It is not
     ; one of the parallels either, so the list is rebuilt without it.
+    jsl f:page_unapplied
     lda rp_ev
     jsr hide_npc
     lda rp_ev
@@ -465,7 +479,10 @@ not_parallel:
     bne with_route_or_graphic
     jmp next                    ; autostart only: the note is for something else
 with_route_or_graphic:
+    jsl f:page_applied          ; C=1 if it is the page it already had
+    bcs same_page
     jsr page_graphic            ; what the page draws, to the NPC's row
+same_page:
     lda rp_ev
     jsr event_slot              ; X = its slot, or $FFFF
     lda pg_flags
@@ -526,6 +543,7 @@ no_route:
 hide16:
     sep #$20
 .a8
+    jsl f:page_unapplied
     lda rp_ev
     jsr hide_npc
     jmp next
@@ -566,7 +584,8 @@ no_pages:
 .a8
 .i16
     ; The pending refresh, before everything: it is when `Game_Map::Update`
-    ; looks at `GetNeedRefresh`.
+    ; looks at `GetNeedRefresh`. The variables' first: see `var_settle`.
+    jsl f:var_settle
     lda refresh
     ora refresh_frame           ; or one from inside the command loop, which
     beq no_refresh              ; did the short pass and left this one owed
@@ -802,6 +821,7 @@ no_end_turn:
     ; command, the opening cutscene lost five frames: its pages turn on
     ; switches by the heap. The day an opcode appears that does read it, this
     ; goes back into the loop.
+    jsl f:var_settle
     lda refresh
     beq no_refresh_here
     stz refresh
@@ -982,6 +1002,15 @@ has_place:
     sta WMDATA
     lda page_ofs + 1
     sta WMDATA
+    ; +6: nonzero if it is pure —bit 7 of its trigger—, and then it runs
+    ; only on the frames after what it reads changes: see `parallel_tick`.
+    ldy page_ofs
+    iny
+    iny
+    iny
+    lda [page_ptr], y
+    and #$80
+    sta WMDATA
     inc pair_n
     rts
 .endproc
@@ -1062,7 +1091,13 @@ slow:
     sta pair_ev                 ; which event it belongs to
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 3, x
     sta code_ptr + 2
+    ; A pure one runs only when what it reads may have changed: see
+    ; `pure_due`.
+    jsl f:pure_due
+    bcc next
     jsr one_parallel
+    lda #0
+    sta f:pure_running
 next:
     inc pair_i
     lda pair_i
@@ -2469,3 +2504,127 @@ no:
     rts
 .endproc
 
+
+; --- which page each event's row was set up from ------------------------------
+;
+; `SetupFromPage` runs only when an event's active page changes: that is
+; `Game_Event::RefreshPage`, and a refresh that leaves the same page leaves
+; the row as it was —the facing a command turned, the pose—. Until
+; 2026-10-17 `apply_pages` ran `page_graphic` for every event on every
+; refresh, and that was most of what a refresh cost on a map with many
+; events: see tasks/frozen-world-the-battle-maps-lag.md. Calandria had seen
+; it reading the code, in a draft deleted when this fixed it.
+;
+; It is forgotten —all $FFFF— on loading a map and when the rows' poses are
+; forgotten (`npc_poses_forget`), so the next refresh sets every row up
+; again; and per event when it is hidden: the page that comes back after is
+; set up again even if it is the same.
+.pushseg
+.segment "FARBSS"
+applied_page: .res EV_MAX * 2
+.popseg
+
+.pushseg
+.segment "FAR3"
+; The event in `rp_ev` gets the page at `page_ofs`: C=1 if it already had it
+; set up, and else it is noted and C=0. Clobbers A and X.
+.proc page_applied
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:rp_ev
+    asl a
+    tax
+    lda f:page_ofs
+    cmp f:applied_page, x
+    beq same                    ; C=1: equal
+    sta f:applied_page, x
+    sep #$20
+.a8
+    clc
+    rtl
+.a16
+same:
+    sep #$20
+.a8
+    rtl
+.endproc
+
+; The event in `rp_ev` has no page set up any more. Clobbers X; keeps A.
+.proc page_unapplied
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    lda f:rp_ev
+    asl a
+    tax
+    lda #$FFFF
+    sta f:applied_page, x
+    sep #$20
+.a8
+    pla
+    rtl
+.endproc
+
+; Every event, without a page set up. Clobbers A and X.
+.proc applied_forget
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #EV_MAX * 2 - 2
+    lda #$FFFF
+each:
+    sta f:applied_page, x
+    dex
+    dex
+    bpl each
+    sep #$20
+.a8
+    rtl
+.endproc
+.popseg
+
+; --- the pure parallels -------------------------------------------------------
+;
+; A parallel page whose body only asks about switches and the equipment and
+; only sets permissions, skills or the panorama —`pure_page` in the events
+; compiler, which marks it in bit 7 of its trigger— does the same on every
+; frame until one of those changes, so it runs only on the frames after one
+; did: `compar_now`, which `compar_tick` takes from `compar_owed` each frame,
+; and which `set_switch` (when a switch flips), the equipment, the
+; permissions, someone else's `ChangePBG` and every refresh owe. A refresh
+; is when a page may have become the active one. It is the same rule as the
+; pure parallel common events', and costs the same nothing to RM2k's
+; semantics: the frames it skips are frames whose run would write what is
+; already there. The Frozen World's `BackdropSetter`, 113 `if switch →
+; ChangePBG` on its battle screen, cost ~110 lines of every frame there.
+.pushseg
+.segment "FARBSS"
+pure_running: .res 1            ; nonzero while a pure one runs
+.popseg
+
+.pushseg
+.segment "FAR3"
+; The list entry at X: C=1 if it runs this frame, and if it is pure,
+; `pure_running` set. Keeps X and Y.
+.proc pure_due
+.a8
+.i16
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 6, x
+    beq runs
+    lda f:compar_now
+    beq skip
+    lda #1
+    sta f:pure_running
+runs:
+    sec
+    rtl
+skip:
+    clc
+    rtl
+.endproc
+.popseg

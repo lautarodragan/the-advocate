@@ -1496,6 +1496,7 @@ fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecor
         fixed_direction: false,
         fixed_graphic: false,
         test: true,
+        pure: false,
         offset: 0,
         route_offset: 0,
         draws: None,

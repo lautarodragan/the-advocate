@@ -138,6 +138,13 @@ pano_table:
     beq off
     pla
     sta f:PANO_FLAGS
+    ; Someone else's `ChangePBG` is what a pure parallel sets: it owes it
+    ; its run, to set its own back. Not the pure one's own, which would
+    ; wake itself every frame. See `pure_due`.
+    lda f:pure_running
+    bne own
+    jsl f:compar_owe + FAST
+own:
     rep #$20
 .a16
     lda [code_ptr], y

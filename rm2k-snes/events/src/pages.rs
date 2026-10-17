@@ -551,6 +551,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "code": code.map(|c| hex(&c)),
                 "own_route": route::own(page),
                 "turns": turns(page),
+                "pure": page.trigger == TRIGGER_PARALLEL && crate::commons::pure_page(&page.commands),
             }));
             ctx.losses.leave();
         }

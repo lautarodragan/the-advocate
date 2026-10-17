@@ -628,6 +628,9 @@ pub struct Page {
     /// the hero.
     pub graphic: Option<(String, i64, i64)>,
     pub turns: bool,
+    /// A parallel page that runs only when what it reads changes: the
+    /// emission marks it in the trigger's bit 7.
+    pub pure: bool,
 }
 
 /// What a page of an event that changes graphic draws, as the map's

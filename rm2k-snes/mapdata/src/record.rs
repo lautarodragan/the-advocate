@@ -1212,9 +1212,12 @@ pub fn page_table_with(map: &PageMap, number: usize, dest: &dyn Fn(usize) -> Str
         // every page for a number nobody reads. What does bound the pages is
         // `MAX_PAGES`.
         out.push(format!("    .byte {:<4} ; +2  its page number", page.page & 0xFF));
+        // Bit 7: a parallel page that runs only when what it reads changes
+        // —`pure_page` in the events compiler—; the console masks it off
+        // where it reads the trigger, and the parallels' list keeps it.
         out.push(format!(
             "    .byte {:<4} ; +3  what triggers it",
-            page.trigger
+            page.trigger | if page.pure { 0x80 } else { 0 }
         ));
         out.push(format!(
             "    .word {:<4} ; +4  switch it asks for, or 0",

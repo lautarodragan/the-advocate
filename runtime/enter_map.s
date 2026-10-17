@@ -210,12 +210,19 @@ set:
     jsr load_route_graphics
     jsr load_ev_pos             ; and where each event starts, with or without a graphic
     stz refresh
+    rep #$20
+.a16
+    lda #0
+    sta f:vr_n                  ; and the variables noted for it: see `var_settle`
+    sep #$20
+.a8
     ; Before the refresh, not after: the previous map's marks are worth
     ; nothing here —their event indices would point at other events— and the
     ; refresh is the one that turns `FLAG_AUTO` back on for the ones it
     ; applies to.
     jsr clear_waits
     jsr clear_parallel
+    jsl f:applied_forget        ; every row is set up again
     jsr page_routes             ; and the move routes of the active pages themselves
     ; The actor table belongs to this map, so where the leader's poses fall
     ; changes when changing map even if the party is the same.
