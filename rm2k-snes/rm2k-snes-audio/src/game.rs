@@ -52,13 +52,19 @@ pub fn find_resource(dirs: &[&Path], folder: &str, name: &str, extensions: &[&st
                 continue;
             }
             let sub = dir.join(&entry);
-            for file in entries(&sub) {
-                let (base, ext) = splitext(&file);
-                if base.to_lowercase() == name.to_lowercase()
-                    && extensions.contains(&ext.to_lowercase().as_str())
-                {
-                    return Some(sub.join(file));
-                }
+            // The earliest extension of `extensions` that has a file wins,
+            // not the first file the directory happens to list: a song can
+            // be both a MIDI and a WAV, and which one is the caller's choice.
+            let found = entries(&sub)
+                .into_iter()
+                .filter_map(|file| {
+                    let (base, ext) = splitext(&file);
+                    let rank = extensions.iter().position(|e| *e == ext.to_lowercase())?;
+                    (base.to_lowercase() == name.to_lowercase()).then(|| (rank, file.clone()))
+                })
+                .min();
+            if let Some((_, file)) = found {
+                return Some(sub.join(file));
             }
         }
     }
@@ -66,8 +72,13 @@ pub fn find_resource(dirs: &[&Path], folder: &str, name: &str, extensions: &[&st
 }
 
 /// What a song can be: a MIDI, or a WAV the SPC700 does not play but an
-/// MSU-1 track can come from.
+/// MSU-1 track can come from. In this order the SPC700 asks for it: the
+/// MIDI first, the one thing it can play.
 const TRACK_EXTENSIONS: [&str; 2] = [".mid", ".wav"];
+
+/// And in this one the MSU-1 does: the game's own recording first, over
+/// rendering a MIDI of the same song.
+const RECORDING_FIRST: [&str; 2] = [".wav", ".mid"];
 
 impl Game {
     fn dirs(&self) -> Vec<&Path> {
@@ -79,12 +90,30 @@ impl Game {
     }
 
     /// The song's file: the game's and, if it is not there, the RTP's,
-    /// which is how RM2k looks for it. None if it is in neither.
+    /// which is how RM2k looks for it. None if it is in neither. The MIDI
+    /// if there is one, which is what the SPC700 plays.
+    ///
+    /// **A song can have both**, a `.wav` the game plays and a `.mid` under
+    /// the same name: Zounds' title theme is a recording, and a MIDI of it
+    /// was put next to it for the cartridge without MSU-1. Then this gives
+    /// the MIDI and [`Self::track_source`] the WAV. EasyRPG takes the WAV
+    /// over the MIDI (`MUSIC_TYPES` in its `filefinder.h`), so the game
+    /// plays the same there with the MIDI next to it; RPG Maker 2003's own
+    /// order was not checked.
     pub fn song_path(&self, name: &str) -> Option<PathBuf> {
         if name.is_empty() {
             return None;
         }
         find_resource(&self.dirs(), "Music", name, &TRACK_EXTENSIONS)
+    }
+
+    /// Where the song's MSU-1 track comes from: like [`Self::song_path`],
+    /// but the WAV when there is one.
+    pub fn track_source(&self, name: &str) -> Option<PathBuf> {
+        if name.is_empty() {
+            return None;
+        }
+        find_resource(&self.dirs(), "Music", name, &RECORDING_FIRST)
     }
 
     /// A sound effect's WAV, looked for the same way.
@@ -328,5 +357,27 @@ mod tests {
                 .map(|(n, k)| (n.to_string(), k))
                 .collect();
         assert_eq!(tracks.unwrap(), expected);
+    }
+
+    /// A song with both a MIDI and a WAV under its name: the SPC700 plays
+    /// the MIDI and the MSU-1 track comes from the WAV.
+    #[test]
+    fn a_song_with_a_midi_and_a_wav_uses_each_where_it_plays() {
+        let root = std::env::temp_dir().join(format!("both-{}", std::process::id()));
+        let music = root.join("game").join("Music");
+        std::fs::create_dir_all(&music).unwrap();
+        for n in ["04 - Cavern.wav", "04 - Cavern.mid", "Title.MID", "Title.WAV", "Town.mid", "Battle.wav"] {
+            std::fs::write(music.join(n), b"").unwrap();
+        }
+        let game = Game { game_dir: root.join("game"), rtp_dir: None, project: Project::from_text(&root, "").unwrap() };
+        let file = |p: Option<PathBuf>| p.map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
+        let midi = ["04 - Cavern", "Title", "Town", "Battle"].map(|n| file(game.song_path(n)));
+        let track = ["04 - Cavern", "Title", "Town", "Battle"].map(|n| file(game.track_source(n)));
+        let numbers = game.track_numbers(&[], &[]).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        let some = |s: &str| Some(s.to_string());
+        assert_eq!(midi, [some("04 - Cavern.mid"), some("Title.MID"), some("Town.mid"), some("Battle.wav")]);
+        assert_eq!(track, [some("04 - Cavern.wav"), some("Title.WAV"), some("Town.mid"), some("Battle.wav")]);
+        assert_eq!(numbers.len(), 4, "a pair is one song and one track: {numbers:?}");
     }
 }
