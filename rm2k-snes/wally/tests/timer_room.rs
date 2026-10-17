@@ -123,7 +123,7 @@ fn the_timer_is_lent_a_palette_when_every_one_lends_itself() {
     assert!(d.notes.is_empty(), "nobody drops colours: {:?}", d.notes);
     assert!(s.caps.is_empty());
     let (mut tiles, mut palettes) = (Vec::new(), s.palettes.clone());
-    let (_, palette) = timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, 8).unwrap();
+    let (_, palette) = timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, 8, false).unwrap();
     assert_eq!(Some(palette), s.palette_of.get(&("owner3".to_string(), 0)), "the one with a red");
     assert_eq!(palettes, s.palettes, "no palette grows");
 }

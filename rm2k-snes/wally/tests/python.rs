@@ -439,8 +439,13 @@ fn the_characters_are_the_ones_the_python_made() {
         assert_eq!(sha(&banks.into_iter().flat_map(|(_, b)| b).collect::<Vec<_>>()), want.banks, "{name}: the pose bank");
 
         let (mut tiles, mut palettes) = (bank.tiles, bank.palettes);
+        // Since 2026-10-17 the timer and the drops go into the columns the
+        // last row of blocks leaves free —see `strip_base`—, and the Python
+        // always started a new row: the bank is padded to it here, blank as
+        // the Python left it, so the rest is still checked against it.
+        tiles.resize(tiles.len().div_ceil(32 * 64) * 32 * 64, 0);
         let timer_at = if want.timer {
-            Some(timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, want.cap).unwrap())
+            Some(timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, want.cap, true).unwrap())
         } else {
             None
         };

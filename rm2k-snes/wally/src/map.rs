@@ -1591,7 +1591,7 @@ fn extras(
     let mut notes = Vec::new();
     let mut timer_at = None;
     if let Some(glyphs) = glyphs {
-        match timer_digits(glyphs, &mut tiles, &mut palettes, leader_owned, palette_cap) {
+        match timer_digits(glyphs, &mut tiles, &mut palettes, leader_owned, palette_cap, request.rain) {
             Ok(at) => {
                 let missing: Vec<Color> =
                     timer_colors(glyphs).into_iter().filter(|c| !palettes[at.1].contains(c)).collect();
