@@ -1,16 +1,21 @@
-//! A package the ARAM cannot hold, relieved instead of stopping the build:
-//! its songs after the first go separate —each uploaded when its `PlayBGM`
-//! asks for it—, and the sound effects at the end of its list are left out,
-//! until what is left fits with the music at the sound effects' own rate.
+//! A package whose music would go below the sound effects' own rate, 6 kHz,
+//! to make room for its sound effects, relieved: its songs after the first
+//! go separate —each uploaded when its `PlayBGM` asks for it—, and the sound
+//! effects at the end of its list are left out, until what is left fits with
+//! the music at that rate.
 //!
-//! It is for the package that does not fit **even with every sample at the
-//! minimum**: until 2026-10-15 the build stopped there, and The Frozen World's
-//! map 1 —its battle screen, with six songs it picks one of and forty-one
-//! sound effects— could not be carried. A package that fits at the minimum is
-//! not touched, however low its music goes: how far a map's sound effects
-//! push its music down is a decision by ear that the game makes in its
-//! project file —`paid_by_music`, `[sound_effects.whole]`—, and A Blurred
-//! Line's map 3 keeps `evilrhys` at 4.5 kHz on purpose.
+//! **The floor is 6 kHz, and below it a package is relieved**: taro's, on
+//! 2026-10-16, after hearing A Blurred Line's map 3 both ways —*"vamos por
+//! el 6k. Coincido en que el salto entre 4 y 6k no tiene sentido, y 4k es
+//! demasiado poco"* ("6k it is. I agree the jump between 4 and 6k makes no
+//! sense, and 4k is too little")—. Until then a package was relieved only
+//! when it did not fit **even with every sample at the minimum** (from
+//! 2026-10-15; before that, the build stopped there), so a package a few
+//! bytes lighter kept every effect and got its music squeezed to ~4.5 kHz,
+//! and one a few bytes heavier got it at 6 kHz with fewer effects. A
+//! package whose music stays at 6 kHz or above is not touched: how far its
+//! sound effects push it down to there is the allocation's, and the game's
+//! by ear (`paid_by_music`, `[sound_effects.whole]`).
 
 use crate::bank::Key;
 use crate::compile::Package;
@@ -67,14 +72,14 @@ fn list(names: &[&str]) -> String {
     }
 }
 
-/// Relieves the packages that do not fit in `free` even at the minimum, and
-/// says what each one lost. `keys_of` are each song's samples, `sizes` each
+/// Relieves the packages whose music does not fit in `free` at the floor
+/// rate next to every sound effect, and says what each one lost. `keys_of` are each song's samples, `sizes` each
 /// sample's, `budgeted` what the music budgets for each sound effect, and
 /// `room` what the relieved package is given to fit in at the floor rate:
 /// less than `free`, so that the copies and the block rounding that come
 /// after still fit.
 ///
-/// A package that fits at the minimum is not touched. In one that does
+/// A package that fits at the floor rate is not touched. In one that does
 /// not, first its songs go separate: from the end of its list, one at a
 /// time, until the ones left fit with every sound effect at the floor rate
 /// or only the first is left, if it `enters` —the first is then the one
@@ -114,7 +119,10 @@ pub fn relieve(
             }
         }
         let effects_all: i64 = own.iter().map(|e| budgeted[e]).sum();
-        if effects_all + size(&keys_of_songs(&p.songs, keys_of), |s| s.minimum) <= free {
+        // Against `free`, the ARAM with the directory as it is now, and not
+        // `room`, which is smaller: so a package whose music stays at 6 kHz
+        // or above is surely not touched. The relief itself aims at `room`.
+        if effects_all + size(&keys_of_songs(&p.songs, keys_of), |s| s.floor) <= free {
             continue;
         }
         let where_ = match p.name.parse::<i64>() {
@@ -263,17 +271,29 @@ mod tests {
     }
 
     #[test]
-    fn a_package_that_fits_at_the_minimum_is_not_touched() {
+    fn a_package_whose_music_fits_at_the_floor_is_not_touched() {
         let (keys_of, sizes, budgeted, names) = world();
-        // 6,000 of sound effects and 800 of music at the minimum, in 7,000:
-        // the music will be squeezed, as the game's precedent is, and nothing
-        // is lost.
+        // 6,000 of sound effects and 8,000 of music at the floor, in 14,000:
+        // the music stays at 6 kHz or above, and nothing is lost.
         let mut packages = vec![package("3", &[0, 1, 2, 3], &["a", "b", "c"])];
-        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 7000, 6500, &names);
+        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 14000, 13000, &names);
         assert!(losses.is_empty(), "{losses:?}");
         assert_eq!(packages[0].songs, [0, 1, 2, 3]);
         assert!(packages[0].separate.is_empty());
         assert_eq!(packages[0].effects.len(), 3);
+    }
+
+    #[test]
+    fn a_package_that_fits_only_below_the_floor_is_relieved() {
+        let (keys_of, sizes, budgeted, names) = world();
+        // 6,000 of sound effects and 800 of music at the minimum fit in
+        // 7,000, but at the floor its music is 8,000: it is relieved instead
+        // of squeezing the music below 6 kHz.
+        let mut packages = vec![package("3", &[0, 1, 2, 3], &["a", "b", "c"])];
+        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 7000, 6500, &names);
+        assert!(!losses.is_empty());
+        assert_eq!(packages[0].songs, [0]);
+        assert_eq!(packages[0].effects, ["a", "b"]);
     }
 
     #[test]

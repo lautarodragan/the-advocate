@@ -379,11 +379,12 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             .collect()
     });
 
-    // A package that does not fit even at the minimum is relieved before
-    // anything is allocated: its songs after the first go separate and the
-    // sound effects at the end of its list are left out. What it takes to
-    // know that is what each sample takes at the minimum and at the floor
-    // rate. `free` is the ARAM with the directory as it is now —the copies
+    // A package whose music would go below the floor rate, 6 kHz, next to
+    // its sound effects is relieved before anything is allocated: its songs
+    // after the first go separate and the sound effects at the end of its
+    // list are left out. What it takes to know that is what each sample
+    // takes at the floor rate, and at the minimum for the pairs with a song
+    // that may be playing on arrival. `free` is the ARAM with the directory as it is now —the copies
     // only make it smaller, so a package that fits here may still not; a
     // package that does not fit here surely does not—, and `room` the ARAM
     // with the directory full, less the allocation's margin, so that what is
