@@ -374,9 +374,9 @@ pub struct Measure {
 }
 
 impl Measure {
-    /// Lines of `width` pixels in `font`.
+    /// Lines of `width` pixels in `font`, its Latin-1 letters included.
     pub fn new(font: &Font, width: usize) -> Measure {
-        Measure::from_advances(font.console_advances(), width)
+        Measure::from_advances(font.measure_advances(), width)
     }
 
     /// Lines of `width` pixels in a font whose glyphs, from the space on,
@@ -404,11 +404,23 @@ impl Measure {
         text.chars().map(|c| self.advance(c)).sum()
     }
 
-    /// What `c` moves the line: its glyph's advance, and a character the
-    /// font does not have is a space, which is how it is drawn.
+    /// What `c` moves the line: its glyph's advance. A Latin-1 letter is
+    /// measured with its own glyph when `advances` goes that far and has it
+    /// —see `Font::measure_advances`—; one the font does not draw moves it
+    /// as what stands in for it —see [`crate::plain`]—, which is what the
+    /// compiler draws: `ß` as two letters, `…` as three. Any other
+    /// character is a space.
     pub fn advance(&self, c: char) -> usize {
         if wait_of(c).is_some() {
             return 0; // a wait draws nothing
+        }
+        if c as u32 >= crate::font::LATIN_FIRST {
+            if let Some(&a) = self.advances.get((c as u32 - 32) as usize).filter(|&&a| a > 0) {
+                return a as usize;
+            }
+        }
+        if let Some(p) = crate::plain::plain(c) {
+            return self.of(p);
         }
         let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;

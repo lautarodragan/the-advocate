@@ -121,7 +121,10 @@ fn text(v: &Value, whose: &str) -> Result<String> {
 /// A message window as a request carries it: `width`, a line's pixels,
 /// `lines`, and `advances`, the advance of each glyph of the console's font
 /// from the space on; or, without `width`, `columns` letters of RM2k's
-/// fixed-width font, which is how it was asked until 2026-10-03.
+/// fixed-width font, which is how it was asked until 2026-10-03. And,
+/// optional, `letters`: the Latin-1 letters the font draws, each a pair of
+/// the letter and its advance —see `Font::latin_letters`—. A window carries
+/// none of them until the compilation chooses: see [`compile`].
 fn window(w: &Value, whose: &str) -> Result<Window> {
     let lines = int(field(w, "lines", whose)?, whose)? as usize;
     if w.get("width").is_none() {
@@ -139,10 +142,23 @@ fn window(w: &Value, whose: &str) -> Result<Window> {
     for (a, g) in advances.iter_mut().zip(given) {
         *a = int(g, whose)? as u8;
     }
+    let mut latin = [0u8; rm2k_snes_text::font::LATIN_GLYPHS];
+    for pair in w.get("letters").and_then(Value::as_array).into_iter().flatten() {
+        let bad = || Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter and its advance: {pair}"));
+        let letter = pair.get(0).and_then(Value::as_str).and_then(|s| s.chars().next()).ok_or_else(bad)?;
+        let advance = pair.get(1).and_then(Value::as_u64).filter(|&a| a > 0 && a < 256).ok_or_else(bad)?;
+        let slot = (letter as u32)
+            .checked_sub(rm2k_snes_text::font::LATIN_FIRST)
+            .filter(|&i| (i as usize) < latin.len())
+            .ok_or_else(bad)?;
+        latin[slot as usize] = advance as u8;
+    }
     Ok(Window {
         width: int(field(w, "width", whose)?, whose)? as usize,
         lines,
         advances,
+        latin,
+        carried: [0; rm2k_snes_text::font::LATIN_GLYPHS],
     })
 }
 
@@ -719,14 +735,23 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
 /// pass gathers, and the second one compiles with the table: the same pages
 /// compile in both, because whether one compiles never depends on its texts'
 /// bytes.
+///
+/// The first pass also says **which Latin-1 letters** the cartridge draws:
+/// it draws every one the font has, and the boxes that are left say which
+/// they use —`Messages::letters_used`—. Those go into the console's font
+/// after its 96 glyphs, and the second pass draws only them; a game in
+/// English carries none, and its cartridge is the same as before there were
+/// any. Whether a page compiles does not depend on it either: a letter not
+/// drawn is shown as its plain stand-in.
 pub fn compile(game: &Game, request: &Request) -> Result<Value> {
     let window = request.window();
     let (_, gathered) = compile_pass(
         game,
         request,
-        Messages::measuring(request.messages_step, window),
+        Messages::measuring(request.messages_step, window.carrying_all()),
     )?;
-    let pairs = gathered.choose_pairs()?;
+    let window = window.carrying(&gathered.letters_used());
+    let pairs = gathered.choose_pairs_for(window)?;
     let (answer, _) = compile_pass(
         game,
         request,
@@ -788,9 +813,11 @@ fn compile_pass(
         }
         i = j;
     }
-    // What the test pages' boxes drop is the harness's, like their other
-    // losses: the page notes it again when it compiles the same box.
+    // What the test pages' boxes drop or show plain is the harness's, like
+    // their other losses: the page notes it again when it compiles the same
+    // box.
     messages.take_dropped();
+    messages.take_plain();
 
     // Which common events get a shared body: the automatic ones, the ones
     // the pages that run in the foreground call —the maps' and the test
@@ -1006,7 +1033,10 @@ fn compile_pass(
             "data": hex(&messages.bytes()),
             "count": messages.count(),
             "pairs": hex(&messages.pairs.bytes()),
-            "pair_first": messages::PAIR_FIRST,
+            "pair_first": messages.window.pair_first(),
+            // The Latin-1 letters the boxes draw, in the order of their
+            // indices from 96 on: the screens stage puts their glyphs there.
+            "letters": messages.window.letters().iter().map(|c| c.to_string()).collect::<Vec<_>>(),
         }),
     );
     answer.insert("songs".into(), songs.to_json());

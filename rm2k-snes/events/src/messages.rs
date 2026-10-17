@@ -6,22 +6,32 @@
 //! boxes are repeated often— is stored once: the content is the key.
 
 use crate::fail::{Bad, Result, Step, Stop};
-use rm2k_snes_text::font::{CONSOLE_GLYPHS, WIDTH};
+use rm2k_snes_text::font::{CONSOLE_GLYPHS, LATIN_FIRST, LATIN_GLYPHS, WIDTH};
+use rm2k_snes_text::plain::plain_text_but;
 use rm2k_snes_text::refit::{is_backslash_mark, wait_of, Measure, Untailed, ESCAPE};
 use std::collections::{BTreeMap, HashMap};
 
-/// The first byte value that stands for a pair of letters and not for one.
+/// The first byte value that stands for a pair of letters and not for one,
+/// in a cartridge whose boxes draw no Latin-1 letter.
 ///
 /// A letter goes as its index in the font, ASCII minus 32, and the font has
 /// the 95 printable ASCII characters and, after them, the cursor's blank
-/// —`CURSOR_BLANK` in `rm2k-snes-text`, DEL—: 0 to 95. Every value from 96
-/// up is one the text never uses, so each can mean two letters: that is DTE,
-/// dual tile encoding, of a single level —a pair is two letters, never a
-/// letter and another pair—. The ROM's composer looks a value from here up
-/// in the pair table and draws the two letters one after the other, as if
-/// they had come in two bytes. It was 95 until the cursor's blank, on
-/// 2026-10-03.
+/// —`CURSOR_BLANK` in `rm2k-snes-text`, DEL—: 0 to 95. Then come the
+/// Latin-1 letters the cartridge's boxes draw, if any —see
+/// [`Window::carrying`]—, and the pairs start after them: see
+/// [`Window::pair_first`]. Every value from there up is one the text never
+/// uses as a letter, so each can mean two letters: that is DTE, dual tile
+/// encoding, of a single level —a pair is two letters, never a letter and
+/// another pair—. The ROM's composer looks a value from there up in the pair
+/// table and draws the two letters one after the other, as if they had come
+/// in two bytes. It was 95 until the cursor's blank, on 2026-10-03.
 pub const PAIR_FIRST: u8 = 96;
+
+/// How many Latin-1 letters a cartridge's boxes can draw: the console's
+/// letters have to stay below 128, because the composer keeps the second
+/// letter of a pair waiting with bit 7 set —`FAR_MSG_SECOND`, in
+/// runtime/message_letter.s—. Past this, the least used are shown plain.
+pub const LETTERS_MAX: usize = 128 - PAIR_FIRST as usize;
 
 /// The byte that stands for **a variable's value**, `\V[n]`: the next byte
 /// is the variable's slot, and the ROM's composer writes its digits there
@@ -71,8 +81,8 @@ pub const WAIT_SECOND: u8 = 61;
 /// until the last one is on screen—.
 pub const WAIT_ANNOUNCE: u8 = 0xFF;
 
-/// How many pairs fit: the values from `PAIR_FIRST` up to the one before
-/// [`NAME`].
+/// How many pairs fit without Latin-1 letters: the values from `PAIR_FIRST`
+/// up to the one before [`NAME`]. Each letter a cartridge draws takes one.
 pub const PAIRS_MAX: usize = NAME as usize - PAIR_FIRST as usize;
 
 /// How a `\V[n]` travels inside a line between the compiler and this
@@ -98,6 +108,16 @@ pub fn name_mark(actor: u8) -> char {
     char::from_u32(NAME_MARK + actor as u32).unwrap()
 }
 
+/// Where Latin-1's `c` is in [`Window::latin`], if it is Latin-1.
+fn latin_slot(c: char) -> Option<usize> {
+    (c as u32).checked_sub(LATIN_FIRST).map(|i| i as usize).filter(|&i| i < LATIN_GLYPHS)
+}
+
+/// The Latin-1 character at `i` of [`Window::latin`].
+fn latin_char(i: usize) -> Option<char> {
+    char::from_u32(LATIN_FIRST + i as u32).filter(|_| i < LATIN_GLYPHS)
+}
+
 /// One unit of a line: a letter, as its index in the font, or a variable's
 /// value, as its slot.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -120,7 +140,8 @@ fn wait_byte(escape: char) -> u8 {
 }
 
 /// The pair table of a text block: which two letters each value from
-/// `PAIR_FIRST` up stands for.
+/// `first` up stands for —[`PAIR_FIRST`], or past the Latin-1 letters the
+/// boxes draw—.
 ///
 /// **A pair never leaves a line**, and that is what keeps it from splitting
 /// anything: a line is only letters —the escapes travel in the box's header,
@@ -129,10 +150,17 @@ fn wait_byte(escape: char) -> u8 {
 /// length byte keeps counting letters, not bytes: the composer goes letter
 /// by letter, at the same pace as without pairs, and a box draws exactly the
 /// same.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Pairs {
     table: Vec<(u8, u8)>,
     code: HashMap<(u8, u8), u8>,
+    first: u8,
+}
+
+impl Default for Pairs {
+    fn default() -> Pairs {
+        Pairs::from_table_at(Vec::new(), PAIR_FIRST)
+    }
 }
 
 impl Pairs {
@@ -144,7 +172,7 @@ impl Pairs {
     /// choice —the one-level variant of byte pair encoding— was measured
     /// too, on `release`'s block, and came out 144 bytes bigger out of
     /// 94 KB: not worth the loop.
-    pub fn choose<'a>(lines: impl IntoIterator<Item = &'a [u8]>) -> Pairs {
+    pub fn choose<'a>(lines: impl IntoIterator<Item = &'a [u8]>, first: u8) -> Pairs {
         let mut count: HashMap<(u8, u8), usize> = HashMap::new();
         for line in lines {
             for w in line.windows(2) {
@@ -153,17 +181,28 @@ impl Pairs {
         }
         let mut ranked: Vec<((u8, u8), usize)> = count.into_iter().collect();
         ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-        Pairs::from_table(ranked.into_iter().take(PAIRS_MAX).map(|(p, _)| p).collect())
+        let max = NAME as usize - first as usize;
+        Pairs::from_table_at(ranked.into_iter().take(max).map(|(p, _)| p).collect(), first)
     }
 
     pub fn from_table(table: Vec<(u8, u8)>) -> Pairs {
-        assert!(table.len() <= PAIRS_MAX);
+        Pairs::from_table_at(table, PAIR_FIRST)
+    }
+
+    /// A table whose first pair is `first`.
+    pub fn from_table_at(table: Vec<(u8, u8)>, first: u8) -> Pairs {
+        assert!(first >= PAIR_FIRST && table.len() <= NAME as usize - first as usize);
         let code = table
             .iter()
             .enumerate()
-            .map(|(i, &p)| (p, PAIR_FIRST + i as u8))
+            .map(|(i, &p)| (p, first + i as u8))
             .collect();
-        Pairs { table, code }
+        Pairs { table, code, first }
+    }
+
+    /// The value of its first pair.
+    pub fn first(&self) -> u8 {
+        self.first
     }
 
     /// One line of letters in as few bytes as the table allows.
@@ -193,7 +232,7 @@ impl Pairs {
         out
     }
 
-    /// The table as the ROM reads it: two bytes per value from `PAIR_FIRST`
+    /// The table as the ROM reads it: two bytes per value from `first`
     /// up, the first letter and then the second, so that one 16-bit read
     /// brings both. Never empty: the assembler needs the label resolved even
     /// if the ROM never reads it.
@@ -257,11 +296,24 @@ pub const FACE_TEXT_X: usize = 72;
 /// font the console draws it with: `advances`, from the space on, the
 /// cursor's blank last. Until 2026-10-03 it was `columns` letters, every one
 /// six pixels wide; [`Window::columns`] is still that.
+///
+/// The Latin-1 letters the font draws come in `latin`, and only the ones
+/// in `carried` are drawn: a window carries none until
+/// [`Window::carrying`] says which, so a box shows the rest as their plain
+/// stand-ins —see `rm2k_snes_text::plain`—. The troops' window never
+/// carries any: the battle draws their boxes with the text screens' glyphs,
+/// which are ASCII.
 #[derive(Debug, Clone, Copy)]
 pub struct Window {
     pub width: usize,
     pub lines: usize,
     pub advances: [u8; CONSOLE_GLYPHS],
+    /// Each Latin-1 letter's advance, U+00A0 first; 0 for one the font does
+    /// not draw.
+    pub latin: [u8; LATIN_GLYPHS],
+    /// Each Latin-1 letter's index in the console's font, U+00A0 first; 0
+    /// for one this window shows plain.
+    pub carried: [u8; LATIN_GLYPHS],
 }
 
 impl Window {
@@ -271,7 +323,66 @@ impl Window {
             width: columns * WIDTH,
             lines,
             advances: [WIDTH as u8; CONSOLE_GLYPHS],
+            latin: [0; LATIN_GLYPHS],
+            carried: [0; LATIN_GLYPHS],
         }
+    }
+
+    /// This window drawing `letters`, in that order, after the console's
+    /// 96 glyphs; any other is shown plain. A letter the font does not draw
+    /// is left out, and so is any past [`LETTERS_MAX`].
+    pub fn carrying(mut self, letters: &[char]) -> Window {
+        self.carried = [0; LATIN_GLYPHS];
+        let mut next = CONSOLE_GLYPHS;
+        for &c in letters {
+            match latin_slot(c) {
+                Some(i) if self.latin[i] > 0 && self.carried[i] == 0 && next < CONSOLE_GLYPHS + LETTERS_MAX => {
+                    self.carried[i] = next as u8;
+                    next += 1;
+                }
+                _ => {}
+            }
+        }
+        self
+    }
+
+    /// This window drawing every letter the font draws: what the pass that
+    /// only gathers the texts compiles with, so that which of them the
+    /// boxes use can be counted —see `Messages::letters_used`—. Their
+    /// indices go past [`LETTERS_MAX`], and its bytes are never emitted.
+    pub fn carrying_all(self) -> Window {
+        let all: Vec<char> = (0..LATIN_GLYPHS).filter_map(latin_char).collect();
+        let mut w = self.carrying(&[]);
+        let mut next = CONSOLE_GLYPHS;
+        for c in all {
+            let i = latin_slot(c).unwrap();
+            if w.latin[i] > 0 {
+                w.carried[i] = next as u8;
+                next += 1;
+            }
+        }
+        w
+    }
+
+    /// The Latin-1 letters it draws, in the order of their indices.
+    pub fn letters(&self) -> Vec<char> {
+        let mut out: Vec<(u8, char)> = (0..LATIN_GLYPHS)
+            .filter(|&i| self.carried[i] > 0)
+            .map(|i| (self.carried[i], latin_char(i).unwrap()))
+            .collect();
+        out.sort();
+        out.into_iter().map(|(_, c)| c).collect()
+    }
+
+    /// The index of `c` in the console's font, if this window draws it.
+    fn carried_index(&self, c: char) -> Option<u8> {
+        latin_slot(c).map(|i| self.carried[i]).filter(|&k| k > 0)
+    }
+
+    /// The first byte value that is a pair in this window's boxes: past
+    /// the console's 96 glyphs and the Latin-1 letters it draws.
+    pub fn pair_first(&self) -> u8 {
+        PAIR_FIRST + self.carried.iter().filter(|&&k| k > 0).count() as u8
     }
 
     /// What `c` moves the line. A variable's value counts as **one digit**,
@@ -279,10 +390,14 @@ impl Window {
     /// is known only when the box opens, and the ROM cuts at the edge what
     /// grows past it, which is what RM2k does with a line a name makes too
     /// long —it does not wrap it again—. A character the font does not have
-    /// is a space, and [`units`] stops the conversion on it anyway.
+    /// is a space: [`Messages::add`] has stood in the plain ASCII for the
+    /// ones that have it, and [`units`] stops the page on the rest.
     pub fn advance(&self, c: char) -> usize {
         if wait_of(c).is_some() {
             return 0; // a wait draws nothing
+        }
+        if self.carried_index(c).is_some() {
+            return self.latin[latin_slot(c).unwrap()] as usize;
         }
         let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;
@@ -295,9 +410,13 @@ impl Window {
         }
     }
 
-    /// How the reflow measures a line of this window.
+    /// How the reflow measures a line of this window: the Latin-1 letters
+    /// it draws with their own advance, the rest as their stand-ins.
     pub fn measure(&self) -> Measure {
-        Measure::from_advances(self.advances.to_vec(), self.width)
+        let mut advances = self.advances.to_vec();
+        advances.resize((LATIN_FIRST - 32) as usize, 0);
+        advances.extend((0..LATIN_GLYPHS).map(|i| if self.carried[i] > 0 { self.latin[i] } else { 0 }));
+        Measure::from_advances(advances, self.width)
     }
 
     /// The longest start of `text` that fits in a line.
@@ -381,8 +500,9 @@ pub fn dropped_escape(escape: &str) -> String {
 /// The units of what fits of a line: each letter as its font index, that is
 /// ASCII minus 32 —the cursor's blank, DEL, is 95—, and each variable mark
 /// as its slot; a letter the font does not have is an error. `Messages::add`
-/// asks first, and stops the page that shows one: A Blurred Line does not
-/// have a single accented letter, but a game in French or German does.
+/// stands the plain ASCII in for the ones that have it —see
+/// `rm2k_snes_text::plain`— and asks after, and stops the page that shows
+/// one without it.
 fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
     window
         .fit(text)
@@ -398,6 +518,9 @@ fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
             }
             if (NAME_MARK..NAME_MARK + 0x100).contains(&c) {
                 return Ok(Unit::Name((c - NAME_MARK) as u8));
+            }
+            if let Some(k) = window.carried_index(ch) {
+                return Ok(Unit::Letter(k));
             }
             if !(32..32 + CONSOLE_GLYPHS as u32).contains(&c) {
                 return Err(Bad::answer(format!(
@@ -521,6 +644,9 @@ pub struct Messages {
     /// What the boxes added dropped, until the compiler takes it: see
     /// [`Messages::take_dropped`].
     dropped: Vec<String>,
+    /// The letters the boxes added showed plain, until the compiler takes
+    /// them: see [`Messages::take_plain`].
+    plain: Vec<char>,
 }
 
 impl Messages {
@@ -534,6 +660,7 @@ impl Messages {
             where_: HashMap::new(),
             texts: BTreeMap::new(),
             dropped: Vec::new(),
+            plain: Vec::new(),
         }
     }
 
@@ -560,11 +687,34 @@ impl Messages {
     /// The pair table for the boxes it holds: the ones left after every
     /// `rewind`, which are the ones that go into the cartridge.
     pub fn choose_pairs(&self) -> Result<Pairs> {
+        self.choose_pairs_for(self.window)
+    }
+
+    /// [`Messages::choose_pairs`], for the boxes as `window` will write
+    /// them: the gathering pass draws every Latin-1 letter, and the
+    /// cartridge only the ones `window` carries —the rest go plain—.
+    pub fn choose_pairs_for(&self, window: Window) -> Result<Pairs> {
         let mut runs = Vec::new();
         for t in self.texts.values().flatten() {
-            runs.extend(letter_runs(&units(t, self.window)?));
+            let (t, _) = plain_text_but(t, |c| window.carried_index(c).is_some());
+            runs.extend(letter_runs(&units(&t, window)?));
         }
-        Ok(Pairs::choose(runs.iter().map(|l| l.as_slice())))
+        Ok(Pairs::choose(runs.iter().map(|l| l.as_slice()), window.pair_first()))
+    }
+
+    /// The Latin-1 letters its boxes draw —the ones left after every
+    /// `rewind`—, the most used first, ties by the letter: what
+    /// [`Window::carrying`] is given after the gathering pass.
+    pub fn letters_used(&self) -> Vec<char> {
+        let mut count: BTreeMap<char, usize> = BTreeMap::new();
+        for t in self.texts.values().flatten() {
+            for c in t.chars().filter(|&c| self.window.carried_index(c).is_some()) {
+                *count.entry(c).or_default() += 1;
+            }
+        }
+        let mut ranked: Vec<(char, usize)> = count.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        ranked.into_iter().map(|(c, _)| c).collect()
     }
 
     /// The offset of this box, storing it the first time.
@@ -612,6 +762,14 @@ impl Messages {
         std::mem::take(&mut self.dropped)
     }
 
+    /// The letters the boxes added since the last call showed as their
+    /// plain ASCII stand-ins, once each and in order: see [`Messages::add`].
+    /// The compiler takes them with the dropped escapes, to note them as a
+    /// loss of the command.
+    pub fn take_plain(&mut self) -> Vec<char> {
+        std::mem::take(&mut self.plain)
+    }
+
     /// The same as [`Messages::add`], but the box **keeps its waits** in the
     /// middle —`\.`, `\|`, `\!`—, and the ROM stops at each one: the
     /// `ShowMessage`'s, which is the only window that does it in RM2k too.
@@ -626,15 +784,27 @@ impl Messages {
     }
 
     fn store(&mut self, lines: Vec<String>, pauses: usize, auto_close: bool) -> Step<usize> {
+        // A letter the console's font does not have —RM2k's has Latin-1, the
+        // console's only ASCII— is shown as its plain stand-in, `é` as `e`,
+        // before trimming, because `ß` and `…` take more than one letter.
+        let mut plain = Vec::new();
         let lines: Vec<String> = lines
             .iter()
             .take(self.window.lines)
-            .map(|t| self.window.fit(t))
+            .map(|t| {
+                let (t, letters) = plain_text_but(t, |c| self.window.carried_index(c).is_some());
+                plain.extend(letters);
+                self.window.fit(&t)
+            })
             .collect();
-        // A letter the console's font does not have stops this page and not
-        // the game: RM2k's font has Latin-1 and the console's only ASCII.
+        // One without a stand-in still stops this page and not the game.
         if lines.iter().any(|t| units(t, self.window).is_err()) {
             return Err(Stop::Cannot);
+        }
+        for c in plain {
+            if !self.plain.contains(&c) {
+                self.plain.push(c);
+            }
         }
         let key = (lines, pauses, auto_close);
         if let Some(&w) = self.where_.get(&key) {
@@ -742,14 +912,95 @@ mod tests {
         assert_eq!(m.bytes(), [1, 1, 33, 0, 1, 1, 35]);
     }
     /// A letter the console's font does not have —RM2k's has Latin-1, and
-    /// the games in French or German use it— stops the page that shows it,
-    /// and not the whole game: it is one more thing a page cannot compile.
+    /// the games in Spanish or German use it— is shown as its plain ASCII
+    /// stand-in, and the compiler takes which ones to note them as a loss.
+    /// Until 2026-10-16 it stopped the page, which left out most of the
+    /// talk of Zounds and Vampires Dawn.
     #[test]
-    fn a_letter_the_font_does_not_have_stops_the_page() {
+    fn a_letter_the_font_does_not_have_is_shown_plain() {
         let mut m = Messages::new(1, WINDOW);
-        assert!(matches!(m.add(&s(&["Côte"])), Err(Stop::Cannot)));
+        let at = m.add(&s(&["¿Côte?", "Weiß…"])).ok().unwrap();
+        assert_eq!(m.take_plain(), ['¿', 'ô', 'ß', '…']);
+        assert!(m.take_plain().is_empty());
+        // The same box as the one written plain: one offset, one copy.
+        assert_eq!(m.add(&s(&["?Cote?", "Weiss..."])).ok(), Some(at));
+        assert_eq!(m.count(), 1);
+    }
+
+    /// `ß` and `…` take more than one letter, so the stand-in goes before
+    /// the line is trimmed to the window: what does not fit is cut.
+    #[test]
+    fn a_stand_in_is_trimmed_to_the_window_like_any_letter() {
+        let mut m = Messages::new(1, Window::columns(4, 4));
+        let at = m.add(&s(&["aß…"])).ok().unwrap();
+        assert_eq!(m.texts[&at], s(&["ass."]));
+    }
+
+    /// A window whose font draws `é` (5), `ñ` (6) and `ß` (5).
+    fn latin_window() -> Window {
+        let mut w = WINDOW;
+        for (c, a) in [('é', 5), ('ñ', 6), ('ß', 5)] {
+            w.latin[latin_slot(c).unwrap()] = a;
+        }
+        w
+    }
+
+    /// A letter the cartridge draws is its index after the console's 96,
+    /// and the pairs start past it; one the font draws and the cartridge
+    /// does not is shown plain, as one the font lacks.
+    #[test]
+    fn a_carried_letter_is_drawn_and_the_rest_plain() {
+        let w = latin_window().carrying(&['ñ', 'ô', 'é']);
+        // `ô` the font does not draw: left out.
+        assert_eq!(w.letters(), ['ñ', 'é']);
+        assert_eq!(w.pair_first(), PAIR_FIRST + 2);
+        assert_eq!(w.advance('ñ'), 6);
+        assert_eq!(w.measure().of("ñé"), 11);
+        assert_eq!(w.measure().of("ß"), w.measure().of("ss"));
+        let mut m = Messages::new(1, w);
+        let at = m.add(&s(&["ñéßô"])).ok().unwrap();
+        assert_eq!(m.data[at..], [1, 5, 96, 97, 83, 83, 79]);
+        assert_eq!(m.take_plain(), ['ß', 'ô']);
+    }
+
+    /// The gathering pass draws every letter the font has, and counts the
+    /// ones its boxes use, the most used first; the pairs are then chosen
+    /// for the boxes as the cartridge writes them.
+    #[test]
+    fn the_gathering_pass_says_which_letters_the_boxes_use() {
+        let mut m = Messages::measuring(1, latin_window().carrying_all());
+        m.add(&s(&["ñé ß"])).ok().unwrap();
+        m.add(&s(&["ññ"])).ok().unwrap();
+        assert_eq!(m.letters_used(), ['ñ', 'ß', 'é']);
+        let w = latin_window().carrying(&['ñ']);
+        let pairs = m.choose_pairs_for(w).unwrap();
+        assert_eq!(pairs.first(), PAIR_FIRST + 1);
+        // Its letters are the ones the cartridge writes: `é` and `ß` as
+        // their stand-ins, `ñ` as 96.
+        assert!(pairs.len() > 0);
+        assert!(pairs.bytes().iter().step_by(2).all(|&l| l < PAIR_FIRST + 1));
+    }
+
+    /// No more than [`LETTERS_MAX`]: the composer keeps a letter below 128.
+    #[test]
+    fn no_more_letters_than_fit_below_128() {
+        let mut w = WINDOW;
+        w.latin = [5; LATIN_GLYPHS];
+        let all: Vec<char> = (0..LATIN_GLYPHS).filter_map(latin_char).collect();
+        let w = w.carrying(&all);
+        assert_eq!(w.letters().len(), LETTERS_MAX);
+        assert_eq!(w.pair_first(), 128);
+        assert_eq!(w.letters()[0], '\u{a0}');
+    }
+
+    /// A letter with no stand-in still stops the page, and leaves no letter
+    /// behind for the next command.
+    #[test]
+    fn a_letter_without_a_stand_in_stops_the_page() {
+        let mut m = Messages::new(1, WINDOW);
+        assert!(matches!(m.add(&s(&["é ア"])), Err(Stop::Cannot)));
         assert_eq!(m.count(), 0);
-        assert_eq!(m.add(&s(&["Cote"])).ok(), Some(0));
+        assert!(m.take_plain().is_empty());
     }
 
     /// What a box drops is kept until the compiler takes it, and only if the
@@ -757,7 +1008,7 @@ mod tests {
     #[test]
     fn what_a_box_drops_is_taken_once_and_only_if_it_is_stored() {
         let mut m = Messages::new(1, WINDOW);
-        assert!(m.add(&s(&["Côte \\$"])).is_err());
+        assert!(m.add(&s(&["Cアte \\$"])).is_err());
         assert!(m.take_dropped().is_empty());
         m.add(&s(&["\\c[1]A\\c[0]"])).ok().unwrap();
         m.add_waiting(&s(&["B\\>", "\\c[1]C"])).ok().unwrap();

@@ -8,10 +8,13 @@ use crate::layout::*;
 use ditto::schema::{Actor, Item};
 use rm2k_rules::actor as rules;
 
-/// What the screen can write: the characters the font has, with a '?'
-/// instead of the others, and cut to `width`.
+/// What the screen can write: the characters the font has, a letter it
+/// does not have as its plain ASCII stand-in —`Unamë` as `Uname`, see
+/// `rm2k_snes_text::plain`—, a '?' instead of the rest, and cut to `width`.
 pub fn item_text(text: &str, width: usize) -> String {
-    text.chars()
+    rm2k_snes_text::plain::plain_text(text)
+        .0
+        .chars()
         .map(|c| {
             let code = c as usize;
             if (ITEM_FIRST_CHAR..ITEM_FIRST_CHAR + ITEM_CHARS).contains(&code) {
@@ -343,6 +346,6 @@ mod tests {
         assert_eq!(right(123, 2), "23");
         assert_eq!(digits_of(1_234_567, 6), "999999");
         assert_eq!(digits_of(-5, 3), "0");
-        assert_eq!(item_text("Café", 10), "Caf?");
+        assert_eq!(item_text("Café ア", 10), "Cafe ?");
     }
 }

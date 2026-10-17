@@ -851,7 +851,7 @@ pub fn run(options: Options) -> Result<()> {
         "names": indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>(),
     });
     let screens_answer =
-        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors, &window_answer["text_rows"])?;
+        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors, &window_answer["text_rows"], &compiled["messages"]["letters"])?;
     for loss in screens_answer["losses"].as_array().into_iter().flatten() {
         degradations.cartridge(loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""));
     }

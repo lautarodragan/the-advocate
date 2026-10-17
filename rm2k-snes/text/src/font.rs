@@ -14,7 +14,10 @@
 //! 2026-10-03, and it is still a font like any other: a sheet of fixed
 //! advance.
 //!
-//! Only printable ASCII: a character without a glyph is drawn as a space.
+//! Printable ASCII, and a sheet may carry Latin-1 too —U+00A0 to U+00FF,
+//! six more rows of cells—: the engine's does. A character without a glyph
+//! is drawn as a space; the text that reaches the cartridge has already
+//! stood a plain ASCII letter in for it —see [`crate::plain`]—.
 
 use crate::glyphs;
 
@@ -30,6 +33,12 @@ pub const MINCHO: i32 = 1;
 /// the tilde.
 pub const FIRST: u32 = 32;
 pub const GLYPHS: usize = 95;
+
+/// The first Latin-1 character a sheet may carry, and how many: U+00A0, the
+/// no-break space, to U+00FF, `ÿ`. They are RM2k's: its font has them, and
+/// the games in Spanish, German or French use them.
+pub const LATIN_FIRST: u32 = 0xA0;
+pub const LATIN_GLYPHS: usize = 96;
 
 /// A blank as wide as `>`, which a sheet does not have: it goes in front of
 /// the options a cursor is not on, so that the options do not move when it
@@ -76,7 +85,8 @@ pub const RM2K: &str = "rm2k";
 
 /// A font: each glyph's twelve rows and how many columns the line moves
 /// after it. Bit `b` of a row is the pixel of column `b`, bit 0 the
-/// leftmost.
+/// leftmost. The 95 of ASCII, and after them, when the sheet has them, the
+/// 96 of Latin-1.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Font {
     rows: Vec<[u16; HEIGHT]>,
@@ -135,17 +145,22 @@ impl Font {
                  shadow on the next one, since each letter's air is where its shadow falls"
             ));
         }
-        let widest = (0..GLYPHS).max_by_key(|&i| self.advance[i]).unwrap_or(0);
+        let widest = (0..self.advance.len()).max_by_key(|&i| self.advance[i]).unwrap_or(0);
+        // An empty Latin-1 cell stays empty: no advance, not drawn.
+        let undrawn: Vec<usize> = (GLYPHS..self.advance.len()).filter(|&g| self.advance[g] == 0).collect();
         let spaced = self.advance[widest] as usize + pixels as usize;
         if spaced > SPACED_ADVANCE_MAX {
             return Err(format!(
                 "with {pixels} more pixels {:?} would move the line {spaced}, more than a cell \
                  ({SPACED_ADVANCE_MAX}): the battle checks its victory lines one letter per cell",
-                Font::console_char(widest)
+                glyph_char(widest)
             ));
         }
         for a in &mut self.advance {
             *a += pixels as u8;
+        }
+        for g in undrawn {
+            self.advance[g] = 0;
         }
         Ok(self)
     }
@@ -153,6 +168,8 @@ impl Font {
     /// A font from its sheet: an indexed PNG with the 95 characters in
     /// ASCII order, sixteen per row, each in a cell `w` columns wide and 13
     /// rows tall with a one-pixel grid line between cells and around them.
+    /// Six rows of cells; or twelve, and the last six are Latin-1's 96, from
+    /// U+00A0 —the cell after the tilde's, DEL's, stays empty—.
     ///
     /// What counts is the **index**, not the colour, so the palette can be
     /// changed to see better: 0 is the background, 1 the glyph, 2 the mark of
@@ -167,21 +184,28 @@ impl Font {
     pub fn from_sheet(png_bytes: &[u8]) -> Result<Font, String> {
         let (indices, width, height) = read_indexed(png_bytes)?;
         let cell = (width - 1) / PER_ROW - 1;
-        if (width, height) != sheet_size(cell) {
+        let latin = (width, height) == sheet_size(cell, true);
+        if !latin && (width, height) != sheet_size(cell, false) {
             return Err(format!(
-                "it is {width}x{height}, and a sheet of {cell}-column cells is {}x{}",
-                sheet_size(cell).0,
-                sheet_size(cell).1
+                "it is {width}x{height}, and a sheet of {cell}-column cells is {}x{}, or {}x{} with \
+                 Latin-1",
+                sheet_size(cell, false).0,
+                sheet_size(cell, false).1,
+                sheet_size(cell, true).0,
+                sheet_size(cell, true).1
             ));
         }
         if cell > 16 {
             return Err(format!("its cells are {cell} wide, and a glyph is at most 16"));
         }
         let at = |x: usize, y: usize| indices[y * width + x];
-        let mut rows = Vec::with_capacity(GLYPHS);
-        let mut advance = Vec::with_capacity(GLYPHS);
-        for i in 0..GLYPHS {
-            let ch = char::from_u32(FIRST + i as u32).expect("ASCII");
+        let mut rows = Vec::with_capacity(GLYPHS + LATIN_GLYPHS);
+        let mut advance = Vec::with_capacity(GLYPHS + LATIN_GLYPHS);
+        let glyphs = if latin { GLYPHS + LATIN_GLYPHS } else { GLYPHS };
+        for g in 0..glyphs {
+            let ch = glyph_char(g);
+            // The cell: Latin-1's start at the seventh row, past DEL's.
+            let i = if g < GLYPHS { g } else { g + 1 };
             let (x0, y0) = (1 + (i % PER_ROW) * (cell + 1), 1 + (i / PER_ROW) * (CELL_ROWS + 1));
             let mut glyph = [0u16; HEIGHT];
             for (y, row) in glyph.iter_mut().enumerate() {
@@ -211,7 +235,7 @@ impl Font {
 
     /// The twelve rows of `ch`'s glyph, or the space's if the font lacks it.
     pub fn rows(&self, ch: char) -> &[u16; HEIGHT] {
-        &self.rows[index(ch)]
+        &self.rows[self.index(ch)]
     }
 
     /// How many columns the line moves after `ch`.
@@ -222,7 +246,7 @@ impl Font {
         if ch == FIGURE_BLANK {
             return self.advance('0');
         }
-        self.advance[index(ch)] as usize
+        self.advance[self.index(ch)] as usize
     }
 
     /// How many columns `text` moves the line: from where it starts to
@@ -275,16 +299,57 @@ impl Font {
         self.advance.iter().all(|a| *a == self.advance[0])
     }
 
-    /// The advance of each of the 95 glyphs, in order.
+    /// The advance of each of the 95 glyphs of ASCII, in order.
     pub fn advances(&self) -> &[u8] {
-        &self.advance
+        &self.advance[..GLYPHS]
     }
 
     /// The advance of each glyph the console carries, in order: the 95 and
     /// [`CURSOR_BLANK`].
     pub fn console_advances(&self) -> Vec<u8> {
-        let mut out = self.advance.clone();
+        let mut out = self.advance[..GLYPHS].to_vec();
         out.push(self.advance('>') as u8);
+        out
+    }
+
+    /// Whether the font draws `ch`: printable ASCII, and the Latin-1 its
+    /// sheet carries. A Latin-1 cell without advance marks is one the sheet
+    /// does not draw: the engine's leaves out the four wider than ASCII's
+    /// widest, `®`, `¾`, `Ø` and `ø`, which `letter_spacing` would push
+    /// past a cell.
+    pub fn draws(&self, ch: char) -> bool {
+        let code = ch as u32;
+        if (FIRST..FIRST + GLYPHS as u32).contains(&code) {
+            return true;
+        }
+        let latin = (LATIN_FIRST..LATIN_FIRST + LATIN_GLYPHS as u32).contains(&code);
+        latin && self.advance.get(GLYPHS + (code - LATIN_FIRST) as usize).is_some_and(|&a| a > 0)
+    }
+
+    /// The Latin-1 letters it draws, with their advances: every one its
+    /// sheet carries but the no-break space and the soft hyphen, which a
+    /// space and a hyphen stand in for —see [`crate::plain`]—. Empty for a
+    /// font without them, RM2k's included.
+    pub fn latin_letters(&self) -> Vec<(char, u8)> {
+        (GLYPHS..self.advance.len())
+            .map(|g| (glyph_char(g), self.advance[g]))
+            .filter(|&(c, _)| self.draws(c) && !matches!(c, '\u{a0}' | '\u{ad}'))
+            .collect()
+    }
+
+    /// The advances a line is measured with, from the space on: the
+    /// console's —see [`Font::console_advances`]— up to DEL, nothing for
+    /// U+0080 to U+009F, and each Latin-1 letter the font draws —see
+    /// [`Font::latin_letters`]—, 0 for one it does not. See
+    /// `refit::Measure`.
+    pub fn measure_advances(&self) -> Vec<u8> {
+        let mut out = self.console_advances();
+        out.resize((LATIN_FIRST - FIRST) as usize, 0);
+        let mut latin = vec![0u8; LATIN_GLYPHS];
+        for (c, a) in self.latin_letters() {
+            latin[(c as u32 - LATIN_FIRST) as usize] = a;
+        }
+        out.extend(latin);
         out
     }
 
@@ -294,13 +359,23 @@ impl Font {
     }
 }
 
-/// The glyph `ch` is drawn with: its own, or the space.
-fn index(ch: char) -> usize {
-    let code = ch as u32;
-    if (FIRST..FIRST + GLYPHS as u32).contains(&code) {
-        (code - FIRST) as usize
-    } else {
-        0
+/// The character glyph `g` of a font is: ASCII's 95 and then Latin-1's.
+fn glyph_char(g: usize) -> char {
+    let code = if g < GLYPHS { FIRST + g as u32 } else { LATIN_FIRST + (g - GLYPHS) as u32 };
+    char::from_u32(code).expect("ASCII or Latin-1")
+}
+
+impl Font {
+    /// The glyph `ch` is drawn with: its own, or the space.
+    fn index(&self, ch: char) -> usize {
+        let code = ch as u32;
+        if (FIRST..FIRST + GLYPHS as u32).contains(&code) {
+            (code - FIRST) as usize
+        } else if self.draws(ch) {
+            GLYPHS + (code - LATIN_FIRST) as usize
+        } else {
+            0
+        }
     }
 }
 
@@ -312,8 +387,9 @@ const GRID: u8 = 3;
 const PER_ROW: usize = 16;
 const CELL_ROWS: usize = HEIGHT + 1;
 
-fn sheet_size(cell: usize) -> (usize, usize) {
-    let rows = GLYPHS.div_ceil(PER_ROW);
+/// A sheet's size in pixels, with Latin-1's six rows of cells or without.
+fn sheet_size(cell: usize, latin: bool) -> (usize, usize) {
+    let rows = GLYPHS.div_ceil(PER_ROW) + if latin { LATIN_GLYPHS / PER_ROW } else { 0 };
     (PER_ROW * (cell + 1) + 1, rows * (CELL_ROWS + 1) + 1)
 }
 
@@ -408,6 +484,31 @@ mod tests {
         // Its widest letters are six: three more pass a cell.
         let e = font.with_spacing(3).unwrap_err();
         assert!(e.contains("victory"), "{e}");
+    }
+
+    /// The engine's sheet carries Latin-1, each letter fitting the console
+    /// like the rest; RM2k's does not, and draws none.
+    #[test]
+    fn the_engine_s_font_draws_latin_1() {
+        let font = Font::named("low-variable", MINCHO).unwrap();
+        assert!(font.draws('é') && font.draws('ß') && font.draws('¿'));
+        assert!(!font.draws('…') && !font.draws('\u{7f}'));
+        assert_ne!(font.rows('é'), font.rows('e'));
+        // An accent over the body of its own letter.
+        assert_eq!(font.rows('é')[3..], font.rows('e')[3..]);
+        assert_eq!(font.advance('é'), font.advance('e'));
+        assert_eq!(font.latin_letters().len(), LATIN_GLYPHS - 2 - 4);
+        assert!(!font.draws('ø'));
+        for (c, a) in font.latin_letters() {
+            let ink = font.rows(c).iter().map(|r| 16 - r.leading_zeros() as usize).max().unwrap();
+            assert!(ink == 0 || ink < a as usize, "{c:?}");
+        }
+        let m = font.measure_advances();
+        assert_eq!(m[('é' as u32 - FIRST) as usize] as usize, font.advance('é'));
+        assert_eq!(m[(0x85 - FIRST) as usize], 0);
+        assert_eq!(font.advances().len(), GLYPHS);
+        let rm2k = Font::rm2k(MINCHO);
+        assert!(!rm2k.draws('é') && rm2k.latin_letters().is_empty());
     }
 
     #[test]

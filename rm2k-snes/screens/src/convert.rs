@@ -33,6 +33,11 @@ pub struct Request {
     pub title: bool,
     /// Where what follows the message window starts in colour memory.
     pub cgram_reserved: usize,
+    /// The Latin-1 letters the message boxes draw, in the order of their
+    /// indices after the console's 96 glyphs: the event compiler's
+    /// `messages.letters`. Their glyphs go into the message window's
+    /// tables, and only there: the text screens and the battle write ASCII.
+    pub letters: Vec<char>,
     pub vram: Vram,
     /// The custom menus the project declares, by name, each its file as
     /// JSON, in the order the cartridge numbers them; and what the
@@ -460,7 +465,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         );
         lose(&mut says, &mut losses, "window-frame-fused", Some(line));
     }
-    let font = message_window::font_bytes(&game.font)?;
+    let font = message_window::font_bytes_with(&game.font, &request.letters)?;
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
 
     // The items the actor choice opens for, whose names it writes: the
@@ -738,8 +743,10 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let menu = &slots.menu;
     let mut window_json = window_json(&window);
     window_json["font"] = json!(hex(&font));
-    window_json["advances"] = json!(game.font.console_advances());
-    window_json["reach"] = json!(message_window::font_reach(&game.font));
+    let mut advances = game.font.console_advances();
+    advances.extend(request.letters.iter().map(|&c| game.font.advance(c) as u8));
+    window_json["advances"] = json!(advances);
+    window_json["reach"] = json!(message_window::font_reach_with(&game.font, &request.letters));
     window_json["prerender"] = json!(prerender.iter().map(|t| hex(t)).collect::<Vec<_>>());
     Ok(json!({
         "custom_menus": custom_menus,

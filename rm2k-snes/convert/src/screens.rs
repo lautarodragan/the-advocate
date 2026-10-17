@@ -146,6 +146,7 @@ pub fn convert(
     menus: &Value,
     window_colors: u32,
     text_rows: &Value,
+    letters: &Value,
 ) -> Result<Value> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
@@ -175,6 +176,9 @@ pub fn convert(
         // The message window goes in the lowest palette, and the background
         // starts after it: see `cgram.rs` in `rm2k-snes-mapdata`.
         "cgram_reserved": cgram::cgram_reserved(window_colors),
+        // The Latin-1 letters the message boxes draw, as the event compiler
+        // numbered them: their glyphs go after the console's 96.
+        "letters": letters,
         "vram": {
             "slot_vram": vram::SLOT_VRAM,
             "slot_map": vram::SLOT_MAP,
