@@ -392,8 +392,15 @@ fn triggerable(trigger: i32) -> bool {
 /// `rpg::EventPage::AnimType`, plus `spin`, which turns on its own and does
 /// not obey either. The whole rule is also next to `TURN` in the
 /// converter's events.py, which the converter's side cites.
+///
+/// **A page without commands does not turn**: `ScheduleForegroundExecution`
+/// returns on an empty list before `SetFacing`. Until 2026-10-16 it did
+/// here, and a still event that turns animates in a slot of its own: the
+/// sixty-one empty torches of A Blurred Line's map 148 wanted sixty-one
+/// slots instead of their twins' two, and stood still.
 fn turns(page: &Page) -> bool {
-    !page.character_name.is_empty()
+    !page.commands.is_empty()
+        && !page.character_name.is_empty()
         && !matches!(
             page.animation_type,
             ANIM_FIXED_NOT_CONTINUOUS | ANIM_FIXED_CONTINUOUS | ANIM_FIXED_GRAPHIC | ANIM_SPIN
@@ -763,3 +770,40 @@ pub fn hex(bytes: &[u8]) -> String {
 /// The pages of every map, by map, as `(event index, page index)` and
 /// whether they compile: the question the party's scan asks.
 pub type Compiles = BTreeMap<i32, Vec<(usize, usize, bool)>>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::Condition;
+
+    fn page(commands: Vec<Command>) -> Page {
+        Page {
+            trigger: 0,
+            layer: 1,
+            move_type: 0,
+            move_frequency: 3,
+            move_speed: 6,
+            animation_type: 1,
+            character_name: "Crown7".into(),
+            character_index: 3,
+            character_pattern: 1,
+            commands,
+            route: Vec::new(),
+            route_repeat: true,
+            route_skippable: false,
+            condition: Condition::default(),
+            id: 1,
+            translucent: false,
+            overlap_forbidden: false,
+        }
+    }
+
+    #[test]
+    fn a_page_without_commands_does_not_turn() {
+        // A Blurred Line's map 148: sixty-one torches on the hero's layer,
+        // action pages with nothing in them. RM2k never turns them, and
+        // here turning kept each one out of its twins' slot.
+        assert!(!turns(&page(Vec::new())));
+        assert!(turns(&page(vec![Command::new(10110, 0, "hot", Vec::new())])));
+    }
+}
