@@ -10,8 +10,11 @@
 ; Only the autostart ones are run. The touch ones are already covered by the
 ; doors, and the button ones need a button to press.
 
-; The fields of the page at page_ofs, into variables.
-.proc read_page
+; Up to +13 only —the event, the trigger, the conditions, the code, the layer
+; and the flags—, which is all that choosing the active page looks at:
+; `pick_with_filter` reads every page of the map, and the ten fields after
+; +13 were a third of what each page cost it. Leaves Y on +13.
+.proc read_page_head
 .a8
 .i16
     ldy page_ofs
@@ -54,6 +57,14 @@
     iny
     lda [page_ptr], y           ; +13 the flags of its own move route
     sta pg_flags
+    rts
+.endproc
+
+; The fields of the page at page_ofs, into variables.
+.proc read_page
+.a8
+.i16
+    jsr read_page_head
     iny
     lda [page_ptr], y           ; +14 its frequency
     sta pg_freq
@@ -217,7 +228,7 @@ with_filter:
     bne look_page
     jmp next                    ; the walk grew and no longer fits in a beq
 look_page:
-    jsr read_page
+    jsr read_page_head          ; the conditions are all it looks at
     ; The first page of an event with autostart pages clears its `FLAG_AUTO`:
     ; the last of its pages that meets its conditions sets it again, further
     ; down. An event's pages come together, so checking whether it changed is

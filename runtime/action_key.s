@@ -139,14 +139,19 @@ none:
     stz chosen_any
 
 walk:
-    jsr read_page
+    ; The event first, from +0, and the page only if it is the one: reading
+    ; every page of the map whole cost more than a frame on a map of four
+    ; hundred pages, each time A was pressed. Not stopping past it: the test
+    ; cartridges' pages of event 0 go at the end of the table.
     rep #$20
 .a16
-    lda pg_event
+    ldy page_ofs
+    lda [page_ptr], y
     cmp ev_sought
     sep #$20
 .a8
     bne next                    ; not the event we are looking at
+    jsr read_page_head
     jsr conditions_ok
     beq next
     lda pg_trigger
