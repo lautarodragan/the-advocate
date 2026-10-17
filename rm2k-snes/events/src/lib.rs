@@ -79,7 +79,7 @@ pub struct Request {
     /// at index 0 so that they run before the game's.
     pub test_event_map: Option<i32>,
     /// The automatic common events whose body shows pictures, and the maps
-    /// that carry a copy of them as automatic pages of an added event 0:
+    /// that carry a copy of them as automatic pages of an added last event:
     /// see [`with_test_event`]. Empty in a cartridge that has none.
     pub common_pages: Vec<i32>,
     pub common_page_maps: BTreeSet<i32>,
@@ -510,48 +510,61 @@ impl Request {
     }
 }
 
-/// The map with an added event at index 0, if it needs one: it takes that
-/// index so that everything that numbers events numbers the same, and the
-/// console walks the events from the lowest, so its pages run before the
-/// game's.
+/// The map with the events the cartridge adds to it, if any.
 ///
-/// **The map the test pages boot in** gets one without pages: the caller
-/// puts the test pages on it.
+/// **The map the test pages boot in** gets one without pages at index 0: it
+/// takes that index so that everything that numbers events numbers the
+/// same, and the console walks the events from the lowest, so its pages
+/// run before the game's. The caller puts the test pages on it.
 ///
-/// **A map of `common_page_maps`** gets one whose pages are the automatic
-/// common events of `common_pages`, each an automatic page on the common
-/// event's switch. RM2k runs an automatic common event on whatever map, and
+/// **A map of `common_page_maps`** gets one **last**, with the id after the
+/// highest —see [`copy_event`]—, whose pages are the automatic common
+/// events of `common_pages`, each an automatic page on the common event's
+/// switch: last, so no event of the game changes its index. RM2k runs an automatic common event on whatever map, and
 /// the cartridge already does, from the shared body —see [`commons`]—; but a
 /// shared body is compiled without a map, so without pictures, and a menu
 /// built of `ShowPicture`s works blind: Frozen World's `BringUpMenu`, common
 /// 15. The copy is compiled with the map, so its pictures go in the map's
-/// sprite bank like the map's own. It runs instead of the shared body:
-/// both wait on the same switch, and `common_start` looks at the common
-/// events only when the map's events start none. The shared body stays,
-/// for the maps that carry no copy —one with no room left for an event, the
-/// one the test pages boot in—. The pages go from the highest number to the lowest: the
+/// sprite bank like the map's own. It runs instead of the shared body,
+/// which does not start on a map with a copy: see `switch_of` in the
+/// runtime's `common_events.s`. The shared body stays, for the maps that
+/// carry no copy. The pages go from the highest number to the lowest: the
 /// active page is the last whose condition holds, and RM2k starts the
 /// lowest-numbered common event first.
 fn with_test_event(mut map: Map, request: &Request, game: &Game) -> Map {
-    let lowered = request.common_page_maps.contains(&map.id);
-    if request.test_event_map == Some(map.id) || lowered {
-        let pages = if lowered && request.test_event_map != Some(map.id) {
-            common_pages(game, &request.common_pages)
-        } else {
-            vec![]
-        };
+    if request.test_event_map == Some(map.id) {
         map.events.insert(
             0,
             Event {
                 id: 0,
                 x: 0,
                 y: 0,
-                pages,
+                pages: vec![],
                 starting: None,
             },
         );
     }
+    if request.common_page_maps.contains(&map.id) {
+        let id = map.events.iter().map(|e| e.id).max().unwrap_or(0) + 1;
+        map.events.push(Event {
+            id,
+            x: 0,
+            y: 0,
+            pages: common_pages(game, &request.common_pages),
+            starting: None,
+        });
+    }
     map
+}
+
+/// The id of the event with the copies of the common events, on a map
+/// [`with_test_event`] gave one: the last.
+fn copy_event(map: &Map, request: &Request) -> Option<i32> {
+    request
+        .common_page_maps
+        .contains(&map.id)
+        .then(|| map.events.last().map(|e| e.id))
+        .flatten()
 }
 
 /// The automatic common events `numbers` as pages of a map's event: see
@@ -745,13 +758,14 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         let mut on_events = graphics.on_events.clone();
         //
         // **The copies of the automatic common events go last** —the pages of
-        // the added event 0, see [`with_test_event`]—, and the answer says
+        // the added last event, see [`with_test_event`]—, and the answer says
         // how many pictures came before them, `pictures_own`: a map that has
         // no room for theirs keeps its own.
+        let copy = copy_event(&map, request);
         let pages_of = |copies: bool| {
             map.events
                 .iter()
-                .filter(move |event| (event.id == 0) == copies)
+                .filter(move |event| (Some(event.id) == copy) == copies)
                 .flat_map(|event| event.pages.iter().map(move |page| (event.id, &page.commands)))
         };
         let cases = request
@@ -1015,8 +1029,8 @@ fn compile_pass(
         // Not the copies of the automatic common events, whose shared body
         // is not looked at either: see [`with_test_event`].
         let mut debts = BTreeSet::new();
-        let copies = request.common_page_maps.contains(&map.id);
-        for event in map.events.iter().filter(|e| !(copies && e.id == 0)) {
+        let copy = copy_event(&map, request);
+        for event in map.events.iter().filter(|e| Some(e.id) != copy) {
             for page in &event.pages {
                 if page.trigger != TRIGGER_AUTOSTART {
                     continue;
@@ -1250,12 +1264,12 @@ mod common_page_tests {
         }
     }
 
-    /// The copies of the automatic common events go in an event 0 of the
-    /// maps that carry them, the highest number first, each on its switch;
-    /// not one a custom menu replaces, and not on the map the test pages
-    /// boot in, whose event 0 is theirs.
+    /// The copies of the automatic common events go in a last event of
+    /// the maps that carry them, the highest number first, each on its
+    /// switch; not one a custom menu replaces. On the map the test pages
+    /// boot in, after theirs, which is first.
     #[test]
-    fn a_map_with_copies_gets_an_event_0_with_their_pages() {
+    fn a_map_with_copies_gets_a_last_event_with_their_pages() {
         let mut game = Game::default();
         game.common_events.insert(15, automatic(220));
         game.common_events.insert(16, automatic(221));
@@ -1270,12 +1284,16 @@ mod common_page_tests {
         let map = |id| Map { id, events: vec![Event { id: 1, x: 2, y: 2, pages: vec![], starting: None }] };
         let three = with_test_event(map(3), &request, &game);
         assert_eq!(three.events.len(), 2);
-        assert_eq!(three.events[0].id, 0);
-        let switches: Vec<Option<i32>> = three.events[0].pages.iter().map(|p| p.condition.switch_a).collect();
+        assert_eq!((three.events[0].id, three.events[1].id), (1, 2));
+        assert_eq!(copy_event(&three, &request), Some(2));
+        let switches: Vec<Option<i32>> = three.events[1].pages.iter().map(|p| p.condition.switch_a).collect();
         assert_eq!(switches, [Some(221), Some(220)]);
-        assert!(three.events[0].pages.iter().all(|p| p.trigger == TRIGGER_AUTOSTART));
+        assert!(three.events[1].pages.iter().all(|p| p.trigger == TRIGGER_AUTOSTART));
         let four = with_test_event(map(4), &request, &game);
-        assert!(four.events[0].pages.is_empty(), "the test pages' event 0");
+        let ids: Vec<i32> = four.events.iter().map(|e| e.id).collect();
+        assert_eq!(ids, [0, 1, 2], "the test pages' event first, the copies' last");
+        assert!(four.events[0].pages.is_empty());
+        assert_eq!(four.events[2].pages.len(), 2);
         assert_eq!(with_test_event(map(5), &request, &game).events.len(), 1);
     }
 }

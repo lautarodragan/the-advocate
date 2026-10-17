@@ -480,9 +480,14 @@ pub fn run(options: Options) -> Result<()> {
     // event's own body says it once, under `"common"`, and a copy whose
     // pictures did not go in has its map's `pictures-not-drawn`. See
     // [`crate::common_pages`].
-    degradations.forget(|l| {
-        l["event"].as_i64() == Some(0)
-            && l["map"].as_i64().is_some_and(|m| cartridge.common_pages.maps.contains(&(m as i32)))
+    let copy_events: BTreeSet<(i64, i64)> = infos
+        .iter()
+        .filter(|m| cartridge.common_pages.maps.contains(&m.id))
+        .filter_map(|m| m.map.events.last().map(|e| (m.id as i64, e.id as i64)))
+        .collect();
+    degradations.forget(|l| match (l["map"].as_i64(), l["event"].as_i64()) {
+        (Some(m), Some(e)) => copy_events.contains(&(m, e)),
+        _ => false,
     });
     let messages = unhex(compiled["messages"]["data"].as_str().unwrap_or(""));
     let message_count = int(&compiled["messages"]["count"]);

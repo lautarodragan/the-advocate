@@ -268,12 +268,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // the same. The stage puts its own.
         map.events.insert(0, Event { id: 0, x: 0, y: 0, pages: Vec::new() });
     }
-    // Or the one with the copies of the automatic common events, which
-    // takes the same place: see [`crate::common_pages`].
-    let copies = c.common_pages.event(game, map_id);
-    let test_event = test_event || copies.is_some();
-    if let Some(event) = copies {
-        map.events.insert(0, event);
+    // And the one with the copies of the automatic common events, last:
+    // see [`crate::common_pages`]. Wally does not know it, as it does not
+    // know a page the compiler adds: it has no graphic and walks nowhere.
+    if let Some(event) = c.common_pages.event(game, &map) {
+        map.events.push(event);
     }
     let case_commands = c.case_commands(map_id);
     separate_from_hero(game, &mut map, &c.leaders, &case_commands)?;

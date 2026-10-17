@@ -10,20 +10,20 @@
 //! ran blind: its keys and its jumps worked and nothing was drawn.
 //!
 //! Each map of the cartridge that can turn on one of their switches —see
-//! [`CommonPages::decide`]—, with room for one more event, gets an event 0
-//! —the place the test pages' event takes— whose pages are those common
-//! events, each on its switch: compiled with the map, their pictures are
+//! [`CommonPages::decide`]—, with room for one more event, gets one more
+//! event, last —so no event of the game changes its index—, whose pages
+//! are those common events, each on its switch: compiled with the map, their pictures are
 //! the map's like any page's. On a map with the copy the shared body does
 //! not start —`switch_of` in the runtime's `common_events.s` reads its
-//! switch as off there—; on one without it —no room for the event, or the map the test pages boot in,
-//! whose event 0 is theirs— it runs as before, blind. Which of the copies'
+//! switch as off there—; on one without it —no room for the event— it
+//! runs as before, blind. Which of the copies'
 //! pictures fit is Wally's to say: they go in only if they cost the map
 //! nothing —see `picture_own` in its `map::convert`—.
 //!
 //! The event compiler builds the same pages from the same list: see
 //! `with_test_event` in it.
 
-use crate::game::{Command, Event, Game, Page};
+use crate::game::{Command, Event, Game, GameMap, Page};
 use rm2k_snes_events::codes::{CALL_EVENT, CONTROL_SWITCHES, SHOW_PICTURE};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -48,7 +48,8 @@ impl CommonPages {
     /// replaces and the counters, whose bodies are not their commands—, and
     /// only those whose switch something can turn on; and the maps of
     /// `order` that can turn one of those switches on, with room for one more
-    /// event than they keep, `events_max`, but `test_event_map`.
+    /// event than they keep, `events_max` —one less on `test_event_map`,
+    /// whose first event is the test pages'—.
     ///
     /// **What can turn a switch on** is a `ControlSwitches` that turns it on
     /// or flips it —or that picks it by a variable— in a map's pages, in the
@@ -113,7 +114,8 @@ impl CommonPages {
             let here = turned(&mut map.all_commands());
             if !here.is_empty() || !everywhere.is_empty() {
                 on_some.extend(here);
-                if Some(id) != test_event_map && map.events.len() < events_max {
+                let room = events_max - usize::from(Some(id) == test_event_map);
+                if map.events.len() < room {
                     maps.insert(id);
                 }
             }
@@ -133,11 +135,14 @@ impl CommonPages {
         (!self.maps.is_empty()).then(|| json!({"commons": self.commons, "maps": self.maps}))
     }
 
-    /// The event 0 of map `id`, if it gets one.
-    pub fn event(&self, game: &Game, id: i32) -> Option<Event> {
-        if !self.maps.contains(&id) {
+    /// The event with the copies that `map` gets, if it gets one: with the
+    /// id after its highest, as the event compiler gives it —see
+    /// `with_test_event` there—, to go last.
+    pub fn event(&self, game: &Game, map: &GameMap) -> Option<Event> {
+        if !self.maps.contains(&map.id) {
             return None;
         }
+        let id = map.events.iter().map(|e| e.id).max().unwrap_or(0) + 1;
         let pages = self
             .commons
             .iter()
@@ -154,6 +159,6 @@ impl CommonPages {
                 commands: game.db.common_events[n].clone(),
             })
             .collect();
-        Some(Event { id: 0, x: 0, y: 0, pages })
+        Some(Event { id, x: 0, y: 0, pages })
     }
 }

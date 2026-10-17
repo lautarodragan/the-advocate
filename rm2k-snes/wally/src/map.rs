@@ -412,7 +412,12 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         let mut done = convert(game, &without)?;
         let full = request.picture.as_ref().map_or("", |p| p.name.as_str());
         let mine: Vec<&str> = own.as_ref().map_or(Vec::new(), |p| p.name.split(", ").collect());
-        let theirs: Vec<&str> = full.split(", ").filter(|n| !mine.contains(n)).collect();
+        // By name: the same picture shown elsewhere is the map's and theirs,
+        // and then the note names them all.
+        let mut theirs: Vec<&str> = full.split(", ").filter(|n| !mine.contains(n)).collect();
+        if theirs.is_empty() {
+            theirs = full.split(", ").collect();
+        }
         done.notes.push(lost("pictures-not-drawn", vec![], format!(
             "  map {}: WARNING, the common events' pictures {} aren't drawn here: the map has no room \
              for them besides its own",
