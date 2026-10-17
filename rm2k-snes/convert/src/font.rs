@@ -53,8 +53,11 @@ impl FontChoice {
     }
 
     /// A message window as the event compiler takes it: `width` pixels a
-    /// line, `lines` of them, and the advances to measure a line with.
+    /// line, `lines` of them, the advances to measure a line with, and the
+    /// Latin-1 letters the font draws with theirs —which of them the
+    /// cartridge carries, the compiler decides—.
     pub fn window(&self, width: usize, lines: u32) -> Value {
-        json!({"width": width, "lines": lines, "advances": self.font.console_advances()})
+        let letters: Vec<Value> = self.font.latin_letters().iter().map(|(c, a)| json!([c.to_string(), a])).collect();
+        json!({"width": width, "lines": lines, "advances": self.font.console_advances(), "letters": letters})
     }
 }

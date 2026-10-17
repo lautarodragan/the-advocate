@@ -60,6 +60,7 @@ fn request() -> Request {
         items: (1..=12).collect(),
         title: false,
         cgram_reserved: 16,
+        letters: Vec::new(),
         vram: Vram {
             slot_vram: 0x2000,
             slot_map: 0x3C00,

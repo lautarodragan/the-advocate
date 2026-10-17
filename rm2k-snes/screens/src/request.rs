@@ -88,6 +88,24 @@ impl Json {
         Ok(self.numbers(name)?.into_iter().map(|n| n as i32).collect())
     }
 
+    /// `letters`: a list of one-letter texts, or empty if it is not there.
+    fn letters(&self) -> Result<Vec<char>> {
+        let Some(v) = self.get("letters") else {
+            return Ok(Vec::new());
+        };
+        v.as_array()
+            .ok_or_else(|| self.bad("letters", v))?
+            .iter()
+            .map(|l| {
+                let mut chars = l.as_str().unwrap_or("").chars();
+                match (chars.next(), chars.next()) {
+                    (Some(c), None) => Ok(c),
+                    _ => Err(self.bad("letters", v)),
+                }
+            })
+            .collect()
+    }
+
     fn optional_actors(&self, name: &str) -> Result<Option<Vec<i32>>> {
         match self.get(name) {
             None => Ok(None),
@@ -204,6 +222,7 @@ impl Json {
             items: self.actors("items")?,
             title: self.flag("title", false)?,
             cgram_reserved: self.index_or("cgram_reserved", 0)?,
+            letters: self.letters()?,
             text_rows: self.text_rows()?,
             names,
             vram: Vram {
