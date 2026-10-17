@@ -9,12 +9,13 @@
 //! `BringUpMenu` (common 15, which the B button opens on almost every map),
 //! ran blind: its keys and its jumps worked and nothing was drawn.
 //!
-//! Each map of the cartridge with room for one more event gets an event 0
+//! Each map of the cartridge that can turn on one of their switches —see
+//! [`CommonPages::decide`]—, with room for one more event, gets an event 0
 //! —the place the test pages' event takes— whose pages are those common
 //! events, each on its switch: compiled with the map, their pictures are
-//! the map's like any page's. The map's events start before the common
-//! events, so on a map with the copy the shared body never runs; on one
-//! without it —no room for the event, or the map the test pages boot in,
+//! the map's like any page's. On a map with the copy the shared body does
+//! not start —`switch_of` in the runtime's `common_events.s` reads its
+//! switch as off there—; on one without it —no room for the event, or the map the test pages boot in,
 //! whose event 0 is theirs— it runs as before, blind. Which of the copies'
 //! pictures fit is Wally's to say: they go in only if they cost the map
 //! nothing —see `picture_own` in its `map::convert`—.
@@ -22,10 +23,14 @@
 //! The event compiler builds the same pages from the same list: see
 //! `with_test_event` in it.
 
-use crate::game::{Event, Game, Page};
-use rm2k_snes_events::codes::SHOW_PICTURE;
+use crate::game::{Command, Event, Game, Page};
+use rm2k_snes_events::codes::{CALL_EVENT, CONTROL_SWITCHES, SHOW_PICTURE};
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+
+/// `ControlSwitches`' operation that turns them off: the others turn them
+/// on or flip them.
+const SWITCH_OFF: i32 = 1;
 
 /// Which common events are copied, and into which maps.
 #[derive(Debug, Clone, Default)]
@@ -40,9 +45,19 @@ pub struct CommonPages {
 impl CommonPages {
     /// The automatic common events of `game` with a switch and a
     /// `ShowPicture` of their own, but `left_out` —the ones a custom menu
-    /// replaces and the counters, whose bodies are not their commands—; and
-    /// the maps of `order` that have room for one more event than they keep,
-    /// `events_max`, but `test_event_map`.
+    /// replaces and the counters, whose bodies are not their commands—, and
+    /// only those whose switch something can turn on; and the maps of
+    /// `order` that can turn one of those switches on, with room for one more
+    /// event than they keep, `events_max`, but `test_event_map`.
+    ///
+    /// **What can turn a switch on** is a `ControlSwitches` that turns it on
+    /// or flips it —or that picks it by a variable— in a map's pages, in the
+    /// common events they call, and, for every map at once, in the parallel
+    /// and automatic common events and the ones they call, but those copied.
+    /// Not following the copies is what leaves out a menu that only opens
+    /// itself again: A Blurred Line has two automatic ones with pictures
+    /// that nothing starts, and copying them into its three hundred maps did
+    /// not fit the cartridge.
     pub fn decide(
         game: &Game,
         left_out: &BTreeSet<i32>,
@@ -50,22 +65,64 @@ impl CommonPages {
         test_event_map: Option<i32>,
         events_max: usize,
     ) -> crate::fail::Result<CommonPages> {
-        let mut commons: Vec<i32> = game
+        let candidates: BTreeMap<i32, i32> = game
+            .db
+            .autostart_commons
+            .iter()
+            .map(|(&n, &s)| (n, s))
+            .filter(|(n, _)| !left_out.contains(n))
+            .filter(|(n, _)| game.db.common_events.get(n).is_some_and(|c| c.iter().any(|c| c.code == SHOW_PICTURE)))
+            .collect();
+        if candidates.is_empty() {
+            return Ok(CommonPages::default());
+        }
+        let switches: BTreeSet<i32> = candidates.values().copied().collect();
+        // The common events that run on any map, and what they call.
+        let global: Vec<i32> = game
             .db
             .autostart_commons
             .keys()
+            .chain(game.db.parallel_commons.iter())
             .copied()
-            .filter(|n| !left_out.contains(n))
-            .filter(|n| game.db.common_events.get(n).is_some_and(|c| c.iter().any(|c| c.code == SHOW_PICTURE)))
+            .filter(|n| !candidates.contains_key(n))
             .collect();
-        commons.sort_by(|a, b| b.cmp(a));
+        let turned = |roots: &mut dyn Iterator<Item = &Command>| -> BTreeSet<i32> {
+            let mut on = BTreeSet::new();
+            let mut seen = BTreeSet::new();
+            let mut stack: Vec<&Command> = roots.collect();
+            while let Some(c) = stack.pop() {
+                let p = &c.parameters;
+                if c.code == CONTROL_SWITCHES && p.len() >= 4 && p[3] != SWITCH_OFF {
+                    match p[0] {
+                        0 => on.extend(switches.iter().filter(|&&s| s == p[1])),
+                        1 => on.extend(switches.iter().filter(|&&s| p[1] <= s && s <= p[2])),
+                        _ => on.extend(switches.iter()),
+                    }
+                }
+                if c.code == CALL_EVENT && p.len() >= 2 && p[0] == 0 && !candidates.contains_key(&p[1]) && seen.insert(p[1]) {
+                    stack.extend(game.db.common_events.get(&p[1]).into_iter().flatten());
+                }
+            }
+            on
+        };
+        let everywhere = turned(&mut global.iter().flat_map(|n| game.db.common_events.get(n).into_iter().flatten()));
+        let mut on_some = everywhere.clone();
         let mut maps = BTreeSet::new();
-        if !commons.is_empty() {
-            for &id in order {
-                if Some(id) != test_event_map && game.map(id)?.events.len() < events_max {
+        for &id in order {
+            let map = game.map(id)?;
+            let here = turned(&mut map.all_commands());
+            if !here.is_empty() || !everywhere.is_empty() {
+                on_some.extend(here);
+                if Some(id) != test_event_map && map.events.len() < events_max {
                     maps.insert(id);
                 }
             }
+        }
+        let mut commons: Vec<i32> =
+            candidates.iter().filter(|(_, s)| on_some.contains(s)).map(|(&n, _)| n).collect();
+        commons.sort_by(|a, b| b.cmp(a));
+        if commons.is_empty() {
+            maps.clear();
         }
         Ok(CommonPages { commons, maps })
     }
