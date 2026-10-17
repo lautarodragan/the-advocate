@@ -7,8 +7,20 @@
 ; palette, built with the screen tint's tables— and the bridge back to
 ; `emit_object`.
 
+; How far the slots in use go —one past the highest one shown since the map
+; was entered—, which is how far the loops of every frame walk: sixteen
+; slots walked three times a frame, on a map that shows one picture or none,
+; put A Blurred Line's race past the lag its test allows (59 frames in 976
+; ticks against 58). And whether a palette waits for the vblank, so it does
+; not walk the eight to find none.
+.pushseg
+.segment "BSS"
+pic_last:  .res 2
+pic_dirty: .res 1
+.popseg
+
 ; Slot A's sixteen colours tinted with its tone, in the place of its palette
-; in `cgram_shadow`, and the slot marked so `pic_flush` uploads them. Enters
+; in `cgram_shadow`, and the palette marked so `pic_flush` uploads it. Enters
 ; with `tint_ptr` on the picture's colours, which the caller found in its
 ; entry. Called with `jsl` from bank 1.
 ;
@@ -20,8 +32,10 @@
 ; `restore_tables` puts them back as the screen tint's, copying `pure`, which
 ; is much cheaper than rebuilding them.
 ;
-; Slot s takes sprite palette 7 - s: see `picture_of_image` in
-; Wally's sprites.
+; The slot's palette is `PIC_PAL`, from the top: palette 7 - p. **Two slots
+; can share one** —the converter puts pictures whose colours fit together in
+; the same—, and then the last one tinted is the tone both are drawn with.
+; See `picture_of_image` in Wally's sprites.
 .proc pic_palette
 .a8
 .i16
@@ -70,11 +84,14 @@
     sta tint_s
     ; And from there to the shadow, **without touching `tint_ready`**:
     ; setting it would send the map's three palettes up on every frame of a
-    ; ramp, and that eats the vblank's pose budget. Palette 7 - s is entry
-    ; 128 + 16 * (7 - s), that is 2 * 240 - 32 * s bytes into the shadow.
+    ; ramp, and that eats the vblank's pose budget. Palette 7 - p is entry
+    ; 128 + 16 * (7 - p), that is 2 * 240 - 32 * p bytes into the shadow.
+    plx                         ; the slot
+    lda f:PIC_PAL, x
     rep #$20
 .a16
-    lda 1, s                    ; the slot
+    and #$0007
+    pha                         ; its palette from the top
     xba                         ; times 256
     lsr a
     lsr a
@@ -93,12 +110,12 @@ copy:
     iny
     cpy #32
     bne copy
-    plx                         ; the slot
+    plx                         ; the palette
     sep #$20
 .a8
-    lda f:PIC_FLAGS, x
-    ora #PIC_PENDING
-    sta f:PIC_FLAGS, x
+    lda #1
+    sta f:PIC_PAL_PENDING, x
+    sta pic_dirty
     jsr restore_tables
     ply
     rtl
@@ -111,13 +128,18 @@ copy:
 .proc pic_flush
 .a8
 .i16
+    lda pic_dirty
+    bne waiting
+    jmp pic_blend
+waiting:
+    stz pic_dirty
     ldx #$0000
 each:
-    lda f:PIC_FLAGS, x
-    bpl next                    ; PIC_PENDING is bit 7
-    and #$FF ^ PIC_PENDING
-    sta f:PIC_FLAGS, x
-    ; Palette 7 - s: entry 240 - 16 * s.
+    lda f:PIC_PAL_PENDING, x
+    beq next
+    lda #0
+    sta f:PIC_PAL_PENDING, x
+    ; Palette 7 - p: entry 240 - 16 * p.
     txa
     asl a
     asl a
@@ -149,7 +171,7 @@ each:
     plx
 next:
     inx
-    cpx #PIC_SLOTS
+    cpx #8
     bne each
     ; fall through to `pic_blend`
 .endproc
@@ -158,7 +180,7 @@ next:
 ; —from `PIC_HALF` to `PIC_HIDDEN`— is mixed half and half with what is
 ; under it, with the console's color math. Only the objects take part, and
 ; the hardware only mixes the ones in sprite palettes 4 to 7: the pictures
-; are in 7 and 6, and the hero and the events stay opaque **if their map
+; are from 7 down, and the hero and the events stay opaque **if their map
 ; leaves them in 0 to 3** —a map with five or six character palettes, or the
 ; battle animation's box in 4 or 5, gets those mixed too while the picture
 ; is up—. The subscreen is the map's two layers; the message window, which
@@ -180,6 +202,7 @@ PIC_HALF = 25
 .a8
 .i16
     ldx #$0000
+    bra test
 each:
     lda f:PIC_IMG, x
     cmp #PIC_NONE
@@ -198,7 +221,8 @@ each:
     rts
 next:
     inx
-    cpx #PIC_SLOTS
+test:
+    cpx pic_last
     bne each
     lda #$30                    ; color math off, as `ppu_reset` leaves it
     sta CGWSEL

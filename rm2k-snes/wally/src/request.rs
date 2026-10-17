@@ -356,9 +356,10 @@ impl crate::map::MapRequest {
     /// and `turns` are read.
     ///
     /// A `picture` is `{"name", "objects", "tiles", "cells": [[tile,
-    /// [64 indices]], ...], "slots"}`, the map's pictures already cut by
-    /// whoever decided them, and how many slots the console keeps them in
-    /// —one if it does not say—.
+    /// [64 indices]], ...], "palettes"}`, the map's pictures already cut by
+    /// whoever decided them, and how many sprite palettes they share —one if
+    /// it does not say; a request from before 2026-10-16 said `slots`, one
+    /// palette each—.
     pub fn from_json(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
         use crate::map::{MapRequest, PictureAsked};
         use crate::sprites::extras::Image;
@@ -399,9 +400,9 @@ impl crate::map::MapRequest {
                         cells,
                     },
                     // One, for a request from before there were several.
-                    slots: match p.get("slots") {
+                    palettes: match p.get("palettes").or_else(|| p.get("slots")) {
                         None => 1,
-                        Some(s) => index(s, "`slots`", whose)?,
+                        Some(s) => index(s, "`palettes`", whose)?,
                     },
                 })
             }

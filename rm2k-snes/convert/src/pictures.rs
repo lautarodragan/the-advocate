@@ -6,7 +6,9 @@
 //! fifteen colours —a sprite palette— and the per-line object budget. The
 //! map has to have room for them, and `wally` says whether it did; the one
 //! that did not is accepted without being done. The console keeps up to
-//! [`SLOTS`] at a time, one per RM2k picture number, each with a palette.
+//! [`SLOTS`] at a time, one per RM2k picture number of the map; they share
+//! sprite palettes when their colours fit together, and their tiles when
+//! they are the same, and a sparse block goes as 8x8 objects.
 //!
 //! **The big ones go in BG1, in mode 1, while they are shown**, with the
 //! map hidden: a picture that goes with the screen and does not fit the
@@ -50,9 +52,10 @@ pub const GRID: i64 = 16;
 pub const BLOCK_ROW: i64 = 4 * GRID;
 /// The fifteen of a sprite palette: index 0 is not drawn.
 pub const COLORS: i64 = 15;
-/// How many pictures the console keeps at a time: `PIC_SLOTS` in the
-/// runtime's `picture.s`.
-pub const SLOTS: usize = 2;
+/// How many pictures the console keeps at a time, one per number: `PIC_SLOTS`
+/// in the runtime's `far_ram.s`. Until 2026-10-16 it was two, one palette
+/// each; how many go in is now what the palettes and the tiles allow.
+pub const SLOTS: usize = 16;
 /// The biggest picture the plane of objects takes: half the 512 tiles the
 /// PPU names, so a map's characters keep the other half.
 pub const WIDTH_MAX: i64 = 256;
@@ -202,43 +205,6 @@ fn fits(info: &Converted) -> bool {
         && 0 < info.height
         && info.height <= HEIGHT_MAX
         && info.palette.as_array().is_some_and(|p| !p.is_empty())
-}
-
-/// The picture cut into 32x32 objects, row by row, leaving out the ones
-/// with nothing drawn: `(dx, dy, cells)`, with `cells` the sixteen 8x8
-/// cells of the object. What falls outside the image is index 0.
-fn objects(info: &Converted) -> Vec<(i64, i64, Vec<Vec<i64>>)> {
-    let mut out = Vec::new();
-    let mut oy = 0;
-    while oy < info.height {
-        let mut ox = 0;
-        while ox < info.width {
-            let mut cells = Vec::new();
-            for ty in 0..OBJ_SIDE {
-                for tx in 0..OBJ_SIDE {
-                    let mut cell = Vec::with_capacity(64);
-                    for py in 0..8 {
-                        let y = oy + ty * 8 + py;
-                        for px in 0..8 {
-                            let x = ox + tx * 8 + px;
-                            cell.push(if y < info.height && x < info.width {
-                                info.indices[y as usize][x as usize]
-                            } else {
-                                0
-                            });
-                        }
-                    }
-                    cells.push(cell);
-                }
-            }
-            if cells.iter().any(|c| c.iter().any(|&v| v != 0)) {
-                out.push((ox, oy, cells));
-            }
-            ox += OBJ;
-        }
-        oy += OBJ;
-    }
-    out
 }
 
 /// The first tile of object `block` of the pictures, from their base. A
@@ -416,10 +382,11 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
 }
 
 /// What a map carries of the pictures the scan says it can show: what
-/// `wally` reserves in the sprite bank (every picture's objects, as cells
-/// from the base, and how many slots), what the event compiler numbers
+/// `wally` reserves in the sprite bank (every picture's tiles, as cells
+/// from the base, and how many palettes), what the event compiler numbers
 /// against (each picture that went in, with its slot) and what the
-/// emission writes (each one's half size, its objects and its colours).
+/// emission writes (each one's half size, its objects, its palette and its
+/// colours).
 #[derive(Debug, Clone)]
 pub struct ForMap {
     pub asked: Value,
@@ -427,34 +394,244 @@ pub struct ForMap {
     pub images: Vec<Value>,
 }
 
+/// A 32x32 block with this many 8x8 cells drawn or fewer goes as that many
+/// 8x8 objects instead of one 32x32: a 7x8 digit is one tile and not
+/// sixteen. More cells than this and the tiles saved are not worth the
+/// objects, of which the console has 128 for everything.
+pub const SMALL_CELLS: usize = 4;
+/// In an object's tile word, the bit that says it is an 8x8 object: the
+/// tile is the word's low nine bits, from the pictures' base. `PIC_SMALL`
+/// in the runtime's `picture_far.s`.
+pub const SMALL_BIT: i64 = 0x8000;
+
+/// One converted picture of the map, before its tiles are placed.
+struct Shown {
+    entry: Map<String, Value>,
+    name: String,
+    info: Converted,
+}
+
+/// How far a colour of a picture may land from its own when it shares a
+/// palette that has no room left for it: two steps of the console's 31 in
+/// each channel. The blends a picture's scaling leaves at its edges are
+/// what it catches —Zounds' ten digits, three colours each in the file,
+/// come out with more between them than a palette holds—.
+pub const NEAR: i64 = 2;
+
+/// The pictures' palettes: each picture goes in the first one that takes
+/// its colours —those it has, the ones that fit in what is left of fifteen,
+/// and the rest within [`NEAR`] of one it has—, or in a new one. Its
+/// colours are tried in the order the picture uses them most, so what is
+/// approximated is the least used. Each palette is a sprite palette from
+/// the top, so how many there are is what the map's characters have to
+/// leave. Answers the palettes, with each picture's indices moved to its
+/// own and its `palette` in its entry.
+///
+/// **A number the map tones** —`tinted`, as the scan wrote it down— shares
+/// only with itself: the console tones a picture by toning its palette, and
+/// a picture beside it in the same palette would take the tone too. Its
+/// pictures are never up at the same time, since a number holds one.
+fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<Value>> {
+    let mut palettes: Vec<Vec<Value>> = Vec::new();
+    // Whose each palette is: None for anyone's, or a toned number's.
+    let mut owners: Vec<Option<i64>> = Vec::new();
+    for s in shown.iter_mut() {
+        let own: Vec<Value> = s.info.palette.as_array().cloned().unwrap_or_default();
+        let number = s.entry.get("number").map_or(0, int);
+        let owner = tinted.contains(&number).then_some(number);
+        let found = palettes
+            .iter()
+            .enumerate()
+            .filter(|&(at, _)| owners[at] == owner)
+            .find_map(|(at, p)| fit(p, &own).map(|(t, a)| (at, t, a)));
+        let (at, to, added) = match found {
+            Some(found) => found,
+            None => {
+                palettes.push(Vec::new());
+                owners.push(owner);
+                let (to, added) = fit(&[], &own).unwrap_or_default();
+                (palettes.len() - 1, to, added)
+            }
+        };
+        palettes[at].extend(added);
+        for row in s.info.indices.iter_mut() {
+            for v in row.iter_mut() {
+                *v = to.get(*v as usize).copied().unwrap_or(0);
+            }
+        }
+        s.entry.insert("palette".into(), json!(at));
+    }
+    palettes
+}
+
+/// How far apart two colours are: the most any channel differs.
+fn far(a: &Value, b: &Value) -> i64 {
+    let channels = |c: &Value| -> Vec<i64> { c.as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default() };
+    channels(a).iter().zip(channels(b)).map(|(x, y)| (x - y).abs()).max().unwrap_or(i64::MAX)
+}
+
+/// Where the colours `own` go in `palette`: each one's index from one —0
+/// is the transparent—, and the colours it adds; None if one is too far
+/// from every colour of a palette without room.
+fn fit(palette: &[Value], own: &[Value]) -> Option<(Vec<i64>, Vec<Value>)> {
+    let mut added: Vec<Value> = Vec::new();
+    let mut to = vec![0i64];
+    for c in own {
+        let all: Vec<&Value> = palette.iter().chain(added.iter()).collect();
+        if let Some(k) = all.iter().position(|p| *p == c) {
+            to.push(k as i64 + 1);
+        } else if all.len() < COLORS as usize {
+            to.push(all.len() as i64 + 1);
+            added.push(c.clone());
+        } else {
+            let (k, d) = all.iter().enumerate().map(|(k, p)| (k, far(p, c))).min_by_key(|&(_, d)| d)?;
+            if d > NEAR {
+                return None;
+            }
+            to.push(k as i64 + 1);
+        }
+    }
+    Some((to, added))
+}
+
+/// The 8x8 cell of `info` at (`x`, `y`), its 64 indices; past the image,
+/// index 0.
+fn cell_at(info: &Converted, x: i64, y: i64) -> Vec<i64> {
+    let mut cell = Vec::with_capacity(64);
+    for py in 0..8 {
+        for px in 0..8 {
+            let (x, y) = (x + px, y + py);
+            cell.push(if y < info.height && x < info.width { info.indices[y as usize][x as usize] } else { 0 });
+        }
+    }
+    cell
+}
+
+/// A piece of a picture: a 32x32 object, one of the map's distinct blocks
+/// of sixteen cells, or an 8x8 one, one of its distinct cells.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Piece {
+    Block(usize),
+    Cell(usize),
+}
+
+/// The tiles of the map's pictures, each distinct block and cell once: the
+/// same file shown under two numbers, or ten digits that share a zero, take
+/// their tiles once.
+#[derive(Default)]
+struct Bank {
+    blocks: Vec<Vec<Vec<i64>>>,
+    cells: Vec<Vec<i64>>,
+}
+
+impl Bank {
+    /// The picture cut into pieces, row by row of 32x32 blocks, leaving out
+    /// what has nothing drawn: `(dx, dy, piece)`. A block with
+    /// [`SMALL_CELLS`] cells drawn or fewer goes as those cells.
+    fn cut(&mut self, info: &Converted) -> Vec<(i64, i64, Piece)> {
+        let mut out = Vec::new();
+        let mut oy = 0;
+        while oy < info.height {
+            let mut ox = 0;
+            while ox < info.width {
+                let cells: Vec<Vec<i64>> = (0..OBJ_SIDE * OBJ_SIDE)
+                    .map(|k| cell_at(info, ox + (k % OBJ_SIDE) * 8, oy + (k / OBJ_SIDE) * 8))
+                    .collect();
+                let drawn: Vec<usize> = (0..cells.len()).filter(|&k| cells[k].iter().any(|&v| v != 0)).collect();
+                if drawn.len() > SMALL_CELLS {
+                    let at = self.blocks.iter().position(|b| *b == cells).unwrap_or_else(|| {
+                        self.blocks.push(cells.clone());
+                        self.blocks.len() - 1
+                    });
+                    out.push((ox, oy, Piece::Block(at)));
+                } else {
+                    for k in drawn {
+                        let at = self.cells.iter().position(|c| *c == cells[k]).unwrap_or_else(|| {
+                            self.cells.push(cells[k].clone());
+                            self.cells.len() - 1
+                        });
+                        let k = k as i64;
+                        out.push((ox + (k % OBJ_SIDE) * 8, oy + (k / OBJ_SIDE) * 8, Piece::Cell(at)));
+                    }
+                }
+                ox += OBJ;
+            }
+            oy += OBJ;
+        }
+        out
+    }
+
+    /// Where each distinct cell goes, from the pictures' base: the blocks
+    /// fill rows of the name grid four to a row, and the cells go first in
+    /// what the last row of blocks leaves free to its right, then after it.
+    fn cell_tiles(&self) -> Vec<i64> {
+        let blocks = self.blocks.len() as i64;
+        let mut free = Vec::new();
+        if blocks % 4 != 0 {
+            let row = blocks / 4;
+            for gy in 0..OBJ_SIDE {
+                for gx in (blocks % 4) * OBJ_SIDE..GRID {
+                    free.push(row * BLOCK_ROW + gy * GRID + gx);
+                }
+            }
+        }
+        let after = -((-blocks).div_euclid(4)) * BLOCK_ROW;
+        (0..self.cells.len() as i64)
+            .map(|i| free.get(i as usize).copied().unwrap_or(after + i - free.len() as i64))
+            .collect()
+    }
+
+    /// Every tile of the pictures as `[tile, cell]`, and how many tiles from
+    /// the base they reserve.
+    fn tiles(&self) -> (Vec<Value>, i64) {
+        let mut out = Vec::new();
+        let mut end = 0;
+        for (b, cells) in self.blocks.iter().enumerate() {
+            let start = block_tile(b as i64);
+            for (k, cell) in cells.iter().enumerate() {
+                let k = k as i64;
+                let tile = start + (k / OBJ_SIDE) * GRID + k % OBJ_SIDE;
+                out.push(json!([tile, cell]));
+                end = end.max(-((-(b as i64 + 1)).div_euclid(4)) * BLOCK_ROW);
+            }
+        }
+        for (tile, cell) in self.cell_tiles().into_iter().zip(&self.cells) {
+            out.push(json!([tile, cell]));
+            end = end.max(tile + 1);
+        }
+        (out, end)
+    }
+
+    /// A piece's tile word: its tile from the base, and [`SMALL_BIT`] for an
+    /// 8x8 one.
+    fn word(&self, piece: Piece, cell_tiles: &[i64]) -> i64 {
+        match piece {
+            Piece::Block(b) => block_tile(b as i64),
+            Piece::Cell(c) => cell_tiles[c] | SMALL_BIT,
+        }
+    }
+}
+
 /// A picture whose file is missing, that does not fit the plane, or whose
 /// number is past the console's slots, is left out, and its commands are
 /// accepted without being done.
-pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropped) -> Result<Option<ForMap>> {
-    let mut slots: Vec<(i64, usize)> = Vec::new();
-    let (mut table, mut images, mut cells, mut names) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
-    let mut block = 0i64;
+pub fn for_map(
+    game_dir: &Path,
+    keys: &[Value],
+    tinted: &[i64],
+    map_id: i32,
+    cropped: &Cropped,
+) -> Result<Option<ForMap>> {
+    let mut slots: Vec<i64> = Vec::new();
+    let mut shown: Vec<Shown> = Vec::new();
     for key in keys {
         let number = int(&key["number"]);
         let name = key["name"].as_str().unwrap_or("");
         // The big ones are `big_for_map`'s, and take no slot.
-        let path = path_of(game_dir, name);
-        if let Some(path) = &path {
-            if is_big(path, key, cropped)? {
-                continue;
-            }
+        let Some(path) = path_of(game_dir, name) else { continue };
+        if is_big(&path, key, cropped)? {
+            continue;
         }
-        if !slots.iter().any(|(n, _)| *n == number) {
-            if slots.len() == SLOTS {
-                println!(
-                    "  map {map_id}: the picture {} (number {number}) doesn't go in: the console keeps {SLOTS} at a time",
-                    crate::text::repr(name)
-                );
-                continue;
-            }
-            slots.push((number, slots.len()));
-        }
-        let Some(path) = path else { continue };
         let info = convert(&path, key)?;
         if !fits(&info) {
             println!(
@@ -464,6 +641,16 @@ pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropped) 
                 info.height
             );
             continue;
+        }
+        if !slots.contains(&number) {
+            if slots.len() == SLOTS {
+                println!(
+                    "  map {map_id}: the picture {} (number {number}) doesn't go in: the console keeps {SLOTS} at a time",
+                    crate::text::repr(name)
+                );
+                continue;
+            }
+            slots.push(number);
         }
         if let Some(at) = key["at"].as_array() {
             // The corner the console computes from the centre and the half
@@ -479,40 +666,46 @@ pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropped) 
                 crate::stop!("{key}: converted at ({}, {}) and the console puts it at {expected:?}", info.x, info.y);
             }
         }
-        let cut = objects(&info);
-        let first = block;
-        for (_dx, _dy, object_cells) in &cut {
-            let start = block_tile(block);
-            for (k, cell) in object_cells.iter().enumerate() {
-                let k = k as i64;
-                let tile = start + (k / OBJ_SIDE) * GRID + k % OBJ_SIDE;
-                cells.push(json!([tile, cell]));
-            }
-            block += 1;
-        }
-        let slot = slots.iter().find(|(n, _)| *n == number).map(|(_, s)| *s).unwrap();
-        let mut entry: Map<String, Value> = key.as_object().cloned().unwrap_or_default();
-        entry.insert("slot".into(), json!(slot));
-        table.push(Value::Object(entry));
-        images.push(json!({
-            "half": [info.half.0, info.half.1],
-            "first": first,
-            "objects": cut.iter().map(|(dx, dy, _)| json!([dx, dy])).collect::<Vec<_>>(),
-            "palette": info.palette,
-        }));
-        names.push(name.to_string());
+        let entry: Map<String, Value> = key.as_object().cloned().unwrap_or_default();
+        shown.push(Shown { entry, name: name.to_string(), info });
     }
-    if table.is_empty() {
+    if shown.is_empty() {
         return Ok(None);
     }
-    let max_slot = table.iter().map(|t| int(&t["slot"])).max().unwrap_or(0);
+    // The highest number in slot 0: OAM puts the lowest index in front, and
+    // RM2k the highest number.
+    slots.sort_by(|a, b| b.cmp(a));
+    for s in shown.iter_mut() {
+        let number = int(&s.entry["number"]);
+        let slot = slots.iter().position(|n| *n == number).unwrap();
+        s.entry.insert("slot".into(), json!(slot));
+    }
+    let palettes = share_palettes(&mut shown, tinted);
+    let mut bank = Bank::default();
+    let cuts: Vec<Vec<(i64, i64, Piece)>> = shown.iter().map(|s| bank.cut(&s.info)).collect();
+    let cell_tiles = bank.cell_tiles();
+    let (cells, tiles) = bank.tiles();
+    let mut images = Vec::new();
+    let mut objects = 0;
+    for (s, cut) in shown.iter().zip(&cuts) {
+        let palette = int(&s.entry["palette"]);
+        images.push(json!({
+            "half": [s.info.half.0, s.info.half.1],
+            "objects": cut.iter().map(|&(dx, dy, piece)| json!([dx, dy, bank.word(piece, &cell_tiles)])).collect::<Vec<_>>(),
+            "palette": palettes[palette as usize],
+            "palette_index": palette,
+        }));
+        objects += cut.len();
+    }
+    let names: Vec<&str> = shown.iter().map(|s| s.name.as_str()).collect();
     let asked = json!({
         "name": names.join(", "),
-        "objects": block,
-        "tiles": -((-block).div_euclid(4)) * BLOCK_ROW,
+        "objects": objects,
+        "tiles": tiles,
         "cells": cells,
-        "slots": max_slot + 1,
+        "palettes": palettes.len(),
     });
+    let table = shown.into_iter().map(|s| Value::Object(s.entry)).collect();
     Ok(Some(ForMap { asked, table, images }))
 }
 
@@ -583,20 +776,88 @@ mod tests {
         assert_eq!(block_tile(5), 68);
     }
 
+    fn info(width: i64, height: i64, palette: Value, drawn: &[(usize, usize, i64)]) -> Converted {
+        let mut indices = vec![vec![0i64; width as usize]; height as usize];
+        for &(x, y, v) in drawn {
+            indices[y][x] = v;
+        }
+        Converted { x: 0, y: 0, width, height, half: (width / 2, height / 2), palette, indices }
+    }
+
     #[test]
-    fn the_objects_with_nothing_drawn_are_left_out() {
-        // 40x8: the first object has a pixel, the second (from x = 32) too,
-        // and nothing is below.
-        let mut indices = vec![vec![0i64; 40]; 8];
-        indices[0][0] = 1;
-        indices[7][39] = 2;
-        let info = Converted { x: 0, y: 0, width: 40, height: 8, half: (20, 4), palette: json!([[0, 0, 0]]), indices };
-        let cut = objects(&info);
-        assert_eq!(cut.iter().map(|(x, y, _)| (*x, *y)).collect::<Vec<_>>(), [(0, 0), (32, 0)]);
-        // The second object's pixel is at (7, 7) of its first cell, and
-        // what falls past the image is transparent.
-        assert_eq!(cut[1].2[0][63], 2);
-        assert!(cut[1].2[1].iter().all(|&v| v == 0));
-        assert!(fits(&info));
+    fn a_sparse_block_goes_as_cells_and_a_full_one_whole() {
+        // 40x8: the first block has one cell drawn, the second (from x = 32)
+        // one too; and a 32x32 with all sixteen.
+        let sparse = info(40, 8, json!([[0, 0, 0], [8, 8, 8]]), &[(0, 0, 1), (39, 7, 2)]);
+        let full: Vec<(usize, usize, i64)> = (0..32).flat_map(|y| (0..32).map(move |x| (x, y, 1))).collect();
+        let full = info(32, 32, json!([[0, 0, 0]]), &full);
+        let mut bank = Bank::default();
+        let cut = bank.cut(&sparse);
+        assert_eq!(cut, [(0, 0, Piece::Cell(0)), (32, 0, Piece::Cell(1))]);
+        assert_eq!(bank.cut(&full), [(0, 0, Piece::Block(0))]);
+        // The same picture again takes no tiles of its own.
+        assert_eq!(bank.cut(&sparse), cut);
+        assert_eq!((bank.blocks.len(), bank.cells.len()), (1, 2));
+        // The two cells go right of the block, in its row of the grid; the
+        // block reserves its whole row of blocks.
+        assert_eq!(bank.cell_tiles(), [4, 5]);
+        let (tiles, end) = bank.tiles();
+        assert_eq!(tiles.len(), 16 + 2);
+        assert_eq!(end, BLOCK_ROW);
+        assert_eq!(bank.word(Piece::Cell(1), &bank.cell_tiles()), 5 | SMALL_BIT);
+        assert_eq!(bank.word(Piece::Block(0), &bank.cell_tiles()), 0);
+        // What falls past the image is transparent.
+        assert_eq!(bank.cells[1][63], 2);
+        assert!(fits(&sparse));
+    }
+
+    #[test]
+    fn cells_without_blocks_start_at_the_base_and_four_blocks_leave_no_gap() {
+        let mut bank = Bank { blocks: vec![Vec::new(); 4], cells: vec![Vec::new(); 2] };
+        assert_eq!(bank.cell_tiles(), [BLOCK_ROW, BLOCK_ROW + 1]);
+        bank.blocks.clear();
+        assert_eq!(bank.cell_tiles(), [0, 1]);
+    }
+
+    #[test]
+    fn pictures_whose_colours_fit_together_share_a_palette() {
+        let shown = |palette: Value| Shown {
+            entry: Map::new(),
+            name: String::new(),
+            info: info(8, 8, palette, &[(0, 0, 1), (1, 0, 2)]),
+        };
+        let fifteen: Vec<Value> = (0..15).map(|k| json!([k, 0, 0])).collect();
+        let mut pictures = vec![
+            shown(json!([[1, 1, 1], [2, 2, 2]])),
+            shown(json!([[2, 2, 2], [3, 3, 3]])),
+            shown(Value::Array(fifteen)),
+        ];
+        let palettes = share_palettes(&mut pictures, &[]);
+        assert_eq!(palettes.len(), 2);
+        assert_eq!(palettes[0], [json!([1, 1, 1]), json!([2, 2, 2]), json!([3, 3, 3])]);
+        assert_eq!(pictures[1].entry["palette"], 0);
+        assert_eq!(pictures[2].entry["palette"], 1);
+        // The second one's indices are the shared palette's: its first
+        // colour is the first one's second.
+        assert_eq!(pictures[1].info.indices[0][..2], [2, 3]);
+        // A full palette takes a colour within two steps of one it has.
+        let mut near: Vec<Value> = (0..15).map(|k| json!([k, 0, 0])).collect();
+        near[1] = json!([16, 2, 1]);
+        let fifteen = || Value::Array((0..15).map(|k| json!([k, 0, 0])).collect());
+        let mut pictures = vec![shown(fifteen()), shown(Value::Array(near))];
+        assert_eq!(share_palettes(&mut pictures, &[]).len(), 1);
+        assert_eq!(pictures[1].info.indices[0][..2], [1, 15], "[16, 2, 1] drawn as [14, 0, 0]");
+        let mut pictures = vec![shown(fifteen()), shown(json!([[0, 0, 0], [20, 20, 20]]))];
+        assert_eq!(share_palettes(&mut pictures, &[]).len(), 2, "but not one three steps away or more");
+        // A toned number has its own, which its other pictures share.
+        let numbered = |number: i64| {
+            let mut s = shown(json!([[1, 1, 1]]));
+            s.entry.insert("number".into(), json!(number));
+            s
+        };
+        let mut pictures = vec![numbered(1), numbered(3), numbered(2), numbered(3)];
+        assert_eq!(share_palettes(&mut pictures, &[3]).len(), 2);
+        let palettes: Vec<Value> = pictures.iter().map(|p| p.entry["palette"].clone()).collect();
+        assert_eq!(palettes, [json!(0), json!(1), json!(0), json!(1)]);
     }
 }

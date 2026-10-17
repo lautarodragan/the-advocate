@@ -1017,10 +1017,13 @@ pub const PICTURE_ENTRY: usize = 16;
 ///   then PICTURE_ENTRY bytes per picture, in the bytecode's order:
 ///     word  half its width, in RM2k's pixels
 ///     word  half its height
-///     byte  how many 32x32 objects
-///     byte  the first of them, among the map's pictures' objects
-///     word  where its objects are: dx, dy per object, from its corner
-///     word  where its sixteen colours are, entry 0 included
+///     byte  how many objects
+///     byte  its sprite palette, counted from the top: 0 is palette 7
+///     word  where its objects are: per object dx and dy from its corner,
+///           and a word with its tile from the first one in the low nine
+///           bits and bit 15 for an 8x8 object instead of a 32x32
+///     word  where its sixteen colours are, entry 0 included: the
+///           palette's, which the pictures that share it point to once
 ///     word  the first tile again, so drawing needs the entry alone
 ///     four bytes of nothing, so an entry is a shift away
 /// ```
@@ -1045,27 +1048,41 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
         data.push(n as u8);
         let entries = data.len();
         data.resize(entries + n * PICTURE_ENTRY, 0);
+        // Each palette's colours once, by its index.
+        let mut colors_of: std::collections::BTreeMap<i64, usize> = std::collections::BTreeMap::new();
         for (i, image) in p.images.iter().enumerate() {
             let objects_at = data.len() - start;
-            for &[dx, dy] in &image.objects {
+            for &[dx, dy, tile] in &image.objects {
                 let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
                 data.push(byte(dx)?);
                 data.push(byte(dy)?);
+                data.extend(u16::try_from(tile).map_err(|_| whose(format!("an object's tile {tile}")))?.to_le_bytes());
             }
-            let colors_at = data.len() - start;
-            let mut colors = vec![[0, 0, 0]];
-            colors.extend_from_slice(&image.palette);
-            colors.resize(16, [0, 0, 0]);
-            data.extend(cgram_bytes(&colors));
+            let colors_at = match colors_of.get(&image.palette_index) {
+                Some(&at) => at,
+                None => {
+                    let at = data.len() - start;
+                    let mut colors = vec![[0, 0, 0]];
+                    colors.extend_from_slice(&image.palette);
+                    colors.resize(16, [0, 0, 0]);
+                    data.extend(cgram_bytes(&colors));
+                    colors_of.insert(image.palette_index, at);
+                    at
+                }
+            };
             let word = |v: i64| -> Result<[u8; 2]> {
                 Ok(i16::try_from(v).map_err(|_| whose(format!("a picture's {v}")))?.to_le_bytes())
             };
+            let palette = u8::try_from(image.palette_index)
+                .ok()
+                .filter(|&p| p < 8)
+                .ok_or_else(|| whose(format!("sprite palette {} from the top", image.palette_index)))?;
             let at = entries + i * PICTURE_ENTRY;
             let mut entry = Vec::with_capacity(PICTURE_ENTRY);
             entry.extend(word(image.half[0])?);
             entry.extend(word(image.half[1])?);
             entry.push(u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?);
-            entry.push(u8::try_from(image.first).map_err(|_| whose("too many objects".into()))?);
+            entry.push(palette);
             entry.extend(word((start + objects_at) as i64)?);
             entry.extend(word((start + colors_at) as i64)?);
             entry.extend(word(p.base)?);

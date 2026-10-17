@@ -710,6 +710,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             "graphics": graphics.pairs,
             "pictures": pictures.keys_json(),
             "zooms": pictures.zooms_json(),
+            "tinted": pictures.tinted,
         });
         // Which of them a route gives an event, the test pages' too: the
         // rest only the hero shows. Only when there are some, like

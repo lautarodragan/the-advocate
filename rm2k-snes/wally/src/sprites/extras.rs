@@ -271,21 +271,21 @@ pub struct Image {
     pub cells: Vec<(usize, [[u8; 8]; 8])>,
 }
 
-/// The pictures at the end of the bank, and **a whole palette for each of
-/// the `slots` the console keeps them in**, from the last one down —slot 0
-/// takes palette 7—: not added to the list, because a picture's colours are
-/// its own and are uploaded with its fade, and from the top because the
-/// palettes 4 to 7 are the ones the console can blend. `None` if the map's
-/// palettes leave fewer than that. After the timer or the drops, they start
+/// The pictures at the end of the bank, and **the `shared` whole palettes
+/// their colours go in**, from the last one down —the first takes palette
+/// 7—: not added to the list, because a picture's colours are its own and
+/// are uploaded with its fade, and from the top because the palettes 4 to 7
+/// are the ones the console can blend. `None` if the map's palettes leave
+/// fewer than that. After the timer or the drops, they start
 /// two rows of sixteen later, rounded to a row of blocks.
 pub fn picture_of_image(
     image: &Image,
     tiles: &mut Vec<u8>,
     palettes: &[Vec<Color>],
     previous_base: usize,
-    slots: usize,
+    shared: usize,
 ) -> Option<(usize, usize)> {
-    if palettes.len() + slots > OBJ_PALETTES {
+    if palettes.len() + shared > OBJ_PALETTES {
         return None;
     }
     let base = if previous_base != 0 {
@@ -297,7 +297,7 @@ pub fn picture_of_image(
     for (number, cell) in &image.cells {
         put(tiles, base + number, cell);
     }
-    Some((base, slots))
+    Some((base, shared))
 }
 
 /// The battle animation's box at the end of the bank: its tiles, left
