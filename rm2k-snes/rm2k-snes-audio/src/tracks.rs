@@ -18,7 +18,8 @@
 //! SoundFont the samples come from**: the idea is not to change the
 //! arrangement but to stop synthesizing it with eight voices and trimmed
 //! samples. A song that in the game is a WAV —the SPC700 does not play it—
-//! gets a track anyway, decoded with `ffmpeg` like a replacement.
+//! gets a track anyway, decoded with `ffmpeg` like a replacement; and one
+//! that is both, a WAV and a MIDI for the SPC700, gets the WAV's.
 //!
 //! **Only the tracks of the cartridge's songs are built**: the ones listed
 //! in the `music.json` next to the ROM, with each song's number. A
@@ -373,7 +374,7 @@ impl Tracks {
         let mut midi = None;
         if audio.is_none() {
             let source =
-                self.game.song_path(name).ok_or_else(|| Bad::usage(format!("cannot find the music for {name}")))?;
+                self.game.track_source(name).ok_or_else(|| Bad::usage(format!("cannot find the music for {name}")))?;
             if source.to_string_lossy().to_lowercase().ends_with(".mid") {
                 midi = Some(source);
             } else {
