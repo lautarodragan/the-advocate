@@ -8,7 +8,7 @@
 
 use crate::sprites::character::{nearest, OBJ_COLORS, OBJ_PALETTES};
 use crate::sprites::fail::{Bad, Result};
-use adeleine::{luma_distance, Color};
+use adeleine::{lab_distance, Color};
 use rm2k_render::Picture;
 use std::collections::{BTreeMap, BTreeSet};
 use voodoo::pack_tile;
@@ -102,7 +102,7 @@ fn closest_for_timer(glyphs: &Picture, palettes: &[Vec<Color>], leader_owned: &B
         if leader_owned.contains(&number) || palette.is_empty() {
             continue;
         }
-        let cost: u64 = counts.iter().map(|(c, n)| n * luma_distance(nearest(palette, *c), *c) as u64).sum();
+        let cost: u64 = counts.iter().map(|(c, n)| n * lab_distance(nearest(palette, *c), *c) as u64).sum();
         if best.is_none_or(|(b, _)| cost < b) {
             best = Some((cost, number));
         }

@@ -30,7 +30,11 @@
 //! is whole (see `lend` in `sprites/split.rs`). The splits where someone is
 //! lent —"full 8 true", "crowd 8 true" and "full 5 false"— moved what
 //! depends on whose palette each one got, or on the order they got it in;
-//! the rest of each, and the other splits, are still the Python's.
+//! the rest of each, and the other splits, are still the Python's. And the
+//! same day the nearest colour stopped being the nearest by luma and became
+//! the nearest in CIE Lab (`nearest` in `sprites/character.rs`): the banks
+//! of those three, where someone is drawn with a colour it does not have,
+//! moved too.
 
 use rm2k_render::Picture;
 use wally::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
@@ -295,17 +299,17 @@ const EXPECTED: [Expected; 5] = [
         npcs: "2a122f4a7f0f74a4b1e5f3074dda27c90985aa750a82e9ac0f29b6720be07d8f",
         discarded: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         palettes: "2f00c8e1c22f1e44fea55f2a417fcb9a0ba415cca5b7018980d3bbc92cd76231",
-        palette_of: "fbf8eb3a6365492abd1515dfa2426341cfb0f59665ad3c03c16a6be619aba0c7",
+        palette_of: "644914f8faea7f5ec0f12d34831c40b7b49250d350a7ddd9d452214ef53d8ceb",
         own: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         leader_owned: &[0, 1],
         caps: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         lent: "da96daf6857d758b7995223724a0a7e91a32b009b64fc6443d0c68a78c36d549",
         notes: "",
-        tiles: "57febade34867520ed402377154c6207c9bff04361201222065513022d376cf5",
-        place: "c145be3356d268032cc2c8cf975501fe8ddc8c33692ca6453e04b0041b324d26",
+        tiles: "7179c231f57068779bbdd4b35d8751b7da587843828548101f8b7219ac51e60f",
+        place: "5a2cdff87e8d20dd89c901c30b1f0a65cce284b25fd3c53396e420633cbfdc6f",
         banks: "7571bcffb14c74e78ea860fe569419d1ad6efa531ff4fabb467a8e5ac885c9b5",
         extras: [Some(320), Some(3), Some(0), Some(0), Some(0), Some(0), Some(0), Some(0)],
-        final_tiles: "59b6519e1b504793262135e6528e12f939f1698c129d52f08da1db144bc1b41b",
+        final_tiles: "c43a5c1511bb5c9bdebb72fc870ab147305d6f76e37f5ea1c309f40148638ae9",
         final_palettes: "2f00c8e1c22f1e44fea55f2a417fcb9a0ba415cca5b7018980d3bbc92cd76231",
     },
     Expected {
@@ -319,11 +323,11 @@ const EXPECTED: [Expected; 5] = [
         caps: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         lent: "336912bdbe3d5dd03e646453e46fdd732425dd1026af9f050109d9db6e698068",
         notes: "",
-        tiles: "c99b1f2acd7354b57ec6dced2d9b6c229fb422deba1ebf2a1d07d5312696e1ea",
+        tiles: "22a698df41957d150e7f797626f69d3d22328582603c631fb77b17d8e77d0484",
         place: "a8b4dfa49686e39b6d9cda02c1d08069e3b472a2a3ad8d2d95dbc1bc226e8842",
         banks: "7571bcffb14c74e78ea860fe569419d1ad6efa531ff4fabb467a8e5ac885c9b5",
         extras: [Some(0), None, Some(0), Some(0), Some(320), Some(5), Some(384), Some(6)],
-        final_tiles: "219511947efd09cd3e2a63ad17d96e53740e838643561e0d8ae8695d10c9e6bb",
+        final_tiles: "cd5af362c5b0d0e729f31da4106d068f08095512d759df273f29718df133f158",
         final_palettes: "f68785dd1e3051fb5a06050dc1cb482cf4372557844ee32b25f4315819ac43b5",
     },
     Expected {
@@ -331,17 +335,17 @@ const EXPECTED: [Expected; 5] = [
         npcs: "3d11b0f32f2a726e0a8e913814deecd59ccc48959940df45b6567640d225e313",
         discarded: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         palettes: "5e309090441059861a3b8845514a5e5e7d882e17dc7c33a936127d3553475e56",
-        palette_of: "896739a4e5db880b5276a02bcb968559a67ffb772509d06e1e2aa9068b9c7092",
+        palette_of: "1bc8c590c96cc9aa5b36e2101f9eeac5bd8c2ba83616f8c299677bfe7b94410a",
         own: "ceb66eef073f361e1db1b0ae91b1528199bc0fc6072f6edf7c7fefb0897e331e",
         leader_owned: &[0],
         caps: "28b0e48541b3222987d7b58a56d57fa934d202d97aca28ada6df069cbb4c9888",
         lent: "325580ea971dbb07b2a4d9135efb973839e95afc88a15bf5b2d2223bba091a31",
         notes: "  to make room for the timer, crowd:2 drops to 13 colors (41.20% of its pixels)\n",
-        tiles: "d28bdb3736a696736b3770af658718f8d6a7280a1f3cba0b7d3ab2e54720e505",
-        place: "7b58785ce5230ae33de86820b822f3a97f79553620b3113febcfd0546885fc4e",
-        banks: "2e3bd12c989636d1b1f1258a4f3de813a03a8c8174a670475f7b6113829a897a",
+        tiles: "700b4974516d2b380ea2f48e201e3306026edace279a6545808a818d9c11c331",
+        place: "cc1744a5d26216f04993cfa1209a8eca8faf93b6518ace8f6208fd0b683873ae",
+        banks: "a4cc10fa136c9935382858051a6057f618d6842f62b253db569b9d12b9ec59e1",
         extras: [Some(192), Some(3), Some(0), Some(0), Some(0), Some(0), Some(0), Some(0)],
-        final_tiles: "1812428df7249339d05675e38f94d8fe9f1b9fe4ad98604dbf28dc362e3c4f61",
+        final_tiles: "25d03f638259703493bac852b0c7f1760ec85e1dc9bc462fd3d1939eaa80a672",
         final_palettes: "6245b8b83cc910252ce0281383da7bf418cb2e67a1ceaea278cecb7312b35dab",
     },
 ];

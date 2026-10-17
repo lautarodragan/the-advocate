@@ -6,7 +6,7 @@ use crate::sprites::character::{
 };
 use crate::sprites::fail::Result;
 use crate::sprites::npc::Npc;
-use adeleine::{luma_distance, merge_least_visible, Color};
+use adeleine::{lab_distance, merge_least_visible, Color};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// The name an event drawn with a ChipSet tile gives its made-up sheet.
@@ -205,7 +205,7 @@ impl Splitter<'_> {
                     .map(|(c, n)| {
                         let own = mapping[c];
                         let shown = if existing.contains(&own) { own } else { nearest(existing, own) };
-                        n * (luma_distance(*c, shown) as u64).isqrt()
+                        n * (lab_distance(*c, shown) as u64).isqrt()
                     })
                     .sum();
                 if best.is_none_or(|(b, _)| cost < b) {

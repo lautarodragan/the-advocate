@@ -8,7 +8,7 @@
 //! 4 bits a pixel: a character has to fit in fifteen colours.
 
 use crate::sprites::fail::{Bad, Result};
-use adeleine::{luma_distance, merge_least_visible, Color};
+use adeleine::{lab_distance, merge_least_visible, Color};
 use rm2k_render::Picture;
 use std::collections::{BTreeSet, HashMap};
 use voodoo::pack_tile;
@@ -198,10 +198,16 @@ pub fn block_tile(block: usize) -> usize {
 }
 
 /// The nearest colour of `palette` to `color`, the first one on a tie.
+///
+/// Nearest as it looks, in CIE Lab, and not by the luma distance the merges
+/// use: what lands here is a colour drawn with one it is not, often of
+/// someone else's palette, and the luma distance, which barely sees blue,
+/// sends a grey to an olive of its light. Until 2026-10-17 it was the luma
+/// one.
 pub fn nearest(palette: &[Color], color: Color) -> Color {
     let mut best = palette[0];
     for &p in &palette[1..] {
-        if luma_distance(p, color) < luma_distance(best, color) {
+        if lab_distance(p, color) < lab_distance(best, color) {
             best = p;
         }
     }
@@ -262,7 +268,16 @@ mod tests {
 
     #[test]
     fn the_nearest_colour_is_the_first_on_a_tie() {
-        let palette = [[0, 0, 0], [2, 0, 0]];
-        assert_eq!(nearest(&palette, [1, 0, 0]), [0, 0, 0]);
+        // The same distance from (20, 10, 5), in tenths of Lab.
+        let palette = [[19, 9, 5], [20, 11, 6]];
+        assert_eq!(lab_distance(palette[0], [20, 10, 5]), lab_distance(palette[1], [20, 10, 5]));
+        assert_eq!(nearest(&palette, [20, 10, 5]), [19, 9, 5]);
+    }
+
+    #[test]
+    fn the_nearest_colour_sees_hue() {
+        // To the luma distance an olive of nearly its light is nearer a
+        // grey than a grey three steps darker.
+        assert_eq!(nearest(&[[13, 13, 13], [17, 17, 8]], [16, 16, 16]), [13, 13, 13]);
     }
 }
