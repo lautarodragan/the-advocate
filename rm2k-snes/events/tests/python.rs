@@ -215,6 +215,11 @@ fn without_pairs(answer: &mut Value) {
     if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
         m.remove("pairs");
         m.remove("pair_first");
+        // And the Latin-1 letters the boxes draw, which came on 2026-10-16:
+        // none here, the game's text is ASCII.
+        if let Some(letters) = m.remove("letters") {
+            assert_eq!(letters, serde_json::json!([]));
+        }
     }
 }
 

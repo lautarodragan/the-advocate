@@ -643,6 +643,21 @@ pub fn cgram_word(c: Color) -> u16 {
 /// A glyph wider than [`font::INK_MAX`] does not fit the composer: with its
 /// shadow it would touch a third cell.
 pub fn font_bytes(font: &Font) -> Result<Vec<u8>> {
+    font_bytes_with(font, &[])
+}
+
+/// The console's glyphs, and after them `letters`: the Latin-1 the message
+/// boxes draw —see `Window::carrying` in `rm2k-snes-events`—.
+fn console_chars(letters: &[char]) -> impl Iterator<Item = char> + '_ {
+    (0..FONT_GLYPHS).map(Font::console_char).chain(letters.iter().copied())
+}
+
+/// [`font_bytes`], with `letters` after the console's glyphs: the message
+/// window's, whose boxes draw them.
+pub fn font_bytes_with(font: &Font, letters: &[char]) -> Result<Vec<u8>> {
+    if let Some(&c) = letters.iter().find(|&&c| !font.draws(c)) {
+        return Err(Bad::answer(format!("the boxes draw {c:?}, and the font does not have it")));
+    }
     if font.ink_width() > font::INK_MAX {
         return Err(Bad::answer(format!(
             "the font has a glyph {} pixels wide, and the console's composer takes {}",
@@ -650,9 +665,9 @@ pub fn font_bytes(font: &Font) -> Result<Vec<u8>> {
             font::INK_MAX
         )));
     }
-    let mut out = Vec::with_capacity(FONT_GLYPHS * font::HEIGHT);
-    for n in 0..FONT_GLYPHS {
-        for &row in font.rows(Font::console_char(n)) {
+    let mut out = Vec::with_capacity((FONT_GLYPHS + letters.len()) * font::HEIGHT);
+    for c in console_chars(letters) {
+        for &row in font.rows(c) {
             let mut reversed = 0u8;
             for px in 0..font::INK_MAX {
                 if row >> px & 1 != 0 {
@@ -671,9 +686,15 @@ pub fn font_bytes(font: &Font) -> Result<Vec<u8>> {
 /// that grows on the console —a variable's digits— is cut where it would
 /// leave the buffer.
 pub fn font_reach(font: &Font) -> Vec<u8> {
-    (0..FONT_GLYPHS)
-        .map(|n| {
-            let ink = font.rows(Font::console_char(n)).iter().map(|r| 16 - r.leading_zeros()).max().unwrap_or(0);
+    font_reach_with(font, &[])
+}
+
+/// [`font_reach`], with `letters` after the console's glyphs, like
+/// [`font_bytes_with`].
+pub fn font_reach_with(font: &Font, letters: &[char]) -> Vec<u8> {
+    console_chars(letters)
+        .map(|c| {
+            let ink = font.rows(c).iter().map(|r| 16 - r.leading_zeros()).max().unwrap_or(0);
             if ink == 0 {
                 0
             } else {
@@ -740,4 +761,23 @@ pub fn font_prerender(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> 
         tables.push(out);
     }
     tables
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The letters the boxes draw go after the console's 96 glyphs, each
+    /// with its rows and its reach; one the font lacks is refused.
+    #[test]
+    fn the_letters_the_boxes_draw_go_after_the_console_s_glyphs() {
+        let f = Font::named("low-variable", font::MINCHO).unwrap();
+        let ascii = font_bytes(&f).unwrap();
+        let with = font_bytes_with(&f, &['é', 'ñ']).unwrap();
+        assert_eq!(with.len(), ascii.len() + 2 * font::HEIGHT);
+        assert_eq!(with[..ascii.len()], ascii);
+        assert_ne!(with[ascii.len()..ascii.len() + font::HEIGHT], with[ascii.len() + font::HEIGHT..]);
+        assert_eq!(font_reach_with(&f, &['é']).len(), FONT_GLYPHS + 1);
+        assert!(font_bytes_with(&Font::rm2k(font::MINCHO), &['é']).is_err());
+    }
 }

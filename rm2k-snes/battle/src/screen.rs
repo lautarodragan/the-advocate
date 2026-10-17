@@ -255,12 +255,15 @@ pub fn check_party_line(font: &rm2k_snes_text::font::Font, hp: &str, sp: &str) -
     (!bad.is_empty()).then(|| bad.join("; "))
 }
 
-/// What the text screens' font can write: the characters it has, with a
+/// What the text screens' font can write: the characters it has, a letter
+/// it lacks as its plain ASCII stand-in —see `rm2k_snes_text::plain`—, a
 /// '?' instead of the others, and cut to `width`. It is the screens' rule,
 /// over the font's range.
 pub fn item_text(text: &str, width: usize) -> String {
     let first = font::FIRST as usize;
-    text.chars()
+    rm2k_snes_text::plain::plain_text(text)
+        .0
+        .chars()
         .map(|c| {
             if (first..first + font::GLYPHS).contains(&(c as usize)) {
                 c

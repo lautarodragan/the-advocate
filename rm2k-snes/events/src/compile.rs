@@ -686,8 +686,10 @@ impl Ctx<'_> {
 
     /// Notes each escape the boxes `cmd` just added dropped, once per
     /// command, as `message-escape-dropped`: see
-    /// [`crate::messages::escape_tail`]. Whoever adds a box calls it right
-    /// after, so what one command dropped is never noted on the next.
+    /// [`crate::messages::escape_tail`]. And the letters they showed as
+    /// their plain ASCII stand-ins, `é` as `e`, as one `letter-plain`: see
+    /// `rm2k_snes_text::plain`. Whoever adds a box calls it right after, so
+    /// what one command lost is never noted on the next.
     fn lose_dropped(&mut self, cmd: &Command) {
         let Some(messages) = self.messages.as_deref_mut() else {
             return;
@@ -697,6 +699,10 @@ impl Ctx<'_> {
             if seen.insert(escape.clone()) {
                 self.losses.lose(Some(cmd.code), "message-escape-dropped", crate::messages::dropped_escape(&escape));
             }
+        }
+        let plain = messages.take_plain();
+        if !plain.is_empty() {
+            self.losses.lose(Some(cmd.code), "letter-plain", rm2k_snes_text::plain::plain_loss(&plain));
         }
     }
 
