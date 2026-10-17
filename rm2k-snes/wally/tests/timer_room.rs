@@ -29,10 +29,15 @@ fn sheet(colors: &[[u8; 3]]) -> Picture {
     picture
 }
 
-/// Fifteen colours of their own for owner `k`, none the timer's; owner 3's
-/// last is a red close to it.
+/// Fifteen colours for owner `k`: black, like the timer's, and fourteen of
+/// its own; owner 3's last is a red close to the timer's. Each owner's reds
+/// are six steps from the next one's: a guest drawn with its neighbour's
+/// palette moves every pixel, and that has to cost more than the one colour
+/// its own owner lacks. And all of them have the black, so the timer's red
+/// alone decides which one it is lent.
 fn owner(k: u8) -> Vec<[u8; 3]> {
-    let mut colors: Vec<[u8; 3]> = (0..15).map(|j| [8 * (k + 1), 8 * (j + 1), 40]).collect();
+    let mut colors: Vec<[u8; 3]> = (0..15).map(|j| [48 * (k + 1), 8 * (j + 1), 40]).collect();
+    colors[0] = [0, 0, 0];
     if k == 3 {
         colors[14] = [240, 16, 8];
     }
@@ -40,10 +45,10 @@ fn owner(k: u8) -> Vec<[u8; 3]> {
 }
 
 /// Fourteen of owner `k`'s colours and one nobody has: it fits in no
-/// palette, and owner `k`'s is the one that misses the least.
+/// palette, and owner `k`'s is the one it is drawn nearest with.
 fn guest(k: u8) -> Vec<[u8; 3]> {
     let mut colors = owner(k)[..14].to_vec();
-    colors.push([8 * (k + 1), 160, 200]);
+    colors.push([48 * (k + 1), 160, 200]);
     colors
 }
 

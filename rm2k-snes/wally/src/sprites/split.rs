@@ -1,10 +1,12 @@
 //! How the eight object palettes are split among a map's characters, and
 //! which events drawn with a tile get drawn at all.
 
-use crate::sprites::character::{character_palette, sheet, sprite_colors, Key, Sheets, OBJ_COLORS, OBJ_PALETTES};
+use crate::sprites::character::{
+    character_palette, nearest, sheet, sprite_colors, Key, Sheets, OBJ_COLORS, OBJ_PALETTES,
+};
 use crate::sprites::fail::Result;
 use crate::sprites::npc::Npc;
-use adeleine::{merge_least_visible, Color};
+use adeleine::{lab_distance, merge_least_visible, Color};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// The name an event drawn with a ChipSet tile gives its made-up sheet.
@@ -114,6 +116,8 @@ pub struct Ask<'a> {
 struct Splitter<'a> {
     ask: &'a Ask<'a>,
     split: Split,
+    /// Who fits in no palette, in the order they came: see `lend`.
+    pending: Vec<Key>,
 }
 
 impl Splitter<'_> {
@@ -129,7 +133,7 @@ impl Splitter<'_> {
 
     /// The first palette the character's colours fit in; a new one if there
     /// is room or it is `force`d; and otherwise **someone else's**, the one
-    /// that moves the fewest pixels. A character with odd colours is a
+    /// it is drawn nearest with. A character with odd colours is a
     /// visible error; one that is not drawn is a trap. `false` only when
     /// there is no palette at all that is not a leader's.
     fn fits(&mut self, key: &Key, force: bool, leader: bool) -> Result<bool> {
@@ -156,23 +160,63 @@ impl Splitter<'_> {
             s.palettes.push(palette);
             return Ok(true);
         }
-        let counts = sprite_colors(image, key.1, None);
-        let mut best: Option<(u64, usize)> = None;
-        for (number, existing) in s.palettes.iter().enumerate() {
-            if s.leader_owned.contains(&number) {
-                continue; // the console overwrites those with the leader's
+        // Someone else's. Which one is decided by `lend`, at the end, when
+        // the palettes have every colour they are going to have: one that
+        // looked far now can take, later, the colours that bring it near.
+        if !s.palettes.iter().enumerate().any(|(n, p)| !s.leader_owned.contains(&n) && !p.is_empty()) {
+            return Ok(false); // the console overwrites the leaders' with theirs
+        }
+        s.lent.insert(key.clone());
+        self.pending.push(key.clone());
+        Ok(true)
+    }
+
+    /// Gives each character that fits in no palette someone else's: the one
+    /// it is drawn nearest with.
+    ///
+    /// What a palette costs is what the screen shows: each pixel of the
+    /// poses the map shows, times how far its colour lands —its own
+    /// palette's, or the nearest of the lent one, which is how the bank
+    /// draws it—. How far, and not its square as a merge counts it: with
+    /// the square, a palette that drew a few pixels very far lost to one
+    /// that drew all of them a little off, and over the maps that lend in
+    /// every game more characters came out worse (see "The palette a
+    /// character is lent" in the book).
+    ///
+    /// Until 2026-10-17 it was how many pixels of all twelve poses missed,
+    /// however near or far they went, and it was decided with the palettes
+    /// as they were when the character's turn came: map 38 of A Blurred
+    /// Line lent a chest of greys the browns' palette, because the other
+    /// objects of its block, which the map never shows, missed fewer pixels
+    /// there.
+    fn lend(&mut self) -> Result<()> {
+        for key in std::mem::take(&mut self.pending) {
+            let image = sheet(self.ask.sheets, &key.0)?;
+            let (_, _, mapping) = character_palette(image, key.1, None, self.ask.poses.get(&key))?;
+            let counts = sprite_colors(image, key.1, self.ask.poses.get(&key));
+            let s = &mut self.split;
+            let mut best: Option<(u64, usize)> = None;
+            for (number, existing) in s.palettes.iter().enumerate() {
+                if s.leader_owned.contains(&number) || existing.is_empty() {
+                    continue;
+                }
+                let cost: u64 = counts
+                    .iter()
+                    .map(|(c, n)| {
+                        let own = mapping[c];
+                        let shown = if existing.contains(&own) { own } else { nearest(existing, own) };
+                        n * (lab_distance(*c, shown) as u64).isqrt()
+                    })
+                    .sum();
+                if best.is_none_or(|(b, _)| cost < b) {
+                    best = Some((cost, number));
+                }
             }
-            let cost: u64 = counts.iter().filter(|(c, _)| !existing.contains(c)).map(|(_, n)| n).sum();
-            if best.is_none_or(|(b, _)| cost < b) {
-                best = Some((cost, number));
+            if let Some((_, number)) = best {
+                s.palette_of.set(key, number);
             }
         }
-        let Some((_, number)) = best else {
-            return Ok(false);
-        };
-        s.palette_of.set(key.clone(), number);
-        s.lent.insert(key.clone());
-        Ok(true)
+        Ok(())
     }
 }
 
@@ -204,6 +248,7 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
             poses: ask.poses.clone(),
             ..Split::default()
         },
+        pending: Vec::new(),
     };
     let mut notes = Vec::new();
 
@@ -333,6 +378,10 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
         }
         out.push(npc);
     }
+
+    // Everyone has a place but those lent one: theirs now, with every
+    // palette whole. Before the timer's room, which counts who shares each.
+    sp.lend()?;
 
     // And last, the timer, if it has nowhere to go: not a palette with room
     // nor a free one. Then a character of a palette of its own loses a

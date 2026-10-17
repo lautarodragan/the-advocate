@@ -8,7 +8,7 @@
 
 use crate::sprites::character::{nearest, OBJ_COLORS, OBJ_PALETTES};
 use crate::sprites::fail::{Bad, Result};
-use adeleine::{luma_distance, Color};
+use adeleine::{lab_distance, Color};
 use rm2k_render::Picture;
 use std::collections::{BTreeMap, BTreeSet};
 use voodoo::pack_tile;
@@ -134,7 +134,7 @@ fn closest_for_timer(glyphs: &Picture, palettes: &[Vec<Color>], leader_owned: &B
         if leader_owned.contains(&number) || palette.is_empty() {
             continue;
         }
-        let cost: u64 = counts.iter().map(|(c, n)| n * luma_distance(nearest(palette, *c), *c) as u64).sum();
+        let cost: u64 = counts.iter().map(|(c, n)| n * lab_distance(nearest(palette, *c), *c) as u64).sum();
         if best.is_none_or(|(b, _)| cost < b) {
             best = Some((cost, number));
         }
@@ -317,10 +317,10 @@ fn lend_to_rain(palettes: &mut [Vec<Color>], avoid: &BTreeSet<usize>) -> Option<
         }
         let mut grown = palette.clone();
         let mut missing: Vec<Color> = RAIN_COLORS.iter().copied().filter(|c| !palette.contains(c)).collect();
-        missing.sort_by_key(|c| std::cmp::Reverse(luma_distance(nearest(palette, *c), *c)));
+        missing.sort_by_key(|c| std::cmp::Reverse(lab_distance(nearest(palette, *c), *c)));
         let room = OBJ_COLORS.saturating_sub(palette.len());
         grown.extend(missing.iter().take(room));
-        let cost: u64 = RAIN_COLORS.iter().map(|c| luma_distance(nearest(&grown, *c), *c) as u64).sum();
+        let cost: u64 = RAIN_COLORS.iter().map(|c| lab_distance(nearest(&grown, *c), *c) as u64).sum();
         if best.as_ref().is_none_or(|(b, ..)| cost < *b) {
             best = Some((cost, number, grown));
         }
