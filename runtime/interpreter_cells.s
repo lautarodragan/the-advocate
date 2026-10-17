@@ -23,6 +23,16 @@
 ;
 ; Enters with Y on the first operand and returns with Y on the next opcode or
 ; on the target of the condition that failed.
+; `var_note` for `CELL_WRITE`, from a routine and not from the macro: a
+; `jsl` written in the macro is named on the same line as `code_ptr` and
+; `temp`, and with `var_note` at $44 of its bank —as it was when it was
+; born— `test_jumps_between_banks.py` took the call for one of them.
+.proc cell_note
+.a16
+    jsl f:var_note
+    rts
+.endproc
+
 ; One of the two writes: the variable, as an offset, with the coordinate and
 ; the refresh in the top two bits. `temp` is the character's x and `temp + 2`
 ; its y. Enters and leaves with a 16-bit A.
@@ -56,7 +66,7 @@ is_y_refresh:
     tax
     lda temp + 2
 note:
-    jsl f:var_note
+    jsr cell_note
 put:
     sta f:FAR_LENGTH + FAR_VARIABLES, x
 .endmacro
