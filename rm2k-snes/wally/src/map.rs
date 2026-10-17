@@ -41,13 +41,13 @@ use std::path::{Path, PathBuf};
 
 /// The `ShowPicture` pictures this map carries, already decided and cut:
 /// their names, for the notes; how many objects; their tiles; and how many
-/// slots the console keeps them in, each of which takes a palette.
+/// sprite palettes they share, from the top.
 #[derive(Clone, Debug, Default)]
 pub struct PictureAsked {
     pub name: String,
     pub objects: usize,
     pub image: Image,
-    pub slots: usize,
+    pub palettes: usize,
 }
 
 /// What the cartridge decided about a map, and what other domains answered
@@ -1621,7 +1621,7 @@ fn extras(
             ))),
         }
     }
-    // The pictures, with a palette per slot from the top. They yield to the
+    // The pictures, with the palettes they share from the top. They yield to the
     // battle animation's box, which was there first: a map whose palettes
     // leave room for one of the two keeps the animation, and its pictures
     // are not drawn —the caller sees `image` at zero and compiles none—.
@@ -1630,8 +1630,8 @@ fn extras(
         let previous = if rain.0 != 0 { rain.0 } else { timer_at.map_or(0, |t| t.0) };
         let box_palette = usize::from(request.battle_animation);
         let mut trial = tiles.clone();
-        let placed = if palettes.len() + box_palette + asked.slots <= OBJ_PALETTES {
-            picture_of_image(&asked.image, &mut trial, &palettes, previous, asked.slots)
+        let placed = if palettes.len() + box_palette + asked.palettes <= OBJ_PALETTES {
+            picture_of_image(&asked.image, &mut trial, &palettes, previous, asked.palettes)
         } else {
             None
         };
@@ -1654,7 +1654,7 @@ fn extras(
                 quoted(&asked.name),
                 palettes.len(),
                 if box_palette != 0 { " and the battle animation's box one" } else { "" },
-                asked.slots
+                asked.palettes
             ))),
         }
     }

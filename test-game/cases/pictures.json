@@ -1,0 +1,13 @@
+{
+  "event_commands": [
+    {"code": "ShowPicture", "parameters": [1, 0, 40, 40, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Digit1"},
+    {"code": "ShowPicture", "parameters": [2, 0, 52, 40, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Digit2"},
+    {"code": "ShowPicture", "parameters": [3, 0, 64, 40, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Digit3"},
+    {"code": "ShowPicture", "parameters": [4, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Panel"},
+    {"code": "ShowPicture", "parameters": [5, 0, 134, 100, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Digit2"},
+    {"code": "ShowPicture", "parameters": [6, 0, 160, -8, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Bar"},
+    {"code": "MovePicture", "parameters": [6, 0, 160, 8, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0, 10, 0]},
+    {"code": "MovePicture", "parameters": [1, 0, 280, 200, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0, 10, 1]},
+    {"code": "MovePicture", "parameters": [3, 0, 64, 40, 0, 100, 0, 0, 40, 40, 160, 100, 0, 0, 5, 1]}
+  ]
+}

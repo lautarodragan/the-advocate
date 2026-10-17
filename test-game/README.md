@@ -18,7 +18,8 @@ next to RM2k's drawing of the same. And a fourth, the clearing, with no
 events at all. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
-which it draws or shows plain. The database has three
+which it draws or shows plain. And a case that puts six small pictures
+up on the meadow at once and slides two of them. The database has three
 actors —the Hero, Alda and Bram, who is in no party— and one item, the
 Sword, for the cases that read an actor's stats.
 
