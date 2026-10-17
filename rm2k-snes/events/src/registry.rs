@@ -415,6 +415,12 @@ pub struct Pictures {
     /// which picture the number names is not known here, and an extra
     /// texture costs only cartridge.
     pub zooms: Vec<(i32, i32)>,
+    /// And the numbers a `ShowPicture` or a `MovePicture` of the map gives a
+    /// tone other than the neutral: the caller gives their pictures a
+    /// sprite palette of their own, since the console tones a picture by
+    /// toning its palette, and another picture sharing it would be toned
+    /// too.
+    pub tinted: Vec<i32>,
 }
 
 impl Pictures {
@@ -425,6 +431,7 @@ impl Pictures {
             big: Vec::new(),
             gathering: true,
             zooms: Vec::new(),
+            tinted: Vec::new(),
         }
     }
 
@@ -464,6 +471,13 @@ impl Pictures {
     pub fn gather_zoom(&mut self, number: i32, zoom: i32) {
         if !self.zooms.contains(&(number, zoom)) {
             self.zooms.push((number, zoom));
+        }
+    }
+
+    /// Gathers that `number` is toned, once.
+    pub fn gather_tinted(&mut self, number: i32) {
+        if !self.tinted.contains(&number) {
+            self.tinted.push(number);
         }
     }
 

@@ -183,6 +183,8 @@ fn without_pictures(answer: &mut Value) {
         if let Some(m) = map.as_object_mut() {
             m.remove("pictures");
             m.remove("zooms");
+            // Which numbers are toned came on 2026-10-16.
+            m.remove("tinted");
             // Which graphics a route gives an event came on 2026-10-11.
             m.remove("graphics_on_events");
         }

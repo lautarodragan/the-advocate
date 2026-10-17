@@ -946,51 +946,70 @@ MSU_BASE: .res $1A        ; word
 ; See picture_far.s. `PIC_SLOTS` pictures at a time, each slot one entry of
 ; every array: which picture of the map's table it shows, or `PIC_NONE`;
 ; its corner —on the screen, or on the map for one that goes with it—; its
-; flags; its tone, three bytes; its transparency. And **one** ramp of
-; `MovePicture` for all of them: the slot it moves, where it comes from and
-; where it goes —tone and transparency—, and how far along it is. The game
-; never moves two pictures at once; if a page does, the one that was moving
-; arrives where it was going in that same frame.
+; flags; the sprite palette it is drawn with, counted from the top; its tone,
+; three bytes; its transparency. And **a ramp of `MovePicture` per slot**,
+; as RM2k has one per picture: where its tone and transparency come from and
+; go to, how far along it is, and how its corner walks —a quotient and a
+; remainder per axis, Bresenham's way—. Until 2026-10-16 there were two
+; slots and one ramp for all of them, and a second move ended the first.
 ;
-; In two blocks, because until 2026-10-16 they were two places of a map
-; written by hand. **They do not travel in the save**, and a map change clears
-; them: RM2k 2000 erases its pictures there (`erase_on_map_change`).
-PIC_SLOTS   = 2
+; The slot is the event compiler's, one per RM2k picture number of the map,
+; **the highest number in slot 0**: OAM draws the lowest index in front,
+; and RM2k the highest number. Sixteen because no map measured shows more
+; small ones at once (the most is nine): what limits how many go in is the
+; palettes and the tiles the map's characters leave, which the converter
+; counts.
+;
+; **They do not travel in the save**, and a map change clears them: RM2k
+; 2000 erases its pictures there (`erase_on_map_change`).
+PIC_SLOTS   = 16
 .pushseg
 .segment "FARBSS"
-PIC_IMG: .res $F              ; PIC_SLOTS bytes
+PIC_IMG:    .res PIC_SLOTS          ; the entry of the map's table, or PIC_NONE
+PIC_X:      .res 2 * PIC_SLOTS      ; the corner, words
+PIC_Y:      .res 2 * PIC_SLOTS
+PIC_TRANS:  .res PIC_SLOTS
+PIC_FLAGS:  .res PIC_SLOTS          ; PIC_BY_VARIABLE, PIC_MAP_FIXED
+PIC_PAL:    .res PIC_SLOTS          ; its sprite palette from the top: 0 is 7
+PIC_TONE:   .res 3 * PIC_SLOTS      ; r, g, b
+; The ramps. `PIC_R_STEPS` at zero is no ramp.
+PIC_R_STEP:  .res PIC_SLOTS
+PIC_R_STEPS: .res PIC_SLOTS
+PIC_R_FROM:  .res 4 * PIC_SLOTS     ; r, g, b and transparency
+PIC_R_TO:    .res 4 * PIC_SLOTS
+PIC_R_QX:    .res 2 * PIC_SLOTS     ; what the corner moves every frame, signed
+PIC_R_QY:    .res 2 * PIC_SLOTS
+PIC_R_RX:    .res PIC_SLOTS         ; and the remainder, which adds a pixel
+PIC_R_RY:    .res PIC_SLOTS         ; every so many frames
+PIC_R_AX:    .res PIC_SLOTS         ; how much of it has gathered
+PIC_R_AY:    .res PIC_SLOTS
+PIC_R_SIGN:  .res PIC_SLOTS         ; which way that pixel goes: bit 0 x, bit 1 y
+; The palettes waiting for the vblank, one byte each, from the top.
+PIC_PAL_PENDING: .res 8
+; The big picture's ramp —see below—: the one it moves, PIC_NONE or
+; PIC_BIG, where it comes from and goes to, and how far along it is.
+PIC_RAMP:   .res 1
+PIC_FROM:   .res 4                  ; r, g, b and transparency
+PIC_TO:     .res 4
+PIC_STEP:   .res 1
+PIC_STEPS:  .res 1
 .popseg
-PIC_X       = PIC_IMG + $02              ; PIC_SLOTS words
-PIC_Y       = PIC_IMG + $06              ; PIC_SLOTS words
-PIC_TRANS   = PIC_IMG + $0A              ; PIC_SLOTS bytes
-PIC_FLAGS   = PIC_IMG + $0C              ; PIC_SLOTS bytes
-PIC_STEPS   = PIC_IMG + $0E
-.assert PIC_STEPS < PIC_IMG + $F, error, "the pictures overflow their block"
-.pushseg
-.segment "FARBSS"
-PIC_TONE: .res $10              ; three bytes per slot
-.popseg
-PIC_RAMP    = PIC_TONE + $06              ; the slot the ramp moves, or PIC_NONE
-PIC_FROM    = PIC_TONE + $07              ; r, g, b and transparency
-PIC_TO      = PIC_TONE + $0B
-PIC_STEP    = PIC_TONE + $0F
-.assert PIC_TONE + 3 * PIC_SLOTS <= PIC_RAMP, error, "the pictures' tones overflow"
 PIC_NONE    = $FF
 ; OP_PICTURE's mode, which the slot keeps in its flags: the centre came from
 ; two variables, and the picture goes with the map. See `PICTURE_BY_VARIABLE`
-; and `PICTURE_MAP_FIXED` in the event compiler.
+; and `PICTURE_MAP_FIXED` in the event compiler. And OP_PICTURE_MOVE's: the
+; move goes somewhere, `PICTURE_MOVES`.
 PIC_BY_VARIABLE = $01
 PIC_MAP_FIXED   = $02
-; And the slot's palette is waiting for the vblank.
-PIC_PENDING     = $80
+PIC_MOVES       = $80
 
 ; --- the big picture: the one in the background layer ---------------------------
 ;
 ; See big_picture.s. One at a time —no scene of the game shows two big ones
-; at once—, and the ramp of its `MovePicture` is the slots' one, with
-; `PIC_RAMP` at `PIC_BIG`: its tone and transparency go through `PIC_FROM`
-; and `PIC_TO`, and what only it moves —the scroll and the wave— through
-; its own bytes here.
+; at once—, and the ramp of its `MovePicture` is `PIC_RAMP` at `PIC_BIG`,
+; which was the slots' one too until they got one each: its tone and
+; transparency go through `PIC_FROM` and `PIC_TO`, and what only it moves
+; —the scroll and the wave— through its own bytes here.
 ;
 ; They do not travel in the save, and a map change clears them.
 .pushseg

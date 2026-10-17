@@ -11,9 +11,10 @@
 ; in the map's sprite bank: they were uploaded with it, so showing a picture
 ; uploads nothing but its palette, and coming back from a battle or the menu
 ; finds them where they were. Their palettes too: `pic_palette` leaves them in
-; `cgram_shadow`, which `scene_cgram_restore` uploads again after a battle,
-; and the menu, the shop and the slots do not touch sprite palettes 6 and 7.
-; Which pictures each map carries is the converter's: see
+; `cgram_shadow`, which `scene_cgram_restore` uploads again after a battle and
+; the menus put back when they close. Which pictures each map carries, which
+; sprite palettes they share —from the top, 7 down— and how each is cut into
+; 32x32 and 8x8 objects is the converter's: see
 ; rm2k-snes/convert/src/pictures.rs.
 ;
 ; **RM2k's position is the picture's centre**, and the console computes the
@@ -62,19 +63,28 @@ PIC_RM_TOP  = 112 - 104
 .proc pic_clear
 .a8
 .i16
-    lda #PIC_NONE
     ldx #PIC_SLOTS - 1
 each:
+    lda #PIC_NONE
     sta f:PIC_IMG, x
+    lda #0
+    sta f:PIC_FLAGS, x
+    sta f:PIC_R_STEPS, x
     dex
     bpl each
-    sta f:PIC_RAMP
-    lda #0
-    ldx #PIC_SLOTS - 1
-flags:
-    sta f:PIC_FLAGS, x
+    ldx #7
+palettes:
+    sta f:PIC_PAL_PENDING, x
     dex
-    bpl flags
+    bpl palettes
+    lda #PIC_NONE
+    sta f:PIC_RAMP
+    stz pic_dirty
+    rep #$20
+.a16
+    stz pic_last
+    sep #$20
+.a8
     jsr big_clear               ; and the big one: see big_picture.s
     rtl
 .endproc
@@ -131,12 +141,19 @@ none:
     sep #$20
 .a8
     ; A ramp on this slot is over: the new picture starts still.
+    lda #0
+    sta f:PIC_R_STEPS, x
+    ; And the frame's loops walk up to it.
+    rep #$20
+.a16
     txa
-    cmp f:PIC_RAMP
-    bne no_ramp
-    lda #PIC_NONE
-    sta f:PIC_RAMP
-no_ramp:
+    inc a
+    cmp pic_last
+    bcc below
+    sta pic_last
+below:
+    sep #$20
+.a8
     lda [code_ptr], y           ; the picture
     iny
     sta f:PIC_IMG, x
@@ -178,8 +195,37 @@ no_ramp:
     iny
     sta f:PIC_TRANS, x
     phy                         ; the cursor is done with
-    ; By variables: the centre is their value now, as RM2k reads it once.
     lda f:PIC_FLAGS, x
+    jsr pic_place
+    bcc placed
+    ; A map without pictures: the compiler gives it no `OP_PICTURE`, but a
+    ; page that goes on after a teleport carries its old map's.
+    lda #PIC_NONE
+    sta f:PIC_IMG, x
+    ply
+    rtl
+placed:
+    jsr pic_set_corner
+    ; Its palette, which the converter chose: see `picture_tables`.
+    phx
+    lda f:PIC_IMG, x
+    jsr pic_entry
+    lda f:picture_data + 5, x
+    plx
+    sta f:PIC_PAL, x
+    jsr pic_slot_palette
+    ply
+    rtl
+.endproc
+
+; Slot X's corner from a centre: `temp` and `temp + 2` are RM2k's x and y,
+; or two variable slots if A has PIC_BY_VARIABLE —RM2k reads them once, when
+; the command runs—, and they are left as the corner, on the console's screen
+; or, for a picture whose flags say it goes with the map, on the map. With
+; the carry set if the map carries no such picture. Keeps X.
+.proc pic_place
+.a8
+.i16
     and #PIC_BY_VARIABLE
     beq constant
     phx
@@ -205,13 +251,9 @@ constant:
     lda f:PIC_IMG, x
     jsr pic_entry
     bcc found
-    ; A map without pictures: the compiler gives it no `OP_PICTURE`, but a
-    ; page that goes on after a teleport carries its old map's.
     plx
-    lda #PIC_NONE
-    sta f:PIC_IMG, x
-    ply
-    rtl
+    sec
+    rts
 found:
     ; The corner: the centre minus half the size.
     rep #$20
@@ -224,9 +266,9 @@ found:
     sec
     sbc f:picture_data + 2, x
     sta temp + 2
-    plx
     sep #$20
 .a8
+    plx
     lda f:PIC_FLAGS, x
     and #PIC_MAP_FIXED
     bne with_map
@@ -242,10 +284,18 @@ found:
     sep #$20
 .a8
     plx
-    bra place
+    clc
+    rts
 with_map:
     jsr pic_on_map
-place:
+    clc
+    rts
+.endproc
+
+; `temp` and `temp + 2` as slot X's corner. Keeps X.
+.proc pic_set_corner
+.a8
+.i16
     phx
     rep #$20
 .a16
@@ -259,9 +309,7 @@ place:
     sep #$20
 .a8
     plx
-    jsr pic_slot_palette
-    ply
-    rtl
+    rts
 .endproc
 
 ; `temp` and `temp + 2`, a corner on RM2k's screen, to the map's pixels: where
@@ -549,8 +597,28 @@ none:
     rts
 .endproc
 
-; `OP_PICTURE_MOVE`: slot, and the tone and transparency it goes to in how
-; many frames. Enters with Y on the operands and leaves it past them.
+; What a ramp of a slot needs besides its arrays, for the frame it is
+; walked in: its step and its steps, for `pic_kn`; and, while a move is
+; set up, its mode and the sign `pic_axis` found.
+.pushseg
+.segment "BSS"
+pic_k:    .res 1
+pic_n:    .res 1
+pic_mode: .res 1
+pic_neg:  .res 1
+.popseg
+
+; `OP_PICTURE_MOVE`: slot, the tone and transparency it goes to, in how many
+; frames, the mode and where its centre goes —x and y: RM2k's screen, or
+; two variable slots with PIC_BY_VARIABLE; with PIC_MOVES off it stays—.
+; Enters with Y on the operands and leaves it past them.
+;
+; **Each slot has its own ramp**, as each RM2k picture does: a move on one
+; does not end another's. The tone, the transparency and the corner go in a
+; straight line from where they are, which is what `Game_Pictures::Picture::
+; Update`'s `(finish - current) / time_left` gives over the frames. A
+; picture that goes with the map does not move: RM2k 2000 does not move it
+; either —`ignore_position` with `IsLegacy`—.
 ;
 ; A `Move` on a slot with nothing shown writes the target to something that
 ; is not drawn: the operands are consumed anyway —the stream has to stay on
@@ -569,115 +637,261 @@ none:
     lda f:PIC_IMG, x
     cmp #PIC_NONE
     bne shown
-    iny
-    iny
-    iny
-    iny
-    iny
-    rtl
-shown:
-    ; Another slot's ramp ends here, where it was going: there is one. This
-    ; slot's own goes on from where it is, as RM2k's does.
-    lda f:PIC_RAMP
-    cmp #PIC_NONE
-    beq free
-    cmp #PIC_BIG
-    bne slot_ramp
-    phx
-    jsr big_arrive              ; the big one's, in big_picture.s
-    plx
-    bra free
-slot_ramp:
-    txa
-    cmp f:PIC_RAMP
-    beq free
-    lda f:PIC_RAMP
-    phx
     rep #$20
 .a16
-    and #$00FF
-    tax
+    tya
+    clc
+    adc #10                     ; tone, transparency, frames, mode, x, y
+    tay
     sep #$20
 .a8
-    jsr pic_arrive
-    plx
-free:
+    rtl
+shown:
+    phx                         ; the slot
+    ; Four bytes of ramp per slot, in `temp + 2`, and three of tone, in
+    ; `temp`.
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    sta temp + 2
+    txa
+    asl a
+    clc
+    adc 1, s
+    sta temp
+    sep #$20
+.a8
+    ldx temp + 2
     lda [code_ptr], y
     iny
-    sta f:PIC_TO + 0
+    sta f:PIC_R_TO + 0, x
     lda [code_ptr], y
     iny
-    sta f:PIC_TO + 1
+    sta f:PIC_R_TO + 1, x
     lda [code_ptr], y
     iny
-    sta f:PIC_TO + 2
+    sta f:PIC_R_TO + 2, x
     lda [code_ptr], y
     iny
-    sta f:PIC_TO + 3
-    lda [code_ptr], y
-    iny
-    sta f:PIC_STEPS
-    phy
+    sta f:PIC_R_TO + 3, x
     ; From where it is now.
+    ldx temp
+    lda f:PIC_TONE + 0, x
+    ldx temp + 2
+    sta f:PIC_R_FROM + 0, x
+    ldx temp
+    lda f:PIC_TONE + 1, x
+    ldx temp + 2
+    sta f:PIC_R_FROM + 1, x
+    ldx temp
+    lda f:PIC_TONE + 2, x
+    ldx temp + 2
+    sta f:PIC_R_FROM + 2, x
+    plx                         ; the slot
     lda f:PIC_TRANS, x
-    sta f:PIC_FROM + 3
+    phx
+    ldx temp + 2
+    sta f:PIC_R_FROM + 3, x
+    plx
+    ; How long, and a ramp that starts.
+    lda [code_ptr], y
+    iny
+    sta f:PIC_R_STEPS, x
+    sta pic_n
+    lda #0
+    sta f:PIC_R_STEP, x
+    sta f:PIC_R_AX, x
+    sta f:PIC_R_AY, x
+    sta f:PIC_R_RX, x
+    sta f:PIC_R_RY, x
+    sta f:PIC_R_SIGN, x
     phx
     rep #$20
 .a16
     txa
     asl a
-    clc
-    adc 1, s
+    tax
+    lda #0
+    sta f:PIC_R_QX, x
+    sta f:PIC_R_QY, x
+    sep #$20
+.a8
+    plx
+    lda [code_ptr], y           ; the mode
+    iny
+    sta pic_mode
+    rep #$20
+.a16
+    lda [code_ptr], y           ; where to
+    sta temp
+    iny
+    iny
+    lda [code_ptr], y
+    sta temp + 2
+    iny
+    iny
+    sep #$20
+.a8
+    phy                         ; the cursor is done with
+    lda pic_mode
+    and #PIC_MOVES
+    beq placed
+    lda f:PIC_FLAGS, x
+    and #PIC_MAP_FIXED
+    bne placed
+    lda pic_mode
+    jsr pic_place               ; the corner it goes to, in temp
+    bcs placed
+    lda pic_n
+    bne walk
+    jsr pic_set_corner          ; no frames: it is there already
+    bra placed
+walk:
+    ; Each axis: what it moves every frame, the remainder and its sign.
+    phx                         ; the slot
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda temp
+    sec
+    sbc f:PIC_X, x
+    jsr pic_axis
+    sta f:PIC_R_QX, x
+    lda 1, s
     tax
     sep #$20
 .a8
-    lda f:PIC_TONE + 0, x
-    sta f:PIC_FROM + 0
-    lda f:PIC_TONE + 1, x
-    sta f:PIC_FROM + 1
-    lda f:PIC_TONE + 2, x
-    sta f:PIC_FROM + 2
-    plx
-    lda #0
-    sta f:PIC_STEP
-    lda f:PIC_STEPS
-    bne ramp
-    ; No frames: it is there already.
-    jsr pic_arrive
-    ply
-    rtl
-ramp:
+    lda pic_k
+    sta f:PIC_R_RX, x
+    lda pic_neg
+    sta f:PIC_R_SIGN, x
+    rep #$20
+.a16
     txa
-    sta f:PIC_RAMP
+    asl a
+    tax
+    lda temp + 2
+    sec
+    sbc f:PIC_Y, x
+    jsr pic_axis
+    sta f:PIC_R_QY, x
+    lda 1, s
+    tax
+    sep #$20
+.a8
+    lda pic_k
+    sta f:PIC_R_RY, x
+    lda pic_neg
+    asl a
+    ora f:PIC_R_SIGN, x
+    sta f:PIC_R_SIGN, x
+    plx
+placed:
+    lda f:PIC_R_STEPS, x
+    bne going
+    jsr pic_arrive              ; no frames: it is there already
+going:
     ply
     rtl
 .endproc
 
-; Slot X where its ramp goes —`PIC_TO`— now, with its palette, and no ramp.
+; A16 = what an axis moves in `pic_n` frames, signed: answers what it moves
+; every frame in A16, signed and rounded towards zero; the remainder in
+; `pic_k` and whether it goes back in `pic_neg`. Keeps X and B.
+;
+; Bresenham's way: every frame the corner moves the quotient, and the
+; remainder gathers; each time it passes the frames the corner moves one
+; more pixel. After the last frame it is exactly where it was going, and in
+; between where `from + d * step / steps` puts it, the line RM2k walks. The
+; hardware divider takes sixteen bits by eight and has no sign, so the sign
+; goes out first.
+.proc pic_axis
+.a16
+.i16
+    sep #$20
+.a8
+    stz pic_neg
+    rep #$20
+.a16
+    ora #0
+    bpl positive
+    eor #$FFFF
+    inc a
+    sep #$20
+.a8
+    inc pic_neg
+    rep #$20
+.a16
+positive:
+    sta WRDIVL
+    sep #$20
+.a8
+    lda pic_n
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL                  ; the remainder, under the frames
+    sta pic_k
+    lda pic_neg
+    rep #$20
+.a16
+    beq plus
+    lda RDDIVL
+    eor #$FFFF
+    inc a
+    rts
+plus:
+    lda RDDIVL
+    rts
+.endproc
+
+; Slot X where its ramp goes —its `PIC_R_TO`— now, with its palette, and no
+; ramp. Keeps X.
 .proc pic_arrive
 .a8
 .i16
-    lda f:PIC_TO + 3
-    sta f:PIC_TRANS, x
     phx
     rep #$20
 .a16
     txa
     asl a
+    asl a
+    sta temp + 2
+    txa
+    asl a
     clc
     adc 1, s
-    tax
+    sta temp
     sep #$20
 .a8
-    lda f:PIC_TO + 0
+    ldx temp + 2
+    lda f:PIC_R_TO + 0, x
+    ldx temp
     sta f:PIC_TONE + 0, x
-    lda f:PIC_TO + 1
+    ldx temp + 2
+    lda f:PIC_R_TO + 1, x
+    ldx temp
     sta f:PIC_TONE + 1, x
-    lda f:PIC_TO + 2
+    ldx temp + 2
+    lda f:PIC_R_TO + 2, x
+    ldx temp
     sta f:PIC_TONE + 2, x
+    ldx temp + 2
+    lda f:PIC_R_TO + 3, x
     plx
-    lda #PIC_NONE
-    sta f:PIC_RAMP
+    sta f:PIC_TRANS, x
+    lda #0
+    sta f:PIC_R_STEPS, x
     jmp pic_slot_palette
 .endproc
 
@@ -691,13 +905,6 @@ ramp:
     jmp big_erase               ; PIC_BIG: the big one, in its layer
 slot:
     iny
-    cmp f:PIC_RAMP
-    bne still
-    pha
-    lda #PIC_NONE
-    sta f:PIC_RAMP
-    pla
-still:
     rep #$20
 .a16
     and #$00FF
@@ -706,92 +913,296 @@ still:
 .a8
     lda #PIC_NONE
     sta f:PIC_IMG, x
+    lda #0
+    sta f:PIC_R_STEPS, x
     rtl
 .endproc
 
-; One frame of the ramp. `Game_Pictures::Picture::Update` interpolates with
-; `(finish - current) / dt` over `double`, and the exact result of that
-; sequence is linear: `from + (to - from) * step / steps`. Here it is done
-; with integers, and the sign is taken out before dividing: the hardware
-; divider does not have one.
+; One frame of every ramp: the big one's —big_picture.s— and each slot's.
+;
+; `Game_Pictures::Picture::Update` interpolates with `(finish - current) /
+; dt` over `double`, and the exact result of that sequence is linear: `from
+; + (to - from) * step / steps`. Here it is done with integers, and the sign
+; is taken out before dividing: the hardware divider does not have one.
+.proc pic_tick
+.a8
+.i16
+    jsr big_frame               ; the big one's wave and ramp: big_picture.s
+    ldx #$0000
+    bra test
+each:
+    lda f:PIC_R_STEPS, x
+    beq next
+    phx
+    jsr pic_ramp_step
+    plx
+next:
+    inx
+test:
+    cpx pic_last
+    bne each
+    rtl
+.endproc
+
+; One frame of slot X's ramp.
 ;
 ; The palette is rebuilt **only when the tone really changed**. In the
 ; 210-frame ramp of "1 year earlier" the red goes up from 0 to 100, which
 ; means it changes one frame out of two: rebuilding it anyway cost 96
 ; products and 96 divisions per frame to write the same thirty-two bytes.
-.proc pic_tick
+.proc pic_ramp_step
 .a8
 .i16
-    jsr big_frame               ; the big one's wave and ramp: big_picture.s
-    lda f:PIC_RAMP
-    bpl ramping                 ; PIC_NONE and PIC_BIG have bit 7
-    rtl
-ramping:
-    lda f:PIC_STEP
+    lda f:PIC_R_STEP, x
     inc a
-    sta f:PIC_STEP
-    ; The four channels, the transparency on top of the stack's.
-    ldx #3
-each:
-    jsr pic_channel
-    pha
-    dex
-    bpl each
-    ; The slot: its transparency, and its tone, which says whether it changed.
-    lda f:PIC_RAMP
+    sta f:PIC_R_STEP, x
+    sta pic_k
+    lda f:PIC_R_STEPS, x
+    sta pic_n
+    phx                         ; the slot
     rep #$20
 .a16
-    and #$00FF
+    txa
+    asl a
+    asl a
+    tax                         ; four per slot
+    sep #$20
+.a8
+    ; The four channels, the transparency on top of the stack's.
+    jsr pic_lerp
+    pha                         ; red
+    inx
+    jsr pic_lerp
+    pha                         ; green
+    inx
+    jsr pic_lerp
+    pha                         ; blue
+    inx
+    jsr pic_lerp
+    pha                         ; transparency
+    ; The stack: 1 transparency, 2 blue, 3 green, 4 red, 5 the slot.
+    rep #$20
+.a16
+    lda 5, s
     tax
     sep #$20
 .a8
-    lda 4, s
+    lda 1, s
     sta f:PIC_TRANS, x
-    phx
     rep #$20
 .a16
     txa
     asl a
     clc
-    adc 1, s
+    adc 5, s
     tax                         ; the tone's three bytes
     sep #$20
 .a8
     stz temp                    ; whether any changed
-    lda 3, s                    ; red: the slot's two bytes are on top
+    lda 4, s
     cmp f:PIC_TONE + 0, x
     beq :+
     sta f:PIC_TONE + 0, x
     inc temp
-:   lda 4, s
+:   lda 3, s
     cmp f:PIC_TONE + 1, x
     beq :+
     sta f:PIC_TONE + 1, x
     inc temp
-:   lda 5, s
+:   lda 2, s
     cmp f:PIC_TONE + 2, x
     beq :+
     sta f:PIC_TONE + 2, x
     inc temp
-:   plx                         ; the slot
+:   pla
     pla
     pla
     pla
-    pla
+    plx                         ; the slot
     lda temp
     beq same
     jsr pic_slot_palette
 same:
-    lda f:PIC_STEP
-    cmp f:PIC_STEPS
+    ; The corner: the quotient every frame, and a pixel more each time the
+    ; remainder gathers past the frames.
+    phx
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:PIC_X, x
+    clc
+    adc f:PIC_R_QX, x
+    sta f:PIC_X, x
+    lda f:PIC_Y, x
+    clc
+    adc f:PIC_R_QY, x
+    sta f:PIC_Y, x
+    sep #$20
+.a8
+    plx
+    lda f:PIC_R_AX, x
+    clc
+    adc f:PIC_R_RX, x
+    bcs x_over                  ; past 255 is past the frames too
+    cmp pic_n
+    bcc x_keep
+x_over:
+    sec
+    sbc pic_n
+    sta f:PIC_R_AX, x
+    lda f:PIC_R_SIGN, x
+    and #$01
+    jsr pic_one
+    jsr pic_nudge_x
+    bra x_done
+x_keep:
+    sta f:PIC_R_AX, x
+x_done:
+    lda f:PIC_R_AY, x
+    clc
+    adc f:PIC_R_RY, x
+    bcs y_over
+    cmp pic_n
+    bcc y_keep
+y_over:
+    sec
+    sbc pic_n
+    sta f:PIC_R_AY, x
+    lda f:PIC_R_SIGN, x
+    and #$02
+    jsr pic_one
+    jsr pic_nudge_y
+    bra y_done
+y_keep:
+    sta f:PIC_R_AY, x
+y_done:
+    lda f:PIC_R_STEP, x
+    cmp f:PIC_R_STEPS, x
     bcc going
-    lda #PIC_NONE               ; arrived
-    sta f:PIC_RAMP
+    lda #0                      ; arrived
+    sta f:PIC_R_STEPS, x
 going:
-    rtl
+    rts
 .endproc
 
-; This frame's value of channel X of the ramp, in A. Keeps X.
+; A16 = 1, or -1 if A8 is not zero: the pixel a remainder adds.
+.proc pic_one
+.a8
+.i16
+    cmp #0
+    rep #$20
+.a16
+    bne back
+    lda #1
+    rts
+back:
+    lda #$FFFF
+    rts
+.endproc
+
+; A16 added to slot X's corner, on x or on y. Keeps X; leaves A at eight
+; bits.
+.proc pic_nudge_x
+.a16
+.i16
+    phx
+    pha
+    txa
+    asl a
+    tax
+    pla
+    clc
+    adc f:PIC_X, x
+    sta f:PIC_X, x
+    sep #$20
+.a8
+    plx
+    rts
+.endproc
+
+.proc pic_nudge_y
+.a16
+.i16
+    phx
+    pha
+    txa
+    asl a
+    tax
+    pla
+    clc
+    adc f:PIC_Y, x
+    sta f:PIC_Y, x
+    sep #$20
+.a8
+    plx
+    rts
+.endproc
+
+; This frame's value of ramp byte X —`PIC_R_FROM` to `PIC_R_TO`, at step
+; `pic_k` of `pic_n`—, in A. Keeps X.
+;
+; The subtraction always goes on the positive side, as in `pic_channel`:
+; the hardware divider has no sign, and a floor rounds the other way with
+; negatives.
+.proc pic_lerp
+.a8
+.i16
+    lda f:PIC_R_TO, x
+    cmp f:PIC_R_FROM, x
+    bcc low
+    sec
+    sbc f:PIC_R_FROM, x
+    jsr pic_kn
+    clc
+    adc f:PIC_R_FROM, x
+    rts
+low:
+    lda f:PIC_R_FROM, x
+    sec
+    sbc f:PIC_R_TO, x
+    jsr pic_kn
+    eor #$FF                    ; `from - part`: ones' complement plus the
+    sec                         ; carry is the minus
+    adc f:PIC_R_FROM, x
+    rts
+.endproc
+
+; A = A * pic_k / pic_n, with the hardware multiplier and divider: what
+; `pic_part` does with the big one's step.
+.proc pic_kn
+.a8
+.i16
+    sta WRMPYA
+    lda pic_k
+    sta WRMPYB
+    nop                         ; eight cycles until the product is ready
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL                  ; the dividend, sixteen bits
+    sep #$20
+.a8
+    lda pic_n
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    rts
+.endproc
+
+; This frame's value of channel X of the big one's ramp —`PIC_FROM` to
+; `PIC_TO`, at `PIC_STEP` of `PIC_STEPS`—, in A. Keeps X.
 ;
 ; The subtraction always goes on the positive side, as in
 ; `one_flash_table`: the hardware divider has no sign, and a floor rounds
@@ -852,11 +1263,14 @@ low:
     rts
 .endproc
 
-; The pictures' objects, slot by slot. Called from `build_oam` with `jsl`.
+; The pictures' objects, slot by slot: slot 0 first, which is the highest
+; RM2k number, in front. Called from `build_oam` with `jsl`; leaves
+; `obj_big` at the characters' 32x32, as the timer leaves it.
 .proc pic_oam
 .a8
 .i16
     ldx #$0000
+    bra test
 each:
     lda f:PIC_IMG, x
     cmp #PIC_NONE
@@ -869,14 +1283,22 @@ each:
     plx
 next:
     inx
-    cpx #PIC_SLOTS
+test:
+    cpx pic_last
     bne each
+    lda #$02
+    sta obj_big
     rtl
 .endproc
 
+; In an object's tile word, the bit that makes it an 8x8 object: see
+; `picture_tables` in rm2k-snes-mapdata, and `SMALL_BIT` in the converter's
+; pictures.rs.
+PIC_SMALL = $8000
+
 ; Slot X's objects: each one at its place from the corner, with its tile
-; —the base plus its block, four objects to a row of blocks: see
-; `block_tile` in picture.py— and the slot's palette.
+; —the base plus the low nine bits of its word—, its size and the slot's
+; palette.
 .proc pic_draw
 .a8
 .i16
@@ -895,22 +1317,19 @@ found:
     pha
     sep #$20
 .a8
-    lda f:picture_data + 5, x   ; its first block
-    pha
     lda f:picture_data + 4, x   ; how many
     pha
-    ; The stack: 1 how many are left, 2 the block, 3 the objects, 5 the
-    ; base, 7 the slot.
+    ; The stack: 1 how many are left, 2 the objects, 4 the base, 6 the slot.
     rep #$20
 .a16
-    lda 7, s
+    lda 6, s
     asl a
     tax
     lda f:PIC_X, x
     sta temp
     lda f:PIC_Y, x
     sta temp + 2
-    lda 7, s
+    lda 6, s
     tax
     sep #$20
 .a8
@@ -930,19 +1349,26 @@ found:
     sep #$20
 .a8
 still:
-    lda #$02
-    sta obj_big                 ; 32x32
+    ; vhoopppN: priority 3 and the slot's palette, 7 - p from the top.
+    lda f:PIC_PAL, x
+    and #$07
+    eor #$07
+    asl a
+    ora #$30
+    pha
+    ; The stack: 1 the attributes, 2 how many are left, 3 the objects, 5
+    ; the base, 7 the slot.
 object:
-    lda 1, s
+    lda 2, s
     beq done
     dec a
-    sta 1, s
+    sta 2, s
     rep #$20
 .a16
     lda 3, s
     tax
-    inc a
-    inc a
+    clc
+    adc #4
     sta 3, s
     lda f:picture_data, x       ; dx, and dy above
     and #$00FF
@@ -955,37 +1381,30 @@ object:
     clc
     adc temp + 2
     sta obj_y
-    ; Its tile: the base, plus 64 per row of blocks and 4 per block.
-    lda 2, s
-    and #$00FF
+    lda f:picture_data + 2, x   ; the tile word
     tax
-    and #$0003
-    asl a
-    asl a
-    sta obj_tile                ; and `obj_attr`, a word for a moment
-    txa
-    and #$00FC
-    asl a
-    asl a
-    asl a
-    asl a
-    clc
-    adc obj_tile
+    and #$01FF
     clc
     adc 5, s
     sta obj_tile                ; the ninth bit falls in `obj_attr`
     sep #$20
 .a8
-    lda 2, s
-    inc a
-    sta 2, s
-    ; vhoopppN: priority 3, palette 7 - slot, and the tile's ninth bit.
-    lda 7, s
-    eor #$07
-    asl a
-    ora #$30
+    lda 1, s
     ora obj_attr
     sta obj_attr
+    rep #$20
+.a16
+    txa
+    and #PIC_SMALL
+    sep #$20
+.a8
+    bne small
+    lda #$02                    ; 32x32
+    bra size
+small:
+    lda #$00                    ; 8x8
+size:
+    sta obj_big
     jsl f:emit_object_far + FAST
     bra object
 done:

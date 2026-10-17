@@ -332,7 +332,13 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // The ones that are part of a map are drawn into it, and their commands
     // are accepted without being done.
     keys.retain(|k| !c.map_pictures.done(map_id, k["name"].as_str().unwrap_or("")));
-    let pictures = pictures::for_map(&game.game_dir, &keys, map_id, &game.cropped)?;
+    // And the numbers the map tones, which do not share a palette.
+    let tinted: Vec<i64> = scanned
+        .get("tinted")
+        .and_then(Value::as_array)
+        .map(|t| t.iter().filter_map(Value::as_i64).collect())
+        .unwrap_or_default();
+    let pictures = pictures::for_map(&game.game_dir, &keys, &tinted, map_id, &game.cropped)?;
     let singles: Vec<Value> = c
         .maps_per_character
         .iter()

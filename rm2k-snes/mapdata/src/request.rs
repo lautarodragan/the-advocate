@@ -145,15 +145,16 @@ pub struct MapPictures {
 }
 
 /// One picture: half its size in RM2k's pixels —the console computes its
-/// corner from its centre with it—, the first of its 32x32 objects among the
-/// map's pictures' ones, each object's place from the picture's corner, and
-/// its fifteen colours.
+/// corner from its centre with it—, its objects —each one's place from the
+/// picture's corner and its tile word: see `picture_tables`—, the colours
+/// of the palette it shares and which palette that is, from the top.
 #[derive(Deserialize)]
 pub struct PictureImage {
     pub half: [i64; 2],
-    pub first: i64,
-    pub objects: Vec<[i64; 2]>,
+    pub objects: Vec<[i64; 3]>,
     pub palette: Vec<Color>,
+    #[serde(default)]
+    pub palette_index: i64,
 }
 
 /// `emit`: everything the cartridge carries, from every domain.

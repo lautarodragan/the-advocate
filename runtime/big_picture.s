@@ -405,17 +405,8 @@ gone:
 .a8
     rtl
 shown:
-    ; Another ramp ends here, where it was going: there is one.
-    lda f:PIC_RAMP
-    bmi free                    ; none, or the big one's, which goes on from here
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    jsr pic_arrive
-free:
+    ; The slots have a ramp each since 2026-10-16: a move of the big one
+    ; ends none of theirs, and its own goes on from where it is.
     ldx #$0000
 to:
     lda [code_ptr], y

@@ -111,9 +111,12 @@ bytecode! {
         red: byte, green: byte, blue: byte, transparency: byte,
     );
 
+    /// `OP_PICTURE_MOVE` goes to that tone and transparency in `frames`, and,
+    /// with bit 7 of `mode`, its centre to (`x`, `y`) —variable slots with
+    /// bit 0, as `OP_PICTURE`'s—.
     OP_PICTURE_MOVE = 0x20 (
         slot: byte, red: byte, green: byte, blue: byte, transparency: byte,
-        frames: byte,
+        frames: byte, mode: byte, x: signed word, y: signed word,
     );
 
     OP_PICTURE_ERASE = 0x21 (slot: byte);

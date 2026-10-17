@@ -2851,6 +2851,8 @@ fn sound_index(ctx: &mut Ctx, cmd: &Command, sound: Sound, from_route: bool) -> 
 pub const PICTURE_BY_VARIABLE: u8 = 0x01;
 /// And the picture goes with the map.
 pub const PICTURE_MAP_FIXED: u8 = 0x02;
+/// `OP_PICTURE_MOVE`'s `mode`: the centre goes to its x and y.
+pub const PICTURE_MOVES: u8 = 0x80;
 
 /// Whether the parameters of a `ShowPicture` or a `MovePicture` fall within
 /// what the console's pictures know how to do: no rotation nor waves, the
@@ -2926,21 +2928,21 @@ pub fn picture_key(cmd: &Command) -> Option<PictureKey> {
 /// OP_PICTURE        slot, image, mode, x, y, r, g, b, transparency: puts
 ///                   the image up in the slot, centred at (x, y) of RM2k's
 ///                   screen —or of two variables—, with that tone.
-/// OP_PICTURE_MOVE   slot, and the tone and transparency it goes to in how
-///                   many frames (byte). It does not cut the frame: if the
+/// OP_PICTURE_MOVE   slot, the tone and transparency it goes to in how
+///                   many frames (byte), the mode and where its centre goes,
+///                   as OP_PICTURE's. It does not cut the frame: if the
 ///                   page waits, an OP_DELAY goes after it, as with
 ///                   `FlashScreen` and the shake.
 /// OP_PICTURE_ERASE  slot: takes it down.
 /// ```
 ///
-/// **A `MovePicture` does not move**: the console keeps the place a picture
-/// was put in and changes its tone and its transparency, which is all the
-/// game's moves on pictures that fit do —the fades of the signs, the shadow
-/// that appears—. So one compiles only if a picture of the map under that
-/// number stays where it is: placed by a constant at the move's place, or
-/// going with the map, whose position RM2k 2000 does not move either
-/// (`Picture::Move`, `ignore_position` with `IsLegacy`). Nor does it zoom:
-/// the zoom has to be the one it was shown with.
+/// **A `MovePicture` moves** since 2026-10-16: its tone, its transparency
+/// and its centre, in a straight line, each slot with its ramp. Until then
+/// the console kept the place a picture was put in, and a move elsewhere
+/// was not done: Zounds' menus, which slide their bars in from off the
+/// screen, never showed them. One that goes with the map stays where it is,
+/// as in RM2k 2000 (`Picture::Move`, `ignore_position` with `IsLegacy`). It
+/// does not zoom: the zoom has to be the one it was shown with.
 ///
 /// **The picture's fade is the tone and not the transparency**: the two
 /// `MovePicture`s of the "1 year earlier" page leave `top_trans` at 0 and
@@ -3012,23 +3014,35 @@ pub fn compile_picture(
         out.extend(tone);
         return Ok(Some(out));
     }
-    // MovePicture: the same pictures, where they are and at their size,
-    // with another tone and transparency. The duration comes in **tenths**
-    // —`data.time_left = duration * DEFAULT_FPS / 10`—, which is what had to
-    // be looked up: the first one's 35 are three and a half seconds, not half
-    // a second.
+    // MovePicture: the same pictures, at their size, with another tone,
+    // transparency and place. The duration comes in **tenths** —`data.
+    // time_left = duration * DEFAULT_FPS / 10`—, which is what had to be
+    // looked up: the first one's 35 are three and a half seconds, not half a
+    // second.
     // Which one it moves is not known until it runs —the number can show
-    // another picture by then—, so it is enough that one of them stays: the
-    // one this page showed, almost always. If another one is up, it gets the
-    // tone and stays where it is, where RM2k would have moved it too.
-    let Some(slot) = pictures
-        .numbered(p[0])
-        .find(|(key, _)| {
-            let stays = key.map_fixed || (p[1] == 0 && key.at == Some((p[2], p[3])));
-            stays && key.zoom == p[5]
-        })
-        .map(|(_, s)| *s)
-    else {
+    // another picture by then—, so it is enough that one of them is at the
+    // move's zoom: the one this page showed, almost always. The console
+    // computes the corner it goes to with the size of the one that is up.
+    let at_zoom: Vec<&(PictureKey, u8)> = pictures.numbered(p[0]).filter(|(key, _)| key.zoom == p[5]).collect();
+    let Some(&&(_, slot)) = at_zoom.first() else {
+        return Ok(None);
+    };
+    // Where it goes, unless every one of them stays: going with the map, or
+    // placed by a constant at the move's place.
+    let stays = at_zoom
+        .iter()
+        .all(|(key, _)| key.map_fixed || (p[1] == 0 && key.at == Some((p[2], p[3]))));
+    let (mode, x, y) = if stays {
+        (0, 0, 0)
+    } else if p[1] == 1 {
+        match (indices.variable_slot(p[2] as i64), indices.variable_slot(p[3] as i64)) {
+            (Ok(sx), Ok(sy)) => (PICTURE_MOVES | PICTURE_BY_VARIABLE, sx as i64, sy as i64),
+            _ => return Ok(None),
+        }
+    } else {
+        (PICTURE_MOVES, p[2] as i64, p[3] as i64)
+    };
+    let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
         return Ok(None);
     };
     let Some(&tenths) = p.get(14) else {
@@ -3043,6 +3057,9 @@ pub fn compile_picture(
     let mut out = vec![OP_PICTURE_MOVE, slot];
     out.extend(tone);
     out.push(frames as u8);
+    out.push(mode);
+    out.extend(x.to_le_bytes());
+    out.extend(y.to_le_bytes());
     // `options.wait`: the page waits as long as it lasts, like `FlashScreen`.
     if p.len() > 15 && p[15] != 0 && frames != 0 {
         out.push(OP_DELAY);
@@ -4576,6 +4593,12 @@ pub fn compile_command(
                 }
                 if cmd.code == MOVE_PICTURE && picture_shows(&cmd.parameters, 0) {
                     p.gather_zoom(cmd.parameters[0], cmd.parameters[5]);
+                }
+                // A tone other than the neutral, shown or moved to: the
+                // red, green, blue and saturation, `p[8..12]`.
+                let tone = cmd.parameters.get(8..12).unwrap_or(&[]);
+                if cmd.code != ERASE_PICTURE && tone.iter().any(|&v| v != 100) {
+                    p.gather_tinted(cmd.parameters[0]);
                 }
                 return Ok(Vec::new());
             }
@@ -7935,6 +7958,12 @@ mod tests {
         )
     }
 
+    fn moving_by_variables(number: i32, vars: (i32, i32), tenths: i32) -> Command {
+        let mut c = moving(number, vars, 100, 0, tenths, false);
+        c.parameters[1] = 1;
+        c
+    }
+
     /// `commands` compiled for a map that carries `table`.
     fn with_pictures(table: &[(PictureKey, u8)], indices: &Indices, commands: &[Command]) -> Vec<u8> {
         let game = Game::default();
@@ -7944,6 +7973,7 @@ mod tests {
             big: Vec::new(),
             gathering: false,
             zooms: Vec::new(),
+            tinted: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -8094,6 +8124,7 @@ mod tests {
             big: big.to_vec(),
             gathering: false,
             zooms: Vec::new(),
+            tinted: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -8248,6 +8279,7 @@ mod tests {
         ];
         compile_page(&mut ctx, &commands, None, 0, 0).unwrap();
         assert_eq!(pictures.zooms, [(20, 0), (3, 100)]);
+        assert_eq!(pictures.tinted, [20, 3], "and their tone, black, is not the neutral");
     }
 
     #[test]
@@ -8299,23 +8331,44 @@ mod tests {
         let sign = picture(3, "Sign", 0, (100, 175), false, 100, 0);
         let table = [(picture_key(&sign).unwrap(), 0)];
         let code = with_pictures(&table, &Indices::default(), &[moving(3, (100, 175), 100, 50, 35, true)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 50, 210, OP_DELAY, 210, 0, OP_DONE]);
-        // Somewhere else, or at another zoom, it does not: the console does
-        // not move pictures.
-        for elsewhere in [moving(3, (120, 175), 100, 0, 10, false), moving(3, (100, 175), 50, 0, 10, false)] {
-            assert_eq!(with_pictures(&table, &Indices::default(), &[elsewhere]), [OP_DONE]);
-        }
-        // Two pictures under one number: one of them staying is enough.
+        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 50, 210, 0, 0, 0, 0, 0, OP_DELAY, 210, 0, OP_DONE]);
+        // At another zoom it does not: the console does not zoom small
+        // pictures.
+        let zooms = moving(3, (100, 175), 50, 0, 10, false);
+        assert_eq!(with_pictures(&table, &Indices::default(), &[zooms]), [OP_DONE]);
+        // Two pictures under one number, one placed elsewhere: it goes to
+        // the move's place, whichever is up.
         let other = picture(3, "Other", 0, (10, 10), false, 100, 0);
         let both = [table[0].clone(), (picture_key(&other).unwrap(), 0)];
         let code = with_pictures(&both, &Indices::default(), &[moving(3, (10, 10), 100, 0, 1, false)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 0, 6, OP_DONE]);
+        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 0, 6, PICTURE_MOVES, 10, 0, 10, 0, OP_DONE]);
         // With the map, RM2k 2000 does not move it either, so the place does
         // not matter.
         let shadow = picture(17, "shadow", 0, (100, 115), true, 55, 100);
         let table = [(picture_key(&shadow).unwrap(), 1)];
         let code = with_pictures(&table, &Indices::default(), &[moving(17, (0, 0), 55, 50, 10, true)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 1, 0, 0, 0, 50, 60, OP_DELAY, 60, 0, OP_DONE]);
+        assert_eq!(code, [OP_PICTURE_MOVE, 1, 0, 0, 0, 50, 60, 0, 0, 0, 0, 0, OP_DELAY, 60, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn a_move_elsewhere_slides_the_picture() {
+        // Zounds' menu bar: shown above the screen, it slides down in eight
+        // frames —a tenth and a third, rounded by the tenths to six—.
+        let bar = picture(5, "Bar", 0, (160, 0), false, 100, 100);
+        let table = [(picture_key(&bar).unwrap(), 2)];
+        let code = with_pictures(&table, &Indices::default(), &[moving(5, (160, 8), 100, 0, 1, false)]);
+        assert_eq!(code, [OP_PICTURE_MOVE, 2, 0, 0, 0, 0, 6, PICTURE_MOVES, 160, 0, 8, 0, OP_DONE]);
+        // Off the left of the screen is a negative centre.
+        let code = with_pictures(&table, &Indices::default(), &[moving(5, (-60, 8), 100, 0, 1, false)]);
+        assert_eq!(&code[7..12], &[PICTURE_MOVES, 0xC4, 0xFF, 8, 0]);
+        // By variables, their slots; without slots it is not done.
+        let mut indices = Indices::default();
+        indices.variables.insert(162, 3);
+        indices.variables.insert(163, 4);
+        let code = with_pictures(&table, &indices, &[moving_by_variables(5, (162, 163), 1)]);
+        assert_eq!(&code[7..12], &[PICTURE_MOVES | PICTURE_BY_VARIABLE, 3, 0, 4, 0]);
+        let code = with_pictures(&table, &Indices::default(), &[moving_by_variables(5, (162, 163), 1)]);
+        assert_eq!(code, [OP_DONE]);
     }
 
     #[test]
