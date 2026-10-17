@@ -29,7 +29,7 @@ use crate::sprites::character::{
     block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES, OBJ_ROW,
 };
 use crate::sprites::extras::{
-    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
+    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask, RAIN_COLORS,
     Image,
 };
 use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc, NPC_MAX};
@@ -1615,9 +1615,26 @@ fn extras(
     let mut rain = (0, 0);
     if request.rain {
         match rain_drops(&mut tiles, &mut palettes, leader_owned, timer_at, palette_cap) {
-            Some(at) => rain = at,
+            Some(at) => {
+                let palette = &palettes[at.1];
+                let drawn: Vec<String> = RAIN_COLORS
+                    .iter()
+                    .filter(|c| !palette.contains(c))
+                    .map(|c| format!("{c:?} as {:?}", nearest(palette, *c)))
+                    .collect();
+                if !drawn.is_empty() {
+                    notes.push(lost("rain-colors-lent", vec![], format!(
+                        "  map {id}: WARNING, the raindrops have no palette with room and are lent {}, \
+                         drawn with its nearest colors: {}",
+                        at.1,
+                        drawn.join(", ")
+                    )));
+                }
+                rain = at;
+            }
             None => notes.push(lost("rain-not-drawn", vec![], format!(
-                "  map {id}: WARNING, the raindrops don't fit in the sprite palettes and it doesn't rain here"
+                "  map {id}: WARNING, the raindrops have no palette but the leaders' and the timer's, \
+                 and it doesn't rain here"
             ))),
         }
     }

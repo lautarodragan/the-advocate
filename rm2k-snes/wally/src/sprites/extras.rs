@@ -258,8 +258,13 @@ pub fn rain_pixels(x: i32, y: i32) -> Vec<(i32, i32)> {
 /// greys— and the palette their colours go in: the first with room but the
 /// leaders' and the timer's. With the timer, in its row of sixteen, which
 /// has five places to spare; without it, where [`strip_base`] says.
-/// `None` if there is no room: that map draws no rain, and nobody loses a
-/// colour for it.
+///
+/// **With no palette with room, the drops are lent one**, as the timer
+/// is: see [`lend_to_rain`]. Nobody loses a colour for it. Until
+/// 2026-10-17 such a map drew no rain, and taro's word is that the rain is
+/// not given up: a drop is a 4x16 streak in three greys, and one a shade
+/// off is still rain. `None` only if every palette is a leader's or the
+/// timer's.
 pub fn rain_drops(
     tiles: &mut Vec<u8>,
     palettes: &mut Vec<Vec<Color>>,
@@ -271,7 +276,10 @@ pub fn rain_drops(
     if let Some((_, pal)) = timer {
         avoid.insert(pal);
     }
-    let which = first_place(palettes, &avoid, &RAIN_COLORS, cap)?;
+    let which = match first_place(palettes, &avoid, &RAIN_COLORS, cap) {
+        Some(n) => n,
+        None => lend_to_rain(palettes, &avoid)?,
+    };
     let palette = palettes[which].clone();
     let base = match timer {
         Some((base, _)) if base != 0 => base + TIMER_GLYPHS,
@@ -280,7 +288,7 @@ pub fn rain_drops(
     grow(tiles, base + 16 + RAIN_TILES);
     let streak: BTreeSet<(i32, i32)> = rain_pixels(0, 0).into_iter().collect();
     for (hue, color) in RAIN_COLORS.iter().enumerate() {
-        let index = palette.iter().position(|p| p == color).unwrap() as u8 + 1;
+        let index = entry_of(&palette, *color) as u8 + 1;
         for half in 0..2 {
             let mut cell = [[0u8; 8]; 8];
             for (y, row) in cell.iter_mut().enumerate() {
@@ -294,6 +302,32 @@ pub fn rain_drops(
         }
     }
     Some((base, which))
+}
+
+/// The palette —but the `avoid`ed— the drops are lent when none has room
+/// for their three greys: each takes in the greys it has room for, the
+/// farthest from what it has first, and the one whose nearest colours are
+/// then closest to the rest wins, the first on a tie. It is grown with
+/// those greys and its number returned; `None` if all are avoided.
+fn lend_to_rain(palettes: &mut [Vec<Color>], avoid: &BTreeSet<usize>) -> Option<usize> {
+    let mut best: Option<(u64, usize, Vec<Color>)> = None;
+    for (number, palette) in palettes.iter().enumerate() {
+        if avoid.contains(&number) || palette.is_empty() {
+            continue;
+        }
+        let mut grown = palette.clone();
+        let mut missing: Vec<Color> = RAIN_COLORS.iter().copied().filter(|c| !palette.contains(c)).collect();
+        missing.sort_by_key(|c| std::cmp::Reverse(luma_distance(nearest(palette, *c), *c)));
+        let room = OBJ_COLORS.saturating_sub(palette.len());
+        grown.extend(missing.iter().take(room));
+        let cost: u64 = RAIN_COLORS.iter().map(|c| luma_distance(nearest(&grown, *c), *c) as u64).sum();
+        if best.as_ref().is_none_or(|(b, ..)| cost < *b) {
+            best = Some((cost, number, grown));
+        }
+    }
+    let (_, number, grown) = best?;
+    palettes[number] = grown;
+    Some(number)
 }
 
 /// The `ShowPicture` pictures of a map, already cut into tiles by whoever
@@ -436,6 +470,44 @@ mod tests {
         let mut tiles = vec![0; 32 * 64];
         let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::from([0]), OBJ_PALETTES, false).unwrap();
         assert_eq!(which, 1);
+    }
+
+    /// With the eight palettes full the drops are lent the one whose
+    /// nearest colours are closest, never a leader's, and drawn with those
+    /// entries; one with room for a grey takes it in. Until 2026-10-17
+    /// such a map drew no rain.
+    #[test]
+    fn with_the_eight_full_the_drops_are_lent_the_closest() {
+        let mut p = palettes(15, 8);
+        p[0] = RAIN_COLORS.iter().copied().chain((3..15).map(|k| [9, 9, k])).collect();
+        p[4][0] = [15, 15, 17];
+        p[4][1] = [7, 7, 7];
+        p[6].pop();
+        p[6][0] = [16, 16, 18];
+        p[6][1] = [6, 6, 7];
+        let mut tiles = vec![0; 32 * 64];
+        let (base, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::from([0]), None, OBJ_PALETTES).unwrap();
+        assert_eq!(which, 6, "two greys and room for the third beat two near ones");
+        assert_eq!(p[6].len(), OBJ_COLORS);
+        assert!(RAIN_COLORS.iter().all(|c| p[6].contains(c)));
+        // Without palette 6's room, 4 is the closest: drawn with its own
+        // entries, and it does not grow.
+        let mut p = palettes(15, 8);
+        p[4][0] = [15, 15, 17];
+        p[4][1] = [7, 7, 7];
+        let before = p.clone();
+        let (_, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::new(), None, OBJ_PALETTES).unwrap();
+        assert_eq!(which, 4);
+        assert_eq!(p, before);
+        // The top half of the lightest grey's tile: entry 1, [15, 15, 17].
+        let pixel = |tile: usize, x: usize, y: usize| -> u8 {
+            let bit = 7 - x;
+            (0..4).map(|plane| (tiles[tile * 32 + [0, 1, 16, 17][plane] + 2 * y] >> bit & 1) << plane).sum()
+        };
+        assert_eq!(pixel(base, 3, 0), 1);
+        // And with every palette a leader's, no rain.
+        let mut p = palettes(15, 8);
+        assert!(rain_drops(&mut tiles, &mut p, &(0..8).collect(), None, OBJ_PALETTES).is_none());
     }
 
     /// The other palette the console uploads again untinted is the
