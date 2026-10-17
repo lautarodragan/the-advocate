@@ -470,6 +470,9 @@ pub struct PageRecord {
     pub fixed_graphic: bool,
     /// A test page: it does not come from the game.
     pub test: bool,
+    /// A parallel page that runs only when what it reads changes: see
+    /// `pure_page` in the events compiler.
+    pub pure: bool,
     pub offset: usize,
     pub route_offset: usize,
     pub draws: Option<Value>,
@@ -1033,6 +1036,7 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
             fixed_direction: matches!(page.animation_type, 2..=4),
             fixed_graphic: page.animation_type == 4,
             test: false,
+            pure: r["pure"].as_bool().unwrap_or(false),
             offset: 0,
             route_offset: 0,
             draws: None,

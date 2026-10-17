@@ -431,13 +431,15 @@ mine:
 .proc compar_tick
 .a8
 .i16
-.if ::COMPAR_N = 0
-    rtl
-.else
+    ; The frame's copy goes first, with or without parallel common events:
+    ; a map's pure parallel pages read it too —see `pure_due`—.
     lda f:compar_owed
     sta f:compar_now
     lda #0
     sta f:compar_owed           ; what changes while they run is the next frame's
+.if ::COMPAR_N = 0
+    rtl
+.else
     sta f:compar_saved
     lda #PAIR_COMMON
     sta f:compar_id
