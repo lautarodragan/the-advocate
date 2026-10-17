@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "EraseScreen", "parameters": [-1]},
+    {"code": "Teleport", "parameters": [99, 5, 5, 0]},
+    {"code": "ControlSwitches", "parameters": [0, 1402, 1402, 0]}
+  ]
+}
