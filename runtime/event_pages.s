@@ -2512,8 +2512,8 @@ no:
 ; the row as it was —the facing a command turned, the pose—. Until
 ; 2026-10-17 `apply_pages` ran `page_graphic` for every event on every
 ; refresh, and that was most of what a refresh cost on a map with many
-; events: see tasks/frozen-world-the-battle-maps-lag.md and the draft
-; tasks/a-refresh-sets-up-every-page-again.md, which this closes.
+; events: see tasks/frozen-world-the-battle-maps-lag.md. Calandria had seen
+; it reading the code, in a draft deleted when this fixed it.
 ;
 ; It is forgotten —all $FFFF— on loading a map and when the rows' poses are
 ; forgotten (`npc_poses_forget`), so the next refresh sets every row up
