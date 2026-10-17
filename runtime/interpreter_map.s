@@ -163,6 +163,7 @@ terrain_cell:
     rep #$20
 .a16
     lda [cells_ptr]             ; which block the cell is, already substituted
+    and cell_mask
     jsr cell_replaced
     sta temp + 2
     ; The table lives outside bank 0, so it is read with a 24-bit pointer, and

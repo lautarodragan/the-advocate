@@ -55,6 +55,8 @@ pub struct Map {
     pub runs: Vec<Run>,
     /// The map in 16x16 blocks: one block per cell, the table, and each
     /// block's passability and terrain; and the terrain outside the map.
+    /// The cells come two bytes each, little-endian; what the cartridge
+    /// carries is [`Map::grid`].
     #[serde(deserialize_with = "hex::bytes")]
     pub cells: Vec<u8>,
     #[serde(deserialize_with = "hex::bytes")]
@@ -108,6 +110,31 @@ pub struct Map {
 
 fn eight() -> usize {
     8
+}
+
+impl Map {
+    /// How many bytes each cell of its grid takes in WRAM, or `None` if
+    /// the grid does not fit: see [`crate::materials::cell_bytes`].
+    pub fn cell_bytes(&self) -> Option<usize> {
+        let ram = self.blocks.len() + self.block_pass.len();
+        crate::materials::cell_bytes(self.cells.len() / 2, self.blocks.len() / crate::materials::BLOCK_BYTES, ram)
+    }
+
+    /// Whether its grid goes one byte a cell.
+    pub fn narrow(&self) -> bool {
+        self.cell_bytes() == Some(1)
+    }
+
+    /// Its grid as WRAM holds it: [`Map::cells`], or its low bytes if
+    /// [`Map::narrow`]. A grid that fits neither way goes wide, and
+    /// `check_map` says so.
+    pub fn grid(&self) -> Vec<u8> {
+        if self.narrow() {
+            crate::materials::narrow(&self.cells)
+        } else {
+            self.cells.clone()
+        }
+    }
 }
 
 /// A map's panorama as `wally` converted it: the mode it goes in, the

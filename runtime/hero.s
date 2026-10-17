@@ -416,7 +416,7 @@ no8:
     jsr can_leave
     beq no
     jsr ptr_from_hero
-    lda #2
+    lda cell_bytes
     jsr ptr_minus               ; the cell next to it
     lda #PASS_RIGHT
     jsr can_enter
@@ -463,7 +463,7 @@ no8:
     jsr can_leave
     beq no
     jsr ptr_from_hero
-    lda #2
+    lda cell_bytes
     jsr ptr_more
     lda #PASS_LEFT
     jsr can_enter
@@ -658,6 +658,7 @@ positive:
 .a16
 .i16
     lda [cells_ptr]             ; which block this cell is
+    and cell_mask
     jsr cell_replaced
     tay
     sep #$20
@@ -703,7 +704,7 @@ positive:
 ; the events' forced move routes query cells that are not the hero's, and
 ; having the arithmetic written twice is how they drift apart.
 ;
-; The offset is `cell_y * strip_step_col + cell_x * 2`, with the CPU's
+; The offset is `cell_y * strip_step_col + cell_x * cell_bytes`, with the CPU's
 ; multiplier —eight by eight bits, so in three products: the one of the two
 ; low bytes and the two cross ones, which land shifted by a byte; the one of
 ; the two high bytes falls outside the sixteen— and not by adding one row for
@@ -726,7 +727,10 @@ positive:
     rep #$20
 .a16
     lda cell_x
-    asl a                       ; each cell takes two bytes
+    bit cell_mask               ; N, its bit 15: set only in a wide grid
+    bpl narrow                  ; a narrow grid's cell takes one byte
+    asl a                       ; and a wide one's, two
+narrow:
     sta cells_ptr
     lda RDMPYL                  ; y low times stride low
     clc

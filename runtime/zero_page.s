@@ -89,6 +89,10 @@ col_addr:   .res 2      ; where in VRAM the column just built goes
 row_addr:   .res 2      ; likewise the row; $0000 in both if there is nothing
 strip_ofs:  .res 2      ; offset inside the block, while it is built
 strip_step_col: .res 2  ; the size of a block row, in bytes
+; What of the two bytes read from a grid cell is its block: $FFFF, or $00FF
+; in a map with at most 256 blocks, which goes one byte a cell. Here and not
+; in BSS because every cell read masks with it. See `GRID` and `cell_bytes`.
+cell_mask:  .res 2
 strip_left: .res 2      ; how many cells are left to build
 hero_ptr:   .res 3      ; and which grid cell, as a pointer: it moves
                         ; with it instead of being recomputed

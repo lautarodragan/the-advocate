@@ -962,6 +962,7 @@ done:
     rep #$20
 .a16
     lda [hero_ptr]              ; which block the hero's cell is
+    and cell_mask
     ldy sub_n
     beq replaced
 seek:

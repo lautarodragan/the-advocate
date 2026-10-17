@@ -74,6 +74,21 @@
     sta map_height
     asl a
     sta map_ch
+    ; And how many bytes each cell of its grid takes: see `GRID`. The flag
+    ; is a byte, so the one after it —the next pointer's— is masked out.
+    lda f:map_table + M_GRID_NARROW, x
+    and #$00FF
+    bne narrow_grid
+    lda #2
+    sta cell_bytes
+    lda #$FFFF
+    bra grid_width_set
+narrow_grid:
+    lda #1
+    sta cell_bytes
+    lda #$00FF
+grid_width_set:
+    sta cell_mask
     lda f:map_table + M_CAM_MAX_X, x
     sta cam_max_x
     lda f:map_table + M_CAM_MAX_Y, x
