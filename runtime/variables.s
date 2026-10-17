@@ -40,24 +40,36 @@
 ; looks at that variable. Here that question was answered by the converter;
 ; see VAR_REFRESH in events.py.
 ;
+; And it is not flagged on the spot: the write is noted —`var_note`— and the
+; refresh is decided where it is looked at, by `var_settle`.
+;
 ; Until 2026-09-27 the bit came in the slot, and that capped the variables at
 ; 128: see VAR_RANURA_MAX in events.py.
 .proc var_write
 .a8
 .i16
-    xba                         ; the flags
-    bpl no_refresh              ; VAR_REFRESH is bit 7: see the .assert
-    lda #1                      ; the flags are no longer needed: the `and`
-    sta refresh                 ; below drops whatever is left in B
-no_refresh:
-    xba                         ; and the slot back
     phx
+    xba                         ; the flags
+    bpl plain                   ; VAR_REFRESH is bit 7: see the .assert
+    xba                         ; and the slot back
     rep #$20
 .a16
     and #VAR_SLOT
     asl a
     tax
     lda temp + 2
+    jsl f:var_note              ; the refresh, if it changes
+    bra put
+.a8
+plain:
+    xba
+    rep #$20
+.a16
+    and #VAR_SLOT
+    asl a
+    tax
+    lda temp + 2
+put:
     sta f:FAR_LENGTH + FAR_VARIABLES, x
     sep #$20
 .a8
@@ -101,18 +113,31 @@ no_refresh:
     pla
     beq off
     tya
+    and f:switches, x
+    bne same                    ; already on
+    tya
     ora f:switches, x
     sta f:switches, x
     bra wrote
 off:
     tya
+    and f:switches, x
+    beq same                    ; already off
+    tya
     eor #$FF
     and f:switches, x
     sta f:switches, x
 wrote:
+    ; **Only when the switch changes.** RM2k flags the refresh on every
+    ; write, but a refresh with nothing changed picks the same pages, so
+    ; it is skipped: a parallel page that turns the same switch off every
+    ; frame —map 2 of The Frozen World, switch 186— asked for a refresh of
+    ; its 425 pages every frame, and the map ran at six frames per tick.
+    ; See tasks/frozen-world-the-battle-maps-lag.md.
     lda #1
     sta refresh                 ; the pages that ask for it may change
     jsl f:compar_owe + FAST     ; and the pure parallel common events
+same:
     rts
 .endproc
 
@@ -496,3 +521,123 @@ nothing:
     lda #0
     rts
 .endproc
+
+; --- the refresh a variable asks for ------------------------------------------
+;
+; A write that asks for a refresh does not flag it: it notes which variable
+; changed and the value it had, and `var_settle` flags the refresh only if
+; one of them ends up different from the value it had at the previous
+; settle. Where the refresh is looked at —the start of the frame,
+; `map_events`, and the end of the foreground interpreter, `events_tick`— it
+; settles first.
+;
+; RM2k flags the refresh on every write, but a refresh with no condition
+; changed picks the same pages and does nothing, so skipping it changes
+; nothing seen —it only spares the frame—. What that pays is the variable that
+; goes through other values and comes back within the frame: The Frozen
+; World's common event 38 computes each HP percentage in place —`v = HP;
+; v *= 100; v /= max`— from a parallel page, every frame, and the
+; meters' pages look at them. Its maps 1 and 14 refreshed every frame, and
+; map 1 ran at four frames per tick; see
+; tasks/frozen-world-the-battle-maps-lag.md.
+VR_MAX = 8                      ; past that many variables, refresh anyway
+
+.pushseg
+.segment "FARBSS"
+vr_n:    .res 2                 ; the noted ones, times two
+vr_slot: .res VR_MAX * 2        ; each one's offset in the variables
+vr_old:  .res VR_MAX * 2        ; and the value it had
+.popseg
+
+.pushseg
+.segment "FAR3"
+; A write of A (16 bits) to the variable at offset X, before storing it.
+; Keeps A, X and Y.
+.proc var_note
+.a16
+.i16
+    cmp f:FAR_LENGTH + FAR_VARIABLES, x
+    bne differs
+    rtl                         ; the same value: nothing changes
+differs:
+    pha
+    phx
+    phy
+    txy                         ; Y: the offset
+    lda f:vr_n
+    tax
+scan:
+    dex
+    dex
+    bmi add                     ; not noted yet
+    tya
+    cmp f:vr_slot, x
+    bne scan
+    bra done                    ; noted: its old value is the one that counts
+add:
+    lda f:vr_n
+    cmp #VR_MAX * 2
+    bcs full
+    tax
+    tya
+    sta f:vr_slot, x
+    phx
+    tyx
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    plx
+    sta f:vr_old, x
+    inx
+    inx
+    txa
+    sta f:vr_n
+    bra done
+full:
+    sep #$20
+.a8
+    lda #1
+    sta f:refresh               ; too many to remember: refresh anyway
+    rep #$20
+.a16
+done:
+    ply
+    plx
+    pla
+    rtl
+.endproc
+
+; Flags the refresh if a noted variable is not what it was, and forgets
+; them. A at eight bits; clobbers A and X.
+.proc var_settle
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:vr_n
+    beq none
+    tax
+each:
+    dex
+    dex
+    bmi forget
+    phx
+    lda f:vr_slot, x
+    tax
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    plx
+    cmp f:vr_old, x
+    beq each
+    sep #$20
+.a8
+    lda #1
+    sta f:refresh
+    rep #$20
+.a16
+forget:
+    lda #0
+    sta f:vr_n
+none:
+    sep #$20
+.a8
+    rtl
+.endproc
+.popseg

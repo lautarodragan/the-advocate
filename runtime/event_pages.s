@@ -566,7 +566,8 @@ no_pages:
 .a8
 .i16
     ; The pending refresh, before everything: it is when `Game_Map::Update`
-    ; looks at `GetNeedRefresh`.
+    ; looks at `GetNeedRefresh`. The variables' first: see `var_settle`.
+    jsl f:var_settle
     lda refresh
     ora refresh_frame           ; or one from inside the command loop, which
     beq no_refresh              ; did the short pass and left this one owed
@@ -802,6 +803,7 @@ no_end_turn:
     ; command, the opening cutscene lost five frames: its pages turn on
     ; switches by the heap. The day an opcode appears that does read it, this
     ; goes back into the loop.
+    jsl f:var_settle
     lda refresh
     beq no_refresh_here
     stz refresh
