@@ -187,6 +187,25 @@ pub fn run(options: Options) -> Result<()> {
         compiler.extra_switches.extend(menu.switches().into_iter().map(|s| s as i32));
     }
     compiler.systems = crate::systems::names(&game, &switched, any_system);
+    // The automatic common events with pictures, copied into every map
+    // with room for them: see [`crate::common_pages`]. Not the ones whose
+    // body is not their commands: a custom menu's and a counter's.
+    let mut not_copied: BTreeSet<i32> = custom_menus
+        .iter()
+        .filter_map(|m| m.spec.get("replaces_common").and_then(Value::as_i64))
+        .map(|n| n as i32)
+        .collect();
+    not_copied.extend(compiler::counters(&settings)?.iter().filter_map(|c| c["common_event"].as_i64()).map(|n| n as i32));
+    let common_pages = crate::common_pages::CommonPages::decide(&game, &not_copied, &order, test_event_map, events_max)?;
+    if !common_pages.maps.is_empty() {
+        println!(
+            "  common events {} copied into {} of the {} maps, for their pictures",
+            common_pages.commons.iter().rev().map(|n| n.to_string()).collect::<Vec<_>>().join(", "),
+            common_pages.maps.len(),
+            order.len()
+        );
+    }
+    compiler.common_pages = common_pages.to_json();
     // For `rm2k-snes-events culprits --request`, which asks the same thing
     // of the same dump.
     compiler.keep_request = output.parent().map(|d| rm2k_project::absolute(d).join("events-request.json"));
@@ -352,6 +371,7 @@ pub fn run(options: Options) -> Result<()> {
         common_substitutions: maps::common_substitutions(&game),
         map_pictures,
         window_colors,
+        common_pages: common_pages.clone(),
     };
     let mut animation_cache = Animations::new(&search_dirs, &game.dump);
     let mut prepared = Vec::new();
@@ -455,6 +475,14 @@ pub fn run(options: Options) -> Result<()> {
     degradations.forget(|l| {
         l["kind"] == "picture-not-shown"
             && l["map"].as_i64().is_some_and(|m| cartridge.map_pictures.done(m as i32, l["subject"].as_str().unwrap_or("")))
+    });
+    // And what the copies of the automatic common events lose: the common
+    // event's own body says it once, under `"common"`, and a copy whose
+    // pictures did not go in has its map's `pictures-not-drawn`. See
+    // [`crate::common_pages`].
+    degradations.forget(|l| {
+        l["event"].as_i64() == Some(0)
+            && l["map"].as_i64().is_some_and(|m| cartridge.common_pages.maps.contains(&(m as i32)))
     });
     let messages = unhex(compiled["messages"]["data"].as_str().unwrap_or(""));
     let message_count = int(&compiled["messages"]["count"]);
@@ -1158,6 +1186,14 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let case_slot = if cases.len() > 1 { Some(indices.variable_slot(CASE_VARIABLE as i64)?) } else { None };
+    // The shared bodies, with the copies of the automatic ones by map index:
+    // see [`crate::common_pages`].
+    let mut commons_with_copies = compiled.get("commons").cloned().unwrap_or(Value::Null);
+    if let (Some(c), Some(copies)) = (commons_with_copies.as_object_mut(), cartridge.common_pages.to_json()) {
+        let maps: Vec<usize> =
+            order.iter().enumerate().filter(|(_, m)| cartridge.common_pages.maps.contains(m)).map(|(k, _)| k).collect();
+        c.insert("copies".into(), json!({"commons": copies["commons"], "maps": maps}));
+    }
     let mut request = json!({
         "maps": infos
             .iter()
@@ -1192,7 +1228,7 @@ pub fn run(options: Options) -> Result<()> {
         "battle_tables": battle_tables,
         "troop_pages": compiled["troop_pages"],
         "parallel_common": parallel_common,
-        "commons": compiled.get("commons").cloned().unwrap_or(Value::Null),
+        "commons": commons_with_copies,
         "battle_model": battle_model,
         // The compiler's indices: each variable's slot and each (actor,
         // skill) pair's bit.

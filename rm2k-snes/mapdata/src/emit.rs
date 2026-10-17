@@ -3236,6 +3236,7 @@ impl Rest<'_> {
             bodies: vec![],
             autostart: vec![],
             depth: Some(0),
+            copies: Default::default(),
         };
         let commons = r.commons.as_ref().unwrap_or(&empty);
         let labels: Vec<String> = commons
@@ -3291,6 +3292,21 @@ impl Rest<'_> {
             &or_dummy(decimal(commons.autostart.iter().map(|a| a.1)), "0"),
             true,
         );
+        // Which automatic ones have copies in the maps, and which maps carry
+        // them, a bit per map index: see `switch_of` in `common_events.s`.
+        let copied = commons.autostart.iter().map(|a| {
+            u8::from(commons.bodies.get(a.1 as usize).is_some_and(|(n, _)| commons.copies.commons.contains(n)))
+        });
+        bytes_asm(out, "comauto_copied", &or_dummy(decimal(copied), "0"), true);
+        let mut bitmap = vec![0u8; r.maps.len().div_ceil(8).max(1)];
+        for &m in &commons.copies.maps {
+            let m = usize::try_from(m)
+                .ok()
+                .filter(|&m| m < r.maps.len())
+                .ok_or_else(|| Bad::answer(format!("a copy of a common event on map index {m}, past the cartridge's maps")))?;
+            bitmap[m / 8] |= 1 << (m % 8);
+        }
+        bytes_asm(out, "comcopy_maps", &decimal(bitmap), true);
         for ((_, code), label) in commons.bodies.iter().zip(&labels) {
             line(out, &block(label, &crate::hex::decode(code)?));
         }

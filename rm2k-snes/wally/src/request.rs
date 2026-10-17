@@ -361,8 +361,7 @@ impl crate::map::MapRequest {
     /// it does not say; a request from before 2026-10-16 said `slots`, one
     /// palette each—.
     pub fn from_json(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
-        use crate::map::{MapRequest, PictureAsked};
-        use crate::sprites::extras::Image;
+        use crate::map::MapRequest;
         let mut names = BTreeMap::new();
         for n in list(data, "names", whose)? {
             let a = n
@@ -378,34 +377,14 @@ impl crate::map::MapRequest {
             .iter()
             .map(|p| scanned_page(p, whose))
             .collect::<Result<_>>()?;
-        let picture = match field(data, "picture", whose)? {
-            Value::Null => None,
-            p => {
-                let mut cells = Vec::new();
-                for c in list(p, "cells", whose)? {
-                    let bad = || Bad::answer(format!("{whose}: a picture cell is {c}"));
-                    let a = c.as_array().filter(|a| a.len() == 2).ok_or_else(bad)?;
-                    let values = a[1].as_array().filter(|v| v.len() == 64).ok_or_else(bad)?;
-                    let mut cell = [[0u8; 8]; 8];
-                    for (i, v) in values.iter().enumerate() {
-                        cell[i / 8][i % 8] = v.as_u64().and_then(|n| u8::try_from(n).ok()).ok_or_else(bad)?;
-                    }
-                    cells.push((index(&a[0], "a picture tile", whose)?, cell));
-                }
-                Some(PictureAsked {
-                    name: text(field(p, "name", whose)?, "the picture's name", whose)?,
-                    objects: index(field(p, "objects", whose)?, "`objects`", whose)?,
-                    image: Image {
-                        tiles: index(field(p, "tiles", whose)?, "`tiles`", whose)?,
-                        cells,
-                    },
-                    // One, for a request from before there were several.
-                    palettes: match p.get("palettes").or_else(|| p.get("slots")) {
-                        None => 1,
-                        Some(s) => index(s, "`palettes`", whose)?,
-                    },
-                })
-            }
+        let picture = picture_asked(field(data, "picture", whose)?, whose)?;
+        // Only when the map carries copies of common events with pictures:
+        // the map's own pictures without theirs, which go in instead when
+        // theirs do not fit —see [`crate::map::convert`]—. Null if the map
+        // has none of its own.
+        let picture_own = match data.get("picture_own") {
+            None => None,
+            Some(p) => Some(picture_asked(p, whose)?),
         };
         let weights = field(data, "palette_weight", whose)?
             .as_object()
@@ -439,6 +418,7 @@ impl crate::map::MapRequest {
             },
             rain: flag("rain")?,
             picture,
+            picture_own,
             battle_animation: flag("battle_animation")?,
             singles: keys(field(data, "singles", whose)?, whose)?.into_iter().collect(),
             weights,
@@ -477,4 +457,39 @@ impl crate::map::MapRequest {
             },
         })
     }
+}
+
+/// A `picture` of the request: see `MapRequest::from_json`. Null is none.
+fn picture_asked(p: &Value, whose: &str) -> Result<Option<crate::map::PictureAsked>> {
+    use crate::map::PictureAsked;
+    use crate::sprites::extras::Image;
+    Ok(match p {
+        Value::Null => None,
+        p => {
+            let mut cells = Vec::new();
+            for c in list(p, "cells", whose)? {
+                let bad = || Bad::answer(format!("{whose}: a picture cell is {c}"));
+                let a = c.as_array().filter(|a| a.len() == 2).ok_or_else(bad)?;
+                let values = a[1].as_array().filter(|v| v.len() == 64).ok_or_else(bad)?;
+                let mut cell = [[0u8; 8]; 8];
+                for (i, v) in values.iter().enumerate() {
+                    cell[i / 8][i % 8] = v.as_u64().and_then(|n| u8::try_from(n).ok()).ok_or_else(bad)?;
+                }
+                cells.push((index(&a[0], "a picture tile", whose)?, cell));
+            }
+            Some(PictureAsked {
+                name: text(field(p, "name", whose)?, "the picture's name", whose)?,
+                objects: index(field(p, "objects", whose)?, "`objects`", whose)?,
+                image: Image {
+                    tiles: index(field(p, "tiles", whose)?, "`tiles`", whose)?,
+                    cells,
+                },
+                // One, for a request from before there were several.
+                palettes: match p.get("palettes").or_else(|| p.get("slots")) {
+                    None => 1,
+                    Some(s) => index(s, "`palettes`", whose)?,
+                },
+            })
+        }
+    })
 }

@@ -119,6 +119,9 @@ pub struct Compiler<'a> {
     /// Switches no page names that the ROM's table has to hold anyway:
     /// `TEST_SWITCH`, in a cartridge with test pages.
     pub extra_switches: BTreeSet<i32>,
+    /// The automatic common events copied into the maps, and into which:
+    /// see [`crate::common_pages`]. None in a cartridge without them.
+    pub common_pages: Option<Value>,
 }
 
 impl<'a> Compiler<'a> {
@@ -144,7 +147,7 @@ impl<'a> Compiler<'a> {
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
         let troop_window = font.window(cells as usize * 8, LINES);
         let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
-        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new(), keep_request: None, extra_switches: BTreeSet::new() })
+        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new(), keep_request: None, extra_switches: BTreeSet::new(), common_pages: None })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -172,6 +175,9 @@ impl<'a> Compiler<'a> {
         r.insert("extra_switches".into(), json!(self.extra_switches.iter().collect::<Vec<_>>()));
         r.insert("test_event_map".into(), json!(test_event_map));
         r.insert("menus".into(), self.menus.clone());
+        if let Some(c) = &self.common_pages {
+            r.insert("common_pages".into(), c.clone());
+        }
         if !self.systems.is_empty() {
             r.insert("systems".into(), json!(self.systems));
         }
