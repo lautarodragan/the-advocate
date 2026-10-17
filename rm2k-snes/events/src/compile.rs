@@ -5839,12 +5839,21 @@ pub fn compile_command(
 /// A `Teleport` to a map the cartridge does not carry, as a message box
 /// `Teleport to missing map N` (N is RM2k's id) so a player sees where the
 /// hole is. Without a text block it still leaves the page out.
+///
+/// The box goes after a `ShowScreen` with the cut, which does nothing unless
+/// an event erased the screen: an erased screen is black over the windows
+/// too, as in RPG_RT —easyrpg draws the transition above them—, and a game
+/// erases it before a `Teleport` and leaves the showing to the destination,
+/// which never comes. Without it the box waited for A in the black and the
+/// screen stayed black after it: Zounds' bed, whose dream is a map left out
+/// —`tasks/zounds-sleeping-in-unames-bed-leaves-the-screen-black.md` in
+/// the-advocate-work—.
 fn compile_missing_teleport(ctx: &mut Ctx, map: i64) -> Step<Vec<u8>> {
     let Some(messages) = ctx.messages.as_deref_mut() else {
         return cannot();
     };
     let at = messages.add_waiting(&[format!("Teleport to missing map {map}")])?;
-    let mut out = vec![OP_MESSAGE];
+    let mut out = vec![OP_SHOW_SCREEN, TRANSITION_CUT, OP_MESSAGE];
     out.extend(usize_word(at)?);
     Ok(out)
 }
@@ -7398,10 +7407,12 @@ mod tests {
         };
         let me = MapEvents::new(&map, None);
         let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap().unwrap();
-        // The box, then the rest of the page: it is not left out.
-        assert_eq!(code[0], OP_MESSAGE);
-        assert_eq!(code[3], OP_SWITCH, "the page goes on");
-        assert!(!code.contains(&OP_TELEPORT));
+        // The screen shown with the cut, in case an event erased it before
+        // the jump; the box, then the rest of the page: it is not left out.
+        // Opcode by opcode, and not `contains(&OP_TELEPORT)`: the cut's
+        // operand is the same byte.
+        assert_eq!(code[..5], [OP_SHOW_SCREEN, TRANSITION_CUT, OP_MESSAGE, 0, 0]);
+        assert_eq!(code[5], OP_SWITCH, "the page goes on");
         assert_eq!(messages.count(), 1, "one box, which is a single line");
     }
 

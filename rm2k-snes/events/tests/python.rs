@@ -94,6 +94,11 @@
 //! table, and the Python pasted the page in place. With the call compiled
 //! as a paste again —`compile_call`'s `if me.stack && !me.jumped` never
 //! taken— the answer was the old one.
+//!
+//! On 2026-10-17 the hashes of the compilation's `maps` and the scan's
+//! `maps` moved again, on purpose: that box comes after a `ShowScreen` with
+//! the cut, so it is not up in the black of an erased screen. Without those
+//! two bytes in `compile_missing_teleport` the answer was the one before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};
