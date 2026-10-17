@@ -22,6 +22,15 @@
 //! **If one of these changes, a byte of the cartridge changed.** The
 //! hashes are not to be regenerated to make a test pass: the Python that
 //! produced them is gone, and with it the only independent answer.
+//!
+//! **Except where the port decided otherwise, on purpose**: on 2026-10-17
+//! the palette a character is lent stopped being the one it misses fewest
+//! pixels of, over its twelve poses, and became the one it is drawn
+//! nearest with, over the poses the map shows, decided once every palette
+//! is whole (see `lend` in `sprites/split.rs`). The splits where someone is
+//! lent —"full 8 true", "crowd 8 true" and "full 5 false"— moved what
+//! depends on whose palette each one got, or on the order they got it in;
+//! the rest of each, and the other splits, are still the Python's.
 
 use rm2k_render::Picture;
 use wally::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
@@ -286,17 +295,17 @@ const EXPECTED: [Expected; 5] = [
         npcs: "2a122f4a7f0f74a4b1e5f3074dda27c90985aa750a82e9ac0f29b6720be07d8f",
         discarded: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         palettes: "2f00c8e1c22f1e44fea55f2a417fcb9a0ba415cca5b7018980d3bbc92cd76231",
-        palette_of: "e734d7f32e8a9aa80c2e80cae59f08f72472ae2e0262a069bf11f0d95185edee",
+        palette_of: "fbf8eb3a6365492abd1515dfa2426341cfb0f59665ad3c03c16a6be619aba0c7",
         own: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         leader_owned: &[0, 1],
         caps: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         lent: "da96daf6857d758b7995223724a0a7e91a32b009b64fc6443d0c68a78c36d549",
         notes: "",
-        tiles: "c69fae703be26b8837c92cd69f1e2c5c604c27bc5ce14da998c1e4a0483e2427",
-        place: "9b263877eec9f358c73642c7145d38547e7141447a0b551c88a7b7f9288b9d8d",
+        tiles: "57febade34867520ed402377154c6207c9bff04361201222065513022d376cf5",
+        place: "c145be3356d268032cc2c8cf975501fe8ddc8c33692ca6453e04b0041b324d26",
         banks: "7571bcffb14c74e78ea860fe569419d1ad6efa531ff4fabb467a8e5ac885c9b5",
         extras: [Some(320), Some(3), Some(0), Some(0), Some(0), Some(0), Some(0), Some(0)],
-        final_tiles: "c2708ff234b2316241c3833300bb134038791add24b930c09b3820a2fa697477",
+        final_tiles: "59b6519e1b504793262135e6528e12f939f1698c129d52f08da1db144bc1b41b",
         final_palettes: "2f00c8e1c22f1e44fea55f2a417fcb9a0ba415cca5b7018980d3bbc92cd76231",
     },
     Expected {
@@ -304,7 +313,7 @@ const EXPECTED: [Expected; 5] = [
         npcs: "2a122f4a7f0f74a4b1e5f3074dda27c90985aa750a82e9ac0f29b6720be07d8f",
         discarded: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         palettes: "f68785dd1e3051fb5a06050dc1cb482cf4372557844ee32b25f4315819ac43b5",
-        palette_of: "d290f736160f44a20a100536a14b194390ea0e9047b782457a0fd52b93fd7b23",
+        palette_of: "91cdc57a8a065b65163ebe3d9de1d24e6e7f7f9ed401217fb3a3fbc6a8fd2149",
         own: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         leader_owned: &[0, 1],
         caps: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -322,7 +331,7 @@ const EXPECTED: [Expected; 5] = [
         npcs: "3d11b0f32f2a726e0a8e913814deecd59ccc48959940df45b6567640d225e313",
         discarded: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         palettes: "5e309090441059861a3b8845514a5e5e7d882e17dc7c33a936127d3553475e56",
-        palette_of: "817fb66254c83c8bbfbc8ce7286e702216c87ec75461b76926d256904187f4a5",
+        palette_of: "896739a4e5db880b5276a02bcb968559a67ffb772509d06e1e2aa9068b9c7092",
         own: "ceb66eef073f361e1db1b0ae91b1528199bc0fc6072f6edf7c7fefb0897e331e",
         leader_owned: &[0],
         caps: "28b0e48541b3222987d7b58a56d57fa934d202d97aca28ada6df069cbb4c9888",
