@@ -94,8 +94,8 @@ pub const NARROW_BLOCKS: usize = 0x100;
 /// and `cell_mask`: see `GRID` in its `far_ram.s`.
 ///
 /// The limits, then: a wide grid holds 32,768 cells less half of what lives
-/// behind it, and a narrow one 65,536 less all of it —with the 255 bytes of
-/// Zounds' map 30, 32,640 cells (180x180) and 65,281 (255x255)—. The
+/// behind it, and a narrow one 65,536 less all of it —with the 34 bytes of
+/// Zounds' map 30, 32,751 cells (180x180) and 65,502 (255x255)—. The
 /// bytecode does not count: one that does not fit stays in the cartridge
 /// —see `code_in_rom` in record.rs—.
 pub fn cell_bytes(cells: usize, blocks: usize, ram: usize) -> Option<usize> {
@@ -606,18 +606,18 @@ mod tests {
 
     #[test]
     fn a_map_with_at_most_256_blocks_goes_one_byte_a_cell() {
-        // Zounds' map 30: 200x200, 15 blocks, 255 bytes behind its grid.
-        assert_eq!(cell_bytes(40_000, 15, 255), Some(1));
+        // Zounds' map 30: 200x200, 2 blocks, 34 bytes behind its grid.
+        assert_eq!(cell_bytes(40_000, 2, 34), Some(1));
         // The same with one block too many goes wide, and does not fit.
         assert_eq!(cell_bytes(40_000, 257, 257 * 17), None);
         // A small map with many blocks goes wide.
         assert_eq!(cell_bytes(20 * 15, 300, 300 * 17), Some(2));
-        // The edges, with 255 bytes behind: 65,281 cells narrow, and wide
-        // half of what is left once those 255 are out.
-        assert_eq!(cell_bytes(65_281, 15, 255), Some(1));
-        assert_eq!(cell_bytes(65_282, 15, 255), None);
-        assert_eq!(cell_bytes(32_640, 300, 255), Some(2));
-        assert_eq!(cell_bytes(32_641, 300, 255), None);
+        // The edges, with 34 bytes behind: 65,502 cells narrow, and wide
+        // half of what is left once those 34 are out.
+        assert_eq!(cell_bytes(65_502, 2, 34), Some(1));
+        assert_eq!(cell_bytes(65_503, 2, 34), None);
+        assert_eq!(cell_bytes(32_751, 300, 34), Some(2));
+        assert_eq!(cell_bytes(32_752, 300, 34), None);
         assert_eq!(narrow(&[5, 0, 7, 0, 255, 0]), [5, 7, 255]);
     }
 
