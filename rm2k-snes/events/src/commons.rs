@@ -443,6 +443,19 @@ pub fn pure(commands: &[Command]) -> bool {
     })
 }
 
+/// Whether a map's parallel page is pure, as [`pure`] says of a common
+/// event, and it may also change the panorama: `ChangePBG` sets the same
+/// state every time it runs, like a permission. The ROM runs one of those
+/// only on the frame after what it reads changes —a switch, the equipment,
+/// the panorama set by someone else— or after a refresh, which is when it
+/// may have become the active page: see `parallel_tick` in
+/// runtime/event_pages.s. The Frozen World's `BackdropSetter`, on its
+/// battle screen, is 113 `if switch → ChangePBG`, and running it every
+/// frame cost the screen ~110 of the frame's 262 lines.
+pub fn pure_page(commands: &[Command]) -> bool {
+    commands.iter().all(|c| c.code == CHANGE_PBG || pure(std::slice::from_ref(c)))
+}
+
 /// The parallel common events —trigger 4, with commands—, each compiled
 /// once and without a map, as `[number, switch, pure, code]`: the switch
 /// that turns it on, 0 if it has none and runs always; whether it is
@@ -510,4 +523,48 @@ pub fn parallel_commons(
         ]));
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn c(code: i32, indent: i32, parameters: Vec<i32>) -> Command {
+        Command::new(code, indent, "", parameters)
+    }
+
+    /// The Frozen World's `BackdropSetter`, two of its 113 branches: a
+    /// switch, and the panorama it asks for.
+    fn backdrop_setter() -> Vec<Command> {
+        let mut page = Vec::new();
+        for switch in [700, 701] {
+            page.push(c(COND_BRANCH, 0, vec![COND_SWITCH as i32, switch, 0, 0, 0, 0]));
+            page.push(c(CHANGE_PBG, 1, vec![0, 0, 0, 0, 0, 0, 0]));
+            page.push(c(END, 1, vec![]));
+            page.push(c(COND_END, 0, vec![]));
+        }
+        page.push(c(END, 0, vec![]));
+        page
+    }
+
+    #[test]
+    fn a_parallel_page_that_asks_switches_and_sets_the_panorama_is_pure() {
+        assert!(pure_page(&backdrop_setter()));
+        // A common event with the panorama is not: `pure` is theirs, and
+        // nothing owes them someone else's `ChangePBG`.
+        assert!(!pure(&backdrop_setter()));
+    }
+
+    #[test]
+    fn a_page_that_writes_a_variable_or_calls_is_not_pure() {
+        let mut page = backdrop_setter();
+        page.insert(0, c(CONTROL_VARS, 0, vec![0, 174, 174, 0, 0, 1, 0]));
+        assert!(!pure_page(&page));
+        let mut page = backdrop_setter();
+        page.insert(0, c(CALL_EVENT, 0, vec![0, 38, 0]));
+        assert!(!pure_page(&page));
+        // And a branch on a variable reads what nobody owes it.
+        let page = vec![c(COND_BRANCH, 0, vec![1, 174, 0, 50, 1, 0]), c(COND_END, 0, vec![])];
+        assert!(!pure_page(&page));
+    }
 }

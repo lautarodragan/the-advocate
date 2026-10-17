@@ -28,7 +28,8 @@
     iny
     iny
     lda [page_ptr], y           ; +3  what triggers it. One byte at a time: reading it two
-    sta pg_trigger              ;     at a time would take the next switch along with it
+    and #$7F                    ;     at a time would take the next switch along with it.
+    sta pg_trigger              ;     Bit 7 is a pure parallel's: see `record_parallel`
     iny
     rep #$20
 .a16
@@ -404,7 +405,8 @@ no_pages:
 .a8
     lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
-    stz pair_n                  ; the list of parallels is rebuilt from scratch
+    stz pair_n                  ; the list of parallels is rebuilt from scratch,
+    jsl f:compar_owe + FAST     ; and its pure ones run on the next frame
     stz rp_ev
     stz rp_ev + 1
 each_event:
@@ -1000,6 +1002,15 @@ has_place:
     sta WMDATA
     lda page_ofs + 1
     sta WMDATA
+    ; +6: nonzero if it is pure —bit 7 of its trigger—, and then it runs
+    ; only on the frames after what it reads changes: see `parallel_tick`.
+    ldy page_ofs
+    iny
+    iny
+    iny
+    lda [page_ptr], y
+    and #$80
+    sta WMDATA
     inc pair_n
     rts
 .endproc
@@ -1080,7 +1091,13 @@ slow:
     sta pair_ev                 ; which event it belongs to
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 3, x
     sta code_ptr + 2
+    ; A pure one runs only when what it reads may have changed: see
+    ; `pure_due`.
+    jsl f:pure_due
+    bcc next
     jsr one_parallel
+    lda #0
+    sta f:pure_running
 next:
     inc pair_i
     lda pair_i
@@ -2567,6 +2584,47 @@ each:
     bpl each
     sep #$20
 .a8
+    rtl
+.endproc
+.popseg
+
+; --- the pure parallels -------------------------------------------------------
+;
+; A parallel page whose body only asks about switches and the equipment and
+; only sets permissions, skills or the panorama —`pure_page` in the events
+; compiler, which marks it in bit 7 of its trigger— does the same on every
+; frame until one of those changes, so it runs only on the frames after one
+; did: `compar_now`, which `compar_tick` takes from `compar_owed` each frame,
+; and which `set_switch` (when a switch flips), the equipment, the
+; permissions, someone else's `ChangePBG` and every refresh owe. A refresh
+; is when a page may have become the active one. It is the same rule as the
+; pure parallel common events', and costs the same nothing to RM2k's
+; semantics: the frames it skips are frames whose run would write what is
+; already there. The Frozen World's `BackdropSetter`, 113 `if switch →
+; ChangePBG` on its battle screen, cost ~110 lines of every frame there.
+.pushseg
+.segment "FARBSS"
+pure_running: .res 1            ; nonzero while a pure one runs
+.popseg
+
+.pushseg
+.segment "FAR3"
+; The list entry at X: C=1 if it runs this frame, and if it is pure,
+; `pure_running` set. Keeps X and Y.
+.proc pure_due
+.a8
+.i16
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 6, x
+    beq runs
+    lda f:compar_now
+    beq skip
+    lda #1
+    sta f:pure_running
+runs:
+    sec
+    rtl
+skip:
+    clc
     rtl
 .endproc
 .popseg

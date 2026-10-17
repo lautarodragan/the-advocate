@@ -40,6 +40,7 @@ pub fn page_record(page: &PageRecord) -> Value {
         "variable": page.variable,
         "graphic": page.graphic.as_ref().map(|(c, i, p)| json!([c, i, p])),
         "turns": page.turns,
+        "pure": page.pure,
     })
 }
 
