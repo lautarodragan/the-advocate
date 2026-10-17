@@ -53,13 +53,17 @@ pub struct Animate {
     /// starts with all and gives up looks from the last only when the map
     /// does not fit: see `fewer_still_animations` in `map`.
     pub looks: Option<usize>,
-    /// Whether the ones that always show the same column share a slot.
-    /// Not in a map with a cache of slots, where nobody owns one to share.
-    pub share: bool,
+    /// Whether the map has a cache of slots. There a twin's row walks like
+    /// a walker's —its own poses, a key in the cache, see
+    /// `cache_slots.s`—, so one that only appears and disappears with its
+    /// page shares too: the page shows or hides the row and touches nothing
+    /// else. Elsewhere it is a still row, which a page points at a still
+    /// slot of its own.
+    pub cache: bool,
 }
 
 impl Animate {
-    pub const ALL: Animate = Animate { looks: None, share: true };
+    pub const ALL: Animate = Animate { looks: None, cache: false };
 }
 
 /// What moves in a map.
@@ -164,7 +168,8 @@ pub fn moves(
     for n in &animating {
         looks.entry((n.charset.clone(), n.index, n.pose)).or_default().push(n);
     }
-    let shares = |n: &Npc| animate.share && !n.changes && !turning.contains_key(&n.event) && !also_walk.contains(&n.event);
+    let only_appears = |n: &Npc| n.graphics.iter().flatten().all(|g| *g == (n.charset.clone(), n.index, n.pose));
+    let shares = |n: &Npc| (!n.changes || animate.cache && only_appears(n)) && !turning.contains_key(&n.event) && !also_walk.contains(&n.event);
     let slots_of = |members: &[&Npc]| -> Vec<Vec<usize>> {
         let mut by_speed: BTreeMap<i32, Vec<usize>> = BTreeMap::new();
         let mut alone = Vec::new();
@@ -268,10 +273,25 @@ mod tests {
         assert_eq!(all.follows, [(2, 0), (4, 0)].into());
         assert!(all.still_not_animated.is_empty());
         assert_eq!(all.looks, 1);
-        // In a map with a cache nobody shares.
-        let cached = animating(&[], &events, Animate { looks: None, share: false });
-        assert_eq!(cached.animates_still, (0..6).collect());
-        assert!(cached.follows.is_empty());
+    }
+
+    #[test]
+    fn in_a_cache_twins_that_only_appear_with_their_page_share_too() {
+        // Sunset Over Imdahl's 15: eight lamps with a blank first page and
+        // the lamp on a switch.
+        let lamp = || vec![page("", 0), Page { conditions: vec!["switch_a"], ..torch("A", 3) }];
+        let events: Vec<Event> = (0..3).map(|i| event(i + 1, lamp())).collect();
+        let plain = who(&[], &events);
+        assert_eq!(plain.animates_still, [0, 1, 2].into());
+        assert!(plain.follows.is_empty());
+        let cached = animating(&[], &events, Animate { looks: None, cache: true });
+        assert_eq!(cached.animates_still, [0].into());
+        assert_eq!(cached.follows, [(1, 0), (2, 0)].into());
+        // Not one whose pages show two different looks.
+        let mut two = events.clone();
+        two[2].pages.push(Page { conditions: vec!["switch_b"], ..torch("B", 3) });
+        let cached = animating(&[], &two, Animate { looks: None, cache: true });
+        assert_eq!(cached.follows, [(1, 0)].into());
     }
 
     #[test]
@@ -285,7 +305,7 @@ mod tests {
             event(5, vec![torch("C", 5)]),
             event(6, vec![torch("A", 3)]),
         ];
-        let some = |looks| animating(&[], &events, Animate { looks: Some(looks), share: true });
+        let some = |looks| animating(&[], &events, Animate { looks: Some(looks), cache: false });
         assert_eq!(who(&[], &events).looks, 3);
         let one = some(1);
         assert_eq!(one.animates_still, [0].into());

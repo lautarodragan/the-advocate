@@ -5,7 +5,9 @@
 //! leaves it when it goes, and the console uploads its pose into whichever
 //! it got. Still events showing the same pose share one, as always; one
 //! that walks, or a still one whose pages show more than one graphic, has
-//! one of its own while it is in view. What a cache needs from the
+//! one of its own while it is in view, and so does a still one that
+//! animates, which its twins —the same look at the same speed, see
+//! `moves`— share. What a cache needs from the
 //! converter is only how many slots there are and which still poses there
 //! can be: who is in view, and which graphic each one shows, the console
 //! knows better —an event whose page draws nothing does not ask—.

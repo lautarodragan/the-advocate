@@ -40,7 +40,7 @@ use rm2k_render::Picture;
 use wally::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
 use wally::sprites::character::{Key, Sheets, INITIAL_POSE};
 use wally::sprites::extras::{
-    map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, Image,
+    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, Image, RAIN_COLORS,
 };
 use wally::sprites::npc::{map_poses, Npc};
 use wally::sprites::split::{drawable_npcs, Ask};
@@ -452,12 +452,26 @@ fn the_characters_are_the_ones_the_python_made() {
         assert_eq!(sha(&banks.into_iter().flat_map(|(_, b)| b).collect::<Vec<_>>()), want.banks, "{name}: the pose bank");
 
         let (mut tiles, mut palettes) = (bank.tiles, bank.palettes);
+        // Since 2026-10-17 the timer and the drops go into the columns the
+        // last row of blocks leaves free —see `strip_base`—, and the Python
+        // always started a new row: the bank is padded to it here, blank as
+        // the Python left it, so the rest is still checked against it.
+        tiles.resize(tiles.len().div_ceil(32 * 64) * 32 * 64, 0);
         let timer_at = if want.timer {
-            Some(timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, want.cap).unwrap())
+            Some(timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, want.cap, true).unwrap())
         } else {
             None
         };
-        let rain = rain_drops(&mut tiles, &mut palettes, &s.leader_owned, timer_at, want.cap).unwrap_or((0, 0));
+        // And since then a map with no palette with room for the drops'
+        // greys lends them one, where the Python drew no rain: those are
+        // left out here the Python's way.
+        let mut avoid = s.leader_owned.clone();
+        avoid.extend(timer_at.map(|t| t.1));
+        let rain = if first_place(&mut palettes.clone(), &avoid, &RAIN_COLORS, want.cap).is_some() {
+            rain_drops(&mut tiles, &mut palettes, &s.leader_owned, timer_at, want.cap).unwrap()
+        } else {
+            (0, 0)
+        };
         let previous = if rain.0 != 0 { rain.0 } else { timer_at.map_or(0, |t| t.0) };
         let image = picture_of_image(&picture_cells(), &mut tiles, &palettes, previous, 1).unwrap_or((0, 0));
         let animation = map_animation(&mut tiles, &palettes, image.1).unwrap_or((0, 0));

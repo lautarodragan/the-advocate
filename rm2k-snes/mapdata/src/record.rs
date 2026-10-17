@@ -274,8 +274,25 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
         // still pose it starts with in its tile byte —0 if it walks—, and
         // the console finds it a slot when it comes into view. See
         // `cache_table`.
+        //
+        // A still one that animates in its twin's slot asks for that one's
+        // own: it carries its key, 128 plus the twin, in the tile byte, and
+        // its twelve poses, which the console uploads from when it is the
+        // first of them to come into view. See `cache_want`.
         let cached = sprite.and_then(|s| s.cache.as_ref()).map(|c| c.events.iter().find(|e| e.0 == npc.event));
+        let twin = with.get(&npc.event).copied().filter(|_| cached.is_some());
         let (tile, palette) = match cached {
+            Some(Some(&(_, _, palette))) if twin.is_some() => {
+                let whose = twin.unwrap();
+                if !(0..0x80).contains(&whose) {
+                    return Err(Bad::answer(format!(
+                        "map {}: event {} animates in {whose}'s slot of the cache, and a cache's key names \
+                         events below 128",
+                        map.id, npc.event
+                    )));
+                }
+                (0x80 | whose as u32, palette)
+            }
             Some(Some(&(_, key, palette))) => (key.unwrap_or(0), palette),
             Some(None) => {
                 return Err(Bad::answer(format!(
@@ -294,7 +311,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
                 (block_tile(block), turns.map_or(palette, |t| t.3))
             }
         };
-        let poses = if walks {
+        let poses = if walks || twin.is_some() {
             let animated = sprite.map(|s| s.animated.as_slice()).unwrap_or(&[]);
             Some(
                 animated
@@ -324,7 +341,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
             // The still ones with continuous animation: their column comes
             // from the game clock. The walking ones carry it in their route
             // slot.
-            animates: still.contains(&npc.event),
+            animates: still.contains(&npc.event) || twin.is_some(),
             leads: leaders.contains(&npc.event),
             visible: npc.visible,
             tile_pass: npc.tile_pass,
@@ -2084,6 +2101,19 @@ mod tests {
             let expected = if row.event == walker { 0 } else { 1 };
             assert_eq!((row.tile, row.palette), (expected, 3), "event {}", row.event);
         }
+        // A twin of the walker —a still one that animates in its slot—
+        // carries the walker's key, 128 plus it, its poses and the bit
+        // that walks its column; the walker uploads even hidden.
+        let twin = maps[k].npcs[1].event;
+        let (charset, index) = (maps[k].npcs[0].charset.clone(), maps[k].npcs[0].index);
+        maps[k].npcs[1].charset = charset;
+        maps[k].npcs[1].index = index;
+        maps[k].animates_with = vec![[twin, walker]];
+        let rows = npc_table(&maps[k]).unwrap();
+        let row = rows.iter().find(|r| r.event == twin).unwrap();
+        assert_eq!(row.tile, 0x80 | walker as u32);
+        assert!(row.animates && row.poses.is_some() && !row.leads);
+        assert!(rows.iter().find(|r| r.event == walker).unwrap().leads);
     }
 
     #[test]
