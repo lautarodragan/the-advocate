@@ -398,18 +398,29 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // Otherwise the map is converted with its own, as if it had no copies,
     // and loses none of what it had before them —a still event's
     // animation, its own pictures—.
+    // What it loses is compared by its notes: the rain, a battle
+    // animation's box, a palette lent, which the pictures' palettes can
+    // take before anything fails to fit.
     if let Some(own) = &request.picture_own {
-        let plain = convert_with(game, request, Mode::Plain, None)?;
-        let placed = plain.objects.as_ref().is_some_and(|o| o.image.0 != 0);
-        if placed && (request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request))) {
-            return Ok(plain);
-        }
         let without = MapRequest {
             picture: own.clone(),
             picture_own: None,
             ..request.clone()
         };
         let mut done = convert(game, &without)?;
+        let plain = convert_with(game, request, Mode::Plain, None)?;
+        let placed = plain.objects.as_ref().is_some_and(|o| o.image.0 != 0);
+        let losses = |w: &Whole| {
+            let mut kinds: Vec<&str> = w.notes.iter().filter_map(|n| n.loss).collect();
+            kinds.sort_unstable();
+            kinds
+        };
+        if placed
+            && (request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request)))
+            && losses(&plain) == losses(&done)
+        {
+            return Ok(plain);
+        }
         let full = request.picture.as_ref().map_or("", |p| p.name.as_str());
         let mine: Vec<&str> = own.as_ref().map_or(Vec::new(), |p| p.name.split(", ").collect());
         // By name: the same picture shown elsewhere is the map's and theirs,
