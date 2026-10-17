@@ -127,6 +127,7 @@ pub fn split_report(game: &Game, request: &MapRequest, palettes: usize) -> Resul
         "palettes": s.palettes,
         "palette_of": s.palette_of.iter().map(|(k, n)| json!([k.0, k.1, n])).collect::<Vec<_>>(),
         "leader_owned": s.leader_owned,
+        "shared_leaders": s.shared_leaders.iter().map(|k| json!([k.0, k.1])).collect::<Vec<_>>(),
         "lent": s.lent.iter().map(|k| json!([k.0, k.1])).collect::<Vec<_>>(),
         "notes": d.notes,
     }))

@@ -214,10 +214,11 @@ pub fn run(options: Options) -> Result<()> {
     let changes = scan::party_changes(&every_refs, &scan_answer)?;
     let mut leaders = scan::possible_leaders(&changes, &party);
     // And those of the party each test page continues with: the test can
-    // start with it in any map of the cartridge.
+    // start with it in any map of the cartridge. Only in file order: see
+    // `leaders_in_file_order`.
     for (_, commands, _) in &cases {
         if let Some(test_party) = page_party(commands, &party) {
-            for actor in scan::possible_leaders(&changes, &test_party) {
+            for actor in scan::leaders_in_file_order(&changes, &test_party) {
                 if !leaders.contains(&actor) {
                     leaders.push(actor);
                 }

@@ -181,39 +181,47 @@ pub fn timer_reach(
     Ok(reach.union(&counted.intersection(&in_rom).copied().collect()).copied().collect())
 }
 
-/// The `ChangePartyMembers` of the pages that compile, map by map and in
-/// order: **in batches of consecutive commands**, and the leader is looked
-/// at the end of each one. `ChangePartyMembers` stuck together run in the
-/// same frame, so the hero is not drawn with the mid-batch leader: looking
-/// after each command, a page that removes everyone before adding someone
-/// back left three possible leaders more, with their poses and colors in
-/// every map of the cartridge.
-pub fn party_changes(maps: &[&GameMap], scan: &Value) -> Result<Vec<Vec<Vec<(i32, i32)>>>> {
+/// A batch of consecutive `ChangePartyMembers`, as `(operation, actor)`.
+pub type Batch = Vec<(i32, i32)>;
+
+/// The `ChangePartyMembers` of the pages that compile, map by map, page by
+/// page and in order: **in batches of consecutive commands**, and the
+/// leader is looked at the end of each one. `ChangePartyMembers` stuck
+/// together run in the same frame, so the hero is not drawn with the
+/// mid-batch leader: looking after each command, a page that removes
+/// everyone before adding someone back left three possible leaders more,
+/// with their poses and colors in every map of the cartridge. A page
+/// without any is not listed.
+pub fn party_changes(maps: &[&GameMap], scan: &Value) -> Result<Vec<Vec<Vec<Batch>>>> {
     let mut out = Vec::new();
     for map in maps {
         let compiling = compiler::compiling_pages(scan, map.id)?;
-        let mut changes: Vec<Vec<(i32, i32)>> = Vec::new();
+        let mut pages: Vec<Vec<Batch>> = Vec::new();
         for (e, event) in map.events.iter().enumerate() {
             for (k, page) in event.pages.iter().enumerate() {
                 if !compiling.contains(&(e as i64, k as i64)) {
                     continue;
                 }
+                let mut batches: Vec<Batch> = Vec::new();
                 let mut open = false;
                 for cmd in &page.commands {
                     match party_change(cmd) {
                         None => open = false,
                         Some(change) => {
                             if !open {
-                                changes.push(Vec::new());
+                                batches.push(Vec::new());
                                 open = true;
                             }
-                            changes.last_mut().unwrap().push(change);
+                            batches.last_mut().unwrap().push(change);
                         }
                     }
                 }
+                if !batches.is_empty() {
+                    pages.push(batches);
+                }
             }
         }
-        out.push(changes);
+        out.push(pages);
     }
     Ok(out)
 }
@@ -223,13 +231,76 @@ pub fn party_changes(maps: &[&GameMap], scan: &Value) -> Result<Vec<Vec<Vec<(i32
 /// compiles puts first. **The party is reset in each map**: the actor table
 /// is per map, so the question is who can lead while that map is loaded,
 /// and not what happened in the directory's previous maps.
-pub fn possible_leaders(changes: &[Vec<Vec<(i32, i32)>>], party: &[i32]) -> Vec<i32> {
-    let mut actors: Vec<i32> = party.iter().take(1).copied().collect();
-    for map_changes in changes {
+///
+/// Each map is played three ways, and every leader any of them leaves after
+/// a batch counts: all its pages in file order on one party, as always;
+/// **each page on its own** from the cartridge's party; and each page on
+/// its own from an **empty party**, if some page, played on its own, ends
+/// with nobody in it. The pages of a map's events are alternatives as often
+/// as a sequence, and which one runs —and with which party the map was
+/// entered— depends on switches that are not known here. Dooms 2 is both:
+/// map 1 is a row of candidates, each one's page taking the narrator out
+/// and putting its character in, and some take him out alone and teleport,
+/// so the party arrives empty at the map where the story's hero joins.
+/// Played only in file order, every candidate after the first went in
+/// behind them, the hero who joined an empty party went in behind the
+/// narrator, and none was in any map's actor table: they walked undrawn.
+///
+/// The empty start asks for a page that **ends** empty, and not a batch: a
+/// page that empties the party and fills it again in the same run —ABL's
+/// car chase— does not leave a map to be entered with nobody, and taking
+/// it as one made every actor some page adds a leader, with a palette of
+/// their own on each map that shows them as an event.
+pub fn possible_leaders(changes: &[Vec<Vec<Batch>>], party: &[i32]) -> Vec<i32> {
+    let play = |state: &mut PartyState, batch: &[(i32, i32)]| {
+        for &(operation, actor) in batch {
+            state.change_party(operation, actor);
+        }
+    };
+    let ends_empty = |page: &[Batch]| {
         let mut state = PartyState::new(party);
-        for batch in map_changes {
-            for &(who, operation) in batch {
-                state.change_party(who, operation);
+        page.iter().for_each(|batch| play(&mut state, batch));
+        state.leader().is_none()
+    };
+    let mut starts = vec![party.to_vec()];
+    if changes.iter().flatten().any(|page| ends_empty(page)) {
+        starts.push(Vec::new());
+    }
+    let mut actors = leaders_in_file_order(changes, party);
+    let mut add = |state: &PartyState| {
+        if let Some(leader) = state.leader() {
+            if !actors.contains(&leader) {
+                actors.push(leader);
+            }
+        }
+    };
+    for pages in changes {
+        for start in &starts {
+            for page in pages {
+                let mut state = PartyState::new(start);
+                for batch in page {
+                    play(&mut state, batch);
+                    add(&state);
+                }
+            }
+        }
+    }
+    actors
+}
+
+/// The first of [`possible_leaders`]' three ways alone: each map's pages
+/// in file order on one party, reset to `party` at each map. It is what
+/// the parties the test pages start with are played with —see the
+/// converter—: those parties are the tests', not the game's, and played
+/// page by page or emptied they made leaders of actors the game never puts
+/// first, with a palette of their own on every map that shows them.
+pub fn leaders_in_file_order(changes: &[Vec<Vec<Batch>>], party: &[i32]) -> Vec<i32> {
+    let mut actors: Vec<i32> = party.iter().take(1).copied().collect();
+    for pages in changes {
+        let mut state = PartyState::new(party);
+        for batch in pages.iter().flatten() {
+            for &(operation, actor) in batch {
+                state.change_party(operation, actor);
             }
             if let Some(leader) = state.leader() {
                 if !actors.contains(&leader) {
@@ -412,8 +483,44 @@ mod tests {
         let two = map(2, vec![vec![party(PARTY_ADD, 13), party(PARTY_REMOVE, 10)]]);
         let maps = [&one, &two];
         let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
-        assert_eq!(changes[0], vec![vec![(PARTY_REMOVE, 10), (PARTY_ADD, 11)], vec![(PARTY_ADD, 12)]]);
+        assert_eq!(changes[0], vec![vec![vec![(PARTY_REMOVE, 10), (PARTY_ADD, 11)], vec![(PARTY_ADD, 12)]]]);
         assert_eq!(possible_leaders(&changes, &[10]), [10, 11, 13]);
+    }
+
+    #[test]
+    fn each_choice_of_a_map_and_a_party_emptied_elsewhere_bring_their_leader() {
+        // Dooms 2's map 1: Will (5) tells the story, and each candidate is an
+        // event whose page takes him out and puts its character in. Pages of
+        // different events are alternatives, not a sequence: Bryan (3) leads
+        // after his own page, even if Jonathan's (7) ran first in the file.
+        // And Bob's (2) takes Will out alone and teleports: the party arrives
+        // empty at map 3, where Bob joins and leads.
+        let one = map(
+            1,
+            vec![
+                vec![party(PARTY_REMOVE, 5), party(PARTY_ADD, 7)],
+                vec![party(PARTY_REMOVE, 5), party(PARTY_ADD, 3)],
+                vec![party(PARTY_REMOVE, 5)],
+            ],
+        );
+        let three = map(3, vec![vec![party(PARTY_ADD, 2)]]);
+        let maps = [&one, &three];
+        let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
+        assert_eq!(possible_leaders(&changes, &[5]), [5, 7, 3, 2]);
+        // Without a page that ends with the party empty, an actor who joins
+        // goes behind the one leading: the empty party is not supposed. Not
+        // even if a page empties it and fills it again, like ABL's car
+        // chase.
+        let three_alone = [&three];
+        let changes = party_changes(&three_alone, &everything_compiles(&three_alone)).unwrap();
+        assert_eq!(possible_leaders(&changes, &[5]), [5]);
+        let chase = map(
+            4,
+            vec![vec![party(PARTY_REMOVE, 5), cmd(WAIT, &[1]), party(PARTY_ADD, 20)], vec![party(PARTY_ADD, 16)]],
+        );
+        let maps = [&chase];
+        let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
+        assert_eq!(possible_leaders(&changes, &[5]), [5, 20]);
     }
 
     #[test]

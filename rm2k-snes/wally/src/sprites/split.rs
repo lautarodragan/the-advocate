@@ -57,6 +57,14 @@ pub struct Split {
     pub own: BTreeSet<Key>,
     /// The palettes of the leader candidates, which nobody else gets.
     pub leader_owned: BTreeSet<usize>,
+    /// The leader candidates that are also an event of this map and found
+    /// no palette of their own: they went into one of the map's like any
+    /// other character, and when one of them leads the console uploads that
+    /// palette's colours, which are already there. A flash of the hero would
+    /// tint whoever shares it, but a map where something flashes the hero
+    /// has no such leaders: the converter gives those events a copy of the
+    /// graphic, which is not a leader's (`separate_from_hero`).
+    pub shared_leaders: BTreeSet<Key>,
     /// Who was brought below fifteen colours to make room for the timer.
     pub caps: BTreeMap<Key, usize>,
     /// Who was drawn with someone else's palette, for lack of one.
@@ -109,6 +117,16 @@ struct Splitter<'a> {
 }
 
 impl Splitter<'_> {
+    /// Whether the character's colours go into a palette there already is
+    /// —a leader's too— without passing fifteen.
+    fn merges(&self, key: &Key) -> Result<bool> {
+        let image = sheet(self.ask.sheets, &key.0)?;
+        let (palette, _, _) = character_palette(image, key.1, None, self.ask.poses.get(key))?;
+        Ok(self.split.palettes.iter().any(|existing| {
+            existing.len() + palette.iter().filter(|c| !existing.contains(c)).count() <= OBJ_COLORS
+        }))
+    }
+
     /// The first palette the character's colours fit in; a new one if there
     /// is room or it is `force`d; and otherwise **someone else's**, the one
     /// that moves the fewest pixels. A character with odd colours is a
@@ -173,6 +191,12 @@ impl Splitter<'_> {
 /// at the same time as the hero. And nobody else goes into a leader's
 /// palette: a flash of the hero is a tint of its palette, and would tint
 /// whoever shared it.
+///
+/// A leader that is also an event gets its own **while one is left for the
+/// rest**: a map that shows several of the leader candidates as events
+/// —Dooms 2's map 1, where they are chosen— would otherwise give all eight
+/// palettes to leaders and leave the other events with none. The ones that
+/// do not get one are split later, with the events: see `shared_leaders`.
 pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     let mut sp = Splitter {
         ask,
@@ -188,6 +212,13 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     let mut slot_leader: Option<usize> = None;
     for key in ask.leaders {
         if seen.contains(key) || sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
+            continue;
+        }
+        // Room for the rest: one palette for the other events. Only if it
+        // asks for a new one: a leader whose colours go into another
+        // leader's costs nothing.
+        if npc_keys.contains(key) && sp.split.palettes.len() + 1 >= ask.cap && !sp.merges(key)? {
+            sp.split.shared_leaders.insert(key.clone());
             continue;
         }
         seen.insert(key.clone());
