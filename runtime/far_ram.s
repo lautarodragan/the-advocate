@@ -1455,6 +1455,14 @@ GO_FRAMES = GO_LOSES + $04             ; how many frames each fade level lasts
 ; Right behind it, in $7F's half, go the block table and its passability,
 ; which `lz2_grid` decompresses with it: see there.
 ;
+; A cell is the number of its block: two bytes, or **one in a map with at
+; most 256 blocks** —the record's `M_GRID_NARROW`, which `enter_map` turns
+; into `cell_bytes` and `cell_mask`—. Whoever reads a cell masks it with
+; `cell_mask`, and whoever steps over the grid steps `cell_bytes`. That way
+; a 200x200 map, Zounds' dream, fits: 40,000 bytes. Which maps go narrow
+; and the limit each way, `cell_bytes` in rm2k-snes-mapdata's
+; `materials.rs`.
+;
 ; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
 ; `back_from_battle` decompresses the whole grid again.
 GRID        = $7E8000

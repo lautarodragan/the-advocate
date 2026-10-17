@@ -135,14 +135,14 @@ left:
     bne right
     rep #$20
 .a16
-    lda #2
+    lda cell_bytes
     jsr ptr_minus
     bra enters
 right:
 .a8
     rep #$20
 .a16
-    lda #2
+    lda cell_bytes
     jsr ptr_more
 enters:
 .a16

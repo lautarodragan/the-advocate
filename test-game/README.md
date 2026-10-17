@@ -15,7 +15,8 @@ of nested calls that returns. And two more maps with the same ChipSet,
 the garden and the showcase, where the console loses colours: a little,
 and too much. They are the book's examples of the lossy optimizations,
 next to RM2k's drawing of the same. And a fourth, the clearing, with no
-events at all. And a common event that shows a box with escapes the console
+events at all, and two big ones: the plain, 200x200, and the vast, too big
+for the console, which leaves it out. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
 which it draws or shows plain. And a case that puts six small pictures
@@ -113,6 +114,11 @@ go.
                         experience, attack and defense with the Sword and
                         his weapon and shield; Bram's level, who never
                         fights; and the experience saturating at the word
+    test_big_maps.py    the plain, 200x200, whose grid goes one byte a
+                        cell and past the first 32 KB: two walks across
+                        where it changes bank; and the vast, 330x200,
+                        which fits no way and is left out, so its Teleport
+                        is the box
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

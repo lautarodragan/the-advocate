@@ -834,11 +834,19 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let blocks = file(&written, "blocks.bin")?.clone();
     let block_pass = file(&written, "block-passability.bin")?.clone();
     let block_terrain = file(&written, "block-terrain.bin")?.clone();
+    // One byte a cell or two, as the emission will carry it; a grid that
+    // fits neither way is said as two, and the map is left out.
+    let cell_bytes = rm2k_snes_mapdata::materials::cell_bytes(
+        cells_list.len(),
+        blocks.len() / rm2k_snes_mapdata::materials::BLOCK_BYTES,
+        blocks.len() + block_pass.len(),
+    )
+    .unwrap_or(2);
     println!(
         "  the map fits in {} 16x16 blocks for {} cells: {} B of grid plus {} B of table, against the {} B of the expanded tilemap",
         block_pass.len(),
         cells_list.len(),
-        2 * cells_list.len(),
+        cell_bytes * cells_list.len(),
         blocks.len(),
         2 * cells_count
     );

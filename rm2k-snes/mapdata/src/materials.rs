@@ -70,6 +70,54 @@ pub const LZ2_CYCLES_PER_BYTE: usize = 60;
 /// An NTSC frame, in master cycles.
 pub const CYCLES_PER_FRAME: usize = 357_954;
 
+/// What of WRAM the grid has: the upper halves of the two banks.
+pub const GRID_ROOM: usize = 2 * HALF_GRID;
+
+/// A block's record in the block table: its four background cells, its
+/// four upper-layer cells, two bytes each —see `build_column` in the
+/// runtime's `map_window.s`—.
+pub const BLOCK_BYTES: usize = 16;
+
+/// The most blocks a narrow grid can name: a cell is one byte.
+pub const NARROW_BLOCKS: usize = 0x100;
+
+/// How many bytes each cell of a map's grid takes in WRAM, for a map of
+/// `cells` cells, `blocks` blocks and `ram` bytes behind its grid —see
+/// [`map_ram`]—, or `None` if it fits neither way.
+///
+/// **One whenever the map has at most 256 blocks**, which is most maps
+/// —305 of A Blurred Line's 313 on 2026-10-17—, and two otherwise. Narrow
+/// and not only when two do not fit, on purpose: that way every map whose
+/// grid is narrow is played by the same tests as the wide ones, and the
+/// narrow path is not one only a 200x200 map walks. The runtime learns it
+/// from the record —`M_GRID_NARROW`— and reads each cell with `cell_bytes`
+/// and `cell_mask`: see `GRID` in its `far_ram.s`.
+///
+/// The limits, then: a wide grid holds 32,768 cells less half of what lives
+/// behind it, and a narrow one 65,536 less all of it —with the 255 bytes of
+/// Zounds' map 30, 32,640 cells (180x180) and 65,281 (255x255)—. The
+/// bytecode does not count: one that does not fit stays in the cartridge
+/// —see `code_in_rom` in record.rs—.
+pub fn cell_bytes(cells: usize, blocks: usize, ram: usize) -> Option<usize> {
+    let fits = |bytes: usize| {
+        let grid = cells * bytes;
+        grid <= GRID_ROOM && grid_high_used(grid) + ram <= HALF_GRID
+    };
+    if blocks <= NARROW_BLOCKS && fits(1) {
+        Some(1)
+    } else if fits(2) {
+        Some(2)
+    } else {
+        None
+    }
+}
+
+/// A grid of two bytes a cell, little-endian, in one byte a cell: each
+/// cell's low byte, which is the whole block when there are at most 256.
+pub fn narrow(cells: &[u8]) -> Vec<u8> {
+    cells.chunks_exact(2).map(|c| c[0]).collect()
+}
+
 /// Where the grid ends in WRAM, as an offset from `GRID_HIGH`: the second
 /// half starts there, so a grid of up to 32 KB leaves the upper half of
 /// bank $7F whole. It is where [`map_ram`] lands.
@@ -554,6 +602,23 @@ mod tests {
         );
         let big = vec![7u8; HALF_GRID + 2];
         assert_eq!(compressed_parts("map_cells", &big)[1], &[7, 7]);
+    }
+
+    #[test]
+    fn a_map_with_at_most_256_blocks_goes_one_byte_a_cell() {
+        // Zounds' map 30: 200x200, 15 blocks, 255 bytes behind its grid.
+        assert_eq!(cell_bytes(40_000, 15, 255), Some(1));
+        // The same with one block too many goes wide, and does not fit.
+        assert_eq!(cell_bytes(40_000, 257, 257 * 17), None);
+        // A small map with many blocks goes wide.
+        assert_eq!(cell_bytes(20 * 15, 300, 300 * 17), Some(2));
+        // The edges, with 255 bytes behind: 65,281 cells narrow, and wide
+        // half of what is left once those 255 are out.
+        assert_eq!(cell_bytes(65_281, 15, 255), Some(1));
+        assert_eq!(cell_bytes(65_282, 15, 255), None);
+        assert_eq!(cell_bytes(32_640, 300, 255), Some(2));
+        assert_eq!(cell_bytes(32_641, 300, 255), None);
+        assert_eq!(narrow(&[5, 0, 7, 0, 255, 0]), [5, 7, 255]);
     }
 
     #[test]

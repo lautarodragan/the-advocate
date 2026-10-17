@@ -120,6 +120,15 @@
 //! each slot, to zero only what a pose leaves empty: `pose_masks_maps` and
 //! `pose_masks_data` came with it, in the tables, and `without_pose_masks`
 //! takes them away.
+//!
+//! On 2026-10-17 a map with at most 256 blocks started carrying its grid
+//! one byte a cell —`cell_bytes` in `materials.rs`—, and every map here has
+//! that few: their grid streams, the fourth byte of their grid pointer in
+//! the map table, the report's `map_cells` line and the decompression
+//! frames moved, and four hashes and the two line counts with them.
+//! `without_grid_narrow` takes away the new `M_GRID_NARROW` line, and with
+//! it and the grids forced wide (`NARROW_BLOCKS` at 0) the text was the old
+//! one byte for byte; the new hashes are the narrow grids'.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -142,16 +151,16 @@ fn maps() -> Maps {
 fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     let written = record::maps(&maps().maps).unwrap();
     assert_eq!(
-        sha(&written.offsets),
+        sha(&without_grid_narrow(&written.offsets)),
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
         sha(&with_whole_poses_as_before(&without_hero_colors(&with_the_turn_as_before(&written.maps)))),
-        "1622acb05a2213323bcb3b722f858187002804ddbf98b031f9f06cae75fd5382"
+        "20e390800ee76ba822286a03ea4f55123e754cce30d97a1e0131b18745dec4bb"
     );
     assert_eq!(
         sha(&without_pose_masks(&written.tables)),
-        "82065b2018a245b9969577d4fc353de15879021e61b93a5c0a29af777e314b06"
+        "c0cc2585dfd0de58f4e76cb7b6421853fa72f31a6c9fa2e7d307310bf9b38a55"
     );
 }
 
@@ -175,16 +184,16 @@ fn what_it_says_is_what_the_python_said() {
             "  above_tiles       0.1 KB in LZ2, was    0.1",
             "  sprite_tiles      0.3 KB in LZ2, was    0.4",
             "  anim_tiles        0.3 KB in LZ2, was    0.6",
-            "  map_cells         0.7 KB in LZ2, was    1.6",
+            "  map_cells         0.5 KB in LZ2, was    0.8",
             "  map_ram           0.1 KB in LZ2, was    0.1",
             "  map_code          0.0 KB in LZ2, was    0.0",
-            "                    1.7 KB in LZ2, was    2.9: 1.2 KB less",
+            "                    1.6 KB in LZ2, was    2.1: 0.6 KB less",
             "  map_tiles       1 shared block(s),    0.2 KB",
             "  map_cgram       1 shared block(s),    0.0 KB",
             "                  2                 0.2 KB in total"
         ]
     );
-    assert_eq!(written.frames, [0.4388273353559396, 0.34244623610855024]);
+    assert_eq!(written.frames, [0.3885415444442582, 0.256625152952614]);
 }
 
 #[test]
@@ -999,6 +1008,12 @@ fn without_faces(text: &str) -> String {
 
 /// The text with `PanScreen`'s two operations, as it was: since 2026-10-16
 /// the header names all four, because the lock and the unlock compile.
+fn without_grid_narrow(text: &str) -> String {
+    let line = format!("\nM_GRID_NARROW  = {}", record::grid_narrow_offset());
+    assert!(text.contains(&line));
+    text.replacen(&line, "", 1)
+}
+
 fn with_two_pan_operations_as_before(text: &str) -> String {
     let now = "; PanScreen's four operations.\nPAN_LOCK    = 0\nPAN_UNLOCK  = 1\n";
     assert!(text.contains(now));
@@ -1021,11 +1036,11 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "bare");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&text))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&text))))))))))))))))))))));
-    assert_eq!(text.lines().count(), 3777);
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text)))))))))))))))))))))));
+    assert_eq!(text.lines().count(), 3766);
     assert_eq!(
         sha(&text),
-        "f53ff0c9a0097f2c8bf06bfb75e544525f17f4a3b896139cbcc126c20f116182"
+        "797dcc5caeacad9f97b9d8345fb7de8b68d4185c568b043113f77db16668703f"
     );
 }
 
@@ -1034,11 +1049,11 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "whole");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&text))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&text))))))))))))))))))))));
-    assert_eq!(text.lines().count(), 3896);
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text)))))))))))))))))))))));
+    assert_eq!(text.lines().count(), 3885);
     assert_eq!(
         sha(&text),
-        "fe086444bbe56834156c385958955fbbd7678657b689beb484742dd7d766e653"
+        "274162971159b72a82a386c13bcd1c41e19e1efdd33bf3585f27e13cbeefe384"
     );
 }
 

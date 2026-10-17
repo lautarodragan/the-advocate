@@ -82,6 +82,25 @@ saves:
     rts
 .endproc
 
+.pushseg
+.segment "BSS"
+; How many bytes a grid cell takes: 2, or 1 in a narrow grid. `enter_map`
+; sets it and `cell_mask` from the record —`M_GRID_NARROW`—; see `GRID`.
+cell_bytes: .res 2
+.popseg
+
+; A, a count of grid cells, in bytes: doubled unless the grid is narrow.
+; See `cell_bytes`. It touches neither X nor Y.
+.proc cells_to_bytes
+.a16
+.i16
+    bit cell_mask               ; N, its bit 15: set only in a wide grid
+    bpl narrow
+    asl a
+narrow:
+    rts
+.endproc
+
 .proc ptr_to_cells
 .a16
 .i16
@@ -173,8 +192,8 @@ left:
     asl a                       ; 0 the left half, 2 the right
     sta strip_ofs
     txa
-    lsr a
-    asl a                       ; the block column, in bytes
+    lsr a                       ; the block column
+    jsr cells_to_bytes
     sta temp
 
     jsr ptr_from_cells
@@ -212,6 +231,7 @@ short:
     ; indexes by Y.
 row:
     lda [cells_ptr]             ; this cell's block
+    and cell_mask
     jsr cell_replaced
     asl a
     asl a
@@ -336,8 +356,8 @@ with_map:
     sta strip_ofs
 from_left:
     lda row_col
-    lsr a
-    asl a                       ; the leftmost block column, in bytes
+    lsr a                       ; the leftmost block column
+    jsr cells_to_bytes
     jsr ptr_more
     lda map_cw
     sec
@@ -351,6 +371,7 @@ short:
     beq empty_right             ; the whole row falls outside the map
 column:
     lda [cells_ptr]
+    and cell_mask
     jsr cell_replaced
     asl a
     asl a
@@ -375,7 +396,7 @@ column:
     sta strip_ofs
     and #$0002
     bne same
-    lda #2
+    lda cell_bytes
     jsr ptr_more                ; to the next block over
 same:
     dec strip_total
@@ -673,7 +694,7 @@ strips:
     stz col_addr_b              ; and the spare ones: everything is filled from
     stz row_addr_b              ; scratch here, so anything half built is useless
     lda map_width
-    asl a
+    jsr cells_to_bytes
     sta strip_step_col          ; the size of a block row, in bytes
 
     lda camera_x

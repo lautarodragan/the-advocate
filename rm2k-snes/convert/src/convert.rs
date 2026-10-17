@@ -386,6 +386,34 @@ pub fn run(options: Options) -> Result<()> {
         let id = p.map.id;
         infos.push(maps::map_info(&game, p, written).map_err(|e| e.in_map(id))?);
     }
+    // A map whose grid does not fit in WRAM either way —see `cell_bytes` in
+    // rm2k-snes-mapdata— is left out, before anything compiles a teleport
+    // to it: those become the box that says the map is missing. Only the
+    // boot map stops the conversion.
+    let mut left_out = Vec::new();
+    infos.retain(|m| {
+        let ram = m.blocks.len() + m.block_pass.len();
+        let blocks = m.blocks.len() / rm2k_snes_mapdata::materials::BLOCK_BYTES;
+        if rm2k_snes_mapdata::materials::cell_bytes(m.cells.len() / 2, blocks, ram).is_some() {
+            return true;
+        }
+        left_out.push((m.id, m.map.width, m.map.height, blocks));
+        false
+    });
+    for &(id, width, height, blocks) in &left_out {
+        if id == order[start_index] {
+            crate::stop!("map {id} is where the ROM boots, and its grid of {width}x{height} cells and {blocks} blocks does not fit in WRAM");
+        }
+        let line = format!(
+            "  map {id}: WARNING, it is left out: its grid of {width}x{height} cells and {blocks} blocks does not fit in \
+             WRAM, neither two bytes a cell nor one; see `cell_bytes` in rm2k-snes-mapdata"
+        );
+        println!("{line}");
+        degradations.map(id as i64, "map-left-out", &line, &[]);
+    }
+    let boot_map = order[start_index];
+    let order: Vec<i32> = infos.iter().map(|m| m.id).collect();
+    let start_index = order.iter().position(|&m| m == boot_map).expect("the boot map stays");
     // The big pictures, which the cartridge carries once whatever map shows
     // them.
     let bigs: Vec<&[pictures::Big]> = infos.iter().map(|m| m.big_pictures.as_slice()).collect();

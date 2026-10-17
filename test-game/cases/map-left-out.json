@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "ControlSwitches", "parameters": [0, 1403, 1403, 1]},
+    {"code": "Teleport", "parameters": [7, 5, 5, 0]},
+    {"code": "ControlSwitches", "parameters": [0, 1403, 1403, 0]}
+  ]
+}

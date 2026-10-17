@@ -498,7 +498,7 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
             .map_or_else(Vec::new, |s| s.tiles.clone()),
     );
     raw.insert("anim_tiles".into(), anim_bytes(map));
-    raw.insert("map_cells".into(), map.cells.clone());
+    raw.insert("map_cells".into(), map.grid());
     raw.insert("map_ram".into(), map_ram(&map.blocks, &map.block_pass));
     // A map whose bytecode stays in the cartridge decompresses none: see
     // [`code_in_rom`].
@@ -573,7 +573,7 @@ pub fn rom_code_chunks(map: &Map) -> Result<Vec<(usize, &[u8])>> {
 /// where it was measured —in short, the ROM it costs uncompressed against a
 /// few frames of decompression when loading—.
 pub fn code_in_rom(map: &Map) -> bool {
-    let behind = grid_high_used(map.cells.len()) + map.blocks.len() + map.block_pass.len();
+    let behind = grid_high_used(map.grid().len()) + map.blocks.len() + map.block_pass.len();
     map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > HALF_GRID
 }
 
@@ -585,7 +585,7 @@ pub fn code_in_rom(map: &Map) -> bool {
 /// disagreed, `test_decompressed_load.py` sees it. `evcode` is where the
 /// bytecode starts, which the page table adds each page's offset to.
 pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 3] {
-    let start = grid_high_used(map.cells.len());
+    let start = grid_high_used(map.grid().len());
     let pass = start + map.blocks.len();
     let code = pass + map.block_pass.len();
     [
@@ -699,7 +699,16 @@ pub fn offsets() -> String {
             MAP_PTR_BASE + number * MAP_PTR_STEP
         ));
     }
+    out.push(format!("M_GRID_NARROW  = {}", grid_narrow_offset()));
     out.join("\n")
+}
+
+/// Where the record says whether the grid goes one byte a cell —see
+/// [`Map::narrow`]—: the fourth byte of the grid's pointer, which a pointer
+/// does not use. The record has no other room.
+pub fn grid_narrow_offset() -> usize {
+    let cells = MAP_POINTERS.iter().position(|&p| p == "map_cells").expect("the grid has a pointer");
+    MAP_PTR_BASE + cells * MAP_PTR_STEP + 3
 }
 
 /// The table the console walks to know what to load. `labels` says, per
@@ -770,8 +779,9 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
         used += padding;
         for name in MAP_POINTERS {
             let label = &labels[number][name];
+            let fourth = if name == "map_cells" && map.narrow() { "$01" } else { "$00" };
             out.push(format!(
-                "    .byte <({label}), >({label}), ^({label}), $00 ; +{used}  {name}"
+                "    .byte <({label}), >({label}), ^({label}), {fourth} ; +{used}  {name}"
             ));
             used += MAP_PTR_STEP;
         }
@@ -1549,8 +1559,9 @@ pub fn map_data(
     // The grid, in its two streams, and the block table and its passability
     // in a third: see `lz2_grid`.
     let ram = map_ram(&map.blocks, &map.block_pass);
+    let grid = map.grid();
     let (label, text) =
-        materials.store_compressed_joined(&[("map_cells", &map.cells), ("map_ram", &ram)]);
+        materials.store_compressed_joined(&[("map_cells", &grid), ("map_ram", &ram)]);
     if !text.is_empty() {
         out.push(text);
     }
