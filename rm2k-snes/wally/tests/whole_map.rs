@@ -326,10 +326,13 @@ fn split_answers_with_the_palettes_it_is_given() {
     assert!(owners.contains(&json!(["Hero", 0, 0])), "{owners:?}");
     assert_eq!(answer["leader_owned"], json!([0]));
     assert_eq!(answer["discarded"], json!([]));
-    // With a single palette, the leader's, nobody else can be drawn: the
-    // tile is left out.
+    // With a single palette the leader, who is also an event here, does
+    // not take it for itself: it would leave the other events none. It
+    // shares it, and the tile goes in with it.
     let tight = ask("split", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 1}));
-    assert_eq!(tight["discarded"], json!([[0, "@tile:tiles:5"]]));
+    assert_eq!(tight["shared_leaders"], json!([["Hero", 0]]));
+    assert_eq!(tight["leader_owned"], json!([]));
+    assert_eq!(tight["discarded"], json!([]));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
