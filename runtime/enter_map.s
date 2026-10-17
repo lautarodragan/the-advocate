@@ -222,6 +222,7 @@ set:
     ; applies to.
     jsr clear_waits
     jsr clear_parallel
+    jsl f:applied_forget        ; every row is set up again
     jsr page_routes             ; and the move routes of the active pages themselves
     ; The actor table belongs to this map, so where the leader's poses fall
     ; changes when changing map even if the party is the same.

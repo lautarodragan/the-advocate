@@ -415,6 +415,7 @@ each_event:
     ; which is none for the events with nothing but a static graphic —the
     ; pick skips them—: they are the ones that only this hides. It is not
     ; one of the parallels either, so the list is rebuilt without it.
+    jsl f:page_unapplied
     lda rp_ev
     jsr hide_npc
     lda rp_ev
@@ -465,7 +466,10 @@ not_parallel:
     bne with_route_or_graphic
     jmp next                    ; autostart only: the note is for something else
 with_route_or_graphic:
+    jsl f:page_applied          ; C=1 if it is the page it already had
+    bcs same_page
     jsr page_graphic            ; what the page draws, to the NPC's row
+same_page:
     lda rp_ev
     jsr event_slot              ; X = its slot, or $FFFF
     lda pg_flags
@@ -526,6 +530,7 @@ no_route:
 hide16:
     sep #$20
 .a8
+    jsl f:page_unapplied
     lda rp_ev
     jsr hide_npc
     jmp next
@@ -2471,3 +2476,86 @@ no:
     rts
 .endproc
 
+
+; --- which page each event's row was set up from ------------------------------
+;
+; `SetupFromPage` runs only when an event's active page changes: that is
+; `Game_Event::RefreshPage`, and a refresh that leaves the same page leaves
+; the row as it was —the facing a command turned, the pose—. Until
+; 2026-10-17 `apply_pages` ran `page_graphic` for every event on every
+; refresh, and that was most of what a refresh cost on a map with many
+; events: see tasks/frozen-world-the-battle-maps-lag.md and the draft
+; tasks/a-refresh-sets-up-every-page-again.md, which this closes.
+;
+; It is forgotten —all $FFFF— on loading a map and when the rows' poses are
+; forgotten (`npc_poses_forget`), so the next refresh sets every row up
+; again; and per event when it is hidden: the page that comes back after is
+; set up again even if it is the same.
+.pushseg
+.segment "FARBSS"
+applied_page: .res EV_MAX * 2
+.popseg
+
+.pushseg
+.segment "FAR3"
+; The event in `rp_ev` gets the page at `page_ofs`: C=1 if it already had it
+; set up, and else it is noted and C=0. Clobbers A and X.
+.proc page_applied
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:rp_ev
+    asl a
+    tax
+    lda f:page_ofs
+    cmp f:applied_page, x
+    beq same                    ; C=1: equal
+    sta f:applied_page, x
+    sep #$20
+.a8
+    clc
+    rtl
+.a16
+same:
+    sep #$20
+.a8
+    rtl
+.endproc
+
+; The event in `rp_ev` has no page set up any more. Clobbers X; keeps A.
+.proc page_unapplied
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    lda f:rp_ev
+    asl a
+    tax
+    lda #$FFFF
+    sta f:applied_page, x
+    sep #$20
+.a8
+    pla
+    rtl
+.endproc
+
+; Every event, without a page set up. Clobbers A and X.
+.proc applied_forget
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #EV_MAX * 2 - 2
+    lda #$FFFF
+each:
+    sta f:applied_page, x
+    dex
+    dex
+    bpl each
+    sep #$20
+.a8
+    rtl
+.endproc
+.popseg
