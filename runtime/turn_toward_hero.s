@@ -130,7 +130,9 @@ sy_pos:
     cmp temp
     bcs vertical                ; |sy| >= |sx|
     pla
-    bmi to_right                ; the event to the left of the hero
+    ; goombario: pull-branch: sx, the distance in x, saved before computing
+    ; sy: negative is that the event is to the left of the hero
+    bmi to_right
     lda #DIR_LEFT
     bra dir_list
 to_right:

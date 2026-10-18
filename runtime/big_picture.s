@@ -719,7 +719,9 @@ same_line:
     plx
     sta WRMPYB                  ; starts: the product takes eight cycles
     pla                         ; and in the meantime, the phase again
-    bmi left                    ; the second half of the turn: the sine is negative
+    ; goombario: pull-branch: the phase, again: the second half of the
+    ; turn is the negative sine's
+    bmi left
     ; The picture goes right, so the layer's scroll goes left: minus the
     ; offset, sixteen bits —and minus zero is zero, high byte too—.
     rep #$20

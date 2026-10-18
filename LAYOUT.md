@@ -253,3 +253,22 @@ the tools themselves did, and it was `just -f tools/justfile <recipe>`.
 The patch for bsnes-libretro that exposes the WRAM, and how to build it,
 went with the libretro driver to A Blurred Line's repo on 2026-10-02: see
 `tests/harness/emulator/README.md` there.
+
+A copy came back on 2026-10-18, next to the test game's copy of the driver,
+`test-game/tests/emulator/bsnes-wram.patch`, for the CI workflow to build
+the core with; a fix to one goes to the other.
+
+## CI
+
+    .github/workflows/ci.yml
+                 what GitHub Actions runs on every push to `main`: the Rust
+                 workspace and its tests, `just test`, and the test game
+                 with the tools installed from the commit, in both cores,
+                 Goombario over its cartridge among its tests
+    requirements.txt
+                 what the Python tests import that is not the standard
+                 library, pinned: the workflow installs it
+
+cc65 and the two libretro cores are built by the workflow from pinned
+commits, cached, and not installed from Ubuntu's packages: why, at the top
+of the workflow.

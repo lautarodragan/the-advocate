@@ -503,7 +503,7 @@ member_actor:
     ; `Scene_File::Start`, which there is the one with the newest date and
     ; here, with no dates, the one in use. With no save loaded, the first.
     pla
-    beq first
+    beq first                   ; goombario: pull-branch: the mode: 0 is loading
     lda slot
     cmp #$FF
     bne starts_there
@@ -580,7 +580,7 @@ no_down:
     beq check_a
     jsr close
     lda #$FF                    ; cancel
-    rts
+    rts                         ; goombario: stack: `close` pulled the two bytes
 check_a:
     lda pad_a
     beq wait
@@ -588,7 +588,7 @@ check_a:
     bne wait                    ; it was already held: not an edge
     jsr close
     lda title_sel
-    rts
+    rts                         ; goombario: stack: `close` pulled the two bytes
 
 ; What the two exits have in common: `slot` as it was, the data bank as it
 ; was, the marker down. And `nmi_seen` up to date, so that `count_lost`
@@ -599,6 +599,9 @@ check_a:
 ; The stack holds, top to bottom: this `jsr`'s return address, `slot` and
 ; the bank. The return address is pulled first to get at the other two.
 close:
+    ; goombario: stack: the shared exit of both branches of `slots_screen`,
+    ; which pulls the two bytes under its own return address on purpose and
+    ; puts the address back: see above
     plx                         ; the return address, set aside
     pla
     sta slot

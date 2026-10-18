@@ -890,7 +890,7 @@ no_kon:
     ; zero-frame wait keys on and keeps reading in the same frame, without
     ; opening another.
     pla
-    beq continues
+    beq continues               ; goombario: pull-branch: the wait: see above
     dec a
     sta f:MUS_WAIT
     sep #$20

@@ -34,8 +34,9 @@ SNAPSHOTS = os.path.join(TESTS, "snapshots")
 # The two cores, as in the ports: snes9x is the one the goldens are taken
 # with, and bsnes the one that powers on with WRAM full of garbage, like the
 # console, so a difference between the two is uninitialised memory. bsnes
-# needs the patch that exposes its WRAM (`tests/harness/emulator/` in A
-# Blurred Line's repo), and without it the clock cannot read the ROM's tick.
+# needs the patch that exposes its WRAM, `emulator/bsnes-wram.patch` —a copy
+# of A Blurred Line's, in `tests/harness/emulator/`, whose README says how it
+# is built—, and without it the clock cannot read the ROM's tick.
 # Where they are belongs to the machine: these are the libretro packages'
 # paths, and a variable moves them.
 SNES9X = os.environ.get("SNES9X_CORE", "/usr/lib/libretro/snes9x_libretro.so")
@@ -103,13 +104,20 @@ class Cartridge:
 
 
 @functools.lru_cache(maxsize=None)
+def listing():
+    """What the builder answers about the project: its cartridges, and where
+    `ca65` ran and the runtime is, which the linter's test asks for."""
+    done = _builder("--list", "--json")
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+@functools.lru_cache(maxsize=None)
 def cartridge():
     """The built `release`. **It does not build**: a stale cartridge is a
     red, because a test that ran against an old ROM says nothing. `just
     test` builds it before."""
-    listing = _builder("--list", "--json")
-    assert listing.returncode == 0, listing.stderr
-    data = next((c for c in json.loads(listing.stdout)["cartridges"]
+    data = next((c for c in listing()["cartridges"]
                  if c["name"] == RELEASE), None)
     assert data, "the project does not declare a cartridge %r" % RELEASE
     assert not data["stale"], ("the cartridge is stale (%s): build it with "

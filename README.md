@@ -26,6 +26,14 @@ files the converter writes for each game. What happens between the game
 and the ROM is in `internals/pipeline.md` in the book, and the audio in
 `internals/audio.md` in the book.
 
+**GitHub Actions checks every push to `main`**
+(`.github/workflows/ci.yml`): the Rust workspace builds and its tests pass,
+`just test` passes, and the test game —made with the tools installed from
+that commit, with cc65 and the two libretro cores built from pinned
+commits and a free SoundFont— passes its tests in snes9x and in bsnes,
+Goombario over its cartridge among them. It runs no ported game, so it
+does not replace A Blurred Line's suite, below.
+
 A game is a directory with an `rm2k-snes.toml`, which the tools look for
 from where they run upwards, the way cargo looks for its `Cargo.toml`; what
 belongs to the machine —where the original game is, the RTP, the

@@ -111,7 +111,7 @@ put:
     tyx
     tay
     pla
-    beq off
+    beq off                     ; goombario: pull-branch: the value, 0 is off
     tya
     and f:switches, x
     bne same                    ; already on

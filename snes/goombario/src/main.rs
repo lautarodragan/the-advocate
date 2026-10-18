@@ -1,7 +1,8 @@
 //! Goombario from the command line.
 //!
 //! It knows nothing of where a project keeps its files: the ROM, its debug
-//! file, where the sources are and the exceptions all come in as arguments.
+//! file and where the sources are come in as arguments, and the exceptions
+//! are in the sources, as comments on the lines they allow.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -22,21 +23,22 @@ instruction came from in the debug file ld65 writes with --dbgfile.
                   which is where ca65 ran (default: the current one)
   --only PREFIX   report only what is in source files whose path, as the
                   debug file has it, starts with PREFIX; can be repeated
-  --allow FILE    the exceptions: see the README for the format
   --checks LIST   which checks, comma-separated, of pull-branch, call-return,
                   stack and width (default: all four)
   --stats         how much each check looked at, on stderr
   --unfollowed    where the walks had to stop, on stderr
 
-Exit codes: 0 nothing found; 1 findings, or exceptions that are wrong or match
-nothing; 2 the call itself is wrong.";
+The exceptions are comments in the source, on the line they allow:
+`; goombario: CHECK: why it is right`. See the README.
+
+Exit codes: 0 nothing found; 1 findings, or annotations that are wrong or
+allow nothing; 2 the call itself is wrong.";
 
 struct Options {
     rom: PathBuf,
     dbg: Option<PathBuf>,
     root: PathBuf,
     only: Vec<String>,
-    allow: Option<PathBuf>,
     checks: Vec<Check>,
     stats: bool,
     unfollowed: bool,
@@ -48,7 +50,6 @@ fn options(args: Vec<String>) -> Result<Options, String> {
         dbg: None,
         root: PathBuf::from("."),
         only: Vec::new(),
-        allow: None,
         checks: vec![Check::PullBranch, Check::CallReturn, Check::Stack, Check::Width],
         stats: false,
         unfollowed: false,
@@ -61,7 +62,6 @@ fn options(args: Vec<String>) -> Result<Options, String> {
             "--dbg" => o.dbg = Some(value("--dbg")?.into()),
             "--root" => o.root = value("--root")?.into(),
             "--only" => o.only.push(value("--only")?),
-            "--allow" => o.allow = Some(value("--allow")?.into()),
             "--checks" => {
                 o.checks = value("--checks")?
                     .split(',')
@@ -96,19 +96,6 @@ fn main() -> ExitCode {
         p.push(".dbg");
         p.into()
     });
-    let exceptions = match &o.allow {
-        Some(path) => match std::fs::read_to_string(path)
-            .map_err(|e| e.to_string())
-            .and_then(|t| goombario::allow::parse(&t))
-        {
-            Ok(list) => list,
-            Err(e) => {
-                eprintln!("goombario: {}: {}", path.display(), e);
-                return ExitCode::from(MISUSE);
-            }
-        },
-        None => Vec::new(),
-    };
     let program = match goombario::load(&o.rom, &dbg, &o.root) {
         Ok(p) => p,
         Err(e) => {
@@ -132,10 +119,15 @@ fn main() -> ExitCode {
     }
     let (reports, stats) = goombario::lint(&program, &o.root);
     let reports = reports.into_iter().filter(|r| o.checks.contains(&r.check) && wanted(&r.file)).collect();
-    let (left, unused) = goombario::apply_exceptions(reports, &exceptions);
+    let (annotations, malformed) = goombario::annotations(&program, &o.root, wanted);
+    for m in &malformed {
+        println!("{}", m);
+        wrong += 1;
+    }
+    let (left, unused) = goombario::apply_exceptions(reports, &annotations);
     for r in &left {
         println!(
-            "{}:{}: {}: in `{}`, `{}`: {}.\n    allow: {}",
+            "{}:{}: {}: in `{}`, `{}`: {}.\n    if it is right: {}",
             r.file,
             r.line,
             r.check.name(),
@@ -146,19 +138,17 @@ fn main() -> ExitCode {
         );
         wrong += 1;
     }
-    if let Some(path) = &o.allow {
-        for e in &unused {
-            if o.checks.contains(&e.check) {
-                println!(
-                    "{}:{}: this exception matches nothing: `{} {}{}`",
-                    path.display(),
-                    e.line,
-                    e.check.name(),
-                    e.routine,
-                    e.text.as_deref().map(|t| format!(" {}", t)).unwrap_or_default()
-                );
-                wrong += 1;
-            }
+    for a in &unused {
+        if o.checks.contains(&a.check) {
+            println!(
+                "{}:{}: this annotation allows nothing on line {}: `goombario: {}: {}`",
+                a.file,
+                a.line,
+                a.covers,
+                a.check.name(),
+                a.why
+            );
+            wrong += 1;
         }
     }
     if o.stats {
