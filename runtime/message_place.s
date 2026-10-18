@@ -114,6 +114,16 @@ store:
     rtl
 .endproc
 
+; Everything from here to `place_rows` —building the HDMA, the window's
+; bands and the trade over a painting— lives in FAR3, bank $C1, and not in
+; FAR2 with `msg_place`: on a painted map's cartridge bank $C0 had no room
+; for the bands, Sunset over Imdahl's went 110 bytes over. It is all
+; reached with `jsl`, and the tables it reads go with `f:`.
+.pushseg
+.segment "FAR3"
+.a8
+.i16
+
 ; The HDMA for the window `MSG_PLACE` says, with its tilemap at `MSG_SC`:
 ; BG2's tilemap and scroll by stretch, in `hdma_sc` and `hdma_ofs`, and
 ; which of the ROM's `mask_*` hides the objects under the window. The map's
@@ -591,6 +601,7 @@ done:
     rts
 .endproc
 .endif
+.popseg
 
 ; Per position, four bytes: the window's first line on screen, a byte of
 ; padding, and the address of its objects' mask.
