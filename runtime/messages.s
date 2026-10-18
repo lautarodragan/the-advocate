@@ -169,13 +169,14 @@ with_plane:
     stx A1T1L
     stz A1B1                    ; the tables live in bank 0
 
-    lda #$03                    ; two registers, two writes each, which
-    sta DMAP2                   ; is what BG2HOFS and BG2VOFS ask for
-    lda #<BG2HOFS
-    sta BBAD2
+    lda #$43                    ; two registers, two writes each, which
+    sta DMAP2                   ; is what BG2HOFS and BG2VOFS ask for; and
+    lda #<BG2HOFS               ; indirect: the table says where the four
+    sta BBAD2                   ; bytes are, the camera's or the window's
     ldx #hdma_ofs
     stx A1T2L
     stz A1B2
+    stz DASB2                   ; and those live in bank 0 too
 
     ; And the third channel hides the objects under the window. In RM2k the
     ; message window covers everything —`Priority_Window` is 130 and the
@@ -446,6 +447,7 @@ void:
     ; leaves room for the bar's edge; and up to the text area's edge, or to
     ; a face on the right. See message_face.s.
     jsl f:msg_face_line
+    jsl f:msg_line_rows         ; and whether its band is the window's
     lda #1
     sta msg_primed
 

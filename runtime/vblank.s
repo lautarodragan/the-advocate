@@ -244,37 +244,17 @@ no_finished:
     lda msg_open
     beq no_window
     jsl msg_arrow               ; the arrow of a message waiting for a key
-    ; The camera to the three stretches, and then the window's own scroll on
-    ; top of whichever of them is the window's.
-    lda screen_x
-    sta hdma_ofs + 1
-    sta hdma_ofs + 6
-    sta hdma_ofs + 11
-    lda screen_x + 1
-    sta hdma_ofs + 2
-    sta hdma_ofs + 7
-    sta hdma_ofs + 12
-    lda scroll_y
-    sta hdma_ofs + 3
-    sta hdma_ofs + 8
-    sta hdma_ofs + 13
-    lda scroll_y + 1
-    sta hdma_ofs + 4
-    sta hdma_ofs + 9
-    sta hdma_ofs + 14
-    jsl f:pano_hdma             ; BG2 is the panorama's in mode 3
+    ; The camera, which every stretch of the map points at; the window's
+    ; own scroll does not move, and `msg_hdma_build` wrote it.
     rep #$20
 .a16
-    lda f:MSG_ENTRY
-    and #$00FF
-    tax
+    lda screen_x
+    sta hdma_ofs_map
+    lda scroll_y
+    sta hdma_ofs_map + 2
     sep #$20
 .a8
-    stz hdma_ofs + 1, x
-    stz hdma_ofs + 2, x
-    lda f:MSG_VOFS
-    sta hdma_ofs + 3, x
-    stz hdma_ofs + 4, x
+    jsl f:pano_hdma             ; BG2 is the panorama's in mode 3
     ; And the big picture's wave, if there is one: its flag is its channel.
     lda f:BIG_FLAGS
     and #BIG_WAVE_ON

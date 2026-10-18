@@ -17,10 +17,10 @@
 ;
 ; **Moving the window is choosing on which lines BG2 shows its tilemap**, and
 ; nothing else: the window's tilemap and its tiles stay where they are, and
-; so does the composer. The 224 lines go in three stretches —the window's 80
-; and the map above and below it—, because a stretch's counter is seven bits
-; and the 144 lines above the window at the bottom do not fit in one. With
-; three, every position fits in the same tables: see `place_rows`.
+; so does the composer. The 224 lines go in stretches —the window's and the
+; map's above, below and, without the background, between its lines—, and
+; the ones of more than 127 lines in two entries, because an entry's counter
+; is seven bits: see `msg_hdma_build`.
 ;
 ; The positions are RM2k's on a screen 16 lines shorter: the top one at line
 ; 0, the bottom one flush with the bottom, as it always was, and the middle
@@ -117,10 +117,19 @@ store:
 ; The HDMA for the window `MSG_PLACE` says, with its tilemap at `MSG_SC`:
 ; BG2's tilemap and scroll by stretch, in `hdma_sc` and `hdma_ofs`, and
 ; which of the ROM's `mask_*` hides the objects under the window. The map's
-; stretches carry `VRAM_ABOVE_MAP` and the camera, which `flush_video`
-; writes every frame while the window is up; the window's carry its tilemap
-; and `MSG_VOFS`, the scroll that makes its first line land on the stretch's
-; first line.
+; stretches carry `VRAM_ABOVE_MAP` and point at `hdma_ofs_map`, the camera,
+; which `flush_video` writes every frame while the window is up; the
+; window's carry its tilemap and point at `hdma_ofs_window`, the scroll
+; that makes its first line land where the window starts, `MSG_VOFS`.
+;
+; **The window's lines are not always its eighty.** It is six bands
+; —`window_bands`: the frame's top row, the four lines of text and the
+; bottom row—, and only the bands the window draws on take BG2 from the
+; map: all six with the frame, and without it the ones in `msg_bands`. On
+; the others BG2 is the map's layer above, and its roofs and treetops show
+; between the lines of a message without a background. That is why the
+; stretches are built here, band by band, and not taken from a table per
+; position.
 ;
 ; Without the background the scroll goes eighty lines further down, to the
 ; plane without the frame —see `stamp_window`—, and the objects are not
@@ -147,22 +156,10 @@ store:
 .a16
     and #$00FF
     asl a
-    asl a
-    asl a                       ; eight bytes per position
+    asl a                       ; four bytes per position
     tax
     sep #$20
 .a8
-    lda f:place_rows + 0, x
-    sta hdma_sc + 0
-    sta hdma_ofs + 0
-    lda f:place_rows + 1, x
-    sta hdma_sc + 2
-    sta hdma_ofs + 5
-    lda f:place_rows + 2, x
-    sta hdma_sc + 4
-    sta hdma_ofs + 10
-    stz hdma_sc + 6             ; the ends of the tables
-    stz hdma_ofs + 15
     ; The objects' mask: the position's, or none without the background.
     ; The channel's address is written here and not in `build_hdma` because
     ; it changes with the window; the HDMA takes it at the top of the next
@@ -175,7 +172,7 @@ store:
 masked:
     rep #$20
 .a16
-    lda f:place_rows + 6, x     ; the position's, in the same bank
+    lda f:place_rows + 2, x     ; the position's, in the same bank
     tay
     sep #$20
 .a8
@@ -185,48 +182,109 @@ with_mask:
     lda #^mask_none
     sta A1B3
     sta A1B6
-    lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
-    sta hdma_sc + 1
-    sta hdma_sc + 3
-    sta hdma_sc + 5
 
-    lda f:place_rows + 3, x     ; the window's stretch in `hdma_ofs`
-    sta f:MSG_ENTRY
     ; The scroll: line W of the screen shows line `vofs + 1 + W` of the
     ; layer, and the window's tilemap is 256 lines tall, so for its first row
     ; to land on W it is `-1 - W`, plus the frame's 80 lines without the
-    ; background. `sbc` with the carry clear subtracts the one.
+    ; background. `sbc` with the carry clear subtracts the one. It is the
+    ; same on every band of the window: they are all the same picture, cut.
     lda f:MSG_PLACE
     and #MSG_BARE
     beq framed
     lda #(TEXT_WINDOW_ROWS * 8)
 framed:
     clc
-    sbc f:place_rows + 4, x
+    sbc f:place_rows + 0, x
     sta f:MSG_VOFS
     rep #$20
 .a16
-    lda f:place_rows + 5, x     ; and in `hdma_sc`
-    and #$00FF
-    tax
+    lda #0
+    sta hdma_ofs_window         ; no horizontal scroll
     sep #$20
 .a8
-    lda f:MSG_SC
-    sta hdma_sc + 1, x
-    ; And the window's own scroll, so that a table built with the screen off
-    ; is already whole: `flush_video` writes it again every frame.
+    lda f:MSG_VOFS
+    sta hdma_ofs_window + 2
+    stz hdma_ofs_window + 3
+
+    ; The stretches, top to bottom: the map down to the window, the bands
+    ; one by one —each the window's or the map's—, and the map below it.
+    ; A stretch runs while the kind does not change, and `run_emit` cuts it
+    ; in entries of seven bits.
+    lda f:place_rows + 0, x     ; the map above the window
+    sta f:MSG_RUN_LINES
+    pha                         ; at 1,s: where the window starts
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq every_band
+    jsl f:msg_bands
+    bra with_bands
+every_band:
+    lda #WINDOW_BANDS_ALL
+with_bands:
+    sta f:MSG_RUN_BANDS
+    lda #0
+    sta f:MSG_RUN_KIND          ; the map's
+    sta f:MSG_RUN_BAND
+    ldx #0                      ; where in `hdma_sc`
+    ldy #0                      ; and in `hdma_ofs`
+band:
+    lda f:MSG_RUN_BANDS
+    lsr a                       ; this band's bit, into the carry
+    sta f:MSG_RUN_BANDS
+    lda #0
+    rol a                       ; 1 if it is the window's
+    cmp f:MSG_RUN_KIND
+    beq same_kind
+    ; The kind changes: the stretch so far goes out, and a new one starts.
+    pha
+    lda f:MSG_RUN_LINES
+    jsr run_emit
+    pla
+    sta f:MSG_RUN_KIND
+    lda #0
+    sta f:MSG_RUN_LINES
+same_kind:
+    phx
+    lda f:MSG_RUN_BAND
     rep #$20
 .a16
-    lda f:MSG_ENTRY
     and #$00FF
     tax
     sep #$20
 .a8
-    stz hdma_ofs + 1, x
-    stz hdma_ofs + 2, x
-    lda f:MSG_VOFS
-    sta hdma_ofs + 3, x
-    stz hdma_ofs + 4, x
+    lda f:window_bands, x
+    plx
+    clc
+    adc f:MSG_RUN_LINES
+    sta f:MSG_RUN_LINES
+    lda f:MSG_RUN_BAND
+    inc a
+    sta f:MSG_RUN_BAND
+    cmp #WINDOW_BANDS
+    bne band
+    ; And the map below the window, which goes on the last band's stretch
+    ; if that one is the map's.
+    lda f:MSG_RUN_KIND
+    beq below
+    lda f:MSG_RUN_LINES
+    jsr run_emit
+    lda #0
+    sta f:MSG_RUN_KIND
+    sta f:MSG_RUN_LINES
+below:
+    pla                         ; where the window starts
+    clc
+    adc #(TEXT_WINDOW_ROWS * 8)
+    sta f:MSG_RUN_BAND          ; where it ends: the band count is done
+    lda #<LINES
+    sec
+    sbc f:MSG_RUN_BAND
+    clc
+    adc f:MSG_RUN_LINES
+    jsr run_emit
+    lda #0
+    sta hdma_sc, x              ; the ends of the tables
+    sta hdma_ofs, y
 
     ; Channels 2, 3 and 6 to BG2's scroll and the two masks, as always,
     ; unless the window goes over a painting: see `msg_swap_build`. Here and
@@ -260,13 +318,179 @@ no_swap:
     rtl
 .endproc
 
+; A stretch of A lines, from 0 to `LINES`, of the kind `MSG_RUN_KIND` says
+; —0 the map's, 1 the window's—, into `hdma_sc` at X and `hdma_ofs` at Y,
+; which it leaves past it. An entry's count is seven bits, so a stretch of
+; more than 127 lines goes in two; one of none, in none.
+.proc run_emit
+.a8
+.i16
+more:
+    cmp #0                      ; for the flags: the callers come with any
+    beq done
+    cmp #128
+    bcc last
+    sbc #127                    ; the carry is set: what is left after one
+    pha
+    lda #127
+    jsr entry
+    pla
+    bra more
+last:
+    jsr entry
+done:
+    rts
+
+entry:
+    sta hdma_sc, x
+    sta hdma_ofs, y
+    lda f:MSG_RUN_KIND
+    beq of_the_map
+    lda f:MSG_SC
+    sta hdma_sc + 1, x
+    rep #$20
+.a16
+    lda #.loword(hdma_ofs_window)
+    bra with_scroll
+of_the_map:
+.a8
+    lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
+    sta hdma_sc + 1, x
+    rep #$20
+.a16
+    lda #.loword(hdma_ofs_map)
+with_scroll:
+    sta hdma_ofs + 1, y         ; `hdma_ofs` is indirect: see `build_hdma`
+    sep #$20
+.a8
+    inx
+    inx
+    iny
+    iny
+    iny
+    rts
+.endproc
+
+; The window's six bands, top to bottom, in lines: the frame's top row, the
+; four lines of text and the frame's bottom row, where the arrow is. A line
+; of text is the composer's: two cell rows, which is what it primes and
+; uploads per line —the glyph starts two lines in, `TEXT_OFS_Y`, and with
+; its shadow ends on the fifteenth—, so a band holds all of its line and
+; nothing of the next.
+WINDOW_BANDS = 6
+WINDOW_BANDS_ALL = %111111
+WINDOW_BAND_ARROW = %100000     ; the bottom row's bit
+WINDOW_BAND_LINES = %011110     ; the four lines', the first in bit 1
+window_bands:
+    .byte WINDOW_BORDER, 16, 16, 16, 16, WINDOW_BORDER
+window_bands_end:
+.assert window_bands_end - window_bands = WINDOW_BANDS, error, "window_bands is not six bands"
+.assert 2 * WINDOW_BORDER + WINDOW_TEXT_LINES * 16 = TEXT_WINDOW_ROWS * 8, error, "the window's bands do not add up to its height"
+.assert TEXT_OFS_Y + 12 + 1 <= 16, error, "a glyph with its shadow does not fit in its line's band"
+
+; Which bands a window without its background draws on, in A: those of its
+; lines with text, which `msg_line_rows` left in `MSG_ROWS` as the composer
+; went through them, and the bottom row if the page can show the arrow.
+; The top row, never: nothing is drawn there without the frame.
+.proc msg_bands
+.a8
+.i16
+    lda f:MSG_ROWS
+    and #WINDOW_BAND_LINES
+    pha
+    ; The arrow is up when `msg_arrow` says, and that is decided frame by
+    ; frame: what is known here is whether it can be, and with a choice or
+    ; the digits it cannot, nor with a `\^` closing the page —unless it is
+    ; cut at a `\!`, which waits for the key with the arrow—. RM2k draws it
+    ; with the window's opacity at zero too: `Window::Draw` blits it apart.
+    lda pick_active
+    bne no_arrow
+    lda f:FAR_MSG_AUTO
+    beq arrow
+    lda f:MSG_WAIT_HOLD
+    beq no_arrow
+arrow:
+    pla
+    ora #WINDOW_BAND_ARROW
+    pha
+no_arrow:
+    pla
+    rtl
+.endproc
+
+; The start of each line, from `message_tick` with its length read —zero
+; for a line the box does not carry—: whether the window draws on its band,
+; in `MSG_ROWS`. It is decided here and not by the converter because the
+; window does not appear until the composer has gone through every line
+; —the whole page, or up to a wait that cuts it—, so `msg_hdma_build`
+; already finds them all; and a line with a `\N` or a `\V` has a length
+; anyway.
+;
+; A line draws if it has letters; on a choice, if it is an option, even an
+; empty one, which the bar goes over and the window must not jump when it
+; moves; and with a face, all four, because the face covers lines 16 to 63
+; of the window. Only this line's bit is written: the digits of an
+; `InputNumber` and a box cut at a wait compose from a line down, and the
+; ones above keep theirs.
+.proc msg_line_rows
+.a8
+.i16
+    phx
+    lda f:msg_line
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:MSG_ROWS
+    and f:line_band_off, x
+    sta f:MSG_ROWS
+    lda f:MSG_FACE_DRAW
+    bne draws
+    lda f:msg_length
+    bne draws
+    lda pick_active
+    cmp #PICK_CHOICE
+    bne done
+    lda f:msg_lines
+    and #HEADER_LINES
+    cmp f:msg_line
+    beq done                    ; past the options
+    bcc done
+draws:
+    lda f:MSG_ROWS
+    ora f:line_band, x
+    sta f:MSG_ROWS
+done:
+    plx
+    rtl
+.endproc
+line_band:
+    .byte %000010, %000100, %001000, %010000
+line_band_off:
+    .byte $FF ^ %000010, $FF ^ %000100, $FF ^ %001000, $FF ^ %010000
+.assert WINDOW_TEXT_LINES = 4, error, "line_band has one bit per line of four"
+
+; What `msg_line_rows` and `msg_hdma_build` leave and use. Far RAM: the
+; first is written while composing and read in the vblank, and the rest is
+; the build's scratch.
+.pushseg
+.segment "FARBSS"
+MSG_ROWS:      .res 1           ; the bands of the lines that draw, as `line_band`
+MSG_RUN_BANDS: .res 1           ; the bands still to go, from bit 0
+MSG_RUN_BAND:  .res 1           ; which band
+MSG_RUN_KIND:  .res 1           ; the stretch's: 0 the map, 1 the window
+MSG_RUN_LINES: .res 1           ; how many lines it has so far
+.popseg
+
 ; What `msg_swap_build` leaves for the HDMA and for `flush_video`. Far RAM:
 ; HDMA reads any bank, and channels 3 and 6 take it from `A1B3` and `A1B6`.
 .pushseg
 .segment "FARBSS"
 MSG_SWAP:     .res 1            ; 1 while the window on screen trades BG1 and BG2
-MSG_SWAP_SC1: .res 7            ; BG1SC by stretch, as `hdma_sc` is BG2SC
-MSG_SWAP_NBA: .res 7            ; and BG12NBA
+MSG_SWAP_SC1: .res HDMA_ENTRIES * 2 + 1   ; BG1SC by stretch, as `hdma_sc` is BG2SC
+MSG_SWAP_NBA: .res HDMA_ENTRIES * 2 + 1   ; and BG12NBA
 .popseg
 
 .ifdef paint_table
@@ -306,47 +530,36 @@ MSG_SWAP_NBA: .res 7            ; and BG12NBA
 .i16
     lda #1
     sta f:MSG_SWAP
-    ; Every stretch with the map's values and `hdma_sc`'s lines...
+    ; The map's BG1SC and BG12NBA, at 1,s and 2,s.
     ldx map_ofs
+    lda f:map_table + M_BG12NBA_VALUE, x
+    pha
     lda f:map_table + M_VRAM_MAP + 1, x
     ora #MAP_LAYOUT
-    sta f:MSG_SWAP_SC1 + 1
-    sta f:MSG_SWAP_SC1 + 3
-    sta f:MSG_SWAP_SC1 + 5
-    lda f:map_table + M_BG12NBA_VALUE, x
-    sta f:MSG_SWAP_NBA + 1
-    sta f:MSG_SWAP_NBA + 3
-    sta f:MSG_SWAP_NBA + 5
+    pha
+    ; Every stretch of `hdma_sc`, with its lines: the map's keep the map's
+    ; values, and the window's are traded —the window to BG1 and the
+    ; painting to BG2—. A window's stretch is the one with `MSG_SC`, which
+    ; no stretch of the map has: the window's tilemap is its own.
     ldx #0
-lines:
+stretch:
     lda hdma_sc, x
     sta f:MSG_SWAP_SC1, x
     sta f:MSG_SWAP_NBA, x
-    inx
-    inx
-    cpx #8                      ; the three counts and the end's zero
-    bne lines
-    ; ...and the window's stretch traded: the window to BG1 and the painting
-    ; to BG2, whose entry in `hdma_sc` is the same as in these two.
-    lda f:MSG_PLACE
-    and #MSG_WHERE
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    tax
-    lda f:place_rows + 5, x
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:MSG_SWAP_SC1 + 1, x   ; the painting's tilemap
-    sta hdma_sc + 1, x
-    lda f:MSG_SC
+    beq done                    ; the end's zero, copied too
+    lda hdma_sc + 1, x
+    cmp f:MSG_SC
+    beq window
+    lda 1, s
     sta f:MSG_SWAP_SC1 + 1, x
-    lda f:MSG_SWAP_NBA + 1, x
+    lda 2, s
+    sta f:MSG_SWAP_NBA + 1, x
+    bra next
+window:
+    sta f:MSG_SWAP_SC1 + 1, x   ; the window, to BG1
+    lda 1, s
+    sta hdma_sc + 1, x          ; the painting, to BG2
+    lda 2, s
     asl a                       ; the two nibbles traded: BG12NBA has BG1's
     adc #$80                    ; base in the low one and BG2's in the high
     rol a
@@ -354,6 +567,13 @@ lines:
     adc #$80
     rol a
     sta f:MSG_SWAP_NBA + 1, x
+next:
+    inx
+    inx
+    bra stretch
+done:
+    pla
+    pla
     ; And the channels to their registers and tables.
     lda #<BG1HOFS
     sta BBAD2
@@ -372,25 +592,21 @@ lines:
 .endproc
 .endif
 
-; Per position, eight bytes: the three stretches' lines from the top, the
-; window's entry in `hdma_ofs` —five bytes per stretch—, its first line, its
-; entry in `hdma_sc` —two per stretch— and the address of its objects' mask.
+; Per position, four bytes: the window's first line on screen, a byte of
+; padding, and the address of its objects' mask.
 PLACE_TOP    = 0
 PLACE_MIDDLE = (LINES - TEXT_WINDOW_ROWS * 8) / 2
 PLACE_BOTTOM = LINES - TEXT_WINDOW_ROWS * 8
 place_rows:
-    .byte TEXT_WINDOW_ROWS * 8, 127, PLACE_BOTTOM - 127
-    .byte 0, PLACE_TOP, 0
+    .byte PLACE_TOP, 0
     .word .loword(mask_top)
-    .byte PLACE_MIDDLE, TEXT_WINDOW_ROWS * 8, PLACE_MIDDLE
-    .byte 5, PLACE_MIDDLE, 2
+    .byte PLACE_MIDDLE, 0
     .word .loword(mask_middle)
-    .byte 127, PLACE_BOTTOM - 127, TEXT_WINDOW_ROWS * 8
-    .byte 10, PLACE_BOTTOM, 4
+    .byte PLACE_BOTTOM, 0
     .word .loword(mask_bottom)
 place_rows_end:
-.assert place_rows_end - place_rows = 3 * 8, error, "place_rows is not eight bytes per position"
-.assert PLACE_MIDDLE <= 127, error, "the middle window's stretches do not fit in seven bits"
+.assert place_rows_end - place_rows = 3 * 4, error, "place_rows is not four bytes per position"
+.assert PLACE_MIDDLE <= 127, error, "the middle window's masks do not fit in seven bits"
 .assert PLACE_BOTTOM = WINDOW_LINE, error, "the bottom window is not where it always was"
 .assert DODGE_MIDDLE_TOP = PLACE_MIDDLE + 32 && DODGE_MIDDLE_LOW = PLACE_MIDDLE + 80, error, "the middle window moved and its dodge did not"
 .assert DODGE_BOTTOM = PLACE_BOTTOM, error, "the bottom window moved and its dodge did not"

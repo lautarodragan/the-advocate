@@ -607,7 +607,7 @@ map_each:
 ; counts them—: a line count, with the repeat bit for the entries that
 ; write a colour on every line, and where in `MSG_FACE_DATA` the four bytes
 ; of a line are. An entry's count is seven bits, so the 144 lines above
-; the bottom window are two entries, as in `place_rows`.
+; the bottom window are two entries, as in `hdma_sc`.
 ; An entry: its lines, and the four bytes of `MSG_FACE_DATA` it writes
 ; from, as the line of the face's palette (0 to 14) or of the map's (15 to
 ; 29). The places are spelled out as the label plus its offset and not as
