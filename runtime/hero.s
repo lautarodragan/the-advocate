@@ -566,8 +566,8 @@ no8:
 ; The passage bits of cell `pass_x`/`pass_y`: the ones A brings —the
 ; terrain's, from `pass_of_ptr`— unless a tile event on the lower layer
 ; imposes its own. It is `Game_Map::IsPassableTile`: of the events standing
-; there with an active page and a tile graphic on that layer the one with the
-; highest id wins, and if its tile is not one that goes above, it rules. The
+; there with an active page and a tile graphic on that layer, and not walking
+; through walls, the one with the highest id wins, and if its tile is not one that goes above, it rules. The
 ; refresh left the bits in the NPC's row, +15, or $FF if it imposes nothing;
 ; so this is one walk of the NPC table per step and not a pass over the
 ; pages. What is not modeled: the "conflict with itself" of a tile event that
@@ -603,6 +603,20 @@ other:
     bne next
     lda ev_pos_buf + 2, x
     cmp pass_y
+    bne next
+    ; One that walks through walls is not there either: `IsPassableTile`
+    ; skips the events with `GetThrough()`. Zounds' map 189 has its two
+    ; exits back to map 44 as impassable tiles on the lower layer whose own
+    ; route is a single 36, and without this the hero could not step on
+    ; them. Only for a row standing on the cell, so it costs nothing per
+    ; step. `event_crossable` leaves Y alone and Z from its answer, and
+    ; `rep` does not touch Z.
+    sep #$20
+.a8
+    lda npc_buf + 8, y
+    jsr event_crossable
+    rep #$20
+.a16
     bne next
     lda npc_buf + 14, y
     xba
