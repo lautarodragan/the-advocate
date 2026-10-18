@@ -243,8 +243,14 @@ set:
     ; The actor table belongs to this map, so where the leader's poses fall
     ; changes when changing map even if the party is the same.
     jsr pick_hero_graphic
-    jsr clear_tilemaps          ; what `fill_window` does not overwrite, from the map before
-    jsr fill_window             ; leaves strip_step_col ready, which the other one uses
+    jsr window_start            ; leaves strip_step_col ready, which the hero's pointer uses
+    ; What fills the window is left for the fade's black ticks when there is
+    ; one: see `tail_pump`.
+    lda f:LOAD_DEFER
+    bne window_later
+    jsr clear_tilemaps          ; what `fill_columns` does not overwrite, from the map before
+    jsr fill_columns
+window_later:
     jsr load_window             ; tiles, palette, its own tilemap and HDMA tables
     jsr init_hero_ptr
 
@@ -253,11 +259,14 @@ set:
     ; again here. With a neutral tint the computation is i*100/100 and leaves
     ; the colors where they were, so there is no need to ask whether there is
     ; a tint: the path is always the same.
-    jsr apply_tint
     stz flash_ready             ; whatever was in `pal_buf` no longer
                                 ; belongs to this map; the next frame
                                 ; builds it again if the flash goes on
+    lda f:LOAD_DEFER
+    bne tint_later              ; and it too, inside a fade: see `tail_pump`
+    jsr apply_tint
     jsr upload_tint             ; the screen is off: it goes now
+tint_later:
     ; And the carried bytecode, now that nothing else uses `LZ2_BUFFER`.
     jsl f:code_carry_after + FAST
     ; And the mode, if this map's panorama or the previous one's asks to
@@ -481,16 +490,22 @@ set:
     bcs cut_in
     pla
 ramp:
+    ; And what the load left for later —the window and the tint, `tail_pump`,
+    ; and the package's uploads, `upload_placed`—, in what is left of the
+    ; frame: the frozen ticks are idle.
+    jsl f:package_pump_l        ; keeps A
     jsr fade_brightness
     lda #1                      ; the game stays frozen
     rts
 cut_in:
+    jsl f:package_finish_l      ; the fade ends: nothing may be left waiting
     sta brightness
     pla
     stz fade
     lda #1                      ; this tick, the load's, stays frozen
     rts
 finish:
+    jsl f:package_finish_l      ; the fade ends: nothing may be left waiting
     stz fade
     lda #BRIGHTNESS_MAX
     sta brightness
@@ -537,6 +552,18 @@ in_ramp:
 .pushseg
 .segment "FARBSS"
 MAP_SONG: .res 1
+.popseg
+
+; 1 while a teleport's fade loads the map: what of the load nobody needs
+; before the fade ends is left for its frozen ticks, which are idle CPU
+; —the window and the tint, see `tail_pump`, and the package's uploads, see
+; `upload_placed`—. Set by `map_access_enter`,
+; which only a map load calls, from `fade`; back to 0 when the fade ends,
+; in `package_finish_l`. A load outside a fade —the boot, a new game, a
+; save from the title— does everything at once, as always.
+.pushseg
+.segment "FARBSS"
+LOAD_DEFER: .res 1
 .popseg
 
 ; What the map being entered does to the music, which is easyrpg's
@@ -599,6 +626,10 @@ nothing:
 .a8
 .i16
     pha
+    lda f:fade                  ; a load inside a fade defers: see `LOAD_DEFER`
+    sta f:LOAD_DEFER
+    lda #0
+    sta f:LOAD_TAIL             ; and the tail starts from its first step
     lda f:FAR_LENGTH + FAR_ACCESS
     and #<~ACCESS_MAP
     ora f:map_access, x
@@ -607,6 +638,163 @@ nothing:
     sta f:compar_owed
     pla
     rtl
+.endproc
+
+.popseg
+
+.pushseg
+.segment "FAR3"
+; --- the tail of a load, in the fade's black ticks ----------------------------
+;
+; Inside a fade, `enter_map_no_events` leaves for later what only the screen
+; needs and the screen will not show until the fade comes up: the 64
+; columns of the window —with the tilemaps cleared first and the
+; panorama's ring and the painted slots after— and the tint. The black
+; ticks after the load are idle, and here they do it, a step at a time,
+; while the frame has room: the screen is put in forced blanking for the
+; VRAM writes, which with the brightness at zero shows the same black,
+; and the tint goes to CGRAM in the next vblank by `tint_ready`, as an
+; event's does. On the last black tick whatever is left is done at once,
+; so the ramp up shows the map whole, as it always did; and the cut, which
+; has no black ticks, does it all on the load's own tick. Measured on
+; 2026-10-18: four to eight frames of every load were these.
+;
+; `LOAD_TAIL` is the step: 0 the tilemaps, 1 the columns, 2 the ring and
+; the slots, 3 the tint, 4 done. Only after the load —`fade_kind` back at
+; zero— and only while `LOAD_DEFER` says the load was deferred.
+.pushseg
+.segment "FARBSS"
+LOAD_TAIL: .res 1
+TAIL_COL:  .res 2               ; the next column, in 8x8 cells
+TAIL_LEFT: .res 1               ; and how many are left
+.popseg
+
+; How far into the frame a step may still start, by its weight: a column is
+; some fifteen to thirty lines; the rest only at the top of a tick.
+TAIL_LINE_COLUMN = 150
+TAIL_LINE_STEP   = 30
+
+; One frozen tick's worth of the tail, with C set; all of it, with C clear.
+; A8, I16; clobbers A, X and Y.
+.proc tail_pump
+.a8
+.i16
+    php                         ; C: timed, which `tail_room` reads here
+    lda f:LOAD_DEFER
+    beq none
+    lda f:fade_kind
+    bne none                    ; the load has not happened yet
+    lda f:LOAD_TAIL
+    cmp #4
+    bcc some
+none:
+    plp
+    rts
+some:
+    lda #$80
+    sta f:INIDISP               ; black already: forced blanking for the DMAs
+    lda f:LOAD_TAIL
+    beq tilemaps
+    cmp #1
+    beq columns
+    cmp #2
+    bne tint
+    jmp ring
+tint:
+    lda #TAIL_LINE_STEP
+    jsr tail_room
+    bcc out
+    jsl f:apply_tint_l + FAST
+    lda #1
+    sta f:tint_ready            ; to CGRAM in the next vblank
+    lda #4
+    sta f:LOAD_TAIL
+out:
+    plp
+    rts
+
+tilemaps:
+    lda #TAIL_LINE_STEP
+    jsr tail_room
+    bcc out
+    jsl f:clear_tilemaps_l + FAST
+    rep #$20
+.a16
+    lda f:win_col
+    sec
+    sbc #MARGIN_COLS            ; the same range `fill_columns` builds
+    sta f:TAIL_COL
+    sep #$20
+.a8
+    lda #WINDOW_COLS
+    sta f:TAIL_LEFT
+    lda #1
+    sta f:LOAD_TAIL
+columns:
+    lda #TAIL_LINE_COLUMN
+    jsr tail_room
+    bcc out
+    rep #$20
+.a16
+    lda f:TAIL_COL
+    tax
+    inc a
+    sta f:TAIL_COL
+    jsl f:window_column_l + FAST ; returns with A8
+.a8
+    lda f:TAIL_LEFT
+    dec a
+    sta f:TAIL_LEFT
+    bne columns
+    lda #2
+    sta f:LOAD_TAIL
+ring:
+    lda #TAIL_LINE_STEP
+    jsr tail_room
+    bcc out
+    jsl f:pano_fill
+.ifdef paint_table
+    jsl f:paint_load
+.endif
+    lda #3
+    sta f:LOAD_TAIL
+    jmp tint
+.endproc
+
+; C set if a step may start: always when it is not timed —the C `tail_pump`
+; pushed, at 3,s behind the return—, and otherwise at the top of the tick
+; —the vblank that starts it— or before line A.
+.proc tail_room
+.a8
+.i16
+    pha
+    lda 4, s                    ; the P `tail_pump` pushed, behind A and the return
+    lsr a
+    bcs timed
+    pla
+    sec
+    rts
+timed:
+    lda f:STAT78                ; resets the counters' flip-flop: `tl_line`
+    lda f:SLHV
+    lda f:OPVCT
+    xba
+    lda f:OPVCT
+    and #$01
+    bne top                     ; past line 255: the vblank
+    xba
+    cmp #225
+    bcs top
+    cmp 1, s
+    bcs late                    ; from line A on, no
+top:
+    pla
+    sec
+    rts
+late:
+    pla
+    clc
+    rts
 .endproc
 .popseg
 

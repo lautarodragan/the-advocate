@@ -56,6 +56,19 @@ PKG_PARTIAL: .res $1           ; 1 if something of the package did not fit: see
                                 ; `song_ensure`. What follows is MSU_HAS
 .pushseg
 .segment "FARBSS"
+; The uploads a teleport leaves for its fade's frozen ticks: see
+; `upload_placed`.
+PKG_PENDING: .res 1             ; 1 while samples marked 3 wait
+PKG_TIMED:   .res 1             ; 1 if `pump` stops at PUMP_LINE, 2 at PKG_GOAL
+PKG_GOAL:    .res 2             ; bytes `package_settle` wants up now
+PKG_DONE:    .res 2             ; and the bytes that went up since
+PKG_CAP:     .res 1             ; how many triplets a block may take
+PKG_CUR:     .res 1             ; the sample `pump` is on
+PKG_SCAN:    .res 2             ; where it looks for the next one
+PKG_OFS:     .res 2             ; how far it went into it, or $FFFF
+.popseg
+.pushseg
+.segment "FARBSS"
 INT_INIT: .res $100           ; what is occupied, in order: where it starts
 .popseg
 .pushseg
@@ -70,6 +83,8 @@ INT_END: .res $100           ; and where it ends
     lda #0
     sta f:APU_READY
     sta f:PKG_PARTIAL
+    sta f:PKG_PENDING           ; nothing waits —the WRAM starts with garbage
+    sta f:LOAD_DEFER            ; on the console and on bsnes—
     lda #$FF
     sta f:PKG_EXTRA
     ldx #0
@@ -139,14 +154,35 @@ wait:
     rts
 .endproc
 
-; The sample in row PKG_X7 of `sample_table`, to PKG_DEST. In triplets via
-; command 3, in batches of up to 85 triplets —the driver's index is one
-; byte— with interrupts disabled —about five
-; milliseconds: the music is delayed, not lost—, and whatever is left over
-; one byte at a time.
+; The sample in row PKG_X7 of `sample_table`, to PKG_A, whole: block after
+; block of `sample_block`, with nothing in between. `song_now` needs it so.
 .proc upload_sample
 .a8
 .i16
+    lda #85
+    sta f:PKG_CAP
+    ldy #0
+more:
+    jsr sample_block
+    bcc more
+    rts
+.endproc
+
+; One block of the sample in row PKG_X7 of `sample_table`, from its byte Y,
+; to PKG_A + Y: the pointer, and then up to PKG_CAP triplets via command 3
+; —at most 85: the driver's index is one byte— with interrupts disabled
+; —about five milliseconds: the music is delayed, not lost—; or, when fewer
+; than three bytes are left, those one at a time. Returns Y past what went
+; up, and C at 1 once the sample is complete.
+;
+; One block per call and not the whole sample so that `package_pump` can
+; stop between two of them: see there. The SPC700 receives the same
+; commands in the same order either way, the pointer included before the
+; 0 bytes of the end.
+.proc sample_block
+.a8
+.i16
+    phy
     rep #$30
 .a16
     lda f:PKG_X7
@@ -159,15 +195,15 @@ wait:
 .a8
     lda f:sample_table + 2, x
     sta comp_glyph + 2
+    ply
 .ifdef MSU_REQUIRED
     cmp #MSU_SPILL_BANK
     bne in_rom
     jsl f:msu_sample_l          ; it travels in the `.msu`: see there
+    sec                         ; and goes up whole
     rts
 in_rom:
 .endif
-    ldy #0
-suite:
     ; The pointer, to where the next triplet goes: the block does not advance
     ; it.
     rep #$20
@@ -210,6 +246,10 @@ has_triplets:
     bcc how_many
     lda #85                     ; the driver's index is one byte
 how_many:
+    cmp f:PKG_CAP
+    bcc capped
+    lda f:PKG_CAP               ; what `package_pump` has room for
+capped:
     rep #$20
 .a16
     and #$00FF                  ; the count, in X
@@ -273,7 +313,8 @@ ack_last:
     bne ack_last
     stz APUIO2
     plp
-    jmp suite
+    clc                         ; there may be more: the next call says
+    rts
 .a16
 rest:
     sep #$20
@@ -290,6 +331,7 @@ byte:
     dec temp
     bne byte
 ready:
+    sec                         ; complete
     rts
 .endproc
 
@@ -475,21 +517,476 @@ ran:
 .endproc
 
 ; Uploads the samples `place_sample` marked with 3, each to its place, and
-; writes their directory entry.
+; writes their directory entry: `package_pump` does it, without a time limit.
+;
+; **Except inside a teleport's fade**, `LOAD_DEFER`: there nothing is
+; uploaded here, and the samples wait, marked, for the frozen ticks that
+; follow the load —`package_pump` from `fade_tick`—, which are idle CPU; the
+; ones of the song the map turns on go up first, right after the load,
+; when `music_start` asks `song_ensure` for them —`song_now`—. Nothing else
+; can sound before the fade ends —the world is frozen, the sound effects of the map left
+; behind were silenced with `se_mute`, and the song that goes on keeps its
+; samples where they were—, and the fade does not end until the package is
+; complete: see `package_finish`. The ARAM and the directory end up the same,
+; only sooner on the wall clock. Measured on 2026-10-18, the uploads were
+; most of a load's frames inside the black.
 .proc upload_placed
 .a8
 .i16
+    rep #$20
+.a16
+    lda #0
+    sta f:PKG_SCAN
+    lda #$FFFF
+    sta f:PKG_OFS               ; no sample half uploaded
+    sep #$20
+.a8
+    lda #1
+    sta f:PKG_PENDING
+    lda f:LOAD_DEFER
+    bne later
+    jmp package_finish
+later:
+    rts
+.endproc
+
+; Whatever the package still has waiting, now and whole. Before anything that
+; reads `FAR_ARAM_OF` as "it is in the ARAM" —a new package, the end of the
+; fade—.
+.proc package_finish
+.a8
+.i16
+    lda #0
+    sta f:PKG_TIMED
+    jsl f:pump_l
+    rts
+.endproc
+
+.pushseg
+.segment "FAR3"
+; What follows runs in the fade's frozen ticks, and lives in bank $C1
+; because bank $C0, where the rest of the package is, had no room for it:
+; it reaches the rest through the `_l` entries below.
+
+; One frozen tick's worth of the package waiting: as many blocks as fit
+; before PUMP_LINE —see `pump_room`—. From `fade_tick`, on every frozen tick;
+; with nothing waiting it costs a comparison.
+.proc package_pump
+.a8
+.i16
+    lda f:PKG_PENDING
+    bne some
+    rts
+some:
+    lda #1
+    sta f:PKG_TIMED
+    jmp pump
+.endproc
+
+; On the fade's last black tick, what the ticks coming up cannot take goes
+; up now, at once: the tick overruns, but it is black, as the whole load
+; used to be; and so the ramp keeps its pace and the fade ends on its tick,
+; with the package complete. What the ramp can take is a guess on the safe
+; side, PUMP_TICK_BYTES a tick —they took some 600 in snes9x—: if it comes
+; short, `package_finish` uploads the rest when the fade ends, with the map
+; already lit and still.
+PUMP_TICK_BYTES = 512
+.proc package_settle
+.a8
+.i16
+    lda f:PKG_PENDING
+    bne some
+    rts
+some:
+    jsr pending_bytes
+    rep #$20
+.a16
+    lda f:PKG_GOAL
+    sec
+    sbc #(FADE_RAMP * PUMP_TICK_BYTES)
+    bcc fits
+    beq fits
+    sta f:PKG_GOAL
+    lda #0
+    sta f:PKG_DONE
+    sep #$20
+.a8
+    lda #2
+    sta f:PKG_TIMED
+    jmp pump
+.a16
+fits:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; The bytes still waiting, in PKG_GOAL: the marked samples' lengths, minus
+; what the one half uploaded already took. A sound effect from the `.msu`
+; counts its length in the cartridge's table, which is close enough.
+.proc pending_bytes
+.a8
+.i16
+    rep #$20
+.a16
+    lda #0
+    sta f:PKG_GOAL
+    sep #$20
+.a8
     ldx #0
 other:
     lda f:FAR_WANTS, x
     cmp #3
-    bne continues
+    bne next
     phx
     txa
+    jsl f:sample_row_l
+    rep #$20
+.a16
+    lda f:sample_table + 3, x
+    clc
+    adc f:PKG_GOAL
+    bcc sum
+    lda #$FFFF
+sum:
+    sta f:PKG_GOAL
+    sep #$20
+.a8
+    plx
+next:
+    inx
+    cpx #SAMPLES_N
+    bcc other
+    rep #$20
+.a16
+    lda f:PKG_OFS
+    cmp #$FFFF
+    beq done
+    lda f:PKG_GOAL
+    sec
+    sbc f:PKG_OFS
+    sta f:PKG_GOAL
+done:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; The scan line the frozen tick's uploads stop at, so that the tick still
+; ends before the vblank: past it there are the IRQ's music frame, if a block
+; held it back, and the rest of the tick, and the vblank starts at 225.
+PUMP_LINE = 180
+
+; How many triplets the next block may take, in A, with Z if none: 85 when
+; it is not timed, and otherwise one per scan line left before PUMP_LINE —a
+; triplet takes a little more than a line, 85 of them some 88 lines in
+; snes9x, so the last block ends a few lines past it—. Inside the vblank
+; that starts the tick, the whole budget: the tick began there.
+.proc pump_room
+.a8
+.i16
+    lda f:PKG_TIMED
+    bne limited
+    lda #85
+    rts
+limited:
+    cmp #2
+    bne timed
+    rep #$20                    ; 2: up to PKG_GOAL bytes, see `package_settle`
+.a16
+    lda f:PKG_DONE
+    cmp f:PKG_GOAL
+    sep #$20
+.a8
+    bcs none
+    lda #85
+    rts
+timed:
+    lda f:STAT78                ; resets the counters' flip-flop: `tl_line`
+    lda f:SLHV                  ; latches them
+    lda f:OPVCT
+    xba
+    lda f:OPVCT
+    and #$01                    ; the ninth bit; the rest is open bus
+    xba
+    rep #$20
+.a16
+    cmp #225
+    bcs whole
+    cmp #PUMP_LINE
+    bcs none
+    eor #$FFFF
+    sec
+    adc #PUMP_LINE              ; PUMP_LINE minus the line
+    cmp #85
+    bcc fits
+whole:
+    lda #85
+fits:
+    sep #$20
+.a8
+    cmp #0                      ; Z for the caller: the `cmp #85` set it
+    rts
+none:
+    sep #$20
+.a8
+    lda #0
+    rts
+.endproc
+
+; The marked samples, in directory order and block by block, while
+; `pump_room` gives room. `PKG_SCAN` is where the search for the next one
+; goes on and `PKG_OFS` how far the one in progress went; each one that is
+; complete gets its directory entry and goes from 3 to 1. Sound effects
+; from the `.msu` and samples spilled into it go up whole, as before.
+.proc pump
+.a8
+.i16
+    lda f:PKG_PENDING
+    bne next
+    rts
+next:
+    rep #$20
+.a16
+    lda f:PKG_OFS
+    cmp #$FFFF
+    sep #$20
+.a8
+    bne block                   ; one is half uploaded
+    rep #$20
+.a16
+    lda f:PKG_SCAN
+    tax
+    sep #$20
+.a8
+find:
+    cpx #SAMPLES_N
+    bcs all_done
+    lda f:FAR_WANTS, x
+    cmp #3
+    beq found
+    inx
+    bra find
+all_done:
+    lda #0
+    sta f:PKG_PENDING
+    rts
+found:
+    jsr pump_room
+    bne room
+    rts
+room:
+    txa
+    sta f:PKG_CUR
+    rep #$20
+.a16
+    inx
+    txa
+    sta f:PKG_SCAN
+    sep #$20
+.a8
+    jsr pump_load
+    jsl se_msu_upload           ; a sound effect from the `.msu`: see msu_effects.s
+    bcs complete
+    rep #$20
+.a16
+    lda #0
+    sta f:PKG_OFS
+    sep #$20
+.a8
+block:
+    jsr pump_room
+    bne block_room
+    rts
+block_room:
+    sta f:PKG_CAP
+    jsr pump_load
+    rep #$20
+.a16
+    lda f:PKG_OFS
+    tay
+    sep #$20
+.a8
+    jsl f:sample_block_l
+    bcs whole
+    jsr pump_count
+    jmp next
+whole:
+    jsr pump_count
+    jsl f:write_directory_l
+complete:
+    rep #$20
+.a16
+    lda #$FFFF
+    sta f:PKG_OFS
+    lda f:PKG_CUR
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #1
+    sta f:FAR_WANTS, x          ; up, and with its entry
+    jmp next
+.endproc
+
+; After a block: Y, how far the sample went, into PKG_OFS, and what the
+; block took into PKG_DONE.
+.proc pump_count
+.a8
+.i16
+    rep #$20
+.a16
+    tya
+    sec
+    sbc f:PKG_OFS
+    clc
+    adc f:PKG_DONE
+    sta f:PKG_DONE
+    tya
+    sta f:PKG_OFS
+    sep #$20
+.a8
+    rts
+.endproc
+
+; PKG_S, PKG_A and PKG_X7 of `PKG_CUR`, the sample `pump` is on. Again on
+; every block and not kept from the last one: between two frozen ticks
+; nothing promises that nobody else used them.
+.proc pump_load
+.a8
+.i16
+    lda f:PKG_CUR
     sta f:PKG_S
     rep #$20
 .a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_ARAM_OF, x
+    sta f:PKG_A
+    sep #$20
+.a8
+    lda f:PKG_S
+    jsl f:sample_row_l
+    rts
+.endproc
+
+; `package_pump` and `package_finish` from `fade_tick`; the second one
+; when the fade ends, which is also when a load stops deferring: see
+; `LOAD_DEFER`. The first one gets the fade's tick in A, and on the last
+; black one settles first: see `package_settle`. Keep A.
+.proc package_pump_l
+.a8
+.i16
+    pha
+    cmp #(FADE_TOTAL - FADE_RAMP - 1)
+    beq last_black
+    sec
+    jsr tail_pump               ; first what the screen needs: see there
+    jsr package_pump
+    pla
+    rtl
+last_black:
+    clc
+    jsr tail_pump               ; the whole tail, before the ramp shows it
+    jsr package_settle
+    jsr package_pump
+    pla
+    rtl
+.endproc
+
+.proc package_finish_l
+.a8
+.i16
+    pha
+    clc
+    jsr tail_pump
+    lda #0
+    sta f:LOAD_DEFER
+    sta f:PKG_TIMED             ; `package_finish`, from this bank
+    jsr pump
+    pla
+    rtl
+.endproc
+
+; `pump` for `package_finish`, which lives in bank $C0.
+.proc pump_l
+.a8
+.i16
+    jsr pump
+    rtl
+.endproc
+.popseg
+
+; `sample_row`, `sample_block` and `write_directory` for the code in bank
+; $C1 above.
+.proc sample_row_l
+.a8
+.i16
+    jsr sample_row
+    rtl
+.endproc
+
+.proc sample_block_l
+.a8
+.i16
+    jsr sample_block
+    rtl
+.endproc
+
+.proc write_directory_l
+.a8
+.i16
+    jsr write_directory
+    rtl
+.endproc
+
+; The marked samples of song A that are still waiting, now: what
+; `song_ensure` asks for before turning a song on. Clobbers `temp`.
+.proc song_now
+.a8
+.i16
+    pha
+    lda f:PKG_PENDING
+    beq none
+    lda 1, s
+    jsr song_list
+other:
+    lda f:song_samples, x
+    cmp #$FF
+    beq none
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:FAR_WANTS, x
+    cmp #3
+    bne next
     txa
+    jsr upload_one
+next:
+    plx
+    inx
+    bra other
+none:
+    pla
+    rts
+.endproc
+
+; Entry A, marked with 3, uploaded whole now, with its directory entry. If
+; `pump` had it half uploaded, it goes again from its start: the same
+; bytes to the same place.
+.proc upload_one
+.a8
+.i16
+    sta f:PKG_S
+    rep #$20
+.a16
+    and #$00FF
+    pha
     asl a
     tax
     lda f:FAR_ARAM_OF, x
@@ -498,16 +995,28 @@ other:
 .a8
     lda f:PKG_S
     jsr sample_row
-    jsl se_msu_upload           ; a sound effect from the `.msu`: see msu_effects.s
-    bcs upload
+    jsl se_msu_upload
+    bcs complete
     jsr upload_sample
     jsr write_directory
-upload:
+complete:
+    rep #$20
+.a16
     plx
-continues:
-    inx
-    cpx #SAMPLES_N
-    bcc other
+    sep #$20
+.a8
+    lda f:PKG_S
+    cmp f:PKG_CUR
+    bne not_half
+    rep #$20
+.a16
+    lda #$FFFF                  ; it was the one `pump` had half uploaded
+    sta f:PKG_OFS
+    sep #$20
+.a8
+not_half:
+    lda #1
+    sta f:FAR_WANTS, x
     rts
 .endproc
 
@@ -703,6 +1212,10 @@ ready:
     bne ready_apu
     rts                         ; at reset, before the driver runs
 ready_apu:
+    ; What the previous one left waiting goes up first: what follows takes
+    ; `FAR_ARAM_OF` as "it is in the ARAM". Outside a fade nothing is ever
+    ; left waiting; see `upload_placed`.
+    jsr package_finish
     lda #0
     sta f:PKG_PARTIAL
     sta f:PKG_COMPACT
@@ -1304,6 +1817,12 @@ ran:
     lda temp + 1
     cmp #SONG_TOTAL
     bcs ready
+    ; Its samples that a teleport's package left waiting go up now, before
+    ; it sounds: see `upload_placed`. `song_now` clobbers `temp`.
+    pha
+    jsr song_now
+    pla
+    sta temp + 1
     lda f:PKG_PARTIAL
     bne missing                 ; even if the song is missing nothing
     lda temp + 1                ; the song: `song_list` reads it from A
@@ -1344,7 +1863,10 @@ missing:
     plp
     lda temp + 1
     sta f:PKG_EXTRA
+    pha
     jsr package_load
+    pla
+    jsr song_now                ; inside a fade the package left it waiting
     lda #$FF
     sta f:PKG_EXTRA
 ready:

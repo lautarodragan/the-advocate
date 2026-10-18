@@ -708,6 +708,14 @@ nothing:
     rts
 .endproc
 
+; `apply_tint` for `tail_pump`, in bank $C0.
+.proc apply_tint_l
+.a8
+.i16
+    jsr apply_tint
+    rtl
+.endproc
+
 ; Uploads to CGRAM the three tinted palettes from `cgram_shadow`, and the
 ; untinted timer entries after them. It is for the vblank, or for
 ; `enter_map` with the screen off. The three DMAs together are 544 bytes at
