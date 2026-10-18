@@ -842,25 +842,34 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
 /// The skills screen of `actor`: `skills` are the ones it knows that the
 /// cartridge carries, in its list's order; `hp` and `sp` the current and
 /// the maximum; `chosen` the cursor's place in the whole list and `top` the
-/// first visible row. A skill goes in grey if the map cannot use it or its
-/// cost is more than the SP —`Window_Skill::CheckEnable`, without states—.
+/// first visible row; `held` the items in its first two slots, weapon and
+/// shield, 0 for empty. A skill goes in grey if the map cannot use it, its
+/// cost is more than the SP or its weapons do not carry its physical
+/// attributes —`Window_Skill::CheckEnable`, without states—.
 #[allow(clippy::too_many_arguments)]
 pub fn skill_screen(
     game: &Game,
     skin: &Skin,
     actor: i32,
     skills: &[i32],
+    held: [i32; 2],
     level: i64,
     hp: (i64, i64),
     sp: (i64, i64),
     chosen: usize,
     top: usize,
 ) -> Result<Picture> {
+    let mut weapons = Vec::new();
+    for n in held.into_iter().filter(|&n| n > 0) {
+        weapons.push(game.items.get(&n).ok_or_else(|| Bad::answer(format!("there is no item {n}")))?);
+    }
     let grey: Vec<bool> = skills
         .iter()
         .map(|&k| {
             let s = game.skill(k)?;
-            Ok(!rm2k_rules::skill::usable_on_the_map(s, &game.states) || i64::from(s.sp_cost) > sp.0)
+            Ok(!rm2k_rules::skill::usable_on_the_map(s, &game.states)
+                || i64::from(s.sp_cost) > sp.0
+                || !rm2k_rules::skill::weapons_allow(s, &game.attributes, &weapons))
         })
         .collect::<Result<_>>()?;
     let t = crate::skills::page_text(game, actor, level, hp, sp, skills, &grey, skills.get(chosen).copied(), top)?;

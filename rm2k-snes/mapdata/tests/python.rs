@@ -922,7 +922,7 @@ fn with_the_switch_comment_as_before(text: &str) -> String {
 }
 
 /// The text without the attributes, which came on 2026-10-15: `ATTR_N` and
-/// its six tables, three lines each. The test game carries none, so
+/// its seven tables, three lines each. The test game carries none, so
 /// `ATTR_N` is zero —checked here—, and every item and skill has the empty
 /// set's row.
 fn without_attributes(text: &str) -> String {
@@ -936,10 +936,11 @@ fn without_attributes(text: &str) -> String {
         "attr_sets:",
         "item_attr:",
         "skill_attr:",
+        "skill_weapon:",
         "attr_ranks:",
     ] {
         let at = lines.iter().position(|l| l == label).unwrap();
-        if label == "item_attr:" || label == "skill_attr:" {
+        if label == "item_attr:" || label == "skill_attr:" || label == "skill_weapon:" {
             let values = lines[at + 1].trim_start_matches("    .word ");
             assert!(values.split(", ").all(|v| v == "0"), "{label}");
         }

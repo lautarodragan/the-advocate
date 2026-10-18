@@ -4,10 +4,11 @@
 //! outside battle, which is what `Game_Battler::IsSkillUsable` asks after
 //! the cost and the states, and what `Window_Skill` greys a skill by on the
 //! map. What it leaves out depends on the moment, not on the database: the
-//! SP the actor has, the states it carries, and the weapon a skill with
-//! physical attributes asks for (`Game_Actor::IsSkillUsable`).
+//! SP the actor has and the states it carries. The weapon a skill with
+//! physical attributes asks for (`Game_Actor::IsSkillUsable`), which
+//! depends on what the actor holds, is [`weapons_allow`].
 
-use ditto::schema::{Skill, SkillScope, SkillType, State, StatePersistence};
+use ditto::schema::{Attribute, AttributeType, Item, ItemType, Skill, SkillScope, SkillType, State, StatePersistence};
 
 /// Whether the map can use `skill`, by its data alone. `states` are the
 /// database's, which a skill's `state_effects` index from state 1.
@@ -49,9 +50,109 @@ pub fn cures_death(skill: &Skill) -> bool {
     skill.state_effects.first().copied().unwrap_or(false)
 }
 
+/// The attributes `skill` asks a weapon for, by index —`id - 1`—: its
+/// physical ones, unless it has `affect_attr_defence`, which shifts ranks
+/// instead of hitting with them. The first half of
+/// `Game_Actor::IsSkillUsable`; `attributes` are the database's, in id
+/// order. An attribute past the database's end asks for nothing: easyrpg
+/// would read past its array, and no game carries one.
+pub fn weapon_attributes_asked(skill: &Skill, attributes: &[Attribute]) -> Vec<bool> {
+    if skill.affect_attr_defence {
+        return Vec::new();
+    }
+    skill
+        .attribute_effects
+        .iter()
+        .enumerate()
+        .map(|(i, &on)| on && attributes.get(i).is_some_and(|a| a.r#type == AttributeType::Physical))
+        .collect()
+}
+
+/// Whether an actor holding `held` —the items in its first two slots,
+/// weapon and shield, in either order; a shield or an empty slot counts for
+/// nothing— can use `skill` by its weapons: `Game_Actor::IsSkillUsable`.
+/// **Each** physical attribute the skill carries has to be on one of the
+/// two weapons —not necessarily the same one—; a skill without any is
+/// always usable by this rule. RPG Maker 2000 and 2003 ask the same, and a
+/// two-weapon actor's second weapon is the one in the shield's slot
+/// (`Get2ndWeapon`). The SP and the states are asked elsewhere.
+pub fn weapons_allow(skill: &Skill, attributes: &[Attribute], held: &[&Item]) -> bool {
+    let weapons: Vec<&Item> = held.iter().copied().filter(|i| i.r#type == ItemType::Weapon).collect();
+    weapon_attributes_asked(skill, attributes)
+        .iter()
+        .enumerate()
+        .all(|(i, &asked)| !asked || weapons.iter().any(|w| w.attribute_set.get(i).copied().unwrap_or(false)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn attribute(id: i32, physical: bool) -> Attribute {
+        Attribute {
+            id,
+            r#type: if physical { AttributeType::Physical } else { AttributeType::Magical },
+            ..Default::default()
+        }
+    }
+
+    fn weapon(t: ItemType, set: &[bool]) -> Item {
+        Item { r#type: t, attribute_set: set.to_vec(), ..Default::default() }
+    }
+
+    /// Sword physical, Flame magical, Martial physical.
+    fn three() -> Vec<Attribute> {
+        vec![attribute(1, true), attribute(2, false), attribute(3, true)]
+    }
+
+    #[test]
+    fn a_physical_attribute_asks_for_a_weapon_that_carries_it() {
+        let mut s = skill(SkillType::Normal, SkillScope::Enemy);
+        s.attribute_effects = vec![false, false, true];
+        let staff = weapon(ItemType::Weapon, &[true]);
+        let gloves = weapon(ItemType::Weapon, &[false, false, true]);
+        assert!(!weapons_allow(&s, &three(), &[]));
+        assert!(!weapons_allow(&s, &three(), &[&staff]));
+        assert!(weapons_allow(&s, &three(), &[&gloves]));
+        assert!(weapons_allow(&s, &three(), &[&staff, &gloves]));
+    }
+
+    #[test]
+    fn a_magical_one_asks_for_nothing_and_neither_does_none() {
+        let mut s = skill(SkillType::Normal, SkillScope::Enemy);
+        assert!(weapons_allow(&s, &three(), &[]));
+        s.attribute_effects = vec![false, true];
+        assert!(weapons_allow(&s, &three(), &[]));
+    }
+
+    #[test]
+    fn affect_attr_defence_asks_for_nothing() {
+        let mut s = skill(SkillType::Normal, SkillScope::Enemy);
+        s.attribute_effects = vec![true];
+        s.affect_attr_defence = true;
+        assert!(weapons_allow(&s, &three(), &[]));
+        assert!(weapon_attributes_asked(&s, &three()).is_empty());
+    }
+
+    #[test]
+    fn each_one_on_either_weapon_and_a_shield_carries_nothing() {
+        let mut s = skill(SkillType::Normal, SkillScope::Enemy);
+        s.attribute_effects = vec![true, false, true];
+        let sword = weapon(ItemType::Weapon, &[true]);
+        let gloves = weapon(ItemType::Weapon, &[false, false, true]);
+        let shield = weapon(ItemType::Shield, &[false, false, true]);
+        assert!(!weapons_allow(&s, &three(), &[&sword]));
+        assert!(weapons_allow(&s, &three(), &[&sword, &gloves]));
+        assert!(weapons_allow(&s, &three(), &[&gloves, &sword]));
+        assert!(!weapons_allow(&s, &three(), &[&sword, &shield]));
+    }
+
+    #[test]
+    fn past_the_database_asks_for_nothing() {
+        let mut s = skill(SkillType::Normal, SkillScope::Enemy);
+        s.attribute_effects = vec![false, false, false, true];
+        assert!(weapons_allow(&s, &three(), &[]));
+    }
 
     #[test]
     fn death_is_the_first_state() {

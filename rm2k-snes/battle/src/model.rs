@@ -670,7 +670,10 @@ pub fn field_skill(db: &Db, request: &Value) -> Result<Value> {
             .transpose()?
             .unwrap_or(BATTLE_SEED),
     };
-    let used = crate::field::use_skill(skill, &mut party, user, target, &mut rng);
+    // One its weapons do not allow is greyed out in the menu, and A on it
+    // only sounds the buzzer: `Game_Actor::IsSkillUsable`.
+    let used = rules::weapons_allow(db, skill, &party[user].equipment)?
+        && crate::field::use_skill(skill, &mut party, user, target, &mut rng);
     Ok(json!({
         "used": used,
         "party": party.iter().map(|c| json!({"hp": c.hp, "sp": c.sp})).collect::<Vec<_>>(),

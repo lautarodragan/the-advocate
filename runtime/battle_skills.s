@@ -911,11 +911,14 @@ fits:
     rts
 .endproc
 
-; Whether combatant `BA_ACTOR` can pay for the `k` in A8: Z=0 if so. **It does
-; not use the flag a `pl*` leaves**: the usual trap.
+; Whether combatant `BA_ACTOR` can use the `k` in A8: Z=0 if so. It has to
+; pay for it and, an actor's skill with a physical attribute, hold a weapon
+; that carries it —see `ba_weapons_allow`—. **It does not use the flag a
+; `pl*` leaves**: the usual trap.
 .proc ba_skill_reaches
 .a8
 .i16
+    sta BA_T1
     jsr ba_skill_cost
     sta BA_T2
     lda BA_ACTOR
@@ -930,8 +933,9 @@ fits:
     beq if                      ; exactly as many as it has is enough
     bcs no
 if:
-    lda #1
-    rts
+    lda BA_ONE + BA_NUMBER, x   ; the skill list is only ever an actor's
+    ldy BA_T1
+    jmp ba_weapons_allow
 no:
     lda #0
     rts

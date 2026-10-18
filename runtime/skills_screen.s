@@ -565,7 +565,8 @@ ready:
 .endproc
 
 ; Whether `sk_actor` can use skill `CM_T4` here: Z=0 if so —the map can use
-; it, and its SP reach—. `Window_Skill::CheckEnable`, without states, which
+; it, its SP reach and its weapons carry its physical attributes, see
+; `ba_weapons_allow`—. `Window_Skill::CheckEnable`, without states, which
 ; this port does not keep outside battle. **It does not use the flag a
 ; `pl*` leaves**: the usual trap.
 .proc sk_usable
@@ -599,8 +600,14 @@ ready:
     beq yes                     ; exactly as many as it has is enough
     bcs no
 yes:
-    lda #1
-    rts
+    rep #$20
+.a16
+    lda f:CM_T4
+    tay
+    sep #$20
+.a8
+    lda f:sk_actor
+    jmp ba_weapons_allow
 no:
     lda #0
     rts

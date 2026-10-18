@@ -3507,6 +3507,12 @@ impl Rest<'_> {
     ///   attribute; row 0 is the empty set, and equal sets share a row.
     ///   `item_attr` and `skill_attr` give each item and skill its row, as
     ///   the byte where it starts.
+    /// * `skill_weapon`: per skill, the row of the attributes it asks a
+    ///   weapon for —its physical ones, unless it has
+    ///   `affect_attr_defence`: `weapon_attributes_asked` in `rm2k-rules`, through
+    ///   `rm2k-snes-battle`'s—;
+    ///   row 0, the empty set, asks for nothing. `ba_weapons_allow` greys
+    ///   it by them, in battle and in the menu.
     /// * `attr_ranks`: rows of `ATTR_N` ranks, one per actor —its own,
     ///   before its armor— and then one per enemy, in `enemy_*` order: the
     ///   enemy `k`'s row is `ACTORS_N + k`.
@@ -3586,12 +3592,23 @@ impl Rest<'_> {
         };
         let item_rows: Vec<usize> = item_sets.iter().map(|s| place(s)).collect();
         let skill_rows: Vec<usize> = skill_sets.iter().map(|s| place(s)).collect();
+        // A subset of the skill's own, so its attributes are all among
+        // `used`.
+        let weapon_rows: Vec<usize> = x
+            .rom_skills
+            .iter()
+            .map(|&h| {
+                let skill = db.skill(h as i32).map_err(bad)?;
+                Ok(place(&rm2k_snes_battle::rules::weapon_attributes_asked(db, skill)))
+            })
+            .collect::<Result<_>>()?;
         if rows.len() > 0x10000 {
             return Err(Bad::answer("the attribute sets don't fit in a bank"));
         }
         bytes_asm(out, "attr_sets", &decimal(rows), true);
         words_asm(out, "item_attr", &decimal(item_rows), true);
         words_asm(out, "skill_attr", &decimal(skill_rows), true);
+        words_asm(out, "skill_weapon", &decimal(weapon_rows), true);
         let mut ranks = Vec::new();
         for a in 0..n_actors {
             for &k in &used {

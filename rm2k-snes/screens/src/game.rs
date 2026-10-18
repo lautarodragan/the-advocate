@@ -8,7 +8,7 @@
 
 use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
-use ditto::schema::{Actor, Item, Skill, State, System, Terms};
+use ditto::schema::{Actor, Attribute, Item, Skill, State, System, Terms};
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::source::find_resource;
 use rm2k_rules::system::{self as system_rules, Background, BACKGROUND, PIECE};
@@ -36,6 +36,10 @@ pub struct Game {
     /// The skills and the states, which the skills screen reads.
     pub skills: BTreeMap<i32, Skill>,
     pub states: Vec<State>,
+    /// The attributes, in id order: a skill with a physical one is grey
+    /// unless the actor's weapon carries it —see
+    /// [`rm2k_rules::skill::weapons_allow`]—.
+    pub attributes: Vec<Attribute>,
     pub system: System,
     /// The game's folder, where the System and the FaceSets are.
     pub game_dir: PathBuf,
@@ -66,12 +70,20 @@ impl Game {
         let system: System = dump.section("system").map_err(answer)?;
         let skills: Vec<Skill> = dump.section("skills").map_err(answer)?;
         let states: Vec<State> = dump.section("states").map_err(answer)?;
+        // A dump cut down to what the screens draw —the tests' small game—
+        // may not bring them, and then no skill asks for a weapon.
+        let attributes: Vec<Attribute> = if data.join("db").join("attributes.json").exists() {
+            dump.section("attributes").map_err(answer)?
+        } else {
+            Vec::new()
+        };
         Ok(Game {
             terms: dump.section("terms").map_err(answer)?,
             actors: actors.into_iter().map(|a| (a.id, a)).collect(),
             items: items.into_iter().map(|i| (i.id, i)).collect(),
             skills: skills.into_iter().map(|s| (s.id, s)).collect(),
             states,
+            attributes,
             font: Font::rm2k(system.font_id.to_i32()),
             system,
             game_dir: game_dir.to_path_buf(),
