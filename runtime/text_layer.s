@@ -49,7 +49,11 @@
 ;   said to what it says in one frame. A pair a row stopped using waits
 ;   until that switch, because the screen still shows it: at the top of
 ;   `TL_FREE`, which the free ones fill from the bottom. A screen that
-;   changes so much at once that the pool runs out switches earlier.
+;   changes so much at once that the pool runs out switches earlier, with
+;   the rows not typeset yet blank —`tl_blank_dirty`—.
+; * **A held arrow waits for the text**: its repeat fires only once the
+;   screen shows what it wrote —`tl_pace`—, so a list held scrolling never
+;   writes over a screen that was not shown.
 ;
 ; **It typesets while the frame waits for the vblank**: `wait_vblank` calls
 ; `tl_idle` until the line it is on reaches `TL_LAST_LINE`. That is the
@@ -1150,6 +1154,7 @@ more:
 not_now:
     sep #$20
 .a8
+    jsl f:tl_pace
     plb
     rtl
 .endproc
@@ -1411,6 +1416,7 @@ typeset:
     lda TL_PEND_N
     beq room
     pla
+    jsl f:tl_blank_dirty
     lda #1
     sta TL_FLUSH
     bra busy
@@ -1939,6 +1945,14 @@ empty:
     dec TL_T1
     bne column
     rts
+.endproc
+
+; `tl_release_row` for `tl_blank_dirty`, which lives in `FAR3`. A16.
+.proc tl_release_row_l
+.a16
+.i16
+    jsr tl_release_row
+    rtl
 .endproc
 
 ; Row A16's record is now what `TL_MAP` says: copied to `TL_SHOWN`. A16.
@@ -2772,3 +2786,130 @@ word:
 placed:
     rts
 .endproc
+
+; --- what came after bank 1 filled up ------------------------------------------
+;
+; In `FAR3`, entered with `jsl` and without `+ FAST`, because they did not fit
+; in bank 1 in ABL's MSU test cartridge. They run with the data bank at $7E
+; like the rest.
+.pushseg
+.segment "FAR3"
+
+; More pairs for the pool, right after `tl_reset`: A16 the first, X16 one
+; past the last, below `TL_PAIRS`. They need not follow the ones `tl_reset`
+; gave: the items screen takes VRAM past its tilemaps —see `items_pool`—.
+.proc tl_more
+.a16
+.i16
+    tay
+    sep #$20
+.a8
+    tl_enter
+    rep #$20
+.a16
+    stx TL_T0
+    lda TL_FREE_N
+    asl a
+    tax
+pair:
+    tya
+    sta TL_FREE, x
+    inx
+    inx
+    iny
+    cpy TL_T0
+    bcc pair
+    txa
+    lsr a
+    sta TL_FREE_N
+    sep #$20
+.a8
+    plb
+    rep #$20
+.a16
+    rtl
+.endproc
+
+; A held arrow repeats only when the text says what the screen wrote last:
+; if it is still being typeset, the repeat `arrows_repeat` faked this frame
+; is undone and tried again on the next one. RM2k repeats every four frames
+; whatever happens; here a step that scrolls a list takes longer than that
+; to typeset, so a held arrow wrote over a screen that was never shown, and
+; the tilemap only switched when the pool ran out —taro saw the text stand
+; still for a second or two, and then rows repeated: see
+; `scrolling-a-list-shows-the-last-row-repeated-for-a-moment` in the
+; tasks—. So holding an arrow scrolls as fast as the text can follow, and
+; each step is shown whole. A press is never held back: only a repeat. It
+; runs in `tl_map`, which every screen with this layer calls once per frame
+; right after reading the pad and before looking at its edges. A8, data
+; bank $7E.
+.proc tl_pace
+.a8
+.i16
+    lda f:arrows_repeated
+    beq out
+    rep #$20
+.a16
+    lda TL_UP_N
+    ora TL_MAP_DIRTY
+    bne later
+    lda TL_IDLE_DONE
+    bne shown
+later:
+    sep #$20
+.a8
+    lda f:arrows_repeated
+    tsb pad_prev                ; not just pressed after all
+    lda #0
+    sta f:arrows_repeated
+    lda #(REPEAT_WAIT - 1)      ; `arrows_repeat` fires on the next frame
+    sta f:arrows_frames
+    rtl
+shown:
+    sep #$20
+.a8
+out:
+    rtl
+.endproc
+
+; The pool ran out halfway through what the screen wrote, and the tilemap
+; has to switch early to free the pairs it still shows: before it does, every
+; row that does not say what it will say yet goes blank. Without this the
+; switch showed them with what they said before, next to the rows that had
+; already taken another's tiles, and a list that scrolled showed the rows
+; that came in as copies of their neighbour —taro, 2026-10-18: see
+; `scrolling-a-list-shows-the-last-row-repeated-for-a-moment` in the
+; tasks—. A blank row is typeset after the switch like any other. A16.
+.proc tl_blank_dirty
+.a16
+.i16
+    stz TL_DJ
+row:
+    ldy TL_DJ
+    lda TL_FLAG, y
+    and #$00FF
+    cmp #TL_DIRTY
+    bne next
+    tya
+    jsl f:tl_release_row_l + FAST
+    lda TL_DJ
+    asl a
+    tax
+    lda f:tl_rec_ofs, x
+    tax
+    ldy TL_DJ
+    sep #$20
+.a8
+    stz TL_SHOWN, x             ; it shows nothing: the empty record
+    lda #0
+    sta TL_SSIG, y              ; whose signature is 0
+    rep #$20
+.a16
+next:
+    inc TL_DJ
+    lda TL_DJ
+    cmp #TL_ROWS
+    bcc row
+    rtl
+.endproc
+.popseg

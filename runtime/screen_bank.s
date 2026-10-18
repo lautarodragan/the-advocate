@@ -143,7 +143,23 @@ TL_POOL_BATTLE = (BA_WIN_VRAM - TL_BATTLE_VRAM) / TL_PAIR_WORDS - 1
 ; The items and equipment screens have their windows' tiles in the same bank,
 ; at the end: their text has the pairs that come before. See `items_border` in
 ; `rm2k-snes-screens`.
+;
+; **And the pairs from `ITEM_MORE_VRAM` up to the 448th**, since 2026-10-18:
+; words $4000 to $57FF, which are the map's —its tiles, its sprites— and
+; which neither screen shows. With the bank's pairs alone, some 180, a step
+; that scrolled the list could not keep what the screen showed and what it
+; was going to show at once —a description is two lines of some 25 pairs,
+; and the screen holds about 125—, so the tilemap switched halfway: see
+; `scrolling-a-list-shows-the-last-row-repeated-for-a-moment` in the
+; tasks. That VRAM comes back the way a custom menu's does: `CM_DIRTY`, and
+; `big_back_far` when the pause menu closes, which is the only way to these
+; two screens.
 ITEM_POOL_PAIRS = (ITEM_BORDER_VRAM - SLOT_VRAM) / TL_PAIR_WORDS - 1
+ITEM_MORE_VRAM = $4000
+ITEM_MORE_FIRST = (ITEM_MORE_VRAM - SLOT_VRAM) / TL_PAIR_WORDS
+.assert ITEM_BORDER_MAP < ITEM_MORE_VRAM && SLOT_MAP < ITEM_MORE_VRAM, error, "the items screen's extra pairs reach its tilemaps"
+.assert ITEM_MORE_FIRST > ITEM_POOL_PAIRS && ITEM_MORE_FIRST < TL_PAIRS, error, "the items screen's extra pairs are not after its bank's"
+.assert SLOT_VRAM + TL_PAIRS * TL_PAIR_WORDS <= $6000 && (TL_PAIRS * 2) <= 1024, error, "the items screen's last pair is not a tile BG2 reaches"
 .proc items_pool
 .a8
 .i16
@@ -151,8 +167,15 @@ ITEM_POOL_PAIRS = (ITEM_BORDER_VRAM - SLOT_VRAM) / TL_PAIR_WORDS - 1
 .a16
     lda #ITEM_POOL_PAIRS
     jsl f:tl_reset + FAST
+    rep #$20
+.a16
+    lda #ITEM_MORE_FIRST
+    ldx #TL_PAIRS
+    jsl f:tl_more
     sep #$20
 .a8
+    lda #1
+    sta f:CM_DIRTY              ; the map comes back whole when the menu closes
     rts
 .endproc
 
