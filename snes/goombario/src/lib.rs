@@ -14,35 +14,56 @@ use std::path::Path;
 pub use analysis::{Check, Finding, Stats};
 pub use program::Program;
 
-/// A finding, placed: where it is and what the exception that allows it
-/// would say.
+/// A finding, placed: where it is and the annotation that would allow it.
 #[derive(Debug, Clone)]
 pub struct Report {
     pub check: Check,
     pub file: String,
     pub line: u32,
     pub routine: String,
+    /// The line's text, without its comment.
     pub text: String,
     pub message: String,
 }
 
 impl Report {
     pub fn allow_line(&self) -> String {
-        format!("{} {} {}", self.check.name(), self.routine, self.text)
+        format!("; goombario: {}: <why it is right>", self.check.name())
     }
 }
 
-/// The reports no exception covers, and the exceptions that covered none.
-pub fn apply_exceptions(reports: Vec<Report>, exceptions: &[allow::Exception]) -> (Vec<Report>, Vec<allow::Exception>) {
-    let mut used = vec![false; exceptions.len()];
+/// The annotations in the program's sources whose debug-file path `wanted`
+/// accepts, and the ones that are wrong: see `allow`.
+pub fn annotations(program: &Program, root: &Path, wanted: impl Fn(&str) -> bool) -> (Vec<allow::Annotation>, Vec<String>) {
+    let mut files: Vec<&String> = program.files.values().filter(|f| wanted(f)).collect();
+    files.sort();
+    files.dedup();
+    let mut list = Vec::new();
+    let mut wrong = Vec::new();
+    for file in files {
+        // One that cannot be read is already said by `missing_sources`.
+        let Ok(text) = std::fs::read_to_string(root.join(file)) else { continue };
+        let (a, w) = allow::scan(file, &text);
+        list.extend(a);
+        wrong.extend(w);
+    }
+    (list, wrong)
+}
+
+/// The reports no annotation covers, and the annotations that covered none.
+pub fn apply_exceptions(
+    reports: Vec<Report>,
+    annotations: &[allow::Annotation],
+) -> (Vec<Report>, Vec<allow::Annotation>) {
+    let mut used = vec![false; annotations.len()];
     let mut left = Vec::new();
     for r in reports {
-        match exceptions.iter().position(|e| e.covers(r.check, &r.routine, &r.text)) {
+        match annotations.iter().position(|a| a.covers(r.check, &r.file, r.line)) {
             Some(i) => used[i] = true,
             None => left.push(r),
         }
     }
-    let unused = exceptions.iter().zip(used).filter(|(_, u)| !u).map(|(e, _)| e.clone()).collect();
+    let unused = annotations.iter().zip(used).filter(|(_, u)| !u).map(|(a, _)| a.clone()).collect();
     (left, unused)
 }
 

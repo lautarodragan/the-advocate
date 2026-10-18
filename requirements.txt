@@ -1,0 +1,7 @@
+# What the Python tests import beyond the standard library: `pytest` for
+# both suites —the root's `tests/` and the test game's—, and Pillow for the
+# test game's, which reads the core's frames and the goldens. The libretro
+# core is driven with `ctypes`, so there is no binding to install. Pinned to
+# what the tests were last run with; the CI workflow installs these.
+pytest==9.1.0
+Pillow==12.3.0

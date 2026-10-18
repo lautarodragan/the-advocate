@@ -727,7 +727,7 @@ digit:
     pla                         ; the value: N is its sign, on purpose
     sep #$20
 .a8
-    bpl put_digits
+    bpl put_digits              ; goombario: pull-branch: N is its sign
     lda #'-' - ' '
     sta f:MSG_DIGITS, x
     inx

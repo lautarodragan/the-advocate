@@ -1,0 +1,163 @@
+# What can be checked without a ported game: the Rust workspace and its
+# tests, the Python tests of this tree, and the test game —made, built with
+# the installed tools, run in snes9x and in bsnes against its goldens, and
+# its cartridge through Goombario—. The ports' suite is still the real net
+# for the runtime: this does not replace it.
+#
+# Every third-party action is pinned by its commit, with the tag beside it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push makes the older run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # cc65's master: the release Ubuntu packages (2.19) does not assemble the
+  # runtime —"Illegal addressing mode" on `rol`/`asl`/`inc` of a far
+  # symbol plus an offset, in `runtime/pano.s`—.
+  CC65_COMMIT: e11fb5c39371046ebe25485f984f644c5a0d65d3
+  # Neither core is usable from apt: snes9x is not packaged (its licence is
+  # not free), and the only bsnes is bsnes-mercury, v094, without the patch
+  # that exposes the WRAM the harness reads the tick from.
+  SNES9X_COMMIT: 890b5d445538fe790aa3add3d5702c80f551e0ae
+  BSNES_COMMIT: 260f5234410d0899f8446882c63d17f891b686e0
+
+jobs:
+  rust-and-python:
+    name: Rust workspace and Python tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: just and Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends just
+          python3 -m venv "$RUNNER_TEMP/venv"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/venv/bin/pip" install -r requirements.txt
+
+      # Without SOUNDFONT the two tests that read one skip: they check the
+      # envelopes of the SoundFont the original game was composed with,
+      # which is not free.
+      - name: Rust tests
+        run: just rust-test
+
+      - name: Python tests
+        run: just test
+
+  test-game:
+    name: Test game
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      # FluidR3_GM, MIT: the test game has no music yet, but the converter
+      # asks for a SoundFont, and its samples end up in the cartridge.
+      - name: just, the SoundFont and Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends just fluid-soundfont-gm
+          echo "SOUNDFONT=/usr/share/sounds/sf2/FluidR3_GM.sf2" >> "$GITHUB_ENV"
+          python3 -m venv "$RUNNER_TEMP/venv"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/venv/bin/pip" install -r requirements.txt
+
+      - name: Cache cc65
+        id: cc65
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/cc65/bin
+          key: cc65-${{ runner.os }}-${{ env.CC65_COMMIT }}
+
+      - name: Build cc65
+        if: steps.cc65.outputs.cache-hit != 'true'
+        run: |
+          git init -q ~/cc65
+          cd ~/cc65
+          git fetch -q --depth 1 https://github.com/cc65/cc65.git "$CC65_COMMIT"
+          git checkout -q FETCH_HEAD
+          make -j"$(nproc)" bin
+
+      - name: cc65 on the PATH
+        run: |
+          echo "$HOME/cc65/bin" >> "$GITHUB_PATH"
+          "$HOME/cc65/bin/ca65" --version
+
+      - name: Cache the libretro cores
+        id: cores
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/cores
+          key: cores-${{ runner.os }}-${{ env.SNES9X_COMMIT }}-${{ env.BSNES_COMMIT }}-${{ hashFiles('test-game/tests/emulator/bsnes-wram.patch') }}
+
+      - name: Build the libretro cores
+        if: steps.cores.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/cores ~/src
+          cd ~/src
+          git init -q snes9x
+          git -C snes9x fetch -q --depth 1 https://github.com/libretro/snes9x.git "$SNES9X_COMMIT"
+          git -C snes9x checkout -q FETCH_HEAD
+          make -C snes9x/libretro -j"$(nproc)"
+          cp snes9x/libretro/snes9x_libretro.so ~/cores/
+          git init -q bsnes
+          git -C bsnes fetch -q --depth 1 https://github.com/libretro/bsnes-libretro.git "$BSNES_COMMIT"
+          git -C bsnes checkout -q FETCH_HEAD
+          git -C bsnes apply "$GITHUB_WORKSPACE/test-game/tests/emulator/bsnes-wram.patch"
+          make -C bsnes -j"$(nproc)"
+          cp bsnes/bsnes_libretro.so ~/cores/
+
+      - name: The cores, for the tests
+        run: |
+          echo "SNES9X_CORE=$HOME/cores/snes9x_libretro.so" >> "$GITHUB_ENV"
+          echo "BSNES_CORE=$HOME/cores/bsnes_libretro.so" >> "$GITHUB_ENV"
+          ls -l "$HOME/cores/snes9x_libretro.so" "$HOME/cores/bsnes_libretro.so"
+
+      # Into a root of their own on the PATH, as a game consumes them. The
+      # runtime the cartridge is assembled from is the one of the checkout
+      # they were installed from: this one.
+      - name: Install the tools
+        run: |
+          echo "$HOME/advocate/bin" >> "$GITHUB_PATH"
+          CARGO_ROOT="$HOME/advocate" just install
+
+      # Makes the game, builds its cartridge and runs its tests, Goombario's
+      # among them. A core missing would skip its half: `-rs` lists skips.
+      - name: Test game
+        run: just test-game -rs
+
+      - name: Captures that differ
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-game-snapshots
+          path: test-game/tests/snapshots/
+          if-no-files-found: ignore

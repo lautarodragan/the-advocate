@@ -40,7 +40,9 @@ pub struct Declared {
     pub missing: Vec<String>,
 }
 
-fn strip_comment(line: &str) -> &str {
+/// Where a line's comment starts: its `;`, outside strings and character
+/// constants.
+pub(crate) fn comment_start(line: &str) -> Option<usize> {
     let bytes = line.as_bytes();
     let mut in_string = false;
     let mut i = 0;
@@ -49,12 +51,16 @@ fn strip_comment(line: &str) -> &str {
             b'"' => in_string = !in_string,
             // A character constant, `';'`.
             b'\'' if !in_string && bytes.get(i + 2) == Some(&b'\'') => i += 2,
-            b';' if !in_string => return &line[..i],
+            b';' if !in_string => return Some(i),
             _ => {}
         }
         i += 1;
     }
-    line
+    None
+}
+
+pub(crate) fn strip_comment(line: &str) -> &str {
+    &line[..comment_start(line).unwrap_or(line.len())]
 }
 
 /// The line without its labels: `name:`, `@name:` and the anonymous `:`.
@@ -269,8 +275,7 @@ pub fn declared(info: &DebugInfo, root: &Path) -> Declared {
     reader.out
 }
 
-/// The text of a line of a file, without its comment: for messages and for
-/// matching exceptions.
+/// The text of a line of a file, without its comment: for the messages.
 pub struct Texts<'a> {
     root: &'a Path,
     cache: HashMap<String, Vec<String>>,

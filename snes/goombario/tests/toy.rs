@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use goombario::allow::Annotation;
 use goombario::{Check, Report};
 
 /// Two banks of 32 KB, one after the other in the file: `CODE` in bank 0
@@ -37,6 +38,12 @@ fn scratch(name: &str) -> PathBuf {
 /// Assembles and links `source`, and lints it. None if `ca65` or `ld65` is
 /// missing.
 fn lint(name: &str, source: &str) -> Option<Vec<Report>> {
+    lint_annotated(name, source).map(|(reports, _, _)| reports)
+}
+
+/// The same, and the annotations in the source with the ones that are
+/// wrong.
+fn lint_annotated(name: &str, source: &str) -> Option<(Vec<Report>, Vec<Annotation>, Vec<String>)> {
     if !tool("ca65") || !tool("ld65") {
         eprintln!("skipped: ca65 and ld65 are not on the PATH");
         return None;
@@ -56,8 +63,9 @@ fn lint(name: &str, source: &str) -> Option<Vec<Report>> {
     assert!(program.undecoded.is_empty(), "{:?}", program.undecoded);
     assert!(program.missing_sources().is_empty(), "{:?}", program.missing_sources());
     let (reports, _) = goombario::lint(&program, &dir);
+    let (annotations, wrong) = goombario::annotations(&program, &dir, |_| true);
     let _ = std::fs::remove_dir_all(&dir);
-    Some(reports)
+    Some((reports, annotations, wrong))
 }
 
 fn found(reports: &[Report], check: Check) -> Vec<(String, String)> {
@@ -333,34 +341,93 @@ fn widths_inside_a_macro_follow_its_body() {
     assert!(r.is_empty(), "{:?}", r);
 }
 
-#[test]
-fn exceptions_cover_by_routine_and_text_and_say_when_they_are_stale() {
-    let Some(r) = lint(
-        "allow",
-        r#"
+/// Two pulls and a branch on each: `one`'s on the line, `two`'s with the
+/// annotation above it. `ANNOTATION_ONE` and `ANNOTATION_TWO` are replaced
+/// by each test.
+const ANNOTATED: &str = r#"
 .proc main
     jsr one
+    jsr two
     stp
 .endproc
 .proc one
     pha
     pla
-    beq :+
+    beq :+              ANNOTATION_ONE
     nop
 :   rts
 .endproc
-"#,
+.proc two
+    pha
+    pla
+    ANNOTATION_TWO
+    ; and the why goes on
+    bne :+
+    nop
+:   rts
+.endproc
+"#;
+
+fn annotated(name: &str, one: &str, two: &str) -> Option<(Vec<Report>, Vec<Annotation>, Vec<String>)> {
+    lint_annotated(name, &ANNOTATED.replace("ANNOTATION_ONE", one).replace("ANNOTATION_TWO", two))
+}
+
+#[test]
+fn an_annotation_allows_its_line_or_the_next_with_code() {
+    let Some((r, list, wrong)) = annotated(
+        "allow",
+        "; goombario: pull-branch: the pulled value is the one it means",
+        "; goombario: pull-branch: the same, from above",
     ) else {
         return;
     };
-    let list = goombario::allow::parse(
-        "# the pulled value is the one it means\npull-branch one beq :+\n# stale\nstack two\n",
-    )
-    .unwrap();
+    assert_eq!(found(&r, Check::PullBranch).len(), 2, "{:?}", r);
+    assert!(wrong.is_empty(), "{:?}", wrong);
     let (left, unused) = goombario::apply_exceptions(r, &list);
     assert!(left.is_empty(), "{:?}", left);
+    assert!(unused.is_empty(), "{:?}", unused);
+}
+
+#[test]
+fn an_annotation_without_its_why_is_wrong_and_allows_nothing() {
+    let Some((r, list, wrong)) = annotated("allow-why", "; goombario: pull-branch:", "; goombario: pull-branch") else {
+        return;
+    };
+    assert_eq!(wrong.len(), 2, "{:?}", wrong);
+    assert!(list.is_empty(), "{:?}", list);
+    let (left, _) = goombario::apply_exceptions(r, &list);
+    assert_eq!(left.len(), 2, "{:?}", left);
+}
+
+#[test]
+fn an_annotation_for_another_check_allows_nothing_and_is_said() {
+    let Some((r, list, wrong)) = annotated("allow-other", "; goombario: stack: not this check", "; nothing") else {
+        return;
+    };
+    assert!(wrong.is_empty(), "{:?}", wrong);
+    let (left, unused) = goombario::apply_exceptions(r, &list);
+    assert_eq!(found(&left, Check::PullBranch), vec![pair("one", "beq :+"), pair("two", "bne :+")]);
     assert_eq!(unused.len(), 1);
-    assert_eq!(unused[0].routine, "two");
+    assert_eq!(unused[0].check, Check::Stack);
+}
+
+#[test]
+fn an_annotation_that_allows_nothing_is_said() {
+    // On `nop`, which nothing flags.
+    let Some((r, list, wrong)) = lint_annotated(
+        "allow-stale",
+        &ANNOTATED
+            .replace("    nop\n:   rts\n.endproc\n.proc two", "    nop                 ; goombario: pull-branch: stale\n:   rts\n.endproc\n.proc two")
+            .replace("ANNOTATION_ONE", "; goombario: pull-branch: why")
+            .replace("ANNOTATION_TWO", "; goombario: pull-branch: why"),
+    ) else {
+        return;
+    };
+    assert!(wrong.is_empty(), "{:?}", wrong);
+    let (left, unused) = goombario::apply_exceptions(r, &list);
+    assert!(left.is_empty(), "{:?}", left);
+    assert_eq!(unused.len(), 1, "{:?}", unused);
+    assert_eq!(unused[0].why, "stale");
 }
 
 #[test]
