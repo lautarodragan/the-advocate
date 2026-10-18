@@ -253,7 +253,7 @@ sub_refresh: .res 2
 ; copied to RAM instead of read through a pointer, and for a concrete reason:
 ; build_oam walks it with an index and at five different offsets, so with
 ; `lda table, x` it takes one instruction per field and with a pointer it takes
-; three. Copying it costs one DMA per map load and fits easily: the map with
+; three. Copying it costs one loop per map load (`load_npcs`) and fits easily: the map with
 ; the most NPCs in the whole game has 89, and 127 fit here, which is the cap
 ; OAM imposes.
 npc_buf:  .res NPC_MAX * NPC_STRIDE

@@ -140,7 +140,8 @@ wait:
 .endproc
 
 ; The sample in row PKG_X7 of `sample_table`, to PKG_DEST. In triplets via
-; command 3, in batches of up to 128 with interrupts disabled —about five
+; command 3, in batches of up to 85 triplets —the driver's index is one
+; byte— with interrupts disabled —about five
 ; milliseconds: the music is delayed, not lost—, and whatever is left over
 ; one byte at a time.
 .proc upload_sample

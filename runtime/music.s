@@ -185,10 +185,14 @@ other:
 ; level with `music_start_level`. The start of the stream carries the DSP
 ; setup —the volumes, the sample directory—.
 ;
-; The cartridge has carried several songs since 2026-09-06 and **they all share
-; the sample bank**, which is uploaded only once at boot: changing song is
-; changing stream and nothing else, so it does not cost even a frame. Hence
-; there is nothing to upload here. See `Bank` in rm2k-snes/rm2k-snes-audio/src/bank.rs.
+; The cartridge has carried several songs since 2026-09-06, and the samples a
+; song needs are usually in ARAM before it starts: they go up with the map's
+; audio package (`audio_package.s`). Then changing song is changing stream
+; and nothing else, and it does not cost even a frame. When they are not
+; there —an exit song, a separate one of `[music] apart_themes`, one skipped
+; under the MSU-1— `song_ensure` uploads them first, below, and that time the
+; game waits for the upload. Until the packages, a single sample bank went
+; up once at boot. See `Bank` in rm2k-snes/rm2k-snes-audio/src/bank.rs.
 ;
 ; Which index is playing stays in `song_current`, which is what `music_frame`
 ; needs to start over when the stream ends: without it the loop always went
