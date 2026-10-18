@@ -12,11 +12,14 @@
 //! Before losing anything, the **twins** go in a row they share: see
 //! [`twins`]. That is what most of those maps have too many of —a strip
 //! of seventy invisible touch events along an edge, each a `Teleport` to
-//! the same place—, and it costs nothing that can be seen.
+//! the same place; a grid of invisible signs on the hero's layer, each the
+//! same message—, and it costs nothing that can be seen.
 //!
 //! Then the order is by what is lost, the least first; within each class,
 //! the highest id first, which is the last one placed: a rule anyone can
-//! redo by reading the map.
+//! redo by reading the map. An exit goes after every other page that runs:
+//! a sign left out is a sign less, an exit left out can leave the player
+//! with no way on.
 
 use crate::game::Command;
 use ditto::schema;
@@ -41,6 +44,8 @@ const OPERAND_CHARACTER: i32 = 6;
 const CALL_MAP_EVENT: i32 = 1;
 /// The hero's layer: an event there blocks.
 const LAYER_SAME: i32 = 1;
+/// `Teleport`: a page that carries one is an exit.
+const TELEPORT: i32 = 10810;
 
 /// What the map loses with an event, from the least to the most: the
 /// order they are left out in.
@@ -57,6 +62,11 @@ pub enum Loss {
     LooksAndWall,
     /// Pages that run, but nobody names it.
     Pages,
+    /// Pages that run and one of them a `Teleport`: an exit, which the
+    /// player may have no other way through. Above the other pages since
+    /// 2026-10-17: Zounds' map 47 lost its east edge's six exits before
+    /// its info signs, and the story goes through there.
+    Exit,
     /// Somebody names it: the pages that do, do not compile either.
     Named,
 }
@@ -69,6 +79,7 @@ impl Loss {
             Loss::Wall => "an invisible wall",
             Loss::LooksAndWall => "their looks and a wall",
             Loss::Pages => "pages that run",
+            Loss::Exit => "pages that run, with a Teleport: a box says so on their cells",
             Loss::Named => "pages that run, and the pages that name them",
         }
     }
@@ -107,6 +118,9 @@ pub fn loss(e: &schema::Event, named: &BTreeSet<i32>) -> Loss {
     }
     let pages = &e.pages;
     // The terminating command, code 0, is not a command.
+    if pages.iter().any(|p| p.event_commands.iter().any(|c| c.code.to_i32() == TELEPORT)) {
+        return Loss::Exit;
+    }
     if pages.iter().any(|p| p.event_commands.iter().any(|c| c.code.to_i32() != 0)) {
         return Loss::Pages;
     }
@@ -133,20 +147,26 @@ const TRIGGER_AUTOSTART: i32 = 3;
 const TRIGGER_PARALLEL: i32 = 4;
 
 /// Whether `e` can be a twin: an event the console can keep as nothing but
-/// a cell that leads to another's pages. It has pages that run —one that
-/// does not is better left out—, nobody names it, it draws nothing, it
-/// never moves, it is not on the hero's layer —so it blocks nobody and
-/// nothing walks into it—, and no page of its own is autostart or
-/// parallel, erases itself or names "this event": all of that would be
-/// done on the one whose row it shares, and in RM2k it is its own.
+/// a cell that leads to another's pages. It has pages that run, or it is
+/// an invisible wall —one that does nothing at all is better left out—;
+/// nobody names it, it draws nothing, it never moves, and no page of its
+/// own is autostart or parallel, erases itself or names "this event": all
+/// of that would be done on the one whose row it shares, and in RM2k it is
+/// its own.
+///
+/// It may be on the hero's layer, since 2026-10-17: `hero_blocked` looks
+/// at the twins after the rows, with the active page of the one whose row
+/// it shares, so it blocks the hero if its pages say so. Not an event that
+/// walks into it, which RM2k would stop: see `hero_blocked`. Zounds' maps 47 and 51
+/// are grids of invisible signs on that layer, two hundred the same
+/// message, and before that they were left out by the hundred.
 fn can_be_twin(e: &schema::Event, named: &BTreeSet<i32>) -> bool {
-    loss(e, named) == Loss::Pages
+    matches!(loss(e, named), Loss::Wall | Loss::Pages | Loss::Exit)
         && e.pages.iter().all(|p| {
             p.character_name.is_empty()
                 && p.character_index == 0
                 && p.move_type.to_i32() == 0
                 && p.move_route.move_commands.is_empty()
-                && p.layer.to_i32() != LAYER_SAME
                 && !matches!(p.trigger.to_i32(), TRIGGER_AUTOSTART | TRIGGER_PARALLEL)
                 && p.event_commands.iter().all(|c| {
                     c.code.to_i32() != ERASE_EVENT && !names(c.code.to_i32(), &c.parameters).contains(&THIS_EVENT)
@@ -157,9 +177,10 @@ fn can_be_twin(e: &schema::Event, named: &BTreeSet<i32>) -> bool {
 /// The twins: events whose pages are the same as another's —every field
 /// but the cell—, as `(twin, the one with the lowest id)`, by id. The
 /// console keeps only the first, and each twin is a cell in a table behind
-/// the map's positions that `event_in_cell` looks at after the rows: the
-/// action button or a step on that cell runs the first one's page, which
-/// is the same page. Its id is not in the cartridge any more, but nobody
+/// the map's positions that `event_in_cell` and `hero_blocked` look at
+/// after the rows: the action button or a step on that cell runs the first
+/// one's page, which is the same page, and the hero's step into it is
+/// refused if that page is on his layer. Its id is not in the cartridge any more, but nobody
 /// names it, and nothing in its pages tells one twin from another.
 pub fn twins(events: &[schema::Event], named: &BTreeSet<i32>) -> Vec<(i32, i32)> {
     let mut first: BTreeMap<String, i32> = BTreeMap::new();
@@ -229,8 +250,6 @@ mod tests {
         .unwrap()
     }
 
-    const TELEPORT: i32 = 10810;
-
     #[test]
     fn a_map_that_fits_loses_nothing() {
         let events: Vec<_> = (1..=3).map(|i| event(i, &[], "", 0)).collect();
@@ -276,8 +295,23 @@ mod tests {
         ];
         let named = named(&events, &[]);
         assert_eq!(named, BTreeSet::from([2, 3]));
-        assert_eq!(left_out(&events, &named, 2), [(1, Loss::Pages), (4, Loss::Pages)]);
-        assert_eq!(left_out(&events, &named, 1), [(1, Loss::Pages), (3, Loss::Named), (4, Loss::Pages)]);
+        assert_eq!(left_out(&events, &named, 2), [(1, Loss::Pages), (4, Loss::Exit)]);
+        assert_eq!(left_out(&events, &named, 1), [(1, Loss::Pages), (3, Loss::Named), (4, Loss::Exit)]);
+    }
+
+    #[test]
+    fn an_exit_stays_over_a_sign_placed_before_it() {
+        // Zounds' map 47: the signs have the low ids and the exits on the
+        // edge the high ones, and the highest id went first.
+        let sign = [(10110, vec![])];
+        let events = vec![
+            event(1, &sign, "", LAYER_SAME),
+            event(2, &sign, "Chara1", LAYER_SAME),
+            event(3, &[(TELEPORT, vec![51, 1, 25, 0])], "", 0),
+        ];
+        let named = BTreeSet::new();
+        assert_eq!(left_out(&events, &named, 2), [(2, Loss::Pages)]);
+        assert_eq!(left_out(&events, &named, 1), [(1, Loss::Pages), (2, Loss::Pages)]);
     }
 
     #[test]
@@ -302,16 +336,24 @@ mod tests {
             event(2, &door, "", 0),
             event(3, &[(TELEPORT, vec![1, 9, 9])], "", 0),
             event(4, &door, "", 0),
-            // On the hero's layer it blocks: a cell of its own.
+            // On the hero's layer it blocks, and it is a page of its own:
+            // the first of another family, with 9.
             event(5, &door, "", LAYER_SAME),
             // Drawn: a cell of its own.
             event(6, &door, "Chara1", 0),
             // Named: whoever names it would find the first one.
             event(7, &door, "", 0),
             event(8, &[(MOVE_EVENT, vec![7])], "", 0),
+            event(9, &door, "", LAYER_SAME),
+            // Invisible walls are twins too, and two that do nothing
+            // are not: they are left out first.
+            event(10, &[], "", LAYER_SAME),
+            event(11, &[], "", LAYER_SAME),
+            event(12, &[], "", 0),
+            event(13, &[], "", 0),
         ];
         let named = named(&events, &[]);
-        assert_eq!(twins(&events, &named), [(2, 1), (4, 1)]);
+        assert_eq!(twins(&events, &named), [(2, 1), (4, 1), (9, 5), (11, 10)]);
     }
 
     #[test]

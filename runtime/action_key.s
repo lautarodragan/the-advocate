@@ -51,9 +51,9 @@ none:
 ; whose row it shares in A, or $FF.
 ;
 ; A twin is an event the converter left without a row because its map has
-; more than `EV_MAX` and its pages are the same as another's: invisible,
-; still and off the hero's layer, so the only thing it does is fire those
-; pages from its own cell. Its cell lives in ROM, behind the map's
+; more than `EV_MAX` and its pages are the same as another's: invisible and
+; still, so the only things it does are fire those pages from its own cell
+; and, on the hero's layer, stop him —see `hero_blocked_rest`—. Its cell lives in ROM, behind the map's
 ; positions —a word with how many, then TWIN_STRIDE bytes each: x, y and
 ; the event—; see `ev_pos_bytes` in `rm2k-snes-mapdata`. It is looked at
 ; only after the rows, and a map whose events fit has none: its word is 0.

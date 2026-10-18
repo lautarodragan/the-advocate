@@ -2111,6 +2111,7 @@ free:
 .endproc
 
 ; `cell_blocked` for the hero: the destination cell is already in dest_x/dest_y.
+; And the twins, at the end of the bank: see `hero_blocked_rest`.
 .proc hero_blocked
 .a8
 .i16
@@ -2118,7 +2119,7 @@ free:
     sta walker
     lda #HERO_LAYER_INDEX
     sta walker_layer
-    jmp cell_blocked
+    jmp hero_blocked_rest
 .endproc
 
 ; `walker` and `walker_layer` from the move route slot X points at. Keeps X.

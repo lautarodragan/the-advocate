@@ -165,6 +165,14 @@ impl<'a> Compiler<'a> {
         let mut r = Map::new();
         r.insert("map_files".into(), map_files(self.game));
         r.insert("dropped_events".into(), self.game.dropped_json());
+        if !self.game.boxed_exits.is_empty() {
+            r.insert(
+                "boxed_exits".into(),
+                Value::Object(
+                    self.game.boxed_exits.iter().map(|(m, ids)| (m.to_string(), json!(ids))).collect(),
+                ),
+            );
+        }
         r.insert("boxes".into(), self.boxes.clone());
         r.insert("names".into(), json!([]));
         r.insert("window".into(), self.window.clone());

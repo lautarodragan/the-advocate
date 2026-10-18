@@ -98,6 +98,7 @@ grid_width_set:
     ; with the hundred and twenty, a map with four events swept a hundred and
     ; sixteen too many and that was enough to lose the frame.
     sta ev_total
+    jsr note_twins
     lda f:map_table + M_NPC_COUNT, x
     asl a
     asl a
