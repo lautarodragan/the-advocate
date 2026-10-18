@@ -129,8 +129,7 @@ far_speed_bonus: .res 1
 far_speed_keys:  .res 1
 MSG_PLACE:       .res 1         ; the position the window really took, plus MSG_BARE
 MSG_SC:          .res 1         ; BG2SC of the window's tilemap: a big picture moves it
-MSG_ENTRY:       .res 1         ; the window's stretch in `hdma_ofs`: 0, 5 or 10
-MSG_VOFS:        .res 1         ; BG2VOFS while the window is drawn
+MSG_VOFS:        .res 1         ; BG2VOFS on the window's stretches
 ; And the arrow of a message waiting for a key: how long it has been up, and
 ; what its cells say. See message_arrow.s.
 MSG_ARROW_T:     .res 1

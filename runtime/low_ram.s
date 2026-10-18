@@ -142,18 +142,31 @@ msg_x:       .res 2     ; where the next letter starts, in pixels inside the
 ; reading and writing outside the buffer would be stepping on someone else.
 text_buf:    .res (WINDOW_TEXT_COLS * 2 * 32 + 48)
 
-; The window's two HDMA tables. They live in RAM because the map's stretches
-; carry this frame's camera, and because which stretch is the window's depends
-; on where `MessageOptions` put it: see message_place.s. Three stretches each,
-; for any of the three positions; at the bottom, which is RM2k's default:
+; The window's two HDMA tables. They live in RAM because which stretches are
+; the window's depends on where `MessageOptions` put it and, without the
+; background, on which of its lines have text: see `msg_hdma_build`, in
+; message_place.s. At the bottom with the frame, which is RM2k's default:
 ;
 ;   hdma_sc    [127][BG2SC map] [17][BG2SC map] [80][BG2SC window] [0]
-;   hdma_ofs   [127][hofs][vofs] [17][hofs][vofs] [80][0][MSG_VOFS] [0]
+;   hdma_ofs   [127][hdma_ofs_map] [17][hdma_ofs_map] [80][hdma_ofs_window] [0]
 ;
-; The top 144 scanlines go in two stretches because an entry's line counter is
+; The top 144 scanlines go in two entries because an entry's line counter is
 ; 7 bits and does not reach 144.
-hdma_sc:  .res 7
-hdma_ofs: .res 16
+;
+; `hdma_ofs` is **indirect**: each entry points at the four bytes of BG2's
+; scroll —HOFS and VOFS, low byte first— of its kind, the camera's or the
+; window's, so the camera is written once per frame and not once per
+; stretch of the map. See `build_hdma`.
+;
+; At most six entries a table: without the frame, with its four lines
+; alternating, the window's stretches are two and the map's three, and only
+; one of those can pass 127 lines, because two would be more than the
+; screen's 224. With the frame there are three stretches, and three entries.
+HDMA_ENTRIES = 6
+hdma_sc:  .res HDMA_ENTRIES * 2 + 1
+hdma_ofs: .res HDMA_ENTRIES * 3 + 1
+hdma_ofs_map:    .res 4         ; the camera's, or a panorama's: see `pano_hdma`
+hdma_ofs_window: .res 4         ; the window's, which does not move
 
 ; OAM is built in RAM and sent whole by DMA every frame. It is simpler than
 ; writing single entries, and it is what will be needed when there are NPCs.

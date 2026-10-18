@@ -205,6 +205,7 @@ DMAP2    = $4320
 BBAD2    = $4321
 A1T2L    = $4322
 A1B2     = $4324
+DASB2    = $4327        ; the bank of an indirect HDMA's data
 DMAP3    = $4330
 BBAD3    = $4331
 A1T3L    = $4332

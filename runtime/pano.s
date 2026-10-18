@@ -1256,34 +1256,22 @@ no_row:
 
 ; In mode 3 the panorama is BG2, and the window's HDMA writes BG2's scroll
 ; on every stretch: the map's carry the panorama's and not the camera. From
-; `flush_video`, after it wrote the camera there and before the window's own.
+; `flush_video`, after it wrote the camera there.
 .proc pano_hdma
 .a8
 .i16
     lda f:PANO_ON
     cmp #3
     bne done
-    lda f:PANO_UX
-    sta hdma_ofs + 1
-    sta hdma_ofs + 6
-    sta hdma_ofs + 11
-    lda f:PANO_UX + 1
-    sta hdma_ofs + 2
-    sta hdma_ofs + 7
-    sta hdma_ofs + 12
     rep #$20
 .a16
+    lda f:PANO_UX
+    sta hdma_ofs_map
     lda f:PANO_UX + 2
     dec a
+    sta hdma_ofs_map + 2
     sep #$20
 .a8
-    sta hdma_ofs + 3
-    sta hdma_ofs + 8
-    sta hdma_ofs + 13
-    xba
-    sta hdma_ofs + 4
-    sta hdma_ofs + 9
-    sta hdma_ofs + 14
 done:
     rtl
 .endproc
