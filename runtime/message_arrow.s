@@ -389,17 +389,33 @@ none:
 .endproc
 
 ; The arrow's two objects, from `build_oam` with a window on screen, while
-; `msg_arrow` has it up and the window draws it as objects. Its corner is
+; `msg_arrow`'s count has it up and the window draws it as objects. Its corner is
 ; the cells' —`WINDOW_ARROW_COL` and `WINDOW_ARROW_ROW` of the window—:
 ; an object's Y is the line of the screen it starts on, the way the
 ; window's scroll puts its first row on the line the window starts. Measured
 ; against the cells, on 2026-10-18: the same pixels on the same lines.
+;
+; **It is drawn as the arrow will be on the next frame**, not as it is: the
+; OAM built now goes up in the next vblank, where `msg_arrow` counts the
+; blink one more, and the cells change in that vblank too. Read off
+; `MSG_ARROW_UP`, the objects went up and down a frame after the cells
+; did, on every edge of the blink. So the count one ahead; what it cannot
+; see coming is the first frame —the count starts in the vblank the window
+; appears, and the OAM was built without it— and a quiet that starts, where
+; it shows one frame more, as before.
 .proc arrow_oam
 .a8
 .i16
-    lda f:MSG_ARROW_UP
-    cmp #1
-    bne done
+    lda f:MSG_ARROW_T
+    cmp #$FF
+    beq done                    ; quiet
+    inc a
+    cmp #(ARROW_FRAMES * 2)
+    bcc counted
+    lda #0
+counted:
+    cmp #ARROW_FRAMES
+    bcs done                    ; off on the next frame
     lda f:MSG_ARROW_OBJ + 1
     bpl done
     stz obj_big                 ; 8x8
