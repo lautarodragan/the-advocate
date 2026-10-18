@@ -42,8 +42,7 @@
 //!   that matters, and it divides **rounding up**: see
 //!   [`hit_rate_by_agility`].
 //! * **What is missing.** Rows and the double attack; of the attributes,
-//!   the skills that shift a rank and the weapon a physical one asks for
-//!   —see [`crate::attributes`]—; and of
+//!   the weapon a physical one asks for —see [`crate::attributes`]—; and of
 //!   the states, everything that is not an enemy's: see [`Held`].
 //!   Of a troop's event pages this knows **when they run and what they do
 //!   to who fights** —[`TroopPage`]—: whom they bring in or take out and
@@ -389,7 +388,8 @@ pub struct Combatant {
     /// Its conditions: see [`Held`].
     pub states: Vec<Held>,
     /// What each attribute of the database does to it, by `id - 1`: its
-    /// rank's rate. An actor's comes from its equipment too.
+    /// rank's rate. An actor's comes from its equipment too, and a skill
+    /// with `affect_attr_defence` shifts it: see [`Received`].
     pub received: Vec<Received>,
     /// The attributes its normal attack carries: an actor's weapons'. An
     /// enemy's carries none.
@@ -443,6 +443,16 @@ impl Combatant {
             .iter()
             .map(|h| h.info.reduce_hit_ratio)
             .fold(100, i64::min)
+    }
+
+    /// Its ranks back to the database's: `attribute_shift.clear()`, which
+    /// easyrpg does when the dead state is added. Here it is done when the
+    /// actor gets up —see the callers—, which is the same seen from outside:
+    /// a fallen one is neither hit nor shifted.
+    pub fn unshift(&mut self) {
+        for r in &mut self.received {
+            r.shift_by(-r.shift);
+        }
     }
 
     pub fn has_state(&self, id: i64) -> bool {
@@ -628,6 +638,11 @@ impl Combatant {
                 .map(|h| json!([h.info.id, h.turns]))
                 .collect::<Vec<_>>());
             out["restriction"] = json!(self.restriction());
+        }
+        // The same with the shifted ranks: by `id - 1`, only whoever has one.
+        if self.received.iter().any(|r| r.shift != 0) {
+            out["attribute_shift"] =
+                json!(self.received.iter().map(|r| r.shift).collect::<Vec<_>>());
         }
         out
     }
@@ -877,6 +892,9 @@ impl TroopPage {
                 FULL_HEAL => {
                     for k in battle.targets(p)? {
                         let a = &mut battle.actors[k];
+                        if a.hp == 0 {
+                            a.unshift();
+                        }
                         a.hp = a.hp_max;
                         a.sp = a.sp_max;
                     }
@@ -888,6 +906,7 @@ impl TroopPage {
                         for k in battle.targets(p)? {
                             let a = &mut battle.actors[k];
                             if a.hp == 0 {
+                                a.unshift();
                                 a.hp = 1;
                             }
                         }
@@ -1204,7 +1223,13 @@ impl Battle {
             a.base = rules::equipped_params(db, a.number as i32, &a.equipment, a.level)?;
             a.weapon_sp = rules::weapon_sp_of(db, &a.equipment)?;
             a.critical = rules::actor_critical(db, a.number as i32, &a.equipment)?;
+            // The shifts stay: `attribute_shift` is the battler's, not its
+            // equipment's.
+            let shifts: Vec<i64> = a.received.iter().map(|r| r.shift).collect();
             a.received = attributes::received_by_actor(db, a.number as i32, &a.equipment)?;
+            for (r, by) in a.received.iter_mut().zip(shifts) {
+                r.shift_by(by);
+            }
             a.weapon_attributes = attributes::weapon_attributes(db, &a.equipment)?;
         }
         Ok(())
@@ -1627,7 +1652,8 @@ impl Battle {
     /// always at zero for a skill of the database—, the variance if the
     /// effect is above zero, and one roll against the hit chance for each
     /// thing it affects, in the order HP, SP, attack, defense, spirit,
-    /// agility. Giving or taking states, shifting attribute ranks, absorbing
+    /// agility, and then the attribute ranks it shifts —see
+    /// [`Battle::skill_on`]—. Giving or taking states, absorbing
     /// and reviving are not here; what a damaging one releases is, see
     /// [`Battle::released_by_damage`].
     pub fn use_skill(&mut self, db: &Db, source: Who, skill: i32, target: Who) -> Result<()> {
@@ -1707,6 +1733,25 @@ impl Battle {
             }
             let t = self.get_mut(target);
             t.modifier[k] += modifier_change(t.modifier[k], t.base[k], effect);
+        }
+        // `affect_attr_defence`: for each attribute the skill carries, in
+        // order, if the target's rank can still move —an enemy's a step
+        // weaker, an ally's a step more resistant, never past one step—, a
+        // roll against the hit chance, and the step if it comes up. A rank
+        // already at the bound **rolls nothing**: `CanShiftAttributeRate`
+        // goes before `PercentChance` in `vExecute`'s `&&`. easyrpg applies
+        // the steps after the action and this right away, which is the same:
+        // each attribute looks only at its own. It goes after the damage,
+        // which read the rank as it was. (`IsImmuneToAttributeDownshifts` is
+        // EasyRPG's, false in an RM2k game.)
+        if skill.affect_attr_defence {
+            let by = if positive { 1 } else { -1 };
+            for (k, &has) in skill.attribute_effects.iter().enumerate() {
+                let movable = self.get(target).received.get(k).map_or(0, |r| r.can_shift(by));
+                if has && movable != 0 && self.rng.percent(hit_rate) {
+                    self.get_mut(target).received[k].shift_by(by);
+                }
+            }
         }
         self.logged(source, target, true, critical, -effect);
     }
@@ -1825,7 +1870,10 @@ impl Battle {
                     // An item cannot miss and rolls nothing, and it goes to
                     // the one chosen even if it changed along the way.
                     let before = self.get(target).hp;
-                    let (hp, sp, _up) = item_effect(db.item(item)?, self.get(target));
+                    let (hp, sp, up) = item_effect(db.item(item)?, self.get(target));
+                    if up {
+                        self.get_mut(target).unshift();
+                    }
                     self.get_mut(target).hp = hp;
                     self.get_mut(target).sp = sp;
                     self.logged(who, target, true, false, before - hp);
