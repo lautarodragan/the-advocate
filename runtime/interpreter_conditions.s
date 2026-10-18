@@ -278,6 +278,8 @@ facing_no:
 .a8
 if_var_against_constant:
     pla                         ; the comparison
+    ; goombario: pull-branch: the comparison's kind, saved before reading
+    ; the second operand: 0 is "equal", and the rest goes to `if_var_other`
     bne if_var_other
     ; "Equal", which is the one almost all of them use —the 40 pages of each
     ; lap of the race do it every frame— goes without `compare_var`: a
