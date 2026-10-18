@@ -282,6 +282,15 @@ impl Request {
                     .collect()
             })?;
         }
+        if let Some(d) = data.get("boxed_exits") {
+            r.patches.boxed_exits = by_map(d, whose, |v| {
+                v.as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's `boxed_exits` is not a list")))?
+                    .iter()
+                    .map(|e| int(e, whose).map(|x| x as i32))
+                    .collect()
+            })?;
+        }
         for b in list(data, "boxes", whose)? {
             let from = strings(field(b, "from", whose)?, whose)?;
             let to = field(b, "to", whose)?

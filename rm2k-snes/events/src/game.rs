@@ -173,6 +173,11 @@ pub struct Patches {
     /// console's RAM, by map and id: the map is read without them, so the
     /// indices are the converter's. A page that names one does not compile.
     pub dropped: BTreeMap<i32, std::collections::BTreeSet<i32>>,
+    /// The exits each map could not keep, by map: the one event of each
+    /// that keeps its row to say so —its pages become [`exit_left_out_box`],
+    /// with their trigger and layer—, and whose row the other exits left
+    /// out share as twins. See `trim.rs` in the converter.
+    pub boxed_exits: BTreeMap<i32, std::collections::BTreeSet<i32>>,
     /// The Systems the cartridge carries a message window for, in its
     /// order: the one it starts with, and every one a `ChangeSystemGraphics`
     /// switches to. Empty is a cartridge that does not switch, and then the
@@ -289,6 +294,19 @@ pub fn commands(
         Some(boxes) if !boxes.is_empty() => refit(raw, boxes),
         _ => raw,
     }
+}
+
+/// The page of an exit the converter could not keep: a box that says so,
+/// in place of a `Teleport` that would not be there, like the one of a
+/// `Teleport` to a map the cartridge does not carry. The same box for every
+/// exit of the map, which share its row as twins: nothing tells which one
+/// it is but the cell the player is on.
+pub fn exit_left_out_box() -> Vec<Command> {
+    vec![
+        Command::new(10110, 0, "An exit left out here: the", vec![]),
+        Command::new(20110, 0, "map has more events than", vec![]),
+        Command::new(20110, 0, "the console holds.", vec![]),
+    ]
 }
 
 /// A `ShowMessage` with its `ShowMessage_2`s, replaced by the boxes the
@@ -563,7 +581,11 @@ impl Game {
                                 character_name: name,
                                 character_index: p.character_index,
                                 character_pattern: p.character_pattern.to_i32(),
-                                commands: commands(&p.event_commands, Some(&self.patches.boxes)),
+                                commands: if self.patches.boxed_exits.get(&id).is_some_and(|b| b.contains(&e.id)) {
+                                    exit_left_out_box()
+                                } else {
+                                    commands(&p.event_commands, Some(&self.patches.boxes))
+                                },
                                 route: p
                                     .move_route
                                     .move_commands

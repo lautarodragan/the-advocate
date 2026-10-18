@@ -271,6 +271,10 @@ pub struct Game {
     /// `(map, event, (x, y), what it loses)`, for the cartridge's
     /// degradations.
     pub trimmed: Vec<(i32, i32, (i32, i32), &'static str)>,
+    /// The exit of each map that keeps its row only to say, in a box, that
+    /// the map's exits did not all fit: see [`Game::trim`]. The event
+    /// compiler gets it as `boxed_exits` and compiles its pages as that box.
+    pub boxed_exits: BTreeMap<i32, BTreeSet<i32>>,
 }
 
 /// `[graphics] system`, **optional**: the System to draw with instead of
@@ -417,6 +421,7 @@ impl Game {
             dropped: BTreeMap::new(),
             twins: BTreeMap::new(),
             trimmed: Vec::new(),
+            boxed_exits: BTreeMap::new(),
         })
     }
 
@@ -448,13 +453,34 @@ impl Game {
             let twins = crate::trim::twins(&raw.events, &named);
             let twin_ids: BTreeSet<i32> = twins.iter().map(|&(t, _)| t).collect();
             let rest: Vec<schema::Event> = raw.events.iter().filter(|e| !twin_ids.contains(&e.id)).cloned().collect();
-            let out = crate::trim::left_out(&rest, &named, cap);
-            let gone: BTreeSet<i32> = out.iter().map(|&(e, _)| e).collect();
-            let kept: Vec<(i32, i32, i32)> = twins
+            let mut out = crate::trim::left_out(&rest, &named, cap);
+            // An exit left out would do nothing, and nothing would say why:
+            // taro walked into the six of Zounds' map 47 and stood there.
+            // So if any is, one more event goes, and the lowest exit left
+            // out keeps a row for a box that says so; the others share it
+            // as twins, so every one of their cells says it.
+            let mut boxed = None;
+            if out.iter().any(|&(_, l)| l == crate::trim::Loss::Exit) {
+                out = crate::trim::left_out(&rest, &named, cap - 1);
+                boxed = out.iter().find(|&&(_, l)| l == crate::trim::Loss::Exit).map(|&(e, _)| e);
+            }
+            let gone: BTreeSet<i32> = out.iter().map(|&(e, _)| e).filter(|&e| Some(e) != boxed).collect();
+            let at = |e: i32| raw.events.iter().find(|r| r.id == e).map(|r| (r.x, r.y));
+            let mut kept: Vec<(i32, i32, i32)> = twins
                 .iter()
                 .filter(|(_, owner)| !gone.contains(owner))
-                .filter_map(|&(t, owner)| raw.events.iter().find(|e| e.id == t).map(|e| (e.x, e.y, owner)))
+                .filter_map(|&(t, owner)| at(t).map(|(x, y)| (x, y, owner)))
                 .collect();
+            if let Some(b) = boxed {
+                // The exits left out, and the twins of those that had any:
+                // twins of the boxed one now, all at once.
+                let exits: BTreeSet<i32> =
+                    out.iter().filter(|&&(e, l)| l == crate::trim::Loss::Exit && e != b).map(|&(e, _)| e).collect();
+                kept.retain(|&(_, _, owner)| !exits.contains(&owner));
+                let theirs: Vec<i32> = twins.iter().filter(|(_, o)| exits.contains(o)).map(|&(t, _)| t).collect();
+                kept.extend(exits.iter().copied().chain(theirs).filter_map(|e| at(e).map(|(x, y)| (x, y, b))));
+                self.boxed_exits.entry(id).or_default().insert(b);
+            }
             if !twins.is_empty() {
                 println!(
                     "  map {id}: {} events and the console's RAM holds {cap}: {} are twins —the same pages as an \
@@ -482,7 +508,7 @@ impl Game {
                     self.trimmed.push((id, e, at, loss.describe()));
                 }
             }
-            self.dropped.insert(id, twin_ids.into_iter().chain(gone).collect());
+            self.dropped.insert(id, twin_ids.into_iter().chain(gone.iter().copied()).collect());
             if !kept.is_empty() {
                 self.twins.insert(id, kept);
             }
