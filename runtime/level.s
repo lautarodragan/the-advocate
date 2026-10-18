@@ -947,7 +947,9 @@ ready:
     and #$1FFF
     sta f:FAR_LENGTH + FAR_EQUIPMENT, x
     pla
-    beq taken                   ; it had nothing
+    ; goombario: pull-branch: what that slot had equipped: 0 is that it had
+    ; nothing
+    beq taken
     cmp #ITEMS_N
     bcs taken                   ; an item the inventory does not carry
     tax

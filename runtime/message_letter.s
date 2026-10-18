@@ -167,7 +167,7 @@ digit:
     pla                         ; the value again
     sep #$20
 .a8
-    bpl no_sign
+    bpl no_sign                 ; goombario: pull-branch: N is its sign
     lda #'-' - ' '
     sta f:MSG_DIGITS, x
     inx

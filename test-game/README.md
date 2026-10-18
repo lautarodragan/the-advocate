@@ -47,9 +47,6 @@ Sword, for the cases that read an actor's stats.
                         each, like a port's; a test chooses one with
                         `Session(core, case=...)`
     justfile            making it, building it, testing it
-    linter-exceptions.txt
-                        what Goombario flags in the runtime and is fine,
-                        each with its why: a copy of A Blurred Line's
     tests/              its tests, in pytest, and their goldens
     build/              what is made: not versioned
 
@@ -125,8 +122,8 @@ steps are how to build them by hand.
                         which fits no way and is left out, so its Teleport
                         is the box
     test_linter.py      Goombario over the cartridge: the runtime falls in
-                        none of the traps it knows, but for
-                        `linter-exceptions.txt`
+                        none of the traps it knows, but for the lines
+                        annotated as right
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a
