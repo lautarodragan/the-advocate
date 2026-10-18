@@ -1,0 +1,59 @@
+# What Goombario —`goombario`, the 65816 linter— flags in the runtime and
+# is fine. It is run by `tests/test_linter.py` over the test game's
+# cartridge; Goombario's README, in `snes/goombario/`, says what each check
+# reviews and the format: the check, the routine and the line's text,
+# without the comment. Each one carries its why above it, and one that no
+# longer covers anything makes the test fail.
+#
+# **A copy** of A Blurred Line's `linter-exceptions.txt`, in the ports'
+# repo, at its commit `a528f6f`: the exceptions are the runtime's, not a
+# game's, and the test game assembles the whole runtime just as that game
+# does, so both lists cover the same lines. Until the linter's test lives
+# only here —phase 2 of the test game's research, in the book— there are
+# two, like `tests/emulator/retro.py`: an exception added to one goes to the
+# other.
+#
+# A `pla` followed by a `beq` is also the shortest way of asking whether
+# what was pulled is zero: AGENTS.md's trap ("The trap that bit most
+# often") is when the branch wanted to look at what was there before the
+# `pl*`. In all of the ones below the branch asks about what was pulled,
+# and each one says what it is.
+
+# The comparison's kind, saved before reading the second operand: 0 is
+# "equal", and the rest goes to `if_var_other`.
+pull-branch op_if_var bne if_var_other
+# The value to write: 0 turns the switch off.
+pull-branch set_switch beq off
+# The screen's mode: 0 is loading, and the cursor starts on the first.
+pull-branch slots_screen beq first
+# The voices that end this frame, gathered on the stack: none, nothing.
+pull-branch se_after beq ready
+# The same, for voices 0 to 5.
+pull-branch se_extras_after beq none
+# sx, the distance in x, saved before computing sy: negative is that the
+# event is to the left of the hero.
+pull-branch turn_fire bmi to_right
+# The `php`/`plp` keeps `can_fall`'s Z over the two `stz`: it is on
+# purpose, and the branch looks at `can_fall`'s answer.
+pull-branch build_hero_jump bne se_can
+# Its comment says it: the wait of zero frames keeps reading in the same one.
+pull-branch music_frame beq continues
+# What that slot had equipped: 0 is that it had nothing.
+pull-branch actor_equip beq taken
+# The amount that moves, saved over `eq_inv_point`: 0, nothing.
+pull-branch eq_inv_move beq remain
+# The phase, again: the second half of the turn is the negative sine's.
+pull-branch big_wave_table bmi left
+# The value to write, again: negative carries the sign.
+pull-branch msg_letter bpl no_sign
+# The same in a troop page's box, which writes `\V[n]` as the map's does.
+pull-branch ba_page_message bpl put_digits
+
+# `close` is the exit both branches of `slots_screen` share, and its
+# comment gives the stack from top to bottom: its own return address, the
+# `slot` and the bank `slots_screen` pushed. It pulls the address, pulls
+# the two below and puts it back: both `rts` of `slots_screen` leave with
+# the stack in order even though, routine by routine, one leaves and the
+# other pulls.
+stack slots_screen rts
+stack slots_screen plx

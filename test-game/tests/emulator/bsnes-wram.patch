@@ -1,0 +1,70 @@
+From a7e88d61d93848f985b5434b0a94d1a251df9b1d Mon Sep 17 00:00:00 2001
+From: taro <taro@taro.codes>
+Date: Wed, 9 Sep 2026 02:10:19 +0000
+Subject: [PATCH] libretro: expose work RAM as RETRO_MEMORY_SYSTEM_RAM
+
+retro_get_memory_data() and retro_get_memory_size() currently return null and
+zero for every id. The comment above them explains why: the memory interface
+cannot be used for SRAM without severe hackery, so bsnes loads and saves SRAM
+itself.
+
+RETRO_MEMORY_SYSTEM_RAM is a separate concern. It is the console's work RAM,
+which frontends read for cheats, RetroAchievements and debugging, and it takes
+no part in how SRAM is loaded or saved -- so exposing it does not touch the
+reason the rest of the interface is left unimplemented. Other SNES cores
+(snes9x, Mesen-S) expose it, and bsnes returning null makes those frontend
+features silently unavailable on this core.
+
+This returns SuperFamicom::cpu.wram, the 128 KiB of SNES work RAM, and leaves
+every other id as it was. sfc/sfc.hpp is included in place of
+sfc/interface/interface.hpp -- which it includes at its end -- because
+SuperFamicom::cpu is not otherwise visible from the libretro target.
+
+Tested by reading a known counter out of a homebrew ROM's WRAM through the
+libretro memory interface: with this change the values match those read from
+the same ROM under snes9x, frame for frame. SRAM handling is untouched.
+---
+ bsnes/target-libretro/libretro.cpp | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/bsnes/target-libretro/libretro.cpp b/bsnes/target-libretro/libretro.cpp
+index 66ba7ce..d78103d 100644
+--- a/bsnes/target-libretro/libretro.cpp
++++ b/bsnes/target-libretro/libretro.cpp
+@@ -2,7 +2,9 @@
+ #include "libretro.h"
+ #include "libretro_core_options.h"
+ #include <emulator/emulator.hpp>
+-#include <sfc/interface/interface.hpp>
++// sfc.hpp instead of just sfc/interface/interface.hpp, which it includes at
++// its end: retro_get_memory_data needs SuperFamicom::cpu for the work RAM.
++#include <sfc/sfc.hpp>
+ #include "program.h"
+ 
+ retro_environment_t environ_cb;
+@@ -1036,12 +1038,22 @@ unsigned retro_get_region()
+ 
+ // Currently, there is no safe/sensible way to use the memory interface without severe hackery.
+ // Rely on higan to load and save SRAM until there is really compelling reason not to.
++//
++// RETRO_MEMORY_SYSTEM_RAM is a separate matter: it is the console's work RAM,
++// which frontends read for cheats, RetroAchievements and debugging. It plays no
++// part in how SRAM is loaded or saved, so exposing it does not affect the
++// concern above. Other SNES cores expose it; bsnes returning null makes those
++// frontend features silently unavailable.
+ void *retro_get_memory_data(unsigned id)
+ {
++	if (id == RETRO_MEMORY_SYSTEM_RAM)
++		return SuperFamicom::cpu.wram;
+ 	return nullptr;
+ }
+ 
+ size_t retro_get_memory_size(unsigned id)
+ {
++	if (id == RETRO_MEMORY_SYSTEM_RAM)
++		return sizeof(SuperFamicom::cpu.wram);
+ 	return 0;
+ }
+-- 
+2.55.0
+
