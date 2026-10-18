@@ -1834,6 +1834,12 @@ high:
     lda #$01
     sta MDMAEN
     jsr cm_oam
+    ; Mode 3, which the windows' 8bpp tiles need: from the pause menu it is
+    ; already there, but `OP_MENU_OPEN` opens it over the map, and a map
+    ; with its panorama on BG3, or a painted one, is mode 1 —BG1 read at
+    ; 4bpp: every window tile wrong—. `back_to_map` gives the map its mode
+    ; back, through `pano_ppu`.
+    jsl f:pano_mode3
     lda #($A0 | CM_OBJ_VRAM / $2000) ; 32x32 and 64x64, from CM_OBJ_VRAM
     sta OBSEL
     lda #(CM_BG1_VRAM / $1000)  ; BG2 from word 0, BG1 from its tiles
