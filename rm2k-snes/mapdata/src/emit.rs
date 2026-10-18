@@ -895,6 +895,23 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
         }
     }
     line(out, &block(&format!("window_arrow_cells{suffix}"), &words_le(arrow_table)));
+    // And the arrow over nothing as two objects' tiles, for a window
+    // without its background in a map that has room for them: the same
+    // tiles the window's cells name, in the window's palette, which the
+    // console copies to a sprite palette. See `arrow_obj` in record.rs.
+    //
+    // A tile the window does not carry goes blank: the screens stage always
+    // carries the arrow's, among `tiles` before `base`, and only a made-up
+    // window —the tests' carry three tiles— names one past them.
+    let tiles = bytes_at(window, "tiles")?;
+    let mut arrow_obj = Vec::with_capacity(arrow_cells * 32);
+    for &tile in &arrow[arrow_cells..] {
+        let at = tile as usize * 32;
+        let mut bytes = tiles.get(at..).unwrap_or_default().iter().take(32).copied().collect::<Vec<u8>>();
+        bytes.resize(32, 0);
+        arrow_obj.extend(bytes);
+    }
+    line(out, &block(&format!("window_arrow_obj{suffix}"), &arrow_obj));
     // The text area's background, one line —two cell rows— after another,
     // which `prime_line` copies under each line before its letters. When
     // every line is the same —a window over one colour, `[windows.
@@ -930,10 +947,10 @@ fn backdrop_is_one_line(window: &Value, t: &Geometry) -> Result<bool> {
     Ok(backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]))
 }
 
-/// How many bytes a System's entry takes in `window_systems`: the eight
+/// How many bytes a System's entry takes in `window_systems`: the nine
 /// 24-bit pointers `window_select` copies to `WINDOW_NOW`, in the order of
 /// `WS_TILES` and the rest in the runtime's `window_system.s`.
-pub const WINDOW_SYSTEM_BYTES: usize = 24;
+pub const WINDOW_SYSTEM_BYTES: usize = 27;
 
 /// The table the runtime finds each System's window in: per System, in the
 /// cartridge's order, a pointer to each of its pieces.
@@ -955,6 +972,7 @@ fn window_systems_table(out: &mut String, systems: usize) {
             "window_backdrop",
             "window_bar",
             "window_bar_bare",
+            "window_arrow_obj",
         ] {
             out.push_str(&format!("    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"));
         }
