@@ -8,10 +8,10 @@ that leaves bytes on the stack or pulls too many, and a width of A or of
 X/Y that is not the one the source declares. Its README, in
 `snes/goombario/`, says how it looks at each one and what it does not see.
 
-What is fine and gets flagged anyway goes in `linter-exceptions.txt`, next
-to `rm2k-snes.toml`, each thing with its why; an exception that no longer
-covers anything also makes it fail, so that the list does not grow on its
-own. Only the runtime is looked at: what the converter generates is data.
+What is fine and gets flagged anyway says so on its own line in the
+runtime, with a `; goombario: <check>: <why>` comment; one that no longer
+allows anything also makes it fail, so that they do not pile up. Only the
+runtime is looked at: what the converter generates is data.
 
 A Blurred Line's `tests/tooling/test_linter.py`, in the ports' repo, does
 the same over that game's cartridges, and this one comes from it.
@@ -21,9 +21,7 @@ import os
 import re
 import subprocess
 
-from game import ROOT, cartridge, listing
-
-EXCEPTIONS = os.path.join(ROOT, "linter-exceptions.txt")
+from game import cartridge, listing
 
 
 def test_the_runtime_falls_in_no_trap():
@@ -32,7 +30,7 @@ def test_the_runtime_falls_in_no_trap():
     runtime = os.path.relpath(listing()["runtime"], root) + "/"
     done = subprocess.run(
         ["goombario", cartridge().rom, "--root", root, "--only", runtime,
-         "--allow", EXCEPTIONS, "--stats"],
+         "--stats"],
         capture_output=True, text=True)
     assert done.returncode != 2, done.stderr
     assert done.returncode == 0, "\n" + done.stdout

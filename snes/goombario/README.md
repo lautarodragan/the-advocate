@@ -6,7 +6,7 @@ a branch on a flag a pull left, a routine entered with `jsl` that comes back
 with `rts`, a path that leaves something on the stack, an instruction run
 with a register width other than the one the source declares.
 
-    goombario game.sfc --only src/ --allow lint-exceptions.txt
+    goombario game.sfc --only src/
     goombario game.sfc --dbg build/game.dbg --root .. --stats
 
 `cargo build --release`, or `cargo test`. `goombario --help` prints the
@@ -40,7 +40,7 @@ program's own code, not the data a converter generated—.
 
 ## The checks
 
-Each finding says file, line, routine and why, and the exception that would
+Each finding says file, line, routine and why, and the annotation that would
 allow it.
 
 ### `pull-branch`: a branch on what a pull left
@@ -62,7 +62,9 @@ again, and flags a conditional branch on one that has not: `beq`/`bne` on Z,
 `bpl`/`bmi` on N, and after a `plp` also `bcc`/`bcs` and `bvc`/`bvs`.
 
 **Some of these are right**: `pla` then `beq` is also the shortest way to
-ask whether the pulled value is zero. Those go in the exceptions, saying so.
+ask whether the pulled value is zero. The trap is when the branch wanted to
+look at what was there before the pull; when it asks about what was pulled,
+the line says so with an annotation, and says what it is that was pulled.
 
 ### `call-return`: `jsr` with `rts`, `jsl` with `rtl`
 
@@ -98,7 +100,8 @@ What it does not follow, and so does not report:
   in the ROM: the words from the table's label to the next label.
 
 A routine that pulls its caller's bytes on purpose —a shared exit that drops
-the return address to get at what is under it— is an exception.
+the return address to get at what is under it— is an exception, annotated
+on the pull and on the return.
 
 ### `width`: the widths on each path against the declared ones
 
@@ -127,23 +130,31 @@ not.
 
 ## The exceptions
 
-A file, given with `--allow`, one exception per line:
+A finding that is what the code means is allowed on its own line, with a
+comment that starts with `goombario:`, the check, and why it is right:
 
-    # Why it is right: the branch asks about the pulled value.
-    pull-branch msg_letter bpl no_sign
-    # A shared exit that drops the return address on purpose.
-    stack slots_screen
+    pla
+    beq off             ; goombario: pull-branch: the value to write, 0 is off
 
-The check, the routine, and optionally the text of the line the finding is
-on, without its comment and with its spaces collapsed: what the finding's
-`allow:` line prints. Without the text it covers every finding of that check
-in the routine. Line numbers are left out on purpose: they move with every
-edit above them.
+A line that has no room for it takes it on a line of its own right above,
+which covers the next line with code; the comment lines in between carry on
+the why, and a blank line in between is an error:
 
-**Every exception needs a comment right above it**, with no blank line in
-between; several in a row can share one. An exception without a reason is
-refused, and **one that matches nothing is a finding**: a list that only
-grows stops saying anything.
+    ; goombario: stack: the shared exit, which pulls its own return address
+    ; and the two bytes under it, and puts the address back
+    plx
+
+The annotation covers that line and that check: not the routine, not
+another check. **The why is required**, and an annotation without one is an
+error; so is one that allows nothing on its line —a list of exceptions that
+only grows stops saying anything, and one spread over the source too—.
+There is no file of exceptions: the why stays on the line it protects, where
+whoever edits it sees it, and an exception is reviewed in the same diff as
+the code.
+
+Only the source files `--only` keeps are read for annotations, so with
+`--only` an annotation in a file it leaves out is neither applied nor
+reported.
 
 ## What it assumes
 
@@ -157,5 +168,5 @@ grows stops saying anything.
   after the other. If a width directive sits inside one, the immediates
   count in `--stats` says so.
 
-Exit codes: 0 nothing found; 1 findings, exceptions that are wrong or match
+Exit codes: 0 nothing found; 1 findings, annotations that are wrong or allow
 nothing, or something the checks cannot stand on; 2 the call itself is wrong.

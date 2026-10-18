@@ -426,6 +426,8 @@ end:
     ora 1, s
     sta 1, s
     pla
+    ; goombario: pull-branch: the voices that end this frame, gathered on
+    ; the stack: none, nothing to do
     beq ready
     ldx #SE_KON
     jsr dsp_pair                ; and the trigger, for both together

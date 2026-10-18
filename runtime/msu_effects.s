@@ -499,7 +499,7 @@ continues:
     cpy #EX_VOICES
     bcc count_up
     pla                         ; the ones ending
-    beq none
+    beq none                    ; goombario: pull-branch: none ending
     pha
     ora f:EX_RETURN
     sta f:EX_RETURN

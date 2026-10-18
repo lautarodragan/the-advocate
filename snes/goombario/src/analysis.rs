@@ -282,8 +282,8 @@ impl<'a> Analysis<'a> {
         let pull_insn = &self.p.insns[&pull];
         let message = format!(
             "`{}` looks at {}, and the last instruction to set it is the `{}` at {}, \
-             with what it pulled{}. If the branch means the pulled value, this is an \
-             exception; if it means something from before the pull, a compare goes \
+             with what it pulled{}. If the branch means the pulled value, the line \
+             says so; if it means something from before the pull, a compare goes \
              between the two",
             cpu::mnemonic(branch.op),
             cpu::flag_name(flag),

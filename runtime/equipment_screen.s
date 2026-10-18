@@ -148,6 +148,8 @@ none:
     sta comp_and
     jsr eq_inv_point
     pla
+    ; goombario: pull-branch: the amount that moves, saved over
+    ; `eq_inv_point`: 0, nothing
     beq remain
     lda comp_and
     cmp #ITEM_MAX

@@ -219,6 +219,8 @@ no_cross:
     stz crossing
     stz crossing + 1
     plp
+    ; goombario: pull-branch: the `php`/`plp` keeps `can_fall`'s Z over the
+    ; two `stz`, on purpose: the branch looks at `can_fall`'s answer
     bne se_can
     stz route_jump              ; it cannot land there: the jump is skipped
     rts
