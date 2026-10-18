@@ -70,13 +70,7 @@ impl Game {
         let system: System = dump.section("system").map_err(answer)?;
         let skills: Vec<Skill> = dump.section("skills").map_err(answer)?;
         let states: Vec<State> = dump.section("states").map_err(answer)?;
-        // A dump cut down to what the screens draw —the tests' small game—
-        // may not bring them, and then no skill asks for a weapon.
-        let attributes: Vec<Attribute> = if data.join("db").join("attributes.json").exists() {
-            dump.section("attributes").map_err(answer)?
-        } else {
-            Vec::new()
-        };
+        let attributes: Vec<Attribute> = dump.section("attributes").map_err(answer)?;
         Ok(Game {
             terms: dump.section("terms").map_err(answer)?,
             actors: actors.into_iter().map(|a| (a.id, a)).collect(),
