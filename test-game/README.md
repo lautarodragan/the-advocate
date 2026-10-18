@@ -47,6 +47,9 @@ Sword, for the cases that read an actor's stats.
                         each, like a port's; a test chooses one with
                         `Session(core, case=...)`
     justfile            making it, building it, testing it
+    linter-exceptions.txt
+                        what Goombario flags in the runtime and is fine,
+                        each with its why: a copy of A Blurred Line's
     tests/              its tests, in pytest, and their goldens
     build/              what is made: not versioned
 
@@ -83,7 +86,9 @@ with garbage in WRAM— and compare what it draws against goldens, at 15 bits.
 The harness is `tests/game.py`, small on purpose, and the core driver
 `tests/emulator/retro.py`, a copy of A Blurred Line's: phase 2 of the
 research brings the generic part of that game's harness here, and then both
-go.
+go. bsnes needs a patch to expose its WRAM, `tests/emulator/bsnes-wram.patch`,
+a copy of that game's too; the CI workflow builds both cores, and its
+steps are how to build them by hand.
 
     test_meadow.py      the meadow as it is reached, and the elder's message
     test_switches_past_1023.py
@@ -119,6 +124,9 @@ go.
                         where it changes bank; and the vast, 330x200,
                         which fits no way and is left out, so its Teleport
                         is the box
+    test_linter.py      Goombario over the cartridge: the runtime falls in
+                        none of the traps it knows, but for
+                        `linter-exceptions.txt`
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

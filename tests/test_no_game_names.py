@@ -210,7 +210,9 @@ def code(path, source):
         return strip_python(source)
     if extension in (".s", ".inc"):
         return strip_line_comments(source, ";", quotes="\"'")
-    if extension in (".toml", ".ini") or name == "justfile":
+    # Goombario's exceptions take `#` comments too: see its README.
+    if (extension in (".toml", ".ini") or name == "justfile"
+            or name == "linter-exceptions.txt"):
         return strip_line_comments(source, "#", quotes="\"'")
     # JSON has no comments, and a patch is somebody else's file, whole.
     return source
