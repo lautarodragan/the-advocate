@@ -1,73 +1,97 @@
-//! The exceptions: findings that are what the code means.
+//! The exceptions: findings that are what the code means, said in the source
+//! itself, on the line they are about.
 //!
-//! One per line, `CHECK ROUTINE [LINE]`: the check's name, the routine the
-//! finding is in, and optionally the text of the source line it points at,
-//! without its comment and with its spaces collapsed —what the finding's
-//! `allow:` line prints—. Without the text, it covers every finding of that
-//! check in the routine. Line numbers are left out on purpose: they move with
-//! every edit above them, and the text does not.
+//! A comment that starts with `goombario:`, then the check's name, a colon
+//! and why the line is right:
 //!
-//! **Every exception needs a comment right above it** saying why, with no
-//! blank line in between; several exceptions in a row can share one. An
-//! exception without a reason is refused, and so is one that matches
-//! nothing: a list that only grows stops saying anything.
+//! ```text
+//!     beq off             ; goombario: pull-branch: the value to write, 0 is off
+//! ```
+//!
+//! On a line with code it covers that line. On a line that is only a
+//! comment it covers the next line with code, and the comment lines in
+//! between carry on its why; a blank line in between is an error, so that an
+//! annotation never lands somewhere nobody sees it from.
+//!
+//! **The why is required**: an annotation without one is an error, and so is
+//! one that covers nothing —a list of exceptions that only grows stops saying
+//! anything, and one spread over the source too—. An annotation covers only
+//! the check it names.
 
 use crate::analysis::Check;
+use crate::source::{comment_start, strip_comment};
+
+const MARK: &str = "goombario:";
 
 #[derive(Debug, Clone)]
-pub struct Exception {
+pub struct Annotation {
     pub check: Check,
-    pub routine: String,
-    pub text: Option<String>,
-    /// Where it is in its file, for the messages.
-    pub line: usize,
+    pub file: String,
+    /// Where the annotation is written.
+    pub line: u32,
+    /// The line it covers: its own, or the next with code.
+    pub covers: u32,
+    pub why: String,
 }
 
-pub fn parse(text: &str) -> Result<Vec<Exception>, String> {
+/// The annotations in one source file, and the ones that are wrong, as
+/// `file:line: why it is wrong`.
+pub fn scan(file: &str, text: &str) -> (Vec<Annotation>, Vec<String>) {
+    let lines: Vec<&str> = text.lines().collect();
     let mut out = Vec::new();
-    // Whether the lines right above have a reason: a comment, or an
-    // exception that had one.
-    let mut reason = false;
-    for (i, raw) in text.lines().enumerate() {
-        let line = raw.trim();
-        if line.is_empty() {
-            reason = false;
+    let mut wrong = Vec::new();
+    for (i, raw) in lines.iter().enumerate() {
+        let Some(at) = comment_start(raw) else { continue };
+        let comment = raw[at..].trim_start_matches(';').trim();
+        let Some(rest) = comment.strip_prefix(MARK) else { continue };
+        let n = i as u32 + 1;
+        let place = format!("{}:{}", file, n);
+        let Some((name, why)) = rest.split_once(':') else {
+            wrong.push(format!("{}: a goombario annotation is `goombario: CHECK: why`", place));
+            continue;
+        };
+        let Some(check) = Check::from_name(name.trim()) else {
+            wrong.push(format!(
+                "{}: {:?} is not a check: they are pull-branch, call-return, stack and width",
+                place,
+                name.trim()
+            ));
+            continue;
+        };
+        let why = why.trim();
+        if why.is_empty() {
+            wrong.push(format!("{}: a goombario annotation without its why", place));
             continue;
         }
-        if line.starts_with('#') {
-            reason = true;
-            continue;
-        }
-        if !reason {
-            return Err(format!("line {}: an exception without a comment above saying why", i + 1));
-        }
-        let mut parts = line.splitn(3, char::is_whitespace);
-        let check = parts.next().unwrap_or("");
-        let check = Check::from_name(check).ok_or_else(|| {
-            format!(
-                "line {}: {:?} is not a check: they are pull-branch, call-return, stack and width",
-                i + 1,
-                check
-            )
-        })?;
-        let routine = parts
-            .next()
-            .filter(|r| !r.is_empty())
-            .ok_or_else(|| format!("line {}: an exception without a routine", i + 1))?;
-        let text = parts
-            .next()
-            .map(|t| t.split_whitespace().collect::<Vec<_>>().join(" "))
-            .filter(|t| !t.is_empty());
-        out.push(Exception { check, routine: routine.to_string(), text, line: i + 1 });
+        let covers = if strip_comment(raw).trim().is_empty() {
+            // The first line below that is code or blank: only comments
+            // can stand between the annotation and what it covers.
+            let next = lines[i + 1..]
+                .iter()
+                .position(|l| l.trim().is_empty() || !strip_comment(l).trim().is_empty())
+                .map(|k| i + 1 + k);
+            match next {
+                Some(k) if !lines[k].trim().is_empty() => k as u32 + 1,
+                _ => {
+                    wrong.push(format!(
+                        "{}: a goombario annotation alone on its line covers the next line with code, \
+                         and there is none before a blank line",
+                        place
+                    ));
+                    continue;
+                }
+            }
+        } else {
+            n
+        };
+        out.push(Annotation { check, file: file.to_string(), line: n, covers, why: why.to_string() });
     }
-    Ok(out)
+    (out, wrong)
 }
 
-impl Exception {
-    pub fn covers(&self, check: Check, routine: &str, text: &str) -> bool {
-        self.check == check
-            && self.routine == routine
-            && self.text.as_deref().map_or(true, |t| t == text)
+impl Annotation {
+    pub fn covers(&self, check: Check, file: &str, line: u32) -> bool {
+        self.check == check && self.file == file && self.covers == line
     }
 }
 
@@ -76,18 +100,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn needs_a_reason() {
-        assert!(parse("stack foo\n").is_err());
-        assert!(parse("# why\n\nstack foo\n").is_err());
-        let list = parse("# why\nstack foo\npull-branch bar  ply   x\n").unwrap();
+    fn on_its_line_or_above_the_next_with_code() {
+        let text = "\
+    pla
+    beq off      ; goombario: pull-branch: the value to write
+    ; goombario: stack: a shared exit,
+    ; which drops the return address
+    rts
+";
+        let (list, wrong) = scan("a.s", text);
+        assert!(wrong.is_empty(), "{:?}", wrong);
         assert_eq!(list.len(), 2);
-        assert_eq!(list[1].text.as_deref(), Some("ply x"));
-        assert!(list[0].covers(Check::Stack, "foo", "anything"));
-        assert!(!list[1].covers(Check::PullBranch, "bar", "ply"));
+        assert_eq!((list[0].check, list[0].covers), (Check::PullBranch, 2));
+        assert_eq!(list[0].why, "the value to write");
+        assert_eq!((list[1].check, list[1].line, list[1].covers), (Check::Stack, 3, 5));
     }
 
     #[test]
-    fn knows_the_checks() {
-        assert!(parse("# why\nnope foo\n").is_err());
+    fn what_is_wrong_is_said() {
+        let (list, wrong) = scan(
+            "a.s",
+            "beq x ; goombario: pull-branch:\nbeq x ; goombario: pull-branch\nbeq x ; goombario: nope: why\n\
+             ; goombario: stack: why\n\nrts\n",
+        );
+        assert!(list.is_empty(), "{:?}", list);
+        assert_eq!(wrong.len(), 4, "{:?}", wrong);
+        assert!(wrong[0].starts_with("a.s:1:") && wrong[0].contains("without its why"));
+        assert!(wrong[3].starts_with("a.s:4:"));
+    }
+
+    #[test]
+    fn other_comments_and_strings_are_not_annotations() {
+        let (list, wrong) = scan("a.s", ".byte \"; goombario: stack: x\"\nrts ; see goombario: stack: x\n");
+        assert!(list.is_empty() && wrong.is_empty(), "{:?} {:?}", list, wrong);
     }
 }
