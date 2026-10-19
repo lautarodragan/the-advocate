@@ -1825,6 +1825,16 @@ impl Battle {
                 ),
                 COMMAND_SKILL => {
                     let skill = db.skill(c.what as i32)?;
+                    // A skill its weapons do not allow is greyed out and A
+                    // does not choose it —`Game_Actor::IsSkillUsable`—: an
+                    // order for one is an order the console cannot give.
+                    let Who::Actor(k) = actor else { unreachable!("the party gives the commands") };
+                    if !rules::weapons_allow(db, skill, &self.actors[k].equipment)? {
+                        return Err(Bad::answer(format!(
+                            "{} cannot use skill {}: its weapons do not carry its physical attributes",
+                            self.actors[k].name, skill.id
+                        )));
+                    }
                     let dest = if !rules::needs_target(skill) {
                         actor
                     } else if db::targets_enemies(skill) {
