@@ -132,7 +132,13 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
             palette.iter().enumerate().map(|(k, &c)| (c, (at + k + 1) as u8)).collect()
         })
         .collect();
-    let (pano, pano_picture) = panorama::mode1(ask.picture, ask.tiles)?;
+    let (mut pano, pano_picture) = panorama::mode1(ask.picture, ask.tiles)?;
+    // The others in the same palettes of BG3, each with its own colours.
+    pano.extras = ask
+        .extras
+        .iter()
+        .map(|e| panorama::mode1(e, ask.tiles).map(|(q, _)| q).map_err(|e| e.to_string()))
+        .collect();
     let mut entries: Vec<Option<Color>> = vec![None; voodoo::ENTRIES];
     for (i, palette) in palettes.iter().enumerate() {
         let at = (FIRST_MAP_PALETTE + i) * COLORS_PER_PALETTE;
@@ -233,6 +239,9 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
         tried: Vec::new(),
         above_lost: 0,
         in_front: None,
+        extras_left: None,
+        dropped: Vec::new(),
+        unseen: false,
         pictures,
     })
 }

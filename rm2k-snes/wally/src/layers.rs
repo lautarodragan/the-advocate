@@ -78,7 +78,64 @@ pub struct Panorama {
     pub changes: bool,
     /// Whether one of those makes it loop, on each axis.
     pub changed_loops: (bool, bool),
+    /// The other pictures a `ChangePBG` of the map's own pages names, in
+    /// the order they are first named, each with the stretch of it the
+    /// console can show: the console carries them too if the map shows its
+    /// panorama on a layer of its own, and swaps them —see `pano_image` in
+    /// `runtime/pano.s`—.
+    pub extras: Vec<Extra>,
+    /// Whether the map has no panorama of its own and starts with none, as
+    /// RM2k shows it: then `name` and `picture` are the first picture a
+    /// `ChangePBG` names, and the console's first record is an empty one.
+    pub none_first: bool,
+    /// Why it carries none of [`Panorama::extras`], if it names some and
+    /// they are left out before converting.
+    pub extras_left: Option<String>,
 }
+
+/// A picture other than the map's own that a `ChangePBG` names: see
+/// [`Panorama::extras`].
+#[derive(Clone, Debug)]
+pub struct Extra {
+    pub name: String,
+    pub size: (usize, usize),
+    pub picture: picture::Picture,
+}
+
+/// The pictures the `ChangePBG`s of a map's own pages name, once each
+/// —RM2k finds them by name, as Windows does, whatever the case— and in
+/// the order they are first named, leaving out `own` and the empty name,
+/// which keeps the picture there is. Not the ones after a `Teleport` to
+/// another map or a `RecallToLocation` in their page: those change the
+/// panorama of the map the page jumped to —The Frozen World's encounters
+/// jump to its battle map and then name its backdrop—, and the compiler
+/// keeps the picture on them, as `MapEvents::jumped` says.
+pub fn named_panoramas(map: &ditto::schema::Map, own: Option<&str>, id: i32) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for page in map.events.iter().flat_map(|e| &e.pages) {
+        let mut jumped = false;
+        for c in &page.event_commands {
+            match c.code.to_i32() {
+                TELEPORT if c.parameters.first() != Some(&id) => jumped = true,
+                RECALL_TO_LOCATION => jumped = true,
+                CHANGE_PBG if !jumped && !c.string.is_empty() => {
+                    if own.is_some_and(|o| o.eq_ignore_ascii_case(&c.string))
+                        || out.iter().any(|n| n.eq_ignore_ascii_case(&c.string))
+                    {
+                        continue;
+                    }
+                    out.push(c.string.clone());
+                }
+                _ => {}
+            }
+        }
+    }
+    out
+}
+
+/// `Teleport`'s and `RecallToLocation`'s event command codes.
+const TELEPORT: i32 = 10810;
+const RECALL_TO_LOCATION: i32 = 10830;
 
 /// The RM2k screen, and the console's, in pixels; and where each puts the
 /// hero's cell, from the screen's corner. RM2k's is
@@ -124,6 +181,12 @@ pub fn reach(map: usize, (rm2k, rm2k_hero): (usize, usize), (console, console_he
 
 /// Reads the request's map and draws it.
 pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
+    draw_with(game, request, true)
+}
+
+/// [`draw`], and with `named` false without the pictures the map's
+/// `ChangePBG`s name: the map as it was drawn before those were carried.
+fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn> {
     let id = request.map;
     let map = game.map(id)?;
     let chipset = game.chipset(map.chipset_id)?;
@@ -157,19 +220,16 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         passable_lower: chipset.passable_data_lower.clone(),
         passable_upper: chipset.passable_data_upper.clone(),
     };
+    let own = map.parallax_flag.then(|| map.parallax_name.clone());
+    // The pictures its `ChangePBG`s name, unless the caller asks for the
+    // map as it was before they were carried: see [`draw_converted`].
+    let named = if named { named_panoramas(&map, own.as_deref(), id) } else { Vec::new() };
     let mut panorama = match &request.panorama {
-        Some(_) if map.parallax_flag => {
-            let name = map.parallax_name.clone();
-            let path = game.resource("Panorama", &name).ok_or_else(|| {
-                Bad::answer(format!(
-                    "can't find the panorama of map {id}: {name:?} is in none of the search directories"
-                ))
-            })?;
-            // Opaque: RM2k gives a panorama no colour key.
-            let whole = picture::read_unkeyed(&path)?;
+        Some(_) if own.is_some() || !named.is_empty() => {
             let (mw, mh) = (drawn.width * 16, drawn.height * 16);
             // An axis a `ChangePBG` of the map's own pages makes loop needs
-            // the whole picture too. One in a common event is not seen.
+            // the whole picture too, in every picture it may show. One in a
+            // common event is not seen.
             let changed = map
                 .events
                 .iter()
@@ -177,38 +237,72 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
                 .flat_map(|p| &p.event_commands)
                 .filter(|c| c.code.to_i32() == CHANGE_PBG && c.parameters.len() >= 2)
                 .fold((false, false), |(x, y), c| (x || c.parameters[0] != 0, y || c.parameters[1] != 0));
-            let w = reach(mw, (RM2K_SCREEN.0, RM2K_HERO.0), (CONSOLE_SCREEN.0, CONSOLE_HERO.0), whole.width, map.parallax_loop_x || changed.0);
-            let h = reach(mh, (RM2K_SCREEN.1, RM2K_HERO.1), (CONSOLE_SCREEN.1, CONSOLE_HERO.1), whole.height, map.parallax_loop_y || changed.1);
-            Some(Panorama {
+            let (lx, ly) = if own.is_some() { (map.parallax_loop_x, map.parallax_loop_y) } else { (false, false) };
+            let read = |name: &str| -> Result<(picture::Picture, picture::Picture)> {
+                let path = game.resource("Panorama", name).ok_or_else(|| {
+                    Bad::answer(format!(
+                        "can't find the panorama of map {id}: {name:?} is in none of the search directories"
+                    ))
+                })?;
+                // Opaque: RM2k gives a panorama no colour key.
+                let whole = picture::read_unkeyed(&path)?;
+                let w = reach(mw, (RM2K_SCREEN.0, RM2K_HERO.0), (CONSOLE_SCREEN.0, CONSOLE_HERO.0), whole.width, lx || changed.0);
+                let h = reach(mh, (RM2K_SCREEN.1, RM2K_HERO.1), (CONSOLE_SCREEN.1, CONSOLE_HERO.1), whole.height, ly || changed.1);
+                Ok((whole.crop(0, 0, w, h), whole))
+            };
+            // A named picture the game does not have is left out: the
+            // compiler keeps the one there is on its `ChangePBG`.
+            let mut found = named.iter().filter_map(|n| read(n).ok().map(|(picture, whole)| (n.clone(), picture, whole)));
+            let first = match &own {
+                Some(name) => {
+                    let (picture, whole) = read(name)?;
+                    Some((name.clone(), picture, whole))
+                }
+                None => found.next(),
+            };
+            first.map(|(name, picture, whole)| Panorama {
                 name,
                 size: (whole.width, whole.height),
-                picture: whole.crop(0, 0, w, h),
-                whole: whole.clone(),
+                picture,
+                whole,
                 changes: map.events.iter().flat_map(|e| &e.pages).flat_map(|p| &p.event_commands).any(|c| c.code.to_i32() == CHANGE_PBG),
                 changed_loops: changed,
-                looped: (map.parallax_loop_x, map.parallax_loop_y),
+                looped: (lx, ly),
                 auto: (
-                    if map.parallax_loop_x && map.parallax_auto_loop_x { map.parallax_sx } else { 0 },
-                    if map.parallax_loop_y && map.parallax_auto_loop_y { map.parallax_sy } else { 0 },
+                    if lx && map.parallax_auto_loop_x { map.parallax_sx } else { 0 },
+                    if ly && map.parallax_auto_loop_y { map.parallax_sy } else { 0 },
                 ),
+                extras: found.map(|(name, picture, whole)| Extra { name, size: (whole.width, whole.height), picture }).collect(),
+                none_first: own.is_none(),
+                extras_left: None,
             })
         }
         _ => None,
     };
+    // A panorama the map's pictures are drawn into keeps them only while it
+    // is the one shown: swapping it would take them away.
+    if let Some(p) = panorama.as_mut().filter(|p| !p.extras.is_empty() && !p.none_first) {
+        if !game.map_pictures.is_empty() && crate::map_pictures::fixed_to_map(p, (drawn.width * 16, drawn.height * 16)) {
+            p.extras_left = Some("the map's pictures are drawn into its own panorama".to_string());
+        }
+    }
     let mut layers = if panorama.is_some() {
         drawn.render_over_panorama(&atlas)?
     } else {
         drawn.render(&atlas)?
     };
     crate::decor::compose(&mut layers, &request.decor);
-    // Above everything, as RM2k draws pictures.
+    // Above everything, as RM2k draws pictures. Not into a picture a
+    // `ChangePBG` names in a map without a panorama of its own: there they
+    // are drawn into the map, as they were before those were carried.
+    let into = panorama.as_mut().filter(|p| !p.none_first);
     let front = crate::map_pictures::compose(
         game,
         id,
         &game.map_pictures,
         (drawn.width * 16, drawn.height * 16),
         &mut layers,
-        panorama.as_mut(),
+        into,
     )?;
     let blocked: Vec<usize> = request
         .decor
@@ -284,7 +378,53 @@ pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
             }
         });
     }
+    // The pictures its `ChangePBG`s name that it does not carry, and why.
+    if let Some(p) = &drawn.panorama {
+        let layered = on_a_layer(&done);
+        for (k, extra) in p.extras.iter().enumerate() {
+            let why = match done.panorama.as_ref().and_then(|q| q.extras.get(k)) {
+                Some(Ok(_)) => continue,
+                Some(Err(why)) => why.clone(),
+                None if layered => done.extras_left.clone().unwrap_or_default(),
+                None => format!("its panorama goes {}, which has no layer of its own to swap", done.way.map_or("nowhere", Way::name)),
+            };
+            done.dropped.push((extra.name.clone(), why));
+        }
+        done.unseen = done.way == Some(Way::Hidden);
+    }
     Ok(done)
+}
+
+/// Whether the map shows its panorama on a layer of its own.
+fn on_a_layer(done: &Converted) -> bool {
+    matches!(done.way, Some(Way::Mode3 | Way::Flattened | Way::Mode1))
+}
+
+/// [`draw`] and [`convert`]. A map without a panorama of its own whose
+/// `ChangePBG`s name some gets a layer for them if a way gives it one;
+/// if not, it is drawn and converted as it was before those were carried,
+/// and the pictures go in [`Converted::dropped`].
+pub fn draw_converted(game: &Game, request: &LayersRequest) -> Result<(Drawn, Converted)> {
+    let drawn = draw(game, request)?;
+    let Some(p) = drawn.panorama.as_ref().filter(|p| p.none_first) else {
+        let converted = convert(&drawn, request)?;
+        return Ok((drawn, converted));
+    };
+    let mut names = vec![p.name.clone()];
+    names.extend(p.extras.iter().map(|e| e.name.clone()));
+    let (why, unseen) = match convert(&drawn, request) {
+        Ok(done) if on_a_layer(&done) => return Ok((drawn, done)),
+        Ok(done) => (
+            format!("its panorama would go {}, which has no layer of its own to swap", done.way.map_or("nowhere", Way::name)),
+            done.unseen,
+        ),
+        Err(e) => (e.to_string(), false),
+    };
+    let drawn = draw_with(game, request, false)?;
+    let mut converted = convert(&drawn, request)?;
+    converted.dropped = names.into_iter().map(|n| (n, why.clone())).collect();
+    converted.unseen = unseen;
+    Ok((drawn, converted))
 }
 
 fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
@@ -321,25 +461,45 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 } else {
                     &drawn.layers
                 };
-                let mut why = format!("there is no layout for mode {number}");
-                for layout in budget.of_mode(number) {
-                    let ask = crate::background::PanoramaAsk { picture: &p.picture, mode, tiles: layout.panorama };
-                    let done = crate::background::convert_with(layers, wc, Some(&ask)).map_err(|e| e.to_string())?;
-                    let spent = done.background.tiles.len() / 64;
-                    if spent <= layout.background {
-                        let mut done = Converted { way: Some(way), ..done };
-                        if way == Way::Flattened {
-                            let unflat = drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l);
-                            done.above_lost = raise_above(&mut done, &unflat.upper).0;
+                let with = |extras: Vec<&picture::Picture>| -> std::result::Result<Converted, String> {
+                    let mut why = format!("there is no layout for mode {number}");
+                    for layout in budget.of_mode(number) {
+                        let ask = crate::background::PanoramaAsk {
+                            picture: &p.picture,
+                            mode,
+                            tiles: layout.panorama,
+                            extras: extras.clone(),
+                        };
+                        let done = crate::background::convert_with(layers, wc, Some(&ask)).map_err(|e| e.to_string())?;
+                        let spent = done.background.tiles.len() / 64;
+                        if spent <= layout.background {
+                            let mut done = Converted { way: Some(way), ..done };
+                            if way == Way::Flattened {
+                                let unflat = drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l);
+                                done.above_lost = raise_above(&mut done, &unflat.upper).0;
+                            }
+                            return Ok(done);
                         }
-                        return Ok(done);
+                        why = format!(
+                            "in mode {number} the background spends {spent} tiles and the layouts leave it {} at most",
+                            layout.background.max(budget.of_mode(number).map(|l| l.background).max().unwrap_or(0))
+                        );
                     }
-                    why = format!(
-                        "in mode {number} the background spends {spent} tiles and the layouts leave it {} at most",
-                        layout.background.max(budget.of_mode(number).map(|l| l.background).max().unwrap_or(0))
-                    );
+                    Err(why)
+                };
+                // With the other pictures its `ChangePBG`s name, which take
+                // VRAM and colours from the same budget; and if they do not
+                // fit, the map as it was without them.
+                if p.extras.is_empty() || p.extras_left.is_some() {
+                    return with(Vec::new()).map(|done| Converted { extras_left: p.extras_left.clone(), ..done });
                 }
-                return Err(why);
+                return match with(p.extras.iter().map(|e| &e.picture).collect()) {
+                    Ok(done) => Ok(done),
+                    Err(why) => with(Vec::new()).map(|done| Converted {
+                        extras_left: Some(format!("with them, {why}")),
+                        ..done
+                    }),
+                };
             }
         };
         done.map(|d| Converted { way: Some(way), ..d }).map_err(|e| e.to_string())
@@ -698,7 +858,32 @@ pub fn write(
     let pano = match (&converted.panorama, panorama) {
         (Some(p), Some(source)) => {
             write_file(out, PANORAMA_TILES, &p.tiles)?;
+            // The other pictures its `ChangePBG`s name that it carries, in
+            // the order the bytecode numbers them after this one.
+            let mut images = Vec::new();
+            for (extra, converted) in source.extras.iter().zip(&p.extras) {
+                let Ok(q) = converted else { continue };
+                let file = format!("panorama-{}.bin", images.len() + 1);
+                write_file(out, &file, &q.tiles)?;
+                images.push(json!({
+                    "name": extra.name,
+                    "size": [extra.size.0, extra.size.1],
+                    "stretch": [extra.picture.width, extra.picture.height],
+                    "tiles": q.tiles.len() / if q.mode.number() == 1 { 16 } else { 32 },
+                    "file": file,
+                    "tilemap": q.tilemap,
+                    "first": q.first,
+                    "cgram": q.cgram,
+                    "backdrop": q.backdrop,
+                    "distinct": q.distinct,
+                    "colors": q.colors,
+                    "kept": q.kept,
+                    "merges": merges_json(&q.merges),
+                }));
+            }
             json!({
+                "images": images,
+                "none_first": source.none_first,
                 "name": source.name,
                 "mode": p.mode.number(),
                 "size": [source.size.0, source.size.1],
@@ -723,6 +908,8 @@ pub fn write(
         "panorama": pano,
         "panorama_way": converted.way.map(Way::name),
         "panorama_tried": converted.tried,
+        "panorama_dropped": converted.dropped.iter().map(|(n, why)| json!([n, why])).collect::<Vec<_>>(),
+        "panorama_unseen": converted.unseen,
         "panorama_above_lost": converted.above_lost,
         "pictures_in_front": converted.in_front.map(|(wrong, total)| json!({"wrong": wrong, "pixels": total})),
         "background": {
@@ -767,8 +954,7 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
 /// The whole `layers` command: the request's map, drawn and converted,
 /// into `out`.
 pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
-    let drawn = draw(game, request)?;
-    let mut converted = convert(&drawn, request)?;
+    let (drawn, mut converted) = draw_converted(game, request)?;
     let (passability, made) = blocks(&drawn, &mut converted)?;
     write(out, &converted, drawn.panorama.as_ref(), &passability, &made)
 }

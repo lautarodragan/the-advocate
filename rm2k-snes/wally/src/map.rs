@@ -12,7 +12,7 @@ use crate::decor::{self, Decoration};
 use crate::events::{changes_graphic, collect_npcs, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
-use crate::layers::{self as stage_layers, draw, Drawn};
+use crate::layers::{self as stage_layers, Drawn};
 use crate::moves::{moves, Animate, Moves, ScannedPage};
 use crate::request::LayersRequest;
 use crate::sheets::Drawer;
@@ -179,8 +179,7 @@ fn layered(
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
     let request = LayersRequest { map: id, baked: cells, window_colors, panorama, fuse_tiles, decor: decor.to_vec() };
-    let drawn = draw(game, &request)?;
-    let converted = stage_layers::convert(&drawn, &request)?;
+    let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
 }
 

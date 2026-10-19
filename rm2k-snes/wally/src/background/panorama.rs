@@ -159,6 +159,23 @@ pub struct Panorama {
     pub colors: usize,
     pub kept: usize,
     pub merges: Vec<Merge>,
+    /// The other pictures a `ChangePBG` names, converted the same way and
+    /// in the same tiles of VRAM, in the order they were asked for: each
+    /// one, or why it could not be. In mode 3 they all start at the same
+    /// colour-memory entry, the first of the most palettes any of them
+    /// takes, so that swapping them is swapping their words; in mode 1
+    /// they are BG3's palettes 4 to 7, as this one.
+    pub extras: Vec<std::result::Result<Panorama, String>>,
+}
+
+impl Panorama {
+    /// Its words with as many empty ones in front as take it back to
+    /// colour-memory entry `first`, which is not after its own.
+    pub fn from_entry(&mut self, first: usize) {
+        let pad = self.first - first;
+        self.cgram.splice(0..0, std::iter::repeat_n(0, pad));
+        self.first = first;
+    }
 }
 
 /// A cell turned four ways: as it is, mirrored across x, across y, both.
@@ -279,6 +296,7 @@ pub fn mode3(picture: &rm2k_render::Picture, free: usize, budget: usize) -> Resu
         colors: colors_before,
         kept: palettes.iter().flatten().collect::<BTreeSet<_>>().len(),
         merges,
+        extras: Vec::new(),
     }, decided))
 }
 
@@ -379,6 +397,7 @@ pub fn mode1(picture: &rm2k_render::Picture, budget: usize) -> Result<(Panorama,
         colors: colors_before,
         kept: kept.len(),
         merges,
+        extras: Vec::new(),
     }, decided))
 }
 

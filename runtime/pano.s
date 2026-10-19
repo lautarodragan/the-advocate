@@ -44,7 +44,7 @@
 ; both with Y at 0 or 2.
 .pushseg
 .segment "FARBSS"
-PANO_ON: .res $E7            ; 0, or the mode the map shows its panorama in
+PANO_ON: .res $EA            ; 0, or the mode the map shows its panorama in
 .popseg
 PANO_WAS1  = PANO_ON + $01            ; whether the PPU is in mode 1 because of one
 PANO_ENT   = PANO_ON + $02            ; the map's record, an offset into pano_table
@@ -60,17 +60,19 @@ PANO_STRIP_ROW = PANO_ON + $60        ; a row: 64 entries
 ; And, since 2026-10-05, for `ChangePBG`, the saved
 ; game and BG1 under the window: how it loops and scrolls now, which starts
 ; as the record says and an
-; `OP_PANORAMA` changes. `PANO_AX`, `PANO_FLAGS` and `PANO_AUTO` go in the
+; `OP_PANORAMA` changes. `PANO_AX`, `PANO_FLAGS`, `PANO_AUTO` and `PANO_IMG` go in the
 ; saved game —see `save_table`—, as RM2k saves its panorama's position and
 ; its `ChangeBG`.
 PANO_FLAGS = PANO_ON + $E0            ; bit 0: it loops across; bit 1: down
 PANO_AUTO  = PANO_ON + $E1            ; what it scrolls on its own each frame, a word per axis
-PANO_KEEP  = PANO_ON + $E5            ; set by `load_game`: the next `pano_find` keeps the above
-PANO_HDMA  = PANO_ON + $E6            ; `HDMA_ABOVE_BG1` in a map whose cells above the hero are BG1 1, else 0
-PANO_END   = PANO_ON + $E7
+PANO_IMG   = PANO_ON + $E5            ; which of the map's records it shows, from its first: see `pano_change`
+PANO_KEEP  = PANO_ON + $E6            ; set by `load_game`: the next `pano_find` keeps the above
+PANO_HDMA  = PANO_ON + $E7            ; `HDMA_ABOVE_BG1` in a map whose cells above the hero are BG1 1, else 0
+PANO_BASE  = PANO_ON + $E8            ; the map's first record, an offset into pano_table
+PANO_END   = PANO_ON + $EA
 P_AUTO = PANO_AUTO & $FFFF
 P_FLAGS = PANO_FLAGS & $FFFF
-.assert PANO_END <= PANO_ON + $E7, error, "the panorama's state overflows its block"
+.assert PANO_END <= PANO_ON + $EA, error, "the panorama's state overflows its block"
 ; With the data bank at $7E, as `pano_tick` runs.
 P_AX   = PANO_AX & $FFFF
 P_UX   = PANO_UX & $FFFF
@@ -102,6 +104,13 @@ PT_BACKDROP = 46
 PT_BG3SC   = 48
 PT_BG34NBA = 49
 PT_RM_MAX  = 50
+PT_PAL     = 54                 ; in a map that swaps pictures: its colours,
+PT_PAL_AT  = 57                 ; the entry they go to
+PT_PAL_N   = 58                 ; and how many
+PT_IMAGES  = 60                 ; in the first record, how many it has
+
+; `OP_PANORAMA`'s picture that keeps the one there is.
+PANO_KEEP_IMAGE = $FF
 
 ; A cartridge that shows no panorama does not get `pano_table` from the
 ; converter, so that its `.inc` stays the one it always was: it gets an empty
@@ -112,30 +121,24 @@ pano_table:
     .word $FFFF
 .endif
 
-; Nothing on reset: bsnes starts the WRAM with garbage.
-.proc pano_clear
-.a8
-.i16
-    lda #0
-    sta f:PANO_ON
-    sta f:PANO_WAS1
-    sta f:PANO_KEEP
-    sta f:PANO_HDMA
-.ifdef paint_table
-    sta f:PAINT_ON              ; and a painted map's: see painted.s
-.endif
-    rtl
-.endproc
-
 ; `ChangePBG`, from `op_panorama`: the loops in A, and the two steps it
-; scrolls on its own after them in the bytecode, at `[code_ptr], y`. A map
-; that does not show its panorama keeps nothing. Leaves Y past them.
+; scrolls on its own and the picture after them in the bytecode, at
+; `[code_ptr], y`. A map that does not show its panorama keeps nothing.
+; Leaves Y past them.
 .proc pano_change
 .a8
 .i16
     pha
     lda f:PANO_ON
-    beq off
+    bne on
+    pla
+    iny
+    iny
+    iny
+    iny
+    iny
+    rtl
+on:
     pla
     sta f:PANO_FLAGS
     ; Someone else's `ChangePBG` is what a pure parallel sets: it owes it
@@ -157,13 +160,12 @@ own:
     iny
     sep #$20
 .a8
-    rtl
-off:
-    pla
+    ; And the picture: see `pano_image`.
+    lda [code_ptr], y
     iny
-    iny
-    iny
-    iny
+    phy
+    jsl f:pano_image
+    ply
     rtl
 .endproc
 
@@ -202,6 +204,7 @@ none:
 .a16
 found:
     txa
+    sta f:PANO_BASE
     sta f:PANO_ENT
     lda #0
     sta f:PANO_COLV
@@ -223,7 +226,15 @@ found:
 .a8
     lda f:pano_table + PT_FLAGS, x
     sta f:PANO_FLAGS
+    ; Its first picture: `ClearChangedBG` undoes a `ChangePBG` too.
+    lda #0
+    sta f:PANO_IMG
+    bra mode
 kept:
+    ; The picture the saved game left: see `pano_at`.
+    lda f:PANO_IMG
+    jsl f:pano_at
+mode:
     lda #0
     sta f:PANO_KEEP
     lda f:pano_table + PT_MODE, x
@@ -448,46 +459,9 @@ no_second:
 no_backdrop:
     sep #$20
 .a8
+    jsl f:pano_colors
     plb
     plp
-    rtl
-.endproc
-
-; In mode 1 the screen's backdrop is part of the panorama —the colour it draws
-; most, see `background::panorama` in Wally—, and RM2k tints the panorama: the
-; tint takes it as one more palette, of one colour at entry 0. With
-; `tint_ptr` and `tint_count` at it, A is 1; in any other map, 0, and nothing
-; is touched. From `apply_tint`, `upload_palettes` and `flash_backdrop`.
-.proc pano_backdrop
-.a8
-.i16
-    lda f:PANO_ON
-    cmp #1
-    bne none
-    php
-    rep #$30
-.a16
-    lda f:PANO_ENT
-    tax
-    lda f:pano_table + PT_BACKDROP, x
-    cmp #$FFFF
-    beq keeps
-    txa
-    clc
-    adc #.loword(pano_table + PT_BACKDROP)
-    sta tint_ptr
-    lda #1
-    sta tint_count
-    plp
-.a8
-    lda #^pano_table
-    sta tint_ptr + 2
-    lda #1
-    rtl
-keeps:
-    plp
-none:
-    lda #0
     rtl
 .endproc
 
@@ -1275,3 +1249,246 @@ no_row:
 done:
     rtl
 .endproc
+
+; --- in bank $C1 ---------------------------------------------------------------
+
+; What is reached only with `jsl` and does not run every frame, in FAR3:
+; FAR2, bank $C0, is full in a cartridge with painted maps.
+.pushseg
+.segment "FAR3"
+
+; Nothing on reset: bsnes starts the WRAM with garbage.
+.proc pano_clear
+.a8
+.i16
+    lda #0
+    sta f:PANO_ON
+    sta f:PANO_WAS1
+    sta f:PANO_KEEP
+    sta f:PANO_HDMA
+.ifdef paint_table
+    sta f:PAINT_ON              ; and a painted map's: see painted.s
+.endif
+    rtl
+.endproc
+
+; `OP_PANORAMA`'s picture, in A, from `pano_change`: if it is another of the
+; map's records —see `panorama.rs` in rm2k-snes-mapdata—, it is swapped in,
+; with the screen off: its tiles over the ones there are, its colours, the
+; backdrop in mode 1, and the whole ring of its tilemap. The screen comes
+; back on in the next vblank, from `brightness`, as after a big picture.
+; `PANO_KEEP_IMAGE`, the one shown, or one the map does not have, leave
+; everything as it is: `Spriteset_Map::ParallaxUpdated` loads a picture only
+; when the name changes. What it scrolled on its own stays, inside the new
+; picture's width, as `Game_Map::Parallax::Initialize` keeps `pan_x` in RM2k
+; 2000. The tint goes over its colours with the map's, in `event_tint`,
+; which runs after the interpreter on this same frame. A8, I16; clobbers X
+; and Y. What it costs is the ring: see "A `ChangePBG` to another picture"
+; in the book's VRAM page.
+.proc pano_image
+.a8
+.i16
+    cmp #PANO_KEEP_IMAGE
+    beq same
+    cmp f:PANO_IMG
+    beq same
+    pha
+    rep #$20
+.a16
+    lda f:PANO_BASE
+    tax
+    sep #$20
+.a8
+    pla
+    cmp f:pano_table + PT_IMAGES, x
+    bcs same
+    jsl pano_at
+    php
+    rep #$30
+.a16
+    ldy #0
+axis:
+    tya
+    clc
+    adc f:PANO_ENT
+    tax
+    lda f:pano_table + PT_SIZE, x
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sta f:PANO_T                ; the width, in 1/32 px
+    tyx
+    lda f:PANO_AX, x
+inside:
+    cmp f:PANO_T
+    bcc wrapped
+    sbc f:PANO_T
+    bra inside
+wrapped:
+    sta f:PANO_AX, x
+    iny
+    iny
+    cpy #4
+    bcc axis
+    plp
+.a8
+    lda #$80
+    sta f:INIDISP               ; what follows writes VRAM by DMA
+    jsl pano_load
+    jsl pano_fill
+    lda #1
+    sta tint_pending            ; its colours, tinted: see `pano_palette`
+same:
+    rtl
+.endproc
+
+; Picture A of the map whose first record is `PANO_BASE`: into `PANO_IMG`,
+; and its record into `PANO_ENT`; one the map does not have —a saved game's
+; from another map or another build— is its first. A8, I16; keeps X and Y.
+.proc pano_at
+.a8
+.i16
+    php
+    phx
+    pha
+    rep #$20
+.a16
+    lda f:PANO_BASE
+    tax
+    sep #$20
+.a8
+    pla
+    cmp f:pano_table + PT_IMAGES, x
+    bcc has_it
+    lda #0
+has_it:
+    sta f:PANO_IMG
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; PANO_STRIDE
+    clc
+    adc f:PANO_BASE
+    sta f:PANO_ENT
+    plx
+    plp
+    rtl
+.endproc
+.assert PANO_STRIDE = 64, error, "pano_at multiplies by PANO_STRIDE with six shifts"
+
+; The colours of the picture shown, in a map that swaps pictures, over the
+; ones its map record uploaded, which are its first picture's: from
+; `pano_load`, with the screen off and the data bank at 0. A8, I16.
+.proc pano_colors
+.a8
+.i16
+    php
+    rep #$30
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_PAL_N, x
+    beq none                    ; a DMA of zero bytes would be 64 KB
+    asl a
+    sta DAS0L
+    lda f:pano_table + PT_PAL, x
+    sta A1T0L
+    sep #$20
+.a8
+    lda f:pano_table + PT_PAL + 2, x
+    sta A1B0
+    lda f:pano_table + PT_PAL_AT, x
+    sta CGADD
+    lda #$00
+    sta DMAP0                   ; one register, byte by byte
+    lda #$22
+    sta BBAD0                   ; CGDATA
+    lda #$01
+    sta MDMAEN
+none:
+    plp
+    rtl
+.endproc
+
+; In a map that swaps pictures the colours of the one it shows go over the
+; ones its map record carries, which are its first picture's, and RM2k
+; tints them with the map: the tint takes them as one more palette. With
+; `tint_ptr`, `tint_count` and `tint_cgadd` at them, A is 1; in any other
+; map, 0, and nothing is touched. From `apply_tint`, after the map's.
+.proc pano_palette
+.a8
+.i16
+    lda f:PANO_ON
+    beq none
+    php
+    rep #$30
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_PAL_N, x
+    beq keeps
+    sta tint_count
+    lda f:pano_table + PT_PAL, x
+    sta tint_ptr
+    plp
+.a8
+    lda f:pano_table + PT_PAL + 2, x
+    sta tint_ptr + 2
+    lda f:pano_table + PT_PAL_AT, x
+    sta tint_cgadd
+    lda #1
+    rtl
+keeps:
+    plp
+none:
+    lda #0
+    rtl
+.endproc
+
+; In mode 1 the screen's backdrop is part of the panorama —the colour it draws
+; most, see `background::panorama` in Wally—, and RM2k tints the panorama: the
+; tint takes it as one more palette, of one colour at entry 0. With
+; `tint_ptr` and `tint_count` at it, A is 1; in any other map, 0, and nothing
+; is touched. From `apply_tint`, `upload_palettes` and `flash_backdrop`.
+.proc pano_backdrop
+.a8
+.i16
+    lda f:PANO_ON
+    cmp #1
+    bne none
+    php
+    rep #$30
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_BACKDROP, x
+    cmp #$FFFF
+    beq keeps
+    txa
+    clc
+    adc #.loword(pano_table + PT_BACKDROP)
+    sta tint_ptr
+    lda #1
+    sta tint_count
+    plp
+.a8
+    lda #^pano_table
+    sta tint_ptr + 2
+    lda #1
+    rtl
+keeps:
+    plp
+none:
+    lda #0
+    rtl
+.endproc
+
+
+.popseg

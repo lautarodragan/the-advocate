@@ -541,6 +541,9 @@ pub struct MapInfo {
     pub merges_background: Value,
     /// How it shows its panorama, Wally's name for it, if it has one.
     pub panorama_way: Value,
+    /// Whether no panorama of the map is ever seen: a `ChangePBG` there
+    /// that keeps the picture loses nothing. See `unseen` in Wally.
+    pub panorama_unseen: bool,
     pub merges_above: Value,
     pub start: (i64, i64),
     pub cells: Vec<u8>,
@@ -612,6 +615,32 @@ fn discard_warning(text: &str, dangerous: bool) -> Result<()> {
 
 fn int(v: &Value) -> i64 {
     v.as_i64().unwrap_or(0)
+}
+
+/// The most tiles any of a map's panoramas takes: the layout holds the one
+/// shown, and a `ChangePBG` uploads another over it.
+fn panorama_tiles(pano: &Value) -> i64 {
+    pano["images"].as_array().into_iter().flatten().map(|i| int(&i["tiles"])).fold(int(&pano["tiles"]), i64::max)
+}
+
+/// The panoramas a map carries, in the order the bytecode numbers them —
+/// its own, or an empty name if it starts with none, and the ones its
+/// `ChangePBG`s name—; empty if it carries one at most. See
+/// `Request::panoramas` in rm2k-snes-events.
+pub fn panorama_names(panorama: Option<&Value>) -> Vec<String> {
+    let Some(p) = panorama else { return Vec::new() };
+    let images = p["images"].as_array().cloned().unwrap_or_default();
+    if images.is_empty() && p["none_first"].as_bool() != Some(true) {
+        return Vec::new();
+    }
+    let name = |v: &Value| v["name"].as_str().unwrap_or("").to_string();
+    let mut out = Vec::new();
+    if p["none_first"].as_bool() == Some(true) {
+        out.push(String::new());
+    }
+    out.push(name(p));
+    out.extend(images.iter().map(name));
+    out
 }
 
 fn truthy(v: Option<&Value>) -> bool {
@@ -706,7 +735,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         let layout = if layers["panorama"].is_null() {
             vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok()
         } else {
-            vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8, tiles_count as u32, count as u32, above_count as u32, int(&layers["panorama"]["tiles"]) as u32).ok()
+            vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8, tiles_count as u32, count as u32, above_count as u32, panorama_tiles(&layers["panorama"]) as u32).ok()
         };
         if layout.is_none() {
             // Not the box: the map's own tiles fit no layout, with or without it.
@@ -900,11 +929,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             tiles_count as u32,
             (sprite_tiles.len() / 32) as u32,
             above_count as u32,
-            int(&pano["tiles"]) as u32,
+            panorama_tiles(pano) as u32,
         )
         .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?;
         println!(
-            "  panorama {}: mode {} in {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged",
+            "  panorama {}: mode {} in {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged{}",
             pano["name"].as_str().unwrap_or(""),
             int(&pano["mode"]),
             layout.name,
@@ -914,16 +943,56 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             int(&pano["distinct"]),
             int(&pano["kept"]),
             int(&pano["colors"]),
-            pano["merges"].as_array().map_or(0, Vec::len)
+            pano["merges"].as_array().map_or(0, Vec::len),
+            if pano["none_first"].as_bool() == Some(true) { "; the map starts with none" } else { "" }
         );
+        // The other pictures its `ChangePBG`s swap in, and what each costs:
+        // the cartridge carries its tiles and its tilemap, and a swap
+        // uploads the tiles and fills the tilemap's ring with the screen off.
+        let images = pano["images"].as_array().cloned().unwrap_or_default();
+        let bytes_per_tile = if int(&pano["mode"]) == 1 { 16 } else { 32 };
+        let rom = |p: &Value| int(&p["tiles"]) * bytes_per_tile + int(&p["stretch"][0]) / 8 * (int(&p["stretch"][1]) / 8) * 2;
+        for image in &images {
+            println!(
+                "  panorama {} too, by a ChangePBG: a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged, {} bytes of ROM",
+                image["name"].as_str().unwrap_or(""),
+                int(&image["stretch"][0]),
+                int(&image["stretch"][1]),
+                int(&image["tiles"]),
+                int(&image["distinct"]),
+                int(&image["kept"]),
+                int(&image["colors"]),
+                image["merges"].as_array().map_or(0, Vec::len),
+                rom(image)
+            );
+        }
+        if !images.is_empty() {
+            println!(
+                "  map {map_id}: {} panoramas, {} bytes of ROM, in {} palettes from entry {}",
+                images.len() + 1,
+                rom(pano) + images.iter().map(rom).sum::<i64>(),
+                pano["cgram"].as_array().map_or(0, Vec::len) / 16,
+                int(&pano["first"])
+            );
+        }
         layout
     };
+    for dropped in layers["panorama_dropped"].as_array().into_iter().flatten() {
+        println!(
+            "  map {map_id}: its ChangePBG to {:?} keeps the panorama there is: {}",
+            dropped[0].as_str().unwrap_or(""),
+            dropped[1].as_str().unwrap_or("")
+        );
+    }
     let panorama = if pano.is_null() {
         None
     } else {
         let mut record = pano.clone();
         record["tile_count"] = pano["tiles"].clone();
         record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
+        for (k, image) in pano["images"].as_array().into_iter().flatten().enumerate() {
+            record["images"][k]["tiles"] = json!(crate::text::hex(file(&written, image["file"].as_str().unwrap_or(""))?));
+        }
         Some(record)
     };
     let mut objects = s.clone();
@@ -1000,6 +1069,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         budget: bg["budget"].clone(),
         merges_background: bg["merges"].clone(),
         panorama_way: layers["panorama_way"].clone(),
+        panorama_unseen: layers["panorama_unseen"].as_bool().unwrap_or(false),
         merges_above: above["merges"].clone(),
         start,
         cells,

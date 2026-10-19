@@ -56,6 +56,10 @@ pub const VAR_SLOT_MAX: usize = 0xFF;
 /// byte. The two of the "1 year earlier" page —see `compile_picture`— last
 /// 210 and 120.
 const PICTURE_FRAMES_MAX: i64 = 255;
+
+/// `OP_PANORAMA`'s picture that keeps the one there is: `PANO_KEEP_IMAGE`
+/// in `pano.s`.
+const KEEP_PANORAMA: u8 = 0xFF;
 /// How deep a `CallEvent` nests **when pasted** —a parallel page's calls,
 /// and the rest `compile_call` cannot make a call—. It is not an abstract
 /// precaution: a common event can call itself —the body in place would be
@@ -5101,17 +5105,22 @@ pub fn compile_command(
         // OP_STOP_ROUTES: no operands
         HALT_ALL_MOVEMENT => Ok(vec![OP_STOP_ROUTES]),
         // `ChangePBG`, `Game_Map::Parallax::ChangeBG`: how the panorama
-        // loops and scrolls on its own from now on. The picture stays the
-        // map's: one that names another would need its tiles converted and
-        // uploaded mid-map, and that is not done —the name is not even
-        // read—. Wally converts the map's panorama big enough for every way
-        // the map's own pages make it loop. In a map that does not show its
-        // panorama the ROM does nothing. See `op_panorama` in `pano.s`.
+        // loops and scrolls on its own from now on, and which picture it
+        // shows. Wally converts the map's panorama big enough for every way
+        // the map's own pages make it loop, and, if it gives the panorama a
+        // layer of its own, the other pictures those pages name too —
+        // `MapEvents::panoramas`, in the order of the map's `pano_table`
+        // records—: one of those is swapped in by its place there. Any other
+        // —one the map could not fit, one after a `Teleport`, one in a
+        // common event, which knows no map— keeps the picture there is,
+        // and only its scroll changes. In a map that does not show its
+        // panorama the ROM does nothing. See `pano_change` in `pano.s`.
         //
-        // OP_PANORAMA: loops (byte: bit 0 across, bit 1 down), and what it
+        // OP_PANORAMA: loops (byte: bit 0 across, bit 1 down), what it
         // moves on its own each frame across and down (signed words, 1/32
         // px), which is RM2k's `scroll_amt` and 0 on an axis that does not
-        // loop or scroll on its own.
+        // loop or scroll on its own, and the picture (byte: its record, $FF
+        // the one there is).
         CHANGE_PBG => {
             if n < 6 {
                 return cannot();
@@ -5127,8 +5136,13 @@ pub fn compile_command(
             if !(-8..=8).contains(&q(3)) || !(-8..=8).contains(&q(5)) {
                 return cannot();
             }
+            // The empty name keeps the picture: RM2k would take it away.
+            let carried = map_events
+                .filter(|m| !m.jumped && !cmd.string.is_empty())
+                .and_then(|m| m.panoramas.iter().position(|n| !n.is_empty() && n.eq_ignore_ascii_case(&cmd.string)))
+                .and_then(|k| u8::try_from(k).ok().filter(|&k| k != KEEP_PANORAMA));
             let theirs = map_events.and_then(|m| ctx.game.panorama(m.map_id));
-            if !cmd.string.is_empty() && theirs.as_deref() != Some(cmd.string.as_str()) {
+            if carried.is_none() && !cmd.string.is_empty() && theirs.as_deref() != Some(cmd.string.as_str()) {
                 ctx.lose(
                     cmd,
                     "panorama-not-changed",
@@ -5138,6 +5152,7 @@ pub fn compile_command(
             let mut out = vec![OP_PANORAMA, u8::from(lx) | (u8::from(ly) << 1)];
             out.extend(step(lx, q(2) != 0, q(3)).to_le_bytes());
             out.extend(step(ly, q(4) != 0, q(5)).to_le_bytes());
+            out.push(carried.unwrap_or(KEEP_PANORAMA));
             Ok(out)
         }
         FLASH_SPRITE => {
@@ -6723,6 +6738,16 @@ mod tests {
 
     /// What [`on_this_map`] notes as lost, as event 1's page 1 at (2, 3).
     fn losses_on_a_map(game: &Game, commands: &[Command]) -> (Option<Vec<u8>>, Vec<crate::losses::Loss>) {
+        losses_on_a_map_carrying(game, commands, &[])
+    }
+
+    /// [`losses_on_a_map`], on a map that carries `panoramas`: see
+    /// `MapEvents::panoramas`.
+    fn losses_on_a_map_carrying(
+        game: &Game,
+        commands: &[Command],
+        panoramas: &[&str],
+    ) -> (Option<Vec<u8>>, Vec<crate::losses::Loss>) {
         use crate::messages::{Messages, Window};
         let (indices, sound) = (Indices::default(), SoundSettings::default());
         let mut songs = Songs::default();
@@ -6745,9 +6770,36 @@ mod tests {
         };
         let map = crate::game::Map { id: 5, events: Vec::new() };
         ctx.losses.enter(Origin::Page { map: 5, event: 1, page: Some(1), x: 2, y: 3 });
-        let code = compile_page(&mut ctx, commands, Some(MapEvents::new(&map, None)), 0, 0).unwrap();
+        let me = MapEvents::new(&map, None)
+            .with_panoramas(std::rc::Rc::new(panoramas.iter().map(|n| n.to_string()).collect()));
+        let code = compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap();
         ctx.losses.leave();
         (code, ctx.losses.take())
+    }
+
+    /// A `ChangePBG` to a picture the map carries swaps it in by its place
+    /// among the map's records, whatever the case of its name; one to a
+    /// picture it does not carry keeps the one there is, and says so; the
+    /// empty name keeps it and says nothing.
+    #[test]
+    fn change_pbg_swaps_in_a_picture_the_map_carries() {
+        let game = Game::default();
+        let carried = ["", "Zounds_DesertPan", "Zounds_ScreenShot_01"];
+        // Across and down, scrolling on its own across at speed 4.
+        let pbg = |name: &str| cmd(CHANGE_PBG, &[1, 1, 1, 4, 0, 0], name);
+        let (code, losses) = losses_on_a_map_carrying(&game, &[pbg("zounds_screenshot_01")], &carried);
+        assert_eq!(code.unwrap(), [OP_PANORAMA, 3, 0xF0, 0xFF, 0, 0, 2, OP_DONE]);
+        assert!(losses.is_empty(), "{losses:?}");
+        let (code, losses) = losses_on_a_map_carrying(&game, &[pbg("Elsewhere")], &carried);
+        assert_eq!(code.unwrap(), [OP_PANORAMA, 3, 0xF0, 0xFF, 0, 0, KEEP_PANORAMA, OP_DONE]);
+        assert_eq!(losses.iter().map(|l| l.kind).collect::<Vec<_>>(), ["panorama-not-changed"]);
+        let (code, losses) = losses_on_a_map_carrying(&game, &[pbg("")], &carried);
+        assert_eq!(code.unwrap()[6], KEEP_PANORAMA);
+        assert!(losses.is_empty());
+        // A map that carries only its own keeps it, as before.
+        let (code, losses) = losses_on_a_map(&game, &[pbg("Zounds_DesertPan")]);
+        assert_eq!(code.unwrap()[6], KEEP_PANORAMA);
+        assert_eq!(losses.len(), 1);
     }
 
     fn fading_in() -> Command {

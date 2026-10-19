@@ -621,6 +621,14 @@ no_backdrop:
     pla
     jsr one_palette
 
+    ; And the colours of the panorama a `ChangePBG` swapped in, over the
+    ; first one's, which came with the background or the layer above. See
+    ; `pano_palette`.
+    jsl f:pano_palette
+    beq no_pano_colors
+    jsr tint_palette
+no_pano_colors:
+
     ; And the sprites, in the upper half of CGRAM.
     ldx #M_PTR_SPRITE_CGRAM
     ldy #M_SPRITE_CGRAM

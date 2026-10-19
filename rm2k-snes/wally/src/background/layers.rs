@@ -160,6 +160,17 @@ pub struct Converted {
     /// on the wrong side of the hero and how many there are: see
     /// `map_pictures::raise` at the crate's top. None without any.
     pub in_front: Option<(usize, usize)>,
+    /// Why the map carries none of the other pictures its `ChangePBG`s
+    /// name, if it has some and carries none: see `convert_ways` in
+    /// `layers.rs`, at the crate's top.
+    pub extras_left: Option<String>,
+    /// Each picture a `ChangePBG` names that the map does not carry, and
+    /// why: what the converter says of them.
+    pub dropped: Vec<(String, String)>,
+    /// Whether no panorama of the map would ever be seen: the layer behind
+    /// the hero covers it everywhere, its own or the ones its `ChangePBG`s
+    /// name. Then keeping the picture there is loses nothing.
+    pub unseen: bool,
 }
 
 /// A map's panorama as the conversion is asked for it: the stretch of it the
@@ -169,6 +180,9 @@ pub struct PanoramaAsk<'a> {
     pub picture: &'a rm2k_render::Picture,
     pub mode: crate::background::panorama::Mode,
     pub tiles: usize,
+    /// The other pictures a `ChangePBG` of the map names, their stretches
+    /// cut the same way: see `Panorama::extras`.
+    pub extras: Vec<&'a rm2k_render::Picture>,
 }
 
 /// Both layers together, which is the only way to split colour memory well.
@@ -240,7 +254,19 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
     // nothing above the hero, so they would be empty.
     let (pano, pano_picture) = match panorama {
         Some(ask) => {
-            let (p, picture) = crate::background::panorama::mode3(ask.picture, free, ask.tiles)?;
+            let (mut p, picture) = crate::background::panorama::mode3(ask.picture, free, ask.tiles)?;
+            p.extras = ask
+                .extras
+                .iter()
+                .map(|e| crate::background::panorama::mode3(e, free, ask.tiles).map(|(q, _)| q).map_err(|e| e.to_string()))
+                .collect();
+            // All of them from the same entry: the first of the most
+            // palettes any takes. The background starts below it.
+            let first = p.extras.iter().flatten().map(|q| q.first).fold(p.first, usize::min);
+            p.from_entry(first);
+            for q in p.extras.iter_mut().flatten() {
+                q.from_entry(first);
+            }
             (Some(p), Some(picture))
         }
         None => (None, None),
@@ -294,6 +320,9 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
         tried: Vec::new(),
         above_lost: 0,
         in_front: None,
+        extras_left: None,
+        dropped: Vec::new(),
+        unseen: false,
         pictures,
     })
 }
@@ -584,4 +613,54 @@ fn convert_background(
         },
         pictures,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::background::panorama::Mode;
+    use rm2k_render::Picture;
+
+    /// A picture whose every 8x8 cell has three colours of its own: as many
+    /// colours as there are cells times three, more than a palette holds.
+    fn colourful(cells: usize) -> Picture {
+        let mut p = Picture::filled(8 * cells, 8, [0, 0, 0, 255]);
+        for c in 0..cells {
+            for y in 0..8 {
+                for x in 0..8 {
+                    let k = (c * 3 + (x + y) % 3) as u8;
+                    let at = (y * 8 * cells + c * 8 + x) * 4;
+                    p.rgba[at..at + 4].copy_from_slice(&[k * 8, 255 - k * 8, k * 4, 255]);
+                }
+            }
+        }
+        p
+    }
+
+    /// In mode 3 the pictures a `ChangePBG` swaps in go in the same colour
+    /// entries as the map's own, from the first of the most palettes any of
+    /// them takes, and the background stops before them.
+    #[test]
+    fn the_pictures_a_map_swaps_share_their_colour_entries() {
+        let layers = Layers {
+            lower: Picture::transparent(64, 8),
+            upper: Picture::transparent(64, 8),
+            variants: Vec::new(),
+        };
+        let one = Picture::filled(64, 8, [200, 100, 50, 255]);
+        let many = colourful(8);
+        let ask = PanoramaAsk { picture: &one, mode: Mode::Three, tiles: 64, extras: vec![&many] };
+        let done = convert_with(&layers, 0, Some(&ask)).unwrap();
+        let p = done.panorama.as_ref().unwrap();
+        let other = p.extras[0].as_ref().unwrap();
+        assert_eq!(p.first, other.first);
+        assert_eq!(p.cgram.len(), other.cgram.len());
+        assert!(p.cgram.len() >= 2 * COLORS_PER_PALETTE, "{} colours", p.cgram.len());
+        // The map's own, one colour, went to the last palette, past the
+        // empty words that take it back to the shared entry.
+        assert!(p.cgram[..p.cgram.len() - COLORS_PER_PALETTE].iter().all(|&w| w == 0));
+        assert_eq!(p.first + p.cgram.len(), BG_PALETTES * COLORS_PER_PALETTE);
+        // What travels as the layer above's is the map's own.
+        assert_eq!(done.above.cgram.len(), 2 * p.cgram.len());
+    }
 }

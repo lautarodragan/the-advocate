@@ -127,6 +127,10 @@ pub struct MapEvents {
     /// callee has no code are noted as skipped, which is what the console
     /// does with them. See [`map_pages`].
     pub page_calls: Rc<RefCell<Vec<PageCall>>>,
+    /// The panoramas the map carries, in the order the bytecode numbers
+    /// them —see `Request::panoramas`—; empty if it carries none or only
+    /// its own. The converter sets it, as it does the substitutions.
+    pub panoramas: Rc<Vec<String>>,
 }
 
 /// A `CallEvent` to a page of the map, compiled as `OP_CALL_PAGE`: the
@@ -200,7 +204,13 @@ impl MapEvents {
             stack: true,
             table,
             page_calls: Rc::new(RefCell::new(Vec::new())),
+            panoramas: Rc::new(Vec::new()),
         }
+    }
+
+    /// The same, carrying `panoramas`: see [`MapEvents::panoramas`].
+    pub fn with_panoramas(self, panoramas: Rc<Vec<String>>) -> MapEvents {
+        MapEvents { panoramas, ..self }
     }
 
     /// The same, with the page table as the ROM gets it: without the events

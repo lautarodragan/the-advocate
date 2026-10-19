@@ -88,6 +88,12 @@ pub struct Request {
     /// Per map, the pictures it carries and each one's slot: see
     /// [`Pictures`]. A map that is not here carries none.
     pub pictures: BTreeMap<i32, Pictures>,
+    /// Per map, the panoramas it carries, in the order the bytecode numbers
+    /// them: its own first —or an empty name, if it starts with none— and
+    /// the ones its `ChangePBG`s name after it. A map that is not here
+    /// carries only its own, if it shows it. See `CHANGE_PBG` in
+    /// `compile.rs`.
+    pub panoramas: BTreeMap<i32, Vec<String>>,
     pub sound: SoundSettings,
     /// Each test page and the map it runs in, compiled with that map's
     /// context and as its event 0. What the caller puts in front of it —the
@@ -421,6 +427,15 @@ impl Request {
                     r.patches.menus.before.insert(int(&b, whose)? as i32);
                 }
             }
+        }
+        if let Some(p) = data.get("panoramas") {
+            r.panoramas = by_map(p, whose, |v| {
+                v.as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's panoramas are not a list")))?
+                    .iter()
+                    .map(|n| text(n, whose))
+                    .collect()
+            })?;
         }
         if let Some(p) = data.get("pictures") {
             // Each entry is a picture in the map's sprite bank, with its
@@ -969,7 +984,8 @@ fn compile_pass(
                 .unwrap_or_default(),
             ..Default::default()
         });
-        let me = MapEvents::new(&map, Some(subs.clone()));
+        let panoramas = Rc::new(request.panoramas.get(&map.id).cloned().unwrap_or_default());
+        let me = MapEvents::new(&map, Some(subs.clone())).with_panoramas(panoramas.clone());
         let mut graphics = Graphics::new(&associations);
         let mut pictures = request.pictures.get(&map.id).cloned().unwrap_or_default();
         songs.current = Some(Package::Map(k));
@@ -1025,7 +1041,7 @@ fn compile_pass(
             let code = compile_page(
                 &mut ctx,
                 case,
-                Some(MapEvents::new(&map, Some(subs.clone())).numbered(&map, &indices).for_event(0)),
+                Some(MapEvents::new(&map, Some(subs.clone())).with_panoramas(panoramas.clone()).numbered(&map, &indices).for_event(0)),
                 0,
                 0,
             )?;
