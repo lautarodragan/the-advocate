@@ -473,7 +473,22 @@ pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Res
     let find = |folder: &str, name: &str| {
         crate::resources::find(search_dirs, folder, name, &[".png", ".bmp"])
     };
-    for (_path, data) in game.forks.chipsets.values() {
+    for (path, data) in game.forks.chipsets.values() {
+        // **A ChipSet the project adds does not replace one**: its image
+        // goes first in the search, so one the game —or the port's own
+        // files, which are inside the game's directory by now— or the RTP
+        // already has would be covered without a word. Replacing a game's
+        // ChipSet is what `patches/manual/files/ChipSet/` is for.
+        let name = data["chipset"]["chipset_name"].as_str().unwrap_or("");
+        if let Some(there) = find("ChipSet", name) {
+            crate::stop!(
+                "{}: ChipSet {} already exists, in {}: a ChipSet the project adds takes a \
+                 name nobody has",
+                path.display(),
+                crate::text::repr(name),
+                there.display()
+            );
+        }
         build(data, out_dir, &find, &|id| game.map(id))?;
     }
     Ok(())
