@@ -161,7 +161,9 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
-        sha(&with_whole_poses_as_before(&without_hero_colors(&with_the_turn_as_before(&written.maps)))),
+        sha(&with_whole_poses_as_before(&without_hero_colors(
+            &with_the_turn_as_before(&written.maps)
+        ))),
         "20e390800ee76ba822286a03ea4f55123e754cce30d97a1e0131b18745dec4bb"
     );
     assert_eq!(
@@ -269,10 +271,19 @@ fn with_the_system_cursors(screens: &mut serde_json::Value, cursor: usize) {
         .as_array()
         .unwrap()
         .iter()
-        .map(|row| row.as_array().unwrap().iter().map(|full| full[cursor].clone()).collect())
+        .map(|row| {
+            row.as_array()
+                .unwrap()
+                .iter()
+                .map(|full| full[cursor].clone())
+                .collect()
+        })
         .collect();
     screens["slots"]["rows"] = serde_json::json!(rows);
-    screens["slots"]["menu"].as_object_mut().unwrap().remove("cursor");
+    screens["slots"]["menu"]
+        .as_object_mut()
+        .unwrap()
+        .remove("cursor");
     screens["target"]["menu_cmd"] = serde_json::json!([1]);
     screens["target"]["menu_cmd_at"] = serde_json::json!([1, 1, 1, 1]);
     screens["target"]["slot_bar"] = serde_json::json!([2]);
@@ -291,8 +302,17 @@ fn with_the_shop_party(screens: &mut serde_json::Value) {
         "tile0": 0,
     });
     let geometry = [
-        "TI_PARTY_MEMBERS", "TI_PARTY_X0", "TI_PARTY_Y0", "TI_PARTY_STEP", "TI_ARROW_DX", "TI_ARROW_DY",
-        "TI_PARTY_RATE", "TI_ARROW_FRAMES", "TI_ARROW_UP", "TI_ARROW_SAME", "TI_ARROW_DOWN",
+        "TI_PARTY_MEMBERS",
+        "TI_PARTY_X0",
+        "TI_PARTY_Y0",
+        "TI_PARTY_STEP",
+        "TI_ARROW_DX",
+        "TI_ARROW_DY",
+        "TI_PARTY_RATE",
+        "TI_ARROW_FRAMES",
+        "TI_ARROW_UP",
+        "TI_ARROW_SAME",
+        "TI_ARROW_DOWN",
         "TI_ARROW_EQUIPPED",
     ];
     for (k, name) in geometry.iter().enumerate() {
@@ -312,9 +332,13 @@ fn with_the_shop_party(screens: &mut serde_json::Value) {
 /// cells, checked here to be the made-up ones of
 /// [`with_the_system_cursors`].
 fn with_the_cursors_as_before(text: &str, name: &str) -> String {
-    let with_cursor = rm2k_snes_mapdata::emit::emit(&emit_request_with(name, 1), &db()).unwrap().text;
-    let request: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(here().join(format!("tests/emit-{name}.json"))).unwrap()).unwrap();
+    let with_cursor = rm2k_snes_mapdata::emit::emit(&emit_request_with(name, 1), &db())
+        .unwrap()
+        .text;
+    let request: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(here().join(format!("tests/emit-{name}.json"))).unwrap(),
+    )
+    .unwrap();
     let screens = &request["screens"];
     let slots = screens["slots"]["rows"].as_array().unwrap().len();
     let shift = 2 * slots as i64;
@@ -345,7 +369,13 @@ fn with_the_cursors_as_before(text: &str, name: &str) -> String {
             continue;
         }
         if ["slot_block_lo:", "slot_block_hi:", "slot_block_bk:"].contains(&line) {
-            let size: i64 = out.pop().unwrap().strip_prefix(".block ").unwrap().parse().unwrap();
+            let size: i64 = out
+                .pop()
+                .unwrap()
+                .strip_prefix(".block ")
+                .unwrap()
+                .parse()
+                .unwrap();
             out.push(format!(".block {}", size + shift));
             out.push(line.to_string());
             let (indent, list) = lines[i + 1].split_at(lines[i + 1].find(".byte ").unwrap() + 6);
@@ -378,9 +408,13 @@ fn with_the_cursors_as_before(text: &str, name: &str) -> String {
             i += 2;
             continue;
         }
-        if let Some((name, value)) = ["MENU_BLK_OPTION   = ", "MENU_BLK_CURRENCY = ", "MENU_BLK_ROW      = "]
-            .iter()
-            .find_map(|p| line.strip_prefix(p).map(|v| (*p, v)))
+        if let Some((name, value)) = [
+            "MENU_BLK_OPTION   = ",
+            "MENU_BLK_CURRENCY = ",
+            "MENU_BLK_ROW      = ",
+        ]
+        .iter()
+        .find_map(|p| line.strip_prefix(p).map(|v| (*p, v)))
         {
             out.push(format!("{name}{}", value.parse::<i64>().unwrap() + shift));
             i += 1;
@@ -388,9 +422,13 @@ fn with_the_cursors_as_before(text: &str, name: &str) -> String {
         }
         if line == "menu_option_vram:" {
             let layout = &screens["layout"];
-            let back = layout["MENU_OPT_COL"].as_i64().unwrap() - layout["MENU_CURSOR_COL"].as_i64().unwrap();
+            let back = layout["MENU_OPT_COL"].as_i64().unwrap()
+                - layout["MENU_CURSOR_COL"].as_i64().unwrap();
             let (indent, list) = lines[i + 1].split_at(lines[i + 1].find(".word ").unwrap() + 6);
-            let cursor: Vec<String> = list.split(", ").map(|v| (v.parse::<i64>().unwrap() - back).to_string()).collect();
+            let cursor: Vec<String> = list
+                .split(", ")
+                .map(|v| (v.parse::<i64>().unwrap() - back).to_string())
+                .collect();
             out.push(line.to_string());
             out.push(lines[i + 1].to_string());
             out.push("menu_cursor_vram:".to_string());
@@ -421,9 +459,19 @@ fn with_the_cursors_as_before(text: &str, name: &str) -> String {
         if line == "menu_cmd_cells:" {
             out.pop();
             let cut = [
-                "menu_cmd_cells:", "    .byte $01,$00", "MENU_CMD_ROW0 = 1", "MENU_CMD_ROWS = 1",
-                "MENU_CMD_COL0 = 1", "MENU_CMD_COLS = 1", ".block 2", "slot_bar_cells:", "    .byte $02,$00",
-                "SLOT_BAR_ROW0 = 3", "SLOT_BAR_ROWS = 1", "SLOT_BAR_COL0 = 6", "SLOT_BAR_COLS = 1",
+                "menu_cmd_cells:",
+                "    .byte $01,$00",
+                "MENU_CMD_ROW0 = 1",
+                "MENU_CMD_ROWS = 1",
+                "MENU_CMD_COL0 = 1",
+                "MENU_CMD_COLS = 1",
+                ".block 2",
+                "slot_bar_cells:",
+                "    .byte $02,$00",
+                "SLOT_BAR_ROW0 = 3",
+                "SLOT_BAR_ROWS = 1",
+                "SLOT_BAR_COL0 = 6",
+                "SLOT_BAR_COLS = 1",
             ];
             assert_eq!(&lines[i..i + cut.len()], &cut);
             i += cut.len();
@@ -438,7 +486,9 @@ fn with_the_cursors_as_before(text: &str, name: &str) -> String {
 /// The text without the shop's party, which came on 2026-10-15: its
 /// section, from its comment to the one that ends it.
 fn without_shop_party(text: &str) -> String {
-    let start = text.find("\n; --- the shop's party: see shop_party.s ---\n").unwrap();
+    let start = text
+        .find("\n; --- the shop's party: see shop_party.s ---\n")
+        .unwrap();
     let last = "; --- the shop's party ends ---\n";
     let end = text[start..].find(last).unwrap() + start + last.len();
     format!("{}{}", &text[..start], &text[end..])
@@ -465,16 +515,40 @@ fn with_the_skills_screen(screens: &mut serde_json::Value) {
         "term_at": [7, 1, 1, 1], "term": [0], "all_at": [0, 1, 13, 2],
         "all_rows": [[0, 0]], "all": [[0], [0], [0], [0]],
     });
-    screens["skills_screen"] =
-        serde_json::json!({"tiles": [], "colors": [], "map": vec![0; 32 * 28], "bars": vec![0; 16 * 64]});
+    screens["skills_screen"] = serde_json::json!({"tiles": [], "colors": [], "map": vec![0; 32 * 28], "bars": vec![0; 16 * 64]});
     let geometry = [
-        "SK_HELP_ROW0", "SK_HELP_COL", "SK_STATUS_ROW", "SK_NAME_COL", "SK_NAME_WIDTH", "SK_LEVEL_COL",
-        "SK_LEVEL_NUM_COL", "SK_STATE_COL", "SK_STATE_WIDTH", "SK_HP_COL", "SK_HP_NUM_COL", "SK_SP_COL",
-        "SK_SP_NUM_COL", "SK_LIST_ROW0", "SK_ROWS", "SK_COLUMNS", "SK_COLUMN_DX", "SK_NAME_DX",
-        "SK_NAME_CELLS", "SK_DASH_DX", "SK_COST_DIGITS", "SK_HALF_COLS", "MENU_SKILL",
-        "ITEM_WHITE", "ITEM_GRAY", "ITEM_RED",
+        "SK_HELP_ROW0",
+        "SK_HELP_COL",
+        "SK_STATUS_ROW",
+        "SK_NAME_COL",
+        "SK_NAME_WIDTH",
+        "SK_LEVEL_COL",
+        "SK_LEVEL_NUM_COL",
+        "SK_STATE_COL",
+        "SK_STATE_WIDTH",
+        "SK_HP_COL",
+        "SK_HP_NUM_COL",
+        "SK_SP_COL",
+        "SK_SP_NUM_COL",
+        "SK_LIST_ROW0",
+        "SK_ROWS",
+        "SK_COLUMNS",
+        "SK_COLUMN_DX",
+        "SK_NAME_DX",
+        "SK_NAME_CELLS",
+        "SK_DASH_DX",
+        "SK_COST_DIGITS",
+        "SK_HALF_COLS",
+        "MENU_SKILL",
+        "ITEM_WHITE",
+        "ITEM_GRAY",
+        "ITEM_RED",
         // The message's face, which came on 2026-10-15.
-        "MSG_FACE_ROW", "MSG_FACE_COL_LEFT", "MSG_FACE_COL_RIGHT", "MSG_FACE_TEXT_X", "MSG_FACE_RIGHT_X",
+        "MSG_FACE_ROW",
+        "MSG_FACE_COL_LEFT",
+        "MSG_FACE_COL_RIGHT",
+        "MSG_FACE_TEXT_X",
+        "MSG_FACE_RIGHT_X",
     ];
     for (k, name) in geometry.iter().enumerate() {
         if screens["layout"].get(*name).is_none() {
@@ -507,7 +581,9 @@ fn with_frequency_one_as_before(text: &str) -> String {
 
 fn without_skills_screen(text: &str) -> String {
     let text = &without_skill_choice(text);
-    let start = text.find("\n; --- the skills screen: see skills_screen.s ---\n").unwrap();
+    let start = text
+        .find("\n; --- the skills screen: see skills_screen.s ---\n")
+        .unwrap();
     let last = "sk_border_cgram:\n";
     let from_last = text[start..].find(last).unwrap() + start + last.len();
     // The block's data: up to the next line that is not a `.byte`.
@@ -525,12 +601,21 @@ fn without_skills_screen(text: &str) -> String {
         .position(|l| *l == "skill_id:")
         .map(|at| lines[at + 1].split(',').count())
         .unwrap();
-    for label in ["skill_line1_n:", "skill_line2_at:", "skill_line2_n:", "skill_on_map:", "skill_name_cut:"] {
+    for label in [
+        "skill_line1_n:",
+        "skill_line2_at:",
+        "skill_line2_n:",
+        "skill_on_map:",
+        "skill_name_cut:",
+    ] {
         let at = lines.iter().position(|l| *l == label).unwrap();
         assert_eq!(lines[at + 1].split(',').count(), carried, "{label}");
         lines.drain(at - 1..=at + 1);
     }
-    let at = lines.iter().position(|l| l.starts_with("SK_TXT_LEVEL = ")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("SK_TXT_LEVEL = "))
+        .unwrap();
     lines.remove(at);
     lines.join("\n")
 }
@@ -582,14 +667,23 @@ fn without_pairs(text: &str) -> String {
 /// old order.
 fn with_the_equipment_commons_as_before(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(str::to_string).collect();
-    let at = lines.iter().position(|l| l.starts_with("COMPAR_N = ")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("COMPAR_N = "))
+        .unwrap();
     let n: usize = lines[at]["COMPAR_N = ".len()..].parse().unwrap();
     assert_eq!(lines[at + 2], "compar_table:");
     let entries: Vec<&[String]> = lines[at + 3..at + 3 + 3 * n].chunks(3).collect();
-    let field = |line: &str, prefix: &str| line.trim_start().strip_prefix(prefix).unwrap().to_string();
+    let field =
+        |line: &str, prefix: &str| line.trim_start().strip_prefix(prefix).unwrap().to_string();
     let first: Vec<Vec<String>> = entries
         .iter()
-        .map(|e| field(&e[0], ".byte ").split(", ").map(str::to_string).collect())
+        .map(|e| {
+            field(&e[0], ".byte ")
+                .split(", ")
+                .map(str::to_string)
+                .collect()
+        })
         .collect();
     let bytes: Vec<String> = first.iter().map(|f| f[0].clone()).collect();
     let masks: Vec<String> = first.iter().map(|f| f[1].clone()).collect();
@@ -611,7 +705,9 @@ fn with_the_equipment_commons_as_before(text: &str) -> String {
         format!("    .word {}", banks.join(", ")),
     ];
     lines.splice(at..at + 3 + 3 * n, old);
-    lines.join("\n").replace("common_parallel_", "common_equipment_")
+    lines
+        .join("\n")
+        .replace("common_parallel_", "common_equipment_")
 }
 
 /// The text without the shared common event bodies' tables, which came
@@ -636,12 +732,18 @@ fn without_commons(text: &str) -> String {
     ] {
         let at = lines.iter().position(|l| *l == label).unwrap();
         if label == "comcopy_maps:" {
-            let zeros = lines[at + 1].strip_prefix("    .byte ").is_some_and(|b| b.split(", ").all(|v| v == "0"));
+            let zeros = lines[at + 1]
+                .strip_prefix("    .byte ")
+                .is_some_and(|b| b.split(", ").all(|v| v == "0"));
             assert!(zeros, "{label}: {}", lines[at + 1]);
         } else {
             assert_eq!(lines[at + 1], data, "{label}");
         }
-        let from = if at > 0 && lines[at - 1].starts_with(".block ") { at - 1 } else { at };
+        let from = if at > 0 && lines[at - 1].starts_with(".block ") {
+            at - 1
+        } else {
+            at
+        };
         lines.drain(from..at + 2);
     }
     lines.join("\n")
@@ -666,7 +768,10 @@ fn with_the_turn_as_before(text: &str) -> String {
             if pose & 0x80 != 0 {
                 "    .byte $FF, 0 ; +30 the turn: its poses and its pose".to_string()
             } else {
-                format!("    .byte ${k:02X}, {} ; +30 the turn: its poses and its pose", pose & 0x0F)
+                format!(
+                    "    .byte ${k:02X}, {} ; +30 the turn: its poses and its pose",
+                    pose & 0x0F
+                )
             }
         })
         .collect::<Vec<_>>()
@@ -699,7 +804,10 @@ fn with_whole_poses_as_before(text: &str) -> String {
         let mut bytes = Vec::new();
         let mut j = i + 2;
         while let Some(rest) = lines.get(j).and_then(|l| l.strip_prefix("    .byte ")) {
-            bytes.extend(rest.split(',').map(|b| u8::from_str_radix(&b[1..], 16).unwrap()));
+            bytes.extend(
+                rest.split(',')
+                    .map(|b| u8::from_str_radix(&b[1..], 16).unwrap()),
+            );
             j += 1;
         }
         assert_eq!(lines[i], format!(".block {}", bytes.len()));
@@ -731,17 +839,28 @@ fn with_whole_poses_as_before(text: &str) -> String {
 /// pointing at a whole entry, and 32 words an entry.
 fn without_pose_masks(text: &str) -> String {
     let head = "\n.segment \"RODATA\"\n; What each block of the sprite bank holds";
-    let at = text.find(head).expect("the cartridge has no pose_masks table");
+    let at = text
+        .find(head)
+        .expect("the cartridge has no pose_masks table");
     let lines: Vec<&str> = text[at + 1..].split('\n').collect();
     assert_eq!(lines[3], "pose_masks_maps:");
-    let starts: Vec<usize> =
-        lines[4].trim_start_matches("    .word ").split(", ").map(|n| n.parse().unwrap()).collect();
+    let starts: Vec<usize> = lines[4]
+        .trim_start_matches("    .word ")
+        .split(", ")
+        .map(|n| n.parse().unwrap())
+        .collect();
     assert_eq!(lines[6], "pose_masks_data:");
-    let words = lines[7..].iter().take_while(|l| l.starts_with("    .word $")).count();
+    let words = lines[7..]
+        .iter()
+        .take_while(|l| l.starts_with("    .word $"))
+        .count();
     assert_eq!(lines[5], format!(".block {}", 2 * 16 * words));
     assert!(starts.iter().all(|s| s % 64 == 0 && *s < 32 * words));
     // The section and the blank line `maps_with` puts before it.
-    let end = lines[..7 + words].iter().map(|l| l.len() + 1).sum::<usize>();
+    let end = lines[..7 + words]
+        .iter()
+        .map(|l| l.len() + 1)
+        .sum::<usize>();
     format!("{}{}", &text[..at], &text[at + 1 + end..])
 }
 
@@ -758,16 +877,30 @@ fn without_arrow_objs(text: &str) -> String {
         let lines: Vec<&str> = text[at + 1..].split('\n').collect();
         assert_eq!(lines[2], "ARROW_OBJ_TILES = 2");
         assert_eq!(lines[4], "arrow_objs:");
-        let words: Vec<&str> = lines[5].trim_start_matches("    .word ").split(", ").collect();
+        let words: Vec<&str> = lines[5]
+            .trim_start_matches("    .word ")
+            .split(", ")
+            .collect();
         assert_eq!(lines[3], format!(".block {}", 2 * words.len()));
-        assert!(words.iter().all(|w| w.starts_with("$8") || w.starts_with("$9") || *w == "$0000"), "{}", lines[5]);
+        assert!(
+            words
+                .iter()
+                .all(|w| w.starts_with("$8") || w.starts_with("$9") || *w == "$0000"),
+            "{}",
+            lines[5]
+        );
         let end = lines[..6].iter().map(|l| l.len() + 1).sum::<usize>();
         text = format!("{}{}", &text[..at], &text[at + 1 + end..]);
     }
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    while let Some(at) = lines.iter().position(|l| l.starts_with("window_arrow_obj") && l.ends_with(':')) {
+    while let Some(at) = lines
+        .iter()
+        .position(|l| l.starts_with("window_arrow_obj") && l.ends_with(':'))
+    {
         assert_eq!(lines[at - 1], ".block 64");
-        assert!(lines[at + 1..at + 5].iter().all(|l| l.starts_with("    .byte ")));
+        assert!(lines[at + 1..at + 5]
+            .iter()
+            .all(|l| l.starts_with("    .byte ")));
         lines.drain(at - 1..at + 5);
     }
     lines.join("\n")
@@ -781,7 +914,10 @@ fn without_item_up(text: &str) -> String {
     let at = lines.iter().position(|l| *l == "item_up:").unwrap();
     assert!(lines[at - 1].starts_with(".block "));
     let words = lines[at + 1].trim_start_matches("    .word ");
-    assert!(words.split(", ").all(|w| w == "0"), "a material in the test game");
+    assert!(
+        words.split(", ").all(|w| w == "0"),
+        "a material in the test game"
+    );
     lines.drain(at - 1..at + 2);
     lines.join("\n")
 }
@@ -792,7 +928,10 @@ fn without_item_up(text: &str) -> String {
 /// `route_graphic`, checked here to be 0.
 fn without_hero_colors(text: &str) -> String {
     let empty = ".block 1\nhero_colors:\n    .byte $00\n\n";
-    assert!(text.contains(empty), "a hero_colors table with something in it");
+    assert!(
+        text.contains(empty),
+        "a hero_colors table with something in it"
+    );
     let text = text.replacen(empty, "", 1);
     let mut lines: Vec<String> = text.split('\n').map(str::to_string).collect();
     let mut at = 0;
@@ -804,13 +943,23 @@ fn without_hero_colors(text: &str) -> String {
         let mut end = at + 1;
         let mut bytes: Vec<String> = Vec::new();
         while end < lines.len() && lines[end].starts_with("    .byte ") {
-            bytes.extend(lines[end]["    .byte ".len()..].split(',').map(str::to_string));
+            bytes.extend(
+                lines[end]["    .byte ".len()..]
+                    .split(',')
+                    .map(str::to_string),
+            );
             end += 1;
         }
         let n = bytes.len() / 3;
-        assert!(bytes[2 * n..].iter().all(|b| b == "$00"), "a graphic with colours");
+        assert!(
+            bytes[2 * n..].iter().all(|b| b == "$00"),
+            "a graphic with colours"
+        );
         bytes.truncate(2 * n);
-        let rows: Vec<String> = bytes.chunks(16).map(|c| format!("    .byte {}", c.join(","))).collect();
+        let rows: Vec<String> = bytes
+            .chunks(16)
+            .map(|c| format!("    .byte {}", c.join(",")))
+            .collect();
         lines[at - 1] = format!(".block {}", 2 * n);
         let count = rows.len();
         lines.splice(at + 1..end, rows);
@@ -823,7 +972,9 @@ fn without_hero_colors(text: &str) -> String {
 /// without them gets the section's empty labels and the pause menu's two
 /// counts, checked here to be those of no menu.
 fn without_custom_menus(text: &str) -> String {
-    let start = text.find("\n; --- the custom menus: see custom_menu.s ---\n").unwrap();
+    let start = text
+        .find("\n; --- the custom menus: see custom_menu.s ---\n")
+        .unwrap();
     let last = "cm_portrait_cgram:\n    .byte 0\n";
     let end = text[start..].find(last).unwrap() + start + last.len();
     let mut out = format!("{}{}", &text[..start], &text[end..]);
@@ -839,7 +990,10 @@ fn without_custom_menus(text: &str) -> String {
 /// of the bank, checked here.
 fn without_menu_tiles(text: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
-    let at = lines.iter().position(|l| l.starts_with("SLOT_MENU_TILES ")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("SLOT_MENU_TILES "))
+        .unwrap();
     let tiles = lines.iter().find(|l| l.starts_with("SLOT_TILES ")).unwrap();
     assert_eq!(lines[at].split('=').nth(1), tiles.split('=').nth(1));
     lines.drain(at - 3..=at);
@@ -869,7 +1023,10 @@ fn without_bare_window(text: &str) -> String {
         assert_eq!(bytes.len(), size, "{label}");
         let (framed, bare) = bytes.split_at(size / 2);
         for (f, b) in framed.chunks(2).zip(bare.chunks(2)) {
-            assert!(b == [0, 0] || b == f, "{label} a bare cell that is neither blank nor the window's");
+            assert!(
+                b == [0, 0] || b == f,
+                "{label} a bare cell that is neither blank nor the window's"
+            );
         }
         let old: Vec<String> = framed
             .chunks(16)
@@ -890,7 +1047,10 @@ fn without_bare_window(text: &str) -> String {
 /// condition's two texts are among those last ones.
 fn without_states(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    let at = lines.iter().position(|l| l.starts_with("STATES_N = ")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("STATES_N = "))
+        .unwrap();
     lines.remove(at);
     let mut theirs = Vec::new();
     for label in [
@@ -915,7 +1075,12 @@ fn without_states(text: &str) -> String {
     // The four tables that name the texts, cut at the first of theirs; and
     // the block, at where it starts.
     let mut cut_at = None;
-    for label in ["item_txt_lo:", "item_txt_hi:", "item_txt_bk:", "item_txt_n:"] {
+    for label in [
+        "item_txt_lo:",
+        "item_txt_hi:",
+        "item_txt_bk:",
+        "item_txt_n:",
+    ] {
         let at = lines.iter().position(|l| l == label).unwrap();
         let entries: Vec<String> = lines[at + 1]
             .trim_start_matches("    .byte ")
@@ -925,7 +1090,9 @@ fn without_states(text: &str) -> String {
         assert!(theirs.iter().all(|&k| k < entries.len()), "{label}");
         if label == "item_txt_lo:" {
             let e = &entries[first];
-            let ofs = e.trim_start_matches("<(item_texts + ").trim_end_matches(')');
+            let ofs = e
+                .trim_start_matches("<(item_texts + ")
+                .trim_end_matches(')');
             cut_at = Some(ofs.parse::<usize>().unwrap());
         }
         lines[at - 1] = format!(".block {first}");
@@ -938,7 +1105,12 @@ fn without_states(text: &str) -> String {
         .unwrap();
     let bytes: Vec<String> = lines[at + 1..end]
         .iter()
-        .flat_map(|l| l.trim_start_matches("    .byte ").split(',').map(String::from).collect::<Vec<_>>())
+        .flat_map(|l| {
+            l.trim_start_matches("    .byte ")
+                .split(',')
+                .map(String::from)
+                .collect::<Vec<_>>()
+        })
         .collect();
     let rows: Vec<String> = bytes[..cut_at]
         .chunks(16)
@@ -957,7 +1129,10 @@ fn with_the_switch_comment_as_before(text: &str) -> String {
     let now = "; One bit per switch, up to the highest the game names.";
     assert!(text.contains(now));
     assert!(text.contains("\nSWITCH_BYTES = 128\n"));
-    text.replace(now, "; One bit per switch. The highest the game checks is 1003.")
+    text.replace(
+        now,
+        "; One bit per switch. The highest the game checks is 1003.",
+    )
 }
 
 /// The text without the attributes, which came on 2026-10-15: `ATTR_N` and
@@ -966,7 +1141,10 @@ fn with_the_switch_comment_as_before(text: &str) -> String {
 /// set's row.
 fn without_attributes(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    let at = lines.iter().position(|l| l.starts_with("ATTR_N = ")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("ATTR_N = "))
+        .unwrap();
     assert_eq!(lines[at], "ATTR_N = 0");
     lines.remove(at);
     for label in [
@@ -1010,7 +1188,13 @@ fn with_item_k_in_bytes_as_before(text: &str) -> String {
     let values: Vec<String> = lines[at + 1]
         .trim_start_matches("    .word ")
         .split(", ")
-        .map(|v| if v == "65535" { "255".to_string() } else { v.to_string() })
+        .map(|v| {
+            if v == "65535" {
+                "255".to_string()
+            } else {
+                v.to_string()
+            }
+        })
         .collect();
     assert!(values.iter().all(|v| v.parse::<u32>().unwrap() <= 255));
     lines[at - 1] = format!(".block {}", values.len());
@@ -1023,7 +1207,10 @@ fn with_item_k_in_bytes_as_before(text: &str) -> String {
 /// rename's text. See the runtime's `actor_names.s`.
 fn without_names(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    let at = lines.iter().position(|l| l.starts_with("; The actors some ChangeHeroName")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("; The actors some ChangeHeroName"))
+        .unwrap();
     assert!(lines[at + 6] == "name_actor:");
     lines.drain(at..at + 8);
     let at = lines.iter().position(|l| l == "name_txt:").unwrap();
@@ -1037,10 +1224,16 @@ fn without_names(text: &str) -> String {
 /// runtime's `message_face.s`.
 fn without_faces(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    let at = lines.iter().position(|l| l.starts_with("; A box's face, `ChangeFaceGraphic`'s")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("; A box's face, `ChangeFaceGraphic`'s"))
+        .unwrap();
     assert!(lines[at + 9].starts_with("MSG_FACE_RIGHT_X = "));
     lines.drain(at..at + 10);
-    let at = lines.iter().position(|l| l.starts_with("; The faces of the message window")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("; The faces of the message window"))
+        .unwrap();
     assert!(lines[at + 5] == "message_face_ptr:" && lines[at + 7].is_empty());
     lines.drain(at..at + 8);
     lines.join("\n")
@@ -1076,7 +1269,10 @@ fn without_actor_level(text: &str) -> String {
 /// per skill in its `.block`. See the runtime's `battle_attributes.s`.
 fn without_attribute_shifts(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    let at = lines.iter().position(|l| l.starts_with("ATTR_SHIFT_N = ")).unwrap();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("ATTR_SHIFT_N = "))
+        .unwrap();
     assert!(lines[at - 1].starts_with("ATTR_N = "));
     lines.remove(at);
     let at = lines.iter().position(|l| l == "skill_shifts:").unwrap();
@@ -1089,8 +1285,28 @@ fn without_attribute_shifts(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "bare");
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&without_attribute_shifts(&text)))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text))))))))))))))))))))))));
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
+        &without_map_access(&without_attributes(&without_shop_party(&without_faces(
+            &without_attribute_shifts(&text),
+        )))),
+    ));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
+        &without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(
+            &without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(
+                &with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(
+                    &without_states(&without_skills_screen(&with_whole_poses_as_before(
+                        &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
+                            &with_the_actor_questions_as_before(&without_names(
+                                &without_actor_level(&with_two_pan_operations_as_before(
+                                    &without_grid_narrow(&text),
+                                )),
+                            )),
+                        ))),
+                    ))),
+                ))),
+            )))),
+        ))),
+    )));
     assert_eq!(text.lines().count(), 3766);
     assert_eq!(
         sha(&text),
@@ -1102,8 +1318,28 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "whole");
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&without_attribute_shifts(&text)))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text))))))))))))))))))))))));
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
+        &without_map_access(&without_attributes(&without_shop_party(&without_faces(
+            &without_attribute_shifts(&text),
+        )))),
+    ));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
+        &without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(
+            &without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(
+                &with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(
+                    &without_states(&without_skills_screen(&with_whole_poses_as_before(
+                        &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
+                            &with_the_actor_questions_as_before(&without_names(
+                                &without_actor_level(&with_two_pan_operations_as_before(
+                                    &without_grid_narrow(&text),
+                                )),
+                            )),
+                        ))),
+                    ))),
+                ))),
+            )))),
+        ))),
+    )));
     assert_eq!(text.lines().count(), 3885);
     assert_eq!(
         sha(&text),
@@ -1151,7 +1387,10 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
         value["troops"].as_array_mut().unwrap().push(n.into());
         let mut model = model_original.clone();
         model["id"] = n.into();
-        value["battle_model"]["troops"].as_array_mut().unwrap().push(model);
+        value["battle_model"]["troops"]
+            .as_array_mut()
+            .unwrap()
+            .push(model);
         let mut scene = scene_original.clone();
         scene[0] = n.into();
         value["scene"]["troops"].as_array_mut().unwrap().push(scene);
@@ -1171,8 +1410,17 @@ fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
     let text = rm2k_snes_mapdata::emit::emit(&request, &db).unwrap().text;
     // Six troops of 2, 3, 3, 8, 3 and 4 members, and then 34 of eight: the
     // last one starts at 23 + 33 * 8.
-    let starts = text.split("troop_init:\n").nth(1).unwrap().lines().next().unwrap();
-    assert!(starts.starts_with("    .word 0, 2, 5, 8, 16, 19, 23, 31,"), "{starts}");
+    let starts = text
+        .split("troop_init:\n")
+        .nth(1)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap();
+    assert!(
+        starts.starts_with("    .word 0, 2, 5, 8, 16, 19, 23, 31,"),
+        "{starts}"
+    );
     assert!(starts.ends_with(", 287"), "{starts}");
 }
 
@@ -1184,7 +1432,13 @@ fn more_troops_than_a_byte_numbers_fit() {
     let (request, db) = whole_with_troop_copies(1, 7..301);
     let text = rm2k_snes_mapdata::emit::emit(&request, &db).unwrap().text;
     assert!(text.contains("TROOPS_N          = 300\n"), "TROOPS_N");
-    let ids = text.split("troop_id:\n").nth(1).unwrap().lines().next().unwrap();
+    let ids = text
+        .split("troop_id:\n")
+        .nth(1)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap();
     assert!(ids.ends_with(", 299, 300"), "{ids}");
 }
 
@@ -1199,7 +1453,13 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
         request.battle_model["actions"][e.to_string()] = attacks.clone();
     }
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
-    let starts = text.split("enemy_acc_init:\n").nth(1).unwrap().lines().next().unwrap();
+    let starts = text
+        .split("enemy_acc_init:\n")
+        .nth(1)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap();
     assert_eq!(starts, "    .word 0, 40, 80, 120, 160, 200, 240, 280");
 }
 
@@ -1240,7 +1500,10 @@ fn with_the_title_menu_comment_as_before(text: &str) -> String {
         "; drawn separately: there is one tilemap per option and moving it is\n",
         "; uploading the other.\n",
     );
-    assert!(text.contains(now), "the title menu's comment should go whole");
+    assert!(
+        text.contains(now),
+        "the title menu's comment should go whole"
+    );
     text.replacen(now, before, 1)
 }
 
@@ -1254,7 +1517,10 @@ fn without_collision(text: &str) -> String {
         "; The event's touch: the hero touching it, or it walking into him.\n",
         "TRIGGER_COLLISION  = 2\n",
     );
-    assert!(text.contains(added), "the event's touch trigger should go whole");
+    assert!(
+        text.contains(added),
+        "the event's touch trigger should go whole"
+    );
     text.replacen(added, "", 1)
 }
 
@@ -1266,7 +1532,10 @@ fn without_title_bpp(text: &str) -> String {
         "; every cell of the screen distinct and the blank one, $3810 words.\n",
         "TITLE_BPP      = 8\n",
     );
-    assert!(text.contains(added), "the title's bits per pixel should go whole");
+    assert!(
+        text.contains(added),
+        "the title's bits per pixel should go whole"
+    );
     text.replacen(added, "", 1)
         .replacen(
             "the image tiles start at 0 and end below $4400, so",
@@ -1286,9 +1555,16 @@ fn without_title_bpp(text: &str) -> String {
 fn a_title_at_4bpp_counts_its_tiles_at_32_bytes() {
     let row = |request: &Emit| -> (String, String) {
         let text = rm2k_snes_mapdata::emit::emit(request, &db()).unwrap().text;
-        let bpp = text.lines().find(|l| l.starts_with("TITLE_BPP")).unwrap().to_string();
+        let bpp = text
+            .lines()
+            .find(|l| l.starts_with("TITLE_BPP"))
+            .unwrap()
+            .to_string();
         let table = text.split("screens_table:\n").nth(1).unwrap();
-        let at = text.lines().find_map(|l| l.strip_prefix("SCREEN_TITLE = ")).unwrap();
+        let at = text
+            .lines()
+            .find_map(|l| l.strip_prefix("SCREEN_TITLE = "))
+            .unwrap();
         let row: usize = at.parse().unwrap();
         // Four lines a row: the stream's address and bank, the two sizes,
         // the first colour.
@@ -1299,12 +1575,18 @@ fn a_title_at_4bpp_counts_its_tiles_at_32_bytes() {
     let colors = request.title.as_ref().unwrap().colors;
     assert_eq!(
         row(&request),
-        ("TITLE_BPP      = 8".to_string(), format!("    .word {}, {}", tiles * 64, colors * 2))
+        (
+            "TITLE_BPP      = 8".to_string(),
+            format!("    .word {}, {}", tiles * 64, colors * 2)
+        )
     );
     request.title.as_mut().unwrap().bpp = 4;
     assert_eq!(
         row(&request),
-        ("TITLE_BPP      = 4".to_string(), format!("    .word {}, {}", tiles * 32, colors * 2))
+        (
+            "TITLE_BPP      = 4".to_string(),
+            format!("    .word {}, {}", tiles * 32, colors * 2)
+        )
     );
 }
 
@@ -1323,7 +1605,10 @@ fn without_backdrop_lines(text: &str) -> String {
 fn without_window_systems(text: &str) -> String {
     let line = "WINDOW_SYSTEMS = 1\n";
     assert!(text.contains(line), "a cartridge with one System says so");
-    assert!(!text.contains("window_systems:"), "one System needs no table");
+    assert!(
+        !text.contains("window_systems:"),
+        "one System needs no table"
+    );
     text.replacen(line, "", 1)
 }
 
@@ -1341,7 +1626,8 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
         .collect();
     value["screens"]["window"]["background"] = hex.into();
     let mut maps: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(here().join("tests/maps.json")).unwrap()).unwrap();
+        serde_json::from_str(&std::fs::read_to_string(here().join("tests/maps.json")).unwrap())
+            .unwrap();
     for m in maps["maps"].as_array_mut().unwrap() {
         let id = m["id"].as_i64().unwrap();
         m["sprite"]["timer_mask"] = (id * 3).into();
@@ -1361,12 +1647,18 @@ fn a_text_area_whose_lines_are_the_same_goes_as_one_line() {
     let (request, bytes) = with_backdrop(|_| 0xAA);
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains("WINDOW_BACKDROP_LINES = 1\n"));
-    assert!(text.contains(&format!(".block {bytes}\nwindow_backdrop:\n")), "one line");
+    assert!(
+        text.contains(&format!(".block {bytes}\nwindow_backdrop:\n")),
+        "one line"
+    );
 
     let (request, bytes) = with_backdrop(|k| if k == 3 { 0xAB } else { 0xAA });
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains("WINDOW_BACKDROP_LINES = 4\n"));
-    assert!(text.contains(&format!(".block {}\nwindow_backdrop:\n", bytes * 4)), "all four");
+    assert!(
+        text.contains(&format!(".block {}\nwindow_backdrop:\n", bytes * 4)),
+        "all four"
+    );
 }
 
 /// A cartridge that switches System carries one window per System, all
@@ -1406,8 +1698,14 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
     request.window_systems = vec![serde_json::json!({"system": "Other", "window": other})];
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains("WINDOW_SYSTEMS = 2\n"));
-    assert!(text.contains(&format!(".block {}\nwindow_tiles_1:\n", base * 32)), "padded to the largest frame");
-    assert!(text.contains(".block 54\nwindow_systems:\n"), "two entries of nine pointers");
+    assert!(
+        text.contains(&format!(".block {}\nwindow_tiles_1:\n", base * 32)),
+        "padded to the largest frame"
+    );
+    assert!(
+        text.contains(".block 54\nwindow_systems:\n"),
+        "two entries of nine pointers"
+    );
     assert!(text.contains("    .word .loword(window_bar_bare_1)\n    .byte ^window_bar_bare_1\n"));
     // The same cells for both: the second's text renumbered back to the
     // first's, and its frame cells the same as they were.
@@ -1418,9 +1716,17 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
             .unwrap()
             .lines()
             .take_while(|l| l.starts_with("    .byte "))
-            .flat_map(|l| l[10..].split(',').map(|b| u8::from_str_radix(&b[1..], 16).unwrap()).collect::<Vec<_>>())
+            .flat_map(|l| {
+                l[10..]
+                    .split(',')
+                    .map(|b| u8::from_str_radix(&b[1..], 16).unwrap())
+                    .collect::<Vec<_>>()
+            })
             .collect();
-        bytes.chunks(2).map(|w| u16::from_le_bytes([w[0], w[1]])).collect()
+        bytes
+            .chunks(2)
+            .map(|w| u16::from_le_bytes([w[0], w[1]]))
+            .collect()
     };
     let (one, two) = (words("window_cells"), words("window_cells_1"));
     assert_eq!(one.len(), two.len());
@@ -1432,7 +1738,11 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
         if *a == 0 || tile(*a) - at >= base {
             assert_eq!(a, b, "a text cell, or a blank one, is the same in both");
         } else {
-            assert_eq!(tile(*b) - at, (tile(*a) - at).min(base - 3), "a frame cell keeps its own tile");
+            assert_eq!(
+                tile(*b) - at,
+                (tile(*a) - at).min(base - 3),
+                "a frame cell keeps its own tile"
+            );
             frame += 1;
         }
     }

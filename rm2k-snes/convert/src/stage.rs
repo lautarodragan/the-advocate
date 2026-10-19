@@ -17,7 +17,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-
 /// A directory of its own for one call, removed when it is dropped.
 pub struct Scratch(pub PathBuf);
 
@@ -29,7 +28,8 @@ impl Scratch {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.subsec_nanos())
             .unwrap_or(0);
-        let dir = std::env::temp_dir().join(format!("{prefix}-{}-{n}-{stamp:x}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("{prefix}-{}-{n}-{stamp:x}", std::process::id()));
         std::fs::create_dir_all(&dir).map_err(|e| io(&dir, e))?;
         Ok(Scratch(dir))
     }
@@ -92,7 +92,10 @@ pub fn run(
     if !done.status.success() {
         let text = String::from_utf8_lossy(&done.stderr).trim().to_string();
         return Err(Stop::new(if text.is_empty() {
-            format!("{binary} {command} exited with {}", done.status.code().unwrap_or(-1))
+            format!(
+                "{binary} {command} exited with {}",
+                done.status.code().unwrap_or(-1)
+            )
         } else {
             text
         }));

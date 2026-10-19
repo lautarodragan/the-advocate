@@ -58,8 +58,8 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
         let mut theirs = BTreeSet::new();
         for &t in &p.songs {
             if music.songs[t].track.is_none() {
-                if !weighs.contains_key(&t) {
-                    weighs.insert(t, music.songs[t].samples()?);
+                if let std::collections::hash_map::Entry::Vacant(e) = weighs.entry(t) {
+                    e.insert(music.songs[t].samples()?);
                 }
                 theirs.extend(weighs[&t].iter().copied());
             }
@@ -70,8 +70,11 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
             music_bytes: theirs.iter().map(|&i| all[i as usize].0.len() as i64).sum(),
         });
     }
-    let cartridge: BTreeMap<String, effects::SoundEffect> =
-        music.effects.iter().map(|e| (e.name.clone(), e.clone())).collect();
+    let cartridge: BTreeMap<String, effects::SoundEffect> = music
+        .effects
+        .iter()
+        .map(|e| (e.name.clone(), e.clone()))
+        .collect();
     let mut wavs: HashMap<String, (Vec<i64>, i64)> = HashMap::new();
     for p in &requested {
         for e in &p.effects {
@@ -82,18 +85,32 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
             }
         }
     }
-    let sources: HashMap<String, effects::MsuSource> =
-        wavs.iter().map(|(e, wav)| (e.clone(), effects::MsuSource::new(wav))).collect();
-    let rates = effects::rates_per_package(&requested, &cartridge, &sources, music.bank.free, crate::bank::ARAM_MARGIN);
+    let sources: HashMap<String, effects::MsuSource> = wavs
+        .iter()
+        .map(|(e, wav)| (e.clone(), effects::MsuSource::new(wav)))
+        .collect();
+    let rates = effects::rates_per_package(
+        &requested,
+        &cartridge,
+        &sources,
+        music.bank.free,
+        crate::bank::ARAM_MARGIN,
+    );
 
-    let unique: BTreeSet<(String, i64)> =
-        rates.iter().flat_map(|(_, own)| own.iter().cloned()).collect();
+    let unique: BTreeSet<(String, i64)> = rates
+        .iter()
+        .flat_map(|(_, own)| own.iter().cloned())
+        .collect();
     let mut versions = Vec::new();
     let mut index: HashMap<(String, i64), usize> = HashMap::new();
     for (e, r) in unique {
         let (rate, data) = effects::build_msu(&wavs[&e], r)?;
         index.insert((e.clone(), r), versions.len());
-        versions.push(Version { effect: e, rate, data });
+        versions.push(Version {
+            effect: e,
+            rate,
+            data,
+        });
     }
 
     let by_package: HashMap<&str, &Vec<(String, i64)>> =
@@ -128,7 +145,12 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
             .collect();
         let rows = numbers
             .iter()
-            .map(|&i| in_srcn.iter().position(|e| *e == music.effects[i].name).unwrap())
+            .map(|&i| {
+                in_srcn
+                    .iter()
+                    .position(|e| *e == music.effects[i].name)
+                    .unwrap()
+            })
             .collect();
         // Only the sounds whose sound effect is from here: zero is "not from
         // here" for the ROM, so it is not stored.
@@ -143,7 +165,16 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
                 (pitch != 0).then_some((k, pitch))
             })
             .collect();
-        packages.push(PackageEffects { name: p.name.clone(), versions: versions_here, rows, pitches });
+        packages.push(PackageEffects {
+            name: p.name.clone(),
+            versions: versions_here,
+            rows,
+            pitches,
+        });
     }
-    Ok(Effects { versions, packages, rates })
+    Ok(Effects {
+        versions,
+        packages,
+        rates,
+    })
 }

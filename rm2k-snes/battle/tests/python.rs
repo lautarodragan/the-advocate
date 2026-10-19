@@ -129,7 +129,10 @@ fn write(path: &Path, value: &Value) {
 fn tables(name: &str, party: &[i64], steps: Option<i64>) -> Tables {
     let dir = scratch(name);
     let dump = dir.join("dump");
-    write(&dump.join("ditto.json"), &json!({"ditto": 2, "view": "resolved"}));
+    write(
+        &dump.join("ditto.json"),
+        &json!({"ditto": 2, "view": "resolved"}),
+    );
     write(
         &dump.join("db").join("actors.json"),
         &Value::Array(ACTORS.iter().map(actor).collect()),
@@ -225,9 +228,18 @@ fn the_steps_of_a_test_cartridge_are_the_pythons() {
 fn big(n: i64) -> Tables {
     let dir = scratch("big");
     let dump = dir.join("dump");
-    write(&dump.join("ditto.json"), &json!({"ditto": 2, "view": "resolved"}));
-    write(&dump.join("db").join("actors.json"), &Value::Array(ACTORS.iter().map(actor).collect()));
-    write(&dump.join("maps.json"), &json!({"maps": [node(0, 0, 0, 25, &[], NONE)]}));
+    write(
+        &dump.join("ditto.json"),
+        &json!({"ditto": 2, "view": "resolved"}),
+    );
+    write(
+        &dump.join("db").join("actors.json"),
+        &Value::Array(ACTORS.iter().map(actor).collect()),
+    );
+    write(
+        &dump.join("maps.json"),
+        &json!({"maps": [node(0, 0, 0, 25, &[], NONE)]}),
+    );
     let nodes: Vec<Value> = (1..=n)
         .map(|i| node(i, 1, 0, 25, &[i, 1000 + i], NONE))
         .collect();
@@ -249,13 +261,19 @@ fn big(n: i64) -> Tables {
 fn more_than_256_records_zones_and_troops_fit() {
     let t = big(300);
     let e = &t.encounters;
-    assert_eq!((e.bases.len(), e.zones.len(), e.troops.len()), (300, 300, 600));
+    assert_eq!(
+        (e.bases.len(), e.zones.len(), e.troops.len()),
+        (300, 300, 600)
+    );
     let text = e.tables();
     // The last zone's first troop is at 598: it does not fit in a byte, so
     // `enc_troop_init` and `enc_zone_init` are words, and so is `enc_map`.
     for label in ["enc_map", "enc_zone_init", "enc_troop_init"] {
         let block = text.split(&format!("{label}:\n")).nth(1).unwrap();
-        assert!(block.trim_start().starts_with(".word"), "{label} is not a word table");
+        assert!(
+            block.trim_start().starts_with(".word"),
+            "{label} is not a word table"
+        );
     }
     assert!(text.contains("598"));
 }

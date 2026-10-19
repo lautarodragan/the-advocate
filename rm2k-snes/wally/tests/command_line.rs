@@ -7,10 +7,10 @@
 //! directly on the map the test knows it should have read.
 
 use rm2k_render::{picture, Atlas, Map, Picture};
-use wally::background::convert;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use wally::background::convert;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-cli-{}-{name}", std::process::id()));
@@ -35,12 +35,25 @@ fn chipset_picture(dir: &Path, file: &str, seed: usize) -> PathBuf {
         .flat_map(|y| {
             (0..480usize).flat_map(move |x| {
                 let k = (x / 3 + y / 5 * 7 + seed) % 37;
-                [(k * 7) as u8, (k * 29 % 256) as u8, ((x ^ y) & 0xF8) as u8, 255]
+                [
+                    (k * 7) as u8,
+                    (k * 29 % 256) as u8,
+                    ((x ^ y) & 0xF8) as u8,
+                    255,
+                ]
             })
         })
         .collect();
     let path = folder.join(file);
-    picture::write_png(&path, &Picture { width: 480, height: 256, rgba }).unwrap();
+    picture::write_png(
+        &path,
+        &Picture {
+            width: 480,
+            height: 256,
+            rgba,
+        },
+    )
+    .unwrap();
     path
 }
 
@@ -62,7 +75,13 @@ fn lower() -> Vec<i64> {
 
 fn upper() -> Vec<i64> {
     (0..WIDTH * HEIGHT)
-        .map(|i| if i % 5 == 0 { 10001 + i as i64 % 3 } else { 10000 })
+        .map(|i| {
+            if i % 5 == 0 {
+                10001 + i as i64 % 3
+            } else {
+                10000
+            }
+        })
         .collect()
 }
 
@@ -86,7 +105,11 @@ fn tiles_file(lower: &[i64], upper: &[i64]) -> String {
             .collect::<Vec<_>>()
             .join("\n")
     };
-    format!("# {WIDTH}x{HEIGHT}\n# lower\n{}\n# upper\n{}\n", rows(lower), rows(upper))
+    format!(
+        "# {WIDTH}x{HEIGHT}\n# lower\n{}\n# upper\n{}\n",
+        rows(lower),
+        rows(upper)
+    )
 }
 
 /// A Ditto dump in `<dir>/dump` with map 7 and ChipSet 2, and the game's
@@ -97,11 +120,17 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     let db = dump.join("db");
     std::fs::create_dir_all(&maps).unwrap();
     std::fs::create_dir_all(&db).unwrap();
-    std::fs::write(dump.join("ditto.json"), json!({"ditto": 2, "view": "resolved"}).to_string())
-        .unwrap();
+    std::fs::write(
+        dump.join("ditto.json"),
+        json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     map_file(&maps.join("Map0007.json"), 2, &lower(), &upper());
-    std::fs::write(db.join("chipsets.json"), json!([chipset_entry(2, "tiles")]).to_string())
-        .unwrap();
+    std::fs::write(
+        db.join("chipsets.json"),
+        json!([chipset_entry(2, "tiles")]).to_string(),
+    )
+    .unwrap();
     let pictures = dir.join("game");
     chipset_picture(&pictures, "Tiles.png", 0);
     (dump, pictures)
@@ -156,21 +185,41 @@ fn expected(chipset: &Path, lower: Vec<i64>, upper: Vec<i64>) -> wally::backgrou
 }
 
 fn check(out: &Path, want: &wally::background::Converted) {
-    assert_eq!(std::fs::read(out.join("background.bin")).unwrap(), want.background.tiles);
-    assert_eq!(std::fs::read(out.join("above.bin")).unwrap(), want.above.tiles);
-    assert_eq!(std::fs::read(out.join("above-cgram.bin")).unwrap(), want.above.cgram);
+    assert_eq!(
+        std::fs::read(out.join("background.bin")).unwrap(),
+        want.background.tiles
+    );
+    assert_eq!(
+        std::fs::read(out.join("above.bin")).unwrap(),
+        want.above.tiles
+    );
+    assert_eq!(
+        std::fs::read(out.join("above-cgram.bin")).unwrap(),
+        want.above.cgram
+    );
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
     assert_eq!(answer["background"]["cgram"], json!(want.background.cgram));
-    assert_eq!(answer["background"]["tilemap"], json!(want.background.tilemap));
+    assert_eq!(
+        answer["background"]["tilemap"],
+        json!(want.background.tilemap)
+    );
     assert_eq!(answer["above"]["tilemap"], json!(want.above.tilemap));
     assert_eq!(answer["above"]["first"], json!(want.above.first));
     let runs = answer["background"]["runs"].as_array().unwrap();
     assert_eq!(runs.len(), want.background.runs.len());
     for (run, wanted) in runs.iter().zip(&want.background.runs) {
         assert_eq!(run["family"], json!(wanted.family.name()));
-        for (file, drawing) in run["drawings"].as_array().unwrap().iter().zip(&wanted.drawings) {
-            assert_eq!(&std::fs::read(out.join(file.as_str().unwrap())).unwrap(), drawing);
+        for (file, drawing) in run["drawings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(&wanted.drawings)
+        {
+            assert_eq!(
+                &std::fs::read(out.join(file.as_str().unwrap())).unwrap(),
+                drawing
+            );
         }
     }
     let pictures: Vec<&str> = answer["pictures"]
@@ -185,14 +234,30 @@ fn check(out: &Path, want: &wally::background::Converted) {
     // one of passability and one of terrain.
     let cells = answer["blocks"]["cells"].as_array().unwrap();
     assert_eq!(cells.len(), WIDTH * HEIGHT);
-    let count = std::fs::read(out.join("block-passability.bin")).unwrap().len();
-    assert_eq!(std::fs::read(out.join("blocks.bin")).unwrap().len(), 16 * count);
-    assert_eq!(std::fs::read(out.join("block-terrain.bin")).unwrap().len(), count);
+    let count = std::fs::read(out.join("block-passability.bin"))
+        .unwrap()
+        .len();
+    assert_eq!(
+        std::fs::read(out.join("blocks.bin")).unwrap().len(),
+        16 * count
+    );
+    assert_eq!(
+        std::fs::read(out.join("block-terrain.bin")).unwrap().len(),
+        count
+    );
     assert!(cells.iter().all(|c| (c.as_u64().unwrap() as usize) < count));
-    assert_eq!(answer["passability"].as_array().unwrap().len(), WIDTH * HEIGHT);
+    assert_eq!(
+        answer["passability"].as_array().unwrap().len(),
+        WIDTH * HEIGHT
+    );
     for p in answer["pictures"].as_array().unwrap() {
         let read = voodoo::image::read(&out.join(p["file"].as_str().unwrap())).unwrap();
-        let decided = &want.pictures.iter().find(|d| d.name == p["name"]).unwrap().picture;
+        let decided = &want
+            .pictures
+            .iter()
+            .find(|d| d.name == p["name"])
+            .unwrap()
+            .picture;
         assert_eq!(read.pixels, decided.pixels);
     }
 }
@@ -201,10 +266,17 @@ fn check(out: &Path, want: &wally::background::Converted) {
 fn the_dumps_map_is_drawn_and_converted() {
     let dir = scratch("dump");
     let (dump, pictures) = game(&dir);
-    let req = request(&dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": [], "window_colors": 13}));
+    let req = request(
+        &dir,
+        json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": [], "window_colors": 13}),
+    );
     let out = dir.join("out");
     let done = layers(&dump, &[&dir.join("nowhere"), &pictures], &req, &out);
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
     let want = expected(&pictures.join("ChipSet/Tiles.png"), lower(), upper());
     assert!(!want.background.runs.is_empty(), "the map should animate");
     check(&out, &want);
@@ -223,7 +295,11 @@ fn the_projects_map_and_chipset_win_over_the_dumps() {
     std::fs::create_dir_all(forked.parent().unwrap()).unwrap();
     map_file(&forked, 53, &changed, &upper());
     let added = dir.join("fork").join("0053.json");
-    std::fs::write(&added, json!({"chipset": chipset_entry(53, "Other")}).to_string()).unwrap();
+    std::fs::write(
+        &added,
+        json!({"chipset": chipset_entry(53, "Other")}).to_string(),
+    )
+    .unwrap();
     let built = dir.join("built");
     chipset_picture(&built, "other.png", 11);
     let req = request(
@@ -233,8 +309,15 @@ fn the_projects_map_and_chipset_win_over_the_dumps() {
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&built, &pictures], &req, &out);
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    check(&out, &expected(&built.join("ChipSet/other.png"), changed, upper()));
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    check(
+        &out,
+        &expected(&built.join("ChipSet/other.png"), changed, upper()),
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -249,11 +332,18 @@ fn a_baked_cell_is_painted_into_the_upper_layer() {
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&pictures], &req, &out);
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
     let mut baked = upper();
     baked[3] = 10004;
     baked[8] = 10006;
-    check(&out, &expected(&pictures.join("ChipSet/Tiles.png"), lower(), baked));
+    check(
+        &out,
+        &expected(&pictures.join("ChipSet/Tiles.png"), lower(), baked),
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -262,7 +352,8 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
     let dir = scratch("errors");
     let (dump, pictures) = game(&dir);
     let out = dir.join("out");
-    let plain = json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": [], "window_colors": 13});
+    let plain =
+        json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": [], "window_colors": 13});
 
     // No picture for the ChipSet anywhere.
     let req = request(&dir, plain.clone());
@@ -272,7 +363,11 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
 
     // A ChipSet the project adds that the dump already has.
     let added = dir.join("0002.json");
-    std::fs::write(&added, json!({"chipset": chipset_entry(2, "tiles")}).to_string()).unwrap();
+    std::fs::write(
+        &added,
+        json!({"chipset": chipset_entry(2, "tiles")}).to_string(),
+    )
+    .unwrap();
     let mut both = plain.clone();
     both["chipset_files"] = json!({"2": added});
     let done = layers(&dump, &[&pictures], &request(&dir, both), &out);

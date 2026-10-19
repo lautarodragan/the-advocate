@@ -34,7 +34,9 @@ fn sheet(colors: impl Fn(i32) -> Vec<[u8; 3]>) -> Picture {
 
 /// Fifteen greys.
 fn greys() -> Vec<[u8; 3]> {
-    (0..15).map(|j| [8 * (j + 1), 8 * (j + 1), 8 * (j + 1)]).collect()
+    (0..15)
+        .map(|j| [8 * (j + 1), 8 * (j + 1), 8 * (j + 1)])
+        .collect()
 }
 
 /// Fifteen browns.
@@ -71,16 +73,33 @@ fn a_character_is_lent_the_palette_it_is_drawn_nearest_with() {
     // The chest: the pose the map shows is the greys a step bluer, none of
     // them exact; the other eleven are the browns exactly.
     let bluish: Vec<[u8; 3]> = greys().iter().map(|c| [c[0], c[1], c[2] + 8]).collect();
-    sheets.insert("chest".into(), Some(sheet(move |p| if p == 7 { bluish.clone() } else { browns() })));
+    sheets.insert(
+        "chest".into(),
+        Some(sheet(
+            move |p| if p == 7 { bluish.clone() } else { browns() },
+        )),
+    );
 
     let names = ["greys", "browns", "greens", "chest"];
     let events: Vec<Event> = names
         .iter()
         .enumerate()
-        .map(|(i, name)| Event { id: i as i32 + 1, x: i as i32, y: 0, pages: vec![page(name)] })
+        .map(|(i, name)| Event {
+            id: i as i32 + 1,
+            x: i as i32,
+            y: 0,
+            pages: vec![page(name)],
+        })
         .collect();
     let npcs = collect_npcs(&events, "chip", &vec![0u8; 65536]);
-    let poses = map_poses(&[], &npcs, &BTreeSet::new(), &BTreeMap::new(), &[], &BTreeSet::new());
+    let poses = map_poses(
+        &[],
+        &npcs,
+        &BTreeSet::new(),
+        &BTreeMap::new(),
+        &[],
+        &BTreeSet::new(),
+    );
     let only_here: HashSet<Key> = Default::default();
     let ask = Ask {
         sheets: &sheets,

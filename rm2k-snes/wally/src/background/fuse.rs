@@ -25,13 +25,20 @@ fn canonical(cell: &Cell) -> Cell {
     flipped_y.reverse();
     let mut both = flipped_x;
     both.reverse();
-    [*cell, flipped_x, flipped_y, both].into_iter().min().unwrap()
+    [*cell, flipped_x, flipped_y, both]
+        .into_iter()
+        .min()
+        .unwrap()
 }
 
 /// How many tiles a grid costs: its distinct cells, a mirror counting as its
 /// original, which is what Voodoo does.
 fn spent(grid: &Grid) -> usize {
-    grid.cells.iter().map(canonical).collect::<HashSet<_>>().len()
+    grid.cells
+        .iter()
+        .map(canonical)
+        .collect::<HashSet<_>>()
+        .len()
 }
 
 fn paint_cell(picture: &mut Picture, x: usize, y: usize, cell: &Cell) {

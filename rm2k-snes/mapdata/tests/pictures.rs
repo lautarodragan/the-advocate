@@ -54,7 +54,11 @@ fn a_map_carries_its_pictures_and_the_others_a_zero() {
     let second = first + PICTURE_ENTRY;
     let third = second + PICTURE_ENTRY;
     assert_eq!((word(&data, first), word(&data, first + 2)), (93, 15));
-    assert_eq!((data[first + 4], data[first + 5]), (2, 0), "two objects, palette 0 from the top");
+    assert_eq!(
+        (data[first + 4], data[first + 5]),
+        (2, 0),
+        "two objects, palette 0 from the top"
+    );
     assert_eq!(word(&data, second) as i16, -1, "a half is signed");
     assert_eq!((data[second + 4], data[second + 5]), (1, 1));
     assert_eq!(word(&data, first + 10), 192, "the base, again in the entry");
@@ -63,10 +67,18 @@ fn a_map_carries_its_pictures_and_the_others_a_zero() {
     let objects = word(&data, first + 6) as usize;
     assert_eq!(&data[objects..objects + 8], &[0, 0, 0, 0, 32, 0, 4, 0]);
     let small = word(&data, second + 6) as usize;
-    assert_eq!(word(&data, small + 2), 0x8000 | 70, "an 8x8 object says so in bit 15");
+    assert_eq!(
+        word(&data, small + 2),
+        0x8000 | 70,
+        "an 8x8 object says so in bit 15"
+    );
     let colors = word(&data, first + 8) as usize;
     assert_eq!(word(&data, colors), 0);
     assert_eq!(word(&data, colors + 2), 31, "red, in the low five bits");
     assert_eq!(word(&data, second + 8) as usize, colors + 32 + 4);
-    assert_eq!(word(&data, third + 8) as usize, colors, "a shared palette's colours are there once");
+    assert_eq!(
+        word(&data, third + 8) as usize,
+        colors,
+        "a shared palette's colours are there once"
+    );
 }

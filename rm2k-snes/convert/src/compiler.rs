@@ -14,8 +14,8 @@
 //! map, and `compile` after.
 
 use crate::fail::{Result, Stop};
-use crate::game::{Command, Game, GameMap};
 use crate::font::FontChoice;
+use crate::game::{Command, Game, GameMap};
 use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
@@ -147,7 +147,18 @@ impl<'a> Compiler<'a> {
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
         let troop_window = font.window(cells as usize * 8, LINES);
         let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
-        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new(), keep_request: None, extra_switches: BTreeSet::new(), common_pages: None })
+        Ok(Compiler {
+            game,
+            settings,
+            menus,
+            boxes,
+            window,
+            troop_window,
+            systems: Vec::new(),
+            keep_request: None,
+            extra_switches: BTreeSet::new(),
+            common_pages: None,
+        })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -169,7 +180,11 @@ impl<'a> Compiler<'a> {
             r.insert(
                 "boxed_exits".into(),
                 Value::Object(
-                    self.game.boxed_exits.iter().map(|(m, ids)| (m.to_string(), json!(ids))).collect(),
+                    self.game
+                        .boxed_exits
+                        .iter()
+                        .map(|(m, ids)| (m.to_string(), json!(ids)))
+                        .collect(),
                 ),
             );
         }
@@ -179,8 +194,14 @@ impl<'a> Compiler<'a> {
         r.insert("troop_window".into(), self.troop_window.clone());
         r.insert("maps".into(), json!(maps));
         r.insert("test_commands".into(), commands(test_commands));
-        r.insert("extra_variables".into(), json!(extra_variables.iter().collect::<Vec<_>>()));
-        r.insert("extra_switches".into(), json!(self.extra_switches.iter().collect::<Vec<_>>()));
+        r.insert(
+            "extra_variables".into(),
+            json!(extra_variables.iter().collect::<Vec<_>>()),
+        );
+        r.insert(
+            "extra_switches".into(),
+            json!(self.extra_switches.iter().collect::<Vec<_>>()),
+        );
         r.insert("test_event_map".into(), json!(test_event_map));
         r.insert("menus".into(), self.menus.clone());
         if let Some(c) = &self.common_pages {
@@ -214,10 +235,16 @@ impl<'a> Compiler<'a> {
             r.insert(
                 "cases".into(),
                 Value::Array(
-                    cases.iter().map(|(m, c)| json!({"map": m, "commands": commands(c)})).collect(),
+                    cases
+                        .iter()
+                        .map(|(m, c)| json!({"map": m, "commands": commands(c)}))
+                        .collect(),
                 ),
             );
-            r.insert("messages_step".into(), json!(rm2k_snes_mapdata::engine::MESSAGES_STEP));
+            r.insert(
+                "messages_step".into(),
+                json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
+            );
         }
         // And the counters, so a counter's digits are its and not
         // pictures: without them its body is pasted where it is called,
@@ -244,7 +271,10 @@ impl<'a> Compiler<'a> {
     ) -> Result<Value> {
         let ids: Vec<i32> = maps.iter().map(|m| m.id).collect();
         let mut r = self.request(&ids, test_commands, extra_variables, test_event_map);
-        r.insert("names".into(), Value::Array(maps.iter().flat_map(|m| m.names.clone()).collect()));
+        r.insert(
+            "names".into(),
+            Value::Array(maps.iter().flat_map(|m| m.names.clone()).collect()),
+        );
         let mut substitutions = Map::new();
         for m in maps {
             substitutions.insert(m.id.to_string(), m.substitution_table.clone());
@@ -292,7 +322,10 @@ impl<'a> Compiler<'a> {
             );
         }
         r.insert("test_graphics".into(), Value::Object(graphics));
-        r.insert("messages_step".into(), json!(rm2k_snes_mapdata::engine::MESSAGES_STEP));
+        r.insert(
+            "messages_step".into(),
+            json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
+        );
         r.insert("encounter_troops".into(), encounter_troops.clone());
         if let Some(path) = &self.keep_request {
             let text = serde_json::to_string(&r).expect("a request is JSON");
@@ -306,8 +339,14 @@ impl<'a> Compiler<'a> {
     /// maps' blocks a page that asks for one does not compile—, and `cases`
     /// as they are, with nothing put in front. It is how a test asks what
     /// the compiler does with one page, or with a troop's.
-    pub fn loose(&self, maps: &[i32], cases: &[(i32, Vec<Command>)], encounter_troops: &[i32]) -> Result<Value> {
-        let test_commands: Vec<Command> = cases.iter().flat_map(|(_, c)| c.iter().cloned()).collect();
+    pub fn loose(
+        &self,
+        maps: &[i32],
+        cases: &[(i32, Vec<Command>)],
+        encounter_troops: &[i32],
+    ) -> Result<Value> {
+        let test_commands: Vec<Command> =
+            cases.iter().flat_map(|(_, c)| c.iter().cloned()).collect();
         let mut r = self.request(maps, &test_commands, &BTreeSet::new(), None);
         let common = crate::maps::common_substitutions(self.game);
         let mut substitutions = Map::new();
@@ -329,10 +368,18 @@ impl<'a> Compiler<'a> {
         r.insert("sound_effects".into(), self.sound_effects()?);
         r.insert(
             "cases".into(),
-            Value::Array(cases.iter().map(|(m, c)| json!({"map": m, "commands": commands(c)})).collect()),
+            Value::Array(
+                cases
+                    .iter()
+                    .map(|(m, c)| json!({"map": m, "commands": commands(c)}))
+                    .collect(),
+            ),
         );
         r.insert("test_graphics".into(), json!({}));
-        r.insert("messages_step".into(), json!(rm2k_snes_mapdata::engine::MESSAGES_STEP));
+        r.insert(
+            "messages_step".into(),
+            json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
+        );
         r.insert("encounter_troops".into(), json!(encounter_troops));
         if let Some(path) = &self.keep_request {
             let text = serde_json::to_string(&r).expect("a request is JSON");
@@ -355,8 +402,15 @@ impl<'a> Compiler<'a> {
 
     fn sound_effects(&self) -> Result<Value> {
         let mut out = Map::new();
-        for name in ["per_map", "route_effects_left_out", "troop_effects_in_package"] {
-            out.insert(name.into(), Value::Array(self.settings.list(&["sound_effects", name])?));
+        for name in [
+            "per_map",
+            "route_effects_left_out",
+            "troop_effects_in_package",
+        ] {
+            out.insert(
+                name.into(),
+                Value::Array(self.settings.list(&["sound_effects", name])?),
+            );
         }
         Ok(Value::Object(out))
     }
@@ -375,7 +429,10 @@ pub struct CompileMap {
 pub fn map_entry(answer: &Value, map_id: i32) -> Result<&Value> {
     answer["maps"]
         .as_array()
-        .and_then(|maps| maps.iter().find(|e| e["id"].as_i64() == Some(map_id as i64)))
+        .and_then(|maps| {
+            maps.iter()
+                .find(|e| e["id"].as_i64() == Some(map_id as i64))
+        })
         .ok_or_else(|| Stop::new(format!("map {map_id} is not in the answer")))
 }
 
@@ -414,7 +471,11 @@ impl Indices {
                 .as_array()
                 .map(|list| {
                     list.iter()
-                        .map(|e| e.as_array().map(|v| v.iter().filter_map(Value::as_i64).collect()).unwrap_or_default())
+                        .map(|e| {
+                            e.as_array()
+                                .map(|v| v.iter().filter_map(Value::as_i64).collect())
+                                .unwrap_or_default()
+                        })
                         .collect()
                 })
                 .unwrap_or_default()
@@ -432,8 +493,18 @@ impl Indices {
             out
         }
         Indices {
-            variables: dict(pairs("variables").into_iter().map(|e| (e[0], e[1])).collect()),
-            skills: dict(pairs("skills").into_iter().map(|e| ((e[0], e[1]), e[2])).collect()),
+            variables: dict(
+                pairs("variables")
+                    .into_iter()
+                    .map(|e| (e[0], e[1]))
+                    .collect(),
+            ),
+            skills: dict(
+                pairs("skills")
+                    .into_iter()
+                    .map(|e| ((e[0], e[1]), e[2]))
+                    .collect(),
+            ),
             switch_top: answer["switch_top"].as_i64().unwrap_or(0),
             names: answer["names"]
                 .as_array()
@@ -447,7 +518,9 @@ impl Indices {
                 .as_array()
                 .map(|list| {
                     list.iter()
-                        .filter_map(|e| Some((e[0].as_str()?.to_string(), e[1].as_i64()?, e[2].as_bool()?)))
+                        .filter_map(|e| {
+                            Some((e[0].as_str()?.to_string(), e[1].as_i64()?, e[2].as_bool()?))
+                        })
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -468,4 +541,3 @@ impl Indices {
         Ok(slot)
     }
 }
-

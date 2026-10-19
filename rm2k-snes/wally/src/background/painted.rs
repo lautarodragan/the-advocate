@@ -42,17 +42,30 @@ pub const CELL_BYTES: usize = 32;
 /// decided, as colour-memory entries.
 pub fn painted(picture: &rm2k_render::Picture) -> Result<(Panorama, Picture)> {
     let grid = Grid::quantize(picture);
-    if grid.cells.iter().any(|c| c.iter().flatten().any(Option::is_none)) {
+    if grid
+        .cells
+        .iter()
+        .any(|c| c.iter().flatten().any(Option::is_none))
+    {
         return Err(Bad::new("a painted map has to be opaque everywhere"));
     }
     let colors_before = counts(&[&grid]).len();
     let distinct = grid.cells.len();
     let (mut grids, palettes, merges) = reduce(&[&grid], PALETTES, adeleine::USABLE_COLORS)?;
     let grid = grids.remove(0);
-    let sets: Vec<BTreeSet<Color>> = palettes.iter().map(|p| p.iter().copied().collect()).collect();
+    let sets: Vec<BTreeSet<Color>> = palettes
+        .iter()
+        .map(|p| p.iter().copied().collect())
+        .collect();
     let tables: Vec<HashMap<Color, u8>> = palettes
         .iter()
-        .map(|palette| palette.iter().enumerate().map(|(k, &c)| (c, (k + 1) as u8)).collect())
+        .map(|palette| {
+            palette
+                .iter()
+                .enumerate()
+                .map(|(k, &c)| (c, (k + 1) as u8))
+                .collect()
+        })
         .collect();
     let mut tiles = vec![0u8; grid.columns * grid.rows * CELL_BYTES];
     let mut tilemap = vec![vec![0u16; grid.columns]; grid.rows];
@@ -61,9 +74,14 @@ pub fn painted(picture: &rm2k_render::Picture) -> Result<(Panorama, Picture)> {
         for cx in 0..grid.columns {
             let cell = grid.cell(cx, cy);
             let wanted = colors(cell);
-            let p = sets.iter().position(|s| wanted.is_subset(s)).ok_or_else(|| {
-                Bad::new(format!("the painting's cell at column {cx}, row {cy} fits in none of its palettes"))
-            })?;
+            let p = sets
+                .iter()
+                .position(|s| wanted.is_subset(s))
+                .ok_or_else(|| {
+                    Bad::new(format!(
+                        "the painting's cell at column {cx}, row {cy} fits in none of its palettes"
+                    ))
+                })?;
             let mut indices = [[0u8; CELL]; CELL];
             for (y, line) in cell.iter().enumerate() {
                 for (x, c) in line.iter().enumerate() {
@@ -82,10 +100,14 @@ pub fn painted(picture: &rm2k_render::Picture) -> Result<(Panorama, Picture)> {
         .enumerate()
         .map(|(p, t)| {
             let base = (FIRST_PALETTE + p) * COLORS_PER_PALETTE;
-            t.iter().map(|(&c, &k)| (c, (base + k as usize) as u8)).collect()
+            t.iter()
+                .map(|(&c, &k)| (c, (base + k as usize) as u8))
+                .collect()
         })
         .collect();
-    let pixels = paint(&grid, &entry_tables, |cx, cy, _| Some(palette_of[cy * grid.columns + cx]));
+    let pixels = paint(&grid, &entry_tables, |cx, cy, _| {
+        Some(palette_of[cy * grid.columns + cx])
+    });
     let mut entries: Vec<Option<Color>> = vec![None; voodoo::ENTRIES];
     let mut cgram = Vec::with_capacity(PALETTES * COLORS_PER_PALETTE);
     for p in 0..PALETTES {
@@ -93,7 +115,11 @@ pub fn painted(picture: &rm2k_render::Picture) -> Result<(Panorama, Picture)> {
         entries[base] = Some([0, 0, 0]);
         cgram.push(0);
         for k in 0..COLORS_PER_PALETTE - 1 {
-            let c = palettes.get(p).and_then(|pal| pal.get(k)).copied().unwrap_or([0, 0, 0]);
+            let c = palettes
+                .get(p)
+                .and_then(|pal| pal.get(k))
+                .copied()
+                .unwrap_or([0, 0, 0]);
             entries[base + k + 1] = Some(c);
             cgram.push(voodoo::cgram_word((c[0], c[1], c[2])));
         }
@@ -133,7 +159,12 @@ pub fn painted(picture: &rm2k_render::Picture) -> Result<(Panorama, Picture)> {
 ///
 /// Answers BG2's tiles —the blank one first—, its tilemap, and the pixels
 /// on the wrong side of the hero and how many `front` has.
-pub fn roofs(pano: &mut Panorama, front: &[bool], width: usize, budget: usize) -> (Vec<u8>, Vec<Vec<u16>>, usize, usize) {
+pub fn roofs(
+    pano: &mut Panorama,
+    front: &[bool],
+    width: usize,
+    budget: usize,
+) -> (Vec<u8>, Vec<Vec<u16>>, usize, usize) {
     let rows = pano.tilemap.len();
     let cols = pano.tilemap.first().map_or(0, Vec::len);
     let height = front.len() / width.max(1);
@@ -148,7 +179,10 @@ pub fn roofs(pano: &mut Panorama, front: &[bool], width: usize, budget: usize) -
                 let (px, py) = (cx * CELL + x, cy * CELL + y);
                 px < width && py < height && front[py * width + px]
             };
-            let n = (0..CELL).flat_map(|y| (0..CELL).map(move |x| (x, y))).filter(|&(x, y)| covered(x, y)).count();
+            let n = (0..CELL)
+                .flat_map(|y| (0..CELL).map(move |x| (x, y)))
+                .filter(|&(x, y)| covered(x, y))
+                .count();
             total += n;
             if n == 0 {
                 continue;
@@ -166,13 +200,19 @@ pub fn roofs(pano: &mut Panorama, front: &[bool], width: usize, budget: usize) -
                     }
                 }
             }
-            edges.push((n.min(CELL * CELL - n), cx, cy, voodoo::pack_tile(&indices, 4)));
+            edges.push((
+                n.min(CELL * CELL - n),
+                cx,
+                cy,
+                voodoo::pack_tile(&indices, 4),
+            ));
         }
     }
     // The ones that save the most first; equal tiles in the same palette
     // share one.
     edges.sort_by(|a, b| b.0.cmp(&a.0).then((a.2, a.1).cmp(&(b.2, b.1))));
-    let mut index: std::collections::HashMap<(Vec<u8>, u16), u16> = std::collections::HashMap::new();
+    let mut index: std::collections::HashMap<(Vec<u8>, u16), u16> =
+        std::collections::HashMap::new();
     for (saves, cx, cy, tile) in edges {
         let palette = (pano.tilemap[cy][cx] >> 10) & 7;
         let key = (tile, palette);
@@ -228,7 +268,8 @@ mod tests {
         for y in 0..h {
             for x in 0..w {
                 let c = at(x, y);
-                p.rgba[(y * w + x) * 4..(y * w + x) * 4 + 4].copy_from_slice(&[c[0], c[1], c[2], 255]);
+                p.rgba[(y * w + x) * 4..(y * w + x) * 4 + 4]
+                    .copy_from_slice(&[c[0], c[1], c[2], 255]);
             }
         }
         p
@@ -244,7 +285,9 @@ mod tests {
         assert_eq!(done.tilemap.len(), 3);
         assert_eq!(done.tilemap[0].len(), 2);
         // Each tile is one index everywhere: its colour's in its palette.
-        let index = |t: usize| voodoo::unpack_tile(&done.tiles[t * CELL_BYTES..(t + 1) * CELL_BYTES], 4)[0][0];
+        let index = |t: usize| {
+            voodoo::unpack_tile(&done.tiles[t * CELL_BYTES..(t + 1) * CELL_BYTES], 4)[0][0]
+        };
         let colour = |t: usize| {
             let (cx, cy) = (t / 3, t % 3);
             let palette = ((done.tilemap[cy][cx] >> 10) & 7) as usize;
@@ -268,7 +311,14 @@ mod tests {
         assert_eq!((wrong, total), (0, 96));
         assert_eq!(done.tilemap[0][0] & PRIORITY, PRIORITY);
         assert_eq!(done.tilemap[0][1] & PRIORITY, 0);
-        assert_eq!(above[0], vec![0, voodoo::entry(1, 0, 0, 1, ((done.tilemap[0][1] >> 10) & 7) as u8), 0]);
+        assert_eq!(
+            above[0],
+            vec![
+                0,
+                voodoo::entry(1, 0, 0, 1, ((done.tilemap[0][1] >> 10) & 7) as u8),
+                0
+            ]
+        );
         // The edge is the painting's cell with only the covered half.
         let edge = voodoo::unpack_tile(&tiles[CELL_BYTES..], 4);
         let cell = voodoo::unpack_tile(&done.tiles[CELL_BYTES..2 * CELL_BYTES], 4);

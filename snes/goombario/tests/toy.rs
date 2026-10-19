@@ -51,17 +51,37 @@ fn lint_annotated(name: &str, source: &str) -> Option<(Vec<Report>, Vec<Annotati
     let dir = scratch(name);
     // `main` is where the reset vector points: the walks start from it.
     let vectors = ".segment \"VECTORS\"\n.res 28\n.addr main\n.res 2\n";
-    std::fs::write(dir.join("toy.s"), format!("{}{}{}", HEADER, source, vectors)).unwrap();
+    std::fs::write(
+        dir.join("toy.s"),
+        format!("{}{}{}", HEADER, source, vectors),
+    )
+    .unwrap();
     std::fs::write(dir.join("toy.cfg"), CONFIG).unwrap();
     let run = |cmd: &mut Command| {
         let out = cmd.current_dir(&dir).output().unwrap();
-        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
     };
     run(Command::new("ca65").args(["-g", "-o", "toy.o", "toy.s"]));
-    run(Command::new("ld65").args(["-C", "toy.cfg", "--dbgfile", "toy.sfc.dbg", "-o", "toy.sfc", "toy.o"]));
+    run(Command::new("ld65").args([
+        "-C",
+        "toy.cfg",
+        "--dbgfile",
+        "toy.sfc.dbg",
+        "-o",
+        "toy.sfc",
+        "toy.o",
+    ]));
     let program = goombario::load(&dir.join("toy.sfc"), &dir.join("toy.sfc.dbg"), &dir).unwrap();
     assert!(program.undecoded.is_empty(), "{:?}", program.undecoded);
-    assert!(program.missing_sources().is_empty(), "{:?}", program.missing_sources());
+    assert!(
+        program.missing_sources().is_empty(),
+        "{:?}",
+        program.missing_sources()
+    );
     let (reports, _) = goombario::lint(&program, &dir);
     let (annotations, wrong) = goombario::annotations(&program, &dir, |_| true);
     let _ = std::fs::remove_dir_all(&dir);
@@ -136,7 +156,10 @@ done:
     };
     assert_eq!(
         found(&r, Check::PullBranch),
-        vec![pair("after_compare", "beq done"), pair("after_plp", "bne :+")]
+        vec![
+            pair("after_compare", "beq done"),
+            pair("after_plp", "bne :+")
+        ]
     );
 }
 
@@ -260,7 +283,11 @@ each:
     };
     assert_eq!(
         found(&r, Check::Stack),
-        vec![pair("leaves_one", "rts"), pair("on_one_path", "rts"), pair("takes_one", "pla")]
+        vec![
+            pair("leaves_one", "rts"),
+            pair("on_one_path", "rts"),
+            pair("takes_one", "pla")
+        ]
     );
 }
 
@@ -368,8 +395,17 @@ const ANNOTATED: &str = r#"
 .endproc
 "#;
 
-fn annotated(name: &str, one: &str, two: &str) -> Option<(Vec<Report>, Vec<Annotation>, Vec<String>)> {
-    lint_annotated(name, &ANNOTATED.replace("ANNOTATION_ONE", one).replace("ANNOTATION_TWO", two))
+fn annotated(
+    name: &str,
+    one: &str,
+    two: &str,
+) -> Option<(Vec<Report>, Vec<Annotation>, Vec<String>)> {
+    lint_annotated(
+        name,
+        &ANNOTATED
+            .replace("ANNOTATION_ONE", one)
+            .replace("ANNOTATION_TWO", two),
+    )
 }
 
 #[test]
@@ -390,7 +426,11 @@ fn an_annotation_allows_its_line_or_the_next_with_code() {
 
 #[test]
 fn an_annotation_without_its_why_is_wrong_and_allows_nothing() {
-    let Some((r, list, wrong)) = annotated("allow-why", "; goombario: pull-branch:", "; goombario: pull-branch") else {
+    let Some((r, list, wrong)) = annotated(
+        "allow-why",
+        "; goombario: pull-branch:",
+        "; goombario: pull-branch",
+    ) else {
         return;
     };
     assert_eq!(wrong.len(), 2, "{:?}", wrong);
@@ -401,12 +441,19 @@ fn an_annotation_without_its_why_is_wrong_and_allows_nothing() {
 
 #[test]
 fn an_annotation_for_another_check_allows_nothing_and_is_said() {
-    let Some((r, list, wrong)) = annotated("allow-other", "; goombario: stack: not this check", "; nothing") else {
+    let Some((r, list, wrong)) = annotated(
+        "allow-other",
+        "; goombario: stack: not this check",
+        "; nothing",
+    ) else {
         return;
     };
     assert!(wrong.is_empty(), "{:?}", wrong);
     let (left, unused) = goombario::apply_exceptions(r, &list);
-    assert_eq!(found(&left, Check::PullBranch), vec![pair("one", "beq :+"), pair("two", "bne :+")]);
+    assert_eq!(
+        found(&left, Check::PullBranch),
+        vec![pair("one", "beq :+"), pair("two", "bne :+")]
+    );
     assert_eq!(unused.len(), 1);
     assert_eq!(unused[0].check, Check::Stack);
 }

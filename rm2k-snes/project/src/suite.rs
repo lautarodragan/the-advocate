@@ -50,7 +50,15 @@ mod tests {
     // is what notices.
     #[test]
     fn the_tools_are_where_the_runtime_is() {
-        assert!(runtime().join("main.s").is_file(), "{}", runtime().display());
-        assert!(tools().join("Cargo.toml").is_file(), "{}", tools().display());
+        assert!(
+            runtime().join("main.s").is_file(),
+            "{}",
+            runtime().display()
+        );
+        assert!(
+            tools().join("Cargo.toml").is_file(),
+            "{}",
+            tools().display()
+        );
     }
 }

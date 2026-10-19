@@ -36,6 +36,23 @@ members = [
 # back to the old one. "2" is what every member, on edition 2021, used alone.
 resolver = "2"
 
+# The clippy lints the workspace does not follow, on purpose, because they
+# fight how this code is written and not what it does. Each member takes
+# them with `[lints] workspace = true`; an exception for one item goes on
+# the item, with its why. From 2026-10-19, when clippy went into CI.
+[workspace.lints.clippy]
+# A stage hands its results back as tuples and maps of plain types, and
+# reads them where it is called: an alias per signature would be one more
+# name to look up for what the signature already says.
+type_complexity = "allow"
+# A stage's function takes what it reads, each thing by its name, instead
+# of a struct made only to carry them across one call.
+too_many_arguments = "allow"
+# A map's, a colour's or a channel's number indexes several tables at once
+# —`wants[i]`, `map_song[i]`, `fits[i]`—, and the index loop says so;
+# iterating one of them and indexing the others hides it.
+needless_range_loop = "allow"
+
 # The profiles live here because Cargo ignores a member's and warns about it.
 # Every project used these four.
 [profile.release]

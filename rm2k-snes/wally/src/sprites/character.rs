@@ -72,7 +72,11 @@ pub fn all_poses() -> BTreeSet<i32> {
 /// **Counting all twelve when three are seen gives colour memory away**: a
 /// save point that animates facing up can have three times the colours in
 /// its whole block than in the three frames it shows.
-pub fn sprite_colors(image: &Picture, index: i32, poses: Option<&BTreeSet<i32>>) -> Vec<(Color, u64)> {
+pub fn sprite_colors(
+    image: &Picture,
+    index: i32,
+    poses: Option<&BTreeSet<i32>>,
+) -> Vec<(Color, u64)> {
     let all = all_poses();
     let poses = poses.unwrap_or(&all);
     let mut order = Vec::new();
@@ -133,7 +137,12 @@ pub fn character_palette(
         let merged = merge_least_visible(&counts, cap)?;
         counts.iter().map(|&(c, _)| c).zip(merged.mapping).collect()
     };
-    let palette: Vec<Color> = mapping.values().copied().collect::<BTreeSet<_>>().into_iter().collect();
+    let palette: Vec<Color> = mapping
+        .values()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
     if poses.is_some() && !palette.is_empty() {
         for (color, _) in sprite_colors(image, index, None) {
             if mapping.contains_key(&color) {
@@ -171,10 +180,9 @@ pub fn pose_tiles(
                 continue;
             }
             let c = [p[0] >> 3, p[1] >> 3, p[2] >> 3];
-            let entry = mapping
-                .get(&c)
-                .and_then(|m| lookup.get(m))
-                .ok_or_else(|| Bad::new(format!("colour {c:?} of pose {pose} has no palette entry")))?;
+            let entry = mapping.get(&c).and_then(|m| lookup.get(m)).ok_or_else(|| {
+                Bad::new(format!("colour {c:?} of pose {pose} has no palette entry"))
+            })?;
             row[margin + x] = *entry;
         }
     }
@@ -270,7 +278,10 @@ mod tests {
     fn the_nearest_colour_is_the_first_on_a_tie() {
         // The same distance from (20, 10, 5), in tenths of Lab.
         let palette = [[19, 9, 5], [20, 11, 6]];
-        assert_eq!(lab_distance(palette[0], [20, 10, 5]), lab_distance(palette[1], [20, 10, 5]));
+        assert_eq!(
+            lab_distance(palette[0], [20, 10, 5]),
+            lab_distance(palette[1], [20, 10, 5])
+        );
         assert_eq!(nearest(&palette, [20, 10, 5]), [19, 9, 5]);
     }
 
@@ -278,6 +289,9 @@ mod tests {
     fn the_nearest_colour_sees_hue() {
         // To the luma distance an olive of nearly its light is nearer a
         // grey than a grey three steps darker.
-        assert_eq!(nearest(&[[13, 13, 13], [17, 17, 8]], [16, 16, 16]), [13, 13, 13]);
+        assert_eq!(
+            nearest(&[[13, 13, 13], [17, 17, 8]], [16, 16, 16]),
+            [13, 13, 13]
+        );
     }
 }

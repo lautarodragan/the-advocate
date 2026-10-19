@@ -275,8 +275,8 @@ pub const LAYOUT_PANORAMA_MODE3: Layout = Layout {
     }),
 };
 
-/// A map that shows its panorama and draws something above the hero: mode
-/// 1. BG1 is the map at 4 bits —its count here is in 64-byte units, like
+/// A map that shows its panorama and draws something above the hero:
+/// mode 1. BG1 is the map at 4 bits —its count here is in 64-byte units, like
 /// the 8-bit ones', so 256 are 512 tiles—, BG2 the upper layer and the
 /// window as in [`LAYOUT_WINDOW`], and BG3 the panorama at 2 bits.
 ///
@@ -462,12 +462,20 @@ pub const LAYOUTS: [Layout; 12] = [
 /// The layouts for a map that shows its panorama in `mode`, in the order
 /// they are tried.
 pub fn panorama_layouts(mode: u8) -> impl Iterator<Item = &'static Layout> {
-    LAYOUTS.iter().filter(move |l| l.panorama.is_some_and(|p| p.mode == mode))
+    LAYOUTS
+        .iter()
+        .filter(move |l| l.panorama.is_some_and(|p| p.mode == mode))
 }
 
 /// The layout of a map that shows its panorama in `mode`: the first that
 /// holds its background, sprite, upper and panorama tiles.
-pub fn panorama_layout(mode: u8, background: u32, sprites: u32, above: u32, panorama: u32) -> Result<&'static Layout> {
+pub fn panorama_layout(
+    mode: u8,
+    background: u32,
+    sprites: u32,
+    above: u32,
+    panorama: u32,
+) -> Result<&'static Layout> {
     panorama_layouts(mode)
         .find(|l| {
             background <= l.tiles.count
@@ -596,14 +604,22 @@ pub fn check_splits() -> Result<()> {
             }
         } else if let Some(p) = &layout.panorama {
             for piece in p.tiles.iter().filter(|t| t.count > 0) {
-                stretches.push(("panorama", piece.base, piece.base + piece.count * p.tile_words()));
+                stretches.push((
+                    "panorama",
+                    piece.base,
+                    piece.base + piece.count * p.tile_words(),
+                ));
             }
             if p.map != VRAM_ABOVE_MAP {
                 stretches.push(("panorama map", p.map, p.map + WINDOW_W * WINDOW_H));
             }
             // A panorama in mode 3 is BG2, and its tiles have to land where
             // BG2's ten bits reach; in mode 1 it is BG3's, from its base.
-            let base = if p.mode == 3 { layout.above.base } else { p.tiles[0].base };
+            let base = if p.mode == 3 {
+                layout.above.base
+            } else {
+                p.tiles[0].base
+            };
             let last = p.number(p.count() - 1, base);
             if base % 0x1000 != 0 || p.tiles[0].base < base || last >= 1024 {
                 return Err(Bad::answer(format!(
@@ -741,11 +757,26 @@ mod tests {
         assert_eq!(p.number(255, 0x4000), 255);
         assert_eq!(p.number(256, 0x4000), 576);
         assert_eq!(p.number(575, 0x4000), 895);
-        assert_eq!(panorama_layout(1, 256, 256, 1, 768).unwrap().name, "VENTANA_PANORAMA_M1");
-        assert_eq!(panorama_layout(3, 300, 300, 0, 500).unwrap_err().message().is_empty(), false);
-        assert_eq!(panorama_layout(3, 300, 300, 0, 320).unwrap().name, "VENTANA_PANORAMA_FONDO");
-        assert_eq!(panorama_layout(3, 300, 300, 0, 384).unwrap_err().message().is_empty(), false);
-        assert_eq!(panorama_layout(3, 300, 200, 0, 384).unwrap().name, "VENTANA_PANORAMA_FONDO_SPRITE");
+        assert_eq!(
+            panorama_layout(1, 256, 256, 1, 768).unwrap().name,
+            "VENTANA_PANORAMA_M1"
+        );
+        assert!(!panorama_layout(3, 300, 300, 0, 500)
+            .unwrap_err()
+            .message()
+            .is_empty());
+        assert_eq!(
+            panorama_layout(3, 300, 300, 0, 320).unwrap().name,
+            "VENTANA_PANORAMA_FONDO"
+        );
+        assert!(!panorama_layout(3, 300, 300, 0, 384)
+            .unwrap_err()
+            .message()
+            .is_empty());
+        assert_eq!(
+            panorama_layout(3, 300, 200, 0, 384).unwrap().name,
+            "VENTANA_PANORAMA_FONDO_SPRITE"
+        );
     }
 
     #[test]

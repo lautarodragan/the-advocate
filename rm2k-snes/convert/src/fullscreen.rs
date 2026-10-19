@@ -61,7 +61,11 @@ impl Screen {
 }
 
 fn color(c: &Value) -> [u8; 3] {
-    [c[0].as_u64().unwrap_or(0) as u8, c[1].as_u64().unwrap_or(0) as u8, c[2].as_u64().unwrap_or(0) as u8]
+    [
+        c[0].as_u64().unwrap_or(0) as u8,
+        c[1].as_u64().unwrap_or(0) as u8,
+        c[2].as_u64().unwrap_or(0) as u8,
+    ]
 }
 
 /// The image at `path`, from CGRAM entry `first_color` with `cap` colours
@@ -72,7 +76,10 @@ fn color(c: &Value) -> [u8; 3] {
 /// first colour drops by as many as they take.
 pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) -> Result<Screen> {
     if below.len() as i64 > first_color {
-        crate::stop!("{} colors below the image, and the image starts at {first_color}", below.len());
+        crate::stop!(
+            "{} colors below the image, and the image starts at {first_color}",
+            below.len()
+        );
     }
     let a = images::fullscreen(path, WIDTH, HEIGHT, CELL, first_color, cap)?;
     let tiles: Vec<Vec<Vec<u8>>> = a["tiles"]
@@ -84,7 +91,15 @@ pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) ->
                     cell.as_array()
                         .map(|rows| {
                             rows.iter()
-                                .map(|r| r.as_array().map(|r| r.iter().map(|v| v.as_u64().unwrap_or(0) as u8).collect()).unwrap_or_default())
+                                .map(|r| {
+                                    r.as_array()
+                                        .map(|r| {
+                                            r.iter()
+                                                .map(|v| v.as_u64().unwrap_or(0) as u8)
+                                                .collect()
+                                        })
+                                        .unwrap_or_default()
+                                })
                                 .collect()
                         })
                         .unwrap_or_default()
@@ -92,8 +107,10 @@ pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) ->
                 .collect()
         })
         .unwrap_or_default();
-    let tilemap: Vec<u32> =
-        a["tilemap"].as_array().map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u32).collect()).unwrap_or_default();
+    let tilemap: Vec<u32> = a["tilemap"]
+        .as_array()
+        .map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u32).collect())
+        .unwrap_or_default();
     let mut raw = Vec::new();
     for cell in &tiles {
         raw.extend(pack_tile(cell, 8));
@@ -104,13 +121,17 @@ pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) ->
         let number = tilemap.get(index).copied().unwrap_or(0);
         raw.extend_from_slice(&(entry(number, false, false, 0) as u16).to_le_bytes());
     }
-    let palette: Vec<[u8; 3]> = a["palette"].as_array().map(|p| p.iter().map(color).collect()).unwrap_or_default();
+    let palette: Vec<[u8; 3]> = a["palette"]
+        .as_array()
+        .map(|p| p.iter().map(color).collect())
+        .unwrap_or_default();
     let mut colors: Vec<[u8; 3]> = below.to_vec();
     colors.extend(palette);
     for c in &colors {
         raw.extend_from_slice(&(cgram_word(*c) as u16).to_le_bytes());
     }
-    let stream = rm2k_snes_mapdata::compress::compress(&raw).map_err(|e| Stop::new(e.to_string()))?;
+    let stream =
+        rm2k_snes_mapdata::compress::compress(&raw).map_err(|e| Stop::new(e.to_string()))?;
     Ok(Screen {
         stream,
         raw: raw.len(),
@@ -141,7 +162,10 @@ pub const TILES_4BPP: i64 = 1024;
 pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8>)> {
     let palette_size = 16;
     if below.len() > palette_size {
-        crate::stop!("{} colors below the title, and palette 0 holds {palette_size}", below.len());
+        crate::stop!(
+            "{} colors below the title, and palette 0 holds {palette_size}",
+            below.len()
+        );
     }
     let (width, height) = png_size(path)?;
     let rows = HEIGHT / CELL;
@@ -158,11 +182,18 @@ pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8
         rows,
         false,
     )?
-    .ok_or_else(|| Stop::new(format!("{}: the title doesn't fit at 4bpp either", path.display())))?;
+    .ok_or_else(|| {
+        Stop::new(format!(
+            "{}: the title doesn't fit at 4bpp either",
+            path.display()
+        ))
+    })?;
     let tiles = crate::text::unhex(layer["tiles"].as_str().unwrap_or(""));
     let count = layer["tile_count"].as_u64().unwrap_or(0) as usize;
-    let cells: Vec<u16> =
-        layer["tilemap"].as_array().map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u16).collect()).unwrap_or_default();
+    let cells: Vec<u16> = layer["tilemap"]
+        .as_array()
+        .map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u16).collect())
+        .unwrap_or_default();
     let mut raw = tiles.clone();
     // 32x32 entries, as the 8bpp one; the rows past the layer's are tile
     // 0, blank, in palette 0: the backdrop.
@@ -178,9 +209,17 @@ pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8
         raw.extend_from_slice(&(cgram_word(*c) as u16).to_le_bytes());
     }
     let png = indexed_png(&tiles, &cells, &colors)?;
-    let stream = rm2k_snes_mapdata::compress::compress(&raw).map_err(|e| Stop::new(e.to_string()))?;
+    let stream =
+        rm2k_snes_mapdata::compress::compress(&raw).map_err(|e| Stop::new(e.to_string()))?;
     Ok((
-        Screen { stream, raw: raw.len(), tiles: count, colors: colors.len(), first_color: 0, bpp: 4 },
+        Screen {
+            stream,
+            raw: raw.len(),
+            tiles: count,
+            colors: colors.len(),
+            first_color: 0,
+            bpp: 4,
+        },
         png,
     ))
 }
@@ -216,9 +255,18 @@ fn indexed_png(tiles: &[u8], cells: &[u16], colors: &[[u8; 3]]) -> Result<Vec<u8
         encoder.set_depth(png::BitDepth::Eight);
         // The console's fifteen bits, at eight per channel as Adeleine's
         // images of the maps show them.
-        encoder.set_palette(colors.iter().flat_map(|c| c.map(|v| v << 3)).collect::<Vec<u8>>());
-        let mut writer = encoder.write_header().map_err(|e| Stop::new(e.to_string()))?;
-        writer.write_image_data(&pixels).map_err(|e| Stop::new(e.to_string()))?;
+        encoder.set_palette(
+            colors
+                .iter()
+                .flat_map(|c| c.map(|v| v << 3))
+                .collect::<Vec<u8>>(),
+        );
+        let mut writer = encoder
+            .write_header()
+            .map_err(|e| Stop::new(e.to_string()))?;
+        writer
+            .write_image_data(&pixels)
+            .map_err(|e| Stop::new(e.to_string()))?;
     }
     Ok(out)
 }

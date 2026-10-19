@@ -73,7 +73,10 @@ pub fn unpacked(zip: &Path, hash: &str, into: &Path) -> Result<PathBuf, Error> {
     if fs::rename(&aside, &target).is_err() {
         let _ = fs::remove_dir_all(&aside);
         if !target.is_dir() {
-            return Err(Error(format!("{}: could not unpack into it", target.display())));
+            return Err(Error(format!(
+                "{}: could not unpack into it",
+                target.display()
+            )));
         }
     }
     Ok(target)
@@ -117,7 +120,9 @@ pub fn extract(zip: &Path, dest: &Path) -> Result<(), Error> {
         let extra_len = u16_at(&b, at + 30) as usize;
         let comment_len = u16_at(&b, at + 32) as usize;
         let local = u32_at(&b, at + 42) as usize;
-        let raw_name = b.get(at + 46..at + 46 + name_len).ok_or_else(|| bad("a broken name"))?;
+        let raw_name = b
+            .get(at + 46..at + 46 + name_len)
+            .ok_or_else(|| bad("a broken name"))?;
         at += 46 + name_len + extra_len + comment_len;
         // Bit 11 says UTF-8; without it, only ASCII is the same in every
         // encoding a `.zip` may have used.
@@ -144,7 +149,9 @@ pub fn extract(zip: &Path, dest: &Path) -> Result<(), Error> {
             return Err(bad(&format!("{name}: a broken local header")));
         }
         let start = local + 30 + u16_at(&b, local + 26) as usize + u16_at(&b, local + 28) as usize;
-        let data = b.get(start..start + packed).ok_or_else(|| bad(&format!("{name}: cut short")))?;
+        let data = b
+            .get(start..start + packed)
+            .ok_or_else(|| bad(&format!("{name}: cut short")))?;
         let bytes = match method {
             0 => data.to_vec(),
             8 => {
@@ -154,7 +161,11 @@ pub fn extract(zip: &Path, dest: &Path) -> Result<(), Error> {
                     .map_err(|e| bad(&format!("{name}: {e}")))?;
                 out
             }
-            other => return Err(bad(&format!("{name}: compression method {other}, not stored or deflate"))),
+            other => {
+                return Err(bad(&format!(
+                    "{name}: compression method {other}, not stored or deflate"
+                )))
+            }
         };
         let mut check = flate2::Crc::new();
         check.update(&bytes);

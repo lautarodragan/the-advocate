@@ -199,18 +199,26 @@ impl Assembler {
             if name != mnemonic {
                 continue;
             }
-            let Some(value) = self.fit(shape, operand) else { continue };
+            let Some(value) = self.fit(shape, operand) else {
+                continue;
+            };
             if size == 0 {
                 return Ok(vec![opcode]);
             }
             if shape == "abs" {
-                return Ok(vec![opcode, (value & 0xFF) as u8, ((value >> 8) & 0xFF) as u8]);
+                return Ok(vec![
+                    opcode,
+                    (value & 0xFF) as u8,
+                    ((value >> 8) & 0xFF) as u8,
+                ]);
             }
             if shape == "rel" {
                 // Branches are relative to the end of the instruction.
                 let offset = value - (address + 2);
                 if !(-128..=127).contains(&offset) {
-                    return Err(Bad::usage(format!("branch out of range: {mnemonic} {operand}")));
+                    return Err(Bad::usage(format!(
+                        "branch out of range: {mnemonic} {operand}"
+                    )));
                 }
                 return Ok(vec![opcode, (offset & 0xFF) as u8]);
             }
@@ -232,7 +240,11 @@ impl Assembler {
                 continue;
             }
             let (mnemonic, operand) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
-            let operand: String = operand.chars().filter(|c| *c != ' ').collect::<String>().to_lowercase();
+            let operand: String = operand
+                .chars()
+                .filter(|c| *c != ' ')
+                .collect::<String>()
+                .to_lowercase();
             code.extend(self.encode(&mnemonic.to_lowercase(), &operand, here)?);
         }
         Ok(code)
@@ -242,7 +254,10 @@ impl Assembler {
 /// Assembles `source` to run at `origin`, in two passes: the first one
 /// learns where the labels are.
 pub fn assemble(source: &str, origin: u16) -> Result<Vec<u8>> {
-    let mut a = Assembler { origin, labels: HashMap::new() };
+    let mut a = Assembler {
+        origin,
+        labels: HashMap::new(),
+    };
     a.pass(source)?;
     a.pass(source)
 }

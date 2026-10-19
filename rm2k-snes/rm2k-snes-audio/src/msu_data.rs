@@ -94,7 +94,7 @@ pub const COLORS_AT: usize = 0x8000;
 /// And the 192 bytes of colors, to the sector.
 pub const BACKDROP_SPAN: usize = 0x8200;
 pub const SECTOR: usize = 512;
-const _: () = assert!(BACKDROP_SPAN % SECTOR == 0 && BACKDROP_SPAN >= COLORS_AT + 96 * 2);
+const _: () = assert!(BACKDROP_SPAN.is_multiple_of(SECTOR) && BACKDROP_SPAN >= COLORS_AT + 96 * 2);
 
 /// Where the tiles of backdrop number `k` are; its colors, `COLORS_AT`
 /// further on.
@@ -114,7 +114,11 @@ pub fn signature_of(body: &[u8]) -> [u8; SIGNATURE_SIZE] {
 /// the backdrops —tiles and colors of each— and go in their fixed place,
 /// [`backdrop_offset`]; the rest after the backdrop region, one after the
 /// other. Without backdrops, all of them in a row after the index.
-pub fn build(entries: &[&[u8]], backdrops: usize, magic: &[u8; 4]) -> Result<(Vec<u8>, Vec<usize>)> {
+pub fn build(
+    entries: &[&[u8]],
+    backdrops: usize,
+    magic: &[u8; 4],
+) -> Result<(Vec<u8>, Vec<usize>)> {
     let mut offsets = Vec::with_capacity(entries.len());
     let mut offset = HEADER_SIZE + ENTRY_SIZE * entries.len();
     if backdrops > 0 {
@@ -126,7 +130,9 @@ pub fn build(entries: &[&[u8]], backdrops: usize, magic: &[u8; 4]) -> Result<(Ve
         for k in 0..backdrops {
             let (tiles, colors) = (entries[2 * k], entries[2 * k + 1]);
             if tiles.len() > COLORS_AT || COLORS_AT + colors.len() > BACKDROP_SPAN {
-                return Err(Bad::answer(format!("backdrop {k} does not fit in its place in the .msu")));
+                return Err(Bad::answer(format!(
+                    "backdrop {k} does not fit in its place in the .msu"
+                )));
             }
             offsets.push(backdrop_offset(k));
             offsets.push(backdrop_offset(k) + COLORS_AT);
@@ -171,7 +177,9 @@ pub fn index(blob: &[u8], magic: &[u8; 4]) -> Result<Vec<(u32, u32)>> {
     }
     let version = u16::from_le_bytes([blob[SIGNATURE_SIZE + 4], blob[SIGNATURE_SIZE + 5]]);
     if version != VERSION {
-        return Err(Bad::answer(format!("version {version}, and this reads {VERSION}")));
+        return Err(Bad::answer(format!(
+            "version {version}, and this reads {VERSION}"
+        )));
     }
     Ok(entries)
 }
@@ -229,7 +237,14 @@ mod tests {
         let colors = vec![9u8; 192];
         let effect = vec![1u8, 2, 3];
         let (blob, offsets) = build(&[&tiles, &colors, &effect], 1, b"TEST").unwrap();
-        assert_eq!(offsets, vec![BACKDROPS_START, BACKDROPS_START + COLORS_AT, backdrop_offset(1)]);
+        assert_eq!(
+            offsets,
+            vec![
+                BACKDROPS_START,
+                BACKDROPS_START + COLORS_AT,
+                backdrop_offset(1)
+            ]
+        );
         let found = index(&blob, b"TEST").unwrap();
         assert_eq!(found, vec![(0x10000, 0x8000), (0x18000, 192), (0x18200, 3)]);
         assert_eq!(&blob[0x18200..], &[1, 2, 3]);
@@ -245,9 +260,18 @@ mod tests {
         let (blob, _) = build(&[&[1u8, 2, 3][..]], 0, b"TEST").unwrap();
         let mut longer = blob.clone();
         longer.resize(blob.len() + 700, 5);
-        assert_eq!(index(&longer, b"TEST").unwrap(), index(&blob, b"TEST").unwrap());
-        assert_eq!(sign(&longer).unwrap()[..SIGNATURE_SIZE], blob[..SIGNATURE_SIZE]);
-        assert!(index(&blob[..blob.len() - 1], b"TEST").is_err(), "an entry cut short");
+        assert_eq!(
+            index(&longer, b"TEST").unwrap(),
+            index(&blob, b"TEST").unwrap()
+        );
+        assert_eq!(
+            sign(&longer).unwrap()[..SIGNATURE_SIZE],
+            blob[..SIGNATURE_SIZE]
+        );
+        assert!(
+            index(&blob[..blob.len() - 1], b"TEST").is_err(),
+            "an entry cut short"
+        );
     }
 
     #[test]

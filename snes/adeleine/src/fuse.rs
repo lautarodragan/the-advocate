@@ -58,14 +58,28 @@ fn distance(a: &Tile, b: &Tile, flip_x: bool, flip_y: bool) -> i64 {
 /// a tile can be drawn mirrored. The tiles have to be distinct —as their
 /// mirrors too, with `mirrors`—: they are the drawing's tile bank. If they
 /// already fit, every tile is drawn with itself.
-pub fn merge_least_visible_tiles(tiles: &[Tile], weights: &[u64], keep: usize, mirrors: bool) -> Vec<Drawn> {
+pub fn merge_least_visible_tiles(
+    tiles: &[Tile],
+    weights: &[u64],
+    keep: usize,
+    mirrors: bool,
+) -> Vec<Drawn> {
     let n = tiles.len();
-    let mut drawn: Vec<Drawn> = (0..n).map(|i| Drawn { tile: i, flip_x: false, flip_y: false }).collect();
+    let mut drawn: Vec<Drawn> = (0..n)
+        .map(|i| Drawn {
+            tile: i,
+            flip_x: false,
+            flip_y: false,
+        })
+        .collect();
     if n <= keep.max(1) {
         return drawn;
     }
-    let flips: &[(bool, bool)] =
-        if mirrors { &[(false, false), (true, false), (false, true), (true, true)] } else { &[(false, false)] };
+    let flips: &[(bool, bool)] = if mirrors {
+        &[(false, false), (true, false), (false, true), (true, true)]
+    } else {
+        &[(false, false)]
+    };
     // How far each tile is from each other one drawn with its best mirror:
     // the drawings are a few hundred tiles, and this is computed once.
     let mut near = vec![(0i64, (false, false)); n * n];
@@ -105,7 +119,11 @@ pub fn merge_least_visible_tiles(tiles: &[Tile], weights: &[u64], keep: usize, m
         // drawn with `into`, composing the mirrors.
         let (fx, fy) = near[victim * n + into].1;
         for d in drawn.iter_mut().filter(|d| d.tile == victim) {
-            *d = Drawn { tile: into, flip_x: d.flip_x ^ fx, flip_y: d.flip_y ^ fy };
+            *d = Drawn {
+                tile: into,
+                flip_x: d.flip_x ^ fx,
+                flip_y: d.flip_y ^ fy,
+            };
         }
         if left > 1 {
             for a in 0..n {
@@ -161,7 +179,14 @@ mod tests {
         b[0][SIDE - 1] = Some([31, 0, 0]);
         b[1][1] = Some([1, 0, 0]);
         let drawn = merge_least_visible_tiles(&[a, b, solid(31)], &[3, 1, 3], 2, true);
-        assert_eq!(drawn[1], Drawn { tile: 0, flip_x: true, flip_y: false });
+        assert_eq!(
+            drawn[1],
+            Drawn {
+                tile: 0,
+                flip_x: true,
+                flip_y: false
+            }
+        );
         assert_eq!(flipped(&a, true, false)[0][SIDE - 1], Some([31, 0, 0]));
     }
 }

@@ -11,13 +11,13 @@
 use crate::cells::{self, Bank, Color, Counts, BLACK, CELL, COLS};
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
-use crate::layout::*;
 use crate::items::ink_colors;
+use crate::layout::*;
 use crate::message_window;
 use crate::texts::{ljust, NUMBER_GLYPHS};
-use rm2k_snes_text::font;
 use adeleine::luma_distance;
 use rm2k_render::picture::Picture;
+use rm2k_snes_text::font;
 use std::collections::{BTreeMap, HashMap};
 use voodoo::pack::Indices;
 
@@ -118,7 +118,11 @@ fn level_term(game: &Game, skin: &Skin, dest: &mut Picture, x: usize, y: usize) 
 fn face_palette(face: &Picture) -> Result<(Vec<Color>, HashMap<Color, u8>)> {
     let mut used = Counts::default();
     for p in face.rgba.chunks_exact(4) {
-        let color = if p[3] != 0 { cells::rgb15([p[0], p[1], p[2], p[3]]) } else { BLACK };
+        let color = if p[3] != 0 {
+            cells::rgb15([p[0], p[1], p[2], p[3]])
+        } else {
+            BLACK
+        };
         if color != BLACK {
             used.add(color, 1);
         }
@@ -140,7 +144,10 @@ fn face_palette(face: &Picture) -> Result<(Vec<Color>, HashMap<Color, u8>)> {
     colors.extend(palette);
     let mut index = HashMap::from([(BLACK, 0u8)]);
     for (color, target) in dest {
-        let at = colors.iter().position(|c| *c == target).expect("the target is in the palette");
+        let at = colors
+            .iter()
+            .position(|c| *c == target)
+            .expect("the target is in the palette");
         index.insert(color, at as u8);
     }
     Ok((colors, index))
@@ -161,7 +168,12 @@ fn lend(
     palettes: &[Vec<Color>],
 ) -> (usize, HashMap<Color, u8>) {
     let which = (2..palettes.len())
-        .min_by_key(|&n| (colors.iter().filter(|c| !palettes[n].contains(c)).count(), n))
+        .min_by_key(|&n| {
+            (
+                colors.iter().filter(|c| !palettes[n].contains(c)).count(),
+                n,
+            )
+        })
         .expect("there are palettes to lend");
     let dest = &palettes[which];
     let position = |c: &Color| dest.iter().position(|p| p == c).expect("in the palette");
@@ -209,7 +221,13 @@ impl Slots {
 /// A face that finds no free palette **borrows one**: without it, a game
 /// with more actors that can join than palettes would have to leave some
 /// out, and they can be the path of the story.
-pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], order: Order) -> Result<Slots> {
+pub fn slots_screen(
+    game: &Game,
+    skin: &Skin,
+    slots: usize,
+    actors: &[i32],
+    order: Order,
+) -> Result<Slots> {
     let bank = slots_screen_with(game, skin, slots, actors, order, &[])?;
     if !bank.fits() {
         return Err(bank.too_many());
@@ -238,7 +256,10 @@ pub fn slots_screen_with(
 
     // First all the text layers, so the colours can be gathered at once.
     let mut layers: Vec<(Kind, Picture)> = Vec::new();
-    for (mode, term) in ["load_game_message", "save_game_message"].iter().enumerate() {
+    for (mode, term) in ["load_game_message", "save_game_message"]
+        .iter()
+        .enumerate()
+    {
         let mut image = cells::layer();
         write(&mut image, SLOT_X, HEADER_Y, &game.term(term)?, 0);
         layers.push((Kind::Header(mode), image));
@@ -266,8 +287,17 @@ pub fn slots_screen_with(
     }
     // The pause menu's, in the same bank. Each on the topmost row it gets:
     // the blocks work on any other because they are aligned.
-    let menu_terms = ["command_item", "command_skill", "menu_equipment", "menu_save", "menu_quit"];
-    let mut labels: Vec<String> = menu_terms.iter().map(|t| game.term(t)).collect::<Result<_>>()?;
+    let menu_terms = [
+        "command_item",
+        "command_skill",
+        "menu_equipment",
+        "menu_save",
+        "menu_quit",
+    ];
+    let mut labels: Vec<String> = menu_terms
+        .iter()
+        .map(|t| game.term(t))
+        .collect::<Result<_>>()?;
     labels.extend(custom.iter().cloned());
     for (option, text) in labels.iter().enumerate() {
         for disabled in 0..2 {
@@ -281,25 +311,55 @@ pub fn slots_screen_with(
     }
     for letter in NUMBER_GLYPHS.chars() {
         let mut image = cells::layer();
-        write(&mut image, GLYPH_COL * CELL + GLYPH_DX, GLYPH_ROW * CELL + GLYPH_DY, &letter.to_string(), 0);
+        write(
+            &mut image,
+            GLYPH_COL * CELL + GLYPH_DX,
+            GLYPH_ROW * CELL + GLYPH_DY,
+            &letter.to_string(),
+            0,
+        );
         layers.push((Kind::Glyph(letter), image));
     }
     let mut image = cells::layer();
-    write(&mut image, MENU_CURRENCY_COL * CELL, MENU_GOLD_Y + 2, &game.term("gold")?, 1);
+    write(
+        &mut image,
+        MENU_CURRENCY_COL * CELL,
+        MENU_GOLD_Y + 2,
+        &game.term("gold")?,
+        1,
+    );
     layers.push((Kind::Currency, image));
     // The text of a party row that **does not depend on the actor**: the
     // level term, the status and the HP term. The name, the level number,
     // the maximum and the current HP are composed by the cartridge.
     let mut image = cells::layer();
     level_term(game, skin, &mut image, MENU_TEXT_X, 2 + LINE)?;
-    write(&mut image, MENU_TEXT_X + MENU_STATUS_DX, 2 + LINE, &game.term("normal_status")?, 0);
-    write(&mut image, MENU_TEXT_X, 2 + 2 * LINE, &game.term("hp_short")?, 1);
+    write(
+        &mut image,
+        MENU_TEXT_X + MENU_STATUS_DX,
+        2 + LINE,
+        &game.term("normal_status")?,
+        0,
+    );
+    write(
+        &mut image,
+        MENU_TEXT_X,
+        2 + 2 * LINE,
+        &game.term("hp_short")?,
+        1,
+    );
     layers.push((Kind::MenuRow, image));
     // The experience term: up to two letters, the twelve pixels
     // `DrawActorExp` leaves it before the digits.
     let mut image = cells::layer();
     let exp: String = game.term("exp_short")?.chars().take(2).collect();
-    write(&mut image, GLYPH_COL * CELL, GLYPH_ROW * CELL + GLYPH_DY, &exp, 1);
+    write(
+        &mut image,
+        GLYPH_COL * CELL,
+        GLYPH_ROW * CELL + GLYPH_DY,
+        &exp,
+        1,
+    );
     layers.push((Kind::ExpTerm, image));
 
     // The disabled commands go in **their own palette**, number 1: system
@@ -324,7 +384,9 @@ pub fn slots_screen_with(
         (seen_gray.len(), "the disabled commands"),
     ] {
         if count > 15 {
-            return Err(Bad::answer(format!("{what} uses {count} colours and 4bpp fits 15")));
+            return Err(Bad::answer(format!(
+                "{what} uses {count} colours and 4bpp fits 15"
+            )));
         }
     }
     let mut palette = vec![BLACK];
@@ -332,8 +394,11 @@ pub fn slots_screen_with(
     let index = cells::index_of(&palette);
     let at = |color: &Color| palette.iter().position(|c| c == color).expect("seen") as u8;
     let rows: Vec<u8> = ink_rows.iter().map(at).collect();
-    let prerender =
-        message_window::font_prerender(&message_window::font_bytes(&game.font)?, &rows, at(&ink_shadow));
+    let prerender = message_window::font_prerender(
+        &message_window::font_bytes(&game.font)?,
+        &rows,
+        at(&ink_shadow),
+    );
     debug_assert_eq!(rows.len(), font::HEIGHT);
     let mut gray_palette = vec![BLACK];
     gray_palette.extend(seen_gray.by_use());
@@ -357,31 +422,43 @@ pub fn slots_screen_with(
     // unflipped.
     let place = |kind: &Kind, image: &Picture, bank: &mut Bank, out: &mut Slots| -> Result<()> {
         let mirror = !matches!(kind, Kind::Glyph(_) | Kind::ExpTerm);
-        let mut block = |row0: usize, rows: usize, index, col0: usize, cols: usize, palette: u16| {
-            cells::cell_block(image, row0, rows, bank, index, col0, cols, palette, mirror)
-        };
+        let mut block =
+            |row0: usize, rows: usize, index, col0: usize, cols: usize, palette: u16| {
+                cells::cell_block(image, row0, rows, bank, index, col0, cols, palette, mirror)
+            };
         match kind {
             Kind::Option(option, disabled) => {
-                let (idx, pal) = if *disabled == 1 { (&gray_index, 1) } else { (&index, 0) };
-                out.menu.options[*option][*disabled] = block(
-                    MENU_OPT_Y / CELL,
-                    2,
-                    idx,
-                    MENU_OPT_COL,
-                    MENU_OPT_COLS,
-                    pal,
-                )?;
+                let (idx, pal) = if *disabled == 1 {
+                    (&gray_index, 1)
+                } else {
+                    (&index, 0)
+                };
+                out.menu.options[*option][*disabled] =
+                    block(MENU_OPT_Y / CELL, 2, idx, MENU_OPT_COL, MENU_OPT_COLS, pal)?;
             }
             Kind::Glyph(letter) => {
                 let cells = block(GLYPH_ROW, 2, &index, GLYPH_COL, 1, 0)?;
                 out.menu.glyphs.insert(*letter, cells);
             }
             Kind::Currency => {
-                out.menu.currency =
-                    block(MENU_GOLD_Y / CELL, 2, &index, MENU_CURRENCY_COL, MENU_CURRENCY_COLS, 0)?
+                out.menu.currency = block(
+                    MENU_GOLD_Y / CELL,
+                    2,
+                    &index,
+                    MENU_CURRENCY_COL,
+                    MENU_CURRENCY_COLS,
+                    0,
+                )?
             }
             Kind::MenuRow => {
-                out.menu.row = block(0, MENU_ACTOR_ROWS, &index, MENU_ACTOR_COL, MENU_ACTOR_COLS, 0)?
+                out.menu.row = block(
+                    0,
+                    MENU_ACTOR_ROWS,
+                    &index,
+                    MENU_ACTOR_COL,
+                    MENU_ACTOR_COLS,
+                    0,
+                )?
             }
             Kind::ExpTerm => {
                 out.menu.exp_term = block(GLYPH_ROW, 2, &index, GLYPH_COL, MENU_EXP_TERM_CELLS, 0)?

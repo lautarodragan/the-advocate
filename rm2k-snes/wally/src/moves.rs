@@ -63,7 +63,10 @@ pub struct Animate {
 }
 
 impl Animate {
-    pub const ALL: Animate = Animate { looks: None, cache: false };
+    pub const ALL: Animate = Animate {
+        looks: None,
+        cache: false,
+    };
 }
 
 /// What moves in a map.
@@ -130,7 +133,13 @@ pub fn moves(
     // facing the hero from.
     let mut turning: BTreeMap<usize, BTreeSet<Key>> = BTreeMap::new();
     for p in pages {
-        if p.compiles && p.turns && matches!(p.trigger, TRIGGER_ACTION | TRIGGER_TOUCH_HERO | TRIGGER_COLLISION) {
+        if p.compiles
+            && p.turns
+            && matches!(
+                p.trigger,
+                TRIGGER_ACTION | TRIGGER_TOUCH_HERO | TRIGGER_COLLISION
+            )
+        {
             turning.entry(p.event).or_default();
         }
     }
@@ -138,7 +147,10 @@ pub fn moves(
         let Some(graphics) = turning.get_mut(&p.event) else {
             continue;
         };
-        let graphic = events.get(p.event).and_then(|e| e.pages.get(p.page)).and_then(|page| page_graphic(page, chipset));
+        let graphic = events
+            .get(p.event)
+            .and_then(|e| e.pages.get(p.page))
+            .and_then(|page| page_graphic(page, chipset));
         if let Some((charset, index, _)) = graphic {
             graphics.insert((charset, index));
         }
@@ -166,10 +178,22 @@ pub fn moves(
     type Look = (String, i32, i32);
     let mut looks: BTreeMap<Look, Vec<&Npc>> = BTreeMap::new();
     for n in &animating {
-        looks.entry((n.charset.clone(), n.index, n.pose)).or_default().push(n);
+        looks
+            .entry((n.charset.clone(), n.index, n.pose))
+            .or_default()
+            .push(n);
     }
-    let only_appears = |n: &Npc| n.graphics.iter().flatten().all(|g| *g == (n.charset.clone(), n.index, n.pose));
-    let shares = |n: &Npc| (!n.changes || animate.cache && only_appears(n)) && !turning.contains_key(&n.event) && !also_walk.contains(&n.event);
+    let only_appears = |n: &Npc| {
+        n.graphics
+            .iter()
+            .flatten()
+            .all(|g| *g == (n.charset.clone(), n.index, n.pose))
+    };
+    let shares = |n: &Npc| {
+        (!n.changes || animate.cache && only_appears(n))
+            && !turning.contains_key(&n.event)
+            && !also_walk.contains(&n.event)
+    };
     let slots_of = |members: &[&Npc]| -> Vec<Vec<usize>> {
         let mut by_speed: BTreeMap<i32, Vec<usize>> = BTreeMap::new();
         let mut alone = Vec::new();
@@ -182,7 +206,10 @@ pub fn moves(
         }
         by_speed.into_values().chain(alone).collect()
     };
-    let mut ordered: Vec<Vec<Vec<usize>>> = looks.into_values().map(|members| slots_of(&members)).collect();
+    let mut ordered: Vec<Vec<Vec<usize>>> = looks
+        .into_values()
+        .map(|members| slots_of(&members))
+        .collect();
     ordered.sort_by_key(|slots| {
         let events: usize = slots.iter().map(Vec::len).sum();
         let first = slots.iter().flatten().min().copied();
@@ -206,7 +233,14 @@ pub fn moves(
     }
     let mut movable: BTreeSet<usize> = with_route.union(&animated).copied().collect();
     movable.extend(also_walk);
-    Moves { movable, animates_still: animated, follows, turning, still_not_animated, looks: ordered.len() }
+    Moves {
+        movable,
+        animates_still: animated,
+        follows,
+        turning,
+        still_not_animated,
+        looks: ordered.len(),
+    }
 }
 
 #[cfg(test)]
@@ -230,11 +264,22 @@ mod tests {
     }
 
     fn event(id: i32, pages: Vec<Page>) -> Event {
-        Event { id, x: 0, y: 0, pages }
+        Event {
+            id,
+            x: 0,
+            y: 0,
+            pages,
+        }
     }
 
     fn scanned(event: usize, trigger: i32, compiles: bool) -> ScannedPage {
-        ScannedPage { event, page: 0, trigger, compiles, ..Default::default() }
+        ScannedPage {
+            event,
+            page: 0,
+            trigger,
+            compiles,
+            ..Default::default()
+        }
     }
 
     fn who(pages: &[ScannedPage], events: &[Event]) -> Moves {
@@ -247,26 +292,45 @@ mod tests {
     }
 
     fn torch(name: &str, speed: i32) -> Page {
-        Page { speed, ..page(name, 1) }
+        Page {
+            speed,
+            ..page(name, 1)
+        }
     }
 
     #[test]
     fn a_route_moves_only_what_is_drawn_and_only_from_code_that_compiled() {
-        let events = [event(1, vec![page("A", 0)]), event(2, vec![page("", 0)]), event(3, vec![page("C", 0)])];
-        let routes = ScannedPage { route_targets: vec![1, 2], ..scanned(0, 3, true) };
-        let dead = ScannedPage { route_targets: vec![0], ..scanned(0, 3, false) };
+        let events = [
+            event(1, vec![page("A", 0)]),
+            event(2, vec![page("", 0)]),
+            event(3, vec![page("C", 0)]),
+        ];
+        let routes = ScannedPage {
+            route_targets: vec![1, 2],
+            ..scanned(0, 3, true)
+        };
+        let dead = ScannedPage {
+            route_targets: vec![0],
+            ..scanned(0, 3, false)
+        };
         // Event 1 draws nothing, and the page that routes 0 did not compile.
         assert_eq!(who(&[routes, dead], &events).movable, [2].into());
         // Its own route walks it whether or not its code compiled.
-        let own = ScannedPage { own_route: true, ..scanned(0, 3, false) };
+        let own = ScannedPage {
+            own_route: true,
+            ..scanned(0, 3, false)
+        };
         assert_eq!(who(&[own], &events).movable, [0].into());
     }
 
     #[test]
     fn twins_share_a_slot_one_per_speed() {
         // The Book of Three's opening hall: six equal torches at four speeds.
-        let events: Vec<Event> =
-            [6, 5, 6, 2, 6, 4].iter().enumerate().map(|(i, &s)| event(i as i32 + 1, vec![torch("A", s)])).collect();
+        let events: Vec<Event> = [6, 5, 6, 2, 6, 4]
+            .iter()
+            .enumerate()
+            .map(|(i, &s)| event(i as i32 + 1, vec![torch("A", s)]))
+            .collect();
         let all = who(&[], &events);
         assert_eq!(all.animates_still, [0, 1, 3, 5].into());
         assert_eq!(all.movable, [0, 1, 3, 5].into());
@@ -279,18 +343,43 @@ mod tests {
     fn in_a_cache_twins_that_only_appear_with_their_page_share_too() {
         // Sunset Over Imdahl's 15: eight lamps with a blank first page and
         // the lamp on a switch.
-        let lamp = || vec![page("", 0), Page { conditions: vec!["switch_a"], ..torch("A", 3) }];
+        let lamp = || {
+            vec![
+                page("", 0),
+                Page {
+                    conditions: vec!["switch_a"],
+                    ..torch("A", 3)
+                },
+            ]
+        };
         let events: Vec<Event> = (0..3).map(|i| event(i + 1, lamp())).collect();
         let plain = who(&[], &events);
         assert_eq!(plain.animates_still, [0, 1, 2].into());
         assert!(plain.follows.is_empty());
-        let cached = animating(&[], &events, Animate { looks: None, cache: true });
+        let cached = animating(
+            &[],
+            &events,
+            Animate {
+                looks: None,
+                cache: true,
+            },
+        );
         assert_eq!(cached.animates_still, [0].into());
         assert_eq!(cached.follows, [(1, 0), (2, 0)].into());
         // Not one whose pages show two different looks.
         let mut two = events.clone();
-        two[2].pages.push(Page { conditions: vec!["switch_b"], ..torch("B", 3) });
-        let cached = animating(&[], &two, Animate { looks: None, cache: true });
+        two[2].pages.push(Page {
+            conditions: vec!["switch_b"],
+            ..torch("B", 3)
+        });
+        let cached = animating(
+            &[],
+            &two,
+            Animate {
+                looks: None,
+                cache: true,
+            },
+        );
         assert_eq!(cached.follows, [(1, 0)].into());
     }
 
@@ -305,7 +394,16 @@ mod tests {
             event(5, vec![torch("C", 5)]),
             event(6, vec![torch("A", 3)]),
         ];
-        let some = |looks| animating(&[], &events, Animate { looks: Some(looks), cache: false });
+        let some = |looks| {
+            animating(
+                &[],
+                &events,
+                Animate {
+                    looks: Some(looks),
+                    cache: false,
+                },
+            )
+        };
         assert_eq!(who(&[], &events).looks, 3);
         let one = some(1);
         assert_eq!(one.animates_still, [0].into());
@@ -315,7 +413,9 @@ mod tests {
         assert_eq!(two.animates_still, [0, 2, 4].into());
         assert_eq!(two.still_not_animated, [1].into());
         let none = some(0);
-        assert!(none.animates_still.is_empty() && none.movable.is_empty() && none.follows.is_empty());
+        assert!(
+            none.animates_still.is_empty() && none.movable.is_empty() && none.follows.is_empty()
+        );
         assert_eq!(none.still_not_animated, (0..6).collect());
     }
 
@@ -323,13 +423,19 @@ mod tests {
     fn one_that_walks_or_turns_does_not_share() {
         let events: Vec<Event> = (0..3).map(|i| event(i + 1, vec![torch("A", 3)])).collect();
         // One that walks is not a still one.
-        let walks = ScannedPage { route_targets: vec![1], ..scanned(0, 3, true) };
+        let walks = ScannedPage {
+            route_targets: vec![1],
+            ..scanned(0, 3, true)
+        };
         let w = who(&[walks], &events);
         assert_eq!(w.animates_still, [0].into());
         assert_eq!(w.follows, [(2, 0)].into());
         assert_eq!(w.movable, [0, 1].into());
         // One that turns toward the hero faces its own way.
-        let turns = ScannedPage { turns: true, ..scanned(1, 0, true) };
+        let turns = ScannedPage {
+            turns: true,
+            ..scanned(1, 0, true)
+        };
         let t = who(&[turns], &events);
         assert_eq!(t.animates_still, [0, 1].into());
         assert_eq!(t.follows, [(2, 0)].into());
@@ -342,11 +448,18 @@ mod tests {
             event(2, vec![page("D", 0)]),
             event(3, vec![page("E", 0)]),
         ];
-        let turns = |event, page, trigger, compiles| ScannedPage { turns: true, page, ..scanned(event, trigger, compiles) };
+        let turns = |event, page, trigger, compiles| ScannedPage {
+            turns: true,
+            page,
+            ..scanned(event, trigger, compiles)
+        };
         let pages = [
             turns(0, 0, 0, true),
             turns(0, 1, 3, false),
-            ScannedPage { page: 2, ..scanned(0, 0, true) },
+            ScannedPage {
+                page: 2,
+                ..scanned(0, 0, true)
+            },
             turns(1, 0, 3, true),
             turns(2, 0, 1, false),
         ];

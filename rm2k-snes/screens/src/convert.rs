@@ -4,14 +4,14 @@
 use crate::borders::{self, compact_shop, compact_target, Borders};
 use crate::cells::{Color, CELL};
 use crate::checks::{items_border_first, Vram, TEXT_POOL_PAIRS};
-use crate::render;
 use crate::end_game;
-use crate::fit;
 use crate::fail::{Bad, Result};
+use crate::fit;
 use crate::game::Game;
 use crate::items;
 use crate::layout::{self, *};
 use crate::message_window;
+use crate::render;
 use crate::slots;
 use crate::texts::{self, item_text, split_description};
 use crate::title;
@@ -107,7 +107,11 @@ fn free_after(tiles: usize) -> usize {
 /// Until 2026-10-03 the names went one letter per cell, from glyphs in the
 /// bank: what cost was the letters, once. Composed, each name shown takes
 /// tiles of its own.
-fn strips_asked(game: &Game, request: &Request, medicines: &[(i32, String)]) -> Result<(usize, usize, usize)> {
+fn strips_asked(
+    game: &Game,
+    request: &Request,
+    medicines: &[(i32, String)],
+) -> Result<(usize, usize, usize)> {
     let mut names: Vec<usize> = Vec::new();
     let mut leaders = 0;
     for &actor in &request.actors {
@@ -172,7 +176,8 @@ fn slots_with_room(
     }
     let mut faceless: Vec<i32> = Vec::new();
     loop {
-        let build = |order| slots::slots_screen_with(game, skin, request.slots, &with_faces, order, custom);
+        let build =
+            |order| slots::slots_screen_with(game, skin, request.slots, &with_faces, order, custom);
         let fits = |bank: &slots::Slots| bank.fits() && strips_fit(asked, bank);
         let mut bank = build(slots::Order::Drawn)?;
         let mut order = "";
@@ -195,7 +200,11 @@ fn slots_with_room(
         match with_faces.pop() {
             Some(actor) => faceless.push(actor),
             None => {
-                let without = if faceless.is_empty() { "" } else { " and without any face" };
+                let without = if faceless.is_empty() {
+                    ""
+                } else {
+                    " and without any face"
+                };
                 return Err(Bad::answer(format!(
                     "the menu's bank has no room for the composed names, even with the slot screen's \
                      text last{without}: the menu shows {} tiles and leaves {menu_free} free up to its \
@@ -218,7 +227,12 @@ fn slots_with_room(
 ///
 /// Since 2026-10-03: with `[text] letter_spacing` above 0 every name grows,
 /// and which ones stop fitting depends on the knob.
-pub fn cut_names(font: &rm2k_snes_text::font::Font, place: &str, room: &str, cut: &[(String, String)]) -> Option<String> {
+pub fn cut_names(
+    font: &rm2k_snes_text::font::Font,
+    place: &str,
+    room: &str,
+    cut: &[(String, String)],
+) -> Option<String> {
     if cut.is_empty() {
         return None;
     }
@@ -235,31 +249,53 @@ pub fn cut_names(font: &rm2k_snes_text::font::Font, place: &str, room: &str, cut
 
 /// The names the menu, the actor choice, the slot screen and the
 /// equipment screen write in counted cells, and which of them are cut.
-fn names_in_cells(game: &Game, request: &Request, medicines: &[(i32, String)]) -> Result<Vec<String>> {
+fn names_in_cells(
+    game: &Game,
+    request: &Request,
+    medicines: &[(i32, String)],
+) -> Result<Vec<String>> {
     let font = &game.font;
     let mut says = Vec::new();
     let mut actor_names = Vec::new();
     for &actor in &request.actors {
         actor_names.push(item_text(&game.actor_name(actor)?, usize::MAX));
     }
-    for (place, cells) in [("actor names in the menu", MENU_NAME_COLS), ("leader names in the slot screen", NAME_COLS)] {
+    for (place, cells) in [
+        ("actor names in the menu", MENU_NAME_COLS),
+        ("leader names in the slot screen", NAME_COLS),
+    ] {
         let cut: Vec<(String, String)> = actor_names
             .iter()
-            .map(|name| (name.clone(), texts::strip_text(font, &texts::ljust(name, cells), cells)))
+            .map(|name| {
+                (
+                    name.clone(),
+                    texts::strip_text(font, &texts::ljust(name, cells), cells),
+                )
+            })
             .filter(|(name, shown)| shown != name.trim_end())
             .collect();
-        says.extend(cut_names(font, place, &format!("{cells} cells ({} px)", 8 * cells), &cut));
+        says.extend(cut_names(
+            font,
+            place,
+            &format!("{cells} cells ({} px)", 8 * cells),
+            &cut,
+        ));
     }
     let cut: Vec<(String, String)> = medicines
         .iter()
         .filter_map(|(_, name)| {
             let lines = texts::name_in_lines(font, name, TARGET_NAME_WIDTH, 2);
-            let shown: Vec<&str> = lines.iter().map(|l| l.trim_end()).filter(|l| !l.is_empty()).collect();
+            let shown: Vec<&str> = lines
+                .iter()
+                .map(|l| l.trim_end())
+                .filter(|l| !l.is_empty())
+                .collect();
             let shown = shown.join(" / ");
             // A word may go on in the next line: what counts is that every
             // letter shows.
             let letters = |t: &str| t.chars().filter(|c| !c.is_whitespace()).collect::<String>();
-            (letters(&lines.concat()) != letters(&item_text(name, usize::MAX))).then(|| (name.clone(), shown))
+            (letters(&lines.concat()) != letters(&item_text(name, usize::MAX)))
+                .then(|| (name.clone(), shown))
         })
         .collect();
     says.extend(cut_names(
@@ -303,15 +339,22 @@ fn shop_pairs(game: &Game, skin: &crate::game::Skin, request: &Request) -> Resul
     for &n in &request.items {
         let name = item_text(&game.item_name(n)?, ITEM_NAME_WIDTH);
         by_name.push((font.width(&name), n));
-        let description: usize =
-            split_description(font, &game.item_description(n)?).iter().map(|l| font.width(l)).sum();
+        let description: usize = split_description(font, &game.item_description(n)?)
+            .iter()
+            .map(|l| font.width(l))
+            .sum();
         widest_description = widest_description.max((description, Some(n)));
     }
     by_name.sort_by(|a, b| b.cmp(a));
     let mut most = 0;
     for (mode, rows) in [(TI_BUY, TI_LIST_ROWS_BUY), (TI_SELL, TI_LIST_ROWS_SALE)] {
         let mut list: Vec<i32> = widest_description.1.into_iter().collect();
-        list.extend(by_name.iter().map(|(_, n)| *n).filter(|n| Some(*n) != widest_description.1));
+        list.extend(
+            by_name
+                .iter()
+                .map(|(_, n)| *n)
+                .filter(|n| Some(*n) != widest_description.1),
+        );
         list.truncate(rows);
         for term_set in 0..TI_TERM_SETS {
             let shop = render::Shop {
@@ -349,18 +392,32 @@ pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Resul
     for &n in items {
         let name = item_text(&game.item_name(n)?, ITEM_NAME_WIDTH);
         by_name.push((font.width(&name), n));
-        let description: usize =
-            split_description(font, &game.item_description(n)?).iter().map(|l| font.width(l)).sum();
+        let description: usize = split_description(font, &game.item_description(n)?)
+            .iter()
+            .map(|l| font.width(l))
+            .sum();
         widest_description = widest_description.max((description, Some(n)));
     }
     by_name.sort_by(|a, b| b.cmp(a));
     let mut list: Vec<i32> = widest_description.1.into_iter().collect();
-    list.extend(by_name.iter().map(|(_, n)| *n).filter(|n| Some(*n) != widest_description.1));
+    list.extend(
+        by_name
+            .iter()
+            .map(|(_, n)| *n)
+            .filter(|n| Some(*n) != widest_description.1),
+    );
     list.truncate(ITEM_ROWS);
     list.sort_unstable();
-    let chosen = widest_description.1.and_then(|w| list.iter().position(|&n| n == w)).unwrap_or(0);
+    let chosen = widest_description
+        .1
+        .and_then(|w| list.iter().position(|&n| n == w))
+        .unwrap_or(0);
     let inventory = list.iter().map(|&n| (n, 99)).collect();
-    Ok(render::item_screen_text(game, skin, &inventory, chosen, 0, Some(&list))?.0.pairs(font))
+    Ok(
+        render::item_screen_text(game, skin, &inventory, chosen, 0, Some(&list))?
+            .0
+            .pairs(font),
+    )
 }
 
 /// The message window as the emission takes it, without the font: what
@@ -456,7 +513,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // WARNINGs among `says`, each with its kind. See [`lose`].
     let mut losses: Vec<Value> = Vec::new();
 
-    let window = message_window::convert_with(&skin, request.cgram_reserved, request.text_rows.as_ref())?;
+    let window =
+        message_window::convert_with(&skin, request.cgram_reserved, request.text_rows.as_ref())?;
     if let Some(had) = window.frame_fused {
         let line = format!(
             "  WARNING, the message window's frame and arrow took {had} tiles and the text area leaves \
@@ -494,8 +552,10 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         let mut who = faceless.clone();
         who.sort_unstable();
         // With the number: Dooms 2 has two Junes and two Wills.
-        let names: Vec<String> =
-            who.iter().map(|a| Ok(format!("{} ({a})", game.actor_name(*a)?))).collect::<Result<_>>()?;
+        let names: Vec<String> = who
+            .iter()
+            .map(|a| Ok(format!("{} ({a})", game.actor_name(*a)?)))
+            .collect::<Result<_>>()?;
         let line = format!(
             "  WARNING, the slot screen and the menu have no room for every face: the ones of {} are left \
              out, and in the menu and the saves those actors show without one",
@@ -507,7 +567,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         lose(&mut says, &mut losses, "names-cut", Some(line));
     }
     let shop = shop_pairs(game, &skin, request)?;
-    let warning = if shop > TEXT_POOL_PAIRS { "WARNING, " } else { "" };
+    let warning = if shop > TEXT_POOL_PAIRS {
+        "WARNING, "
+    } else {
+        ""
+    };
     let line = format!(
         "  {warning}shop text: its lists ask for {shop} pairs of tiles at most, of the {TEXT_POOL_PAIRS} of the pool"
     );
@@ -520,25 +584,55 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         let names: Vec<String> = {
             let mut lent = slots.lent.clone();
             lent.sort();
-            lent.iter().map(|a| game.actor_name(*a)).collect::<Result<_>>()?
+            lent.iter()
+                .map(|a| game.actor_name(*a))
+                .collect::<Result<_>>()?
         };
-        let line = format!("  faces without a palette of their own, drawn with another's: {}", names.join(", "));
+        let line = format!(
+            "  faces without a palette of their own, drawn with another's: {}",
+            names.join(", ")
+        );
         lose(&mut says, &mut losses, "palette-lent", Some(line));
     }
     // Each screen with windows is drawn with the System `fit` gives it: the
     // game's, or with its windows redrawn if they do not fit their bank.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target, 0)?;
-    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the actor choice's", fused));
+    lose(
+        &mut says,
+        &mut losses,
+        "window-tiles-fused",
+        fused_windows("the actor choice's", fused),
+    );
     let target_screens = borders::target_screens(game, &fitted)?;
-    let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
+    let target = borders::borders(
+        &target_screens,
+        0,
+        TARGET_CGRAM,
+        TARGET_CGRAM + TARGET_COLORS_MAX,
+    )?;
     request.vram.target(target.tiles.len())?;
     let inks = items::text_inks(&skin, &game.font)?;
     // The item and equipment windows share tiles and colours, and go at the
     // end of the bank: the text has what is below them. Counted first, then
     // numbered from where they land.
-    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Items, item_pairs(game, &skin, &request.items)?)?;
-    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the item and equipment", fused));
-    let border_screens = || [borders::item_layers(&fitted), borders::equipment_layers(&fitted)];
+    let (fitted, fused) = fit::skin_for(
+        game,
+        &skin,
+        fit::Screen::Items,
+        item_pairs(game, &skin, &request.items)?,
+    )?;
+    lose(
+        &mut says,
+        &mut losses,
+        "window-tiles-fused",
+        fused_windows("the item and equipment", fused),
+    );
+    let border_screens = || {
+        [
+            borders::item_layers(&fitted),
+            borders::equipment_layers(&fitted),
+        ]
+    };
     let counted = borders::borders(&border_screens(), 0, ITEM_BORDER_CGRAM, 256)?;
     let first = items_border_first(counted.tiles.len());
     let items_border = borders::borders(&border_screens(), first, ITEM_BORDER_CGRAM, 256)?;
@@ -557,8 +651,18 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
     // The shop's, with their own tiles and colours.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Shop, 0)?;
-    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the shop's", fused));
-    let shop_border = borders::borders(&borders::shop_layers(&fitted), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
+    lose(
+        &mut says,
+        &mut losses,
+        "window-tiles-fused",
+        fused_windows("the shop's", fused),
+    );
+    let shop_border = borders::borders(
+        &borders::shop_layers(&fitted),
+        0,
+        ITEM_BORDER_CGRAM,
+        TARGET_CGRAM,
+    )?;
     request.vram.shop(shop_border.tiles.len())?;
     // And its party, as objects after the windows' tiles: the four members'
     // frames —one up each— and the System's arrows.
@@ -566,7 +670,10 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let party_objects = TI_PARTY_MEMBERS * crate::party::FRAME_TILES + crate::party::ARROW_TILES;
     // A System whose windows fill their bank leaves the party no room: the
     // shop goes without it rather than the cartridge not building.
-    let party_on = match request.vram.shop_party(shop_border.tiles.len(), party_objects) {
+    let party_on = match request
+        .vram
+        .shop_party(shop_border.tiles.len(), party_objects)
+    {
         Ok(()) => true,
         Err(e) => {
             let line = format!("  WARNING, {}: the shop shows no party", e.message());
@@ -616,7 +723,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         lose(&mut says, &mut losses, "window-colors-merged", Some(line));
     }
     request.vram.slots(slots.tiles.len())?;
-    let title = if request.title { Some(title::menu(game, &skin)?) } else { None };
+    let title = if request.title {
+        Some(title::menu(game, &skin)?)
+    } else {
+        None
+    };
     if let Some(t) = title.as_ref().filter(|t| t.merged > 0) {
         let line = format!(
             "  WARNING, the title menu's window has more colours than its palette: {} were merged into the \
@@ -627,7 +738,12 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
 
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Battle, 0)?;
-    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the battle's", fused));
+    lose(
+        &mut says,
+        &mut losses,
+        "window-tiles-fused",
+        fused_windows("the battle's", fused),
+    );
     let battle_windows = crate::battle::battle_windows(&fitted)?;
     says.push(format!(
         "  battle windows: {} tiles of {}, {} colours of {}, {} words of bars",
@@ -640,11 +756,18 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // The skills screen: its windows, and what the cartridge needs of each
     // skill. The busiest page is a bound over the whole database.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Skills, 0)?;
-    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the skills screen's", fused));
+    lose(
+        &mut says,
+        &mut losses,
+        "window-tiles-fused",
+        fused_windows("the skills screen's", fused),
+    );
     let skills_windows = crate::skills::windows_json(&fitted)?;
-    let actor = request.actors.iter().copied().max_by_key(|&a| {
-        game.actor_name(a).map(|n| game.font.width(&n)).unwrap_or(0)
-    });
+    let actor = request
+        .actors
+        .iter()
+        .copied()
+        .max_by_key(|&a| game.actor_name(a).map(|n| game.font.width(&n)).unwrap_or(0));
     if let Some(actor) = actor {
         let asked = crate::skills::worst_page_pairs(game, actor)?;
         let pool = crate::skills::SK_TEXT_PAIRS;
@@ -687,8 +810,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         })
         .collect::<Result<_>>()?;
     // And each rename's name strip, after them: see `Request::names`.
-    let renamed: Vec<Value> =
-        request.names.iter().map(|(a, name)| json!([a, texts::name_strip(name, MENU_NAME_COLS)])).collect();
+    let renamed: Vec<Value> = request
+        .names
+        .iter()
+        .map(|(a, name)| json!([a, texts::name_strip(name, MENU_NAME_COLS)]))
+        .collect();
     let mut item_texts = Vec::new();
     for &n in &request.items {
         let item = game.item(n)?;
@@ -746,7 +872,10 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let mut advances = game.font.console_advances();
     advances.extend(request.letters.iter().map(|&c| game.font.advance(c) as u8));
     window_json["advances"] = json!(advances);
-    window_json["reach"] = json!(message_window::font_reach_with(&game.font, &request.letters));
+    window_json["reach"] = json!(message_window::font_reach_with(
+        &game.font,
+        &request.letters
+    ));
     window_json["prerender"] = json!(prerender.iter().map(|t| hex(t)).collect::<Vec<_>>());
     Ok(json!({
         "custom_menus": custom_menus,

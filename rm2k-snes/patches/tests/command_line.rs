@@ -70,7 +70,10 @@ fn writing_a_build_again_leaves_nothing_from_the_previous_run() {
          patches of 0 window(s) -> patches/auto/windows (0 B)\n"
     );
     let left: Vec<_> = old.iter().filter(|p| p.exists()).collect();
-    assert!(left.is_empty(), "patches of a previous run were left: {left:?}");
+    assert!(
+        left.is_empty(),
+        "patches of a previous run were left: {left:?}"
+    );
 }
 
 #[test]
@@ -78,11 +81,19 @@ fn the_converter_writes_one_build_and_only_one() {
     let dir = scratch("one");
     let out = run(&dir, &["--request", &game("release.json"), "a", "b"]);
     assert_eq!(out.status.code(), Some(1));
-    assert!(text(&out.stderr).contains("one build's patches"), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stderr).contains("one build's patches"),
+        "{}",
+        text(&out.stderr)
+    );
     std::fs::write(dir.join("broken.json"), "{\"maps\": [{\"id\": 1}]}").unwrap();
     let out = run(&dir, &["--request", "broken.json", "build"]);
     assert_eq!(out.status.code(), Some(1));
-    assert!(text(&out.stderr).starts_with("broken.json: "), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stderr).starts_with("broken.json: "),
+        "{}",
+        text(&out.stderr)
+    );
     let out = run(&dir, &["--request", "broken.json", "--check"]);
     assert_eq!(out.status.code(), Some(2), "a wrong call is 2");
 }
@@ -93,7 +104,11 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
     project(&dir);
     let out = run(&dir, &["--request", &game("release.json"), "build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
-    std::fs::copy(game("uses.json"), dir.join("build/release/patches/uses.json")).unwrap();
+    std::fs::copy(
+        game("uses.json"),
+        dir.join("build/release/patches/uses.json"),
+    )
+    .unwrap();
     let out = run(&dir, &["build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert_eq!(
@@ -133,7 +148,11 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
     // And copying twice is what the playable ROM gives, and nothing else.
     let out = run(&dir, &["build/release", "build/release"]);
     assert_eq!(out.status.code(), Some(1));
-    assert!(text(&out.stderr).contains("not 2 cartridges"), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stderr).contains("not 2 cartridges"),
+        "{}",
+        text(&out.stderr)
+    );
 }
 
 #[test]
@@ -153,17 +172,30 @@ fn a_window_that_lost_colours_is_written_and_checked() {
     let versioned = dir.join("patches/auto/windows/Gold_Skin.toml");
     let written = std::fs::read_to_string(&versioned).unwrap();
     assert!(written.contains("system = \"Gold Skin\"\n"), "{written}");
-    assert!(written.contains("  { from = [9, 9, 9], to = [8, 8, 8], pixels = 7 },\n"), "{written}");
+    assert!(
+        written.contains("  { from = [9, 9, 9], to = [8, 8, 8], pixels = 7 },\n"),
+        "{written}"
+    );
     let out = run(&dir, &["--check", "build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
 
-    std::fs::write(&versioned, written.replace("to = [8, 8, 8]", "to = [7, 7, 7]")).unwrap();
+    std::fs::write(
+        &versioned,
+        written.replace("to = [8, 8, 8]", "to = [7, 7, 7]"),
+    )
+    .unwrap();
     let out = run(&dir, &["--check", "build/release"]);
     assert_eq!(out.status.code(), Some(1));
     let said = text(&out.stderr);
     assert!(said.contains("in window Gold Skin is this:"), "{said}");
-    assert!(said.contains("merges [9, 9, 9] -> [8, 8, 8], which it did not"), "{said}");
-    assert!(said.contains("no longer merges [9, 9, 9] -> [7, 7, 7]"), "{said}");
+    assert!(
+        said.contains("merges [9, 9, 9] -> [8, 8, 8], which it did not"),
+        "{said}"
+    );
+    assert!(
+        said.contains("no longer merges [9, 9, 9] -> [7, 7, 7]"),
+        "{said}"
+    );
 }
 
 #[test]
@@ -187,7 +219,10 @@ fn what_only_the_tests_ask_for_needs_no_patch() {
     assert!(of_tests(Kind::Animation, Key::Number(91)));
     assert!(of_tests(Kind::Animation, Key::Number(92)));
     assert!(!of_tests(Kind::Animation, Key::Number(93)));
-    assert!(!of_tests(Kind::Animation, Key::Number(94)), "without an origin it is the game's");
+    assert!(
+        !of_tests(Kind::Animation, Key::Number(94)),
+        "without an origin it is the game's"
+    );
     assert!(of_tests(Kind::Battler, Key::Text("only-test".into())));
     assert!(!of_tests(Kind::Battler, Key::Text("both".into())));
     let nowhere = dir.join("without-uses");

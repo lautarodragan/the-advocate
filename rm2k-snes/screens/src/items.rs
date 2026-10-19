@@ -44,8 +44,9 @@ pub fn ink_colors(skin: &Skin, color: i32) -> Result<(Vec<Color>, Color)> {
     let ink = Ink::new(&skin.picture, color);
     let mut rows = Vec::new();
     for y in 0..font::HEIGHT {
-        let row: std::collections::BTreeSet<Color> =
-            (0..font::INK_MAX).map(|x| rgb15(ink.text_at(x, y))).collect();
+        let row: std::collections::BTreeSet<Color> = (0..font::INK_MAX)
+            .map(|x| rgb15(ink.text_at(x, y)))
+            .collect();
         if row.len() != 1 {
             return Err(Bad::answer(format!(
                 "row {y} of System colour {color} has {} distinct colours; the cartridge paints a \
@@ -71,5 +72,8 @@ pub fn text_inks(skin: &Skin, font: &Font) -> Result<Inks> {
     let bytes = message_window::font_bytes(font)?;
     let rows: Vec<u8> = (0..font::HEIGHT as u8).map(|k| INK_ROW_FIRST + k).collect();
     let prerender = message_window::font_prerender(&bytes, &rows, INK_SHADOW);
-    Ok(Inks { palettes, prerender })
+    Ok(Inks {
+        palettes,
+        prerender,
+    })
 }

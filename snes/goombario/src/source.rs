@@ -92,7 +92,11 @@ fn strip_labels(mut s: &str) -> &str {
 pub fn constant(expr: &str) -> Option<u32> {
     let mut total = 0;
     for term in expr.split(['|', '+']) {
-        let term = term.trim().trim_start_matches('(').trim_end_matches(')').trim();
+        let term = term
+            .trim()
+            .trim_start_matches('(')
+            .trim_end_matches(')')
+            .trim();
         let value = if let Some(hex) = term.strip_prefix('$') {
             u32::from_str_radix(hex, 16).ok()?
         } else if let Some(bin) = term.strip_prefix('%') {
@@ -201,7 +205,11 @@ impl Reader<'_> {
             if first == ".macro" || first == ".mac" {
                 nesting += 1;
                 if nesting == 1 {
-                    let name = lower.split_whitespace().nth(1).unwrap_or("").trim_end_matches(',');
+                    let name = lower
+                        .split_whitespace()
+                        .nth(1)
+                        .unwrap_or("")
+                        .trim_end_matches(',');
                     defining = Some((name.to_string(), Vec::new()));
                     body_widths = Widths::default();
                     continue;
@@ -230,7 +238,10 @@ impl Reader<'_> {
                 let quoted = code.split('"').nth(1);
                 match quoted.and_then(|n| self.resolve(&name, n)) {
                     Some(inner) if self.depth < 16 => self.read(inner),
-                    _ => self.out.missing.push(format!("{}:{}: {}", name, i + 1, code)),
+                    _ => self
+                        .out
+                        .missing
+                        .push(format!("{}:{}: {}", name, i + 1, code)),
                 }
                 continue;
             }
@@ -260,10 +271,18 @@ pub fn declared(info: &DebugInfo, root: &Path) -> Declared {
     let mut reader = Reader {
         info,
         root,
-        ids: info.files.iter().map(|(&id, n)| (normalize(Path::new(n)), id)).collect(),
+        ids: info
+            .files
+            .iter()
+            .map(|(&id, n)| (normalize(Path::new(n)), id))
+            .collect(),
         widths: Widths::default(),
         smart: false,
-        out: Declared { at: HashMap::new(), macro_lines: Default::default(), missing: Vec::new() },
+        out: Declared {
+            at: HashMap::new(),
+            macro_lines: Default::default(),
+            missing: Vec::new(),
+        },
         depth: 0,
         macros: HashMap::new(),
     };
@@ -283,7 +302,10 @@ pub struct Texts<'a> {
 
 impl<'a> Texts<'a> {
     pub fn new(root: &'a Path) -> Self {
-        Texts { root, cache: HashMap::new() }
+        Texts {
+            root,
+            cache: HashMap::new(),
+        }
     }
 
     pub fn line(&mut self, file: &str, n: u32) -> String {
@@ -294,7 +316,12 @@ impl<'a> Texts<'a> {
         });
         lines
             .get((n as usize).wrapping_sub(1))
-            .map(|l| strip_comment(l).split_whitespace().collect::<Vec<_>>().join(" "))
+            .map(|l| {
+                strip_comment(l)
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
             .unwrap_or_else(|| "?".into())
     }
 }

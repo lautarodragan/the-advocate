@@ -64,17 +64,29 @@ pub struct Bank {
 /// colour's index inside its own is built; a colour that is not in the
 /// palette it got —it was lent someone else's— goes to the nearest of the
 /// ones there are.
-pub fn build_characters(sheets: &Sheets, characters: &[Key], slots: &[SlotPose], split: &Split) -> Result<Bank> {
+pub fn build_characters(
+    sheets: &Sheets,
+    characters: &[Key],
+    slots: &[SlotPose],
+    split: &Split,
+) -> Result<Bank> {
     let mut colors: Colors = HashMap::new();
     for key in characters {
         if colors.contains_key(key) {
             continue;
         }
         let image = sheet(sheets, &key.0)?;
-        let (palette, lookup, mapping) =
-            character_palette(image, key.1, split.caps.get(key).copied(), split.poses.get(key))?;
+        let (palette, lookup, mapping) = character_palette(
+            image,
+            key.1,
+            split.caps.get(key).copied(),
+            split.poses.get(key),
+        )?;
         let Some(number) = split.palette_of.get(key) else {
-            return Err(Bad::new(format!("{}:{} is not in the palette split", key.0, key.1)));
+            return Err(Bad::new(format!(
+                "{}:{} is not in the palette split",
+                key.0, key.1
+            )));
         };
         if split.own.contains(key) {
             colors.insert(key.clone(), (lookup, mapping));
@@ -85,7 +97,11 @@ pub fn build_characters(sheets: &Sheets, characters: &[Key], slots: &[SlotPose],
         let lookup = palette
             .iter()
             .map(|c| {
-                let at = if union.contains(c) { position(c) } else { position(&nearest(union, *c)) };
+                let at = if union.contains(c) {
+                    position(c)
+                } else {
+                    position(&nearest(union, *c))
+                };
                 (*c, at)
             })
             .collect();
@@ -128,7 +144,11 @@ pub fn build_characters(sheets: &Sheets, characters: &[Key], slots: &[SlotPose],
 /// cartridge: 512 bytes a pose, in pose order. With the lookup of the
 /// palette it ended up in: a pose uploaded on the fly is drawn with the
 /// palette already in colour memory.
-pub fn pose_bank(sheets: &Sheets, characters: &[Key], colors: &Colors) -> Result<Vec<(Key, Vec<u8>)>> {
+pub fn pose_bank(
+    sheets: &Sheets,
+    characters: &[Key],
+    colors: &Colors,
+) -> Result<Vec<(Key, Vec<u8>)>> {
     let mut banks = Vec::with_capacity(characters.len());
     for key in characters {
         let (lookup, mapping) = &colors[key];

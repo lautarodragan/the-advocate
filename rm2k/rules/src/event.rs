@@ -51,7 +51,10 @@ pub fn page_graphic(page: &EventPage) -> Option<Graphic> {
             pose,
         });
     }
-    (page.character_index != 0).then_some(Graphic::Tile { tile: page.character_index, pose })
+    (page.character_index != 0).then_some(Graphic::Tile {
+        tile: page.character_index,
+        pose,
+    })
 }
 
 /// Whether an event on this layer stops the hero: only the hero's own
@@ -63,7 +66,10 @@ pub fn blocks(layer: EventPageLayers) -> bool {
 /// Whether a page animates while standing still: "continuous" and "fixed
 /// direction, continuous".
 pub fn continuous(animation: EventPageAnimType) -> bool {
-    matches!(animation, EventPageAnimType::Continuous | EventPageAnimType::FixedContinuous)
+    matches!(
+        animation,
+        EventPageAnimType::Continuous | EventPageAnimType::FixedContinuous
+    )
 }
 
 /// The four side bits an event imposes on its cell, or `None` if it imposes

@@ -85,7 +85,13 @@ pub struct Note {
 
 impl Note {
     pub fn new(start: i64, end: i64, channel: u8, pitch: u8, velocity: u8) -> Note {
-        Note { start, end, channel, pitch, velocity }
+        Note {
+            start,
+            end,
+            channel,
+            pitch,
+            velocity,
+        }
     }
 }
 
@@ -261,7 +267,12 @@ fn controls(mut raw: Vec<Raw>, notes: &mut [Note]) -> Vec<Control> {
                 value: value as f64 / 8192.0 * range,
             });
         } else if number == VOLUME || number == PAN || number == EXPRESSION {
-            out.push(Control { start: time, channel, number, value: value as f64 });
+            out.push(Control {
+                start: time,
+                channel,
+                number,
+                value: value as f64,
+            });
         } else if number == SUSTAIN as u16 {
             let is_down = down.iter().position(|(c, _)| *c == channel);
             if value >= 64 && is_down.is_none() {
@@ -282,8 +293,16 @@ fn controls(mut raw: Vec<Raw>, notes: &mut [Note]) -> Vec<Control> {
             if selected.0 != rpn {
                 selected = (rpn, 127, 127);
             }
-            let msb = if number == RPN_MSB || number == NRPN_MSB { value } else { selected.1 };
-            let lsb = if number == RPN_LSB || number == NRPN_LSB { value } else { selected.2 };
+            let msb = if number == RPN_MSB || number == NRPN_MSB {
+                value
+            } else {
+                selected.1
+            };
+            let lsb = if number == RPN_LSB || number == NRPN_LSB {
+                value
+            } else {
+                selected.2
+            };
             param.insert(channel, (rpn, msb, lsb));
         } else if param.get(&channel) == Some(&(true, 0, 0)) {
             // RPN 0, the bend range. **No cap**: a song can ask for 95
@@ -347,7 +366,9 @@ pub fn parse(data: &[u8], name: &str) -> Result<Midi> {
     let tracks = u16_be(data, 10)?;
     let division = u16_be(data, 12)?;
     if division & 0x8000 != 0 {
-        return Err(Bad::usage(format!("{name}: MIDI with SMPTE division, not supported")));
+        return Err(Bad::usage(format!(
+            "{name}: MIDI with SMPTE division, not supported"
+        )));
     }
 
     let (mut notes, mut tempos, mut programs, mut raw) =
@@ -358,8 +379,16 @@ pub fn parse(data: &[u8], name: &str) -> Result<Midi> {
             break;
         }
         let length = u32_be(data, pos + 4)? as usize;
-        track(data, pos + 8, pos + 8 + length, &mut notes, &mut tempos, &mut programs, &mut raw)
-            .map_err(|e| Bad::usage(format!("{name}: {e}")))?;
+        track(
+            data,
+            pos + 8,
+            pos + 8 + length,
+            &mut notes,
+            &mut tempos,
+            &mut programs,
+            &mut raw,
+        )
+        .map_err(|e| Bad::usage(format!("{name}: {e}")))?;
         pos += 8 + length;
     }
 
@@ -368,7 +397,13 @@ pub fn parse(data: &[u8], name: &str) -> Result<Midi> {
     if tempos.is_empty() {
         tempos.push((0, 500000));
     }
-    Ok(Midi { notes, tempos, division: division as i64, programs, controls })
+    Ok(Midi {
+        notes,
+        tempos,
+        division: division as i64,
+        programs,
+        controls,
+    })
 }
 
 /// Reads a MIDI file.

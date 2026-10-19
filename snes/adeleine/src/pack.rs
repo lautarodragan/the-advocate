@@ -369,6 +369,9 @@ fn initial_groups(
                 sums[group][channel] += means[i].0[channel] * means[i].1;
             }
         }
+        // One zero check covers the three channels' divisions, which
+        // `checked_div` would make three.
+        #[allow(clippy::manual_checked_ops)]
         let centroids: Vec<_> = (0..groups)
             .map(|group| {
                 if totals[group] == 0 {
@@ -580,7 +583,11 @@ fn best_colors<T: Cost>(weights: &[u64], distances: &[Vec<u32>], keep: usize) ->
         let current = if members.is_empty() {
             T::FAR
         } else {
-            weights.iter().zip(&nearest).map(|(&w, &n)| w * T::from(n)).sum()
+            weights
+                .iter()
+                .zip(&nearest)
+                .map(|(&w, &n)| w * T::from(n))
+                .sum()
         };
         // Taking a victim out only moves the colours it was the nearest of:
         // each colour goes to the victim it belongs to —the first nearest
@@ -674,7 +681,11 @@ mod tests {
     /// `select_colors` as it was until 2026-10-10: every trial a set, costed
     /// from scratch. Slow, and obviously what it says; the fast one has to
     /// answer the same.
-    fn select_colors_by_trial(candidates: &Colors, weights: &BTreeMap<Color, u64>, keep: usize) -> Colors {
+    fn select_colors_by_trial(
+        candidates: &Colors,
+        weights: &BTreeMap<Color, u64>,
+        keep: usize,
+    ) -> Colors {
         let mut chosen = Colors::new();
         while chosen.len() < keep.min(candidates.len()) {
             let next = candidates
@@ -767,7 +778,7 @@ mod tests {
     #[test]
     fn a_tile_with_more_colours_than_a_palette_fits_nowhere() {
         let tile: Colors = (0..17).map(grey).collect();
-        assert_eq!(try_pack(&[tile.clone()], 8, 15), None);
+        assert_eq!(try_pack(std::slice::from_ref(&tile), 8, 15), None);
         let counts: Vec<(Color, u64)> = (0..17).map(|v| (grey(v), 1 + u64::from(v))).collect();
         let reduced = reduce_colors(&counts, &[tile], 8, 15).unwrap();
         assert!(reduced.palettes.iter().all(|p| p.len() <= 15));

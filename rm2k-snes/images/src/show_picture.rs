@@ -239,7 +239,11 @@ mod tests {
         let mut p = Picture::transparent(4, 2);
         for (i, px) in p.rgba.chunks_mut(4).enumerate() {
             if i % 4 >= 2 {
-                px.copy_from_slice(if i % 2 == 0 { &[248, 0, 0, 255] } else { &[0, 0, 248, 255] });
+                px.copy_from_slice(if i % 2 == 0 {
+                    &[248, 0, 0, 255]
+                } else {
+                    &[0, 0, 248, 255]
+                });
             }
         }
         p
@@ -247,7 +251,10 @@ mod tests {
 
     #[test]
     fn what_is_transparent_is_index_zero() {
-        let shown = Shown { map_fixed: true, ..Shown::PLAIN };
+        let shown = Shown {
+            map_fixed: true,
+            ..Shown::PLAIN
+        };
         let c = convert_shown(&half_transparent(), 0, 0, SCREENS, 15, shown).unwrap();
         assert_eq!((c.width, c.height), (4, 2));
         for row in &c.indices {
@@ -264,7 +271,11 @@ mod tests {
     fn with_the_map_only_the_zoom_scales() {
         let mut p = Picture::transparent(90, 181);
         p.rgba.iter_mut().for_each(|v| *v = 255);
-        let shown = Shown { zoom: 35, map_fixed: true, ..Shown::PLAIN };
+        let shown = Shown {
+            zoom: 35,
+            map_fixed: true,
+            ..Shown::PLAIN
+        };
         let c = convert_shown(&p, 153, 154, SCREENS, 15, shown).unwrap();
         assert_eq!((c.width, c.height), (32, 63));
         // RM2k's origin is half the size, rounded down: 32 / 2 and 63 / 2.

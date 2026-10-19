@@ -30,3 +30,6 @@ rm2k-snes-text = { path = "../text" }
 # project keeps its order on the way to the next.
 serde_json = { version = "1", features = ["preserve_order"] }
 toml = { version = "1", features = ["preserve_order"] }
+
+[lints]
+workspace = true

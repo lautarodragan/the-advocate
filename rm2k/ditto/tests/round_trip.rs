@@ -65,13 +65,19 @@ fn batch(files: &[PathBuf]) {
     for f in &failed {
         println!("  {f}");
     }
-    assert!(failed.is_empty(), "{} files do not come back equal", failed.len());
+    assert!(
+        failed.is_empty(),
+        "{} files do not come back equal",
+        failed.len()
+    );
 }
 
 #[test]
 fn the_database_and_the_tree_come_back_equal() {
     let Some(dir) = common::dir() else { return };
-    let Some(files) = common::files(&dir) else { return };
+    let Some(files) = common::files(&dir) else {
+        return;
+    };
     batch(&files[..2]);
 }
 
@@ -87,12 +93,7 @@ fn a_sample_of_maps_comes_back_equal() {
     // One in twenty, plus the first and the last: enough for a regression in
     // the codec to show without paying for the whole corpus on every
     // `cargo test`.
-    let sample: Vec<PathBuf> = all
-        .iter()
-        .step_by(20)
-        .chain(all.last())
-        .cloned()
-        .collect();
+    let sample: Vec<PathBuf> = all.iter().step_by(20).chain(all.last()).cloned().collect();
     batch(&sample);
 }
 
@@ -101,7 +102,9 @@ fn a_sample_of_maps_comes_back_equal() {
 #[ignore = "the long batch: `cargo test --release -- --ignored --nocapture`"]
 fn the_whole_game_comes_back_equal() {
     let Some(dir) = common::dir() else { return };
-    let Some(files) = common::files(&dir) else { return };
+    let Some(files) = common::files(&dir) else {
+        return;
+    };
     batch(&files);
 }
 
@@ -123,9 +126,15 @@ fn a_missing_field_holds_the_format_default() {
     // The one struct whose defaults change with the version: an actor with no
     // chunks is level 50 in a 2000 database and 99 in a 2003 one.
     let actor = ditto::lcf::dec_struct::<ditto::schema::Actor>(&[], false).unwrap();
-    assert_eq!((actor.final_level, actor.exp_base, actor.exp_inflation), (50, 30, 30));
+    assert_eq!(
+        (actor.final_level, actor.exp_base, actor.exp_inflation),
+        (50, 30, 30)
+    );
     let actor = ditto::lcf::dec_struct::<ditto::schema::Actor>(&[], true).unwrap();
-    assert_eq!((actor.final_level, actor.exp_base, actor.exp_inflation), (99, 300, 300));
+    assert_eq!(
+        (actor.final_level, actor.exp_base, actor.exp_inflation),
+        (99, 300, 300)
+    );
 
     let a: ditto::schema::Actor = serde_json::from_str(r#"{"name":"Alex"}"#).unwrap();
     assert_eq!(a.name, "Alex");
@@ -143,7 +152,9 @@ fn a_missing_field_holds_the_format_default() {
 #[test]
 fn no_chunk_goes_unnamed() {
     let Some(dir) = common::dir() else { return };
-    let Some(files) = common::files(&dir) else { return };
+    let Some(files) = common::files(&dir) else {
+        return;
+    };
     for a in files[..2]
         .iter()
         .cloned()

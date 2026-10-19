@@ -9,7 +9,9 @@ use std::path::{Path, PathBuf};
 use cartridge::assemble::{assemble, generated, sources, write_bytecodes, Failure};
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("assemble").join(name);
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("assemble")
+        .join(name);
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     dir
@@ -103,7 +105,10 @@ fn the_bytecodes_are_generated_files_too() {
     write_bytecodes(&build).unwrap();
     assert_eq!(
         generated(&dir.join("main.s"), &build).unwrap(),
-        [build.join("event_opcodes.inc"), build.join("music_opcodes.inc")]
+        [
+            build.join("event_opcodes.inc"),
+            build.join("music_opcodes.inc")
+        ]
     );
     let events = fs::read_to_string(build.join("event_opcodes.inc")).unwrap();
     assert!(events.contains("\nOP_DONE          = $00\n"), "{events}");

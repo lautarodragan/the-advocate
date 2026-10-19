@@ -40,7 +40,9 @@ use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
 fn game() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join("game")
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("game")
 }
 
 fn read(name: &str) -> Value {
@@ -103,7 +105,13 @@ fn check(name: &str, answer: fn(&Db, &Value) -> rm2k_snes_battle::Result<Value>)
             ));
         }
     }
-    assert!(wrong.is_empty(), "{} of {} differ:\n{}", wrong.len(), cases.len(), wrong.join("\n"));
+    assert!(
+        wrong.is_empty(),
+        "{} of {} differ:\n{}",
+        wrong.len(),
+        cases.len(),
+        wrong.join("\n")
+    );
     cases.len()
 }
 
@@ -131,7 +139,13 @@ fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
         if let Some(all) = names.as_object_mut() {
             for one in all.values_mut() {
                 let name = pick(one);
-                *name = Value::from(name.as_str().unwrap().chars().take(letters).collect::<String>());
+                *name = Value::from(
+                    name.as_str()
+                        .unwrap()
+                        .chars()
+                        .take(letters)
+                        .collect::<String>(),
+                );
             }
         }
     };

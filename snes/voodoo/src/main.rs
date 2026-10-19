@@ -106,8 +106,10 @@ struct Convert {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "The inverse of `convert`: the same indices come back, with \
-                        colour memory as the palette.")]
+#[command(
+    after_help = "The inverse of `convert`: the same indices come back, with \
+                        colour memory as the palette."
+)]
 struct Render {
     /// The tile data
     tiles: PathBuf,
@@ -283,7 +285,9 @@ fn do_render(args: &Render) -> Result<()> {
     }
     let mut colors = vec![None; ENTRIES];
     for (slot, word) in colors.iter_mut().zip(palette_bytes.chunks_exact(2)) {
-        *slot = Some(color::from_cgram_word(u16::from_le_bytes([word[0], word[1]])));
+        *slot = Some(color::from_cgram_word(u16::from_le_bytes([
+            word[0], word[1],
+        ])));
     }
 
     let bytes = args.bpp * CELL;

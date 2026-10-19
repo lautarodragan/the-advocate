@@ -110,7 +110,10 @@ pub fn name_mark(actor: u8) -> char {
 
 /// Where Latin-1's `c` is in [`Window::latin`], if it is Latin-1.
 fn latin_slot(c: char) -> Option<usize> {
-    (c as u32).checked_sub(LATIN_FIRST).map(|i| i as usize).filter(|&i| i < LATIN_GLYPHS)
+    (c as u32)
+        .checked_sub(LATIN_FIRST)
+        .map(|i| i as usize)
+        .filter(|&i| i < LATIN_GLYPHS)
 }
 
 /// The Latin-1 character at `i` of [`Window::latin`].
@@ -182,7 +185,10 @@ impl Pairs {
         let mut ranked: Vec<((u8, u8), usize)> = count.into_iter().collect();
         ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
         let max = NAME as usize - first as usize;
-        Pairs::from_table_at(ranked.into_iter().take(max).map(|(p, _)| p).collect(), first)
+        Pairs::from_table_at(
+            ranked.into_iter().take(max).map(|(p, _)| p).collect(),
+            first,
+        )
     }
 
     pub fn from_table(table: Vec<(u8, u8)>) -> Pairs {
@@ -336,7 +342,11 @@ impl Window {
         let mut next = CONSOLE_GLYPHS;
         for &c in letters {
             match latin_slot(c) {
-                Some(i) if self.latin[i] > 0 && self.carried[i] == 0 && next < CONSOLE_GLYPHS + LETTERS_MAX => {
+                Some(i)
+                    if self.latin[i] > 0
+                        && self.carried[i] == 0
+                        && next < CONSOLE_GLYPHS + LETTERS_MAX =>
+                {
                     self.carried[i] = next as u8;
                     next += 1;
                 }
@@ -401,7 +411,9 @@ impl Window {
         }
         let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;
-        if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code) || (NAME_MARK..NAME_MARK + 0x100).contains(&code) {
+        if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code)
+            || (NAME_MARK..NAME_MARK + 0x100).contains(&code)
+        {
             return self.advances[('0' as usize) - 32] as usize;
         }
         match code.checked_sub(32) {
@@ -415,7 +427,13 @@ impl Window {
     pub fn measure(&self) -> Measure {
         let mut advances = self.advances.to_vec();
         advances.resize((LATIN_FIRST - 32) as usize, 0);
-        advances.extend((0..LATIN_GLYPHS).map(|i| if self.carried[i] > 0 { self.latin[i] } else { 0 }));
+        advances.extend((0..LATIN_GLYPHS).map(|i| {
+            if self.carried[i] > 0 {
+                self.latin[i]
+            } else {
+                0
+            }
+        }));
         Measure::from_advances(advances, self.width)
     }
 
@@ -492,7 +510,11 @@ pub fn dropped_escape(escape: &str) -> String {
         Some('>') => "the instant text",
         Some('<') => "the end of the instant text",
         Some('_') => "a half space",
-        _ => return format!("{escape} is dropped from a text box, as RPG_RT shows nothing for it either"),
+        _ => {
+            return format!(
+                "{escape} is dropped from a text box, as RPG_RT shows nothing for it either"
+            )
+        }
     };
     format!("{escape} is dropped from a text box, and with it {what}")
 }
@@ -699,7 +721,10 @@ impl Messages {
             let (t, _) = plain_text_but(t, |c| window.carried_index(c).is_some());
             runs.extend(letter_runs(&units(&t, window)?));
         }
-        Ok(Pairs::choose(runs.iter().map(|l| l.as_slice()), window.pair_first()))
+        Ok(Pairs::choose(
+            runs.iter().map(|l| l.as_slice()),
+            window.pair_first(),
+        ))
     }
 
     /// The Latin-1 letters its boxes draw —the ones left after every
@@ -708,7 +733,10 @@ impl Messages {
     pub fn letters_used(&self) -> Vec<char> {
         let mut count: BTreeMap<char, usize> = BTreeMap::new();
         for t in self.texts.values().flatten() {
-            for c in t.chars().filter(|&c| self.window.carried_index(c).is_some()) {
+            for c in t
+                .chars()
+                .filter(|&c| self.window.carried_index(c).is_some())
+            {
                 *count.entry(c).or_default() += 1;
             }
         }
@@ -892,7 +920,10 @@ mod tests {
     #[test]
     fn the_tail_comes_off_and_says_how_long_the_box_lasts() {
         let t = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
-        assert_eq!((t.lines, t.pauses, t.auto_close), (s(&["Hi", "there"]), 2, true));
+        assert_eq!(
+            (t.lines, t.pauses, t.auto_close),
+            (s(&["Hi", "there"]), 2, true)
+        );
         let middle = format!("a {} b", rm2k_snes_text::refit::wait_mark('|'));
         assert_eq!(escape_tail(&s(&["a \\| b"])).unwrap().lines, vec![middle]);
         let t = escape_tail(&s(&["\\V[1]"])).unwrap();
@@ -977,7 +1008,7 @@ mod tests {
         assert_eq!(pairs.first(), PAIR_FIRST + 1);
         // Its letters are the ones the cartridge writes: `é` and `ß` as
         // their stand-ins, `ñ` as 96.
-        assert!(pairs.len() > 0);
+        assert!(!pairs.is_empty());
         assert!(pairs.bytes().iter().step_by(2).all(|&l| l < PAIR_FIRST + 1));
     }
 
@@ -1065,7 +1096,7 @@ mod tests {
         // the variable, and the pair again.
         let line = format!("ab{}ab", variable_mark(3));
         let mut m = Messages::measuring(1, WINDOW);
-        m.add(&[line.clone()]).ok().unwrap();
+        m.add(std::slice::from_ref(&line)).ok().unwrap();
         let pairs = m.choose_pairs().unwrap();
         assert_eq!(pairs.bytes(), [65, 66]);
         let mut m = Messages::with_pairs(1, WINDOW, pairs);
@@ -1087,12 +1118,34 @@ mod tests {
         let at = m.add_waiting(&s(&["ab\\.ab", "c\\!"])).ok().unwrap();
         assert_eq!(
             m.data[at..],
-            [2, 6, WAIT, WAIT_ANNOUNCE, PAIR_FIRST, WAIT, WAIT_QUARTER, PAIR_FIRST, 2, 67, WAIT, WAIT_KEY]
+            [
+                2,
+                6,
+                WAIT,
+                WAIT_ANNOUNCE,
+                PAIR_FIRST,
+                WAIT,
+                WAIT_QUARTER,
+                PAIR_FIRST,
+                2,
+                67,
+                WAIT,
+                WAIT_KEY
+            ]
         );
         let second = m.add_waiting(&s(&["x\\|y\\|\\^"])).ok().unwrap();
         assert_eq!(
             m.data[second..],
-            [1 | HEADER_AUTO_CLOSE | 1 << 4, 4, WAIT, WAIT_ANNOUNCE, 88, WAIT, WAIT_SECOND, 89]
+            [
+                1 | HEADER_AUTO_CLOSE | 1 << 4,
+                4,
+                WAIT,
+                WAIT_ANNOUNCE,
+                88,
+                WAIT,
+                WAIT_SECOND,
+                89
+            ]
         );
         // Without waiting, the same box is the one without them.
         let plain = m.add(&s(&["ab\\.ab", "c\\!"])).ok().unwrap();

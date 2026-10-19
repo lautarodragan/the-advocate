@@ -61,7 +61,10 @@ pub fn floor_bytes(native_bytes: i64, native_rate: f64) -> i64 {
 }
 
 fn keys_of_songs(songs: &[usize], keys_of: &[BTreeSet<Key>]) -> BTreeSet<Key> {
-    songs.iter().flat_map(|&t| keys_of.get(t).cloned().unwrap_or_default()).collect()
+    songs
+        .iter()
+        .flat_map(|&t| keys_of.get(t).cloned().unwrap_or_default())
+        .collect()
 }
 
 fn list(names: &[&str]) -> String {
@@ -134,7 +137,9 @@ pub fn relieve(
         let mut kept = p.songs.clone();
         let mut moved: Vec<usize> = Vec::new();
         if enters {
-            while kept.len() > 1 && effects_all + size(&keys_of_songs(&kept, keys_of), |s| s.floor) > room {
+            while kept.len() > 1
+                && effects_all + size(&keys_of_songs(&kept, keys_of), |s| s.floor) > room
+            {
                 moved.insert(0, kept.pop().unwrap());
             }
         } else {
@@ -145,12 +150,16 @@ pub fn relieve(
         let alone = p.separate.iter().chain(&moved);
         let music_floor = alone
             .map(|&t| size(&keys_of_songs(&[t], keys_of), |s| s.floor))
-            .chain(std::iter::once(size(&keys_of_songs(&kept, keys_of), |s| s.floor)))
+            .chain(std::iter::once(size(&keys_of_songs(&kept, keys_of), |s| {
+                s.floor
+            })))
             .max()
             .unwrap_or(0);
         let mut kept_effects = own.clone();
         let mut cut: Vec<String> = Vec::new();
-        while !kept_effects.is_empty() && kept_effects.iter().map(|e| budgeted[e]).sum::<i64>() + music_floor > room {
+        while !kept_effects.is_empty()
+            && kept_effects.iter().map(|e| budgeted[e]).sum::<i64>() + music_floor > room
+        {
             cut.insert(0, kept_effects.pop().unwrap());
         }
 
@@ -160,7 +169,11 @@ pub fn relieve(
             let together = if kept.is_empty() {
                 format!("its {} sound effect(s)", own.len())
             } else {
-                format!("{} and its {} sound effect(s)", list(&kept.iter().map(name).collect::<Vec<_>>()), own.len())
+                format!(
+                    "{} and its {} sound effect(s)",
+                    list(&kept.iter().map(name).collect::<Vec<_>>()),
+                    own.len()
+                )
             };
             losses.push(Loss {
                 map,
@@ -212,9 +225,17 @@ pub fn relieve_inheritance(
 ) -> (Vec<(String, usize)>, Vec<Loss>) {
     let (mut kept, mut losses) = (Vec::new(), Vec::new());
     for (name, song) in inheritance {
-        let mut songs: Vec<usize> = packages.iter().find(|p| &p.name == name).map(|p| p.songs.clone()).unwrap_or_default();
+        let mut songs: Vec<usize> = packages
+            .iter()
+            .find(|p| &p.name == name)
+            .map(|p| p.songs.clone())
+            .unwrap_or_default();
         songs.push(*song);
-        let minimum: i64 = keys_of_songs(&songs, keys_of).iter().filter_map(|k| sizes.get(k)).map(|s| s.minimum).sum();
+        let minimum: i64 = keys_of_songs(&songs, keys_of)
+            .iter()
+            .filter_map(|k| sizes.get(k))
+            .map(|s| s.minimum)
+            .sum();
         if minimum <= free {
             kept.push((name.clone(), *song));
             continue;
@@ -251,7 +272,12 @@ mod tests {
 
     /// (each song's keys, each key's sizes, each sound effect's budget, the
     /// songs' names)
-    type World = (Vec<BTreeSet<Key>>, HashMap<Key, Sizes>, BTreeMap<String, i64>, Vec<String>);
+    type World = (
+        Vec<BTreeSet<Key>>,
+        HashMap<Key, Sizes>,
+        BTreeMap<String, i64>,
+        Vec<String>,
+    );
 
     /// Four songs with two samples each, every sample 100 B at the minimum
     /// and 1,000 B at the floor; three sound effects of 2,000 B.
@@ -261,12 +287,24 @@ mod tests {
         for t in 0..4u8 {
             let own: BTreeSet<Key> = [Key::program(2 * t, 60), Key::program(2 * t + 1, 60)].into();
             for k in &own {
-                sizes.insert(k.clone(), Sizes { minimum: 100, floor: 1000 });
+                sizes.insert(
+                    k.clone(),
+                    Sizes {
+                        minimum: 100,
+                        floor: 1000,
+                    },
+                );
             }
             keys_of.push(own);
         }
-        let budgeted = ["a", "b", "c"].iter().map(|e| (e.to_string(), 2000)).collect();
-        let names = ["first", "second", "third", "fourth"].iter().map(|s| s.to_string()).collect();
+        let budgeted = ["a", "b", "c"]
+            .iter()
+            .map(|e| (e.to_string(), 2000))
+            .collect();
+        let names = ["first", "second", "third", "fourth"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         (keys_of, sizes, budgeted, names)
     }
 
@@ -276,7 +314,16 @@ mod tests {
         // 6,000 of sound effects and 8,000 of music at the floor, in 14,000:
         // the music stays at 6 kHz or above, and nothing is lost.
         let mut packages = vec![package("3", &[0, 1, 2, 3], &["a", "b", "c"])];
-        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 14000, 13000, &names);
+        let losses = relieve(
+            &mut packages,
+            &[true],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            14000,
+            13000,
+            &names,
+        );
         assert!(losses.is_empty(), "{losses:?}");
         assert_eq!(packages[0].songs, [0, 1, 2, 3]);
         assert!(packages[0].separate.is_empty());
@@ -290,7 +337,16 @@ mod tests {
         // 7,000, but at the floor its music is 8,000: it is relieved instead
         // of squeezing the music below 6 kHz.
         let mut packages = vec![package("3", &[0, 1, 2, 3], &["a", "b", "c"])];
-        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 7000, 6500, &names);
+        let losses = relieve(
+            &mut packages,
+            &[true],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            7000,
+            6500,
+            &names,
+        );
         assert!(!losses.is_empty());
         assert_eq!(packages[0].songs, [0]);
         assert_eq!(packages[0].effects, ["a", "b"]);
@@ -304,15 +360,34 @@ mod tests {
         // the other three go separate, and then 2,000 + 6,000 is still over,
         // so the last sound effect goes and 2,000 + 4,000 fits.
         let mut packages = vec![package("1", &[0, 1, 2, 3], &["a", "b", "c"])];
-        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 6500, 6500, &names);
+        let losses = relieve(
+            &mut packages,
+            &[true],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            6500,
+            6500,
+            &names,
+        );
         assert_eq!(packages[0].songs, [0]);
         assert_eq!(packages[0].separate, [1, 2, 3]);
         assert_eq!(packages[0].effects, ["a", "b"]);
         assert_eq!(losses.len(), 2);
         assert_eq!((losses[0].map, losses[0].kind), (Some(1), SONGS_ON_PLAY));
-        assert!(losses[0].text.starts_with("map 1: its songs second, third and fourth do not fit"), "{}", losses[0].text);
+        assert!(
+            losses[0]
+                .text
+                .starts_with("map 1: its songs second, third and fourth do not fit"),
+            "{}",
+            losses[0].text
+        );
         assert_eq!((losses[1].map, losses[1].kind), (Some(1), EFFECTS_LEFT_OUT));
-        assert!(losses[1].text.contains("1 of its 3 sound effects") && losses[1].text.ends_with(": c"), "{}", losses[1].text);
+        assert!(
+            losses[1].text.contains("1 of its 3 sound effects") && losses[1].text.ends_with(": c"),
+            "{}",
+            losses[1].text
+        );
     }
 
     /// A map whose songs are all started by `PlayBGM`s —none plays on
@@ -322,14 +397,29 @@ mod tests {
     fn where_no_song_plays_on_entering_every_song_goes_separate() {
         let (keys_of, sizes, budgeted, names) = world();
         let mut packages = vec![package("1", &[0, 1, 2, 3], &["a", "b", "c"])];
-        let losses = relieve(&mut packages, &[false], &keys_of, &sizes, &budgeted, 6500, 8000, &names);
+        let losses = relieve(
+            &mut packages,
+            &[false],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            6500,
+            8000,
+            &names,
+        );
         assert!(packages[0].songs.is_empty(), "{:?}", packages[0].songs);
         assert_eq!(packages[0].separate, [0, 1, 2, 3]);
         // Each separate song alone at the floor is 2,000: all three sound
         // effects fit next to it in 8,000.
         assert_eq!(packages[0].effects, ["a", "b", "c"]);
         assert_eq!(losses.len(), 1);
-        assert!(losses[0].text.contains("together with its 3 sound effect(s)"), "{}", losses[0].text);
+        assert!(
+            losses[0]
+                .text
+                .contains("together with its 3 sound effect(s)"),
+            "{}",
+            losses[0].text
+        );
     }
 
     #[test]
@@ -338,7 +428,16 @@ mod tests {
         // With 10,000 of room, two songs at the floor —4,000— fit next to the
         // 6,000 of sound effects: the last two go, in the list's order.
         let mut packages = vec![package("5", &[0, 1, 2, 3], &["a", "b", "c"])];
-        relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 6500, 10000, &names);
+        relieve(
+            &mut packages,
+            &[true],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            6500,
+            10000,
+            &names,
+        );
         assert_eq!(packages[0].songs, [0, 1]);
         assert_eq!(packages[0].separate, [2, 3]);
         assert_eq!(packages[0].effects.len(), 3);
@@ -350,7 +449,16 @@ mod tests {
         // Nothing to separate and nothing to cut: `Bank::new` says whether
         // it fits at the minimum, as before.
         let mut packages = vec![package("pelea", &[0], &[])];
-        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 100, 50, &names);
+        let losses = relieve(
+            &mut packages,
+            &[true],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            100,
+            50,
+            &names,
+        );
         assert!(losses.is_empty());
         assert_eq!(packages[0].songs, [0]);
     }
@@ -359,9 +467,22 @@ mod tests {
     fn a_package_that_is_not_a_maps_is_the_cartridges() {
         let (keys_of, sizes, budgeted, names) = world();
         let mut packages = vec![package("pelea", &[0, 1], &["a", "b", "c"])];
-        let losses = relieve(&mut packages, &[true], &keys_of, &sizes, &budgeted, 6000, 6000, &names);
+        let losses = relieve(
+            &mut packages,
+            &[true],
+            &keys_of,
+            &sizes,
+            &budgeted,
+            6000,
+            6000,
+            &names,
+        );
         assert_eq!(losses[0].map, None);
-        assert!(losses[0].text.starts_with("package pelea:"), "{}", losses[0].text);
+        assert!(
+            losses[0].text.starts_with("package pelea:"),
+            "{}",
+            losses[0].text
+        );
     }
 
     #[test]
@@ -379,7 +500,13 @@ mod tests {
         assert!(kept.is_empty(), "{kept:?}");
         assert_eq!(losses.len(), 2);
         assert_eq!((losses[0].map, losses[0].kind), (Some(4), PACKAGE_WAITS));
-        assert!(losses[0].text.starts_with("map 4: with second playing on arrival"), "{}", losses[0].text);
+        assert!(
+            losses[0]
+                .text
+                .starts_with("map 4: with second playing on arrival"),
+            "{}",
+            losses[0].text
+        );
         assert_eq!(losses[1].map, None);
     }
 

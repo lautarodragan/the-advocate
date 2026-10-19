@@ -37,7 +37,12 @@ pub const SK_TEXT_PAIRS: usize = 0x3800 / 32 - 1;
 /// rectangle.
 fn bar_rect(p: usize) -> Rect {
     let (x, width) = SK_BARS[p % SK_COLUMNS];
-    (x, SK_LIST_ROW0 * cells::CELL + 2 * cells::CELL * (p / SK_COLUMNS), width, 2 * cells::CELL)
+    (
+        x,
+        SK_LIST_ROW0 * cells::CELL + 2 * cells::CELL * (p / SK_COLUMNS),
+        width,
+        2 * cells::CELL,
+    )
 }
 
 /// The three windows, with the bar on place `bar` of the page.
@@ -59,7 +64,13 @@ pub fn layers(skin: &Skin) -> Screen {
     Screen {
         background: windows(skin, None),
         bars: (0..SK_ROWS * SK_COLUMNS)
-            .map(|p| (windows(skin, Some(p)), SK_LIST_ROW0 + 2 * (p / SK_COLUMNS), 2))
+            .map(|p| {
+                (
+                    windows(skin, Some(p)),
+                    SK_LIST_ROW0 + 2 * (p / SK_COLUMNS),
+                    2,
+                )
+            })
             .collect(),
     }
 }
@@ -80,7 +91,11 @@ pub fn windows_json(skin: &Skin) -> Result<Value> {
     for (p, bar) in bars.iter().enumerate() {
         let col0 = SK_HALF_COLS * (p % SK_COLUMNS);
         let row0 = SK_LIST_ROW0 + 2 * (p / SK_COLUMNS);
-        for (i, (&with, &without)) in bar.iter().zip(&map[row0 * COLS..(row0 + 2) * COLS]).enumerate() {
+        for (i, (&with, &without)) in bar
+            .iter()
+            .zip(&map[row0 * COLS..(row0 + 2) * COLS])
+            .enumerate()
+        {
             let col = i % COLS;
             if with != without && !(col0..col0 + SK_HALF_COLS).contains(&col) {
                 return Err(Bad::answer(format!(
@@ -118,14 +133,29 @@ pub fn name_lines(game: &Game, id: i32) -> Result<(usize, [String; 2])> {
     let n1 = if fits(letters.len()) {
         letters.len()
     } else {
-        match (1..letters.len()).rev().find(|&p| letters[p] == ' ' && fits(p)) {
+        match (1..letters.len())
+            .rev()
+            .find(|&p| letters[p] == ' ' && fits(p))
+        {
             Some(p) => p,
-            None => (0..=letters.len()).take_while(|&n| fits(n)).last().unwrap_or(0),
+            None => (0..=letters.len())
+                .take_while(|&n| fits(n))
+                .last()
+                .unwrap_or(0),
         }
     };
     let first: String = letters[..n1].iter().collect();
-    let rest: String = letters[n1..].iter().collect::<String>().trim_start().chars().take(TARGET_NAME_WIDTH).collect();
-    Ok((n1, [first, texts::fit_cells(font, &rest, TARGET_NAME_WIDTH)]))
+    let rest: String = letters[n1..]
+        .iter()
+        .collect::<String>()
+        .trim_start()
+        .chars()
+        .take(TARGET_NAME_WIDTH)
+        .collect();
+    Ok((
+        n1,
+        [first, texts::fit_cells(font, &rest, TARGET_NAME_WIDTH)],
+    ))
 }
 
 /// Per skill of the database, what the cartridge needs to write it on the
@@ -140,7 +170,9 @@ pub fn per_skill(game: &Game) -> Result<Value> {
     for (&id, skill) in &game.skills {
         let [(s1, n1), (s2, n2)] = description_spans(&game.font, &game.skill_description(id)?);
         if s1 != 0 || s2 > 255 || n1 > 255 || n2 > 255 {
-            return Err(Bad::answer(format!("skill {id}'s description does not fit in a byte per number")));
+            return Err(Bad::answer(format!(
+                "skill {id}'s description does not fit in a byte per number"
+            )));
         }
         out.insert(
             id.to_string(),
@@ -184,16 +216,30 @@ pub fn page_text(
         }
     }
     let row = SK_STATUS_ROW;
-    let name = texts::fit_cells(font, &texts::item_text(&game.actor_name(actor)?, usize::MAX), SK_NAME_WIDTH);
+    let name = texts::fit_cells(
+        font,
+        &texts::item_text(&game.actor_name(actor)?, usize::MAX),
+        SK_NAME_WIDTH,
+    );
     t.write(row, SK_NAME_COL, &name, ITEM_WHITE);
     t.write(row, SK_LEVEL_COL, &game.term("lvl_short")?, ITEM_RED);
     t.write_number(row, SK_LEVEL_NUM_COL, level, LEVEL_DIGITS, ITEM_WHITE);
-    t.write(row, SK_STATE_COL, &texts::fit_cells(font, &game.term("normal_status")?, SK_STATE_WIDTH), ITEM_WHITE);
+    t.write(
+        row,
+        SK_STATE_COL,
+        &texts::fit_cells(font, &game.term("normal_status")?, SK_STATE_WIDTH),
+        ITEM_WHITE,
+    );
     t.write(row, SK_HP_COL, &game.term("hp_short")?, ITEM_RED);
     t.write(row, SK_HP_NUM_COL, &capped_pair(hp), ITEM_WHITE);
     t.write(row, SK_SP_COL, &game.term("sp_short")?, ITEM_RED);
     t.write(row, SK_SP_NUM_COL, &capped_pair(sp), ITEM_WHITE);
-    for (k, &skill) in listed.iter().enumerate().skip(SK_COLUMNS * top).take(SK_ROWS * SK_COLUMNS) {
+    for (k, &skill) in listed
+        .iter()
+        .enumerate()
+        .skip(SK_COLUMNS * top)
+        .take(SK_ROWS * SK_COLUMNS)
+    {
         let p = k - SK_COLUMNS * top;
         let row = SK_LIST_ROW0 + 2 * (p / SK_COLUMNS);
         let col = SK_COLUMN_DX * (p % SK_COLUMNS);
@@ -202,7 +248,13 @@ pub fn page_text(
         t.write(row, col + SK_NAME_DX, &name, variant);
         let cost: String = texts::right(game.skill(skill)?.sp_cost.into(), SK_COST_DIGITS)
             .chars()
-            .map(|c| if c == ' ' { rm2k_snes_text::font::FIGURE_BLANK } else { c })
+            .map(|c| {
+                if c == ' ' {
+                    rm2k_snes_text::font::FIGURE_BLANK
+                } else {
+                    c
+                }
+            })
             .collect();
         t.write(row, col + SK_DASH_DX, &format!("-{cost}"), variant);
     }
@@ -216,7 +268,13 @@ fn capped_pair((now, max): (i64, i64)) -> String {
     let places = |v: i64| -> String {
         texts::right(v.clamp(0, 999), 3)
             .chars()
-            .map(|c| if c == ' ' { rm2k_snes_text::font::FIGURE_BLANK } else { c })
+            .map(|c| {
+                if c == ' ' {
+                    rm2k_snes_text::font::FIGURE_BLANK
+                } else {
+                    c
+                }
+            })
             .collect()
     };
     format!("{}/{}", places(now), places(max))
@@ -241,14 +299,34 @@ pub fn worst_page_pairs(game: &Game, actor: i32) -> Result<usize> {
     let mut names = Vec::new();
     let mut descs = Vec::new();
     for &k in &listable {
-        names.push((game.font.width(&texts::fit_cells(&game.font, &game.skill_name(k)?, SK_NAME_CELLS)), k));
+        names.push((
+            game.font.width(&texts::fit_cells(
+                &game.font,
+                &game.skill_name(k)?,
+                SK_NAME_CELLS,
+            )),
+            k,
+        ));
         descs.push((game.font.width(&game.skill_description(k)?), k));
     }
     names.sort_by(|a, b| b.cmp(a));
-    let page: Vec<i32> = names.iter().map(|n| n.1).take(SK_ROWS * SK_COLUMNS).collect();
+    let page: Vec<i32> = names
+        .iter()
+        .map(|n| n.1)
+        .take(SK_ROWS * SK_COLUMNS)
+        .collect();
     let widest = descs.iter().max().map(|d| d.1);
     let grey = vec![false; page.len()];
-    let t = page_text(game, actor, 99, (999, 999), (999, 999), &page, &grey, widest, 0)?;
+    let t = page_text(
+        game,
+        actor,
+        99,
+        (999, 999),
+        (999, 999),
+        &page,
+        &grey,
+        widest,
+        0,
+    )?;
     Ok(t.pairs(&game.font))
 }
-

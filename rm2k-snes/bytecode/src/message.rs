@@ -39,7 +39,12 @@ impl Message {
     /// `0x` and two hexadecimal digits.
     pub const fn hex(self, value: u8) -> Self {
         const DIGITS: &[u8; 16] = b"0123456789ABCDEF";
-        let digits = [b'0', b'x', DIGITS[(value >> 4) as usize], DIGITS[(value & 15) as usize]];
+        let digits = [
+            b'0',
+            b'x',
+            DIGITS[(value >> 4) as usize],
+            DIGITS[(value & 15) as usize],
+        ];
         match core::str::from_utf8(&digits) {
             Ok(text) => self.push(text),
             Err(_) => self,

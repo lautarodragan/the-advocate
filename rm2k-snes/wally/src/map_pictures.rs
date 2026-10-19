@@ -61,8 +61,14 @@ pub fn from_json(data: &Value, whose: &str) -> Result<Vec<MapPicture>> {
         .ok_or_else(|| Bad::answer(format!("{whose}: `map_pictures` is not a list")))?
         .iter()
         .map(|p| {
-            let corner = p["corner"].as_array().filter(|a| a.len() == 2).ok_or_else(|| bad("corner"))?;
-            let tone = p["tone"].as_array().filter(|a| a.len() == 4).ok_or_else(|| bad("tone"))?;
+            let corner = p["corner"]
+                .as_array()
+                .filter(|a| a.len() == 2)
+                .ok_or_else(|| bad("corner"))?;
+            let tone = p["tone"]
+                .as_array()
+                .filter(|a| a.len() == 4)
+                .ok_or_else(|| bad("tone"))?;
             let mut t = [0; 4];
             for (k, v) in tone.iter().enumerate() {
                 t[k] = int(v, "tone")? as i32;
@@ -73,7 +79,9 @@ pub fn from_json(data: &Value, whose: &str) -> Result<Vec<MapPicture>> {
                 corner: (int(&corner[0], "corner")?, int(&corner[1], "corner")?),
                 transparency: int(&p["transparency"], "transparency")? as i32,
                 tone: t,
-                transparent_color: p["transparent_color"].as_bool().ok_or_else(|| bad("transparent colour"))?,
+                transparent_color: p["transparent_color"]
+                    .as_bool()
+                    .ok_or_else(|| bad("transparent colour"))?,
                 repeat: p["repeat"].as_bool().ok_or_else(|| bad("repeat"))?,
             })
         })
@@ -121,7 +129,12 @@ fn toned(px: [u8; 4], t: [i32; 4]) -> [u8; 4] {
             *v = (luma + (*v - luma) * t[3] / 100).clamp(0, 255);
         }
     }
-    [tint(c[0], t[0]) as u8, tint(c[1], t[1]) as u8, tint(c[2], t[2]) as u8, px[3]]
+    [
+        tint(c[0], t[0]) as u8,
+        tint(c[1], t[1]) as u8,
+        tint(c[2], t[2]) as u8,
+        px[3],
+    ]
 }
 
 /// `over` on `under` with `alpha` of 255, the colour only: `under` keeps
@@ -173,9 +186,16 @@ pub fn compose(
     let mut front = vec![false; map.0 * map.1];
     for p in pictures {
         let path = game.resource("Picture", &p.name).ok_or_else(|| {
-            Bad::answer(format!("map {id}: picture {:?} is in none of the search directories", p.name))
+            Bad::answer(format!(
+                "map {id}: picture {:?} is in none of the search directories",
+                p.name
+            ))
         })?;
-        let art = if p.transparent_color { picture::read_rm2k(&path)? } else { picture::read_unkeyed(&path)? };
+        let art = if p.transparent_color {
+            picture::read_rm2k(&path)?
+        } else {
+            picture::read_unkeyed(&path)?
+        };
         let alpha = rm2k_rules::picture::opacity(p.transparency) as u32;
         let opaque = alpha == 255;
         for (x, y, px) in covered(p, &art, map) {
@@ -217,7 +237,9 @@ pub fn compose(
     let Some(pano) = panorama else {
         return Ok(None);
     };
-    pano.picture = pano.whole.crop(0, 0, pano.picture.width, pano.picture.height);
+    pano.picture = pano
+        .whole
+        .crop(0, 0, pano.picture.width, pano.picture.height);
     Ok(front.iter().any(|&f| f).then_some(front))
 }
 
@@ -276,7 +298,13 @@ mod tests {
     #[test]
     fn the_tone_brightens_and_grays_as_rm2k() {
         assert_eq!(toned([100, 50, 0, 255], [100; 4]), [100, 50, 0, 255]);
-        assert_eq!(toned([100, 50, 0, 255], [200, 100, 50, 100]), [255, 50, 0, 255]);
-        assert_eq!(toned([100, 100, 100, 7], [100, 100, 100, 0]), [100, 100, 100, 7]);
+        assert_eq!(
+            toned([100, 50, 0, 255], [200, 100, 50, 100]),
+            [255, 50, 0, 255]
+        );
+        assert_eq!(
+            toned([100, 100, 100, 7], [100, 100, 100, 0]),
+            [100, 100, 100, 7]
+        );
     }
 }

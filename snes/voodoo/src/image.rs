@@ -13,8 +13,8 @@ use std::path::Path;
 
 /// Read an 8-bit indexed PNG: its indices, and its palette at 15 bits.
 pub fn read(path: &Path) -> Result<Picture> {
-    let file = std::fs::File::open(path)
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    let file =
+        std::fs::File::open(path).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
     decoder.set_transformations(png::Transformations::IDENTITY);
     let mut reader = decoder
@@ -60,8 +60,8 @@ pub fn read(path: &Path) -> Result<Picture> {
 /// Write an indexed PNG, with the 5-bit channels put back in the top five
 /// bits of each byte, and entries the picture has no colour for as black.
 pub fn write(path: &Path, picture: &Picture) -> Result<()> {
-    let file = std::fs::File::create(path)
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    let file =
+        std::fs::File::create(path).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     let mut encoder = png::Encoder::new(
         std::io::BufWriter::new(file),
         picture.width as u32,

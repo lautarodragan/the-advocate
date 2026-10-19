@@ -22,7 +22,9 @@ pub const CURVES: [&str; 6] = ["maxhp", "maxsp", "attack", "defense", "spirit", 
 /// Each parameter per level, from level 1, in the order of [`CURVES`].
 pub fn curves(actor: &Actor) -> [&[i16]; 6] {
     let p = &actor.parameters;
-    [&p.maxhp, &p.maxsp, &p.attack, &p.defense, &p.spirit, &p.agility]
+    [
+        &p.maxhp, &p.maxsp, &p.attack, &p.defense, &p.spirit, &p.agility,
+    ]
 }
 
 /// `Game_Actor::GetMaxLevel`: RM2k's, capped by `final_level`.
@@ -305,9 +307,7 @@ pub fn change_equipment<E>(
         if slot == SLOT_WEAPON && two_handed(item)? {
             remove(equipment, inventory, SLOT_SHIELD);
         }
-        if slot == SLOT_SHIELD
-            && equipment[SLOT_WEAPON] != 0
-            && two_handed(equipment[SLOT_WEAPON])?
+        if slot == SLOT_SHIELD && equipment[SLOT_WEAPON] != 0 && two_handed(equipment[SLOT_WEAPON])?
         {
             remove(equipment, inventory, SLOT_WEAPON);
         }
@@ -393,7 +393,11 @@ mod tests {
     #[test]
     fn changing_the_level_learns_on_the_way_up_and_forgets_nothing_down() {
         let a = learner();
-        let mut s = Standing { level: 1, exp: 0, skills: vec![1, 5] };
+        let mut s = Standing {
+            level: 1,
+            exp: 0,
+            skills: vec![1, 5],
+        };
         assert_eq!(s.change_level(&a, 4), vec![7]);
         assert_eq!((s.level, s.exp), (4, base_exp(&a, 4)));
         assert_eq!(s.skills, vec![1, 5, 7]);
@@ -409,7 +413,11 @@ mod tests {
     #[test]
     fn changing_the_experience_moves_the_level_both_ways() {
         let a = learner();
-        let mut s = Standing { level: 1, exp: 0, skills: vec![1] };
+        let mut s = Standing {
+            level: 1,
+            exp: 0,
+            skills: vec![1],
+        };
         let enough = next_exp(&a, 3);
         assert_eq!(s.change_exp(&a, enough), vec![7, 5]);
         assert_eq!((s.level, s.exp), (4, enough));
@@ -427,7 +435,11 @@ mod tests {
         let a = learner();
         for amount in [0, 1, 50, 300, 4000] {
             let start = base_exp(&a, 2);
-            let mut s = Standing { level: 2, exp: start, skills: vec![] };
+            let mut s = Standing {
+                level: 2,
+                exp: start,
+                skills: vec![],
+            };
             s.change_exp(&a, start + amount);
             assert_eq!((s.level, s.exp), add_exp(&a, 2, start, amount));
         }
