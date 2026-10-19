@@ -101,8 +101,14 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     )
     .unwrap();
     fs::write(
-        dir.join("patches/manual/maps/Map0900.json"),
-        r#"{"id": 900, "tree": {"id": 900, "type": 1}}"#,
+        dir.join("patches/manual/maps/Map1000.json"),
+        r#"{"id": 1000, "tree": {"id": 1000, "type": 1}}"#,
+    )
+    .unwrap();
+    // A fork shares the folder, and is not a new map: it brings no node.
+    fs::write(
+        dir.join("patches/manual/maps/Map0002.json"),
+        r#"{"id": 2}"#,
     )
     .unwrap();
     for (case, text) in [
@@ -130,8 +136,8 @@ fn load(dir: &Path) -> Result<Cartridges, String> {
 fn the_maps_are_the_rule_the_added_ones_the_debug_map_and_the_test_ones() {
     let c = load(&game("maps", &(RELEASE.to_string() + SMALL))).unwrap();
     // Below 8, real maps, not excluded; then the added ones and the debug map.
-    assert_eq!(c.game_maps, [1, 2, 4, 6, 7, 20, 900]);
-    assert_eq!(c.all_maps(), [1, 2, 4, 6, 7, 20, 900, 30]);
+    assert_eq!(c.game_maps, [1, 2, 4, 6, 7, 20, 1000]);
+    assert_eq!(c.all_maps(), [1, 2, 4, 6, 7, 20, 1000, 30]);
     assert_eq!(c.rule_maps(&[], &[]), [1, 2, 3, 4, 6, 7]);
 }
 
@@ -187,7 +193,7 @@ fn the_flags_come_out_in_the_usual_order() {
             "6",
             "7",
             "20",
-            "900",
+            "1000",
             "30",
             "--test-graphic",
             "Hero",
@@ -397,7 +403,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-patches")));
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
-    assert!(files.contains(&dir.join("patches/manual/maps/Map0900.json")));
+    assert!(files.contains(&dir.join("patches/manual/maps/Map1000.json")));
     // And the dump, which `just dump` rewrites when the game changes and
     // which can be edited by hand.
     assert!(files.contains(&dir.join("data/maps.json")));

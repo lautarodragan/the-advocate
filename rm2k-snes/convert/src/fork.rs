@@ -13,8 +13,8 @@
 //!   fail: it overwrites the wrong map, and the teleports land in a wall;
 //! * **a fork replaces a map that exists**, and a new map **cannot**
 //!   overwrite one: a misspelled name doing nothing silently is worse than
-//!   an error. Both live in `maps/`, as in Ditto's `data/maps/`, and a new
-//!   map is told apart by the node of the tree it brings.
+//!   an error. Both live in `maps/`, as in Ditto's `data/maps/`, and the
+//!   id tells them apart: from [`FIRST_NEW_MAP`] on, a new map.
 //!
 //! The ChipSets are **added**, never replace one: an id the database
 //! already has is refused when the database is read, because a fork that
@@ -132,13 +132,19 @@ impl Forks {
     }
 }
 
+/// The first id of a map the game does not have. RM2k numbers maps up to
+/// 9999, and no game we know of goes near a thousand.
+pub const FIRST_NEW_MAP: i32 = 1000;
+
 /// The maps of `folder`, the patches' `maps/`, as `(forks, new maps)`.
 ///
-/// Both kinds share the folder, as in Ditto's `data/maps/`, and what tells
-/// them apart is the `tree` field: a new map brings its node of the tree,
-/// because the game has none for it, and a fork does not. So a fork has to
-/// name a map the game has, and a new map one it does not: either way a
-/// mistyped number stops the build instead of passing in silence.
+/// Both kinds share the folder, as in Ditto's `data/maps/`, and **the id
+/// tells them apart**: from [`FIRST_NEW_MAP`] on it is a new map, which
+/// brings its node of the tree because the game has none for it; below, a
+/// fork, which replaces one of the game's and keeps its node. So a fork has
+/// to name a map the game has, and a new map one it does not: either way a
+/// mistyped number stops the build instead of passing in silence. What
+/// `forks/` and `new/` guarded, until 2026-10-19, with two folders.
 #[allow(clippy::type_complexity)]
 fn maps(
     folder: &Path,
@@ -189,22 +195,36 @@ fn maps(
                  by the id"
             );
         }
-        let Some(node) = data.get("tree").cloned() else {
+        if map_id < FIRST_NEW_MAP {
             if !game_maps.contains(&map_id) {
                 crate::stop!(
-                    "{entry} names map {map_id} and the dump has none: a fork replaces a map of \
-                     the game, and a new map brings its node of the tree in its `tree` field"
+                    "{entry} replaces map {map_id} and the dump has none: below \
+                     {FIRST_NEW_MAP} a map of the manual patches replaces one of the game's; a \
+                     map the game does not have takes an id from {FIRST_NEW_MAP} on"
+                );
+            }
+            if data.get("tree").is_some() {
+                crate::stop!(
+                    "{entry} replaces map {map_id} of the game and brings a `tree` node, which \
+                     would be ignored: the game's node is kept. Only a new map, from \
+                     {FIRST_NEW_MAP} on, brings one"
                 );
             }
             forks.insert(map_id, pair);
             continue;
-        };
+        }
         if game_maps.contains(&map_id) {
             crate::stop!(
                 "the new map {map_id} already exists in the dump: a new map does not overwrite \
-                 one of the game's; if it is meant to change it, it is a fork, without `tree`"
+                 one of the game's"
             );
         }
+        let Some(node) = data.get("tree").cloned() else {
+            crate::stop!(
+                "{entry}: a new map brings its node of the tree in its `tree` field, with its \
+                 name, its parent and its music, because the game has none for it"
+            );
+        };
         let empty = match &node {
             Value::Null => true,
             Value::Object(o) => o.is_empty(),
@@ -234,26 +254,74 @@ fn entry_like(directory: &Path, name: &str) -> Option<PathBuf> {
 /// The ChipSets the project adds: the records of `ChipSet/` —its
 /// `NNNN.json`, see `is_record` in `rm2k-project`—. The rest of the folder
 /// is images, which replace the game's: see `own_files` there.
+///
+/// **A record's image and a hand-made one never share a name.** The recipe
+/// builds its image after the game is merged with ours, and the built ones
+/// go first in the search, so it would cover the hand-made one without a
+/// word: one of the two is a mistake. The converter also refuses a name
+/// the game or the RTP has, when it builds the images (`build_images`), but
+/// this one is said here, where both files are.
+///
+/// And **only `ChipSet/` takes records** today: a `NNNN.json` in another
+/// of RM2k's folders is not a file of the game either, and nothing would
+/// read it.
 fn chipsets(manual: &Path) -> Result<BTreeMap<i32, (PathBuf, Value)>> {
     let mut added = BTreeMap::new();
+    if !manual.is_dir() {
+        return Ok(added);
+    }
+    for folder in entries(manual)? {
+        let is_rm2k = rm2k_project::own_files::FOLDERS
+            .iter()
+            .any(|f| f.eq_ignore_ascii_case(&folder));
+        if !is_rm2k || folder.eq_ignore_ascii_case("ChipSet") || !manual.join(&folder).is_dir() {
+            continue;
+        }
+        if let Some(record) = entries(&manual.join(&folder))?
+            .into_iter()
+            .find(|e| rm2k_project::own_files::is_record(e))
+        {
+            crate::stop!(
+                "{folder}/{record}: only ChipSet/ takes database records in the manual patches; \
+                 nothing reads one in {folder}/"
+            );
+        }
+    }
     let Some(folder) = entry_like(manual, "ChipSet").filter(|f| f.is_dir()) else {
         return Ok(added);
     };
-    for entry in entries(&folder)? {
-        if !rm2k_project::own_files::is_record(&entry) {
+    let listing = entries(&folder)?;
+    let images: Vec<&String> = listing
+        .iter()
+        .filter(|e| !rm2k_project::own_files::is_record(e))
+        .collect();
+    for entry in &listing {
+        if !rm2k_project::own_files::is_record(entry) {
             continue;
         }
-        let (base, _) = split(&entry);
+        let (base, _) = split(entry);
         let number: i32 = base
             .parse()
             .map_err(|_| Stop::new(format!("{entry}: not a number")))?;
-        let path = folder.join(&entry);
+        let path = folder.join(entry);
         let data = read_json(&path)?;
         let inside = data["chipset"]["id"].as_i64().unwrap_or(-1);
         if inside != number as i64 {
             crate::stop!(
                 "{entry} says inside that it is ChipSet {inside}: the id and the file name have \
                  to be the same"
+            );
+        }
+        let name = data["chipset"]["chipset_name"].as_str().unwrap_or("");
+        if let Some(image) = images
+            .iter()
+            .find(|i| split(i).0.eq_ignore_ascii_case(name))
+        {
+            crate::stop!(
+                "{entry} builds ChipSet {} with its recipe, and ChipSet/{image} is a hand-made \
+                 image with that name: the built one would cover it without a word. One of the \
+                 two takes another name",
+                crate::text::repr(name)
             );
         }
         added.insert(number, (path, data));
@@ -404,11 +472,11 @@ mod tests {
     fn a_whole_fork_of_a_map_the_game_has_is_read() {
         let p = Patches::new("whole");
         p.map(11, 11, None, true);
-        p.map(900, 900, Some(900), true);
+        p.map(1000, 1000, Some(1000), true);
         let forks = p.read().unwrap();
         assert_eq!(forks.maps.keys().collect::<Vec<_>>(), [&11]);
-        assert_eq!(forks.map_file(900).unwrap().file_stem().unwrap(), "Map0900");
-        assert_eq!(forks.new_maps[&900].2["name"], "x");
+        assert_eq!(forks.map_file(1000).unwrap().file_stem().unwrap(), "Map1000");
+        assert_eq!(forks.new_maps[&1000].2["name"], "x");
     }
 
     #[test]
@@ -433,17 +501,32 @@ mod tests {
     }
 
     #[test]
-    fn a_fork_of_a_map_the_game_lacks_does_not_build() {
+    fn below_a_thousand_replacing_a_map_the_game_lacks_does_not_build() {
+        // Even if it brings a node, as a new map would: the id says which
+        // it is, so a new map with a mistyped id does not pass for one.
         let p = Patches::new("lacks");
-        p.map(9999, 9999, None, true);
-        assert!(refusal(p.read()).contains("has none"));
+        p.map(13, 13, None, true);
+        assert!(refusal(p.read()).contains("the dump has none"));
+        let p = Patches::new("lacks-node");
+        p.map(999, 999, Some(999), true);
+        assert!(refusal(p.read()).contains("the dump has none"));
     }
 
     #[test]
-    fn a_new_map_does_not_cover_one_of_the_game() {
-        let p = Patches::new("covers");
+    fn a_fork_does_not_bring_a_node_of_the_tree() {
+        let p = Patches::new("fork-node");
         p.map(11, 11, Some(11), true);
-        assert!(refusal(p.read()).contains("already exists"));
+        assert!(refusal(p.read()).contains("would be ignored"));
+    }
+
+    #[test]
+    fn from_a_thousand_a_new_map_does_not_cover_one_of_the_game() {
+        // A game with a map from a thousand on: no game we know of, but the
+        // rule has to hold.
+        let p = Patches::new("covers");
+        p.map(1001, 1001, Some(1001), true);
+        let refused = Forks::read(&p.0, &BTreeSet::from([11, 1001]), &BTreeSet::new());
+        assert!(refusal(refused).contains("already exists"));
     }
 
     #[test]
@@ -451,6 +534,9 @@ mod tests {
         let p = Patches::new("node");
         p.map(9998, 9998, Some(9997), true);
         assert!(refusal(p.read()).contains("`tree`"));
+        let p = Patches::new("no-node");
+        p.map(9998, 9998, None, true);
+        assert!(refusal(p.read()).contains("`tree` field"));
         let p = Patches::new("newhalf");
         p.map(9998, 9998, Some(9998), false);
         assert!(refusal(p.read()).contains("incomplete"));
@@ -465,6 +551,35 @@ mod tests {
         )
         .unwrap();
         assert!(refusal(p.read()).contains("ChipSet 54"));
+    }
+
+    #[test]
+    fn a_chipset_record_and_a_hand_made_image_do_not_share_a_name() {
+        let p = Patches::new("chipset-image");
+        let folder = p.0.join("ChipSet");
+        std::fs::write(
+            folder.join("0053.json"),
+            r#"{"chipset": {"id": 53, "chipset_name": "LasheINT11"}}"#,
+        )
+        .unwrap();
+        // An image of another name beside it replaces the game's, and is
+        // not a record.
+        std::fs::write(folder.join("Other.png"), "png").unwrap();
+        assert_eq!(
+            p.read().unwrap().chipsets.keys().collect::<Vec<_>>(),
+            [&53]
+        );
+        // Without regard to case or extension, as RM2k looks it up.
+        std::fs::write(folder.join("lasheint11.bmp"), "bmp").unwrap();
+        assert!(refusal(p.read()).contains("hand-made image"));
+    }
+
+    #[test]
+    fn only_chipset_takes_records() {
+        let p = Patches::new("records");
+        std::fs::create_dir_all(p.0.join("Picture")).unwrap();
+        std::fs::write(p.0.join("Picture").join("0001.json"), "{}").unwrap();
+        assert!(refusal(p.read()).contains("only ChipSet/"));
     }
 
     #[test]
