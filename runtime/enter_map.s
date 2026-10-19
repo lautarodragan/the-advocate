@@ -510,7 +510,9 @@ finish:
     lda #BRIGHTNESS_MAX
     sta brightness
 none:
-    lda #0
+    ; And without a fade, an inn may be waiting for its music, with the world
+    ; frozen the same way: `inn_tick` answers in A and Z as this does.
+    jsl f:inn_tick
     rts
 .endproc
 

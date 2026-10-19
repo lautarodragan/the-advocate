@@ -219,6 +219,10 @@ pub struct Game {
     /// are the only thing the player is going to read to decide.
     pub gold_term: String,
     pub inn_terms: [[String; 5]; 2],
+    /// The System's inn music, with its level: what `Scene_Map::StartInn`
+    /// plays while the screen is black. `(OFF)` goes straight to the end, as
+    /// there.
+    pub inn_music: schema::Music,
     pub battle_music: String,
     pub battle_end_music: String,
     /// And their levels —volume, tempo, balance and fade-in—, which the ROM
@@ -502,6 +506,7 @@ impl Game {
             animations,
             gold_term: terms.gold.clone(),
             inn_terms,
+            inn_music: system.inn_music.clone(),
             battle_music: system.battle_music.name.clone(),
             battle_end_music: system.battle_end_music.name.clone(),
             battle_levels: [&system.battle_music, &system.battle_end_music].map(|m| {

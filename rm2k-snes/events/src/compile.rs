@@ -774,6 +774,24 @@ fn music_level(cmd: &Command) -> Level {
     Level::new(at(0, 0), at(1, 100), at(2, 100), at(3, 50))
 }
 
+/// `OP_BGM` for song `index` of `Songs` at `level`: `PlayBGM`'s, and the
+/// inn's music, which `inn_staging` plays the same way. One place, so a
+/// change to the opcode reaches both.
+fn op_bgm(index: usize, level: Level) -> Vec<u8> {
+    let mut out = vec![OP_BGM, (index & 0xFF) as u8];
+    out.extend(level.bytes());
+    out
+}
+
+/// `OP_FADE_BGM`'s step for a fade of `ms` milliseconds: how much the
+/// level, which starts at 65535, drops per frame, rounded up so the fade ends
+/// **within** the frames it asks for and not one after. See `FADE_OUT_BGM`
+/// in [`compile_command`].
+fn bgm_fade_step(ms: i64) -> i64 {
+    let frames = (ms * FRAMES_PER_SECOND / 1000).max(1);
+    (-((-0x10000i64).div_euclid(frames))).min(0xFFFF)
+}
+
 // --- the page ------------------------------------------------------------------
 
 /// Where a branch still has its destination blank: the piece, and for a
@@ -2083,12 +2101,12 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 /// game has 18 pages with one and none uses the branches —measured on
 /// 2026-09-20—, so the command is compiled alone.
 ///
-/// The inn is not a new opcode: it is the greeting with its choice, a branch
-/// on gold, the charge and the heal, which are five things the interpreter
-/// already did. It is built here and not in `compile_command` because the
-/// destinations of the choice and of the branch are offsets **absolute
-/// within the page**, and that is known by the page's loop, which is the one
-/// that carries `length`.
+/// The inn is the greeting with its choice, a branch on gold, the charge and
+/// [`inn_staging`], which are things the interpreter already did plus the
+/// three phases of `OP_INN`. It is built here and not in `compile_command`
+/// because the destinations of the choice and of the branch are offsets
+/// **absolute within the page**, and that is known by the page's loop, which
+/// is the one that carries `length`.
 ///
 /// What comes out, with the offsets relative to the start of the block:
 ///
@@ -2097,8 +2115,8 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 ///  3  OP_CHOICE   "Yes" and "No"; cancel is "No"
 /// 14  OP_IF       gold >= price, and if not, to the end
 /// 21  OP_GOLD     it is charged
-/// 26  OP_HEAL     the whole party to the maximum
-/// 30  the end, which is where "No" and "cannot afford it" land
+/// 26  the staging, with the heal
+///     the end, which is where "No" and "cannot afford it" land
 /// ```
 ///
 /// The greeting is `CommandShowInn`'s (easyrpg
@@ -2107,40 +2125,31 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 /// game's `greeting_2` starts with one— and `greeting_3` on the second. The
 /// terms are from the LDB: see `Game::inn_terms`.
 ///
-/// **Three declared debts**, and all three are about what is seen and not
-/// about what happens:
+/// **Two declared debts**, and both are about what is seen and not about
+/// what happens:
 ///
 /// * there is no gold window next to the greeting;
 /// * "Yes" is not grayed out when it cannot be afforded, so it can be
 ///   chosen; choosing it amounts to "No", which is what the gold branch
-///   does. In RM2k the cursor does not let it be selected;
-/// * there is no fade to black nor inn music: it charges and heals on the
-///   spot. That is `Scene_Map::CallInn`.
+///   does. In RM2k the cursor does not let it be selected.
 ///
-/// **A free inn is just the heal**: with the price at zero `CommandShowInn`
-/// shows nothing and goes straight to
+/// The third one, the staging, was paid on 2026-10-19: until then the inn
+/// healed on the spot.
+///
+/// **A free inn is just the staging**: with the price at zero
+/// `CommandShowInn` shows nothing and goes straight to
 /// `ContinuationShowInnStart(indent, 0, 0)`, which stays, charges zero and
-/// rests. They are 6 of the game's 18 pages, those of maps 39, 59, 77 and
-/// 111 —the rooms where the script lets you sleep—.
+/// rests. They are 6 of ABL's 18 pages, those of maps 39, 59, 77 and 111
+/// —the rooms where the script lets you rest—, and in The Book of Three
+/// the night passing in its scenes.
 fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     if cmd.parameters.len() < 2 {
         return cannot();
     }
     let (kind, price) = (cmd.p(0).unwrap(), cmd.p(1).unwrap());
     if price == 0 {
-        ctx.lose(
-            cmd,
-            "inn-not-staged",
-            "the inn heals on the spot, without the fade to black or its music",
-        );
-        return Ok(vec![OP_HEAL, 0, 0, 0]);
+        return inn_staging(ctx, cmd);
     }
-    ctx.lose(
-        cmd,
-        "inn-not-staged",
-        "the inn has no gold window, lets \"Yes\" be chosen without the gold, and heals on the spot without \
-         the fade to black or its music",
-    );
     let Some(messages) = ctx.messages.as_deref_mut() else {
         return cannot();
     };
@@ -2160,8 +2169,14 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
         ctx.indices,
         messages,
     )?;
+    ctx.lose(
+        cmd,
+        "inn-no-gold-window",
+        "the inn has no gold window, and lets \"Yes\" be chosen without the gold",
+    );
     ctx.lose_dropped(cmd);
-    let end = length + 30;
+    let staging = inn_staging(ctx, cmd)?;
+    let end = length + 26 + staging.len();
     let mut out = vec![OP_MESSAGE];
     out.extend(usize_word(at)?);
     // Cancel is the second option: there the default `choice_cancel_type` is
@@ -2183,7 +2198,72 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
         ((price >> 8) & 0xFF) as u8,
         0,
     ]);
+    out.extend(staging);
+    Ok(out)
+}
+
+/// `OP_INN`'s phases: see inn.s in the runtime.
+const INN_NOTE: u8 = 0;
+const INN_WAIT: u8 = 1;
+const INN_PUT_BACK: u8 = 2;
+/// How long the song takes to fade out when the inn starts:
+/// `Game_System::BgmFade(800)` in `Scene_Map::OnAsyncSuspend`'s `eCallInn`.
+const INN_BGM_FADE_MS: i64 = 800;
+
+/// The night at the inn once it has been decided to stay, which is
+/// `Scene_Map::CallInn` (easyrpg `scene_map.cpp`, `eCallInn`, `StartInn`,
+/// `UpdateInn` and `FinishInn`):
+///
+/// ```text
+///  0  OP_INN 0        the song playing is noted, apart from MemorizeBGM's
+///  2  OP_FADE_BGM     it fades out over 800 ms
+///  5  OP_ERASE_SCREEN the screen to black, with the fade whatever the
+///                     System's transitions say: `TransitionFadeOut`
+///  7  OP_BGM          the System's inn music, at its level
+/// 13  OP_INN 1        the world frozen until it has played once, or ten
+///                     seconds, and then it stops
+/// 15  OP_HEAL         the whole party
+/// 19  OP_INN 2        the song noted, from the top
+/// 21  OP_SHOW_SCREEN  and the screen back, with the fade
+/// ```
+///
+/// With the inn music at `(OFF)` the two in the middle are left out:
+/// `StartInn` goes straight to `FinishInn`, and the song comes back as soon
+/// as the screen is black. It is ABL's.
+fn inn_staging(ctx: &mut Ctx, cmd: &Command) -> Step<Vec<u8>> {
+    let mut out = vec![OP_INN, INN_NOTE, OP_FADE_BGM];
+    out.extend(word(bgm_fade_step(INN_BGM_FADE_MS))?);
+    out.extend([OP_ERASE_SCREEN, TRANSITION_FADE]);
+    let music = &ctx.game.inn_music;
+    if !AUDIO_OFF.contains(&music.name.as_str()) {
+        match ctx.songs.as_deref_mut() {
+            Some(songs) => {
+                let index = songs.index(&music.name);
+                // With its own fade-in: `StartInn` plays it with
+                // `Game_System::BgmPlay`, which honours it.
+                out.extend(op_bgm(
+                    index,
+                    Level::new(
+                        music.fadein as i64,
+                        music.volume as i64,
+                        music.tempo as i64,
+                        music.balance as i64,
+                    ),
+                ));
+                out.extend([OP_INN, INN_WAIT]);
+            }
+            None => {
+                let name = music.name.clone();
+                ctx.lose(
+                    cmd,
+                    "bgm-not-played",
+                    format!("the inn's {name:?} does not play: no song registry here"),
+                );
+            }
+        }
+    }
     out.extend([OP_HEAL, 0, 0, 0]);
+    out.extend([OP_INN, INN_PUT_BACK, OP_SHOW_SCREEN, TRANSITION_FADE]);
     Ok(out)
 }
 
@@ -4614,9 +4694,7 @@ pub fn compile_command(
             if songs.current == Some(Package::Battle) && !songs.troop_songs.contains(&index) {
                 songs.troop_songs.push(index);
             }
-            let mut out = vec![OP_BGM, (index & 0xFF) as u8];
-            out.extend(music_level(cmd).bytes());
-            Ok(out)
+            Ok(op_bgm(index, music_level(cmd)))
         }
         PAN_SCREEN => {
             // Moving the camera without the hero: `CommandPanScreen`, in its
@@ -4703,8 +4781,7 @@ pub fn compile_command(
             if n == 0 || q(0) < 0 {
                 return cannot();
             }
-            let frames = (q(0) * FRAMES_PER_SECOND / 1000).max(1);
-            let step = (-((-0x10000i64).div_euclid(frames))).min(0xFFFF);
+            let step = bgm_fade_step(q(0));
             let mut out = vec![OP_FADE_BGM];
             out.extend(word(step)?);
             Ok(out)
@@ -8264,15 +8341,68 @@ mod tests {
         assert_eq!(exits, ["leaves"]);
     }
 
+    /// The staging with the inn music at `(OFF)`, which is ABL's: the fade
+    /// and the heal, and no song in between. 1366 is 800 ms, 48 frames, in
+    /// `OP_FADE_BGM`'s steps.
+    #[rustfmt::skip]
+    const STAGING_WITHOUT_MUSIC: [u8; 15] = [
+        OP_INN, 0, OP_FADE_BGM, 0x56, 0x05, OP_ERASE_SCREEN, 0,
+        OP_HEAL, 0, 0, 0, OP_INN, 2, OP_SHOW_SCREEN, 0,
+    ];
+
     #[test]
-    fn a_free_inn_is_only_the_heal() {
+    fn a_free_inn_is_only_the_staging() {
         // With the price at zero `CommandShowInn` shows nothing and rests.
         let code = with_songs(
             &[cmd(SHOW_INN, &[0, 0, 0], "")],
             &mut Songs::default(),
             &|_| None,
         );
-        assert_eq!(code.unwrap(), [OP_HEAL, 0, 0, 0, OP_DONE]);
+        let mut expected = STAGING_WITHOUT_MUSIC.to_vec();
+        expected.push(OP_DONE);
+        assert_eq!(code.unwrap(), expected);
+    }
+
+    #[test]
+    fn the_inns_music_plays_between_the_fades_and_is_waited_for() {
+        // The System's inn music, at its level, noted in the map's package
+        // like any `PlayBGM`'s song, and `OP_INN 1` after it.
+        let mut game = Game::default();
+        game.inn_music.name = "Inn1".into();
+        game.inn_music.volume = 50;
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+        };
+        let code = compile_page(&mut ctx, &[cmd(SHOW_INN, &[0, 0, 0], "")], None, 0, 0)
+            .unwrap()
+            .unwrap();
+        let index = songs.song("Inn1").expect("the inn's song is registered") as u8;
+        let mut expected = STAGING_WITHOUT_MUSIC[..7].to_vec();
+        expected.extend([OP_BGM, index]);
+        // The level with no fade-in: 50% volume, which is a quarter.
+        expected.extend(Level::new(0, 50, 100, 50).bytes());
+        expected.extend([OP_INN, 1]);
+        expected.extend(&STAGING_WITHOUT_MUSIC[7..]);
+        expected.push(OP_DONE);
+        assert_eq!(code, expected);
     }
 
     #[test]
@@ -8336,10 +8466,11 @@ mod tests {
         expected.extend(w(yes));
         expected.extend([17, 0]); // "Yes" goes to the branch
         expected.extend(w(no));
-        expected.extend([33, 0]); // "No" to the end
-        expected.extend([OP_IF, COND_GOLD as u8, 5, 0, 0, 33, 0]);
+        expected.extend([44, 0]); // "No" to the end
+        expected.extend([OP_IF, COND_GOLD as u8, 5, 0, 0, 44, 0]);
         expected.extend([OP_GOLD, 1, 5, 0, 0]);
-        expected.extend([OP_HEAL, 0, 0, 0, OP_DONE]);
+        expected.extend(STAGING_WITHOUT_MUSIC);
+        expected.push(OP_DONE);
         assert_eq!(code, expected);
     }
 

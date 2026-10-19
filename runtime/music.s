@@ -736,6 +736,15 @@ ready:
 ;
 ; The guard is not restarting twice in the same frame: if after going back to
 ; the start the first thing there is another end, there is nothing to play.
+;
+; Each start over adds one to `SONG_LAPS`, which is how the inn knows its
+; music has played once —`BGM_PlayedOnce`—: it notes the count when the song
+; starts and waits for it to change. It only wraps, and nobody reads more
+; than whether it changed.
+.pushseg
+.segment "FARBSS"
+SONG_LAPS: .res 1
+.popseg
 .proc music_frame
 .a8
 .i16
@@ -809,10 +818,7 @@ no_init:
                                 ; rather than write anything to the DSP
     lda restart
     bne mute
-    inc restart
-    lda song_current            ; it ended: the same one, again from the top
-    jsr music_start_done        ; inside the IRQ: no `sei` and no package
-    bra read
+    jmp lap                     ; out of the way: see there
 mute:
     ; An empty stream: nothing to play, neither this frame nor the ones to
     ; come. And it has to be said with the flag, because `advance` left the
@@ -941,6 +947,17 @@ init_ready:
     lda #0
     ldx #SE_KOF
     jsr dsp_music
+    jmp read
+
+; The end of the stream: the song again from the top. Out of the way, like
+; `boot`, so the branches of the opcodes above reach where they go.
+lap:
+    inc restart
+    lda f:SONG_LAPS             ; one more time round: see `inn_tick`
+    inc a
+    sta f:SONG_LAPS
+    lda song_current            ; it ended: the same one, again from the top
+    jsr music_start_done        ; inside the IRQ: no `sei` and no package
     jmp read
 
 from_voice:
