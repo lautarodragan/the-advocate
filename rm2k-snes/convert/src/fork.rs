@@ -20,6 +20,16 @@
 //! already has is refused when the database is read, because a fork that
 //! overwrites an entry goes stale without warning the day the dump changes.
 //!
+//! **A common event is the other way round: it replaces one the game has**
+//! —`commonevents/NNNN.json`, the whole record as Ditto dumps it, the id
+//! inside the name's—, because what a port redoes is a menu or a loop the
+//! game already calls by its number, and a new one nothing would call.
+//! Every stage reads the common events from the dump on its own —the event
+//! compiler, Wally, the screens, the music—, so instead of telling each of
+//! them, the converter hands them all a dump with ours in place: see
+//! [`with_common_events`]. Frozen World's B menu was the first, on
+//! 2026-10-19.
+//!
 //! None of this touches the dump. It is read only for this project's own
 //! dump: another game is read by passing it its own.
 
@@ -39,6 +49,9 @@ pub struct Forks {
     pub new_maps: BTreeMap<i32, (PathBuf, PathBuf, Value)>,
     /// `{chipset: (file, its entry)}` of the ChipSets the project adds.
     pub chipsets: BTreeMap<i32, (PathBuf, Value)>,
+    /// `{common event: (file, its record)}` of the game's common events the
+    /// project redid.
+    pub common_events: BTreeMap<i32, (PathBuf, Value)>,
 }
 
 fn entries(dir: &Path) -> Result<Vec<String>> {
@@ -81,13 +94,18 @@ fn map_number(stem: &str) -> Option<i32> {
 }
 
 impl Forks {
-    /// The patches under `manual`, checked against the maps of the game's
-    /// dump, `game_maps`, by number.
-    pub fn read(manual: &Path, game_maps: &BTreeSet<i32>) -> Result<Forks> {
+    /// The patches under `manual`, checked against the maps and the common
+    /// events of the game's dump, `game_maps` and `game_commons`, by number.
+    pub fn read(
+        manual: &Path,
+        game_maps: &BTreeSet<i32>,
+        game_commons: &BTreeSet<i32>,
+    ) -> Result<Forks> {
         Ok(Forks {
             maps: maps(&manual.join("forks"), game_maps)?,
             new_maps: new_maps(&manual.join("new"), game_maps)?,
             chipsets: chipsets(&manual.join("chipsets"))?,
+            common_events: common_events(&manual.join("commonevents"), game_commons)?,
         })
     }
 
@@ -255,6 +273,92 @@ fn chipsets(folder: &Path) -> Result<BTreeMap<i32, (PathBuf, Value)>> {
     Ok(added)
 }
 
+fn common_events(
+    folder: &Path,
+    game_commons: &BTreeSet<i32>,
+) -> Result<BTreeMap<i32, (PathBuf, Value)>> {
+    let mut found = BTreeMap::new();
+    if !folder.is_dir() {
+        return Ok(found);
+    }
+    for entry in entries(folder)? {
+        let (base, extension) = split(&entry);
+        if extension != ".json" || base.is_empty() || !base.bytes().all(|b| b.is_ascii_digit()) {
+            crate::stop!("{entry}: the manual patches' commonevents/ takes NNNN.json");
+        }
+        let number: i32 = base
+            .parse()
+            .map_err(|_| Stop::new(format!("{entry}: not a number")))?;
+        let path = folder.join(&entry);
+        let data = read_json(&path)?;
+        let inside = data["id"].as_i64().unwrap_or(-1);
+        if inside != number as i64 {
+            crate::stop!(
+                "{entry} says inside that it is common event {inside}: the id and the file name \
+                 have to be the same, because the events call it by its number"
+            );
+        }
+        if !game_commons.contains(&number) {
+            crate::stop!(
+                "{entry}: the game has no common event {number}, and the manual patches replace \
+                 one, they do not add one: nothing would call it"
+            );
+        }
+        found.insert(number, (path, data));
+    }
+    Ok(found)
+}
+
+/// The dump at `dump` with the project's common events in place of the
+/// game's, as a directory of its own below `into`, named by what goes in
+/// it: the dump's own common events and ours. The rest of it is the
+/// dump's, through symbolic links, so a map or a database file is never
+/// copied and never goes stale. Made once per content, and by a rename, so
+/// two cartridges converted at once find the same one or make it twice and
+/// keep one. `dump` itself unless the project redid some.
+pub fn with_common_events(dump: &Path, forks: &Forks, into: &Path) -> Result<PathBuf> {
+    if forks.common_events.is_empty() {
+        return Ok(dump.to_path_buf());
+    }
+    let game = ditto::dump::Dump::open(dump)?;
+    let mut commons: Value = game.section("commonevents")?;
+    let mut parts: Vec<Vec<u8>> = vec![commons.to_string().into_bytes()];
+    for (path, _) in forks.common_events.values() {
+        parts.push(std::fs::read(path).map_err(|e| io(path, e))?);
+    }
+    let key = rm2k_project::cache::key(&parts);
+    let target = into.join(format!("dump-{}", &key[..16]));
+    if target.is_dir() {
+        return Ok(target);
+    }
+    let Some(list) = commons.as_array_mut() else {
+        crate::stop!("{}: its common events are not a list", dump.display());
+    };
+    for c in list.iter_mut() {
+        let id = c["id"].as_i64().unwrap_or(-1) as i32;
+        if let Some((_, ours)) = forks.common_events.get(&id) {
+            *c = ours.clone();
+        }
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    let aside = into.join(format!(".dump.tmp-{}-{stamp}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&aside);
+    game.with_section("commonevents", &commons, &aside)?;
+    if std::fs::rename(&aside, &target).is_err() {
+        let _ = std::fs::remove_dir_all(&aside);
+        if !target.is_dir() {
+            crate::stop!(
+                "{}: could not make the dump with the project's common events",
+                target.display()
+            );
+        }
+    }
+    Ok(target)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -268,7 +372,7 @@ mod tests {
             let dir =
                 std::env::temp_dir().join(format!("convert-fork-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
-            for sub in ["forks", "new", "chipsets"] {
+            for sub in ["forks", "new", "chipsets", "commonevents"] {
                 std::fs::create_dir_all(dir.join(sub)).unwrap();
             }
             Patches(dir)
@@ -294,7 +398,7 @@ mod tests {
         }
 
         fn read(&self) -> Result<Forks> {
-            Forks::read(&self.0, &BTreeSet::from([11, 12]))
+            Forks::read(&self.0, &BTreeSet::from([11, 12]), &BTreeSet::from([15]))
         }
     }
 
@@ -373,5 +477,20 @@ mod tests {
         )
         .unwrap();
         assert!(refusal(p.read()).contains("ChipSet 54"));
+    }
+
+    #[test]
+    fn a_common_event_replaces_one_of_the_game_with_its_id_inside() {
+        let p = Patches::new("common");
+        let folder = p.0.join("commonevents");
+        std::fs::write(folder.join("0015.json"), r#"{"id": 16}"#).unwrap();
+        assert!(refusal(p.read()).contains("common event 16"));
+        std::fs::write(folder.join("0015.json"), r#"{"id": 15}"#).unwrap();
+        assert_eq!(
+            p.read().unwrap().common_events.keys().collect::<Vec<_>>(),
+            [&15]
+        );
+        std::fs::write(folder.join("0099.json"), r#"{"id": 99}"#).unwrap();
+        assert!(refusal(p.read()).contains("no common event 99"));
     }
 }

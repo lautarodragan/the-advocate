@@ -370,6 +370,45 @@ impl Dump {
             .map_err(|e| Error(format!("{}: {e}", path.display())))
     }
 
+    /// Writes into `out`, which must not exist, a dump that is this one with
+    /// the section `name` —as [`Dump::section`] names it— replaced by
+    /// `value`, and everything else **linked** to this one's files: a
+    /// symbolic link per file or folder, so nothing is copied and nothing
+    /// goes stale. For whoever has to hand several readers one changed
+    /// section without teaching each of them where it is. Unix only.
+    pub fn with_section(&self, name: &str, value: &Value, out: &Path) -> Result<()> {
+        let fail = |p: &Path, e: std::io::Error| Error(format!("{}: {e}", p.display()));
+        let db = self.dir.join(DB);
+        let target = db.join(format!("{name}.json"));
+        if !target.is_file() {
+            return error(format!(
+                "{}: the dump has no such section",
+                target.display()
+            ));
+        }
+        let link = |from: &Path, to: &Path| -> Result<()> {
+            let from = std::fs::canonicalize(from).map_err(|e| fail(from, e))?;
+            std::os::unix::fs::symlink(from, to).map_err(|e| fail(to, e))
+        };
+        std::fs::create_dir_all(out.join(DB)).map_err(|e| fail(out, e))?;
+        for entry in std::fs::read_dir(&self.dir).map_err(|e| fail(&self.dir, e))? {
+            let entry = entry.map_err(|e| fail(&self.dir, e))?;
+            if entry.file_name() != DB {
+                link(&entry.path(), &out.join(entry.file_name()))?;
+            }
+        }
+        for entry in std::fs::read_dir(&db).map_err(|e| fail(&db, e))? {
+            let entry = entry.map_err(|e| fail(&db, e))?;
+            let to = out.join(DB).join(entry.file_name());
+            if entry.path() == target {
+                write_json(&to, value)?;
+            } else {
+                link(&entry.path(), &to)?;
+            }
+        }
+        Ok(())
+    }
+
     /// The map tree: the `.lmt`.
     pub fn tree(&self) -> Result<TreeMap> {
         let path = self.dir.join(TREE);
@@ -777,4 +816,51 @@ fn map_files(dir: &Path) -> Result<Vec<PathBuf>> {
         return error(format!("{}: it has no .lmu files", dir.display()));
     }
     Ok(v)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_dump_with_one_section_replaced_links_the_rest() {
+        let n = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let base = std::env::temp_dir().join(format!("ditto-section-{}-{n}", std::process::id()));
+        let dir = base.join("dump");
+        std::fs::create_dir_all(dir.join(DB)).unwrap();
+        std::fs::create_dir_all(dir.join(MAPS)).unwrap();
+        std::fs::write(
+            dir.join(MANIFEST),
+            format!(r#"{{"ditto": {VERSION}, "view": "exact"}}"#),
+        )
+        .unwrap();
+        std::fs::write(dir.join(MAPS).join("Map0001.json"), "{}").unwrap();
+        std::fs::write(dir.join(DB).join("items.json"), "[1]").unwrap();
+        std::fs::write(dir.join(DB).join("commonevents.json"), "[2]").unwrap();
+        let dump = Dump::open(&dir).unwrap();
+        let out = base.join("out");
+        dump.with_section("commonevents", &serde_json::json!([3]), &out)
+            .unwrap();
+        let other = Dump::open(&out).unwrap();
+        assert_eq!(
+            other.section::<Value>("commonevents").unwrap(),
+            serde_json::json!([3])
+        );
+        assert_eq!(
+            other.section::<Value>("items").unwrap(),
+            serde_json::json!([1])
+        );
+        assert!(std::fs::symlink_metadata(out.join(DB).join("items.json"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert_eq!(other.map_files().unwrap().len(), 1);
+        assert!(dump
+            .with_section("nothing", &Value::Null, &base.join("again"))
+            .is_err());
+        let _ = std::fs::remove_dir_all(&base);
+    }
 }
