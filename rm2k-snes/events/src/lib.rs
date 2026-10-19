@@ -110,6 +110,11 @@ pub struct Request {
     pub cases: Vec<(i32, Vec<Command>)>,
     /// Graphics the test pages ask for in the maps where they run.
     pub test_graphics: BTreeMap<i32, Vec<(String, i32)>>,
+    /// Each map's table of route graphics as the scan numbered it, which
+    /// the converter built its sprite bank with: the compilation numbers
+    /// against it and does not add to it. See `Graphics::frozen`. Absent,
+    /// the compilation numbers as the scan does.
+    pub route_graphics: BTreeMap<i32, Vec<(String, i32)>>,
     /// How many bytes at a time `OP_MESSAGE`'s offset counts.
     pub messages_step: usize,
     /// The troops of the random encounters.
@@ -569,6 +574,15 @@ impl Request {
             r.test_graphics = by_map(g, whose, |v| {
                 v.as_array()
                     .ok_or_else(|| Bad::answer(format!("{whose}: test_graphics")))?
+                    .iter()
+                    .map(|p| pair(p, whose))
+                    .collect()
+            })?;
+        }
+        if let Some(g) = data.get("route_graphics") {
+            r.route_graphics = by_map(g, whose, |v| {
+                v.as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: route_graphics")))?
                     .iter()
                     .map(|p| pair(p, whose))
                     .collect()
@@ -1136,7 +1150,15 @@ fn compile_pass(
         });
         let panoramas = Rc::new(request.panoramas.get(&map.id).cloned().unwrap_or_default());
         let me = MapEvents::new(&map, Some(subs.clone())).with_panoramas(panoramas.clone());
-        let mut graphics = landings.graphics(map.id);
+        // The scan's table, when the converter passes it: see
+        // `Graphics::frozen`.
+        let mut graphics = match request.route_graphics.get(&map.id) {
+            Some(table) => Graphics {
+                on_events: landings.graphics(map.id).on_events,
+                ..Graphics::frozen(table)
+            },
+            None => landings.graphics(map.id),
+        };
         let mut pictures = request.pictures.get(&map.id).cloned().unwrap_or_default();
         songs.current = Some(Package::Map(k));
         let pages = {

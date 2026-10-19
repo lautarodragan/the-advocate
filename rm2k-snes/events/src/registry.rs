@@ -237,6 +237,10 @@ pub struct Graphics {
     /// draw them with the leaders' palette and colours of their own: see
     /// `hero_only` in Wally.
     pub on_events: std::collections::BTreeSet<(String, i32)>,
+    /// Whether the table is the one the sprite bank was built with, and a
+    /// graphic not in it is dropped instead of added: see
+    /// [`Graphics::frozen`].
+    pub frozen: bool,
 }
 
 /// How many graphics a map's table holds in the ROM: the route carries the
@@ -258,6 +262,23 @@ impl Graphics {
             pairs: associations[..kept].to_vec(),
             dropped: associations[kept..].to_vec(),
             on_events: Default::default(),
+            frozen: false,
+        }
+    }
+
+    /// The table the scan numbered —the converter built the map's sprite
+    /// bank with it—, which the real compilation numbers against without
+    /// adding to it. The scan compiles each page without songs or pictures,
+    /// so a page can get further here than there: Sunset's map 14 has a
+    /// cutscene that the scan stops at its `ShowPicture` and the
+    /// compilation gets past, to a graphic after it. With a table of eight
+    /// both passes dropped it and nobody saw the difference; since
+    /// 2026-10-19, with the table sized by the map, it moved every index
+    /// after it. Now it is dropped here, with its warning, as before.
+    pub fn frozen(table: &[(String, i32)]) -> Graphics {
+        Graphics {
+            frozen: true,
+            ..Graphics::new(table)
         }
     }
 
@@ -270,7 +291,9 @@ impl Graphics {
             .position(|(c, i)| c == charset && *i == index);
         match known {
             Some(k) if k < ROUTE_GFX_MAX => Some(k),
-            None if self.pairs.len() < ROUTE_GFX_MAX => Some(self.index(charset, index)),
+            None if self.pairs.len() < ROUTE_GFX_MAX && !self.frozen => {
+                Some(self.index(charset, index))
+            }
             _ => {
                 let g = (charset.to_string(), index);
                 if !self.dropped.contains(&g) {
@@ -524,5 +547,19 @@ mod graphics_cap_tests {
         assert_eq!(g.index_capped("B", 0), None);
         assert_eq!(g.pairs.len(), ROUTE_GFX_MAX, "the table did not grow");
         assert_eq!(g.dropped, vec![("B".to_string(), 0)], "noted once");
+    }
+
+    #[test]
+    fn a_frozen_table_numbers_against_it_and_does_not_grow() {
+        let scanned = vec![("A".to_string(), 0), ("B".to_string(), 1)];
+        let mut g = Graphics::frozen(&scanned);
+        assert_eq!(g.index_capped("B", 1), Some(1));
+        assert_eq!(
+            g.index_capped("C", 2),
+            None,
+            "the sprite bank does not have it"
+        );
+        assert_eq!(g.pairs, scanned);
+        assert_eq!(g.dropped, vec![("C".to_string(), 2)]);
     }
 }
