@@ -141,6 +141,14 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             skills.insert(h);
         }
     }
+    // And the ones a special item casts —`item_skill_in_battle`—, which
+    // the console runs down the same path as an actor's.
+    let mut item_skill = Vec::new();
+    for &i in &items {
+        let h = rules::item_skill_in_battle(db, db.item(i)?);
+        skills.extend(h);
+        item_skill.push(h.unwrap_or(0));
+    }
     let skills: Vec<i32> = skills.into_iter().collect();
     // The ones leveling up teaches past the starting level —`SetLevel`'s,
     // clamped to the actor's range—, whose whole name the victory says.
@@ -163,7 +171,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         .collect();
     let mut item_battle = Vec::new();
     for &i in &items {
-        item_battle.push(rules::item_usable_in_battle(db.item(i)?));
+        item_battle.push(rules::item_in_battle(db, db.item(i)?));
     }
     // What the battle writes with the game's font, if the request says it
     // —`font` and `letter_spacing`, as the screens stage takes them—: the
@@ -363,6 +371,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         "taught": taught,
         "pair_levels": pair_levels,
         "item_battle": item_battle,
+        "item_skill": item_skill,
         "troops": troop_list,
         "texts": {
             "victory": victory,

@@ -254,6 +254,7 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
         m["sprite"]["timer_mask"] = (id * 3).into();
     }
     value["maps"] = maps["maps"].take();
+    with_no_item_skills(&mut value["battle_model"]);
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], cursor);
@@ -288,6 +289,29 @@ fn with_the_system_cursors(screens: &mut serde_json::Value, cursor: usize) {
     screens["target"]["menu_cmd_at"] = serde_json::json!([1, 1, 1, 1]);
     screens["target"]["slot_bar"] = serde_json::json!([2]);
     screens["target"]["slot_bar_at"] = serde_json::json!([3, 1, 6, 1]);
+}
+
+/// The battle model's `item_skill`, which came on 2026-10-19 with the
+/// special items that cast their skill: the test game has none, so every
+/// item casts nothing, and [`without_item_skill`] takes the table out.
+fn with_no_item_skills(model: &mut serde_json::Value) {
+    let n = model["item_battle"].as_array().unwrap().len();
+    model["item_skill"] = serde_json::json!(vec![0; n]);
+}
+
+/// The text without `item_skill`, a byte per item in its `.block`, all
+/// $FF: see [`with_no_item_skills`].
+fn without_item_skill(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    let at = lines.iter().position(|l| *l == "item_skill:").unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let bytes = lines[at + 1].trim_start_matches("    .byte ");
+    assert!(
+        bytes.split(", ").all(|b| b == "255"),
+        "an item that casts a skill: {bytes}"
+    );
+    lines.drain(at - 1..at + 2);
+    lines.join("\n")
 }
 
 /// The shop's party in the screens stage's answer, which came on
@@ -1287,7 +1311,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let text = with_the_cursors_as_before(&emitted.text, "bare");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&text),
+            &without_attribute_shifts(&without_item_skill(&text)),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
@@ -1320,7 +1344,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let text = with_the_cursors_as_before(&emitted.text, "whole");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&text),
+            &without_attribute_shifts(&without_item_skill(&text)),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
@@ -1395,6 +1419,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
         scene[0] = n.into();
         value["scene"]["troops"].as_array_mut().unwrap().push(scene);
     }
+    with_no_item_skills(&mut value["battle_model"]);
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);
@@ -1633,6 +1658,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
         m["sprite"]["timer_mask"] = (id * 3).into();
     }
     value["maps"] = maps["maps"].take();
+    with_no_item_skills(&mut value["battle_model"]);
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);

@@ -15,6 +15,23 @@
 ; All of this runs with the data bank at $7E, so **the inventory is read with
 ; absolute addressing**: `FAR_ITEMS` lives in that bank and in it the
 ; addresses are the same. The cartridge's tables go with `f:`.
+;
+; Since 2026-10-19 a special item casts its skill, which is RM2k's
+; `Scene_Battle::AssignSkill` with the item: the list offers the ones whose
+; skill the battle knows —`item_skill_in_battle` in `rm2k-snes-battle`, the
+; converter's `item_skill`, the skill's row or $FF— to an actor their
+; `actor_set` lets use them, and choosing one goes down the skill's path
+; from the target on —see `ba_item_casting` and `ba_record_skill`—, with
+; `ba_item_cast` telling `ba_skill_use` not to charge SP and the message to
+; be the item's.
+
+; Per actor in the party, whether the skill it chose is cast by a special
+; item: `ba_record_skill` writes it on every skill an actor chooses, so it is
+; never stale when the skill runs. The item is in `BA_ACC_ITEM`.
+.pushseg
+.segment "FARBSS"
+ba_item_cast: .res BA_PARTY_MAX
+.popseg
 
 ; The list of what can be used: one `k` per word in `BA_ITEM_LIST` and how
 ; many in `BA_ITEM_N`. It walks the items the ROM knows in the converter's
@@ -31,6 +48,19 @@ other:
     bcs ready
     lda f:item_battle, x
     beq next
+    ; A special item, only for an actor its `actor_set` lets use it:
+    ; `Window_Item` asks `Game_Party::IsItemUsable` with the actor giving the
+    ; command. RM2k greys it out; here, like everything this list leaves out,
+    ; it does not show.
+    lda f:item_skill, x
+    cmp #$FF
+    beq listed
+    jsr ba_actor_ldb            ; clobbers X
+    ldx BA_S0
+    jsr ba_item_actor_can
+    beq next
+    ldx BA_S0
+listed:
     rep #$20
 .a16
     txa
@@ -85,10 +115,15 @@ ready:
 
 ; One less in the inventory of the `k` in X. It is what RM2k does when it is
 ; chosen and not when it is used: otherwise the last one of an item could be
-; handed out to two actors in the same turn.
+; handed out to two actors in the same turn. One without uses is not spent
+; —`ConsumeItemUse` with `uses` 0—, which until 2026-10-19 the battle spent
+; anyway and the menu did not.
 .proc ba_item_consume
 .a8
 .i16
+    lda f:item_medicine, x
+    and #MED_USES
+    beq ready
     rep #$20
 .a16
     txa
@@ -222,38 +257,14 @@ capped:
     rts
 .endproc
 
-; Whether the cursor for who gets it can stop on actor A8, with the item that
-; `BA_ITEM_SEL` marks: Z=0 if yes. The actor has to be in the party and the
-; item has to be of use to them —on a fallen one, only one that removes the
-; death state; on one standing, any that is not `ko_only`—, which are the two
-; exits of `Game_BattleAlgorithm::Item::vExecute` with no effect.
-;
-; **RM2k lets it stop on anyone** —`status_window` with `ChoiceMode_All`—
-; and the item that is of no use is spent doing nothing. Here the cursor skips
-; them, which is what it already did with the fallen before reviving them
-; existed: spending a potion on a dead actor is not something anybody wants
-; to do. If it is of use to nobody —an elixir with everyone standing—, A does
-; not get past the list, like an empty command. It clobbers `BA_S0`, `BA_T0`,
-; X and Y.
-.proc ba_item_usable_on
+; Whether LDB actor A8 can use the `k` in X: `Game_Actor::IsItemUsable`, the
+; actor's bit in `item_actors`, eight bytes per item, actor 1 in bit 0 of the
+; first. Z=0 if so. Clobbers `BA_T0`, X and Y.
+.proc ba_item_actor_can
 .a8
 .i16
-    sta BA_S0
-    cmp BA_NACTORS
-    bcs no
-    jsr ba_x
-    lda BA_ONE + BA_FLAGS, x
-    and #BAF_HAS
-    beq no
-    ; `Game_Actor::IsItemUsable`: the actor's bit in `item_actors`, eight
-    ; bytes per item, actor 1 in bit 0 of the first. `Item::vExecute` spends
-    ; it with no effect on one that cannot; here the cursor skips it, like
-    ; the rest of this routine.
-    lda BA_ONE + BA_NUMBER, x
     dec a
     pha
-    lda BA_ITEM_SEL
-    jsr ba_item_from_list
     rep #$20
 .a16
     txa
@@ -287,6 +298,103 @@ shift:
     bne shift
 bit_ready:
     and #1
+    rts
+.endproc
+
+; Whether the command being given casts a special item's skill: the Item
+; command, with an item of the list whose `item_skill` is not $FF. While the
+; target is chosen the cursor of the list stays where it was, so it is still
+; the item chosen. Z=0 if so. Only A and X.
+.proc ba_item_casting
+.a8
+.i16
+    lda BA_COMMAND
+    cmp #BA_COMMAND_USE
+    bne no
+    lda BA_ITEM_SEL
+    jsr ba_item_from_list
+    lda f:item_skill, x
+    cmp #$FF
+    beq no
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; `ba_record` of a skill, `BA_SKILL` on the target in `BA_T0`, for the actor
+; giving the command, whether it chose it from its skills or a special item
+; casts it —`ba_item_casting`—. The item is spent here, on choosing it, as a
+; medicine is —see `a_is_item` in battle_run.s—, and is kept in
+; `BA_ACC_ITEM` for the message and for a failed escape to give it back;
+; `ba_item_cast` says which of the two it is.
+.proc ba_record_skill
+.a8
+.i16
+    jsr ba_item_casting
+    beq from_skills
+    lda BA_ITEM_SEL
+    jsr ba_item_from_list
+    phx
+    lda BA_ACTOR
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    pla
+    sta BA_ACC_ITEM, x
+    tax
+    sep #$20
+.a8
+    jsr ba_item_consume
+    lda #1
+    bra marked
+from_skills:
+    lda #0
+marked:
+    pha
+    lda BA_ACTOR
+    jsr ba_ax
+    pla
+    sta f:ba_item_cast, x
+    lda #BA_SKILL
+    jmp ba_record
+.endproc
+
+; Whether the cursor for who gets it can stop on actor A8, with the item that
+; `BA_ITEM_SEL` marks: Z=0 if yes. The actor has to be in the party and the
+; item has to be of use to them —on a fallen one, only one that removes the
+; death state; on one standing, any that is not `ko_only`—, which are the two
+; exits of `Game_BattleAlgorithm::Item::vExecute` with no effect.
+;
+; **RM2k lets it stop on anyone** —`status_window` with `ChoiceMode_All`—
+; and the item that is of no use is spent doing nothing. Here the cursor skips
+; them, which is what it already did with the fallen before reviving them
+; existed: spending a potion on a dead actor is not something anybody wants
+; to do. If it is of use to nobody —an elixir with everyone standing—, A does
+; not get past the list, like an empty command. It clobbers `BA_S0`, `BA_T0`,
+; X and Y.
+.proc ba_item_usable_on
+.a8
+.i16
+    sta BA_S0
+    cmp BA_NACTORS
+    bcs no
+    jsr ba_x
+    lda BA_ONE + BA_FLAGS, x
+    and #BAF_HAS
+    beq no
+    ; `Game_Actor::IsItemUsable`: `Item::vExecute` spends it with no effect
+    ; on one that cannot; here the cursor skips it, like the rest of this
+    ; routine.
+    lda BA_ONE + BA_NUMBER, x
+    pha
+    lda BA_ITEM_SEL
+    jsr ba_item_from_list
+    pla
+    jsr ba_item_actor_can
     beq no
     lda BA_S0
     jsr ba_x

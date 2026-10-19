@@ -134,7 +134,8 @@ It writes `model.json`: `layout`, the geometry and the model's constants
 can do, as `[rating, skill or null, effective]`; `skills`, the ones the
 cartridge carries, and `taught`, the ones leveling up teaches; per pair,
 the level its learning table teaches it at (`pair_levels`); per item,
-whether the battle offers it (`item_battle`); per troop, its experience and
+whether the battle offers it (`item_battle`) and the skill a special one
+casts, or 0 (`item_skill`), whose skill is also in `skills`; per troop, its experience and
 gold; and `texts`, what the battle writes, cut to its place. With the
 font, also `cut`, the names a place cuts —actors, states, enemies,
 skills, items and commands, each against its cells—; `pairs`, how many
@@ -161,7 +162,9 @@ database's—; the enemies of a `troop`, or loose ones in `enemies`, each
 with its `id`, `place` and whether it is `hidden`; the troop whose event
 `pages` run, and the `switches` they look at. A turn carries a command per
 living actor, in party order: `[0, enemy]` attack, `[1]` defend, `[2]`
-escape, `[3, item, actor]` an item, `[4, skill, target]` a skill. Escaping
+escape, `[3, item, actor]` an item, `[4, skill, target]` a skill. A special
+item casts its skill, as RM2k's `Scene_Battle::AssignSkill` with the
+item: `[3, item, target]`, with the target as a skill's, and no SP spent. Escaping
 is the party's, as in RM2k: `flee` tries it, and when it fails the turn
 that follows carries no commands, `{"turn": []}` —RM2k's
 `ProcessSceneActionEscape`, which goes on with the enemies' actions only—.

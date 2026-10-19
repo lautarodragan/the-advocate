@@ -92,7 +92,8 @@ has:
     sta code_ptr + 2
     lda #0
     sta f:call_depth            ; a new frame: nobody to return to
-    lda #1
+    jsl f:face_forget           ; and no face: see message_face.s
+    lda #1                      ; last: the caller branches on its Z
     sta ev_active
     rtl
 off:

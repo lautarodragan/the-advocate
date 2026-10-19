@@ -8,7 +8,8 @@
 //! do drops out of the list instead of being done wrong.
 
 use crate::db::{
-    self, Db, ITEM_MEDICINE, ITEM_WEAPON, SCOPE_ALLY, SCOPE_ENEMY, SKILL_NORMAL, SKILL_SWITCH,
+    self, Db, ITEM_MEDICINE, ITEM_SPECIAL, ITEM_WEAPON, SCOPE_ALLY, SCOPE_ENEMY, SKILL_NORMAL,
+    SKILL_SWITCH,
 };
 use crate::fail::{Bad, Result};
 use ditto::schema::{Actor, Item, Skill};
@@ -237,7 +238,7 @@ pub fn revives(item: &Item) -> bool {
     item.state_set.first() == Some(&true)
 }
 
-/// Whether the item goes in the battle's list: `Game_Party::IsItemUsable`
+/// Whether a medicine goes in the battle's list: `Game_Party::IsItemUsable`
 /// in battle —a medicine not marked "only outside battle"— cut down to the
 /// ones that heal HP or SP, and of the `ko_only` ones, the ones that
 /// revive. The ones left out only remove states, which the battle keeps
@@ -254,6 +255,36 @@ pub fn item_usable_in_battle(item: &Item) -> bool {
             || item.recover_sp != 0
             || item.recover_sp_rate != 0)
         && (revives(item) || !item.ko_only)
+}
+
+/// The skill a special item casts in battle, if this battle offers it:
+/// `Game_Party::IsItemUsable` of a `special` item in battle, which asks
+/// `Algo::IsSkillUsable` of its skill —a `normal` one always, a `switch`
+/// one with `occasion_battle`, `teleport` and `escape` never—; RM2k3's
+/// `subskill` is not here, like everywhere else in this battle. It costs no
+/// SP —`Skill::vStart` spends the item instead—, so the cost does not
+/// matter. Whether the actor giving the command can use it is
+/// [`item_usable_by`], and that RPG_RT also asks for some actor of the party
+/// who can act and use it is that same actor, who is giving the command.
+pub fn item_skill_in_battle(db: &Db, item: &Item) -> Option<i32> {
+    if item.r#type.to_i32() != ITEM_SPECIAL {
+        return None;
+    }
+    let skill = db.skills.get(&item.skill_id)?;
+    match skill.r#type.to_i32() {
+        SKILL_NORMAL => Some(skill.id),
+        SKILL_SWITCH if skill.occasion_battle => Some(skill.id),
+        _ => None,
+    }
+}
+
+/// Whether the item goes in the battle's list: a medicine
+/// ([`item_usable_in_battle`]) or a special item whose skill the battle
+/// casts ([`item_skill_in_battle`]). What the converter emits as
+/// `item_battle`; a special one goes only in the list of an actor its
+/// `actor_set` lets use it, which the console looks at.
+pub fn item_in_battle(db: &Db, item: &Item) -> bool {
+    item_usable_in_battle(item) || item_skill_in_battle(db, item).is_some()
 }
 
 /// `Game_Actor::IsItemUsable`: whether actor `actor` of the database can

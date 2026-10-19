@@ -703,12 +703,16 @@ enum Target {
     One(Who),
     Item(i32, Who),
     Skill(i32, Who),
+    /// A special item's skill: [`Target::Skill`] without the SP.
+    ItemSkill(i32, Who),
 }
 
 /// A command as the caller gives it, one per living actor in party order:
 /// `(COMMAND_ATTACK, enemy's place)`, `(COMMAND_DEFEND, 0)`,
 /// `(COMMAND_ITEM, item, actor's place)`, `(COMMAND_SKILL, skill, place on
-/// the side its scope points to)`.
+/// the side its scope points to)`. A special item casts its skill
+/// —[`rules::item_skill_in_battle`]—, and its place is the skill's:
+/// `(COMMAND_ITEM, item, place on the side its skill's scope points to)`.
 #[derive(Debug, Clone, Copy)]
 pub struct Command {
     pub command: i64,
@@ -1686,9 +1690,18 @@ impl Battle {
     /// and reviving are not here; what a damaging one releases is, see
     /// [`Battle::released_by_damage`].
     pub fn use_skill(&mut self, db: &Db, source: Who, skill: i32, target: Who) -> Result<()> {
+        self.cast(db, source, skill, target, true)
+    }
+
+    /// [`Battle::use_skill`], and whether it pays its SP: a special item's
+    /// does not —`Skill::vStart` with an item spends the item, which the
+    /// console did on choosing it, and rolls nothing either way—.
+    fn cast(&mut self, db: &Db, source: Who, skill: i32, target: Who, pays: bool) -> Result<()> {
         let s = db.skill(skill)?;
-        let src = self.get_mut(source);
-        src.sp = (src.sp - s.sp_cost as i64).max(0);
+        if pays {
+            let src = self.get_mut(source);
+            src.sp = (src.sp - s.sp_cost as i64).max(0);
+        }
         if s.r#type.to_i32() == SKILL_SWITCH {
             // Turned on for the troop's pages too, which look at it before
             // the next action: it is how a character's system starts.
@@ -1849,13 +1862,47 @@ impl Battle {
                 .filter(|&k| k < list.len())
                 .ok_or_else(|| Bad::answer(format!("there is no {side} at place {k}")))
         };
+        // Whom a skill chosen by `actor` goes to: the one using it if it asks
+        // for no target —`needs_target`—, and otherwise the place on the
+        // side its scope points to.
+        let skill_dest = |battle: &Battle, actor: Who, skill: &Skill, k: i64| -> Result<Who> {
+            Ok(if !rules::needs_target(skill) {
+                actor
+            } else if db::targets_enemies(skill) {
+                Who::Enemy(place(&battle.enemies, k, "enemy")?)
+            } else {
+                Who::Actor(place(&battle.actors, k, "actor")?)
+            })
+        };
         let mut actions = Vec::new();
         for (actor, c) in self.living(true).into_iter().zip(commands) {
             let target = match c.command {
-                COMMAND_ITEM => Target::Item(
-                    c.what as i32,
-                    Who::Actor(place(&self.actors, c.target, "actor")?),
-                ),
+                COMMAND_ITEM => {
+                    let item = db.item(c.what as i32)?;
+                    match rules::item_skill_in_battle(db, item) {
+                        Some(skill) => {
+                            // `Window_Item` asks the actor giving the command
+                            // —`Game_Party::IsItemUsable` with it—: one its
+                            // `actor_set` leaves out is greyed out there and
+                            // not even listed on the console.
+                            let Who::Actor(k) = actor else {
+                                unreachable!("the party gives the commands")
+                            };
+                            if !rules::item_usable_by(item, self.actors[k].number) {
+                                return Err(Bad::answer(format!(
+                                    "{} cannot use item {}: its actor_set leaves them out",
+                                    self.actors[k].name, item.id
+                                )));
+                            }
+                            let dest = skill_dest(self, actor, db.skill(skill)?, c.target)?;
+                            Target::ItemSkill(skill, dest)
+                        }
+                        None => Target::Item(
+                            c.what as i32,
+                            Who::Actor(place(&self.actors, c.target, "actor")?),
+                        ),
+                    }
+                }
                 COMMAND_SKILL => {
                     let skill = db.skill(c.what as i32)?;
                     // A skill its weapons do not allow is greyed out and A
@@ -1870,14 +1917,7 @@ impl Battle {
                             self.actors[k].name, skill.id
                         )));
                     }
-                    let dest = if !rules::needs_target(skill) {
-                        actor
-                    } else if db::targets_enemies(skill) {
-                        Who::Enemy(place(&self.enemies, c.target, "enemy")?)
-                    } else {
-                        Who::Actor(place(&self.actors, c.target, "actor")?)
-                    };
-                    Target::Skill(skill.id, dest)
+                    Target::Skill(skill.id, skill_dest(self, actor, skill, c.target)?)
                 }
                 COMMAND_ATTACK => Target::One(Who::Enemy(place(&self.enemies, c.what, "enemy")?)),
                 _ => Target::None,
@@ -1909,6 +1949,12 @@ impl Battle {
                     // discards it and the action is lost.
                     if self.get(target).alive() {
                         self.use_skill(db, who, skill, target)?;
+                    }
+                }
+                (COMMAND_ITEM, Target::ItemSkill(skill, target)) => {
+                    // As a skill: a dead target is not retargeted.
+                    if self.get(target).alive() {
+                        self.cast(db, who, skill, target, false)?;
                     }
                 }
                 (COMMAND_ITEM, Target::Item(item, target)) => {

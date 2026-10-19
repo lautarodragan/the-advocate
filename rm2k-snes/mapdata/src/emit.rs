@@ -2978,6 +2978,30 @@ impl Rest<'_> {
             .map(|v| i64::from(v.as_bool().unwrap_or(false)))
             .collect();
         bytes_asm(out, "item_battle", &decimal(item_battle), true);
+        // The skill a special item casts, as its place in the cartridge's
+        // skill rows —`skill_*`—, or $FF for every other item: see
+        // `ba_items_list` in battle_items.s. The model puts that skill in
+        // `skills`.
+        let rom_skills = ints_at(self.model, "skills")?;
+        let mut item_skill = Vec::new();
+        for v in list_at(self.model, "item_skill")? {
+            let h = v.as_i64().unwrap_or(0);
+            item_skill.push(if h == 0 {
+                0xFF
+            } else {
+                rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
+                    Bad::answer(format!(
+                        "an item casts skill {h}, which the cartridge does not carry"
+                    ))
+                })? as i64
+            });
+        }
+        if item_skill.len() != items.len() {
+            return Err(Bad::answer(
+                "the battle's `item_skill` and the items are not the same list",
+            ));
+        }
+        bytes_asm(out, "item_skill", &decimal(item_skill), true);
         words_asm(
             out,
             "ba_item_desc",

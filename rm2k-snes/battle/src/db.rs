@@ -23,6 +23,7 @@ use std::path::Path;
 pub const ITEM_WEAPON: i32 = 1;
 pub const ITEM_MEDICINE: i32 = 6;
 pub const ITEM_MATERIAL: i32 = 8;
+pub const ITEM_SPECIAL: i32 = 9;
 
 /// `lcf::rpg::Skill::Type`.
 pub const SKILL_NORMAL: i32 = 0;
