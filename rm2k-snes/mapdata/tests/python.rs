@@ -129,6 +129,12 @@
 //! `without_grid_narrow` takes away the new `M_GRID_NARROW` line, and with
 //! it and the grids forced wide (`NARROW_BLOCKS` at 0) the text was the old
 //! one byte for byte; the new hashes are the narrow grids'.
+//!
+//! On 2026-10-18 a window without its background started drawing its arrow
+//! as two objects where the map has room for them: each map got a word in
+//! `arrow_objs`, apart from the record, and each System's window the
+//! arrow's two tiles, `window_arrow_obj`. `without_arrow_objs` takes both
+//! away, and with them the text is the old one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -159,7 +165,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "20e390800ee76ba822286a03ea4f55123e754cce30d97a1e0131b18745dec4bb"
     );
     assert_eq!(
-        sha(&without_pose_masks(&written.tables)),
+        sha(&without_arrow_objs(&without_pose_masks(&written.tables))),
         "c0cc2585dfd0de58f4e76cb7b6421853fa72f31a6c9fa2e7d307310bf9b38a55"
     );
 }
@@ -174,7 +180,12 @@ fn what_it_says_is_what_the_python_said() {
              another map",
             "  poses: 33 distinct out of 36, 1.5 KB less",
             // Made-up poses, with no empty tile: only the masks are added.
-            "  poses: 0 of their 528 tiles empty, -0.1 KB less"
+            "  poses: 0 of their 528 tiles empty, -0.1 KB less",
+            // A made-up map whose pictures take four palettes from the top
+            // and its battle animation's box the sixth from the bottom.
+            "  map 8: the message arrow stays in the window's cells, and a window without its \
+             background keeps the layer above off its bottom row: its 8 sprite palettes are taken: \
+             up to 5 by the characters and the battle animation's box, and the top 4 by the pictures"
         ]
     );
     assert_eq!(
@@ -734,6 +745,34 @@ fn without_pose_masks(text: &str) -> String {
     format!("{}{}", &text[..at], &text[at + 1 + end..])
 }
 
+/// The text without what a window without its background needs to draw its
+/// arrow as objects, which came on 2026-10-18: the `arrow_objs` section of
+/// the tables, a word per map, and each System's `window_arrow_obj`, its
+/// two tiles. The maps here have room, so each word is a tile and a
+/// palette; and the made-up window carries three tiles, so the arrow's
+/// over nothing —its tiles 3 and 4— go blank.
+fn without_arrow_objs(text: &str) -> String {
+    let mut text = text.to_string();
+    let head = "\n.segment \"RODATA\"\n; Where a window without its background draws its arrow";
+    if let Some(at) = text.find(head) {
+        let lines: Vec<&str> = text[at + 1..].split('\n').collect();
+        assert_eq!(lines[2], "ARROW_OBJ_TILES = 2");
+        assert_eq!(lines[4], "arrow_objs:");
+        let words: Vec<&str> = lines[5].trim_start_matches("    .word ").split(", ").collect();
+        assert_eq!(lines[3], format!(".block {}", 2 * words.len()));
+        assert!(words.iter().all(|w| w.starts_with("$8") || w.starts_with("$9") || *w == "$0000"), "{}", lines[5]);
+        let end = lines[..6].iter().map(|l| l.len() + 1).sum::<usize>();
+        text = format!("{}{}", &text[..at], &text[at + 1 + end..]);
+    }
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    while let Some(at) = lines.iter().position(|l| l.starts_with("window_arrow_obj") && l.ends_with(':')) {
+        assert_eq!(lines[at - 1], ".block 64");
+        assert!(lines[at + 1..at + 5].iter().all(|l| l.starts_with("    .byte ")));
+        lines.drain(at - 1..at + 5);
+    }
+    lines.join("\n")
+}
+
 /// The text without `item_up`, which came on 2026-10-04 with the materials:
 /// what each item adds to an actor for good. The test game has no
 /// material, so every word is zero, which is checked here.
@@ -1051,7 +1090,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "bare");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&without_attribute_shifts(&text)))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text)))))))))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text))))))))))))))))))))))));
     assert_eq!(text.lines().count(), 3766);
     assert_eq!(
         sha(&text),
@@ -1064,7 +1103,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_the_cursors_as_before(&emitted.text, "whole");
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&without_faces(&without_attribute_shifts(&text)))))));
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text)))))))))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&without_actor_level(&with_two_pan_operations_as_before(&without_grid_narrow(&text))))))))))))))))))))))));
     assert_eq!(text.lines().count(), 3885);
     assert_eq!(
         sha(&text),
@@ -1368,7 +1407,7 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains("WINDOW_SYSTEMS = 2\n"));
     assert!(text.contains(&format!(".block {}\nwindow_tiles_1:\n", base * 32)), "padded to the largest frame");
-    assert!(text.contains(".block 48\nwindow_systems:\n"), "two entries of eight pointers");
+    assert!(text.contains(".block 54\nwindow_systems:\n"), "two entries of nine pointers");
     assert!(text.contains("    .word .loword(window_bar_bare_1)\n    .byte ^window_bar_bare_1\n"));
     // The same cells for both: the second's text renumbered back to the
     // first's, and its frame cells the same as they were.

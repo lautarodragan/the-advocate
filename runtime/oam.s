@@ -42,6 +42,10 @@ no_cache:
     lda #$02
     sta obj_big
     jsr timer_oam
+    lda msg_open                ; the message arrow under it, as objects in a
+    beq no_arrow                ; window without its background: `arrow_oam`
+    jsl f:arrow_oam
+no_arrow:
     jsl f:counter_oam + FAST    ; the counter under it: see `counter_oam`
     jsl f:pic_oam + FAST        ; and the pictures behind it: see `pic_oam`
     jsr anim_drawing_oam        ; and the battle animation behind the picture:

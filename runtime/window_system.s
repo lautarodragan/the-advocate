@@ -3,7 +3,8 @@
 ; System. The converter carries one window per System the cartridge's pages
 ; switch to —`WINDOW_SYSTEMS`, the starting one first— and `window_systems`
 ; points at each one's pieces: its tiles, its palette, its two planes of
-; cells, its arrow's cells, the text area's background and the bar over it.
+; cells, its arrow's cells, the text area's background, the bar over it and
+; its arrow's tiles as objects.
 ; What does **not** change is the font's composed tables: the converter
 ; gives the text the same palette entries in every System —see `text_rows`
 ; in `rm2k-snes-screens window`—, so a System is a palette and a few tiles,
@@ -28,6 +29,10 @@ WS_ARROW     = 12
 WS_BACKDROP  = 15
 WS_BAR       = 18
 WS_BAR_BARE  = 21
+WS_ARROW_OBJ = 24
+.if ::WINDOW_SYSTEMS > 1
+.assert WINDOW_SYSTEM_BYTES = WS_ARROW_OBJ + 3, error, "window_systems has another number of pieces than WS_ says"
+.endif
 
 ; What the System adds to a saved game: `WINDOW_SYSTEM`'s byte, in a
 ; cartridge that switches. `SAVE_BYTES` adds it.
@@ -95,13 +100,16 @@ WINDOW_NOW:    .res WINDOW_SYSTEM_BYTES
     bcc known
     lda #0
 known:
-    asl a
-    asl a
-    asl a                       ; times 8
     pha
-    asl a                       ; times 16
+    asl a                       ; times 2
     clc
-    adc 1, s                    ; times 24
+    adc 1, s                    ; times 3
+    sta 1, s
+    asl a
+    asl a
+    asl a                       ; times 24
+    clc
+    adc 1, s                    ; times 27
     clc
     adc #.loword(window_systems)
     tax
@@ -167,7 +175,7 @@ known:
     sta BBAD0                   ; CGDATA
     lda #$01
     sta MDMAEN
-    rtl
+    jml f:arrow_obj_load_l      ; and the arrow's objects, if it has them up
 .endproc
 
 .popseg
