@@ -922,6 +922,14 @@ ready:
     stz moving
     jsr menu_forget             ; and a menu request too: `MoveTo`
     jsl f:encounter_move        ; and the distance walked, which is the other thing it erases
+    ; And the leader's graphic, whatever a route's command 34 gave him:
+    ; `MoveTo` ends with `ResetGraphic`, on the same map too. Frozen World's
+    ; plate menu jumps inside map 2 from the slots back to its first screen,
+    ; and the cursor kept the plate there instead of Lutine. The graphic may
+    ; bring colours of its own into the leaders' palette: `apply_tint`
+    ; rebuilds them, as after a party change.
+    jsr pick_hero_graphic
+    jsr apply_tint
     jsr pan_recentre            ; the camera on him: `MoveTo` sets the map's position
     jsr follow_camera
     jsr fill_window             ; the camera jumped: the tilemap is filled again

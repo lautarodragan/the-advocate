@@ -657,17 +657,19 @@ change_graphic:
 .a8
     lda [route_ptr], y
     inc route_ev + 5, x         ; and now past the operand
-    asl a                       ; two bytes per entry
+    phx                         ; the slot: the table is far, indexed by X
     rep #$20
 .a16
     and #$00FF
-    tay
+    asl a                       ; two bytes per entry, in sixteen bits: a
+    tax                         ; table can pass 128 entries
     sep #$20
 .a8
-    lda route_gfx_buf, y
+    lda f:route_gfx_buf, x
     sta gfx_k                   ; its entry in `npc_poses`, or $FF
-    lda route_gfx_buf + 1, y
+    lda f:route_gfx_buf + 1, x
     sta gfx_pal
+    plx
 
     lda route_ev + 0, x
     phx

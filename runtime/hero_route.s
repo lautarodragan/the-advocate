@@ -201,9 +201,11 @@ lock_hero:
 ;   graphic's palette, which already lives in CGRAM with the rest of the map's
 ;   sprites. Unless the graphic goes in the leaders' palette with colours of
 ;   its own —see `hero_poses_of_graphic`—: then they are uploaded here.
-; * It does not survive a map change: `pick_hero_graphic` runs on load and
-;   restores it. It is not laziness —the poses live in **the map's** sprite
-;   bank, so the graphic from there does not exist here—.
+; * It does not survive a `Teleport`: `pick_hero_graphic` runs on the load
+;   and on a jump to the same map —`move_hero_to`— and restores it, which is
+;   RM2k's `MoveTo` with its `ResetGraphic`. Across maps it could not be
+;   otherwise —the poses live in **the map's** sprite bank, so the graphic
+;   from there does not exist here—.
 ;   The page of map 8's `EV0047`, which is the one that asked for all this,
 ;   changes to `Crown7` right before teleporting and back to `Future1` right
 ;   after, so in the game it is not noticeable.

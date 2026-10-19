@@ -271,20 +271,6 @@ sub_refresh: .res 2
 ; the most NPCs in the whole game has 89, and 127 fit here, which is the cap
 ; OAM imposes.
 npc_buf:  .res NPC_MAX * NPC_STRIDE
-; The graphics this map's move routes change to with command 34: two bytes per
-; graphic, the entry in `npc_poses` and the palette. It is copied here when
-; the map loads, like the NPC table, and for the same reason: it is read with
-; an index —`lda route_gfx_buf, x`— and that addresses the data bank.
-;
-; Copying it rather than reading it from the cartridge with a long pointer is
-; what makes it cheap: an `lda [ptr], y` wants the pointer in the direct page,
-; and the direct page is full. It fits easily: the map that asks for the most
-; in the whole game asks for six. See ROUTE_GFX_MAX in snes_convert.py.
-route_gfx_buf: .res ROUTE_GFX_MAX * 2
-; And one byte per graphic after them, which entry of `hero_colors` holds its
-; colours —from 1, 0 for none—: the ones only the hero shows go in the
-; leaders' palette with colours of their own. See `hero_poses_of_graphic`.
-route_gfx_colors: .res ROUTE_GFX_MAX
 
 ; Where each of the map's events is, in cells, by table index. It is copied
 ; from the ROM when the map loads, like the NPC one, and for a reason that is

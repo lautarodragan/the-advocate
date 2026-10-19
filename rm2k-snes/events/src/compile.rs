@@ -13,11 +13,12 @@
 use crate::codes::*;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Game, Sound};
+use crate::landings::Landings;
 use crate::losses::{Losses, Origin};
 use crate::messages::{Messages, Window, FACE_TEXT_X};
 use crate::pages::MapEvents;
 use crate::registry::{
-    Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops,
+    Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops, ROUTE_GFX_MAX,
 };
 use crate::route;
 use rm2k_snes_bytecode::events::*;
@@ -668,6 +669,18 @@ pub struct Ctx<'a> {
     /// arms leaves the last one seen, which costs a line cut at the edge
     /// and no more.
     pub face: Option<bool>,
+    /// The graphics the cartridge's pages give after jumping to each map,
+    /// numbered in its table: see [`crate::landings`]. None where nobody
+    /// gathered them —a test, a troop page—, and then a route's graphic
+    /// after a jump is dropped.
+    pub landings: Option<&'a Landings>,
+    /// Whether the commands being compiled run after a `Teleport` to another
+    /// map: `Some(Some(map))` to that one, `Some(None)` to one that is not
+    /// known —a `RecallToLocation` whose destination is not a constant—.
+    /// Walked like the face, in the page's order; a body pasted after the
+    /// jump inherits it, and what it jumps to is its own. It is what a
+    /// route's graphic is numbered against: see `compile_route`.
+    pub jump: Option<Option<i32>>,
 }
 
 impl Ctx<'_> {
@@ -1085,8 +1098,15 @@ pub fn judged_page(
     if depth == 0 {
         ctx.face = None;
     }
+    // And whether it already jumped to another map, the same: a page starts
+    // where it is, a body pasted into it goes on from the caller's, and what
+    // the body jumps to stays in the body, as `map_events` does.
+    let jump = if depth == 0 { None } else { ctx.jump };
+    ctx.jump = jump;
     let mut at = None;
-    match page(ctx, commands, map_events, base, depth, &mut at) {
+    let done = page(ctx, commands, map_events, base, depth, &mut at);
+    ctx.jump = jump;
+    match done {
         Ok(code) => {
             whole_instructions(&code).map_err(|bad| (Stop::Fatal(bad), None))?;
             Ok(code)
@@ -1608,20 +1628,32 @@ fn page(
         } else {
             let p = compile_command(ctx, cmd, &extra, map_events.as_ref())?;
             // A jump to another map: the page keeps running there. See
-            // `MapEvents::after_jump`.
+            // `MapEvents::after_jump`, and `Ctx::jump` for a body without a
+            // map, which runs wherever it jumps to.
             if cmd.code == TELEPORT && (ctx.map_index)(cmd.p(0).unwrap_or(0)).is_some() {
-                if let Some(me) = &map_events {
-                    if cmd.p(0) != Some(me.map_id as i64) {
+                let to = cmd.p(0).map(|m| m as i32);
+                match &map_events {
+                    Some(me) if to == Some(me.map_id) => {}
+                    Some(me) => {
                         map_events = Some(me.after_jump());
+                        ctx.jump = Some(to);
                     }
+                    None => ctx.jump = Some(to),
                 }
             }
             if cmd.code == RECALL_TO_LOCATION {
                 let dest = recalled_destination(ctx, cmd, &constants);
-                if let Some(me) = &map_events {
-                    if dest != Some(me.map_id as i64) {
+                // Where, only if it is a map of the cartridge.
+                let to = dest
+                    .filter(|&d| (ctx.map_index)(d).is_some())
+                    .map(|d| d as i32);
+                match &map_events {
+                    Some(me) if dest == Some(me.map_id as i64) => {}
+                    Some(me) => {
                         map_events = Some(me.after_jump());
+                        ctx.jump = Some(to);
                     }
+                    None => ctx.jump = Some(to),
                 }
             }
             note_constant(cmd, &mut constants);
@@ -6372,6 +6404,56 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
                 [name, index, ..] => format!("{}[{}]", name.text(), index.int()),
                 _ => "a graphic".to_string(),
             };
+            // After a jump to another map, a foreground page goes on there,
+            // and so does the route: its graphic is numbered in that map's
+            // table, where the cartridge's landings put it. Until 2026-10-19
+            // it was numbered in this one's, and The Frozen World's battle
+            // showed Borto for the plate picked. See `crate::landings`.
+            // A parallel page does not go on there —see `crate::landings`—:
+            // its graphics are its own map's.
+            let parallel = map_events.is_some_and(|me| !me.stack);
+            if let (Some(jumped), false) = (ctx.jump, parallel) {
+                if extras.len() < 2 {
+                    return cannot();
+                }
+                let found = jumped
+                    .zip(ctx.landings)
+                    .and_then(|(to, l)| l.index(to, extras[0].text(), extras[1].int() as i32))
+                    .filter(|&k| k < ROUTE_GFX_MAX);
+                let Some(chosen) = found else {
+                    ctx.lose(
+                        cmd,
+                        "route-graphic-not-changed",
+                        format!(
+                            "the change to {wanted} is dropped: it comes after a jump, and {}",
+                            match jumped {
+                                Some(to) => format!("map {to}'s table does not have it"),
+                                None => "the jump's map is not known".to_string(),
+                            }
+                        ),
+                    );
+                    continue;
+                };
+                path.push(command as i64);
+                path.push(chosen as i64);
+                continue;
+            }
+            // A common event's shared body, before any jump, runs on
+            // whatever map calls it: its graphic has the same index in the
+            // table of every map that may run it. See `crate::landings`.
+            if let (None, Some(l), false) = (ctx.graphics.as_ref(), ctx.landings, parallel) {
+                if extras.len() < 2 {
+                    return cannot();
+                }
+                if let Some(chosen) = l
+                    .index_in_bodies(extras[0].text(), extras[1].int() as i32)
+                    .filter(|&k| k < ROUTE_GFX_MAX && target == 0)
+                {
+                    path.push(command as i64);
+                    path.push(chosen as i64);
+                    continue;
+                }
+            }
             let Some(graphics) = ctx.graphics.as_deref_mut() else {
                 ctx.lose(
                     cmd,
@@ -6701,6 +6783,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -6932,6 +7016,8 @@ mod tests {
                 shared: None,
                 losses: Losses::default(),
                 face: None,
+                landings: None,
+                jump: None,
             };
             compile_page(&mut ctx, commands, None, 0, 0)
                 .unwrap()
@@ -6982,6 +7068,8 @@ mod tests {
                 shared: None,
                 losses: Losses::default(),
                 face: None,
+                landings: None,
+                jump: None,
             };
             let code = compile_page(&mut ctx, commands, None, 0, 0)
                 .unwrap()
@@ -7126,6 +7214,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
     }
@@ -7235,6 +7325,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let me = MapEvents::new(map, None);
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
@@ -7276,6 +7368,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let map = crate::game::Map {
             id: 5,
@@ -7439,6 +7533,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let map = crate::game::Map {
             id: 5,
@@ -7476,6 +7572,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let map = watching(5, 123);
         let me = MapEvents::new(&map, None).for_event(1);
@@ -8094,6 +8192,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let me = MapEvents::new(&map, None);
         let code = compile_page(&mut ctx, &page, Some(me), 0, 0)
@@ -8246,6 +8346,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let page = [
             cmd(CHANGE_SYSTEM_BGM, &[0, 0, 70, 100, 50], "talisn"),
@@ -8298,6 +8400,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
@@ -8398,6 +8502,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let code = compile_page(&mut ctx, &[cmd(SHOW_INN, &[0, 0, 0], "")], None, 0, 0)
             .unwrap()
@@ -8555,6 +8661,118 @@ mod tests {
         };
         let jump = cmd(TELEPORT, &[7, 4, 7], "");
         assert_ne!(writing_123(&quiet, &[jump]) & VAR_REFRESH, 0);
+    }
+
+    /// The bytes of each `OP_ROUTE`'s path on the hero in `code`.
+    fn hero_paths(code: &[u8]) -> Vec<Vec<u8>> {
+        instructions(code)
+            .filter(|&at| code[at] == OP_ROUTE && code[at + 1] == 0)
+            .map(|at| code[at + 4..at + 4 + code[at + 3] as usize].to_vec())
+            .collect()
+    }
+
+    #[test]
+    fn a_route_graphic_after_a_jump_is_numbered_in_the_destination() {
+        // The Frozen World's command grid, map 3: a plate's page jumps to
+        // the battle, map 1, and gives the hero the plate there. The console
+        // reads the index in map 1's table, so that is where it is numbered,
+        // where the landings put it; the graphic given before the jump is
+        // map 3's own. Until 2026-10-19 both were map 3's, and the battle
+        // drew Borto for the Fight plate.
+        let graphic = |name: &str, index: i32| {
+            let mut p = vec![
+                ROUTE_HERO as i32,
+                8,
+                0,
+                0,
+                ROUTE_CHANGE_GRAPHIC,
+                name.len() as i32,
+            ];
+            p.extend(name.bytes().map(i32::from));
+            p.push(index);
+            cmd(MOVE_EVENT, &p, "")
+        };
+        let commands = vec![
+            graphic("Own", 0),
+            cmd(TELEPORT, &[1, 10, 6], ""),
+            graphic("Plates1", 6),
+        ];
+        let grid = crate::game::Map {
+            id: 3,
+            events: vec![crate::game::Event {
+                id: 1,
+                x: 0,
+                y: 0,
+                pages: vec![crate::game::Page {
+                    trigger: 0,
+                    layer: 1,
+                    move_type: 0,
+                    move_frequency: 3,
+                    move_speed: 3,
+                    animation_type: 0,
+                    character_name: String::new(),
+                    character_index: 0,
+                    character_pattern: 1,
+                    commands: commands.clone(),
+                    route: vec![],
+                    route_repeat: false,
+                    route_skippable: false,
+                    condition: Default::default(),
+                    id: 1,
+                    translucent: false,
+                    overlap_forbidden: false,
+                }],
+                starting: None,
+            }],
+        };
+        let battle = crate::game::Map {
+            id: 1,
+            events: Vec::new(),
+        };
+        let associations = vec![("Car".to_string(), 0)];
+        let landings = crate::landings::Landings::gather(
+            &[battle, grid.clone()],
+            &BTreeMap::new(),
+            &associations,
+            &BTreeSet::new(),
+            |m| m == 1 || m == 3,
+        );
+        let mut graphics = landings.graphics(3);
+        let sound = SoundSettings::default();
+        let indices = Indices::default();
+        let game = Game::default();
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|m| [1, 3].iter().position(|&id| id == m),
+            messages: None,
+            songs: None,
+            graphics: Some(&mut graphics),
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+            landings: Some(&landings),
+            jump: None,
+        };
+        let me = MapEvents::new(&grid, None);
+        let code = compile_page(&mut ctx, &commands, Some(me.for_event(1)), 0, 0)
+            .unwrap()
+            .unwrap();
+        let change = ROUTE_CHANGE_GRAPHIC as u8;
+        assert_eq!(
+            hero_paths(&code),
+            vec![vec![change, 1], vec![change, 1]],
+            "`Own` is index 1 of map 3, after the association; `Plates1 6`, index 1 of map 1"
+        );
+        assert_eq!(landings.index(1, "Plates1", 6), Some(1));
+        assert_eq!(
+            graphics.pairs,
+            vec![("Car".to_string(), 0), ("Own".to_string(), 0)]
+        );
     }
 
     #[test]
@@ -8992,6 +9210,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
             .unwrap()
@@ -9017,6 +9237,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         match judged_page(&mut ctx, commands, None, 0, 0) {
             Ok(_) => None,
@@ -9067,6 +9289,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -9159,6 +9383,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
             .unwrap()
@@ -9367,6 +9593,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let commands = [
             moving(20, (160, 120), 0, 0, 20, true),
@@ -10217,6 +10445,7 @@ mod tests {
             sound: &sound,
             map_index: &|_| None,
             pictures,
+            landings: None,
         };
         let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
         crate::commons::compile(
@@ -10407,6 +10636,8 @@ mod tests {
             shared: Some(shared),
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let map = Map {
             id: 5,
@@ -10541,6 +10772,8 @@ mod tests {
                 shared: None,
                 losses: Losses::default(),
                 face: None,
+                landings: None,
+                jump: None,
             };
             compile_page(&mut ctx, commands, Some(me), 0, 0)
                 .unwrap()
@@ -10598,6 +10831,8 @@ mod tests {
             shared: Some(&shared),
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let me = MapEvents::new(map, None);
         let pages = crate::pages::map_pages(&mut ctx, map, &me).unwrap();

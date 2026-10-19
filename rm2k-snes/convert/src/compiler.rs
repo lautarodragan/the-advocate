@@ -298,6 +298,18 @@ impl<'a> Compiler<'a> {
             }
         }
         r.insert("pictures".into(), Value::Object(pictures));
+        let route_graphics: Map<String, Value> = maps
+            .iter()
+            .map(|m| {
+                let list = m
+                    .route_graphics
+                    .iter()
+                    .map(|(c, i)| json!([c, i]))
+                    .collect();
+                (m.id.to_string(), Value::Array(list))
+            })
+            .collect();
+        r.insert("route_graphics".into(), Value::Object(route_graphics));
         // The panoramas a `ChangePBG` can swap in, by map: only the maps
         // that carry more than their own, so a cartridge without any asks
         // what it always asked.
@@ -445,6 +457,11 @@ pub struct CompileMap {
     /// The panoramas it carries, in the order the bytecode numbers them:
     /// see `maps::panorama_names`.
     pub panoramas: Vec<String>,
+    /// Its table of route graphics as the scan numbered it, the one its
+    /// sprite bank was built with: the compilation numbers against it and
+    /// does not add to it. See `route_graphics` in the events compiler's
+    /// request.
+    pub route_graphics: Vec<(String, i64)>,
 }
 
 /// A map's entry in an answer.

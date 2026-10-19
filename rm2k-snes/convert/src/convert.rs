@@ -654,6 +654,7 @@ pub fn run(options: Options) -> Result<()> {
             pictures: m.pictures.as_ref().map(|(_, table, _)| table.clone()),
             big_table: m.big_table.clone(),
             panoramas: maps::panorama_names(m.panorama.as_ref()),
+            route_graphics: m.route_graphics.clone(),
         })
         .collect();
     let test_graphics: BTreeMap<i32, Vec<(String, i32)>> = match &options.test_graphic {
@@ -851,7 +852,7 @@ pub fn run(options: Options) -> Result<()> {
             .unwrap_or_default()
         {
             println!(
-                "  map {}: WARNING, a route changes to the graphic {} {} and the ROM's table of {} is full: the change is ignored",
+                "  map {}: WARNING, a route changes to the graphic {} {} and the map's table does not have it —full at {}, or a page the scan did not get that far in—: the change is ignored",
                 m.id,
                 g[0].as_str().unwrap_or(""),
                 int(&g[1]),

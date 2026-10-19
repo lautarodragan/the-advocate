@@ -767,8 +767,9 @@ ready:
 .endproc
 
 ; And the table of graphics for move command 34, with the same loop and the
-; same borrowed pointer. It is sixteen bytes at most, and behind them one
-; byte per graphic to `route_gfx_colors`.
+; same borrowed pointer: two bytes per graphic, and behind them one byte per
+; graphic to `route_gfx_colors`. Both are in far RAM, which is written long
+; and indexed by X.
 .proc load_route_graphics
 .a8
 .i16
@@ -799,7 +800,8 @@ copy:
     cpy temp
     beq colors
     lda [npc_ptr], y
-    sta route_gfx_buf, y
+    tyx
+    sta f:route_gfx_buf, x
     iny
     bra copy
 colors:
@@ -808,7 +810,7 @@ each_color:
     cpx temp + 2
     beq ready
     lda [npc_ptr], y
-    sta route_gfx_colors, x
+    sta f:route_gfx_colors, x
     iny
     inx
     bra each_color

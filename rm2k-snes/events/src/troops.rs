@@ -555,6 +555,8 @@ impl TroopPages {
                         shared: None,
                         losses: std::mem::take(&mut ctx.losses),
                         face: None,
+                        landings: None,
+                        jump: None,
                     };
                     let mark = inner.losses.mark();
                     inner.losses.enter(Origin::Troop {
@@ -708,6 +710,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.turn = true;
@@ -869,6 +873,8 @@ mod tests {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.switch_a = true;

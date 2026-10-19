@@ -28,6 +28,8 @@ far_page:        .res 16 + TROOP_PAGE_MAX
 CACHE_N:         .res $50 + EV_MAX
 FAR_EFFECT_IN:   .res SE_PLACES
 NPC_ROW_SEPARATE: .res NPC_STRIDE
+route_gfx_buf:    .res ROUTE_GFX_MAX * 2
+route_gfx_colors: .res ROUTE_GFX_MAX
 .popseg
 .assert far_variables = far_msg_options + 5, error, "clear_variables walks a block that is not contiguous"
 .assert ACTORS_N <= 256, error, "an actor number is a byte: the actors' tables are indexed by it"

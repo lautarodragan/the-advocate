@@ -588,6 +588,26 @@ fn with_the_skills_screen(screens: &mut serde_json::Value) {
 /// The stop counters with frequency 1 at zero, as before 2026-10-14: since
 /// then a page that walks by a movement type can have frequency 1, so the
 /// tables carry its counters too —see `route::own` in the compiler—.
+/// The table of route graphics as the Python sized it: eight per map
+/// whatever the cartridge, with its two-line comment. Since 2026-10-19 it is
+/// as big as the cartridge's map that asks for most, in far RAM.
+fn with_the_route_table_as_before(text: &str) -> String {
+    let new = "; And how many distinct graphics command 34 asks for in the map of\n\
+               ; this cartridge that asks for most: each map's table is copied to\n\
+               ; far RAM, which is sized by it.\n";
+    let old = "; And how many distinct graphics command 34 can ask for in a map:\n\
+               ; its table is copied to RAM like the NPC one.\n";
+    assert!(text.contains(new), "the route table's comment changed");
+    let text = text.replacen(new, old, 1);
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("ROUTE_GFX_MAX = "))
+        .unwrap();
+    lines[at] = "ROUTE_GFX_MAX = 8".into();
+    lines.join("\n")
+}
+
 fn with_frequency_one_as_before(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     for label in ["route_after_step:", "route_after_turn:"] {
@@ -1336,7 +1356,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&without_song_levels(&text)),
+                                    &without_grid_narrow(&without_song_levels(
+                                        &with_the_route_table_as_before(&text),
+                                    )),
                                 )),
                             )),
                         ))),
@@ -1369,7 +1391,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&without_song_levels(&text)),
+                                    &without_grid_narrow(&without_song_levels(
+                                        &with_the_route_table_as_before(&text),
+                                    )),
                                 )),
                             )),
                         ))),

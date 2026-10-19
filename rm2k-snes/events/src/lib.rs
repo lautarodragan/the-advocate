@@ -26,6 +26,7 @@ pub mod culprits;
 pub mod fail;
 pub mod game;
 pub mod indices;
+pub mod landings;
 pub mod losses;
 pub mod messages;
 pub mod pages;
@@ -42,6 +43,7 @@ use crate::compile::{
 };
 use crate::fail::Stop;
 use crate::game::{Command, Event, Map, Patches};
+use crate::landings::Landings;
 use crate::losses::{Losses, Origin};
 use crate::messages::{Messages, Window};
 use crate::pages::{hex, map_pages, MapEvents, SubstitutionTable, Substitutions};
@@ -108,6 +110,11 @@ pub struct Request {
     pub cases: Vec<(i32, Vec<Command>)>,
     /// Graphics the test pages ask for in the maps where they run.
     pub test_graphics: BTreeMap<i32, Vec<(String, i32)>>,
+    /// Each map's table of route graphics as the scan numbered it, which
+    /// the converter built its sprite bank with: the compilation numbers
+    /// against it and does not add to it. See `Graphics::frozen`. Absent,
+    /// the compilation numbers as the scan does.
+    pub route_graphics: BTreeMap<i32, Vec<(String, i32)>>,
     /// How many bytes at a time `OP_MESSAGE`'s offset counts.
     pub messages_step: usize,
     /// The troops of the random encounters.
@@ -572,6 +579,15 @@ impl Request {
                     .collect()
             })?;
         }
+        if let Some(g) = data.get("route_graphics") {
+            r.route_graphics = by_map(g, whose, |v| {
+                v.as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: route_graphics")))?
+                    .iter()
+                    .map(|p| pair(p, whose))
+                    .collect()
+            })?;
+        }
         if let Some(s) = data.get("messages_step") {
             r.messages_step = int(s, whose)? as usize;
         }
@@ -731,8 +747,9 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
     out
 }
 
-/// The indices, the graphics actors can be given, and the cartridge's maps.
-type Prepared = (Indices, Vec<(String, i32)>, Vec<Map>);
+/// The indices, the graphics actors can be given, the cartridge's maps, and
+/// the graphics its pages give after jumping to each of them.
+type Prepared = (Indices, Vec<(String, i32)>, Vec<Map>, Rc<Landings>);
 
 pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
     let every = indices::every_map(game)?;
@@ -772,13 +789,27 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
         })
         .collect::<Result<Vec<_>>>()?;
     let associations = indices::associations(&maps, &request.test_commands);
-    Ok((indices, associations, maps))
+    // The common events that run on any map: the automatic ones, and the
+    // ones the test pages call, which run where the harness puts them.
+    let everywhere: BTreeSet<i32> = commons::automatic(game, &indices)
+        .into_iter()
+        .map(|(n, _)| n)
+        .chain(commons::callees(game, &request.test_commands))
+        .collect();
+    let landings = Landings::gather(
+        &maps,
+        &game.common_events,
+        &associations,
+        &everywhere,
+        |m| request.maps.iter().any(|&id| id as i64 == m),
+    );
+    Ok((indices, associations, maps, Rc::new(landings)))
 }
 
 /// The first call: the indices, which pages of each map compile, and each
 /// map's pages compiled without songs, pictures or troops.
 pub fn scan(game: &Game, request: &Request) -> Result<Value> {
-    let (indices, associations, maps) = prepare(game, request)?;
+    let (indices, associations, maps, landings) = prepare(game, request)?;
     let order: HashMap<i64, usize> = request
         .maps
         .iter()
@@ -814,6 +845,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     shared: None,
                     losses: Losses::default(),
                     face: None,
+                    landings: Some(&*landings),
+                    jump: None,
                 };
                 if let Some(code) =
                     compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
@@ -827,7 +860,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         let map = with_test_event(map.clone(), request, game);
         let me = MapEvents::new(&map, None).numbered(&map, &indices);
         let mut messages = Messages::new(1, request.window());
-        let mut graphics = Graphics::new(&associations);
+        let mut graphics = landings.graphics(map.id);
         let mut ctx = Ctx {
             game,
             indices: &indices,
@@ -842,6 +875,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: Some(&*landings),
+            jump: None,
         };
         let pages = map_pages(&mut ctx, &map, &me)?;
         // And the pictures the map can show, gathered apart: its pages' first
@@ -890,7 +925,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             // that pads the text block does—.
             let mut messages = Messages::measuring(request.messages_step, request.window());
             let mut songs = Songs::default();
-            let mut graphics = Graphics::new(&associations);
+            let mut graphics = landings.graphics(map.id);
             let mut ctx = Ctx {
                 game,
                 indices: &indices,
@@ -905,6 +940,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 shared: None,
                 losses: Losses::default(),
                 face: None,
+                landings: Some(&*landings),
+                jump: None,
             };
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
             on_events.extend(graphics.on_events);
@@ -958,6 +995,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: Some(&*landings),
+            jump: None,
         };
         let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
         if compiles.is_some() && !pictures.table.is_empty() {
@@ -1025,7 +1064,7 @@ fn compile_pass(
     request: &Request,
     mut messages: Messages,
 ) -> Result<(Value, Messages)> {
-    let (indices, associations, maps) = prepare(game, request)?;
+    let (indices, associations, maps, landings) = prepare(game, request)?;
     let order: HashMap<i64, usize> = request
         .maps
         .iter()
@@ -1083,6 +1122,7 @@ fn compile_pass(
         sound: &request.sound,
         map_index: &map_index,
         pictures: &request.common_pictures,
+        landings: Some(&*landings),
     };
     let from_pages: BTreeSet<i32> = maps
         .iter()
@@ -1110,7 +1150,15 @@ fn compile_pass(
         });
         let panoramas = Rc::new(request.panoramas.get(&map.id).cloned().unwrap_or_default());
         let me = MapEvents::new(&map, Some(subs.clone())).with_panoramas(panoramas.clone());
-        let mut graphics = Graphics::new(&associations);
+        // The scan's table, when the converter passes it: see
+        // `Graphics::frozen`.
+        let mut graphics = match request.route_graphics.get(&map.id) {
+            Some(table) => Graphics {
+                on_events: landings.graphics(map.id).on_events,
+                ..Graphics::frozen(table)
+            },
+            None => landings.graphics(map.id),
+        };
         let mut pictures = request.pictures.get(&map.id).cloned().unwrap_or_default();
         songs.current = Some(Package::Map(k));
         let pages = {
@@ -1128,6 +1176,8 @@ fn compile_pass(
                 shared: Some(&plan.index),
                 losses: std::mem::take(&mut losses),
                 face: None,
+                landings: Some(&*landings),
+                jump: None,
             };
             let pages = map_pages(&mut ctx, &map, &me);
             losses = ctx.losses;
@@ -1161,6 +1211,8 @@ fn compile_pass(
                 shared: Some(&plan.index),
                 losses: Losses::default(),
                 face: None,
+                landings: Some(&*landings),
+                jump: None,
             };
             let code = compile_page(
                 &mut ctx,
@@ -1203,6 +1255,8 @@ fn compile_pass(
                     shared: None,
                     losses: Losses::default(),
                     face: None,
+                    landings: Some(&*landings),
+                    jump: None,
                 };
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
@@ -1283,6 +1337,8 @@ fn compile_pass(
         shared: None,
         losses: std::mem::take(&mut losses),
         face: None,
+        landings: None,
+        jump: None,
     };
     let battle_audio = if troops.ids.is_empty() {
         None

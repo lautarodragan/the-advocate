@@ -23,7 +23,7 @@ use crate::pyfmt::{format, Arg};
 use crate::record::{
     self, ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE, ANIM_STRIDE, EV_MAX, EV_STRIDE, FAMILIES,
     FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX,
-    ROUTE_GFX_MAX, TURN_NONE, TWIN_STRIDE,
+    TURN_NONE, TWIN_STRIDE,
 };
 use crate::request::{Emit, MessageFace, MsuData};
 use crate::snes::{
@@ -410,6 +410,16 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         .collect::<Result<_>>()?;
     let cell = CELL;
     let cols = COLS;
+    // The RAM table of route graphics, as big as the map that asks for most:
+    // see `route_gfx_buf` in runtime/far_ram.s. At least one entry, so the
+    // `.res` is never empty.
+    let route_gfx_max = r
+        .maps
+        .iter()
+        .filter_map(|m| m.sprite.as_ref().map(|s| s.route_gfx.len()))
+        .max()
+        .unwrap_or(0)
+        .max(1);
 
     let mut args: Vec<Arg> = vec![
         r.maps
@@ -432,7 +442,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         ROUTE_EV_MAX.into(),
         PAGE_BYTES.into(),
         TURN_NONE.into(),
-        ROUTE_GFX_MAX.into(),
+        route_gfx_max.into(),
         HEADER_LINES.into(),
         HEADER_AUTO_CLOSE.into(),
         PAUSE_FRAMES.into(),

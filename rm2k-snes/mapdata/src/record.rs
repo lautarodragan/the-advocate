@@ -154,10 +154,12 @@ pub const ACTOR_COLORS: usize = 2 * OBJ_COLORS;
 /// A leader candidate: id, palette, its colours and twelve 24-bit pointers
 /// to its poses.
 pub const ACTOR_BYTES: usize = 2 + ACTOR_COLORS + 3 * 12;
-/// How many distinct graphics command 34 can ask for in a map: the table is
-/// copied to RAM, two bytes a graphic, in bank 0. Measured against A
-/// Blurred Line, whose map that asks for most asks for six.
-pub const ROUTE_GFX_MAX: usize = 8;
+/// How many distinct graphics command 34 can ask for in a map: the route
+/// carries the index in a byte. The RAM table is not this big: it is sized
+/// by the cartridge's map that asks for most —`route_gfx_buf` in the
+/// runtime's far_ram.s—. Until 2026-10-19 it was eight, in bank 0, and
+/// Frozen World's plate menu asks for 28.
+pub const ROUTE_GFX_MAX: usize = 255;
 
 /// An event in the position table: x and y in cells, 16 bits each.
 pub const EV_STRIDE: usize = 4;

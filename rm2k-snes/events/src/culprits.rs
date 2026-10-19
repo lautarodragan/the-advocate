@@ -35,6 +35,7 @@ use crate::codes::*;
 use crate::compile::{judged_page, Ctx, Culprit, Indices, SoundSettings};
 use crate::fail::{Result, Stop};
 use crate::game::{Command, Game, TroopPage};
+use crate::landings::Landings;
 use crate::losses::Losses;
 use crate::messages::{Messages, Window};
 use crate::pages::{MapEvents, Substitutions};
@@ -205,7 +206,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
     if every_map {
         request.maps = game.map_ids.clone();
     }
-    let (indices, _, maps) = crate::prepare(game, &request)?;
+    let (indices, _, maps, landings) = crate::prepare(game, &request)?;
     let order: HashMap<i64, usize> = request
         .maps
         .iter()
@@ -243,6 +244,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                         Some(me.for_event(event.id)),
                         None,
                         false,
+                        &landings,
                     )
                 });
                 let mut skipped = Vec::new();
@@ -260,6 +262,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                             me,
                             Some(&every_common),
                             false,
+                            &landings,
                         )
                     });
                     if !callee.compiles() {
@@ -296,6 +299,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                 None,
                 Some(&every_common),
                 true,
+                &landings,
             )
         });
         out.push(Judged {
@@ -351,6 +355,7 @@ fn judge(
     map_events: Option<MapEvents>,
     commons: Option<&BTreeMap<i32, u8>>,
     shared_body: bool,
+    landings: &Landings,
 ) -> Judgement {
     let mut messages = Messages::new(1, window);
     let mut songs = Songs::default();
@@ -376,6 +381,8 @@ fn judge(
         shared: None,
         losses: Losses::default(),
         face: None,
+        landings: Some(landings),
+        jump: None,
     };
     judged_page(&mut ctx, commands, map_events, 0, 0).map(|_| ())
 }
@@ -407,6 +414,8 @@ fn chase_troop_page(
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         found.trigger = troops::trigger(&ctx, page).is_none();
     }
@@ -446,6 +455,8 @@ fn chase_troop_page(
             shared: None,
             losses: Losses::default(),
             face: None,
+            landings: None,
+            jump: None,
         };
         judged_page(&mut ctx, commands, None, 0, 0).map(|_| ())
     });
