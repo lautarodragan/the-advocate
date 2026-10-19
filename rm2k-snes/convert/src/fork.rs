@@ -103,12 +103,15 @@ impl Forks {
         game_maps: &BTreeSet<i32>,
         game_commons: &BTreeSet<i32>,
     ) -> Result<Forks> {
-        let (maps, new_maps) = maps(&manual.join("maps"), game_maps)?;
+        let (maps, new_maps) = maps(&manual.join(rm2k_project::own_files::MAPS), game_maps)?;
         Ok(Forks {
             maps,
             new_maps,
             chipsets: chipsets(manual)?,
-            common_events: common_events(&manual.join("commonevents"), game_commons)?,
+            common_events: common_events(
+                &manual.join(rm2k_project::own_files::COMMON_EVENTS),
+                game_commons,
+            )?,
         })
     }
 
@@ -440,7 +443,7 @@ mod tests {
             // The project's files, in a folder of their own: not a dump.
             let json = self
                 .0
-                .join("maps")
+                .join(rm2k_project::own_files::MAPS)
                 .join(format!("Map{number:04}"))
                 .with_extension("json");
             let mut data = serde_json::json!({"id": inside});
@@ -475,7 +478,10 @@ mod tests {
         p.map(1000, 1000, Some(1000), true);
         let forks = p.read().unwrap();
         assert_eq!(forks.maps.keys().collect::<Vec<_>>(), [&11]);
-        assert_eq!(forks.map_file(1000).unwrap().file_stem().unwrap(), "Map1000");
+        assert_eq!(
+            forks.map_file(1000).unwrap().file_stem().unwrap(),
+            "Map1000"
+        );
         assert_eq!(forks.new_maps[&1000].2["name"], "x");
     }
 
@@ -486,7 +492,11 @@ mod tests {
         assert!(refusal(p.read()).contains("incomplete"));
         let p = Patches::new("layers");
         std::fs::write(
-            layers_path(&p.0.join("maps").join("Map0011").with_extension("json")),
+            layers_path(
+                &p.0.join(rm2k_project::own_files::MAPS)
+                    .join("Map0011")
+                    .with_extension("json"),
+            ),
             "0\n",
         )
         .unwrap();
@@ -565,10 +575,7 @@ mod tests {
         // An image of another name beside it replaces the game's, and is
         // not a record.
         std::fs::write(folder.join("Other.png"), "png").unwrap();
-        assert_eq!(
-            p.read().unwrap().chipsets.keys().collect::<Vec<_>>(),
-            [&53]
-        );
+        assert_eq!(p.read().unwrap().chipsets.keys().collect::<Vec<_>>(), [&53]);
         // Without regard to case or extension, as RM2k looks it up.
         std::fs::write(folder.join("lasheint11.bmp"), "bmp").unwrap();
         assert!(refusal(p.read()).contains("hand-made image"));

@@ -285,6 +285,12 @@ impl Project {
         Ok(self.patches()?.join("manual"))
     }
 
+    /// The maps inside the hand-made patches, forks and new ones: see
+    /// [`crate::own_files::MAPS`].
+    pub fn manual_maps(&self) -> Result<PathBuf, Error> {
+        Ok(self.manual_patches()?.join(crate::own_files::MAPS))
+    }
+
     /// The port's own files, which replace the game's by name: the RM2k
     /// folders of the hand-made patches, which are the hand-made patches
     /// themselves. See [`crate::own_files`].

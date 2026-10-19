@@ -80,7 +80,19 @@ pub const FOLDERS: &[&str] = &[
 /// keeps inside its `.lmu` and its database and not as files, named as
 /// Ditto's dump names it —`data/maps/`, `commonevents` in `data/db/`—. The
 /// converter reads them; nothing in them is a file of the game.
-pub const OURS: &[&str] = &["maps", "commonevents"];
+pub const OURS: &[&str] = &[MAPS, COMMON_EVENTS];
+
+/// The maps of the hand-made patches: forks of the game's and maps it does
+/// not have, `MapNNNN.json` and `.tiles`, as in Ditto's `data/maps/`. The
+/// same name as the dump's folder on purpose, and only here: a crate that
+/// writes it is taken for one that reads a dump by hand (see
+/// `tests/test_dump_readers.py`, at the root of the workspace), so they ask
+/// [`crate::Project::manual_maps`].
+pub const MAPS: &str = "maps";
+
+/// The common events of the hand-made patches, `NNNN.json`: named as the
+/// section of Ditto's `data/db/commonevents.json`.
+pub const COMMON_EVENTS: &str = "commonevents";
 
 /// Whether `file`, inside one of RM2k's folders, is a database record and
 /// not a file of the game: a `NNNN.json`, the record of that id —a ChipSet

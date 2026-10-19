@@ -106,11 +106,7 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     )
     .unwrap();
     // A fork shares the folder, and is not a new map: it brings no node.
-    fs::write(
-        dir.join("patches/manual/maps/Map0002.json"),
-        r#"{"id": 2}"#,
-    )
-    .unwrap();
+    fs::write(dir.join("patches/manual/maps/Map0002.json"), r#"{"id": 2}"#).unwrap();
     for (case, text) in [
         ("nothing", r#"{"event_commands": []}"#),
         ("to-debug", r#"{"event_commands": [{"code": "Teleport"}]}"#),

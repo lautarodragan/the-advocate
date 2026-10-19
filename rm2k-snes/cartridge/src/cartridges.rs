@@ -174,7 +174,7 @@ fn entries(directory: &Path) -> Result<Vec<String>, String> {
 /// of one of the game's brings none. That the two are what they say is
 /// checked by the converter, `fork.rs` in `rm2k-snes-convert`.
 fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
-    let folder = project.manual_patches()?.join("maps");
+    let folder = project.manual_maps()?;
     let mut found = BTreeMap::new();
     if !folder.is_dir() {
         return Ok(found);
@@ -235,7 +235,7 @@ impl Cartridges {
         if new.len() > 1 || (with_debug_map && new.is_empty()) {
             return Err(format!(
                 "the debug map is the only new map in {}, and there are {}: {:?}",
-                p.manual_patches()?.join("maps").display(),
+                p.manual_maps()?.display(),
                 new.len(),
                 new.keys().collect::<Vec<_>>()
             ));

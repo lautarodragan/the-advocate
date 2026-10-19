@@ -23,8 +23,10 @@ What it leaves out, on purpose:
 * **What is not the dump.** The requests the Python hands a stage
   (`--request`) are JSON of their own, and may carry pieces in the dump's
   shape —a tree node, a map a project patched—; the project's patches
-  (`new/MapNNNN.json`) are the project's files. Neither is named by the
-  layout's names, and both are read into Ditto's types
+  (`maps/MapNNNN.json`) are the project's files, whose folder takes the
+  dump's name on purpose and is named once, as `MAPS` in `rm2k-project`'s
+  `own_files`, which the crates ask through `Project::manual_maps`. Neither
+  is named by the layout's names, and both are read into Ditto's types
   (`serde_json::from_value` into `MapInfo`, `read_map`), which is the part
   that matters.
 * **Comments**, which may name the files to explain them.
