@@ -91,6 +91,32 @@ pub fn skill_usable(skill: &Skill) -> bool {
     matches!(skill.r#type.to_i32(), SKILL_NORMAL | SKILL_SWITCH) && skill.sp_cost <= 99
 }
 
+/// The attributes `skill` asks a weapon for, by index —`id - 1`—: its
+/// physical ones, unless it has `affect_attr_defence`. RM2k's rule, in
+/// `rm2k-rules` ([`rm2k_rules::skill::weapon_attributes_asked`]), with this
+/// database's attributes: the converter's `skill_weapon` comes from here.
+pub fn weapon_attributes_asked(db: &Db, skill: &Skill) -> Vec<bool> {
+    let attributes: Vec<_> = db.attributes.values().cloned().collect();
+    rm2k_rules::skill::weapon_attributes_asked(skill, &attributes)
+}
+
+/// Whether an actor wearing `equipment` —weapon, shield, armor, helmet,
+/// accessory, by item number, 0 for empty— can use `skill` by its weapons:
+/// `Game_Actor::IsSkillUsable`, which greys out, in battle and in the menu,
+/// a skill whose physical attributes are not all on its weapon or its
+/// second weapon. Not whether the battle offers it —[`skill_usable`]—, nor
+/// the SP. An item the database lacks is a no.
+pub fn weapons_allow(db: &Db, skill: &Skill, equipment: &[i32]) -> Result<bool> {
+    let mut held = Vec::new();
+    for &n in equipment.iter().take(2) {
+        if n > 0 {
+            held.push(db.item(n)?);
+        }
+    }
+    let attributes: Vec<_> = db.attributes.values().cloned().collect();
+    Ok(rm2k_rules::skill::weapons_allow(skill, &attributes, &held))
+}
+
 /// Whether choosing it asks for whom: only the single-target ones
 /// —`enemy` and `ally`— and not a switch one, which
 /// `Scene_Battle::AssignSkill` records on the one using it.
@@ -101,9 +127,11 @@ pub fn needs_target(skill: &Skill) -> bool {
 
 /// `EnemyAi::IsSkillEffectiveOn` for a living target without states: one
 /// that targets enemies always is; one that targets its own side, only if
-/// it touches HP, SP or one of the four parameters, which is all that
-/// exists here. It does not depend on the target, because a living one
-/// without states is the same as any other.
+/// it touches HP, SP or one of the four parameters, or shifts the rank of
+/// some attribute —`affect_attr_defence` with one it carries—, which is all
+/// that exists here. It does not depend on the target, because a living one
+/// without states is the same as any other: easyrpg does not ask whether
+/// the rank can still move.
 pub fn skill_works_alone(skill: &Skill) -> bool {
     db::targets_enemies(skill)
         || skill.affect_hp
@@ -112,6 +140,7 @@ pub fn skill_works_alone(skill: &Skill) -> bool {
         || skill.affect_defense
         || skill.affect_spirit
         || skill.affect_agility
+        || (skill.affect_attr_defence && skill.attribute_effects.iter().any(|&a| a))
 }
 
 /// The skills this actor knows that the battle can offer, in the order the

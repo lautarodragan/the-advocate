@@ -412,6 +412,8 @@ raises:
 .a8
     lda #1
     sta BA_MREVIVED
+    lda BA_MTGT
+    jsr ba_attr_unshift         ; it gets up without its shifted ranks
 sp:
     jsr ba_item_sp
 .a16
