@@ -461,6 +461,17 @@ sp_fits:
     lda BA_ACC_SKILL, x
     sta BA_MSKILL
     ; --- `vStart`: the cost, before anything and without rolling ---
+    ;
+    ; None for a special item's: `vStart` with an item spends the item, which
+    ; `ba_record_skill` did on choosing it. Only an actor's can be one.
+    lda BA_MWHO
+    cmp #BA_PARTY_MAX
+    bcs pays
+    jsr ba_ax
+    lda f:ba_item_cast, x
+    bne paid
+pays:
+    lda BA_MSKILL
     jsr ba_skill_cost
     sta BA_T2
     stz BA_T2 + 1               ; the subtraction below is 16 bits and
@@ -480,6 +491,7 @@ sp_ok:
     sta BA_ONE + BA_SP, x
     sep #$20
 .a8
+paid:
     ; --- a switch skill turns on its switch and does nothing else ---
     lda BA_MSKILL
     jsr ba_ax

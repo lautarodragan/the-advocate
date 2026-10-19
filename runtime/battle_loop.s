@@ -581,10 +581,11 @@ acts:
     cmp #BA_DEFEND
     beq a_defends
     cmp #BA_ITEM
-    beq uses_item
-    cmp #BA_SKILL
-    beq uses_one_skill
-    bra attacks
+    bne :+
+    jmp uses_item
+:   cmp #BA_SKILL
+    bne attacks
+    jmp uses_one_skill
 a_defends:
     jmp defends
 attacks:
@@ -627,7 +628,36 @@ uses_one_skill:
     jsr ba_alive
     beq other_skill
     jsr ba_skill_use
+    ; A special item's says the item's line and not the skill's:
+    ; `Skill::GetStartMessage` with an item whose `using_message` is 0, which
+    ; is `GetItemStartMessage2k`, the same first line as a medicine's. And
+    ; nothing after it, as a skill's here.
+    lda BA_MWHO
+    cmp #BA_PARTY_MAX
+    bcs as_skill
+    jsr ba_ax
+    lda f:ba_item_cast, x
+    beq as_skill
+    lda BA_MWHO
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda BA_ACC_ITEM, x
+    sta BA_MITEM
+    stz BA_MHEAL
+    stz BA_MSP
+    sep #$20
+.a8
+    stz BA_MREVIVED
+    stz BA_MHPLINE
+    stz BA_MSP_NEXT
+    lda #BA_MSG_ITEM
+    bra typed
+as_skill:
     lda #BA_MSG_SKILL
+typed:
     sta BA_MTYPE
     jsr ba_show
     rep #$20
