@@ -1274,7 +1274,7 @@ fn compile_pass(
         "battle_audio".into(),
         match battle_audio {
             None => Value::Null,
-            Some(a) => Value::Object(a.into_iter().map(|(k, v)| (k, json!(v))).collect()),
+            Some(a) => Value::Object(a.into_iter().collect()),
         },
     );
     answer.insert("parallel_commons".into(), json!(parallel));

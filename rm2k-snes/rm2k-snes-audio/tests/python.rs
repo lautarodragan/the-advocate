@@ -131,9 +131,15 @@ fn the_music_is_the_one_the_python_wrote() {
     // stream, unfolded by a separate Python copy of `unfold`, is byte for
     // byte the one before (525 bytes to 515, 628 to 295). Before it was
     // 89ec531ef3d4f2ce….
+    //
+    // And a third time on 2026-10-19, when each map's own song and the
+    // title's got their level: the only difference is the `map_song_level`
+    // block after `map_song`, six bytes per map, and the three
+    // `SONG_TITLE_*` equates after it. Without them the hash was the one
+    // before, 4d2bae8459dcd30e….
     assert_eq!(
         sha(data_of(&inc).as_bytes()),
-        "4d2bae8459dcd30e28377cdcdc8083df7703c1a04c3a261dacf6db86938a51f3",
+        "1abb8811cf725a3574572a1eec2dedc4d7fae40a847667d039e9e483c553e456",
         "musicdata.inc"
     );
     // Changed on 2026-10-13, when its keys went into English —`temas`,

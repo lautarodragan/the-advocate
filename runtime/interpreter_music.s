@@ -12,25 +12,11 @@
 ; cartridge carries the ones that fit in ARAM: the first `SONG_TOTAL`. A higher
 ; index is a song that did not fit and does not play, which is what happened
 ; to all but one of them until 2026-09-06. See `plan` in rm2k-snes-audio's
-; cartridge.rs. The other four are its level —volume, balance and tempo—,
-; which go to `BGM_ASK` as they come: see bgm_level.s.
+; cartridge.rs. The other six are its level —volume, balance, tempo and
+; fade-in—, which `bgm_operands` copies to `BGM_ASK` and `BGM_ASK_FADE`
+; outside bank 0: see bgm_level.s.
 .proc op_bgm
-    lda [code_ptr], y
-    iny
-    pha
-    rep #$20
-.a16
-    lda [code_ptr], y           ; left and right
-    sta f:BGM_ASK
-    iny
-    iny
-    lda [code_ptr], y           ; the step
-    sta f:BGM_ASK + 2
-    iny
-    iny
-    sep #$20
-.a8
-    pla
+    jsl f:bgm_operands          ; the song in A, and Y after the operands
 touch:
     cmp #SONG_TOTAL
     bcs other_song
@@ -54,7 +40,8 @@ touch:
 
 .endproc
 
-; `FadeOutBGM`. The operand is how much the volume drops per frame; it is
+; `FadeOutBGM`: only the entry. The body is `fade_bgm_start`, outside bank 0.
+; The operand is how much the volume drops per frame; it is
 ; lowered by `bgm_fade_tick`, not here, and the page carries on in this same
 ; frame, which is what `CommandFadeOutBGM` does by returning true.
 ;
@@ -67,29 +54,15 @@ touch:
 ; MSU-1 volume. Without this exit, a `FadeOutBGM` did nothing and the track
 ; kept playing forever.
 .proc op_fade_bgm
-    lda f:MSU_PLAYING
-    bne fade_step
-    lda music_off
-    bne fade_nothing
-fade_step:
-    php
-    sei                         ; `irq_music` reads it: all at once or nothing
-    lda [code_ptr], y
-    sta bgm_step
-    iny
-    lda [code_ptr], y
-    sta bgm_step + 1
-    iny
-    lda #$FF
-    sta bgm_level               ; full volume, which is where it drops from
-    sta bgm_level + 1
-    lda #1
-    sta bgm_fade
-    plp
+    jsl f:fade_bgm_start        ; Y after the operand
     jmp run_code::other
-fade_nothing:
-    iny
-    iny
+
+.endproc
+
+; `ChangeSystemBGM` of the battle or the victory: only the entry. The body is
+; `system_bgm_set`, outside bank 0, which leaves Y after the operands.
+.proc op_system_bgm
+    jsl f:system_bgm_set
     jmp run_code::other
 
 .endproc

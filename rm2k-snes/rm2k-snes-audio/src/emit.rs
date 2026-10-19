@@ -10,6 +10,7 @@ use crate::sdsp;
 use crate::spc700::DRIVER_ADDR;
 use crate::stream::{self, SAMPLES_ADDR};
 use crate::voices::{SE_VOICE, SE_VOICE2};
+use rm2k_snes_bytecode::level::Level;
 use rm2k_snes_bytecode::music::OP_END;
 use std::fmt::Write as _;
 
@@ -53,6 +54,12 @@ pub struct Emit {
     pub game_over: (u8, u16),
     /// The song each map turns on when entered, or $FF.
     pub map_song: Vec<u8>,
+    /// And the level it plays it at, the six bytes of
+    /// `rm2k_snes_bytecode::level::Level`; empty is the song as written in
+    /// every map.
+    pub map_level: Vec<[u8; 6]>,
+    /// The title's song's level, the same six bytes.
+    pub title_level: [u8; 6],
     pub sounds: Vec<SoundRequest>,
     /// Which package the ROM boots with, and how many frames decompressing
     /// that map takes.
@@ -306,6 +313,35 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         per_map.len(),
         bytes_list(per_map.iter().copied())
     );
+    // And the level each one plays it at: its gains, its step and its
+    // fade-in, six bytes per map as `OP_BGM` carries them. See
+    // `bgm_level_map` in the runtime's bgm_level.s.
+    let levels: Vec<u8> = (0..per_map.len())
+        .flat_map(|i| {
+            emit.map_level
+                .get(i)
+                .copied()
+                .unwrap_or(Level::WHOLE.bytes())
+        })
+        .collect();
+    write!(
+        map_song_table,
+        "\n.block {}\nmap_song_level:\n      .byte {}",
+        levels.len(),
+        bytes_list(levels)
+    )
+    .unwrap();
+    // And the title's, as three words: see `bgm_level_title`.
+    let t = emit.title_level;
+    let word = |i: usize| u16::from(t[i]) | u16::from(t[i + 1]) << 8;
+    write!(
+        map_song_table,
+        "\nSONG_TITLE_GAINS = ${:04X}\nSONG_TITLE_STEP  = ${:04X}\nSONG_TITLE_FADE  = ${:04X}",
+        word(0),
+        word(2),
+        word(4)
+    )
+    .unwrap();
     // And the music's sounds —six bytes: the pitch, SRCN, ADSR1, ADSR2 and
     // the release GAIN—, those of every song in one table and where each
     // one's start. In a single bank, because the 65816 reaches them with a
