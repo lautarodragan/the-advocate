@@ -1356,7 +1356,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&without_song_levels(&with_the_route_table_as_before(&text))),
+                                    &without_grid_narrow(&without_song_levels(
+                                        &with_the_route_table_as_before(&text),
+                                    )),
                                 )),
                             )),
                         ))),
@@ -1389,7 +1391,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&without_song_levels(&with_the_route_table_as_before(&text))),
+                                    &without_grid_narrow(&without_song_levels(
+                                        &with_the_route_table_as_before(&text),
+                                    )),
                                 )),
                             )),
                         ))),
