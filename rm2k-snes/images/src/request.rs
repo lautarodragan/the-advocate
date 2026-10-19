@@ -74,6 +74,10 @@ pub struct ShowPicture {
     /// console's screen, and its corner is relative to its centre.
     #[serde(default)]
     pub map_fixed: bool,
+    /// Whether the picture was drawn for the console: then it is not
+    /// scaled. See [`crate::show_picture`].
+    #[serde(default)]
+    pub for_console: bool,
 }
 
 /// `background`: the file and what the `ShowPicture` says of it, the two
@@ -94,6 +98,10 @@ pub struct Background {
     /// of scaling it; absent, it is scaled.
     #[serde(default)]
     pub crop: Option<(i64, i64)>,
+    /// Whether the picture was drawn for the console: then it is not
+    /// scaled. See [`crate::show_picture`].
+    #[serde(default)]
+    pub for_console: bool,
     pub palettes: usize,
     pub first_palette: usize,
     pub tiles: usize,

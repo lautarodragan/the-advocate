@@ -166,6 +166,7 @@ fn do_picture(args: &Plain) -> Result<()> {
     let shown = show_picture::Shown {
         zoom: r.zoom,
         map_fixed: r.map_fixed,
+        for_console: r.for_console,
         ..show_picture::Shown::PLAIN
     };
     let converted = show_picture::convert_shown(&drawn, r.x, r.y, screens, r.colors, shown)?;
@@ -190,7 +191,16 @@ fn do_background(args: &Plain) -> Result<()> {
         tiles: r.tiles,
         rows: r.rows,
     };
-    let layer = background::convert(&drawn, r.x, r.y, screens, r.zoom, r.crop, room)?;
+    let layer = background::convert(
+        &drawn,
+        r.x,
+        r.y,
+        screens,
+        r.zoom,
+        r.crop,
+        r.for_console,
+        room,
+    )?;
     // The texture, if asked for and the layer leaves room for it; if it
     // does not, the answer says so with a null.
     let texture = match (&layer, r.mode7) {

@@ -35,7 +35,7 @@ use crate::fail::{Result, Stop};
 use crate::images;
 use rm2k_project::Project;
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 /// RM2k's screen and the console's.
@@ -83,14 +83,19 @@ pub fn zoomed(side: i64, zoom: i64) -> i64 {
     std::cmp::max(1, (side * zoom + 50).div_euclid(100))
 }
 
-/// The pictures the game crops instead of scaling, by name in lowercase
-/// —RM2k finds a file without minding its case—, each with the pixel the
-/// console's screen is cut from.
+/// The pictures the console does not scale, by name in lowercase —RM2k
+/// finds a file without minding its case—: the ones the game crops, each
+/// with the pixel the console's screen is cut from, and the ones drawn for
+/// the console.
 #[derive(Debug, Clone, Default)]
-pub struct Cropped(HashMap<String, (i64, i64)>);
+pub struct Cropped {
+    crops: HashMap<String, (i64, i64)>,
+    for_console: BTreeSet<String>,
+}
 
 impl Cropped {
-    /// `[graphics] cropped_pictures`: a table of `name = [x, y]`.
+    /// `[graphics] cropped_pictures`: a table of `name = [x, y]`; and
+    /// `[graphics] console_pictures`, a list of names, if it is there.
     pub fn read(project: &Project) -> Result<Cropped> {
         let keys = ["graphics", "cropped_pictures"];
         let mut out = HashMap::new();
@@ -106,12 +111,33 @@ impl Cropped {
             };
             out.insert(name.to_lowercase(), pair);
         }
-        Ok(Cropped(out))
+        // **A picture drawn for the console** is a port's own —see
+        // `patches/manual/files/`—, whose pixels already are the console's:
+        // scaled to four fifths, text drawn pixel by pixel loses its
+        // strokes. It is shown at its size, with its centre where RM2k's
+        // lands: see `show_picture` in `rm2k-snes-images`.
+        let for_console = match project.value(&["graphics", "console_pictures"]) {
+            Err(_) => BTreeSet::new(),
+            Ok(_) => project
+                .strings(&["graphics", "console_pictures"])?
+                .into_iter()
+                .map(|n| n.to_lowercase())
+                .collect(),
+        };
+        Ok(Cropped {
+            crops: out,
+            for_console,
+        })
     }
 
     /// Where the console's screen is cut from `name`, if it is cropped.
     pub fn of(&self, name: &str) -> Option<(i64, i64)> {
-        self.0.get(&name.to_lowercase()).copied()
+        self.crops.get(&name.to_lowercase()).copied()
+    }
+
+    /// Whether `name` was drawn for the console, and is not scaled.
+    pub fn for_console(&self, name: &str) -> bool {
+        self.for_console.contains(&name.to_lowercase())
     }
 }
 
@@ -149,10 +175,20 @@ struct Converted {
     indices: Vec<Vec<i64>>,
 }
 
-fn convert(path: &Path, key: &Value) -> Result<Converted> {
+fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
     let (width, height) = png_size(path)?;
     let zoom = int(&key["zoom"]);
     let (zw, zh) = (zoomed(width, zoom), zoomed(height, zoom));
+    // One drawn for the console is placed by the size RM2k would scale to
+    // it: see `Screens::rm_size` in `rm2k-snes-images`, the same arithmetic.
+    let (rw, rh) = if for_console {
+        (
+            (zw * RM_WIDTH).div_euclid(WIDTH),
+            (zh * RM_HEIGHT).div_euclid(HEIGHT),
+        )
+    } else {
+        (zw, zh)
+    };
     let (cx, cy) = match key["at"].as_array() {
         Some(at) => (int(&at[0]), int(&at[1])),
         // Placed by variables, or with the map: converted with its corner
@@ -168,6 +204,7 @@ fn convert(path: &Path, key: &Value) -> Result<Converted> {
         COLORS,
         zoom,
         key["map_fixed"].as_bool().unwrap_or(false),
+        for_console,
     )?;
     let indices = a["indices"]
         .as_array()
@@ -186,7 +223,7 @@ fn convert(path: &Path, key: &Value) -> Result<Converted> {
         y: int(&a["y"]),
         width: int(&a["width"]),
         height: int(&a["height"]),
-        half: (zw.div_euclid(2), zh.div_euclid(2)),
+        half: (rw.div_euclid(2), rh.div_euclid(2)),
         palette: a["palette"].clone(),
         indices,
     })
@@ -220,12 +257,13 @@ pub fn block_tile(block: i64) -> i64 {
 }
 
 /// The picture's size on the console's screen, as the plane of objects
-/// would draw it: at its zoom, scaled unless it goes with the map.
-fn on_console(path: &Path, key: &Value) -> Result<(i64, i64)> {
+/// would draw it: at its zoom, scaled unless it goes with the map or was
+/// drawn for the console.
+fn on_console(path: &Path, key: &Value, for_console: bool) -> Result<(i64, i64)> {
     let (width, height) = png_size(path)?;
     let zoom = int(&key["zoom"]);
     let (w, h) = (zoomed(width, zoom), zoomed(height, zoom));
-    if truthy(&key["map_fixed"]) {
+    if truthy(&key["map_fixed"]) || for_console {
         return Ok((w, h));
     }
     let (cx, cy) = match key["at"].as_array() {
@@ -246,10 +284,11 @@ fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
     if truthy(&key["by_variable"]) {
         return Ok(false);
     }
-    if cropped.of(key["name"].as_str().unwrap_or("")).is_some() {
+    let name = key["name"].as_str().unwrap_or("");
+    if cropped.of(name).is_some() {
         return Ok(true);
     }
-    let (w, h) = on_console(path, key)?;
+    let (w, h) = on_console(path, key, cropped.for_console(name))?;
     if w <= WIDTH_MAX && h <= HEIGHT_MAX {
         return Ok(false);
     }
@@ -312,6 +351,7 @@ pub fn big_for_map(
             cy,
             zoom,
             cropped.of(name),
+            cropped.for_console(name),
             BIG_PALETTES,
             BIG_FIRST_PALETTE,
             BIG_TILES,
@@ -325,7 +365,15 @@ pub fn big_for_map(
             );
             continue;
         };
-        let (width, height) = png_size(&path)?;
+        let (mut width, mut height) = png_size(&path)?;
+        // One drawn for the console, by the size RM2k would scale to it, as
+        // in `convert`.
+        if cropped.for_console(name) {
+            (width, height) = (
+                (width * RM_WIDTH).div_euclid(WIDTH),
+                (height * RM_HEIGHT).div_euclid(HEIGHT),
+            );
+        }
         let object = layer
             .as_object_mut()
             .ok_or_else(|| Stop::new("a layer is not an object"))?;
@@ -694,7 +742,7 @@ pub fn for_map(
         if is_big(&path, key, cropped)? {
             continue;
         }
-        let info = convert(&path, key)?;
+        let info = convert(&path, key, cropped.for_console(name))?;
         if !fits(&info) {
             println!(
                 "  map {map_id}: the picture {} is {}x{} on the console: bigger than the plane of objects",
@@ -801,6 +849,17 @@ mod tests {
             .unwrap()
             .of("PhotoA")
             .is_none());
+    }
+
+    #[test]
+    fn the_pictures_drawn_for_the_console_are_named_and_optional() {
+        let p = project("cropped_pictures = {}\nconsole_pictures = [\"MenuA\"]");
+        let cropped = Cropped::read(&p).unwrap();
+        assert!(cropped.for_console("menua"));
+        assert!(!cropped.for_console("MenuB"));
+        // Without the list, none: the projects that predate it.
+        let none = Cropped::read(&project("cropped_pictures = {}")).unwrap();
+        assert!(!none.for_console("MenuA"));
     }
 
     #[test]

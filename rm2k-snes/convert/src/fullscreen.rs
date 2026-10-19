@@ -176,6 +176,7 @@ pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8
         height.div_euclid(2),
         100,
         None,
+        false,
         PALETTES_4BPP,
         1,
         TILES_4BPP,
