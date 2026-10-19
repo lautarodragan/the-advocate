@@ -791,6 +791,21 @@ pub fn bgm_level(volume: i64, tempo: i64, balance: i64) -> (u8, u8, u16) {
     (side(drop(balance - 50)), side(drop(50 - balance)), step)
 }
 
+/// `OP_BGM` for song `index` of `Songs` at RM2k's volume, tempo and
+/// balance: `PlayBGM`'s, and the inn's music, which `inn_staging` plays the
+/// same way. One place, so a change to the opcode reaches both.
+fn op_bgm(index: usize, volume: i64, tempo: i64, balance: i64) -> Vec<u8> {
+    let (left, right, step) = bgm_level(volume, tempo, balance);
+    vec![
+        OP_BGM,
+        (index & 0xFF) as u8,
+        left,
+        right,
+        step as u8,
+        (step >> 8) as u8,
+    ]
+}
+
 /// `OP_FADE_BGM`'s step for a fade of `ms` milliseconds: how much the
 /// level, which starts at 65535, drops per frame, rounded up so the fade ends
 /// **within** the frames it asks for and not one after. See `FADE_OUT_BGM`
@@ -2245,21 +2260,13 @@ fn inn_staging(ctx: &mut Ctx, cmd: &Command) -> Step<Vec<u8>> {
         match ctx.songs.as_deref_mut() {
             Some(songs) => {
                 let index = songs.index(&music.name);
-                let (left, right, step) = bgm_level(
+                out.extend(op_bgm(
+                    index,
                     music.volume as i64,
                     music.tempo as i64,
                     music.balance as i64,
-                );
-                out.extend([
-                    OP_BGM,
-                    (index & 0xFF) as u8,
-                    left,
-                    right,
-                    step as u8,
-                    (step >> 8) as u8,
-                    OP_INN,
-                    INN_WAIT,
-                ]);
+                ));
+                out.extend([OP_INN, INN_WAIT]);
             }
             None => {
                 let name = music.name.clone();
@@ -4705,15 +4712,7 @@ pub fn compile_command(
                 songs.troop_songs.push(index);
             }
             let at = |i: usize, default: i64| cmd.parameters.get(i).map_or(default, |&v| v as i64);
-            let (left, right, step) = bgm_level(at(1, 100), at(2, 100), at(3, 50));
-            Ok(vec![
-                OP_BGM,
-                (index & 0xFF) as u8,
-                left,
-                right,
-                step as u8,
-                (step >> 8) as u8,
-            ])
+            Ok(op_bgm(index, at(1, 100), at(2, 100), at(3, 50)))
         }
         PAN_SCREEN => {
             // Moving the camera without the hero: `CommandPanScreen`, in its

@@ -104,6 +104,12 @@
 //! purpose: `OP_PANORAMA` carries the picture a `ChangePBG` swaps in, $FF
 //! for the one there is, which every `ChangePBG` here keeps. Without that
 //! byte the answer was the one before.
+//!
+//! And the same day the hash of the compilation's `maps` moved again, on
+//! purpose: both inns of the test game stage the night —the fades, the
+//! song noted and put back, the heal in the black—, which is RM2k's
+//! `Scene_Map::CallInn`. With `inn_staging` answering the heal alone, the
+//! answer was the one before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};
