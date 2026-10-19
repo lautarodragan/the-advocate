@@ -74,12 +74,12 @@ const SWITCH_TOGGLE: i64 = 2;
 // ControlVars: the operations, where the operand comes from, and the "other"
 // ones and a character's coordinates.
 //
-// The operations, all of RM2k's: set, add, subtract, and since 2026-10-14
-// multiply, divide and modulo, which the ROM does as easyrpg's `VarMult`,
-// `VarDiv` and `VarMod` do —see `var_arith` in runtime/variable_arithmetic.s—.
+// The operations, all of RM2k's and numbered from 0 to 5: set, add, subtract,
+// and since 2026-10-14 multiply, divide and modulo, which the ROM does as
+// easyrpg's `VarMult`, `VarDiv` and `VarMod` do —see `var_arith` in
+// runtime/variable_arithmetic.s—. The compiler only tells set apart and checks
+// the range; the ROM tells the rest apart, with its own constants.
 const VAR_SET: i64 = 0;
-const VAR_ADD: i64 = 1;
-const VAR_SUBTRACT: i64 = 2;
 const VAR_MODULO: i64 = 5;
 // And where the operand comes from, with the RM2k number: a constant, another
 // variable, a random number between a and b, or "other", which here are the

@@ -10,6 +10,11 @@
 //! Without it those tests **skip with a message** instead of failing: a missing
 //! corpus is not a defect of the code under test. The ones that do not need a
 //! game —the defaults of the schema, for one— always run.
+//!
+//! Each test file compiles its own copy of this module and not all of them use
+//! every function, so the ones a file leaves out are not dead code.
+
+#![allow(dead_code)]
 
 use std::path::PathBuf;
 

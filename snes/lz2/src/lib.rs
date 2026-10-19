@@ -374,7 +374,7 @@ pub fn parse_with(data: &[u8], options: Options) -> Result<Vec<Command>, Error> 
 
         // A command of `kind` whose operand cost does not depend on its
         // length, usable for any length in 1..=run.
-        let mut try_run = |kind: u8, run: usize, from: usize, best: &mut u64, best_cmd: &mut Command| {
+        let try_run = |kind: u8, run: usize, from: usize, best: &mut u64, best_cmd: &mut Command| {
             let run = run.min(remaining);
             if run == 0 {
                 return;
