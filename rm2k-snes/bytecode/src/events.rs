@@ -312,8 +312,10 @@ bytecode! {
 
     /// `ChangePBG`: how the map's panorama loops —bit 0 across, bit 1
     /// down— and how far it moves on its own each frame on each axis, in
-    /// 1/32 px. The picture stays. See `op_panorama` in `pano.s`.
-    OP_PANORAMA = 0x46 (loops: byte, across: word, down: word);
+    /// 1/32 px; and `image`, the picture it swaps in, by its place in the
+    /// map's `pano_table` records, or $FF to keep the one there is. See
+    /// `op_panorama` in `interpreter_map.s` and `pano_change` in `pano.s`.
+    OP_PANORAMA = 0x46 (loops: byte, across: word, down: word, image: byte);
 
     /// `ConditionalBranch` by a character's direction (case 6): `target` is
     /// 0 for the hero and an event's index plus one —as in `OP_ROUTE`—, and

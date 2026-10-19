@@ -165,6 +165,38 @@ pub struct Panorama {
     /// priority 1: a flattened map, see `Way` in Wally.
     #[serde(default)]
     pub above_bg1: bool,
+    /// Its colour-memory words and the entry they start at: what travels
+    /// as the layer above's in mode 3 and inside the background's in
+    /// mode 1. Only read in a map that swaps pictures, whose every record
+    /// carries its own.
+    #[serde(default)]
+    pub first: usize,
+    #[serde(default)]
+    pub cgram: Vec<u16>,
+    /// The other pictures a `ChangePBG` of the map swaps in, in the order
+    /// the bytecode numbers them after this one; and whether the map starts
+    /// with none, which puts an empty record before this one. See
+    /// `Panorama::extras` in Wally.
+    #[serde(default)]
+    pub images: Vec<PanoramaImage>,
+    #[serde(default)]
+    pub none_first: bool,
+}
+
+/// One of a map's other panoramas: what its record and its data need,
+/// which the map's shares —the mode, the loops, the layout— and its own
+/// colours.
+#[derive(Deserialize)]
+pub struct PanoramaImage {
+    pub name: String,
+    pub size: [i64; 2],
+    pub stretch: [i64; 2],
+    #[serde(deserialize_with = "hex::bytes")]
+    pub tiles: Vec<u8>,
+    pub tilemap: Vec<Vec<u16>>,
+    pub backdrop: Option<u16>,
+    pub first: usize,
+    pub cgram: Vec<u16>,
 }
 
 /// A map's `ShowPicture` pictures: the first tile of its sprite bank they

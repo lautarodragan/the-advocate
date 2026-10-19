@@ -290,6 +290,17 @@ impl<'a> Compiler<'a> {
             }
         }
         r.insert("pictures".into(), Value::Object(pictures));
+        // The panoramas a `ChangePBG` can swap in, by map: only the maps
+        // that carry more than their own, so a cartridge without any asks
+        // what it always asked.
+        let panoramas: Map<String, Value> = maps
+            .iter()
+            .filter(|m| !m.panoramas.is_empty())
+            .map(|m| (m.id.to_string(), json!(m.panoramas)))
+            .collect();
+        if !panoramas.is_empty() {
+            r.insert("panoramas".into(), Value::Object(panoramas));
+        }
         r.insert("counters".into(), Value::Array(counters(self.settings)?));
         r.insert("sound_effects".into(), self.sound_effects()?);
         // Each test page turns itself off first: it is a convention of the
@@ -423,6 +434,9 @@ pub struct CompileMap {
     pub substitution_table: Value,
     pub pictures: Option<Vec<Value>>,
     pub big_table: Vec<Value>,
+    /// The panoramas it carries, in the order the bytecode numbers them:
+    /// see `maps::panorama_names`.
+    pub panoramas: Vec<String>,
 }
 
 /// A map's entry in an answer.

@@ -569,6 +569,7 @@ pub fn run(options: Options) -> Result<()> {
             substitution_table: m.substitution_table.clone(),
             pictures: m.pictures.as_ref().map(|(_, table, _)| table.clone()),
             big_table: m.big_table.clone(),
+            panoramas: maps::panorama_names(m.panorama.as_ref()),
         })
         .collect();
     let test_graphics: BTreeMap<i32, Vec<(String, i32)>> = match &options.test_graphic {
@@ -596,6 +597,18 @@ pub fn run(options: Options) -> Result<()> {
                     .map_pictures
                     .done(m as i32, l["subject"].as_str().unwrap_or(""))
             })
+    });
+    // Nor is the picture a `ChangePBG` names on a map whose panorama is
+    // never seen, the map's own or that one: keeping the one there is
+    // loses nothing.
+    let unseen: BTreeSet<i64> = infos
+        .iter()
+        .filter(|m| m.panorama_unseen)
+        .map(|m| m.id as i64)
+        .collect();
+    degradations.forget(|l| {
+        l["kind"] == "panorama-not-changed"
+            && l["map"].as_i64().is_some_and(|m| unseen.contains(&m))
     });
     // And what the copies of the automatic common events lose: the common
     // event's own body says it once, under `"common"`, and a copy whose

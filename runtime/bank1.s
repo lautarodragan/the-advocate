@@ -255,11 +255,11 @@ save_table:
     ; `FAR_GROWTH`.
     .word .loword(FAR_GROWTH), EXP_K * GROWTH_BYTES
     ; And the panorama: what it scrolled on its own, and how a `ChangePBG`
-    ; left it looping and scrolling, which RM2k saves too. Saved in any map
-    ; and worth something only in one that shows its panorama, where the
-    ; load keeps it: see `PANO_KEEP` in pano.s.
+    ; left it looping and scrolling and which picture it left, which RM2k
+    ; saves too. Saved in any map and worth something only in one that shows
+    ; its panorama, where the load keeps it: see `PANO_KEEP` in pano.s.
     .word PANO_AX & $FFFF, 4
-    .word PANO_FLAGS & $FFFF, 5
+    .word PANO_FLAGS & $FFFF, 6 ; `PANO_FLAGS`, `PANO_AUTO` and `PANO_IMG`
 .if ::WINDOW_SYSTEMS > 1
     ; And the System the message window is drawn with, which RM2k saves too.
     .word .loword(WINDOW_SYSTEM), 1

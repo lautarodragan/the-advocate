@@ -142,6 +142,7 @@ pub fn painted(picture: &rm2k_render::Picture) -> Result<(Panorama, Picture)> {
             colors: colors_before,
             kept: palettes.iter().flatten().collect::<BTreeSet<_>>().len(),
             merges,
+            extras: Vec::new(),
         },
         decided,
     ))

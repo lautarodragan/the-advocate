@@ -39,7 +39,22 @@
 //!   +49 byte
 //!   +50 word   how far RM2k's camera goes: the map less RM2k's screen
 //!   +52 word
+//!   +54 long   its colours, 0 for the ones there are; only in a map that
+//!              swaps pictures, see below
+//!   +57 byte   the colour-memory entry they go to
+//!   +58 word   and how many
+//!   +60 byte   in a map's first record, how many it has
 //! ```
+//!
+//! **A map whose `ChangePBG`s name other pictures** has one record per
+//! picture, one after the other: its own first —or, if it has none, an
+//! empty one, which is what it starts with— and then the others, in the
+//! order the bytecode numbers them —`OP_PANORAMA`'s `image`—. They share
+//! the mode, the layout and the loops; each has its stretch, its tiles,
+//! its tilemap and its colours, which in mode 3 all go to the same entries
+//! —see `Panorama::extras` in Wally—. `pano_find` takes the first;
+//! `pano_image` swaps another in. A map that shows only its own has a
+//! single record, with nothing past +54, as it always had.
 
 use crate::asm::{block, msu_block, pointer};
 use crate::fail::{Bad, Result};
@@ -89,6 +104,40 @@ fn lcm(a: i64, b: i64) -> i64 {
     a / gcd(a, b) * b
 }
 
+/// One record's picture: the map's own, one a `ChangePBG` swaps in, or the
+/// empty one a map without a panorama of its own starts with.
+struct Picture<'a> {
+    name: &'a str,
+    size: [i64; 2],
+    stretch: [i64; 2],
+    tiles: Vec<u8>,
+    tilemap: Vec<Vec<u16>>,
+    backdrop: Option<u16>,
+    looped: [bool; 2],
+    auto: [i64; 2],
+    /// Its colour-memory entry and words; None keeps the ones there are.
+    palette: Option<(usize, &'a [u16])>,
+}
+
+impl Picture<'_> {
+    /// No panorama, as RM2k shows a map without one: one blank cell, the
+    /// layer's transparent colour everywhere, and in mode 1 a black
+    /// backdrop, which is what shows through.
+    fn none(mode: u8, bytes_per_tile: usize) -> Picture<'static> {
+        Picture {
+            name: "no panorama",
+            size: [8, 8],
+            stretch: [8, 8],
+            tiles: vec![0; bytes_per_tile],
+            tilemap: vec![vec![0]],
+            backdrop: (mode == 1).then_some(0),
+            looped: [false; 2],
+            auto: [0; 2],
+            palette: None,
+        }
+    }
+}
+
 /// The table, and each panorama's tiles and tilemap.
 ///
 /// With `msu`, the tiles go marked as pieces that may travel in the `.msu`:
@@ -123,105 +172,172 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
             )));
         }
         let bytes_per_tile = if p.mode == 3 { 32 } else { 16 };
-        let count = (p.tiles.len() / bytes_per_tile) as u32;
-        if count > pieces.count() {
-            return Err(Bad::answer(format!(
-                "map {}: its panorama has {count} tiles and the layout leaves it {}",
-                map.id,
-                pieces.count()
-            )));
+        // Its records: the empty one if it starts with none, its own, and
+        // the others a `ChangePBG` swaps in, in the bytecode's order.
+        let mut pictures = Vec::new();
+        if p.none_first {
+            pictures.push(Picture::none(p.mode, bytes_per_tile));
         }
-        // The tilemap with its tile numbers where the tiles land.
-        let base = if p.mode == 3 {
-            layout.above.base
-        } else {
-            pieces.tiles[0].base
-        };
-        let mut cells = Vec::new();
-        for row in &p.tilemap {
-            for &entry in row {
-                let k = u32::from(entry & 0x3FF);
-                let renumbered = (entry & !0x3FF) | pieces.number(k, base) as u16;
-                cells.extend_from_slice(&renumbered.to_le_bytes());
-            }
+        pictures.push(Picture {
+            name: &p.name,
+            size: p.size,
+            stretch: p.stretch,
+            tiles: p.tiles.clone(),
+            tilemap: p.tilemap.clone(),
+            backdrop: p.backdrop,
+            looped: if p.none_first { [false; 2] } else { p.looped },
+            auto: if p.none_first { [0; 2] } else { p.auto },
+            palette: Some((p.first, &p.cgram)),
+        });
+        for i in &p.images {
+            pictures.push(Picture {
+                name: &i.name,
+                size: i.size,
+                stretch: i.stretch,
+                tiles: i.tiles.clone(),
+                tilemap: i.tilemap.clone(),
+                backdrop: i.backdrop,
+                looped: [false; 2],
+                auto: [0; 2],
+                palette: Some((i.first, &i.cgram)),
+            });
         }
-        let cols = p.tilemap.first().map_or(0, Vec::len) as i64;
-        let rows = p.tilemap.len() as i64;
-        let first = (pieces.tiles[0].count.min(count) as usize) * bytes_per_tile;
-        let second = p.tiles.len() - first;
-        // Also on an axis that loops: a `ChangePBG` can stop it, and then it
-        // moves with the camera.
-        let (num_x, den_x) = proportion(map.size[0], RM2K_W, p.size[0]);
-        let (num_y, den_y) = proportion(map.size[1], RM2K_H, p.size[1]);
-        let flags =
-            u8::from(p.looped[0]) | (u8::from(p.looped[1]) << 1) | (u8::from(p.above_bg1) << 2);
-        let words = |v: &[i64]| {
-            v.iter()
-                .map(|w| format!("${:04X}", w & 0xFFFF))
-                .collect::<Vec<_>>()
-                .join(", ")
-        };
-        let mut r = String::new();
-        let _ = writeln!(
-            r,
-            "    ; --- map {} {:?}: {} in mode {} ---",
-            map.id, map.name, p.name, p.mode
-        );
-        let _ = writeln!(r, "    .word {number}");
-        let _ = writeln!(r, "    .byte {}, {flags}", p.mode);
-        let _ = writeln!(
-            r,
-            "    .word {}",
-            words(&[auto_step(p.auto[0]), auto_step(p.auto[1])])
-        );
-        let _ = writeln!(r, "    .word {}", words(&[p.stretch[0], p.stretch[1]]));
-        let _ = writeln!(r, "    .word {}", words(&[num_x, num_y, den_x, den_y]));
-        let _ = writeln!(
-            r,
-            "    .word {}",
-            words(&[lcm(512, p.stretch[0]), lcm(256, p.stretch[1])])
-        );
-        let _ = writeln!(r, "    .word {}", words(&[cols, rows]));
-        // Two maps that converted the same panorama the same way —the two
-        // missile maps of A Blurred Line— share its tiles and tilemap.
-        let mut shared = |kind: &str, bytes: Vec<u8>| -> String {
-            if let Some(label) = emitted.get(&(kind.to_string(), bytes.clone())) {
-                return label.clone();
+        // Only a map that swaps pictures carries their colours: one that
+        // shows only its own has them in its map record, and its panorama
+        // record is the one it always was.
+        let swaps = pictures.len() > 1;
+        for (k, pic) in pictures.iter().enumerate() {
+            let count = (pic.tiles.len() / bytes_per_tile) as u32;
+            if count > pieces.count() {
+                return Err(Bad::answer(format!(
+                    "map {}: its panorama {} has {count} tiles and the layout leaves it {}",
+                    map.id,
+                    pic.name,
+                    pieces.count()
+                )));
             }
-            let label = format!("pano_{kind}_{number}");
-            out.push(msu_block(&label, &bytes, msu && kind == "tiles"));
-            emitted.insert((kind.to_string(), bytes), label.clone());
-            label
-        };
-        let map_label = shared("map", cells);
-        let tiles_label = shared("tiles", p.tiles.clone());
-        let _ = writeln!(r, "    .byte {}, 0", pointer(&map_label));
-        let _ = writeln!(r, "    .byte {}, 0", pointer(&tiles_label));
-        let _ = writeln!(
-            r,
-            "    .word {}",
-            words(&[
-                first as i64,
-                pieces.tiles[0].base.into(),
-                second as i64,
-                pieces.tiles[1].base.into(),
-                pieces.map.into(),
-                p.backdrop.map_or(0xFFFF, i64::from),
-            ])
-        );
-        let bg3sc = (pieces.map >> 8) as u8 | vram::MAP_LAYOUT as u8;
-        let bg34nba = (pieces.tiles[0].base / 0x1000) as u8;
-        let _ = writeln!(r, "    .byte ${bg3sc:02X}, ${bg34nba:02X}");
-        let _ = writeln!(
-            r,
-            "    .word {}",
-            words(&[
-                (map.size[0] * 16 - RM2K_W).max(0),
-                (map.size[1] * 16 - RM2K_H).max(0)
-            ])
-        );
-        let _ = writeln!(r, "    .res {}", PANO_STRIDE - 54);
-        records.push(r);
+            // The tilemap with its tile numbers where the tiles land.
+            let base = if p.mode == 3 {
+                layout.above.base
+            } else {
+                pieces.tiles[0].base
+            };
+            let mut cells = Vec::new();
+            for row in &pic.tilemap {
+                for &entry in row {
+                    let k = u32::from(entry & 0x3FF);
+                    let renumbered = (entry & !0x3FF) | pieces.number(k, base) as u16;
+                    cells.extend_from_slice(&renumbered.to_le_bytes());
+                }
+            }
+            let cols = pic.tilemap.first().map_or(0, Vec::len) as i64;
+            let rows = pic.tilemap.len() as i64;
+            let first = (pieces.tiles[0].count.min(count) as usize) * bytes_per_tile;
+            let second = pic.tiles.len() - first;
+            // Also on an axis that loops: a `ChangePBG` can stop it, and then it
+            // moves with the camera.
+            let (num_x, den_x) = proportion(map.size[0], RM2K_W, pic.size[0]);
+            let (num_y, den_y) = proportion(map.size[1], RM2K_H, pic.size[1]);
+            let flags = u8::from(pic.looped[0])
+                | (u8::from(pic.looped[1]) << 1)
+                | (u8::from(p.above_bg1) << 2);
+            let words = |v: &[i64]| {
+                v.iter()
+                    .map(|w| format!("${:04X}", w & 0xFFFF))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            let mut r = String::new();
+            let _ = writeln!(
+                r,
+                "    ; --- map {} {:?}: {} in mode {} ---",
+                map.id, map.name, pic.name, p.mode
+            );
+            let _ = writeln!(r, "    .word {number}");
+            let _ = writeln!(r, "    .byte {}, {flags}", p.mode);
+            let _ = writeln!(
+                r,
+                "    .word {}",
+                words(&[auto_step(pic.auto[0]), auto_step(pic.auto[1])])
+            );
+            let _ = writeln!(r, "    .word {}", words(&[pic.stretch[0], pic.stretch[1]]));
+            let _ = writeln!(r, "    .word {}", words(&[num_x, num_y, den_x, den_y]));
+            let _ = writeln!(
+                r,
+                "    .word {}",
+                words(&[lcm(512, pic.stretch[0]), lcm(256, pic.stretch[1])])
+            );
+            let _ = writeln!(r, "    .word {}", words(&[cols, rows]));
+            // Two maps that converted the same panorama the same way —the two
+            // missile maps of A Blurred Line— share its tiles and tilemap.
+            let mut shared = |kind: &str, bytes: Vec<u8>| -> String {
+                if let Some(label) = emitted.get(&(kind.to_string(), bytes.clone())) {
+                    return label.clone();
+                }
+                let label = if k == 0 {
+                    format!("pano_{kind}_{number}")
+                } else {
+                    format!("pano_{kind}_{number}_{k}")
+                };
+                out.push(msu_block(&label, &bytes, msu && kind == "tiles"));
+                emitted.insert((kind.to_string(), bytes), label.clone());
+                label
+            };
+            let map_label = shared("map", cells);
+            let tiles_label = shared("tiles", pic.tiles.clone());
+            let palette_label = pic.palette.filter(|_| swaps).map(|(_, words)| {
+                shared(
+                    "colors",
+                    words.iter().flat_map(|w| w.to_le_bytes()).collect(),
+                )
+            });
+            let _ = writeln!(r, "    .byte {}, 0", pointer(&map_label));
+            let _ = writeln!(r, "    .byte {}, 0", pointer(&tiles_label));
+            let _ = writeln!(
+                r,
+                "    .word {}",
+                words(&[
+                    first as i64,
+                    pieces.tiles[0].base.into(),
+                    second as i64,
+                    pieces.tiles[1].base.into(),
+                    pieces.map.into(),
+                    pic.backdrop.map_or(0xFFFF, i64::from),
+                ])
+            );
+            let bg3sc = (pieces.map >> 8) as u8 | vram::MAP_LAYOUT as u8;
+            let bg34nba = (pieces.tiles[0].base / 0x1000) as u8;
+            let _ = writeln!(r, "    .byte ${bg3sc:02X}, ${bg34nba:02X}");
+            let _ = writeln!(
+                r,
+                "    .word {}",
+                words(&[
+                    (map.size[0] * 16 - RM2K_W).max(0),
+                    (map.size[1] * 16 - RM2K_H).max(0)
+                ])
+            );
+            if swaps {
+                let (entry, colors) = pic
+                    .palette
+                    .filter(|_| palette_label.is_some())
+                    .map_or((0, 0), |(e, w)| (e, w.len()));
+                match &palette_label {
+                    Some(label) => {
+                        let _ = writeln!(r, "    .byte {}", pointer(label));
+                    }
+                    None => {
+                        let _ = writeln!(r, "    .byte 0, 0, 0");
+                    }
+                }
+                let _ = writeln!(r, "    .byte {entry}");
+                let _ = writeln!(r, "    .word {colors}");
+                let _ = writeln!(r, "    .byte {}", if k == 0 { pictures.len() } else { 0 });
+                let _ = writeln!(r, "    .res {}", PANO_STRIDE - 61);
+            } else {
+                let _ = writeln!(r, "    .res {}", PANO_STRIDE - 54);
+            }
+            records.push(r);
+        }
     }
     out.push(format!(".block {}", PANO_STRIDE * records.len() + 2));
     out.push("pano_table:".into());
@@ -368,6 +484,76 @@ mod tests {
         assert_eq!(proportion(15, RM2K_H, 320), (0, 0));
         // One as wide as the screen does not either.
         assert_eq!(proportion(70, RM2K_W, 320), (0, 0));
+    }
+
+    /// A map of `tests/maps.json` with a panorama in mode 3 of two tiles,
+    /// and the pictures `images` names besides it.
+    fn with_panorama(images: &[&str], none_first: bool) -> Map {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut map = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps
+            .remove(0);
+        map.layout = vram::LAYOUT_PANORAMA_MODE3.name.to_string();
+        let picture = |name: &str, colour: u16| {
+            serde_json::json!({
+                "name": name, "size": [16, 8], "stretch": [16, 8],
+                "tiles": crate::hex::encode(&[colour as u8; 64]), "tilemap": [[0, 1]],
+                "backdrop": null, "first": 112, "cgram": vec![colour; 16],
+            })
+        };
+        let mut pano = picture("own", 1);
+        pano["mode"] = serde_json::json!(3);
+        pano["loop"] = serde_json::json!([true, false]);
+        pano["auto"] = serde_json::json!([2, 0]);
+        pano["images"] = images
+            .iter()
+            .enumerate()
+            .map(|(k, n)| picture(n, k as u16 + 2))
+            .collect();
+        pano["none_first"] = serde_json::json!(none_first);
+        map.panorama = Some(serde_json::from_value(pano).unwrap());
+        map
+    }
+
+    /// A map that shows only its own panorama gets the record it always
+    /// got; one whose `ChangePBG`s name others gets one per picture, each
+    /// with its colours, and the first says how many; one without its own
+    /// starts with an empty one, which neither loops nor scrolls.
+    #[test]
+    fn a_map_that_swaps_pictures_has_a_record_for_each() {
+        let records = |out: &str| out.matches("    ; --- map ").count();
+        let alone = panorama_table(&[with_panorama(&[], false)], false).unwrap();
+        assert_eq!(records(&alone), 1);
+        assert!(
+            alone.contains(&format!(".res {}", PANO_STRIDE - 54)),
+            "{alone}"
+        );
+        assert!(!alone.contains("pano_colors"), "{alone}");
+        let two = panorama_table(&[with_panorama(&["other"], false)], false).unwrap();
+        assert_eq!(records(&two), 2);
+        assert!(
+            two.contains("pano_colors_0:") && two.contains("pano_colors_0_1:"),
+            "{two}"
+        );
+        assert!(
+            two.contains(&format!(
+                "    .byte 112\n    .word 16\n    .byte 2\n    .res {}",
+                PANO_STRIDE - 61
+            )),
+            "{two}"
+        );
+        assert!(two.contains(": other in mode 3 ---"), "{two}");
+        let none = panorama_table(&[with_panorama(&["other"], true)], false).unwrap();
+        assert_eq!(records(&none), 3);
+        let first = &none[none.find("pano_table:").unwrap()..];
+        let first = &first[..first.find("    ; --- map 1 ").map_or(first.len(), |i| i)];
+        // The empty one: mode 3, no loop; no scroll of its own; 8x8; no colours.
+        assert!(first.contains(": no panorama in mode 3 ---\n    .word 0\n    .byte 3, 0\n    .word $0000, $0000\n    .word $0008, $0008"), "{first}");
+        assert!(
+            first.contains("    .byte 0, 0, 0\n    .byte 0\n    .word 0\n    .byte 3\n"),
+            "{first}"
+        );
     }
 
     #[test]
