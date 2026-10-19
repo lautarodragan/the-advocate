@@ -5,7 +5,7 @@ use crate::codes::*;
 use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
 use crate::losses::Origin;
 use crate::fail::{Bad, Result, Step, Stop};
-use crate::game::{Command, Map, Page, CONDITION_OPERATOR};
+use crate::game::{Command, Map, Page};
 use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
 use crate::route;
 use serde_json::{json, Value};
@@ -183,7 +183,7 @@ impl MapEvents {
             .events
             .iter()
             .flat_map(|e| e.pages.iter())
-            .filter_map(|p| p.condition.variable.map(|(v, _)| v))
+            .filter_map(|p| p.condition.variable.map(|(v, _, _)| v))
             .collect();
         MapEvents {
             shared: Rc::new(Shared {
@@ -528,9 +528,9 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             // for it —the 81 of map 312, the fire's Game Over— and no page
             // asks for both; one that did is left out above.
             let variable = match (c.variable, c.timer) {
-                (Some((v, value)), _) => {
+                (Some((v, comparison, value)), _) => {
                     let slot = variable_slot(ctx.indices, v)?;
-                    json!([slot, CONDITION_OPERATOR, value])
+                    json!([slot, comparison, value])
                 }
                 (None, Some(seconds)) => json!([TIMER_SLOT, AT_MOST, seconds]),
                 (None, None) => Value::Null,
@@ -621,7 +621,7 @@ fn left_out_why(indices: &Indices, event: &crate::game::Event) -> Option<(String
         .pages
         .iter()
         .filter_map(|p| p.condition.variable)
-        .map(|(v, _)| v)
+        .map(|(v, _, _)| v)
         .find(|&v| variable_slot(indices, v).is_err())
     {
         return Some((format!("a page's condition names variable {v}, which has no slot in far RAM"), true));
