@@ -136,21 +136,20 @@ ready:
     tax
     sep #$20
 .a8
-    lda route_gfx_colors, x     ; its entry in `hero_colors`, or 0
+    lda f:route_gfx_colors, x   ; its entry in `hero_colors`, or 0
     sta temp + 1
-    txa
-    asl a                       ; two bytes per entry in `route_gfx_buf`
     rep #$20
 .a16
-    and #$00FF
-    tax
+    txa
+    asl a                       ; two bytes per entry in `route_gfx_buf`, in
+    tax                         ; sixteen bits: a table can pass 128 entries
     sep #$20
 .a8
-    lda route_gfx_buf, x        ; its entry in `npc_poses`, or $FF
+    lda f:route_gfx_buf, x      ; its entry in `npc_poses`, or $FF
     cmp #$FF
     beq no_is
     sta temp
-    lda route_gfx_buf + 1, x
+    lda f:route_gfx_buf + 1, x
     asl a
     and #$0E                    ; the palette, shifted into place in vhoopppN
     sta hero_pal

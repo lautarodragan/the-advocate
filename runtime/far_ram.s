@@ -174,6 +174,21 @@ FAR_SP = .loword(far_sp)
 ; which is restored on load.
 FAR_ACTOR_GFX = .loword(far_actor_gfx)
 ACTOR_GFX_NONE = $FF
+
+; The graphics this map's move routes change to with command 34:
+; `route_gfx_buf`, two bytes per graphic, the entry in `npc_poses` and the
+; palette; and `route_gfx_colors`, one byte per graphic, which entry of
+; `hero_colors` holds its colours —from 1, 0 for none—: the ones only the
+; hero shows go in the leaders' palette with colours of their own. See
+; `hero_poses_of_graphic`. `load_route_graphics` copies them here when the
+; map loads, like the NPC table: read from the cartridge they would want a
+; long pointer in the direct page, which is full.
+;
+; Sized by the cartridge, `ROUTE_GFX_MAX` entries —the map that asks for
+; most—, and in far RAM since 2026-10-19: until then they were eight per map
+; in bank 0's BSS, and Frozen World's plate menu asks for 28. Read with
+; `lda f:`, indexed by X: there is no long mode indexed by Y.
+
 ; The equipment, the HP, the SP and the graphic are tables by LDB actor
 ; number, `ACTORS_N` entries each —the highest number plus one—: they are
 ; declared in far_ram_game.s, sized by the game, so no game's actors can

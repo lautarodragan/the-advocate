@@ -239,11 +239,15 @@ pub struct Graphics {
     pub on_events: std::collections::BTreeSet<(String, i32)>,
 }
 
-/// How many graphics a map's table holds in the ROM. It is the same number
-/// as `ROUTE_GFX_MAX` in `rm2k-snes-mapdata`, which this crate cannot see;
-/// if they disagree, the emission refuses the map instead of losing it
-/// silently. A graphic that does not fit is ignored, not the map left out.
-pub const ROUTE_GFX_MAX: usize = 8;
+/// How many graphics a map's table holds in the ROM: the route carries the
+/// index in a byte, and $FF is an actor's "no graphic" —`ACTOR_GFX_NONE`—.
+/// It is the same number as `ROUTE_GFX_MAX` in `rm2k-snes-mapdata`, which
+/// this crate cannot see; if they disagree, the emission refuses the map
+/// instead of losing it silently. A graphic that does not fit is ignored,
+/// not the map left out. Until 2026-10-19 it was eight, and Frozen World's
+/// plate menu asks for 28: the console's table is now sized by the
+/// cartridge's map that asks for most.
+pub const ROUTE_GFX_MAX: usize = 255;
 
 impl Graphics {
     pub fn new(associations: &[(String, i32)]) -> Graphics {
