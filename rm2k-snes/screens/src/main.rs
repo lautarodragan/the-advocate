@@ -535,9 +535,10 @@ fn do_window(args: &GameArgs) -> Result<()> {
     for (name, s) in &skins {
         let (brought, merges) = message_window::reduction_capped(s, Some(&rows), colors)?;
         let window = message_window::convert_with(s, colors + 1, Some(&rows))?;
+        let gold = message_window::gold(s, &window, &game.font, &game.term("gold")?)?;
         systems.push(serde_json::json!({
             "system": name,
-            "window": convert::window_json(&window),
+            "window": convert::window_json(&window, &gold),
             "brought": brought,
             "merges": merges_json(&merges),
             "colors": colors,

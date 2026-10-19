@@ -62,6 +62,15 @@ pub struct Window {
     /// How many tiles the frame and the arrow took before they were fused
     /// to fit: `None` if they fitted, and the window is as RM2k draws it.
     pub frame_fused: Option<usize>,
+    /// The palette index each of the glyph's twelve rows takes in an option
+    /// nobody can pick —an inn's "Yes" without the gold—: System colour 3,
+    /// `Font::ColorDisabled`, as **the nearest of the window's own
+    /// entries**. The palette has no room for colours of its own: the
+    /// maps' backgrounds start right after it, so a grey of its own would
+    /// take an entry from every map. See `msg_grey_char` in the runtime.
+    pub disabled: Vec<u8>,
+    /// How many entries of the palette, from 1, are the window's.
+    pub entries: usize,
 }
 
 /// A picture cut to the console's colours, pixel by pixel: over black if
@@ -311,10 +320,16 @@ pub fn convert_with(skin: &Skin, reserved: usize, rows: Option<&TextRows>) -> Re
         )));
     }
 
+    let disabled = ink_colors(skin, INK_DISABLED)
+        .iter()
+        .map(|c| nearest(&palette, *c))
+        .collect();
     let mut cgram = vec![0u16];
     cgram.extend(palette.iter().map(|c| cgram_word(*c)));
     cgram.resize(COLORS_PER_PALETTE, 0);
     Ok(Window {
+        disabled,
+        entries: palette.len(),
         tiles: tiles.iter().flat_map(|t| pack_tile(t, 4)).collect(),
         cgram,
         cells,
@@ -426,6 +441,13 @@ fn fit_frame(skin: &Skin, empty: &mut Picture, arrow: &Picture) -> Option<usize>
 /// had one; Vampires Dawn switches to one —see [`mixed_text_rows`]—.
 fn text_colors(skin: &Skin) -> Result<(Vec<Color>, Color)> {
     let ink = line::Ink::new(&skin.picture, 0);
+    Ok((ink_colors(skin, 0), rgb15(ink.shadow_at(0, 0))))
+}
+
+/// The colour of each of the glyph's twelve rows in text colour `color`:
+/// the one most of the row has, the leftmost of those that tie.
+fn ink_colors(skin: &Skin, color: i32) -> Vec<Color> {
+    let ink = line::Ink::new(&skin.picture, color);
     let mut color_row = Vec::new();
     for py in 0..font::HEIGHT {
         let row: Vec<Color> = (0..font::INK_MAX)
@@ -443,7 +465,114 @@ fn text_colors(skin: &Skin) -> Result<(Vec<Color>, Color)> {
             .expect("a row has pixels");
         color_row.push(most);
     }
-    Ok((color_row, rgb15(ink.shadow_at(0, 0))))
+    color_row
+}
+
+/// The entry of `palette` —which starts at entry 1— nearest to `c`, by the
+/// distance between the fifteen-bit channels; the first of those that tie.
+fn nearest(palette: &[Color], c: Color) -> u8 {
+    let far = |p: &Color| -> u32 {
+        (0..3)
+            .map(|k| (p[k] as i32 - c[k] as i32).pow(2) as u32)
+            .sum()
+    };
+    palette
+        .iter()
+        .enumerate()
+        .min_by_key(|(i, p)| (far(p), *i))
+        .map_or(0, |(i, _)| i as u8 + 1)
+}
+
+/// RM2k's `Window_Gold`, which `ShowInn` opens next to its greeting: the
+/// empty window, 88x32, with the gold term written at its right edge in
+/// text colour 1, cut into 8x8 tiles row by row for the console's
+/// objects; and the sprite palette they go in. The number is not drawn:
+/// the console composes it, right-aligned to `right`, with the window's
+/// font tables —see `gold_compose` in the runtime—.
+///
+/// It is `Window_Base::DrawCurrencyValue(gold, contents width, 2)`: the
+/// term right-aligned at the contents' edge and the number right-aligned
+/// where the term starts, both two pixels below the contents' top.
+#[derive(Debug, Clone)]
+pub struct Gold {
+    /// The 44 tiles, 4bpp, eleven per row and four rows.
+    pub tiles: Vec<u8>,
+    /// The sixteen words of the sprite palette: the window's own entries
+    /// as they are, and after them the colours the window does not have
+    /// —the term's, mostly—, the most used first, while they fit. One that
+    /// does not fit is drawn with the nearest.
+    pub cgram: Vec<u16>,
+    /// Where the number ends, in pixels from the window's left edge.
+    pub right: usize,
+}
+
+pub fn gold(skin: &Skin, window: &Window, font: &Font, term: &str) -> Result<Gold> {
+    let mut picture = skin.window(GOLD_WIDTH, GOLD_HEIGHT);
+    let edge = GOLD_WIDTH - BORDER;
+    let term_width = font.width(term);
+    if term_width + font.width("999999") > edge - BORDER {
+        return Err(Bad::answer(format!(
+            "the gold term {term:?} and six digits do not fit in the gold window"
+        )));
+    }
+    let right = edge - term_width;
+    line::draw_line(
+        &mut picture,
+        &skin.picture,
+        right as i64,
+        GOLD_TEXT_Y as i64,
+        term,
+        1,
+        font,
+    );
+    let pixels = cut(&picture, true);
+    let mut palette: Vec<Color> = window.cgram[1..=window.entries]
+        .iter()
+        .map(|&w| [(w & 31) as u8, (w >> 5 & 31) as u8, (w >> 10 & 31) as u8])
+        .collect();
+    let mut counts: BTreeMap<Color, usize> = BTreeMap::new();
+    for c in pixels.iter().flatten() {
+        if !palette.contains(c) {
+            *counts.entry(*c).or_default() += 1;
+        }
+    }
+    let mut extra: Vec<(usize, Color)> = counts.into_iter().map(|(c, n)| (n, c)).collect();
+    extra.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    for (_, c) in extra
+        .into_iter()
+        .take(COLORS_PER_PALETTE - 1 - palette.len())
+    {
+        palette.push(c);
+    }
+    let index = |c: &Option<Color>| -> u8 {
+        match c {
+            None => 0,
+            Some(c) => match palette.iter().position(|p| p == c) {
+                Some(i) => i as u8 + 1,
+                None => nearest(&palette, *c),
+            },
+        }
+    };
+    let mut tiles = Vec::new();
+    for ty in 0..GOLD_HEIGHT / CELL {
+        for tx in 0..GOLD_WIDTH / CELL {
+            let mut cell = [[0u8; CELL]; CELL];
+            for (y, row) in cell.iter_mut().enumerate() {
+                for (x, v) in row.iter_mut().enumerate() {
+                    *v = index(&pixels[(ty * CELL + y) * GOLD_WIDTH + tx * CELL + x]);
+                }
+            }
+            tiles.extend(pack_tile(&cell, 4));
+        }
+    }
+    let mut cgram = vec![0u16];
+    cgram.extend(palette.iter().map(|c| cgram_word(*c)));
+    cgram.resize(COLORS_PER_PALETTE, 0);
+    Ok(Gold {
+        tiles,
+        cgram,
+        right,
+    })
 }
 
 /// The rows of the glyph whose text colour is not uniform in this System,

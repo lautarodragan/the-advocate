@@ -285,12 +285,26 @@ fn do_emit(args: &EmitArgs) -> Result<()> {
     // A ChipSet animation cut to fit is a loss, which the converter lists
     // with the cartridge's others.
     let cut = animation::fit_all_by_map(&mut request.maps);
-    let losses: Vec<Value> = cut
+    let mut losses: Vec<Value> = cut
         .iter()
         .map(
             |(map, text)| json!({"map": map, "kind": "chipset-animation-cut", "text": text.trim()}),
         )
         .collect();
+    // And an inn's gold window, on a map without room for it in the sprites.
+    for map in &request.maps {
+        if request.gold_maps.contains(&map.id) && record::arrow_obj(map)? & record::GOLD_ROOM == 0 {
+            losses.push(json!({
+                "map": map.id,
+                "kind": "inn-no-gold-window",
+                "text": format!(
+                    "map {}: an inn opens no gold window, which goes in objects past the sprite \
+                     bank and in a sprite palette nobody takes, and the map has no room for them",
+                    map.id
+                ),
+            }));
+        }
+    }
     let mut notes: Vec<String> = cut.into_iter().map(|(_, note)| note).collect();
     let db = rm2k_snes_battle::db::Db::from_dump(&args.data, true)
         .map_err(|b| Bad::answer(b.message().to_string()))?;

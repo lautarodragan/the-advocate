@@ -30,8 +30,9 @@ WS_BACKDROP  = 15
 WS_BAR       = 18
 WS_BAR_BARE  = 21
 WS_ARROW_OBJ = 24
+WS_GOLD      = 27
 .if ::WINDOW_SYSTEMS > 1
-.assert WINDOW_SYSTEM_BYTES = WS_ARROW_OBJ + 3, error, "window_systems has another number of pieces than WS_ says"
+.assert WINDOW_SYSTEM_BYTES = WS_GOLD + 3, error, "window_systems has another number of pieces than WS_ says"
 .endif
 
 ; What the System adds to a saved game: `WINDOW_SYSTEM`'s byte, in a
@@ -104,12 +105,12 @@ known:
     asl a                       ; times 2
     clc
     adc 1, s                    ; times 3
+    asl a                       ; times 6
     sta 1, s
-    asl a
     asl a
     asl a                       ; times 24
     clc
-    adc 1, s                    ; times 27
+    adc 1, s                    ; times 30, WINDOW_SYSTEM_BYTES: see below
     clc
     adc #.loword(window_systems)
     tax
@@ -123,6 +124,10 @@ known:
     plx
     rtl
 .endproc
+; The multiplication above is by hand: it was 27 until the gold window's
+; piece came, and the window of another System came out of the next one's
+; pieces.
+.assert WINDOW_SYSTEM_BYTES = 30, error, "window_select multiplies by 30"
 
 ; In the vblank after a `ChangeSystemGraphics`: the window's tiles and its
 ; palette from the new System. Its tilemap is `stamp_window`'s, which the

@@ -290,6 +290,10 @@ pub struct Emit {
     /// event compiler and `compar_tick` in the runtime's `common_events.s`—.
     #[serde(default)]
     pub parallel_common: Vec<(i64, i64, bool, String)>,
+    /// The maps whose pages open an inn's gold window: those without room
+    /// for it are a loss. See `arrow_obj` in record.rs.
+    #[serde(default)]
+    pub gold_maps: Vec<i64>,
     /// The shared common event bodies —the automatic ones and what they
     /// call—, as the compiler answered them, if any.
     #[serde(default)]

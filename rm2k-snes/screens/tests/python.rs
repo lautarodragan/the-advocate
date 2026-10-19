@@ -149,6 +149,11 @@ fn everything_a_cartridge_carries() {
     // System's arrows, which the Python never drew, and what it says of
     // what crowds the buy layer.
     answer.as_object_mut().unwrap().remove("shop_party");
+    // Nor the inn's gold window and the window's grey, since 2026-10-19:
+    // pieces the Python never drew. See `gold` in `message_window.rs`.
+    let window = answer["window"].as_object_mut().unwrap();
+    window.remove("gold");
+    window.remove("disabled");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()

@@ -311,6 +311,7 @@ bar_lines:
     beq cells
     jsr arrow_obj_load
 cells:
+    jsr gold_choose             ; and the inn's gold window: see gold_window.s
     rts
 .endproc
 
@@ -406,6 +407,7 @@ none:
 .proc arrow_oam
 .a8
 .i16
+    jsr gold_oam                ; the inn's gold window first: gold_window.s
     lda f:MSG_ARROW_T
     cmp #$FF
     beq done                    ; quiet

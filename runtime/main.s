@@ -245,4 +245,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "system_cursors.s"
 .include "twins_block.s"
 .include "inn.s"
+.include "gold_window.s"
 .include "header.s"

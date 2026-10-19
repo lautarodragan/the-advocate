@@ -909,7 +909,10 @@ fn without_arrow_objs(text: &str) -> String {
         assert!(
             words
                 .iter()
-                .all(|w| w.starts_with("$8") || w.starts_with("$9") || *w == "$0000"),
+                // Bit 14, since 2026-10-19: the inn's gold window fits too.
+                .all(
+                    |w| ["$8", "$9", "$C", "$D"].iter().any(|h| w.starts_with(h)) || *w == "$0000"
+                ),
             "{}",
             lines[5]
         );

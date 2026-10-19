@@ -422,8 +422,17 @@ pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Resul
 
 /// The message window as the emission takes it, without the font: what
 /// changes from one System to another.
-pub fn window_json(window: &message_window::Window) -> Value {
+pub fn window_json(window: &message_window::Window, gold: &message_window::Gold) -> Value {
     json!({
+        "disabled": window.disabled,
+        "gold": {
+            "tiles": hex(&gold.tiles),
+            "cgram": gold.cgram,
+            "right": gold.right,
+            "width": GOLD_WIDTH,
+            "height": GOLD_HEIGHT,
+            "text_y": GOLD_TEXT_Y,
+        },
         "tiles": hex(&window.tiles),
         "cgram": window.cgram,
         "cells": window.cells,
@@ -867,7 +876,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         crate::custom_menu::to_json(&built)
     };
     let menu = &slots.menu;
-    let mut window_json = window_json(&window);
+    let gold = message_window::gold(&skin, &window, &game.font, &game.term("gold")?)?;
+    let mut window_json = window_json(&window, &gold);
     window_json["font"] = json!(hex(&font));
     let mut advances = game.font.console_advances();
     advances.extend(request.letters.iter().map(|&c| game.font.advance(c) as u8));

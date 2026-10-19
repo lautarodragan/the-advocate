@@ -722,6 +722,18 @@ pub const INK_DISABLED: i32 = 3;
 /// How many colours the menu has: BG2's palette 0, without the transparent.
 pub const TITLE_COLORS: usize = 15;
 
+// --- the gold window ---------------------------------------------------------
+//
+// RM2k's `Window_Message` opens a `Window_Gold`, 88x32, at the screen's right
+// edge —at the top, or at the bottom when the message is at the top— when a
+// message asks for it: `ShowInn` does. The same size here, at the right edge
+// of 256: it is the System's window as RM2k draws it, and the number and the
+// term fit as they are. It goes in objects: see `gold` in `message_window.rs`.
+pub const GOLD_WIDTH: usize = 88;
+pub const GOLD_HEIGHT: usize = 32;
+/// Where its text starts: the contents' top, plus `DrawCurrencyValue`'s 2.
+pub const GOLD_TEXT_Y: usize = BORDER + 2;
+
 // --- the message window ------------------------------------------------------
 //
 // In RM2k the screen is 320x240 and the window takes 320x80 at the bottom;

@@ -240,9 +240,12 @@ bytecode! {
     /// page puts around the fade and the heal: 0 notes the song playing and
     /// its level, apart from `MemorizeBGM`'s; 1 freezes the world until the
     /// song playing —the System's inn music— has come round once, or ten
-    /// seconds, and stops it; 2 puts the noted song back from the top. See
-    /// `compile_inn` in rm2k-snes-events and `inn_tick` in the runtime's
-    /// `inn.s`.
+    /// seconds, and stops it; 2 puts the noted song back from the top. And
+    /// two more the page puts before the greeting of an inn with a price: 3
+    /// opens the gold window with the boxes that follow and greys the
+    /// choice's "Yes", and 4, which a gold branch reaches only with the price
+    /// paid for, takes the grey off. See `compile_inn` in rm2k-snes-events,
+    /// `inn_tick` in the runtime's `inn.s` and its gold_window.s.
     OP_INN = 0x3B (phase: byte);
 
     OP_RESERVED_3C = 0x3C ();
@@ -438,6 +441,14 @@ bytecode! {
 /// `rm2k-snes-convert` keeps the two the same; the compiler reports, in the
 /// degradations, every chain of calls it can see is deeper.
 pub const CALL_LEVELS: usize = 8;
+
+/// `OP_INN`'s two phases before an inn's greeting: the gold window with the
+/// boxes that follow and the choice's "Yes" greyed, and the grey taken off.
+/// The compiler writes them and the converter looks for the first, to say
+/// which maps have no room for the window; the runtime's gold_window.s reads
+/// them.
+pub const INN_GOLD_WINDOW: u8 = 3;
+pub const INN_AFFORDED: u8 = 4;
 
 // `run_code` jumps through a table indexed by the opcode.
 const _: () = BYTECODE.check_dispatch();

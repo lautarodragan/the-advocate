@@ -138,6 +138,7 @@ FACE_PLANE_STEP = TEXT_WINDOW_ROWS * 32 - 6 * 32
 .proc msg_face_clear
 .a8
 .i16
+    jsr gold_clear              ; and no inn's gold window: gold_window.s
     lda #$FF
     sta f:MSG_FACE
     sta f:MSG_FACE + 1
@@ -179,6 +180,7 @@ FACE_PLANE_STEP = TEXT_WINDOW_ROWS * 32 - 6 * 32
 .proc msg_face_begin
 .a8
 .i16
+    jsr gold_begin              ; and the inn's gold window: gold_window.s
     lda #FACE_STEPS
     sta f:MSG_FACE_PENDING
 .if ::MESSAGE_FACES > 0
@@ -397,6 +399,7 @@ first_row:
 .proc msg_face_vblank
 .a8
 .i16
+    jsr gold_vblank             ; a row of the inn's gold window: gold_window.s
     lda f:MSG_FACE_PENDING
     beq done
     cmp #3
