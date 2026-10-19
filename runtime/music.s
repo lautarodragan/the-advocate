@@ -372,47 +372,10 @@ continues:
     bne track
     jmp voices_refresh
 track:
-    ; With a track, the fade lowers **its** volume: the track's volume at the
-    ; `PlayBGM`'s gain —`MSU_BASE`, MSU_VOLUME_MAX as written— times the
-    ; level, over 256. **Not with the CPU's multiplier**: this runs in
-    ; `irq_music`, and the main code uses it in thirty places —the divider
-    ; shares the result register—; an interrupt between its write and its read
-    ; would change its result. Not with the PPU's either, which is eight-bit
-    ; signed and MSU_VOLUME_MAX does not fit. So by hand, one bit of the level
-    ; at a time, with `dsp_value` as scratch: it belongs to the music only.
-    rep #$20
-.a16
-    lda f:MSU_BASE
-    sta f:MSU_FACTOR            ; the loop adds it with `adc f:`: there is
-    sep #$20                    ; nowhere to keep a partial, and no `,s` here
-.a8
-    lda bgm_level + 1
-    sta dsp_value
-    ldx #8
-    rep #$20
-.a16
-    lda #0
-level_bit:
-    asl a
-    sep #$20
-.a8
-    asl dsp_value               ; sep and rep do not touch carry
-    rep #$20
-.a16
-    bcc no_add
-    clc
-    adc f:MSU_FACTOR
-no_add:
-    dex
-    bne level_bit
-    xba                         ; the product's high byte, that is, over 256
-    sep #$20
-.a8
-    sta MSU_VOLUME
-    cmp #0
-    bne ready_msu
-    ldx bgm_level               ; a fade-in starts near zero too: only the
-    bne ready_msu               ; level at zero is the end of a fade-out
+    ; With a track, the fade lowers **its** volume, outside bank 0 for
+    ; space: see `bgm_fade_track`.
+    jsl f:bgm_fade_track
+    bcc ready_msu
     jsr msu_stop                ; reached zero: the track is cut
 ready_msu:
     rts

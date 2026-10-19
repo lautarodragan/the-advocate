@@ -528,6 +528,70 @@ ready:
     rtl
 .endproc
 
+; One frame of a fade over an MSU-1 track, from `bgm_fade_tick` in
+; `irq_music`: the track's volume at the `PlayBGM`'s gain —`MSU_BASE`,
+; MSU_VOLUME_MAX as written— times the level, over 256. Returns with C set
+; if a fade-out reached zero and the track has to be cut, which
+; `bgm_fade_tick` does in bank 0.
+;
+; **Not with the CPU's multiplier**: this runs in `irq_music`, and the main
+; code uses it in thirty places —the divider shares the result register—;
+; an interrupt between its write and its read would change its result. Not
+; with the PPU's either, which is eight-bit signed and MSU_VOLUME_MAX does
+; not fit. So by hand, one bit of the level at a time, with `dsp_value` as
+; scratch: it belongs to the music only. It lived in `bgm_fade_tick` until
+; 2026-10-19, and moved here when bank 0 ran short.
+.proc bgm_fade_track
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:MSU_BASE
+    sta f:MSU_FACTOR            ; the loop adds it with `adc f:`: there is
+    sep #$20                    ; nowhere to keep a partial
+.a8
+    lda f:bgm_level + 1
+    sta f:dsp_value
+    ldx #8
+    rep #$20
+.a16
+    lda #0
+level_bit:
+    asl a
+    sep #$20
+.a8
+    pha
+    lda f:dsp_value
+    asl a                       ; the level's next bit, to carry
+    sta f:dsp_value
+    pla                         ; `pla` does not touch carry
+    rep #$20
+.a16
+    bcc no_add
+    clc
+    adc f:MSU_FACTOR
+no_add:
+    dex
+    bne level_bit
+    xba                         ; the product's high byte, that is, over 256
+    sep #$20
+.a8
+    sta f:MSU_VOLUME
+    cmp #0
+    bne goes_on
+    rep #$20
+.a16
+    lda f:bgm_level             ; a fade-in starts near zero too: only the
+    sep #$20                    ; level at zero is the end of a fade-out
+.a8
+    bne goes_on                 ; `sep` does not touch Z
+    sec
+    rtl
+goes_on:
+    clc
+    rtl
+.endproc
+
 ; A song that just started: if `bgm_level_set` took a fade-in for it, the
 ; level goes up from zero by that step each frame —`bgm_fade` at 2, which
 ; `bgm_fade_tick` raises—, and otherwise no fade is left running. Called by
