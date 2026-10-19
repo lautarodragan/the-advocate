@@ -8220,7 +8220,7 @@ mod tests {
             route_repeat: false,
             route_skippable: false,
             condition: Condition {
-                variable: Some((watched, 8)),
+                variable: Some((watched, crate::game::CONDITION_OPERATOR, 8)),
                 ..Default::default()
             },
             id: 1,

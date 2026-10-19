@@ -214,7 +214,7 @@ pub fn variables(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> BTreeMap<i
     for map in maps {
         for event in &map.events {
             for page in &event.pages {
-                if let Some((v, _)) = page.condition.variable {
+                if let Some((v, _, _)) = page.condition.variable {
                     ids.insert(v);
                 }
                 ids.extend(command_variables(&page.commands));
