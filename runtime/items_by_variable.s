@@ -1,4 +1,8 @@
-.segment "FAR2"
+; In `FAR3`, the fourth code bank, since 2026-10-19: its door in is a
+; `jsl` and every table goes with `f:`, so it runs from any bank,
+; and `FAR2` had no room left for the special items in battle in Sunset
+; over Imdahl, whose painted maps carry more code there.
+.segment "FAR3"
 .a8
 .i16
 
