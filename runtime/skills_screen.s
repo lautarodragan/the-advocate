@@ -408,6 +408,9 @@ param:
     sta BA_ONE + BA_BYTES + BA_NUMBER
     lda #1
     sta BA_MTGT
+    ; And no shifted rank: outside battle there are none, and what the last
+    ; battle left in combatant 1's row stays there.
+    jsr ba_attr_unshift
     jsr ba_skill_effect         ; into `BA_MEFFECT`, the critical rolled
     lda f:sk_used
     jsr ba_ax

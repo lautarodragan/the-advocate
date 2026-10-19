@@ -709,6 +709,8 @@ no_spi:
 .a8
     jsr ba_mod
 no_agi:
+    ; And the attribute ranks it shifts: see battle_attributes.s.
+    jsr ba_attr_shift
     ; And what a condition halves, halved again: `ba_mod` does not know.
     lda BA_MTGT
     jmp ba_st_params_held

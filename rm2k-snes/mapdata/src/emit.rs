@@ -3169,6 +3169,17 @@ impl Rest<'_> {
             })
             .collect::<Result<_>>()?;
         bytes_asm(out, "skill_affects", &hex2(affects), true);
+        // Whether it shifts its target's rank in the attributes it carries,
+        // `affect_attr_defence`: see `ba_attr_shift` in battle_attributes.s.
+        // Without an attribute it has nothing to shift.
+        bytes_asm(
+            out,
+            "skill_shifts",
+            &per_skill(&|s| {
+                i64::from(s.affect_attr_defence && s.attribute_effects.iter().any(|&a| a))
+            })?,
+            true,
+        );
         bytes_asm(
             out,
             "skill_scope",
@@ -3500,6 +3511,13 @@ impl Rest<'_> {
     /// anything. They are numbered again from 0 in database order, and
     /// `ATTR_N` says how many; at zero the routine returns at once.
     ///
+    /// **The ones a skill can shift go first** —those a carried skill with
+    /// `affect_attr_defence` carries, `ATTR_SHIFT_N` of them, still in
+    /// database order among themselves—: the battle keeps a shift per
+    /// combatant only for those, in `ba_attr_shifts`, and an attribute is
+    /// one of them if its number is below `ATTR_SHIFT_N`. The order changes
+    /// nothing else: of each kind the best rate counts, whatever the order.
+    ///
     /// * `attr_rate`: a word per attribute and rank, `A` to `E`. A negative
     ///   rate counts for nothing in RM2k 2000, and goes as -1.
     /// * `attr_magic`: whether each one is magical.
@@ -3544,12 +3562,22 @@ impl Rest<'_> {
                 }
             }
         }
-        let used: Vec<usize> = used.into_iter().collect();
+        let mut shifting = BTreeSet::new();
+        for &h in &x.rom_skills {
+            let s = db.skill(h as i32).map_err(bad)?;
+            if s.affect_attr_defence {
+                shifting.extend(s.attribute_effects.iter().enumerate().filter(|(_, &has)| has).map(|(k, _)| k));
+            }
+        }
+        let (first, rest): (Vec<usize>, Vec<usize>) =
+            used.into_iter().partition(|k| shifting.contains(k));
+        let n_shift = first.len();
+        let used: Vec<usize> = first.into_iter().chain(rest).collect();
         let n = used.len();
         if n > 255 {
             return Err(Bad::answer(format!("{n} attributes, and `ATTR_N` multiplies as a byte")));
         }
-        out.push_str(&format!("ATTR_N = {n}\n"));
+        out.push_str(&format!("ATTR_N = {n}\nATTR_SHIFT_N = {n_shift}\n"));
         let attrs: Vec<&ditto::schema::Attribute> = db.attributes.values().collect();
         let mut rates = Vec::new();
         for &k in &used {

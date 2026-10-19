@@ -101,9 +101,11 @@ pub fn needs_target(skill: &Skill) -> bool {
 
 /// `EnemyAi::IsSkillEffectiveOn` for a living target without states: one
 /// that targets enemies always is; one that targets its own side, only if
-/// it touches HP, SP or one of the four parameters, which is all that
-/// exists here. It does not depend on the target, because a living one
-/// without states is the same as any other.
+/// it touches HP, SP or one of the four parameters, or shifts the rank of
+/// some attribute —`affect_attr_defence` with one it carries—, which is all
+/// that exists here. It does not depend on the target, because a living one
+/// without states is the same as any other: easyrpg does not ask whether
+/// the rank can still move.
 pub fn skill_works_alone(skill: &Skill) -> bool {
     db::targets_enemies(skill)
         || skill.affect_hp
@@ -112,6 +114,7 @@ pub fn skill_works_alone(skill: &Skill) -> bool {
         || skill.affect_defense
         || skill.affect_spirit
         || skill.affect_agility
+        || (skill.affect_attr_defence && skill.attribute_effects.iter().any(|&a| a))
 }
 
 /// The skills this actor knows that the battle can offer, in the order the
