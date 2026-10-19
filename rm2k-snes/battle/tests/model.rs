@@ -125,6 +125,10 @@ fn every_battle_plays_as_the_pythons() {
 /// `layout-python.json`, what the layout answered the day before, and the
 /// dead state's name, which the party's line writes since then, is taken
 /// out.
+///
+/// Nor did it know special items, which cast their skill since 2026-10-19:
+/// the game has none, so their `item_skill` is all zeros and is taken out,
+/// and `item_battle` and `skills` are what the Python answered.
 fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
     let mut v = model::model(db, request)?;
     let cut = |names: &mut Value, letters: usize, pick: fn(&mut Value) -> &mut Value| {
@@ -141,6 +145,10 @@ fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
     v["layout"] = read("layout-python.json");
     if let Some(texts) = v["texts"].as_object_mut() {
         texts.remove("dead");
+    }
+    if let Some(all) = v.as_object_mut() {
+        let item_skill = all.remove("item_skill").unwrap_or_default();
+        assert!(item_skill.as_array().unwrap().iter().all(|h| h == 0), "{item_skill}");
     }
     Ok(v)
 }
