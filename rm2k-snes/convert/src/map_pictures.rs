@@ -388,6 +388,91 @@ fn placed(
     Ok(((cx - half.0, cy - half.1), true))
 }
 
+/// The rule, over the cartridge's maps: see the module.
+pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
+    let sizes: HashMap<i32, (i32, i32)> =
+        maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
+    let mut files: HashMap<String, Option<(PathBuf, File)>> = HashMap::new();
+    let mut per: BTreeMap<(i32, i32), Vec<OnMap>> = BTreeMap::new();
+    // By the map whose pages show it and the name: whether every show is
+    // part of its map.
+    let mut all_in: BTreeMap<(i32, String), bool> = BTreeMap::new();
+    let mut hidden = Vec::new();
+    for s in shown(maps) {
+        let lower = s.name.to_lowercase();
+        if !files.contains_key(&lower) {
+            let found = match crate::pictures::path_of(game_dir, &s.name) {
+                Some(path) => Some((path.clone(), read_file(&path)?)),
+                None => None,
+            };
+            files.insert(lower.clone(), found);
+        }
+        let place = match (&files[&lower], sizes.get(&s.seen)) {
+            (Some((path, file)), Some(&size)) => match placed(&s, file, size) {
+                Ok(p) => Some((path.clone(), p)),
+                Err(why) => {
+                    if let Some(why) = why {
+                        hidden.push(Hidden {
+                            map: s.from,
+                            event: s.event,
+                            at: s.at,
+                            name: s.name.clone(),
+                            transparency: s.transparency,
+                            why,
+                        });
+                    }
+                    None
+                }
+            },
+            _ => None,
+        };
+        let entry = all_in.entry((s.from, lower)).or_insert(true);
+        *entry &= place.is_some();
+        if let Some((path, (corner, repeat))) = place {
+            per.entry((s.seen, s.number)).or_default().push(OnMap {
+                number: s.number,
+                name: s.name.clone(),
+                path,
+                corner,
+                transparency: s.transparency.max(0),
+                tone: s.tone,
+                transparent_color: s.transparent_color,
+                repeat,
+            });
+        }
+    }
+    let mut out = MapPictures::default();
+    for ((map, _number), shows) in per {
+        // Under one number a map can show several: a door with its ceiling
+        // and another with a second one. The one shown most stays, and of
+        // equals the first: the map has one drawing.
+        let mut counts: Vec<(usize, &OnMap)> = Vec::new();
+        for s in &shows {
+            match counts
+                .iter_mut()
+                .find(|(_, o)| o.name.eq_ignore_ascii_case(&s.name) && o.corner == s.corner)
+            {
+                Some((n, _)) => *n += 1,
+                None => counts.push((1, s)),
+            }
+        }
+        let best = counts
+            .iter()
+            .max_by(|a, b| a.0.cmp(&b.0).then(std::cmp::Ordering::Greater))
+            .map(|(_, o)| (*o).clone());
+        if let Some(best) = best {
+            out.per_map.entry(map).or_default().push(best);
+        }
+    }
+    for ((from, name), all) in all_in {
+        if all {
+            out.done_from.entry(from).or_default().insert(name);
+        }
+    }
+    out.hidden = hidden;
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -506,89 +591,4 @@ mod tests {
         invisible.transparency = 100;
         assert_eq!(placed(&invisible, &SCREEN_SIZED, SCROLLS), Err(None));
     }
-}
-
-/// The rule, over the cartridge's maps: see the module.
-pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
-    let sizes: HashMap<i32, (i32, i32)> =
-        maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
-    let mut files: HashMap<String, Option<(PathBuf, File)>> = HashMap::new();
-    let mut per: BTreeMap<(i32, i32), Vec<OnMap>> = BTreeMap::new();
-    // By the map whose pages show it and the name: whether every show is
-    // part of its map.
-    let mut all_in: BTreeMap<(i32, String), bool> = BTreeMap::new();
-    let mut hidden = Vec::new();
-    for s in shown(maps) {
-        let lower = s.name.to_lowercase();
-        if !files.contains_key(&lower) {
-            let found = match crate::pictures::path_of(game_dir, &s.name) {
-                Some(path) => Some((path.clone(), read_file(&path)?)),
-                None => None,
-            };
-            files.insert(lower.clone(), found);
-        }
-        let place = match (&files[&lower], sizes.get(&s.seen)) {
-            (Some((path, file)), Some(&size)) => match placed(&s, file, size) {
-                Ok(p) => Some((path.clone(), p)),
-                Err(why) => {
-                    if let Some(why) = why {
-                        hidden.push(Hidden {
-                            map: s.from,
-                            event: s.event,
-                            at: s.at,
-                            name: s.name.clone(),
-                            transparency: s.transparency,
-                            why,
-                        });
-                    }
-                    None
-                }
-            },
-            _ => None,
-        };
-        let entry = all_in.entry((s.from, lower)).or_insert(true);
-        *entry &= place.is_some();
-        if let Some((path, (corner, repeat))) = place {
-            per.entry((s.seen, s.number)).or_default().push(OnMap {
-                number: s.number,
-                name: s.name.clone(),
-                path,
-                corner,
-                transparency: s.transparency.max(0),
-                tone: s.tone,
-                transparent_color: s.transparent_color,
-                repeat,
-            });
-        }
-    }
-    let mut out = MapPictures::default();
-    for ((map, _number), shows) in per {
-        // Under one number a map can show several: a door with its ceiling
-        // and another with a second one. The one shown most stays, and of
-        // equals the first: the map has one drawing.
-        let mut counts: Vec<(usize, &OnMap)> = Vec::new();
-        for s in &shows {
-            match counts
-                .iter_mut()
-                .find(|(_, o)| o.name.eq_ignore_ascii_case(&s.name) && o.corner == s.corner)
-            {
-                Some((n, _)) => *n += 1,
-                None => counts.push((1, s)),
-            }
-        }
-        let best = counts
-            .iter()
-            .max_by(|a, b| a.0.cmp(&b.0).then(std::cmp::Ordering::Greater))
-            .map(|(_, o)| (*o).clone());
-        if let Some(best) = best {
-            out.per_map.entry(map).or_default().push(best);
-        }
-    }
-    for ((from, name), all) in all_in {
-        if all {
-            out.done_from.entry(from).or_default().insert(name);
-        }
-    }
-    out.hidden = hidden;
-    Ok(out)
 }

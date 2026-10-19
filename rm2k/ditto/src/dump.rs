@@ -257,7 +257,7 @@ fn split_map(map: &Map) -> Result<(Value, Option<String>)> {
     };
     let (w, h) = (map.width.max(0) as usize, map.height.max(0) as usize);
     let fits =
-        |v: Option<&Value>| v.map_or(false, |v| v.as_array().map_or(false, |a| a.len() == w * h));
+        |v: Option<&Value>| v.is_some_and(|v| v.as_array().is_some_and(|a| a.len() == w * h));
     if !(fits(fields.get(LOWER)) && fits(fields.get(UPPER))) {
         return Ok((Value::Object(fields), None));
     }

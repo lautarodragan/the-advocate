@@ -249,7 +249,7 @@ pub fn volume(velocity: f64, ceiling: f64, cc7: f64, cc11: f64, pan: f64) -> (i6
         if x < 0.5 {
             0
         } else {
-            num::round(x).min(0x7F).max(VOLUME_FLOOR)
+            num::round(x).clamp(VOLUME_FLOOR, 0x7F)
         }
     };
     (

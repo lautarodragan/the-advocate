@@ -369,6 +369,9 @@ fn initial_groups(
                 sums[group][channel] += means[i].0[channel] * means[i].1;
             }
         }
+        // One zero check covers the three channels' divisions, which
+        // `checked_div` would make three.
+        #[allow(clippy::manual_checked_ops)]
         let centroids: Vec<_> = (0..groups)
             .map(|group| {
                 if totals[group] == 0 {
@@ -775,7 +778,7 @@ mod tests {
     #[test]
     fn a_tile_with_more_colours_than_a_palette_fits_nowhere() {
         let tile: Colors = (0..17).map(grey).collect();
-        assert_eq!(try_pack(&[tile.clone()], 8, 15), None);
+        assert_eq!(try_pack(std::slice::from_ref(&tile), 8, 15), None);
         let counts: Vec<(Color, u64)> = (0..17).map(|v| (grey(v), 1 + u64::from(v))).collect();
         let reduced = reduce_colors(&counts, &[tile], 8, 15).unwrap();
         assert!(reduced.palettes.iter().all(|p| p.len() <= 15));

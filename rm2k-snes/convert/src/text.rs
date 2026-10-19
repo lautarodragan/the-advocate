@@ -48,6 +48,10 @@ pub fn repr(text: &str) -> String {
 }
 
 /// A float with no decimals, rounding half to even, as `%.0f` does.
+// Two branches give `floor` and two `floor + 1.0`: they are the rule's four
+// cases —below half, above, and half on an even or an odd floor—, spelled as
+// it reads.
+#[allow(clippy::if_same_then_else)]
 pub fn round0(value: f64) -> String {
     let floor = value.floor();
     let diff = value - floor;

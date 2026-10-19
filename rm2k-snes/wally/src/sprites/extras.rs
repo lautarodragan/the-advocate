@@ -55,7 +55,7 @@ pub fn strip_base(tiles: usize, width: usize) -> usize {
     if used == 0 {
         return row;
     }
-    if used >= 3 * 16 + 4 && (used - 3 * 16) % 4 == 0 {
+    if used >= 3 * 16 + 4 && (used - 3 * 16).is_multiple_of(4) {
         let column = used - 3 * 16;
         if column + width <= 16 {
             return row + column;

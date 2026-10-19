@@ -1008,7 +1008,7 @@ mod tests {
         assert_eq!(pairs.first(), PAIR_FIRST + 1);
         // Its letters are the ones the cartridge writes: `é` and `ß` as
         // their stand-ins, `ñ` as 96.
-        assert!(pairs.len() > 0);
+        assert!(!pairs.is_empty());
         assert!(pairs.bytes().iter().step_by(2).all(|&l| l < PAIR_FIRST + 1));
     }
 
@@ -1096,7 +1096,7 @@ mod tests {
         // the variable, and the pair again.
         let line = format!("ab{}ab", variable_mark(3));
         let mut m = Messages::measuring(1, WINDOW);
-        m.add(&[line.clone()]).ok().unwrap();
+        m.add(std::slice::from_ref(&line)).ok().unwrap();
         let pairs = m.choose_pairs().unwrap();
         assert_eq!(pairs.bytes(), [65, 66]);
         let mut m = Messages::with_pairs(1, WINDOW, pairs);

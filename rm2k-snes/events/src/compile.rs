@@ -1462,7 +1462,7 @@ fn page(
             if cancel_branch && current.cancel_body.is_some() {
                 return cannot();
             }
-            if !cancel_branch && !(0 <= n && n < current.n as i64) {
+            if !cancel_branch && !(0..current.n as i64).contains(&n) {
                 return cannot();
             }
             // The previous option's body ends here: it is taken out of the
@@ -6901,9 +6901,9 @@ mod tests {
         };
         let long = "a".repeat(30); // 180 px: one line whole, two with a face
         let box_ = cmd(SHOW_MESSAGE, &[], &long);
-        assert_eq!(lines_of(&none, &[box_.clone()]), [1]);
+        assert_eq!(lines_of(&none, std::slice::from_ref(&box_)), [1]);
         assert_eq!(
-            lines_of(&faces, &[box_.clone()]),
+            lines_of(&faces, std::slice::from_ref(&box_)),
             [2],
             "the page does not say, and the game shows faces"
         );
@@ -6951,7 +6951,9 @@ mod tests {
             ([7, 0, 1], [OP_MONSTER_STATE, 7, 0, 1]),
         ] {
             let command = cmd(CHANGE_MONSTER_CONDITION, &p, "");
-            let code = compile_with(&game, &[command.clone()]).unwrap().unwrap();
+            let code = compile_with(&game, std::slice::from_ref(&command))
+                .unwrap()
+                .unwrap();
             assert_eq!(code, [&out[..], &[OP_DONE]].concat(), "{p:?}");
             assert!(page_debts(&game, &Indices::default(), &[command], None)
                 .unwrap()
@@ -7052,7 +7054,7 @@ mod tests {
         // Another image on it, or a digit on a picture that is not the
         // counter's, is still any picture: accepted without being done.
         for other in [show(2, "Gauge"), show(1, "9")] {
-            let code = compile_with(&game, &[other.clone()]);
+            let code = compile_with(&game, std::slice::from_ref(&other));
             assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
             assert_eq!(
                 page_debts(&game, &Indices::default(), &[other], None).unwrap(),
@@ -7111,8 +7113,10 @@ mod tests {
     ) -> Option<Vec<u8>> {
         use crate::messages::{Messages, Window};
         let sound = SoundSettings::default();
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
@@ -7140,8 +7144,10 @@ mod tests {
     ) -> (Option<Vec<u8>>, Vec<crate::losses::Loss>) {
         use crate::messages::{Messages, Window};
         let (indices, sound) = (Indices::default(), SoundSettings::default());
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
@@ -7257,8 +7263,10 @@ mod tests {
         let game = Game::default();
         let indices = Indices::default();
         let sound = SoundSettings::default();
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::measuring(1, Window::columns(39, 4));
         for k in 0..2000 {
             let line = format!("{k:>39}");
@@ -7297,8 +7305,10 @@ mod tests {
         let game = Game::default();
         let indices = Indices::default();
         let sound = SoundSettings::default();
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game: &game,
@@ -7373,7 +7383,7 @@ mod tests {
         // event 1 is the first of the map's table.
         let erase = cmd(ERASE_EVENT, &[], "");
         assert_eq!(
-            as_the_only_event(&[erase.clone()]).unwrap(),
+            as_the_only_event(std::slice::from_ref(&erase)).unwrap(),
             [OP_ERASE_EVENT, 1, OP_DONE]
         );
         // A page that is nobody's has no event to erase, and is cut.
@@ -8147,8 +8157,10 @@ mod tests {
         // those are the three an implementation that counted from zero would
         // get wrong. It is the shape of the inn that brought `ShowInn`, a
         // message and then the inn at 5.
-        let mut game = Game::default();
-        game.gold_term = "G".into();
+        let mut game = Game {
+            gold_term: "G".into(),
+            ..Default::default()
+        };
         for terms in game.inn_terms.iter_mut() {
             *terms = [
                 "Stay for".into(),
@@ -8335,7 +8347,7 @@ mod tests {
         assert_eq!(opcodes_of(&code), [OP_CELL_TEST, OP_SWITCH, OP_DONE]);
         let refresh = CELL_REFRESH as usize;
         assert_eq!(code[1], 0, "the target is the hero");
-        assert_eq!(word_at(&code, 2) & !refresh, 5 * 2 | CELL_Y as usize);
+        assert_eq!(word_at(&code, 2) & !refresh, (5 * 2) | CELL_Y as usize);
         assert_eq!(word_at(&code, 4) & !refresh, 6 * 2);
         assert_eq!((word_at(&code, 6), word_at(&code, 8)), (5 * 2, 3 * 2));
         assert_eq!((word_at(&code, 12), word_at(&code, 14)), (6 * 2, 4 * 2));
@@ -9044,7 +9056,7 @@ mod tests {
             ..big
         };
         assert_eq!(
-            with_big(std::slice::from_ref(&big), &[grown.clone()]),
+            with_big(std::slice::from_ref(&big), std::slice::from_ref(&grown)),
             [OP_BIG_ZOOM, 0, 0, 0, 0, 60, 120, 0, 0, 100, 200, OP_DONE]
         );
         big.texture = false;
@@ -9153,7 +9165,7 @@ mod tests {
         let mut indices = Indices::default();
         indices.variables.insert(153, 7);
         indices.variables.insert(154, 9);
-        let code = with_pictures(&[(key, 1)], &indices, &[smoke.clone()]);
+        let code = with_pictures(&[(key, 1)], &indices, std::slice::from_ref(&smoke));
         let mode = PICTURE_BY_VARIABLE | PICTURE_MAP_FIXED;
         assert_eq!(
             code,
@@ -10035,8 +10047,10 @@ mod tests {
             variables: BTreeMap::from([(40, 0)]),
             ..Default::default()
         };
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,

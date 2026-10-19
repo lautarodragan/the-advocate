@@ -1656,7 +1656,7 @@ fn convert_with(
                 .collect();
             let own = own.len();
             Some(CacheAsked {
-                peak: peak(&wants, raw.width as i32, raw.height as i32),
+                peak: peak(&wants, raw.width, raw.height),
                 wanted: stills.len() + own,
                 stills,
                 events,

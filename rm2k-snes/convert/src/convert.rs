@@ -586,7 +586,7 @@ pub fn run(options: Options) -> Result<()> {
         &test_graphics,
         &encounters["troops"],
     )?;
-    degradations.from_events(&compiled);
+    degradations.add_compiler_answer(&compiled);
     // The pictures drawn into their map were shown by the conversion, not
     // lost: the compiler is not given them, so it says they are not shown.
     degradations.forget(|l| {
@@ -1817,6 +1817,35 @@ fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecor
     }
 }
 
+/// One place of the battle that cuts names, as `rm2k-snes-battle`'s model
+/// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
+/// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
+/// A warning: the console cuts and the battle goes on.
+fn cut_report(place: &Value) -> String {
+    let cells = int(&place["cells"]);
+    let names: Vec<String> = place["names"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .map(|n| {
+            format!(
+                "{:?} {} px, shows {:?}",
+                n[0].as_str().unwrap_or(""),
+                int(&n[1]),
+                n[2].as_str().unwrap_or("")
+            )
+        })
+        .collect();
+    format!(
+        "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
+        names.len(),
+        place["place"].as_str().unwrap_or(""),
+        8 * cells,
+        names.join("; ")
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1899,33 +1928,4 @@ mod tests {
         assert_eq!(page_party(&[add], &[10]), Some(vec![10, 11]));
         assert_eq!(page_party(&[], &[10]), None);
     }
-}
-
-/// One place of the battle that cuts names, as `rm2k-snes-battle`'s model
-/// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
-/// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
-/// A warning: the console cuts and the battle goes on.
-fn cut_report(place: &Value) -> String {
-    let cells = int(&place["cells"]);
-    let names: Vec<String> = place["names"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-        .iter()
-        .map(|n| {
-            format!(
-                "{:?} {} px, shows {:?}",
-                n[0].as_str().unwrap_or(""),
-                int(&n[1]),
-                n[2].as_str().unwrap_or("")
-            )
-        })
-        .collect();
-    format!(
-        "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
-        names.len(),
-        place["place"].as_str().unwrap_or(""),
-        8 * cells,
-        names.join("; ")
-    )
 }

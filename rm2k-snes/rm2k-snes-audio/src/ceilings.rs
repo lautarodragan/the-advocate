@@ -55,7 +55,7 @@ pub fn margin() -> f64 {
 /// the sum of the voices at 16 bits and then multiplies it by the master
 /// volume, MVOL/128.
 pub fn cap() -> i64 {
-    32767 * sdsp::master() >> 7
+    (32767 * sdsp::master()) >> 7
 }
 
 /// How many frames before the end of boot —`BOOT_FRAMES`, read from the
@@ -211,6 +211,9 @@ pub fn play(sfc: &Path, song: u8, frames: i64) -> Result<(Vec<i16>, f64)> {
 }
 
 /// How many samples ended up at the cap.
+// `-cap - 1` is the negative rail, as -32768 is 16 bits': written as `< -cap`
+// the two rails no longer read as the pair they are.
+#[allow(clippy::int_plus_one)]
 pub fn clipped(samples: &[i16]) -> usize {
     let cap = cap();
     samples

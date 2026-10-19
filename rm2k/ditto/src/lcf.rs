@@ -514,7 +514,7 @@ pub fn dec_ber(d: &[u8]) -> i32 {
 }
 
 pub fn dec_bool(d: &[u8]) -> bool {
-    d.first().map_or(false, |b| *b != 0)
+    d.first().is_some_and(|b| *b != 0)
 }
 
 pub fn enc_bool(v: bool) -> Vec<u8> {
@@ -604,7 +604,7 @@ pub fn enc_vec_bool(v: &[bool]) -> Vec<u8> {
 /// byte. Past the end of the chunk it is `false`: that is how the 2003 bits
 /// read from a 2000 file, whose chunk stops before them.
 pub fn bit(d: &[u8], i: usize) -> bool {
-    d.get(i / 8).map_or(false, |b| (b >> (i % 8)) & 1 == 1)
+    d.get(i / 8).is_some_and(|b| (b >> (i % 8)) & 1 == 1)
 }
 
 /// The bytes of a `*_Flags` field: each bit at its position, from the least
@@ -625,7 +625,7 @@ pub fn pack_bits(bits: &[(bool, bool)], is2k3: bool) -> Vec<u8> {
     } else {
         bits.iter().filter(|(_, only_2003)| !only_2003).count()
     };
-    let mut out = vec![0u8; (n + 7) / 8];
+    let mut out = vec![0u8; n.div_ceil(8)];
     for (i, &(set, _)) in bits.iter().enumerate().take(out.len() * 8) {
         if set {
             out[i / 8] |= 1 << (i % 8);

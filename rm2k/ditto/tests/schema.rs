@@ -228,8 +228,8 @@ fn the_chunks_and_the_persist_flags_are_pinned() {
     let field = |n: &str| actor.iter().find(|f| f.name == n).unwrap();
     assert_eq!(field("id").chunk, None);
     assert_eq!(field("final_level").chunk, Some(0x08));
-    assert_eq!(field("final_level").persist, false);
-    assert_eq!(field("skills").persist, true);
+    assert!(!field("final_level").persist);
+    assert!(field("skills").persist);
     assert_eq!(field("skills").nested, Some("Learning"));
     assert_eq!(field("parameters").nested, Some("Parameters"));
 }

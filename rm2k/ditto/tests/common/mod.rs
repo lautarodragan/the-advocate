@@ -45,10 +45,7 @@ pub fn maps(dir: &std::path::Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(dir)
         .map(|it| it.filter_map(|e| e.ok().map(|e| e.path())).collect())
         .unwrap_or_default();
-    v.retain(|p| {
-        p.extension()
-            .map_or(false, |x| x.eq_ignore_ascii_case("lmu"))
-    });
+    v.retain(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("lmu")));
     v.sort();
     v
 }

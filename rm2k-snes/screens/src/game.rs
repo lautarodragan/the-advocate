@@ -156,7 +156,7 @@ impl Game {
         let found = self
             .system_file
             .clone()
-            .or_else(|| find_resource(&[self.game_dir.clone()], "System", name))
+            .or_else(|| find_resource(std::slice::from_ref(&self.game_dir), "System", name))
             .or_else(|| Some(self.game_dir.join(format!("{name}.png"))).filter(|p| p.exists()))
             .or_else(|| find_resource(&self.rtp(), "System", name));
         match found {

@@ -275,8 +275,8 @@ pub const LAYOUT_PANORAMA_MODE3: Layout = Layout {
     }),
 };
 
-/// A map that shows its panorama and draws something above the hero: mode
-/// 1. BG1 is the map at 4 bits —its count here is in 64-byte units, like
+/// A map that shows its panorama and draws something above the hero:
+/// mode 1. BG1 is the map at 4 bits —its count here is in 64-byte units, like
 /// the 8-bit ones', so 256 are 512 tiles—, BG2 the upper layer and the
 /// window as in [`LAYOUT_WINDOW`], and BG3 the panorama at 2 bits.
 ///
@@ -761,24 +761,18 @@ mod tests {
             panorama_layout(1, 256, 256, 1, 768).unwrap().name,
             "VENTANA_PANORAMA_M1"
         );
-        assert_eq!(
-            panorama_layout(3, 300, 300, 0, 500)
-                .unwrap_err()
-                .message()
-                .is_empty(),
-            false
-        );
+        assert!(!panorama_layout(3, 300, 300, 0, 500)
+            .unwrap_err()
+            .message()
+            .is_empty());
         assert_eq!(
             panorama_layout(3, 300, 300, 0, 320).unwrap().name,
             "VENTANA_PANORAMA_FONDO"
         );
-        assert_eq!(
-            panorama_layout(3, 300, 300, 0, 384)
-                .unwrap_err()
-                .message()
-                .is_empty(),
-            false
-        );
+        assert!(!panorama_layout(3, 300, 300, 0, 384)
+            .unwrap_err()
+            .message()
+            .is_empty());
         assert_eq!(
             panorama_layout(3, 300, 200, 0, 384).unwrap().name,
             "VENTANA_PANORAMA_FONDO_SPRITE"

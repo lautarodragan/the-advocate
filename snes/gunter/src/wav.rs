@@ -33,7 +33,7 @@ fn u32_at(data: &[u8], at: usize) -> u32 {
 
 /// Signed 16-bit little-endian with no header at all.
 pub fn read_raw(bytes: &[u8], rate: u32, path: &Path) -> Result<Audio> {
-    if bytes.len() % 2 != 0 {
+    if !bytes.len().is_multiple_of(2) {
         return Err(Bad(format!(
             "{}: {} bytes of raw 16-bit PCM, which is not a whole number of samples",
             path.display(),

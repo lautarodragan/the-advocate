@@ -310,10 +310,10 @@ mod tests {
             ..Default::default()
         };
         for kind in [ItemType::Medicine, ItemType::Material] {
-            assert!(item_usable(&of(kind.clone())) && item_needs_actor(&of(kind)));
+            assert!(item_usable(&of(kind)) && item_needs_actor(&of(kind)));
         }
         for kind in [ItemType::Book, ItemType::Weapon, ItemType::Special] {
-            assert!(!item_usable(&of(kind.clone())) && !item_needs_actor(&of(kind)));
+            assert!(!item_usable(&of(kind)) && !item_needs_actor(&of(kind)));
         }
     }
 

@@ -305,7 +305,7 @@ mod tests {
     }
 
     fn refusal(r: Result<Forks>) -> String {
-        r.err().expect("it should have refused").message
+        r.expect_err("it should have refused").message
     }
 
     #[test]

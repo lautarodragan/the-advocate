@@ -125,9 +125,7 @@ impl Tree {
         let mut seen = std::collections::BTreeSet::new();
         let mut id = map;
         while id != 0 && seen.insert(id) {
-            let Some(node) = self.get(id) else {
-                return None;
-            };
+            let node = self.get(id)?;
             match node.background_type {
                 MapInfoBGMType::Parent => id = node.parent_map,
                 MapInfoBGMType::Specific if !node.background_name.is_empty() => {

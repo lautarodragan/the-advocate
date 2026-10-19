@@ -39,7 +39,7 @@ fn mixed(rng: &mut Rng, len: usize) -> Vec<u8> {
             0 => {
                 let b = rng.byte();
                 let n = 1 + (rng.next() % 1500) as usize;
-                out.extend(std::iter::repeat(b).take(n));
+                out.extend(std::iter::repeat_n(b, n));
             }
             1 => {
                 let (a, b) = (rng.byte(), rng.byte());
@@ -58,7 +58,7 @@ fn mixed(rng: &mut Rng, len: usize) -> Vec<u8> {
                     let b = out[from + k];
                     out.push(b);
                 }
-                if rng.next() % 2 == 0 {
+                if rng.next().is_multiple_of(2) {
                     let at = out.len() - 1;
                     out[at] ^= 0x55;
                 }

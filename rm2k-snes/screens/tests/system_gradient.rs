@@ -37,7 +37,7 @@ fn gradient_system() -> Picture {
             let inner = |v: i32| {
                 (EDGE / 2..EDGE).contains(&v) || (PIECE - EDGE..PIECE - EDGE / 2).contains(&v)
             };
-            let corner = (x < EDGE || x >= PIECE - EDGE) && (y < EDGE || y >= PIECE - EDGE);
+            let corner = !(EDGE..PIECE - EDGE).contains(&x) && !(EDGE..PIECE - EDGE).contains(&y);
             if !corner && (inner(x) || inner(y)) {
                 let p = at(FRAME.0 + x, FRAME.1 + y);
                 system.rgba[p + 3] = 0;
@@ -116,7 +116,7 @@ fn over_one_colour_the_same_system_fuses_nothing() {
         .collect();
     let fused = |s: &&str| s.contains("as RM2k draws them") || s.contains("frame and arrow took");
     assert!(
-        !says.iter().any(|s| fused(s)),
+        !says.iter().any(fused),
         "nothing should be fused: {says:#?}"
     );
     let skin = game.skin().unwrap();

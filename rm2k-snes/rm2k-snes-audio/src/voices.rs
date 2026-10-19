@@ -13,7 +13,7 @@ use crate::fail::Result;
 use crate::midi::{self, Control, Note, TICKS_PER_SECOND};
 use crate::num;
 use crate::sdsp;
-use crate::stream::{Frame, Frames, NoteSetup};
+use crate::stream::{Frames, NoteSetup};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// What the allocation needs to know about a sample.
@@ -559,7 +559,7 @@ pub fn build_events(
         }
         frames
             .entry(notes[n].end)
-            .or_insert_with(Frame::default)
+            .or_default()
             .release
             .push((voice, gain));
     }

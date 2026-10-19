@@ -30,7 +30,7 @@ pub struct Degradations {
 
 impl Degradations {
     /// The event compiler's: every page of the cartridge's.
-    pub fn from_events(&mut self, answer: &Value) {
+    pub fn add_compiler_answer(&mut self, answer: &Value) {
         let d = &answer["degradations"];
         self.losses
             .extend(d["losses"].as_array().cloned().unwrap_or_default());

@@ -914,7 +914,7 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
             shared
                 .poses
                 .iter()
-                .map(|&(k, pose)| ((k * SPRITE_POSES as usize + pose) * 3).to_string())
+                .map(|&(k, pose)| ((k * SPRITE_POSES + pose) * 3).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
@@ -1786,9 +1786,7 @@ pub fn map_data(
     // whose bytes the linker sets, so there is no content to compare it by.
     // The npc_poses and the actor table are shared, and already have their
     // labels.
-    for name in ["pages"] {
-        labels.insert(name, format!("{name}_{number}"));
-    }
+    labels.insert("pages", format!("pages_{number}"));
     Ok((out.join("\n"), labels))
 }
 

@@ -210,12 +210,18 @@ pub const BA_SKILL_NAME_WIDTH: usize = 11;
 /// took a cell: 26 of A Blurred Line's battle skills came out cut by
 /// letters and not by pixels, and its fourteen longest enemies too.
 const TL_RECORD: usize = 56;
+// The leading 1 is the record's length byte and `TL_RECORD - 1` is the bound
+// the runtime checks a run against (`cmp #(TL_RECORD - 1)` in
+// `text_layer.s`): clippy's simplification would hide both.
+#[allow(clippy::int_plus_one)]
 const _: () = assert!(
     1 + 2 * ((3 + 3) + (3 + 1) + (3 + 2)) <= TL_RECORD - 1,
     "a row of the skill list does not fit in its record"
 );
 /// The party's line: name, state, the HP's run with "HP" copied and seven
 /// places, the SP's with "SP" and three, and the command on its line.
+// Written as the runtime counts it, as the one above.
+#[allow(clippy::int_plus_one)]
 const _: () = assert!(
     1 + (3 + 3) + (3 + 3) + (3 + 2 + 7) + (3 + 2 + 3) + (3 + 3) <= TL_RECORD - 1,
     "a line of the party and the commands does not fit in its record"

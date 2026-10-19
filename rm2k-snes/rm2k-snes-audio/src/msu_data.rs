@@ -94,7 +94,7 @@ pub const COLORS_AT: usize = 0x8000;
 /// And the 192 bytes of colors, to the sector.
 pub const BACKDROP_SPAN: usize = 0x8200;
 pub const SECTOR: usize = 512;
-const _: () = assert!(BACKDROP_SPAN % SECTOR == 0 && BACKDROP_SPAN >= COLORS_AT + 96 * 2);
+const _: () = assert!(BACKDROP_SPAN.is_multiple_of(SECTOR) && BACKDROP_SPAN >= COLORS_AT + 96 * 2);
 
 /// Where the tiles of backdrop number `k` are; its colors, `COLORS_AT`
 /// further on.

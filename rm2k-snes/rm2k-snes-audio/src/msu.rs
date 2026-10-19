@@ -58,8 +58,8 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
         let mut theirs = BTreeSet::new();
         for &t in &p.songs {
             if music.songs[t].track.is_none() {
-                if !weighs.contains_key(&t) {
-                    weighs.insert(t, music.songs[t].samples()?);
+                if let std::collections::hash_map::Entry::Vacant(e) = weighs.entry(t) {
+                    e.insert(music.songs[t].samples()?);
                 }
                 theirs.extend(weighs[&t].iter().copied());
             }

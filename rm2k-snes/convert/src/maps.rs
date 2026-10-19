@@ -1197,10 +1197,7 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
                 ))
             })?;
         let graphic = page_graphic(page, &info.chipset_filename);
-        let code = match r["code"].as_str() {
-            Some(hex) => Some(crate::text::unhex(hex)),
-            None => None,
-        };
+        let code = r["code"].as_str().map(crate::text::unhex);
         let tile_pass = graphic
             .as_ref()
             .and_then(|g| event_tile_passability(&info.passability, &g.0, page.layer));

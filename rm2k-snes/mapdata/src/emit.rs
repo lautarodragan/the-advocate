@@ -1427,7 +1427,7 @@ const BIG_M7_TILE: usize = 64;
 /// A big picture's mode 7 texture as the cartridge carries it: its tiles,
 /// and its map's rows as VRAM's low bytes take them, padded to 128.
 pub fn big_mode7(rows: usize, t: &crate::request::Mode7Texture) -> Result<(Vec<u8>, Vec<u8>)> {
-    if t.tiles.len() % BIG_M7_TILE != 0 || t.tiles.len() > BIG_M7_TILES * BIG_M7_TILE {
+    if !t.tiles.len().is_multiple_of(BIG_M7_TILE) || t.tiles.len() > BIG_M7_TILES * BIG_M7_TILE {
         return Err(Bad::answer(format!(
             "a mode 7 texture of {} bytes: it holds {BIG_M7_TILES} tiles of {BIG_M7_TILE}",
             t.tiles.len()

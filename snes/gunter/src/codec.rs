@@ -151,7 +151,7 @@ pub fn encode_block(
 /// multiple of sixteen, because the DSP only understands whole blocks.
 pub fn encode(samples: &[i16], loop_block: Option<usize>) -> Vec<u8> {
     let mut padded: Vec<i32> = samples.iter().map(|&s| s as i32).collect();
-    while padded.len() % BLOCK_SAMPLES != 0 {
+    while !padded.len().is_multiple_of(BLOCK_SAMPLES) {
         padded.push(0);
     }
 

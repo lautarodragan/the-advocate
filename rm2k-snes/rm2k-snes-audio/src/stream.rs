@@ -870,7 +870,7 @@ pub fn fold(stream: &[u8]) -> Result<Vec<u8>> {
                     len += 1;
                 }
                 if size >= REPEAT_MIN_BYTES
-                    && best.map_or(true, |(saves, _, _)| size - REPEAT_BYTES > saves)
+                    && best.is_none_or(|(saves, _, _)| size - REPEAT_BYTES > saves)
                 {
                     best = Some((size - REPEAT_BYTES, from, len));
                 }

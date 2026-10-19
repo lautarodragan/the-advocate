@@ -137,7 +137,7 @@ impl Vram {
     /// the 256 tiles an object names without its high bit. `tiles` are the
     /// windows' 8bpp ones, `objects` the party's 4bpp ones.
     pub fn shop_party(&self, tiles: usize, objects: usize) -> Result<()> {
-        if TI_VRAM % 0x2000 != 0 {
+        if !TI_VRAM.is_multiple_of(0x2000) {
             return Err(Bad::answer(
                 "the shop's party takes the windows' base as the objects', and it is not a multiple of $2000",
             ));

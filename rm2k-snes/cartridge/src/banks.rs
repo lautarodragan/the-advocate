@@ -269,7 +269,7 @@ fn split(line: &str, fitting: usize) -> Result<(Option<String>, String, usize), 
     let (directive, rest) = first_word(code_part.trim());
     let w = width(directive)
         .ok_or_else(|| format!("cannot split a line that is not data: {:?}", line.trim()))?;
-    if fitting % w != 0 {
+    if !fitting.is_multiple_of(w) {
         return Err(format!(
             "the end of the bank falls in the middle of a {w}-byte operand: {:?}",
             line.trim()

@@ -61,7 +61,7 @@ fn note(
 ) {
     events.push((start, vec![0x90 | channel, key, velocity]));
     // Note-off as a note-on at zero, half the time: both are read.
-    if key % 2 == 0 {
+    if key.is_multiple_of(2) {
         events.push((start + length, vec![0x80 | channel, key, 64]));
     } else {
         events.push((start + length, vec![0x90 | channel, key, 0]));

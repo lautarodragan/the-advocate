@@ -29,7 +29,7 @@ Exit codes: 1 a stream does not decode or an input does not fit; 2 the call
 itself is wrong (missing arguments, a file that cannot be read).";
 
 fn pairs(args: &[String]) -> Result<Vec<(&str, &str)>, String> {
-    if args.is_empty() || args.len() % 2 != 0 {
+    if args.is_empty() || !args.len().is_multiple_of(2) {
         return Err("expected IN OUT pairs".into());
     }
     Ok(args

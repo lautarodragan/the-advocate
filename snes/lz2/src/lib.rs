@@ -563,7 +563,7 @@ pub fn decompress_prefix(stream: &[u8]) -> Result<(Vec<u8>, usize), Error> {
             BYTE_FILL => {
                 let b = byte(i)?;
                 i += 1;
-                out.extend(std::iter::repeat(b).take(len));
+                out.extend(std::iter::repeat_n(b, len));
             }
             WORD_FILL => {
                 let pair = [byte(i)?, byte(i + 1)?];

@@ -257,9 +257,7 @@ fn the_music_s_sounds_take_a_whole_bank_and_no_more() {
     song.sounds = (0..256).map(|i| [i as u8, 0, 0, 0, 0, 0]).collect();
     let before: usize = music.songs.iter().map(|t| t.sounds.len()).sum();
     let added = 30 - music.songs.len();
-    music
-        .songs
-        .extend(std::iter::repeat(song.clone()).take(added));
+    music.songs.extend(std::iter::repeat_n(song.clone(), added));
     let size = 6 * (before + 256 * added);
     assert!(size > 0x8000);
     let inc = emit::musicdata(&music, &emit).unwrap();
