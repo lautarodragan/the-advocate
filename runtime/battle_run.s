@@ -279,15 +279,15 @@ b_check_a:
     adc #BA_PARTY_MAX
     sta BA_T0
     ; The target mode is shared by attacking and by a skill that targets the
-    ; enemies; which of the two it is says `BA_COMMAND`, which is still set.
+    ; enemies, chosen from the skills or cast by a special item; which of
+    ; them it is says `BA_COMMAND`, which is still set.
     lda BA_COMMAND
-    cmp #BA_COMMAND_SKILL
-    bne b_attacks
-    lda #BA_SKILL
-    bra b_records
+    cmp #BA_COMMAND_ATTACK
+    beq b_attacks
+    jsr ba_record_skill
+    jmp next_actor
 b_attacks:
     lda #BA_ATTACK
-b_records:
     jsr ba_record
     jmp next_actor              ; the two modes below ended up in between
 
@@ -300,8 +300,9 @@ mode_item:
     and #PAD_LEFT
     beq i_no_left
     lda BA_ITEM_SEL
-    beq wait4
-    dec BA_ITEM_SEL
+    bne :+
+    jmp wait
+:   dec BA_ITEM_SEL
     bra i_moved
 i_no_left:
     lda title_edges
@@ -346,6 +347,15 @@ i_no_down:
 i_check_a:
     jsr ba_edge_a
     beq wait4
+    ; A special item casts its skill: from here on it is the skill's path,
+    ; its target by its scope, as `Scene_Battle::AssignSkill` with the item.
+    ; What tells the two apart later is `ba_item_casting`.
+    jsr ba_item_casting
+    beq i_medicine
+    lda f:item_skill, x
+    sta BA_S0
+    jmp h_assign
+i_medicine:
     ; Whom to give it to: the first in the party it is good for —standing for
     ; a potion, fallen for an elixir—. If it is good for nobody, A does not get
     ; past the list: see `ba_item_usable_on`.
@@ -401,11 +411,13 @@ a_check_a:
     beq wait4
     lda BA_COMMAND
     cmp #BA_COMMAND_SKILL
-    bne a_is_item
+    beq a_is_skill
+    jsr ba_item_casting
+    beq a_is_item
+a_is_skill:
     lda BA_ITEM_TGT
     sta BA_T0
-    lda #BA_SKILL
-    jsr ba_record
+    jsr ba_record_skill
     jmp next_actor
 a_is_item:
     ; The command is recorded and **the item is spent right away**, which is
@@ -503,6 +515,8 @@ h_check_a:
     sta BA_S0
     jsr ba_skill_reaches
     beq wait6
+h_assign:
+    ; A special item's comes in here, with its skill in `BA_S0`.
     lda BA_ACTOR
     jsr ba_ax
     lda BA_S0
@@ -528,8 +542,7 @@ h_check_a:
 h_no_target:
     lda BA_ACTOR
     sta BA_T0
-    lda #BA_SKILL
-    jsr ba_record
+    jsr ba_record_skill
     jmp next_actor
 h_with_target:
     ; Whom it targets: bit 6 of `skill_affects` is `SkillTargetsEnemies`.
@@ -710,14 +723,17 @@ nothing_act:
 
 ; Whether the "whom" cursor can stop on actor A8: Z=0 if so. It is shared by an
 ; item and a skill that targets the party, and which of the two it is says
-; `BA_COMMAND`. A skill only on those standing, which is what
-; `Skill::IsTargetValid` allows with this port's skills —none removes
-; death—; an item, on whoever it is good for, who may be a fallen one.
+; `BA_COMMAND` —and `ba_item_casting`, for a special item, which is a skill—.
+; A skill only on those standing, which is what `Skill::IsTargetValid` allows
+; with this port's skills —none removes death—; an item, on whoever it is
+; good for, who may be a fallen one.
 ba_target_act_serves:
     pha
     lda BA_COMMAND
     cmp #BA_COMMAND_SKILL
     beq serves_skill
+    jsr ba_item_casting
+    bne serves_skill
     pla
     jmp ba_item_usable_on
 serves_skill:
@@ -782,7 +798,14 @@ other:
     jsr ba_ax
     lda BA_ACC, x
     cmp #BA_ITEM
+    beq gives_back
+    cmp #BA_SKILL               ; a special item's skill, which spent it too
     bne next
+    lda BA_S1
+    jsr ba_ax
+    lda f:ba_item_cast, x
+    beq next
+gives_back:
     lda BA_S1
     rep #$20
 .a16
@@ -790,6 +813,15 @@ other:
     asl a
     tax
     lda BA_ACC_ITEM, x
+    tax
+    sep #$20
+.a8
+    lda f:item_medicine, x      ; one without uses was not spent
+    and #MED_USES
+    beq next
+    rep #$20
+.a16
+    txa
     asl a
     tax
     lda f:item_id, x
