@@ -154,20 +154,6 @@ wait:
     rts
 .endproc
 
-; The sample in row PKG_X7 of `sample_table`, to PKG_A, whole: block after
-; block of `sample_block`, with nothing in between. `song_now` needs it so.
-.proc upload_sample
-.a8
-.i16
-    lda #85
-    sta f:PKG_CAP
-    ldy #0
-more:
-    jsr sample_block
-    bcc more
-    rts
-.endproc
-
 ; One block of the sample in row PKG_X7 of `sample_table`, from its byte Y,
 ; to PKG_A + Y: the pointer, and then up to PKG_CAP triplets via command 3
 ; —at most 85: the driver's index is one byte— with interrupts disabled
@@ -991,6 +977,90 @@ last_black:
     rtl
 .endproc
 
+; The marked samples of song A that are still waiting, now, each whole:
+; what `song_ensure` asks for before turning a song on. Keeps A; clobbers
+; `temp`.
+.proc song_now
+.a8
+.i16
+    pha
+    lda f:PKG_PENDING
+    beq none
+    lda 1, s
+    jsl f:song_list_l
+other:
+    lda f:song_samples, x
+    cmp #$FF
+    beq none
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:FAR_WANTS, x
+    cmp #3
+    bne next
+    txa
+    jsr upload_one
+next:
+    plx
+    inx
+    bra other
+none:
+    pla
+    rtl
+.endproc
+
+; Entry A, marked with 3, uploaded whole now, with its directory entry. If
+; `pump` had it half uploaded, it goes again from its start: the same
+; bytes to the same place.
+.proc upload_one
+.a8
+.i16
+    pha                         ; the entry
+    lda f:PKG_CUR
+    pha                         ; and the one `pump` is on, put back below
+    lda 2, s
+    sta f:PKG_CUR
+    jsr pump_load
+    jsl se_msu_upload
+    bcs complete
+    lda #85
+    sta f:PKG_CAP
+    ldy #0
+more:
+    jsl f:sample_block_l
+    bcc more
+    jsl f:write_directory_l
+complete:
+    lda f:PKG_CUR
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #1
+    sta f:FAR_WANTS, x
+    pla
+    cmp f:PKG_CUR
+    beq was_half
+    sta f:PKG_CUR
+    pla
+    rts
+was_half:
+    pla
+    rep #$20
+.a16
+    lda #$FFFF                  ; it was the one `pump` had half uploaded
+    sta f:PKG_OFS
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; `pump` for `package_finish`, which lives in bank $C0.
 .proc pump_l
 .a8
@@ -1023,83 +1093,11 @@ last_black:
     rtl
 .endproc
 
-; The marked samples of song A that are still waiting, now: what
-; `song_ensure` asks for before turning a song on. Clobbers `temp`.
-.proc song_now
+.proc song_list_l
 .a8
 .i16
-    pha
-    lda f:PKG_PENDING
-    beq none
-    lda 1, s
     jsr song_list
-other:
-    lda f:song_samples, x
-    cmp #$FF
-    beq none
-    phx
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:FAR_WANTS, x
-    cmp #3
-    bne next
-    txa
-    jsr upload_one
-next:
-    plx
-    inx
-    bra other
-none:
-    pla
-    rts
-.endproc
-
-; Entry A, marked with 3, uploaded whole now, with its directory entry. If
-; `pump` had it half uploaded, it goes again from its start: the same
-; bytes to the same place.
-.proc upload_one
-.a8
-.i16
-    sta f:PKG_S
-    rep #$20
-.a16
-    and #$00FF
-    pha
-    asl a
-    tax
-    lda f:FAR_ARAM_OF, x
-    sta f:PKG_A
-    sep #$20
-.a8
-    lda f:PKG_S
-    jsr sample_row
-    jsl se_msu_upload
-    bcs complete
-    jsr upload_sample
-    jsr write_directory
-complete:
-    rep #$20
-.a16
-    plx
-    sep #$20
-.a8
-    lda f:PKG_S
-    cmp f:PKG_CUR
-    bne not_half
-    rep #$20
-.a16
-    lda #$FFFF                  ; it was the one `pump` had half uploaded
-    sta f:PKG_OFS
-    sep #$20
-.a8
-not_half:
-    lda #1
-    sta f:FAR_WANTS, x
-    rts
+    rtl
 .endproc
 
 ; The samples of song A: X at the start of its list in `song_samples`.
@@ -1902,7 +1900,7 @@ ran:
     ; Its samples that a teleport's package left waiting go up now, before
     ; it sounds: see `upload_placed`. `song_now` clobbers `temp`.
     pha
-    jsr song_now
+    jsl f:song_now
     pla
     sta temp + 1
     lda f:PKG_PARTIAL
@@ -1948,7 +1946,7 @@ missing:
     pha
     jsr package_load
     pla
-    jsr song_now                ; inside a fade the package left it waiting
+    jsl f:song_now              ; inside a fade the package left it waiting
     lda #$FF
     sta f:PKG_EXTRA
 ready:
