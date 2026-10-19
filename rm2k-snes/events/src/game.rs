@@ -591,8 +591,11 @@ impl Game {
                         .map(|p| {
                             let c = &p.condition;
                             let f = &c.flags;
-                            let comparison =
-                                if self.is_2003 { c.compare_operator.to_i32() } else { CONDITION_OPERATOR };
+                            let comparison = if self.is_2003 {
+                                c.compare_operator.to_i32()
+                            } else {
+                                CONDITION_OPERATOR
+                            };
                             let name = self
                                 .patches
                                 .names
@@ -699,8 +702,14 @@ mod tests {
     #[test]
     fn a_2003_page_keeps_its_comparison_and_a_2000_one_asks_at_least() {
         let mut raw = schema::Map::default();
-        let mut event = schema::Event { id: 1, ..Default::default() };
-        let mut page = schema::EventPage { id: 1, ..Default::default() };
+        let mut event = schema::Event {
+            id: 1,
+            ..Default::default()
+        };
+        let mut page = schema::EventPage {
+            id: 1,
+            ..Default::default()
+        };
         page.condition.flags.variable = true;
         page.condition.variable_id = 7;
         page.condition.variable_value = 1;
@@ -708,7 +717,10 @@ mod tests {
         event.pages.push(page);
         raw.events.push(event);
         let asks = |is_2003: bool| {
-            let game = Game { is_2003, ..Game::default() };
+            let game = Game {
+                is_2003,
+                ..Game::default()
+            };
             game.convert(88, &raw).events[0].pages[0].condition.variable
         };
         assert_eq!(asks(true), Some((7, 2, 1)));
