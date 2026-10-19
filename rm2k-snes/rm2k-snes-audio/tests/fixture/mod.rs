@@ -51,7 +51,14 @@ fn midi(tracks: &[Vec<(u32, Vec<u8>)>]) -> Vec<u8> {
     data
 }
 
-fn note(events: &mut Vec<(u32, Vec<u8>)>, channel: u8, start: u32, length: u32, key: u8, velocity: u8) {
+fn note(
+    events: &mut Vec<(u32, Vec<u8>)>,
+    channel: u8,
+    start: u32,
+    length: u32,
+    key: u8,
+    velocity: u8,
+) {
     events.push((start, vec![0x90 | channel, key, velocity]));
     // Note-off as a note-on at zero, half the time: both are read.
     if key % 2 == 0 {
@@ -68,11 +75,22 @@ fn alpha() -> Vec<u8> {
         (0, vec![0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]),
         (960, vec![0xFF, 0x51, 0x03, 0x06, 0x1A, 0x80]),
     ];
-    let mut piano = vec![(0, vec![0xC0, 0x00]), (0, vec![0xB0, 64, 127]), (400, vec![0xB0, 64, 0])];
+    let mut piano = vec![
+        (0, vec![0xC0, 0x00]),
+        (0, vec![0xB0, 64, 127]),
+        (400, vec![0xB0, 64, 0]),
+    ];
     for bar in 0..8u32 {
         let root = [48u8, 53, 55, 60, 64, 57, 50, 62][bar as usize];
         for k in [0u8, 4, 7, 12] {
-            note(&mut piano, 0, bar * 192, 150 + (k as u32) * 3, root + k, 60 + 8 * k);
+            note(
+                &mut piano,
+                0,
+                bar * 192,
+                150 + (k as u32) * 3,
+                root + k,
+                60 + 8 * k,
+            );
         }
         note(&mut piano, 0, bar * 192 + 96, 40, root + 19, 110);
     }
@@ -93,7 +111,14 @@ fn alpha() -> Vec<u8> {
     bass.push((710, vec![0xB1, 10, 100]));
     let mut drums = Vec::new();
     for i in 0..32u32 {
-        note(&mut drums, 9, i * 48, 10, [36u8, 42, 38, 42][(i % 4) as usize], 120);
+        note(
+            &mut drums,
+            9,
+            i * 48,
+            10,
+            [36u8, 42, 38, 42][(i % 4) as usize],
+            120,
+        );
         if i % 8 == 0 {
             note(&mut drums, 9, i * 48, 10, 35, 127);
         }
@@ -104,10 +129,21 @@ fn alpha() -> Vec<u8> {
 /// High notes on the piano —the other zone—, a bass, and more notes at once
 /// than there are voices, so some are stolen and some do not play.
 fn beta() -> Vec<u8> {
-    let mut events = vec![(0, vec![0xFF, 0x51, 0x03, 0x09, 0x27, 0xC0]), (0, vec![0xC0, 0x00]), (0, vec![0xC2, 33])];
+    let mut events = vec![
+        (0, vec![0xFF, 0x51, 0x03, 0x09, 0x27, 0xC0]),
+        (0, vec![0xC0, 0x00]),
+        (0, vec![0xC2, 33]),
+    ];
     for i in 0..12u32 {
         for k in 0..5u8 {
-            note(&mut events, 0, i * 96, 90, 70 + k * 3 + (i % 3) as u8, 50 + k * 10);
+            note(
+                &mut events,
+                0,
+                i * 96,
+                90,
+                70 + k * 3 + (i % 3) as u8,
+                50 + k * 10,
+            );
         }
         note(&mut events, 2, i * 96, 80, 40 + (i % 4) as u8, 90);
         note(&mut events, 2, i * 96 + 48, 20, 43, 70);
@@ -122,9 +158,15 @@ fn beta() -> Vec<u8> {
 
 fn wav(channels: u16, bits: u16, rate: u32, samples: &[i32]) -> Vec<u8> {
     let data: Vec<u8> = if bits == 8 {
-        samples.iter().map(|&s| ((s >> 8) + 128).clamp(0, 255) as u8).collect()
+        samples
+            .iter()
+            .map(|&s| ((s >> 8) + 128).clamp(0, 255) as u8)
+            .collect()
     } else {
-        samples.iter().flat_map(|&s| (s.clamp(-32768, 32767) as i16).to_le_bytes()).collect()
+        samples
+            .iter()
+            .flat_map(|&s| (s.clamp(-32768, 32767) as i16).to_le_bytes())
+            .collect()
     };
     let mut out = b"RIFF".to_vec();
     out.extend(((36 + data.len()) as u32).to_le_bytes());
@@ -150,11 +192,17 @@ fn tone(frames: usize, period: usize, decay: usize, seed: u64) -> Vec<i32> {
     let mut state = seed;
     let triangle = |t: usize, p: usize| -> i64 {
         let x = (t % p) as i64 * 4 * 10000 / p as i64;
-        if x < 20000 { x - 10000 } else { 30000 - x }
+        if x < 20000 {
+            x - 10000
+        } else {
+            30000 - x
+        }
     };
     (0..frames)
         .map(|i| {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let noise = (state >> 40) as i64 % 2001 - 1000;
             let v = triangle(i, period) + triangle(i, (period / 3).max(2)) / 3 + noise;
             (v * decay as i64 / (decay + i) as i64) as i32
@@ -211,12 +259,54 @@ fn signed(v: i32) -> u16 {
 
 fn soundfont() -> Vec<u8> {
     let samples = vec![
-        SampleSpec { name: "PIANO60", pcm: tone(3000, 84, 1500, 1), rate: 22050, root: 60, correction: 0, loop_points: (2000, 2900) },
-        SampleSpec { name: "PIANO72", pcm: tone(2500, 42, 1400, 2), rate: 22050, root: 72, correction: 3, loop_points: (1800, 2400) },
-        SampleSpec { name: "BASS40", pcm: tone(1500, 267, 900, 3), rate: 22050, root: 40, correction: -5, loop_points: (0, 0) },
-        SampleSpec { name: "KICK", pcm: tone(4000, 400, 600, 4), rate: 22050, root: 60, correction: 0, loop_points: (0, 0) },
-        SampleSpec { name: "SNARE", pcm: tone(12000, 31, 3000, 5), rate: 22050, root: 60, correction: 0, loop_points: (0, 0) },
-        SampleSpec { name: "HAT", pcm: tone(800, 7, 200, 6), rate: 32000, root: 60, correction: 0, loop_points: (0, 0) },
+        SampleSpec {
+            name: "PIANO60",
+            pcm: tone(3000, 84, 1500, 1),
+            rate: 22050,
+            root: 60,
+            correction: 0,
+            loop_points: (2000, 2900),
+        },
+        SampleSpec {
+            name: "PIANO72",
+            pcm: tone(2500, 42, 1400, 2),
+            rate: 22050,
+            root: 72,
+            correction: 3,
+            loop_points: (1800, 2400),
+        },
+        SampleSpec {
+            name: "BASS40",
+            pcm: tone(1500, 267, 900, 3),
+            rate: 22050,
+            root: 40,
+            correction: -5,
+            loop_points: (0, 0),
+        },
+        SampleSpec {
+            name: "KICK",
+            pcm: tone(4000, 400, 600, 4),
+            rate: 22050,
+            root: 60,
+            correction: 0,
+            loop_points: (0, 0),
+        },
+        SampleSpec {
+            name: "SNARE",
+            pcm: tone(12000, 31, 3000, 5),
+            rate: 22050,
+            root: 60,
+            correction: 0,
+            loop_points: (0, 0),
+        },
+        SampleSpec {
+            name: "HAT",
+            pcm: tone(800, 7, 200, 6),
+            rate: 32000,
+            root: 60,
+            correction: 0,
+            loop_points: (0, 0),
+        },
     ];
     let mut smpl = Vec::new();
     let mut shdr = Vec::new();
@@ -244,20 +334,43 @@ fn soundfont() -> Vec<u8> {
     }
     shdr.extend(name("EOS", 46));
 
-    let piano_env = [(36, signed(3000)), (37, 1440), (38, signed(-1000)), (40, 30)];
+    let piano_env = [
+        (36, signed(3000)),
+        (37, 1440),
+        (38, signed(-1000)),
+        (40, 30),
+    ];
     let instruments: Vec<(&str, Vec<Zone>)> = vec![
         (
             "Piano",
             vec![
-                [vec![range(0, 65)], piano_env.to_vec(), vec![(54, 1), (53, 0)]].concat(),
-                [vec![range(66, 127)], piano_env.to_vec(), vec![(52, signed(-7)), (54, 1), (53, 1)]].concat(),
+                [
+                    vec![range(0, 65)],
+                    piano_env.to_vec(),
+                    vec![(54, 1), (53, 0)],
+                ]
+                .concat(),
+                [
+                    vec![range(66, 127)],
+                    piano_env.to_vec(),
+                    vec![(52, signed(-7)), (54, 1), (53, 1)],
+                ]
+                .concat(),
             ],
         ),
         // Its root, 28, is outside its range: the key it is asked with is
         // the one it plays the most.
         (
             "Bass",
-            vec![vec![range(32, 127), (34, signed(-8000)), (36, signed(2000)), (37, 100), (38, signed(-6000)), (58, 28), (53, 2)]],
+            vec![vec![
+                range(32, 127),
+                (34, signed(-8000)),
+                (36, signed(2000)),
+                (37, 100),
+                (38, signed(-6000)),
+                (58, 28),
+                (53, 2),
+            ]],
         ),
         (
             "Kit",
@@ -406,21 +519,46 @@ pub const ARAM_END: i64 = 0x0400 + 4 * 16 + 9 + 22000;
 /// `soundfont.sf2`.
 pub fn write(dir: &Path) -> PathBuf {
     let game = dir.join("game");
-    for d in ["game/Music", "game/Sound", "rtp/Music", "project/patches/auto/music"] {
+    for d in [
+        "game/Music",
+        "game/Sound",
+        "rtp/Music",
+        "project/patches/auto/music",
+    ] {
         std::fs::create_dir_all(dir.join(d)).unwrap();
     }
     std::fs::write(game.join("Music/alpha.mid"), alpha()).unwrap();
     std::fs::write(game.join("Music/Beta.MID"), beta()).unwrap();
-    std::fs::write(game.join("Music/gamma.wav"), wav(1, 16, 22050, &tone(100, 50, 100, 9))).unwrap();
+    std::fs::write(
+        game.join("Music/gamma.wav"),
+        wav(1, 16, 22050, &tone(100, 50, 100, 9)),
+    )
+    .unwrap();
     std::fs::write(dir.join("rtp/Music/zeta.mid"), beta()).unwrap();
     std::fs::write(dir.join("rtp/Music/other.wav"), b"").unwrap();
-    std::fs::write(game.join("Sound/Ping.wav"), wav(1, 16, 22050, &tone(3000, 20, 1000, 10))).unwrap();
+    std::fs::write(
+        game.join("Sound/Ping.wav"),
+        wav(1, 16, 22050, &tone(3000, 20, 1000, 10)),
+    )
+    .unwrap();
     let stereo: Vec<i32> = tone(40000, 100, 30000, 11);
     std::fs::write(game.join("Sound/Rumble.wav"), wav(2, 8, 11025, &stereo)).unwrap();
-    std::fs::write(game.join("Sound/chime.WAV"), wav(1, 16, 22050, &tone(30000, 30, 12000, 12))).unwrap();
-    std::fs::write(game.join("Sound/Boom.wav"), wav(1, 16, 22050, &tone(26000, 150, 9000, 13))).unwrap();
+    std::fs::write(
+        game.join("Sound/chime.WAV"),
+        wav(1, 16, 22050, &tone(30000, 30, 12000, 12)),
+    )
+    .unwrap();
+    std::fs::write(
+        game.join("Sound/Boom.wav"),
+        wav(1, 16, 22050, &tone(26000, 150, 9000, 13)),
+    )
+    .unwrap();
     std::fs::write(dir.join("project/rm2k-snes.toml"), PROJECT).unwrap();
-    std::fs::write(dir.join("project/patches/auto/music/ceilings.toml"), CEILINGS).unwrap();
+    std::fs::write(
+        dir.join("project/patches/auto/music/ceilings.toml"),
+        CEILINGS,
+    )
+    .unwrap();
     std::fs::write(dir.join("soundfont.sf2"), soundfont()).unwrap();
     std::fs::write(dir.join("job.json"), JOB).unwrap();
     game

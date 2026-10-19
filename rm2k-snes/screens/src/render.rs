@@ -74,7 +74,8 @@ impl<'a> Painter<'a> {
         for (dy, line) in cell.iter().enumerate() {
             for (dx, &value) in line.iter().enumerate() {
                 let (px, py) = (x + dx as i64, y + dy as i64);
-                if value != 0 && (0..WIDTH as i64).contains(&px) && (0..HEIGHT as i64).contains(&py) {
+                if value != 0 && (0..WIDTH as i64).contains(&px) && (0..HEIGHT as i64).contains(&py)
+                {
                     self.set(px as usize, py as usize, palette[value as usize]);
                 }
             }
@@ -85,7 +86,11 @@ impl<'a> Painter<'a> {
     fn layer(&mut self, layer: &Picture) {
         for (i, px) in layer.rgba.chunks_exact(4).enumerate() {
             if px[3] != 0 {
-                self.set(i % layer.width, i / layer.width, cells::rgb15([px[0], px[1], px[2], px[3]]));
+                self.set(
+                    i % layer.width,
+                    i / layer.width,
+                    cells::rgb15([px[0], px[1], px[2], px[3]]),
+                );
             }
         }
     }
@@ -108,16 +113,37 @@ impl<'a> Painter<'a> {
 /// pixel in and two down, letter after letter, in the colours palette 0
 /// has —the ink's, which the bank makes sure it carries—. `stored` is the
 /// text as the cartridge keeps it, padded.
-fn compose_text(p: &mut Painter, game: &Game, skin: &Skin, stored: &str, cells: usize, row: usize, col: usize) {
+fn compose_text(
+    p: &mut Painter,
+    game: &Game,
+    skin: &Skin,
+    stored: &str,
+    cells: usize,
+    row: usize,
+    col: usize,
+) {
     let text = texts::strip_text(&game.font, stored, cells);
     let mut layer = cells::layer();
-    skin.draw_line(&mut layer, (col * CELL + GLYPH_DX) as i64, (row * CELL + GLYPH_DY) as i64, &text, 0, &game.font);
+    skin.draw_line(
+        &mut layer,
+        (col * CELL + GLYPH_DX) as i64,
+        (row * CELL + GLYPH_DY) as i64,
+        &text,
+        0,
+        &game.font,
+    );
     p.layer(&layer);
 }
 
 /// A text written one letter per cell with the menu bank's glyphs, as the
 /// cartridge writes numbers.
-fn paste_text(p: &mut Painter, menu: &MenuBlocks, text: &str, row: usize, col: usize) -> Result<()> {
+fn paste_text(
+    p: &mut Painter,
+    menu: &MenuBlocks,
+    text: &str,
+    row: usize,
+    col: usize,
+) -> Result<()> {
     for (n, letter) in text.chars().enumerate() {
         let glyph = menu
             .glyphs
@@ -160,7 +186,12 @@ fn flipped(mut cell: Indices, word: u16) -> Indices {
 
 impl Party {
     fn known(&self) -> Vec<i32> {
-        let set: BTreeSet<i32> = self.actors.clone().unwrap_or_else(|| self.members.clone()).into_iter().collect();
+        let set: BTreeSet<i32> = self
+            .actors
+            .clone()
+            .unwrap_or_else(|| self.members.clone())
+            .into_iter()
+            .collect();
         set.into_iter().collect()
     }
 }
@@ -187,16 +218,46 @@ fn actor_row(
         p.paste(face, row0, MENU_ACTOR_COL, FACE_CELLS);
     }
     let name = texts::name_text(game, actor, MENU_NAME_COLS)?;
-    compose_text(p, game, skin, &name, MENU_NAME_COLS, row0 + MENU_NAME_ROW, MENU_NAME_COL);
-    let level = if levels { party.levels.get(&actor).copied() } else { None };
-    paste_text(p, menu, &texts::level_text(game, actor, level), row0 + MENU_LEVEL_ROW, MENU_LEVEL_COL)?;
-    paste_text(p, menu, &texts::max_text(game, actor, level), row0 + MENU_HP_ROW, MENU_MAX_COL)?;
+    compose_text(
+        p,
+        game,
+        skin,
+        &name,
+        MENU_NAME_COLS,
+        row0 + MENU_NAME_ROW,
+        MENU_NAME_COL,
+    );
+    let level = if levels {
+        party.levels.get(&actor).copied()
+    } else {
+        None
+    };
+    paste_text(
+        p,
+        menu,
+        &texts::level_text(game, actor, level),
+        row0 + MENU_LEVEL_ROW,
+        MENU_LEVEL_COL,
+    )?;
+    paste_text(
+        p,
+        menu,
+        &texts::max_text(game, actor, level),
+        row0 + MENU_HP_ROW,
+        MENU_MAX_COL,
+    )?;
     let hp = match party.hp.get(&actor) {
         Some(&hp) => hp,
         None => texts::max_hp(&game.actors[&actor], None),
     };
     let digits = texts::digits_of(hp, MENU_HP_DIGITS as u32);
-    paste_text(p, menu, &digits, row0 + MENU_HP_ROW, MENU_HP_COL + MENU_HP_DIGITS - digits.len())
+    paste_text(
+        p,
+        menu,
+        &digits,
+        row0 + MENU_HP_ROW,
+        MENU_HP_COL + MENU_HP_DIGITS - digits.len(),
+    )
 }
 
 /// The pause menu. `slots` are the save slots, `chosen` the command with
@@ -231,8 +292,19 @@ pub fn menu(
         );
     }
     let digits = texts::digits_of(gold, MENU_GOLD_DIGITS as u32);
-    paste_text(&mut p, menu, &digits, MENU_GOLD_Y / CELL, MENU_CURRENCY_COL - digits.len())?;
-    p.paste(&menu.currency, MENU_GOLD_Y / CELL, MENU_CURRENCY_COL, MENU_CURRENCY_COLS);
+    paste_text(
+        &mut p,
+        menu,
+        &digits,
+        MENU_GOLD_Y / CELL,
+        MENU_CURRENCY_COL - digits.len(),
+    )?;
+    p.paste(
+        &menu.currency,
+        MENU_GOLD_Y / CELL,
+        MENU_CURRENCY_COL,
+        MENU_CURRENCY_COLS,
+    );
     let rows: Vec<(usize, i32)> = party
         .members
         .iter()
@@ -265,7 +337,8 @@ pub fn menu(
             if letter == ' ' {
                 continue;
             }
-            let x = (MENU_EXP_X + MENU_EXP_NUM_DX + n * rm2k_snes_text::font::WIDTH - GLYPH_DX) as i64;
+            let x =
+                (MENU_EXP_X + MENU_EXP_NUM_DX + n * rm2k_snes_text::font::WIDTH - GLYPH_DX) as i64;
             let glyph = menu
                 .glyphs
                 .get(&letter)
@@ -291,7 +364,15 @@ pub fn target(
     let name = game.item_name(item)?;
     let lines = texts::name_in_lines(&game.font, &name, TARGET_NAME_WIDTH, 2);
     let windows = borders::target_windows(game, skin, Some(chosen))?;
-    target_with(game, skin, slots, party, windows, [&lines[0], &lines[1]], amount)
+    target_with(
+        game,
+        skin,
+        slots,
+        party,
+        windows,
+        [&lines[0], &lines[1]],
+        amount,
+    )
 }
 
 /// The actor choice for `skill`, used from the skills screen: its name, its
@@ -309,7 +390,15 @@ pub fn target_skill(
     let (_, lines) = crate::skills::name_lines(game, skill)?;
     let windows = borders::target_windows_for(game, skin, TARGET_TERM_COST, Some(cursor))?;
     let cost = game.skill(skill)?.sp_cost as i64;
-    target_with(game, skin, slots, party, windows, [&lines[0], &lines[1]], cost)
+    target_with(
+        game,
+        skin,
+        slots,
+        party,
+        windows,
+        [&lines[0], &lines[1]],
+        cost,
+    )
 }
 
 fn target_with(
@@ -325,16 +414,36 @@ fn target_with(
     let bank = slots::slots_screen(game, skin, slots, &known, slots::Order::Drawn)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&windows);
-    for (row, actor) in party.members.iter().take(MENU_PARTY_ROWS).copied().enumerate() {
+    for (row, actor) in party
+        .members
+        .iter()
+        .take(MENU_PARTY_ROWS)
+        .copied()
+        .enumerate()
+    {
         if known.contains(&actor) {
             actor_row(&mut p, game, skin, &bank, row, actor, party, false)?;
         }
     }
     for (n, line) in name.iter().enumerate() {
         let line = texts::ljust(line, TARGET_NAME_WIDTH);
-        compose_text(&mut p, game, skin, &line, TARGET_NAME_WIDTH, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL);
+        compose_text(
+            &mut p,
+            game,
+            skin,
+            &line,
+            TARGET_NAME_WIDTH,
+            TARGET_NAME_ROW + 2 * n,
+            TARGET_NAME_COL,
+        );
     }
-    paste_text(&mut p, &bank.menu, &format!("{:2}", count.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
+    paste_text(
+        &mut p,
+        &bank.menu,
+        &format!("{:2}", count.min(99)),
+        TARGET_COUNT_ROW,
+        TARGET_COUNT_COL,
+    )?;
     Ok(p.picture())
 }
 
@@ -353,7 +462,13 @@ pub fn slot_screen(
     parties: &BTreeMap<usize, Vec<i32>>,
     levels: &BTreeMap<usize, i64>,
 ) -> Result<Picture> {
-    let actors: Vec<i32> = parties.values().flatten().copied().collect::<BTreeSet<_>>().into_iter().collect();
+    let actors: Vec<i32> = parties
+        .values()
+        .flatten()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
     let bank = slots::slots_screen(game, skin, slots, &actors, slots::Order::Drawn)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::slot_bar(game, skin, Some(chosen))?);
@@ -361,12 +476,7 @@ pub fn slot_screen(
     for number in 0..slots {
         let row0 = (SLOT_Y + number * SLOT_STEP) / CELL;
         let is_full = full.get(number).copied().unwrap_or(false) || parties.contains_key(&number);
-        p.paste(
-            &bank.rows[number][is_full as usize],
-            row0,
-            0,
-            COLS,
-        );
+        p.paste(&bank.rows[number][is_full as usize], row0, 0, COLS);
         if !is_full {
             continue;
         }
@@ -376,7 +486,15 @@ pub fn slot_screen(
         if let Some(&leader) = party.first() {
             if actors.contains(&leader) {
                 let name = texts::name_text(game, leader, MENU_NAME_COLS)?;
-                compose_text(&mut p, game, skin, &name, NAME_COLS, row0 + NAME_ROW, NAME_COL);
+                compose_text(
+                    &mut p,
+                    game,
+                    skin,
+                    &name,
+                    NAME_COLS,
+                    row0 + NAME_ROW,
+                    NAME_COL,
+                );
                 paste_text(
                     &mut p,
                     &bank.menu,
@@ -419,7 +537,14 @@ impl Grid {
 
     /// In `width` places, right-aligned: the places a number does not reach
     /// are blanks as wide as a digit.
-    pub fn write_number(&mut self, row: usize, col: usize, value: i64, width: usize, variant: usize) {
+    pub fn write_number(
+        &mut self,
+        row: usize,
+        col: usize,
+        value: i64,
+        width: usize,
+        variant: usize,
+    ) {
         let text: String = texts::right(value, width)
             .chars()
             .map(|c| if c == ' ' { FIGURE_BLANK } else { c })
@@ -429,7 +554,14 @@ impl Grid {
 
     /// Right-aligned so that its last letter ends with cell `last`: the
     /// shop's gold, prices and totals, which have no fixed number of places.
-    pub fn write_right(&mut self, font: &Font, row: usize, last: usize, text: &str, variant: usize) {
+    pub fn write_right(
+        &mut self,
+        font: &Font,
+        row: usize,
+        last: usize,
+        text: &str,
+        variant: usize,
+    ) {
         let x = (last + 1) * CELL + SCR_TEXT_X - 1 - font.width(text);
         self.run(row, x, text, variant);
     }
@@ -439,7 +571,9 @@ impl Grid {
     pub fn pairs(&self, font: &Font) -> usize {
         let mut rows: BTreeMap<usize, Vec<(usize, String, usize)>> = BTreeMap::new();
         for (row, x, text, variant) in &self.runs {
-            rows.entry(*row).or_default().push((*x, text.clone(), *variant));
+            rows.entry(*row)
+                .or_default()
+                .push((*x, text.clone(), *variant));
         }
         rm2k_snes_text::cells::pairs(font, rows.values().map(Vec::as_slice))
     }
@@ -502,11 +636,18 @@ pub fn item_screen_text(
 ) -> Result<(Grid, Picture)> {
     let known: BTreeSet<i32> = match known {
         Some(k) => k.iter().copied().collect(),
-        None => inventory.iter().filter(|(_, &n)| n > 0).map(|(i, _)| *i).collect(),
+        None => inventory
+            .iter()
+            .filter(|(_, &n)| n > 0)
+            .map(|(i, _)| *i)
+            .collect(),
     };
     // The ones there are and that the cartridge knows, in number order like
     // `Game_Party`.
-    let listed: Vec<i32> = known.into_iter().filter(|i| inventory.get(i).copied().unwrap_or(0) > 0).collect();
+    let listed: Vec<i32> = known
+        .into_iter()
+        .filter(|i| inventory.get(i).copied().unwrap_or(0) > 0)
+        .collect();
     let mut t = Grid::default();
     if !listed.is_empty() {
         t.description(&game.font, &game.item_description(listed[chosen])?);
@@ -518,15 +659,37 @@ pub fn item_screen_text(
         }
         let item = game.item(listed[k])?;
         let row0 = ITEM_LIST_Y / CELL + 2 * row;
-        let variant = if texts::item_usable(item) { ITEM_WHITE } else { ITEM_GRAY };
-        t.write(row0, ITEM_NAME_COL, &item_text(&game.item_name(listed[k])?, ITEM_NAME_WIDTH), variant);
+        let variant = if texts::item_usable(item) {
+            ITEM_WHITE
+        } else {
+            ITEM_GRAY
+        };
+        t.write(
+            row0,
+            ITEM_NAME_COL,
+            &item_text(&game.item_name(listed[k])?, ITEM_NAME_WIDTH),
+            variant,
+        );
         // The colon and the count are one write on the cartridge: the
         // number goes where the colon left it.
         let count = inventory[&listed[k]].min(99);
-        let digits: String = format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
+        let digits: String = format!("{count:2}")
+            .chars()
+            .map(|c| if c == ' ' { FIGURE_BLANK } else { c })
+            .collect();
         t.write(row0, ITEM_COLON_COL, &format!(":{digits}"), variant);
     }
-    Ok((t, borders::item_windows(skin, if listed.is_empty() { None } else { Some(chosen - top) })))
+    Ok((
+        t,
+        borders::item_windows(
+            skin,
+            if listed.is_empty() {
+                None
+            } else {
+                Some(chosen - top)
+            },
+        ),
+    ))
 }
 
 /// What the actor can put in `slot`, in number order, and the 0 at the end
@@ -545,7 +708,11 @@ pub fn candidates(
         }
         let item = game.item(i)?;
         // The item type that goes in the slot: 1 weapon ... 5 accessory.
-        let equippable = item.actor_set.get((actor - 1) as usize).copied().unwrap_or(true);
+        let equippable = item
+            .actor_set
+            .get((actor - 1) as usize)
+            .copied()
+            .unwrap_or(true);
         if item.r#type.to_i32() == slot as i32 + 1 && equippable {
             out.push(i);
         }
@@ -556,7 +723,13 @@ pub fn candidates(
 
 /// `Game_Actor::ChangeEquipment` ([`rm2k_rules::actor::change_equipment`])
 /// with this game's items: an item it does not have is a no.
-pub fn equip(game: &Game, equipment: &mut [i32], inventory: &mut BTreeMap<i32, i64>, slot: usize, item: i32) -> Result<()> {
+pub fn equip(
+    game: &Game,
+    equipment: &mut [i32],
+    inventory: &mut BTreeMap<i32, i64>,
+    slot: usize,
+    item: i32,
+) -> Result<()> {
     rm2k_rules::actor::change_equipment(equipment, inventory, slot, item, |i| {
         Ok(game.item(i)?.two_handed)
     })
@@ -591,9 +764,18 @@ pub fn equipment_screen(
     known: Option<&BTreeSet<i32>>,
 ) -> Result<Picture> {
     let mut t = Grid::default();
-    t.write(EQ_ACTOR_ROW, EQ_ACTOR_COL, &game.actor_name(actor)?, ITEM_WHITE);
+    t.write(
+        EQ_ACTOR_ROW,
+        EQ_ACTOR_COL,
+        &game.actor_name(actor)?,
+        ITEM_WHITE,
+    );
     let choices = candidates(game, actor, slot, inventory, known)?;
-    let bar = if choosing { EQUIPMENT_SLOTS + chosen - top } else { slot };
+    let bar = if choosing {
+        EQUIPMENT_SLOTS + chosen - top
+    } else {
+        slot
+    };
     let now = texts::equipped_params(game, actor, equipment);
     let mut then = None;
     if choosing {
@@ -609,12 +791,22 @@ pub fn equipment_screen(
     }
     let params = ["attack", "defense", "spirit", "agility"];
     for (n, &(row, col)) in EQ_PARAMS.iter().enumerate() {
-        let term: String = game.term(params[n])?.chars().take(EQ_PARAM_VALUE - 1).collect();
+        let term: String = game
+            .term(params[n])?
+            .chars()
+            .take(EQ_PARAM_VALUE - 1)
+            .collect();
         t.write(row, col, &term, ITEM_RED);
         t.write_number(row, col + EQ_PARAM_VALUE, now[n], 3, ITEM_WHITE);
         if let Some(then) = &then {
             t.write(row, col + EQ_PARAM_ARROW, ">", ITEM_RED);
-            t.write_number(row, col + EQ_PARAM_ARROW + 1, then[n], 3, new_value_color(now[n], then[n]));
+            t.write_number(
+                row,
+                col + EQ_PARAM_ARROW + 1,
+                then[n],
+                3,
+                new_value_color(now[n], then[n]),
+            );
         }
     }
     if !choosing {
@@ -624,7 +816,16 @@ pub fn equipment_screen(
             let term: String = game.term(name)?.chars().take(EQ_SLOT_TERM_WIDTH).collect();
             t.write(row, EQ_SLOT_TERM_COL, &term, ITEM_RED);
             if equipment[r] != 0 {
-                t.write(row, EQ_SLOT_NAME_COL, &fit_cells(&game.font, &item_text(&game.item_name(equipment[r])?, ITEM_NAME_WIDTH), EQ_SLOT_NAME_WIDTH), ITEM_WHITE);
+                t.write(
+                    row,
+                    EQ_SLOT_NAME_COL,
+                    &fit_cells(
+                        &game.font,
+                        &item_text(&game.item_name(equipment[r])?, ITEM_NAME_WIDTH),
+                        EQ_SLOT_NAME_WIDTH,
+                    ),
+                    ITEM_WHITE,
+                );
             }
         }
     } else {
@@ -635,10 +836,17 @@ pub fn equipment_screen(
             }
             let row = EQ_LIST_ROW0 + 2 * f;
             if choices[k] != 0 {
-                t.write(row, EQ_LIST_NAME_COL, &item_text(&game.item_name(choices[k])?, ITEM_NAME_WIDTH), ITEM_WHITE);
+                t.write(
+                    row,
+                    EQ_LIST_NAME_COL,
+                    &item_text(&game.item_name(choices[k])?, ITEM_NAME_WIDTH),
+                    ITEM_WHITE,
+                );
                 let count = inventory[&choices[k]].min(99);
-                let digits: String =
-                    format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
+                let digits: String = format!("{count:2}")
+                    .chars()
+                    .map(|c| if c == ' ' { FIGURE_BLANK } else { c })
+                    .collect();
                 t.write(row, ITEM_COLON_COL, &format!(":{digits}"), ITEM_WHITE);
             }
         }
@@ -690,7 +898,15 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
             .enumerate()
             .map(|(i, &a)| (a, shop.party_equipment.get(i).cloned().unwrap_or_default()))
             .collect();
-        crate::party::draw(game, skin, &mut screen, &party, shop_item(shop), &shop.frames, shop.phase)?;
+        crate::party::draw(
+            game,
+            skin,
+            &mut screen,
+            &party,
+            shop_item(shop),
+            &shop.frames,
+            shop.phase,
+        )?;
     }
     Ok(screen)
 }
@@ -698,12 +914,19 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
 /// The items the shop's list shows in its mode: what it sells, or what is
 /// owned of what the cartridge knows.
 fn shop_choices(shop: &Shop) -> Vec<i32> {
-    let known: BTreeSet<i32> = shop
-        .known
-        .clone()
-        .unwrap_or_else(|| shop.sells.iter().chain(shop.inventory.keys()).copied().collect());
+    let known: BTreeSet<i32> = shop.known.clone().unwrap_or_else(|| {
+        shop.sells
+            .iter()
+            .chain(shop.inventory.keys())
+            .copied()
+            .collect()
+    });
     if matches!(shop.mode, TI_BUY | TI_COUNT_BUY | TI_BOUGHT) {
-        shop.sells.iter().copied().filter(|i| known.contains(i)).collect()
+        shop.sells
+            .iter()
+            .copied()
+            .filter(|i| known.contains(i))
+            .collect()
     } else {
         shop.inventory
             .iter()
@@ -748,7 +971,12 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
         for (n, command) in commands.iter().enumerate() {
             // From the first line, like the cartridge, which stores them
             // split: a term with a leading space loses it.
-            t.write(row0 + 2 * n, TI_COMMAND_COL, &split_description(&game.font, &term(command)?)[0], ITEM_WHITE);
+            t.write(
+                row0 + 2 * n,
+                TI_COMMAND_COL,
+                &split_description(&game.font, &term(command)?)[0],
+                ITEM_WHITE,
+            );
         }
         let bar = shop.chosen + two as usize;
         return Ok((t, borders::shop_windows(skin, layer, Some(bar))));
@@ -778,10 +1006,31 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
         t.write(TI_GOLD_ROW, TI_GOLD_COL + 1, &gold_term, ITEM_RED);
         if !choices.is_empty() {
             let number = choices[shop.chosen];
-            t.write(TI_OWNED_ROW, TI_STATUS_COL, &game.term(TI_TERM_OWNED)?, ITEM_RED);
-            t.write_number(TI_OWNED_ROW, TI_STATUS_NUM, shop.inventory.get(&number).copied().unwrap_or(0), 2, ITEM_WHITE);
-            t.write(TI_CARRIED_ROW, TI_STATUS_COL, &game.term(TI_TERM_CARRIED)?, ITEM_RED);
-            let carried = shop.party_equipment.iter().flatten().filter(|&&i| i == number).count() as i64;
+            t.write(
+                TI_OWNED_ROW,
+                TI_STATUS_COL,
+                &game.term(TI_TERM_OWNED)?,
+                ITEM_RED,
+            );
+            t.write_number(
+                TI_OWNED_ROW,
+                TI_STATUS_NUM,
+                shop.inventory.get(&number).copied().unwrap_or(0),
+                2,
+                ITEM_WHITE,
+            );
+            t.write(
+                TI_CARRIED_ROW,
+                TI_STATUS_COL,
+                &game.term(TI_TERM_CARRIED)?,
+                ITEM_RED,
+            );
+            let carried = shop
+                .party_equipment
+                .iter()
+                .flatten()
+                .filter(|&&i| i == number)
+                .count() as i64;
             t.write_number(TI_CARRIED_ROW, TI_STATUS_NUM, carried, 2, ITEM_WHITE);
         }
     }
@@ -791,7 +1040,12 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
         if shop.mode == TI_COUNT_SALE {
             price /= 2;
         }
-        t.write(TI_COUNT_ROW, TI_LIST_COL, &item_text(&game.item_name(number)?, ITEM_NAME_WIDTH), ITEM_WHITE);
+        t.write(
+            TI_COUNT_ROW,
+            TI_LIST_COL,
+            &item_text(&game.item_name(number)?, ITEM_NAME_WIDTH),
+            ITEM_WHITE,
+        );
         t.write(TI_COUNT_ROW, TI_COUNT_X_COL, "x", ITEM_WHITE);
         t.write_number(TI_COUNT_ROW, TI_COUNT_COL, shop.count, 2, ITEM_WHITE);
         let total = (price * shop.count).to_string();
@@ -803,7 +1057,11 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
         // The middle window, empty: RM2k.
         return Ok((t, windows));
     }
-    let rows = if buying { TI_LIST_ROWS_BUY } else { TI_LIST_ROWS_SALE };
+    let rows = if buying {
+        TI_LIST_ROWS_BUY
+    } else {
+        TI_LIST_ROWS_SALE
+    };
     for f in 0..rows {
         let k = shop.top + f;
         if k >= choices.len() {
@@ -816,20 +1074,31 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
             // `Window_ShopBuy::CheckEnable`: that there is enough and that
             // it does not have 99.
             let owned = shop.inventory.get(&number).copied().unwrap_or(0);
-            if (item.price as i64) <= shop.gold && owned < 99 { ITEM_WHITE } else { ITEM_GRAY }
+            if (item.price as i64) <= shop.gold && owned < 99 {
+                ITEM_WHITE
+            } else {
+                ITEM_GRAY
+            }
         } else if item.price > 0 {
             ITEM_WHITE
         } else {
             ITEM_GRAY
         };
-        t.write(row, TI_LIST_COL, &item_text(&game.item_name(number)?, ITEM_NAME_WIDTH), variant);
+        t.write(
+            row,
+            TI_LIST_COL,
+            &item_text(&game.item_name(number)?, ITEM_NAME_WIDTH),
+            variant,
+        );
         if buying {
             let price = item.price.to_string();
             t.write_right(&game.font, row, TI_PRICE_COL, &price, variant);
         } else {
             let count = shop.inventory[&number].min(99);
-            let digits: String =
-                format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
+            let digits: String = format!("{count:2}")
+                .chars()
+                .map(|c| if c == ' ' { FIGURE_BLANK } else { c })
+                .collect();
             t.write(row, ITEM_COLON_COL, &format!(":{digits}"), variant);
         }
     }
@@ -861,7 +1130,11 @@ pub fn skill_screen(
 ) -> Result<Picture> {
     let mut weapons = Vec::new();
     for n in held.into_iter().filter(|&n| n > 0) {
-        weapons.push(game.items.get(&n).ok_or_else(|| Bad::answer(format!("there is no item {n}")))?);
+        weapons.push(
+            game.items
+                .get(&n)
+                .ok_or_else(|| Bad::answer(format!("there is no item {n}")))?,
+        );
     }
     let grey: Vec<bool> = skills
         .iter()
@@ -872,9 +1145,21 @@ pub fn skill_screen(
                 || !rm2k_rules::skill::weapons_allow(s, &game.attributes, &weapons))
         })
         .collect::<Result<_>>()?;
-    let t = crate::skills::page_text(game, actor, level, hp, sp, skills, &grey, skills.get(chosen).copied(), top)?;
+    let t = crate::skills::page_text(
+        game,
+        actor,
+        level,
+        hp,
+        sp,
+        skills,
+        &grey,
+        skills.get(chosen).copied(),
+        top,
+    )?;
     let place = chosen.checked_sub(SK_COLUMNS * top).ok_or_else(|| {
-        Bad::answer(format!("the skills screen's cursor, {chosen}, is above its first row, {top}"))
+        Bad::answer(format!(
+            "the skills screen's cursor, {chosen}, is above its first row, {top}"
+        ))
     })?;
     t.render(game, skin, &crate::skills::windows(skin, Some(place)))
 }
@@ -913,7 +1198,9 @@ pub fn title_menu(game: &Game, skin: &Skin, chosen: usize, saved: bool) -> Resul
     let menu = crate::title::menu(game, skin)?;
     let n = menu.texts.len();
     if chosen >= n {
-        return Err(Bad::answer(format!("the title has {n} options and the cursor is on {chosen}")));
+        return Err(Bad::answer(format!(
+            "the title has {n} options and the cursor is on {chosen}"
+        )));
     }
     let tilemap = &menu.tilemaps[usize::from(saved) * n + chosen];
     let mut out = Picture::transparent(WIDTH, HEIGHT);

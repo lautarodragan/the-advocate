@@ -34,7 +34,9 @@ fn gradient_system() -> Picture {
     }
     for y in 0..PIECE {
         for x in 0..PIECE {
-            let inner = |v: i32| (EDGE / 2..EDGE).contains(&v) || (PIECE - EDGE..PIECE - EDGE / 2).contains(&v);
+            let inner = |v: i32| {
+                (EDGE / 2..EDGE).contains(&v) || (PIECE - EDGE..PIECE - EDGE / 2).contains(&v)
+            };
             let corner = (x < EDGE || x >= PIECE - EDGE) && (y < EDGE || y >= PIECE - EDGE);
             if !corner && (inner(x) || inner(y)) {
                 let p = at(FRAME.0 + x, FRAME.1 + y);
@@ -46,7 +48,10 @@ fn gradient_system() -> Picture {
 }
 
 fn game_with(system: &Picture, name: &str) -> Game {
-    let path = std::env::temp_dir().join(format!("rm2k-snes-screens-{}-{name}.png", std::process::id()));
+    let path = std::env::temp_dir().join(format!(
+        "rm2k-snes-screens-{}-{name}.png",
+        std::process::id()
+    ));
     picture::write_png(&path, system).unwrap();
     let mut game = Game::from_dump(&here().join("dump"), &here().join("pictures")).unwrap();
     game.use_system(path.to_str().unwrap());
@@ -77,10 +82,16 @@ fn request() -> Request {
 fn a_gradient_behind_the_frame_fits_every_bank() {
     let game = game_with(&gradient_system(), "fits");
     let answer = convert::convert(&game, &request()).unwrap();
-    let says: Vec<&str> = answer["says"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
+    let says: Vec<&str> = answer["says"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s.as_str().unwrap())
+        .collect();
     for what in ["the message window's frame", "the actor choice's windows"] {
         assert!(
-            says.iter().any(|s| s.contains("WARNING") && s.contains(what)),
+            says.iter()
+                .any(|s| s.contains("WARNING") && s.contains(what)),
             "{what} should have been fused: {says:#?}"
         );
     }
@@ -97,12 +108,23 @@ fn over_one_colour_the_same_system_fuses_nothing() {
     let mut game = game_with(&gradient_system(), "flat");
     game.use_window_background("#102030").unwrap();
     let answer = convert::convert(&game, &request()).unwrap();
-    let says: Vec<&str> = answer["says"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
+    let says: Vec<&str> = answer["says"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s.as_str().unwrap())
+        .collect();
     let fused = |s: &&str| s.contains("as RM2k draws them") || s.contains("frame and arrow took");
-    assert!(!says.iter().any(|s| fused(s)), "nothing should be fused: {says:#?}");
+    assert!(
+        !says.iter().any(|s| fused(s)),
+        "nothing should be fused: {says:#?}"
+    );
     let skin = game.skin().unwrap();
     let inside = skin.window_background(40, 24);
-    assert!(inside.rgba.chunks_exact(4).all(|p| p == [0x10, 0x20, 0x30, 255]));
+    assert!(inside
+        .rgba
+        .chunks_exact(4)
+        .all(|p| p == [0x10, 0x20, 0x30, 255]));
     // The frame is the System's still: it is not the colour.
     let window = skin.window(40, 24);
     assert_ne!(&window.rgba[..4], &[0x10, 0x20, 0x30, 255]);

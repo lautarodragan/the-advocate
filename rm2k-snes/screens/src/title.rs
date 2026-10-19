@@ -36,7 +36,11 @@ pub struct TitleMenu {
 /// the screen and the song out and stops, which is what the player sees of
 /// RPG_RT closing. See `title_loop` in the runtime.
 pub fn options(game: &Game) -> Result<Vec<String>> {
-    Ok(vec![game.term("new_game")?, game.term("load_game")?, game.term("exit_game")?])
+    Ok(vec![
+        game.term("new_game")?,
+        game.term("load_game")?,
+        game.term("exit_game")?,
+    ])
 }
 
 /// The option that cannot be chosen without a save.
@@ -45,7 +49,14 @@ pub const LOAD: usize = 1;
 /// The window on a transparent `width` x `height` layer, with the bar on
 /// `chosen` and `load_game` greyed if there is no save. At 320x240 it is
 /// RM2k's.
-pub fn draw(game: &Game, skin: &Skin, chosen: usize, saved: bool, width: usize, height: usize) -> Result<Picture> {
+pub fn draw(
+    game: &Game,
+    skin: &Skin,
+    chosen: usize,
+    saved: bool,
+    width: usize,
+    height: usize,
+) -> Result<Picture> {
     let texts = options(game)?;
     let font = &game.font;
     // `Window_Command`: as wide as the longest command plus the borders,
@@ -73,7 +84,14 @@ pub fn draw(game: &Game, skin: &Skin, chosen: usize, saved: bool, width: usize, 
     );
     for (n, text) in texts.iter().enumerate() {
         let ink = if n == LOAD && !saved { INK_DISABLED } else { 0 };
-        skin.draw_line(&mut out, x + BORDER as i64, y + (BORDER + n * LINE + LINE / 8) as i64, text, ink, font);
+        skin.draw_line(
+            &mut out,
+            x + BORDER as i64,
+            y + (BORDER + n * LINE + LINE / 8) as i64,
+            text,
+            ink,
+            font,
+        );
     }
     Ok(out)
 }
@@ -105,7 +123,11 @@ pub fn menu(game: &Game, skin: &Skin) -> Result<TitleMenu> {
     let mut to: HashMap<Color, Color> = used.iter().map(|(c, _)| (*c, *c)).collect();
     if used.len() > TITLE_COLORS {
         let reduced = adeleine::merge_least_visible(&used, TITLE_COLORS)?;
-        to = used.iter().map(|(c, _)| *c).zip(reduced.mapping.iter().copied()).collect();
+        to = used
+            .iter()
+            .map(|(c, _)| *c)
+            .zip(reduced.mapping.iter().copied())
+            .collect();
         merged = reduced.merges.len();
     }
     let mut kept = Counts::default();
@@ -117,7 +139,10 @@ pub fn menu(game: &Game, skin: &Skin) -> Result<TitleMenu> {
     let mut palette = vec![BLACK];
     palette.extend(kept.by_use());
     let reduced = cells::index_of(&palette);
-    let index: HashMap<Color, u8> = to.iter().map(|(from, into)| (*from, reduced[into])).collect();
+    let index: HashMap<Color, u8> = to
+        .iter()
+        .map(|(from, into)| (*from, reduced[into]))
+        .collect();
 
     let mut bank = Bank::default();
     let mut tilemaps = Vec::new();

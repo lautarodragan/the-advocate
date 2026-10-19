@@ -227,12 +227,20 @@ pub fn item_effect(item: &Item, target: &Combatant) -> (i64, i64, bool) {
         if item.ko_only {
             return nothing;
         }
-        return (target.hp + healing(item, target), target.sp + sp_healing(item, target), false);
+        return (
+            target.hp + healing(item, target),
+            target.sp + sp_healing(item, target),
+            false,
+        );
     }
     if !rules::revives(item) {
         return nothing;
     }
-    (healing(item, target).max(1), target.sp + sp_healing(item, target), true)
+    (
+        healing(item, target).max(1),
+        target.sp + sp_healing(item, target),
+        true,
+    )
 }
 
 /// `Algo::CalcSkillEffect` **without the variance**, which goes apart:
@@ -471,7 +479,12 @@ impl Combatant {
                 self.states.sort_by_key(|h| h.info.id);
             }
         }
-        let top = self.states.iter().map(|h| h.info.priority).max().unwrap_or(0);
+        let top = self
+            .states
+            .iter()
+            .map(|h| h.info.priority)
+            .max()
+            .unwrap_or(0);
         self.states.retain(|h| h.info.priority > top - 10);
         self.has_state(id)
     }
@@ -677,8 +690,7 @@ fn compare(a: i64, op: i64, b: i64) -> Result<bool> {
 }
 
 /// Which side, and which place on it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Who {
     Actor(usize),
     Enemy(usize),
@@ -917,7 +929,9 @@ impl TroopPage {
                     // place, whether it is hidden or dead: `GetEnemy` does
                     // not ask. Adding the dead one kills it.
                     let k = parameter(p, 0)?;
-                    let Some(k) = usize::try_from(k).ok().filter(|&k| k < battle.enemies.len())
+                    let Some(k) = usize::try_from(k)
+                        .ok()
+                        .filter(|&k| k < battle.enemies.len())
                     else {
                         continue;
                     };
@@ -1145,11 +1159,7 @@ impl Battle {
     /// the SP, 4 and 5 their maximums. Of one who is not fighting only what
     /// a page left in `outside` is known.
     fn actor_stat(&self, actor: i64, which: i64) -> Option<i64> {
-        if let Some(a) = self
-            .actors
-            .iter()
-            .find(|a| a.number == actor && !a.hidden)
-        {
+        if let Some(a) = self.actors.iter().find(|a| a.number == actor && !a.hidden) {
             return match which {
                 2 => Some(a.hp),
                 3 => Some(a.sp),
@@ -1193,14 +1203,12 @@ impl Battle {
         let (slot, item) = match op {
             0 if kind == 1 && a == 0 => {
                 let it = db.item(b as i32)?;
-                let usable = it
-                    .actor_set
-                    .get(id as usize - 1)
-                    .copied()
-                    .unwrap_or(false);
+                let usable = it.actor_set.get(id as usize - 1).copied().unwrap_or(false);
                 let t = it.r#type.to_i32() as i64;
                 if !(3..=5).contains(&t) {
-                    return Err(Bad::answer("equipping a weapon or a shield from a troop page"));
+                    return Err(Bad::answer(
+                        "equipping a weapon or a shield from a troop page",
+                    ));
                 }
                 if !usable {
                     return Ok(());
@@ -1392,14 +1400,31 @@ impl Battle {
         let mut released = Vec::new();
         for id in ids {
             let (turns, hold, prob) = {
-                let h = self.get(who).states.iter().find(|h| h.info.id == id).unwrap();
+                let h = self
+                    .get(who)
+                    .states
+                    .iter()
+                    .find(|h| h.info.id == id)
+                    .unwrap();
                 (h.turns, h.info.hold_turn, h.info.auto_release_prob)
             };
             if turns > hold && self.rng.percent(prob) {
-                let info = self.get(who).states.iter().find(|h| h.info.id == id).unwrap().info.clone();
+                let info = self
+                    .get(who)
+                    .states
+                    .iter()
+                    .find(|h| h.info.id == id)
+                    .unwrap()
+                    .info
+                    .clone();
                 self.remove_state(who, id);
                 released.push(info);
-            } else if let Some(h) = self.get_mut(who).states.iter_mut().find(|h| h.info.id == id) {
+            } else if let Some(h) = self
+                .get_mut(who)
+                .states
+                .iter_mut()
+                .find(|h| h.info.id == id)
+            {
                 h.turns += 1;
             }
         }
@@ -1625,7 +1650,11 @@ impl Battle {
         let hit_rate = if !t.can_act() {
             100
         } else {
-            hit_rate_by_agility(s.hit_rate * s.hit_modifier() / 100, s.agility(), t.agility())
+            hit_rate_by_agility(
+                s.hit_rate * s.hit_modifier() / 100,
+                s.agility(),
+                t.agility(),
+            )
         };
         let hit = self.rng.percent(hit_rate);
         let critical = self.rng.percent(if hit { s.critical } else { 0 });
@@ -1747,7 +1776,11 @@ impl Battle {
         if skill.affect_attr_defence {
             let by = if positive { 1 } else { -1 };
             for (k, &has) in skill.attribute_effects.iter().enumerate() {
-                let movable = self.get(target).received.get(k).map_or(0, |r| r.can_shift(by));
+                let movable = self
+                    .get(target)
+                    .received
+                    .get(k)
+                    .map_or(0, |r| r.can_shift(by));
                 if has && movable != 0 && self.rng.percent(hit_rate) {
                     self.get_mut(target).received[k].shift_by(by);
                 }
@@ -1828,7 +1861,9 @@ impl Battle {
                     // A skill its weapons do not allow is greyed out and A
                     // does not choose it —`Game_Actor::IsSkillUsable`—: an
                     // order for one is an order the console cannot give.
-                    let Who::Actor(k) = actor else { unreachable!("the party gives the commands") };
+                    let Who::Actor(k) = actor else {
+                        unreachable!("the party gives the commands")
+                    };
                     if !rules::weapons_allow(db, skill, &self.actors[k].equipment)? {
                         return Err(Bad::answer(format!(
                             "{} cannot use skill {}: its weapons do not carry its physical attributes",
@@ -1951,7 +1986,6 @@ impl Battle {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     fn medicine(f: impl FnOnce(&mut Item)) -> Item {
         let mut item = Item {
@@ -2083,7 +2117,11 @@ mod tests {
             c.hp
         };
         assert_eq!(one(40, -999, true), 0);
-        assert_eq!(one(40, -999, false), 1, "a loss that is not lethal leaves 1");
+        assert_eq!(
+            one(40, -999, false),
+            1,
+            "a loss that is not lethal leaves 1"
+        );
         assert_eq!(one(0, 50, false), 0, "a dead one does not change");
         assert_eq!(one(30, 50, false), 40, "nor goes past its maximum");
     }
@@ -2174,7 +2212,10 @@ mod tests {
         assert!(e.add_state(low.clone()));
         assert!(e.add_state(control()));
         assert!(!e.has_state(5), "90 is ten below 100");
-        assert!(!e.add_state(low), "given below the highest, it does not stay");
+        assert!(
+            !e.add_state(low),
+            "given below the highest, it does not stay"
+        );
         assert_eq!(e.states.len(), 1);
     }
 
@@ -2184,7 +2225,11 @@ mod tests {
             r.iter()
                 .enumerate()
                 .map(|(k, &restriction)| Held {
-                    info: StateInfo { id: k as i64 + 2, restriction, ..control() },
+                    info: StateInfo {
+                        id: k as i64 + 2,
+                        restriction,
+                        ..control()
+                    },
                     turns: 1,
                 })
                 .collect()
@@ -2208,7 +2253,14 @@ mod tests {
         let db = Db::default();
         let mut battle = Battle::new(vec![a], vec![droid], BATTLE_SEED, vec![], BTreeMap::new());
         battle
-            .play_turn(&db, &[Command { command: COMMAND_DEFEND, what: 0, target: 0 }])
+            .play_turn(
+                &db,
+                &[Command {
+                    command: COMMAND_DEFEND,
+                    what: 0,
+                    target: 0,
+                }],
+            )
             .unwrap();
         let log: Vec<(String, String, bool)> = battle
             .log
@@ -2217,15 +2269,28 @@ mod tests {
             .collect();
         assert_eq!(log, [("Droid".to_string(), "Droid".to_string(), true)]);
         assert!(battle.enemies[0].hp < 200);
-        assert!(battle.enemies[0].states.is_empty(), "the hit did not release it");
+        assert!(
+            battle.enemies[0].states.is_empty(),
+            "the hit did not release it"
+        );
         // Held when it began acting —its message is empty—, and released by
         // the hit.
         assert_eq!(
             battle.state_log,
-            [(1, "Droid".to_string(), 22, false), (1, "Droid".to_string(), 22, true)]
+            [
+                (1, "Droid".to_string(), 22, false),
+                (1, "Droid".to_string(), 22, true)
+            ]
         );
         battle
-            .play_turn(&db, &[Command { command: COMMAND_DEFEND, what: 0, target: 0 }])
+            .play_turn(
+                &db,
+                &[Command {
+                    command: COMMAND_DEFEND,
+                    what: 0,
+                    target: 0,
+                }],
+            )
             .unwrap();
         assert_ne!(battle.log[1].target, "Droid");
     }
@@ -2254,10 +2319,23 @@ mod tests {
             }
             turns_held += 1;
             battle
-                .play_turn(&db, &[Command { command: COMMAND_DEFEND, what: 0, target: 0 }])
+                .play_turn(
+                    &db,
+                    &[Command {
+                        command: COMMAND_DEFEND,
+                        what: 0,
+                        target: 0,
+                    }],
+                )
                 .unwrap();
         }
-        assert_eq!(turns_held, 5, "1 to 4 held, and on the fifth the roll at 100");
-        assert_eq!(battle.state_log.last(), Some(&(5, "Bot".to_string(), 22, true)));
+        assert_eq!(
+            turns_held, 5,
+            "1 to 4 held, and on the fifth the roll at 100"
+        );
+        assert_eq!(
+            battle.state_log.last(),
+            Some(&(5, "Bot".to_string(), 22, true))
+        );
     }
 }

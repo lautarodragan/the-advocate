@@ -32,7 +32,8 @@ impl Degradations {
     /// The event compiler's: every page of the cartridge's.
     pub fn from_events(&mut self, answer: &Value) {
         let d = &answer["degradations"];
-        self.losses.extend(d["losses"].as_array().cloned().unwrap_or_default());
+        self.losses
+            .extend(d["losses"].as_array().cloned().unwrap_or_default());
         if let Some(commons) = d["commons"].as_object() {
             self.commons.extend(commons.clone());
         }
@@ -62,7 +63,8 @@ impl Degradations {
 
     /// A loss of a whole troop, not of one of its pages.
     pub fn troop(&mut self, troop: i64, kind: &str, text: &str) {
-        self.losses.push(json!({"troop": troop, "page": null, "kind": kind, "text": text.trim()}));
+        self.losses
+            .push(json!({"troop": troop, "page": null, "kind": kind, "text": text.trim()}));
     }
 
     /// A loss of the whole cartridge: a screen, the window, the battle.
@@ -85,7 +87,10 @@ impl Degradations {
             } else {
                 3
             };
-            let first = int(v, "map").or(int(v, "common")).or(int(v, "troop")).unwrap_or(-1);
+            let first = int(v, "map")
+                .or(int(v, "common"))
+                .or(int(v, "troop"))
+                .unwrap_or(-1);
             let event = int(v, "event").unwrap_or(-1);
             let page = int(v, "page").unwrap_or(-1);
             let command = int(v, "command").unwrap_or(-1);
@@ -101,7 +106,8 @@ impl Degradations {
     pub fn counts(&self) -> BTreeMap<String, usize> {
         let mut out = BTreeMap::new();
         for l in &self.losses {
-            *out.entry(l["kind"].as_str().unwrap_or("").to_string()).or_insert(0) += 1;
+            *out.entry(l["kind"].as_str().unwrap_or("").to_string())
+                .or_insert(0) += 1;
         }
         out
     }
@@ -177,11 +183,15 @@ mod tests {
     fn the_maps_go_first_and_in_order_then_the_rest() {
         let mut d = Degradations::default();
         d.cartridge("title-menu-not-drawn", "x");
-        d.losses.push(json!({"troop": 3, "page": 1, "command": 0, "kind": "b", "text": ""}));
-        d.losses.push(json!({"common": 9, "command": 2, "kind": "a", "text": ""}));
-        d.losses.push(json!({"map": 7, "event": 2, "page": 1, "command": 5, "kind": "a", "text": ""}));
+        d.losses
+            .push(json!({"troop": 3, "page": 1, "command": 0, "kind": "b", "text": ""}));
+        d.losses
+            .push(json!({"common": 9, "command": 2, "kind": "a", "text": ""}));
+        d.losses
+            .push(json!({"map": 7, "event": 2, "page": 1, "command": 5, "kind": "a", "text": ""}));
         d.map(7, "rain-not-drawn", "y", &[]);
-        d.losses.push(json!({"map": 3, "event": 9, "page": 2, "command": 0, "kind": "a", "text": ""}));
+        d.losses
+            .push(json!({"map": 3, "event": 9, "page": 2, "command": 0, "kind": "a", "text": ""}));
         let places: Vec<String> = d
             .sorted()
             .iter()
@@ -189,7 +199,14 @@ mod tests {
             .collect();
         assert_eq!(
             places,
-            ["3/9/null/null", "7/null/null/null", "7/2/null/null", "null/null/9/null", "null/null/null/3", "null/null/null/null"]
+            [
+                "3/9/null/null",
+                "7/null/null/null",
+                "7/2/null/null",
+                "null/null/9/null",
+                "null/null/null/3",
+                "null/null/null/null"
+            ]
         );
         assert_eq!(d.counts()["a"], 3);
     }

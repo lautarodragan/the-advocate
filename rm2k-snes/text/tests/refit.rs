@@ -38,7 +38,11 @@ fn a_box_that_fits_is_left_alone() {
 
 #[test]
 fn it_is_rebuilt_and_keeps_the_speaker() {
-    let b = ["ODILE", "I have pressing business across the Harbour", "Front. No turning back."];
+    let b = [
+        "ODILE",
+        "I have pressing business across the Harbour",
+        "Front. No turning back.",
+    ];
     let out = reflow(&b);
     assert_eq!(out.len(), 1);
     assert_eq!(out[0][0], "ODILE");
@@ -72,7 +76,10 @@ fn the_tail_goes_at_the_end_of_the_last_box() {
     ]);
     assert!(out.len() > 1);
     assert!(out.last().unwrap().last().unwrap().ends_with("can.\\|\\^"));
-    assert!(!out[..out.len() - 1].iter().flatten().any(|t| t.contains('\\')));
+    assert!(!out[..out.len() - 1]
+        .iter()
+        .flatten()
+        .any(|t| t.contains('\\')));
 }
 
 /// A line that is not the last one and takes up less than this looks cut
@@ -86,20 +93,57 @@ fn no_line_breaks_too_early() {
     // first two are the ones that looked worst —"Remember," and "Well,"
     // alone on their line, so that the ones below ended in a period—.
     let cases: [&[&str]; 8] = [
-        &["?????", "Remember, my alias for this excursion is", "\"Odile.\" We should have the element of", "surprise."],
-        &["PERCY", "Well, this question won't get any easier.", "I've got to pick up my coat and go!"],
-        &["?????", "That cleaning robot has been deactivated.", "Its polish mode has been switched off."],
-        &["PERCY", "...but the Cable-Boats don't always run on", "time, and I might get stuck waiting for one."],
-        &["PERCY", "It's Cargo Shed 004 - right near my apartment.", "I'm not getting anywhere!"],
-        &["PERCY", "Maybe there'll be another one along", "pretty soon... at least, I hope there will!"],
-        &["MAVIS", "Do you think he's one of the Night Gulls?", "Maybe they found out about our spy..."],
-        &["VEGA", "Thank you, Flint. And maybe... after all this,", "you'll be able to show me the result of the", "equation none of my detectors... can."],
+        &[
+            "?????",
+            "Remember, my alias for this excursion is",
+            "\"Odile.\" We should have the element of",
+            "surprise.",
+        ],
+        &[
+            "PERCY",
+            "Well, this question won't get any easier.",
+            "I've got to pick up my coat and go!",
+        ],
+        &[
+            "?????",
+            "That cleaning robot has been deactivated.",
+            "Its polish mode has been switched off.",
+        ],
+        &[
+            "PERCY",
+            "...but the Cable-Boats don't always run on",
+            "time, and I might get stuck waiting for one.",
+        ],
+        &[
+            "PERCY",
+            "It's Cargo Shed 004 - right near my apartment.",
+            "I'm not getting anywhere!",
+        ],
+        &[
+            "PERCY",
+            "Maybe there'll be another one along",
+            "pretty soon... at least, I hope there will!",
+        ],
+        &[
+            "MAVIS",
+            "Do you think he's one of the Night Gulls?",
+            "Maybe they found out about our spy...",
+        ],
+        &[
+            "VEGA",
+            "Thank you, Flint. And maybe... after all this,",
+            "you'll be able to show me the result of the",
+            "equation none of my detectors... can.",
+        ],
     ];
     for b in cases {
         let out = reflow(b);
         for c in &out {
             assert_eq!(c[0], b[0]);
-            let short: Vec<&String> = c[1..c.len() - 1].iter().filter(|t| t.chars().count() < SHORT).collect();
+            let short: Vec<&String> = c[1..c.len() - 1]
+                .iter()
+                .filter(|t| t.chars().count() < SHORT)
+                .collect();
             assert!(short.is_empty(), "{c:?}");
         }
         assert_eq!(words(&out, true), words(&[s(b)], true));
@@ -112,11 +156,19 @@ fn a_line_of_whole_sentences_may_be_short() {
     // break, and it is not traded for filling the line.
     assert_eq!(
         reflow(&["ODILE", "Tide is running out. There's no turning back."]),
-        vec![s(&["ODILE", "Tide is running out.", "There's no turning back."])]
+        vec![s(&[
+            "ODILE",
+            "Tide is running out.",
+            "There's no turning back."
+        ])]
     );
     assert_eq!(
         reflow(&["PERCY", "Six minutes... I'm not sure I can make it."]),
-        vec![s(&["PERCY", "Six minutes...", "I'm not sure I can make it."])]
+        vec![s(&[
+            "PERCY",
+            "Six minutes...",
+            "I'm not sure I can make it."
+        ])]
     );
 }
 
@@ -127,7 +179,10 @@ fn a_name_is_not_split_from_its_number() {
         "I'd better not go back through Sector 33. The Night",
         "Gulls wouldn't be happy to see me...",
     ]);
-    assert!(!out.iter().flatten().any(|t| t.ends_with("Sector")), "{out:?}");
+    assert!(
+        !out.iter().flatten().any(|t| t.ends_with("Sector")),
+        "{out:?}"
+    );
 }
 
 #[test]
@@ -164,7 +219,10 @@ fn what_is_reflowed_fits_and_does_not_change_again() {
         "again if you ask me again, because that is the kind of person I am.",
     ];
     for c in reflow(&b) {
-        assert!(fits(&c, &Measure::columns(COLUMNS), LINES).unwrap(), "{c:?}");
+        assert!(
+            fits(&c, &Measure::columns(COLUMNS), LINES).unwrap(),
+            "{c:?}"
+        );
         assert_eq!(refit(&c, COLUMNS, LINES), vec![c.clone()]);
     }
 }
@@ -174,7 +232,8 @@ fn what_is_reflowed_fits_and_does_not_change_again() {
 #[test]
 fn the_escape_tail_is_the_compilers() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/escapes.json");
-    let data: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let data: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     for case in data["cases"].as_array().unwrap() {
         let lines: Vec<String> = serde_json::from_value(case["lines"].clone()).unwrap();
         let got = escape_tail(&lines).ok();
@@ -184,9 +243,15 @@ fn the_escape_tail_is_the_compilers() {
                 let got = got.unwrap_or_else(|| panic!("{lines:?} does not compile"));
                 // The waits in the middle are marks: the cases write them as
                 // the escapes they were.
-                let untailed: Vec<String> = got.lines.iter().map(|t| with_wait_escapes(t)).collect();
-                let want: (Vec<String>, usize, bool, Vec<String>) = serde_json::from_value(answer.clone()).unwrap();
-                assert_eq!((untailed, got.pauses, got.auto_close, got.dropped), want, "{lines:?}");
+                let untailed: Vec<String> =
+                    got.lines.iter().map(|t| with_wait_escapes(t)).collect();
+                let want: (Vec<String>, usize, bool, Vec<String>) =
+                    serde_json::from_value(answer.clone()).unwrap();
+                assert_eq!(
+                    (untailed, got.pauses, got.auto_close, got.dropped),
+                    want,
+                    "{lines:?}"
+                );
             }
         }
     }

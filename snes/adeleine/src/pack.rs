@@ -580,7 +580,11 @@ fn best_colors<T: Cost>(weights: &[u64], distances: &[Vec<u32>], keep: usize) ->
         let current = if members.is_empty() {
             T::FAR
         } else {
-            weights.iter().zip(&nearest).map(|(&w, &n)| w * T::from(n)).sum()
+            weights
+                .iter()
+                .zip(&nearest)
+                .map(|(&w, &n)| w * T::from(n))
+                .sum()
         };
         // Taking a victim out only moves the colours it was the nearest of:
         // each colour goes to the victim it belongs to —the first nearest
@@ -674,7 +678,11 @@ mod tests {
     /// `select_colors` as it was until 2026-10-10: every trial a set, costed
     /// from scratch. Slow, and obviously what it says; the fast one has to
     /// answer the same.
-    fn select_colors_by_trial(candidates: &Colors, weights: &BTreeMap<Color, u64>, keep: usize) -> Colors {
+    fn select_colors_by_trial(
+        candidates: &Colors,
+        weights: &BTreeMap<Color, u64>,
+        keep: usize,
+    ) -> Colors {
         let mut chosen = Colors::new();
         while chosen.len() < keep.min(candidates.len()) {
             let next = candidates

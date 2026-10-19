@@ -49,7 +49,11 @@ impl FontChoice {
         let font = font
             .with_spacing(spacing)
             .map_err(|e| Stop::new(format!("[text] letter_spacing: {e}")))?;
-        Ok(FontChoice { spec, spacing, font })
+        Ok(FontChoice {
+            spec,
+            spacing,
+            font,
+        })
     }
 
     /// A message window as the event compiler takes it: `width` pixels a
@@ -57,7 +61,12 @@ impl FontChoice {
     /// Latin-1 letters the font draws with theirs —which of them the
     /// cartridge carries, the compiler decides—.
     pub fn window(&self, width: usize, lines: u32) -> Value {
-        let letters: Vec<Value> = self.font.latin_letters().iter().map(|(c, a)| json!([c.to_string(), a])).collect();
+        let letters: Vec<Value> = self
+            .font
+            .latin_letters()
+            .iter()
+            .map(|(c, a)| json!([c.to_string(), a]))
+            .collect();
         json!({"width": width, "lines": lines, "advances": self.font.console_advances(), "letters": letters})
     }
 }

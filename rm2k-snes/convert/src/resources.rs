@@ -16,20 +16,31 @@ fn split_extension(file_name: &str) -> (&str, &str) {
 
 /// `<dir>/<folder>/<name><ext>`, for the first directory that has it and
 /// any of `extensions`.
-pub fn find<P: AsRef<Path>>(dirs: &[P], folder: &str, name: &str, extensions: &[&str]) -> Option<PathBuf> {
+pub fn find<P: AsRef<Path>>(
+    dirs: &[P],
+    folder: &str,
+    name: &str,
+    extensions: &[&str],
+) -> Option<PathBuf> {
     let (folder, name) = (folder.to_lowercase(), name.to_lowercase());
     for dir in dirs {
-        let Ok(entries) = std::fs::read_dir(dir.as_ref()) else { continue };
+        let Ok(entries) = std::fs::read_dir(dir.as_ref()) else {
+            continue;
+        };
         for entry in entries.flatten() {
             if entry.file_name().to_string_lossy().to_lowercase() != folder {
                 continue;
             }
             let subdir = dir.as_ref().join(entry.file_name());
-            let Ok(files) = std::fs::read_dir(&subdir) else { continue };
+            let Ok(files) = std::fs::read_dir(&subdir) else {
+                continue;
+            };
             for file in files.flatten() {
                 let file_name = file.file_name().to_string_lossy().to_string();
                 let (base, extension) = split_extension(&file_name);
-                if base.to_lowercase() == name && extensions.contains(&extension.to_lowercase().as_str()) {
+                if base.to_lowercase() == name
+                    && extensions.contains(&extension.to_lowercase().as_str())
+                {
                     return Some(subdir.join(file.file_name()));
                 }
             }

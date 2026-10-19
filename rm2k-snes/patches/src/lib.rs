@@ -415,20 +415,31 @@ pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
             .animations
             .iter()
             .map(|a| {
-                (Kind::Animation.file_name(&Key::Number(a.number)), animation_text(a))
+                (
+                    Kind::Animation.file_name(&Key::Number(a.number)),
+                    animation_text(a),
+                )
             })
             .collect(),
         request
             .battlers
             .iter()
             .map(|b| {
-                (Kind::Battler.file_name(&Key::Text(b.key.clone())), battler_text(b))
+                (
+                    Kind::Battler.file_name(&Key::Text(b.key.clone())),
+                    battler_text(b),
+                )
             })
             .collect(),
         request
             .windows
             .iter()
-            .map(|w| (Kind::Window.file_name(&Key::Text(w.system.clone())), window_text(w)))
+            .map(|w| {
+                (
+                    Kind::Window.file_name(&Key::Text(w.system.clone())),
+                    window_text(w),
+                )
+            })
             .collect(),
     ];
     let mut out = Vec::new();
@@ -441,7 +452,11 @@ pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
             std::fs::write(&path, content).map_err(io(&path))?;
             bytes += content.len();
         }
-        out.push(Written { kind, files: files.len(), bytes });
+        out.push(Written {
+            kind,
+            files: files.len(),
+            bytes,
+        });
     }
     Ok(out)
 }

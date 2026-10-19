@@ -22,8 +22,8 @@ use crate::bytecode;
 use crate::fail::Result;
 use crate::game::{Command, Game};
 use crate::images;
-use rm2k_snes_events::codes::SHOW_BATTLE_ANIMATION;
 use rm2k_snes_bytecode::events::OP_ANIMATION;
+use rm2k_snes_events::codes::SHOW_BATTLE_ANIMATION;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -77,7 +77,11 @@ fn pair(v: &Value) -> (i64, i64) {
 
 impl Animations {
     pub fn new(search_dirs: &[PathBuf], dump: &Path) -> Animations {
-        Animations { cache: BTreeMap::new(), search_dirs: search_dirs.to_vec(), dump: dump.to_path_buf() }
+        Animations {
+            cache: BTreeMap::new(),
+            search_dirs: search_dirs.to_vec(),
+            dump: dump.to_path_buf(),
+        }
     }
 
     /// The path of an animation's `Battle` sheet, or None if it has none or
@@ -92,8 +96,16 @@ impl Animations {
 
     /// The animations `numbers` converted. The ones not converted yet are
     /// converted with a single call to the stage.
-    pub fn by_numbers(&mut self, game: &Game, numbers: &[i32]) -> Result<BTreeMap<i32, Option<Info>>> {
-        let new: BTreeSet<i32> = numbers.iter().copied().filter(|n| !self.cache.contains_key(n)).collect();
+    pub fn by_numbers(
+        &mut self,
+        game: &Game,
+        numbers: &[i32],
+    ) -> Result<BTreeMap<i32, Option<Info>>> {
+        let new: BTreeSet<i32> = numbers
+            .iter()
+            .copied()
+            .filter(|n| !self.cache.contains_key(n))
+            .collect();
         let mut wanted = Vec::new();
         for number in new {
             let anim = game.db.animations.get(&number);
@@ -108,7 +120,10 @@ impl Animations {
             BOX,
             COLORS,
             ALPHA_MIN,
-            &wanted.iter().map(|(n, _, s)| (*n, s.clone())).collect::<Vec<_>>(),
+            &wanted
+                .iter()
+                .map(|(n, _, s)| (*n, s.clone()))
+                .collect::<Vec<_>>(),
             &self.dump,
         )?;
         for ((number, anim, _), a) in wanted.into_iter().zip(answers) {
@@ -123,7 +138,10 @@ impl Animations {
             });
             self.cache.insert(number, info);
         }
-        Ok(numbers.iter().map(|n| (*n, self.cache[n].clone())).collect())
+        Ok(numbers
+            .iter()
+            .map(|n| (*n, self.cache[n].clone()))
+            .collect())
     }
 
     /// Whether some page of a map can draw a battle animation. It is
@@ -147,7 +165,10 @@ impl Animations {
             }
         }
         let numbers: Vec<i32> = numbers.into_iter().collect();
-        Ok(self.by_numbers(game, &numbers)?.values().any(Option::is_some))
+        Ok(self
+            .by_numbers(game, &numbers)?
+            .values()
+            .any(Option::is_some))
     }
 }
 
@@ -197,7 +218,11 @@ pub fn frame_bytes(frame: &Value) -> Vec<u8> {
         for ty in 0..OBJ_SIDE {
             for tx in 0..OBJ_SIDE {
                 let cell: Vec<Vec<u8>> = (0..8)
-                    .map(|py| (0..8).map(|px| pixel(base_x + tx * 8 + px, base_y + ty * 8 + py)).collect())
+                    .map(|py| {
+                        (0..8)
+                            .map(|px| pixel(base_x + tx * 8 + px, base_y + ty * 8 + py))
+                            .collect()
+                    })
                     .collect();
                 let tile = (start + ty * GRID + tx) as usize;
                 data[tile * 32..(tile + 1) * 32]

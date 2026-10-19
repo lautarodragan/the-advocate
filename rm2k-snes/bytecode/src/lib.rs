@@ -269,12 +269,18 @@ const fn check_count(o: &Opcode) {
                     .fail();
             }
             if counts > 1 {
-                message.push(" counts ").push(r.name).push(" more than once").fail();
+                message
+                    .push(" counts ")
+                    .push(r.name)
+                    .push(" more than once")
+                    .fail();
             }
         }
         None => {
             if counts > 0 {
-                message.push(" has a `count` argument and nothing `repeated` to count").fail();
+                message
+                    .push(" has a `count` argument and nothing `repeated` to count")
+                    .fail();
             }
         }
     }
@@ -397,14 +403,27 @@ mod tests {
     use super::*;
 
     const fn arg(name: &'static str, kind: Type, count: bool) -> Arg {
-        Arg { name, kind, signed: false, count }
+        Arg {
+            name,
+            kind,
+            signed: false,
+            count,
+        }
     }
 
     const fn op(name: &'static str, code: u8, args: &'static [Arg]) -> Opcode {
-        Opcode { name, code, args, repeated: None }
+        Opcode {
+            name,
+            code,
+            args,
+            repeated: None,
+        }
     }
 
-    const ITEMS: Repeated = Repeated { name: "items", args: &[arg("x", Type::Word, false)] };
+    const ITEMS: Repeated = Repeated {
+        name: "items",
+        args: &[arg("x", Type::Word, false)],
+    };
 
     /// A test's declaration lives as long as the test does; `Bytecode` wants
     /// it `'static`, as the macro's are.
@@ -413,7 +432,10 @@ mod tests {
     }
 
     fn bytecode(name: &'static str, opcodes: Vec<Opcode>) -> Bytecode {
-        Bytecode { name, opcodes: leak(opcodes) }
+        Bytecode {
+            name,
+            opcodes: leak(opcodes),
+        }
     }
 
     fn check(opcodes: Vec<Opcode>) {
@@ -454,7 +476,11 @@ mod tests {
     #[test]
     #[should_panic(expected = "OP_A has a `count` argument and nothing `repeated` to count")]
     fn counting_a_group_that_is_not_declared_is_an_error() {
-        check(vec![op("OP_A", 0x01, leak(vec![arg("n", Type::Byte, true)]))]);
+        check(vec![op(
+            "OP_A",
+            0x01,
+            leak(vec![arg("n", Type::Byte, true)]),
+        )]);
     }
 
     #[test]
@@ -462,7 +488,11 @@ mod tests {
     fn a_group_is_counted_once() {
         check(vec![Opcode {
             repeated: Some(ITEMS),
-            ..op("OP_A", 0x01, leak(vec![arg("n", Type::Byte, true), arg("m", Type::Byte, true)]))
+            ..op(
+                "OP_A",
+                0x01,
+                leak(vec![arg("n", Type::Byte, true), arg("m", Type::Byte, true)]),
+            )
         }]);
     }
 
@@ -470,7 +500,10 @@ mod tests {
     #[should_panic(expected = "OP_A counts its entries from inside the entries of items")]
     fn the_count_is_not_inside_the_entries() {
         check(vec![Opcode {
-            repeated: Some(Repeated { name: "items", args: leak(vec![arg("n", Type::Byte, true)]) }),
+            repeated: Some(Repeated {
+                name: "items",
+                args: leak(vec![arg("n", Type::Byte, true)]),
+            }),
             ..op("OP_A", 0x01, leak(vec![arg("n", Type::Byte, true)]))
         }]);
     }
@@ -496,16 +529,16 @@ mod tests {
     /// Declared out of order is fine: the dispatch follows the numbers.
     #[test]
     fn the_dispatch_needs_the_numbers_not_the_order() {
-        bytecode("test", vec![op("OP_B", 0x01, &[]), op("OP_A", 0x00, &[])])
-            .check_dispatch();
+        bytecode("test", vec![op("OP_B", 0x01, &[]), op("OP_A", 0x00, &[])]).check_dispatch();
     }
 
     #[test]
-    #[should_panic(expected = "a jump table needs the test opcodes numbered from 0 with no gaps; \
-                               nothing takes 0x00, 0x02, 0x03")]
+    #[should_panic(
+        expected = "a jump table needs the test opcodes numbered from 0 with no gaps; \
+                               nothing takes 0x00, 0x02, 0x03"
+    )]
     fn the_dispatch_names_every_gap() {
-        bytecode("test", vec![op("OP_A", 0x01, &[]), op("OP_B", 0x04, &[])])
-            .check_dispatch();
+        bytecode("test", vec![op("OP_A", 0x01, &[]), op("OP_B", 0x04, &[])]).check_dispatch();
     }
 
     /// A stream with an end marker at 0xFF is a normal declaration; it just
@@ -513,25 +546,37 @@ mod tests {
     #[test]
     #[should_panic(expected = "0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 and 246 more")]
     fn a_long_list_of_gaps_is_cut_short() {
-        bytecode("test", vec![op("OP_A", 0x00, &[]), op("OP_END", 0xFF, &[])])
-            .check_dispatch();
+        bytecode("test", vec![op("OP_A", 0x00, &[]), op("OP_END", 0xFF, &[])]).check_dispatch();
     }
 
     /// Where the count sits and how big an entry is are what a reader needs to
     /// walk past an instruction it does not care about.
     #[test]
     fn a_variable_sized_opcode_derives_where_its_count_is() {
-        const ARGS: &[Arg] =
-            &[arg("a", Type::Byte, false), arg("b", Type::Word, false), arg("n", Type::Byte, true)];
-        const OPS: &[Opcode] = &[Opcode { repeated: Some(ITEMS), ..op("OP_A", 0x01, ARGS) }];
-        let b = Bytecode { name: "test", opcodes: OPS };
+        const ARGS: &[Arg] = &[
+            arg("a", Type::Byte, false),
+            arg("b", Type::Word, false),
+            arg("n", Type::Byte, true),
+        ];
+        const OPS: &[Opcode] = &[Opcode {
+            repeated: Some(ITEMS),
+            ..op("OP_A", 0x01, ARGS)
+        }];
+        let b = Bytecode {
+            name: "test",
+            opcodes: OPS,
+        };
         let o = b.opcode(0x01).unwrap();
         assert_eq!(o.fixed_size(), 5); // opcode + 1 + 2 + 1
         assert_eq!(o.count_offset(), 4); // after the opcode, the byte and the word
         assert_eq!(o.entry_size(), 2);
         assert_eq!(b.fixed_size(0x01), None, "it has no fixed size");
         assert_eq!(b.size_at(&[0x01, 0, 0, 0, 3], 0), Some(5 + 3 * 2));
-        assert_eq!(b.size_at(&[0x01, 0, 0], 0), None, "the count is past the end");
+        assert_eq!(
+            b.size_at(&[0x01, 0, 0], 0),
+            None,
+            "the count is past the end"
+        );
         assert_eq!(b.size_at(&[0x02], 0), None, "not declared");
     }
 

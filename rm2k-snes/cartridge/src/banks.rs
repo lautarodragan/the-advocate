@@ -73,7 +73,11 @@ pub const MIRRORS: [(usize, usize, usize); 2] =
 /// ever entered with `jsl`, at this address, so it needs no mirror. It was the
 /// low half of `$C0`, the last data slot of the fast 4 MB, which no
 /// cartridge was using when it became code (2026-10-02).
-pub const FAR2: Slot = Slot { bank: 0xC0, start: 0, size: HALF };
+pub const FAR2: Slot = Slot {
+    bank: 0xC0,
+    start: 0,
+    size: HALF,
+};
 
 /// The fourth code bank: `FAR3`, linked at `$C1:0000` and 32 KB long, like
 /// [`FAR2`] and for the same reasons —a plain fast ExHiROM half, entered
@@ -83,7 +87,11 @@ pub const FAR2: Slot = Slot { bank: 0xC0, start: 0, size: HALF };
 /// renames together overflowed bank 1 in A Blurred Line's MSU test
 /// cartridge, and `FAR2` had 133 bytes left in Sunset over Imdahl: the
 /// code that is entered from far and calls nothing near goes here.
-pub const FAR3: Slot = Slot { bank: 0xC1, start: 0, size: HALF };
+pub const FAR3: Slot = Slot {
+    bank: 0xC1,
+    start: 0,
+    size: HALF,
+};
 
 /// The file offset of a CPU address, as the cartridge decodes it, or `None`
 /// if the cartridge does not answer there.
@@ -129,9 +137,21 @@ impl Slot {
 /// the first 4 MB before the second, because they are fast, and in each the
 /// whole banks before the halves.
 pub fn slots() -> Vec<Slot> {
-    let whole = |bank| Slot { bank, start: 0, size: BANK_SIZE };
-    let low = |bank| Slot { bank, start: 0, size: HALF };
-    let high = |bank| Slot { bank, start: 0x8000, size: HALF };
+    let whole = |bank| Slot {
+        bank,
+        start: 0,
+        size: BANK_SIZE,
+    };
+    let low = |bank| Slot {
+        bank,
+        start: 0,
+        size: HALF,
+    };
+    let high = |bank| Slot {
+        bank,
+        start: 0x8000,
+        size: HALF,
+    };
     let mut out: Vec<Slot> = (0xC2..=0xFF).map(whole).collect();
     // The low halves of `$C0` and `$C1` are the third and fourth code
     // banks: see [`FAR2`] and [`FAR3`]. Until 2026-10-15 that of `$C1` was
@@ -264,7 +284,10 @@ fn split(line: &str, fitting: usize) -> Result<(Option<String>, String, usize), 
         format!("  ; {comment}")
     };
     let first = (count > 0).then(|| {
-        format!("    {directive} {}{tail}", operands[..count.min(operands.len())].join(", "))
+        format!(
+            "    {directive} {}{tail}",
+            operands[..count.min(operands.len())].join(", ")
+        )
     });
     let second = format!(
         "    {directive} {}",
@@ -385,9 +408,7 @@ pub fn resolve<P: AsRef<Path>>(paths: &[P], msu: Option<&Path>) -> Result<Packin
     let mut texts = Vec::new();
     for path in paths {
         let path = path.as_ref();
-        texts.push(
-            std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?,
-        );
+        texts.push(std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?);
     }
     let names: Vec<String> = paths
         .iter()
@@ -639,7 +660,9 @@ pub fn pack_with_msu(
                 .to_string()
         })?;
         if start % crate::msu::UNIT != 0 {
-            return Err(format!("the .msu region would start at {start}, not on a unit"));
+            return Err(format!(
+                "the .msu region would start at {start}, not on a unit"
+            ));
         }
         // The region's signature, as one more piece: zeros while deciding,
         // which take the same.
@@ -653,7 +676,8 @@ pub fn pack_with_msu(
         let mut candidates: Vec<usize> = (0..pieces.len()).filter(|&k| pieces[k].msu).collect();
         candidates.sort_by_key(|&k| (std::cmp::Reverse(pieces[k].fit_size()), pieces[k].order));
         let without = |count: usize| -> Vec<&Piece> {
-            let out: std::collections::HashSet<usize> = candidates[..count].iter().copied().collect();
+            let out: std::collections::HashSet<usize> =
+                candidates[..count].iter().copied().collect();
             pieces.iter().filter(|p| !out.contains(&p.order)).collect()
         };
         let count = if everything {
@@ -700,7 +724,10 @@ pub fn pack_with_msu(
                     crate::msu::UNIT
                 ));
             }
-            constants.push(format!("{label} = ${:06X}", crate::msu::SPILL_BANK << 16 | unit));
+            constants.push(format!(
+                "{label} = ${:06X}",
+                crate::msu::SPILL_BANK << 16 | unit
+            ));
             unit += crate::msu::units(data.len());
             spilled_bytes += data.len();
             datas.push(data);
@@ -712,7 +739,10 @@ pub fn pack_with_msu(
             last.extend(constants);
         }
     }
-    let staying: Vec<&Piece> = pieces.iter().filter(|p| gone.binary_search(&p.order).is_err()).collect();
+    let staying: Vec<&Piece> = pieces
+        .iter()
+        .filter(|p| gone.binary_search(&p.order).is_err())
+        .collect();
     let banks = pack(&staying, slots)?;
     let packing = Packing {
         pieces: staying.len(),
@@ -723,21 +753,24 @@ pub fn pack_with_msu(
     };
     if let Some(last) = kept.last_mut() {
         for bank in banks {
-            last.push(format!(".segment \"{}\"", segment_of(slots[bank.slot].bank)));
+            last.push(format!(
+                ".segment \"{}\"",
+                segment_of(slots[bank.slot].bank)
+            ));
             last.extend(bank.lines);
         }
     }
-    let texts = kept
-        .into_iter()
-        .map(|own| own.join("\n") + "\n")
-        .collect();
+    let texts = kept.into_iter().map(|own| own.join("\n") + "\n").collect();
     Ok((texts, packing, spill))
 }
 
 /// The lines of `msu_spill_signature`, with these bytes.
 fn signature_lines(bytes: &[u8]) -> Vec<String> {
     let hex: Vec<String> = bytes.iter().map(|b| format!("${b:02X}")).collect();
-    vec!["msu_spill_signature:".to_string(), format!("    .byte {}", hex.join(","))]
+    vec![
+        "msu_spill_signature:".to_string(),
+        format!("    .byte {}", hex.join(",")),
+    ]
 }
 
 /// The label and the bytes of a piece that goes to the `.msu`: one label
@@ -752,7 +785,10 @@ fn piece_bytes(piece: &Piece) -> Result<(String, Vec<u8>), String> {
         }
         if is_label(directive) {
             if label.is_some() || !data.is_empty() {
-                return Err(format!("{:?} is not the piece's only label at its start", directive));
+                return Err(format!(
+                    "{:?} is not the piece's only label at its start",
+                    directive
+                ));
             }
             label = Some(directive.split(':').next().unwrap_or("").to_string());
             continue;
@@ -771,7 +807,11 @@ fn piece_bytes(piece: &Piece) -> Result<(String, Vec<u8>), String> {
     }
     let label = label.ok_or("a piece without a label")?;
     if data.len() < piece.asks {
-        return Err(format!("{label} declares {} bytes and carries {}", piece.asks, data.len()));
+        return Err(format!(
+            "{label} declares {} bytes and carries {}",
+            piece.asks,
+            data.len()
+        ));
     }
     Ok((label, data))
 }
@@ -823,7 +863,11 @@ impl Packer<'_> {
 
     fn take(&mut self, slot: usize) -> usize {
         self.taken[slot] = true;
-        self.banks.push(Bank { slot, used: 0, lines: Vec::new() });
+        self.banks.push(Bank {
+            slot,
+            used: 0,
+            lines: Vec::new(),
+        });
         self.banks.len() - 1
     }
 
@@ -951,8 +995,16 @@ fn pack(pieces: &[&Piece], slots: &[Slot]) -> Result<Vec<Bank>, String> {
     }
 }
 
-fn pack_in_order(pieces: &[&Piece], slots: &[Slot], chain_first: bool) -> Result<Vec<Bank>, String> {
-    let mut packer = Packer { slots, taken: vec![false; slots.len()], banks: Vec::new() };
+fn pack_in_order(
+    pieces: &[&Piece],
+    slots: &[Slot],
+    chain_first: bool,
+) -> Result<Vec<Bank>, String> {
+    let mut packer = Packer {
+        slots,
+        taken: vec![false; slots.len()],
+        banks: Vec::new(),
+    };
     if chain_first {
         let mut chain: Vec<&Piece> = pieces.iter().copied().filter(|u| u.crosses).collect();
         chain.sort_by_key(|u| u.order);
@@ -968,15 +1020,20 @@ fn pack_in_order(pieces: &[&Piece], slots: &[Slot], chain_first: bool) -> Result
         }
     }
     let large: Vec<&Piece> = pieces
-        .iter().copied()
+        .iter()
+        .copied()
         .filter(|u| !u.crosses && u.fit_size() > BANK_SIZE)
         .collect();
     let mut whole: Vec<&Piece> = pieces
-        .iter().copied()
+        .iter()
+        .copied()
         .filter(|u| !u.crosses && u.fit_size() <= BANK_SIZE)
         .collect();
-    let mut crossing: Vec<&Piece> =
-        pieces.iter().copied().filter(|u| u.crosses && !chain_first).collect();
+    let mut crossing: Vec<&Piece> = pieces
+        .iter()
+        .copied()
+        .filter(|u| u.crosses && !chain_first)
+        .collect();
 
     // The large ones first, each from a new whole bank: what is left over in
     // their last bank is used by the others.
@@ -1067,7 +1124,10 @@ pub fn cfg() -> String {
         "HEADER:   load = HEAD, type = ro;".to_string(),
         "VECTORS:  load = VECT, type = ro;".to_string(),
         // The hand-written code that lives outside bank 0.
-        format!("FAR:      load = {}, type = ro, align = $8000;", segment_of(1)),
+        format!(
+            "FAR:      load = {}, type = ro, align = $8000;",
+            segment_of(1)
+        ),
         format!("FAR2:     load = {}, type = ro;", segment_of(FAR2.bank)),
         format!("FAR3:     load = {}, type = ro;", segment_of(FAR3.bank)),
     ];
@@ -1089,7 +1149,10 @@ pub fn cfg() -> String {
             offset += HALF;
             continue;
         }
-        if let Some(code) = [FAR2, FAR3].iter().find(|c| Some(offset) == file_offset(c.address())) {
+        if let Some(code) = [FAR2, FAR3]
+            .iter()
+            .find(|c| Some(offset) == file_offset(c.address()))
+        {
             memory.push(area(segment_of(code.bank), code.address(), code.size));
             offset += code.size;
             continue;

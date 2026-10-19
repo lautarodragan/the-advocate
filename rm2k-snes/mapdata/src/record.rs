@@ -9,7 +9,9 @@
 use crate::asm::{block, pointer};
 use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
-use crate::materials::{grid_high_used, map_ram, Materials, COMPRESSED_KINDS, HALF_GRID, LZ2_CAP_CODE};
+use crate::materials::{
+    grid_high_used, map_ram, Materials, COMPRESSED_KINDS, HALF_GRID, LZ2_CAP_CODE,
+};
 use crate::objects::{
     block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
     POSE_BYTES, POSE_TILES, SPRITE_POSES, TILE_BYTES,
@@ -242,7 +244,11 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
     let sprite = map.sprite.as_ref();
     let movable: BTreeSet<i64> = map.movable.iter().copied().collect();
     let still: BTreeSet<i64> = map.animates_still.iter().copied().collect();
-    let with: BTreeMap<i64, i64> = map.animates_with.iter().map(|&[e, whose]| (e, whose)).collect();
+    let with: BTreeMap<i64, i64> = map
+        .animates_with
+        .iter()
+        .map(|&[e, whose]| (e, whose))
+        .collect();
     let leaders: BTreeSet<i64> = with.values().copied().collect();
     let mut order: Vec<&crate::request::Npc> = map.npcs.iter().collect();
     // `GetScreenZ`: the layer on top, then Y, X and the id. The table index
@@ -256,7 +262,9 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
         // character's palette: the slot's is only the first one's.
         let turns = shared.and_then(|s| s.events.iter().find(|e| e.0 == npc.event));
         let wanted = if let Some(&(_, slot, ..)) = turns {
-            Slot::Shared { shared: slot as i64 }
+            Slot::Shared {
+                shared: slot as i64,
+            }
         } else if walks {
             Slot::Event { event: npc.event }
         } else if let Some(&whose) = with.get(&npc.event) {
@@ -279,7 +287,9 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
         // own: it carries its key, 128 plus the twin, in the tile byte, and
         // its twelve poses, which the console uploads from when it is the
         // first of them to come into view. See `cache_want`.
-        let cached = sprite.and_then(|s| s.cache.as_ref()).map(|c| c.events.iter().find(|e| e.0 == npc.event));
+        let cached = sprite
+            .and_then(|s| s.cache.as_ref())
+            .map(|c| c.events.iter().find(|e| e.0 == npc.event));
         let twin = with.get(&npc.event).copied().filter(|_| cached.is_some());
         let (tile, palette) = match cached {
             Some(Some(&(_, _, palette))) if twin.is_some() => {
@@ -392,7 +402,10 @@ pub fn npc_bytes(rows: &[NpcRow]) -> Vec<u8> {
         // +13: its page's speed, in bit 7 whether it is a still one with
         // continuous animation, and in bit 6 whether others animate in its
         // slot —`animate_still` uploads its pose even when it is hidden—.
-        out.push((npc.speed | if npc.animates { 0x80 } else { 0 } | if npc.leads { 0x40 } else { 0 }) as u8);
+        out.push(
+            (npc.speed | if npc.animates { 0x80 } else { 0 } | if npc.leads { 0x40 } else { 0 })
+                as u8,
+        );
         // +14: whether it is drawn; +15: the passage bits its tile imposes.
         out.push(u8::from(npc.visible));
         out.push(npc.tile_pass.map_or(0xFF, |t| t as u8));
@@ -502,7 +515,11 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
     raw.insert("map_ram".into(), map_ram(&map.blocks, &map.block_pass));
     // A map whose bytecode stays in the cartridge decompresses none: see
     // [`code_in_rom`].
-    let code = if code_in_rom(map) { Vec::new() } else { map.evcode.clone() };
+    let code = if code_in_rom(map) {
+        Vec::new()
+    } else {
+        map.evcode.clone()
+    };
     raw.insert("map_code".into(), code);
     raw
 }
@@ -707,7 +724,10 @@ pub fn offsets() -> String {
 /// [`Map::narrow`]—: the fourth byte of the grid's pointer, which a pointer
 /// does not use. The record has no other room.
 pub fn grid_narrow_offset() -> usize {
-    let cells = MAP_POINTERS.iter().position(|&p| p == "map_cells").expect("the grid has a pointer");
+    let cells = MAP_POINTERS
+        .iter()
+        .position(|&p| p == "map_cells")
+        .expect("the grid has a pointer");
     MAP_PTR_BASE + cells * MAP_PTR_STEP + 3
 }
 
@@ -779,7 +799,11 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
         used += padding;
         for name in MAP_POINTERS {
             let label = &labels[number][name];
-            let fourth = if name == "map_cells" && map.narrow() { "$01" } else { "$00" };
+            let fourth = if name == "map_cells" && map.narrow() {
+                "$01"
+            } else {
+                "$00"
+            };
             out.push(format!(
                 "    .byte <({label}), >({label}), ^({label}), {fourth} ; +{used}  {name}"
             ));
@@ -855,19 +879,34 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
         data.push(format!("    .byte {n}"));
         data.push(format!(
             "    .word {}",
-            shared.slots.iter().map(|&b| (block_tile(b) * 16).to_string()).collect::<Vec<_>>().join(", ")
+            shared
+                .slots
+                .iter()
+                .map(|&b| (block_tile(b) * 16).to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
         let mut by_event = vec![(0xFFu8, 0u8); map.events.len()];
         for &(event, slot, pose, _) in &shared.events {
-            let e = usize::try_from(event).ok().filter(|&e| e < by_event.len()).ok_or_else(|| {
-                Bad::answer(format!("map {}: event {event} takes turns and is not in the map", map.id))
-            })?;
+            let e = usize::try_from(event)
+                .ok()
+                .filter(|&e| e < by_event.len())
+                .ok_or_else(|| {
+                    Bad::answer(format!(
+                        "map {}: event {event} takes turns and is not in the map",
+                        map.id
+                    ))
+                })?;
             by_event[e] = (slot as u8, pose as u8);
         }
         for chunk in by_event.chunks(8) {
             data.push(format!(
                 "    .byte {}",
-                chunk.iter().map(|(s, p)| format!("${s:02X},{p}")).collect::<Vec<_>>().join(", ")
+                chunk
+                    .iter()
+                    .map(|(s, p)| format!("${s:02X},{p}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ));
         }
         data.push(format!(
@@ -879,7 +918,10 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
-        data.push(format!(".assert {n} <= SHARE_MAX, error, \"map {}: more shared slots than SHARE_MAX\"", map.id));
+        data.push(format!(
+            ".assert {n} <= SHARE_MAX, error, \"map {}: more shared slots than SHARE_MAX\"",
+            map.id
+        ));
         size = poses_at + 2 * shared.poses.len();
     }
     let mut out = vec![
@@ -892,7 +934,11 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
             if starts.is_empty() {
                 "0".to_string()
             } else {
-                starts.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")
+                starts
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             }
         ),
         format!(".block {size}"),
@@ -956,7 +1002,12 @@ pub fn cache_table(maps: &[Map]) -> Result<String> {
         data.push(format!("    .word {stills_at}"));
         data.push(format!(
             "    .word {}",
-            cache.slots.iter().map(|&b| block_tile(b).to_string()).collect::<Vec<_>>().join(", ")
+            cache
+                .slots
+                .iter()
+                .map(|&b| block_tile(b).to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
         if !cache.stills.is_empty() {
             data.push(format!(
@@ -969,7 +1020,10 @@ pub fn cache_table(maps: &[Map]) -> Result<String> {
                     .join(", ")
             ));
         }
-        data.push(format!(".assert {n} <= CACHE_MAX, error, \"map {}: a bigger cache than CACHE_MAX\"", map.id));
+        data.push(format!(
+            ".assert {n} <= CACHE_MAX, error, \"map {}: a bigger cache than CACHE_MAX\"",
+            map.id
+        ));
         size = stills_at + 2 * cache.stills.len();
     }
     let mut out = vec![
@@ -982,7 +1036,11 @@ pub fn cache_table(maps: &[Map]) -> Result<String> {
             if starts.is_empty() {
                 "0".to_string()
             } else {
-                starts.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")
+                starts
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             }
         ),
         format!(".block {size}"),
@@ -1042,13 +1100,19 @@ pub fn pose_masks_table(maps: &[Map]) -> String {
         "pose_masks_data:".into(),
     ];
     if distinct.is_empty() {
-        out.push(format!("    .word {}", vec!["$FFFF"; POSE_BLOCKS].join(", ")));
+        out.push(format!(
+            "    .word {}",
+            vec!["$FFFF"; POSE_BLOCKS].join(", ")
+        ));
     }
     for masks in &distinct {
         for half in masks.chunks(POSE_BLOCKS / 2) {
             out.push(format!(
                 "    .word {}",
-                half.iter().map(|m| format!("${m:04X}")).collect::<Vec<_>>().join(", ")
+                half.iter()
+                    .map(|m| format!("${m:04X}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ));
         }
     }
@@ -1097,7 +1161,9 @@ fn arrow_room(map: &Map) -> Result<std::result::Result<u16, String>> {
     };
     let cap = layout.sprites.count as usize;
     if tiles + ARROW_OBJ_TILES > cap {
-        return Ok(Err(format!("its sprite bank takes {tiles} of the {cap} sprite tiles of its layout")));
+        return Ok(Err(format!(
+            "its sprite bank takes {tiles} of the {cap} sprite tiles of its layout"
+        )));
     }
     let low = characters.max(animation.map_or(0, |a| a + 1));
     if low + top >= OBJ_PALETTES {
@@ -1186,7 +1252,11 @@ pub fn map_code_table(maps: &[Map], labels: &[Labels]) -> String {
     for (map, labels) in maps.iter().zip(labels) {
         // One in the cartridge is 0 bytes behind the grid: see
         // [`code_in_rom`].
-        let length = if code_in_rom(map) { 0 } else { map.evcode.len() };
+        let length = if code_in_rom(map) {
+            0
+        } else {
+            map.evcode.len()
+        };
         out.push(format!(
             "    .byte {}, $00\n    .word .loword({}), {}",
             pointer(&labels["code_stream"]),
@@ -1234,8 +1304,8 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
         for (k, (name, family, count)) in FAMILIES.iter().enumerate() {
             let run = map.runs.iter().find(|r| r.family == *family);
             let tiles = run.map_or(0, |r| r.tiles);
-            let vram = i64::from(layout.tiles.base)
-                + run.map_or(0, |r| r.base) * bytes_per_tile / 2;
+            let vram =
+                i64::from(layout.tiles.base) + run.map_or(0, |r| r.base) * bytes_per_tile / 2;
             out.push(format!("    .word {vram:<6} ; VRAM of {name}"));
             out.push(format!(
                 "    .word {offset:<6} ; drawing 0, inside the block"
@@ -1248,7 +1318,11 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
             // still and upload their pose, so `animate_still` stops walking
             // the table after the last one.
             let padding = if k == FAMILIES.len() - 1 {
-                rows[number].iter().filter(|n| n.animates).count().min(u8::MAX as usize)
+                rows[number]
+                    .iter()
+                    .filter(|n| n.animates)
+                    .count()
+                    .min(u8::MAX as usize)
             } else {
                 0
             };
@@ -1316,7 +1390,10 @@ pub fn page_table_with(map: &PageMap, number: usize, dest: &dyn Fn(usize) -> Str
         // assembling with a `Range error`. Widening it would cost a byte of
         // every page for a number nobody reads. What does bound the pages is
         // `MAX_PAGES`.
-        out.push(format!("    .byte {:<4} ; +2  its page number", page.page & 0xFF));
+        out.push(format!(
+            "    .byte {:<4} ; +2  its page number",
+            page.page & 0xFF
+        ));
         // Bit 7: a parallel page that runs only when what it reads changes
         // —`pure_page` in the events compiler—; the console masks it off
         // where it reads the trigger, and the parallels' list keeps it.
@@ -1501,7 +1578,10 @@ impl<'a> PageMap<'a> {
             turning: &map.turning,
             movable: &map.movable,
             animated: map.sprite.as_ref().map_or(&[], |s| s.animated.as_slice()),
-            animated_palettes: map.sprite.as_ref().map_or(&[], |s| s.animated_palettes.as_slice()),
+            animated_palettes: map
+                .sprite
+                .as_ref()
+                .map_or(&[], |s| s.animated_palettes.as_slice()),
         }
     }
 }
@@ -1646,7 +1726,8 @@ pub fn map_data(
     // label of the first map that has it. Until 2026-10-14 each map had its
     // own, and ABL's whole game carried 307 of them and 22 different.
     let (size, body) = actor_table_asm(map, poses);
-    let (label, text) = materials.store_text("actor_table", &format!("actor_table_{number}"), size, &body);
+    let (label, text) =
+        materials.store_text("actor_table", &format!("actor_table_{number}"), size, &body);
     if !text.is_empty() {
         out.push(text);
     }
@@ -1690,7 +1771,11 @@ pub fn map_data(
     }
     if in_rom {
         let dest = |offset: usize| {
-            let (start, label) = chunks.iter().rev().find(|(start, _)| *start <= offset).unwrap();
+            let (start, label) = chunks
+                .iter()
+                .rev()
+                .find(|(start, _)| *start <= offset)
+                .unwrap();
             format!("{label} + {}", offset - start)
         };
         out.push(page_table_with(&PageMap::of(map), number, &dest));
@@ -1860,7 +1945,11 @@ impl HeroColors {
     pub fn of(maps: &[Map]) -> Result<HeroColors> {
         let mut sets: Vec<Vec<u32>> = Vec::new();
         for map in maps {
-            for g in map.sprite.as_ref().map_or(&[][..], |s| s.route_gfx.as_slice()) {
+            for g in map
+                .sprite
+                .as_ref()
+                .map_or(&[][..], |s| s.route_gfx.as_slice())
+            {
                 let colors = g.colors();
                 if colors.is_empty() || sets.iter().any(|s| s == colors) {
                     continue;
@@ -1890,7 +1979,10 @@ impl HeroColors {
         if colors.is_empty() {
             return 0;
         }
-        self.sets.iter().position(|s| s == colors).map_or(0, |k| k as u8 + 1)
+        self.sets
+            .iter()
+            .position(|s| s == colors)
+            .map_or(0, |k| k as u8 + 1)
     }
 
     /// The table, with one byte when it is empty: the runtime names it
@@ -1900,7 +1992,11 @@ impl HeroColors {
         for set in &self.sets {
             let mut words = set.clone();
             words.resize(OBJ_COLORS, 0);
-            bytes.extend(words.iter().flat_map(|w| [(w & 0xFF) as u8, (w >> 8) as u8]));
+            bytes.extend(
+                words
+                    .iter()
+                    .flat_map(|w| [(w & 0xFF) as u8, (w >> 8) as u8]),
+            );
         }
         if bytes.is_empty() {
             bytes.push(0);
@@ -1999,11 +2095,18 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     // Only in a cartridge that shows some panorama: one that does not gets
     // the same `.inc` as before there were any. See `pano.s`.
     if maps.iter().any(|m| m.panorama.is_some()) {
-        let _ = write!(tables, "\n{}\n", crate::panorama::panorama_table(maps, msu)?);
+        let _ = write!(
+            tables,
+            "\n{}\n",
+            crate::panorama::panorama_table(maps, msu)?
+        );
     }
     // And the painted ones, only in a cartridge that has some: see
     // `painted.s`, which assembles nothing without `paint_table`.
-    if maps.iter().any(|m| m.panorama.as_ref().is_some_and(|p| p.mode == 4)) {
+    if maps
+        .iter()
+        .any(|m| m.panorama.as_ref().is_some_and(|p| p.mode == 4))
+    {
         let _ = write!(tables, "\n{}\n", crate::panorama::paint_table(maps)?);
     }
     Ok(Written {
@@ -2097,7 +2200,10 @@ mod tests {
         let operands = literals(&table);
         assert!(operands.len() > 300 * 10, "the table was not read");
         for (line, value, max) in operands {
-            assert!((0..=max).contains(&value), "{value} does not fit in: {line}");
+            assert!(
+                (0..=max).contains(&value),
+                "{value} does not fit in: {line}"
+            );
         }
         // And the page that asks for the case variable at 299 says so whole.
         assert!(table.contains(".word 299 ; +26 against what"), "{table}");
@@ -2110,23 +2216,36 @@ mod tests {
     #[test]
     fn the_arrow_s_objects_go_past_the_bank_and_under_the_pictures() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        let mut map = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps
+            .remove(0);
         let cap = layout_of(&map).unwrap().sprites.count as usize;
         let sprite = map.sprite.as_mut().unwrap();
         sprite.tiles = vec![0; 300 * TILE_BYTES];
         sprite.palettes = vec![vec![[1, 2, 3]]; 3];
         sprite.image = (0, 0);
         sprite.animation = None;
-        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 7 << 9 | 300, "tile 300, palette 7");
+        assert_eq!(
+            arrow_obj(&map).unwrap(),
+            0x8000 | 7 << 9 | 300,
+            "tile 300, palette 7"
+        );
         // Under two palettes of pictures, and over an animation's box.
         let sprite = map.sprite.as_mut().unwrap();
         sprite.image = (256, 2);
-        sprite.animation = Some(crate::request::Animation { base: 192, palette: 3 });
+        sprite.animation = Some(crate::request::Animation {
+            base: 192,
+            palette: 3,
+        });
         assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 5 << 9 | 300);
         // With the eight taken, the cells.
         let sprite = map.sprite.as_mut().unwrap();
         sprite.palettes = vec![vec![[1, 2, 3]]; 4];
-        sprite.animation = Some(crate::request::Animation { base: 192, palette: 4 });
+        sprite.animation = Some(crate::request::Animation {
+            base: 192,
+            palette: 4,
+        });
         sprite.image = (256, 3);
         assert_eq!(arrow_obj(&map).unwrap(), 0);
         // And with the bank reaching the layout's last tile but one, too.
@@ -2145,7 +2264,10 @@ mod tests {
     #[test]
     fn the_twins_go_behind_the_positions_with_how_many() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        let mut map = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps
+            .remove(0);
         map.events = vec![[1, 2], [3, 4]];
         // Without twins, the word says none: the console reads it always.
         assert_eq!(ev_pos_bytes(&map).unwrap(), [1, 0, 2, 0, 3, 0, 4, 0, 0, 0]);
@@ -2154,7 +2276,10 @@ mod tests {
             ev_pos_bytes(&map).unwrap(),
             [1, 0, 2, 0, 3, 0, 4, 0, 2, 0, 5, 0, 6, 0, 1, 0, 7, 0, 8, 0, 0, 0]
         );
-        assert_eq!(ev_pos_bytes(&map).unwrap().len(), 2 * EV_STRIDE + 2 + 2 * TWIN_STRIDE);
+        assert_eq!(
+            ev_pos_bytes(&map).unwrap().len(),
+            2 * EV_STRIDE + 2 + 2 * TWIN_STRIDE
+        );
         // One that points past the map's events is the converter's mistake.
         map.twins = vec![[5, 6, 2]];
         assert!(ev_pos_bytes(&map).is_err());
@@ -2163,7 +2288,9 @@ mod tests {
     #[test]
     fn a_map_whose_code_does_not_fit_in_wram_keeps_it_in_the_cartridge() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut maps = crate::request::read::<crate::request::Maps>(&path).unwrap().maps;
+        let mut maps = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps;
         maps.truncate(2);
         // The first one fits, at the cap; the second goes over by a byte.
         maps[0].evcode = vec![1; LZ2_CAP_CODE];
@@ -2176,11 +2303,23 @@ mod tests {
         let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
         // Its bytecode goes whole in one bank, and its `map_code` entry says
         // 0 bytes behind the grid, so that `carry_one` never matches it.
-        assert!(written.contains(&format!(".block {}\nrom_code_0:", LZ2_CAP_CODE + 1)), "no rom_code_0");
-        assert!(written.contains(".word .loword(rom_code_0), 0\n"), "the entry is not empty");
-        assert!(written.contains(&format!("), {LZ2_CAP_CODE}\n")), "the first lost its length");
+        assert!(
+            written.contains(&format!(".block {}\nrom_code_0:", LZ2_CAP_CODE + 1)),
+            "no rom_code_0"
+        );
+        assert!(
+            written.contains(".word .loword(rom_code_0), 0\n"),
+            "the entry is not empty"
+        );
+        assert!(
+            written.contains(&format!("), {LZ2_CAP_CODE}\n")),
+            "the first lost its length"
+        );
         // And its pages point there.
-        assert!(written.contains("<(rom_code_0 + "), "no page points into the cartridge");
+        assert!(
+            written.contains("<(rom_code_0 + "),
+            "no page points into the cartridge"
+        );
         // Past one bank it goes in two blocks, cut where a page starts:
         // the second page, in the second block, points at its start.
         maps[1].evcode = vec![1; ROM_CODE_MAX + 10];
@@ -2190,7 +2329,10 @@ mod tests {
         let cuts: Vec<(usize, usize)> = chunks.iter().map(|(s, b)| (*s, b.len())).collect();
         assert_eq!(cuts, [(0, ROM_CODE_MAX), (ROM_CODE_MAX, 10)]);
         let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
-        assert!(written.contains("<(rom_code_1 + 0)"), "the second page is not in the second block");
+        assert!(
+            written.contains("<(rom_code_1 + 0)"),
+            "the second page is not in the second block"
+        );
         // But a page longer than a bank cannot be laid out.
         maps[1].pages[1].offset = 5;
         let error = super::maps(&maps).err().unwrap().to_string();
@@ -2200,7 +2342,10 @@ mod tests {
     #[test]
     fn a_map_with_more_pages_than_the_console_walks_is_refused() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        let mut map = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps
+            .remove(0);
         map.pages = test_pages(MAX_PAGES as i64);
         check_counts(&map).unwrap();
         map.pages = test_pages(MAX_PAGES as i64 + 1);
@@ -2211,16 +2356,31 @@ mod tests {
     #[test]
     fn a_cache_goes_where_the_console_reads_it_and_its_rows_carry_their_still_pose() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut maps = crate::request::read::<crate::request::Maps>(&path).unwrap().maps;
+        let mut maps = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps;
         // Nobody has one: a zero per map.
         let none = cache_table(&maps).unwrap();
-        assert!(none.contains(&format!("cache_maps:\n    .word {}\n", vec!["0"; maps.len()].join(", "))), "{none}");
+        assert!(
+            none.contains(&format!(
+                "cache_maps:\n    .word {}\n",
+                vec!["0"; maps.len()].join(", ")
+            )),
+            "{none}"
+        );
         // A map with objects gets a cache of two slots, blocks 5 and 6, and
         // two still poses; every event it draws starts with the second, but
         // the first, which walks.
-        let k = maps.iter().position(|m| m.sprite.is_some() && !m.npcs.is_empty()).unwrap();
-        let events: Vec<(i64, Option<u32>, u32)> =
-            maps[k].npcs.iter().enumerate().map(|(i, n)| (n.event, (i > 0).then_some(1), 3)).collect();
+        let k = maps
+            .iter()
+            .position(|m| m.sprite.is_some() && !m.npcs.is_empty())
+            .unwrap();
+        let events: Vec<(i64, Option<u32>, u32)> = maps[k]
+            .npcs
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (n.event, (i > 0).then_some(1), 3))
+            .collect();
         let walker = maps[k].npcs[0].event;
         maps[k].movable = vec![walker];
         maps[k].sprite.as_mut().unwrap().cache = Some(crate::request::Cache {
@@ -2231,24 +2391,47 @@ mod tests {
         let table = cache_table(&maps).unwrap();
         let mut starts = vec!["0"; maps.len()];
         starts[k] = "1";
-        assert!(table.contains(&format!("cache_maps:\n    .word {}\n", starts.join(", "))), "{table}");
+        assert!(
+            table.contains(&format!("cache_maps:\n    .word {}\n", starts.join(", "))),
+            "{table}"
+        );
         // Its record: how many slots, where the still poses start, and each
         // slot's first tile.
         let stills_at = 1 + 3 + 4;
-        assert!(table.contains(&format!("    .byte 2\n    .word {stills_at}\n")), "{table}");
-        assert!(table.contains(&format!("    .word {}, {}\n", block_tile(5), block_tile(6))), "{table}");
+        assert!(
+            table.contains(&format!("    .byte 2\n    .word {stills_at}\n")),
+            "{table}"
+        );
+        assert!(
+            table.contains(&format!("    .word {}, {}\n", block_tile(5), block_tile(6))),
+            "{table}"
+        );
         // Each still pose's place in `npc_poses`.
-        assert!(table.contains(&format!("    .word {}, {}\n", (2 * 12 + 7) * 3, 4 * 3)), "{table}");
-        assert!(table.contains(&format!(".block {}\ncache_data:", stills_at + 4)), "{table}");
+        assert!(
+            table.contains(&format!("    .word {}, {}\n", (2 * 12 + 7) * 3, 4 * 3)),
+            "{table}"
+        );
+        assert!(
+            table.contains(&format!(".block {}\ncache_data:", stills_at + 4)),
+            "{table}"
+        );
         for (line, value, max) in literals(&table) {
-            assert!((0..=max).contains(&value), "{value} does not fit in: {line}");
+            assert!(
+                (0..=max).contains(&value),
+                "{value} does not fit in: {line}"
+            );
         }
         // The rows: the still ones carry their pose in the tile byte, the
         // walking one a zero; all with the cache's palette.
         let rows = npc_table(&maps[k]).unwrap();
         for row in &rows {
             let expected = if row.event == walker { 0 } else { 1 };
-            assert_eq!((row.tile, row.palette), (expected, 3), "event {}", row.event);
+            assert_eq!(
+                (row.tile, row.palette),
+                (expected, 3),
+                "event {}",
+                row.event
+            );
         }
         // A twin of the walker —a still one that animates in its slot—
         // carries the walker's key, 128 plus it, its poses and the bit
@@ -2268,13 +2451,24 @@ mod tests {
     #[test]
     fn the_shared_slots_go_where_the_console_reads_them() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut maps = crate::request::read::<crate::request::Maps>(&path).unwrap().maps;
+        let mut maps = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps;
         // Nobody shares: a zero per map, and the byte offset 0 points at.
         let none = share_table(&maps).unwrap();
-        assert!(none.contains(&format!("share_maps:\n    .word {}\n", vec!["0"; maps.len()].join(", "))), "{none}");
+        assert!(
+            none.contains(&format!(
+                "share_maps:\n    .word {}\n",
+                vec!["0"; maps.len()].join(", ")
+            )),
+            "{none}"
+        );
         // A map with objects and three events shares two slots, blocks 5 and
         // 6, among its first three events; the third one does not take turns.
-        let k = maps.iter().position(|m| m.sprite.is_some() && m.events.len() >= 3).unwrap();
+        let k = maps
+            .iter()
+            .position(|m| m.sprite.is_some() && m.events.len() >= 3)
+            .unwrap();
         let events = maps[k].events.len();
         maps[k].sprite.as_mut().unwrap().shared = Some(crate::request::Shared {
             events: vec![(0, 0, 1, 2), (1, 1, 0, 3)],
@@ -2284,21 +2478,43 @@ mod tests {
         let table = share_table(&maps).unwrap();
         let mut starts = vec!["0"; maps.len()];
         starts[k] = "1";
-        assert!(table.contains(&format!("share_maps:\n    .word {}\n", starts.join(", "))), "{table}");
+        assert!(
+            table.contains(&format!("share_maps:\n    .word {}\n", starts.join(", "))),
+            "{table}"
+        );
         // Its record: the event table after the header and two slots, the
         // pose table after one entry per event of the map.
         let events_at = 1 + 5 + 4;
         let poses_at = events_at + 2 * events;
-        assert!(table.contains(&format!("    .word {events_at}, {poses_at}\n    .byte 2\n")), "{table}");
+        assert!(
+            table.contains(&format!("    .word {events_at}, {poses_at}\n    .byte 2\n")),
+            "{table}"
+        );
         // A block's VRAM is its first tile times sixteen words.
-        assert!(table.contains(&format!("    .word {}, {}\n", block_tile(5) * 16, block_tile(6) * 16)), "{table}");
+        assert!(
+            table.contains(&format!(
+                "    .word {}, {}\n",
+                block_tile(5) * 16,
+                block_tile(6) * 16
+            )),
+            "{table}"
+        );
         assert!(table.contains("    .byte $00,1, $01,0, $FF,0"), "{table}");
         // Each pose's place in `npc_poses`: three bytes a pose, twelve a
         // character.
-        assert!(table.contains(&format!("    .word {}, {}\n", (2 * 12 + 7) * 3, 4 * 3)), "{table}");
-        assert!(table.contains(&format!(".block {}\nshare_data:", poses_at + 4)), "{table}");
+        assert!(
+            table.contains(&format!("    .word {}, {}\n", (2 * 12 + 7) * 3, 4 * 3)),
+            "{table}"
+        );
+        assert!(
+            table.contains(&format!(".block {}\nshare_data:", poses_at + 4)),
+            "{table}"
+        );
         for (line, value, max) in literals(&table) {
-            assert!((0..=max).contains(&value), "{value} does not fit in: {line}");
+            assert!(
+                (0..=max).contains(&value),
+                "{value} does not fit in: {line}"
+            );
         }
     }
 }

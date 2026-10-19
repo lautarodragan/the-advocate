@@ -466,8 +466,11 @@ impl Game {
         let two_weapons = raw.iter().filter(|a| a.two_weapon).map(|a| a.id).collect();
         let raw: Vec<schema::Skill> = dump.section("skills").map_err(answer)?;
         let skills = raw.iter().map(|s| s.id).collect();
-        let mut database_switches: BTreeSet<i32> =
-            raw.iter().filter(|s| s.r#type == schema::SkillType::Switch).map(|s| s.switch_id).collect();
+        let mut database_switches: BTreeSet<i32> = raw
+            .iter()
+            .filter(|s| s.r#type == schema::SkillType::Switch)
+            .map(|s| s.switch_id)
+            .collect();
         // A dump without items equips nothing: `ChangeEquipment` to equip
         // then does not compile, which is what it did before it read them.
         // The small game of this crate's tests has none.
@@ -477,7 +480,11 @@ impl Game {
             .map(|i| (i.id, (i.r#type.to_i32(), i.actor_set.clone())))
             .collect();
         let two_handed = raw.iter().filter(|i| i.two_handed).map(|i| i.id).collect();
-        database_switches.extend(raw.iter().filter(|i| i.r#type == schema::ItemType::Switch).map(|i| i.switch_id));
+        database_switches.extend(
+            raw.iter()
+                .filter(|i| i.r#type == schema::ItemType::Switch)
+                .map(|i| i.switch_id),
+        );
 
         Ok(Game {
             dump: data.to_path_buf(),
@@ -508,17 +515,30 @@ impl Game {
     pub fn system_names(&self) -> Result<Vec<String>> {
         let mut out: Vec<String> = Vec::new();
         let mut note = |c: &Command| {
-            if c.code == CHANGE_SYSTEM_GRAPHICS && !out.iter().any(|s| s.eq_ignore_ascii_case(&c.string)) {
+            if c.code == CHANGE_SYSTEM_GRAPHICS
+                && !out.iter().any(|s| s.eq_ignore_ascii_case(&c.string))
+            {
                 out.push(c.string.clone());
             }
         };
         for &id in &self.map_ids {
             for event in self.map(id)?.events {
-                event.pages.iter().flat_map(|p| p.commands.iter()).for_each(&mut note);
+                event
+                    .pages
+                    .iter()
+                    .flat_map(|p| p.commands.iter())
+                    .for_each(&mut note);
             }
         }
-        self.common_events.values().flat_map(|c| c.commands.iter()).for_each(&mut note);
-        self.troops.values().flatten().flat_map(|p| p.commands.iter()).for_each(&mut note);
+        self.common_events
+            .values()
+            .flat_map(|c| c.commands.iter())
+            .for_each(&mut note);
+        self.troops
+            .values()
+            .flatten()
+            .flat_map(|p| p.commands.iter())
+            .for_each(&mut note);
         Ok(out)
     }
 
@@ -547,8 +567,11 @@ impl Game {
 
     fn convert(&self, id: i32, raw: &schema::Map) -> Map {
         let dropped = self.patches.dropped.get(&id);
-        let mut events: Vec<&schema::Event> =
-            raw.events.iter().filter(|e| dropped.is_none_or(|d| !d.contains(&e.id))).collect();
+        let mut events: Vec<&schema::Event> = raw
+            .events
+            .iter()
+            .filter(|e| dropped.is_none_or(|d| !d.contains(&e.id)))
+            .collect();
         events.sort_by_key(|e| e.id);
         let events = events
             .into_iter()
@@ -581,7 +604,12 @@ impl Game {
                                 character_name: name,
                                 character_index: p.character_index,
                                 character_pattern: p.character_pattern.to_i32(),
-                                commands: if self.patches.boxed_exits.get(&id).is_some_and(|b| b.contains(&e.id)) {
+                                commands: if self
+                                    .patches
+                                    .boxed_exits
+                                    .get(&id)
+                                    .is_some_and(|b| b.contains(&e.id))
+                                {
                                     exit_left_out_box()
                                 } else {
                                     commands(&p.event_commands, Some(&self.patches.boxes))

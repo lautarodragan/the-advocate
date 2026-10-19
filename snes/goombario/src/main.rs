@@ -50,7 +50,12 @@ fn options(args: Vec<String>) -> Result<Options, String> {
         dbg: None,
         root: PathBuf::from("."),
         only: Vec::new(),
-        checks: vec![Check::PullBranch, Check::CallReturn, Check::Stack, Check::Width],
+        checks: vec![
+            Check::PullBranch,
+            Check::CallReturn,
+            Check::Stack,
+            Check::Width,
+        ],
         stats: false,
         unfollowed: false,
     };
@@ -65,7 +70,9 @@ fn options(args: Vec<String>) -> Result<Options, String> {
             "--checks" => {
                 o.checks = value("--checks")?
                     .split(',')
-                    .map(|c| Check::from_name(c.trim()).ok_or_else(|| format!("{:?} is not a check", c)))
+                    .map(|c| {
+                        Check::from_name(c.trim()).ok_or_else(|| format!("{:?} is not a check", c))
+                    })
                     .collect::<Result<_, _>>()?
             }
             "--stats" => o.stats = true,
@@ -106,9 +113,13 @@ fn main() -> ExitCode {
     let mut wrong = 0;
     // What the checks stand on: if these are not empty, a finding can be
     // missing or made up, so they count as findings.
-    let wanted = |file: &str| o.only.is_empty() || o.only.iter().any(|p| file.starts_with(p.as_str()));
+    let wanted =
+        |file: &str| o.only.is_empty() || o.only.iter().any(|p| file.starts_with(p.as_str()));
     for m in program.missing_sources() {
-        println!("{}: the source cannot be read, so the widths after it are unknown", m);
+        println!(
+            "{}: the source cannot be read, so the widths after it are unknown",
+            m
+        );
         wrong += 1;
     }
     for (file, u) in &program.undecoded {
@@ -118,7 +129,10 @@ fn main() -> ExitCode {
         }
     }
     let (reports, stats) = goombario::lint(&program, &o.root);
-    let reports = reports.into_iter().filter(|r| o.checks.contains(&r.check) && wanted(&r.file)).collect();
+    let reports = reports
+        .into_iter()
+        .filter(|r| o.checks.contains(&r.check) && wanted(&r.file))
+        .collect();
     let (annotations, malformed) = goombario::annotations(&program, &o.root, wanted);
     for m in &malformed {
         println!("{}", m);
@@ -177,7 +191,10 @@ fn main() -> ExitCode {
             w.calls_unknown
         );
         let disagree = program.width_disagreements();
-        eprintln!("immediates whose size the source's widths do not explain: {}", disagree.len());
+        eprintln!(
+            "immediates whose size the source's widths do not explain: {}",
+            disagree.len()
+        );
         for d in disagree.iter().take(20) {
             eprintln!("    {}", d);
         }

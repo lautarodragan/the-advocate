@@ -52,8 +52,8 @@ pub const FLG_BASE: u8 = 0x20;
 // exponential GAIN subtract 1/256 of the level per step; linear GAIN
 // subtracts 1/64.
 pub const PERIOD: [i64; 32] = [
-    0, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192, 160, 128, 96, 80, 64, 48, 40,
-    32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3, 2, 1,
+    0, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192, 160, 128, 96, 80, 64, 48, 40, 32,
+    24, 20, 16, 12, 10, 8, 6, 5, 4, 3, 2, 1,
 ];
 
 // The DSP's ADSR release cannot be configured: on writing KOF the envelope
@@ -131,7 +131,11 @@ pub fn envelope(sf2: &VolumeEnvelope, key: i64) -> (u8, u8, u8) {
     let ar = if attack < INSTANT_ATTACK {
         15
     } else {
-        closest_rate(attack, |a| (64 * PERIOD[(2 * a + 1) as usize]) as f64 / rate, 0..15)
+        closest_rate(
+            attack,
+            |a| (64 * PERIOD[(2 * a + 1) as usize]) as f64 / rate,
+            0..15,
+        )
     };
 
     // The SoundFont drops 100 dB in `decay` seconds, in a straight line in dB.
@@ -139,7 +143,11 @@ pub fn envelope(sf2: &VolumeEnvelope, key: i64) -> (u8, u8, u8) {
         // It dies out on its own: the sustain level at the very top —the
         // decay phase ends immediately— and the sustain goes down with the
         // SoundFont's decay, reaching zero where it reaches -40 dB.
-        (7, 0, closest_rate(decay * DOWN_TO_DB / 100.0, time_to_zero, 1..32))
+        (
+            7,
+            0,
+            closest_rate(decay * DOWN_TO_DB / 100.0, time_to_zero, 1..32),
+        )
     } else {
         // It goes down to a level and stays: SL in eighths, and the decay
         // (rate 2D+16) with the SoundFont's slope. Above 1/8 the DSP's
@@ -158,7 +166,11 @@ pub fn envelope(sf2: &VolumeEnvelope, key: i64) -> (u8, u8, u8) {
         let r = closest_rate(release * DOWN_TO_DB / 100.0, time_to_zero, 1..32);
         GAIN_EXP_DECREASE | r as u8
     };
-    (0x80 | (dr << 4) as u8 | ar as u8, ((sl << 5) | sr) as u8, gain)
+    (
+        0x80 | (dr << 4) as u8 | ar as u8,
+        ((sl << 5) | sr) as u8,
+        gain,
+    )
 }
 
 // --- notes ------------------------------------------------------------------
@@ -240,7 +252,10 @@ pub fn volume(velocity: f64, ceiling: f64, cc7: f64, cc11: f64, pan: f64) -> (i6
             num::round(x).min(0x7F).max(VOLUME_FLOOR)
         }
     };
-    (side(amplitude * angle.cos() / center), side(amplitude * angle.sin() / center))
+    (
+        side(amplitude * angle.cos() / center),
+        side(amplitude * angle.sin() / center),
+    )
 }
 
 #[cfg(test)]
@@ -269,7 +284,10 @@ mod tests {
         let (_adsr1, _adsr2, gain) = envelope(&flat(0), 60);
         assert_eq!(gain & 0xE0, GAIN_EXP_DECREASE, "GAIN ${gain:02X}");
         let to_zero = time_to_zero((gain & 0x1F) as i64);
-        assert!(0.3 < to_zero && to_zero < 0.55, "reaches zero in {to_zero:.3} s");
+        assert!(
+            0.3 < to_zero && to_zero < 0.55,
+            "reaches zero in {to_zero:.3} s"
+        );
     }
 
     #[test]

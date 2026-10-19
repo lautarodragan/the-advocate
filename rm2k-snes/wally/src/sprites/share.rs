@@ -34,7 +34,10 @@ pub const CELL: i32 = 16;
 /// the console decides with the same comparison. Positions are whole
 /// cells, so it is 18 cells across and 16 down.
 pub fn reach() -> (i32, i32) {
-    ((SCREEN_W + OBJ_W as i32 + CELL - 1) / CELL, (SCREEN_H + OBJ_H as i32 + CELL - 1) / CELL)
+    (
+        (SCREEN_W + OBJ_W as i32 + CELL - 1) / CELL,
+        (SCREEN_H + OBJ_H as i32 + CELL - 1) / CELL,
+    )
 }
 
 /// How many shared slots the console keeps track of in a map: one byte of
@@ -74,7 +77,9 @@ pub fn share_slots(sharers: &[Sharer]) -> Vec<Vec<usize>> {
     let mut slots: Vec<Vec<usize>> = Vec::new();
     for i in order {
         let fits = |slot: &Vec<usize>| {
-            slot.iter().all(|&j| sharers[j].pose == sharers[i].pose || !together(&sharers[i], &sharers[j], reach))
+            slot.iter().all(|&j| {
+                sharers[j].pose == sharers[i].pose || !together(&sharers[i], &sharers[j], reach)
+            })
         };
         match slots.iter_mut().find(|s| fits(s)) {
             Some(slot) => slot.push(i),
@@ -89,7 +94,12 @@ mod tests {
     use super::*;
 
     fn at(event: usize, x: i32, y: i32, pose: i32) -> Sharer {
-        Sharer { event, x, y, pose: ("People".to_string(), 0, pose) }
+        Sharer {
+            event,
+            x,
+            y,
+            pose: ("People".to_string(), 0, pose),
+        }
     }
 
     #[test]
@@ -122,12 +132,19 @@ mod tests {
 
     #[test]
     fn the_answer_does_not_depend_on_the_order_of_the_events() {
-        let a = [at(0, 0, 0, 1), at(1, 30, 0, 4), at(2, 5, 5, 7), at(3, 40, 40, 1)];
+        let a = [
+            at(0, 0, 0, 1),
+            at(1, 30, 0, 4),
+            at(2, 5, 5, 7),
+            at(3, 40, 40, 1),
+        ];
         let mut b = a.to_vec();
         b.reverse();
         let by_event = |sharers: &[Sharer], slots: Vec<Vec<usize>>| -> Vec<Vec<usize>> {
-            let mut out: Vec<Vec<usize>> =
-                slots.into_iter().map(|s| s.into_iter().map(|i| sharers[i].event).collect()).collect();
+            let mut out: Vec<Vec<usize>> = slots
+                .into_iter()
+                .map(|s| s.into_iter().map(|i| sharers[i].event).collect())
+                .collect();
             for s in &mut out {
                 s.sort();
             }

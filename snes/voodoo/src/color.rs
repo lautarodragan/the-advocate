@@ -18,7 +18,11 @@ pub fn quantize_channel(value: u8) -> u8 {
 
 /// An 8-bit colour to a 15-bit one.
 pub fn quantize(red: u8, green: u8, blue: u8) -> Rgb15 {
-    (quantize_channel(red), quantize_channel(green), quantize_channel(blue))
+    (
+        quantize_channel(red),
+        quantize_channel(green),
+        quantize_channel(blue),
+    )
 }
 
 /// A 15-bit colour back to 8 bits a channel, with the five bits on top.

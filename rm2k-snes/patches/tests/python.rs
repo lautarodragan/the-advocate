@@ -41,7 +41,9 @@ use std::path::{Path, PathBuf};
 const PYTHON_KINDS: [Kind; 3] = [Kind::Map, Kind::Animation, Kind::Battler];
 
 fn game(name: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join(name)
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join(name)
 }
 
 fn request(name: &str) -> Request {
@@ -49,10 +51,7 @@ fn request(name: &str) -> Request {
 }
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "rm2k-snes-patches-{name}-{}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("rm2k-snes-patches-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -66,10 +65,7 @@ fn files_below(root: &Path, dir: &Path, out: &mut BTreeMap<String, String>) {
         } else {
             let digest = Sha256::digest(std::fs::read(&path).unwrap());
             let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
-            out.insert(
-                path.strip_prefix(root).unwrap().display().to_string(),
-                hex,
-            );
+            out.insert(path.strip_prefix(root).unwrap().display().to_string(), hex);
         }
     }
 }
@@ -131,10 +127,18 @@ fn the_files_and_the_check_say_what_the_python_said() {
     // no cartridge converts gets one.
     std::fs::remove_file(auto.join("animations/0082.toml")).unwrap();
     let town = std::fs::read_to_string(auto.join("maps/0012.toml")).unwrap();
-    std::fs::write(auto.join("maps/0777.toml"), town.replace("map = 12", "map = 777")).unwrap();
+    std::fs::write(
+        auto.join("maps/0777.toml"),
+        town.replace("map = 12", "map = 777"),
+    )
+    .unwrap();
     let mut listed = serde_json::Map::new();
     for kind in PYTHON_KINDS {
-        let keys: Vec<Value> = versioned(&auto, kind).unwrap().iter().map(key_json).collect();
+        let keys: Vec<Value> = versioned(&auto, kind)
+            .unwrap()
+            .iter()
+            .map(key_json)
+            .collect();
         listed.insert(kind.key().into(), json!(keys));
     }
     assert_eq!(Value::Object(listed), expected["versioned"]);
@@ -149,8 +153,10 @@ fn the_files_and_the_check_say_what_the_python_said() {
     assert_eq!(json!(checked.complaints), expected["complaints"]);
     let mut own = serde_json::Map::new();
     for (kind, which) in &checked.own {
-        let which: serde_json::Map<String, Value> =
-            which.iter().map(|(k, c)| (k.to_string(), json!(c))).collect();
+        let which: serde_json::Map<String, Value> = which
+            .iter()
+            .map(|(k, c)| (k.to_string(), json!(c)))
+            .collect();
         own.insert(kind.key().into(), Value::Object(which));
     }
     assert_eq!(Value::Object(own), expected["own"]);

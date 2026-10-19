@@ -12,7 +12,8 @@ fn binary() -> Command {
 }
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("rm2k-snes-audio-cli-{name}-{}", std::process::id()));
+    let dir =
+        std::env::temp_dir().join(format!("rm2k-snes-audio-cli-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -38,13 +39,25 @@ fn compile_writes_the_music_and_what_goes_with_it() {
     let dir = scratch("compile");
     fixture::write(&dir);
     let out = compile(&dir, fixture::ARAM_END, &["--detail"]);
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let report = String::from_utf8_lossy(&out.stdout);
     assert!(report.contains("shared bank:"), "{report}");
     let inc = std::fs::read_to_string(dir.join("out/musicdata.inc")).unwrap();
     // The line the tools that read the cartridge look for.
-    assert!(inc.lines().nth(1).unwrap().starts_with("; Songs: alpha, beta, gamma, delta, no music"), "{inc}");
-    let audio: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap()).unwrap();
+    assert!(
+        inc.lines()
+            .nth(1)
+            .unwrap()
+            .starts_with("; Songs: alpha, beta, gamma, delta, no music"),
+        "{inc}"
+    );
+    let audio: Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap())
+            .unwrap();
     let songs = audio["songs"].as_array().unwrap();
     assert_eq!(songs.len(), 5);
     // The detail: each song's writes and its voice allocation.
@@ -67,7 +80,12 @@ fn samples_that_do_not_fit_even_at_the_minimum_are_an_answer() {
     let dir = scratch("tight");
     fixture::write(&dir);
     let out = compile(&dir, 0x0400 + 4 * 16 + 9 + 500, &[]);
-    assert_eq!(out.status.code(), Some(1), "{}", String::from_utf8_lossy(&out.stderr));
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let e = String::from_utf8_lossy(&out.stderr);
     assert!(e.contains("do not fit"), "{e}");
     let _ = std::fs::remove_dir_all(&dir);
@@ -83,19 +101,39 @@ fn a_package_that_does_not_fit_is_relieved_and_says_what_it_lost() {
     let dir = scratch("relieved");
     fixture::write(&dir);
     let out = compile(&dir, 0x0400 + 4 * 16 + 9 + 3000, &[]);
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let report = String::from_utf8_lossy(&out.stdout);
-    assert!(report.contains("WARNING, map 2: its songs beta and gamma do not fit"), "{report}");
-    let audio: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap()).unwrap();
+    assert!(
+        report.contains("WARNING, map 2: its songs beta and gamma do not fit"),
+        "{report}"
+    );
+    let audio: Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap())
+            .unwrap();
     let losses = audio["losses"].as_array().unwrap();
     let of_map_2: Vec<&Value> = losses.iter().filter(|l| l["map"] == 2).collect();
     assert_eq!(of_map_2[0]["kind"], "songs-uploaded-on-play", "{losses:?}");
     assert_eq!(of_map_2[1]["kind"], "sound-effects-left-out", "{losses:?}");
-    assert!(of_map_2[1]["text"].as_str().unwrap().contains("of its 2 sound effects"), "{losses:?}");
+    assert!(
+        of_map_2[1]["text"]
+            .as_str()
+            .unwrap()
+            .contains("of its 2 sound effects"),
+        "{losses:?}"
+    );
     // The ROM's package of map 2 carries no song, with beta and gamma
     // separate, and the sound effects that were left out are not in its list.
     let packages = audio["packages"].as_array().unwrap();
-    let (songs, effects, _, separate) = (&packages[1][0], &packages[1][1], &packages[1][2], &packages[1][3]);
+    let (songs, effects, _, separate) = (
+        &packages[1][0],
+        &packages[1][1],
+        &packages[1][2],
+        &packages[1][3],
+    );
     assert_eq!(songs, &serde_json::json!([]), "{packages:?}");
     assert_eq!(separate, &serde_json::json!([1, 2]), "{packages:?}");
     assert!(effects.as_array().unwrap().len() < 2, "{packages:?}");
@@ -118,8 +156,12 @@ fn a_broken_job_is_the_call_being_wrong() {
 fn decode_gives_what_the_song_writes() {
     let dir = scratch("decode");
     fixture::write(&dir);
-    assert!(compile(&dir, fixture::ARAM_END, &["--detail"]).status.success());
-    let audio: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap()).unwrap();
+    assert!(compile(&dir, fixture::ARAM_END, &["--detail"])
+        .status
+        .success());
+    let audio: Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap())
+            .unwrap();
     // The stream is in musicdata.inc: `song_stream_1:` and its `.byte` lines.
     let inc = std::fs::read_to_string(dir.join("out/musicdata.inc")).unwrap();
     let mut stream = Vec::new();
@@ -128,7 +170,11 @@ fn decode_gives_what_the_song_writes() {
         if line == "song_stream_1:" {
             inside = true;
         } else if inside && line.starts_with("    .byte ") {
-            stream.extend(line[10..].split(',').map(|b| u8::from_str_radix(&b[1..], 16).unwrap()));
+            stream.extend(
+                line[10..]
+                    .split(',')
+                    .map(|b| u8::from_str_radix(&b[1..], 16).unwrap()),
+            );
         } else if inside {
             break;
         }
@@ -140,7 +186,11 @@ fn decode_gives_what_the_song_writes() {
             if line == label {
                 inside = true;
             } else if inside && line.starts_with("    .byte ") {
-                out.extend(line[10..].split(',').map(|b| u8::from_str_radix(&b[1..], 16).unwrap()));
+                out.extend(
+                    line[10..]
+                        .split(',')
+                        .map(|b| u8::from_str_radix(&b[1..], 16).unwrap()),
+                );
             } else if inside {
                 break;
             }
@@ -165,7 +215,11 @@ fn decode_gives_what_the_song_writes() {
         .args(["--sounds", dir.join("sounds").to_str().unwrap()])
         .output()
         .unwrap();
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let decoded: Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(decoded["writes"], audio["songs"][1]["writes"]);
     assert_eq!(decoded["length"].as_u64(), Some(stream.len() as u64));
@@ -186,19 +240,27 @@ fn wav_find_song_and_pitch_answer_what_they_are_asked() {
     place(&mut wav);
     let out = wav.output().unwrap();
     let w: Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!((w["rate"].as_i64(), w["samples"].as_array().unwrap().len()), (Some(11025), 20000));
+    assert_eq!(
+        (w["rate"].as_i64(), w["samples"].as_array().unwrap().len()),
+        (Some(11025), 20000)
+    );
 
     let mut find = binary();
     find.args(["find-song", "ZETA"]);
     place(&mut find);
     let out = find.output().unwrap();
-    assert!(String::from_utf8_lossy(&out.stdout).trim().ends_with("rtp/Music/zeta.mid"));
+    assert!(String::from_utf8_lossy(&out.stdout)
+        .trim()
+        .ends_with("rtp/Music/zeta.mid"));
     let mut missing = binary();
     missing.args(["find-song", "nowhere"]);
     place(&mut missing);
     assert_eq!(missing.output().unwrap().status.code(), Some(1));
 
-    let out = binary().args(["pitch", "--rate", "22050", "--tempo", "100"]).output().unwrap();
+    let out = binary()
+        .args(["pitch", "--rate", "22050", "--tempo", "100"])
+        .output()
+        .unwrap();
     assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "2822");
     let _ = std::fs::remove_dir_all(&dir);
 }

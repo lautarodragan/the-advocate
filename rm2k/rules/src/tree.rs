@@ -57,7 +57,10 @@ pub fn troops(node: &MapInfo) -> Vec<i64> {
     let mut encounters: Vec<(i32, i32)> =
         node.encounters.iter().map(|e| (e.id, e.troop_id)).collect();
     encounters.sort_by_key(|&(id, _)| id);
-    encounters.into_iter().map(|(_, troop)| troop as i64).collect()
+    encounters
+        .into_iter()
+        .map(|(_, troop)| troop as i64)
+        .collect()
 }
 
 impl Tree {
@@ -90,7 +93,10 @@ impl Tree {
         if let Some(node) = self.get(map) {
             let own = troops(node);
             if !own.is_empty() {
-                zones.push(Zone { rect: [0, 0, width, height], troops: own });
+                zones.push(Zone {
+                    rect: [0, 0, width, height],
+                    troops: own,
+                });
             }
         }
         for node in self.nodes.values() {
@@ -119,7 +125,9 @@ impl Tree {
         let mut seen = std::collections::BTreeSet::new();
         let mut id = map;
         while id != 0 && seen.insert(id) {
-            let Some(node) = self.get(id) else { return None };
+            let Some(node) = self.get(id) else {
+                return None;
+            };
             match node.background_type {
                 MapInfoBGMType::Parent => id = node.parent_map,
                 MapInfoBGMType::Specific if !node.background_name.is_empty() => {
@@ -163,7 +171,9 @@ impl Tree {
             let mut seen = std::collections::BTreeSet::new();
             let mut id = map;
             while id != 0 && seen.insert(id) {
-                let Some(node) = self.get(id) else { return true };
+                let Some(node) = self.get(id) else {
+                    return true;
+                };
                 match pick(node) {
                     MapInfoTriState::Parent => id = node.parent_map,
                     state => return state != MapInfoTriState::Forbid,

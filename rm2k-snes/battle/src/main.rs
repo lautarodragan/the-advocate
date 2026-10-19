@@ -83,8 +83,10 @@ struct TablesArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "Writes into --out one JSON, named after the subcommand: model.json, \
-    simulate.json, lines.json, experience.json or field-skill.json. The README says what each request and each answer hold.")]
+#[command(
+    after_help = "Writes into --out one JSON, named after the subcommand: model.json, \
+    simulate.json, lines.json, experience.json or field-skill.json. The README says what each request and each answer hold."
+)]
 struct StageArgs {
     /// The Ditto dump the game is read from: the directory with maps.json
     /// and db/
@@ -101,8 +103,10 @@ struct StageArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "Writes layout.json into --out. The request is ignored: the geometry \
-    does not depend on any game.")]
+#[command(
+    after_help = "Writes layout.json into --out. The request is ignored: the geometry \
+    does not depend on any game."
+)]
 struct LayoutArgs {
     /// Ignored: it is there so that every subcommand is called the same way
     #[arg(long, value_name = "PATH")]

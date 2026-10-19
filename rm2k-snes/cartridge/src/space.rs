@@ -61,14 +61,20 @@ fn areas(cfg: &str) -> HashMap<String, i64> {
     let mut out = HashMap::new();
     for line in cfg.lines() {
         let line = line.trim_start();
-        let Some(colon) = line.find(':') else { continue };
+        let Some(colon) = line.find(':') else {
+            continue;
+        };
         let name = &line[..colon];
         if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
             continue;
         }
         let rest = line[colon + 1..].trim_start();
-        let Some(rest) = rest.strip_prefix("start = $") else { continue };
-        let Some((start, rest)) = rest.split_once(", size = $") else { continue };
+        let Some(rest) = rest.strip_prefix("start = $") else {
+            continue;
+        };
+        let Some((start, rest)) = rest.split_once(", size = $") else {
+            continue;
+        };
         if start.is_empty() || !start.chars().all(|c| matches!(c, '0'..='9' | 'A'..='F')) {
             continue;
         }
@@ -100,7 +106,8 @@ fn far_padding(dbg_text: &str, header: &Path) -> Result<i64, String> {
         .collect();
     let mut spans = HashSet::new();
     for line in dbg::records(dbg_text, "line") {
-        let (Some(file), Some(n), Some(span)) = (line.get("file"), line.get("line"), line.get("span"))
+        let (Some(file), Some(n), Some(span)) =
+            (line.get("file"), line.get("line"), line.get("span"))
         else {
             continue;
         };
@@ -123,11 +130,11 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         s.push(".dbg");
         std::path::PathBuf::from(s)
     };
-    let dbg_text = std::fs::read_to_string(&dbg_path)
-        .map_err(|e| format!("{}: {e}", dbg_path.display()))?;
+    let dbg_text =
+        std::fs::read_to_string(&dbg_path).map_err(|e| format!("{}: {e}", dbg_path.display()))?;
     let cfg_path = sfc.parent().unwrap_or(Path::new(".")).join(MEMORY_MAP);
-    let cfg = std::fs::read_to_string(&cfg_path)
-        .map_err(|e| format!("{}: {e}", cfg_path.display()))?;
+    let cfg =
+        std::fs::read_to_string(&cfg_path).map_err(|e| format!("{}: {e}", cfg_path.display()))?;
     let areas = areas(&cfg);
     let used: HashMap<String, i64> = dbg::records(&dbg_text, "seg")
         .into_iter()
@@ -160,7 +167,10 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         used: data.len() - free.len(),
         slow: data.iter().filter(|s| used_slot(s) && !s.fast()).count(),
         free: free.iter().filter(|s| s.size == BANK_SIZE).count(),
-        free_fast: free.iter().filter(|s| s.size == BANK_SIZE && s.fast()).count(),
+        free_fast: free
+            .iter()
+            .filter(|s| s.size == BANK_SIZE && s.fast())
+            .count(),
         free_halves: free.iter().filter(|s| s.size != BANK_SIZE).count(),
         gaps: gaps.iter().sum(),
         largest_gap: gaps.iter().copied().max().unwrap_or(0),

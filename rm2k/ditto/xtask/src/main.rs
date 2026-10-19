@@ -570,7 +570,9 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
          \x20   pub fn from_json_name(name: &str) -> Option<Self> {\n        match name {\n",
     );
     for ((id, _), (variant, _)) in usable.iter().zip(json_names.iter()) {
-        out.push_str(&format!("            \"{variant}\" => Some({name}::{id}),\n"));
+        out.push_str(&format!(
+            "            \"{variant}\" => Some({name}::{id}),\n"
+        ));
     }
     out.push_str("            _ => None,\n        }\n    }\n}\n\n");
 
@@ -668,7 +670,10 @@ fn emit_flags(out: &mut String, structure: &str, fields: &[(String, bool)]) {
     out.push_str("    pub fn write(&self, is2k3: bool) -> Vec<u8> {\n");
     out.push_str("        pack_bits(&[\n");
     for (c, only_2003) in fields {
-        out.push_str(&format!("            (self.{}, {only_2003}),\n", field_ident(c)));
+        out.push_str(&format!(
+            "            (self.{}, {only_2003}),\n",
+            field_ident(c)
+        ));
     }
     out.push_str("        ], is2k3)\n    }\n}\n\n");
 }
@@ -701,14 +706,19 @@ fn emit_struct(
     //
     // A field keeps the name liblcf gives it, which is the one the JSON
     // carries, even when it is not snake case: `Database.commoneventD2`.
-    let odd_case = visible(fields).any(|c| field_ident(&c.name).chars().any(|ch| ch.is_uppercase()));
+    let odd_case =
+        visible(fields).any(|c| field_ident(&c.name).chars().any(|ch| ch.is_uppercase()));
     out.push_str(&format!(
         "schema_struct! {{\n\
          /// Generated from `fields.csv`.\n\
          #[derive(Debug, Clone, PartialEq, Deserialize)]\n\
          #[serde(default)]\n\
          {}pub struct {name} {{\n",
-        if odd_case { "#[allow(non_snake_case)]\n" } else { "" }
+        if odd_case {
+            "#[allow(non_snake_case)]\n"
+        } else {
+            ""
+        }
     ));
     if with_id {
         out.push_str("    /// The number the array names this element with.\n");
@@ -724,7 +734,11 @@ fn emit_struct(
             } else {
                 ""
             },
-            if c.is_2k3 { "; RPG Maker 2003 only" } else { "" }
+            if c.is_2k3 {
+                "; RPG Maker 2003 only"
+            } else {
+                ""
+            }
         ));
         // A field the CSV declares no default for still carries one written
         // out: left implicit it would fall back to the zero of the type.
@@ -788,8 +802,12 @@ fn default_value(default: &str, e: &Enc) -> String {
         // inside. Quoting it again would make the default seven characters
         // long, which is a value no file can ever hold, so the field would
         // never be recognised as holding its default.
-        Enc::Text => format!("{:?}.to_string()", d.strip_prefix('"')
-            .and_then(|d| d.strip_suffix('"')).unwrap_or(d)),
+        Enc::Text => format!(
+            "{:?}.to_string()",
+            d.strip_prefix('"')
+                .and_then(|d| d.strip_suffix('"'))
+                .unwrap_or(d)
+        ),
         Enc::Enum(n) => {
             if d.is_empty() {
                 format!("{n}::default()")
@@ -812,7 +830,10 @@ fn list(d: &str) -> String {
     // The CSV has one default written as a Python comprehension:
     // `[x for x in range(0, 144)]`, that is 0..144.
     if let Some(r) = d.strip_prefix("[x for x in range(") {
-        let inner = r.trim_end_matches(')').trim_end_matches("]").trim_end_matches(')');
+        let inner = r
+            .trim_end_matches(')')
+            .trim_end_matches("]")
+            .trim_end_matches(')');
         let mut it = inner.split(',').map(|x| x.trim());
         let a = it.next().unwrap_or("0");
         let b = it.next().unwrap_or("0");
@@ -856,7 +877,11 @@ fn emit_codec(
          \x20   fn unknown_mut(&mut self) -> &mut Vec<RawChunk> {{ &mut self.unknown }}\n",
         def.with_id,
         if def.with_id { "self.id" } else { "0" },
-        if def.with_id { "self.id = v;" } else { "let _ = v;" },
+        if def.with_id {
+            "self.id = v;"
+        } else {
+            "let _ = v;"
+        },
     ));
 
     // --- the version's defaults ---
@@ -869,7 +894,13 @@ fn emit_codec(
     if !versioned.is_empty() {
         out.push_str("    fn default_for(is2k3: bool) -> Self {\n        let mut d = Self::default();\n        if is2k3 {\n");
         for c in &versioned {
-            let v = c.default.trim().split('|').nth(1).expect("a `|` default has two values").trim();
+            let v = c
+                .default
+                .trim()
+                .split('|')
+                .nth(1)
+                .expect("a `|` default has two values")
+                .trim();
             out.push_str(&format!("            d.{} = {v};\n", field_ident(&c.name)));
         }
         out.push_str("        }\n        d\n    }\n");
@@ -919,7 +950,8 @@ fn emit_codec(
             ));
             if c.ty.starts_with("Count<") {
                 // `Count` stores the number of elements, not the bytes.
-                let (open, close) = guard(c, &format!("self.{field}.len() != p.{field}.len()"), in_ldb);
+                let (open, close) =
+                    guard(c, &format!("self.{field}.len() != p.{field}.len()"), in_ldb);
                 out.push_str(&format!(
                     "        {open}c.push(({:#04x}, enc_ber(self.{field}.len() as i32)));{close}\n",
                     c.index,
@@ -927,7 +959,10 @@ fn emit_codec(
             } else {
                 let (open, close) = guard(
                     c,
-                    &format!("v_{field}.len() != {}.len()", write_expr(&e, &format!("p.{field}"))),
+                    &format!(
+                        "v_{field}.len() != {}.len()",
+                        write_expr(&e, &format!("p.{field}"))
+                    ),
                     in_ldb,
                 );
                 out.push_str(&format!(
@@ -945,7 +980,10 @@ fn emit_codec(
             continue;
         }
         // Was it already emitted by its length chunk?
-        if fields[..i].iter().any(|o| o.kind == "t" && o.name == c.name) {
+        if fields[..i]
+            .iter()
+            .any(|o| o.kind == "t" && o.name == c.name)
+        {
             i += 1;
             continue;
         }
@@ -1265,7 +1303,11 @@ fn json_default(
 ) -> Option<String> {
     let d = default.trim();
     match e {
-        Enc::Bool => Some(if d == "True" { "true".into() } else { "false".into() }),
+        Enc::Bool => Some(if d == "True" {
+            "true".into()
+        } else {
+            "false".into()
+        }),
         Enc::Ber | Enc::U8 | Enc::I8 | Enc::U32 => {
             let v = d.split('|').next().unwrap_or("0");
             Some(json_number(v, consts))

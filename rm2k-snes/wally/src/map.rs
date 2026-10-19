@@ -7,6 +7,8 @@
 //! done if the layers' split of colour memory does not move —and undone if
 //! the object palettes had to lend that event someone else's colours—.
 
+use crate::background::blocks::Blocks;
+use crate::background::Converted;
 use crate::baking::{self, bakeable};
 use crate::decor::{self, Decoration};
 use crate::events::{changes_graphic, collect_npcs, events, Event};
@@ -16,25 +18,23 @@ use crate::layers::{self as stage_layers, draw, Drawn};
 use crate::moves::{moves, Animate, Moves, ScannedPage};
 use crate::request::LayersRequest;
 use crate::sheets::Drawer;
-use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
-use adeleine::Color;
-use rm2k_render::picture;
-use rm2k_rules::chipset::passability_table;
-use rm2k_rules::passability::ALL;
-use crate::background::blocks::Blocks;
-use crate::background::Converted;
 use crate::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
 use crate::sprites::cache::{peak, Wants, BLOCKS, CACHE_MAX, STILLS_MAX};
 use crate::sprites::character::{
     block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES, OBJ_ROW,
 };
 use crate::sprites::extras::{
-    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask, RAIN_COLORS,
-    Image,
+    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits,
+    timer_mask, Image, RAIN_COLORS,
 };
 use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc, NPC_MAX};
 use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
 use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
+use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
+use adeleine::Color;
+use rm2k_render::picture;
+use rm2k_rules::chipset::passability_table;
+use rm2k_rules::passability::ALL;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -138,12 +138,22 @@ pub struct Note {
 }
 
 fn note(text: String) -> Note {
-    Note { kind: "note", text, ..Default::default() }
+    Note {
+        kind: "note",
+        text,
+        ..Default::default()
+    }
 }
 
 /// A note that says a loss: see [`Note`].
 fn lost(loss: &'static str, events: Vec<i32>, text: String) -> Note {
-    Note { kind: "note", text, loss: Some(loss), events, ..Default::default() }
+    Note {
+        kind: "note",
+        text,
+        loss: Some(loss),
+        events,
+        ..Default::default()
+    }
 }
 
 /// A note as the answer carries it: the loss only on the ones that say one.
@@ -178,7 +188,14 @@ fn layered(
 ) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
-    let request = LayersRequest { map: id, baked: cells, window_colors, panorama, fuse_tiles, decor: decor.to_vec() };
+    let request = LayersRequest {
+        map: id,
+        baked: cells,
+        window_colors,
+        panorama,
+        fuse_tiles,
+        decor: decor.to_vec(),
+    };
     let drawn = draw(game, &request)?;
     let converted = stage_layers::convert(&drawn, &request)?;
     Ok(Layered { drawn, converted })
@@ -195,7 +212,12 @@ fn layered(
 /// least visible. A ground that had merged colours already is not touched.
 fn same_split(without: &Converted, with: &Converted, decor: bool) -> bool {
     let (a, b) = (&without.above, &with.above);
-    let picture = |c: &Converted| c.pictures.iter().find(|p| p.name == "above").map(|p| p.picture.pixels.clone());
+    let picture = |c: &Converted| {
+        c.pictures
+            .iter()
+            .find(|p| p.name == "above")
+            .map(|p| p.picture.pixels.clone())
+    };
     // And the panorama's way: an event baked above the hero takes a map out
     // of mode 3, and flattened it would be drawn under him.
     without.way == with.way
@@ -215,7 +237,13 @@ fn same_split(without: &Converted, with: &Converted, decor: bool) -> bool {
                 .map(|w| [(w & 31) as u8, (w >> 5 & 31) as u8, (w >> 10 & 31) as u8])
                 .collect();
             without.background.merges.is_empty()
-                && with.background.merges.iter().filter(|m| ground.contains(&m.victim)).map(|m| m.pixels).sum::<u64>()
+                && with
+                    .background
+                    .merges
+                    .iter()
+                    .filter(|m| ground.contains(&m.victim))
+                    .map(|m| m.pixels)
+                    .sum::<u64>()
                     <= GROUND_LOST_MAX
         } else {
             without.background.merges.len() == with.background.merges.len()
@@ -244,7 +272,15 @@ fn bake_unless_split_moves(
     fuse_tiles: Option<usize>,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
-    let with = layered(game, id, window_colors, panorama.clone(), &baked, decor, fuse_tiles)?;
+    let with = layered(
+        game,
+        id,
+        window_colors,
+        panorama.clone(),
+        &baked,
+        decor,
+        fuse_tiles,
+    )?;
     if same_split(&without.converted, &with.converted, false) {
         return Ok((with, baked));
     }
@@ -258,7 +294,12 @@ fn bake_unless_split_moves(
 /// The open cell nearest the centre of the map —open on all four sides and
 /// without an event—; the geometric centre in a map with none, which is a
 /// cutscene room always reached by teleport.
-fn hero_start(passable: &[u8], width: usize, height: usize, used: &HashSet<(i32, i32)>) -> (i32, i32) {
+fn hero_start(
+    passable: &[u8],
+    width: usize,
+    height: usize,
+    used: &HashSet<(i32, i32)>,
+) -> (i32, i32) {
     let (cx, cy) = ((width / 2) as i64, (height / 2) as i64);
     let mut best: Option<(i64, usize, usize)> = None;
     for y in 0..height {
@@ -416,13 +457,16 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             kinds
         };
         if placed
-            && (request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request)))
+            && (request.layouts.is_empty()
+                || fits(&plain, &layouts_for(&plain.layers.converted, request)))
             && losses(&plain) == losses(&done)
         {
             return Ok(plain);
         }
         let full = request.picture.as_ref().map_or("", |p| p.name.as_str());
-        let mine: Vec<&str> = own.as_ref().map_or(Vec::new(), |p| p.name.split(", ").collect());
+        let mine: Vec<&str> = own
+            .as_ref()
+            .map_or(Vec::new(), |p| p.name.split(", ").collect());
         // By name: the same picture shown elsewhere is the map's and theirs,
         // and then the note names them all.
         let mut theirs: Vec<&str> = full.split(", ").filter(|n| !mine.contains(n)).collect();
@@ -457,13 +501,17 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             ..request.clone()
         };
         let mut done = convert(game, &without)?;
-        done.notes.push(lost("pictures-not-drawn", vec![], format!(
+        done.notes.push(lost(
+            "pictures-not-drawn",
+            vec![],
+            format!(
             "  map {}: WARNING, the pictures {} aren't drawn here: with their {} tiles the map \
              fits no VRAM layout",
             request.map,
             quoted(&asked.name),
             asked.image.tiles
-        )));
+        ),
+        ));
         return Ok(done);
     }
     let shared = convert_with(game, request, Mode::Share, None)?;
@@ -474,7 +522,9 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // And a map that does not fit even so gets a cache of slots —see
     // `sprites::cache`—, if one fits.
     let cached = convert_with(game, request, Mode::Cache, None)?;
-    if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
+    if cached.objects.as_ref().is_some_and(|o| o.cache.is_some())
+        && fits(&cached, &layouts_for(&cached.layers.converted, request))
+    {
         // A cache where events can wait for a slot loses more than a torch
         // that stands still: in a cache each one that animates wants a slot
         // of its own while in view —one per speed of a look since
@@ -490,7 +540,11 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         let none = convert_with(game, request, Mode::Cache, Some(0))?;
         let fits_none = none.objects.as_ref().is_some_and(|o| o.cache.is_some())
             && fits(&none, &layouts_for(&none.layers.converted, request));
-        return Ok(if fits_none && waiting(&none) < waiting(&cached) { none } else { cached });
+        return Ok(if fits_none && waiting(&none) < waiting(&cached) {
+            none
+        } else {
+            cached
+        });
     }
     // Then fewer still events animating, before anything that loses more
     // than looks: see `fewer_still_animations`.
@@ -509,12 +563,16 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         };
         let mut done = convert(game, &without)?;
         if fits(&done, &layouts_for(&done.layers.converted, &without)) {
-            done.notes.push(lost("battle-animations-not-drawn", vec![], format!(
-                "  map {}: WARNING, battle animations aren't drawn here: their box's {} tiles \
+            done.notes.push(lost(
+                "battle-animations-not-drawn",
+                vec![],
+                format!(
+                    "  map {}: WARNING, battle animations aren't drawn here: their box's {} tiles \
                  don't fit in the sprite bank",
-                request.map,
-                crate::sprites::extras::ANIMATION_TILES
-            )));
+                    request.map,
+                    crate::sprites::extras::ANIMATION_TILES
+                ),
+            ));
             return Ok(done);
         }
     }
@@ -577,7 +635,11 @@ const FUSE_TRIES: usize = 4;
 /// better. It is not exactly so —a look's three poses can move the
 /// palette split—, and the cost of being wrong is animating one look
 /// fewer than could: not worth a conversion per look on maps with dozens.
-fn fewer_still_animations(game: &Game, request: &MapRequest, looks: usize) -> Result<Option<Whole>> {
+fn fewer_still_animations(
+    game: &Game,
+    request: &MapRequest,
+    looks: usize,
+) -> Result<Option<Whole>> {
     if looks == 0 {
         return Ok(None);
     }
@@ -590,7 +652,9 @@ fn fewer_still_animations(game: &Game, request: &MapRequest, looks: usize) -> Re
             return Ok(None);
         }
         let shared = convert_with(game, request, Mode::Share, Some(k))?;
-        if shared.objects.as_ref().is_some_and(|o| o.shared.is_some()) && fits(&shared, &layouts_for(&shared.layers.converted, request)) {
+        if shared.objects.as_ref().is_some_and(|o| o.shared.is_some())
+            && fits(&shared, &layouts_for(&shared.layers.converted, request))
+        {
             return Ok(Some(shared));
         }
         let cached = convert_with(game, request, Mode::Cache, Some(k))?;
@@ -688,8 +752,15 @@ fn layouts_for(converted: &Converted, request: &MapRequest) -> Vec<(usize, usize
     }
 }
 
-fn fits_in(background: usize, above: usize, sprites: usize, layouts: &[(usize, usize, usize)]) -> bool {
-    layouts.iter().any(|&(b, s, a)| background <= b && sprites <= s && above <= a)
+fn fits_in(
+    background: usize,
+    above: usize,
+    sprites: usize,
+    layouts: &[(usize, usize, usize)],
+) -> bool {
+    layouts
+        .iter()
+        .any(|&(b, s, a)| background <= b && sprites <= s && above <= a)
 }
 
 /// `SetEventLocation` and `SwapEventLocations`: they move an event without
@@ -754,11 +825,22 @@ struct Plan {
 /// coloured by [`share_slots`]; a slot where everyone shows the same pose
 /// is an ordinary still slot, and only those with more than one go to the
 /// console.
-fn plan_sharing(npcs: &[Npc], movable: &BTreeSet<usize>, baked: &Baked, placed: &BTreeSet<usize>) -> Option<Plan> {
+fn plan_sharing(
+    npcs: &[Npc],
+    movable: &BTreeSet<usize>,
+    baked: &Baked,
+    placed: &BTreeSet<usize>,
+) -> Option<Plan> {
     let shows = |npc: &Npc| -> BTreeSet<Graphic> {
         let mut out = BTreeSet::from([(npc.charset.clone(), npc.index, npc.pose)]);
         if npc.changes {
-            out.extend(npc.graphics.iter().flatten().filter(|g| !npc.outside.contains(&(g.0.clone(), g.1))).cloned());
+            out.extend(
+                npc.graphics
+                    .iter()
+                    .flatten()
+                    .filter(|g| !npc.outside.contains(&(g.0.clone(), g.1)))
+                    .cloned(),
+            );
         }
         out
     };
@@ -766,24 +848,38 @@ fn plan_sharing(npcs: &[Npc], movable: &BTreeSet<usize>, baked: &Baked, placed: 
     let mut candidates = Vec::new();
     for npc in npcs.iter().filter(|n| !movable.contains(&n.event)) {
         let poses = shows(npc);
-        let takes_turns = poses.len() == 1 && !baked.contains_key(&npc.event) && !placed.contains(&npc.event);
+        let takes_turns =
+            poses.len() == 1 && !baked.contains_key(&npc.event) && !placed.contains(&npc.event);
         if takes_turns {
-            candidates.push(Sharer { event: npc.event, x: npc.x, y: npc.y, pose: poses.into_iter().next()? });
+            candidates.push(Sharer {
+                event: npc.event,
+                x: npc.x,
+                y: npc.y,
+                pose: poses.into_iter().next()?,
+            });
         } else {
             fixed.extend(poses);
         }
     }
-    let sharers: Vec<Sharer> = candidates.into_iter().filter(|c| !fixed.contains(&c.pose)).collect();
+    let sharers: Vec<Sharer> = candidates
+        .into_iter()
+        .filter(|c| !fixed.contains(&c.pose))
+        .collect();
     let mut plan = Plan::default();
     for group in share_slots(&sharers) {
-        let poses: Vec<Graphic> =
-            group.iter().map(|&i| sharers[i].pose.clone()).collect::<BTreeSet<_>>().into_iter().collect();
+        let poses: Vec<Graphic> = group
+            .iter()
+            .map(|&i| sharers[i].pose.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
         if poses.len() < 2 {
             continue;
         }
         let slot = plan.slots.len();
         for &i in &group {
-            plan.of.insert(sharers[i].event, (slot, sharers[i].pose.clone()));
+            plan.of
+                .insert(sharers[i].event, (slot, sharers[i].pose.clone()));
         }
         plan.slots.push(poses);
     }
@@ -801,17 +897,29 @@ fn plan_sharing(npcs: &[Npc], movable: &BTreeSet<usize>, baked: &Baked, placed: 
 /// walks them and they impose no passage. Then the rest. Within each, the
 /// highest index first: a rule anyone can redo by reading the map, and RM2k
 /// numbers events in the order they were placed, so the last ones placed go.
-fn over_the_table(npcs: &mut Vec<Npc>, events: &[Event], named: &BTreeSet<i32>, also_walk: &BTreeSet<usize>) -> Vec<usize> {
+fn over_the_table(
+    npcs: &mut Vec<Npc>,
+    events: &[Event],
+    named: &BTreeSet<i32>,
+    also_walk: &BTreeSet<usize>,
+) -> Vec<usize> {
     let does_something = |n: &Npc| {
         let event = &events[n.event];
         n.tile_pass.is_some()
             || named.contains(&event.id)
             || also_walk.contains(&n.event)
-            || event.pages.iter().any(|p| !p.commands.is_empty() || p.move_type != 0 || p.own_route)
+            || event
+                .pages
+                .iter()
+                .any(|p| !p.commands.is_empty() || p.move_type != 0 || p.own_route)
     };
     let mut order: Vec<(bool, usize)> = npcs.iter().map(|n| (does_something(n), n.event)).collect();
     order.sort_by_key(|&(does, event)| (does, std::cmp::Reverse(event)));
-    let mut out: Vec<usize> = order.iter().take(npcs.len() - NPC_MAX).map(|&(_, e)| e).collect();
+    let mut out: Vec<usize> = order
+        .iter()
+        .take(npcs.len() - NPC_MAX)
+        .map(|&(_, e)| e)
+        .collect();
     out.sort();
     npcs.retain(|n| out.binary_search(&n.event).is_err());
     out
@@ -819,7 +927,12 @@ fn over_the_table(npcs: &mut Vec<Npc>, events: &[Event], named: &BTreeSet<i32>, 
 
 /// The map converted in `mode`, animating the first `looks` looks of its
 /// still events that animate —all of them with `None`—: see [`Animate`].
-fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usize>) -> Result<Whole> {
+fn convert_with(
+    game: &Game,
+    request: &MapRequest,
+    mode: Mode,
+    looks: Option<usize>,
+) -> Result<Whole> {
     let id = request.map;
     let raw = game.map(id)?;
     let chipset = game.chipset(raw.chipset_id)?;
@@ -850,7 +963,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         decor::select(
             &mut drawer,
             &events,
-            &decor::Wants { named: &named, also_walk: &request.also_walk, baked: &baked },
+            &decor::Wants {
+                named: &named,
+                also_walk: &request.also_walk,
+                baked: &baked,
+            },
         )?
     } else {
         Vec::new()
@@ -859,7 +976,15 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         b.extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
         b
     });
-    let without = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), &[], request.fuse_tiles)?;
+    let without = layered(
+        game,
+        id,
+        request.window_colors,
+        panorama.clone(),
+        &BTreeMap::new(),
+        &[],
+        request.fuse_tiles,
+    )?;
     // The tiles first, as they always were. Then the decoration, all of it
     // if the split holds, and if not group by group —every CharSet is
     // one—, the most numerous first, keeping what fits: each CharSet brings
@@ -868,22 +993,52 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     let mut layers = if baked.is_empty() {
         without
     } else {
-        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), without, baked, &[], request.fuse_tiles, &mut notes)?;
+        let (layers, kept) = bake_unless_split_moves(
+            game,
+            id,
+            request.window_colors,
+            panorama.clone(),
+            without,
+            baked,
+            &[],
+            request.fuse_tiles,
+            &mut notes,
+        )?;
         baked = kept;
         layers
     };
     let mut kept_decor: Vec<Decoration> = Vec::new();
     if !wanted_decor.is_empty() {
-        let reference = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), &[], request.fuse_tiles)?;
+        let reference = layered(
+            game,
+            id,
+            request.window_colors,
+            panorama.clone(),
+            &BTreeMap::new(),
+            &[],
+            request.fuse_tiles,
+        )?;
         let attempt = |decor: &[Decoration], baked: &Baked| -> Result<Option<Layered>> {
-            let with = layered(game, id, request.window_colors, panorama.clone(), baked, decor, request.fuse_tiles)?;
+            let with = layered(
+                game,
+                id,
+                request.window_colors,
+                panorama.clone(),
+                baked,
+                decor,
+                request.fuse_tiles,
+            )?;
             Ok(same_split(&reference.converted, &with.converted, true).then_some(with))
         };
         // Translucent ones blended first, and if that does not fit, dithered
         // as the sprites would be: the colours of the ground and the water
         // and none between.
         let dithered: Vec<Decoration> = wanted_decor.iter().map(Decoration::dithered).collect();
-        let stages: Vec<&Vec<Decoration>> = if dithered.iter().zip(&wanted_decor).any(|(a, b)| a.translucent != b.translucent) {
+        let stages: Vec<&Vec<Decoration>> = if dithered
+            .iter()
+            .zip(&wanted_decor)
+            .any(|(a, b)| a.translucent != b.translucent)
+        {
             vec![&wanted_decor, &dithered]
         } else {
             vec![&wanted_decor]
@@ -948,7 +1103,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             out.iter().map(|e| events[*e].id.to_string()).collect::<Vec<_>>().join(", ")
         )));
     }
-    let pages: Vec<ScannedPage> = request.pages.iter().filter(|p| !gone.contains(&p.event)).cloned().collect();
+    let pages: Vec<ScannedPage> = request
+        .pages
+        .iter()
+        .filter(|p| !gone.contains(&p.event))
+        .cloned()
+        .collect();
 
     // The characters.
     let actors = game.actors()?;
@@ -959,10 +1119,24 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             .ok_or_else(|| Bad::answer(format!("actor {actor} is not in the database")))
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
-    let animate = Animate { looks, cache: mode == Mode::Cache };
-    let who = moves(&pages, &events, &npcs0, &chipset_name, &request.also_walk, animate);
+    let animate = Animate {
+        looks,
+        cache: mode == Mode::Cache,
+    };
+    let who = moves(
+        &pages,
+        &events,
+        &npcs0,
+        &chipset_name,
+        &request.also_walk,
+        animate,
+    );
     if !who.still_not_animated.is_empty() {
-        let ids: Vec<i32> = who.still_not_animated.iter().map(|&e| events[e].id).collect();
+        let ids: Vec<i32> = who
+            .still_not_animated
+            .iter()
+            .map(|&e| events[e].id)
+            .collect();
         notes.push(lost("still-animation-dropped", ids, format!(
             "  map {id}: {} still events animate in RM2k and stand still here: their slots don't fit in \
              the sprite bank ({} of {} looks animate)",
@@ -1025,7 +1199,8 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     } else if timer.is_empty() {
         OBJ_PALETTES - 1
     } else {
-        let d = drawable_npcs(&ask(OBJ_PALETTES - 1), npcs0.clone()).map_err(|b| Bad::answer(b.0))?;
+        let d =
+            drawable_npcs(&ask(OBJ_PALETTES - 1), npcs0.clone()).map_err(|b| Bad::answer(b.0))?;
         notes.extend(d.notes.into_iter().map(note));
         let mut clone = d.split.palettes.clone();
         if first_place(&mut clone, &d.split.leader_owned, &timer, OBJ_PALETTES - 1).is_none() {
@@ -1039,7 +1214,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     let split = d.split;
     let mut npcs = d.npcs;
     if !split.lent.is_empty() {
-        let mut names: Vec<String> = split.lent.iter().map(|k| format!("{}:{}", k.0, k.1)).collect();
+        let mut names: Vec<String> = split
+            .lent
+            .iter()
+            .map(|k| format!("{}:{}", k.0, k.1))
+            .collect();
         names.sort();
         notes.push(lost("palette-lent", vec![], format!(
             "  map {id}: {} graphic(s) without a palette of their own, drawn with someone else's: {}",
@@ -1048,7 +1227,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         )));
     }
     if !split.shared_leaders.is_empty() {
-        let mut names: Vec<String> = split.shared_leaders.iter().map(|k| format!("{}:{}", k.0, k.1)).collect();
+        let mut names: Vec<String> = split
+            .shared_leaders
+            .iter()
+            .map(|k| format!("{}:{}", k.0, k.1))
+            .collect();
         names.sort();
         notes.push(note(format!(
             "  map {id}: {} leader candidate(s) that are also events here share a palette with other \
@@ -1071,14 +1254,36 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     if !lent_baked.is_empty() {
         notes.push(note(format!(
             "  map {id}: event {} is drawn with someone else's palette, so it isn't baked",
-            lent_baked.iter().map(|e| (e + 1).to_string()).collect::<Vec<_>>().join(", ")
+            lent_baked
+                .iter()
+                .map(|e| (e + 1).to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         )));
         for e in &lent_baked {
             baked.remove(e);
         }
-        layers = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), &kept_decor, request.fuse_tiles)?;
+        layers = layered(
+            game,
+            id,
+            request.window_colors,
+            panorama.clone(),
+            &BTreeMap::new(),
+            &kept_decor,
+            request.fuse_tiles,
+        )?;
         if !baked.is_empty() {
-            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), layers, baked, &kept_decor, request.fuse_tiles, &mut notes)?;
+            let (again, kept) = bake_unless_split_moves(
+                game,
+                id,
+                request.window_colors,
+                panorama.clone(),
+                layers,
+                baked,
+                &kept_decor,
+                request.fuse_tiles,
+                &mut notes,
+            )?;
             layers = again;
             baked = kept;
         }
@@ -1087,7 +1292,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         notes.push(note(format!(
             "  map {id}: {} opaque event(s) baked into the map: {}",
             baked.len(),
-            baked.keys().map(|e| (e + 1).to_string()).collect::<Vec<_>>().join(", ")
+            baked
+                .keys()
+                .map(|e| (e + 1).to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         )));
     }
 
@@ -1159,7 +1368,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     let mut with_graphic = Vec::new();
     for (actor, key) in request.leaders.iter().zip(&leaders) {
         let Some(image) = sheets.get(&key.0).and_then(Option::as_ref) else {
-            done.notes.push(Note { kind: "stop", text: format!("can't find CharSet {}", quoted(&key.0)), stop: true, ..Default::default() });
+            done.notes.push(Note {
+                kind: "stop",
+                text: format!("can't find CharSet {}", quoted(&key.0)),
+                stop: true,
+                ..Default::default()
+            });
             return Ok(done);
         };
         if !sprite_colors(image, key.1, None).is_empty() {
@@ -1185,8 +1399,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     }
     let mut visible = Vec::new();
     for key in &request.route_graphics {
-        let colors = sheets.get(&key.0).and_then(Option::as_ref).map(|s| sprite_colors(s, key.1, None));
-        let shows = colors.as_ref().is_some_and(|c| !c.is_empty()) && split.palette_of.contains(key);
+        let colors = sheets
+            .get(&key.0)
+            .and_then(Option::as_ref)
+            .map(|s| sprite_colors(s, key.1, None));
+        let shows =
+            colors.as_ref().is_some_and(|c| !c.is_empty()) && split.palette_of.contains(key);
         visible.push(shows);
         if shows && !animated.contains(key) {
             animated.push(key.clone());
@@ -1257,7 +1475,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     let mut slots: Vec<SlotPose> = Vec::new();
     if !with_graphic.is_empty() {
         let (charset, index) = animated[0].clone();
-        slots.push(SlotPose { slot: Slot::Hero, charset, index, pose: INITIAL_POSE });
+        slots.push(SlotPose {
+            slot: Slot::Hero,
+            charset,
+            index,
+            pose: INITIAL_POSE,
+        });
     }
     for npc in npcs.iter_mut() {
         if who.movable.contains(&npc.event) {
@@ -1309,7 +1532,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             for (charset, index, pose) in poses {
                 let slot = Slot::Still(charset.clone(), index, pose);
                 if !slots.iter().any(|s| s.slot == slot) {
-                    slots.push(SlotPose { slot, charset, index, pose });
+                    slots.push(SlotPose {
+                        slot,
+                        charset,
+                        index,
+                        pose,
+                    });
                 }
             }
         }
@@ -1319,10 +1547,17 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     let still_turning = npcs.iter().find(|n| {
         turning.contains_key(&n.event)
             && !who.movable.contains(&n.event)
-            && turning[&n.event].iter().any(|p| split.palette_of.contains(p))
+            && turning[&n.event]
+                .iter()
+                .any(|p| split.palette_of.contains(p))
     });
     if let Some(n) = still_turning {
-        slots.push(SlotPose { slot: Slot::Turn, charset: n.charset.clone(), index: n.index, pose: n.pose });
+        slots.push(SlotPose {
+            slot: Slot::Turn,
+            charset: n.charset.clone(),
+            index: n.index,
+            pose: n.pose,
+        });
     }
     // The shared ones start with their first pose: the console does not
     // trust it anyway and uploads whichever comes into view. Their twelve
@@ -1331,7 +1566,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     if let Some(plan) = &plan {
         for (s, poses) in plan.slots.iter().enumerate() {
             let (charset, index, pose) = poses[0].clone();
-            slots.push(SlotPose { slot: Slot::Shared(s), charset, index, pose });
+            slots.push(SlotPose {
+                slot: Slot::Shared(s),
+                charset,
+                index,
+                pose,
+            });
             for p in poses {
                 let key = (p.0.clone(), p.1);
                 if !animated.contains(&key) {
@@ -1356,12 +1596,21 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         let shows = |npc: &Npc| -> BTreeSet<Graphic> {
             let mut out = BTreeSet::from([(npc.charset.clone(), npc.index, npc.pose)]);
             if npc.changes {
-                out.extend(npc.graphics.iter().flatten().filter(|g| !npc.outside.contains(&(g.0.clone(), g.1))).cloned());
+                out.extend(
+                    npc.graphics
+                        .iter()
+                        .flatten()
+                        .filter(|g| !npc.outside.contains(&(g.0.clone(), g.1)))
+                        .cloned(),
+                );
             }
             out
         };
         let mut stills = BTreeSet::new();
-        for npc in npcs.iter().filter(|n| !who.movable.contains(&n.event) && !who.follows.contains_key(&n.event)) {
+        for npc in npcs
+            .iter()
+            .filter(|n| !who.movable.contains(&n.event) && !who.follows.contains_key(&n.event))
+        {
             stills.extend(shows(npc));
         }
         let stills: Vec<Graphic> = stills.into_iter().collect();
@@ -1389,7 +1638,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
                 let start = if walks {
                     None
                 } else {
-                    stills.iter().position(|g| *g == (npc.charset.clone(), npc.index, npc.pose))
+                    stills
+                        .iter()
+                        .position(|g| *g == (npc.charset.clone(), npc.index, npc.pose))
                 };
                 let want = match start {
                     Some(v) if shows(npc).len() == 1 => Wants::Still(v),
@@ -1398,7 +1649,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
                 events.push((npc.event, start));
                 wants.push((npc.x, npc.y, want));
             }
-            let own: BTreeSet<&Wants> = wants.iter().map(|(_, _, w)| w).filter(|w| matches!(w, Wants::Own(_))).collect();
+            let own: BTreeSet<&Wants> = wants
+                .iter()
+                .map(|(_, _, w)| w)
+                .filter(|w| matches!(w, Wants::Own(_)))
+                .collect();
             let own = own.len();
             Some(CacheAsked {
                 peak: peak(&wants, raw.width as i32, raw.height as i32),
@@ -1423,7 +1678,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             continue;
         }
         if drawer_missing(&sheets, charset) {
-            done.notes.push(Note { kind: "stop", text: format!("can't find CharSet {}", quoted(charset)), stop: true, ..Default::default() });
+            done.notes.push(Note {
+                kind: "stop",
+                text: format!("can't find CharSet {}", quoted(charset)),
+                stop: true,
+                ..Default::default()
+            });
             return Ok(done);
         }
     }
@@ -1431,7 +1691,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     let bank = match build_characters(&sheets, &characters, &slots, &split) {
         Ok(b) => b,
         Err(b) => {
-            done.notes.push(Note { kind: "stop", text: b.0, stop: true, ..Default::default() });
+            done.notes.push(Note {
+                kind: "stop",
+                text: b.0,
+                stop: true,
+                ..Default::default()
+            });
             return Ok(done);
         }
     };
@@ -1449,15 +1714,25 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         return Ok(done);
     }
     let banks = pose_bank(&sheets, &animated, &bank.colors).map_err(|b| Bad::answer(b.0))?;
-    let animated_index: HashMap<Key, usize> = animated.iter().enumerate().map(|(k, p)| (p.clone(), k)).collect();
-    let animated_palettes: Vec<usize> = animated.iter().map(|k| split.palette_of.get(k).unwrap_or(0)).collect();
+    let animated_index: HashMap<Key, usize> = animated
+        .iter()
+        .enumerate()
+        .map(|(k, p)| (p.clone(), k))
+        .collect();
+    let animated_palettes: Vec<usize> = animated
+        .iter()
+        .map(|k| split.palette_of.get(k).unwrap_or(0))
+        .collect();
     let route_gfx: Vec<(usize, usize)> = request
         .route_graphics
         .iter()
         .zip(&visible)
         .map(|(pair, shows)| {
             if *shows {
-                (animated_index[pair], split.palette_of.get(pair).unwrap_or(0))
+                (
+                    animated_index[pair],
+                    split.palette_of.get(pair).unwrap_or(0),
+                )
             } else {
                 (0xFF, 0)
             }
@@ -1472,14 +1747,35 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
     if let Some(asked) = &cache_asked {
         let fixed = place.len();
         let converted = &done.layers.converted;
-        let (background, above) = (converted.background.tiles.len() / 64, converted.above.tiles.len() / 32);
+        let (background, above) = (
+            converted.background.tiles.len() / 64,
+            converted.above.tiles.len() / 32,
+        );
         let fit = |slots: usize| -> bool {
             let mut tiles = bank_tiles.clone();
             grow_blocks(&mut tiles, fixed + slots);
-            extras(id, request, glyphs.as_ref(), tiles, bank.palettes.clone(), &split.leader_owned, palette_cap)
-                .is_ok_and(|e| fits_in(background, above, e.tiles.len() / 32, &layouts_for(converted, request)))
+            extras(
+                id,
+                request,
+                glyphs.as_ref(),
+                tiles,
+                bank.palettes.clone(),
+                &split.leader_owned,
+                palette_cap,
+            )
+            .is_ok_and(|e| {
+                fits_in(
+                    background,
+                    above,
+                    e.tiles.len() / 32,
+                    &layouts_for(converted, request),
+                )
+            })
         };
-        let most = asked.wanted.min(BLOCKS.saturating_sub(fixed)).min(CACHE_MAX);
+        let most = asked
+            .wanted
+            .min(BLOCKS.saturating_sub(fixed))
+            .min(CACHE_MAX);
         if let Some(slots) = (1..=most).rev().find(|&n| fit(n)) {
             grow_blocks(&mut bank_tiles, fixed + slots);
             place.extend((0..slots).map(|k| (Slot::Cache(k), fixed + k, 0)));
@@ -1500,14 +1796,29 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             cache = Some(slots);
         }
     }
-    let Extras { tiles, palettes, timer_at, rain, image, animation, notes: extra_notes } =
-        match extras(id, request, glyphs.as_ref(), bank_tiles, bank.palettes, &split.leader_owned, palette_cap) {
-            Ok(e) => e,
-            Err(stop) => {
-                done.notes.push(stop);
-                return Ok(done);
-            }
-        };
+    let Extras {
+        tiles,
+        palettes,
+        timer_at,
+        rain,
+        image,
+        animation,
+        notes: extra_notes,
+    } = match extras(
+        id,
+        request,
+        glyphs.as_ref(),
+        bank_tiles,
+        bank.palettes,
+        &split.leader_owned,
+        palette_cap,
+    ) {
+        Ok(e) => e,
+        Err(stop) => {
+            done.notes.push(stop);
+            return Ok(done);
+        }
+    };
     done.notes.extend(extra_notes);
     // The baked events' rows start hidden: their tile is already in the
     // map. The row is still whole for its logic.
@@ -1524,7 +1835,8 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
             actor_rows.push((*actor, 0, None, Vec::new()));
             continue;
         }
-        let image = crate::sprites::character::sheet(&sheets, &key.0).map_err(|b| Bad::answer(b.0))?;
+        let image =
+            crate::sprites::character::sheet(&sheets, &key.0).map_err(|b| Bad::answer(b.0))?;
         let palette = bank.palette_of.get(key).unwrap_or(0);
         // One that shares a palette of the map brings that palette's colours,
         // as they end: the console uploads the leader's into its row, and
@@ -1532,16 +1844,23 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         let own = if split.shared_leaders.contains(key) {
             palettes[palette].clone()
         } else {
-            character_palette(image, key.1, None, None).map_err(|b| Bad::answer(b.0))?.0
+            character_palette(image, key.1, None, None)
+                .map_err(|b| Bad::answer(b.0))?
+                .0
         };
         actor_rows.push((
             *actor,
             palette,
             Some(animated_index[key]),
-            own.iter().map(|&[r, g, b]| voodoo::cgram_word((r, g, b))).collect(),
+            own.iter()
+                .map(|&[r, g, b]| voodoo::cgram_word((r, g, b)))
+                .collect(),
         ));
     }
-    let turn_block = place.iter().find(|(s, ..)| *s == Slot::Turn).map(|(_, b, _)| *b);
+    let turn_block = place
+        .iter()
+        .find(|(s, ..)| *s == Slot::Turn)
+        .map(|(_, b, _)| *b);
     let shared = plan.as_ref().map(|plan| SharedObjects {
         events: plan
             .of
@@ -1556,29 +1875,55 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
                 )
             })
             .collect(),
-        poses: shared_poses.iter().map(|p| (animated_index[&(p.0.clone(), p.1)], p.2)).collect(),
+        poses: shared_poses
+            .iter()
+            .map(|p| (animated_index[&(p.0.clone(), p.1)], p.2))
+            .collect(),
         slots: (0..plan.slots.len())
-            .map(|s| place.iter().find(|(slot, ..)| *slot == Slot::Shared(s)).map(|(_, b, _)| *b).unwrap())
+            .map(|s| {
+                place
+                    .iter()
+                    .find(|(slot, ..)| *slot == Slot::Shared(s))
+                    .map(|(_, b, _)| *b)
+                    .unwrap()
+            })
             .collect(),
     });
     let cache = match (cache, &cache_asked) {
         (Some(_), Some(asked)) => {
-            let palette = |charset: &str, index: i32| bank.palette_of.get(&(charset.to_string(), index)).unwrap_or(0);
+            let palette = |charset: &str, index: i32| {
+                bank.palette_of
+                    .get(&(charset.to_string(), index))
+                    .unwrap_or(0)
+            };
             Some(CacheObjects {
                 events: asked
                     .events
                     .iter()
                     .map(|&(event, start)| {
-                        let npc = npcs.iter().find(|n| n.event == event).expect("the cache's events are drawn");
+                        let npc = npcs
+                            .iter()
+                            .find(|n| n.event == event)
+                            .expect("the cache's events are drawn");
                         (event, start, palette(&npc.charset, npc.index))
                     })
                     .collect(),
                 stills: asked
                     .stills
                     .iter()
-                    .map(|g| (g.clone(), animated_index[&(g.0.clone(), g.1)], palette(&g.0, g.1)))
+                    .map(|g| {
+                        (
+                            g.clone(),
+                            animated_index[&(g.0.clone(), g.1)],
+                            palette(&g.0, g.1),
+                        )
+                    })
                     .collect(),
-                slots: place.iter().filter(|(s, ..)| matches!(s, Slot::Cache(_))).map(|(_, b, _)| *b).collect(),
+                slots: place
+                    .iter()
+                    .filter(|(s, ..)| matches!(s, Slot::Cache(_)))
+                    .map(|(_, b, _)| *b)
+                    .collect(),
                 peak: asked.peak,
             })
         }
@@ -1598,12 +1943,18 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
         let mut words = Vec::new();
         if k != 0xFF && split.leader_owned.contains(&palette) && !split.lent.contains(pair) {
             let colors = if split.own.contains(pair) {
-                let image = crate::sprites::character::sheet(&sheets, &pair.0).map_err(|b| Bad::answer(b.0))?;
-                character_palette(image, pair.1, None, None).map_err(|b| Bad::answer(b.0))?.0
+                let image = crate::sprites::character::sheet(&sheets, &pair.0)
+                    .map_err(|b| Bad::answer(b.0))?;
+                character_palette(image, pair.1, None, None)
+                    .map_err(|b| Bad::answer(b.0))?
+                    .0
             } else {
                 palettes[palette].clone()
             };
-            words = colors.iter().map(|&[r, g, b]| voodoo::cgram_word((r, g, b))).collect();
+            words = colors
+                .iter()
+                .map(|&[r, g, b]| voodoo::cgram_word((r, g, b)))
+                .collect();
         }
         route_gfx_colored.push((k, palette, words));
     }
@@ -1658,25 +2009,45 @@ fn extras(
     let mut notes = Vec::new();
     let mut timer_at = None;
     if let Some(glyphs) = glyphs {
-        match timer_digits(glyphs, &mut tiles, &mut palettes, leader_owned, palette_cap, request.rain) {
+        match timer_digits(
+            glyphs,
+            &mut tiles,
+            &mut palettes,
+            leader_owned,
+            palette_cap,
+            request.rain,
+        ) {
             Ok(at) => {
-                let missing: Vec<Color> =
-                    timer_colors(glyphs).into_iter().filter(|c| !palettes[at.1].contains(c)).collect();
+                let missing: Vec<Color> = timer_colors(glyphs)
+                    .into_iter()
+                    .filter(|c| !palettes[at.1].contains(c))
+                    .collect();
                 if !missing.is_empty() {
                     let drawn: Vec<String> = missing
                         .iter()
                         .map(|c| format!("{c:?} as {:?}", nearest(&palettes[at.1], *c)))
                         .collect();
-                    notes.push(lost("timer-colors-lent", vec![], format!(
+                    notes.push(lost(
+                        "timer-colors-lent",
+                        vec![],
+                        format!(
                         "  map {id}: WARNING, the timer has no palette with room and is lent {}, \
                          drawn with its nearest colors: {}",
                         at.1,
                         drawn.join(", ")
-                    )));
+                    ),
+                    ));
                 }
                 timer_at = Some(at);
             }
-            Err(b) => return Err(Note { kind: "stop", text: b.0, stop: true, ..Default::default() }),
+            Err(b) => {
+                return Err(Note {
+                    kind: "stop",
+                    text: b.0,
+                    stop: true,
+                    ..Default::default()
+                })
+            }
         }
     }
     let mut rain = (0, 0);
@@ -1711,11 +2082,21 @@ fn extras(
     // are not drawn —the caller sees `image` at zero and compiles none—.
     let mut image = (0, 0);
     if let Some(asked) = &request.picture {
-        let previous = if rain.0 != 0 { rain.0 } else { timer_at.map_or(0, |t| t.0) };
+        let previous = if rain.0 != 0 {
+            rain.0
+        } else {
+            timer_at.map_or(0, |t| t.0)
+        };
         let box_palette = usize::from(request.battle_animation);
         let mut trial = tiles.clone();
         let placed = if palettes.len() + box_palette + asked.palettes <= OBJ_PALETTES {
-            picture_of_image(&asked.image, &mut trial, &palettes, previous, asked.palettes)
+            picture_of_image(
+                &asked.image,
+                &mut trial,
+                &palettes,
+                previous,
+                asked.palettes,
+            )
         } else {
             None
         };
@@ -1732,14 +2113,18 @@ fn extras(
                     at.1
                 )));
             }
-            None => notes.push(lost("pictures-not-drawn", vec![], format!(
+            None => notes.push(lost(
+                "pictures-not-drawn",
+                vec![],
+                format!(
                 "  map {id}: WARNING, the pictures {} aren't drawn here: the map uses {} sprite \
                  palettes{} and they need {} more",
                 quoted(&asked.name),
                 palettes.len(),
                 if box_palette != 0 { " and the battle animation's box one" } else { "" },
                 asked.palettes
-            ))),
+            ),
+            )),
         }
     }
     let mut animation = None;
@@ -1756,7 +2141,15 @@ fn extras(
             }
         }
     }
-    Ok(Extras { tiles, palettes, timer_at, rain, image, animation, notes })
+    Ok(Extras {
+        tiles,
+        palettes,
+        timer_at,
+        rain,
+        image,
+        animation,
+        notes,
+    })
 }
 
 /// `tiles` long enough to hold `blocks` blocks of 32x32, the new ones blank.
@@ -1812,9 +2205,16 @@ pub const SPRITE_TILES: &str = "sprites.bin";
 /// sprite bank and each pose bank as binaries, and the rest in `map.json`.
 pub fn write(out: &Path, done: &Whole) -> Result<()> {
     let layers = &done.layers;
-    stage_layers::write(out, &layers.converted, layers.panorama.as_ref(), &layers.passability, &layers.blocks)?;
+    stage_layers::write(
+        out,
+        &layers.converted,
+        layers.panorama.as_ref(),
+        &layers.passability,
+        &layers.blocks,
+    )?;
     let file = |name: &str, bytes: &[u8]| {
-        std::fs::write(out.join(name), bytes).map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
+        std::fs::write(out.join(name), bytes)
+            .map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
     };
     let objects = match &done.objects {
         None => Value::Null,

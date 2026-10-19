@@ -24,7 +24,10 @@ use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
 fn sha(text: &[u8]) -> String {
-    Sha256::digest(text).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(text)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// `musicdata.inc` without its comments: what the assembler reads, and the
@@ -54,9 +57,14 @@ fn music_of(dir: &Path, merged: bool) -> (compile::Music, emit::Emit, Game) {
         rtp_dir: Some(dir.join("rtp")),
         project: Project::open(&dir.join("project")).unwrap(),
     };
-    let samples = Samples { font: SoundFontSamples::open(&dir.join("soundfont.sf2")).unwrap() };
-    let (job, emit) =
-        job::parse(&serde_json::from_str(fixture::JOB).unwrap(), fixture::ARAM_END).unwrap();
+    let samples = Samples {
+        font: SoundFontSamples::open(&dir.join("soundfont.sf2")).unwrap(),
+    };
+    let (job, emit) = job::parse(
+        &serde_json::from_str(fixture::JOB).unwrap(),
+        fixture::ARAM_END,
+    )
+    .unwrap();
     let emit = emit.unwrap();
     let music = if merged {
         compile::build(&job, &game, &samples).unwrap()
@@ -81,7 +89,12 @@ fn compile_fixture(dir: &Path) -> (String, String, String, (f64, i64)) {
         quality.push_str(&format!("{} {} {hex}\n", v.effect, v.rate));
     }
     for p in &effects.packages {
-        let ints = |v: &[usize]| v.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(" ");
+        let ints = |v: &[usize]| {
+            v.iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
         let pitches: Vec<String> = p.pitches.iter().map(|(k, h)| format!("{k}:{h}")).collect();
         quality.push_str(&format!(
             "{} | {} | {} | {}\n",
@@ -118,12 +131,20 @@ fn the_music_is_the_one_the_python_wrote() {
     // stream, unfolded by a separate Python copy of `unfold`, is byte for
     // byte the one before (525 bytes to 515, 628 to 295). Before it was
     // 89ec531ef3d4f2ce….
-    assert_eq!(sha(data_of(&inc).as_bytes()), "4d2bae8459dcd30e28377cdcdc8083df7703c1a04c3a261dacf6db86938a51f3", "musicdata.inc");
+    assert_eq!(
+        sha(data_of(&inc).as_bytes()),
+        "4d2bae8459dcd30e28377cdcdc8083df7703c1a04c3a261dacf6db86938a51f3",
+        "musicdata.inc"
+    );
     // Changed on 2026-10-13, when its keys went into English —`temas`,
     // `nombre`, `largo`, `huella`, `pista` are `songs`, `name`, `length`,
     // `fingerprint`, `track`—: with the five keys turned back, the text
     // gives the Python's c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66.
-    assert_eq!(sha(songs.as_bytes()), "262e4f8f5175f63177b0af1ab84dc31a82ebe3b03455a681146de60103eb37d4", "music.json");
+    assert_eq!(
+        sha(songs.as_bytes()),
+        "262e4f8f5175f63177b0af1ab84dc31a82ebe3b03455a681146de60103eb37d4",
+        "music.json"
+    );
     // **Not the Python's since 2026-09-30**, on purpose: that day each sound
     // effect got its own rate in the package (`effects::rates_per_package`),
     // where the Python gave all of them one. The Python's was
@@ -132,7 +153,11 @@ fn the_music_is_the_one_the_python_wrote() {
     // pitches— and package 1's Rumble, whose WAV is at 11025 Hz, is written
     // with that rate instead of 22050: the same bytes. Everything else came
     // out the same, the versions' bytes included.
-    assert_eq!(sha(quality.as_bytes()), "409543a88da28c6fb38a3ca7d3e30995cf141f5b2bece7e3c4937bc8ae6d034a", "the MSU-1 sound effects");
+    assert_eq!(
+        sha(quality.as_bytes()),
+        "409543a88da28c6fb38a3ca7d3e30995cf141f5b2bece7e3c4937bc8ae6d034a",
+        "the MSU-1 sound effects"
+    );
 }
 
 /// The fixture's bank has keys whose samples came out the same —its
@@ -148,15 +173,26 @@ fn identical_samples_are_one_entry_and_sound_the_same() {
     let (merged, _, _) = music_of(&dir, true);
     let _ = std::fs::remove_dir_all(&dir);
     let (before, after) = (per_key.all_samples(), merged.all_samples());
-    assert!(after.len() < before.len(), "the fixture has no identical samples: {}", before.len());
+    assert!(
+        after.len() < before.len(),
+        "the fixture has no identical samples: {}",
+        before.len()
+    );
     let entries = merged.bank.entries();
-    let distinct: std::collections::BTreeSet<_> = entries.iter().map(|v| (v.data.clone(), v.loop_block)).collect();
+    let distinct: std::collections::BTreeSet<_> = entries
+        .iter()
+        .map(|v| (v.data.clone(), v.loop_block))
+        .collect();
     assert_eq!(distinct.len(), entries.len(), "a music sample stored twice");
     for (a, b) in per_key.songs.iter().zip(&merged.songs) {
         assert_eq!(a.stream, b.stream, "{}: the stream", a.name);
         let decode = |s: &compile::Built| stream::decode(&s.stream, &s.sounds).unwrap();
         let (wa, wb) = (decode(a), decode(b));
-        assert_eq!(wb, b.writes, "{}: the writes are what the ROM writes", a.name);
+        assert_eq!(
+            wb, b.writes,
+            "{}: the writes are what the ROM writes",
+            a.name
+        );
         let sample = |all: &[(&'static [u8], usize)], i: u8| all.get(i as usize).copied();
         let (x, y) = (leak(&before), leak(&after));
         compile::sounds_the_same(&a.name, &wa, |i| sample(&x, i), &wb, |i| sample(&y, i)).unwrap();
@@ -164,20 +200,32 @@ fn identical_samples_are_one_entry_and_sound_the_same() {
     }
     // What the sound effects get is the same, numbered after fewer entries.
     for e in &merged.effects {
-        let (x, y) = (per_key.srcn(&e.name).unwrap(), merged.srcn(&e.name).unwrap());
+        let (x, y) = (
+            per_key.srcn(&e.name).unwrap(),
+            merged.srcn(&e.name).unwrap(),
+        );
         assert_eq!(before[x], after[y], "{}", e.name);
     }
     // And the boot uploads each sample once: less than per key.
     let boot = |m: &compile::Music| {
         let rom = emit::rom_packages(m, &emit);
-        emit::boot_frames(m, &rom[emit.start], emit.decompress_frames).unwrap().1
+        emit::boot_frames(m, &rom[emit.start], emit.decompress_frames)
+            .unwrap()
+            .1
     };
-    assert!(boot(&merged) < boot(&per_key), "{} against {}", boot(&merged), boot(&per_key));
+    assert!(
+        boot(&merged) < boot(&per_key),
+        "{} against {}",
+        boot(&merged),
+        boot(&per_key)
+    );
 }
 
 /// The samples with a life as long as the test's, for the comparison.
 fn leak(all: &[(&[u8], usize)]) -> Vec<(&'static [u8], usize)> {
-    all.iter().map(|(d, l)| (&*Box::leak(d.to_vec().into_boxed_slice()), *l)).collect()
+    all.iter()
+        .map(|(d, l)| (&*Box::leak(d.to_vec().into_boxed_slice()), *l))
+        .collect()
 }
 
 /// The music's sounds of every song, in one table that goes over half a
@@ -194,9 +242,14 @@ fn the_music_s_sounds_take_a_whole_bank_and_no_more() {
         rtp_dir: Some(dir.join("rtp")),
         project: Project::open(&dir.join("project")).unwrap(),
     };
-    let samples = Samples { font: SoundFontSamples::open(&dir.join("soundfont.sf2")).unwrap() };
-    let (job, emit) =
-        job::parse(&serde_json::from_str(fixture::JOB).unwrap(), fixture::ARAM_END).unwrap();
+    let samples = Samples {
+        font: SoundFontSamples::open(&dir.join("soundfont.sf2")).unwrap(),
+    };
+    let (job, emit) = job::parse(
+        &serde_json::from_str(fixture::JOB).unwrap(),
+        fixture::ARAM_END,
+    )
+    .unwrap();
     let emit = emit.unwrap();
     let mut music = compile::build(&job, &game, &samples).unwrap();
     let _ = std::fs::remove_dir_all(&dir);
@@ -204,7 +257,9 @@ fn the_music_s_sounds_take_a_whole_bank_and_no_more() {
     song.sounds = (0..256).map(|i| [i as u8, 0, 0, 0, 0, 0]).collect();
     let before: usize = music.songs.iter().map(|t| t.sounds.len()).sum();
     let added = 30 - music.songs.len();
-    music.songs.extend(std::iter::repeat(song.clone()).take(added));
+    music
+        .songs
+        .extend(std::iter::repeat(song.clone()).take(added));
     let size = 6 * (before + 256 * added);
     assert!(size > 0x8000);
     let inc = emit::musicdata(&music, &emit).unwrap();
@@ -217,7 +272,10 @@ fn the_music_s_sounds_take_a_whole_bank_and_no_more() {
         music.songs.push(song.clone());
     }
     let error = emit::musicdata(&music, &emit).unwrap_err();
-    assert!(format!("{error:?}").contains("the music's sounds go over one bank"), "{error:?}");
+    assert!(
+        format!("{error:?}").contains("the music's sounds go over one bank"),
+        "{error:?}"
+    );
 }
 
 /// Writes the game, and what this compiles from it, to `FIXTURE_OUT`: what

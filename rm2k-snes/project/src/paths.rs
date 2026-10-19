@@ -46,11 +46,7 @@ pub fn relative(path: impl AsRef<Path>, base: impl AsRef<Path>) -> PathBuf {
     let base = absolute(base);
     let ours: Vec<_> = path.components().collect();
     let theirs: Vec<_> = base.components().collect();
-    let shared = ours
-        .iter()
-        .zip(&theirs)
-        .take_while(|(a, b)| a == b)
-        .count();
+    let shared = ours.iter().zip(&theirs).take_while(|(a, b)| a == b).count();
     let mut out = PathBuf::new();
     for _ in shared..theirs.len() {
         out.push("..");

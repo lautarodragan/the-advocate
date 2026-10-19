@@ -6,9 +6,11 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
-use rm2k_snes_screens::request::Json;
 use rm2k_snes_screens::game::Skin;
-use rm2k_snes_screens::{borders, boxes, convert, faces, fit, layout, message_window, render, Bad, Game, Result};
+use rm2k_snes_screens::request::Json;
+use rm2k_snes_screens::{
+    borders, boxes, convert, faces, fit, layout, message_window, render, Bad, Game, Result,
+};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
 use std::path::{Path, PathBuf};
@@ -44,27 +46,32 @@ enum Command {
     /// Every message box of the game reflowed for the console's window
     Boxes(BoxesArgs),
     /// The faces the message window shows, as the cartridge stores them
-    #[command(after_help = "Writes faces.json into --out: {\"faces\": [face, ...]}, one per \
+    #[command(
+        after_help = "Writes faces.json into --out: {\"faces\": [face, ...]}, one per \
         entry of the request's `faces` —[FaceSet, index, mirrored], as the event compiler's \
         indices list them—, in the same order. A face is {\"tiles\": the 36 4bpp tiles in hex, \
         row by row, \"palette\": its 15 colour words, \"missing\": bool}: 48x48 cut from the \
         FaceSet, mirrored if asked, its transparent pixels filled with the message window's \
         background where RM2k draws it, and reduced to fifteen colours like the slot screen's. \
         A FaceSet that is neither in the game's FaceSet/ nor in the RTP's gives the background \
-        alone, with `missing` set.")]
+        alone, with `missing` set."
+    )]
     Faces(GameArgs),
     /// The message boxes of the request reflowed for the console's window
     Refit(LayoutArgs),
     /// The geometry the screens are drawn with, by name
     Layout(LayoutArgs),
     /// What equipping an item leaves, as the equipment screen does it
-    #[command(after_help = "Writes equip.json into --out: {\"equipment\": the five slots, \
+    #[command(
+        after_help = "Writes equip.json into --out: {\"equipment\": the five slots, \
         \"inventory\": item number to how many}, after `Game_Actor::ChangeEquipment`. The \
-        request carries `equipment`, `inventory`, `slot` and `item`, 0 to unequip.")]
+        request carries `equipment`, `inventory`, `slot` and `item`, 0 to unequip."
+    )]
     Equip(GameArgs),
     /// How many colour-memory entries the message window takes, from the
     /// game's System
-    #[command(after_help = "Writes window.json into --out: {\"colors\": n, \"brought\": m, \
+    #[command(
+        after_help = "Writes window.json into --out: {\"colors\": n, \"brought\": m, \
         \"merges\": [[from, to, pixels], ...], \"system\": its name}. The window takes entries 1 to n of colour \
         memory —0 is transparent—, so whatever shares the lower palettes with it starts at \
         n + 1. A System with more than fifteen is reduced by Adeleine: m is how many it \
@@ -75,12 +82,14 @@ enum Command {
         take one each —what `convert` takes back—, n is what the starting one takes with them, the \
         others are reduced to fit in it, and \
         `systems` answers each one's window as `convert` writes it, without the font, with \
-        its `brought`, `merges`, `colors` and `frame_fused`.")]
+        its `brought`, `merges`, `colors` and `frame_fused`."
+    )]
     Window(GameArgs),
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "`convert` writes screens.json into --out: the message window \
+#[command(
+    after_help = "`convert` writes screens.json into --out: the message window \
     (its tiles and text-area tiles in hex, its palette words, cells, the font and its four \
     precomposed tables), the title's menu, the slot and menu bank, the text screens' font, \
     the windows of the item, equipment, shop and actor-choice screens as the cartridge \
@@ -91,7 +100,8 @@ enum Command {
     [name, from, to]) and, optional, `letters`: the Latin-1 the message boxes draw, whose \
     glyphs go after the console's 96 in the message window's tables.\n\n\
     `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
-    slots, equipment, shop, end_game or title— and that screen's state: see `render.rs`.")]
+    slots, equipment, shop, end_game or title— and that screen's state: see `render.rs`."
+)]
 struct GameArgs {
     /// The Ditto dump the game is read from: the directory with maps/ and
     /// db/
@@ -143,12 +153,14 @@ impl GameArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "Writes boxes.json into --out: the boxes that change, as \
+#[command(
+    after_help = "Writes boxes.json into --out: the boxes that change, as \
     {\"from\": lines, \"to\": boxes}. The request carries the window: `font` —`rm2k`, \
     one the engine carries, or a sheet's path— and `letter_spacing`, pixels more after \
     every letter, 0 if missing; `width`, a line's pixels, and `lines`; or, without `font`, \
     `columns` characters of RM2k's font. And `map_files`, the project's \
-    maps over the dump's, by number.")]
+    maps over the dump's, by number."
+)]
 struct BoxesArgs {
     #[arg(long, value_name = "DIRECTORY")]
     data: PathBuf,
@@ -159,11 +171,13 @@ struct BoxesArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "`layout` writes layout.json into --out, and its request is \
+#[command(
+    after_help = "`layout` writes layout.json into --out, and its request is \
     ignored: it is taken so every subcommand is called the same way.\n\n\
     `refit` writes refit.json: for each of the request's `boxes`, each a list of lines, \
     {\"to\": the boxes it becomes, \"speaker\": whether its first line names who speaks}. \
-    The request carries the window too, as `boxes` takes it.")]
+    The request carries the window too, as `boxes` takes it."
+)]
 struct LayoutArgs {
     #[arg(long, value_name = "PATH")]
     request: Option<PathBuf>,
@@ -173,7 +187,8 @@ struct LayoutArgs {
 
 fn write(out: &Path, name: &str, text: &str) -> Result<()> {
     std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
-    std::fs::write(out.join(name), text).map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
+    std::fs::write(out.join(name), text)
+        .map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
 }
 
 /// The game, drawing with the font the request names: `font`, which is the
@@ -208,7 +223,10 @@ fn do_render(args: &GameArgs) -> Result<()> {
         let text = if screen == fit::Screen::Items {
             let items: Vec<i32> = match json.known_items("items")? {
                 Some(known) => known.into_iter().collect(),
-                None => json.by_number("inventory").map(|i| i.into_keys().collect()).unwrap_or_default(),
+                None => json
+                    .by_number("inventory")
+                    .map(|i| i.into_keys().collect())
+                    .unwrap_or_default(),
             };
             convert::item_pairs(&game, &skin, &items)?
         } else {
@@ -261,7 +279,9 @@ fn do_render(args: &GameArgs) -> Result<()> {
             json.number_or("amount", 0)?,
         )?,
         "items" => {
-            let known = json.known_items("items")?.map(|k| k.into_iter().collect::<Vec<_>>());
+            let known = json
+                .known_items("items")?
+                .map(|k| k.into_iter().collect::<Vec<_>>());
             render::item_screen(
                 &game,
                 &fitted(fit::Screen::Items)?,
@@ -291,7 +311,11 @@ fn do_render(args: &GameArgs) -> Result<()> {
             )?
         }
         "equipment" => {
-            let equipment: Vec<i32> = json.numbers("equipment")?.into_iter().map(|n| n as i32).collect();
+            let equipment: Vec<i32> = json
+                .numbers("equipment")?
+                .into_iter()
+                .map(|n| n as i32)
+                .collect();
             render::equipment_screen(
                 &game,
                 &fitted(fit::Screen::Items)?,
@@ -318,14 +342,21 @@ fn do_render(args: &GameArgs) -> Result<()> {
             let curve = |values: &[i16]| rm2k_rules::actor::curve_at(values, level).unwrap_or(0);
             let hp_max = json.number_or("hp_max", curve(&a.parameters.maxhp))?;
             let sp_max = json.number_or("sp_max", curve(&a.parameters.maxsp))?;
-            let skills: Vec<i32> = json.numbers("skills")?.into_iter().map(|n| n as i32).collect();
+            let skills: Vec<i32> = json
+                .numbers("skills")?
+                .into_iter()
+                .map(|n| n as i32)
+                .collect();
             // What it holds in its first two slots, the starting ones when
             // the request does not say: its weapons grey a skill.
             let held = match json.data.get("held") {
                 Some(_) => {
                     let h = json.numbers("held")?;
                     if h.len() != 2 {
-                        return Err(Bad::usage(format!("{}: `held` is two items, weapon and shield", json.whose)));
+                        return Err(Bad::usage(format!(
+                            "{}: `held` is two items, weapon and shield",
+                            json.whose
+                        )));
                     }
                     [h[0] as i32, h[1] as i32]
                 }
@@ -354,7 +385,8 @@ fn do_render(args: &GameArgs) -> Result<()> {
             )))
         }
     };
-    std::fs::create_dir_all(&args.out).map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))?;
+    std::fs::create_dir_all(&args.out)
+        .map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))?;
     picture::write_png(&args.out.join("screen.png"), &screen)?;
     Ok(())
 }
@@ -367,12 +399,27 @@ fn do_render(args: &GameArgs) -> Result<()> {
 /// fixed-width font, which is how it was asked until 2026-10-03.
 fn measure_of(json: &Json) -> Result<Measure> {
     if json.data.get("advances").is_some_and(|f| !f.is_null()) {
-        let mut advances: Vec<u8> = json.numbers("advances")?.into_iter().map(|a| a as u8).collect();
-        for pair in json.data.get("letters").and_then(|l| l.as_array()).into_iter().flatten() {
-            let letter = pair.get(0).and_then(|l| l.as_str()).and_then(|l| l.chars().next());
+        let mut advances: Vec<u8> = json
+            .numbers("advances")?
+            .into_iter()
+            .map(|a| a as u8)
+            .collect();
+        for pair in json
+            .data
+            .get("letters")
+            .and_then(|l| l.as_array())
+            .into_iter()
+            .flatten()
+        {
+            let letter = pair
+                .get(0)
+                .and_then(|l| l.as_str())
+                .and_then(|l| l.chars().next());
             let advance = pair.get(1).and_then(|a| a.as_u64());
             let (Some(letter), Some(advance)) = (letter, advance) else {
-                return Err(Bad::answer(format!("a window's `letters` are pairs of a letter and its advance: {pair}")));
+                return Err(Bad::answer(format!(
+                    "a window's `letters` are pairs of a letter and its advance: {pair}"
+                )));
             };
             let at = (letter as u32).saturating_sub(32) as usize;
             if advances.len() <= at {
@@ -414,15 +461,30 @@ fn do_faces(args: &GameArgs) -> Result<()> {
 fn do_equip(args: &GameArgs) -> Result<()> {
     let game = args.game()?;
     let json = Json::read(&args.request)?;
-    let mut equipment: Vec<i32> = json.numbers("equipment")?.into_iter().map(|n| n as i32).collect();
+    let mut equipment: Vec<i32> = json
+        .numbers("equipment")?
+        .into_iter()
+        .map(|n| n as i32)
+        .collect();
     let mut inventory = json.by_number("inventory")?;
     let slot = json.index_or("slot", 0)?;
     if slot >= equipment.len() {
-        return Err(Bad::answer(format!("{}: there is no slot {slot}", json.whose)));
+        return Err(Bad::answer(format!(
+            "{}: there is no slot {slot}",
+            json.whose
+        )));
     }
-    render::equip(&game, &mut equipment, &mut inventory, slot, json.number("item")? as i32)?;
-    let inventory: serde_json::Map<String, serde_json::Value> =
-        inventory.into_iter().map(|(k, v)| (k.to_string(), v.into())).collect();
+    render::equip(
+        &game,
+        &mut equipment,
+        &mut inventory,
+        slot,
+        json.number("item")? as i32,
+    )?;
+    let inventory: serde_json::Map<String, serde_json::Value> = inventory
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.into()))
+        .collect();
     let answer = serde_json::json!({"equipment": equipment, "inventory": inventory});
     write(&args.out, "equip.json", &answer.to_string())
 }
@@ -432,7 +494,10 @@ fn do_window(args: &GameArgs) -> Result<()> {
     let skin = game.skin()?;
     let others = Json::read(&args.request)?.systems()?;
     let merges_json = |merges: &[adeleine::Merge]| -> Vec<serde_json::Value> {
-        merges.iter().map(|m| serde_json::json!([m.victim, m.target, m.pixels])).collect()
+        merges
+            .iter()
+            .map(|m| serde_json::json!([m.victim, m.target, m.pixels]))
+            .collect()
     };
     if others.is_empty() {
         let (brought, merges) = message_window::reduction(&skin)?;
@@ -500,7 +565,12 @@ fn do_refit(args: &LayoutArgs) -> Result<()> {
         .as_ref()
         .ok_or_else(|| Bad::usage("refit needs --request, with the boxes"))?;
     let json = Json::read(path)?;
-    let bad = || Bad::answer(format!("{}: `boxes` is not a list of lists of lines", json.whose));
+    let bad = || {
+        Bad::answer(format!(
+            "{}: `boxes` is not a list of lists of lines",
+            json.whose
+        ))
+    };
     let boxes: Vec<Vec<String>> = json
         .data
         .get("boxes")

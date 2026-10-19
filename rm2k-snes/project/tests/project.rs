@@ -75,14 +75,20 @@ fn a_knob_at_rest_may_be_missing_but_not_of_another_type() {
     assert_eq!(p.int_or(&["maps", "above"], 7).unwrap(), 7);
     assert_eq!(p.int_or(&["text", "letter_spacing"], 0).unwrap(), 0);
     let error = p.int_or(&["rom", "name"], 0).unwrap_err().to_string();
-    assert!(error.ends_with("rom.name must be int and is \"game\""), "{error}");
+    assert!(
+        error.ends_with("rom.name must be int and is \"game\""),
+        "{error}"
+    );
 }
 
 #[test]
 fn a_key_of_another_type_says_both() {
     let p = project();
     let error = p.int(&["rom", "name"]).unwrap_err().to_string();
-    assert!(error.ends_with("rom.name must be int and is \"game\""), "{error}");
+    assert!(
+        error.ends_with("rom.name must be int and is \"game\""),
+        "{error}"
+    );
     // TOML keeps booleans and integers apart, so `true` is not 1.
     assert!(p.int(&["rom", "flag"]).is_err());
     assert!(p.boolean(&["rom", "flag"]).unwrap());
@@ -97,11 +103,16 @@ fn ascii_settings_refuse_what_the_rom_cannot_carry() {
         "[rom]\ntitle = \"OK TITLE\"\nquoted = 'A \"B\"'\nsign = \"ABLS\"\n",
     )
     .unwrap();
-    assert_eq!(p.ascii(&["rom", "title"], None, Some(21)).unwrap(), "OK TITLE");
+    assert_eq!(
+        p.ascii(&["rom", "title"], None, Some(21)).unwrap(),
+        "OK TITLE"
+    );
     assert!(p.ascii(&["rom", "quoted"], None, None).is_err());
     assert!(p.ascii(&["rom", "sign"], Some(4), None).is_ok());
     let error = p.ascii(&["rom", "sign"], Some(5), None).unwrap_err();
-    assert!(error.to_string().contains("must have 5 characters, and has 4"));
+    assert!(error
+        .to_string()
+        .contains("must have 5 characters, and has 4"));
 }
 
 #[test]
@@ -118,8 +129,7 @@ fn the_paths_are_relative_to_the_file() {
 
 #[test]
 fn keys_keep_the_order_of_the_file() {
-    let p = Project::from_text(Path::new("/g"), "[t]\nzeta = 1\nalpha = 2\nmid = 3\n")
-        .unwrap();
+    let p = Project::from_text(Path::new("/g"), "[t]\nzeta = 1\nalpha = 2\nmid = 3\n").unwrap();
     let keys: Vec<_> = p.table(&["t"]).unwrap().keys().cloned().collect();
     assert_eq!(keys, ["zeta", "alpha", "mid"]);
 }
@@ -128,7 +138,10 @@ fn keys_keep_the_order_of_the_file() {
 fn a_machine_value_nobody_passed_is_an_error_with_its_flag() {
     let environment = Environment::default();
     let error = environment.game().unwrap_err().to_string();
-    assert!(error.starts_with("missing --game-dir: the original RM2k project"), "{error}");
+    assert!(
+        error.starts_with("missing --game-dir: the original RM2k project"),
+        "{error}"
+    );
     assert!(error.contains("whoever runs this passes it"));
 }
 
@@ -136,7 +149,10 @@ fn a_machine_value_nobody_passed_is_an_error_with_its_flag() {
 fn the_cache_and_the_test_cartridges_hang_off_the_build() {
     let p = project();
     let mut environment = Environment::default();
-    assert_eq!(environment.cache(&p).unwrap(), PathBuf::from("/games/out/cache"));
+    assert_eq!(
+        environment.cache(&p).unwrap(),
+        PathBuf::from("/games/out/cache")
+    );
     assert_eq!(
         environment.test_cartridges(&p).unwrap(),
         PathBuf::from("/games/out/tests")
@@ -191,15 +207,29 @@ fn resolved_has_the_paths_the_suite_and_every_setting_in_order() {
     let out = rm2k_project::resolved(&project()).unwrap();
     assert_eq!(out["project"]["file"], "/games/one/rm2k-snes.toml");
     assert_eq!(out["project"]["build"], "/games/out");
-    assert_eq!(out["project"]["manual_patches"], "/games/one/decided/manual");
+    assert_eq!(
+        out["project"]["manual_patches"],
+        "/games/one/decided/manual"
+    );
     assert_eq!(out["project"]["auto_patches"], "/games/one/decided/auto");
     assert_eq!(out["project"]["cases"], "/games/one/tests/cases");
-    assert!(out["suite"]["runtime"].as_str().unwrap().ends_with("/runtime"));
-    let rom: Vec<_> = out["settings"]["rom"].as_object().unwrap().keys().cloned().collect();
+    assert!(out["suite"]["runtime"]
+        .as_str()
+        .unwrap()
+        .ends_with("/runtime"));
+    let rom: Vec<_> = out["settings"]["rom"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect();
     assert_eq!(rom, ["name", "title", "flag"]);
     // TOML's booleans and integers stay apart in JSON too.
     assert_eq!(out["settings"]["rom"]["flag"], true);
-    assert_eq!(out["settings"]["maps"]["excluded"], serde_json::json!([3, 4]));
+    assert_eq!(
+        out["settings"]["maps"]["excluded"],
+        serde_json::json!([3, 4])
+    );
 }
 
 #[test]
@@ -221,7 +251,11 @@ fn the_binary_prints_it_and_fails_with_the_librarys_message() {
         .arg(&root)
         .output()
         .unwrap();
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
     let out: serde_json::Value = serde_json::from_slice(&done.stdout).unwrap();
     assert_eq!(out["project"]["data"], root.join("data").to_str().unwrap());
     assert_eq!(out["settings"]["rom"]["name"], "game");

@@ -89,7 +89,10 @@ pub fn layout_bars(layout: i64) -> [Vec<Rect>; 2] {
     let commands: Vec<Rect> = (0..BA_BAND_LINES).map(|k| at(BA_COMMAND_BAR, k)).collect();
     match layout {
         BA_LAYOUT_COMMAND => [(0..4).map(|k| at(BA_PARTY_BAR, k)).collect(), commands],
-        BA_LAYOUT_TARGET => [(0..BA_BAND_LINES).map(|k| at(BA_TARGET_BAR, k)).collect(), commands],
+        BA_LAYOUT_TARGET => [
+            (0..BA_BAND_LINES).map(|k| at(BA_TARGET_BAR, k)).collect(),
+            commands,
+        ],
         _ => [
             (0..2 * BA_BAND_LINES)
                 .map(|p| at(BA_LIST_BARS[(p % 2) as usize], p / 2))
@@ -250,7 +253,9 @@ pub fn check_party_line(font: &rm2k_snes_text::font::Font, hp: &str, sp: &str) -
     }
     let edge = BA_PARTY_WINDOW.0 + BA_PARTY_WINDOW.2 - 2;
     if x(BA_SP_COL) + sp_run > edge {
-        bad.push(format!("the SP ({sp_run} pixels) runs into the window's frame"));
+        bad.push(format!(
+            "the SP ({sp_run} pixels) runs into the window's frame"
+        ));
     }
     (!bad.is_empty()).then(|| bad.join("; "))
 }
@@ -301,7 +306,10 @@ pub fn command_text(term: &str) -> String {
 /// characters, one per cell. **The leading spaces stay**: RM2k writes them.
 /// Until 2026-10-04 it was always in characters, and A Blurred Line's "The
 /// combat has resulted in victory!" took two lines where RM2k takes one.
-pub fn victory_lines_in(term: &str, font: Option<&rm2k_snes_text::font::Font>) -> Result<Vec<String>> {
+pub fn victory_lines_in(
+    term: &str,
+    font: Option<&rm2k_snes_text::font::Font>,
+) -> Result<Vec<String>> {
     match font {
         Some(font) => split_lines(term, &|s: &str| font.width(s), BA_PAGE_MSG_WIDTH * 8),
         None => victory_lines(term, BA_PAGE_MSG_WIDTH),

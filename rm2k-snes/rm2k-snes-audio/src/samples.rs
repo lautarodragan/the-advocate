@@ -123,8 +123,12 @@ fn low_pass(samples: &[f64], fraction: f64, circular: bool, after: &[f64]) -> Ve
             let n = i as i64 - half as i64;
             folded[n.rem_euclid(length as i64) as usize] += k;
         }
-        let taps: Vec<(usize, f64)> =
-            folded.iter().enumerate().filter(|(_, k)| **k != 0.0).map(|(m, k)| (m, *k)).collect();
+        let taps: Vec<(usize, f64)> = folded
+            .iter()
+            .enumerate()
+            .filter(|(_, k)| **k != 0.0)
+            .map(|(m, k)| (m, *k))
+            .collect();
         return (0..length)
             .map(|i| {
                 let mut sum = 0.0;
@@ -139,7 +143,12 @@ fn low_pass(samples: &[f64], fraction: f64, circular: bool, after: &[f64]) -> Ve
     let mut x: Vec<f64> = samples.to_vec();
     if !after.is_empty() {
         let repeats = (half as f64 / after.len() as f64).ceil() as usize + 1;
-        let tail: Vec<f64> = after.iter().copied().cycle().take(after.len() * repeats).collect();
+        let tail: Vec<f64> = after
+            .iter()
+            .copied()
+            .cycle()
+            .take(after.len() * repeats)
+            .collect();
         x.extend_from_slice(&tail[..half.min(tail.len())]);
     }
     // numpy's `convolve(x, kernel, "same")`: the full convolution from the
@@ -176,7 +185,12 @@ pub fn resample(samples: &[i64], count: usize, circular: bool, after: &[i64]) ->
     let floats: Vec<f64> = samples.iter().map(|&s| s as f64).collect();
     let filtered = if count < samples.len() {
         let after: Vec<f64> = after.iter().map(|&s| s as f64).collect();
-        low_pass(&floats, CUTOFF * 0.5 * count as f64 / samples.len() as f64, circular, &after)
+        low_pass(
+            &floats,
+            CUTOFF * 0.5 * count as f64 / samples.len() as f64,
+            circular,
+            &after,
+        )
     } else {
         floats
     };
@@ -202,7 +216,10 @@ pub fn normalize(samples: &[i64]) -> Vec<i64> {
         return samples.to_vec();
     }
     let scale = PEAK / top as f64;
-    samples.iter().map(|&s| num::round(s as f64 * scale)).collect()
+    samples
+        .iter()
+        .map(|&s| num::round(s as f64 * scale))
+        .collect()
 }
 
 /// At which rate to store to fit in the budget, in BRR bytes: the highest
@@ -214,7 +231,9 @@ pub fn plan_rate(attack_frames: usize, loop_frames: usize, source_rate: i64, bud
     }
     let allowed = (budget * BLOCK as i64) as f64 / BLOCK_BYTES as f64;
     let rate = source_rate as f64 * allowed / frames as f64;
-    rate.min(source_rate as f64).min(MAX_RATE as f64).max(MIN_RATE as f64) as i64
+    rate.min(source_rate as f64)
+        .min(MAX_RATE as f64)
+        .max(MIN_RATE as f64) as i64
 }
 
 /// Encodes to BRR, with the loop at `loop_block`.
@@ -257,32 +276,46 @@ impl SoundFontSamples {
             return c.clone();
         }
         let c = extract::contract(&self.font.borrow(), selector);
-        self.contracts.borrow_mut().insert(selector.clone(), c.clone());
+        self.contracts
+            .borrow_mut()
+            .insert(selector.clone(), c.clone());
         c
     }
 
     fn extract(&self, selector: &Selector) -> Result<Option<(Contract, Rc<Vec<i16>>)>> {
-        let Some(contract) = self.contract(selector) else { return Ok(None) };
+        let Some(contract) = self.contract(selector) else {
+            return Ok(None);
+        };
         if let Some(pcm) = self.pcm.borrow().get(selector) {
             return Ok(Some((contract, pcm.clone())));
         }
-        let pcm = Rc::new(self.font.borrow_mut().pcm(contract.sample.start, contract.sample.end)?);
+        let pcm = Rc::new(
+            self.font
+                .borrow_mut()
+                .pcm(contract.sample.start, contract.sample.end)?,
+        );
         self.pcm.borrow_mut().insert(selector.clone(), pcm.clone());
         Ok(Some((contract, pcm)))
     }
 
     fn program(program: u8, key: u8) -> Selector {
-        Selector::Program { program: program as u16, bank: 0, key }
+        Selector::Program {
+            program: program as u16,
+            bank: 0,
+            key,
+        }
     }
 
     /// The zone that covers `key` in `program`, or None.
     pub fn zone(&self, program: u8, key: u8) -> Option<Zone> {
-        self.contract(&Self::program(program, key)).map(|c| (c.name, c.root_key))
+        self.contract(&Self::program(program, key))
+            .map(|c| (c.name, c.root_key))
     }
 
     /// The volume envelope of the zone that covers `key` in `program`.
     pub fn envelope(&self, program: u8, key: u8) -> Option<VolumeEnvelope> {
-        self.contract(&Self::program(program, key)).and_then(|c| c.envelope)
+        self.contract(&Self::program(program, key))
+            .and_then(|c| c.envelope)
     }
 
     /// An instrument from the SoundFont in BRR, in `budget` bytes, with the
@@ -292,7 +325,9 @@ impl SoundFontSamples {
             return Ok(v.clone());
         }
         let v = self.build_voice(program, budget, key)?.map(Rc::new);
-        self.voices.borrow_mut().insert((program, budget, key), v.clone());
+        self.voices
+            .borrow_mut()
+            .insert((program, budget, key), v.clone());
         Ok(v)
     }
 
@@ -322,7 +357,8 @@ impl SoundFontSamples {
         let loop_out = if looped {
             // The loop first: its length has to be a multiple of 16, and
             // from that rounding comes the rate actually declared.
-            let out = ((num::round(loop_frames as f64 * ratio / BLOCK as f64) as usize) * BLOCK).max(BLOCK);
+            let out = ((num::round(loop_frames as f64 * ratio / BLOCK as f64) as usize) * BLOCK)
+                .max(BLOCK);
             ratio = out as f64 / loop_frames as f64;
             rate = num::round(source_rate as f64 * ratio);
             out
@@ -331,13 +367,21 @@ impl SoundFontSamples {
         };
         let attack_out = num::round(attack_frames as f64 * ratio / BLOCK as f64) as usize * BLOCK;
 
-        let loop_pcm: &[i64] = if looped { &pcm[loop_start..loop_end] } else { &[] };
+        let loop_pcm: &[i64] = if looped {
+            &pcm[loop_start..loop_end]
+        } else {
+            &[]
+        };
         let mut audio = resample(&pcm[..attack_frames], attack_out, false, loop_pcm);
         if looped {
             audio.extend(resample(loop_pcm, loop_out, true, &[]));
         }
         let audio = normalize(&audio);
-        let loop_block = if looped { Some(attack_out / BLOCK) } else { None };
+        let loop_block = if looped {
+            Some(attack_out / BLOCK)
+        } else {
+            None
+        };
         let data = encode(&audio, loop_block)?;
         Ok(Some(Voice {
             program: program as i64,
@@ -367,13 +411,19 @@ impl SoundFontSamples {
     }
 
     fn build_drum(&self, note: u8, budget: i64) -> Result<Option<Voice>> {
-        let selector = Selector::Program { program: 0, bank: gunter::sf2::DRUM_BANK, key: note };
-        let Some((sample, pcm)) = self.extract(&selector)? else { return Ok(None) };
+        let selector = Selector::Program {
+            program: 0,
+            bank: gunter::sf2::DRUM_BANK,
+            key: note,
+        };
+        let Some((sample, pcm)) = self.extract(&selector)? else {
+            return Ok(None);
+        };
         let source_rate = sample.rate as i64;
         let frames = pcm.len().min((DRUM_SECONDS * source_rate as f64) as usize);
         let rate = plan_rate(frames, 0, source_rate, budget);
-        let out = (num::round(frames as f64 * rate as f64 / source_rate as f64) as f64 / BLOCK as f64)
-            as i64
+        let out = (num::round(frames as f64 * rate as f64 / source_rate as f64) as f64
+            / BLOCK as f64) as i64
             * BLOCK as i64;
         if out < BLOCK as i64 {
             return Ok(None);

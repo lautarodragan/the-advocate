@@ -117,7 +117,11 @@ fn a_small_game_comes_back_equal() {
         std::fs::copy(m, game.join(m.file_name().unwrap())).unwrap();
     }
     let failed = there_and_back(&game, &tmp);
-    assert!(failed.is_empty(), "{} files do not come back equal", failed.len());
+    assert!(
+        failed.is_empty(),
+        "{} files do not come back equal",
+        failed.len()
+    );
 }
 
 /// The whole corpus through the tree. This is the number that gets reported
@@ -129,7 +133,11 @@ fn the_whole_game_comes_back_equal_through_the_tree() {
     let Some(_) = common::files(&dir) else { return };
     let tmp = Temp::new("whole");
     let failed = there_and_back(&dir, &tmp);
-    assert!(failed.is_empty(), "{} files do not come back equal", failed.len());
+    assert!(
+        failed.is_empty(),
+        "{} files do not come back equal",
+        failed.len()
+    );
 }
 
 /// What the layout is for: the `.tiles` is a grid a person can read and edit,
@@ -139,7 +147,9 @@ fn the_whole_game_comes_back_equal_through_the_tree() {
 fn the_tiles_are_a_grid_and_editing_it_changes_the_map() {
     let Some(dir) = common::dir() else { return };
     let Some(_) = common::files(&dir) else { return };
-    let Some(first) = common::maps(&dir).into_iter().next() else { return };
+    let Some(first) = common::maps(&dir).into_iter().next() else {
+        return;
+    };
 
     let tmp = Temp::new("tiles");
     let game = tmp.join("game");
@@ -196,7 +206,11 @@ fn the_tiles_are_a_grid_and_editing_it_changes_the_map() {
         panic!("what came back is not a map")
     };
     assert_eq!(after.lower_layer[0], map.lower_layer[0] + 1);
-    assert_eq!(after.lower_layer[1..], map.lower_layer[1..], "only that tile");
+    assert_eq!(
+        after.lower_layer[1..],
+        map.lower_layer[1..],
+        "only that tile"
+    );
 }
 
 // --- The resolved view -----------------------------------------------------
@@ -250,8 +264,12 @@ fn the_resolved_view_writes_every_field() {
         .filter(|n| *n != "lower_layer" && *n != "upper_layer")
         .collect();
     let here = read_json(&path);
-    let here: std::collections::BTreeSet<&str> =
-        here.as_object().unwrap().keys().map(String::as_str).collect();
+    let here: std::collections::BTreeSet<&str> = here
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
     assert_eq!(here, expected, "the resolved map is not every field");
 
     let there = read_json(&exact.join("maps").join(&name));
@@ -283,7 +301,10 @@ fn the_resolved_view_writes_the_enums_as_numbers() {
         .position(|a| a["position"].is_string())
         .expect("no animation names its position");
     let (there, here) = (&there[i]["position"], &here[i]["position"]);
-    assert!(here.is_number(), "the resolved view should number it: {here}");
+    assert!(
+        here.is_number(),
+        "the resolved view should number it: {here}"
+    );
     assert_eq!(
         here.as_i64().unwrap(),
         match there.as_str().unwrap() {

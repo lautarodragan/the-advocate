@@ -93,7 +93,8 @@ fn over_black(picture: &Picture) -> Vec<Color> {
             let blend = 255 * (255 - a);
             let outa255 = a * 255 + blend;
             let coef1 = a * 255 * 255 * (1 << PRECISION) / outa255;
-            let channel = |v: u8| (div255(v as u32 * coef1 + (0x80 << PRECISION)) >> PRECISION) as u8;
+            let channel =
+                |v: u8| (div255(v as u32 * coef1 + (0x80 << PRECISION)) >> PRECISION) as u8;
             rgb15([channel(p[0]), channel(p[1]), channel(p[2]), 255])
         })
         .collect()
@@ -212,7 +213,17 @@ pub fn convert_with(skin: &Skin, reserved: usize, rows: Option<&TextRows>) -> Re
     let drawn = draw(skin, rows, reserved.saturating_sub(1).min(PALETTE_ENTRIES))?;
     let entries = drawn.entries(rows);
     let (palette, index, color, shadow) = drawn.palette(rows);
-    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, frame_fused, .. } = drawn;
+    let Drawn {
+        width,
+        height,
+        pixels,
+        with_arrow,
+        bare_arrow,
+        with_bar,
+        bare_bar,
+        frame_fused,
+        ..
+    } = drawn;
     // What follows starts where this ends, so if the window grew it would
     // step on it and the cartridge would draw the text with a colour of the
     // map. The highest entry is the number of colours —0 is transparent and
@@ -257,7 +268,11 @@ pub fn convert_with(skin: &Skin, reserved: usize, rows: Option<&TextRows>) -> Re
     let mut arrow_tiles = Vec::new();
     for drawn in [&with_arrow, &bare_arrow] {
         for k in 0..WINDOW_ARROW_CELLS {
-            arrow_tiles.push(tile_of(cell_of(drawn, WINDOW_ARROW_COL + k, WINDOW_ARROW_ROW)));
+            arrow_tiles.push(tile_of(cell_of(
+                drawn,
+                WINDOW_ARROW_COL + k,
+                WINDOW_ARROW_ROW,
+            )));
         }
     }
     let base = tiles.len();
@@ -333,7 +348,10 @@ fn frame_cells() -> Vec<(usize, usize)> {
 /// `arrow` pasted at its place over `under`.
 fn arrow_over(under: &Picture, arrow: &Picture) -> Picture {
     let mut out = under.clone();
-    let (x, y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
+    let (x, y) = (
+        (WINDOW_ARROW_COL * CELL) as i64,
+        (WINDOW_ARROW_ROW * CELL) as i64,
+    );
     cells::paste(&mut out, arrow, x, y);
     out
 }
@@ -343,13 +361,23 @@ fn arrow_over(under: &Picture, arrow: &Picture) -> Picture {
 /// the arrow over nothing with its transparency.
 fn frame_tiles(empty: &Picture, arrow: &Picture) -> usize {
     let opaque = |t: adeleine::Tile| t.map(|row| row.map(|p| Some(p.unwrap_or(BLACK))));
-    let mut seen: BTreeSet<adeleine::Tile> =
-        frame_cells().into_iter().map(|(tx, ty)| opaque(cells::tile_at(empty, tx, ty))).collect();
+    let mut seen: BTreeSet<adeleine::Tile> = frame_cells()
+        .into_iter()
+        .map(|(tx, ty)| opaque(cells::tile_at(empty, tx, ty)))
+        .collect();
     let over = arrow_over(empty, arrow);
     let bare = arrow_over(&Picture::transparent(empty.width, empty.height), arrow);
     for k in 0..WINDOW_ARROW_CELLS {
-        seen.insert(opaque(cells::tile_at(&over, WINDOW_ARROW_COL + k, WINDOW_ARROW_ROW)));
-        seen.insert(cells::tile_at(&bare, WINDOW_ARROW_COL + k, WINDOW_ARROW_ROW));
+        seen.insert(opaque(cells::tile_at(
+            &over,
+            WINDOW_ARROW_COL + k,
+            WINDOW_ARROW_ROW,
+        )));
+        seen.insert(cells::tile_at(
+            &bare,
+            WINDOW_ARROW_COL + k,
+            WINDOW_ARROW_ROW,
+        ));
     }
     seen.len()
 }
@@ -400,10 +428,17 @@ fn text_colors(skin: &Skin) -> Result<(Vec<Color>, Color)> {
     let ink = line::Ink::new(&skin.picture, 0);
     let mut color_row = Vec::new();
     for py in 0..font::HEIGHT {
-        let row: Vec<Color> = (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect();
+        let row: Vec<Color> = (0..font::INK_MAX)
+            .map(|px| rgb15(ink.text_at(px, py)))
+            .collect();
         let most = row
             .iter()
-            .max_by_key(|c| (row.iter().filter(|d| d == c).count(), std::cmp::Reverse(row.iter().position(|d| d == *c))))
+            .max_by_key(|c| {
+                (
+                    row.iter().filter(|d| d == c).count(),
+                    std::cmp::Reverse(row.iter().position(|d| d == *c)),
+                )
+            })
             .copied()
             .expect("a row has pixels");
         color_row.push(most);
@@ -417,7 +452,13 @@ fn text_colors(skin: &Skin) -> Result<(Vec<Color>, Color)> {
 pub fn mixed_text_rows(skin: &Skin) -> Vec<usize> {
     let ink = line::Ink::new(&skin.picture, 0);
     (0..font::HEIGHT)
-        .filter(|&py| (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect::<BTreeSet<Color>>().len() > 1)
+        .filter(|&py| {
+            (0..font::INK_MAX)
+                .map(|px| rgb15(ink.text_at(px, py)))
+                .collect::<BTreeSet<Color>>()
+                .len()
+                > 1
+        })
         .collect()
 }
 
@@ -434,7 +475,10 @@ fn draw(skin: &Skin, rows: Option<&TextRows>, cap: usize) -> Result<Drawn> {
     // cut like it: the arrow on the bottom edge, and the cursor on each
     // line. Over the window, and over nothing for the one without a
     // background.
-    let (arrow_x, arrow_y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
+    let (arrow_x, arrow_y) = (
+        (WINDOW_ARROW_COL * CELL) as i64,
+        (WINDOW_ARROW_ROW * CELL) as i64,
+    );
     let mut with_arrow = empty.clone();
     cells::paste(&mut with_arrow, &arrow, arrow_x, arrow_y);
     let mut bare_arrow = Picture::transparent(width, height);
@@ -505,7 +549,12 @@ impl Drawn {
         match rows {
             None => self.colors.len(),
             Some(rows) => {
-                let text: BTreeSet<Color> = self.color_row.iter().copied().chain([self.shadow]).collect();
+                let text: BTreeSet<Color> = self
+                    .color_row
+                    .iter()
+                    .copied()
+                    .chain([self.shadow])
+                    .collect();
                 rows.len() + 1 + self.colors.difference(&text).count()
             }
         }
@@ -519,7 +568,11 @@ impl Drawn {
     fn palette(&self, rows: Option<&TextRows>) -> (Vec<Color>, HashMap<Color, u8>, Vec<u8>, u8) {
         let Some(rows) = rows else {
             let palette: Vec<Color> = self.colors.iter().copied().collect();
-            let index: HashMap<Color, u8> = palette.iter().enumerate().map(|(i, c)| (*c, i as u8 + 1)).collect();
+            let index: HashMap<Color, u8> = palette
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (*c, i as u8 + 1))
+                .collect();
             let color = self.color_row.iter().map(|c| index[c]).collect();
             let shadow = index[&self.shadow];
             return (palette, index, color, shadow);
@@ -537,7 +590,12 @@ impl Drawn {
             }
         }
         let color = (0..font::HEIGHT)
-            .map(|row| rows.iter().position(|class| class.contains(&row)).expect("every row has a class") as u8 + 1)
+            .map(|row| {
+                rows.iter()
+                    .position(|class| class.contains(&row))
+                    .expect("every row has a class") as u8
+                    + 1
+            })
             .collect();
         (palette, index, color, rows.len() as u8 + 1)
     }
@@ -547,9 +605,14 @@ impl Drawn {
     /// the text does: they are the cartridge's to put.
     fn all_colors(&self) -> BTreeSet<Color> {
         let mut colors: BTreeSet<Color> = BTreeSet::new();
-        for drawn in [&self.pixels, &self.with_arrow, &self.bare_arrow, &self.bare_bar]
-            .into_iter()
-            .chain(&self.with_bar)
+        for drawn in [
+            &self.pixels,
+            &self.with_arrow,
+            &self.bare_arrow,
+            &self.bare_bar,
+        ]
+        .into_iter()
+        .chain(&self.with_bar)
         {
             colors.extend(drawn.iter().flatten().copied());
         }
@@ -591,11 +654,19 @@ impl Drawn {
         }
         let counts: Vec<(Color, u64)> = counts.into_iter().collect();
         let merged = adeleine::merge_least_visible(&counts, colors)?;
-        let to: HashMap<Color, Color> =
-            counts.iter().map(|(c, _)| *c).zip(merged.mapping.iter().copied()).collect();
-        for drawn in [&mut self.pixels, &mut self.with_arrow, &mut self.bare_arrow, &mut self.bare_bar]
-            .into_iter()
-            .chain(self.with_bar.iter_mut())
+        let to: HashMap<Color, Color> = counts
+            .iter()
+            .map(|(c, _)| *c)
+            .zip(merged.mapping.iter().copied())
+            .collect();
+        for drawn in [
+            &mut self.pixels,
+            &mut self.with_arrow,
+            &mut self.bare_arrow,
+            &mut self.bare_bar,
+        ]
+        .into_iter()
+        .chain(self.with_bar.iter_mut())
         {
             for c in drawn.iter_mut().flatten() {
                 *c = to[c];
@@ -619,13 +690,20 @@ pub fn reduction(skin: &Skin) -> Result<(usize, Vec<adeleine::Merge>)> {
 }
 
 /// [`reduction`], with the text's rows fixed: see [`TextRows`].
-pub fn reduction_with(skin: &Skin, rows: Option<&TextRows>) -> Result<(usize, Vec<adeleine::Merge>)> {
+pub fn reduction_with(
+    skin: &Skin,
+    rows: Option<&TextRows>,
+) -> Result<(usize, Vec<adeleine::Merge>)> {
     reduction_capped(skin, rows, PALETTE_ENTRIES)
 }
 
 /// [`reduction_with`], fitted in `cap` entries: a System the cartridge
 /// switches to, in what the starting one takes —see [`convert_with`]—.
-pub fn reduction_capped(skin: &Skin, rows: Option<&TextRows>, cap: usize) -> Result<(usize, Vec<adeleine::Merge>)> {
+pub fn reduction_capped(
+    skin: &Skin,
+    rows: Option<&TextRows>,
+    cap: usize,
+) -> Result<(usize, Vec<adeleine::Merge>)> {
     let drawn = draw(skin, rows, cap.min(PALETTE_ENTRIES))?;
     Ok((drawn.brought, drawn.merges))
 }
@@ -649,14 +727,18 @@ pub fn font_bytes(font: &Font) -> Result<Vec<u8>> {
 /// The console's glyphs, and after them `letters`: the Latin-1 the message
 /// boxes draw —see `Window::carrying` in `rm2k-snes-events`—.
 fn console_chars(letters: &[char]) -> impl Iterator<Item = char> + '_ {
-    (0..FONT_GLYPHS).map(Font::console_char).chain(letters.iter().copied())
+    (0..FONT_GLYPHS)
+        .map(Font::console_char)
+        .chain(letters.iter().copied())
 }
 
 /// [`font_bytes`], with `letters` after the console's glyphs: the message
 /// window's, whose boxes draw them.
 pub fn font_bytes_with(font: &Font, letters: &[char]) -> Result<Vec<u8>> {
     if let Some(&c) = letters.iter().find(|&&c| !font.draws(c)) {
-        return Err(Bad::answer(format!("the boxes draw {c:?}, and the font does not have it")));
+        return Err(Bad::answer(format!(
+            "the boxes draw {c:?}, and the font does not have it"
+        )));
     }
     if font.ink_width() > font::INK_MAX {
         return Err(Bad::answer(format!(
@@ -694,7 +776,12 @@ pub fn font_reach(font: &Font) -> Vec<u8> {
 pub fn font_reach_with(font: &Font, letters: &[char]) -> Vec<u8> {
     console_chars(letters)
         .map(|c| {
-            let ink = font.rows(c).iter().map(|r| 16 - r.leading_zeros()).max().unwrap_or(0);
+            let ink = font
+                .rows(c)
+                .iter()
+                .map(|r| 16 - r.leading_zeros())
+                .max()
+                .unwrap_or(0);
             if ink == 0 {
                 0
             } else {
@@ -776,7 +863,10 @@ mod tests {
         let with = font_bytes_with(&f, &['é', 'ñ']).unwrap();
         assert_eq!(with.len(), ascii.len() + 2 * font::HEIGHT);
         assert_eq!(with[..ascii.len()], ascii);
-        assert_ne!(with[ascii.len()..ascii.len() + font::HEIGHT], with[ascii.len() + font::HEIGHT..]);
+        assert_ne!(
+            with[ascii.len()..ascii.len() + font::HEIGHT],
+            with[ascii.len() + font::HEIGHT..]
+        );
         assert_eq!(font_reach_with(&f, &['é']).len(), FONT_GLYPHS + 1);
         assert!(font_bytes_with(&Font::rm2k(font::MINCHO), &['é']).is_err());
     }

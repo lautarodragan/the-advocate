@@ -61,7 +61,9 @@ cases = ["both", "only-small"]
 
 /// A game on disk: the tree, the debug map, the cases.
 fn game(name: &str, cartridges: &str) -> PathBuf {
-    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("cartridges").join(name);
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("cartridges")
+        .join(name);
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("data")).unwrap();
     fs::create_dir_all(dir.join("patches/manual/new")).unwrap();
@@ -72,12 +74,27 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     )
     .unwrap();
     // Type 1 is a map; 5 is an area, which the rule leaves out on its own.
-    let nodes: Vec<String> = [(0, 0), (1, 1), (2, 1), (3, 1), (4, 1), (5, 2), (6, 1), (7, 1), (20, 1), (30, 1)]
-        .iter()
-        .map(|(id, kind)| format!("{{\"id\": {id}, \"type\": {kind}}}"))
-        .collect();
+    let nodes: Vec<String> = [
+        (0, 0),
+        (1, 1),
+        (2, 1),
+        (3, 1),
+        (4, 1),
+        (5, 2),
+        (6, 1),
+        (7, 1),
+        (20, 1),
+        (30, 1),
+    ]
+    .iter()
+    .map(|(id, kind)| format!("{{\"id\": {id}, \"type\": {kind}}}"))
+    .collect();
     // What makes `data/` a Ditto dump, and which view it is.
-    fs::write(dir.join("data/ditto.json"), r#"{"ditto": 2, "view": "resolved"}"#).unwrap();
+    fs::write(
+        dir.join("data/ditto.json"),
+        r#"{"ditto": 2, "view": "resolved"}"#,
+    )
+    .unwrap();
     fs::write(
         dir.join("data/maps.json"),
         format!("{{\"maps\": [{}]}}", nodes.join(", ")),
@@ -91,7 +108,10 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     for (case, text) in [
         ("nothing", r#"{"event_commands": []}"#),
         ("to-debug", r#"{"event_commands": [{"code": "Teleport"}]}"#),
-        ("both", r#"{"event_commands": [{"code": "Teleport"}, {"code": "Wait"}]}"#),
+        (
+            "both",
+            r#"{"event_commands": [{"code": "Teleport"}, {"code": "Wait"}]}"#,
+        ),
         ("only-small", r#"{"event_commands": [{"code": "Wait"}]}"#),
     ] {
         fs::write(dir.join("cases").join(format!("{case}.json")), text).unwrap();
@@ -100,7 +120,10 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
 }
 
 fn load(dir: &Path) -> Result<Cartridges, String> {
-    Cartridges::load(Project::open(dir).map_err(String::from)?, Environment::default())
+    Cartridges::load(
+        Project::open(dir).map_err(String::from)?,
+        Environment::default(),
+    )
 }
 
 #[test]
@@ -129,7 +152,9 @@ fn a_game_without_a_debug_map_loads() {
     assert_eq!(c.game_maps, [1, 2, 4, 6, 7, 20]);
     // With the debug map asked for and none to give, it says so.
     fs::write(dir.join("rm2k-snes.toml"), text).unwrap();
-    let e = load(&dir).err().expect("debug_map = true without a debug map");
+    let e = load(&dir)
+        .err()
+        .expect("debug_map = true without a debug map");
     assert!(e.contains("debug map"), "{e}");
 }
 
@@ -139,7 +164,10 @@ fn a_game_without_a_debug_map_loads() {
 fn a_cartridge_of_one_map_passes_no_maps() {
     let one = SMALL.replace("maps = [6, 1]", "maps = [6]");
     let c = load(&game("one-map", &(RELEASE.to_string() + &one))).unwrap();
-    assert_eq!(c.get("test-small").unwrap().flags, ["--map-id", "6", "--no-title", "--enemy-hp"]);
+    assert_eq!(
+        c.get("test-small").unwrap().flags,
+        ["--map-id", "6", "--no-title", "--enemy-hp"]
+    );
 }
 
 #[test]
@@ -149,8 +177,22 @@ fn the_flags_come_out_in_the_usual_order() {
     assert_eq!(
         release.flags,
         [
-            "--party", "10", "--map-id", "4", "--maps", "1", "2", "6", "7", "20", "900", "30",
-            "--test-graphic", "Hero", "0", "--enemy-hp"
+            "--party",
+            "10",
+            "--map-id",
+            "4",
+            "--maps",
+            "1",
+            "2",
+            "6",
+            "7",
+            "20",
+            "900",
+            "30",
+            "--test-graphic",
+            "Hero",
+            "0",
+            "--enemy-hp"
         ]
     );
     let small = c.get("test-small").unwrap();
@@ -181,7 +223,10 @@ fn where_a_case_runs_does_not_depend_on_the_order_of_the_file() {
     let second = load(&game("order_b", &(SMALL.to_string() + RELEASE))).unwrap();
     assert_eq!(second.names(), ["test-small", "release"]);
     for case in first.all_cases().unwrap() {
-        assert_eq!(first.where_is(&case).unwrap(), second.where_is(&case).unwrap());
+        assert_eq!(
+            first.where_is(&case).unwrap(),
+            second.where_is(&case).unwrap()
+        );
     }
     assert_eq!(first.where_is("both").unwrap(), ["release", "test-small"]);
     assert_eq!(first.where_is("only-small").unwrap(), ["test-small"]);
@@ -191,13 +236,25 @@ fn where_a_case_runs_does_not_depend_on_the_order_of_the_file() {
 fn each_one_has_its_directory_and_its_rom() {
     let dir = game("where", &(RELEASE.to_string() + SMALL));
     let c = load(&dir).unwrap();
-    assert_eq!(c.rom_of("release").unwrap(), dir.join("build/release/game.sfc"));
-    assert_eq!(c.msu_of("release").unwrap(), dir.join("build/release/game.msu"));
-    assert_eq!(c.rom_of("test-small").unwrap(), dir.join("build/tests/small/test.sfc"));
+    assert_eq!(
+        c.rom_of("release").unwrap(),
+        dir.join("build/release/game.sfc")
+    );
+    assert_eq!(
+        c.msu_of("release").unwrap(),
+        dir.join("build/release/game.msu")
+    );
+    assert_eq!(
+        c.rom_of("test-small").unwrap(),
+        dir.join("build/tests/small/test.sfc")
+    );
     let mut moved = Environment::default();
     moved.set("test_cartridges", "/elsewhere");
     let c = Cartridges::load(Project::open(&dir).unwrap(), moved).unwrap();
-    assert_eq!(c.directory("test-small").unwrap(), PathBuf::from("/elsewhere/small"));
+    assert_eq!(
+        c.directory("test-small").unwrap(),
+        PathBuf::from("/elsewhere/small")
+    );
     assert_eq!(c.directory("release").unwrap(), dir.join("build/release"));
 }
 
@@ -210,11 +267,21 @@ fn a_game_without_release_is_refused() {
 #[test]
 fn a_missing_setting_names_its_key() {
     let broken = SMALL.replace("party = []\n", "");
-    let error = load(&game("no_party", &(RELEASE.to_string() + &broken))).err().unwrap();
-    assert!(error.ends_with("missing key cartridges.test-small.party"), "{error}");
+    let error = load(&game("no_party", &(RELEASE.to_string() + &broken)))
+        .err()
+        .unwrap();
+    assert!(
+        error.ends_with("missing key cartridges.test-small.party"),
+        "{error}"
+    );
     let broken = SMALL.replace("maps = [6, 1]", "maps = \"all\"");
-    let error = load(&game("bad_maps", &(RELEASE.to_string() + &broken))).err().unwrap();
-    assert!(error.contains("maps of test-small is a list or \"game\""), "{error}");
+    let error = load(&game("bad_maps", &(RELEASE.to_string() + &broken)))
+        .err()
+        .unwrap();
+    assert!(
+        error.contains("maps of test-small is a list or \"game\""),
+        "{error}"
+    );
 }
 
 #[test]
@@ -226,8 +293,15 @@ fn the_stamp_says_when_a_cartridge_is_stale() {
     assert_eq!(c.stale("nope", inputs).unwrap(), Some("does not exist"));
     let build = c.directory("test-small").unwrap();
     fs::create_dir_all(&build).unwrap();
-    fs::write(build.join("stamp.txt"), c.stamp("test-small", inputs).unwrap()).unwrap();
-    assert_eq!(c.stale("test-small", inputs).unwrap(), Some("does not have its .msu"));
+    fs::write(
+        build.join("stamp.txt"),
+        c.stamp("test-small", inputs).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        c.stale("test-small", inputs).unwrap(),
+        Some("does not have its .msu")
+    );
     fs::write(c.msu_of("test-small").unwrap(), "").unwrap();
     assert_eq!(c.stale("test-small", inputs).unwrap(), None);
     // Other sources, or a case that changed.
@@ -259,7 +333,11 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     let dir = game("fingerprint", &(RELEASE.to_string() + SMALL));
     let runtime = dir.join("runtime");
     fs::create_dir_all(runtime.join("deep")).unwrap();
-    fs::write(runtime.join("main.s"), ".include \"shop.s\"\n.include \"deep/x.s\"\n").unwrap();
+    fs::write(
+        runtime.join("main.s"),
+        ".include \"shop.s\"\n.include \"deep/x.s\"\n",
+    )
+    .unwrap();
     fs::write(runtime.join("shop.s"), "").unwrap();
     fs::write(runtime.join("deep/x.s"), "").unwrap();
     // The tools the fingerprint hashes, as stand-ins on a PATH of their own.
@@ -303,7 +381,11 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     let c = Cartridges::load(Project::open(&dir).unwrap(), machine("rtp")).unwrap();
     let files = c.fingerprint_files(&runtime).unwrap();
     for source in sources(&runtime.join("main.s")).unwrap() {
-        assert!(files.contains(&source), "{} is not in the fingerprint", source.display());
+        assert!(
+            files.contains(&source),
+            "{} is not in the fingerprint",
+            source.display()
+        );
     }
     assert!(files.contains(&bin.join("rm2k-snes-assemble")));
     assert!(files.contains(&bin.join("rm2k-snes-convert")));
@@ -329,7 +411,11 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     fs::write(original.join("ChipSet/Town.png"), "retouched").unwrap();
     let retouched = c.fingerprint().unwrap();
     assert_ne!(retouched, fingerprint);
-    fs::rename(original.join("ChipSet/Town.png"), original.join("ChipSet/Village.png")).unwrap();
+    fs::rename(
+        original.join("ChipSet/Town.png"),
+        original.join("ChipSet/Village.png"),
+    )
+    .unwrap();
     let renamed = c.fingerprint().unwrap();
     assert_ne!(renamed, retouched);
     // Not what they do not read: playing the original rewrites its saves.

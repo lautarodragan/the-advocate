@@ -9,7 +9,8 @@
 
 use crate::codes::*;
 use crate::compile::{
-    Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_SWITCH, COND_VARIABLE, SWITCH_TABLE_MAX, VAR_VARIABLE,
+    Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_SWITCH, COND_VARIABLE, SWITCH_TABLE_MAX,
+    VAR_VARIABLE,
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game, Map};
@@ -92,7 +93,8 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             if p[3] != 0 {
                 ids.insert(p[4]);
             }
-        } else if matches!(code, CHANGE_MONSTER_HP | CHANGE_MONSTER_MP) && p.len() >= 4 && p[2] == 1 {
+        } else if matches!(code, CHANGE_MONSTER_HP | CHANGE_MONSTER_MP) && p.len() >= 4 && p[2] == 1
+        {
             ids.insert(p[3]);
         } else if code == SHOW_PICTURE && p.len() >= 4 && p[1] == 1 {
             // A picture placed by two variables, since 2026-10-01. In the
@@ -116,7 +118,10 @@ fn text_variables(text: &str) -> Vec<i32> {
     let mut rest = text;
     while let Some(at) = rest.find(['\\']) {
         rest = &rest[at + 1..];
-        let Some(tail) = rest.strip_prefix(['V', 'v']).and_then(|r| r.strip_prefix('[')) else {
+        let Some(tail) = rest
+            .strip_prefix(['V', 'v'])
+            .and_then(|r| r.strip_prefix('['))
+        else {
             continue;
         };
         let digits: String = tail.chars().take_while(|c| c.is_ascii_digit()).collect();
@@ -509,7 +514,11 @@ pub fn switch_top(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> Result<i3
     for map in maps {
         for event in &map.events {
             for page in &event.pages {
-                ids.extend([page.condition.switch_a, page.condition.switch_b].into_iter().flatten());
+                ids.extend(
+                    [page.condition.switch_a, page.condition.switch_b]
+                        .into_iter()
+                        .flatten(),
+                );
                 ids.extend(command_switches(&page.commands));
             }
         }
@@ -604,7 +613,10 @@ mod tests {
             route: Vec::new(),
             route_repeat: false,
             route_skippable: false,
-            condition: crate::game::Condition { switch_a, ..Default::default() },
+            condition: crate::game::Condition {
+                switch_a,
+                ..Default::default()
+            },
             id: 1,
             translucent: false,
             overlap_forbidden: false,
@@ -612,7 +624,16 @@ mod tests {
     }
 
     fn on_a_map(pages: Vec<crate::game::Page>) -> Map {
-        Map { id: 1, events: vec![crate::game::Event { id: 1, x: 0, y: 0, pages, starting: None }] }
+        Map {
+            id: 1,
+            events: vec![crate::game::Event {
+                id: 1,
+                x: 0,
+                y: 0,
+                pages,
+                starting: None,
+            }],
+        }
     }
 
     /// Each place a switch can be named raises the table: a page's
@@ -628,25 +649,85 @@ mod tests {
         let control = |p: &[i32]| Command::new(CONTROL_SWITCHES, 0, "", p.to_vec());
         let game = Game::default();
         assert_eq!(top(&game, &[], &[]), 0);
-        assert_eq!(top(&game, &[on_a_map(vec![switches_page(Some(1521), vec![])])], &[]), 1521);
-        assert_eq!(top(&game, &[on_a_map(vec![switches_page(None, vec![control(&[1, 1070, 1077, 0])])])], &[]), 1077);
+        assert_eq!(
+            top(
+                &game,
+                &[on_a_map(vec![switches_page(Some(1521), vec![])])],
+                &[]
+            ),
+            1521
+        );
+        assert_eq!(
+            top(
+                &game,
+                &[on_a_map(vec![switches_page(
+                    None,
+                    vec![control(&[1, 1070, 1077, 0])]
+                )])],
+                &[]
+            ),
+            1077
+        );
         // By variable, 1500 is the variable.
-        assert_eq!(top(&game, &[on_a_map(vec![switches_page(None, vec![control(&[2, 1500, 1500, 0])])])], &[]), 0);
+        assert_eq!(
+            top(
+                &game,
+                &[on_a_map(vec![switches_page(
+                    None,
+                    vec![control(&[2, 1500, 1500, 0])]
+                )])],
+                &[]
+            ),
+            0
+        );
         let branch = Command::new(COND_BRANCH, 0, "", vec![0, 1060, 0, 0, 0, 0]);
-        assert_eq!(top(&game, &[on_a_map(vec![switches_page(None, vec![branch])])], &[]), 1060);
+        assert_eq!(
+            top(
+                &game,
+                &[on_a_map(vec![switches_page(None, vec![branch])])],
+                &[]
+            ),
+            1060
+        );
         assert_eq!(top(&game, &[], &[1023]), 1023);
 
         let mut game = Game::default();
-        game.common_events.insert(1, CommonEvent { trigger: 3, switch_flag: true, switch_id: 1600, commands: vec![] });
+        game.common_events.insert(
+            1,
+            CommonEvent {
+                trigger: 3,
+                switch_flag: true,
+                switch_id: 1600,
+                commands: vec![],
+            },
+        );
         assert_eq!(top(&game, &[], &[]), 1600);
-        game.common_events.insert(2, CommonEvent { trigger: 5, switch_flag: false, switch_id: 1700, commands: vec![control(&[0, 1643, 1643, 0])] });
-        assert_eq!(top(&game, &[], &[]), 1643, "a trigger without its flag names nothing");
+        game.common_events.insert(
+            2,
+            CommonEvent {
+                trigger: 5,
+                switch_flag: false,
+                switch_id: 1700,
+                commands: vec![control(&[0, 1643, 1643, 0])],
+            },
+        );
+        assert_eq!(
+            top(&game, &[], &[]),
+            1643,
+            "a trigger without its flag names nothing"
+        );
 
         let mut game = Game::default();
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.switch_b = true;
         condition.switch_b_id = 1400;
-        game.troops.insert(1, vec![crate::game::TroopPage { condition, commands: vec![] }]);
+        game.troops.insert(
+            1,
+            vec![crate::game::TroopPage {
+                condition,
+                commands: vec![],
+            }],
+        );
         assert_eq!(top(&game, &[], &[]), 1400);
         game.database_switches.insert(1450);
         assert_eq!(top(&game, &[], &[]), 1450);

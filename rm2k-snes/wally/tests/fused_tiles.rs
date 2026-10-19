@@ -26,15 +26,26 @@ fn write(path: &Path, width: usize, height: usize, pixel: impl Fn(usize, usize) 
         }
     }
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    picture::write_png(path, &Picture { width, height, rgba }).unwrap();
+    picture::write_png(
+        path,
+        &Picture {
+            width,
+            height,
+            rgba,
+        },
+    )
+    .unwrap();
 }
-
 
 fn game(dir: &Path) -> (PathBuf, PathBuf) {
     let dump = dir.join("dump");
     std::fs::create_dir_all(dump.join("maps")).unwrap();
     std::fs::create_dir_all(dump.join("db")).unwrap();
-    std::fs::write(dump.join("ditto.json"), json!({"ditto": 2, "view": "resolved"}).to_string()).unwrap();
+    std::fs::write(
+        dump.join("ditto.json"),
+        json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     std::fs::write(
         dump.join("db/chipsets.json"),
         json!([{"id": 2, "chipset_name": "tiles", "passable_data_lower": vec![15u8; 162],
@@ -80,7 +91,11 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
         let k = tile * 4 + (y / 8 % 2) * 2 + (x / 8) % 2;
         let bit = ((k >> ((x % 4) + (y % 2) * 4)) ^ (k >> 8)) & 1;
         let (a, b) = (k % 3, k % 5);
-        let c = if bit == 1 { [200, 60 + a as u8 * 40, 60] } else { [40, 60 + b as u8 * 40, 180] };
+        let c = if bit == 1 {
+            [200, 60 + a as u8 * 40, 60]
+        } else {
+            [40, 60 + b as u8 * 40, 180]
+        };
         [c[0], c[1], c[2], 255]
     });
     write(&pictures.join("CharSet/Folk.png"), 288, 256, |x, y| {
@@ -88,7 +103,12 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
             return [0, 0, 0, 0];
         }
         let k = (x / 6 + y / 4 * 3) % 9;
-        [(k * 40 % 256) as u8, (k * 90 % 256) as u8, (k * 150 % 256) as u8, 255]
+        [
+            (k * 40 % 256) as u8,
+            (k * 90 % 256) as u8,
+            (k * 150 % 256) as u8,
+            255,
+        ]
     });
     (dump, pictures)
 }
@@ -120,15 +140,23 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, layouts: Value) -> (Vec<Str
         .arg(&out)
         .output()
         .unwrap();
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     let notes = answer["notes"]
         .as_array()
         .unwrap()
         .iter()
         .map(|n| n["text"].as_str().unwrap().to_string())
         .collect();
-    (notes, std::fs::read(out.join("background.bin")).unwrap().len() / 64)
+    (
+        notes,
+        std::fs::read(out.join("background.bin")).unwrap().len() / 64,
+    )
 }
 
 #[test]
@@ -137,13 +165,21 @@ fn a_background_that_does_not_fit_is_fused_and_one_that_fits_is_not() {
     let (dump, pictures) = game(&dir);
     // Room for all of it: nothing is fused, nothing is said.
     let (notes, whole) = convert(&dir, &dump, &pictures, json!([[1000, 1000, 1000]]));
-    assert!(whole > 100, "the toy map was meant to spend many tiles and spends {whole}");
+    assert!(
+        whole > 100,
+        "the toy map was meant to spend many tiles and spends {whole}"
+    );
     assert!(notes.iter().all(|n| !n.contains("fused")), "{notes:?}");
     // Room for a hundred, which is what it is over on: it fits, and says it
     // was fused.
     let (notes, fused) = convert(&dir, &dump, &pictures, json!([[100, 1000, 1000]]));
     assert!(fused <= 100, "{fused} tiles in a layout of 100");
-    assert!(notes.iter().any(|n| n.contains("WARNING") && n.contains("fused")), "{notes:?}");
+    assert!(
+        notes
+            .iter()
+            .any(|n| n.contains("WARNING") && n.contains("fused")),
+        "{notes:?}"
+    );
     // And with no layout that can hold its sprites, it is not touched: the
     // background is not what it is over on.
     let (notes, same) = convert(&dir, &dump, &pictures, json!([[100, 0, 1000]]));

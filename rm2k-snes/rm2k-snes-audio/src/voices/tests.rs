@@ -24,7 +24,11 @@ struct Bank {
 
 impl Bank {
     fn new() -> Bank {
-        let one = SampleInfo { root: 60.0, rate: 16000.0, frames: 16000 };
+        let one = SampleInfo {
+            root: 60.0,
+            rate: 16000.0,
+            frames: 16000,
+        };
         Bank {
             samples: vec![one, one],
             melodic: HashMap::from([(PIANO, 0)]),
@@ -118,7 +122,11 @@ fn writes_to(out: &[Write], voice: u8) -> Vec<(i64, u8, u8)> {
 }
 
 fn registers(out: &[Write], voice: u8, register: u8) -> Vec<u8> {
-    writes_to(out, voice).into_iter().filter(|w| w.1 == register).map(|w| w.2).collect()
+    writes_to(out, voice)
+        .into_iter()
+        .filter(|w| w.1 == register)
+        .map(|w| w.2)
+        .collect()
 }
 
 /// One channel with one voice: the second note steals the voice from the
@@ -127,7 +135,11 @@ fn registers(out: &[Write], voice: u8, register: u8) -> Vec<u8> {
 /// frames before its end.
 #[test]
 fn a_stolen_note_does_not_release_the_thief() {
-    let out = build(&[note(0, 100, 0, 60), note(50, 200, 0, 60)], voices_of(&[(0, &[0])]), &Bank::new());
+    let out = build(
+        &[note(0, 100, 0, 60), note(50, 200, 0, 60)],
+        voices_of(&[(0, &[0])]),
+        &Bank::new(),
+    );
     let (kon, release) = read(&out);
     assert_eq!(kon[&0], [0, 50]);
     assert_eq!(release[&0], [200], "the second note ends at 200");
@@ -138,7 +150,11 @@ fn a_stolen_note_does_not_release_the_thief() {
 /// nothing and is left out.
 #[test]
 fn a_note_stolen_on_its_last_frame_writes_no_release() {
-    let out = build(&[note(0, 100, 0, 60), note(100, 150, 0, 60)], voices_of(&[(0, &[0])]), &Bank::new());
+    let out = build(
+        &[note(0, 100, 0, 60), note(100, 150, 0, 60)],
+        voices_of(&[(0, &[0])]),
+        &Bank::new(),
+    );
     let (kon, release) = read(&out);
     assert_eq!(kon[&0], [0, 100]);
     assert_eq!(release[&0], [150]);
@@ -151,21 +167,40 @@ fn a_note_stolen_on_its_last_frame_writes_no_release() {
 #[test]
 fn a_note_without_a_sample_takes_no_voice() {
     let d = midi::DRUM_CHANNEL;
-    let notes = [note(0, 30, d, BASS_DRUM), note(5, 100, d, NO_SAMPLE), note(10, 40, d, BASS_DRUM)];
+    let notes = [
+        note(0, 30, d, BASS_DRUM),
+        note(5, 100, d, NO_SAMPLE),
+        note(10, 40, d, BASS_DRUM),
+    ];
     let (kon, _) = read(&build(&notes, voices_of(&[(d, &[6, 7])]), &Bank::new()));
-    assert_eq!((kon.get(&6).cloned(), kon.get(&7).cloned()), (Some(vec![0]), Some(vec![10])));
+    assert_eq!(
+        (kon.get(&6).cloned(), kon.get(&7).cloned()),
+        (Some(vec![0]), Some(vec![10]))
+    );
 }
 
 /// The notes with the voices from `assign` —all eight for everyone—: what
 /// came out and which voice each one went to.
 fn allocate(notes: &[Note], bank: &Bank) -> (Vec<Write>, Vec<Allotted>) {
-    let programs: BTreeMap<u8, u8> =
-        (0..16).filter(|&c| c != midi::DRUM_CHANNEL).map(|c| (c, PIANO)).collect();
+    let programs: BTreeMap<u8, u8> = (0..16)
+        .filter(|&c| c != midi::DRUM_CHANNEL)
+        .map(|c| (c, PIANO))
+        .collect();
     let mut allotted = Vec::new();
-    let frames =
-        build_events(notes, &assign(notes), &programs, bank, &[], Some(&mut allotted), sdsp::HEADROOM)
-            .unwrap();
-    (released(&frames, notes.iter().map(|n| n.end).max().unwrap() + 10), allotted)
+    let frames = build_events(
+        notes,
+        &assign(notes),
+        &programs,
+        bank,
+        &[],
+        Some(&mut allotted),
+        sdsp::HEADROOM,
+    )
+    .unwrap();
+    (
+        released(&frames, notes.iter().map(|n| n.end).max().unwrap() + 10),
+        allotted,
+    )
 }
 
 /// Seven melodic channels and the drums, taking turns, and channel 0 plays
@@ -174,15 +209,27 @@ fn allocate(notes: &[Note], bank: &Bank) -> (Vec<Write>, Vec<Allotted>) {
 /// only one note of the chord sounded.
 #[test]
 fn a_chord_sounds_whole_with_more_channels_than_voices() {
-    let mut notes: Vec<Note> = (0..7).map(|c| note(100 * c as i64, 100 * c as i64 + 50, c, 60)).collect();
+    let mut notes: Vec<Note> = (0..7)
+        .map(|c| note(100 * c as i64, 100 * c as i64 + 50, c, 60))
+        .collect();
     notes.push(note(700, 750, midi::DRUM_CHANNEL, BASS_DRUM));
     notes.extend([0, 4, 7, 12].map(|k| note(800, 900, 0, 60 + k)));
     let (out, allotted) = allocate(&notes, &Bank::new());
-    let without: Vec<_> = allotted.iter().filter(|a| a.voice.is_none()).map(|a| a.note).collect();
-    assert!(without.is_empty(), "notes without a voice while voices were free: {without:?}");
+    let without: Vec<_> = allotted
+        .iter()
+        .filter(|a| a.voice.is_none())
+        .map(|a| a.note)
+        .collect();
+    assert!(
+        without.is_empty(),
+        "notes without a voice while voices were free: {without:?}"
+    );
     let (kon, _) = read(&out);
     let in_chord = kon.values().filter(|frames| frames.contains(&800)).count();
-    assert_eq!(in_chord, 4, "of the four-note chord {in_chord} voices sound");
+    assert_eq!(
+        in_chord, 4,
+        "of the four-note chord {in_chord} voices sound"
+    );
 }
 
 /// A deterministic stand-in for a random song.
@@ -190,7 +237,10 @@ struct Lcg(u64);
 
 impl Lcg {
     fn below(&mut self, n: u64) -> u64 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         (self.0 >> 33) % n
     }
 }
@@ -205,7 +255,11 @@ fn no_note_goes_without_a_voice_if_one_is_free() {
         .map(|_| {
             let start = r.below(2000) as i64;
             let channel = channels[r.below(channels.len() as u64) as usize];
-            let key = if channel == midi::DRUM_CHANNEL { BASS_DRUM } else { 40 + r.below(50) as u8 };
+            let key = if channel == midi::DRUM_CHANNEL {
+                BASS_DRUM
+            } else {
+                40 + r.below(50) as u8
+            };
             let velocity = 20 + r.below(108) as u8;
             let end = start + 1 + r.below(119) as i64;
             Note::new(start, end, channel, key, velocity)
@@ -213,16 +267,31 @@ fn no_note_goes_without_a_voice_if_one_is_free() {
         .collect();
     let sorted = notes;
     let (_, allotted) = allocate(&sorted, &Bank::new());
-    assert!(allotted.iter().any(|a| a.voice.is_none()), "the case never goes past eight voices");
+    assert!(
+        allotted.iter().any(|a| a.voice.is_none()),
+        "the case never goes past eight voices"
+    );
     // Who holds a voice at `t`: it started before, has not ended and was
     // not stolen from.
     let holds = |a: &Allotted, t: i64| {
-        a.voice.is_some() && sorted[a.note].start <= t && t < a.end && a.stolen.is_none_or(|s| s > t)
+        a.voice.is_some()
+            && sorted[a.note].start <= t
+            && t < a.end
+            && a.stolen.is_none_or(|s| s > t)
     };
     for a in allotted.iter().filter(|a| a.voice.is_none()) {
         let t = sorted[a.note].start;
-        let held: HashSet<u8> = allotted.iter().filter(|b| holds(b, t)).map(|b| b.voice.unwrap()).collect();
-        assert_eq!(held.len(), sdsp::VOICES, "the note at {t} did not sound with {} voices held", held.len());
+        let held: HashSet<u8> = allotted
+            .iter()
+            .filter(|b| holds(b, t))
+            .map(|b| b.voice.unwrap())
+            .collect();
+        assert_eq!(
+            held.len(),
+            sdsp::VOICES,
+            "the note at {t} did not sound with {} voices held",
+            held.len()
+        );
     }
 }
 
@@ -245,7 +314,10 @@ fn the_weakest_is_stolen_not_a_channels_last() {
             .clone()
     };
     let (new, soft, lone) = (of(80, 2), of(70, 0), of(50, 1));
-    assert_eq!(new.voice, soft.voice, "the new note took another voice than the soft one");
+    assert_eq!(
+        new.voice, soft.voice,
+        "the new note took another voice than the soft one"
+    );
     assert_eq!((soft.stolen, lone.stolen), (Some(100), None));
 }
 
@@ -263,8 +335,16 @@ fn the_top_voice_of_a_chord_is_not_last_to_its_frame() {
     notes.extend([64, 67, 72].map(|k| note(0, 100, 0, k)));
     let programs: BTreeMap<u8, u8> = (0..4).map(|c| (c, PIANO)).collect();
     let mut allotted = Vec::new();
-    build_events(&notes, &assign(&notes), &programs, &Bank::with_drums(), &[], Some(&mut allotted), sdsp::HEADROOM)
-        .unwrap();
+    build_events(
+        &notes,
+        &assign(&notes),
+        &programs,
+        &Bank::with_drums(),
+        &[],
+        Some(&mut allotted),
+        sdsp::HEADROOM,
+    )
+    .unwrap();
     let mut without: Vec<(u8, u8)> = allotted
         .iter()
         .filter(|a| a.voice.is_none())
@@ -281,14 +361,28 @@ fn the_top_voice_of_a_chord_is_not_last_to_its_frame() {
 #[test]
 fn a_sounding_voice_is_lowered_a_frame_before_stealing_it() {
     let out = build(
-        &[note(0, 100, 0, 60), note(50, 120, 0, 60), note(400, 450, 0, 60)],
+        &[
+            note(0, 100, 0, 60),
+            note(50, 120, 0, 60),
+            note(400, 450, 0, 60),
+        ],
         voices_of(&[(0, &[0])]),
         &Bank::new(),
     );
     let written = writes_to(&out, 0);
-    let gain: Vec<(i64, u8)> = written.iter().filter(|w| w.1 == sdsp::V_GAIN).map(|w| (w.0, w.2)).collect();
-    assert!(gain.contains(&(49, RAMP)), "no ramp before the steal at frame 50: {gain:?}");
-    assert!(written.contains(&(49, sdsp::V_ADSR1, 0)), "without ADSR1 at zero the ramp's GAIN is not in control");
+    let gain: Vec<(i64, u8)> = written
+        .iter()
+        .filter(|w| w.1 == sdsp::V_GAIN)
+        .map(|w| (w.0, w.2))
+        .collect();
+    assert!(
+        gain.contains(&(49, RAMP)),
+        "no ramp before the steal at frame 50: {gain:?}"
+    );
+    assert!(
+        written.contains(&(49, sdsp::V_ADSR1, 0)),
+        "without ADSR1 at zero the ramp's GAIN is not in control"
+    );
     assert!(!gain.iter().any(|&(c, v)| v == RAMP && c > 49), "{gain:?}");
 }
 
@@ -297,16 +391,31 @@ fn a_sounding_voice_is_lowered_a_frame_before_stealing_it() {
 /// slow—: the ramp goes in anyway.
 #[test]
 fn a_release_tail_is_lowered_too_before_reusing_the_voice() {
-    let out = build(&[note(0, 40, 0, 60), note(60, 100, 0, 60)], voices_of(&[(0, &[0])]), &Bank::new());
-    let gain: Vec<(i64, u8)> =
-        writes_to(&out, 0).iter().filter(|w| w.1 == sdsp::V_GAIN).map(|w| (w.0, w.2)).collect();
-    assert_eq!(&gain[..2], &[(40, sdsp::GAIN_EXP_DECREASE | 12), (59, RAMP)]);
+    let out = build(
+        &[note(0, 40, 0, 60), note(60, 100, 0, 60)],
+        voices_of(&[(0, &[0])]),
+        &Bank::new(),
+    );
+    let gain: Vec<(i64, u8)> = writes_to(&out, 0)
+        .iter()
+        .filter(|w| w.1 == sdsp::V_GAIN)
+        .map(|w| (w.0, w.2))
+        .collect();
+    assert_eq!(
+        &gain[..2],
+        &[(40, sdsp::GAIN_EXP_DECREASE | 12), (59, RAMP)]
+    );
 }
 
 // --- velocity and controllers ----------------------------------------------
 
 fn control(frame: i64, number: u16, value: f64, channel: u8) -> Control {
-    Control { start: frame, channel, number, value }
+    Control {
+        start: frame,
+        channel,
+        number,
+        value,
+    }
 }
 
 fn build_with(notes: &[Note], controls: &[Control]) -> Vec<Write> {
@@ -339,11 +448,18 @@ fn velocity_lowers_the_volume_squared() {
 /// quarter, the same as velocity.
 #[test]
 fn channel_volume_changes_a_note_already_sounding() {
-    let out = build_with(&[Note::new(0, 100, 0, 60, 127)], &[control(40, midi::VOLUME, 50.0, 0)]);
+    let out = build_with(
+        &[Note::new(0, 100, 0, 60, 127)],
+        &[control(40, midi::VOLUME, 50.0, 0)],
+    );
     let quarter = num::round(sdsp::ceiling() as f64 / 4.0) as u8;
     let written = writes_to(&out, 0);
     for register in [sdsp::V_VOL_L, sdsp::V_VOL_R] {
-        let got: Vec<(i64, u8)> = written.iter().filter(|w| w.1 == register).map(|w| (w.0, w.2)).collect();
+        let got: Vec<(i64, u8)> = written
+            .iter()
+            .filter(|w| w.1 == register)
+            .map(|w| (w.0, w.2))
+            .collect();
         assert_eq!(got, [(0, sdsp::ceiling() as u8), (40, quarter)]);
     }
 }
@@ -354,10 +470,14 @@ fn channel_volume_changes_a_note_already_sounding() {
 fn expression_and_volume_multiply() {
     let out = build_with(
         &[Note::new(10, 50, 0, 60, 127)],
-        &[control(0, midi::EXPRESSION, 64.0, 0), control(0, midi::VOLUME, 127.0, 0)],
+        &[
+            control(0, midi::EXPRESSION, 64.0, 0),
+            control(0, midi::VOLUME, 127.0, 0),
+        ],
     );
     let expected =
-        num::round(sdsp::ceiling() as f64 * (127.0f64 / 100.0).powi(2) * (64.0f64 / 127.0).powi(2)) as u8;
+        num::round(sdsp::ceiling() as f64 * (127.0f64 / 100.0).powi(2) * (64.0f64 / 127.0).powi(2))
+            as u8;
     assert_eq!(registers(&out, 0, sdsp::V_VOL_L), [expected]);
 }
 
@@ -367,13 +487,25 @@ fn expression_and_volume_multiply() {
 fn pan_splits_the_note_between_both_sides() {
     let out = build_with(
         &[Note::new(10, 50, 0, 60, 127), Note::new(60, 90, 0, 60, 127)],
-        &[control(0, midi::PAN, 0.0, 0), control(55, midi::PAN, 32.0, 0)],
+        &[
+            control(0, midi::PAN, 0.0, 0),
+            control(55, midi::PAN, 32.0, 0),
+        ],
     );
-    let (l, r) = (registers(&out, 0, sdsp::V_VOL_L), registers(&out, 0, sdsp::V_VOL_R));
+    let (l, r) = (
+        registers(&out, 0, sdsp::V_VOL_L),
+        registers(&out, 0, sdsp::V_VOL_R),
+    );
     let c = sdsp::ceiling() as f64;
     assert_eq!((l[0], r[0]), (num::round(c * 2f64.sqrt()) as u8, 0));
-    assert!((20.0 * (l[1] as f64 / c).log10() - 2.3).abs() < 0.3, "{l:?}");
-    assert!((20.0 * (r[1] as f64 / c).log10() + 5.3).abs() < 0.5, "{r:?}");
+    assert!(
+        (20.0 * (l[1] as f64 / c).log10() - 2.3).abs() < 0.3,
+        "{l:?}"
+    );
+    assert!(
+        (20.0 * (r[1] as f64 / c).log10() + 5.3).abs() < 0.5,
+        "{r:?}"
+    );
 }
 
 /// A bend before the note plays it detuned from the start, and one during
@@ -382,7 +514,10 @@ fn pan_splits_the_note_between_both_sides() {
 fn the_bend_moves_the_pitch_before_and_during_the_note() {
     let out = build_with(
         &[Note::new(10, 100, 0, 60, 127)],
-        &[control(0, midi::BEND, 1.0, 0), control(50, midi::BEND, -2.0, 0)],
+        &[
+            control(0, midi::BEND, 1.0, 0),
+            control(50, midi::BEND, -2.0, 0),
+        ],
     );
     let mut steps: BTreeMap<i64, (u16, u16)> = BTreeMap::new();
     for (frame, register, value) in writes_to(&out, 0) {
@@ -402,7 +537,11 @@ fn the_bend_moves_the_pitch_before_and_during_the_note() {
 #[test]
 fn a_control_touches_no_other_channels_voice_nor_the_drums() {
     let d = midi::DRUM_CHANNEL;
-    let notes = [Note::new(0, 100, 0, 60, 127), Note::new(0, 100, 1, 60, 127), Note::new(0, 100, d, BASS_DRUM, 127)];
+    let notes = [
+        Note::new(0, 100, 0, 60, 127),
+        Note::new(0, 100, 1, 60, 127),
+        Note::new(0, 100, d, BASS_DRUM, 127),
+    ];
     let sorted = notes.to_vec();
     let programs = BTreeMap::from([(0, PIANO), (1, PIANO)]);
     let frames = build_events(
@@ -410,14 +549,21 @@ fn a_control_touches_no_other_channels_voice_nor_the_drums() {
         &voices_of(&[(0, &[0]), (1, &[1]), (d, &[6])]),
         &programs,
         &Bank::new(),
-        &[control(40, midi::VOLUME, 50.0, 0), control(40, midi::BEND, 2.0, d)],
+        &[
+            control(40, midi::VOLUME, 50.0, 0),
+            control(40, midi::BEND, 2.0, d),
+        ],
         None,
         sdsp::HEADROOM,
     )
     .unwrap();
     let out = released(&frames, 110);
     let frames_of = |voice: u8, register: u8| -> Vec<i64> {
-        writes_to(&out, voice).iter().filter(|w| w.1 == register).map(|w| w.0).collect()
+        writes_to(&out, voice)
+            .iter()
+            .filter(|w| w.1 == register)
+            .map(|w| w.0)
+            .collect()
     };
     assert_eq!(frames_of(0, sdsp::V_VOL_L), [0, 40]);
     assert_eq!(frames_of(1, sdsp::V_VOL_L), [0]);

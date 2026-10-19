@@ -107,8 +107,14 @@ impl Game {
     /// System keeps giving the frame, the cursor, the arrow, the digits and
     /// the text colours.
     pub fn use_window_background(&mut self, spec: &str) -> Result<()> {
-        let hex = spec.strip_prefix('#').filter(|h| h.len() == 6 && h.chars().all(|c| c.is_ascii_hexdigit()));
-        let hex = hex.ok_or_else(|| Bad::usage(format!("a window background is \"#rrggbb\", and {spec:?} is not")))?;
+        let hex = spec
+            .strip_prefix('#')
+            .filter(|h| h.len() == 6 && h.chars().all(|c| c.is_ascii_hexdigit()));
+        let hex = hex.ok_or_else(|| {
+            Bad::usage(format!(
+                "a window background is \"#rrggbb\", and {spec:?} is not"
+            ))
+        })?;
         let channel = |k: usize| u8::from_str_radix(&hex[k..k + 2], 16).unwrap();
         self.window_background = Some([channel(0), channel(2), channel(4)]);
         Ok(())
@@ -140,12 +146,13 @@ impl Game {
     /// to case, as RPG_RT finds it on Windows.
     pub fn skin(&self) -> Result<Skin> {
         let name = &self.system.system_name;
-        let background = system_rules::background(self.system.message_stretch).ok_or_else(|| {
-            Bad::answer(format!(
-                "the System's `message_stretch`, {:?}, is not one RM2k draws",
-                self.system.message_stretch
-            ))
-        })?;
+        let background =
+            system_rules::background(self.system.message_stretch).ok_or_else(|| {
+                Bad::answer(format!(
+                    "the System's `message_stretch`, {:?}, is not one RM2k draws",
+                    self.system.message_stretch
+                ))
+            })?;
         let found = self
             .system_file
             .clone()
@@ -162,7 +169,9 @@ impl Game {
             None => Err(Bad::answer(format!(
                 "System {name:?} is not in {}{}",
                 self.game_dir.display(),
-                self.rtp_dir.as_ref().map_or(String::new(), |r| format!(" nor in {}", r.display()))
+                self.rtp_dir
+                    .as_ref()
+                    .map_or(String::new(), |r| format!(" nor in {}", r.display()))
             ))),
         }
     }
@@ -196,7 +205,11 @@ impl Game {
         let mut dirs = vec![self.game_dir.clone()];
         dirs.extend(self.rtp());
         let path = find_resource(&dirs, "FaceSet", &actor.face_name).ok_or_else(|| {
-            Bad::answer(format!("FaceSet {:?} is not in {}", actor.face_name, self.game_dir.display()))
+            Bad::answer(format!(
+                "FaceSet {:?} is not in {}",
+                actor.face_name,
+                self.game_dir.display()
+            ))
         })?;
         let faceset = picture::read_rm2k(&path)?;
         Ok(Some(rm2k_render::face::face(&faceset, actor.face_index)))
@@ -246,11 +259,17 @@ impl Game {
     /// in the emission—, and not refused like the screens' own texts: they
     /// are the battle's, which carries them that way.
     pub fn skill_name(&self, number: i32) -> Result<String> {
-        Ok(crate::texts::item_text(&self.skill(number)?.name, usize::MAX))
+        Ok(crate::texts::item_text(
+            &self.skill(number)?.name,
+            usize::MAX,
+        ))
     }
 
     pub fn skill_description(&self, number: i32) -> Result<String> {
-        Ok(crate::texts::item_text(&self.skill(number)?.description, usize::MAX))
+        Ok(crate::texts::item_text(
+            &self.skill(number)?.description,
+            usize::MAX,
+        ))
     }
 
     pub fn item(&self, number: i32) -> Result<&Item> {
@@ -305,19 +324,43 @@ impl Game {
         let t = &self.terms;
         let sets = [
             [
-                &t.shop_greeting1, &t.shop_regreeting1, &t.shop_buy1, &t.shop_sell1,
-                &t.shop_leave1, &t.shop_buy_select1, &t.shop_buy_number1, &t.shop_purchased1,
-                &t.shop_sell_select1, &t.shop_sell_number1, &t.shop_sold1,
+                &t.shop_greeting1,
+                &t.shop_regreeting1,
+                &t.shop_buy1,
+                &t.shop_sell1,
+                &t.shop_leave1,
+                &t.shop_buy_select1,
+                &t.shop_buy_number1,
+                &t.shop_purchased1,
+                &t.shop_sell_select1,
+                &t.shop_sell_number1,
+                &t.shop_sold1,
             ],
             [
-                &t.shop_greeting2, &t.shop_regreeting2, &t.shop_buy2, &t.shop_sell2,
-                &t.shop_leave2, &t.shop_buy_select2, &t.shop_buy_number2, &t.shop_purchased2,
-                &t.shop_sell_select2, &t.shop_sell_number2, &t.shop_sold2,
+                &t.shop_greeting2,
+                &t.shop_regreeting2,
+                &t.shop_buy2,
+                &t.shop_sell2,
+                &t.shop_leave2,
+                &t.shop_buy_select2,
+                &t.shop_buy_number2,
+                &t.shop_purchased2,
+                &t.shop_sell_select2,
+                &t.shop_sell_number2,
+                &t.shop_sold2,
             ],
             [
-                &t.shop_greeting3, &t.shop_regreeting3, &t.shop_buy3, &t.shop_sell3,
-                &t.shop_leave3, &t.shop_buy_select3, &t.shop_buy_number3, &t.shop_purchased3,
-                &t.shop_sell_select3, &t.shop_sell_number3, &t.shop_sold3,
+                &t.shop_greeting3,
+                &t.shop_regreeting3,
+                &t.shop_buy3,
+                &t.shop_sell3,
+                &t.shop_leave3,
+                &t.shop_buy_select3,
+                &t.shop_buy_number3,
+                &t.shop_purchased3,
+                &t.shop_sell_select3,
+                &t.shop_sell_number3,
+                &t.shop_sold3,
             ],
         ];
         let set = name
@@ -327,13 +370,23 @@ impl Game {
             .filter(|&d| (1..=3).contains(&d));
         let base = name.trim_end_matches(['1', '2', '3']);
         let order = [
-            "shop_greeting", "shop_regreeting", "shop_buy", "shop_sell", "shop_leave",
-            "shop_buy_select", "shop_buy_number", "shop_purchased", "shop_sell_select",
-            "shop_sell_number", "shop_sold",
+            "shop_greeting",
+            "shop_regreeting",
+            "shop_buy",
+            "shop_sell",
+            "shop_leave",
+            "shop_buy_select",
+            "shop_buy_number",
+            "shop_purchased",
+            "shop_sell_select",
+            "shop_sell_number",
+            "shop_sold",
         ];
         match (set, order.iter().position(|o| *o == base)) {
             (Some(set), Some(k)) => plain(sets[set as usize - 1][k]),
-            _ => Err(Bad::usage(format!("the screens do not read the term {name:?}"))),
+            _ => Err(Bad::usage(format!(
+                "the screens do not read the term {name:?}"
+            ))),
         }
     }
 }

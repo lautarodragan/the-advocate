@@ -199,7 +199,11 @@ pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
 /// the background leaves—, so the map must draw nothing above the hero; in
 /// mode 1 the map goes at 4 bits and the panorama in BG3: see
 /// [`crate::background::panorama`].
-pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&PanoramaAsk>) -> Result<Converted> {
+pub fn convert_with(
+    layers: &Layers,
+    window_colors: usize,
+    panorama: Option<&PanoramaAsk>,
+) -> Result<Converted> {
     if let Some(ask) = panorama {
         if ask.mode == crate::background::panorama::Mode::One {
             return crate::background::mode1::convert(layers, window_colors, ask);
@@ -274,8 +278,15 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
     for (family, gs) in &variants {
         drawings.push((*family, rest.by_ref().take(gs.len()).collect()));
     }
-    let (background, mut pictures) =
-        convert_background(&base, &palette, &drawings, reserved, colors_before, budget, merges)?;
+    let (background, mut pictures) = convert_background(
+        &base,
+        &palette,
+        &drawings,
+        reserved,
+        colors_before,
+        budget,
+        merges,
+    )?;
     pictures.push(Decided {
         name: "above".to_string(),
         picture: above_picture,
@@ -306,20 +317,33 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
 /// too many for the palettes granted, or that a single tile has more than
 /// fifteen, which fits no palette however many there are. Both are fixed by
 /// choosing the colours of each group and mapping every cell locally.
-pub(crate) fn split_above(grid: &Grid, limit: usize) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
+pub(crate) fn split_above(
+    grid: &Grid,
+    limit: usize,
+) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
     let totals = counts(&[grid]);
     let tiles: Vec<BTreeSet<Color>> = grid.at.iter().map(|&i| colors(&grid.cells[i])).collect();
     let reduced = adeleine::reduce_colors(&totals, &tiles, limit, adeleine::USABLE_COLORS)?;
-    let mappings: Vec<HashMap<Color, Color>> = tiles.iter().zip(&reduced.tiles)
-        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
+    let mappings: Vec<HashMap<Color, Color>> = tiles
+        .iter()
+        .zip(&reduced.tiles)
+        .map(|(tile, decided)| {
+            tile.iter()
+                .copied()
+                .zip(decided.mapping.iter().copied())
+                .collect()
+        })
         .collect();
     let palettes = reduced
         .palettes
         .into_iter()
         .map(|g| g.into_iter().collect())
         .collect();
-    Ok((grid.remap_places(&mappings), palettes,
-        reduced.merges.into_iter().map(Merge::from).collect()))
+    Ok((
+        grid.remap_places(&mappings),
+        palettes,
+        reduced.merges.into_iter().map(Merge::from).collect(),
+    ))
 }
 
 /// Every colour-memory entry with a colour, black where the picture gives
@@ -375,7 +399,10 @@ pub(crate) fn convert_above(
     first: usize,
     merges: Vec<Merge>,
 ) -> Result<(Above, Picture)> {
-    let sets: Vec<BTreeSet<Color>> = palettes.iter().map(|p| p.iter().copied().collect()).collect();
+    let sets: Vec<BTreeSet<Color>> = palettes
+        .iter()
+        .map(|p| p.iter().copied().collect())
+        .collect();
     let tables: Vec<HashMap<Color, u8>> = palettes
         .iter()
         .enumerate()
@@ -451,11 +478,7 @@ type BuiltPalette = (Vec<Color>, Grid, Vec<Grid>, Vec<Merge>);
 /// than `budget`. `others` are the grids of the animation's other drawings:
 /// they count like drawing 0 and come out merged with the same mapping,
 /// which is what keeps them comparable with each other.
-fn build_palette(
-    grid: &Grid,
-    budget: usize,
-    others: &[&Grid],
-) -> Result<BuiltPalette> {
+fn build_palette(grid: &Grid, budget: usize, others: &[&Grid]) -> Result<BuiltPalette> {
     let mut all = vec![grid];
     all.extend(others.iter().copied());
     let totals = counts(&all);

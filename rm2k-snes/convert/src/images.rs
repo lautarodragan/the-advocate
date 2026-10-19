@@ -29,7 +29,14 @@ fn file(path: &Path) -> String {
 /// A picture that fills the screen: the distinct 8x8 cells of CGRAM
 /// indices —already shifted by `first_color`—, the colours at fifteen bits
 /// and a tile per cell.
-pub fn fullscreen(path: &Path, width: i64, height: i64, cell: i64, first_color: i64, cap: i64) -> Result<Value> {
+pub fn fullscreen(
+    path: &Path,
+    width: i64,
+    height: i64,
+    cell: i64,
+    first_color: i64,
+    cap: i64,
+) -> Result<Value> {
     answer(
         "fullscreen",
         &json!({"file": file(path), "width": width, "height": height, "cell": cell,
@@ -143,7 +150,13 @@ pub fn battlers(scene: &Value, wanted: &[(PathBuf, i64)]) -> Result<Vec<Value>> 
 
 /// Each of `wanted` —`(number, sheet)`— as the stage answers it, or null
 /// if nothing of it is drawn. The animation itself is read from the dump.
-pub fn animations(side: i64, colors: i64, alpha_min: i64, wanted: &[(i32, PathBuf)], dump: &Path) -> Result<Vec<Value>> {
+pub fn animations(
+    side: i64,
+    colors: i64,
+    alpha_min: i64,
+    wanted: &[(i32, PathBuf)],
+    dump: &Path,
+) -> Result<Vec<Value>> {
     if wanted.is_empty() {
         return Ok(Vec::new());
     }

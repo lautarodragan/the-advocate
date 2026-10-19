@@ -40,16 +40,24 @@ fn command() -> clap::Command {
             Arg::new("project")
                 .long("project")
                 .value_name("DIRECTORY")
-                .help("the game's directory, where its rm2k-snes.toml is. Without this, it is \
-                       looked for from the current directory upwards"),
+                .help(
+                    "the game's directory, where its rm2k-snes.toml is. Without this, it is \
+                       looked for from the current directory upwards",
+                ),
         );
     for arg in environment::arguments(MACHINE) {
         c = c.arg(arg);
     }
-    c.arg(Arg::new("output").short('o').long("output").value_name("PATH").help(
-        "where the .inc goes; everything else the conversion writes goes next to it. \
+    c.arg(
+        Arg::new("output")
+            .short('o')
+            .long("output")
+            .value_name("PATH")
+            .help(
+                "where the .inc goes; everything else the conversion writes goes next to it. \
          Without this, inc/mapdata.inc in the project's build",
-    ))
+            ),
+    )
     .arg(Arg::new("msu").long("msu").value_name("PATH").help(
         "where to write the .msu with the data the MSU-1 serves to the ROM: next to the \
          .sfc and with its name, so the emulator finds it. Without this, datos.msu next \
@@ -65,15 +73,25 @@ fn command() -> clap::Command {
                  without building a twenty-nine-map cartridge. It doesn't change a pixel",
             ),
     )
-    .arg(Arg::new("no_title").long("no-title").action(ArgAction::SetTrue).help(
-        "without the game's title screen and its start and load menu: the ROM boots \
+    .arg(
+        Arg::new("no_title")
+            .long("no-title")
+            .action(ArgAction::SetTrue)
+            .help(
+                "without the game's title screen and its start and load menu: the ROM boots \
          straight into the map. The title screen would add frames to the boot, and the \
          suite's cases compare frames counted from reset",
-    ))
-    .arg(Arg::new("title_4bpp").long("title-4bpp").action(ArgAction::SetTrue).help(
-        "the title screen at four bits per pixel, in mode 1, even if it fits at eight: \
+            ),
+    )
+    .arg(
+        Arg::new("title_4bpp")
+            .long("title-4bpp")
+            .action(ArgAction::SetTrue)
+            .help(
+                "the title screen at four bits per pixel, in mode 1, even if it fits at eight: \
          the path a title too big for the VRAM takes, for a game whose title fits",
-    ))
+            ),
+    )
     .arg(
         Arg::new("measure_headroom")
             .long("measure-headroom")
@@ -85,21 +103,37 @@ fn command() -> clap::Command {
                  peak with",
             ),
     )
-    .arg(Arg::new("msu_everything").long("msu-everything").action(ArgAction::SetTrue).help(
-        "every piece that may travel in the .msu travels there, even if the ROM has room, \
+    .arg(
+        Arg::new("msu_everything")
+            .long("msu-everything")
+            .action(ArgAction::SetTrue)
+            .help(
+                "every piece that may travel in the .msu travels there, even if the ROM has room, \
          and the ROM needs the MSU-1: for the tests, so that the path the ROM reads them by \
          runs in a game that fits. Without this, the project's `[rom] msu` decides",
-    ))
-    .arg(Arg::new("enemy_hp").long("enemy-hp").action(ArgAction::SetTrue).help(
-        "the battle shows the enemies' HP, which RM2k never shows: for debugging",
-    ))
-    .arg(Arg::new("no_speed_keys").long("no-speed-keys").action(ArgAction::SetTrue).help(
-        "L and R do not change the hero's speed. They are a port addition, not RM2k's",
-    ))
-    .arg(Arg::new("no_timer").long("no-timer").action(ArgAction::SetTrue).help(
-        "the timer digits only in the maps where a case that uses them runs, and not in \
+            ),
+    )
+    .arg(
+        Arg::new("enemy_hp")
+            .long("enemy-hp")
+            .action(ArgAction::SetTrue)
+            .help("the battle shows the enemies' HP, which RM2k never shows: for debugging"),
+    )
+    .arg(
+        Arg::new("no_speed_keys")
+            .long("no-speed-keys")
+            .action(ArgAction::SetTrue)
+            .help("L and R do not change the hero's speed. They are a port addition, not RM2k's"),
+    )
+    .arg(
+        Arg::new("no_timer")
+            .long("no-timer")
+            .action(ArgAction::SetTrue)
+            .help(
+                "the timer digits only in the maps where a case that uses them runs, and not in \
          the ones the game's timer can reach",
-    ))
+            ),
+    )
     .arg(
         Arg::new("test_graphic")
             .long("test-graphic")
@@ -132,9 +166,12 @@ fn command() -> clap::Command {
                  game that fits. Only the converter's choice moves; the RAM is the same",
             ),
     )
-    .arg(Arg::new("hero_above").long("hero-above").action(ArgAction::SetTrue).help(
-        "the hero at object priority 2, above the layer that should cover it",
-    ))
+    .arg(
+        Arg::new("hero_above")
+            .long("hero-above")
+            .action(ArgAction::SetTrue)
+            .help("the hero at object priority 2, above the layer that should cover it"),
+    )
     .arg(
         Arg::new("party")
             .long("party")
@@ -146,11 +183,16 @@ fn command() -> clap::Command {
                  one's. By default, the database's",
             ),
     )
-    .arg(Arg::new("test_commands").long("test-commands").value_name("FILE").help(
-        "this case's test page, as the command list of an RM2k page in Ditto's JSON. It \
+    .arg(
+        Arg::new("test_commands")
+            .long("test-commands")
+            .value_name("FILE")
+            .help(
+                "this case's test page, as the command list of an RM2k page in Ditto's JSON. It \
          is compiled with the context of the map where it runs: that of its Teleport if \
          it starts with one, and otherwise the boot map's",
-    ))
+            ),
+    )
     .arg(
         Arg::new("maps")
             .long("maps")
@@ -211,7 +253,9 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         }
     }
     let matches = command()
-        .try_get_matches_from(std::iter::once("rm2k-snes-convert".to_string()).chain(stretches[0].clone()))
+        .try_get_matches_from(
+            std::iter::once("rm2k-snes-convert".to_string()).chain(stretches[0].clone()),
+        )
         .unwrap_or_else(|e| e.exit());
     let mut test_graphic = None;
     if let Some(occurrences) = matches.get_occurrences::<String>("test_graphic") {
@@ -231,7 +275,9 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
     }
     for stretch in &stretches[1..] {
         let loose = command()
-            .try_get_matches_from(std::iter::once("rm2k-snes-convert".to_string()).chain(stretch.clone()))
+            .try_get_matches_from(
+                std::iter::once("rm2k-snes-convert".to_string()).chain(stretch.clone()),
+            )
             .unwrap_or_else(|e| e.exit());
         for id in loose.ids() {
             let id = id.as_str();
@@ -271,8 +317,13 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         test_encounters: matches.get_one::<i64>("test_encounters").copied(),
         test_events_max: matches.get_one::<usize>("test_events_max").copied(),
         hero_above: matches.get_flag("hero_above"),
-        party: matches.get_many::<i32>("party").map(|v| v.copied().collect()),
-        maps: matches.get_many::<i32>("maps").map(|v| v.copied().collect()).unwrap_or_default(),
+        party: matches
+            .get_many::<i32>("party")
+            .map(|v| v.copied().collect()),
+        maps: matches
+            .get_many::<i32>("maps")
+            .map(|v| v.copied().collect())
+            .unwrap_or_default(),
         start_index: *matches.get_one::<i64>("start_index").unwrap(),
         case_files,
     })
@@ -305,7 +356,11 @@ pub fn case_map(file: &str, commands: &[Command], order: &[i32], initial: usize)
     if !order.contains(&dest) {
         crate::stop!(
             "{file}: the case jumps to map {dest}, which isn't in the cartridge (it carries {})",
-            order.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(" ")
+            order
+                .iter()
+                .map(|m| m.to_string())
+                .collect::<Vec<_>>()
+                .join(" ")
         );
     }
     Ok(dest)

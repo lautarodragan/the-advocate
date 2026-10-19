@@ -7,8 +7,8 @@
 //! is the model of the 65816's decoder.
 
 use crate::fail::{Bad, Result};
-use rm2k_snes_bytecode::music::*;
 use crate::sdsp;
+use rm2k_snes_bytecode::music::*;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Where the sample directory is in the SPC700's memory.
@@ -89,9 +89,9 @@ pub fn init_writes() -> Vec<(u8, u8)> {
         (sdsp::MVOL_R, sdsp::master() as u8),
         (sdsp::EVOL_L, 0x00),
         (sdsp::EVOL_R, 0x00),
-        (sdsp::EON, 0x00),  // no voice sends to the echo
-        (sdsp::PMON, 0x00), // no modulation between voices
-        (sdsp::NON, 0x00),  // no noise: the percussion has its own samples
+        (sdsp::EON, 0x00),                      // no voice sends to the echo
+        (sdsp::PMON, 0x00),                     // no modulation between voices
+        (sdsp::NON, 0x00),                      // no noise: the percussion has its own samples
         (sdsp::DIR, (SAMPLES_ADDR >> 8) as u8), // where the directory is
         (sdsp::KON, 0x00),
         (sdsp::KOF, 0x00),
@@ -142,8 +142,20 @@ pub fn writes(frames: &Frames, length: i64, init: &[(u8, u8)]) -> Vec<Write> {
         write(&mut out, &mut state, frame_no, sdsp::KOF, 0x00);
         for &(voice, gain) in &frame.release {
             // ADSR off: GAIN rules
-            write(&mut out, &mut state, frame_no, voice * 0x10 + sdsp::V_ADSR1, 0x00);
-            write(&mut out, &mut state, frame_no, voice * 0x10 + sdsp::V_GAIN, gain);
+            write(
+                &mut out,
+                &mut state,
+                frame_no,
+                voice * 0x10 + sdsp::V_ADSR1,
+                0x00,
+            );
+            write(
+                &mut out,
+                &mut state,
+                frame_no,
+                voice * 0x10 + sdsp::V_GAIN,
+                gain,
+            );
         }
         for setup in &frame.setup {
             for (r, v) in setup.writes() {
@@ -223,7 +235,9 @@ pub fn check_families() -> std::result::Result<(), String> {
             ));
         }
     }
-    if OP_WAIT_1 as usize != 8 * FAMILIES.len() || OP_WAIT_32 as i64 != OP_WAIT_1 as i64 + SHORT_WAIT - 1 {
+    if OP_WAIT_1 as usize != 8 * FAMILIES.len()
+        || OP_WAIT_32 as i64 != OP_WAIT_1 as i64 + SHORT_WAIT - 1
+    {
         return Err("the music bytecode: the short waits are not after the families".into());
     }
     Ok(())
@@ -308,7 +322,9 @@ impl Encoder {
             self.op(&[OP_SOUND_PAGE, self.page as u8]);
         }
         let s = sound as u8;
-        if !self.changes(base + sdsp::V_VOL_L, p.left) && !self.changes(base + sdsp::V_VOL_R, p.right) {
+        if !self.changes(base + sdsp::V_VOL_L, p.left)
+            && !self.changes(base + sdsp::V_VOL_R, p.right)
+        {
             self.op(&[OP_NOTE_V0 + v, s]);
         } else if p.left == p.right {
             self.op(&[OP_NOTE_VOL_V0 + v, p.left, s]);
@@ -343,7 +359,10 @@ impl Encoder {
                 is_voice_register(register),
                 "a controller writes ${register:02X}, which is not a voice register"
             );
-            by_voice.entry(register >> 4).or_default().insert(register & 0x0F, value);
+            by_voice
+                .entry(register >> 4)
+                .or_default()
+                .insert(register & 0x0F, value);
         }
         for (v, regs) in by_voice {
             let base = v * 0x10;
@@ -487,7 +506,9 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
     let bad = |m: String| Bad::answer(m);
 
     let read = |i: &mut usize| -> Result<u8> {
-        let b = *stream.get(*i).ok_or_else(|| bad("the stream ends without OP_END".into()))?;
+        let b = *stream
+            .get(*i)
+            .ok_or_else(|| bad("the stream ends without OP_END".into()))?;
         *i += 1;
         Ok(b)
     };
@@ -530,7 +551,9 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
         }
         let op = read(&mut i)?;
         if back_to.is_some() && !repeatable(op) {
-            return Err(bad(format!("opcode ${op:02X} inside an OP_REPEAT: it has one level")));
+            return Err(bad(format!(
+                "opcode ${op:02X} inside an OP_REPEAT: it has one level"
+            )));
         }
         if op == OP_END {
             return Ok((out, i));
@@ -600,12 +623,40 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
                 let force = seen.insert(v);
                 if family == "NOTE_VOL" {
                     let vol = read(&mut i)?;
-                    write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_L, vol, force)?;
-                    write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_R, vol, force)?;
+                    write(
+                        &mut out,
+                        &mut cache,
+                        frame_no,
+                        base + sdsp::V_VOL_L,
+                        vol,
+                        force,
+                    )?;
+                    write(
+                        &mut out,
+                        &mut cache,
+                        frame_no,
+                        base + sdsp::V_VOL_R,
+                        vol,
+                        force,
+                    )?;
                 } else if family == "NOTE_PAN" {
                     let (l, r) = (read(&mut i)?, read(&mut i)?);
-                    write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_L, l, force)?;
-                    write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_R, r, force)?;
+                    write(
+                        &mut out,
+                        &mut cache,
+                        frame_no,
+                        base + sdsp::V_VOL_L,
+                        l,
+                        force,
+                    )?;
+                    write(
+                        &mut out,
+                        &mut cache,
+                        frame_no,
+                        base + sdsp::V_VOL_R,
+                        r,
+                        force,
+                    )?;
                 }
                 let index = page << 8 | read(&mut i)? as usize;
                 let sound = *sounds
@@ -613,7 +664,14 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
                     .ok_or_else(|| bad(format!("sound {index} of {}", sounds.len())))?;
                 for k in 0..5u8 {
                     // from PITCH_L to ADSR2, in that order
-                    write(&mut out, &mut cache, frame_no, base + sdsp::V_PITCH_L + k, sound[k as usize], force)?;
+                    write(
+                        &mut out,
+                        &mut cache,
+                        frame_no,
+                        base + sdsp::V_PITCH_L + k,
+                        sound[k as usize],
+                        force,
+                    )?;
                 }
                 gain_of.insert(v, sound[5]);
                 kon |= 1 << v;
@@ -622,27 +680,85 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
                 let gain = if family == "RELEASE_GAIN" {
                     read(&mut i)?
                 } else {
-                    *gain_of.get(&v).ok_or_else(|| bad(format!("voice {v} is released before any note")))?
+                    *gain_of
+                        .get(&v)
+                        .ok_or_else(|| bad(format!("voice {v} is released before any note")))?
                 };
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_ADSR1, 0, false)?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_ADSR1,
+                    0,
+                    false,
+                )?;
                 let force = !with_gain.contains(&v);
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_GAIN, gain, force)?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_GAIN,
+                    gain,
+                    force,
+                )?;
                 with_gain.insert(v);
             }
             "SET_VOL" => {
                 let vol = read(&mut i)?;
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_L, vol, false)?;
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_R, vol, false)?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_VOL_L,
+                    vol,
+                    false,
+                )?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_VOL_R,
+                    vol,
+                    false,
+                )?;
             }
             "SET_PAN" => {
                 let (l, r) = (read(&mut i)?, read(&mut i)?);
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_L, l, false)?;
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_R, r, false)?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_VOL_L,
+                    l,
+                    false,
+                )?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_VOL_R,
+                    r,
+                    false,
+                )?;
             }
             _ => {
                 let (lo, hi) = (read(&mut i)?, read(&mut i)?);
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_PITCH_L, lo, false)?;
-                write(&mut out, &mut cache, frame_no, base + sdsp::V_PITCH_H, hi, false)?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_PITCH_L,
+                    lo,
+                    false,
+                )?;
+                write(
+                    &mut out,
+                    &mut cache,
+                    frame_no,
+                    base + sdsp::V_PITCH_H,
+                    hi,
+                    false,
+                )?;
             }
         }
     }
@@ -692,10 +808,14 @@ fn events_of(stream: &[u8]) -> Result<Vec<std::ops::Range<usize>>> {
     let mut out = Vec::new();
     let mut i = 0;
     loop {
-        let op = *stream.get(i).ok_or_else(|| Bad::answer("the stream ends without OP_END"))?;
+        let op = *stream
+            .get(i)
+            .ok_or_else(|| Bad::answer("the stream ends without OP_END"))?;
         let n = opcode_size(op).ok_or_else(|| Bad::answer(format!("opcode ${op:02X} at {i}")))?;
         if i + n > stream.len() {
-            return Err(Bad::answer(format!("the stream ends inside the event at {i}")));
+            return Err(Bad::answer(format!(
+                "the stream ends inside the event at {i}"
+            )));
         }
         out.push(i..i + n);
         i += n;
@@ -725,31 +845,38 @@ pub fn fold(stream: &[u8]) -> Result<Vec<u8>> {
     let mut pairs: HashMap<&[u8], Vec<usize>> = HashMap::new();
     // The run that saves the most if the repeat goes at event `k` and `out`
     // is `at` bytes long: (saves, from, events).
-    let best_at = |k: usize, at: usize, placed: &[Option<usize>], pairs: &HashMap<&[u8], Vec<usize>>| {
-        let mut best: Option<(usize, usize, usize)> = None;
-        let candidates = if k + 1 < n { pairs.get(pair(k)).map(|v| v.as_slice()) } else { None };
-        for &from in candidates.unwrap_or(&[]).iter().rev() {
-            let start = placed[from].expect("only placed events are indexed");
-            if at + REPEAT_BYTES - start > REPEAT_MAX_BACK {
-                break; // the older ones are farther still
+    let best_at =
+        |k: usize, at: usize, placed: &[Option<usize>], pairs: &HashMap<&[u8], Vec<usize>>| {
+            let mut best: Option<(usize, usize, usize)> = None;
+            let candidates = if k + 1 < n {
+                pairs.get(pair(k)).map(|v| v.as_slice())
+            } else {
+                None
+            };
+            for &from in candidates.unwrap_or(&[]).iter().rev() {
+                let start = placed[from].expect("only placed events are indexed");
+                if at + REPEAT_BYTES - start > REPEAT_MAX_BACK {
+                    break; // the older ones are farther still
+                }
+                let (mut len, mut size) = (0usize, 0usize);
+                while len < REPEAT_MAX_EVENTS as usize
+                    && from + len < k
+                    && k + len < n
+                    && placed[from + len].is_some()
+                    && repeatable(stream[events[from + len].start])
+                    && bytes(from + len) == bytes(k + len)
+                {
+                    size += bytes(k + len).len();
+                    len += 1;
+                }
+                if size >= REPEAT_MIN_BYTES
+                    && best.map_or(true, |(saves, _, _)| size - REPEAT_BYTES > saves)
+                {
+                    best = Some((size - REPEAT_BYTES, from, len));
+                }
             }
-            let (mut len, mut size) = (0usize, 0usize);
-            while len < REPEAT_MAX_EVENTS as usize
-                && from + len < k
-                && k + len < n
-                && placed[from + len].is_some()
-                && repeatable(stream[events[from + len].start])
-                && bytes(from + len) == bytes(k + len)
-            {
-                size += bytes(k + len).len();
-                len += 1;
-            }
-            if size >= REPEAT_MIN_BYTES && best.map_or(true, |(saves, _, _)| size - REPEAT_BYTES > saves) {
-                best = Some((size - REPEAT_BYTES, from, len));
-            }
-        }
-        best
-    };
+            best
+        };
     let mut k = 0;
     while k < n {
         let mut best = best_at(k, out.len(), &placed, &pairs);
@@ -757,7 +884,8 @@ pub fn fold(stream: &[u8]) -> Result<Vec<u8>> {
             // Lazy: if the event after this one starts a run that saves more
             // than what this one costs as itself, this one goes as itself.
             // It is worth little —a tenth of a percent—, and costs nothing.
-            if let Some((next, _, _)) = best_at(k + 1, out.len() + bytes(k).len(), &placed, &pairs) {
+            if let Some((next, _, _)) = best_at(k + 1, out.len() + bytes(k).len(), &placed, &pairs)
+            {
                 if next > saves + bytes(k).len() {
                     best = None;
                 }
@@ -797,12 +925,24 @@ pub fn unfold(stream: &[u8]) -> Result<Vec<u8>> {
             continue;
         }
         let back = e[1] as usize | (e[2] as usize) << 8;
-        let wrong = || Bad::answer(format!("the OP_REPEAT at {} goes {back} bytes back", event.start));
-        let mut i = event.end.checked_sub(back).filter(|&f| f < event.start).ok_or_else(wrong)?;
+        let wrong = || {
+            Bad::answer(format!(
+                "the OP_REPEAT at {} goes {back} bytes back",
+                event.start
+            ))
+        };
+        let mut i = event
+            .end
+            .checked_sub(back)
+            .filter(|&f| f < event.start)
+            .ok_or_else(wrong)?;
         for _ in 0..e[3] {
             let op = stream[i];
             let size = opcode_size(op).filter(|_| repeatable(op)).ok_or_else(|| {
-                Bad::answer(format!("the OP_REPEAT at {} reads opcode ${op:02X}", event.start))
+                Bad::answer(format!(
+                    "the OP_REPEAT at {} reads opcode ${op:02X}",
+                    event.start
+                ))
             })?;
             out.extend_from_slice(&stream[i..i + size]);
             i += size;
@@ -817,7 +957,12 @@ pub fn repeats(stream: &[u8]) -> Result<Vec<(usize, usize)>> {
     Ok(events_of(stream)?
         .iter()
         .filter(|e| stream[e.start] == OP_REPEAT)
-        .map(|e| (e.start, e.end - (stream[e.start + 1] as usize | (stream[e.start + 2] as usize) << 8)))
+        .map(|e| {
+            (
+                e.start,
+                e.end - (stream[e.start + 1] as usize | (stream[e.start + 2] as usize) << 8),
+            )
+        })
         .collect())
 }
 
@@ -884,7 +1029,14 @@ mod tests {
             let mut frame = Frame::default();
             let pitch = 0x0400 + k;
             frame.setup.push(NoteSetup {
-                voice: 0, left: 0x40, right: 0x40, pitch, sample: 0, adsr1: 0x8F, adsr2: 0xE0, gain: Some(0x9C),
+                voice: 0,
+                left: 0x40,
+                right: 0x40,
+                pitch,
+                sample: 0,
+                adsr1: 0x8F,
+                adsr2: 0xE0,
+                gain: Some(0x9C),
             });
             frame.kon = 1;
             frames.insert(1 + 2 * k as i64, frame);
@@ -907,10 +1059,17 @@ mod tests {
     /// voices, a release and a wait, with another note in between the
     /// second and the third.
     fn bars() -> (Vec<u8>, Vec<Sound>) {
-        let sounds = vec![[0x00, 0x10, 0, 0x8F, 0xE0, 0x9C], [0x00, 0x20, 1, 0x8F, 0xE0, 0x9C]];
+        let sounds = vec![
+            [0x00, 0x10, 0, 0x8F, 0xE0, 0x9C],
+            [0x00, 0x20, 1, 0x8F, 0xE0, 0x9C],
+        ];
         let bar = [
-            OP_NOTE_VOL_V0, 0x40, 0,
-            OP_NOTE_VOL_V1, 0x30, 1,
+            OP_NOTE_VOL_V0,
+            0x40,
+            0,
+            OP_NOTE_VOL_V1,
+            0x30,
+            1,
             OP_WAIT_1 + 7,
             OP_RELEASE_V0,
             OP_RELEASE_V1,
@@ -930,10 +1089,18 @@ mod tests {
     fn folding_writes_the_same_frame_by_frame() {
         let (flat, sounds) = bars();
         let folded = fold(&flat).unwrap();
-        assert!(folded.len() < flat.len(), "{} bytes, and before {}", folded.len(), flat.len());
+        assert!(
+            folded.len() < flat.len(),
+            "{} bytes, and before {}",
+            folded.len(),
+            flat.len()
+        );
         assert!(repeats(&folded).unwrap().len() >= 2);
         assert_eq!(unfold(&folded).unwrap(), flat);
-        assert_eq!(decode(&folded, &sounds).unwrap(), decode(&flat, &sounds).unwrap());
+        assert_eq!(
+            decode(&folded, &sounds).unwrap(),
+            decode(&flat, &sounds).unwrap()
+        );
         // `length` is the folded stream's: whoever reads it from a cartridge
         // finds its OP_END there.
         assert_eq!(decode_counting(&folded, &sounds).unwrap().1, folded.len());
@@ -946,10 +1113,16 @@ mod tests {
         // the first fold into repeats of it, and each one names the sounds
         // of its own page, as the stream it replaces did: the page is the
         // reader's state, like its cache, and a repeat reads the same bytes.
-        let sounds: Vec<Sound> = (0..258u16).map(|k| [k as u8, (k >> 8) as u8 + 0x10, 0, 0x8F, 0xE0, 0x9C]).collect();
+        let sounds: Vec<Sound> = (0..258u16)
+            .map(|k| [k as u8, (k >> 8) as u8 + 0x10, 0, 0x8F, 0xE0, 0x9C])
+            .collect();
         let bar = [
-            OP_NOTE_VOL_V0, 0x40, 0,
-            OP_NOTE_VOL_V1, 0x30, 1,
+            OP_NOTE_VOL_V0,
+            0x40,
+            0,
+            OP_NOTE_VOL_V1,
+            0x30,
+            1,
             OP_WAIT_1 + 7,
             OP_RELEASE_V0,
             OP_RELEASE_V1,
@@ -965,7 +1138,10 @@ mod tests {
         flat.extend_from_slice(&[OP_DSP, sdsp::KOF, 0xFF, OP_END]);
         let folded = fold(&flat).unwrap();
         assert_eq!(repeats(&folded).unwrap().len(), 3, "{folded:02X?}");
-        assert_eq!(decode(&folded, &sounds).unwrap(), decode(&flat, &sounds).unwrap());
+        assert_eq!(
+            decode(&folded, &sounds).unwrap(),
+            decode(&flat, &sounds).unwrap()
+        );
     }
 
     #[test]
@@ -976,9 +1152,19 @@ mod tests {
         for e in events.iter().filter(|e| folded[e.start] == OP_REPEAT) {
             let back = folded[e.start + 1] as usize | (folded[e.start + 2] as usize) << 8;
             let from = e.end - back;
-            let read: Vec<_> = events.iter().skip_while(|f| f.start != from).take(folded[e.start + 3] as usize).collect();
-            assert_eq!(read.len(), folded[e.start + 3] as usize, "it does not land on an event");
-            assert!(read.iter().all(|f| repeatable(folded[f.start]) && f.end <= e.start));
+            let read: Vec<_> = events
+                .iter()
+                .skip_while(|f| f.start != from)
+                .take(folded[e.start + 3] as usize)
+                .collect();
+            assert_eq!(
+                read.len(),
+                folded[e.start + 3] as usize,
+                "it does not land on an event"
+            );
+            assert!(read
+                .iter()
+                .all(|f| repeatable(folded[f.start]) && f.end <= e.start));
         }
     }
 
@@ -986,11 +1172,18 @@ mod tests {
     fn a_repeat_that_comes_back_to_the_wrong_place_writes_something_else() {
         let (flat, sounds) = bars();
         let folded = fold(&flat).unwrap();
-        let at = events_of(&folded).unwrap().into_iter().find(|e| folded[e.start] == OP_REPEAT).unwrap();
+        let at = events_of(&folded)
+            .unwrap()
+            .into_iter()
+            .find(|e| folded[e.start] == OP_REPEAT)
+            .unwrap();
         // One event less: it comes back before the bar ends.
         let mut wrong = folded.clone();
         wrong[at.start + 3] -= 1;
-        assert_ne!(decode(&wrong, &sounds).ok(), Some(decode(&flat, &sounds).unwrap()));
+        assert_ne!(
+            decode(&wrong, &sounds).ok(),
+            Some(decode(&flat, &sounds).unwrap())
+        );
     }
 
     #[test]
@@ -998,7 +1191,11 @@ mod tests {
         let (flat, sounds) = bars();
         let mut folded = fold(&flat).unwrap();
         let events = events_of(&folded).unwrap();
-        let first = events.iter().find(|e| folded[e.start] == OP_REPEAT).unwrap().clone();
+        let first = events
+            .iter()
+            .find(|e| folded[e.start] == OP_REPEAT)
+            .unwrap()
+            .clone();
         // A second repeat that goes back to the first one.
         folded.pop();
         let end = folded.len() + REPEAT_BYTES;

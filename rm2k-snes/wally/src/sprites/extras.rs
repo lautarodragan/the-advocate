@@ -127,14 +127,21 @@ fn timer_counts(glyphs: &Picture) -> BTreeMap<Color, u64> {
 /// The palette —but the leaders'— whose nearest colours draw the timer
 /// with the least change: pixels times distance, the same measure
 /// `nearest` uses. `None` if every palette is a leader's.
-fn closest_for_timer(glyphs: &Picture, palettes: &[Vec<Color>], leader_owned: &BTreeSet<usize>) -> Option<usize> {
+fn closest_for_timer(
+    glyphs: &Picture,
+    palettes: &[Vec<Color>],
+    leader_owned: &BTreeSet<usize>,
+) -> Option<usize> {
     let counts = timer_counts(glyphs);
     let mut best: Option<(u64, usize)> = None;
     for (number, palette) in palettes.iter().enumerate() {
         if leader_owned.contains(&number) || palette.is_empty() {
             continue;
         }
-        let cost: u64 = counts.iter().map(|(c, n)| n * lab_distance(nearest(palette, *c), *c) as u64).sum();
+        let cost: u64 = counts
+            .iter()
+            .map(|(c, n)| n * lab_distance(nearest(palette, *c), *c) as u64)
+            .sum();
         if best.is_none_or(|(b, _)| cost < b) {
             best = Some((cost, number));
         }
@@ -228,8 +235,14 @@ pub fn timer_digits(
         }
     };
     let palette = &palettes[which];
-    let index: BTreeMap<Color, u8> = wanted.iter().map(|c| (*c, entry_of(palette, *c) as u8 + 1)).collect();
-    let base = strip_base(tiles.len() / 32, TIMER_GLYPHS + if rain { RAIN_TILES } else { 0 });
+    let index: BTreeMap<Color, u8> = wanted
+        .iter()
+        .map(|c| (*c, entry_of(palette, *c) as u8 + 1))
+        .collect();
+    let base = strip_base(
+        tiles.len() / 32,
+        TIMER_GLYPHS + if rain { RAIN_TILES } else { 0 },
+    );
     grow(tiles, base + 16 + TIMER_GLYPHS);
     for i in 0..TIMER_GLYPHS {
         for half in 0..2 {
@@ -316,11 +329,18 @@ fn lend_to_rain(palettes: &mut [Vec<Color>], avoid: &BTreeSet<usize>) -> Option<
             continue;
         }
         let mut grown = palette.clone();
-        let mut missing: Vec<Color> = RAIN_COLORS.iter().copied().filter(|c| !palette.contains(c)).collect();
+        let mut missing: Vec<Color> = RAIN_COLORS
+            .iter()
+            .copied()
+            .filter(|c| !palette.contains(c))
+            .collect();
         missing.sort_by_key(|c| std::cmp::Reverse(lab_distance(nearest(palette, *c), *c)));
         let room = OBJ_COLORS.saturating_sub(palette.len());
         grown.extend(missing.iter().take(room));
-        let cost: u64 = RAIN_COLORS.iter().map(|c| lab_distance(nearest(&grown, *c), *c) as u64).sum();
+        let cost: u64 = RAIN_COLORS
+            .iter()
+            .map(|c| lab_distance(nearest(&grown, *c), *c) as u64)
+            .sum();
         if best.as_ref().is_none_or(|(b, ..)| cost < *b) {
             best = Some((cost, number, grown));
         }
@@ -371,7 +391,11 @@ pub fn picture_of_image(
 /// The battle animation's box at the end of the bank: its tiles, left
 /// blank —the console uploads each frame—, and a whole palette, the first
 /// free one under the `top` the pictures took. `None` without a palette.
-pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], top: usize) -> Option<(usize, usize)> {
+pub fn map_animation(
+    tiles: &mut Vec<u8>,
+    palettes: &[Vec<Color>],
+    top: usize,
+) -> Option<(usize, usize)> {
     let which = palettes.len();
     if which + top >= OBJ_PALETTES {
         return None;
@@ -391,7 +415,11 @@ mod tests {
         let mut picture = Picture::transparent(88, 16);
         for (i, px) in picture.rgba.chunks_mut(4).enumerate() {
             if i % 3 != 0 {
-                px.copy_from_slice(if i % 2 == 0 { &[248, 0, 0, 255] } else { &[0, 0, 0, 255] });
+                px.copy_from_slice(if i % 2 == 0 {
+                    &[248, 0, 0, 255]
+                } else {
+                    &[0, 0, 0, 255]
+                });
             }
         }
         picture
@@ -399,7 +427,9 @@ mod tests {
 
     /// Made-up palettes, with colours the timer does not use.
     fn palettes(colors: u8, how_many: u8) -> Vec<Vec<Color>> {
-        (0..how_many).map(|i| (0..colors).map(|k| [1, i, k]).collect()).collect()
+        (0..how_many)
+            .map(|i| (0..colors).map(|k| [1, i, k]).collect())
+            .collect()
     }
 
     /// With the eight palettes taken but with room, the digits go into one
@@ -408,7 +438,15 @@ mod tests {
     fn the_digits_go_into_a_palette_that_exists() {
         let mut p = palettes(13, 8);
         let mut tiles = vec![0; 32 * 64];
-        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES, false).unwrap();
+        let (_, which) = timer_digits(
+            &glyphs(),
+            &mut tiles,
+            &mut p,
+            &BTreeSet::new(),
+            OBJ_PALETTES,
+            false,
+        )
+        .unwrap();
         assert_eq!(p.len(), OBJ_PALETTES);
         assert!(p[which].len() <= OBJ_COLORS);
     }
@@ -424,7 +462,15 @@ mod tests {
         p[5][9] = [29, 2, 1];
         let before = p.clone();
         let mut tiles = vec![0; 32 * 64];
-        let (base, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::from([0, 1]), OBJ_PALETTES, false).unwrap();
+        let (base, which) = timer_digits(
+            &glyphs(),
+            &mut tiles,
+            &mut p,
+            &BTreeSet::from([0, 1]),
+            OBJ_PALETTES,
+            false,
+        )
+        .unwrap();
         assert_eq!(which, 5);
         assert_eq!(p, before, "no palette grows");
         // Glyph 0's first row, as the System draws it: entry 4 for black and
@@ -434,10 +480,12 @@ mod tests {
         let row: Vec<u8> = (0..8)
             .map(|x| {
                 let bit = 7 - x;
-                (0..4).map(|plane| {
-                    let byte = tiles[base * 32 + [0, 1, 16, 17][plane]];
-                    (byte >> bit & 1) << plane
-                }).sum()
+                (0..4)
+                    .map(|plane| {
+                        let byte = tiles[base * 32 + [0, 1, 16, 17][plane]];
+                        (byte >> bit & 1) << plane
+                    })
+                    .sum()
             })
             .collect();
         let want: Vec<u8> = (0..8)
@@ -457,7 +505,9 @@ mod tests {
         let mut p = palettes(15, 8);
         let mut tiles = vec![0; 32 * 64];
         let leaders: BTreeSet<usize> = (0..8).collect();
-        assert!(timer_digits(&glyphs(), &mut tiles, &mut p, &leaders, OBJ_PALETTES, false).is_err());
+        assert!(
+            timer_digits(&glyphs(), &mut tiles, &mut p, &leaders, OBJ_PALETTES, false).is_err()
+        );
     }
 
     /// The console overwrites the leaders' slot with the colours of whoever
@@ -466,9 +516,20 @@ mod tests {
     /// path, which is why it is made up.
     #[test]
     fn the_timer_does_not_land_in_a_leaders_slot() {
-        let mut p = vec![(0..4).map(|k| [1, 1, k]).collect(), (0..4).map(|k| [2, 2, k]).collect()];
+        let mut p = vec![
+            (0..4).map(|k| [1, 1, k]).collect(),
+            (0..4).map(|k| [2, 2, k]).collect(),
+        ];
         let mut tiles = vec![0; 32 * 64];
-        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::from([0]), OBJ_PALETTES, false).unwrap();
+        let (_, which) = timer_digits(
+            &glyphs(),
+            &mut tiles,
+            &mut p,
+            &BTreeSet::from([0]),
+            OBJ_PALETTES,
+            false,
+        )
+        .unwrap();
         assert_eq!(which, 1);
     }
 
@@ -479,15 +540,23 @@ mod tests {
     #[test]
     fn with_the_eight_full_the_drops_are_lent_the_closest() {
         let mut p = palettes(15, 8);
-        p[0] = RAIN_COLORS.iter().copied().chain((3..15).map(|k| [9, 9, k])).collect();
+        p[0] = RAIN_COLORS
+            .iter()
+            .copied()
+            .chain((3..15).map(|k| [9, 9, k]))
+            .collect();
         p[4][0] = [15, 15, 17];
         p[4][1] = [7, 7, 7];
         p[6].pop();
         p[6][0] = [16, 16, 18];
         p[6][1] = [6, 6, 7];
         let mut tiles = vec![0; 32 * 64];
-        let (base, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::from([0]), None, OBJ_PALETTES).unwrap();
-        assert_eq!(which, 6, "two greys and room for the third beat two near ones");
+        let (base, which) =
+            rain_drops(&mut tiles, &mut p, &BTreeSet::from([0]), None, OBJ_PALETTES).unwrap();
+        assert_eq!(
+            which, 6,
+            "two greys and room for the third beat two near ones"
+        );
         assert_eq!(p[6].len(), OBJ_COLORS);
         assert!(RAIN_COLORS.iter().all(|c| p[6].contains(c)));
         // Without palette 6's room, 4 is the closest: drawn with its own
@@ -496,13 +565,16 @@ mod tests {
         p[4][0] = [15, 15, 17];
         p[4][1] = [7, 7, 7];
         let before = p.clone();
-        let (_, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::new(), None, OBJ_PALETTES).unwrap();
+        let (_, which) =
+            rain_drops(&mut tiles, &mut p, &BTreeSet::new(), None, OBJ_PALETTES).unwrap();
         assert_eq!(which, 4);
         assert_eq!(p, before);
         // The top half of the lightest grey's tile: entry 1, [15, 15, 17].
         let pixel = |tile: usize, x: usize, y: usize| -> u8 {
             let bit = 7 - x;
-            (0..4).map(|plane| (tiles[tile * 32 + [0, 1, 16, 17][plane] + 2 * y] >> bit & 1) << plane).sum()
+            (0..4)
+                .map(|plane| (tiles[tile * 32 + [0, 1, 16, 17][plane] + 2 * y] >> bit & 1) << plane)
+                .sum()
         };
         assert_eq!(pixel(base, 3, 0), 1);
         // And with every palette a leader's, no rain.
@@ -515,9 +587,19 @@ mod tests {
     /// it, so a drop in there would stay grey on a tinted screen.
     #[test]
     fn the_drops_do_not_land_in_the_timers_palette() {
-        let mut p = vec![(0..4).map(|k| [1, 1, k]).collect(), (0..4).map(|k| [2, 2, k]).collect()];
+        let mut p = vec![
+            (0..4).map(|k| [1, 1, k]).collect(),
+            (0..4).map(|k| [2, 2, k]).collect(),
+        ];
         let mut tiles = vec![0; 32 * 64];
-        let (base, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::new(), Some((64, 0)), OBJ_PALETTES).unwrap();
+        let (base, which) = rain_drops(
+            &mut tiles,
+            &mut p,
+            &BTreeSet::new(),
+            Some((64, 0)),
+            OBJ_PALETTES,
+        )
+        .unwrap();
         assert_eq!(base, 64 + TIMER_GLYPHS);
         assert_ne!(which, 0);
     }
@@ -529,7 +611,15 @@ mod tests {
     fn the_mask_is_where_the_digits_colours_ended_up() {
         let mut p = vec![vec![[9, 9, 9], [0, 0, 0], [5, 5, 5]]];
         let mut tiles = vec![0; 32 * 64];
-        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES, false).unwrap();
+        let (_, which) = timer_digits(
+            &glyphs(),
+            &mut tiles,
+            &mut p,
+            &BTreeSet::new(),
+            OBJ_PALETTES,
+            false,
+        )
+        .unwrap();
         assert_eq!(p[which], [[9, 9, 9], [0, 0, 0], [5, 5, 5], [31, 0, 0]]);
         // Black is entry 2 and red entry 4, counting the transparent one.
         assert_eq!(timer_mask(&timer_colors(&glyphs()), &p[which]), 0b10100);
@@ -562,7 +652,8 @@ mod tests {
         let mut p = palettes(4, 2);
         let blocks = 64 + 3 * 16 + 4;
         let mut tiles = vec![0; 32 * blocks];
-        let (base, _) = rain_drops(&mut tiles, &mut p, &BTreeSet::new(), None, OBJ_PALETTES).unwrap();
+        let (base, _) =
+            rain_drops(&mut tiles, &mut p, &BTreeSet::new(), None, OBJ_PALETTES).unwrap();
         assert_eq!(base, 64 + 4);
         assert_eq!(tiles.len(), 32 * blocks);
     }
@@ -573,7 +664,15 @@ mod tests {
     fn the_digits_start_at_a_row_of_blocks() {
         let mut p = palettes(4, 2);
         let mut tiles = vec![0; 32 * 70];
-        let (base, _) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES, false).unwrap();
+        let (base, _) = timer_digits(
+            &glyphs(),
+            &mut tiles,
+            &mut p,
+            &BTreeSet::new(),
+            OBJ_PALETTES,
+            false,
+        )
+        .unwrap();
         assert_eq!(base, 128);
         assert_eq!(tiles.len(), (base + 16 + TIMER_GLYPHS) * 32);
     }

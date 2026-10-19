@@ -70,7 +70,11 @@ pub struct Reader<'a> {
 
 impl<'a> Reader<'a> {
     pub fn new(d: &'a [u8]) -> Self {
-        Reader { d, pos: 0, is2k3: false }
+        Reader {
+            d,
+            pos: 0,
+            is2k3: false,
+        }
     }
 
     /// The same reader, told which version of the format it reads.
@@ -153,7 +157,10 @@ pub struct Writer {
 
 impl Writer {
     pub fn new() -> Self {
-        Writer { b: Vec::new(), is2k3: false }
+        Writer {
+            b: Vec::new(),
+            is2k3: false,
+        }
     }
 
     /// The same writer, told which version of the format it writes.

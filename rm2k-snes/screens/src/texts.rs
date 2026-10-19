@@ -2,11 +2,11 @@
 //! font has, with numbers as RM2k formats them.
 
 use crate::fail::Result;
-use rm2k_snes_text::font::Font;
 use crate::game::{Game, ITEM_MATERIAL, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
 use ditto::schema::{Actor, Item};
 use rm2k_rules::actor as rules;
+use rm2k_snes_text::font::Font;
 
 /// What the screen can write: the characters the font has, a letter it
 /// does not have as its plain ASCII stand-in —`Unamë` as `Uname`, see
@@ -87,7 +87,10 @@ pub fn split_description(font: &Font, text: &str) -> Vec<String> {
         current = fit(word);
     }
     rows.push(current);
-    let mut rows: Vec<String> = rows.iter().map(|r| item_text(r, r.chars().count())).collect();
+    let mut rows: Vec<String> = rows
+        .iter()
+        .map(|r| item_text(r, r.chars().count()))
+        .collect();
     rows.resize(rows.len().max(ITEM_DESC_LINES), String::new());
     rows.truncate(ITEM_DESC_LINES);
     rows
@@ -103,7 +106,9 @@ pub fn split_description(font: &Font, text: &str) -> Vec<String> {
 /// tail with the rest of its line. What does not fit in two is lost.
 pub fn description_spans(font: &Font, text: &str) -> [(usize, usize); ITEM_DESC_LINES] {
     let letters: Vec<char> = text.chars().collect();
-    let width = |from: usize, to: usize| -> usize { letters[from..to].iter().map(|&c| font.advance(c)).sum() };
+    let width = |from: usize, to: usize| -> usize {
+        letters[from..to].iter().map(|&c| font.advance(c)).sum()
+    };
     let mut out = [(0, 0); ITEM_DESC_LINES];
     let mut start = 0;
     for line in out.iter_mut() {
@@ -315,10 +320,15 @@ mod tests {
     #[test]
     fn a_description_goes_in_two_lines_cut_at_a_space() {
         let font = Font::rm2k(rm2k_snes_text::font::MINCHO);
-        let lines = split_description(&font, "A small bottle of something that heals a little bit of health.");
+        let lines = split_description(
+            &font,
+            "A small bottle of something that heals a little bit of health.",
+        );
         let text = "A small bottle of something that heals a little bit of health.";
-        let sliced: Vec<String> =
-            description_spans(&font, text).iter().map(|&(s, n)| text.chars().skip(s).take(n).collect()).collect();
+        let sliced: Vec<String> = description_spans(&font, text)
+            .iter()
+            .map(|&(s, n)| text.chars().skip(s).take(n).collect())
+            .collect();
         assert_eq!(sliced, lines, "the spans say what the split says");
         assert_eq!(lines.len(), 2);
         assert!(lines.iter().all(|l| font.width(l) <= DESC_WIDTH_PX));

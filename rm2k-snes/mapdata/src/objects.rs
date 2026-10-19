@@ -53,7 +53,9 @@ pub fn pose_record(pose: &[u8]) -> Vec<u8> {
     let mut mask = 0u16;
     let mut drawn = Vec::new();
     for i in 0..POSE_TILES {
-        let tile = pose.get(i * TILE_BYTES..(i + 1) * TILE_BYTES).unwrap_or(&[]);
+        let tile = pose
+            .get(i * TILE_BYTES..(i + 1) * TILE_BYTES)
+            .unwrap_or(&[]);
         if tile.iter().any(|&b| b != 0) {
             mask |= 1 << i;
             drawn.extend_from_slice(tile);
@@ -141,15 +143,30 @@ mod tests {
             pose: 7,
             tile_pass,
         };
-        assert_eq!(page_oam(&draws(Some(17), None), LAYER_SAME), [0x04, 0x17, 0x87, 0xFF]);
-        assert_eq!(page_oam(&draws(Some(0), Some(2)), LAYER_ABOVE), [0, 0x26, 0x87, 2]);
-        assert_eq!(page_oam(&draws(None, Some(1)), LAYER_ABOVE), [0, 0, 0x87, 1]);
+        assert_eq!(
+            page_oam(&draws(Some(17), None), LAYER_SAME),
+            [0x04, 0x17, 0x87, 0xFF]
+        );
+        assert_eq!(
+            page_oam(&draws(Some(0), Some(2)), LAYER_ABOVE),
+            [0, 0x26, 0x87, 2]
+        );
+        assert_eq!(
+            page_oam(&draws(None, Some(1)), LAYER_ABOVE),
+            [0, 0, 0x87, 1]
+        );
     }
 
     #[test]
     fn in_a_cache_a_page_draws_its_still_pose_and_not_a_tile() {
         use super::*;
-        let draws = Draws { block: None, key: Some(9), palette: 3, pose: 7, tile_pass: None };
+        let draws = Draws {
+            block: None,
+            key: Some(9),
+            palette: 3,
+            pose: 7,
+            tile_pass: None,
+        };
         assert_eq!(page_oam(&draws, LAYER_SAME), [9, 0x16, 0x87, 0xFF]);
     }
 }

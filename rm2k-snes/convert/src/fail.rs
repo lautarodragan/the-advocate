@@ -17,12 +17,18 @@ pub struct Stop {
 impl Stop {
     /// The answer is no: something does not fit, or a stage said no.
     pub fn new<S: Into<String>>(message: S) -> Stop {
-        Stop { message: message.into(), code: 1 }
+        Stop {
+            message: message.into(),
+            code: 1,
+        }
     }
 
     /// The call is wrong.
     pub fn usage<S: Into<String>>(message: S) -> Stop {
-        Stop { message: message.into(), code: 2 }
+        Stop {
+            message: message.into(),
+            code: 2,
+        }
     }
 
     /// The same stop, saying which map it is about **in its own first
@@ -41,7 +47,10 @@ impl Stop {
         if says_it {
             self
         } else {
-            Stop { message: format!("map {id}: {}", self.message), code: self.code }
+            Stop {
+                message: format!("map {id}: {}", self.message),
+                code: self.code,
+            }
         }
     }
 }
@@ -53,13 +62,28 @@ mod tests {
     #[test]
     fn a_stop_in_a_map_names_it_once() {
         let named = |m: &str| Stop::new(m).in_map(15).message;
-        assert_eq!(named("this map can't carry a message window"), "map 15: this map can't carry a message window");
-        assert_eq!(named("map 15: fits no VRAM layout"), "map 15: fits no VRAM layout");
-        assert_eq!(named("wally: map 15: its panorama can't go"), "wally: map 15: its panorama can't go");
-        assert_eq!(named("map 15 has 9 events with a parallel page"), "map 15 has 9 events with a parallel page");
+        assert_eq!(
+            named("this map can't carry a message window"),
+            "map 15: this map can't carry a message window"
+        );
+        assert_eq!(
+            named("map 15: fits no VRAM layout"),
+            "map 15: fits no VRAM layout"
+        );
+        assert_eq!(
+            named("wally: map 15: its panorama can't go"),
+            "wally: map 15: its panorama can't go"
+        );
+        assert_eq!(
+            named("map 15 has 9 events with a parallel page"),
+            "map 15 has 9 events with a parallel page"
+        );
         // Another map's number, or one that only starts the same, is not it.
         assert_eq!(named("map 150: no page 2"), "map 15: map 150: no page 2");
-        assert_eq!(named("a teleport to map 1 fails\nmap 15"), "map 15: a teleport to map 1 fails\nmap 15");
+        assert_eq!(
+            named("a teleport to map 1 fails\nmap 15"),
+            "map 15: a teleport to map 1 fails\nmap 15"
+        );
         assert_eq!(Stop::usage("x").in_map(3).code, 2);
     }
 }

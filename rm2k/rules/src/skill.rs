@@ -8,7 +8,9 @@
 //! physical attributes asks for (`Game_Actor::IsSkillUsable`), which
 //! depends on what the actor holds, is [`weapons_allow`].
 
-use ditto::schema::{Attribute, AttributeType, Item, ItemType, Skill, SkillScope, SkillType, State, StatePersistence};
+use ditto::schema::{
+    Attribute, AttributeType, Item, ItemType, Skill, SkillScope, SkillType, State, StatePersistence,
+};
 
 /// Whether the map can use `skill`, by its data alone. `states` are the
 /// database's, which a skill's `state_effects` index from state 1.
@@ -64,7 +66,11 @@ pub fn weapon_attributes_asked(skill: &Skill, attributes: &[Attribute]) -> Vec<b
         .attribute_effects
         .iter()
         .enumerate()
-        .map(|(i, &on)| on && attributes.get(i).is_some_and(|a| a.r#type == AttributeType::Physical))
+        .map(|(i, &on)| {
+            on && attributes
+                .get(i)
+                .is_some_and(|a| a.r#type == AttributeType::Physical)
+        })
         .collect()
 }
 
@@ -77,11 +83,20 @@ pub fn weapon_attributes_asked(skill: &Skill, attributes: &[Attribute]) -> Vec<b
 /// two-weapon actor's second weapon is the one in the shield's slot
 /// (`Get2ndWeapon`). The SP and the states are asked elsewhere.
 pub fn weapons_allow(skill: &Skill, attributes: &[Attribute], held: &[&Item]) -> bool {
-    let weapons: Vec<&Item> = held.iter().copied().filter(|i| i.r#type == ItemType::Weapon).collect();
+    let weapons: Vec<&Item> = held
+        .iter()
+        .copied()
+        .filter(|i| i.r#type == ItemType::Weapon)
+        .collect();
     weapon_attributes_asked(skill, attributes)
         .iter()
         .enumerate()
-        .all(|(i, &asked)| !asked || weapons.iter().any(|w| w.attribute_set.get(i).copied().unwrap_or(false)))
+        .all(|(i, &asked)| {
+            !asked
+                || weapons
+                    .iter()
+                    .any(|w| w.attribute_set.get(i).copied().unwrap_or(false))
+        })
 }
 
 #[cfg(test)]
@@ -91,13 +106,21 @@ mod tests {
     fn attribute(id: i32, physical: bool) -> Attribute {
         Attribute {
             id,
-            r#type: if physical { AttributeType::Physical } else { AttributeType::Magical },
+            r#type: if physical {
+                AttributeType::Physical
+            } else {
+                AttributeType::Magical
+            },
             ..Default::default()
         }
     }
 
     fn weapon(t: ItemType, set: &[bool]) -> Item {
-        Item { r#type: t, attribute_set: set.to_vec(), ..Default::default() }
+        Item {
+            r#type: t,
+            attribute_set: set.to_vec(),
+            ..Default::default()
+        }
     }
 
     /// Sword physical, Flame magical, Martial physical.
@@ -165,13 +188,21 @@ mod tests {
     }
 
     fn skill(t: SkillType, scope: SkillScope) -> Skill {
-        Skill { r#type: t, scope, ..Default::default() }
+        Skill {
+            r#type: t,
+            scope,
+            ..Default::default()
+        }
     }
 
     fn state(id: i32, persists: bool) -> State {
         State {
             id,
-            r#type: if persists { StatePersistence::Persists } else { StatePersistence::Ends },
+            r#type: if persists {
+                StatePersistence::Persists
+            } else {
+                StatePersistence::Ends
+            },
             ..Default::default()
         }
     }

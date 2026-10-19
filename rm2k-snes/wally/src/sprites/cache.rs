@@ -81,9 +81,16 @@ mod tests {
     #[test]
     fn only_what_one_camera_shows_counts_together() {
         // 18 cells apart across: never on the same screen.
-        let events = [(0, 0, Wants::Own(0)), (18, 0, Wants::Own(1)), (17, 0, Wants::Own(2))];
+        let events = [
+            (0, 0, Wants::Own(0)),
+            (18, 0, Wants::Own(1)),
+            (17, 0, Wants::Own(2)),
+        ];
         assert_eq!(peak(&events, 40, 40), 2);
         // A map smaller than the screen is all one window.
-        assert_eq!(peak(&[(0, 0, Wants::Own(0)), (9, 9, Wants::Own(1))], 10, 10), 2);
+        assert_eq!(
+            peak(&[(0, 0, Wants::Own(0)), (9, 9, Wants::Own(1))], 10, 10),
+            2
+        );
     }
 }

@@ -41,8 +41,8 @@
 use crate::fail::{Result, Stop};
 use crate::game::{Command, GameMap};
 use rm2k_snes_events::codes::{
-    COND_BRANCH, COND_ELSE, DEFEAT_HANDLER, ESCAPE_HANDLER, MOVE_PICTURE, SHOW_CHOICE, SHOW_CHOICE_OPTION,
-    SHOW_PICTURE, TELEPORT, VICTORY_HANDLER,
+    COND_BRANCH, COND_ELSE, DEFEAT_HANDLER, ESCAPE_HANDLER, MOVE_PICTURE, SHOW_CHOICE,
+    SHOW_CHOICE_OPTION, SHOW_PICTURE, TELEPORT, VICTORY_HANDLER,
 };
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -55,7 +55,10 @@ const HERO: (i32, i32) = (9 * 16, 7 * 16);
 const TILE: i32 = 16;
 /// The largest picture the objects take: one that fits there is drawn as a
 /// picture, as before. See `WIDTH_MAX` in [`crate::pictures`].
-const SMALL: (i32, i32) = (crate::pictures::WIDTH_MAX as i32, crate::pictures::HEIGHT_MAX as i32);
+const SMALL: (i32, i32) = (
+    crate::pictures::WIDTH_MAX as i32,
+    crate::pictures::HEIGHT_MAX as i32,
+);
 /// The effects a picture can have and still be part of the map: none, or
 /// the wave, which is not done —Sunset's sun rays wave at strength 1 and 95
 /// % transparency—.
@@ -134,7 +137,9 @@ impl MapPictures {
 
     /// Whether the compiler is not to be given `name` in `map`'s pages.
     pub fn done(&self, map: i32, name: &str) -> bool {
-        self.done_from.get(&map).is_some_and(|names| names.contains(&name.to_lowercase()))
+        self.done_from
+            .get(&map)
+            .is_some_and(|names| names.contains(&name.to_lowercase()))
     }
 }
 
@@ -149,9 +154,13 @@ struct File {
 fn read_file(path: &Path) -> Result<File> {
     let open = std::fs::File::open(path).map_err(|e| crate::fail::io(path, e))?;
     let decoder = png::Decoder::new(open);
-    let mut reader = decoder.read_info().map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+    let mut reader = decoder
+        .read_info()
+        .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
     let mut buf = vec![0; reader.output_buffer_size()];
-    let frame = reader.next_frame(&mut buf).map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+    let frame = reader
+        .next_frame(&mut buf)
+        .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
     let (w, h) = (frame.width as usize, frame.height as usize);
     // Only an indexed picture has an index 0; any other has no holes.
     let holes = if frame.color_type == png::ColorType::Indexed {
@@ -171,7 +180,10 @@ fn read_file(path: &Path) -> Result<File> {
     } else {
         0.0
     };
-    Ok(File { size: (w as i32, h as i32), holes })
+    Ok(File {
+        size: (w as i32, h as i32),
+        holes,
+    })
 }
 
 /// One `ShowPicture`, where it is seen and how it settles.
@@ -203,8 +215,13 @@ struct Shown {
 
 /// RM2k's camera on `map` with the hero at cell `(x, y)`.
 fn camera(size: (i32, i32), (x, y): (i32, i32)) -> (i32, i32) {
-    let clamp = |hero: i32, centre: i32, map: i32, screen: i32| (hero * TILE - centre).clamp(0, (map * TILE - screen).max(0));
-    (clamp(x, HERO.0, size.0, SCREEN.0), clamp(y, HERO.1, size.1, SCREEN.1))
+    let clamp = |hero: i32, centre: i32, map: i32, screen: i32| {
+        (hero * TILE - centre).clamp(0, (map * TILE - screen).max(0))
+    };
+    (
+        clamp(x, HERO.0, size.0, SCREEN.0),
+        clamp(y, HERO.1, size.1, SCREEN.1),
+    )
 }
 
 fn one_screen(size: (i32, i32)) -> bool {
@@ -213,19 +230,32 @@ fn one_screen(size: (i32, i32)) -> bool {
 
 /// Every `ShowPicture` of `maps`' pages, with the map it is seen on.
 fn shown(maps: &[&GameMap]) -> Vec<Shown> {
-    let sizes: HashMap<i32, (i32, i32)> = maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
+    let sizes: HashMap<i32, (i32, i32)> =
+        maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
     let mut out = Vec::new();
     for map in maps {
         for event in &map.events {
             for page in &event.pages {
-                walk(map.id, (event.id, (event.x, event.y)), &page.commands, &sizes, &mut out);
+                walk(
+                    map.id,
+                    (event.id, (event.x, event.y)),
+                    &page.commands,
+                    &sizes,
+                    &mut out,
+                );
             }
         }
     }
     out
 }
 
-fn walk(from: i32, (event, at): (i32, (i32, i32)), commands: &[Command], sizes: &HashMap<i32, (i32, i32)>, out: &mut Vec<Shown>) {
+fn walk(
+    from: i32,
+    (event, at): (i32, (i32, i32)),
+    commands: &[Command],
+    sizes: &HashMap<i32, (i32, i32)>,
+    out: &mut Vec<Shown>,
+) {
     let mut seen = from;
     let mut cam = sizes.get(&from).filter(|s| one_screen(**s)).map(|_| (0, 0));
     // The page's last `ShowPicture` under each number, which its moves act on.
@@ -308,7 +338,11 @@ fn walk(from: i32, (event, at): (i32, (i32, i32)), commands: &[Command], sizes: 
 /// and whether it repeats. If not, why, when it is a translucent one the
 /// objects do not take —one that stays a big picture, over black, with the
 /// map hidden—; `None` for the rest, which lose nothing by this rule.
-fn placed(s: &Shown, file: &File, size: (i32, i32)) -> std::result::Result<((i32, i32), bool), Option<&'static str>> {
+fn placed(
+    s: &Shown,
+    file: &File,
+    size: (i32, i32),
+) -> std::result::Result<((i32, i32), bool), Option<&'static str>> {
     let fits_objects = file.size.0 <= SMALL.0 && file.size.1 <= SMALL.1;
     let opaque = s.transparency <= 0;
     let translucent = !opaque && s.transparency < 100;
@@ -380,23 +414,43 @@ mod tests {
         }
     }
 
-    const SCREEN_SIZED: File = File { size: (320, 240), holes: 0.5 };
+    const SCREEN_SIZED: File = File {
+        size: (320, 240),
+        holes: 0.5,
+    };
     const SCROLLS: (i32, i32) = (20, 19);
 
     #[test]
     fn a_translucent_mask_that_stays_put_is_part_of_its_map() {
-        assert_eq!(placed(&shown(true, false), &SCREEN_SIZED, SCROLLS), Ok(((0, 0), false)));
-        assert_eq!(placed(&shown(false, false), &SCREEN_SIZED, SCROLLS), Ok(((0, 0), true)));
+        assert_eq!(
+            placed(&shown(true, false), &SCREEN_SIZED, SCROLLS),
+            Ok(((0, 0), false))
+        );
+        assert_eq!(
+            placed(&shown(false, false), &SCREEN_SIZED, SCROLLS),
+            Ok(((0, 0), true))
+        );
     }
 
     #[test]
     fn one_a_move_picture_moves_is_not_whether_it_goes_with_the_map_or_the_screen() {
-        assert_eq!(placed(&shown(true, true), &SCREEN_SIZED, SCROLLS), Err(Some("a MovePicture moves it")));
-        assert_eq!(placed(&shown(false, true), &SCREEN_SIZED, SCROLLS), Err(Some("a MovePicture moves it")));
+        assert_eq!(
+            placed(&shown(true, true), &SCREEN_SIZED, SCROLLS),
+            Err(Some("a MovePicture moves it"))
+        );
+        assert_eq!(
+            placed(&shown(false, true), &SCREEN_SIZED, SCROLLS),
+            Err(Some("a MovePicture moves it"))
+        );
     }
 
     fn c(code: i32, indent: i32, string: &str, parameters: &[i32]) -> Command {
-        Command { code, indent, string: string.to_string(), parameters: parameters.to_vec() }
+        Command {
+            code,
+            indent,
+            string: string.to_string(),
+            parameters: parameters.to_vec(),
+        }
     }
 
     /// Each branch of a choice starts where the choice was: the second one
@@ -404,8 +458,22 @@ mod tests {
     /// map. The statue's portal on Sunset over Imdahl's map 15, shrunk.
     #[test]
     fn a_branch_does_not_move_the_picture_of_the_branch_before() {
-        let show = |name: &str| c(SHOW_PICTURE, 1, name, &[2, 0, 160, 192, 1, 100, 80, 1, 100, 100, 100, 100, 0, 0]);
-        let moved = c(MOVE_PICTURE, 1, "", &[2, 0, 160, 0, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 15, 0]);
+        let show = |name: &str| {
+            c(
+                SHOW_PICTURE,
+                1,
+                name,
+                &[2, 0, 160, 192, 1, 100, 80, 1, 100, 100, 100, 100, 0, 0],
+            )
+        };
+        let moved = c(
+            MOVE_PICTURE,
+            1,
+            "",
+            &[
+                2, 0, 160, 0, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 15, 0,
+            ],
+        );
         let page = [
             c(SHOW_CHOICE, 0, "Spring/Summer", &[0]),
             c(SHOW_CHOICE_OPTION, 0, "Spring", &[0]),
@@ -420,13 +488,19 @@ mod tests {
         let sizes = HashMap::from([(13, (20, 15)), (14, (20, 15)), (15, (20, 15))]);
         let mut out = Vec::new();
         walk(15, (4, (10, 10)), &page, &sizes, &mut out);
-        let seen: Vec<_> = out.iter().map(|s| (s.name.as_str(), s.seen, s.moves_place)).collect();
+        let seen: Vec<_> = out
+            .iter()
+            .map(|s| (s.name.as_str(), s.seen, s.moves_place))
+            .collect();
         assert_eq!(seen, [("Spring", 13, false), ("Before", 15, true)]);
     }
 
     #[test]
     fn what_loses_nothing_by_the_rule_has_no_why() {
-        let small = File { size: (64, 64), holes: 0.5 };
+        let small = File {
+            size: (64, 64),
+            holes: 0.5,
+        };
         assert_eq!(placed(&shown(true, true), &small, SCROLLS), Err(None));
         let mut invisible = shown(true, false);
         invisible.transparency = 100;
@@ -436,7 +510,8 @@ mod tests {
 
 /// The rule, over the cartridge's maps: see the module.
 pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
-    let sizes: HashMap<i32, (i32, i32)> = maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
+    let sizes: HashMap<i32, (i32, i32)> =
+        maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
     let mut files: HashMap<String, Option<(PathBuf, File)>> = HashMap::new();
     let mut per: BTreeMap<(i32, i32), Vec<OnMap>> = BTreeMap::new();
     // By the map whose pages show it and the name: whether every show is
@@ -493,12 +568,18 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
         // equals the first: the map has one drawing.
         let mut counts: Vec<(usize, &OnMap)> = Vec::new();
         for s in &shows {
-            match counts.iter_mut().find(|(_, o)| o.name.eq_ignore_ascii_case(&s.name) && o.corner == s.corner) {
+            match counts
+                .iter_mut()
+                .find(|(_, o)| o.name.eq_ignore_ascii_case(&s.name) && o.corner == s.corner)
+            {
                 Some((n, _)) => *n += 1,
                 None => counts.push((1, s)),
             }
         }
-        let best = counts.iter().max_by(|a, b| a.0.cmp(&b.0).then(std::cmp::Ordering::Greater)).map(|(_, o)| (*o).clone());
+        let best = counts
+            .iter()
+            .max_by(|a, b| a.0.cmp(&b.0).then(std::cmp::Ordering::Greater))
+            .map(|(_, o)| (*o).clone());
         if let Some(best) = best {
             out.per_map.entry(map).or_default().push(best);
         }

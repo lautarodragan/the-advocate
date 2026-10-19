@@ -5,12 +5,12 @@ use crate::bank::{self, SILENCE};
 use crate::compile::{Built, Music};
 use crate::effects;
 use crate::fail::{Bad, Result};
-use rm2k_snes_bytecode::music::OP_END;
 use crate::samples::BLOCK_BYTES;
 use crate::sdsp;
 use crate::spc700::DRIVER_ADDR;
 use crate::stream::{self, SAMPLES_ADDR};
 use crate::voices::{SE_VOICE, SE_VOICE2};
+use rm2k_snes_bytecode::music::OP_END;
 use std::fmt::Write as _;
 
 /// How many directory places can belong to sound effects: the ROM records
@@ -77,7 +77,10 @@ pub fn rom_packages(music: &Music, emit: &Emit) -> Vec<RomPackage> {
         .map(|p| {
             (
                 p.songs.clone(),
-                p.effects.iter().filter_map(|e| music.effect_id(e)).collect(),
+                p.effects
+                    .iter()
+                    .filter_map(|e| music.effect_id(e))
+                    .collect(),
                 p.exits.clone(),
                 p.separate.clone(),
             )
@@ -116,7 +119,8 @@ pub fn sound_table(music: &Music, sounds: &[SoundRequest]) -> Vec<(i64, i64, i64
 pub fn boot_frames(music: &Music, package: &RomPackage, decompress: f64) -> Result<(f64, i64)> {
     let (own, effects, exits, _) = package;
     let music_n = music.bank.entries().len();
-    let mut indices: std::collections::BTreeSet<usize> = effects.iter().map(|e| music_n + e).collect();
+    let mut indices: std::collections::BTreeSet<usize> =
+        effects.iter().map(|e| music_n + e).collect();
     for &t in own.iter().chain(exits) {
         if !music.songs[t].sounds.is_empty() {
             indices.extend(music.songs[t].samples()?.into_iter().map(|s| s as usize));
@@ -126,7 +130,10 @@ pub fn boot_frames(music: &Music, package: &RomPackage, decompress: f64) -> Resu
     let bytes: i64 = indices.iter().map(|&i| all[i].0.len() as i64).sum();
     let ipl = (music.driver.len() + 4 * (music_n + music.places).max(1) + SILENCE.len()) as f64;
     Ok((
-        MAP_FRAMES + decompress + ipl * FRAMES_PER_KB_IPL / 1024.0 + bytes as f64 * FRAMES_PER_KB_PACKAGE / 1024.0,
+        MAP_FRAMES
+            + decompress
+            + ipl * FRAMES_PER_KB_IPL / 1024.0
+            + bytes as f64 * FRAMES_PER_KB_PACKAGE / 1024.0,
         bytes,
     ))
 }
@@ -137,11 +144,21 @@ pub fn boot_frames(music: &Music, package: &RomPackage, decompress: f64) -> Resu
 /// can end up split. The samples do carry it: they are walked with a 24-bit
 /// pointer that does not jump banks.
 fn block(label: &str, data: &[u8], as_block: bool) -> String {
-    let mut out = if as_block { format!(".block {}\n", data.len()) } else { ".crossbank\n".to_string() };
+    let mut out = if as_block {
+        format!(".block {}\n", data.len())
+    } else {
+        ".crossbank\n".to_string()
+    };
     out.push_str(&format!("{label}:"));
     for chunk in data.chunks(16) {
         out.push_str("\n    .byte ");
-        out.push_str(&chunk.iter().map(|b| format!("${b:02X}")).collect::<Vec<_>>().join(","));
+        out.push_str(
+            &chunk
+                .iter()
+                .map(|b| format!("${b:02X}"))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
     }
     out
 }
@@ -158,7 +175,10 @@ fn lists(label: &str, groups: &[Vec<Vec<u8>>]) -> String {
             body.push(0xFF);
         }
     }
-    let mut data: Vec<u8> = offsets.iter().flat_map(|o| (*o as u16).to_le_bytes()).collect();
+    let mut data: Vec<u8> = offsets
+        .iter()
+        .flat_map(|o| (*o as u16).to_le_bytes())
+        .collect();
     data.extend(body);
     if data.is_empty() {
         data.push(0xFF);
@@ -167,7 +187,11 @@ fn lists(label: &str, groups: &[Vec<Vec<u8>>]) -> String {
 }
 
 fn bytes_list(values: impl IntoIterator<Item = u8>) -> String {
-    values.into_iter().map(|v| format!("${v:02X}")).collect::<Vec<_>>().join(", ")
+    values
+        .into_iter()
+        .map(|v| format!("${v:02X}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn as_bytes(values: &[usize]) -> Result<Vec<u8>> {
@@ -196,11 +220,16 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     let labels: Vec<String> = if songs.is_empty() {
         vec!["song_stream_0".into()]
     } else {
-        (0..songs.len()).map(|i| format!("song_stream_{i}")).collect()
+        (0..songs.len())
+            .map(|i| format!("song_stream_{i}"))
+            .collect()
     };
     let end = vec![OP_END];
-    let streams: Vec<&[u8]> =
-        if songs.is_empty() { vec![&end] } else { songs.iter().map(|t| t.stream.as_slice()).collect() };
+    let streams: Vec<&[u8]> = if songs.is_empty() {
+        vec![&end]
+    } else {
+        songs.iter().map(|t| t.stream.as_slice()).collect()
+    };
     // Where each song's stream starts, split into three tables because they
     // are read with an index. Outside bank 0, since 2026-09-30: they are
     // read once per song start, with `lda f:`, and each song the cartridge
@@ -212,7 +241,11 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
             format!(
                 ".block {}\n{name}:\n    .byte {}",
                 labels.len(),
-                labels.iter().map(|l| format!("{prefix}{l}")).collect::<Vec<_>>().join(", ")
+                labels
+                    .iter()
+                    .map(|l| format!("{prefix}{l}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             )
         })
         .collect::<Vec<_>>()
@@ -230,21 +263,49 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     //
     // Two parallel tables and not one of pairs because the 65816 walks them
     // with an index.
-    let init: Vec<(u8, u8)> =
-        stream::init_writes().into_iter().filter(|(r, _)| *r != sdsp::KON && *r != sdsp::KOF).collect();
-    write!(table, "dsp_init_reg:\n    .byte {}, $FF", bytes_list(init.iter().map(|w| w.0))).unwrap();
-    write!(table, "\ndsp_init_val:\n    .byte {}, $00", bytes_list(init.iter().map(|w| w.1))).unwrap();
+    let init: Vec<(u8, u8)> = stream::init_writes()
+        .into_iter()
+        .filter(|(r, _)| *r != sdsp::KON && *r != sdsp::KOF)
+        .collect();
+    write!(
+        table,
+        "dsp_init_reg:\n    .byte {}, $FF",
+        bytes_list(init.iter().map(|w| w.0))
+    )
+    .unwrap();
+    write!(
+        table,
+        "\ndsp_init_val:\n    .byte {}, $00",
+        bytes_list(init.iter().map(|w| w.1))
+    )
+    .unwrap();
     // And which MSU-1 track each one gets, or $FF.
     let tracks: Vec<u8> = if songs.is_empty() {
         vec![0xFF]
     } else {
-        songs.iter().map(|t| t.track.filter(|&n| n != 0).unwrap_or(0xFF)).collect()
+        songs
+            .iter()
+            .map(|t| t.track.filter(|&n| n != 0).unwrap_or(0xFF))
+            .collect()
     };
-    write!(far_songs, "\n.block {}\nsong_msu:\n    .byte {}", tracks.len(), bytes_list(tracks)).unwrap();
+    write!(
+        far_songs,
+        "\n.block {}\nsong_msu:\n    .byte {}",
+        tracks.len(),
+        bytes_list(tracks)
+    )
+    .unwrap();
     // And each map's own song. Outside bank 0: it is read once per teleport.
-    let per_map = if emit.map_song.is_empty() { vec![0xFF] } else { emit.map_song.clone() };
-    let mut map_song_table =
-        format!(".block {}\nmap_song:\n      .byte {}", per_map.len(), bytes_list(per_map.iter().copied()));
+    let per_map = if emit.map_song.is_empty() {
+        vec![0xFF]
+    } else {
+        emit.map_song.clone()
+    };
+    let mut map_song_table = format!(
+        ".block {}\nmap_song:\n      .byte {}",
+        per_map.len(),
+        bytes_list(per_map.iter().copied())
+    );
     // And the music's sounds —six bytes: the pitch, SRCN, ADSR1, ADSR2 and
     // the release GAIN—, those of every song in one table and where each
     // one's start. In a single bank, because the 65816 reaches them with a
@@ -264,7 +325,10 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         }
     }
     if body.len() > 0x10000 {
-        return Err(Bad::answer(format!("the music's sounds go over one bank: {} B", body.len())));
+        return Err(Bad::answer(format!(
+            "the music's sounds go over one bank: {} B",
+            body.len()
+        )));
     }
     let bases = if bases.is_empty() { vec![0] } else { bases };
     let sounds_block = if body.is_empty() { vec![0u8; 6] } else { body };
@@ -272,12 +336,20 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         map_song_table,
         "\n.block {}\nsong_sounds:\n      .word {}\n{}",
         2 * bases.len(),
-        bases.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", "),
+        bases
+            .iter()
+            .map(|b| b.to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
         block("music_sounds", &sounds_block, true)
     )
     .unwrap();
     // And the sound effects: seven bytes per sound.
-    let rows = if sounds.is_empty() { vec![(0xFF, 0, 0, 0, 0, 0xFF)] } else { sounds.clone() };
+    let rows = if sounds.is_empty() {
+        vec![(0xFF, 0, 0, 0, 0, 0xFF)]
+    } else {
+        sounds.clone()
+    };
     let mut se_table = format!(".block {}\nsound_table:\n", 7 * rows.len())
         + &rows
             .iter()
@@ -295,7 +367,10 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         se_table,
         "\n.block {}\nsound_effect:\n      .byte {}",
         rows.len(),
-        rows.iter().map(|r| format!("${:02X}", r.5)).collect::<Vec<_>>().join(", ")
+        rows.iter()
+            .map(|r| format!("${:02X}", r.5))
+            .collect::<Vec<_>>()
+            .join(", ")
     )
     .unwrap();
     let mut effect_place: Vec<usize> = music.effects.iter().map(|e| music.place[&e.name]).collect();
@@ -306,7 +381,11 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         se_table,
         "\n.block {}\neffect_place:\n     .byte {}",
         effect_place.len(),
-        effect_place.iter().map(|l| format!("${l:02X}")).collect::<Vec<_>>().join(", ")
+        effect_place
+            .iter()
+            .map(|l| format!("${l:02X}"))
+            .collect::<Vec<_>>()
+            .join(", ")
     )
     .unwrap();
 
@@ -358,7 +437,10 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     let rows_of: Vec<(usize, usize)> = if voices.is_empty() {
         vec![(SILENCE.len(), 0)]
     } else {
-        voices.iter().map(|(d, l)| (d.len(), l * BLOCK_BYTES)).collect()
+        voices
+            .iter()
+            .map(|(d, l)| (d.len(), l * BLOCK_BYTES))
+            .collect()
     };
     let sample_rows: Vec<String> = rows_of
         .iter()
@@ -374,7 +456,10 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     let song_samples: Vec<Vec<Vec<u8>>> = if songs.is_empty() {
         vec![vec![vec![]]]
     } else {
-        songs.iter().map(|t| Ok(vec![t.samples()?])).collect::<Result<_>>()?
+        songs
+            .iter()
+            .map(|t| Ok(vec![t.samples()?]))
+            .collect::<Result<_>>()?
     };
     let package_lists: Vec<Vec<Vec<u8>>> = if packages.is_empty() {
         vec![vec![vec![], vec![], vec![], vec![]]]
@@ -387,7 +472,13 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
 
     let names = songs
         .iter()
-        .map(|t| if t.name.is_empty() { "no music" } else { t.name.as_str() })
+        .map(|t| {
+            if t.name.is_empty() {
+                "no music"
+            } else {
+                t.name.as_str()
+            }
+        })
         .collect::<Vec<_>>()
         .join(", ");
     let mut out = String::new();
@@ -395,7 +486,12 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     // tools that read the cartridge look for "; Songs: " to know which song
     // each index is.
     out.push_str("; Generated by rm2k-snes-audio. Do not edit.\n");
-    writeln!(out, "; Songs: {}\n", if names.is_empty() { "none" } else { &names }).unwrap();
+    writeln!(
+        out,
+        "; Songs: {}\n",
+        if names.is_empty() { "none" } else { &names }
+    )
+    .unwrap();
     // The paths in this text still say `rom/src/`, where the runtime lived:
     // what is emitted is not changed yet.
     write!(
@@ -494,7 +590,12 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         lists("song_samples", &song_samples),
         lists("packages", &package_lists),
         sample_blocks.join("\n"),
-        labels.iter().zip(&streams).map(|(l, s)| block(l, s, false)).collect::<Vec<_>>().join("\n"),
+        labels
+            .iter()
+            .zip(&streams)
+            .map(|(l, s)| block(l, s, false))
+            .collect::<Vec<_>>()
+            .join("\n"),
     )
     .unwrap();
     Ok(out)

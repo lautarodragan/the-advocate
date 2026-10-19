@@ -84,7 +84,16 @@ pub fn song_names(directory: &Path) -> Result<Vec<String>> {
         .lines()
         .find_map(|l| l.strip_prefix("; Songs: "))
         .ok_or_else(|| Bad::usage(format!("{}: no \"; Songs:\" line", path.display())))?;
-    Ok(line.split(", ").map(|n| if n == "no music" { String::new() } else { n.to_string() }).collect())
+    Ok(line
+        .split(", ")
+        .map(|n| {
+            if n == "no music" {
+                String::new()
+            } else {
+                n.to_string()
+            }
+        })
+        .collect())
 }
 
 /// One song as the compiler built it: from the `music.json` next to
@@ -101,8 +110,11 @@ pub struct Built {
 pub fn built_songs(directory: &Path) -> Result<Vec<Built>> {
     let path = directory.join("music.json");
     let text = std::fs::read_to_string(&path).map_err(|e| io(&path, e))?;
-    let json: Value = serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let songs = json["songs"].as_array().ok_or_else(|| Bad::usage(format!("{}: no \"songs\"", path.display())))?;
+    let json: Value =
+        serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    let songs = json["songs"]
+        .as_array()
+        .ok_or_else(|| Bad::usage(format!("{}: no \"songs\"", path.display())))?;
     Ok(songs
         .iter()
         .map(|t| Built {
@@ -121,7 +133,9 @@ fn symbols_of(sfc: &Path) -> Result<BTreeMap<String, i64>> {
     for line in text.lines() {
         let mut parts = line.split_whitespace();
         if let (Some(name), Some(value)) = (parts.next(), parts.next()) {
-            let value = value.parse().map_err(|_| Bad::usage(format!("{}: {line:?}", path.display())))?;
+            let value = value
+                .parse()
+                .map_err(|_| Bad::usage(format!("{}: {line:?}", path.display())))?;
             table.insert(name.to_string(), value);
         }
     }
@@ -129,7 +143,10 @@ fn symbols_of(sfc: &Path) -> Result<BTreeMap<String, i64>> {
 }
 
 fn symbol(symbols: &BTreeMap<String, i64>, name: &str) -> Result<i64> {
-    symbols.get(name).copied().ok_or_else(|| Bad::usage(format!("the ROM has no {name}")))
+    symbols
+        .get(name)
+        .copied()
+        .ok_or_else(|| Bad::usage(format!("the ROM has no {name}")))
 }
 
 /// How far apart the two copies of the code are in an 8 MB ExHiROM: the
@@ -143,8 +160,12 @@ const CODE_COPY: usize = 0x400000;
 /// own, with its samples uploaded, without playing anything.
 pub fn with_song_on_title(rom: &[u8], song_title: u8, song: u8) -> Result<Vec<u8>> {
     let pattern = [0xA9, song_title, 0xC9, 0xFF, 0xF0];
-    let found: Vec<usize> =
-        rom.windows(pattern.len()).enumerate().filter(|(_, w)| *w == pattern).map(|(i, _)| i).collect();
+    let found: Vec<usize> = rom
+        .windows(pattern.len())
+        .enumerate()
+        .filter(|(_, w)| *w == pattern)
+        .map(|(i, _)| i)
+        .collect();
     let one_place = match found[..] {
         [_] => true,
         [a, b] => b - a == CODE_COPY,
@@ -192,7 +213,10 @@ pub fn play(sfc: &Path, song: u8, frames: i64) -> Result<(Vec<i16>, f64)> {
 /// How many samples ended up at the cap.
 pub fn clipped(samples: &[i16]) -> usize {
     let cap = cap();
-    samples.iter().filter(|&&s| s as i64 >= cap || (s as i64) <= -cap - 1).count()
+    samples
+        .iter()
+        .filter(|&&s| s as i64 >= cap || (s as i64) <= -cap - 1)
+        .count()
 }
 
 /// What one song gave: the samples at the cap, the peak and in which frame.
@@ -218,7 +242,12 @@ pub fn row(samples: &[i16], rate: f64) -> Row {
     }
     // The samples are left/right pairs.
     let frame = (at / 2) as i64 * 60 / num::round(rate);
-    Row { clipped: clipped(samples), peak, frame, lufs: None }
+    Row {
+        clipped: clipped(samples),
+        peak,
+        frame,
+        lufs: None,
+    }
 }
 
 /// The integrated loudness, from ffmpeg's `ebur128`.
@@ -266,7 +295,9 @@ fn last_integrated(text: &str) -> Option<f64> {
     while let Some(i) = rest.find("I:") {
         rest = &rest[i + 2..];
         let after = rest.trim_start();
-        let end = after.find(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-')).unwrap_or(after.len());
+        let end = after
+            .find(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-'))
+            .unwrap_or(after.len());
         let (number, tail) = after.split_at(end);
         if tail.trim_start().starts_with("LUFS") && tail.starts_with(char::is_whitespace) {
             if let Ok(v) = number.parse() {
@@ -304,7 +335,11 @@ fn python_float(x: f64) -> String {
 }
 
 /// The table, with its reason on top.
-pub fn table(ceilings: &BTreeMap<String, f64>, measured: &BTreeMap<String, Row>, fingerprints: &BTreeMap<String, String>) -> String {
+pub fn table(
+    ceilings: &BTreeMap<String, f64>,
+    measured: &BTreeMap<String, Row>,
+    fingerprints: &BTreeMap<String, String>,
+) -> String {
     let mut lines: Vec<String> = [
         "# The volume ceiling of each song of `release`: the headroom the",
         "# converter builds its stream with, instead of `sdsp::HEADROOM`.",
@@ -327,7 +362,10 @@ pub fn table(ceilings: &BTreeMap<String, f64>, measured: &BTreeMap<String, Row>,
     .iter()
     .map(|s| s.to_string())
     .collect();
-    lines.push(format!("measuring_headroom = {}", python_float(MEASURING_HEADROOM)));
+    lines.push(format!(
+        "measuring_headroom = {}",
+        python_float(MEASURING_HEADROOM)
+    ));
     lines.push("margin_db = -0.5".to_string());
     lines.push(String::new());
     for (name, headroom) in ceilings {
@@ -337,7 +375,10 @@ pub fn table(ceilings: &BTreeMap<String, f64>, measured: &BTreeMap<String, Row>,
         lines.push(format!("peak = {:.1}", db(row.peak)));
         lines.push(format!("lufs = {:.1}", row.lufs.unwrap_or(0.0)));
         lines.push(format!("until = {}", row.frame + AFTER_PEAK));
-        lines.push(format!("fingerprint = \"{}\"", fingerprints.get(name).map(String::as_str).unwrap_or("")));
+        lines.push(format!(
+            "fingerprint = \"{}\"",
+            fingerprints.get(name).map(String::as_str).unwrap_or("")
+        ));
         lines.push(String::new());
     }
     lines.join("\n")
@@ -345,12 +386,20 @@ pub fn table(ceilings: &BTreeMap<String, f64>, measured: &BTreeMap<String, Row>,
 
 /// One line per song: its headroom if there is one, its peak, how many
 /// samples clipped and its level.
-pub fn report(measured: &BTreeMap<String, Row>, ceilings: Option<&BTreeMap<String, f64>>) -> String {
+pub fn report(
+    measured: &BTreeMap<String, Row>,
+    ceilings: Option<&BTreeMap<String, f64>>,
+) -> String {
     let mut out = String::new();
     for (name, row) in measured {
         let short: String = name.chars().take(45).collect();
-        let headroom = ceilings.map(|c| format!("headroom {:.3},", c[name])).unwrap_or_default();
-        let level = row.lufs.map(|l| format!(", {l:.1} LUFS")).unwrap_or_default();
+        let headroom = ceilings
+            .map(|c| format!("headroom {:.3},", c[name]))
+            .unwrap_or_default();
+        let level = row
+            .lufs
+            .map(|l| format!(", {l:.1} LUFS"))
+            .unwrap_or_default();
         out.push_str(&format!(
             "  {short:<45} {headroom} peak {:+5.1} dB, {:5} clipped{level}\n",
             db(row.peak),
@@ -367,7 +416,10 @@ mod tests {
     #[test]
     fn the_title_song_is_found_once_and_patched() {
         let rom = [0u8, 0xA9, 7, 0xC9, 0xFF, 0xF0, 3];
-        assert_eq!(with_song_on_title(&rom, 7, 12).unwrap(), vec![0, 0xA9, 12, 0xC9, 0xFF, 0xF0, 3]);
+        assert_eq!(
+            with_song_on_title(&rom, 7, 12).unwrap(),
+            vec![0, 0xA9, 12, 0xC9, 0xFF, 0xF0, 3]
+        );
         let twice = [0xA9, 7, 0xC9, 0xFF, 0xF0, 0xA9, 7, 0xC9, 0xFF, 0xF0];
         assert!(with_song_on_title(&twice, 7, 12).is_err());
         assert!(with_song_on_title(&rom, 8, 12).is_err());
@@ -383,7 +435,10 @@ mod tests {
         assert_eq!((patched[0x9001], patched[0x9001 + CODE_COPY]), (12, 12));
         rom[0x9000 + CODE_COPY..0x9005 + CODE_COPY].fill(0);
         rom[0x9100..0x9105].copy_from_slice(&[0xA9, 7, 0xC9, 0xFF, 0xF0]);
-        assert!(with_song_on_title(&rom, 7, 12).is_err(), "two places that are not the copies");
+        assert!(
+            with_song_on_title(&rom, 7, 12).is_err(),
+            "two places that are not the copies"
+        );
     }
 
     #[test]
@@ -406,8 +461,22 @@ mod tests {
     #[test]
     fn the_report_keeps_its_columns() {
         let mut m = BTreeMap::new();
-        m.insert("song".to_string(), Row { clipped: 3, peak: cap(), frame: 0, lufs: Some(-20.46) });
+        m.insert(
+            "song".to_string(),
+            Row {
+                clipped: 3,
+                peak: cap(),
+                frame: 0,
+                lufs: Some(-20.46),
+            },
+        );
         let line = report(&m, None);
-        assert_eq!(line, format!("  {:<45}  peak  +0.0 dB,     3 clipped, -20.5 LUFS\n", "song"));
+        assert_eq!(
+            line,
+            format!(
+                "  {:<45}  peak  +0.0 dB,     3 clipped, -20.5 LUFS\n",
+                "song"
+            )
+        );
     }
 }

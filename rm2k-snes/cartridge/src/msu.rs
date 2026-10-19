@@ -63,7 +63,10 @@ const ENTRY: usize = 8;
 /// the index if there are none.
 pub fn entries_end(blob: &[u8]) -> Result<usize, String> {
     if blob.len() < HEADER {
-        return Err(format!("a .msu of {} bytes, shorter than its header", blob.len()));
+        return Err(format!(
+            "a .msu of {} bytes, shorter than its header",
+            blob.len()
+        ));
     }
     let n = u16::from_le_bytes([blob[14], blob[15]]) as usize;
     let index_end = HEADER + ENTRY * n;
@@ -123,7 +126,11 @@ mod tests {
             out.extend_from_slice(&at.to_le_bytes());
             out.extend_from_slice(&length.to_le_bytes());
         }
-        let end = entries.iter().map(|(a, l)| (a + l) as usize).max().unwrap_or(0);
+        let end = entries
+            .iter()
+            .map(|(a, l)| (a + l) as usize)
+            .max()
+            .unwrap_or(0);
         out.resize(out.len().max(end), 7);
         out
     }
@@ -131,7 +138,11 @@ mod tests {
     #[test]
     fn no_data_of_the_cartridge_is_in_the_spill_bank() {
         assert!(crate::banks::slots().iter().all(|s| s.bank != SPILL_BANK));
-        assert!(crate::banks::FAR2.bank != SPILL_BANK && crate::banks::FAR3.bank != SPILL_BANK && SPILL_BANK > 1);
+        assert!(
+            crate::banks::FAR2.bank != SPILL_BANK
+                && crate::banks::FAR3.bank != SPILL_BANK
+                && SPILL_BANK > 1
+        );
     }
 
     #[test]
@@ -153,7 +164,10 @@ mod tests {
         assert_eq!(r[4 * UNIT - 1], 0);
         let mut other = r.clone();
         other[2 * UNIT] = 3;
-        assert_ne!(region(&[vec![1; 3], vec![3; 257]])[..SIGNATURE], r[..SIGNATURE]);
+        assert_ne!(
+            region(&[vec![1; 3], vec![3; 257]])[..SIGNATURE],
+            r[..SIGNATURE]
+        );
         assert_eq!(units(0), 1);
         assert_eq!(units(256), 1);
         assert_eq!(units(257), 2);

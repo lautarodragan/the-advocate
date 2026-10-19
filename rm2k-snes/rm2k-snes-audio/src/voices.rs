@@ -63,7 +63,8 @@ const EFFECT_VOICES: [u8; 2] = [SE_VOICE2, SE_VOICE];
 /// zero in 12 ms, before the next frame. What it avoids is the KON click,
 /// which drops the envelope to zero at once.
 pub const RAMP: u8 = sdsp::GAIN_LINEAR_DECREASE | 26;
-const _: () = assert!(64 * sdsp::PERIOD[(RAMP & 0x1F) as usize] <= sdsp::SAMPLE_RATE / TICKS_PER_SECOND);
+const _: () =
+    assert!(64 * sdsp::PERIOD[(RAMP & 0x1F) as usize] <= sdsp::SAMPLE_RATE / TICKS_PER_SECOND);
 
 /// What the allocation knows about a voice: the note holding it, until when
 /// it holds it —`end`— and until when it can be heard —`tail`, with the
@@ -82,7 +83,11 @@ struct Held {
 /// one reaches zero in `STEPS_TO_ZERO`.
 fn release_frames(gain: u8) -> i64 {
     let period = sdsp::PERIOD[(gain & 0x1F) as usize];
-    let steps = if gain & 0xE0 == sdsp::GAIN_LINEAR_DECREASE { 64 } else { sdsp::STEPS_TO_ZERO };
+    let steps = if gain & 0xE0 == sdsp::GAIN_LINEAR_DECREASE {
+        64
+    } else {
+        sdsp::STEPS_TO_ZERO
+    };
     ((steps * period * TICKS_PER_SECOND) as f64 / sdsp::SAMPLE_RATE as f64) as i64 + 1
 }
 
@@ -232,7 +237,13 @@ fn victim(
     let is_last = |s: &Held| all[s.note].channel != note.channel && count(all[s.note].channel) <= 1;
     let cost = |v: u8| {
         let s = &holders[&v];
-        (all[s.note].start == t, is_last(s), s.level, all[s.note].start, v)
+        (
+            all[s.note].start == t,
+            is_last(s),
+            s.level,
+            all[s.note].start,
+            v,
+        )
     };
     let v = *group.iter().min_by_key(|&&v| cost(v))?;
     let s = &holders[&v];
@@ -295,7 +306,11 @@ pub fn build_events(
     let mut next_control = 0;
 
     let sides = |state: &HashMap<u8, HashMap<u16, f64>>, note: &Note, drums: bool| -> (i64, i64) {
-        let top = if drums { sdsp::ceiling_drum() } else { sdsp::ceiling() } as f64;
+        let top = if drums {
+            sdsp::ceiling_drum()
+        } else {
+            sdsp::ceiling()
+        } as f64;
         sdsp::volume(
             note.velocity as f64,
             ceiling * top,
@@ -349,7 +364,10 @@ pub fn build_events(
             if get(state, c.channel, c.number) == c.value {
                 continue;
             }
-            state.entry(c.channel).or_default().insert(c.number, c.value);
+            state
+                .entry(c.channel)
+                .or_default()
+                .insert(c.number, c.value);
             // `owner` still has the note after its end, so this also changes
             // the volume of a tail that is dying out, like fluidsynth.
             for &(voice, n) in owner {
@@ -384,7 +402,13 @@ pub fn build_events(
     for (frame_no, in_frame) in &by_frame {
         // The frame's controllers go before sorting it, because the order
         // goes by the level each note starts with.
-        apply_controls(Some(*frame_no), &mut next_control, &mut state, &owner, &mut frames);
+        apply_controls(
+            Some(*frame_no),
+            &mut next_control,
+            &mut state,
+            &owner,
+            &mut frames,
+        );
         let levels: HashMap<usize, i64> = in_frame
             .iter()
             .map(|&n| {
@@ -402,7 +426,11 @@ pub fn build_events(
             // Before picking a voice: a note without a sample does not play,
             // and if it took the voice it would take the place of one that
             // does.
-            let source = if drums { bank.hit(note.pitch) } else { bank.melodic(program) };
+            let source = if drums {
+                bank.hit(note.pitch)
+            } else {
+                bank.melodic(program)
+            };
             let Some(source) = source else { continue };
 
             let step = pitch(&state, note, drums);
@@ -442,7 +470,12 @@ pub fn build_events(
             };
             let Some(voice) = voice else {
                 if let Some(a) = allocation.as_deref_mut() {
-                    a.push(Allotted { note: n, voice: None, stolen: None, end });
+                    a.push(Allotted {
+                        note: n,
+                        voice: None,
+                        stolen: None,
+                        end,
+                    });
                 }
                 continue;
             };
@@ -461,13 +494,26 @@ pub fn build_events(
                     ramps.push((t - 1, voice));
                 }
             }
-            holders.insert(voice, Held { note: n, end, tail, level: left + right });
+            holders.insert(
+                voice,
+                Held {
+                    note: n,
+                    end,
+                    tail,
+                    level: left + right,
+                },
+            );
             match owner.iter_mut().find(|(v, _)| *v == voice) {
                 Some(entry) => entry.1 = n,
                 None => owner.push((voice, n)),
             }
             if let Some(a) = allocation.as_deref_mut() {
-                a.push(Allotted { note: n, voice: Some(voice), stolen: None, end });
+                a.push(Allotted {
+                    note: n,
+                    voice: Some(voice),
+                    stolen: None,
+                    end,
+                });
                 owner_entry.insert(voice, a.len() - 1);
             }
 
@@ -476,7 +522,12 @@ pub fn build_events(
             // What the controllers were rewriting for the previous owner in
             // this frame no longer applies: this note writes its own, with
             // the same state.
-            for register in [sdsp::V_VOL_L, sdsp::V_VOL_R, sdsp::V_PITCH_L, sdsp::V_PITCH_H] {
+            for register in [
+                sdsp::V_VOL_L,
+                sdsp::V_VOL_R,
+                sdsp::V_PITCH_L,
+                sdsp::V_PITCH_H,
+            ] {
                 start.control.remove(&(base + register));
             }
             start.setup.push(NoteSetup {
@@ -506,11 +557,19 @@ pub fn build_events(
         if robbed.get(&n).is_some_and(|&t| t <= notes[n].end) {
             continue;
         }
-        frames.entry(notes[n].end).or_insert_with(Frame::default).release.push((voice, gain));
+        frames
+            .entry(notes[n].end)
+            .or_insert_with(Frame::default)
+            .release
+            .push((voice, gain));
     }
     // Ramps go after their frame's releases, to win over them.
     for (frame_no, voice) in ramps {
-        frames.entry(frame_no).or_default().release.push((voice, RAMP));
+        frames
+            .entry(frame_no)
+            .or_default()
+            .release
+            .push((voice, RAMP));
     }
     Ok(frames)
 }
