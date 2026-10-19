@@ -1,7 +1,11 @@
-//! A port's own files, in front of the game's: `patches/manual/files/`.
+//! A port's own files, in front of the game's: the RM2k folders of
+//! `patches/manual/`.
 //!
-//! **It is RM2k's own tree** —`Picture/`, `System/`, `CharSet/`…— and a
-//! file there **replaces the game's of the same name**: same folder, same
+//! **The hand-made patches are one folder per kind of asset**: RM2k's own
+//! —`Picture/`, `System/`, `CharSet/`…— and, for what RM2k keeps inside
+//! its map and database files and not as files of a folder, ours, named as
+//! Ditto's dump names them —[`OURS`]—. A file in one of RM2k's **replaces
+//! the game's of the same name**: same folder, same
 //! name without extension, both without regard to case, which is how RM2k
 //! looks a resource up (see `find_resource` in `rm2k-render`). So a
 //! `Picture/Menu.png` of ours hides the game's `picture/menu.bmp` too: if
@@ -71,6 +75,21 @@ pub const FOLDERS: &[&str] = &[
     "Frame",
     "System2",
 ];
+
+/// The folders of the hand-made patches that are not RM2k's: what RM2k
+/// keeps inside its `.lmu` and its database and not as files, named as
+/// Ditto's dump names it —`data/maps/`, `commonevents` in `data/db/`—. The
+/// converter reads them; nothing in them is a file of the game.
+pub const OURS: &[&str] = &["maps", "commonevents"];
+
+/// Whether `file`, inside one of RM2k's folders, is a database record and
+/// not a file of the game: a `NNNN.json`, the record of that id —a ChipSet
+/// in `ChipSet/`, with the recipe of its image—. RM2k has no JSON files,
+/// so the name cannot hide one of its own; the converter reads them.
+pub fn is_record(file: &str) -> bool {
+    file.strip_suffix(".json")
+        .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+}
 
 /// What the port's files did to the game.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -167,12 +186,20 @@ fn entry_like(directory: &Path, name: &str) -> Option<String> {
 }
 
 /// Our files, as (folder as written, file name), checked: only folders of
-/// [`FOLDERS`], only files inside them, and no two of ours with the same
-/// name in the same folder.
+/// [`FOLDERS`] —besides [`OURS`], which are skipped—, only files inside
+/// them, and no two of ours with the same name in the same folder. The
+/// records of [`is_record`] are not files of ours, and a `.md` at the root
+/// is the folder's README.
 fn ours(own: &Path) -> Result<Vec<(String, String)>, Error> {
     let mut out = Vec::new();
     for folder in names(own)? {
         let path = own.join(&folder);
+        if OURS.contains(&folder.as_str()) {
+            continue;
+        }
+        if path.is_file() && folder.ends_with(".md") {
+            continue;
+        }
         if !path.is_dir() {
             return Err(Error(format!(
                 "{}: only RM2k's folders go here —Picture/, System/…—, each with the files \
@@ -182,14 +209,19 @@ fn ours(own: &Path) -> Result<Vec<(String, String)>, Error> {
         }
         if !FOLDERS.iter().any(|f| f.eq_ignore_ascii_case(&folder)) {
             return Err(Error(format!(
-                "{}: {folder} is not one of RM2k's folders ({}), so it would replace nothing",
+                "{}: {folder} is not one of RM2k's folders ({}), so it would replace nothing, \
+                 nor one of ours ({})",
                 path.display(),
-                FOLDERS.join(", ")
+                FOLDERS.join(", "),
+                OURS.join(", ")
             )));
         }
         let mut seen = BTreeSet::new();
         for file in names(&path)? {
             let file_path = path.join(&file);
+            if is_record(&file) {
+                continue;
+            }
             if !file_path.is_file() {
                 return Err(Error(format!(
                     "{}: RM2k's folders have no folders inside",
@@ -209,10 +241,11 @@ fn ours(own: &Path) -> Result<Vec<(String, String)>, Error> {
     Ok(out)
 }
 
-/// Whether `own` has any file at all: without one the game is read as it
-/// is, and nothing is built.
+/// Whether `own` has any file of ours at all: without one the game is read
+/// as it is, and nothing is built. A folder that breaks the rules counts,
+/// so that [`merged`] says what is wrong with it.
 pub fn any(own: &Path) -> bool {
-    own.is_dir() && names(own).is_ok_and(|n| !n.is_empty())
+    own.is_dir() && ours(own).map_or(true, |files| !files.is_empty())
 }
 
 /// The game with our files on top, below `into`: built if it is not there.

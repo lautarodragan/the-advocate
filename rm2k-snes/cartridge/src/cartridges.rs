@@ -169,10 +169,12 @@ fn entries(directory: &Path) -> Result<Vec<String>, String> {
 }
 
 /// The maps the game does not have: `{id: tree node}` of each `MapNNNN.json`
-/// in the patches' `new/`. A map that does not exist has no node in the
-/// tree either, so each one brings its own, in its `tree` field.
+/// in the patches' `maps/` that brings a `tree` field. A map that does not
+/// exist has no node in the tree either, so each one brings its own; a fork
+/// of one of the game's brings none. That the two are what they say is
+/// checked by the converter, `fork.rs` in `rm2k-snes-convert`.
 fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
-    let folder = project.manual_patches()?.join("new");
+    let folder = project.manual_patches()?.join("maps");
     let mut found = BTreeMap::new();
     if !folder.is_dir() {
         return Ok(found);
@@ -187,6 +189,9 @@ fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
             .and_then(|n| n.parse::<i64>().ok())
             .ok_or_else(|| format!("{entry}: the name has to be MapNNNN"))?;
         let data = read_json(&folder.join(&entry))?;
+        if data.get("tree").is_none() {
+            continue;
+        }
         let node = data
             .get("tree")
             .filter(|n| n.get("id").and_then(Value::as_i64) == Some(id))
@@ -230,7 +235,7 @@ impl Cartridges {
         if new.len() > 1 || (with_debug_map && new.is_empty()) {
             return Err(format!(
                 "the debug map is the only new map in {}, and there are {}: {:?}",
-                p.manual_patches()?.join("new").display(),
+                p.manual_patches()?.join("maps").display(),
                 new.len(),
                 new.keys().collect::<Vec<_>>()
             ));
@@ -614,9 +619,9 @@ impl Cartridges {
         // Until 2026-10-02 the `.py` files of the tools went in here too,
         // when the converter was a Python program; the last of them left
         // that day, and the converter is among the binaries above.
-        // The hand-made patches. `files/` is a tree —RM2k's, with the files
-        // that replace the game's, see `own_files` in `rm2k-project`—, and
-        // each of them goes in with its name, in `fingerprint`: renaming one
+        // The hand-made patches. Their RM2k folders hold the files that
+        // replace the game's —see `own_files` in `rm2k-project`—, and each
+        // of them goes in with its name, in `fingerprint`: renaming one
         // changes which of the game's it replaces. They reach the converter
         // inside `--game-dir`, but a game that is a `.zip` goes in here as
         // the `.zip` alone.

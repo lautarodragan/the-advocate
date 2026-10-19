@@ -285,10 +285,11 @@ impl Project {
         Ok(self.patches()?.join("manual"))
     }
 
-    /// The port's own files, which replace the game's by name: RM2k's own
-    /// tree inside the hand-made patches. See [`crate::own_files`].
+    /// The port's own files, which replace the game's by name: the RM2k
+    /// folders of the hand-made patches, which are the hand-made patches
+    /// themselves. See [`crate::own_files`].
     pub fn own_files(&self) -> Result<PathBuf, Error> {
-        Ok(self.manual_patches()?.join("files"))
+        self.manual_patches()
     }
 
     /// What the converter decided and is versioned, inside the patches.

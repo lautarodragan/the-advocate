@@ -66,7 +66,7 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
         .join(name);
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("data")).unwrap();
-    fs::create_dir_all(dir.join("patches/manual/new")).unwrap();
+    fs::create_dir_all(dir.join("patches/manual/maps")).unwrap();
     fs::create_dir_all(dir.join("cases")).unwrap();
     fs::write(
         dir.join("rm2k-snes.toml"),
@@ -101,7 +101,7 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     )
     .unwrap();
     fs::write(
-        dir.join("patches/manual/new/Map0900.json"),
+        dir.join("patches/manual/maps/Map0900.json"),
         r#"{"id": 900, "tree": {"id": 900, "type": 1}}"#,
     )
     .unwrap();
@@ -140,7 +140,7 @@ fn the_maps_are_the_rule_the_added_ones_the_debug_map_and_the_test_ones() {
 #[test]
 fn a_game_without_a_debug_map_loads() {
     let dir = game("no-debug-map", RELEASE);
-    fs::remove_dir_all(dir.join("patches/manual/new")).unwrap();
+    fs::remove_dir_all(dir.join("patches/manual/maps")).unwrap();
     let text = fs::read_to_string(dir.join("rm2k-snes.toml")).unwrap();
     fs::write(
         dir.join("rm2k-snes.toml"),
@@ -397,7 +397,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-patches")));
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
-    assert!(files.contains(&dir.join("patches/manual/new/Map0900.json")));
+    assert!(files.contains(&dir.join("patches/manual/maps/Map0900.json")));
     // And the dump, which `just dump` rewrites when the game changes and
     // which can be edited by hand.
     assert!(files.contains(&dir.join("data/maps.json")));

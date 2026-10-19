@@ -177,7 +177,7 @@ impl Environment {
     /// is the only place that knows about the `.zip`: the lookups do not.
     ///
     /// **And puts the port's own files in front of the game's**: if the
-    /// project has `patches/manual/files/`, the game becomes the directory
+    /// RM2k folders of `patches/manual/` have files, the game becomes the directory
     /// [`own_files::merged`] builds —the game with ours on top—, and the
     /// same goes for the tools this one runs. A game that already is one,
     /// because whoever ran this tool built it, is kept as it comes.

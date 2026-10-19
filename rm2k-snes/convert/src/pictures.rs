@@ -117,7 +117,7 @@ impl Cropped {
             out.insert(name.to_lowercase(), pair);
         }
         // **A picture drawn for the console** is a port's own —see
-        // `patches/manual/files/`—, whose pixels already are the console's:
+        // `patches/manual/Picture/`—, whose pixels already are the console's:
         // scaled to four fifths, text drawn pixel by pixel loses its
         // strokes. It is shown at its size, with its centre where RM2k's
         // lands: see `show_picture` in `rm2k-snes-images`.

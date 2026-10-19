@@ -1,4 +1,4 @@
-//! A port's own files in front of the game's: `patches/manual/files/`,
+//! A port's own files in front of the game's: the RM2k folders of `patches/manual/`,
 //! merged by `Environment::unpack` into one directory every reader sees.
 
 use std::fs;
@@ -53,7 +53,7 @@ fn read(path: &Path) -> String {
 fn a_file_of_ours_replaces_the_games_by_name_without_regard_to_case_or_extension() {
     let dir = scratch("replaces");
     let (game, rtp) = layout(&dir);
-    write(&dir.join("patches/manual/files/Picture/MENU.png"), "ours");
+    write(&dir.join("patches/manual/Picture/MENU.png"), "ours");
     let mut e = environment(&game, &rtp);
     e.unpack(&project(&dir)).unwrap();
     let merged = e.game().unwrap().to_path_buf();
@@ -87,7 +87,7 @@ fn a_file_of_ours_replaces_the_games_by_name_without_regard_to_case_or_extension
     assert_eq!(again.own_files().unwrap().lines(), own.lines());
     // Changing our file is another directory, and the old one keeps ours.
     write(
-        &dir.join("patches/manual/files/Picture/MENU.png"),
+        &dir.join("patches/manual/Picture/MENU.png"),
         "ours, redrawn",
     );
     let mut changed = environment(&game, &rtp);
@@ -104,7 +104,7 @@ fn a_file_of_ours_replaces_the_games_by_name_without_regard_to_case_or_extension
 fn one_the_game_lacks_replaces_the_rtps() {
     let dir = scratch("rtp");
     let (game, rtp) = layout(&dir);
-    write(&dir.join("patches/manual/files/System/base.png"), "ours");
+    write(&dir.join("patches/manual/System/base.png"), "ours");
     let mut e = environment(&game, &rtp);
     e.unpack(&project(&dir)).unwrap();
     assert_eq!(read(&e.game().unwrap().join("System/base.png")), "ours");
@@ -117,9 +117,9 @@ fn one_the_game_lacks_replaces_the_rtps() {
 fn error_with(file: &str) -> String {
     let dir = scratch(&file.replace('/', "-"));
     let (game, rtp) = layout(&dir);
-    write(&dir.join("patches/manual/files").join(file), "ours");
+    write(&dir.join("patches/manual").join(file), "ours");
     if file == "Picture/Menu.bmp" {
-        write(&dir.join("patches/manual/files/Picture/Menu.png"), "ours");
+        write(&dir.join("patches/manual/Picture/Menu.png"), "ours");
     }
     environment(&game, &rtp)
         .unpack(&project(&dir))
@@ -155,8 +155,12 @@ fn two_of_ours_with_the_same_name_are_an_error() {
 fn without_files_the_game_is_read_as_it_is() {
     let dir = scratch("none");
     let (game, rtp) = layout(&dir);
-    // The other hand-made patches are not files of ours.
-    write(&dir.join("patches/manual/forks/Map0001.json"), "{}");
+    // The other hand-made patches are not files of ours: the maps, the
+    // common events, a database record in an RM2k folder, the README.
+    write(&dir.join("patches/manual/maps/Map0001.json"), "{}");
+    write(&dir.join("patches/manual/commonevents/0001.json"), "{}");
+    write(&dir.join("patches/manual/ChipSet/0053.json"), "{}");
+    write(&dir.join("patches/manual/README.md"), "#");
     let mut e = environment(&game, &rtp);
     e.unpack(&project(&dir)).unwrap();
     assert_eq!(e.game().unwrap(), game);

@@ -478,7 +478,7 @@ pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Res
         // goes first in the search, so one the game —or the port's own
         // files, which are inside the game's directory by now— or the RTP
         // already has would be covered without a word. Replacing a game's
-        // ChipSet is what `patches/manual/files/ChipSet/` is for.
+        // ChipSet is what an image in `patches/manual/ChipSet/` is for.
         let name = data["chipset"]["chipset_name"].as_str().unwrap_or("");
         if let Some(there) = find("ChipSet", name) {
             crate::stop!(
