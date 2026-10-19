@@ -801,6 +801,8 @@ follow_running:
     ; pose: the `UpdateFacing` of `OnFinishForegroundEvent`.
     lda ev_active
     bne no_end_turn
+    ; And the face goes with it: `OnFinishStackFrame`. See `face_forget`.
+    jsl f:face_forget
     lda f:TURN_EV
     cmp ev_running
     bne no_end_turn
@@ -2457,7 +2459,9 @@ with_page:
     ; WRAM's garbage at boot are nobody's. See common_events.s.
     lda #0
     sta f:call_depth
-    lda #1
+    ; And no face: `Game_Interpreter::Push`. See `face_forget`.
+    jsl f:face_forget
+    lda #1                      ; last: the callers branch on its Z
     sta ev_active
     rts
 seek_more:

@@ -1,8 +1,9 @@
 ; --- the face of a message box: `ChangeFaceGraphic` --------------------------
 ;
 ; RM2k keeps one face for the message window —`Game_System`'s, set by
-; `ChangeFaceGraphic`, cleared by one with no name— and draws it on every box
-; until it changes: 48x48 at (16, 16) of the window, or at the right edge,
+; `ChangeFaceGraphic`, cleared by one with no name and by the foreground
+; interpreter at each event's start and end (see `face_forget`)— and draws it
+; on every box until then: 48x48 at (16, 16) of the window, or at the right edge,
 ; with the text starting 72 pixels in when it is on the left. Here it is the
 ; same three things, each where it costs nothing new:
 ;
@@ -32,14 +33,17 @@
 ;
 ; Everything here is cold —a box opening— and lives in `FAR3`; bank 0 has
 ; the hooks: `op_face`, and a `jsl` in `msg_start`, `message_tick`,
-; `prime_line`, `flush_video`, `stamp_window_at` and the reset. A cartridge
+; `prime_line`, `flush_video`, `stamp_window_at`, the reset, and
+; `face_forget`'s in `start_waiting` and `events_tick`; `FAR` has the one in
+; `common_start`, and `FAR2` the one in `battle_run`. A cartridge
 ; whose game names no face carries `MESSAGE_FACES = 0` and an empty pointer
 ; table: the code assembles the same, and `MSG_FACE` stays at none.
 
 .pushseg
 .segment "FARBSS"
 ; The face RM2k's `Game_System` would hold: its place in `message_face_ptr`,
-; $FFFF for none, and whether it goes on the right. Reset clears them; they
+; $FFFF for none, and whether it goes on the right. Reset clears them, and
+; `face_forget` the face; they
 ; do not travel in the save (the divergence says so).
 MSG_FACE:       .res 2
 MSG_FACE_RIGHT: .res 1
@@ -143,6 +147,29 @@ FACE_PLANE_STEP = TEXT_WINDOW_ROWS * 32 - 6 * 32
     sta f:MSG_FACE_SHOWN
     sta f:MSG_FACE_PENDING
     sta f:MSG_FACE_HDMA
+    rtl
+.endproc
+
+; No face from here on, the box up keeping the one it opened with:
+; `Game_System::ClearMessageFace`. RM2k calls it when the foreground
+; interpreter starts an event and when it finishes one —`Push` and
+; `OnFinishStackFrame` in easyrpg's `game_interpreter.cpp`, both only with
+; `main_flag`, at the bottom of the stack and outside a battle—, and when a
+; battle starts —`Scene_Battle`'s constructor—. So a face lasts the event
+; that set it and no longer: a page that names none shows none, whatever
+; another page left. A parallel page's start and end do not clear it. From
+; `start_waiting`, `common_start`, the foreground loop in `events_tick` and
+; `battle_run`. Until 2026-10-19 only the reset and a `ChangeFaceGraphic`
+; with no name cleared it, and Zounds' save point and chests drew the face
+; of whichever page had last set one: see
+; `tasks/zounds-a-message-shows-a-face-it-should-not.md` in
+; the-advocate-work. A8; keeps X and Y.
+.proc face_forget
+.a8
+.i16
+    lda #$FF
+    sta f:MSG_FACE
+    sta f:MSG_FACE + 1
     rtl
 .endproc
 
