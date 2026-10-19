@@ -57,6 +57,12 @@ impl Npc {
         }
         out
     }
+
+    /// Whether only a route dresses it: none of its pages draws anything.
+    /// See `dressed_by_routes` in `events`.
+    pub fn dressed(&self) -> bool {
+        self.graphics.iter().all(Option::is_none)
+    }
 }
 
 /// The three frames of the walking cycle of `pose`'s direction: all an

@@ -45,7 +45,8 @@ brightness:  .res 1
 
 ; `FadeOutBGM`: if one is running, how much volume is left —from 65535 down to
 ; zero— and how much it drops per frame. The converter emits the step; see
-; `events.fade_step`.
+; `events.fade_step`. `bgm_fade` is 1 while it runs, and 2 while a song fades
+; in instead, its level going up by the step: see `bgm_fade_in_start`.
 bgm_fade: .res 1
 bgm_level:   .res 2
 bgm_step:    .res 2

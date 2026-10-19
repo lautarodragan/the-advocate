@@ -584,7 +584,8 @@ LOAD_DEFER: .res 1
 ;   theirs too: if it was fading out because of a `FadeOutBGM` —their
 ;   `music_stopping`— it does start from zero.
 ;
-; The second is `song_playing`, which is also what a `PlayBGM` asks.
+; The second is `song_playing`, which is also what a `PlayBGM` asks, and
+; then only its level changes, to the new map's: see `bgm_level_map_on`.
 ;
 ; If it has to change, it is silenced here, with the screen already black: the
 ; MSU-1 stops and the SPC700 releases the voices, as in `battle_bgm`.
@@ -596,13 +597,15 @@ LOAD_DEFER: .res 1
     cmp #SONG_TOTAL
     bcs nothing                 ; $FF, or one the cartridge does not carry
     jsr song_playing
-    bcs nothing                 ; it goes on
+    bcs goes_on
     pha
     jsr msu_stop
     lda #$FF
     jsr battle_bgm              ; silence: the voices release
     pla
     rts
+goes_on:
+    jsl f:bgm_level_map_on      ; X is still `fade_map`
 nothing:
     lda #$FF
     rts
@@ -871,9 +874,11 @@ on:
     ; it. It goes before any page of the new map runs, so a `PlayBGM` from an
     ; automatic event wins over it, which is RM2k's order: `Game_Map::PlayBgm`
     ; runs when the map is set up, before its events.
+    ; At the level of the map's properties: see `bgm_level_map`.
     lda f:MAP_SONG
     cmp #$FF
     beq made
+    jsl f:bgm_level_here
     jsr music_start
 made:
     stz fade_kind

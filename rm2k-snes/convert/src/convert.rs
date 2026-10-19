@@ -501,9 +501,86 @@ pub fn run(options: Options) -> Result<()> {
         .position(|&m| m == boot_map)
         .expect("the boot map stays");
     // The big pictures, which the cartridge carries once whatever map shows
-    // them.
-    let bigs: Vec<&[pictures::Big]> = infos.iter().map(|m| m.big_pictures.as_slice()).collect();
-    let (big_layers, big_tables) = pictures::number_big(&bigs);
+    // them. And last, so no map's numbers move, the ones the common events
+    // without a map show —the automatic and parallel ones, which run on any
+    // map—: a big picture is the same on every map, so their bodies show it
+    // wherever they run. See `common_pictures` in `rm2k-snes-events`.
+    //
+    // **Only a common event that shows one big picture at a time**: the
+    // layer holds one, and each one it shows takes the screen off to load.
+    // A body that stacks several —Desert Nightmare's picture menus, dozens
+    // under as many numbers, redrawn at every key— would show the last one
+    // alone, over black, after a run of black frames; it stays as it was,
+    // with its pictures not shown and the map under its keys. That is
+    // judged by the numbers: big pictures under two numbers can be up
+    // together, under one they cannot.
+    let mut common_bigs = Vec::new();
+    for c in scan_answer["commons_pictures"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
+        let n = c["common"].as_i64().unwrap_or(0);
+        let bigs = pictures::big_for_map(
+            &game.game_dir,
+            c["pictures"].as_array().map_or(&[][..], Vec::as_slice),
+            c["zooms"].as_array().map_or(&[][..], Vec::as_slice),
+            &format!("common event {n}"),
+            &game.cropped,
+            &|_| false,
+        )?;
+        let numbers: BTreeSet<i64> = bigs
+            .iter()
+            .filter_map(|b| b.key["number"].as_i64())
+            .collect();
+        if numbers.len() > 1 {
+            println!(
+                "  common event {n}: its {} big pictures are not shown: they are under {} \
+                 numbers, so they can be up together, and the layer holds one",
+                bigs.len(),
+                numbers.len()
+            );
+            continue;
+        }
+        common_bigs.extend(bigs);
+    }
+    let mut bigs: Vec<&[pictures::Big]> = infos.iter().map(|m| m.big_pictures.as_slice()).collect();
+    bigs.push(&common_bigs);
+    let (mut big_layers, mut big_tables) = pictures::number_big(&bigs);
+    // A byte names them: the common events' take what the maps leave of
+    // it, in the order they were met —they come last, so leaving one out
+    // moves no number before it—, and the rest are not shown, as before.
+    let kept: Vec<pictures::Big>;
+    if big_layers.len() > pictures::BIG_IMAGES {
+        let fits = |entry: &Value| {
+            entry["image"]
+                .as_u64()
+                .is_some_and(|i| (i as usize) < pictures::BIG_IMAGES)
+        };
+        kept = common_bigs
+            .iter()
+            .zip(big_tables.last().into_iter().flatten())
+            .filter(|(_, e)| fits(e))
+            .map(|(b, _)| b.clone())
+            .collect();
+        let left_out = common_bigs.len() - kept.len();
+        bigs.pop();
+        if pictures::number_big(&bigs).0.len() > pictures::BIG_IMAGES {
+            crate::stop!(
+                "the maps show more big pictures than the {} the cartridge's table names",
+                pictures::BIG_IMAGES
+            );
+        }
+        println!(
+            "  the common events: WARNING, {left_out} of their big pictures are not shown: with \
+             the maps' they pass the {} the cartridge's table names",
+            pictures::BIG_IMAGES
+        );
+        bigs.push(&kept);
+        (big_layers, big_tables) = pictures::number_big(&bigs);
+    }
+    pictures::say_big(&big_layers);
+    compiler.common_pictures = big_tables.pop().unwrap_or_default();
     for (m, table) in infos.iter_mut().zip(big_tables) {
         m.big_table = table;
     }

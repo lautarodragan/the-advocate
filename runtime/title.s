@@ -50,9 +50,13 @@ has:
     ; coming back from the load screen, does not go through `Start()`, and
     ; `Game_System::BgmPlay` with the same song already playing does not
     ; restart it. taro heard it on the console.
+    ;
+    ; At `title_music`'s level —ABL's asks for 90 and a tempo of 130—: see
+    ; `bgm_level_title`.
     lda #SONG_TITLE
     cmp #$FF
     beq mute
+    jsl f:bgm_level_title
     jsr music_start
 mute:
     jmp title_loop

@@ -133,7 +133,7 @@ clean:
 ; C at 1 if song A is the one playing and is not fading out; A is kept. It is
 ; the question `Game_System::BgmPlay` asks before touching anything: with the
 ; same name and no `FadeOutBGM` in between —its `music_stopping`— the song
-; goes on where it was. A `FadeOutBGM` that already reached zero left
+; goes on where it was. One fading **in** goes on too: `bgm_fade` at 2. A `FadeOutBGM` that already reached zero left
 ; `music_off` at 1, so that one starts over too, as in RM2k.
 ;
 ; "Is playing" is not only `music_off` at zero: with an MSU-1 track the
@@ -144,7 +144,8 @@ clean:
 .i16
     pha
     lda bgm_fade
-    bne no                      ; it was fading out: it starts over
+    cmp #1
+    beq no                      ; it was fading out: it starts over
     lda f:MSU_PLAYING
     bne plays
     lda music_off
@@ -180,9 +181,11 @@ other:
 .endproc
 
 ; Starts from the beginning the song whose index is in A, even if it is the
-; one playing, and as written: the title, a loaded game and a map's own song
-; want that. A `PlayBGM` goes through `music_play`, which starts it at its
-; level with `music_start_level`. The start of the stream carries the DSP
+; one playing, at the level in `BGM_ASK`: the title, a map's own song and a
+; loaded game want that, and each leaves its level there first —see
+; bgm_level.s—. A `PlayBGM` goes through `music_play`, which starts it with
+; `music_start_level` only if it is not playing. Until 2026-10-19 this
+; played the song as written, and only a `PlayBGM` had a level. The start of the stream carries the DSP
 ; setup —the volumes, the sample directory—.
 ;
 ; The cartridge has carried several songs since 2026-09-06, and the samples a
@@ -200,7 +203,8 @@ other:
 .proc music_start
 .a8
 .i16
-    jsl f:bgm_level_full
+    clc                         ; a song about to start: see `bgm_level_set`
+    jsl f:bgm_level_set
     ; falls through into music_start_level
 .endproc
 
@@ -225,7 +229,7 @@ other:
     sei
     lda #1
     sta music_off
-    stz bgm_fade
+    jsl f:bgm_fade_in_start     ; the track's, if it asked for one
     lda #$FF
     ldx #SE_KOF
     jsr dsp_pair                ; the eight voices release, and KOF stays set
@@ -266,8 +270,10 @@ no_track:
     ; which is also the loop back to the start of the song: a song that loops
     ; in the middle of a `FadeOutBGM` keeps fading out, as in RM2k. Until
     ; 2026-09-26 the loop cancelled it, because the start of the stream
-    ; restored the master volume, which was what the fade lowered.
-    stz bgm_fade
+    ; restored the master volume, which was what the fade lowered. And the
+    ; song's own fade-in, if it asked for one, starts here: see
+    ; `bgm_fade_in_start`.
+    jsl f:bgm_fade_in_start
     jsr music_start_done
     plp
     rts
@@ -332,6 +338,13 @@ no_track:
     lda bgm_level
     jsr level_factor
     sta f:FADE_BEFORE           ; the one the DSP has
+    sep #$20
+.a8
+    lda bgm_fade
+    cmp #2                      ; a fade-in
+    rep #$20                    ; `rep` does not touch Z
+.a16
+    beq rising
     lda bgm_level
     sec
     sbc bgm_step
@@ -349,50 +362,20 @@ low:
     stz bgm_fade
     lda #1
     sta music_off               ; the song is cut, like `BgmFade`
+    bra continues
+rising:
+    sep #$20
+.a8
+    jsl f:bgm_fade_rise         ; the fade-in: see bgm_level.s
 continues:
     lda f:MSU_PLAYING
     bne track
     jmp voices_refresh
 track:
-    ; With a track, the fade lowers **its** volume: the track's volume at the
-    ; `PlayBGM`'s gain —`MSU_BASE`, MSU_VOLUME_MAX as written— times the
-    ; level, over 256. **Not with the CPU's multiplier**: this runs in
-    ; `irq_music`, and the main code uses it in thirty places —the divider
-    ; shares the result register—; an interrupt between its write and its read
-    ; would change its result. Not with the PPU's either, which is eight-bit
-    ; signed and MSU_VOLUME_MAX does not fit. So by hand, one bit of the level
-    ; at a time, with `dsp_value` as scratch: it belongs to the music only.
-    rep #$20
-.a16
-    lda f:MSU_BASE
-    sta f:MSU_FACTOR            ; the loop adds it with `adc f:`: there is
-    sep #$20                    ; nowhere to keep a partial, and no `,s` here
-.a8
-    lda bgm_level + 1
-    sta dsp_value
-    ldx #8
-    rep #$20
-.a16
-    lda #0
-level_bit:
-    asl a
-    sep #$20
-.a8
-    asl dsp_value               ; sep and rep do not touch carry
-    rep #$20
-.a16
-    bcc no_add
-    clc
-    adc f:MSU_FACTOR
-no_add:
-    dex
-    bne level_bit
-    xba                         ; the product's high byte, that is, over 256
-    sep #$20
-.a8
-    sta MSU_VOLUME
-    cmp #0
-    bne ready_msu
+    ; With a track, the fade lowers **its** volume, outside bank 0 for
+    ; space: see `bgm_fade_track`.
+    jsl f:bgm_fade_track
+    bcc ready_msu
     jsr msu_stop                ; reached zero: the track is cut
 ready_msu:
     rts
@@ -670,11 +653,15 @@ quarter_squares:
     ; `music_off`. Without this the save would start with the song of the
     ; ROM's starting map, which is the opening's and not the one of the place
     ; where the player saved.
+    ;
+    ; And at the level it was playing at, which travels in the save: see
+    ; `bgm_level_saved`. The map's song, at the map's.
     lda slot
     cmp #$FF
     beq from_map                ; no slot loaded: the map's song
     lda music_off
     bne muted                   ; saved at a moment without music
+    jsl f:bgm_level_saved
     lda song_current
     jmp music_start
 from_map:
@@ -690,6 +677,7 @@ muted:
     ; `test_with_msu_the_title_track_does_not_go_on_into_the_game` catches it.
     jmp msu_stop
 plays:
+    jsl f:bgm_level_here        ; the boot map's level: `SONG_BOOT` is its song
     jmp music_start
 .endproc
 

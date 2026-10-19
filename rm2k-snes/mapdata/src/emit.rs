@@ -4307,6 +4307,31 @@ impl Rest<'_> {
                 0xFFFF
             }
         ));
+        // And the levels the two songs start a game with —gains, step and
+        // fade-in, as `OP_BGM` carries them—, which a `ChangeSystemBGM`
+        // changes: see `bgm_level_reset` in runtime/bgm_level.s. A request
+        // without them is the song as written.
+        for (name, prefix) in [
+            ("battle_music_level", "BA_SONG"),
+            ("battle_end_music_level", "BA_SONG_END"),
+        ] {
+            let level: Vec<i64> = audio
+                .and_then(|a| a.get(name))
+                .and_then(Value::as_array)
+                .map(|l| l.iter().filter_map(Value::as_i64).collect())
+                .filter(|l: &Vec<i64>| l.len() == 6)
+                .unwrap_or_else(|| vec![128, 128, 0, 1, 0, 0]);
+            let word = |i: usize| level[i] | level[i + 1] << 8;
+            out.push_str(&pyf!(
+                "%-18s= $%04X\n%-18s= $%04X\n%-18s= $%04X\n",
+                format!("{prefix}_GAINS"),
+                word(0),
+                format!("{prefix}_STEP"),
+                word(2),
+                format!("{prefix}_FADE"),
+                word(4)
+            ));
+        }
         for (name, constant) in [
             ("dodge_se", "BA_SE_MISS"),
             ("enemy_attack_se", "BA_SE_ATTACK"),

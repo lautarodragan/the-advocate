@@ -442,12 +442,11 @@ ready:
     sta BA_RESULT
     lda #BA_MSG_VICTORY
     sta BA_MTYPE
-    ; `Scene_Battle_Rpg2k`'s `BGM_Victory`. In ABL it is **the same song as
-    ; the battle's** —both LDB fields say T_VGFighterMAX_Masako— so in
-    ; practice it starts over; that they are two constants and not one is
-    ; because the data is the game's and not ours.
-    lda #BA_SONG_END
-    jsl f:ba_t_bgm
+    ; `Scene_Battle_Rpg2k`'s `BGM_Victory`: the database's, or the last
+    ; `ChangeSystemBGM`'s. Games usually give it the battle's song —ABL's
+    ; database and every pair of its `ChangeSystemBGM`s do—, and then it goes
+    ; on, as with a `PlayBGM` of the song that plays.
+    jsl f:ba_t_victory_bgm
     jsr ba_vic_start
     jsr ba_show
     lda #BA_M_END
