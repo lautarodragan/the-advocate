@@ -614,7 +614,12 @@ impl Cartridges {
         // Until 2026-10-02 the `.py` files of the tools went in here too,
         // when the converter was a Python program; the last of them left
         // that day, and the converter is among the binaries above.
-        // The hand-made patches.
+        // The hand-made patches. `files/` is a tree —RM2k's, with the files
+        // that replace the game's, see `own_files` in `rm2k-project`—, and
+        // each of them goes in with its name, in `fingerprint`: renaming one
+        // changes which of the game's it replaces. They reach the converter
+        // inside `--game-dir`, but a game that is a `.zip` goes in here as
+        // the `.zip` alone.
         let manual = self.project.manual_patches()?;
         let mut patches = Vec::new();
         if manual.is_dir() {
@@ -625,6 +630,8 @@ impl Cartridges {
                         let path = directory.join(file);
                         if path.is_file() {
                             patches.push(path);
+                        } else if path.is_dir() {
+                            patches.extend(files_below(&path)?);
                         }
                     }
                 }
@@ -694,11 +701,15 @@ impl Cartridges {
     pub fn fingerprint(&self) -> Result<String, String> {
         let mut h = Sha256::new();
         let game = self.environment.game()?;
+        let own = self.project.own_files()?;
         for path in self.fingerprint_files(&self.runtime)? {
             // A game's file goes in with its name too: renaming a resource
-            // changes which one a lookup finds.
+            // changes which one a lookup finds. And so does one of the
+            // port's own, which replaces the game's by name.
             if let Ok(name) = path.strip_prefix(game) {
                 h.update(format!("game {}\n", name.display()));
+            } else if let Ok(name) = path.strip_prefix(&own) {
+                h.update(format!("own {}\n", name.display()));
             }
             // A `.zip` by the hash `unpack` already took, and not read twice:
             // it is the biggest file here.

@@ -26,6 +26,7 @@
 pub mod archive;
 pub mod cache;
 pub mod environment;
+pub mod own_files;
 mod paths;
 mod project;
 mod resolved;

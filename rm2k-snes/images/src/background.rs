@@ -83,7 +83,9 @@ pub struct Background {
 /// `picture` —as RM2k draws it— centred at `(cx, cy)` of RM2k's screen at
 /// `zoom` percent, as a layer that fits `room`; `None` if not even cut to
 /// the screen do its tiles fit. With `crop`, the console's screen cut out
-/// of it from that pixel instead, unscaled.
+/// of it from that pixel instead, unscaled; with `for_console`, the
+/// picture unscaled where its centre lands —see [`crate::show_picture`]—.
+#[allow(clippy::too_many_arguments)]
 pub fn convert(
     picture: &Picture,
     cx: i64,
@@ -91,6 +93,7 @@ pub fn convert(
     screens: Screens,
     zoom: i64,
     crop: Option<(i64, i64)>,
+    for_console: bool,
     room: Room,
 ) -> crate::Result<Option<Background>> {
     if !(1..=100).contains(&zoom) {
@@ -115,6 +118,16 @@ pub fn convert(
                 )));
             }
             (-left, -top, pw, ph, picture.clone())
+        }
+        None if for_console => {
+            if zoom != 100 {
+                return Err(crate::Bad::answer(format!(
+                    "a picture drawn for the console at {zoom}% zoom: zooming it would scale it"
+                )));
+            }
+            let (pw, ph) = (picture.width as i64, picture.height as i64);
+            let (x, y, w, h) = screens.place_unscaled(pw, ph, cx, cy);
+            (x, y, w, h, picture.clone())
         }
         None => {
             let (zw, zh) = (
@@ -345,13 +358,45 @@ mod tests {
         p
     }
 
+    /// Drawn for the console, the layer keeps the picture's pixels: an 88x56
+    /// at RM2k's (160, 120) from the console's (84, 84), each column of
+    /// stripes where it was.
+    #[test]
+    fn drawn_for_the_console_the_layer_is_not_scaled() {
+        let picture = stripes(88, 56, 4);
+        let layer = convert(&picture, 160, 120, SCREENS, 100, None, true, ROOM)
+            .unwrap()
+            .unwrap();
+        assert_eq!(layer.center, (84 + 44, 84 + 28));
+        let colour = |x: usize, y: usize| layer.pixels[y * 256 + x];
+        assert_eq!(colour(83, 100), 0, "left of the picture, nothing");
+        for x in 0..88 {
+            assert_eq!(
+                colour(84 + x, 84),
+                colour(84 + x % 4, 84 + 55),
+                "column {x}"
+            );
+        }
+        assert_ne!(colour(84, 84), colour(85, 84));
+        assert!(convert(&picture, 160, 120, SCREENS, 50, None, true, ROOM).is_err());
+    }
+
     #[test]
     fn a_picture_inside_the_screen_leaves_the_rest_blank() {
         // 80x60 of RM2k's, in the middle: 64x56 of the console's, from
         // (96, 84).
-        let layer = convert(&stripes(80, 60, 4), 160, 120, SCREENS, 100, None, ROOM)
-            .unwrap()
-            .unwrap();
+        let layer = convert(
+            &stripes(80, 60, 4),
+            160,
+            120,
+            SCREENS,
+            100,
+            None,
+            false,
+            ROOM,
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!((layer.top, layer.rows, layer.columns), (0, 28, 32));
         assert!(!layer.wider);
         assert_eq!(layer.tilemap.len(), 28 * 32);
@@ -367,9 +412,18 @@ mod tests {
     fn a_taller_picture_keeps_what_hangs_past_the_screen() {
         // 320x300 centred at (160, 150): its rows go past the bottom, and a
         // `MovePicture` can bring them up.
-        let layer = convert(&stripes(320, 300, 2), 160, 150, SCREENS, 100, None, ROOM)
-            .unwrap()
-            .unwrap();
+        let layer = convert(
+            &stripes(320, 300, 2),
+            160,
+            150,
+            SCREENS,
+            100,
+            None,
+            false,
+            ROOM,
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(layer.top, 0);
         assert_eq!(layer.rows, 35, "280 of the console's lines");
         assert!(!layer.wider);
@@ -391,16 +445,18 @@ mod tests {
         // 400 of RM2k's lines are 373 of the console's, 47 rows of cells
         // and 47 tiles: they do not fit in 40, and the screen's 28 do.
         let room = Room { tiles: 40, ..ROOM };
-        let layer = convert(&ramp(400, 400), 160, 120, SCREENS, 100, None, room)
+        let layer = convert(&ramp(400, 400), 160, 120, SCREENS, 100, None, false, room)
             .unwrap()
             .unwrap();
         assert_eq!((layer.top, layer.rows), (0, 28));
         assert!(layer.wider, "400 of RM2k's pixels go past both sides");
         // And in ten, not even the screen.
         let room = Room { tiles: 10, ..ROOM };
-        assert!(convert(&ramp(400, 400), 160, 120, SCREENS, 100, None, room)
-            .unwrap()
-            .is_none());
+        assert!(
+            convert(&ramp(400, 400), 160, 120, SCREENS, 100, None, false, room)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
@@ -415,7 +471,7 @@ mod tests {
                 p.rgba[at..at + 4].copy_from_slice(&[255, 255, 255, 255]);
             }
         }
-        let layer = convert(&p, 160, 120, SCREENS, 100, Some((8, 16)), ROOM)
+        let layer = convert(&p, 160, 120, SCREENS, 100, Some((8, 16)), false, ROOM)
             .unwrap()
             .unwrap();
         assert_eq!((layer.top, layer.rows, layer.columns), (0, 28, 32));
@@ -426,7 +482,7 @@ mod tests {
         assert_eq!(drawn, [32 + 2], "only the cell at (16, 8)");
         assert_eq!(layer.tile_count, 2, "the blank tile and the square");
         // Wherever the `ShowPicture` puts it, the crop is the same.
-        let elsewhere = convert(&p, 40, 200, SCREENS, 100, Some((8, 16)), ROOM)
+        let elsewhere = convert(&p, 40, 200, SCREENS, 100, Some((8, 16)), false, ROOM)
             .unwrap()
             .unwrap();
         assert_eq!(elsewhere.tilemap, layer.tilemap);
@@ -435,10 +491,10 @@ mod tests {
     #[test]
     fn a_crop_has_to_fit_the_picture_and_be_at_its_size() {
         let p = stripes(320, 240, 2);
-        let past = convert(&p, 160, 120, SCREENS, 100, Some((65, 0)), ROOM);
+        let past = convert(&p, 160, 120, SCREENS, 100, Some((65, 0)), false, ROOM);
         assert!(past.is_err(), "256 from 65 goes past 320");
-        let zoomed = convert(&p, 160, 120, SCREENS, 50, Some((0, 0)), ROOM);
+        let zoomed = convert(&p, 160, 120, SCREENS, 50, Some((0, 0)), false, ROOM);
         assert!(zoomed.is_err(), "a crop is of the file's pixels");
-        assert!(convert(&p, 160, 120, SCREENS, 100, Some((64, 16)), ROOM).is_ok());
+        assert!(convert(&p, 160, 120, SCREENS, 100, Some((64, 16)), false, ROOM).is_ok());
     }
 }

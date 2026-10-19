@@ -23,6 +23,14 @@
 //!   its zoom. Where it lands is then the console's, at run time, and the
 //!   corner answered is relative to its centre.
 //!
+//! **Unless it was drawn for the console** —a port's own picture, which
+//! the project names in `[graphics] console_pictures`—: then it is not
+//! scaled at all, since its pixels already are the console's, and it lands
+//! with its centre where RM2k's centre lands. Its size on RM2k's screen,
+//! which the runtime places it by, is [`Screens::rm_size`]. Text drawn
+//! pixel by pixel does not survive a scale of four fifths: its strokes are
+//! one pixel wide.
+//!
 //! And a picture with its transparent colour —or with pixels its file
 //! leaves transparent— keeps them as index 0: a pixel is the picture's if
 //! the scaled alpha reaches half, as with a battler.
@@ -56,6 +64,36 @@ impl Screens {
     /// go through the same arithmetic and the size is their difference;
     /// scaling the size on its own gives a pixel less on some pictures,
     /// and the two ends of the picture would not meet the comparison.
+    /// The size on RM2k's screen of a picture drawn at `width` x `height`
+    /// of the console's: what the runtime takes the half of to place it,
+    /// as with any other. Rounded down, and the conversion goes through the
+    /// same arithmetic, so both agree on the corner.
+    pub fn rm_size(&self, width: i64, height: i64) -> (i64, i64) {
+        (
+            (width * self.rm.0).div_euclid(self.console.0),
+            (height * self.rm.1).div_euclid(self.console.1),
+        )
+    }
+
+    /// Where a picture drawn for the console, `width` x `height` of its
+    /// pixels, centred at `(cx, cy)` of RM2k's screen lands: `(x, y, width,
+    /// height)`, the corner the runtime computes from its RM2k size.
+    pub fn place_unscaled(
+        &self,
+        width: i64,
+        height: i64,
+        cx: i64,
+        cy: i64,
+    ) -> (i64, i64, i64, i64) {
+        let (rw, rh) = self.rm_size(width, height);
+        (
+            self.x(cx - rw.div_euclid(2)),
+            self.y(cy - rh.div_euclid(2)),
+            width,
+            height,
+        )
+    }
+
     pub fn place(&self, width: i64, height: i64, cx: i64, cy: i64) -> (i64, i64, i64, i64) {
         let (x0, y0) = (cx - width.div_euclid(2), cy - height.div_euclid(2));
         let (ex0, ey0) = (self.x(x0), self.y(y0));
@@ -127,6 +165,8 @@ pub struct Shown {
     pub map_fixed: bool,
     /// From what alpha a pixel is the picture's.
     pub alpha_min: u8,
+    /// Whether it was drawn for the console, and is not scaled.
+    pub for_console: bool,
 }
 
 impl Shown {
@@ -136,6 +176,7 @@ impl Shown {
         zoom: 100,
         map_fixed: false,
         alpha_min: 128,
+        for_console: false,
     };
 }
 
@@ -162,7 +203,14 @@ pub fn convert_shown(
     shown: Shown,
 ) -> crate::Result<Converted> {
     let opaque = picture.rgba.chunks_exact(4).all(|p| p[3] == 255);
-    if shown.zoom == 100 && !shown.map_fixed && opaque {
+    if shown.for_console && (shown.zoom != 100 || shown.map_fixed) {
+        return Err(crate::Bad::answer(
+            "a picture drawn for the console is shown at its size and with the screen: \
+             zooming it or fixing it to the map would scale it"
+                .to_string(),
+        ));
+    }
+    if shown.zoom == 100 && !shown.map_fixed && opaque && !shown.for_console {
         return convert(picture, cx, cy, screens, colors);
     }
     if !(1..=100).contains(&shown.zoom) {
@@ -175,7 +223,9 @@ pub fn convert_shown(
         zoomed(picture.width as i64, shown.zoom),
         zoomed(picture.height as i64, shown.zoom),
     );
-    let (x, y, w, h) = if shown.map_fixed {
+    let (x, y, w, h) = if shown.for_console {
+        screens.place_unscaled(zw, zh, cx, cy)
+    } else if shown.map_fixed {
         (-zw.div_euclid(2), -zh.div_euclid(2), zw, zh)
     } else {
         screens.place(zw, zh, cx, cy)
@@ -187,7 +237,11 @@ pub fn convert_shown(
         )));
     }
     let (width, height) = (w as usize, h as usize);
-    let scaled = scaled_rgba(picture, width, height);
+    let scaled = if shown.for_console {
+        picture.clone()
+    } else {
+        scaled_rgba(picture, width, height)
+    };
     let pixels: Vec<Option<Color>> = scaled
         .rgba
         .chunks_exact(4)
@@ -280,6 +334,38 @@ mod tests {
         assert_eq!((c.width, c.height), (32, 63));
         // RM2k's origin is half the size, rounded down: 32 / 2 and 63 / 2.
         assert_eq!((c.x, c.y), (-16, -31));
+    }
+
+    /// Drawn for the console, a picture keeps every pixel and lands with
+    /// its centre where RM2k's lands: an 88x56 at RM2k's (160, 120) is the
+    /// 110x60 RM2k would scale to it, with its corner at (84, 84).
+    #[test]
+    fn drawn_for_the_console_it_is_not_scaled() {
+        let mut p = Picture::transparent(88, 56);
+        for (i, px) in p.rgba.chunks_exact_mut(4).enumerate() {
+            let v = if (i % 88 + i / 88) % 2 == 0 { 255 } else { 0 };
+            px.copy_from_slice(&[v, v, v, 255]);
+        }
+        let shown = Shown {
+            for_console: true,
+            ..Shown::PLAIN
+        };
+        assert_eq!(SCREENS.rm_size(88, 56), (110, 60));
+        let c = convert_shown(&p, 160, 120, SCREENS, 15, shown).unwrap();
+        assert_eq!((c.x, c.y, c.width, c.height), (84, 84, 88, 56));
+        assert_eq!(SCREENS.place(110, 60, 160, 120), (84, 84, 88, 56));
+        // A checkerboard of two colours, every pixel of it: scaled, it
+        // would be grey.
+        assert_eq!(c.palette.len(), 2);
+        let (even, odd) = (c.indices[0][0], c.indices[0][1]);
+        assert_ne!(even, odd);
+        for (y, row) in c.indices.iter().enumerate() {
+            for (x, &i) in row.iter().enumerate() {
+                assert_eq!(i, if (x + y) % 2 == 0 { even } else { odd });
+            }
+        }
+        let zoomed = Shown { zoom: 50, ..shown };
+        assert!(convert_shown(&p, 160, 120, SCREENS, 15, zoomed).is_err());
     }
 
     /// Plain and opaque, it is the road there always was.

@@ -115,8 +115,15 @@ pub fn run(options: Options) -> Result<()> {
     let project = Project::locate(options.project.as_deref())?;
     let settings = Settings { project: &project };
     let mut environment = options.environment.clone();
-    // A `.zip` game or RTP, as a directory from here on: see `unpack`.
+    // A `.zip` game or RTP, as a directory from here on, and the game with
+    // the port's own files on top: see `unpack`.
     environment.unpack(&project)?;
+    if let Some(own) = environment.own_files() {
+        println!("The port's own files, in front of the game's:");
+        for line in own.lines() {
+            println!("  {line}");
+        }
+    }
     let order = options.map_order();
     if !(0 <= options.start_index && (options.start_index as usize) < order.len()) {
         crate::stop!(

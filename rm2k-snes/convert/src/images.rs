@@ -57,6 +57,7 @@ pub fn picture(
     colors: i64,
     zoom: i64,
     map_fixed: bool,
+    for_console: bool,
 ) -> Result<Value> {
     let mut request = json!({
         "file": file(path), "use_transparent_color": use_transparent_color,
@@ -70,6 +71,9 @@ pub fn picture(
     }
     if map_fixed {
         request["map_fixed"] = json!(true);
+    }
+    if for_console {
+        request["for_console"] = json!(true);
     }
     answer("picture", &request, &[])
 }
@@ -85,6 +89,7 @@ pub fn background(
     cy: i64,
     zoom: i64,
     crop: Option<(i64, i64)>,
+    for_console: bool,
     palettes: i64,
     first_palette: i64,
     tiles: i64,
@@ -101,6 +106,9 @@ pub fn background(
     // always was.
     if let Some((x, y)) = crop {
         request["crop"] = json!([x, y]);
+    }
+    if for_console {
+        request["for_console"] = json!(true);
     }
     // The same for the texture, which only a picture that zooms asks for.
     if mode7 {

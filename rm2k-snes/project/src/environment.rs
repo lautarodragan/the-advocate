@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use clap::{Arg, ArgMatches};
 
 use crate::archive;
+use crate::own_files::{self, OwnFiles};
 use crate::paths::absolute;
 use crate::{Error, Project};
 
@@ -99,6 +100,9 @@ pub struct Environment {
     /// The values that came as a `.zip`, with its content hash, once
     /// [`Environment::unpack`] put their unpacked copy in `values`.
     archives: BTreeMap<&'static str, (PathBuf, String)>,
+    /// The port's own files, once [`Environment::unpack`] put them in front
+    /// of the game's.
+    own_files: Option<OwnFiles>,
 }
 
 /// The values that can be a `.zip`: the ones the resources are read from.
@@ -171,6 +175,12 @@ impl Environment {
     /// the tools this one runs receive the directory. Every tool that reads
     /// the game or the RTP calls this right after reading its flags, and it
     /// is the only place that knows about the `.zip`: the lookups do not.
+    ///
+    /// **And puts the port's own files in front of the game's**: if the
+    /// project has `patches/manual/files/`, the game becomes the directory
+    /// [`own_files::merged`] builds —the game with ours on top—, and the
+    /// same goes for the tools this one runs. A game that already is one,
+    /// because whoever ran this tool built it, is kept as it comes.
     pub fn unpack(&mut self, project: &Project) -> Result<(), Error> {
         for name in PACKABLE {
             let Some(value) = self.values.get(name).cloned() else {
@@ -184,7 +194,42 @@ impl Environment {
             self.values.insert(name, directory);
             self.archives.insert(name, (value, hash));
         }
+        let Some(game) = self.values.get("game_dir").cloned() else {
+            return Ok(());
+        };
+        if let Some(already) = OwnFiles::read(&game)? {
+            self.own_files = Some(already);
+            return Ok(());
+        }
+        // A project without `[paths] patches` has no files of its own.
+        let Ok(own) = project.own_files() else {
+            return Ok(());
+        };
+        if !own_files::any(&own) {
+            return Ok(());
+        }
+        let identity = self
+            .archives
+            .get("game_dir")
+            .map(|(_, hash)| hash.clone())
+            .unwrap_or_default();
+        let rtp = self.values.get("rtp_dir").cloned();
+        let merged = own_files::merged(
+            &game,
+            &identity,
+            &own,
+            rtp.as_deref(),
+            &self.cache(project)?.join("own-files"),
+        )?;
+        self.values.insert("game_dir", merged.directory.clone());
+        self.own_files = Some(merged);
         Ok(())
+    }
+
+    /// What the port's own files replaced in the game, if it has any: see
+    /// [`Self::unpack`].
+    pub fn own_files(&self) -> Option<&OwnFiles> {
+        self.own_files.as_ref()
     }
 
     /// The `.zip` a value came as, and its content hash, if it came as one
