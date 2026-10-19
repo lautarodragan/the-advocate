@@ -32,10 +32,12 @@
 //! The pixels are `rm2k-snes-images`'.
 
 use crate::fail::{Result, Stop};
+use crate::game::GameMap;
 use crate::images;
 use rm2k_project::Project;
+use rm2k_snes_events::codes::{SHOW_PICTURE, TINT_SCREEN};
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 /// RM2k's screen and the console's.
@@ -291,12 +293,16 @@ fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
 /// done. The ones a move of the map zooms —`zooms`, as the scan wrote it
 /// down— carry a mode 7 texture too, if they leave room for it. `whose` is
 /// who shows them, for the log: "map 12", or "the common events".
+///
+/// With `small`, the ones it says of the rest too, which would go in the
+/// sprites: see [`over_black`].
 pub fn big_for_map(
     game_dir: &Path,
     keys: &[Value],
     zooms: &[Value],
     whose: &str,
     cropped: &Cropped,
+    small: &dyn Fn(&Value) -> bool,
 ) -> Result<Vec<Big>> {
     let mut out = Vec::new();
     for key in keys {
@@ -304,7 +310,7 @@ pub fn big_for_map(
         let Some(path) = path_of(game_dir, name) else {
             continue;
         };
-        if !is_big(&path, key, cropped)? {
+        if !is_big(&path, key, cropped)? && !small(key) {
             continue;
         }
         let (cx, cy) = big_center(key);
@@ -347,6 +353,50 @@ pub fn big_for_map(
         });
     }
     Ok(out)
+}
+
+/// The pictures `map`'s pages show **over a black screen**, by number and
+/// name in lowercase: a `ShowPicture` after a `TintScreen` to black in its
+/// page —red, green and blue at 0—, with no other tint between them; placed
+/// by a constant and with the screen, which is how the background layer
+/// draws it.
+///
+/// Those can go in the background layer when the map has no room for them
+/// in its sprites: the layer hides the map and its characters, which over
+/// black are not seen anyway, and its transparency darkens, which over
+/// black is exact. The Book of Three's ending does it: it tints map 69 and
+/// map 72 black and shows its credits and its quotes there, centred, fading
+/// in and out, and the maps' tiles leave no room for them in the sprites.
+/// A tint before the page —the map entered black, another page's— is not
+/// seen: the rule only takes what it can be sure of.
+pub fn over_black(map: &GameMap) -> BTreeSet<(i64, String)> {
+    let mut out = BTreeSet::new();
+    for event in &map.events {
+        for page in &event.pages {
+            let mut black = false;
+            for c in &page.commands {
+                let p = &c.parameters;
+                match c.code {
+                    TINT_SCREEN if p.len() >= 3 => black = p[..3] == [0, 0, 0],
+                    SHOW_PICTURE if black && p.len() >= 5 && p[1] == 0 && p[4] == 0 => {
+                        out.insert((p[0] as i64, c.string.to_lowercase()));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Whether the key, as the scan answers it, is one of [`over_black`]'s.
+pub fn shown_over_black(key: &Value, black: &BTreeSet<(i64, String)>) -> bool {
+    !truthy(&key["by_variable"])
+        && !truthy(&key["map_fixed"])
+        && black.contains(&(
+            int(&key["number"]),
+            key["name"].as_str().unwrap_or("").to_lowercase(),
+        ))
 }
 
 /// Whether a layer carries a mode 7 texture.
@@ -797,6 +847,87 @@ mod tests {
 
     fn project(graphics: &str) -> Project {
         Project::from_text(Path::new("/nowhere"), &format!("[graphics]\n{graphics}\n")).unwrap()
+    }
+
+    /// The Book of Three's map 72, shrunk: the screen tinted black, two
+    /// quotes shown over it; then the tint back and one more, which is not
+    /// over black; and in another page one by a variable after its own
+    /// black tint, which the layer cannot place.
+    #[test]
+    fn the_pictures_over_black_are_the_ones_after_a_black_tint_in_their_page() {
+        use crate::game::{Command, Event, Page};
+        let c = |code: i32, string: &str, parameters: &[i32]| Command {
+            code,
+            indent: 0,
+            string: string.to_string(),
+            parameters: parameters.to_vec(),
+        };
+        let show = |name: &str, by_variable: i32| {
+            c(
+                SHOW_PICTURE,
+                name,
+                &[
+                    20,
+                    by_variable,
+                    160,
+                    120,
+                    0,
+                    100,
+                    100,
+                    1,
+                    100,
+                    100,
+                    100,
+                    100,
+                    0,
+                    0,
+                ],
+            )
+        };
+        let page = |commands: Vec<Command>| Page {
+            id: 1,
+            character_name: String::new(),
+            dump_name: String::new(),
+            character_index: 0,
+            direction: 2,
+            pattern: 1,
+            layer: 0,
+            animation_type: 0,
+            commands,
+        };
+        let black = c(TINT_SCREEN, "", &[0, 0, 0, 100, 50, 1]);
+        let map = GameMap {
+            id: 72,
+            chipset_id: 1,
+            width: 20,
+            height: 15,
+            events: vec![Event {
+                id: 4,
+                x: 0,
+                y: 0,
+                pages: vec![
+                    page(vec![
+                        show("Before", 0),
+                        black.clone(),
+                        show("Quote1", 0),
+                        show("quote2", 0),
+                        c(TINT_SCREEN, "", &[100, 100, 100, 100, 50, 1]),
+                        show("After", 0),
+                    ]),
+                    page(vec![black, show("Placed", 1)]),
+                ],
+            }],
+            lower_layer: Vec::new(),
+            upper_layer: Vec::new(),
+            twins: Vec::new(),
+        };
+        let found = over_black(&map);
+        assert_eq!(
+            found,
+            BTreeSet::from([(20, "quote1".to_string()), (20, "quote2".to_string())])
+        );
+        let key = json!({"number": 20, "name": "QUOTE1", "by_variable": false, "map_fixed": false});
+        assert!(shown_over_black(&key, &found));
     }
 
     #[test]

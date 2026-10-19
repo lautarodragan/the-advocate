@@ -247,6 +247,10 @@ pub struct Prepared {
     /// See [`crate::common_pages`].
     pub pictures_own: Option<Option<ForMap>>,
     pub big_pictures: Vec<Big>,
+    /// The small pictures the map shows over a black screen, as big ones:
+    /// what goes in the background layer if the sprites have no room for the
+    /// map's pictures. See [`pictures::over_black`].
+    pub big_over_black: Vec<Big>,
     pub request: Value,
 }
 
@@ -443,7 +447,30 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         &zooms,
         &format!("map {map_id}"),
         &game.cropped,
+        &|_| false,
     )?;
+    // And the small ones the map shows over a black screen, in the
+    // background layer too: what goes in if the sprites have no room for
+    // the map's pictures. See [`pictures::over_black`].
+    let black = pictures::over_black(&map);
+    let big_over_black = if black.is_empty() {
+        Vec::new()
+    } else {
+        let already: Vec<&Value> = big_pictures.iter().map(|b| &b.key).collect();
+        let small: Vec<Value> = keys
+            .iter()
+            .filter(|k| pictures::shown_over_black(k, &black) && !already.contains(k))
+            .cloned()
+            .collect();
+        pictures::big_for_map(
+            &game.game_dir,
+            &small,
+            &zooms,
+            &format!("map {map_id}"),
+            &game.cropped,
+            &|_| true,
+        )?
+    };
     let shows_animation =
         animations.map_shows_animation(game, map.all_commands(), &case_commands)?;
     let mut triples = Vec::new();
@@ -523,6 +550,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         pictures,
         pictures_own,
         big_pictures,
+        big_over_black,
         request,
     })
 }
@@ -886,6 +914,30 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         }
         _ => None,
     };
+    // If it found none, the ones the map shows over a black screen go in
+    // the background layer instead: see [`pictures::over_black`]. If that
+    // is all of them, the map loses none.
+    let mut big_pictures = p.big_pictures;
+    if let (Some(asked), None, false) = (went_in, &pictures, p.big_over_black.is_empty()) {
+        let names = |keys: &mut dyn Iterator<Item = &Value>| -> BTreeSet<String> {
+            keys.filter_map(|k| k["name"].as_str())
+                .map(str::to_lowercase)
+                .collect()
+        };
+        let rescued = names(&mut p.big_over_black.iter().map(|b| &b.key));
+        let lost = names(&mut asked.table.iter());
+        println!(
+            "  map {map_id}: the pictures {} are shown in the background layer instead, over the \
+             black screen they are shown on",
+            crate::text::repr(&rescued.iter().cloned().collect::<Vec<_>>().join(", "))
+        );
+        if lost.is_subset(&rescued) {
+            losses.retain(|(kind, text, _)| {
+                kind != "pictures-not-drawn" || text.contains("the common events' pictures")
+            });
+        }
+        big_pictures.extend(p.big_over_black);
+    }
     let npcs = answer["npcs"].clone();
     let mut where_ = HashMap::new();
     for entry in s["place"].as_array().cloned().unwrap_or_default() {
@@ -1246,7 +1298,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         outside,
         shared,
         pictures,
-        big_pictures: p.big_pictures,
+        big_pictures,
         big_table: Vec::new(),
         decorative: answer["decorative"]
             .as_array()

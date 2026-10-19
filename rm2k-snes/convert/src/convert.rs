@@ -527,6 +527,7 @@ pub fn run(options: Options) -> Result<()> {
             c["zooms"].as_array().map_or(&[][..], Vec::as_slice),
             &format!("common event {n}"),
             &game.cropped,
+            &|_| false,
         )?;
         let numbers: BTreeSet<i64> = bigs
             .iter()
