@@ -35,6 +35,7 @@ use crate::compile::{
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
+use crate::landings::Landings;
 use crate::losses::{Losses, Origin};
 use crate::messages::Messages;
 use crate::registry::{Pictures, Songs, Troops};
@@ -218,6 +219,10 @@ pub struct Setting<'a> {
     /// The small ones are each map's, in its sprite bank, and are not here:
     /// see `Request::common_pictures`.
     pub pictures: &'a Pictures,
+    /// The graphics the cartridge's pages give after jumping to each map: a
+    /// body that jumps runs there, and numbers a route's graphic in that
+    /// map's table. See [`crate::landings`].
+    pub landings: Option<&'a Landings>,
 }
 
 /// One body, with whatever registries it is given.
@@ -273,6 +278,8 @@ fn body_of(
         shared: None,
         losses: std::mem::take(losses),
         face: None,
+        landings: s.landings,
+        jump: None,
     };
     ctx.losses.enter(Origin::Common(number));
     let code = compile_page(&mut ctx, commands, None, 0, 0);
@@ -578,6 +585,11 @@ pub fn parallel_commons(
                 shared: None,
                 losses: std::mem::take(losses),
                 face: None,
+                // A parallel body goes on in the same frame on the map it
+                // was on, as a parallel page: no landings, and a graphic
+                // after its jump is dropped as before.
+                landings: None,
+                jump: None,
             };
             ctx.losses.enter(Origin::Common(number));
             let code = compile_page(&mut ctx, &c.commands, None, 0, 0);
