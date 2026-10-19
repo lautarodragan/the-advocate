@@ -32,6 +32,7 @@
     jsr ba_tone_clear           ; nor a flash of the map's: see battle_tone.s
     jsr ba_st_clear             ; nor conditions: see battle_states.s
     jsr ba_attr_unshift_all     ; nor shifted ranks: see battle_attributes.s
+    jsl f:face_forget           ; nor a face, even with no troop: see message_face.s
     jsr ba_build
     lda BA_KID
     bne has_troop
