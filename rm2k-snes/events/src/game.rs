@@ -50,16 +50,19 @@ impl Command {
 pub struct Condition {
     pub switch_a: Option<i32>,
     pub switch_b: Option<i32>,
-    /// The variable and the value it has to reach.
-    pub variable: Option<(i32, i32)>,
+    /// The variable, how it is compared —`CheckOperator`'s codes, see
+    /// [`CONDITION_OPERATOR`]— and against what.
+    pub variable: Option<(i32, i32, i32)>,
     pub item: Option<i32>,
     pub actor: Option<i32>,
     /// The seconds the timer has to be at or under.
     pub timer: Option<i32>,
 }
 
-/// `compare_operator` is RPG Maker 2003's, and a 2000 game always holds
-/// its default: `>=`, which is 1.
+/// How RPG Maker 2000 compares a page's variable: `>=`, which is 1 of
+/// `CheckOperator`'s codes —`==` `>=` `<=` `>` `<` `!=`—. 2003 lets the page
+/// choose, in `compare_operator`, and a 2000 game ignores the field, as
+/// `Game_Event::AreConditionsMet` does with `Player::IsRPG2k()`.
 pub const CONDITION_OPERATOR: i32 = 1;
 
 /// One of the versions an event can take.
@@ -565,6 +568,8 @@ impl Game {
                         .map(|p| {
                             let c = &p.condition;
                             let f = &c.flags;
+                            let comparison =
+                                if self.is_2003 { c.compare_operator.to_i32() } else { CONDITION_OPERATOR };
                             let name = self
                                 .patches
                                 .names
@@ -597,9 +602,10 @@ impl Game {
                                 condition: Condition {
                                     switch_a: f.switch_a.then_some(c.switch_a_id),
                                     switch_b: f.switch_b.then_some(c.switch_b_id),
-                                    variable: f
-                                        .variable
-                                        .then_some((c.variable_id, c.variable_value)),
+                                    // A comparison outside `CheckOperator`'s six
+                                    // asks for nothing, as in `AreConditionsMet`.
+                                    variable: (f.variable && (0..=5).contains(&comparison))
+                                        .then_some((c.variable_id, comparison, c.variable_value)),
                                     item: f.item.then_some(c.item_id),
                                     actor: f.actor.then_some(c.actor_id),
                                     timer: f.timer.then_some(c.timer_sec),
@@ -655,5 +661,29 @@ mod tests {
             ]
         );
         assert!(out.iter().all(|c| c.indent == 1));
+    }
+
+    /// A page's variable comparison is 2003's to choose and 2000 always
+    /// asks `>=`. Until 2026-10-19 the 2003 one was dropped and every page
+    /// asked `>=`: Zounds' map 88 asked "X <= 1" as "X >= 1", and the
+    /// desert sent the hero back to its middle forever —see
+    /// tasks/zounds-entering-map-88-loops-on-a-teleport.md—.
+    #[test]
+    fn a_2003_page_keeps_its_comparison_and_a_2000_one_asks_at_least() {
+        let mut raw = schema::Map::default();
+        let mut event = schema::Event { id: 1, ..Default::default() };
+        let mut page = schema::EventPage { id: 1, ..Default::default() };
+        page.condition.flags.variable = true;
+        page.condition.variable_id = 7;
+        page.condition.variable_value = 1;
+        page.condition.compare_operator = schema::EventPageConditionComparison::LessEqual;
+        event.pages.push(page);
+        raw.events.push(event);
+        let asks = |is_2003: bool| {
+            let game = Game { is_2003, ..Game::default() };
+            game.convert(88, &raw).events[0].pages[0].condition.variable
+        };
+        assert_eq!(asks(true), Some((7, 2, 1)));
+        assert_eq!(asks(false), Some((7, CONDITION_OPERATOR, 1)));
     }
 }
