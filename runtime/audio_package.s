@@ -598,6 +598,7 @@ PUMP_TICK_BYTES = 512
     bne some
     rts
 some:
+    jsr whole_ones
     jsr pending_bytes
     rep #$20
 .a16
@@ -618,6 +619,75 @@ some:
 fits:
     sep #$20
 .a8
+    rts
+.endproc
+
+; The samples that go up whole and not block by block —sound effects from
+; the `.msu`, samples spilled into it—, all of them now: one of those in a
+; tick of the ramp would overrun it and hold a step of the brightness for a
+; frame, which in the black does not show. The one half uploaded, if any,
+; is not one of them.
+.proc whole_ones
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #0
+    sep #$20
+.a8
+other:
+    lda f:FAR_WANTS, x
+    cmp #3
+    bne next
+    txa
+    cmp f:PKG_CUR
+    bne not_current
+    rep #$20
+.a16
+    lda f:PKG_OFS
+    cmp #$FFFF
+    sep #$20
+.a8
+    bne next                    ; it is going up block by block
+not_current:
+    phx
+    lda f:PKG_CUR
+    pha
+    txa
+    sta f:PKG_CUR
+    jsr pump_load
+    jsl se_msu_upload           ; uploads it if it is one of those
+    bcs uploaded
+.ifdef MSU_REQUIRED
+    rep #$20
+.a16
+    lda f:PKG_X7                ; its row: `se_msu_upload` clobbers X
+    tax
+    sep #$20
+.a8
+    lda f:sample_table + 2, x
+    cmp #MSU_SPILL_BANK
+    bne skip
+    ldy #0
+    jsl f:sample_block_l        ; whole, from the `.msu`
+    jsl f:write_directory_l
+    bra uploaded
+.endif
+skip:
+    pla
+    sta f:PKG_CUR
+    plx
+    bra next
+uploaded:
+    pla
+    sta f:PKG_CUR
+    plx
+    lda #1
+    sta f:FAR_WANTS, x
+next:
+    inx
+    cpx #SAMPLES_N
+    bcc other
     rts
 .endproc
 
@@ -678,7 +748,8 @@ done:
 PUMP_LINE = 180
 
 ; How many triplets the next block may take, in A, with Z if none: 85 when
-; it is not timed, and otherwise one per scan line left before PUMP_LINE —a
+; it is not timed, and otherwise one per scan line left before IRQ_LINE or
+; PUMP_LINE, whichever comes first —a
 ; triplet takes a little more than a line, 85 of them some 88 lines in
 ; snes9x, so the last block ends a few lines past it—. Inside the vblank
 ; that starts the tick, the whole budget: the tick began there.
@@ -715,9 +786,20 @@ timed:
     bcs whole
     cmp #PUMP_LINE
     bcs none
+    cmp #IRQ_LINE
+    bcc before_irq
     eor #$FFFF
     sec
     adc #PUMP_LINE              ; PUMP_LINE minus the line
+    bra capped
+before_irq:
+    ; Before the music's IRQ, only up to it: a block holds interrupts
+    ; back, and an IRQ held to the block's end ran its frame past line 225
+    ; on ABL's maps 3 and 9 —a tick of the ramp lasted two frames—.
+    eor #$FFFF
+    sec
+    adc #IRQ_LINE               ; IRQ_LINE minus the line
+capped:
     cmp #85
     bcc fits
 whole:
