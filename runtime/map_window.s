@@ -687,6 +687,17 @@ strips:
 .proc fill_window
 .a8
 .i16
+    jsr window_start
+    jmp fill_columns
+.endproc
+
+; Where the window starts and the pointer to its first block row, which the
+; hero's pointer and the streaming read: the first half of `fill_window`,
+; apart because a load inside a fade leaves the columns for its black ticks
+; —see `tail_pump`— and needs this now.
+.proc window_start
+.a8
+.i16
     rep #$20
 .a16
     stz col_addr
@@ -731,7 +742,17 @@ sum:
     bne sum
 no_rows:
     jsr ptr_to_cells
+    sep #$20
+.a8
+    rts
+.endproc
 
+; And the second half: the 64 columns, and the panorama's ring.
+.proc fill_columns
+.a8
+.i16
+    rep #$20
+.a16
     lda win_col
     sec
     sbc #MARGIN_COLS            ; with the left margin; `build_column` skips
@@ -758,6 +779,26 @@ column:
     jsl f:paint_load            ; and a painted map's slots: see painted.s
 .endif
     rts
+.endproc
+
+; One column of the window, X —A16—, built and uploaded at once, with the
+; screen off; `tail_pump` calls it, from bank $C0. Returns with A8.
+.proc window_column_l
+.a16
+.i16
+    jsr build_column
+    sep #$20
+.a8
+    jsr push_strips
+    rtl
+.endproc
+
+; `clear_tilemaps` for `tail_pump`.
+.proc clear_tilemaps_l
+.a8
+.i16
+    jsr clear_tilemaps
+    rtl
 .endproc
 
 ; `hdma_mask` and `row_buf_table` **used to live here** and moved down to
