@@ -262,10 +262,26 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     let mut notes = Vec::new();
 
     let npc_keys: HashSet<Key> = npcs.iter().flat_map(Npc::keys).collect();
+    // The ones some page draws: a row only a route dresses waits for the
+    // routes' graphics, after these. See `Npc::dressed`.
+    let page_keys: HashSet<Key> = npcs
+        .iter()
+        .filter(|n| !n.dressed())
+        .flat_map(Npc::keys)
+        .collect();
     let mut seen: HashSet<Key> = HashSet::new();
     let mut slot_leader: Option<usize> = None;
     for key in ask.leaders {
         if seen.contains(key) || sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
+            continue;
+        }
+        // A leader that only a route dresses as an event —the party walking
+        // in a scene, The Book of Three's map 64— does not take a palette of
+        // its own before the map's characters: it goes with the routes'
+        // graphics, while they fit, and shares like the leaders that do not
+        // get one.
+        if npc_keys.contains(key) && !page_keys.contains(key) {
+            sp.split.shared_leaders.insert(key.clone());
             continue;
         }
         // Room for the rest: one palette for the other events. Only if it
@@ -314,7 +330,11 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     }
 
     // The CharSets of the pages, in map order except the ones that weigh.
-    let mut by_weight: Vec<&Npc> = npcs.iter().collect();
+    // Not a row only a route dresses: its graphic goes with the routes', after
+    // these. On The Book of Three's map 64 five of them took Monster1's
+    // palette, and the soldiers that stand there the whole race were drawn
+    // pale with someone else's.
+    let mut by_weight: Vec<&Npc> = npcs.iter().filter(|n| !n.dressed()).collect();
     by_weight.sort_by_key(|n| -weight(ask.weights, &n.charset));
     for npc in by_weight {
         for key in npc.keys() {

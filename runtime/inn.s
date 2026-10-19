@@ -98,7 +98,8 @@ wait:
     ; told to play once. Not if what plays is the song before, still fading
     ; —the inn's did not start—: `inn_tick` lets that one go at once.
     lda f:bgm_fade
-    bne frame_ends
+    cmp #1                      ; fading out; 2 is the inn's own fading in
+    beq frame_ends
     lda f:MSU_PLAYING
     beq frame_ends
     lda #MSU_PLAY_ONCE
@@ -149,7 +150,8 @@ waiting:
 .a8
     beq done
     lda f:bgm_fade
-    bne done                    ; the song before: the inn's did not start
+    cmp #1                      ; fading out: the song before, and the inn's
+    beq done                    ; did not start. At 2 it is the inn's fading in
     lda f:MSU_PLAYING
     beq spc
     lda f:MSU_STATE

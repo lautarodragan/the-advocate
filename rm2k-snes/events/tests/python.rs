@@ -105,6 +105,14 @@
 //! for the one there is, which every `ChangePBG` here keeps. Without that
 //! byte the answer was the one before.
 //!
+//! And the same day the hashes of both `maps`, and of the compilation's
+//! `songs` and `battle_audio`, moved on purpose: `OP_BGM` carries a
+//! `PlayBGM`'s fade-in, `ChangeSystemBGM` of the battle compiles to
+//! `OP_SYSTEM_BGM` and notes its song in the battle's package, and
+//! `battle_audio` says the level of the database's two songs. With the fade
+//! word left out, the `ChangeSystemBGM` arm answering no bytes as before and
+//! no levels in `battle_audio`, the answer was the one before.
+//!
 //! And the same day the hash of the compilation's `maps` moved again, on
 //! purpose: both inns of the test game stage the night —the fades, the
 //! song noted and put back, the heal in the black—, which is RM2k's
@@ -183,6 +191,9 @@ fn without_route_targets(answer: &mut Value) {
     for map in maps {
         for page in map["pages"].as_array_mut().into_iter().flatten() {
             page.as_object_mut().unwrap().remove("route_targets");
+            // And the graphics those routes give, which came on 2026-10-19:
+            // see `a_route_graphic_is_its_event_and_index` in `pages.rs`.
+            page.as_object_mut().unwrap().remove("route_graphics");
             // And whether a parallel page is pure, which came on
             // 2026-10-17: see `commons::pure_page` and its tests.
             page.as_object_mut().unwrap().remove("pure");

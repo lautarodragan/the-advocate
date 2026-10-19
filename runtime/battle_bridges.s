@@ -118,13 +118,18 @@ ba_t_sound:
     rtl
 .a8
 ba_t_bgm:
+    jsl f:bgm_level_full        ; the Game Over's and End Game's: as written
+ba_t_play:
     phb
     phk
     plb
-    jsl f:bgm_level_full        ; the LDB's songs play as written
     jsr battle_bgm
     plb
     rtl
+; The victory's song, at its level: see `bgm_level_victory`.
+ba_t_victory_bgm:
+    jsl f:bgm_level_victory
+    bra ba_t_play
 ; And the audio package in X, which is `battle_audio_load`: the Game Over
 ; screen uses it, which uploads its own. See runtime/game_over.s.
 ba_t_audio:

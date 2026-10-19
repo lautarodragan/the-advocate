@@ -318,6 +318,24 @@ fn scanned_page(p: &Value, whose: &str) -> Result<crate::moves::ScannedPage> {
             .iter()
             .map(|v| index(v, "a route target", whose))
             .collect::<Result<_>>()?,
+        // Optional: a request from before 2026-10-19 does not carry it.
+        route_graphics: match p.get("route_graphics") {
+            None => Vec::new(),
+            Some(v) => v
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `route_graphics` is not a list")))?
+                .iter()
+                .map(|pair| {
+                    let a = pair.as_array().filter(|a| a.len() == 2).ok_or_else(|| {
+                        Bad::answer(format!("{whose}: a route graphic is {pair}"))
+                    })?;
+                    Ok((
+                        index(&a[0], "a route graphic's event", whose)?,
+                        index(&a[1], "a route graphic's index", whose)?,
+                    ))
+                })
+                .collect::<Result<_>>()?,
+        },
         own_route: !field(p, "own_route", whose)?.is_null(),
         turns: flag("turns")?,
     })
@@ -355,7 +373,8 @@ impl crate::map::MapRequest {
     ///  "names": [[3, 1, "Ghost~horneado:7:4:5"]], "test_event": false,
     ///  "leaders": [10, 1],
     ///  "pages": [{"event": 2, "page": 0, "trigger": 0, "code": "0600…",
-    ///             "route_targets": [2], "own_route": null, "turns": true}],
+    ///             "route_targets": [2], "route_graphics": [[2, 0]],
+    ///             "own_route": null, "turns": true}],
     ///  "route_graphics": [["People1", 3]], "hero_graphics": [],
     ///  "also_walk": [],
     ///  "timer": null, "rain": false, "picture": null,
@@ -382,7 +401,8 @@ impl crate::map::MapRequest {
     ///
     /// `pages` are the records the event compiler's scan answered for this
     /// map, as it wrote them: of each, only `event`, `page`, `trigger`,
-    /// whether `code` is null, `route_targets`, whether `own_route` is null
+    /// whether `code` is null, `route_targets`, `route_graphics` —which a
+    /// request from before 2026-10-19 lacks—, whether `own_route` is null
     /// and `turns` are read.
     ///
     /// A `picture` is `{"name", "objects", "tiles", "cells": [[tile,

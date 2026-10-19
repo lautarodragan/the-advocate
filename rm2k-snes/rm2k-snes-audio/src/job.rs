@@ -9,14 +9,16 @@
 //!   measuring_headroom  every song's headroom, instead of its ceiling
 //!   system_songs        the songs the database's `System` names
 //!   named_songs         every song the game's events and maps name
-//!   emit                {packages, boot, title, game_over, map_song, sounds,
-//!                       start, decompress_frames, msu_samples}: what goes into
+//!   emit                {packages, boot, title, title_level, game_over,
+//!                       map_song, map_level, sounds, start,
+//!                       decompress_frames, msu_samples}: what goes into
 //!                       `musicdata.inc` besides the music
 //! ```
 
 use crate::compile::{Job, Package};
 use crate::emit::{Emit, SoundRequest};
 use crate::fail::{Bad, Result};
+use rm2k_snes_bytecode::level::Level;
 use serde_json::Value;
 
 fn bad_job(what: &str) -> Bad {
@@ -149,6 +151,35 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
                     .into_iter()
                     .map(|m| u8::try_from(m).map_err(|_| bad_job("map_song")))
                     .collect::<Result<_>>()?,
+                map_level: match e.get("map_level") {
+                    None | Some(Value::Null) => Vec::new(),
+                    Some(Value::Array(levels)) => levels
+                        .iter()
+                        .map(|l| {
+                            let bytes: Vec<u8> = l
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .filter_map(Value::as_u64)
+                                .filter_map(|b| u8::try_from(b).ok())
+                                .collect();
+                            bytes.try_into().map_err(|_| bad_job("map_level"))
+                        })
+                        .collect::<Result<_>>()?,
+                    Some(_) => return Err(bad_job("map_level")),
+                },
+                title_level: match e.get("title_level") {
+                    None | Some(Value::Null) => Level::WHOLE.bytes(),
+                    Some(l) => l
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_u64)
+                        .filter_map(|b| u8::try_from(b).ok())
+                        .collect::<Vec<u8>>()
+                        .try_into()
+                        .map_err(|_| bad_job("title_level"))?,
+                },
                 sounds,
                 start: int(e.get("start"), "start")? as usize,
                 decompress_frames: e

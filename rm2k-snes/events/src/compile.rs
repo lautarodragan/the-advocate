@@ -21,7 +21,9 @@ use crate::registry::{
 };
 use crate::route;
 use rm2k_snes_bytecode::events::*;
+use rm2k_snes_bytecode::level::Level;
 use rm2k_snes_text::refit::refit_measured;
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 // --- the engine's numbers ------------------------------------------------------
@@ -762,48 +764,23 @@ fn cannot<T>() -> Step<T> {
     Err(Stop::Cannot)
 }
 
-/// A `PlayBGM`'s volume, tempo and balance as `OP_BGM` carries them: the
-/// gain of each side in 128ths and the music frames per video frame in
-/// 256ths. 100, 100 and 50 —the editor's defaults— are 128, 128 and 256: the
-/// song as written.
-///
-/// * **The volume** is what easyrpg's MIDI path does, and the game's songs
-///   are all MIDI: it scales each channel's CC7 —`AudioDecoderMidi::SetVolume`
-///   sends `channel_volumes[i] * volume`—. The stream already went through
-///   that CC7 squared —see `volume` in rm2k-snes-audio's sdsp.rs—, so a
-///   volume of 50 is a quarter of the amplitude.
-/// * **The balance** is easyrpg's curve for audio without MIDI messages
-///   —`ApplyLogVolume`—: the opposite side drops 6 dB every 10 away from 50.
-///   Its MIDI path moves each channel's pan instead, which the stream already
-///   baked into each voice; scaling the sides is the cheap approximation, and
-///   only one `PlayBGM` of the game asks for a balance other than 50.
-/// * **The tempo** is the MIDI one: the song goes faster or slower and the
-///   pitch stays —`AudioDecoderMidi` advances its clock by `pitch / 100`—.
-///   It is clamped to the editor's range, 50 to 150, which also keeps
-///   `irq_music` at two music frames at most per video frame; the game asks
-///   for 50 to 110.
-pub fn bgm_level(volume: i64, tempo: i64, balance: i64) -> (u8, u8, u16) {
-    let gain = (volume.clamp(0, 100) as f64 / 100.0).powi(2);
-    let balance = balance.clamp(0, 100);
-    let drop = |away: i64| 0.5012f64.powf(away.max(0) as f64 / 10.0);
-    let side = |g: f64| (128.0 * gain * g).round().clamp(0.0, 128.0) as u8;
-    let step = (256.0 * tempo.clamp(50, 150) as f64 / 100.0).round() as u16;
-    (side(drop(balance - 50)), side(drop(50 - balance)), step)
+/// The level a `PlayBGM` or a `ChangeSystemBGM` asks for, from the
+/// parameters both write the same way after their first: `PlayBGM`'s are
+/// `[fade-in, volume, tempo, balance]`, and `ChangeSystemBGM`'s the same
+/// after the slot. A missing one is the editor's default.
+fn music_level(cmd: &Command) -> Level {
+    let skip = usize::from(cmd.code == CHANGE_SYSTEM_BGM);
+    let at = |i: usize, default: i64| cmd.parameters.get(skip + i).map_or(default, |&v| v as i64);
+    Level::new(at(0, 0), at(1, 100), at(2, 100), at(3, 50))
 }
 
-/// `OP_BGM` for song `index` of `Songs` at RM2k's volume, tempo and
-/// balance: `PlayBGM`'s, and the inn's music, which `inn_staging` plays the
-/// same way. One place, so a change to the opcode reaches both.
-fn op_bgm(index: usize, volume: i64, tempo: i64, balance: i64) -> Vec<u8> {
-    let (left, right, step) = bgm_level(volume, tempo, balance);
-    vec![
-        OP_BGM,
-        (index & 0xFF) as u8,
-        left,
-        right,
-        step as u8,
-        (step >> 8) as u8,
-    ]
+/// `OP_BGM` for song `index` of `Songs` at `level`: `PlayBGM`'s, and the
+/// inn's music, which `inn_staging` plays the same way. One place, so a
+/// change to the opcode reaches both.
+fn op_bgm(index: usize, level: Level) -> Vec<u8> {
+    let mut out = vec![OP_BGM, (index & 0xFF) as u8];
+    out.extend(level.bytes());
+    out
 }
 
 /// `OP_FADE_BGM`'s step for a fade of `ms` milliseconds: how much the
@@ -2049,7 +2026,9 @@ fn shares<'a>(
     let with_map = compile_page(ctx, &commands, here, 0, 0);
     // And as the cartridge's is compiled: no map's events, graphics or
     // pictures, and no package, which is where an effect's sample per map
-    // comes from.
+    // comes from. Not even the big pictures the cartridge's body may carry
+    // —`commons::Setting::pictures`—: a body that shows one then differs,
+    // and the page pastes it, which shows the same picture.
     let (graphics, pictures) = (ctx.graphics.take(), ctx.pictures.take());
     let package = ctx.songs.as_mut().and_then(|s| s.current.take());
     let without = compile_page(ctx, &commands, None, 0, 0);
@@ -2260,11 +2239,16 @@ fn inn_staging(ctx: &mut Ctx, cmd: &Command) -> Step<Vec<u8>> {
         match ctx.songs.as_deref_mut() {
             Some(songs) => {
                 let index = songs.index(&music.name);
+                // With its own fade-in: `StartInn` plays it with
+                // `Game_System::BgmPlay`, which honours it.
                 out.extend(op_bgm(
                     index,
-                    music.volume as i64,
-                    music.tempo as i64,
-                    music.balance as i64,
+                    Level::new(
+                        music.fadein as i64,
+                        music.volume as i64,
+                        music.tempo as i64,
+                        music.balance as i64,
+                    ),
                 ));
                 out.extend([OP_INN, INN_WAIT]);
             }
@@ -2773,7 +2757,7 @@ pub fn encounter_backdrop(cmd: &Command) -> Option<Backdrop> {
 /// noted falls into the battle's package and not into that of the map that
 /// has the battle, so the registry's current package has to be saved and
 /// restored around it.
-pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, usize)>> {
+pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, Value)>> {
     let game = ctx.game;
     let songs = ctx.songs.as_deref_mut()?;
     let previous = songs.current;
@@ -2788,7 +2772,15 @@ pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, usize)>> {
         } else {
             songs.index(song)
         };
-        out.push((name.to_string(), k));
+        out.push((name.to_string(), json!(k)));
+    }
+    // And their levels, the six bytes each that the ROM starts a game with:
+    // see `bgm_level_reset` in runtime/bgm_level.s.
+    for (name, level) in ["battle_music_level", "battle_end_music_level"]
+        .iter()
+        .zip(game.battle_levels)
+    {
+        out.push((name.to_string(), json!(level.bytes())));
     }
     for name in BATTLE_AUDIO_SE {
         let effect = game.system_se[name].clone();
@@ -2797,7 +2789,7 @@ pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, usize)>> {
         } else {
             songs.sound(effect, true)
         };
-        out.push((name.to_string(), k));
+        out.push((name.to_string(), json!(k)));
     }
     songs.current = previous;
     Some(out)
@@ -4668,8 +4660,8 @@ pub fn compile_command(
             //
             // OP_BGM: the song's index in `Songs` (byte). The ROM plays the
             // ones it carried —the first `SONG_TOTAL`— and with any other it
-            // does nothing. See `Songs`. After it, the volume, the balance
-            // and the tempo, in the console's units: see [`bgm_level`].
+            // does nothing. See `Songs`. After it, the volume, the balance,
+            // the tempo and the fade-in, in the console's units: see [`Level`].
             //
             // Without a song registry it is accepted and not done, which is
             // what this repo did with PlayBGM from the start. With a registry
@@ -4694,25 +4686,15 @@ pub fn compile_command(
             if cmd.string.is_empty() {
                 return Ok(vec![]);
             }
-            // `[fade-in in ms, volume, tempo, balance]`: OP_BGM has no fade,
-            // the song starts at once.
-            if cmd.p(0).is_some_and(|ms| ms > 0) {
-                ctx.lose(
-                    cmd,
-                    "bgm-fade-in-dropped",
-                    format!(
-                        "{:?} starts at once instead of fading in over {} ms",
-                        cmd.string, p[0]
-                    ),
-                );
-            }
+            // `[fade-in in ms, volume, tempo, balance]`, which go after the
+            // index as [`Level`] says: the fade-in since 2026-10-19, which until
+            // then was dropped and the song started at once.
             let songs = ctx.songs.as_deref_mut().unwrap();
             let index = songs.index(&cmd.string);
             if songs.current == Some(Package::Battle) && !songs.troop_songs.contains(&index) {
                 songs.troop_songs.push(index);
             }
-            let at = |i: usize, default: i64| cmd.parameters.get(i).map_or(default, |&v| v as i64);
-            Ok(op_bgm(index, at(1, 100), at(2, 100), at(3, 50)))
+            Ok(op_bgm(index, music_level(cmd)))
         }
         PAN_SCREEN => {
             // Moving the camera without the hero: `CommandPanScreen`, in its
@@ -4875,26 +4857,26 @@ pub fn compile_command(
             Ok(done.unwrap_or_default())
         }
         // `ChangeSystemBGM` (10660): changes the song the system uses for
-        // fighting, for winning, for the inn. The game uses it **130 times on
-        // 25 maps** and always in pairs —0 and 1, that is `battle_music` and
-        // `battle_end_music`—: each zone has its battle music.
+        // fighting, for winning, for the inn, the vehicles and Game Over.
+        // Games use it almost only in pairs —0 and 1, `battle_music` and
+        // `battle_end_music`—, before a story fight and to set it back after:
+        // over the nine dumps, on 2026-10-19, 487 commands change the battle's
+        // and 89 the victory's; one the Game Over's and one a vehicle's, and
+        // none the inn's.
         //
-        // It is accepted without being done, and the debt is concrete: **a
-        // battle on those maps plays the LDB's song instead of the zone's**.
-        // It is not "it does not sound": what sounds is the one
-        // `battle_audio` brings from the database, which is the one the map's
-        // audio package already carries, so nothing goes silent and nothing
-        // asks for a sample that is not there. And it does not change a
-        // pixel, so the suite measures the same with and without this.
+        // OP_SYSTEM_BGM, for those two: the slot (byte), the song's index
+        // (byte, $FF for "(OFF)", which is silence) and its level, as
+        // OP_BGM's. The ROM keeps them in state that travels in the save, and
+        // the battle plays them instead of the database's: see
+        // runtime/bgm_level.s. The song goes into the battle's package as a
+        // separate one, like a troop page's: it plays instead of the
+        // database's, never next to it, so it does not have to fit beside it
+        // —see `battle_songs` in rm2k-snes-audio's cartridge.rs—. The
+        // database's own two stay in the package as they were.
         //
-        // How much it unlocks, measured over the game's 5603 triggerable
-        // pages: **+24**. Doing it for real is not this command but an audio
-        // feature: the system song would become state that travels in the
-        // save, and the songs those 130 occurrences name would have to fit in
-        // their maps' audio packages. Today the worst package is 54945 of
-        // 63831 B of ARAM; adding a battle song to twenty-five maps requires
-        // room in those packages: see
-        // optimizations/lossless/audio/the-sample-bank.md in the book.
+        // The other slots are still accepted without being done: a vehicle
+        // this port does not have, and the Game Over screen keeps the
+        // database's song.
         //
         // `ChangeHeroTitle` (10620): an actor's "title", which in RM2k is the
         // text the status screen shows under the name. Eight occurrences in
@@ -4915,6 +4897,26 @@ pub fn compile_command(
         // 2026-09-13, the speech ran whole, the teleport back worked, and then
         // nothing else happened.
         CHANGE_SYSTEM_BGM => {
+            let slot = cmd.p(0);
+            if let (Some(k @ (0 | 1)), Some(songs)) = (slot, ctx.songs.as_deref_mut()) {
+                let index = if AUDIO_OFF.contains(&cmd.string.as_str()) {
+                    0xFF
+                } else {
+                    let previous = songs.current;
+                    songs.current = Some(Package::Battle);
+                    let i = songs.index(&cmd.string);
+                    songs.current = previous;
+                    let game = ctx.game;
+                    let database = [&game.battle_music, &game.battle_end_music];
+                    if !database.contains(&&cmd.string) && !songs.troop_songs.contains(&i) {
+                        songs.troop_songs.push(i);
+                    }
+                    i
+                };
+                let mut out = vec![OP_SYSTEM_BGM, k as u8, (index & 0xFF) as u8];
+                out.extend(music_level(cmd).bytes());
+                return Ok(out);
+            }
             let which = [
                 "battle",
                 "victory",
@@ -4924,8 +4926,7 @@ pub fn compile_command(
                 "vehicle",
                 "game over",
             ];
-            let what = cmd
-                .p(0)
+            let what = slot
                 .and_then(|k| which.get(k as usize))
                 .copied()
                 .unwrap_or("system");
@@ -7322,8 +7323,10 @@ mod tests {
         assert_eq!(losses.len(), 1);
     }
 
-    fn fading_in() -> Command {
-        cmd(PLAY_BGM, &[1000, 100, 100, 50], "Theme")
+    /// A command compiled with less, whose loss the tests below place: the
+    /// inn's song, which `ChangeSystemBGM` does not change.
+    fn inn_song() -> Command {
+        cmd(CHANGE_SYSTEM_BGM, &[2, 0, 100, 100, 50], "Inn")
     }
 
     #[test]
@@ -7333,14 +7336,14 @@ mod tests {
             &[ROUTE_HERO as i32, route::FREQUENCY, 1, 0, 0],
             "",
         );
-        let (code, losses) = losses_on_a_map(&Game::default(), &[fading_in(), route]);
+        let (code, losses) = losses_on_a_map(&Game::default(), &[inn_song(), route]);
         assert!(code.is_some());
         let kinds: Vec<(&str, Option<usize>)> =
             losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
         assert_eq!(
             kinds,
             [
-                ("bgm-fade-in-dropped", Some(0)),
+                ("system-bgm-not-changed", Some(0)),
                 ("route-repeat-dropped", Some(1))
             ]
         );
@@ -7360,7 +7363,7 @@ mod tests {
                 &json!(1),
                 &json!(2),
                 &json!(3),
-                &json!("PlayBGM")
+                &json!("ChangeSystemBGM")
             )
         );
     }
@@ -7368,7 +7371,7 @@ mod tests {
     #[test]
     fn a_page_that_does_not_compile_loses_nothing() {
         // It does not run: its losses go with it, as its texts do.
-        let (code, losses) = losses_on_a_map(&Game::default(), &[fading_in(), cmd(99999, &[], "")]);
+        let (code, losses) = losses_on_a_map(&Game::default(), &[inn_song(), cmd(99999, &[], "")]);
         assert!(code.is_none());
         assert!(losses.is_empty(), "{losses:?}");
     }
@@ -7382,7 +7385,7 @@ mod tests {
                 trigger: 5,
                 switch_flag: false,
                 switch_id: 1,
-                commands: vec![fading_in()],
+                commands: vec![inn_song()],
             },
         );
         let page = [cmd(WAIT, &[1], ""), cmd(CALL_EVENT, &[0, 4, 0], "")];
@@ -7391,7 +7394,7 @@ mod tests {
         let json = losses[0].to_json();
         assert_eq!((&json["map"], &json["command"]), (&json!(5), &json!(1)));
         assert_eq!(json["via"], json!([{"common": 4, "command": 0}]));
-        assert_eq!(json["kind"], "bgm-fade-in-dropped");
+        assert_eq!(json["kind"], "system-bgm-not-changed");
     }
 
     #[test]
@@ -8162,26 +8165,100 @@ mod tests {
         );
     }
 
-    /// The volume, the balance and the tempo of a `PlayBGM`, in the units
-    /// `OP_BGM` carries: the defaults leave the song as written, a volume of
-    /// 50 is a quarter of the amplitude —the stream's CC7 is squared—, and
-    /// the tempo is clamped to the editor's 50 to 150.
+    /// The volume, the balance, the tempo and the fade-in of a `PlayBGM`, in
+    /// the units `OP_BGM` carries: the defaults leave the song as written, a
+    /// volume of 50 is a quarter of the amplitude —the stream's CC7 is
+    /// squared—, the tempo is clamped to the editor's 50 to 150, and the
+    /// fade-in is the step its level goes up by each frame.
     #[test]
     fn a_play_bgms_level_in_the_consoles_units() {
-        assert_eq!(bgm_level(100, 100, 50), (128, 128, 256));
-        assert_eq!(bgm_level(50, 150, 50), (32, 32, 384));
-        assert_eq!(bgm_level(40, 80, 50), (20, 20, 205));
-        assert_eq!(bgm_level(0, 50, 50), (0, 0, 128));
-        assert_eq!(bgm_level(100, 300, 50), (128, 128, 384));
+        let level = |v, t, b| {
+            let l = Level::new(0, v, t, b);
+            (l.left, l.right, l.step)
+        };
+        assert_eq!(level(100, 100, 50), (128, 128, 256));
+        assert_eq!(level(50, 150, 50), (32, 32, 384));
+        assert_eq!(level(40, 80, 50), (20, 20, 205));
+        assert_eq!(level(0, 50, 50), (0, 0, 128));
+        assert_eq!(level(100, 300, 50), (128, 128, 384));
         // the balance: the opposite side drops, 6 dB every 10
-        assert_eq!(bgm_level(100, 100, 100), (4, 128, 256));
-        assert_eq!(bgm_level(100, 100, 40), (128, 64, 256));
+        assert_eq!(level(100, 100, 100), (4, 128, 256));
+        assert_eq!(level(100, 100, 40), (128, 64, 256));
         let page = [cmd(PLAY_BGM, &[0, 50, 150, 50], "K")];
         let mut songs = Songs::default();
         assert_eq!(
             with_songs(&page, &mut songs, &|_| None),
-            Some(vec![OP_BGM, 0, 32, 32, 0x80, 1, OP_DONE])
+            Some(vec![OP_BGM, 0, 32, 32, 0x80, 1, 0, 0, OP_DONE])
         );
+    }
+
+    /// The fade-in goes in the bytecode and is not a loss: a second is 60
+    /// frames, a step of 1093 —`ceil(65536 / 60)`—. Until 2026-10-19 it was
+    /// dropped, and the song started at once.
+    #[test]
+    fn a_play_bgms_fade_in_is_carried() {
+        let page = [cmd(PLAY_BGM, &[1000, 100, 100, 50], "Theme")];
+        let mut songs = Songs::default();
+        assert_eq!(
+            with_songs(&page, &mut songs, &|_| None),
+            Some(vec![OP_BGM, 0, 128, 128, 0, 1, 0x45, 0x04, OP_DONE])
+        );
+        let (_, losses) = losses_on_a_map(&Game::default(), &page);
+        assert!(losses.is_empty(), "{losses:?}");
+    }
+
+    /// A `ChangeSystemBGM` of the battle or the victory is `OP_SYSTEM_BGM`
+    /// with the slot, the song and its level; its song goes into the battle's
+    /// package, apart unless it is one of the database's two, and the
+    /// package being compiled is left as it was. "(OFF)" is $FF, and the
+    /// other slots are still a loss.
+    #[test]
+    fn a_change_system_bgm_of_the_battle_is_carried() {
+        let game = Game {
+            battle_music: "fight".into(),
+            ..Default::default()
+        };
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+        };
+        let page = [
+            cmd(CHANGE_SYSTEM_BGM, &[0, 0, 70, 100, 50], "talisn"),
+            cmd(CHANGE_SYSTEM_BGM, &[1, 1000, 100, 100, 50], "fight"),
+            cmd(CHANGE_SYSTEM_BGM, &[1, 0, 100, 100, 50], "(OFF)"),
+        ];
+        let code = compile_page(&mut ctx, &page, None, 0, 0).unwrap();
+        let mut expected = vec![OP_SYSTEM_BGM, 0, 0, 63, 63, 0, 1, 0, 0];
+        expected.extend([OP_SYSTEM_BGM, 1, 1, 128, 128, 0, 1, 0x45, 0x04]);
+        expected.extend([OP_SYSTEM_BGM, 1, 0xFF, 128, 128, 0, 1, 0, 0, OP_DONE]);
+        assert_eq!(code, Some(expected));
+        assert!(ctx.losses.take().is_empty());
+        assert_eq!(songs.current, Some(Package::Map(0)));
+        assert_eq!(songs.troop_songs, [0]);
+        assert_eq!(songs.per_package.len(), 1);
+        assert_eq!(songs.per_package[0].0, Package::Battle);
+        assert_eq!(songs.per_package[0].1.songs, [0, 1]);
+        let inn = [cmd(CHANGE_SYSTEM_BGM, &[2, 0, 100, 100, 50], "Inn")];
+        let (code, losses) = losses_on_a_map(&game, &inn);
+        assert_eq!(code, Some(vec![OP_DONE]));
+        assert_eq!(losses[0].kind, "system-bgm-not-changed");
     }
 
     /// A troop page's `PlayBGM` plays its song, which goes into the battle's
@@ -8193,7 +8270,7 @@ mod tests {
         let map_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "map")];
         assert_eq!(
             with_songs(&map_page, &mut songs, &|_| None),
-            Some(vec![OP_BGM, 0, 128, 128, 0, 1, OP_DONE])
+            Some(vec![OP_BGM, 0, 128, 128, 0, 1, 0, 0, OP_DONE])
         );
         let game = Game::default();
         let indices = Indices::default();
@@ -8216,7 +8293,7 @@ mod tests {
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
-        assert_eq!(code, Some(vec![OP_BGM, 1, 128, 128, 0, 1, OP_DONE]));
+        assert_eq!(code, Some(vec![OP_BGM, 1, 128, 128, 0, 1, 0, 0, OP_DONE]));
         assert_eq!(songs.troop_songs, [1]);
         assert_eq!(songs.per_package[1].0, Package::Battle);
         assert_eq!(songs.per_package[1].1.songs, [1]);
@@ -8318,9 +8395,10 @@ mod tests {
             .unwrap()
             .unwrap();
         let index = songs.song("Inn1").expect("the inn's song is registered") as u8;
-        let (left, right, step) = bgm_level(50, 100, 50);
         let mut expected = STAGING_WITHOUT_MUSIC[..7].to_vec();
-        expected.extend([OP_BGM, index, left, right, step as u8, (step >> 8) as u8]);
+        expected.extend([OP_BGM, index]);
+        // The level with no fade-in: 50% volume, which is a quarter.
+        expected.extend(Level::new(0, 50, 100, 50).bytes());
         expected.extend([OP_INN, 1]);
         expected.extend(&STAGING_WITHOUT_MUSIC[7..]);
         expected.push(OP_DONE);
@@ -10111,6 +10189,10 @@ mod tests {
     }
 
     fn shared(game: &Game) -> crate::commons::Shared {
+        shared_with(game, &Pictures::default())
+    }
+
+    fn shared_with(game: &Game, pictures: &Pictures) -> crate::commons::Shared {
         use crate::messages::{Messages, Window};
         let indices = Indices::default();
         let sound = SoundSettings::default();
@@ -10122,6 +10204,7 @@ mod tests {
             indices: &indices,
             sound: &sound,
             map_index: &|_| None,
+            pictures,
         };
         let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
         crate::commons::compile(
@@ -10157,6 +10240,58 @@ mod tests {
         assert_eq!(s.bodies[1].1, [OP_CALL, 0, OP_CALL, 0, OP_RETURN]);
         assert_eq!(s.autostart, [(30, 1)]);
         assert_eq!(s.depth, Some(2));
+    }
+
+    /// The Book of Three's map item, common event 23: automatic on switch
+    /// 38, which the item turns on from the menu on any map, it shows the
+    /// 640x480 `bo3map` at half its size —the whole screen— until a key, and
+    /// erases it. The body, compiled without a map, shows it if the
+    /// cartridge carries it as a big picture: those are the cartridge's,
+    /// not a map's. Until 2026-10-19 it was accepted without being done, and
+    /// the item waited for a key over the map.
+    #[test]
+    fn a_common_event_without_a_map_shows_a_big_picture() {
+        let show = cmd(
+            SHOW_PICTURE,
+            &[2, 0, 160, 120, 0, 50, 0, 1, 100, 100, 100, 100, 0, 60],
+            "bo3map",
+        );
+        let mut game = Game::default();
+        game.common_events.insert(
+            23,
+            common(
+                3,
+                Some(38),
+                vec![
+                    show.clone(),
+                    cmd(ERASE_PICTURE, &[2], ""),
+                    cmd(CONTROL_SWITCHES, &[0, 38, 38, 1], ""),
+                ],
+            ),
+        );
+        let off = [OP_SWITCH, 38, 0, 0];
+        let blind = shared(&game);
+        assert_eq!(blind.bodies[0].1, [&off[..], &[OP_RETURN]].concat());
+        let pictures = Pictures {
+            big: vec![BigPicture {
+                key: picture_key(&show).unwrap(),
+                image: 3,
+                center: (160, 120),
+                texture: false,
+            }],
+            ..Pictures::default()
+        };
+        let seen = shared_with(&game, &pictures);
+        assert_eq!(
+            seen.bodies[0].1,
+            [
+                &[OP_BIG_SHOW, 3, 100, 100, 100, 0, 100, 0][..],
+                &[OP_PICTURE_ERASE, PICTURE_BIG],
+                &off,
+                &[OP_RETURN],
+            ]
+            .concat()
+        );
     }
 
     #[test]

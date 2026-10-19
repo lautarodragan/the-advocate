@@ -16,6 +16,7 @@ use crate::fail::{Bad, Result};
 use ditto::dump::{read_map, Dump};
 use ditto::schema;
 use rm2k_rules::event::starting_page;
+use rm2k_snes_bytecode::level::Level;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -224,6 +225,9 @@ pub struct Game {
     pub inn_music: schema::Music,
     pub battle_music: String,
     pub battle_end_music: String,
+    /// And their levels —volume, tempo, balance and fade-in—, which the ROM
+    /// starts a game with: a `ChangeSystemBGM` changes them with the song.
+    pub battle_levels: [Level; 2],
     /// The system effects, by their name in `System`.
     pub system_se: BTreeMap<&'static str, Sound>,
     /// The actors, with the skills they learn by level. It is what the two
@@ -505,6 +509,14 @@ impl Game {
             inn_music: system.inn_music.clone(),
             battle_music: system.battle_music.name.clone(),
             battle_end_music: system.battle_end_music.name.clone(),
+            battle_levels: [&system.battle_music, &system.battle_end_music].map(|m| {
+                Level::new(
+                    m.fadein.into(),
+                    m.volume.into(),
+                    m.tempo.into(),
+                    m.balance.into(),
+                )
+            }),
             system_se,
             actors,
             actor_names,

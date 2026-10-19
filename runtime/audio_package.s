@@ -59,6 +59,9 @@ PKG_PARTIAL: .res $1           ; 1 if something of the package did not fit: see
 ; The uploads a teleport leaves for its fade's frozen ticks: see
 ; `upload_placed`.
 PKG_PENDING: .res 1             ; 1 while samples marked 3 wait
+; The package `package_load_done` loaded last: `song_ensure` rebuilds that
+; one, which in a battle is the battle's and not `map_current`'s.
+PKG_LOADED:  .res 2
 PKG_TIMED:   .res 1             ; 1 if `pump` stops at PUMP_LINE, 2 at PKG_GOAL
 PKG_GOAL:    .res 2             ; bytes `package_settle` wants up now
 PKG_DONE:    .res 2             ; and the bytes that went up since
@@ -87,6 +90,12 @@ INT_END: .res $100           ; and where it ends
     sta f:LOAD_DEFER            ; on the console and on bsnes—
     lda #$FF
     sta f:PKG_EXTRA
+    rep #$20
+.a16
+    lda #0                      ; no battle's: see `PKG_LOADED`
+    sta f:PKG_LOADED
+    sep #$20
+.a8
     ldx #0
 other:
     lda #0
@@ -1296,6 +1305,12 @@ ready_apu:
     ; `FAR_ARAM_OF` as "it is in the ARAM". Outside a fade nothing is ever
     ; left waiting; see `upload_placed`.
     jsr package_finish
+    rep #$20
+.a16
+    lda f:PKG_MAP
+    sta f:PKG_LOADED
+    sep #$20
+.a8
     lda #0
     sta f:PKG_PARTIAL
     sta f:PKG_COMPACT
@@ -1944,13 +1959,62 @@ missing:
     lda temp + 1
     sta f:PKG_EXTRA
     pha
+    ; The package loaded last, which in a battle is the battle's: a troop
+    ; page's song, or a victory's other than the battle's, goes up with its
+    ; sound effects, and not with the map's. Until 2026-10-19 it rebuilt the
+    ; map's, and the battle went on without its sound effects.
+    rep #$20
+.a16
+    lda f:PKG_LOADED
+    cmp #BA_PACKAGE
+    bne of_the_map
+    sta f:PKG_MAP
+    sep #$20
+.a8
+    jsr package_load_done
+    bra loaded
+of_the_map:
+.a16
+    sep #$20
+.a8
     jsr package_load
+loaded:
     pla
     jsl f:song_now              ; inside a fade the package left it waiting
     lda #$FF
     sta f:PKG_EXTRA
 ready:
     rts
+.endproc
+
+; The battle's song in A, as `bgm_level_battle_in` gave it: it goes first in
+; the battle's package —`PKG_EXTRA`— unless it is the database's, which the
+; package already brings, is silence, or will play through the MSU-1. A
+; `ChangeSystemBGM`'s song is a separate one of the package —see
+; `extra_separate`—, so it goes up with the battle's sound effects and
+; without the database's songs, which it plays instead of. Keeps A;
+; `battle_extra_clear` puts PKG_EXTRA back to $FF once the package is up.
+.proc battle_extra_l
+.a8
+.i16
+    cmp #BA_SONG
+    beq ready
+    cmp #SONG_TOTAL
+    bcs ready                   ; $FF, or one the cartridge does not carry
+    jsr song_per_msu
+    bcs ready
+    sta f:PKG_EXTRA
+ready:
+    rtl
+.endproc
+
+; And back to no extra song, once the battle's package is up.
+.proc battle_extra_clear
+.a8
+.i16
+    lda #$FF
+    sta f:PKG_EXTRA
+    rtl
 .endproc
 
 ; The four ways in from bank 0, which reaches this bank only with `jsl`.

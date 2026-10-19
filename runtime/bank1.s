@@ -217,6 +217,12 @@ save_table:
     .word timer_sec, 5          ; seconds, sub, whether it runs and whether it shows
     .word gold, 3
     .word .loword(switches), SWITCH_BYTES
+    ; The battle's and the victory's songs a `ChangeSystemBGM` gave, and the
+    ; level the song plays at, which RM2k saves too: see bgm_level.s. Before
+    ; the song and not after it, where the tests count from the end of the
+    ; save to find the song.
+    .word .loword(SYS_SONGS), 2 * SYS_SONG_BYTES
+    .word .loword(BGM_NOW), 4
     ; Which song is playing and whether it is muted. An event's `PlayBGM`
     ; turns it on, so it is world state like a switch: without this a loaded
     ; save starts with the song of the ROM's initial map instead of the one

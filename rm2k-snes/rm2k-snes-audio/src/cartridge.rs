@@ -17,6 +17,7 @@ use crate::compile::Music;
 use crate::fail::{Bad, Result};
 use crate::msu::Effects;
 use crate::msu_data;
+use rm2k_snes_bytecode::level::Level;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
@@ -216,12 +217,19 @@ pub struct Cartridge {
     /// The name of the song each map gets from the tree, or "" if entering
     /// it does not change what is playing: see `Tree::music`.
     pub map_music: Vec<String>,
+    /// And the level each one plays it at —its volume, tempo, balance and
+    /// fade-in, from the same node of the tree—, in the map table's order.
+    /// Missing ones are the song as written.
+    pub map_levels: Vec<Level>,
     /// Which one it boots in, by index.
     pub start: usize,
     /// The title screen's song and the Game Over's, if the cartridge has
     /// those screens and the database names one.
     pub title: Option<String>,
     pub game_over: Option<String>,
+    /// The level the title's song plays at: `title_music`'s volume, tempo,
+    /// balance and fade-in.
+    pub title_level: Level,
     /// `[music] apart_themes`: {map number: its separate songs}.
     pub apart: HashMap<i64, HashSet<String>>,
     /// `[music] jumps_that_never_happen`, as (map, destination) numbers.
@@ -450,6 +458,20 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
         json!([game_over_song, game_over_package]),
     );
     emit.insert("map_song".into(), json!(map_song));
+    // Only when a map asks for a level other than the song as written: a job
+    // without it is the one it always was, and the ROM's table says the song
+    // as written for every map.
+    if c.title_level != Level::WHOLE {
+        emit.insert("title_level".into(), json!(c.title_level.bytes()));
+    }
+    if c.map_levels.iter().any(|l| *l != Level::WHOLE) {
+        emit.insert(
+            "map_level".into(),
+            json!((0..n)
+                .map(|i| c.map_levels.get(i).copied().unwrap_or_default().bytes())
+                .collect::<Vec<_>>()),
+        );
+    }
     emit.insert(
         "sounds".into(),
         json!(s

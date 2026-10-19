@@ -46,8 +46,10 @@ bytecode! {
     /// units. `left` and `right` are the gain of each side in 128ths —128 is the
     /// song as written—, which is RM2k's volume and balance together; `step` is
     /// how much of a music frame each video frame advances, in 256ths —256 is
-    /// RM2k's tempo 100—.
-    OP_BGM = 0x0B (track: byte, left: byte, right: byte, step: word);
+    /// RM2k's tempo 100—. `fade` is the fade-in: how much the song's level goes
+    /// up per frame, in 65536ths, as `OP_FADE_BGM`'s step goes down; zero starts
+    /// it at its level.
+    OP_BGM = 0x0B (track: byte, left: byte, right: byte, step: word, fade: word);
 
     OP_PLACE = 0x0C (target: byte, x: word, y: word);
 
@@ -221,12 +223,17 @@ bytecode! {
     /// goes on.
     OP_NUMBER = 0x38 (slot: byte, digits: byte, window: word);
 
+    /// `ChangeSystemBGM` for the battle (`slot` 0) and the victory (1): the song
+    /// the next battle plays instead of the database's, with its level, in
+    /// `OP_BGM`'s units.
+    OP_SYSTEM_BGM = 0x39 (
+        slot: byte, track: byte, left: byte, right: byte, step: word, fade: word,
+    );
+
     /// Numbers held for opcodes that other branches are adding at the same time:
     /// the dispatch table cannot have gaps, so until those land each one is here
     /// and ends the page like an unknown number would. Whoever brings the real
     /// opcode replaces its entry.
-    OP_RESERVED_39 = 0x39 ();
-
     OP_RESERVED_3A = 0x3A ();
 
     /// `ShowInn`'s staging, RM2k's `Scene_Map::CallInn`, in three phases the

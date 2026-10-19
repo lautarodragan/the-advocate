@@ -18,6 +18,7 @@ use rm2k_snes_audio::fail::{Bad, Result};
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
 use rm2k_snes_audio::{effects, job, msu, msu_data, pyjson, sdsp, stream};
+use rm2k_snes_bytecode::level::Level;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
@@ -608,10 +609,31 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
                     .unwrap_or_default()
             })
             .collect(),
+        map_levels: maps
+            .iter()
+            .map(|&m| {
+                tree.music(m as i32)
+                    .map(|music| {
+                        Level::new(
+                            music.fadein.into(),
+                            music.volume.into(),
+                            music.tempo.into(),
+                            music.balance.into(),
+                        )
+                    })
+                    .unwrap_or_default()
+            })
+            .collect(),
         maps,
         start,
         title: flag("title")?.then(|| system.title_music.name.clone()),
         game_over: flag("game_over")?.then(|| system.gameover_music.name.clone()),
+        title_level: Level::new(
+            system.title_music.fadein.into(),
+            system.title_music.volume.into(),
+            system.title_music.tempo.into(),
+            system.title_music.balance.into(),
+        ),
         apart: cartridge::apart_themes(project.list(&["music", "apart_themes"])?)?,
         not_given: cartridge::never_happen(project.list(&["music", "jumps_that_never_happen"])?)?,
         system_songs: system_songs.into_iter().collect(),

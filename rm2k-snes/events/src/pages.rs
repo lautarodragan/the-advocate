@@ -565,6 +565,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "frequency": page.move_frequency,
                 "speed": page.move_speed,
                 "route_targets": code.as_deref().map(route_targets).unwrap_or_default(),
+                "route_graphics": code.as_deref().map(route_graphics).unwrap_or_default(),
                 "code": code.map(|c| hex(&c)),
                 "own_route": route::own(page),
                 "turns": turns(page),
@@ -809,6 +810,38 @@ fn route_targets(code: &[u8]) -> Vec<usize> {
     targets
 }
 
+/// The graphics a compiled page's routes give the map's events, as
+/// `[event index, graphic index]` —the index in the map's `graphics`, what
+/// command 34 carries—, sorted and without repeats. The hero is not an
+/// event and does not count. Wally reads it to give a row to an event whose
+/// pages draw nothing and that a route dresses: without one, the ROM's
+/// `change_graphic` has nowhere to put the graphic.
+fn route_graphics(code: &[u8]) -> Vec<[usize; 2]> {
+    let mut out: Vec<[usize; 2]> = Vec::new();
+    for at in instructions(code).filter(|&at| code[at] == OP_ROUTE && code[at + 1] != 0) {
+        let target = code[at + 1] as usize - 1;
+        let path = &code[at + 4..at + 4 + code[at + 3] as usize];
+        let mut k = 0;
+        while k < path.len() {
+            // The two commands with operands: 34 one byte, the graphic, and
+            // 35 two, the sound —see `compile_route`—.
+            match path[k] as i32 {
+                ROUTE_CHANGE_GRAPHIC => {
+                    if let Some(&g) = path.get(k + 1) {
+                        out.push([target, g as usize]);
+                    }
+                    k += 2;
+                }
+                ROUTE_SOUND => k += 3,
+                _ => k += 1,
+            }
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
 /// A page condition's variable has a slot always: the sweep saw it. And
 /// not one of the two the record reserves —`$FF` is "none" and
 /// [`TIMER_SLOT`] the timer—: 174 slots are used today, so this is a wall
@@ -880,5 +913,20 @@ mod tests {
             "hot",
             Vec::new()
         )])));
+    }
+
+    #[test]
+    fn a_route_graphic_is_its_event_and_index() {
+        // Event index 1 gets graphic 3 after a sound whose low byte is a 34,
+        // which is not a command; the hero's graphic 5 does not count; and
+        // event index 0 gets graphic 0 twice and 2 once.
+        let code = [
+            OP_ROUTE, 2, 8, 6, 35, 34, 0, 34, 3, 1, //
+            OP_ROUTE, 0, 8, 2, 34, 5, //
+            OP_ROUTE, 1, 8, 6, 34, 0, 2, 34, 2, 0, //
+            OP_ROUTE, 1, 8, 2, 34, 0, //
+            OP_DONE,
+        ];
+        assert_eq!(route_graphics(&code), vec![[0, 0], [0, 2], [1, 3]]);
     }
 }
