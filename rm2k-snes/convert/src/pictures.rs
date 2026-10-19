@@ -67,6 +67,9 @@ pub const BIG_PALETTES: i64 = 7;
 pub const BIG_FIRST_PALETTE: i64 = 1;
 pub const BIG_TILES: i64 = 1024;
 pub const BIG_ROWS: i64 = 64;
+/// How many the cartridge's table of them holds: `OP_BIG_SHOW` names one
+/// with a byte, and $FF is the runtime's `PIC_NONE`.
+pub const BIG_IMAGES: usize = 255;
 /// A big one that a `MovePicture` zooms is also carried as a mode 7
 /// texture, whose map names 256 tiles. While it is still it is shown in
 /// mode 1 as the others, but from VRAM's upper half —mode 7 owns the lower
@@ -398,13 +401,17 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
         }
         tables.push(table);
     }
+    (layers, tables)
+}
+
+/// What the log says of [`number_big`]'s layers, once they are final.
+pub fn say_big(layers: &[Value]) {
     if !layers.is_empty() {
         println!(
             "  the cartridge carries {} big picture(s) in the background layer",
             layers.len()
         );
     }
-    (layers, tables)
 }
 
 /// What a map carries of the pictures the scan says it can show: what

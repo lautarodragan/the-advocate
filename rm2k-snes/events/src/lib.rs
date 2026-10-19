@@ -300,9 +300,20 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
                     .ok_or_else(|| Bad::answer(format!("{whose}: a big picture's `{name}`")))?;
                 Ok((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
             };
+            // A byte, and $FF is the runtime's PIC_NONE: a number past it
+            // would show another picture, so it is refused, not wrapped.
+            let image = int(field(e, "image", whose)?, whose)?;
+            let image = u8::try_from(image)
+                .ok()
+                .filter(|&i| i != 0xFF)
+                .ok_or_else(|| {
+                    Bad::answer(format!(
+                        "{whose}: big picture {image}, and OP_BIG_SHOW's byte names 255"
+                    ))
+                })?;
             pictures.big.push(BigPicture {
                 key,
-                image: int(field(e, "image", whose)?, whose)? as u8,
+                image,
                 center: pair("center")?,
                 texture: e.get("texture").and_then(Value::as_bool).unwrap_or(false),
             });
@@ -921,15 +932,18 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         out.push(entry);
     }
     // And the pictures the common events that run anywhere can show,
-    // gathered the same way, as a real body is compiled —without a map—:
-    // the caller keeps the big ones, which are the cartridge's, and gives
-    // them back as `common_pictures`. Only when there are some, so the
-    // answer of a cartridge without them stays the one it was.
-    let mut pictures = Pictures::gathering();
+    // gathered the same way, as a real body is compiled —without a map—,
+    // each one's apart: the caller keeps the big ones, which are the
+    // cartridge's, and gives them back as `common_pictures`. Only a body
+    // that compiles: one that does not never shows them, and each big
+    // picture costs cartridge. Only when there are some, so the answer of a
+    // cartridge without them stays the one it was.
+    let mut gathered = Vec::new();
     for n in commons::running_anywhere(game, &indices) {
         let mut messages = Messages::measuring(request.messages_step, request.window());
         let mut songs = Songs::default();
         let mut troops = Troops::default();
+        let mut pictures = Pictures::gathering();
         let mut ctx = Ctx {
             game,
             indices: &indices,
@@ -945,15 +959,19 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             losses: Losses::default(),
             face: None,
         };
-        compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
+        let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
+        if compiles.is_some() && !pictures.table.is_empty() {
+            gathered.push(json!({
+                "common": n,
+                "pictures": pictures.keys_json(),
+                "zooms": pictures.zooms_json(),
+            }));
+        }
     }
     let mut answer = indices_json(&indices, &associations);
     answer.insert("maps".into(), json!(out));
-    if !pictures.table.is_empty() {
-        answer.insert(
-            "commons_pictures".into(),
-            json!({"pictures": pictures.keys_json(), "zooms": pictures.zooms_json()}),
-        );
+    if !gathered.is_empty() {
+        answer.insert("commons_pictures".into(), json!(gathered));
     }
     Ok(Value::Object(answer))
 }
