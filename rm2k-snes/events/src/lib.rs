@@ -88,6 +88,13 @@ pub struct Request {
     /// Per map, the pictures it carries and each one's slot: see
     /// [`Pictures`]. A map that is not here carries none.
     pub pictures: BTreeMap<i32, Pictures>,
+    /// The pictures the common events compiled without a map can show —the
+    /// shared bodies and the parallel ones—: only big ones, which the
+    /// cartridge carries once and the console shows the same on every map
+    /// —see `runtime/big_picture.s`—. A small one lives in a map's sprite
+    /// bank, so a body without a map has none. The scan gathers what they
+    /// can show apart, as `commons_pictures`.
+    pub common_pictures: Pictures,
     /// Per map, the panoramas it carries, in the order the bytecode numbers
     /// them: its own first —or an empty name, if it starts with none— and
     /// the ones its `ChangePBG`s name after it. A map that is not here
@@ -273,6 +280,39 @@ fn by_map<T>(
             Ok((id, each(v)?))
         })
         .collect()
+}
+
+/// A list of pictures as the caller answers them: each entry a picture in
+/// the map's sprite bank, with its slot, or —with `"plane": "background"`— a
+/// big one, with its entry in the cartridge's table and half its size.
+fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
+    let mut pictures = Pictures::default();
+    for e in v
+        .as_array()
+        .ok_or_else(|| Bad::answer(format!("{whose}: a list of pictures is not a list")))?
+    {
+        let key = picture_key(e, whose)?;
+        if e.get("plane").and_then(Value::as_str) == Some("background") {
+            let pair = |name: &str| -> Result<(i32, i32)> {
+                let a = field(e, name, whose)?
+                    .as_array()
+                    .filter(|a| a.len() == 2)
+                    .ok_or_else(|| Bad::answer(format!("{whose}: a big picture's `{name}`")))?;
+                Ok((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
+            };
+            pictures.big.push(BigPicture {
+                key,
+                image: int(field(e, "image", whose)?, whose)? as u8,
+                center: pair("center")?,
+                texture: e.get("texture").and_then(Value::as_bool).unwrap_or(false),
+            });
+        } else {
+            pictures
+                .table
+                .push((key, int(field(e, "slot", whose)?, whose)? as u8));
+        }
+    }
+    Ok(pictures)
 }
 
 impl Request {
@@ -472,39 +512,10 @@ impl Request {
             })?;
         }
         if let Some(p) = data.get("pictures") {
-            // Each entry is a picture in the map's sprite bank, with its
-            // slot, or —with `"plane": "background"`— a big one, with its
-            // entry in the cartridge's table and half its size.
-            r.pictures = by_map(p, whose, |v| {
-                let mut pictures = Pictures::default();
-                for e in v.as_array().ok_or_else(|| {
-                    Bad::answer(format!("{whose}: a map's pictures are not a list"))
-                })? {
-                    let key = picture_key(e, whose)?;
-                    if e.get("plane").and_then(Value::as_str) == Some("background") {
-                        let pair = |name: &str| -> Result<(i32, i32)> {
-                            let a = field(e, name, whose)?
-                                .as_array()
-                                .filter(|a| a.len() == 2)
-                                .ok_or_else(|| {
-                                    Bad::answer(format!("{whose}: a big picture's `{name}`"))
-                                })?;
-                            Ok((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
-                        };
-                        pictures.big.push(BigPicture {
-                            key,
-                            image: int(field(e, "image", whose)?, whose)? as u8,
-                            center: pair("center")?,
-                            texture: e.get("texture").and_then(Value::as_bool).unwrap_or(false),
-                        });
-                    } else {
-                        pictures
-                            .table
-                            .push((key, int(field(e, "slot", whose)?, whose)? as u8));
-                    }
-                }
-                Ok(pictures)
-            })?;
+            r.pictures = by_map(p, whose, |v| pictures_of(v, whose))?;
+        }
+        if let Some(p) = data.get("common_pictures") {
+            r.common_pictures = pictures_of(p, whose)?;
         }
         if let Some(s) = data.get("sound_effects") {
             for a in list(s, "per_map", whose)? {
@@ -909,8 +920,41 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         }
         out.push(entry);
     }
+    // And the pictures the common events that run anywhere can show,
+    // gathered the same way, as a real body is compiled —without a map—:
+    // the caller keeps the big ones, which are the cartridge's, and gives
+    // them back as `common_pictures`. Only when there are some, so the
+    // answer of a cartridge without them stays the one it was.
+    let mut pictures = Pictures::gathering();
+    for n in commons::running_anywhere(game, &indices) {
+        let mut messages = Messages::measuring(request.messages_step, request.window());
+        let mut songs = Songs::default();
+        let mut troops = Troops::default();
+        let mut ctx = Ctx {
+            game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &map_index,
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: Some(&mut pictures),
+            troops: Some(&mut troops),
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+        };
+        compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
+    }
     let mut answer = indices_json(&indices, &associations);
     answer.insert("maps".into(), json!(out));
+    if !pictures.table.is_empty() {
+        answer.insert(
+            "commons_pictures".into(),
+            json!({"pictures": pictures.keys_json(), "zooms": pictures.zooms_json()}),
+        );
+    }
     Ok(Value::Object(answer))
 }
 
@@ -1020,6 +1064,7 @@ fn compile_pass(
         indices: &indices,
         sound: &request.sound,
         map_index: &map_index,
+        pictures: &request.common_pictures,
     };
     let from_pages: BTreeSet<i32> = maps
         .iter()

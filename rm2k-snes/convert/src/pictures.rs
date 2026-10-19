@@ -286,12 +286,13 @@ fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
 /// The big pictures of `keys`. The ones that do not fit even cut to the
 /// screen are left out, and their commands are accepted without being
 /// done. The ones a move of the map zooms —`zooms`, as the scan wrote it
-/// down— carry a mode 7 texture too, if they leave room for it.
+/// down— carry a mode 7 texture too, if they leave room for it. `whose` is
+/// who shows them, for the log: "map 12", or "the common events".
 pub fn big_for_map(
     game_dir: &Path,
     keys: &[Value],
     zooms: &[Value],
-    map_id: i32,
+    whose: &str,
     cropped: &Cropped,
 ) -> Result<Vec<Big>> {
     let mut out = Vec::new();
@@ -320,7 +321,7 @@ pub fn big_for_map(
         )?;
         let Some(mut layer) = layer else {
             println!(
-                "  map {map_id}: the picture {} doesn't fit the background layer even cut to the screen",
+                "  {whose}: the picture {} doesn't fit the background layer even cut to the screen",
                 crate::text::repr(name)
             );
             continue;

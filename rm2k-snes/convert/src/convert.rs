@@ -501,9 +501,24 @@ pub fn run(options: Options) -> Result<()> {
         .position(|&m| m == boot_map)
         .expect("the boot map stays");
     // The big pictures, which the cartridge carries once whatever map shows
-    // them.
-    let bigs: Vec<&[pictures::Big]> = infos.iter().map(|m| m.big_pictures.as_slice()).collect();
-    let (big_layers, big_tables) = pictures::number_big(&bigs);
+    // them. And last, so no map's numbers move, the ones the common events
+    // without a map show —the automatic and parallel ones, which run on any
+    // map—: a big picture is the same on every map, so their bodies show it
+    // wherever they run. See `common_pictures` in `rm2k-snes-events`.
+    let common_bigs = match scan_answer.get("commons_pictures") {
+        Some(c) => pictures::big_for_map(
+            &game.game_dir,
+            c["pictures"].as_array().map_or(&[][..], Vec::as_slice),
+            c["zooms"].as_array().map_or(&[][..], Vec::as_slice),
+            "the common events",
+            &game.cropped,
+        )?,
+        None => Vec::new(),
+    };
+    let mut bigs: Vec<&[pictures::Big]> = infos.iter().map(|m| m.big_pictures.as_slice()).collect();
+    bigs.push(&common_bigs);
+    let (big_layers, mut big_tables) = pictures::number_big(&bigs);
+    compiler.common_pictures = big_tables.pop().unwrap_or_default();
     for (m, table) in infos.iter_mut().zip(big_tables) {
         m.big_table = table;
     }

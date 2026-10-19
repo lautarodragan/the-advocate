@@ -2025,7 +2025,9 @@ fn shares<'a>(
     let with_map = compile_page(ctx, &commands, here, 0, 0);
     // And as the cartridge's is compiled: no map's events, graphics or
     // pictures, and no package, which is where an effect's sample per map
-    // comes from.
+    // comes from. Not even the big pictures the cartridge's body may carry
+    // —`commons::Setting::pictures`—: a body that shows one then differs,
+    // and the page pastes it, which shows the same picture.
     let (graphics, pictures) = (ctx.graphics.take(), ctx.pictures.take());
     let package = ctx.songs.as_mut().and_then(|s| s.current.take());
     let without = compile_page(ctx, &commands, None, 0, 0);
@@ -9986,6 +9988,10 @@ mod tests {
     }
 
     fn shared(game: &Game) -> crate::commons::Shared {
+        shared_with(game, &Pictures::default())
+    }
+
+    fn shared_with(game: &Game, pictures: &Pictures) -> crate::commons::Shared {
         use crate::messages::{Messages, Window};
         let indices = Indices::default();
         let sound = SoundSettings::default();
@@ -9997,6 +10003,7 @@ mod tests {
             indices: &indices,
             sound: &sound,
             map_index: &|_| None,
+            pictures,
         };
         let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
         crate::commons::compile(
@@ -10032,6 +10039,58 @@ mod tests {
         assert_eq!(s.bodies[1].1, [OP_CALL, 0, OP_CALL, 0, OP_RETURN]);
         assert_eq!(s.autostart, [(30, 1)]);
         assert_eq!(s.depth, Some(2));
+    }
+
+    /// The Book of Three's map item, common event 23: automatic on switch
+    /// 38, which the item turns on from the menu on any map, it shows the
+    /// 640x480 `bo3map` at half its size —the whole screen— until a key, and
+    /// erases it. The body, compiled without a map, shows it if the
+    /// cartridge carries it as a big picture: those are the cartridge's,
+    /// not a map's. Until 2026-10-19 it was accepted without being done, and
+    /// the item waited for a key over the map.
+    #[test]
+    fn a_common_event_without_a_map_shows_a_big_picture() {
+        let show = cmd(
+            SHOW_PICTURE,
+            &[2, 0, 160, 120, 0, 50, 0, 1, 100, 100, 100, 100, 0, 60],
+            "bo3map",
+        );
+        let mut game = Game::default();
+        game.common_events.insert(
+            23,
+            common(
+                3,
+                Some(38),
+                vec![
+                    show.clone(),
+                    cmd(ERASE_PICTURE, &[2], ""),
+                    cmd(CONTROL_SWITCHES, &[0, 38, 38, 1], ""),
+                ],
+            ),
+        );
+        let off = [OP_SWITCH, 38, 0, 0];
+        let blind = shared(&game);
+        assert_eq!(blind.bodies[0].1, [&off[..], &[OP_RETURN]].concat());
+        let pictures = Pictures {
+            big: vec![BigPicture {
+                key: picture_key(&show).unwrap(),
+                image: 3,
+                center: (160, 120),
+                texture: false,
+            }],
+            ..Pictures::default()
+        };
+        let seen = shared_with(&game, &pictures);
+        assert_eq!(
+            seen.bodies[0].1,
+            [
+                &[OP_BIG_SHOW, 3, 100, 100, 100, 0, 100, 0][..],
+                &[OP_PICTURE_ERASE, PICTURE_BIG],
+                &off,
+                &[OP_RETURN],
+            ]
+            .concat()
+        );
     }
 
     #[test]

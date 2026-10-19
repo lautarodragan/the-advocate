@@ -437,7 +437,13 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let big_pictures = pictures::big_for_map(&game.game_dir, &keys, &zooms, map_id, &game.cropped)?;
+    let big_pictures = pictures::big_for_map(
+        &game.game_dir,
+        &keys,
+        &zooms,
+        &format!("map {map_id}"),
+        &game.cropped,
+    )?;
     let shows_animation =
         animations.map_shows_animation(game, map.all_commands(), &case_commands)?;
     let mut triples = Vec::new();
