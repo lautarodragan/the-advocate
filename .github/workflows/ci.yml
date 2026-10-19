@@ -1,5 +1,5 @@
-# What can be checked without a ported game: the Rust workspace and its
-# tests, the Python tests of this tree, and the test game —made, built with
+# What can be checked without a ported game: the Rust workspace —formatted,
+# through clippy, and without a compiler warning— and its tests, the Python tests of this tree, and the test game —made, built with
 # the installed tools, run in snes9x and in bsnes against its goldens, and
 # its cartridge through Goombario—. The ports' suite is still the real net
 # for the runtime: this does not replace it.
@@ -23,6 +23,18 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # The toolchain is pinned because the checks deny warnings: a new stable
+  # brings new lints, and the run would go red on its release day without a
+  # line changing. Bumping it is a commit that fixes what the new one says.
+  # 1.96.0 because its rustfmt and clippy are the ones `just lint` was made
+  # clean with, which came with a newer rustc: rustup's 1.98.1 clippy
+  # brings lints that one does not know —`chunks_exact_to_as_chunks`—, so a
+  # check that passed before pushing went red here.
+  RUST_TOOLCHAIN: 1.96.0
+  # A compiler warning fails the build, every cargo of every job. It is part
+  # of what Cargo fingerprints and of rust-cache's key, so it is set for the
+  # whole workflow: one value, one cache.
+  RUSTFLAGS: -D warnings
   # cc65's master: the release Ubuntu packages (2.19) does not assemble the
   # runtime —"Illegal addressing mode" on `rol`/`asl`/`inc` of a far
   # symbol plus an offset, in `runtime/pano.s`—.
@@ -34,6 +46,31 @@ env:
   BSNES_COMMIT: 260f5234410d0899f8446882c63d17f891b686e0
 
 jobs:
+  # Apart from the tests, so that a formatting slip does not hide whether
+  # they pass. What it runs is `just lint`, the same as before pushing.
+  lint:
+    name: rustfmt and clippy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt,clippy
+          rustup default "$RUST_TOOLCHAIN"
+          cargo fmt --version
+          cargo clippy --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: just
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends just
+
+      - name: rustfmt and clippy
+        run: just lint
+
   rust-and-python:
     name: Rust workspace and Python tests
     runs-on: ubuntu-24.04
@@ -42,8 +79,8 @@ jobs:
 
       - name: Rust toolchain
         run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
           rustc --version
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -73,8 +110,8 @@ jobs:
 
       - name: Rust toolchain
         run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
           rustc --version
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2

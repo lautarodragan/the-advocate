@@ -71,6 +71,18 @@ test-game *args:
 rust-test *args:
   cargo test --workspace {{args}}
 
+# What CI checks of the Rust before building it: the formatting, with the
+# default rustfmt config —there is no rustfmt.toml, on purpose—, and clippy
+# over every target with its warnings as errors. The lints the workspace
+# does not follow are in `[workspace.lints.clippy]` of `Cargo.toml`, each
+# with its why; an exception for one item goes on the item, with its own.
+# `cargo fmt --all` fixes the first.
+#
+# rustfmt and clippy over the workspace, as CI runs them.
+lint:
+  cargo fmt --all --check
+  cargo clippy --workspace --all-targets -- -D warnings
+
 # One Rust project's tests, by its name in `rust_projects` —`just
 # crate-test lz2`—, standing in its directory, which tests only that one;
 # whatever follows the name goes to `cargo test`. What each one's tests need
