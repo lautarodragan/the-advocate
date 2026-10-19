@@ -275,7 +275,10 @@ fn the_parallel_common_events_come_compiled() {
     assert_eq!(parallel[0][0], 2);
     assert_eq!(parallel[0][1], 40);
     assert_eq!(parallel[0][2], true);
-    assert!(parallel[0][3].is_string(), "it does not compile: {parallel:?}");
+    assert!(
+        parallel[0][3].is_string(),
+        "it does not compile: {parallel:?}"
+    );
 }
 
 /// Who each page sends walking. The answer was checked against the
@@ -446,14 +449,40 @@ fn the_compilation_says_what_it_degrades() {
     let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
     let answer = compile(&game(&request), &request).unwrap();
     let losses = answer["degradations"]["losses"].as_array().unwrap();
-    let find = |kind: &str| losses.iter().find(|l| l["kind"] == kind).unwrap_or_else(|| panic!("no {kind}"));
+    let find = |kind: &str| {
+        losses
+            .iter()
+            .find(|l| l["kind"] == kind)
+            .unwrap_or_else(|| panic!("no {kind}"))
+    };
     let teleport = find("teleport-to-missing-map");
     assert_eq!(
-        [&teleport["map"], &teleport["event"], &teleport["page"], &teleport["command"], &teleport["name"]],
-        [&json!(2), &json!(1), &json!(2), &json!(1), &json!("Teleport")]
+        [
+            &teleport["map"],
+            &teleport["event"],
+            &teleport["page"],
+            &teleport["command"],
+            &teleport["name"]
+        ],
+        [
+            &json!(2),
+            &json!(1),
+            &json!(2),
+            &json!(1),
+            &json!("Teleport")
+        ]
     );
     let left_out = find("event-left-out");
-    assert_eq!([&left_out["map"], &left_out["event"], &left_out["page"]], [&json!(1), &json!(8), &Value::Null]);
-    let troop = losses.iter().find(|l| l.get("troop").is_some()).expect("a troop page's loss");
-    assert_eq!([&troop["page"], &troop["command"], &troop["name"]], [&json!(1), &json!(2), &json!("PlaySound")]);
+    assert_eq!(
+        [&left_out["map"], &left_out["event"], &left_out["page"]],
+        [&json!(1), &json!(8), &Value::Null]
+    );
+    let troop = losses
+        .iter()
+        .find(|l| l.get("troop").is_some())
+        .expect("a troop page's loss");
+    assert_eq!(
+        [&troop["page"], &troop["command"], &troop["name"]],
+        [&json!(1), &json!(2), &json!("PlaySound")]
+    );
 }

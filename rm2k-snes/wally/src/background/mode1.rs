@@ -45,12 +45,27 @@ fn reduce_places(
     places: &[BTreeSet<Color>],
 ) -> Result<(Vec<HashMap<Color, Color>>, Vec<Vec<Color>>, Vec<Merge>)> {
     let totals = counts(grids);
-    let reduced = adeleine::reduce_colors(&totals, places, MAX_MAP_PALETTES, adeleine::USABLE_COLORS)?;
-    let mappings = places.iter().zip(&reduced.tiles)
-        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
+    let reduced =
+        adeleine::reduce_colors(&totals, places, MAX_MAP_PALETTES, adeleine::USABLE_COLORS)?;
+    let mappings = places
+        .iter()
+        .zip(&reduced.tiles)
+        .map(|(tile, decided)| {
+            tile.iter()
+                .copied()
+                .zip(decided.mapping.iter().copied())
+                .collect()
+        })
         .collect();
-    Ok((mappings, reduced.palettes.into_iter().map(|g| g.into_iter().collect()).collect(),
-        reduced.merges.into_iter().map(Merge::from).collect()))
+    Ok((
+        mappings,
+        reduced
+            .palettes
+            .into_iter()
+            .map(|g| g.into_iter().collect())
+            .collect(),
+        reduced.merges.into_iter().map(Merge::from).collect(),
+    ))
 }
 
 /// The whole map in mode 1: see the module.
@@ -108,7 +123,10 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
     let (above, above_picture) = convert_above(&above, &above_palettes, first_above, above_merges)?;
 
     // The map, each place in the first palette that has all it draws.
-    let psets: Vec<BTreeSet<Color>> = palettes.iter().map(|p| p.iter().copied().collect()).collect();
+    let psets: Vec<BTreeSet<Color>> = palettes
+        .iter()
+        .map(|p| p.iter().copied().collect())
+        .collect();
     let mut choice = Vec::with_capacity(sets.len());
     for (i, s) in sets.iter().enumerate() {
         if s.is_empty() {
@@ -129,7 +147,11 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
         .enumerate()
         .map(|(i, palette)| {
             let at = (FIRST_MAP_PALETTE + i) * COLORS_PER_PALETTE;
-            palette.iter().enumerate().map(|(k, &c)| (c, (at + k + 1) as u8)).collect()
+            palette
+                .iter()
+                .enumerate()
+                .map(|(k, &c)| (c, (at + k + 1) as u8))
+                .collect()
         })
         .collect();
     let (mut pano, pano_picture) = panorama::mode1(ask.picture, ask.tiles)?;
@@ -137,7 +159,11 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
     pano.extras = ask
         .extras
         .iter()
-        .map(|e| panorama::mode1(e, ask.tiles).map(|(q, _)| q).map_err(|e| e.to_string()))
+        .map(|e| {
+            panorama::mode1(e, ask.tiles)
+                .map(|(q, _)| q)
+                .map_err(|e| e.to_string())
+        })
         .collect();
     let mut entries: Vec<Option<Color>> = vec![None; voodoo::ENTRIES];
     for (i, palette) in palettes.iter().enumerate() {

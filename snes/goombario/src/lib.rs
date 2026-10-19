@@ -34,7 +34,11 @@ impl Report {
 
 /// The annotations in the program's sources whose debug-file path `wanted`
 /// accepts, and the ones that are wrong: see `allow`.
-pub fn annotations(program: &Program, root: &Path, wanted: impl Fn(&str) -> bool) -> (Vec<allow::Annotation>, Vec<String>) {
+pub fn annotations(
+    program: &Program,
+    root: &Path,
+    wanted: impl Fn(&str) -> bool,
+) -> (Vec<allow::Annotation>, Vec<String>) {
     let mut files: Vec<&String> = program.files.values().filter(|f| wanted(f)).collect();
     files.sort();
     files.dedup();
@@ -42,7 +46,9 @@ pub fn annotations(program: &Program, root: &Path, wanted: impl Fn(&str) -> bool
     let mut wrong = Vec::new();
     for file in files {
         // One that cannot be read is already said by `missing_sources`.
-        let Ok(text) = std::fs::read_to_string(root.join(file)) else { continue };
+        let Ok(text) = std::fs::read_to_string(root.join(file)) else {
+            continue;
+        };
         let (a, w) = allow::scan(file, &text);
         list.extend(a);
         wrong.extend(w);
@@ -58,12 +64,20 @@ pub fn apply_exceptions(
     let mut used = vec![false; annotations.len()];
     let mut left = Vec::new();
     for r in reports {
-        match annotations.iter().position(|a| a.covers(r.check, &r.file, r.line)) {
+        match annotations
+            .iter()
+            .position(|a| a.covers(r.check, &r.file, r.line))
+        {
             Some(i) => used[i] = true,
             None => left.push(r),
         }
     }
-    let unused = annotations.iter().zip(used).filter(|(_, u)| !u).map(|(a, _)| a.clone()).collect();
+    let unused = annotations
+        .iter()
+        .zip(used)
+        .filter(|(_, u)| !u)
+        .map(|(a, _)| a.clone())
+        .collect();
     (left, unused)
 }
 

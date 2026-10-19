@@ -117,7 +117,11 @@ impl Map {
     /// the grid does not fit: see [`crate::materials::cell_bytes`].
     pub fn cell_bytes(&self) -> Option<usize> {
         let ram = self.blocks.len() + self.block_pass.len();
-        crate::materials::cell_bytes(self.cells.len() / 2, self.blocks.len() / crate::materials::BLOCK_BYTES, ram)
+        crate::materials::cell_bytes(
+            self.cells.len() / 2,
+            self.blocks.len() / crate::materials::BLOCK_BYTES,
+            ram,
+        )
     }
 
     /// Whether its grid goes one byte a cell.
@@ -162,8 +166,8 @@ pub struct Panorama {
     #[serde(default)]
     pub above_bg1: bool,
     /// Its colour-memory words and the entry they start at: what travels
-    /// as the layer above's in mode 3 and inside the background's in mode
-    /// 1. Only read in a map that swaps pictures, whose every record
+    /// as the layer above's in mode 3 and inside the background's in
+    /// mode 1. Only read in a map that swaps pictures, whose every record
     /// carries its own.
     #[serde(default)]
     pub first: usize,

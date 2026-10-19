@@ -60,9 +60,19 @@ pub fn names(code: i32, parameters: &[i32]) -> Vec<i32> {
 
 /// The ids named by the map's pages, the common events —which a
 /// `CallEvent` brings into any map— and the test pages that run here.
-pub fn named(events: &[Event], common: &[(i32, Vec<i32>)], tests: &[(i32, Vec<i32>)]) -> BTreeSet<i32> {
-    let own = events.iter().flat_map(|e| &e.pages).flat_map(|p| p.commands.iter());
-    own.chain(common).chain(tests).flat_map(|(code, parameters)| names(*code, parameters)).collect()
+pub fn named(
+    events: &[Event],
+    common: &[(i32, Vec<i32>)],
+    tests: &[(i32, Vec<i32>)],
+) -> BTreeSet<i32> {
+    let own = events
+        .iter()
+        .flat_map(|e| &e.pages)
+        .flat_map(|p| p.commands.iter());
+    own.chain(common)
+        .chain(tests)
+        .flat_map(|(code, parameters)| names(*code, parameters))
+        .collect()
 }
 
 /// One decorative event, ready to paint.
@@ -97,7 +107,11 @@ impl Decoration {
     /// nothing new: the water and the ground's own colours.
     pub fn dithered(&self) -> Decoration {
         match &self.dithered {
-            Some(frames) => Decoration { frames: frames.clone(), translucent: false, ..self.clone() },
+            Some(frames) => Decoration {
+                frames: frames.clone(),
+                translucent: false,
+                ..self.clone()
+            },
             None => self.clone(),
         }
     }
@@ -133,8 +147,14 @@ fn inside_the_cell(frame: &Picture) -> bool {
 pub fn select(drawer: &mut Drawer, events: &[Event], wants: &Wants) -> Result<Vec<Decoration>> {
     let mut out = Vec::new();
     for (number, event) in events.iter().enumerate() {
-        let [page] = event.pages.as_slice() else { continue };
-        if !page.commands.is_empty() || !page.conditions.is_empty() || page.move_type != 0 || page.own_route {
+        let [page] = event.pages.as_slice() else {
+            continue;
+        };
+        if !page.commands.is_empty()
+            || !page.conditions.is_empty()
+            || page.move_type != 0
+            || page.own_route
+        {
             continue;
         }
         // A CharSet: a tile keeps its own way, which imposes its passability.
@@ -145,24 +165,55 @@ pub fn select(drawer: &mut Drawer, events: &[Event], wants: &Wants) -> Result<Ve
         if page.animation == 5 || !matches!(page.layer, LAYER_BELOW | LAYER_SAME) {
             continue;
         }
-        if wants.named.contains(&event.id) || wants.also_walk.contains(&number) || wants.baked.contains_key(&number) {
+        if wants.named.contains(&event.id)
+            || wants.also_walk.contains(&number)
+            || wants.baked.contains_key(&number)
+        {
             continue;
         }
         let translucent = page.name.contains(&format!("{BAKED_SUFFIX}:"));
-        let name = if translucent { unbaked(&page.name) } else { page.name.as_str() };
-        let Some(sheet) = drawer.draw(name)? else { continue };
+        let name = if translucent {
+            unbaked(&page.name)
+        } else {
+            page.name.as_str()
+        };
+        let Some(sheet) = drawer.draw(name)? else {
+            continue;
+        };
         let (ox, oy) = character_origin(page.index);
         let row = page.pose / 3;
-        let dither_sheet = if translucent { drawer.draw(&format!("{name}{DITHER_SUFFIX}"))? } else { None };
-        let columns: Vec<i32> = if matches!(page.animation, 1 | 3) { vec![0, 1, 2] } else { vec![page.pose % 3] };
+        let dither_sheet = if translucent {
+            drawer.draw(&format!("{name}{DITHER_SUFFIX}"))?
+        } else {
+            None
+        };
+        let columns: Vec<i32> = if matches!(page.animation, 1 | 3) {
+            vec![0, 1, 2]
+        } else {
+            vec![page.pose % 3]
+        };
         let frames: Vec<Picture> = columns
             .iter()
-            .map(|c| sheet.crop((ox + c * POSE_WIDTH) as i64, (oy + row * POSE_HEIGHT) as i64, POSE_WIDTH as usize, POSE_HEIGHT as usize))
+            .map(|c| {
+                sheet.crop(
+                    (ox + c * POSE_WIDTH) as i64,
+                    (oy + row * POSE_HEIGHT) as i64,
+                    POSE_WIDTH as usize,
+                    POSE_HEIGHT as usize,
+                )
+            })
             .collect();
         let cut = |sheet: &Picture| -> Vec<Picture> {
             columns
                 .iter()
-                .map(|c| sheet.crop((ox + c * POSE_WIDTH) as i64, (oy + row * POSE_HEIGHT) as i64, POSE_WIDTH as usize, POSE_HEIGHT as usize))
+                .map(|c| {
+                    sheet.crop(
+                        (ox + c * POSE_WIDTH) as i64,
+                        (oy + row * POSE_HEIGHT) as i64,
+                        POSE_WIDTH as usize,
+                        POSE_HEIGHT as usize,
+                    )
+                })
                 .collect()
         };
         let dithered = dither_sheet.as_ref().map(cut);
@@ -188,7 +239,10 @@ pub fn select(drawer: &mut Drawer, events: &[Event], wants: &Wants) -> Result<Ve
 /// `frame` painted on `picture` at the cell of `d`.
 fn paint(picture: &mut Picture, d: &Decoration, frame: &Picture) {
     let alpha = TRANSLUCENT_OPACITY as u32;
-    let (x0, y0) = (d.x * TILE as i64 + OFFSET_X as i64, d.y * TILE as i64 + OFFSET_Y as i64);
+    let (x0, y0) = (
+        d.x * TILE as i64 + OFFSET_X as i64,
+        d.y * TILE as i64 + OFFSET_Y as i64,
+    );
     for py in 0..frame.height {
         let y = y0 + py as i64;
         if y < 0 || y >= picture.height as i64 {
@@ -223,13 +277,22 @@ pub fn compose(layers: &mut Layers, decor: &[Decoration]) {
     if decor.is_empty() {
         return;
     }
-    if decor.iter().any(Decoration::animated) && !layers.variants.iter().any(|(f, _)| *f == Family::Water) {
+    if decor.iter().any(Decoration::animated)
+        && !layers.variants.iter().any(|(f, _)| *f == Family::Water)
+    {
         let clean = vec![layers.lower.clone(); Family::Water.drawings() - 1];
         layers.variants.insert(0, (Family::Water, clean));
     }
     let each = |picture: &mut Picture, step: usize| {
-        for d in decor.iter().filter(|d| d.layer == LAYER_BELOW || d.layer == LAYER_SAME) {
-            let frame = if d.animated() { &d.frames[step] } else { &d.frames[0] };
+        for d in decor
+            .iter()
+            .filter(|d| d.layer == LAYER_BELOW || d.layer == LAYER_SAME)
+        {
+            let frame = if d.animated() {
+                &d.frames[step]
+            } else {
+                &d.frames[0]
+            };
             paint(picture, d, frame);
         }
     };

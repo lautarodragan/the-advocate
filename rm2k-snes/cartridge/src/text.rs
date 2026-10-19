@@ -14,7 +14,14 @@ pub fn split_lines(text: &str) -> Vec<&str> {
     while let Some((i, c)) = chars.next() {
         let breaks = matches!(
             c,
-            '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}'
+            '\n' | '\r'
+                | '\x0b'
+                | '\x0c'
+                | '\x1c'
+                | '\x1d'
+                | '\x1e'
+                | '\u{85}'
+                | '\u{2028}'
                 | '\u{2029}'
         );
         if !breaks {
@@ -49,7 +56,10 @@ pub fn first_word(text: &str) -> (&str, Option<&str>) {
         None => (text, None),
         Some(end) => {
             let rest = text[end..].trim_start();
-            (&text[..end], if rest.is_empty() { None } else { Some(rest) })
+            (
+                &text[..end],
+                if rest.is_empty() { None } else { Some(rest) },
+            )
         }
     }
 }

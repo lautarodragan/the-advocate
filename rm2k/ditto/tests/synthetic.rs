@@ -90,7 +90,10 @@ fn the_hand_written_map_reads_as_those_values() {
     // a file written by a newer editor come back whole.
     assert_eq!(
         data.unknown,
-        vec![RawChunk { id: 0x7F, bytes: vec![0xAA, 0xBB, 0xCC] }]
+        vec![RawChunk {
+            id: 0x7F,
+            bytes: vec![0xAA, 0xBB, 0xCC]
+        }]
     );
     // And every field the map does not carry holds the format's default, not
     // the zero of its type.
@@ -137,9 +140,15 @@ fn the_json_omits_the_defaults_too() {
     // A field set to its default explicitly is the same thing as not setting
     // it: this is what a JSON that hides the defaults costs, and it has to be
     // the same value the binary omits.
-    let e = Enemy { max_hp: 10, ..Default::default() };
+    let e = Enemy {
+        max_hp: 10,
+        ..Default::default()
+    };
     assert_eq!(serde_json::to_string(&e).unwrap(), "{}");
-    let e = Enemy { max_hp: 11, ..Default::default() };
+    let e = Enemy {
+        max_hp: 11,
+        ..Default::default()
+    };
     assert_eq!(serde_json::to_string(&e).unwrap(), r#"{"max_hp":11}"#);
 }
 
@@ -148,7 +157,10 @@ fn the_json_omits_the_defaults_too() {
 /// It cost a Skill that turned from a teleport into a normal attack.
 #[test]
 fn the_field_called_type_keeps_its_name() {
-    let m = MapInfo { r#type: TreeMapMapType::from_i32(2), ..Default::default() };
+    let m = MapInfo {
+        r#type: TreeMapMapType::from_i32(2),
+        ..Default::default()
+    };
     let json = serde_json::to_string(&m).unwrap();
     assert!(json.contains("\"type\""), "{json}");
     assert!(!json.contains("r#"), "{json}");
@@ -163,12 +175,22 @@ fn the_field_called_type_keeps_its_name() {
 fn closes(doc: &Document) {
     let binary = ditto::file::write(doc).unwrap();
     let back = ditto::file::read(&binary).unwrap();
-    assert_eq!(&back, doc, "the binary does not give back the same structure");
-    assert_eq!(ditto::file::write(&back).unwrap(), binary, "writing is not stable");
+    assert_eq!(
+        &back, doc,
+        "the binary does not give back the same structure"
+    );
+    assert_eq!(
+        ditto::file::write(&back).unwrap(),
+        binary,
+        "writing is not stable"
+    );
 
     let json = serde_json::to_vec(doc).unwrap();
     let from_json: Document = serde_json::from_slice(&json).unwrap();
-    assert_eq!(&from_json, doc, "the JSON does not give back the same structure");
+    assert_eq!(
+        &from_json, doc,
+        "the JSON does not give back the same structure"
+    );
     assert_eq!(ditto::file::write(&from_json).unwrap(), binary);
 }
 
@@ -202,37 +224,78 @@ fn a_map_of_awkward_values_closes() {
         upper_layer: Vec::new(),
         save_count: 128,
         events: vec![
-            Event { id: 1, name: "one".into(), x: -1, y: 16383, pages: vec![page], ..Default::default() },
-            Event { id: 4096, ..Default::default() },
+            Event {
+                id: 1,
+                name: "one".into(),
+                x: -1,
+                y: 16383,
+                pages: vec![page],
+                ..Default::default()
+            },
+            Event {
+                id: 4096,
+                ..Default::default()
+            },
         ],
-        unknown: vec![RawChunk { id: 0x64, bytes: vec![0x00, 0xFF] }],
+        unknown: vec![RawChunk {
+            id: 0x64,
+            bytes: vec![0x00, 0xFF],
+        }],
         ..Default::default()
     };
     // Said out loud, because a round trip would pass either way: the default
     // field left the binary.
-    let binary = ditto::file::write(&Document::Lmu { header: "LcfMapUnit".into(), data: data.clone() }).unwrap();
+    let binary = ditto::file::write(&Document::Lmu {
+        header: "LcfMapUnit".into(),
+        data: data.clone(),
+    })
+    .unwrap();
     assert!(
         !binary.windows(3).any(|w| w == [0x03, 0x01, 0x0F]),
         "height was written even though it holds its default"
     );
-    closes(&Document::Lmu { header: "LcfMapUnit".into(), data });
+    closes(&Document::Lmu {
+        header: "LcfMapUnit".into(),
+        data,
+    });
 }
 
 #[test]
 fn a_database_closes() {
     let data = Database {
         actors: vec![
-            Actor { id: 1, name: "Ditto".into(), title: "".into(), ..Default::default() },
-            Actor { id: 2, ..Default::default() },
+            Actor {
+                id: 1,
+                name: "Ditto".into(),
+                title: "".into(),
+                ..Default::default()
+            },
+            Actor {
+                id: 2,
+                ..Default::default()
+            },
         ],
         enemies: vec![
             // The one that started all this: a default of 10, not of 0.
-            Enemy { id: 1, name: "Slime".into(), max_hp: 10, ..Default::default() },
-            Enemy { id: 2, name: "Boss".into(), max_hp: 9999, ..Default::default() },
+            Enemy {
+                id: 1,
+                name: "Slime".into(),
+                max_hp: 10,
+                ..Default::default()
+            },
+            Enemy {
+                id: 2,
+                name: "Boss".into(),
+                max_hp: 9999,
+                ..Default::default()
+            },
         ],
         ..Default::default()
     };
-    closes(&Document::Ldb { header: "LcfDataBase".into(), data });
+    closes(&Document::Ldb {
+        header: "LcfDataBase".into(),
+        data,
+    });
 }
 
 /// The same database saved by RPG Maker 2003 —`System.ldb_id` 2003—, with
@@ -254,17 +317,31 @@ fn a_2003_database_closes_and_is_two_bytes_wider_where_it_has_to_be() {
     };
     let troop = Troop {
         id: 1,
-        pages: vec![TroopPage { id: 1, condition: condition.clone(), ..Default::default() }],
+        pages: vec![TroopPage {
+            id: 1,
+            condition: condition.clone(),
+            ..Default::default()
+        }],
         ..Default::default()
     };
-    let as_2000 = Database { troops: vec![troop.clone()], ..Default::default() };
+    let as_2000 = Database {
+        troops: vec![troop.clone()],
+        ..Default::default()
+    };
     let as_2003 = Database {
         troops: vec![troop],
-        system: System { ldb_id: 2003, ..Default::default() },
+        system: System {
+            ldb_id: 2003,
+            ..Default::default()
+        },
         ..Default::default()
     };
     let ldb = |data: &Database| {
-        ditto::file::write(&Document::Ldb { header: "LcfDataBase".into(), data: data.clone() }).unwrap()
+        ditto::file::write(&Document::Ldb {
+            header: "LcfDataBase".into(),
+            data: data.clone(),
+        })
+        .unwrap()
     };
     let bytes_2000 = ldb(&as_2000);
     let bytes_2003 = ldb(&as_2003);
@@ -272,8 +349,14 @@ fn a_2003_database_closes_and_is_two_bytes_wider_where_it_has_to_be() {
     // The flags chunk: id 0x01, then its length and its bytes. In 2000 the
     // 2003 bit does not exist and the chunk is one byte, `switch_a` alone; in
     // 2003 it is two, and `command_actor` —the tenth bit— is bit 1 of the second.
-    assert!(bytes_2000.windows(3).any(|w| w == [0x01, 0x01, 0x01]), "2000: one byte of flags");
-    assert!(bytes_2003.windows(4).any(|w| w == [0x01, 0x02, 0x01, 0x02]), "2003: two bytes of flags");
+    assert!(
+        bytes_2000.windows(3).any(|w| w == [0x01, 0x01, 0x01]),
+        "2000: one byte of flags"
+    );
+    assert!(
+        bytes_2003.windows(4).any(|w| w == [0x01, 0x02, 0x01, 0x02]),
+        "2003: two bytes of flags"
+    );
     // The 2003-only condition fields are omitted from a 2000 file whatever
     // they hold: `command_actor_id` is 0x16 and `command_id` 0x17.
     assert!(!bytes_2000.windows(3).any(|w| w == [0x16, 0x01, 0x04]));
@@ -282,41 +365,74 @@ fn a_2003_database_closes_and_is_two_bytes_wider_where_it_has_to_be() {
     // `Database.version` (0x1A) is present and empty in 2003, absent in 2000;
     // the 2003 sections (0x1B..0x20) are there, empty blocks included.
     let tail_2003 = &bytes_2003[bytes_2003.len() - 24..];
-    assert!(tail_2003.windows(2).any(|w| w == [0x1A, 0x00]), "2003: an empty version chunk");
-    assert!(tail_2003.windows(2).any(|w| w == [0x1B, 0x00]), "2003: the empty block 0x1B");
+    assert!(
+        tail_2003.windows(2).any(|w| w == [0x1A, 0x00]),
+        "2003: an empty version chunk"
+    );
+    assert!(
+        tail_2003.windows(2).any(|w| w == [0x1B, 0x00]),
+        "2003: the empty block 0x1B"
+    );
     // A 2000 database ends with its common events: no version chunk when it
     // is 0, and none of the 2003 sections.
-    assert!(bytes_2000.ends_with(&[0x19, 0x01, 0x00]), "2000: nothing after the common events");
+    assert!(
+        bytes_2000.ends_with(&[0x19, 0x01, 0x00]),
+        "2000: nothing after the common events"
+    );
 
     // The 2003 one closes with everything; the 2000 one only without the
     // 2003 content, which its file cannot carry.
-    closes(&Document::Ldb { header: "LcfDataBase".into(), data: as_2003 });
+    closes(&Document::Ldb {
+        header: "LcfDataBase".into(),
+        data: as_2003,
+    });
     let mut clean_2000 = as_2000;
     clean_2000.troops[0].pages[0].condition = TroopPageCondition {
-        flags: TroopPageConditionFlags { switch_a: true, ..Default::default() },
+        flags: TroopPageConditionFlags {
+            switch_a: true,
+            ..Default::default()
+        },
         ..Default::default()
     };
-    closes(&Document::Ldb { header: "LcfDataBase".into(), data: clean_2000 });
+    closes(&Document::Ldb {
+        header: "LcfDataBase".into(),
+        data: clean_2000,
+    });
 
     // The version is told by the file itself when reading back, and it picks
     // the actor's defaults: level 99 is left out of a 2003 file and read back
     // as 99; level 50, the same in a 2000 one. Chunk 0x08 is `final_level`.
     let read = |bytes: &[u8]| -> Database {
-        let Document::Ldb { data, .. } = ditto::file::read(bytes).unwrap() else { panic!() };
+        let Document::Ldb { data, .. } = ditto::file::read(bytes).unwrap() else {
+            panic!()
+        };
         data
     };
     let with_actor = |mut db: Database, final_level: i32| {
-        db.actors = vec![Actor { id: 1, final_level, ..Default::default() }];
+        db.actors = vec![Actor {
+            id: 1,
+            final_level,
+            ..Default::default()
+        }];
         ldb(&db)
     };
     let bytes = with_actor(read(&bytes_2003), 99);
-    assert!(!bytes.windows(3).any(|w| w == [0x08, 0x01, 99]), "2003: level 99 is the default");
+    assert!(
+        !bytes.windows(3).any(|w| w == [0x08, 0x01, 99]),
+        "2003: level 99 is the default"
+    );
     assert_eq!(read(&bytes).actors[0].final_level, 99);
     let bytes = with_actor(read(&bytes_2003), 50);
-    assert!(bytes.windows(3).any(|w| w == [0x08, 0x01, 50]), "2003: level 50 is written");
+    assert!(
+        bytes.windows(3).any(|w| w == [0x08, 0x01, 50]),
+        "2003: level 50 is written"
+    );
     assert_eq!(read(&bytes).actors[0].final_level, 50);
     let bytes = with_actor(read(&bytes_2000), 50);
-    assert!(!bytes.windows(3).any(|w| w == [0x08, 0x01, 50]), "2000: level 50 is the default");
+    assert!(
+        !bytes.windows(3).any(|w| w == [0x08, 0x01, 50]),
+        "2000: level 50 is the default"
+    );
     assert_eq!(read(&bytes).actors[0].final_level, 50);
     assert_eq!(read(&bytes_2003).troops[0].pages[0].condition, condition);
 }
@@ -328,7 +444,11 @@ fn a_2003_database_closes_and_is_two_bytes_wider_where_it_has_to_be() {
 fn a_map_tree_closes() {
     let data = TreeMap {
         maps: vec![
-            MapInfo { id: 0, name: "root".into(), ..Default::default() },
+            MapInfo {
+                id: 0,
+                name: "root".into(),
+                ..Default::default()
+            },
             MapInfo {
                 id: 1,
                 name: "a map".into(),
@@ -346,18 +466,35 @@ fn a_map_tree_closes() {
         ],
         tree_order: vec![0, 1, 2],
         active_node: 1,
-        start: Start { party_map_id: 1, party_x: 4, party_y: 5, ..Default::default() },
+        start: Start {
+            party_map_id: 1,
+            party_x: 4,
+            party_y: 5,
+            ..Default::default()
+        },
         ..Default::default()
     };
-    closes(&Document::Lmt { header: "LcfMapTree".into(), data });
+    closes(&Document::Lmt {
+        header: "LcfMapTree".into(),
+        data,
+    });
 }
 
 /// An empty everything: the shortest file each format admits.
 #[test]
 fn the_empty_documents_close() {
-    closes(&Document::Lmu { header: "LcfMapUnit".into(), data: Map::default() });
-    closes(&Document::Ldb { header: "LcfDataBase".into(), data: Database::default() });
-    closes(&Document::Lmt { header: "LcfMapTree".into(), data: TreeMap::default() });
+    closes(&Document::Lmu {
+        header: "LcfMapUnit".into(),
+        data: Map::default(),
+    });
+    closes(&Document::Ldb {
+        header: "LcfDataBase".into(),
+        data: Database::default(),
+    });
+    closes(&Document::Lmt {
+        header: "LcfMapTree".into(),
+        data: TreeMap::default(),
+    });
 }
 
 /// A command list carries no count: it ends with four zero bytes, which is a
@@ -370,18 +507,39 @@ fn a_command_of_code_zero_ends_the_list() {
     let page = EventPage {
         id: 1,
         event_commands: vec![
-            EventCommand { code: EventCommandCode::from_i32(10110), string: "kept".into(), ..Default::default() },
-            EventCommand { code: EventCommandCode::from_i32(0), ..Default::default() },
-            EventCommand { code: EventCommandCode::from_i32(10110), string: "lost".into(), ..Default::default() },
+            EventCommand {
+                code: EventCommandCode::from_i32(10110),
+                string: "kept".into(),
+                ..Default::default()
+            },
+            EventCommand {
+                code: EventCommandCode::from_i32(0),
+                ..Default::default()
+            },
+            EventCommand {
+                code: EventCommandCode::from_i32(10110),
+                string: "lost".into(),
+                ..Default::default()
+            },
         ],
         ..Default::default()
     };
     let data = Map {
-        events: vec![Event { id: 1, pages: vec![page], ..Default::default() }],
+        events: vec![Event {
+            id: 1,
+            pages: vec![page],
+            ..Default::default()
+        }],
         ..Default::default()
     };
-    let binary = ditto::file::write(&Document::Lmu { header: "LcfMapUnit".into(), data }).unwrap();
-    let Document::Lmu { data, .. } = ditto::file::read(&binary).unwrap() else { unreachable!() };
+    let binary = ditto::file::write(&Document::Lmu {
+        header: "LcfMapUnit".into(),
+        data,
+    })
+    .unwrap();
+    let Document::Lmu { data, .. } = ditto::file::read(&binary).unwrap() else {
+        unreachable!()
+    };
     let commands = &data.events[0].pages[0].event_commands;
     assert_eq!(commands.len(), 1);
     assert_eq!(commands[0].string, "kept");

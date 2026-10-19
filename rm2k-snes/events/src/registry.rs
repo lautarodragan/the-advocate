@@ -260,7 +260,10 @@ impl Graphics {
     /// Like [`Graphics::index`], but `None` if the graphic would be past
     /// the table's end: it is not added and it is noted in `dropped`.
     pub fn index_capped(&mut self, charset: &str, index: i32) -> Option<usize> {
-        let known = self.pairs.iter().position(|(c, i)| c == charset && *i == index);
+        let known = self
+            .pairs
+            .iter()
+            .position(|(c, i)| c == charset && *i == index);
         match known {
             Some(k) if k < ROUTE_GFX_MAX => Some(k),
             None if self.pairs.len() < ROUTE_GFX_MAX => Some(self.index(charset, index)),
@@ -482,11 +485,19 @@ impl Pictures {
     }
 
     pub fn zooms_json(&self) -> Value {
-        json!(self.zooms.iter().map(|(n, z)| json!([n, z])).collect::<Vec<_>>())
+        json!(self
+            .zooms
+            .iter()
+            .map(|(n, z)| json!([n, z]))
+            .collect::<Vec<_>>())
     }
 
     pub fn keys_json(&self) -> Value {
-        json!(self.table.iter().map(|(k, _)| k.to_json()).collect::<Vec<_>>())
+        json!(self
+            .table
+            .iter()
+            .map(|(k, _)| k.to_json())
+            .collect::<Vec<_>>())
     }
 }
 
@@ -500,7 +511,11 @@ mod graphics_cap_tests {
         for k in 0..ROUTE_GFX_MAX {
             assert_eq!(g.index_capped("A", k as i32), Some(k));
         }
-        assert_eq!(g.index_capped("A", 3), Some(3), "a known one still resolves");
+        assert_eq!(
+            g.index_capped("A", 3),
+            Some(3),
+            "a known one still resolves"
+        );
         assert_eq!(g.index_capped("B", 0), None);
         assert_eq!(g.index_capped("B", 0), None);
         assert_eq!(g.pairs.len(), ROUTE_GFX_MAX, "the table did not grow");

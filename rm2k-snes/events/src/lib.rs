@@ -41,8 +41,8 @@ use crate::compile::{
     compile_page, encounter_backdrop, encounter_troop, Ctx, Indices, SoundSettings,
 };
 use crate::fail::Stop;
-use crate::losses::{Losses, Origin};
 use crate::game::{Command, Event, Map, Patches};
+use crate::losses::{Losses, Origin};
 use crate::messages::{Messages, Window};
 use crate::pages::{hex, map_pages, MapEvents, SubstitutionTable, Substitutions};
 use crate::registry::{BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
@@ -139,7 +139,10 @@ fn text(v: &Value, whose: &str) -> Result<String> {
 fn window(w: &Value, whose: &str) -> Result<Window> {
     let lines = int(field(w, "lines", whose)?, whose)? as usize;
     if w.get("width").is_none() {
-        return Ok(Window::columns(int(field(w, "columns", whose)?, whose)? as usize, lines));
+        return Ok(Window::columns(
+            int(field(w, "columns", whose)?, whose)? as usize,
+            lines,
+        ));
     }
     let given = list(w, "advances", whose)?;
     let mut advances = [0u8; rm2k_snes_text::font::CONSOLE_GLYPHS];
@@ -154,10 +157,25 @@ fn window(w: &Value, whose: &str) -> Result<Window> {
         *a = int(g, whose)? as u8;
     }
     let mut latin = [0u8; rm2k_snes_text::font::LATIN_GLYPHS];
-    for pair in w.get("letters").and_then(Value::as_array).into_iter().flatten() {
-        let bad = || Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter and its advance: {pair}"));
-        let letter = pair.get(0).and_then(Value::as_str).and_then(|s| s.chars().next()).ok_or_else(bad)?;
-        let advance = pair.get(1).and_then(Value::as_u64).filter(|&a| a > 0 && a < 256).ok_or_else(bad)?;
+    for pair in w
+        .get("letters")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let bad = || {
+            Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter and its advance: {pair}"))
+        };
+        let letter = pair
+            .get(0)
+            .and_then(Value::as_str)
+            .and_then(|s| s.chars().next())
+            .ok_or_else(bad)?;
+        let advance = pair
+            .get(1)
+            .and_then(Value::as_u64)
+            .filter(|&a| a > 0 && a < 256)
+            .ok_or_else(bad)?;
         let slot = (letter as u32)
             .checked_sub(rm2k_snes_text::font::LATIN_FIRST)
             .filter(|&i| (i as usize) < latin.len())
@@ -282,7 +300,9 @@ impl Request {
         if let Some(d) = data.get("dropped_events") {
             r.patches.dropped = by_map(d, whose, |v| {
                 v.as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's `dropped_events` is not a list")))?
+                    .ok_or_else(|| {
+                        Bad::answer(format!("{whose}: a map's `dropped_events` is not a list"))
+                    })?
                     .iter()
                     .map(|e| int(e, whose).map(|x| x as i32))
                     .collect()
@@ -291,7 +311,9 @@ impl Request {
         if let Some(d) = data.get("boxed_exits") {
             r.patches.boxed_exits = by_map(d, whose, |v| {
                 v.as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's `boxed_exits` is not a list")))?
+                    .ok_or_else(|| {
+                        Bad::answer(format!("{whose}: a map's `boxed_exits` is not a list"))
+                    })?
                     .iter()
                     .map(|e| int(e, whose).map(|x| x as i32))
                     .collect()
@@ -350,7 +372,10 @@ impl Request {
         };
         if let Some(c) = data.get("common_pages").filter(|c| !c.is_null()) {
             let numbers = |name: &str| -> Result<Vec<i32>> {
-                list(c, name, whose)?.iter().map(|m| int(m, whose).map(|x| x as i32)).collect()
+                list(c, name, whose)?
+                    .iter()
+                    .map(|m| int(m, whose).map(|x| x as i32))
+                    .collect()
             };
             r.common_pages = numbers("commons")?;
             r.common_page_maps = numbers("maps")?.into_iter().collect();
@@ -395,7 +420,9 @@ impl Request {
                 .as_array()
                 .ok_or_else(|| Bad::answer(format!("{whose}: `systems` is not a list")))?
             {
-                let name = s.as_str().ok_or_else(|| Bad::answer(format!("{whose}: a System is {s}")))?;
+                let name = s
+                    .as_str()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: a System is {s}")))?;
                 r.patches.systems.push(name.to_string());
             }
         }
@@ -423,7 +450,12 @@ impl Request {
                 if let Some(n) = m.get("replaces_common").and_then(Value::as_i64) {
                     r.patches.menus.replaced.insert(n as i32, k as u8);
                 }
-                for b in m.get("before").and_then(Value::as_array).cloned().unwrap_or_default() {
+                for b in m
+                    .get("before")
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default()
+                {
                     r.patches.menus.before.insert(int(&b, whose)? as i32);
                 }
             }
@@ -431,7 +463,9 @@ impl Request {
         if let Some(p) = data.get("panoramas") {
             r.panoramas = by_map(p, whose, |v| {
                 v.as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's panoramas are not a list")))?
+                    .ok_or_else(|| {
+                        Bad::answer(format!("{whose}: a map's panoramas are not a list"))
+                    })?
                     .iter()
                     .map(|n| text(n, whose))
                     .collect()
@@ -443,17 +477,18 @@ impl Request {
             // entry in the cartridge's table and half its size.
             r.pictures = by_map(p, whose, |v| {
                 let mut pictures = Pictures::default();
-                for e in v
-                    .as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's pictures are not a list")))?
-                {
+                for e in v.as_array().ok_or_else(|| {
+                    Bad::answer(format!("{whose}: a map's pictures are not a list"))
+                })? {
                     let key = picture_key(e, whose)?;
                     if e.get("plane").and_then(Value::as_str) == Some("background") {
                         let pair = |name: &str| -> Result<(i32, i32)> {
                             let a = field(e, name, whose)?
                                 .as_array()
                                 .filter(|a| a.len() == 2)
-                                .ok_or_else(|| Bad::answer(format!("{whose}: a big picture's `{name}`")))?;
+                                .ok_or_else(|| {
+                                    Bad::answer(format!("{whose}: a big picture's `{name}`"))
+                                })?;
                             Ok((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
                         };
                         pictures.big.push(BigPicture {
@@ -654,13 +689,21 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
     // actors from this.
     out.insert(
         "names".into(),
-        json!(indices.renames.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>()),
+        json!(indices
+            .renames
+            .iter()
+            .map(|(a, n)| json!([a, n]))
+            .collect::<Vec<_>>()),
     );
     // The faces the message window shows, as [FaceSet, index, mirrored], in
     // the order `OP_FACE` counts them: the converter draws them from this.
     out.insert(
         "faces".into(),
-        json!(indices.faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()),
+        json!(indices
+            .faces
+            .iter()
+            .map(|(f, i, m)| json!([f, i, m]))
+            .collect::<Vec<_>>()),
     );
     out.insert("associations".into(), json!(associations));
     out
@@ -676,7 +719,13 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
     let mut extra_switches = request.extra_switches.clone();
     extra_switches.extend(indices::command_switches(&request.test_commands));
     let extra_pairs = indices::command_skill_pairs(&request.test_commands);
-    let mut indices = indices::build(game, &every, &extra_variables, &extra_pairs, &extra_switches)?;
+    let mut indices = indices::build(
+        game,
+        &every,
+        &extra_variables,
+        &extra_pairs,
+        &extra_switches,
+    )?;
     // And the names the test pages give, after the game's: a renamed actor's
     // name is not baked into any text.
     for pair in indices::command_renames(&request.test_commands) {
@@ -790,7 +839,12 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             map.events
                 .iter()
                 .filter(move |event| (Some(event.id) == copy) == copies)
-                .flat_map(|event| event.pages.iter().map(move |page| (event.id, &page.commands)))
+                .flat_map(|event| {
+                    event
+                        .pages
+                        .iter()
+                        .map(move |page| (event.id, &page.commands))
+                })
         };
         let cases = request
             .cases
@@ -799,7 +853,12 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             .map(|(_, case)| (0, case));
         let mut own = None;
         let copies = pages_of(true).map(Some);
-        for event in pages_of(false).chain(cases).map(Some).chain([None]).chain(copies) {
+        for event in pages_of(false)
+            .chain(cases)
+            .map(Some)
+            .chain([None])
+            .chain(copies)
+        {
             let Some((event, commands)) = event else {
                 own = Some(pictures.table.len());
                 continue;
@@ -932,7 +991,9 @@ fn compile_pass(
             let lines: Vec<String> = tc[i..j].iter().map(|c| c.string.clone()).collect();
             // Through the same `\V[n]` and the same waits as the page will,
             // so both find the same box: see `with_variables`.
-            match compile::with_variables(&compile::with_names(&lines, &indices), &indices).and_then(|l| messages.add_waiting(&l)) {
+            match compile::with_variables(&compile::with_names(&lines, &indices), &indices)
+                .and_then(|l| messages.add_waiting(&l))
+            {
                 Ok(_) => {}
                 Err(Stop::Fatal(b)) => return Err(b),
                 Err(Stop::Cannot) => {
@@ -1041,7 +1102,12 @@ fn compile_pass(
             let code = compile_page(
                 &mut ctx,
                 case,
-                Some(MapEvents::new(&map, Some(subs.clone())).with_panoramas(panoramas.clone()).numbered(&map, &indices).for_event(0)),
+                Some(
+                    MapEvents::new(&map, Some(subs.clone()))
+                        .with_panoramas(panoramas.clone())
+                        .numbered(&map, &indices)
+                        .for_event(0),
+                ),
                 0,
                 0,
             )?;
@@ -1078,7 +1144,12 @@ fn compile_pass(
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
                 }
-                debts.extend(compile::page_debts(game, &indices, &page.commands, Some(&pictures))?);
+                debts.extend(compile::page_debts(
+                    game,
+                    &indices,
+                    &page.commands,
+                    Some(&pictures),
+                )?);
             }
         }
         let asked: Vec<Value> = subs
@@ -1117,11 +1188,24 @@ fn compile_pass(
     // The shared common event bodies themselves. After everything else, so
     // what they number goes at the end of each registry and moves nobody's
     // index.
-    let commons = commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops, &mut losses)?;
+    let commons = commons::compile(
+        &setting,
+        &plan,
+        &mut messages,
+        &mut songs,
+        &mut troops,
+        &mut losses,
+    )?;
     // The parallel common events, each compiled once without a map, after
     // the shared bodies so what they number moves nobody's index. See
     // [`commons::parallel_commons`].
-    let parallel = commons::parallel_commons(&setting, &mut messages, &mut songs, &mut troops, &mut losses)?;
+    let parallel = commons::parallel_commons(
+        &setting,
+        &mut messages,
+        &mut songs,
+        &mut troops,
+        &mut losses,
+    )?;
     let mut ctx = Ctx {
         game,
         indices: &indices,
@@ -1236,7 +1320,11 @@ fn callers(game: &Game, maps: &[Map]) -> BTreeMap<i32, Vec<Value>> {
 /// The answer's `degradations`: every loss, in the order the compiler met
 /// them, and for each common event a loss is placed in, how it runs —its
 /// trigger and switch— and who calls it. The caller sorts and writes them.
-fn degradations(game: &Game, losses: &[losses::Loss], callers: &BTreeMap<i32, Vec<Value>>) -> Value {
+fn degradations(
+    game: &Game,
+    losses: &[losses::Loss],
+    callers: &BTreeMap<i32, Vec<Value>>,
+) -> Value {
     let commons: BTreeSet<i32> = losses
         .iter()
         .filter_map(|l| match l.path.first() {
@@ -1306,17 +1394,37 @@ mod common_page_tests {
             test_event_map: Some(4),
             ..Default::default()
         };
-        let map = |id| Map { id, events: vec![Event { id: 1, x: 2, y: 2, pages: vec![], starting: None }] };
+        let map = |id| Map {
+            id,
+            events: vec![Event {
+                id: 1,
+                x: 2,
+                y: 2,
+                pages: vec![],
+                starting: None,
+            }],
+        };
         let three = with_test_event(map(3), &request, &game);
         assert_eq!(three.events.len(), 2);
         assert_eq!((three.events[0].id, three.events[1].id), (1, 2));
         assert_eq!(copy_event(&three, &request), Some(2));
-        let switches: Vec<Option<i32>> = three.events[1].pages.iter().map(|p| p.condition.switch_a).collect();
+        let switches: Vec<Option<i32>> = three.events[1]
+            .pages
+            .iter()
+            .map(|p| p.condition.switch_a)
+            .collect();
         assert_eq!(switches, [Some(221), Some(220)]);
-        assert!(three.events[1].pages.iter().all(|p| p.trigger == TRIGGER_AUTOSTART));
+        assert!(three.events[1]
+            .pages
+            .iter()
+            .all(|p| p.trigger == TRIGGER_AUTOSTART));
         let four = with_test_event(map(4), &request, &game);
         let ids: Vec<i32> = four.events.iter().map(|e| e.id).collect();
-        assert_eq!(ids, [0, 1, 2], "the test pages' event first, the copies' last");
+        assert_eq!(
+            ids,
+            [0, 1, 2],
+            "the test pages' event first, the copies' last"
+        );
         assert!(four.events[0].pages.is_empty());
         assert_eq!(four.events[2].pages.len(), 2);
         assert_eq!(with_test_event(map(5), &request, &game).events.len(), 1);

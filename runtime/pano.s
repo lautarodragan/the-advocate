@@ -65,7 +65,7 @@ PANO_STRIP_ROW = PANO_ON + $60        ; a row: 64 entries
 ; its `ChangeBG`.
 PANO_FLAGS = PANO_ON + $E0            ; bit 0: it loops across; bit 1: down
 PANO_AUTO  = PANO_ON + $E1            ; what it scrolls on its own each frame, a word per axis
-PANO_IMG   = PANO_ON + $E5            ; which of the map's records it shows, from its first: see `pano_change`
+PANO_IMG   = PANO_ON + $E5            ; which of the map's records it shows, from its first: see `pano_image`
 PANO_KEEP  = PANO_ON + $E6            ; set by `load_game`: the next `pano_find` keeps the above
 PANO_HDMA  = PANO_ON + $E7            ; `HDMA_ABOVE_BG1` in a map whose cells above the hero are BG1 1, else 0
 PANO_BASE  = PANO_ON + $E8            ; the map's first record, an offset into pano_table
@@ -73,6 +73,7 @@ PANO_END   = PANO_ON + $EA
 P_AUTO = PANO_AUTO & $FFFF
 P_FLAGS = PANO_FLAGS & $FFFF
 .assert PANO_END <= PANO_ON + $EA, error, "the panorama's state overflows its block"
+.assert PANO_IMG = PANO_AUTO + 4, error, "save_table saves PANO_FLAGS, PANO_AUTO and PANO_IMG in one run"
 ; With the data bank at $7E, as `pano_tick` runs.
 P_AX   = PANO_AX & $FFFF
 P_UX   = PANO_UX & $FFFF

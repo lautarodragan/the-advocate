@@ -32,7 +32,11 @@ use voodoo::pack::Indices;
 pub fn texts(game: &Game) -> Result<(String, String, String)> {
     let one = |name: &str, fallback: &str| -> Result<String> {
         let value = game.term(name)?;
-        Ok(if value.is_empty() { fallback.to_string() } else { value })
+        Ok(if value.is_empty() {
+            fallback.to_string()
+        } else {
+            value
+        })
     };
     Ok((
         one("exit_game_message", "Do you really want to quit?")?,
@@ -48,7 +52,14 @@ fn width_of(game: &Game, text: &str) -> usize {
 
 /// The screen with the cursor on `chosen`, opaque. `width`, `height` and
 /// `y_shift` at 320, 240 and 0 give RM2k's.
-pub fn draw(game: &Game, skin: &Skin, chosen: usize, width: usize, height: usize, y_shift: usize) -> Result<Picture> {
+pub fn draw(
+    game: &Game,
+    skin: &Skin,
+    chosen: usize,
+    width: usize,
+    height: usize,
+    y_shift: usize,
+) -> Result<Picture> {
     let (question, yes, no) = texts(game)?;
     if width_of(game, &question) + 2 * BORDER > width {
         // RM2k would let it run off the screen; here it would be cut
@@ -63,17 +74,40 @@ pub fn draw(game: &Game, skin: &Skin, chosen: usize, width: usize, height: usize
     // The question: `Window_Help`, as wide as the text plus the borders,
     // with the text at (0, 2) of its contents.
     let w = width_of(game, &question) + 2 * BORDER;
-    let (x, y) = ((width / 2 - w / 2) as i64, END_Y_QUESTION as i64 - y_shift as i64);
+    let (x, y) = (
+        (width / 2 - w / 2) as i64,
+        END_Y_QUESTION as i64 - y_shift as i64,
+    );
     cells::paste(&mut out, &skin.window(w, 2 * LINE), x, y);
-    skin.draw_line(&mut out, x + BORDER as i64, y + BORDER as i64 + 2, &question, 0, font);
+    skin.draw_line(
+        &mut out,
+        x + BORDER as i64,
+        y + BORDER as i64 + 2,
+        &question,
+        0,
+        font,
+    );
 
     // The commands: `Window_Command`, as wide as the longest plus the
     // borders and sixteen per command plus the borders tall. The bar is
     // `UpdateCursorRect`'s: four more on each side of the contents.
     let commands = [yes, no];
-    let w = commands.iter().map(|c| width_of(game, c)).max().unwrap_or(0) + 2 * BORDER;
-    let (x, y) = ((width / 2 - w / 2) as i64, END_Y_COMMANDS as i64 - y_shift as i64);
-    cells::paste(&mut out, &skin.window(w, commands.len() * LINE + 2 * BORDER), x, y);
+    let w = commands
+        .iter()
+        .map(|c| width_of(game, c))
+        .max()
+        .unwrap_or(0)
+        + 2 * BORDER;
+    let (x, y) = (
+        (width / 2 - w / 2) as i64,
+        END_Y_COMMANDS as i64 - y_shift as i64,
+    );
+    cells::paste(
+        &mut out,
+        &skin.window(w, commands.len() * LINE + 2 * BORDER),
+        x,
+        y,
+    );
     cells::paste(
         &mut out,
         &skin.cursor(w - 2 * BORDER + 8, LINE),
@@ -118,7 +152,11 @@ pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
         })
         .collect::<Result<_>>()?;
     let pairs_of = |colors15: &[Vec<Color>]| -> BTreeSet<(Color, Color)> {
-        colors15[0].iter().copied().zip(colors15[1].iter().copied()).collect()
+        colors15[0]
+            .iter()
+            .copied()
+            .zip(colors15[1].iter().copied())
+            .collect()
     };
     // A System with more colours than the palette has room for pairs of
     // —a gradient behind the windows— is reduced by Adeleine's
@@ -134,20 +172,33 @@ pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
         }
         let used = counts.in_order();
         let fits = |mapping: &[Color]| {
-            let to: HashMap<Color, Color> = used.iter().map(|(c, _)| *c).zip(mapping.iter().copied()).collect();
-            let pairs: BTreeSet<(Color, Color)> =
-                colors15[0].iter().zip(&colors15[1]).map(|(a, b)| (to[a], to[b])).collect();
+            let to: HashMap<Color, Color> = used
+                .iter()
+                .map(|(c, _)| *c)
+                .zip(mapping.iter().copied())
+                .collect();
+            let pairs: BTreeSet<(Color, Color)> = colors15[0]
+                .iter()
+                .zip(&colors15[1])
+                .map(|(a, b)| (to[a], to[b]))
+                .collect();
             to.get(&BLACK).is_none_or(|b| *b == BLACK) && pairs.len() <= END_COLORS_MAX
         };
         let (reduced, ()) = adeleine::merge_until(&used, |p| fits(&p.mapping).then_some(()))?;
-        let to: HashMap<Color, Color> =
-            used.iter().map(|(c, _)| *c).zip(reduced.mapping.iter().copied()).collect();
+        let to: HashMap<Color, Color> = used
+            .iter()
+            .map(|(c, _)| *c)
+            .zip(reduced.mapping.iter().copied())
+            .collect();
         for c in colors15.iter_mut().flatten() {
             *c = to[c];
         }
         merged = reduced.merges.len();
     }
-    let mut pairs: Vec<(Color, Color)> = pairs_of(&colors15).into_iter().filter(|p| *p != (BLACK, BLACK)).collect();
+    let mut pairs: Vec<(Color, Color)> = pairs_of(&colors15)
+        .into_iter()
+        .filter(|p| *p != (BLACK, BLACK))
+        .collect();
     // 0: transparent, the black background.
     pairs.insert(0, (BLACK, BLACK));
     if pairs.len() > END_COLORS_MAX {
@@ -156,7 +207,11 @@ pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
             pairs.len()
         )));
     }
-    let index: HashMap<(Color, Color), u8> = pairs.iter().enumerate().map(|(i, p)| (*p, i as u8)).collect();
+    let index: HashMap<(Color, Color), u8> = pairs
+        .iter()
+        .enumerate()
+        .map(|(i, p)| (*p, i as u8))
+        .collect();
     let pixels: Vec<u8> = colors15[0]
         .iter()
         .zip(&colors15[1])
@@ -182,7 +237,10 @@ pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
         .collect();
     let (row0, row1) = (used[0], used[used.len() - 1] + 1);
     let palette = |n: usize| -> Vec<Color> {
-        let mut out: Vec<Color> = pairs.iter().map(|p| if n == 0 { p.0 } else { p.1 }).collect();
+        let mut out: Vec<Color> = pairs
+            .iter()
+            .map(|p| if n == 0 { p.0 } else { p.1 })
+            .collect();
         out.resize(END_COLORS_MAX, BLACK);
         out
     };

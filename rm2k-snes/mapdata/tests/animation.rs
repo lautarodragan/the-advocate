@@ -26,7 +26,15 @@ fn too_much_water() -> Vec<Map> {
         }
     }
     map.cells = (0..300u16)
-        .map(|n| if n < 200 { 0 } else if n < 250 { 1 } else { 2 })
+        .map(|n| {
+            if n < 200 {
+                0
+            } else if n < 250 {
+                1
+            } else {
+                2
+            }
+        })
         .flat_map(|b: u16| b.to_le_bytes())
         .collect();
     for (family, base, tiles) in [("water", 10, 50), ("animated", 60, 4)] {
@@ -46,13 +54,19 @@ fn an_animation_that_does_not_fit_loses_the_tiles_that_cover_the_least() {
     let notes = animation::fit_all(&mut maps);
     assert_eq!(
         notes,
-        ["  map 7: WARNING, the ChipSet animation's drawings are 10624 bytes and 8192 fit in \
-          WRAM: 13 of its 50 water tiles (0 of 800 cells) stand still on their first drawing"]
+        [
+            "  map 7: WARNING, the ChipSet animation's drawings are 10624 bytes and 8192 fit in \
+          WRAM: 13 of its 50 water tiles (0 of 800 cells) stand still on their first drawing"
+        ]
     );
     let water = maps[0].runs.iter().find(|r| r.family == "water").unwrap();
     assert_eq!(water.tiles, 37);
     // What is left of each drawing is its beginning, as it was.
-    assert!(water.drawings.iter().enumerate().all(|(d, w)| *w == vec![d as u8 + 1; 37 * 64]));
+    assert!(water
+        .drawings
+        .iter()
+        .enumerate()
+        .all(|(d, w)| *w == vec![d as u8 + 1; 37 * 64]));
     let written = record::maps(&maps).unwrap();
     assert!(record::anim_bytes(&maps[0]).len() <= LZ2_CAP_ANIM);
     assert!(written.tables.contains("    .byte 37, 0   ; 37 tile(s)"));

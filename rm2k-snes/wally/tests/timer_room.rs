@@ -72,7 +72,11 @@ fn glyphs() -> Picture {
     let mut picture = Picture::transparent(88, 16);
     for y in 0..16usize {
         for x in 0..88usize {
-            let c = if (x + y) % 3 == 0 { [248, 0, 0, 255] } else { [0, 0, 0, 255] };
+            let c = if (x + y) % 3 == 0 {
+                [248, 0, 0, 255]
+            } else {
+                [0, 0, 0, 255]
+            };
             picture.rgba[(y * 88 + x) * 4..(y * 88 + x) * 4 + 4].copy_from_slice(&c);
         }
     }
@@ -91,18 +95,38 @@ fn the_timer_is_lent_a_palette_when_every_one_lends_itself() {
     }
     let mut events = Vec::new();
     for k in 1..3 {
-        events.push(Event { id: events.len() as i32 + 1, x: k, y: 0, pages: vec![page(&format!("leader{k}"))] });
+        events.push(Event {
+            id: events.len() as i32 + 1,
+            x: k,
+            y: 0,
+            pages: vec![page(&format!("leader{k}"))],
+        });
     }
     for k in 0..5u8 {
         sheets.insert(format!("owner{k}"), Some(sheet(&owner(k))));
         sheets.insert(format!("guest{k}"), Some(sheet(&guest(k))));
     }
-    for name in (0..5).map(|k| format!("owner{k}")).chain((0..5).map(|k| format!("guest{k}"))) {
+    for name in (0..5)
+        .map(|k| format!("owner{k}"))
+        .chain((0..5).map(|k| format!("guest{k}")))
+    {
         let id = events.len() as i32 + 1;
-        events.push(Event { id, x: id % 16, y: 1 + id / 16, pages: vec![page(&name)] });
+        events.push(Event {
+            id,
+            x: id % 16,
+            y: 1 + id / 16,
+            pages: vec![page(&name)],
+        });
     }
     let npcs = collect_npcs(&events, "chip", &vec![0u8; 65536]);
-    let poses = map_poses(&leaders, &npcs, &BTreeSet::new(), &BTreeMap::new(), &[], &BTreeSet::new());
+    let poses = map_poses(
+        &leaders,
+        &npcs,
+        &BTreeSet::new(),
+        &BTreeMap::new(),
+        &[],
+        &BTreeSet::new(),
+    );
     let glyphs = glyphs();
     let timer = timer_colors(&glyphs);
     let only_here: HashSet<Key> = Default::default();
@@ -121,14 +145,35 @@ fn the_timer_is_lent_a_palette_when_every_one_lends_itself() {
     let s = &d.split;
     assert_eq!(s.palettes.len(), 8);
     assert_eq!(s.leader_owned.len(), 3, "the leaders' palettes");
-    assert_eq!(s.lent.len(), 5, "a guest in each owner's palette: {:?}", s.lent);
-    let hosts: BTreeSet<usize> = s.lent.iter().map(|k| s.palette_of.get(k).unwrap()).collect();
+    assert_eq!(
+        s.lent.len(),
+        5,
+        "a guest in each owner's palette: {:?}",
+        s.lent
+    );
+    let hosts: BTreeSet<usize> = s
+        .lent
+        .iter()
+        .map(|k| s.palette_of.get(k).unwrap())
+        .collect();
     assert_eq!(hosts.len(), 5, "each guest in a palette of its own owner");
 
     assert!(d.notes.is_empty(), "nobody drops colours: {:?}", d.notes);
     assert!(s.caps.is_empty());
     let (mut tiles, mut palettes) = (Vec::new(), s.palettes.clone());
-    let (_, palette) = timer_digits(&glyphs, &mut tiles, &mut palettes, &s.leader_owned, 8, false).unwrap();
-    assert_eq!(Some(palette), s.palette_of.get(&("owner3".to_string(), 0)), "the one with a red");
+    let (_, palette) = timer_digits(
+        &glyphs,
+        &mut tiles,
+        &mut palettes,
+        &s.leader_owned,
+        8,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        Some(palette),
+        s.palette_of.get(&("owner3".to_string(), 0)),
+        "the one with a red"
+    );
     assert_eq!(palettes, s.palettes, "no palette grows");
 }

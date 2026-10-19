@@ -18,9 +18,7 @@ use cartridge::cartridges::Cartridges;
 use clap::{Arg, ArgAction, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{relative, Project};
-use rm2k_snes_patches::{
-    check, copy, has_patches, versioned, write, Kind, Request, PLAYABLE,
-};
+use rm2k_snes_patches::{check, copy, has_patches, versioned, write, Kind, Request, PLAYABLE};
 
 const FROM_ENVIRONMENT: &[&str] = &["test_cartridges"];
 

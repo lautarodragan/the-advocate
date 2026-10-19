@@ -30,14 +30,23 @@ pub struct Switched {
 /// starting one included; and what the conversion has to say about them: a
 /// name the game and the RTP have no picture for is left out, and the page
 /// that asks for it with it.
-pub fn switched(game: &Game, maps: &[&GameMap], tests: &[Command]) -> (Vec<Switched>, bool, Vec<String>) {
+pub fn switched(
+    game: &Game,
+    maps: &[&GameMap],
+    tests: &[Command],
+) -> (Vec<Switched>, bool, Vec<String>) {
     let starting = game.starting_system().to_lowercase();
     let mut all: Vec<&Command> = Vec::new();
     for map in maps {
         all.extend(map.all_commands());
     }
     all.extend(game.db.common_events.values().flatten());
-    all.extend(game.db.troops.values().flat_map(|t| t.pages.iter().flatten()));
+    all.extend(
+        game.db
+            .troops
+            .values()
+            .flat_map(|t| t.pages.iter().flatten()),
+    );
     all.extend(tests);
     let mut out: Vec<Switched> = Vec::new();
     let mut says = Vec::new();
@@ -49,8 +58,10 @@ pub fn switched(game: &Game, maps: &[&GameMap], tests: &[Command]) -> (Vec<Switc
         if lower == starting || out.iter().any(|s| s.name.to_lowercase() == lower) {
             continue;
         }
-        let found = crate::resources::find(&[&game.game_dir], "System", &c.string, &[".png", ".bmp"]).is_some()
-            || crate::resources::find(&rtp, "System", &c.string, &[".png", ".bmp"]).is_some();
+        let found =
+            crate::resources::find(&[&game.game_dir], "System", &c.string, &[".png", ".bmp"])
+                .is_some()
+                || crate::resources::find(&rtp, "System", &c.string, &[".png", ".bmp"]).is_some();
         if !found {
             let line = format!(
                 "  WARNING, a ChangeSystemGraphics asks for System {:?}, which neither the game nor the RTP has: \
@@ -62,7 +73,10 @@ pub fn switched(game: &Game, maps: &[&GameMap], tests: &[Command]) -> (Vec<Switc
             }
             continue;
         }
-        out.push(Switched { name: c.string.clone(), stretch: c.parameters.first().copied() });
+        out.push(Switched {
+            name: c.string.clone(),
+            stretch: c.parameters.first().copied(),
+        });
     }
     out.sort_by_key(|s| s.name.to_lowercase());
     (out, any, says)

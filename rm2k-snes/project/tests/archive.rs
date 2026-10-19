@@ -10,7 +10,9 @@ use rm2k_project::environment::Environment;
 use rm2k_project::{archive, Project};
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("archive").join(name);
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("archive")
+        .join(name);
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     dir
@@ -93,9 +95,19 @@ fn a_zip_game_is_a_directory_after_unpack() {
     assert!(error.contains("did not unpack it"), "{error}");
     environment.unpack(&project(&dir)).unwrap();
     let unpacked = environment.game().unwrap().to_path_buf();
-    assert!(unpacked.starts_with(dir.join("build/cache/zip")), "{}", unpacked.display());
-    assert_eq!(fs::read(unpacked.join("ChipSet/Town.png")).unwrap(), b"tiles tiles tiles tiles");
-    assert_eq!(fs::read(unpacked.join("Music/Canción.mid")).unwrap(), b"song");
+    assert!(
+        unpacked.starts_with(dir.join("build/cache/zip")),
+        "{}",
+        unpacked.display()
+    );
+    assert_eq!(
+        fs::read(unpacked.join("ChipSet/Town.png")).unwrap(),
+        b"tiles tiles tiles tiles"
+    );
+    assert_eq!(
+        fs::read(unpacked.join("Music/Canción.mid")).unwrap(),
+        b"song"
+    );
     assert_eq!(fs::read(unpacked.join("RPG_RT.ldb")).unwrap(), b"database");
     // The tools it runs get the directory.
     let flags = environment.as_flags(&["game_dir"]);
@@ -118,7 +130,10 @@ fn a_zip_game_is_a_directory_after_unpack() {
     other.set("game_dir", &game);
     other.unpack(&project(&dir)).unwrap();
     assert_ne!(other.game().unwrap(), unpacked);
-    assert_eq!(fs::read(other.game().unwrap().join("RPG_RT.ldb")).unwrap(), b"other");
+    assert_eq!(
+        fs::read(other.game().unwrap().join("RPG_RT.ldb")).unwrap(),
+        b"other"
+    );
 }
 
 #[test]

@@ -102,13 +102,21 @@ pub fn names(code: i32, p: &[i32]) -> Vec<i32> {
 
 /// The ids named by the map's pages and by `others`: the common events,
 /// which a `CallEvent` brings into any map, and the test pages.
-pub fn named<'a>(events: &[schema::Event], others: impl IntoIterator<Item = &'a Command>) -> BTreeSet<i32> {
+pub fn named<'a>(
+    events: &[schema::Event],
+    others: impl IntoIterator<Item = &'a Command>,
+) -> BTreeSet<i32> {
     let own = events
         .iter()
         .flat_map(|e| &e.pages)
         .flat_map(|p| &p.event_commands)
         .flat_map(|c| names(c.code.to_i32(), &c.parameters));
-    own.chain(others.into_iter().flat_map(|c| names(c.code, &c.parameters))).collect()
+    own.chain(
+        others
+            .into_iter()
+            .flat_map(|c| names(c.code, &c.parameters)),
+    )
+    .collect()
 }
 
 /// What the map loses with event `e`.
@@ -118,15 +126,23 @@ pub fn loss(e: &schema::Event, named: &BTreeSet<i32>) -> Loss {
     }
     let pages = &e.pages;
     // The terminating command, code 0, is not a command.
-    if pages.iter().any(|p| p.event_commands.iter().any(|c| c.code.to_i32() == TELEPORT)) {
+    if pages
+        .iter()
+        .any(|p| p.event_commands.iter().any(|c| c.code.to_i32() == TELEPORT))
+    {
         return Loss::Exit;
     }
-    if pages.iter().any(|p| p.event_commands.iter().any(|c| c.code.to_i32() != 0)) {
+    if pages
+        .iter()
+        .any(|p| p.event_commands.iter().any(|c| c.code.to_i32() != 0))
+    {
         return Loss::Pages;
     }
     // A graphic: a CharSet, or a tile of the upper layer, which has no
     // name and an index other than 0.
-    let drawn = pages.iter().any(|p| !p.character_name.is_empty() || p.character_index != 0);
+    let drawn = pages
+        .iter()
+        .any(|p| !p.character_name.is_empty() || p.character_index != 0);
     let blocks = pages.iter().any(|p| p.layer.to_i32() == LAYER_SAME);
     match (drawn, blocks) {
         (false, false) => Loss::Nothing,
@@ -169,7 +185,8 @@ fn can_be_twin(e: &schema::Event, named: &BTreeSet<i32>) -> bool {
                 && p.move_route.move_commands.is_empty()
                 && !matches!(p.trigger.to_i32(), TRIGGER_AUTOSTART | TRIGGER_PARALLEL)
                 && p.event_commands.iter().all(|c| {
-                    c.code.to_i32() != ERASE_EVENT && !names(c.code.to_i32(), &c.parameters).contains(&THIS_EVENT)
+                    c.code.to_i32() != ERASE_EVENT
+                        && !names(c.code.to_i32(), &c.parameters).contains(&THIS_EVENT)
                 })
         })
 }
@@ -209,7 +226,10 @@ pub fn left_out(events: &[schema::Event], named: &BTreeSet<i32>, cap: usize) -> 
     }
     let mut order: Vec<(Loss, i32)> = events.iter().map(|e| (loss(e, named), e.id)).collect();
     order.sort_by_key(|&(l, id)| (l, std::cmp::Reverse(id)));
-    let mut out: Vec<(i32, Loss)> = order[..events.len() - cap].iter().map(|&(l, id)| (id, l)).collect();
+    let mut out: Vec<(i32, Loss)> = order[..events.len() - cap]
+        .iter()
+        .map(|&(l, id)| (id, l))
+        .collect();
     out.sort();
     out
 }
@@ -222,8 +242,17 @@ pub fn warning(map: i32, total: usize, cap: usize, out: &[(i32, Loss)]) -> Strin
     let parts: Vec<String> = classes
         .iter()
         .map(|&class| {
-            let ids: Vec<String> = out.iter().filter(|&&(_, l)| l == class).map(|(id, _)| id.to_string()).collect();
-            format!("{} lose {} ({})", ids.len(), class.describe(), ids.join(" "))
+            let ids: Vec<String> = out
+                .iter()
+                .filter(|&&(_, l)| l == class)
+                .map(|(id, _)| id.to_string())
+                .collect();
+            format!(
+                "{} lose {} ({})",
+                ids.len(),
+                class.describe(),
+                ids.join(" ")
+            )
         })
         .collect();
     format!(
@@ -241,7 +270,10 @@ mod tests {
     /// An event of one page: `commands` as codes, a CharSet or not, on
     /// the hero's layer or below.
     fn event(id: i32, commands: &[(i32, Vec<i32>)], charset: &str, layer: i32) -> schema::Event {
-        let commands: Vec<_> = commands.iter().map(|(c, p)| json!({"code": c, "parameters": p})).collect();
+        let commands: Vec<_> = commands
+            .iter()
+            .map(|(c, p)| json!({"code": c, "parameters": p}))
+            .collect();
         serde_json::from_value(json!({
             "id": id, "x": id, "y": 0,
             "pages": [{"id": 1, "character_name": charset, "character_index": 0, "layer": layer,
@@ -268,7 +300,12 @@ mod tests {
             event(7, &[], "", 0),
         ];
         let named = BTreeSet::new();
-        let ids = |cap| left_out(&events, &named, cap).into_iter().map(|(id, _)| id).collect::<Vec<_>>();
+        let ids = |cap| {
+            left_out(&events, &named, cap)
+                .into_iter()
+                .map(|(id, _)| id)
+                .collect::<Vec<_>>()
+        };
         // The two that do nothing, the highest first.
         assert_eq!(ids(6), [7]);
         assert_eq!(ids(5), [3, 7]);
@@ -288,15 +325,29 @@ mod tests {
         // Event 2 is moved by event 1's page, and a variable reads where 3
         // is: neither does anything by itself, and both are kept.
         let events = vec![
-            event(1, &[(MOVE_EVENT, vec![2]), (CONTROL_VARIABLES, vec![0, 1, 1, 0, OPERAND_CHARACTER, 3, 0])], "", 0),
+            event(
+                1,
+                &[
+                    (MOVE_EVENT, vec![2]),
+                    (CONTROL_VARIABLES, vec![0, 1, 1, 0, OPERAND_CHARACTER, 3, 0]),
+                ],
+                "",
+                0,
+            ),
             event(2, &[], "", 0),
             event(3, &[], "", 0),
             event(4, &[(TELEPORT, vec![1, 2, 3])], "", 0),
         ];
         let named = named(&events, &[]);
         assert_eq!(named, BTreeSet::from([2, 3]));
-        assert_eq!(left_out(&events, &named, 2), [(1, Loss::Pages), (4, Loss::Exit)]);
-        assert_eq!(left_out(&events, &named, 1), [(1, Loss::Pages), (3, Loss::Named), (4, Loss::Exit)]);
+        assert_eq!(
+            left_out(&events, &named, 2),
+            [(1, Loss::Pages), (4, Loss::Exit)]
+        );
+        assert_eq!(
+            left_out(&events, &named, 1),
+            [(1, Loss::Pages), (3, Loss::Named), (4, Loss::Exit)]
+        );
     }
 
     #[test]
@@ -311,13 +362,21 @@ mod tests {
         ];
         let named = BTreeSet::new();
         assert_eq!(left_out(&events, &named, 2), [(2, Loss::Pages)]);
-        assert_eq!(left_out(&events, &named, 1), [(1, Loss::Pages), (2, Loss::Pages)]);
+        assert_eq!(
+            left_out(&events, &named, 1),
+            [(1, Loss::Pages), (2, Loss::Pages)]
+        );
     }
 
     #[test]
     fn a_common_event_names_too() {
         let events = vec![event(1, &[], "", 0), event(2, &[], "", 0)];
-        let call = Command { code: FLASH_SPRITE, indent: 0, string: String::new(), parameters: vec![2, 31, 31, 31, 31, 5, 0] };
+        let call = Command {
+            code: FLASH_SPRITE,
+            indent: 0,
+            string: String::new(),
+            parameters: vec![2, 31, 31, 31, 31, 5, 0],
+        };
         let named = named(&events, [&call]);
         assert_eq!(left_out(&events, &named, 1), [(1, Loss::Nothing)]);
     }

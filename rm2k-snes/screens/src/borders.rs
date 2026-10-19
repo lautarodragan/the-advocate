@@ -38,7 +38,14 @@ fn bar(skin: &Skin, out: &mut Picture, x: usize, y: usize, width: usize, height:
 pub fn item_windows(skin: &Skin, cursor: Option<usize>) -> Picture {
     let mut out = windows(skin, &ITEM_WINDOWS);
     if let Some(k) = cursor {
-        bar(skin, &mut out, ITEM_BAR_X, ITEM_LIST_Y + 2 * CELL * k, ITEM_BAR_WIDTH, 2 * CELL);
+        bar(
+            skin,
+            &mut out,
+            ITEM_BAR_X,
+            ITEM_LIST_Y + 2 * CELL * k,
+            ITEM_BAR_WIDTH,
+            2 * CELL,
+        );
     }
     skin.redraw(&mut out);
     out
@@ -66,7 +73,11 @@ pub fn eq_bar_row(bar: usize) -> usize {
 pub fn equipment_windows(skin: &Skin, cursor: Option<usize>) -> Picture {
     let mut out = windows(skin, &EQ_WINDOWS);
     if let Some(k) = cursor {
-        let (x, width) = if k < EQUIPMENT_SLOTS { EQ_BAR_SLOT } else { EQ_BAR_LIST };
+        let (x, width) = if k < EQUIPMENT_SLOTS {
+            EQ_BAR_SLOT
+        } else {
+            EQ_BAR_LIST
+        };
         bar(skin, &mut out, x, eq_bar_row(k) * CELL, width, 2 * CELL);
     }
     skin.redraw(&mut out);
@@ -131,7 +142,12 @@ pub fn target_windows(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result
 /// The actor choice's windows with the term `term` in the lower left one
 /// —"Owned Items" for a medicine, the cost's for a skill
 /// (`Window_TargetStatus`)— and the bar where `cursor` says.
-pub fn target_windows_for(game: &Game, skin: &Skin, term: &str, cursor: Option<TargetCursor>) -> Result<Picture> {
+pub fn target_windows_for(
+    game: &Game,
+    skin: &Skin,
+    term: &str,
+    cursor: Option<TargetCursor>,
+) -> Result<Picture> {
     let mut out = windows(skin, &TARGET_WINDOWS);
     skin.draw_line(
         &mut out,
@@ -145,7 +161,9 @@ pub fn target_windows_for(game: &Game, skin: &Skin, term: &str, cursor: Option<T
     let row = MENU_ACTOR_ROWS * CELL;
     match cursor {
         Some(TargetCursor::Row(k)) => bar(skin, &mut out, x, k * row + y, width, height),
-        Some(TargetCursor::All(n)) if n > 0 => bar(skin, &mut out, x, y, width, (n - 1) * row + height),
+        Some(TargetCursor::All(n)) if n > 0 => {
+            bar(skin, &mut out, x, y, width, (n - 1) * row + height)
+        }
         _ => {}
     }
     skin.redraw(&mut out);
@@ -158,7 +176,14 @@ pub fn menu_bar(skin: &Skin, cursor: Option<usize>) -> Picture {
     let mut out = cells::layer();
     if let Some(k) = cursor {
         let (x, y, width, height) = MENU_BAR;
-        bar(skin, &mut out, x, k * MENU_ACTOR_ROWS * CELL + y, width, height);
+        bar(
+            skin,
+            &mut out,
+            x,
+            k * MENU_ACTOR_ROWS * CELL + y,
+            width,
+            height,
+        );
     }
     skin.redraw(&mut out);
     out
@@ -194,7 +219,11 @@ pub fn menu_cmd_layer(skin: &Skin) -> Screen {
     let (_, y, _, height) = MENU_CMD_BAR;
     Screen {
         background: menu_cmd_bar(skin, None),
-        bars: vec![(menu_cmd_bar(skin, Some(0)), y / CELL, (y % CELL + height).div_ceil(CELL))],
+        bars: vec![(
+            menu_cmd_bar(skin, Some(0)),
+            y / CELL,
+            (y % CELL + height).div_ceil(CELL),
+        )],
     }
 }
 
@@ -224,7 +253,11 @@ pub fn slot_bar_layer(game: &Game, skin: &Skin) -> Result<Screen> {
     let (_, y, _, height) = slot_bar_rect(game)?;
     Ok(Screen {
         background: slot_bar(game, skin, None)?,
-        bars: vec![(slot_bar(game, skin, Some(0))?, y / CELL, (y % CELL + height).div_ceil(CELL))],
+        bars: vec![(
+            slot_bar(game, skin, Some(0))?,
+            y / CELL,
+            (y % CELL + height).div_ceil(CELL),
+        )],
     })
 }
 
@@ -234,7 +267,13 @@ pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
     Ok(Screen {
         background: target_windows(game, skin, None)?,
         bars: (0..MENU_PARTY_ROWS)
-            .map(|k| Ok((target_windows(game, skin, Some(k))?, k * MENU_ACTOR_ROWS, MENU_ACTOR_ROWS)))
+            .map(|k| {
+                Ok((
+                    target_windows(game, skin, Some(k))?,
+                    k * MENU_ACTOR_ROWS,
+                    MENU_ACTOR_ROWS,
+                ))
+            })
             .collect::<Result<_>>()?,
     })
 }
@@ -248,7 +287,8 @@ pub fn target_skill_layer(game: &Game, skin: &Skin) -> Result<Screen> {
         background: target_windows_for(game, skin, TARGET_TERM_COST, None)?,
         bars: (1..=MENU_PARTY_ROWS)
             .map(|n| {
-                let picture = target_windows_for(game, skin, TARGET_TERM_COST, Some(TargetCursor::All(n)))?;
+                let picture =
+                    target_windows_for(game, skin, TARGET_TERM_COST, Some(TargetCursor::All(n)))?;
                 Ok((picture, 0, MENU_PARTY_ROWS * MENU_ACTOR_ROWS))
             })
             .collect::<Result<_>>()?,
@@ -307,7 +347,9 @@ pub fn borders(screens: &[Screen], first_tile: usize, cgram: usize, cap: usize) 
     }
     let room = cap.saturating_sub(cgram);
     if room == 0 {
-        return Err(Bad::answer(format!("the windows' colours start at {cgram} and there is no room")));
+        return Err(Bad::answer(format!(
+            "the windows' colours start at {cgram} and there is no room"
+        )));
     }
     // A System with more colours than there is room for —a gradient
     // background stretched over a whole screen— is reduced by Adeleine's
@@ -317,8 +359,11 @@ pub fn borders(screens: &[Screen], first_tile: usize, cgram: usize, cap: usize) 
     let (colors, to): (Vec<Color>, HashMap<Color, Color>) = if counts.len() > room {
         let used = counts.in_order();
         let merged = adeleine::merge_least_visible(&used, room)?;
-        let to: HashMap<Color, Color> =
-            used.iter().map(|(c, _)| *c).zip(merged.mapping.iter().copied()).collect();
+        let to: HashMap<Color, Color> = used
+            .iter()
+            .map(|(c, _)| *c)
+            .zip(merged.mapping.iter().copied())
+            .collect();
         let mut kept = Counts::default();
         for (c, n) in &used {
             kept.add(to[c], *n);
@@ -327,8 +372,11 @@ pub fn borders(screens: &[Screen], first_tile: usize, cgram: usize, cap: usize) 
     } else {
         (counts.by_use(), HashMap::new())
     };
-    let mut index: HashMap<Color, u8> =
-        colors.iter().enumerate().map(|(i, c)| (*c, (cgram + i) as u8)).collect();
+    let mut index: HashMap<Color, u8> = colors
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (*c, (cgram + i) as u8))
+        .collect();
     for (from, into) in &to {
         index.insert(*from, index[into]);
     }
@@ -416,7 +464,11 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
     };
     let bars: Vec<Vec<u16>> = bars_with.iter().map(clip).collect();
     let (menu_bar, menu_bar_at) = alone(&maps[1], 0, "the pause menu's bar")?;
-    let (menu_cmd, menu_cmd_at) = alone(&maps[3], MENU_CMD_BAR.1 / CELL, "the pause menu's command cursor")?;
+    let (menu_cmd, menu_cmd_at) = alone(
+        &maps[3],
+        MENU_CMD_BAR.1 / CELL,
+        "the pause menu's command cursor",
+    )?;
     let (slot_bar, slot_bar_at) = alone(&maps[4], SLOT_Y / CELL, "the slot cursor")?;
     Ok(CompactTarget {
         map: with_map.clone(),
@@ -447,7 +499,10 @@ fn alone(screen: &(Vec<u16>, Vec<Vec<u16>>), first: usize, what: &str) -> Result
         return Err(Bad::answer(format!("{what} is not over an empty BG1")));
     }
     let bar = &bars[0];
-    let used: Vec<(usize, usize)> = (0..bar.len()).filter(|&i| bar[i] != 0).map(|i| (i / COLS, i % COLS)).collect();
+    let used: Vec<(usize, usize)> = (0..bar.len())
+        .filter(|&i| bar[i] != 0)
+        .map(|i| (i / COLS, i % COLS))
+        .collect();
     let row0 = used.iter().map(|d| d.0).min().unwrap_or(0);
     let rows = used.iter().map(|d| d.0).max().unwrap_or(0) + 1 - row0;
     let col0 = used.iter().map(|d| d.1).min().unwrap_or(0);
@@ -481,8 +536,13 @@ pub struct CompactTargetSkill {
 /// The rectangle of the cells that differ between two tilemaps of whole
 /// rows: `(row0, rows, col0, cols)`.
 fn differing(a: &[u16], b: &[u16]) -> Option<(usize, usize, usize, usize)> {
-    let cells: Vec<(usize, usize)> =
-        a.iter().zip(b).enumerate().filter(|(_, (x, y))| x != y).map(|(i, _)| (i / COLS, i % COLS)).collect();
+    let cells: Vec<(usize, usize)> = a
+        .iter()
+        .zip(b)
+        .enumerate()
+        .filter(|(_, (x, y))| x != y)
+        .map(|(i, _)| (i / COLS, i % COLS))
+        .collect();
     let r0 = cells.iter().map(|c| c.0).min()?;
     let r1 = cells.iter().map(|c| c.0).max()?;
     let c0 = cells.iter().map(|c| c.1).min()?;
@@ -503,10 +563,14 @@ pub fn compact_target_skill(
     let (skill_map, alls) = skill;
     let term_at = differing(item_map, skill_map).unwrap_or((TARGET_COUNT_ROW, 1, 0, 1));
     if term_at.2 + term_at.3 > TARGET_LEFT / CELL {
-        return Err(Bad::answer("the actor choice's cost term reaches the party's window"));
+        return Err(Bad::answer(
+            "the actor choice's cost term reaches the party's window",
+        ));
     }
     let (r0, rows, c0, cols) = term_at;
-    let term = (r0..r0 + rows).flat_map(|r| (c0..c0 + cols).map(move |c| skill_map[r * COLS + c])).collect();
+    let term = (r0..r0 + rows)
+        .flat_map(|r| (c0..c0 + cols).map(move |c| skill_map[r * COLS + c]))
+        .collect();
     let mut union: Option<(usize, usize, usize, usize)> = None;
     for bar in alls {
         if let Some((a0, an, b0, bn)) = differing(skill_map, bar) {
@@ -520,7 +584,8 @@ pub fn compact_target_skill(
             });
         }
     }
-    let all_at = union.ok_or_else(|| Bad::answer("the actor choice's bar over the party draws nothing"))?;
+    let all_at =
+        union.ok_or_else(|| Bad::answer("the actor choice's bar over the party draws nothing"))?;
     let (r0, rows, c0, cols) = all_at;
     let mut all_rows: Vec<Vec<u16>> = Vec::new();
     let mut all = Vec::new();
@@ -535,11 +600,20 @@ pub fn compact_target_skill(
                     all_rows.len() - 1
                 }
             };
-            which.push(u8::try_from(k).map_err(|_| Bad::answer("the bar over the party has too many rows"))?);
+            which.push(
+                u8::try_from(k)
+                    .map_err(|_| Bad::answer("the bar over the party has too many rows"))?,
+            );
         }
         all.push(which);
     }
-    Ok(CompactTargetSkill { term_at, term, all_at, all_rows, all })
+    Ok(CompactTargetSkill {
+        term_at,
+        term,
+        all_at,
+        all_rows,
+        all,
+    })
 }
 
 /// A bar's rectangle: `(row, col, rows, cols, source)`.

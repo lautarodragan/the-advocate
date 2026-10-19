@@ -42,7 +42,12 @@ fn entries(dir: &Path) -> Vec<String> {
 /// Looks for `<dir>/<folder>/<name>.<ext>`, case-insensitively, in each of
 /// `dirs` in turn. RM2k stores names without extension and the games were
 /// made on Windows, so a name says nothing about the file's real case.
-pub fn find_resource(dirs: &[&Path], folder: &str, name: &str, extensions: &[&str]) -> Option<PathBuf> {
+pub fn find_resource(
+    dirs: &[&Path],
+    folder: &str,
+    name: &str,
+    extensions: &[&str],
+) -> Option<PathBuf> {
     for dir in dirs {
         if !dir.is_dir() {
             continue;
@@ -144,13 +149,19 @@ impl Game {
     /// After the `System`'s and not mixed with them, so that a game that
     /// had none of these keeps every number it had. Until 2026-10-02 these
     /// had no track and played through the SPC700 even with the MSU-1.
-    pub fn track_numbers(&self, system_songs: &[String], named_songs: &[String]) -> Result<BTreeMap<String, u8>> {
+    pub fn track_numbers(
+        &self,
+        system_songs: &[String],
+        named_songs: &[String],
+    ) -> Result<BTreeMap<String, u8>> {
         fn names(dir: &Path) -> BTreeSet<String> {
             let mut out = BTreeSet::new();
             if !dir.is_dir() {
                 return out;
             }
-            let folder = entries(dir).into_iter().find(|e| e.to_lowercase() == "music");
+            let folder = entries(dir)
+                .into_iter()
+                .find(|e| e.to_lowercase() == "music");
             if let Some(folder) = folder {
                 for file in entries(&dir.join(folder)) {
                     let (base, ext) = splitext(&file);
@@ -173,7 +184,11 @@ impl Game {
             .map(|s| s.to_lowercase())
             .filter(|s| !game.contains(s) && !system.contains(s) && rtp.contains(s))
             .collect();
-        let mut order: Vec<&String> = game.iter().chain(system.iter()).chain(named.iter()).collect();
+        let mut order: Vec<&String> = game
+            .iter()
+            .chain(system.iter())
+            .chain(named.iter())
+            .collect();
         // The number goes in a byte of `song_msu`, and $FF is "no track".
         if order.len() > 0xFE {
             // **Past the byte, only the game's songs that something names**:
@@ -186,8 +201,11 @@ impl Game {
             // them all to the card again. The track could also go in two
             // bytes —MSU-1 numbers sixteen bits—, but that is a wider
             // `song_msu` and a runtime change for songs that never play.
-            let called: BTreeSet<String> =
-                system_songs.iter().chain(named_songs).map(|s| s.to_lowercase()).collect();
+            let called: BTreeSet<String> = system_songs
+                .iter()
+                .chain(named_songs)
+                .map(|s| s.to_lowercase())
+                .collect();
             let all = order.len();
             order = game
                 .iter()
@@ -202,7 +220,11 @@ impl Game {
                 )));
             }
         }
-        Ok(order.into_iter().enumerate().map(|(i, n)| (n.clone(), i as u8 + 1)).collect())
+        Ok(order
+            .into_iter()
+            .enumerate()
+            .map(|(i, n)| (n.clone(), i as u8 + 1))
+            .collect())
     }
 
     // --- what the game decides ---------------------------------------------
@@ -234,14 +256,20 @@ impl Game {
     /// The whole ones that, if they do not fit in the free space, lower the
     /// music's rate.
     pub fn paid_by_music(&self) -> Result<BTreeSet<String>> {
-        Ok(self.project.strings(&["sound_effects", "paid_by_music"])?.into_iter().collect())
+        Ok(self
+            .project
+            .strings(&["sound_effects", "paid_by_music"])?
+            .into_iter()
+            .collect())
     }
 
     /// Up to how many directory entries the first round of copies goes: the
     /// ones the sound effects took when each had its own. The game measured
     /// it.
     pub fn effect_slots_of_first_copies(&self) -> Result<i64> {
-        Ok(self.project.int(&["music", "effect_slots_of_first_copies"])?)
+        Ok(self
+            .project
+            .int(&["music", "effect_slots_of_first_copies"])?)
     }
 
     /// Where each song's measured volume ceiling is: a table the game
@@ -264,8 +292,9 @@ impl Game {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
             Err(e) => return Err(Bad::usage(format!("{}: {e}", path.display()))),
         };
-        let table: toml::Table =
-            text.parse().map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+        let table: toml::Table = text
+            .parse()
+            .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
         let songs = table
             .get("songs")
             .and_then(|t| t.as_table())
@@ -276,7 +305,9 @@ impl Game {
                 row.get("headroom")
                     .and_then(|v| v.as_float().or_else(|| v.as_integer().map(|i| i as f64)))
                     .map(|v| (name.clone(), v))
-                    .ok_or_else(|| Bad::usage(format!("{}: {name} has no headroom", path.display())))
+                    .ok_or_else(|| {
+                        Bad::usage(format!("{}: {name} has no headroom", path.display()))
+                    })
             })
             .collect()
     }
@@ -308,15 +339,26 @@ mod tests {
             }
         };
         touch("game", &["Town.mid", "battle.MID"]);
-        touch("rtp", &["Farewell2.mid", "GameOver3.mid", "Ride1.mid", "Unused.mid"]);
+        touch(
+            "rtp",
+            &["Farewell2.mid", "GameOver3.mid", "Ride1.mid", "Unused.mid"],
+        );
         let game = Game {
             game_dir: root.join("game"),
             rtp_dir: Some(root.join("rtp")),
             project: Project::from_text(&root, "").unwrap(),
         };
-        let system = ["GameOver3".to_string(), "Ride1".to_string(), "Town".to_string()];
+        let system = [
+            "GameOver3".to_string(),
+            "Ride1".to_string(),
+            "Town".to_string(),
+        ];
         let before = game.track_numbers(&system, &[]).unwrap();
-        let named = ["Farewell2".to_string(), "Town".to_string(), "Missing".to_string()];
+        let named = [
+            "Farewell2".to_string(),
+            "Town".to_string(),
+            "Missing".to_string(),
+        ];
         let after = game.track_numbers(&system, &named).unwrap();
         let _ = std::fs::remove_dir_all(&root);
         for (name, number) in &before {
@@ -348,14 +390,23 @@ mod tests {
             project: Project::from_text(&root, "").unwrap(),
         };
         let system = ["Song299".to_string(), "Ride1".to_string()];
-        let named = ["song007".to_string(), "Farewell2".to_string(), "song120".to_string()];
+        let named = [
+            "song007".to_string(),
+            "Farewell2".to_string(),
+            "song120".to_string(),
+        ];
         let tracks = game.track_numbers(&system, &named);
         let _ = std::fs::remove_dir_all(&root);
-        let expected: BTreeMap<String, u8> =
-            [("song007", 1), ("song120", 2), ("song299", 3), ("ride1", 4), ("farewell2", 5)]
-                .into_iter()
-                .map(|(n, k)| (n.to_string(), k))
-                .collect();
+        let expected: BTreeMap<String, u8> = [
+            ("song007", 1),
+            ("song120", 2),
+            ("song299", 3),
+            ("ride1", 4),
+            ("farewell2", 5),
+        ]
+        .into_iter()
+        .map(|(n, k)| (n.to_string(), k))
+        .collect();
         assert_eq!(tracks.unwrap(), expected);
     }
 
@@ -366,18 +417,50 @@ mod tests {
         let root = std::env::temp_dir().join(format!("both-{}", std::process::id()));
         let music = root.join("game").join("Music");
         std::fs::create_dir_all(&music).unwrap();
-        for n in ["04 - Cavern.wav", "04 - Cavern.mid", "Title.MID", "Title.WAV", "Town.mid", "Battle.wav"] {
+        for n in [
+            "04 - Cavern.wav",
+            "04 - Cavern.mid",
+            "Title.MID",
+            "Title.WAV",
+            "Town.mid",
+            "Battle.wav",
+        ] {
             std::fs::write(music.join(n), b"").unwrap();
         }
-        let game = Game { game_dir: root.join("game"), rtp_dir: None, project: Project::from_text(&root, "").unwrap() };
-        let file = |p: Option<PathBuf>| p.map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
+        let game = Game {
+            game_dir: root.join("game"),
+            rtp_dir: None,
+            project: Project::from_text(&root, "").unwrap(),
+        };
+        let file =
+            |p: Option<PathBuf>| p.map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
         let midi = ["04 - Cavern", "Title", "Town", "Battle"].map(|n| file(game.song_path(n)));
         let track = ["04 - Cavern", "Title", "Town", "Battle"].map(|n| file(game.track_source(n)));
         let numbers = game.track_numbers(&[], &[]).unwrap();
         let _ = std::fs::remove_dir_all(&root);
         let some = |s: &str| Some(s.to_string());
-        assert_eq!(midi, [some("04 - Cavern.mid"), some("Title.MID"), some("Town.mid"), some("Battle.wav")]);
-        assert_eq!(track, [some("04 - Cavern.wav"), some("Title.WAV"), some("Town.mid"), some("Battle.wav")]);
-        assert_eq!(numbers.len(), 4, "a pair is one song and one track: {numbers:?}");
+        assert_eq!(
+            midi,
+            [
+                some("04 - Cavern.mid"),
+                some("Title.MID"),
+                some("Town.mid"),
+                some("Battle.wav")
+            ]
+        );
+        assert_eq!(
+            track,
+            [
+                some("04 - Cavern.wav"),
+                some("Title.WAV"),
+                some("Town.mid"),
+                some("Battle.wav")
+            ]
+        );
+        assert_eq!(
+            numbers.len(),
+            4,
+            "a pair is one song and one track: {numbers:?}"
+        );
     }
 }

@@ -35,7 +35,9 @@ pub struct PartyState {
 
 impl PartyState {
     pub fn new(party: &[i32]) -> PartyState {
-        PartyState { party: party.to_vec() }
+        PartyState {
+            party: party.to_vec(),
+        }
     }
 
     pub fn change_party(&mut self, operation: i32, actor: i32) {
@@ -58,14 +60,16 @@ impl PartyState {
 /// A fixed-id `ChangePartyMembers`, as `(operation, actor)`.
 fn party_change(cmd: &Command) -> Option<(i32, i32)> {
     let p = &cmd.parameters;
-    (cmd.code == CHANGE_PARTY_MEMBERS && p.len() >= 3 && p[1] == PARTY_FIXED_ID).then(|| (p[0], p[2]))
+    (cmd.code == CHANGE_PARTY_MEMBERS && p.len() >= 3 && p[1] == PARTY_FIXED_ID)
+        .then(|| (p[0], p[2]))
 }
 
 /// Whether some page of these maps sets rain: then every map of the ROM
 /// carries the drops, because the weather persists across map changes.
 /// `extra` are the commands of the test pages.
 pub fn has_rain<'a>(maps: impl IntoIterator<Item = &'a GameMap>, extra: &[Command]) -> bool {
-    let rains = |c: &Command| c.code == WEATHER_EFFECTS && c.parameters.first() == Some(&WEATHER_RAIN);
+    let rains =
+        |c: &Command| c.code == WEATHER_EFFECTS && c.parameters.first() == Some(&WEATHER_RAIN);
     extra.iter().any(rains) || maps.into_iter().any(|m| m.all_commands().any(rains))
 }
 
@@ -151,7 +155,11 @@ pub fn timer_reach(
             let mut running = reach.contains(map_id) && !stays.contains(map_id);
             for cmd in commands {
                 let p = &cmd.parameters;
-                if cmd.code == CALL_EVENT && p.len() >= 2 && p[0] == CALL_COMMON && counters.contains(&p[1]) {
+                if cmd.code == CALL_EVENT
+                    && p.len() >= 2
+                    && p[0] == CALL_COMMON
+                    && counters.contains(&p[1])
+                {
                     counted.insert(here);
                     continue;
                 }
@@ -178,7 +186,10 @@ pub fn timer_reach(
             }
         }
     }
-    Ok(reach.union(&counted.intersection(&in_rom).copied().collect()).copied().collect())
+    Ok(reach
+        .union(&counted.intersection(&in_rom).copied().collect())
+        .copied()
+        .collect())
 }
 
 /// A batch of consecutive `ChangePartyMembers`, as `(operation, actor)`.
@@ -327,7 +338,13 @@ pub fn possible_items<'a>(
     for actor in actors {
         if let Some(a) = db.actors.get(actor) {
             let e = &a.initial_equipment;
-            for i in [e.weapon_id, e.shield_id, e.armor_id, e.helmet_id, e.accessory_id] {
+            for i in [
+                e.weapon_id,
+                e.shield_id,
+                e.armor_id,
+                e.helmet_id,
+                e.accessory_id,
+            ] {
                 if i != 0 {
                     items.insert(i);
                 }
@@ -350,7 +367,9 @@ pub fn possible_items<'a>(
     // nothing in RM2k: it has no name to carry.
     items
         .into_iter()
-        .filter(|&i| 0 < i && (i as usize) < rm2k_snes_mapdata::engine::ITEMS_N && db.items.contains_key(&i))
+        .filter(|&i| {
+            0 < i && (i as usize) < rm2k_snes_mapdata::engine::ITEMS_N && db.items.contains_key(&i)
+        })
         .collect()
 }
 
@@ -363,7 +382,10 @@ pub fn drop_items(db: &Database, troops: &[i32]) -> BTreeSet<i32> {
         if let Some(troop) = db.troops.get(n) {
             for e in &troop.members {
                 let drop = db.enemies.get(e).map_or(0, |e| e.drop_id);
-                if 0 < drop && (drop as usize) < rm2k_snes_mapdata::engine::ITEMS_N && db.items.contains_key(&drop) {
+                if 0 < drop
+                    && (drop as usize) < rm2k_snes_mapdata::engine::ITEMS_N
+                    && db.items.contains_key(&drop)
+                {
                     out.insert(drop);
                 }
             }
@@ -410,7 +432,12 @@ mod tests {
     use serde_json::json;
 
     fn cmd(code: i32, parameters: &[i32]) -> Command {
-        Command { code, indent: 0, string: String::new(), parameters: parameters.to_vec() }
+        Command {
+            code,
+            indent: 0,
+            string: String::new(),
+            parameters: parameters.to_vec(),
+        }
     }
 
     fn page(commands: Vec<Command>) -> Page {
@@ -436,7 +463,12 @@ mod tests {
             events: pages
                 .into_iter()
                 .enumerate()
-                .map(|(k, c)| Event { id: k as i32 + 1, x: 0, y: 0, pages: vec![page(c)] })
+                .map(|(k, c)| Event {
+                    id: k as i32 + 1,
+                    x: 0,
+                    y: 0,
+                    pages: vec![page(c)],
+                })
                 .collect(),
             lower_layer: Vec::new(),
             upper_layer: Vec::new(),
@@ -460,7 +492,11 @@ mod tests {
     fn the_party_follows_rm2k_rules() {
         let mut state = PartyState::new(&[1, 2]);
         state.change_party(PARTY_ADD, 2);
-        assert_eq!(state.party, [1, 2], "adding one who is there neither duplicates nor moves");
+        assert_eq!(
+            state.party,
+            [1, 2],
+            "adding one who is there neither duplicates nor moves"
+        );
         state.change_party(PARTY_REMOVE, 9);
         assert_eq!(state.party, [1, 2]);
         state.change_party(PARTY_REMOVE, 1);
@@ -478,12 +514,23 @@ mod tests {
         // party, not from what map 1 left.
         let one = map(
             1,
-            vec![vec![party(PARTY_REMOVE, 10), party(PARTY_ADD, 11), cmd(WAIT, &[1]), party(PARTY_ADD, 12)]],
+            vec![vec![
+                party(PARTY_REMOVE, 10),
+                party(PARTY_ADD, 11),
+                cmd(WAIT, &[1]),
+                party(PARTY_ADD, 12),
+            ]],
         );
         let two = map(2, vec![vec![party(PARTY_ADD, 13), party(PARTY_REMOVE, 10)]]);
         let maps = [&one, &two];
         let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
-        assert_eq!(changes[0], vec![vec![vec![(PARTY_REMOVE, 10), (PARTY_ADD, 11)], vec![(PARTY_ADD, 12)]]]);
+        assert_eq!(
+            changes[0],
+            vec![vec![
+                vec![(PARTY_REMOVE, 10), (PARTY_ADD, 11)],
+                vec![(PARTY_ADD, 12)]
+            ]]
+        );
         assert_eq!(possible_leaders(&changes, &[10]), [10, 11, 13]);
     }
 
@@ -516,7 +563,14 @@ mod tests {
         assert_eq!(possible_leaders(&changes, &[5]), [5]);
         let chase = map(
             4,
-            vec![vec![party(PARTY_REMOVE, 5), cmd(WAIT, &[1]), party(PARTY_ADD, 20)], vec![party(PARTY_ADD, 16)]],
+            vec![
+                vec![
+                    party(PARTY_REMOVE, 5),
+                    cmd(WAIT, &[1]),
+                    party(PARTY_ADD, 20),
+                ],
+                vec![party(PARTY_ADD, 16)],
+            ],
         );
         let maps = [&chase];
         let changes = party_changes(&maps, &everything_compiles(&maps)).unwrap();
@@ -537,10 +591,16 @@ mod tests {
     fn rain_and_items_are_swept_over_every_page_and_the_test_pages() {
         let one = map(
             1,
-            vec![vec![cmd(CHANGE_ITEMS, &[0, 0, 7, 0, 1]), cmd(OPEN_SHOP, &[0, 0, 0, 0, 3, 450, 451])]],
+            vec![vec![
+                cmd(CHANGE_ITEMS, &[0, 0, 7, 0, 1]),
+                cmd(OPEN_SHOP, &[0, 0, 0, 0, 3, 450, 451]),
+            ]],
         );
         assert!(!has_rain([&one], &[]));
-        assert!(has_rain([&one], &[cmd(WEATHER_EFFECTS, &[WEATHER_RAIN, 2])]));
+        assert!(has_rain(
+            [&one],
+            &[cmd(WEATHER_EFFECTS, &[WEATHER_RAIN, 2])]
+        ));
         // 451 is past the inventory, which goes up to `ITEMS_N`; and 5 is
         // not in the database —RM2k shows nothing for it—, like the weapon
         // an actor starts with in a game that deleted it.
@@ -561,17 +621,41 @@ mod tests {
         // Map 1 starts it and goes to 2; 2 goes to 3 and stops it there, so
         // 3 is reached and 4 is not; 3 starts it again and goes to 5, which
         // the game says never runs it.
-        let one = map(1, vec![vec![cmd(TIMER_OPERATION, &[TIMER_START]), cmd(TELEPORT, &[2, 0, 0])]]);
+        let one = map(
+            1,
+            vec![vec![
+                cmd(TIMER_OPERATION, &[TIMER_START]),
+                cmd(TELEPORT, &[2, 0, 0]),
+            ]],
+        );
         let two = map(
             2,
-            vec![vec![cmd(TELEPORT, &[3, 0, 0]), cmd(TIMER_OPERATION, &[TIMER_STOP]), cmd(TELEPORT, &[4, 0, 0])]],
+            vec![vec![
+                cmd(TELEPORT, &[3, 0, 0]),
+                cmd(TIMER_OPERATION, &[TIMER_STOP]),
+                cmd(TELEPORT, &[4, 0, 0]),
+            ]],
         );
-        let three = map(3, vec![vec![cmd(TIMER_OPERATION, &[TIMER_START]), cmd(TELEPORT, &[5, 0, 0])]]);
+        let three = map(
+            3,
+            vec![vec![
+                cmd(TIMER_OPERATION, &[TIMER_START]),
+                cmd(TELEPORT, &[5, 0, 0]),
+            ]],
+        );
         let four = map(4, vec![]);
         let five = map(5, vec![]);
         let maps = [&one, &two, &three, &four, &five];
         let scan = everything_compiles(&maps);
-        let reach = timer_reach(&maps, &scan, &BTreeMap::new(), &BTreeSet::from([5]), &BTreeSet::new(), &BTreeSet::new()).unwrap();
+        let reach = timer_reach(
+            &maps,
+            &scan,
+            &BTreeMap::new(),
+            &BTreeSet::from([5]),
+            &BTreeSet::new(),
+            &BTreeSet::new(),
+        )
+        .unwrap();
         assert_eq!(reach, BTreeSet::from([1, 2, 3]));
     }
 
@@ -580,20 +664,35 @@ mod tests {
         // Map 1 starts it and goes to 2, a hub: 2 is reached, and its page
         // that goes on to 3 does not carry it, unless it starts it itself,
         // as the one that goes to 4 does.
-        let one = map(1, vec![vec![cmd(TIMER_OPERATION, &[TIMER_START]), cmd(TELEPORT, &[2, 0, 0])]]);
+        let one = map(
+            1,
+            vec![vec![
+                cmd(TIMER_OPERATION, &[TIMER_START]),
+                cmd(TELEPORT, &[2, 0, 0]),
+            ]],
+        );
         let two = map(
             2,
             vec![
                 vec![cmd(TELEPORT, &[3, 0, 0])],
-                vec![cmd(TIMER_OPERATION, &[TIMER_START]), cmd(TELEPORT, &[4, 0, 0])],
+                vec![
+                    cmd(TIMER_OPERATION, &[TIMER_START]),
+                    cmd(TELEPORT, &[4, 0, 0]),
+                ],
             ],
         );
         let (three, four) = (map(3, vec![]), map(4, vec![]));
         let maps = [&one, &two, &three, &four];
         let scan = everything_compiles(&maps);
-        let reach =
-            timer_reach(&maps, &scan, &BTreeMap::new(), &BTreeSet::new(), &BTreeSet::from([2]), &BTreeSet::new())
-                .unwrap();
+        let reach = timer_reach(
+            &maps,
+            &scan,
+            &BTreeMap::new(),
+            &BTreeSet::new(),
+            &BTreeSet::from([2]),
+            &BTreeSet::new(),
+        )
+        .unwrap();
         assert_eq!(reach, BTreeSet::from([1, 2, 4]));
     }
 
@@ -601,9 +700,15 @@ mod tests {
     fn a_counter_asks_for_the_digits_where_it_is_called() {
         let one = map(1, vec![vec![cmd(CALL_EVENT, &[CALL_COMMON, 7])]]);
         let maps = [&one];
-        let reach =
-            timer_reach(&maps, &everything_compiles(&maps), &BTreeMap::new(), &BTreeSet::new(), &BTreeSet::new(), &BTreeSet::from([7]))
-                .unwrap();
+        let reach = timer_reach(
+            &maps,
+            &everything_compiles(&maps),
+            &BTreeMap::new(),
+            &BTreeSet::new(),
+            &BTreeSet::new(),
+            &BTreeSet::from([7]),
+        )
+        .unwrap();
         assert_eq!(reach, BTreeSet::from([1]));
     }
 }

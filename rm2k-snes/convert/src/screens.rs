@@ -40,7 +40,10 @@ fn game_flags(game: &Game) -> Vec<OsString> {
     // apart —see `window_colors`—. A gradient goes as the one colour it is
     // drawn with until the runtime draws it.
     if let Some(background) = game.window_background(&game.starting_system()) {
-        flags.extend(["--window-background".into(), color_text(background.flat()).into()]);
+        flags.extend([
+            "--window-background".into(),
+            color_text(background.flat()).into(),
+        ]);
     }
     flags
 }
@@ -78,14 +81,21 @@ pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Value>> {
     if faces.is_empty() {
         return Ok(Vec::new());
     }
-    let request = json!({"faces": faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()});
+    let request =
+        json!({"faces": faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()});
     let written = stage::run(BINARY, PROJECT, "faces", &request, &game_flags(game))?;
     let answer = stage::json(&written, "faces.json")?;
     answer["faces"]
         .as_array()
         .cloned()
         .filter(|drawn| drawn.len() == faces.len())
-        .ok_or_else(|| Stop::new(format!("the screens drew {} faces and {} were asked for", answer["faces"].as_array().map_or(0, Vec::len), faces.len())))
+        .ok_or_else(|| {
+            Stop::new(format!(
+                "the screens drew {} faces and {} were asked for",
+                answer["faces"].as_array().map_or(0, Vec::len),
+                faces.len()
+            ))
+        })
 }
 
 /// The colour-memory entries the message window takes after the backdrop,
@@ -113,7 +123,11 @@ pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)>
     let colors = answer["colors"]
         .as_u64()
         .and_then(|n| u32::try_from(n).ok())
-        .ok_or_else(|| Stop::new(format!("the screens' window answer has no colour count: {answer}")))?;
+        .ok_or_else(|| {
+            Stop::new(format!(
+                "the screens' window answer has no colour count: {answer}"
+            ))
+        })?;
     Ok((colors, answer))
 }
 
@@ -152,7 +166,8 @@ pub fn convert(
     let bg1_banks: Vec<Value> = vram::LAYOUTS
         .iter()
         .map(|l| {
-            let mut end = l.tiles.base + l.tiles.count * (rm2k_snes_mapdata::snes::BYTES_PER_TILE as u32 / 2);
+            let mut end =
+                l.tiles.base + l.tiles.count * (rm2k_snes_mapdata::snes::BYTES_PER_TILE as u32 / 2);
             // A panorama's tiles right after BG1's come back with them: the
             // same `load_above` that the return to the map goes through
             // uploads them —see `pano_load` in the runtime—.

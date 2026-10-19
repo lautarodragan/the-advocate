@@ -57,22 +57,23 @@ beq sbc sbc sbc pea sbc inc sbc sed sbc plx xce jsr sbc inc sbc
 
 /// The mode of each opcode, sixteen to a row.
 const MODES: [Mode; 256] = [
-    Imm8, DpIndX, Imm8, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, Dp, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, Abs, AbsX, AbsX, LongX,
-    Abs, DpIndX, Long, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, AbsX, AbsX, AbsX, LongX,
+    Imm8, DpIndX, Imm8, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long, Rel,
+    DpIndY, DpInd, SrIndY, Dp, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, Abs, AbsX, AbsX, LongX,
+    Abs, DpIndX, Long, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long, Rel,
+    DpIndY, DpInd, SrIndY, DpX, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, AbsX, AbsX, AbsX, LongX,
     Imp, DpIndX, Imm8, Sr, BlockMove, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, BlockMove, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, Long, AbsX, AbsX, LongX,
-    Imp, DpIndX, RelLong, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, AbsInd, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, AbsIndX, AbsX, AbsX, LongX,
-    Rel, DpIndX, RelLong, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpY, DpIndLongY, Imp, AbsY, Imp, Imp, Abs, AbsX, AbsX, LongX,
-    ImmX, DpIndX, ImmX, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpY, DpIndLongY, Imp, AbsY, Imp, Imp, AbsX, AbsX, AbsY, LongX,
-    ImmX, DpIndX, Imm8, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, Dp, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, AbsIndLong, AbsX, AbsX, LongX,
-    ImmX, DpIndX, Imm8, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs, Abs, Abs, Long,
-    Rel, DpIndY, DpInd, SrIndY, Abs, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, AbsIndX, AbsX, AbsX, LongX,
+    Rel, DpIndY, DpInd, SrIndY, BlockMove, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, Long, AbsX,
+    AbsX, LongX, Imp, DpIndX, RelLong, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, AbsInd, Abs,
+    Abs, Long, Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpX, DpIndLongY, Imp, AbsY, Imp, Imp, AbsIndX,
+    AbsX, AbsX, LongX, Rel, DpIndX, RelLong, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp, Abs,
+    Abs, Abs, Long, Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpY, DpIndLongY, Imp, AbsY, Imp, Imp,
+    Abs, AbsX, AbsX, LongX, ImmX, DpIndX, ImmX, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp, Imp,
+    Abs, Abs, Abs, Long, Rel, DpIndY, DpInd, SrIndY, DpX, DpX, DpY, DpIndLongY, Imp, AbsY, Imp,
+    Imp, AbsX, AbsX, AbsY, LongX, ImmX, DpIndX, Imm8, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM, Imp,
+    Imp, Abs, Abs, Abs, Long, Rel, DpIndY, DpInd, SrIndY, Dp, DpX, DpX, DpIndLongY, Imp, AbsY, Imp,
+    Imp, AbsIndLong, AbsX, AbsX, LongX, ImmX, DpIndX, Imm8, Sr, Dp, Dp, Dp, DpIndLong, Imp, ImmM,
+    Imp, Imp, Abs, Abs, Abs, Long, Rel, DpIndY, DpInd, SrIndY, Abs, DpX, DpX, DpIndLongY, Imp,
+    AbsY, Imp, Imp, AbsIndX, AbsX, AbsX, LongX,
 ];
 
 pub fn mnemonic(op: u8) -> &'static str {
@@ -88,8 +89,20 @@ pub fn mode(op: u8) -> Mode {
 pub fn length(op: u8, m8: bool, x8: bool) -> u32 {
     match mode(op) {
         Imp => 1,
-        ImmM => if m8 { 2 } else { 3 },
-        ImmX => if x8 { 2 } else { 3 },
+        ImmM => {
+            if m8 {
+                2
+            } else {
+                3
+            }
+        }
+        ImmX => {
+            if x8 {
+                2
+            } else {
+                3
+            }
+        }
         Imm8 | Rel | Sr | SrIndY | Dp | DpX | DpY | DpInd | DpIndLong | DpIndX | DpIndY
         | DpIndLongY => 2,
         Abs | AbsX | AbsY | AbsInd | AbsIndLong | AbsIndX | RelLong | BlockMove => 3,
@@ -119,12 +132,18 @@ pub const C: u8 = 0x01;
 /// the ones in their operand, which is passed in `imm`.
 pub fn writes_flags(op: u8, imm: u8) -> u8 {
     match mnemonic(op) {
-        "lda" | "ldx" | "ldy" | "ora" | "and" | "eor" | "inc" | "dec" | "inx" | "iny"
-        | "dex" | "dey" | "tax" | "tay" | "txa" | "tya" | "txy" | "tyx" | "tsx" | "tsc"
-        | "tdc" | "tcd" | "pla" | "plx" | "ply" | "plb" | "pld" | "xba" => N | Z,
+        "lda" | "ldx" | "ldy" | "ora" | "and" | "eor" | "inc" | "dec" | "inx" | "iny" | "dex"
+        | "dey" | "tax" | "tay" | "txa" | "tya" | "txy" | "tyx" | "tsx" | "tsc" | "tdc" | "tcd"
+        | "pla" | "plx" | "ply" | "plb" | "pld" | "xba" => N | Z,
         "asl" | "lsr" | "rol" | "ror" | "cmp" | "cpx" | "cpy" => N | Z | C,
         "adc" | "sbc" => N | V | Z | C,
-        "bit" => if mode(op) == ImmM { Z } else { N | V | Z },
+        "bit" => {
+            if mode(op) == ImmM {
+                Z
+            } else {
+                N | V | Z
+            }
+        }
         "tsb" | "trb" => Z,
         "clc" | "sec" | "xce" => C,
         "clv" => V,
@@ -167,14 +186,12 @@ pub fn pull_flags(op: u8) -> u8 {
 /// A and memory, `'x'` for the index registers, or neither.
 pub fn width_of(op: u8) -> Option<char> {
     match mnemonic(op) {
-        "lda" | "sta" | "adc" | "sbc" | "and" | "ora" | "eor" | "cmp" | "bit" | "stz"
-        | "tsb" | "trb" | "asl" | "lsr" | "rol" | "ror" | "pha" | "pla" | "txa" | "tya" => {
-            Some('m')
-        }
+        "lda" | "sta" | "adc" | "sbc" | "and" | "ora" | "eor" | "cmp" | "bit" | "stz" | "tsb"
+        | "trb" | "asl" | "lsr" | "rol" | "ror" | "pha" | "pla" | "txa" | "tya" => Some('m'),
         // `inc`/`dec` of A or of memory, not `inx` and the like.
         "inc" | "dec" => Some('m'),
-        "ldx" | "ldy" | "stx" | "sty" | "cpx" | "cpy" | "inx" | "iny" | "dex" | "dey"
-        | "phx" | "phy" | "plx" | "ply" | "tax" | "tay" | "txy" | "tyx" | "tsx" => Some('x'),
+        "ldx" | "ldy" | "stx" | "sty" | "cpx" | "cpy" | "inx" | "iny" | "dex" | "dey" | "phx"
+        | "phy" | "plx" | "ply" | "tax" | "tay" | "txy" | "tyx" | "tsx" => Some('x'),
         _ => None,
     }
 }

@@ -213,7 +213,11 @@ pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
 /// the background leaves—, so the map must draw nothing above the hero; in
 /// mode 1 the map goes at 4 bits and the panorama in BG3: see
 /// [`crate::background::panorama`].
-pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&PanoramaAsk>) -> Result<Converted> {
+pub fn convert_with(
+    layers: &Layers,
+    window_colors: usize,
+    panorama: Option<&PanoramaAsk>,
+) -> Result<Converted> {
     if let Some(ask) = panorama {
         if ask.mode == crate::background::panorama::Mode::One {
             return crate::background::mode1::convert(layers, window_colors, ask);
@@ -254,15 +258,25 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
     // nothing above the hero, so they would be empty.
     let (pano, pano_picture) = match panorama {
         Some(ask) => {
-            let (mut p, picture) = crate::background::panorama::mode3(ask.picture, free, ask.tiles)?;
+            let (mut p, picture) =
+                crate::background::panorama::mode3(ask.picture, free, ask.tiles)?;
             p.extras = ask
                 .extras
                 .iter()
-                .map(|e| crate::background::panorama::mode3(e, free, ask.tiles).map(|(q, _)| q).map_err(|e| e.to_string()))
+                .map(|e| {
+                    crate::background::panorama::mode3(e, free, ask.tiles)
+                        .map(|(q, _)| q)
+                        .map_err(|e| e.to_string())
+                })
                 .collect();
             // All of them from the same entry: the first of the most
             // palettes any takes. The background starts below it.
-            let first = p.extras.iter().flatten().map(|q| q.first).fold(p.first, usize::min);
+            let first = p
+                .extras
+                .iter()
+                .flatten()
+                .map(|q| q.first)
+                .fold(p.first, usize::min);
             p.from_entry(first);
             for q in p.extras.iter_mut().flatten() {
                 q.from_entry(first);
@@ -300,8 +314,15 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
     for (family, gs) in &variants {
         drawings.push((*family, rest.by_ref().take(gs.len()).collect()));
     }
-    let (background, mut pictures) =
-        convert_background(&base, &palette, &drawings, reserved, colors_before, budget, merges)?;
+    let (background, mut pictures) = convert_background(
+        &base,
+        &palette,
+        &drawings,
+        reserved,
+        colors_before,
+        budget,
+        merges,
+    )?;
     pictures.push(Decided {
         name: "above".to_string(),
         picture: above_picture,
@@ -335,20 +356,33 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
 /// too many for the palettes granted, or that a single tile has more than
 /// fifteen, which fits no palette however many there are. Both are fixed by
 /// choosing the colours of each group and mapping every cell locally.
-pub(crate) fn split_above(grid: &Grid, limit: usize) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
+pub(crate) fn split_above(
+    grid: &Grid,
+    limit: usize,
+) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
     let totals = counts(&[grid]);
     let tiles: Vec<BTreeSet<Color>> = grid.at.iter().map(|&i| colors(&grid.cells[i])).collect();
     let reduced = adeleine::reduce_colors(&totals, &tiles, limit, adeleine::USABLE_COLORS)?;
-    let mappings: Vec<HashMap<Color, Color>> = tiles.iter().zip(&reduced.tiles)
-        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
+    let mappings: Vec<HashMap<Color, Color>> = tiles
+        .iter()
+        .zip(&reduced.tiles)
+        .map(|(tile, decided)| {
+            tile.iter()
+                .copied()
+                .zip(decided.mapping.iter().copied())
+                .collect()
+        })
         .collect();
     let palettes = reduced
         .palettes
         .into_iter()
         .map(|g| g.into_iter().collect())
         .collect();
-    Ok((grid.remap_places(&mappings), palettes,
-        reduced.merges.into_iter().map(Merge::from).collect()))
+    Ok((
+        grid.remap_places(&mappings),
+        palettes,
+        reduced.merges.into_iter().map(Merge::from).collect(),
+    ))
 }
 
 /// Every colour-memory entry with a colour, black where the picture gives
@@ -404,7 +438,10 @@ pub(crate) fn convert_above(
     first: usize,
     merges: Vec<Merge>,
 ) -> Result<(Above, Picture)> {
-    let sets: Vec<BTreeSet<Color>> = palettes.iter().map(|p| p.iter().copied().collect()).collect();
+    let sets: Vec<BTreeSet<Color>> = palettes
+        .iter()
+        .map(|p| p.iter().copied().collect())
+        .collect();
     let tables: Vec<HashMap<Color, u8>> = palettes
         .iter()
         .enumerate()
@@ -480,11 +517,7 @@ type BuiltPalette = (Vec<Color>, Grid, Vec<Grid>, Vec<Merge>);
 /// than `budget`. `others` are the grids of the animation's other drawings:
 /// they count like drawing 0 and come out merged with the same mapping,
 /// which is what keeps them comparable with each other.
-fn build_palette(
-    grid: &Grid,
-    budget: usize,
-    others: &[&Grid],
-) -> Result<BuiltPalette> {
+fn build_palette(grid: &Grid, budget: usize, others: &[&Grid]) -> Result<BuiltPalette> {
     let mut all = vec![grid];
     all.extend(others.iter().copied());
     let totals = counts(&all);
@@ -649,16 +682,27 @@ mod tests {
         };
         let one = Picture::filled(64, 8, [200, 100, 50, 255]);
         let many = colourful(8);
-        let ask = PanoramaAsk { picture: &one, mode: Mode::Three, tiles: 64, extras: vec![&many] };
+        let ask = PanoramaAsk {
+            picture: &one,
+            mode: Mode::Three,
+            tiles: 64,
+            extras: vec![&many],
+        };
         let done = convert_with(&layers, 0, Some(&ask)).unwrap();
         let p = done.panorama.as_ref().unwrap();
         let other = p.extras[0].as_ref().unwrap();
         assert_eq!(p.first, other.first);
         assert_eq!(p.cgram.len(), other.cgram.len());
-        assert!(p.cgram.len() >= 2 * COLORS_PER_PALETTE, "{} colours", p.cgram.len());
+        assert!(
+            p.cgram.len() >= 2 * COLORS_PER_PALETTE,
+            "{} colours",
+            p.cgram.len()
+        );
         // The map's own, one colour, went to the last palette, past the
         // empty words that take it back to the shared entry.
-        assert!(p.cgram[..p.cgram.len() - COLORS_PER_PALETTE].iter().all(|&w| w == 0));
+        assert!(p.cgram[..p.cgram.len() - COLORS_PER_PALETTE]
+            .iter()
+            .all(|&w| w == 0));
         assert_eq!(p.first + p.cgram.len(), BG_PALETTES * COLORS_PER_PALETTE);
         // What travels as the layer above's is the map's own.
         assert_eq!(done.above.cgram.len(), 2 * p.cgram.len());

@@ -89,10 +89,15 @@ impl Game {
     /// `CallEvent` can bring any of them into any map.
     pub fn common_commands(&self) -> Result<Vec<(i32, Vec<i32>)>> {
         let dump = Dump::open(&self.data).map_err(answer)?;
-        let common: Vec<ditto::schema::CommonEvent> = dump.section("commonevents").map_err(answer)?;
+        let common: Vec<ditto::schema::CommonEvent> =
+            dump.section("commonevents").map_err(answer)?;
         Ok(common
             .iter()
-            .flat_map(|c| c.event_commands.iter().map(|e| (e.code.to_i32(), e.parameters.clone())))
+            .flat_map(|c| {
+                c.event_commands
+                    .iter()
+                    .map(|e| (e.code.to_i32(), e.parameters.clone()))
+            })
             .collect())
     }
 
@@ -100,7 +105,11 @@ impl Game {
     pub fn start(&self) -> Result<(i32, i32, i32)> {
         let dump = Dump::open(&self.data).map_err(answer)?;
         let tree = dump.tree().map_err(answer)?;
-        Ok((tree.start.party_map_id, tree.start.party_x, tree.start.party_y))
+        Ok((
+            tree.start.party_map_id,
+            tree.start.party_x,
+            tree.start.party_y,
+        ))
     }
 
     /// The picture file of a resource, looked up by name in every search

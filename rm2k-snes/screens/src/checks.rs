@@ -110,9 +110,15 @@ impl Vram {
             )));
         }
         if TARGET_VRAM < self.slot_map + 32 * 32 {
-            return Err(Bad::answer("the actor choice's windows overwrite the menu's tilemap"));
+            return Err(Bad::answer(
+                "the actor choice's windows overwrite the menu's tilemap",
+            ));
         }
-        self.within("the actor choice's windows", TARGET_VRAM, TARGET_MAP + 32 * 32)
+        self.within(
+            "the actor choice's windows",
+            TARGET_VRAM,
+            TARGET_MAP + 32 * 32,
+        )
     }
 
     /// That the shop's windows, from their base, stay in the BG1 bank of
@@ -131,7 +137,7 @@ impl Vram {
     /// the 256 tiles an object names without its high bit. `tiles` are the
     /// windows' 8bpp ones, `objects` the party's 4bpp ones.
     pub fn shop_party(&self, tiles: usize, objects: usize) -> Result<()> {
-        if TI_VRAM % 0x2000 != 0 {
+        if !TI_VRAM.is_multiple_of(0x2000) {
             return Err(Bad::answer(
                 "the shop's party takes the windows' base as the objects', and it is not a multiple of $2000",
             ));
@@ -142,6 +148,10 @@ impl Vram {
                 "the shop's party starts at object tile {first} and takes {objects}: past 255"
             )));
         }
-        self.within("the shop's party", TI_VRAM + first * 16, TI_VRAM + (first + objects) * 16)
+        self.within(
+            "the shop's party",
+            TI_VRAM + first * 16,
+            TI_VRAM + (first + objects) * 16,
+        )
     }
 }

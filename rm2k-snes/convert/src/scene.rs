@@ -49,8 +49,8 @@ use crate::maps::MapInfo;
 use crate::resources;
 use crate::settings::Settings;
 use crate::text::{hex, repr};
-use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
 use rm2k_snes_bytecode::events::{OP_ANIMATION, OP_BATTLE};
+use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
 use rm2k_snes_mapdata::snes::{cgram_word, pack_tile};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -144,7 +144,10 @@ fn encounter_backdrop(cmd: &Command) -> Option<Option<String>> {
     }
 }
 
-fn command_backdrops<'a>(commands: impl IntoIterator<Item = &'a Command>, names: &mut BTreeSet<String>) {
+fn command_backdrops<'a>(
+    commands: impl IntoIterator<Item = &'a Command>,
+    names: &mut BTreeSet<String>,
+) {
     for cmd in commands {
         if cmd.code == ENEMY_ENCOUNTER {
             if let Some(Some(name)) = encounter_backdrop(cmd) {
@@ -164,7 +167,10 @@ fn command_backdrops<'a>(commands: impl IntoIterator<Item = &'a Command>, names:
 pub fn named_backdrops(game: &Game) -> Result<BTreeSet<String>> {
     let ids = game.game_map_ids()?;
     let found: Vec<Result<BTreeSet<String>>> = std::thread::scope(|scope| {
-        let workers = std::thread::available_parallelism().map_or(1, |n| n.get()).min(ids.len()).max(1);
+        let workers = std::thread::available_parallelism()
+            .map_or(1, |n| n.get())
+            .min(ids.len())
+            .max(1);
         let handles: Vec<_> = (0..workers)
             .map(|w| {
                 let ids = &ids;
@@ -202,15 +208,33 @@ pub fn named_backdrops(game: &Game) -> Result<BTreeSet<String>> {
 pub fn game_backdrops(game: &Game, rtp: &Path, named: &BTreeSet<String>) -> Vec<String> {
     let mut every: BTreeSet<String> = named.clone();
     every.extend(game.tree.named_backgrounds());
-    every.extend(game.db.terrain_backdrops.values().filter(|n| !n.is_empty()).cloned());
+    every.extend(
+        game.db
+            .terrain_backdrops
+            .values()
+            .filter(|n| !n.is_empty())
+            .cloned(),
+    );
     let mut by_key: BTreeMap<String, String> = BTreeMap::new();
     for name in &every {
-        by_key.entry(name.to_lowercase()).or_insert_with(|| name.clone());
+        by_key
+            .entry(name.to_lowercase())
+            .or_insert_with(|| name.clone());
     }
     let mut out = Vec::new();
     for name in by_key.values() {
-        if resources::find(&[&game.game_dir, &rtp.to_path_buf()], "Backdrop", name, &[".png", ".bmp", ".xyz"]).is_none() {
-            println!("  backdrop {} is neither in the game nor in the RTP", repr(name));
+        if resources::find(
+            &[&game.game_dir, &rtp.to_path_buf()],
+            "Backdrop",
+            name,
+            &[".png", ".bmp", ".xyz"],
+        )
+        .is_none()
+        {
+            println!(
+                "  backdrop {} is neither in the game nor in the RTP",
+                repr(name)
+            );
             continue;
         }
         out.push(name.clone());
@@ -262,7 +286,11 @@ pub fn battler_bytes(b: &Battler) -> Vec<u8> {
         for row in &b.pixels {
             let mut bytes = vec![0u8; n];
             for (x, &value) in row.iter().enumerate() {
-                let lit = if plane == 0 { value != 0 } else { (value >> (plane - 1)) & 1 != 0 };
+                let lit = if plane == 0 {
+                    value != 0
+                } else {
+                    (value >> (plane - 1)) & 1 != 0
+                };
                 if lit {
                     bytes[x / 8] |= 0x80 >> (x % 8);
                 }
@@ -279,8 +307,12 @@ pub fn battler_bytes(b: &Battler) -> Vec<u8> {
 /// the troop's position is its centre, on RM2k's 320x240 screen.
 pub fn position(center: (i32, i32), b: &Battler) -> (i64, i64) {
     let (x, y) = (center.0 as i64, center.1 as i64);
-    let px = (scale(x) - b.width.div_euclid(2)).max(0).min((WIDTH - b.width).max(0));
-    let py = (scale(y) - b.height.div_euclid(2)).max(0).min((HEIGHT - b.height).max(0));
+    let px = (scale(x) - b.width.div_euclid(2))
+        .max(0)
+        .min((WIDTH - b.width).max(0));
+    let py = (scale(y) - b.height.div_euclid(2))
+        .max(0)
+        .min((HEIGHT - b.height).max(0));
     (px, py)
 }
 
@@ -303,7 +335,11 @@ fn tiles(indices: &Value) -> Vec<Vec<Vec<u8>>> {
         .as_array()
         .map(|r| {
             r.iter()
-                .map(|row| row.as_array().map(|row| row.iter().map(|v| v.as_i64().unwrap_or(0)).collect()).unwrap_or_default())
+                .map(|row| {
+                    row.as_array()
+                        .map(|row| row.iter().map(|v| v.as_i64().unwrap_or(0)).collect())
+                        .unwrap_or_default()
+                })
                 .collect()
         })
         .unwrap_or_default();
@@ -323,11 +359,18 @@ fn tiles(indices: &Value) -> Vec<Vec<Vec<u8>>> {
 }
 
 fn color(c: &Value) -> [u8; 3] {
-    [c[0].as_u64().unwrap_or(0) as u8, c[1].as_u64().unwrap_or(0) as u8, c[2].as_u64().unwrap_or(0) as u8]
+    [
+        c[0].as_u64().unwrap_or(0) as u8,
+        c[1].as_u64().unwrap_or(0) as u8,
+        c[2].as_u64().unwrap_or(0) as u8,
+    ]
 }
 
 fn cgram(palette: &Value, count: i64) -> Vec<u8> {
-    let mut colors: Vec<[u8; 3]> = palette.as_array().map(|p| p.iter().map(color).collect()).unwrap_or_default();
+    let mut colors: Vec<[u8; 3]> = palette
+        .as_array()
+        .map(|p| p.iter().map(color).collect())
+        .unwrap_or_default();
     while (colors.len() as i64) < count {
         colors.push([0, 0, 0]);
     }
@@ -360,8 +403,10 @@ pub fn fallback_bytes(light: &Value) -> (Vec<u8>, Vec<u8>) {
     let smalls: Vec<Vec<u8>> = tiles(&light["small"])
         .into_iter()
         .map(|cell| {
-            let shifted: Vec<Vec<u8>> =
-                cell.iter().map(|row| row.iter().map(|v| (*v as i64 - CGRAM_BASE) as u8).collect()).collect();
+            let shifted: Vec<Vec<u8>> = cell
+                .iter()
+                .map(|row| row.iter().map(|v| (*v as i64 - CGRAM_BASE) as u8).collect())
+                .collect();
             pack_tile(&shifted, FALLBACK_PLANES)
         })
         .collect();
@@ -418,11 +463,18 @@ pub struct Scene {
 /// battles whose own the ROM does not carry. It has to be one of the
 /// game's only when some battle can need it (`needed`); a game without
 /// battles has none to name.
-pub fn fallback_number(number_of: &BTreeMap<String, usize>, name: &str, needed: bool) -> Result<Option<i64>> {
+pub fn fallback_number(
+    number_of: &BTreeMap<String, usize>,
+    name: &str,
+    needed: bool,
+) -> Result<Option<i64>> {
     match number_of.get(&name.to_lowercase()) {
         Some(&k) => Ok(Some(k as i64)),
         None if !needed => Ok(None),
-        None => Err(Stop::new(format!("the fallback backdrop {} is not one of the game's", repr(name)))),
+        None => Err(Stop::new(format!(
+            "the fallback backdrop {} is not one of the game's",
+            repr(name)
+        ))),
     }
 }
 
@@ -442,8 +494,11 @@ pub fn rom_scene(
 ) -> Result<Scene> {
     let named = named_backdrops(game)?;
     let names = game_backdrops(game, rtp, &named);
-    let number_of: BTreeMap<String, usize> =
-        names.iter().enumerate().map(|(k, n)| (n.to_lowercase(), k)).collect();
+    let number_of: BTreeMap<String, usize> = names
+        .iter()
+        .enumerate()
+        .map(|(k, n)| (n.to_lowercase(), k))
+        .collect();
     if names.len() as i64 >= PLACE_BACKDROP {
         crate::stop!(
             "the game has {} battle backdrops and the number of one is a byte, with ${PLACE_BACKDROP:02X} and $FF reserved",
@@ -454,7 +509,9 @@ pub fn rom_scene(
         match name {
             None => PLACE_BACKDROP,
             Some("") => FLAT_BACKDROP,
-            Some(n) => number_of.get(&n.to_lowercase()).map_or(FLAT_BACKDROP, |&k| k as i64),
+            Some(n) => number_of
+                .get(&n.to_lowercase())
+                .map_or(FLAT_BACKDROP, |&k| k as i64),
         }
     };
     let mut troop_backdrop = Vec::new();
@@ -474,7 +531,10 @@ pub fn rom_scene(
     // The map's, for random encounters and for the troops that fight with
     // the one of the place; only where some battle can look at it.
     let per_map: Vec<i64> = match encounters.get("per_map").and_then(Value::as_array) {
-        Some(list) if !list.is_empty() => list.iter().map(|v| v.as_i64().unwrap_or(NO_RECORD)).collect(),
+        Some(list) if !list.is_empty() => list
+            .iter()
+            .map(|v| v.as_i64().unwrap_or(NO_RECORD))
+            .collect(),
         _ => vec![NO_RECORD; maps.len()],
     };
     let place_ones = troop_backdrop.iter().any(|(_, k)| *k == PLACE_BACKDROP);
@@ -497,7 +557,12 @@ pub fn rom_scene(
     let of_terrains = |map: &MapInfo| -> Vec<i64> {
         let set: BTreeSet<u8> = map.block_terrain.iter().copied().collect();
         set.into_iter()
-            .map(|t| terrain_backdrop.get(t as usize).copied().unwrap_or(FLAT_BACKDROP))
+            .map(|t| {
+                terrain_backdrop
+                    .get(t as usize)
+                    .copied()
+                    .unwrap_or(FLAT_BACKDROP)
+            })
             .collect()
     };
     let mut requested: Vec<i64> = troop_backdrop.iter().map(|(_, k)| *k).collect();
@@ -520,7 +585,9 @@ pub fn rom_scene(
         }
     }
     let replacement_name = settings.string(&["battle", "fallback_backdrop"])?;
-    let needed = possible.iter().any(|k| *k < PLACE_BACKDROP && !theirs.contains(k));
+    let needed = possible
+        .iter()
+        .any(|k| *k < PLACE_BACKDROP && !theirs.contains(k));
     let replacement_number = fallback_number(&number_of, &replacement_name, needed)?;
     if let (true, Some(r)) = (needed, replacement_number) {
         if !theirs.contains(&r) {
@@ -528,10 +595,19 @@ pub fn rom_scene(
         }
     }
     let scene = scene_settings();
-    let found = |list: &[String], quality: bool, light: bool| -> Result<Vec<(Option<Value>, Option<Value>)>> {
-        let paths: Vec<Option<PathBuf>> = list.iter().map(|n| find_file(game, rtp, "Backdrop", n)).collect();
-        let wanted: Vec<(PathBuf, bool, bool)> =
-            paths.iter().flatten().map(|p| (p.clone(), quality, light)).collect();
+    let found = |list: &[String],
+                 quality: bool,
+                 light: bool|
+     -> Result<Vec<(Option<Value>, Option<Value>)>> {
+        let paths: Vec<Option<PathBuf>> = list
+            .iter()
+            .map(|n| find_file(game, rtp, "Backdrop", n))
+            .collect();
+        let wanted: Vec<(PathBuf, bool, bool)> = paths
+            .iter()
+            .flatten()
+            .map(|p| (p.clone(), quality, light))
+            .collect();
         let mut answers = images::backdrops(&scene, &wanted)?.into_iter();
         Ok(paths
             .iter()
@@ -557,8 +633,12 @@ pub fn rom_scene(
         });
     }
     let place: BTreeMap<i64, usize> = theirs.iter().enumerate().map(|(i, k)| (*k, i)).collect();
-    let replacement = replacement_number.and_then(|r| place.get(&r).copied()).unwrap_or(0);
-    let fallback_of = (0..names.len() as i64).map(|k| place.get(&k).copied().unwrap_or(replacement)).collect();
+    let replacement = replacement_number
+        .and_then(|r| place.get(&r).copied())
+        .unwrap_or(0);
+    let fallback_of = (0..names.len() as i64)
+        .map(|k| place.get(&k).copied().unwrap_or(replacement))
+        .collect();
     // The quality ones, for the `.msu`: all of them, in the ROM or not.
     let quality = found(&names, true, false)?
         .into_iter()
@@ -572,12 +652,16 @@ pub fn rom_scene(
     let mut asked: Vec<(String, i64)> = Vec::new();
     let mut first_asked: Vec<(i32, (String, i64))> = Vec::new();
     for number in &troops.ids {
-        let Some(troop) = db.troops.get(number) else { continue };
+        let Some(troop) = db.troops.get(number) else {
+            continue;
+        };
         for enemy in troop.members.iter().take(enemies_max) {
             if first_asked.iter().any(|(e, _)| e == enemy) {
                 continue;
             }
-            let Some(e) = db.enemies.get(enemy) else { continue };
+            let Some(e) = db.enemies.get(enemy) else {
+                continue;
+            };
             let (name, hue) = (e.battler_name.clone(), e.battler_hue as i64);
             first_asked.push((*enemy, (name.clone(), hue)));
             if !name.is_empty() && !asked.contains(&(name.clone(), hue)) {
@@ -585,7 +669,10 @@ pub fn rom_scene(
             }
         }
     }
-    let paths: Vec<Option<PathBuf>> = asked.iter().map(|(n, _)| find_file(game, rtp, "Monster", n)).collect();
+    let paths: Vec<Option<PathBuf>> = asked
+        .iter()
+        .map(|(n, _)| find_file(game, rtp, "Monster", n))
+        .collect();
     for ((name, _), path) in asked.iter().zip(&paths) {
         if path.is_none() {
             println!("  battler {} is neither in the game nor in the RTP: its enemies fight with no picture", repr(name));
@@ -593,7 +680,11 @@ pub fn rom_scene(
     }
     let mut answers = images::battlers(
         &scene,
-        &asked.iter().zip(&paths).filter_map(|((_, hue), p)| p.clone().map(|p| (p, *hue))).collect::<Vec<_>>(),
+        &asked
+            .iter()
+            .zip(&paths)
+            .filter_map(|((_, hue), p)| p.clone().map(|p| (p, *hue)))
+            .collect::<Vec<_>>(),
     )?
     .into_iter();
     let mut drawn: Vec<((String, i64), Option<Battler>)> = Vec::new();
@@ -612,7 +703,13 @@ pub fn rom_scene(
                         .as_array()
                         .map(|rows| {
                             rows.iter()
-                                .map(|r| r.as_array().map(|r| r.iter().map(|v| v.as_i64().unwrap_or(0)).collect()).unwrap_or_default())
+                                .map(|r| {
+                                    r.as_array()
+                                        .map(|r| {
+                                            r.iter().map(|v| v.as_i64().unwrap_or(0)).collect()
+                                        })
+                                        .unwrap_or_default()
+                                })
                                 .collect()
                         })
                         .unwrap_or_default(),
@@ -634,7 +731,10 @@ pub fn rom_scene(
             let info = if name.is_empty() {
                 None
             } else {
-                drawn.iter().find(|(a, _)| a.0 == *name && a.1 == *hue).and_then(|(_, i)| i.clone())
+                drawn
+                    .iter()
+                    .find(|(a, _)| a.0 == *name && a.1 == *hue)
+                    .and_then(|(_, i)| i.clone())
             };
             match info {
                 None => {
@@ -697,9 +797,16 @@ pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Value {
     let enemies_max = rm2k_snes_mapdata::engine::ENEMIES_MAX;
     let mut placed = Vec::new();
     for number in troops {
-        let Some(troop) = db.troops.get(number) else { continue };
-        let theirs: Vec<(i32, (i32, i32))> =
-            troop.members.iter().copied().zip(troop.positions.iter().copied()).take(enemies_max).collect();
+        let Some(troop) = db.troops.get(number) else {
+            continue;
+        };
+        let theirs: Vec<(i32, (i32, i32))> = troop
+            .members
+            .iter()
+            .copied()
+            .zip(troop.positions.iter().copied())
+            .take(enemies_max)
+            .collect();
         let mut members = Vec::new();
         let mut infos: Vec<Option<&Battler>> = Vec::new();
         for (enemy, center) in &theirs {
@@ -742,29 +849,42 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
     }
     let mut animations: BTreeMap<i64, BTreeSet<Origin>> = BTreeMap::new();
     let mut troops: Vec<(i64, BTreeSet<Origin>)> = Vec::new();
-    let add_troop = |n: i64, o: Origin, troops: &mut Vec<(i64, BTreeSet<Origin>)>| {
-        match troops.iter_mut().find(|(t, _)| *t == n) {
-            Some(entry) => {
-                entry.1.insert(o);
-            }
-            None => troops.push((n, BTreeSet::from([o]))),
+    let add_troop = |n: i64, o: Origin, troops: &mut Vec<(i64, BTreeSet<Origin>)>| match troops
+        .iter_mut()
+        .find(|(t, _)| *t == n)
+    {
+        Some(entry) => {
+            entry.1.insert(o);
         }
+        None => troops.push((n, BTreeSet::from([o]))),
     };
     let no_drawing = rm2k_snes_mapdata::engine::ANIM_NO_DRAWING as u8;
     for map in maps {
         for page in &map.pages {
-            let origin = if page.test { Origin::Case } else { Origin::Map(map.id) };
+            let origin = if page.test {
+                Origin::Case
+            } else {
+                Origin::Map(map.id)
+            };
             let code = &page.code;
             for i in bytecode::walk(code)? {
                 if code[i] == OP_ANIMATION && bytecode::at(code, i + 1) != no_drawing {
-                    animations.entry(bytecode::at(code, i + 1) as i64).or_default().insert(origin.clone());
+                    animations
+                        .entry(bytecode::at(code, i + 1) as i64)
+                        .or_default()
+                        .insert(origin.clone());
                 } else if code[i] == OP_BATTLE {
-                    let n = bytecode::at(code, i + 1) as i64 | (bytecode::at(code, i + 2) as i64) << 8;
+                    let n =
+                        bytecode::at(code, i + 1) as i64 | (bytecode::at(code, i + 2) as i64) << 8;
                     add_troop(n, origin.clone(), &mut troops);
                 }
             }
         }
-        for zone in game.tree.rules.encounter_zones(map.id, map.map.width as i64, map.map.height as i64) {
+        for zone in
+            game.tree
+                .rules
+                .encounter_zones(map.id, map.map.width as i64, map.map.height as i64)
+        {
             for number in zone.troops {
                 add_troop(number, Origin::Map(map.id), &mut troops);
             }
@@ -773,11 +893,18 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
     let mut battlers: BTreeMap<String, BTreeSet<Origin>> = BTreeMap::new();
     let enemies_max = rm2k_snes_mapdata::engine::ENEMIES_MAX;
     for (number, origins) in &troops {
-        let Some(troop) = game.db.troops.get(&(*number as i32)) else { continue };
+        let Some(troop) = game.db.troops.get(&(*number as i32)) else {
+            continue;
+        };
         for enemy in troop.members.iter().take(enemies_max) {
-            let Some(e) = game.db.enemies.get(enemy) else { continue };
+            let Some(e) = game.db.enemies.get(enemy) else {
+                continue;
+            };
             if !e.battler_name.is_empty() {
-                battlers.entry(key(&e.battler_name, e.battler_hue as i64)).or_default().extend(origins.iter().cloned());
+                battlers
+                    .entry(key(&e.battler_name, e.battler_hue as i64))
+                    .or_default()
+                    .extend(origins.iter().cloned());
             }
         }
     }
@@ -800,8 +927,10 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
         .map(|(k, v)| (format!("({k}, "), k.to_string(), origins(v)))
         .collect();
     anim.sort_by(|a, b| a.0.cmp(&b.0));
-    let mut bat: Vec<(String, String, Value)> =
-        battlers.iter().map(|(k, v)| (format!("({}, ", repr(k)), k.clone(), origins(v))).collect();
+    let mut bat: Vec<(String, String, Value)> = battlers
+        .iter()
+        .map(|(k, v)| (format!("({}, ", repr(k)), k.clone(), origins(v)))
+        .collect();
     bat.sort_by(|a, b| a.0.cmp(&b.0));
     let object = |list: Vec<(String, String, Value)>| {
         let mut m = Map::new();
@@ -853,7 +982,10 @@ mod tests {
         let number_of: BTreeMap<String, usize> = [("grass".to_string(), 3)].into_iter().collect();
         assert_eq!(fallback_number(&number_of, "Grass", true).unwrap(), Some(3));
         assert_eq!(fallback_number(&number_of, "", false).unwrap(), None);
-        assert_eq!(fallback_number(&number_of, "Grass", false).unwrap(), Some(3));
+        assert_eq!(
+            fallback_number(&number_of, "Grass", false).unwrap(),
+            Some(3)
+        );
         assert!(fallback_number(&number_of, "", true).is_err());
     }
 
@@ -876,7 +1008,10 @@ mod tests {
     fn the_lower_edge_goes_on_top_and_on_a_tie_the_lower_place() {
         let tall = battler(8, 40, vec![]);
         let short = battler(8, 8, vec![]);
-        let order = drawing_order(&[(10, 100), (10, 100), (10, 90)], &[Some(&short), Some(&short), Some(&tall)]);
+        let order = drawing_order(
+            &[(10, 100), (10, 100), (10, 90)],
+            &[Some(&short), Some(&short), Some(&tall)],
+        );
         assert_eq!(order, [1, 0, 2]);
     }
 

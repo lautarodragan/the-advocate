@@ -52,7 +52,7 @@ use crate::cells::{self, rgb15, Color, Counts, BLACK, CELL, COLS, HEIGHT, WIDTH}
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
 use crate::items::{ink_colors, INK_ROW_FIRST};
-use crate::layout::{Rect, ITEM_FIRST_CHAR, ITEM_CHARS, SCR_TEXT_X};
+use crate::layout::{Rect, ITEM_CHARS, ITEM_FIRST_CHAR, SCR_TEXT_X};
 use rm2k_render::picture::{self, FilterType};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, HashMap};
@@ -342,9 +342,9 @@ fn pieces(game: &Game, text: &str) -> Result<Vec<Piece>> {
             .and_then(|a| a.find(']').map(|end| (&a[1..end], end + 2)));
         match (code, number) {
             (Some(c @ ('V' | 'N')), Some((digits, used))) => {
-                let n: i32 = digits
-                    .parse()
-                    .map_err(|_| Bad::answer(format!("{text:?}: \\{c}[{digits}] is not a number")))?;
+                let n: i32 = digits.parse().map_err(|_| {
+                    Bad::answer(format!("{text:?}: \\{c}[{digits}] is not a number"))
+                })?;
                 if c == 'V' {
                     if !letters.is_empty() {
                         out.push(Piece::Text(std::mem::take(&mut letters)));
@@ -416,7 +416,11 @@ fn text_lines(game: &Game, r: &Reader, v: &Value, room: usize) -> Result<Vec<Lin
     if let Some(text) = r.text(v, "text")? {
         for paragraph in text.split('\n') {
             for pieces in wrap(game, paragraph.trim_end(), room)? {
-                out.push(Line { col: CM_TEXT_COL, color: 0, pieces });
+                out.push(Line {
+                    col: CM_TEXT_COL,
+                    color: 0,
+                    pieces,
+                });
             }
         }
     }
@@ -433,7 +437,9 @@ fn text_lines(game: &Game, r: &Reader, v: &Value, room: usize) -> Result<Vec<Lin
         let pieces = pieces(game, &text)?;
         let taken = width(game, &pieces);
         if taken > room {
-            return Err(r.bad(&format!("the line {text:?} takes {taken} pixels and {room} fit")));
+            return Err(r.bad(&format!(
+                "the line {text:?} takes {taken} pixels and {room} fit"
+            )));
         }
         let col = if center {
             CM_TEXT_COL + (room - taken) / 2 / CELL
@@ -460,16 +466,22 @@ impl Menu {
                 .ok_or_else(|| r.bad("`table` is not a table of tables"))?;
             for (key, table) in t {
                 let columns = r.list(table, "columns")?;
-                let column = |k: usize| columns.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+                let column = |k: usize| {
+                    columns
+                        .get(k)
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string()
+                };
                 let mut special = Vec::new();
                 if let Some(s) = table.get("special").and_then(Value::as_object) {
                     for (value, text) in s {
-                        let value: i64 = value
-                            .parse()
-                            .map_err(|_| r.bad(&format!("table {key:?}: special value {value:?}")))?;
-                        let text = text
-                            .as_str()
-                            .ok_or_else(|| r.bad(&format!("table {key:?}: special {value} is not a text")))?;
+                        let value: i64 = value.parse().map_err(|_| {
+                            r.bad(&format!("table {key:?}: special value {value:?}"))
+                        })?;
+                        let text = text.as_str().ok_or_else(|| {
+                            r.bad(&format!("table {key:?}: special {value} is not a text"))
+                        })?;
                         special.push((value, text.to_string()));
                     }
                 }
@@ -477,15 +489,15 @@ impl Menu {
                 for sheet in r.list(table, "sheet")? {
                     let mut rows = Vec::new();
                     for row in r.list(sheet, "rows")? {
-                        let row = row
-                            .as_array()
-                            .filter(|a| a.len() == 3)
-                            .ok_or_else(|| r.bad(&format!("table {key:?}: a row is {row}, and not [name, variable, cap]")))?;
+                        let row = row.as_array().filter(|a| a.len() == 3).ok_or_else(|| {
+                            r.bad(&format!(
+                                "table {key:?}: a row is {row}, and not [name, variable, cap]"
+                            ))
+                        })?;
                         let name = row[0].as_str().unwrap_or("").to_string();
-                        let variable = row[1]
-                            .as_i64()
-                            .ok_or_else(|| r.bad(&format!("table {key:?}: {name:?} has no variable")))?
-                            as i32;
+                        let variable = row[1].as_i64().ok_or_else(|| {
+                            r.bad(&format!("table {key:?}: {name:?} has no variable"))
+                        })? as i32;
                         let cap = match &row[2] {
                             Value::Number(n) => Cap::Fixed(n.as_i64().unwrap_or(0)),
                             Value::String(s) if s.starts_with('v') => Cap::Variable(
@@ -533,7 +545,11 @@ impl Menu {
             };
             let class = match (r.text(s, "class")?, actor) {
                 (Some(c), _) => c,
-                (None, Some(a)) => game.actors.get(&a).map(|x| x.title.clone()).unwrap_or_default(),
+                (None, Some(a)) => game
+                    .actors
+                    .get(&a)
+                    .map(|x| x.title.clone())
+                    .unwrap_or_default(),
                 (None, None) => String::new(),
             };
             let portrait = match r.text(s, "portrait")? {
@@ -543,9 +559,14 @@ impl Menu {
                     let crop = if crop.is_empty() {
                         [0, 0, 0, 0]
                     } else {
-                        let c: Vec<usize> = crop.iter().map(|c| c.as_u64().unwrap_or(0) as usize).collect();
+                        let c: Vec<usize> = crop
+                            .iter()
+                            .map(|c| c.as_u64().unwrap_or(0) as usize)
+                            .collect();
                         if c.len() != 4 {
-                            return Err(r.bad(&format!("{name}: `crop` is not [x, y, width, height]")));
+                            return Err(
+                                r.bad(&format!("{name}: `crop` is not [x, y, width, height]"))
+                            );
                         }
                         [c[0], c[1], c[2], c[3]]
                     };
@@ -571,16 +592,19 @@ impl Menu {
                 for p in r.list(t, "page")? {
                     let before = match p.get("before").filter(|b| !b.is_null()) {
                         None => None,
-                        Some(b) => Some(
-                            b.get("common")
-                                .and_then(Value::as_i64)
-                                .ok_or_else(|| r.bad(&format!("{name}, {label}: `before` is not {{ common = n }}")))?
-                                as i32,
-                        ),
+                        Some(b) => {
+                            Some(b.get("common").and_then(Value::as_i64).ok_or_else(|| {
+                                r.bad(&format!(
+                                    "{name}, {label}: `before` is not {{ common = n }}"
+                                ))
+                            })? as i32)
+                        }
                     };
                     let body = if let Some(table) = r.text(p, "table")? {
                         if !tables.contains_key(&table) {
-                            return Err(r.bad(&format!("{name}, {label}: there is no table {table:?}")));
+                            return Err(
+                                r.bad(&format!("{name}, {label}: there is no table {table:?}"))
+                            );
                         }
                         Body::Table(table)
                     } else if p.get("counters").is_some() {
@@ -593,10 +617,14 @@ impl Menu {
                             let cap = match c.get(2) {
                                 None => Cap::None,
                                 Some(Value::Number(n)) => Cap::Fixed(n.as_i64().unwrap_or(0)),
-                                Some(Value::String(s)) if s.starts_with('v') => Cap::Variable(
-                                    s[1..].parse().map_err(|_| r.bad(&format!("{name}, {label}: cap {s:?}")))?,
-                                ),
-                                Some(other) => return Err(r.bad(&format!("{name}, {label}: cap {other}"))),
+                                Some(Value::String(s)) if s.starts_with('v') => {
+                                    Cap::Variable(s[1..].parse().map_err(|_| {
+                                        r.bad(&format!("{name}, {label}: cap {s:?}"))
+                                    })?)
+                                }
+                                Some(other) => {
+                                    return Err(r.bad(&format!("{name}, {label}: cap {other}")))
+                                }
                             };
                             counters.push((
                                 c[0].as_str().unwrap_or("").to_string(),
@@ -609,12 +637,20 @@ impl Menu {
                         Body::Text
                     };
                     let lines = text_lines(game, &r, p, CM_TEXT_WIDTH)?;
-                    pages.push(Page { when: r.cond(p.get("when"))?, before, body, lines });
+                    pages.push(Page {
+                        when: r.cond(p.get("when"))?,
+                        before,
+                        body,
+                        lines,
+                    });
                 }
                 tabs.push(Tab { label, help, pages });
             }
             if tabs.len() > CM_TABS_MAX {
-                return Err(r.bad(&format!("{name} has {} tabs and {CM_TABS_MAX} fit", tabs.len())));
+                return Err(r.bad(&format!(
+                    "{name} has {} tabs and {CM_TABS_MAX} fit",
+                    tabs.len()
+                )));
             }
             if tabs.is_empty() {
                 return Err(r.bad(&format!("{name} has no tab")));
@@ -710,7 +746,10 @@ impl Menu {
 
 /// What a request carries of each menu: its name and its file, as JSON.
 pub fn read_all(game: &Game, menus: &[(String, Value)]) -> Result<Vec<Menu>> {
-    menus.iter().map(|(name, spec)| Menu::read(game, name, spec)).collect()
+    menus
+        .iter()
+        .map(|(name, spec)| Menu::read(game, name, spec))
+        .collect()
 }
 
 // --- writing it down ----------------------------------------------------------
@@ -761,7 +800,9 @@ struct Inks {
 
 impl Inks {
     fn new() -> Inks {
-        Inks { of: BASE_INKS.iter().copied().collect() }
+        Inks {
+            of: BASE_INKS.iter().copied().collect(),
+        }
     }
 
     fn get(&mut self, color: i32) -> Result<u8> {
@@ -782,7 +823,10 @@ impl Inks {
     fn extra(&self) -> Vec<i32> {
         let mut by: Vec<(u8, i32)> = self.of.iter().map(|(c, k)| (*k, *c)).collect();
         by.sort();
-        by.into_iter().filter(|(k, _)| *k as usize >= CM_INKS_FIRST).map(|(_, c)| c).collect()
+        by.into_iter()
+            .filter(|(k, _)| *k as usize >= CM_INKS_FIRST)
+            .map(|(_, c)| c)
+            .collect()
     }
 }
 
@@ -849,14 +893,21 @@ impl Writer<'_> {
                 }
             }
             if bytes.len() > 255 {
-                return Err(Bad::answer("a line of a custom menu is longer than 255 bytes"));
+                return Err(Bad::answer(
+                    "a line of a custom menu is longer than 255 bytes",
+                ));
             }
             encoded.push((row0 + 2 * k, line.col, ink, escaped, bytes));
         }
         let at = self.blob.at();
         self.blob.bytes.push(encoded.len() as u8);
         for (row, col, ink, escaped, bytes) in encoded {
-            self.blob.bytes.extend([row as u8, col as u8, ink, if escaped { LINE_ESCAPED } else { LINE_PLAIN }]);
+            self.blob.bytes.extend([
+                row as u8,
+                col as u8,
+                ink,
+                if escaped { LINE_ESCAPED } else { LINE_PLAIN },
+            ]);
             self.blob.bytes.push(bytes.len() as u8);
             self.blob.bytes.extend(bytes);
         }
@@ -872,7 +923,11 @@ impl Writer<'_> {
     }
 
     fn plain(&self, text: &str, color: i32, col: usize) -> Line {
-        Line { col, color, pieces: vec![Piece::Text(text.to_string())] }
+        Line {
+            col,
+            color,
+            pieces: vec![Piece::Text(text.to_string())],
+        }
     }
 }
 
@@ -932,14 +987,21 @@ fn layout_screen(skin: &Skin, rects: &[Rect], tabs: bool) -> Screen {
         }
         if let Some(t) = bar {
             let y = (CM_TAB_ROW0 + 2 * t) * CELL;
-            cells::paste(&mut out, &skin.cursor(CM_BAR_WIDTH, 2 * CELL), CM_BAR_X as i64, y as i64);
+            cells::paste(
+                &mut out,
+                &skin.cursor(CM_BAR_WIDTH, 2 * CELL),
+                CM_BAR_X as i64,
+                y as i64,
+            );
         }
         out
     };
     Screen {
         background: draw(None),
         bars: if tabs {
-            (0..CM_TABS_MAX).map(|t| (draw(Some(t)), CM_TAB_ROW0 + 2 * t, 2)).collect()
+            (0..CM_TABS_MAX)
+                .map(|t| (draw(Some(t)), CM_TAB_ROW0 + 2 * t, 2))
+                .collect()
         } else {
             Vec::new()
         },
@@ -983,9 +1045,15 @@ fn portrait(game: &Game, name: &str, crop: [usize; 4]) -> Result<(Vec<Indices>, 
         let mut palette = merged.mapping.clone();
         palette.sort();
         palette.dedup();
-        (palette, counts.iter().map(|(c, _)| *c).zip(merged.mapping).collect())
+        (
+            palette,
+            counts.iter().map(|(c, _)| *c).zip(merged.mapping).collect(),
+        )
     } else {
-        (used.by_use(), counts.iter().map(|(c, _)| (*c, *c)).collect())
+        (
+            used.by_use(),
+            counts.iter().map(|(c, _)| (*c, *c)).collect(),
+        )
     };
     let mut colors = vec![BLACK];
     colors.extend(palette);
@@ -994,7 +1062,10 @@ fn portrait(game: &Game, name: &str, crop: [usize; 4]) -> Result<(Vec<Indices>, 
             return 0;
         }
         let target = mapping[&c];
-        colors.iter().position(|p| *p == target).expect("in the palette") as u8
+        colors
+            .iter()
+            .position(|p| *p == target)
+            .expect("in the palette") as u8
     };
     let mut tiles = Vec::new();
     for ty in 0..CM_PORTRAIT_ROWS {
@@ -1014,7 +1085,12 @@ fn portrait(game: &Game, name: &str, crop: [usize; 4]) -> Result<(Vec<Indices>, 
 
 /// The cartridge's custom menus, written down.
 pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Result<Built> {
-    let mut w = Writer { ctx, blob: Blob::default(), inks: Inks::new(), strings: HashMap::new() };
+    let mut w = Writer {
+        ctx,
+        blob: Blob::default(),
+        inks: Inks::new(),
+        strings: HashMap::new(),
+    };
     let mut layouts: Vec<Vec<Rect>> = vec![vec![
         CM_HEADER,
         CM_PORTRAIT_WINDOW,
@@ -1062,9 +1138,17 @@ pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Resul
             w.blob.bytes.push(2);
             for line in &heading {
                 let ink = w.inks.get(line.color)?;
-                let Piece::Text(t) = &line.pieces[0] else { unreachable!() };
+                let Piece::Text(t) = &line.pieces[0] else {
+                    unreachable!()
+                };
                 let l = letters(t);
-                w.blob.bytes.extend([first_row(CM_BODY_Y) as u8, line.col as u8, ink, LINE_PLAIN, l.len() as u8]);
+                w.blob.bytes.extend([
+                    first_row(CM_BODY_Y) as u8,
+                    line.col as u8,
+                    ink,
+                    LINE_PLAIN,
+                    l.len() as u8,
+                ]);
                 w.blob.bytes.extend(l);
             }
             let mut special = Vec::new();
@@ -1083,10 +1167,22 @@ pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Resul
                 let name_col = CM_TEXT_COL + (SCR_TEXT_X + game.font.width(&prefix)).div_ceil(CELL);
                 let header_at = w.blob.at();
                 w.blob.bytes.push(2);
-                w.blob.bytes.extend([CM_HEADER_ROW as u8, CM_TEXT_COL as u8, 0, LINE_PLAIN, lead.len() as u8]);
+                w.blob.bytes.extend([
+                    CM_HEADER_ROW as u8,
+                    CM_TEXT_COL as u8,
+                    0,
+                    LINE_PLAIN,
+                    lead.len() as u8,
+                ]);
                 w.blob.bytes.extend(&lead);
                 let title = letters(&sheet.title);
-                w.blob.bytes.extend([CM_HEADER_ROW as u8, name_col as u8, ink, LINE_PLAIN, title.len() as u8]);
+                w.blob.bytes.extend([
+                    CM_HEADER_ROW as u8,
+                    name_col as u8,
+                    ink,
+                    LINE_PLAIN,
+                    title.len() as u8,
+                ]);
                 w.blob.bytes.extend(&title);
                 let mut rows = Vec::new();
                 for (name, variable, cap) in &sheet.rows {
@@ -1126,15 +1222,25 @@ pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Resul
             let mut tabs = Vec::new();
             for tab in &subject.tabs {
                 let label = w.string(&tab.label)?;
-                let help = if tab.help.is_empty() { 0 } else { w.lines(&tab.help, CM_HELP_ROW0)? };
+                let help = if tab.help.is_empty() {
+                    0
+                } else {
+                    w.lines(&tab.help, CM_HELP_ROW0)?
+                };
                 let mut pages = Vec::new();
                 for page in &tab.pages {
-                    let header = w.plain(&format!("{} - {}", subject.name, tab.label), 0, CM_TEXT_COL);
+                    let header =
+                        w.plain(&format!("{} - {}", subject.name, tab.label), 0, CM_TEXT_COL);
                     let header = w.lines(&[header], CM_HEADER_ROW)?;
                     let (kind, rows_on_top, extra) = match &page.body {
                         Body::Text => (PAGE_TEXT, None, 0),
                         Body::Table(key) => {
-                            let rows = menu.tables[key].sheets.iter().map(|s| s.rows.len()).max().unwrap_or(0);
+                            let rows = menu.tables[key]
+                                .sheets
+                                .iter()
+                                .map(|s| s.rows.len())
+                                .max()
+                                .unwrap_or(0);
                             (PAGE_TABLE, Some(rows + 1), table_at[key])
                         }
                         Body::Counters(counters) => {
@@ -1159,7 +1265,11 @@ pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Resul
                         None => CM_BODY_Y,
                         Some(rows) => CM_BODY_Y + 16 + 16 * rows,
                     };
-                    let visible = if body_y >= HEIGHT { 0 } else { lines_in(body_y) };
+                    let visible = if body_y >= HEIGHT {
+                        0
+                    } else {
+                        lines_in(body_y)
+                    };
                     if page.lines.len() > visible && kind != PAGE_TEXT {
                         return Err(Bad::answer(format!(
                             "menu {:?}, {}, {}: the text under the {} takes {} lines and {visible} fit",
@@ -1212,7 +1322,11 @@ pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Resul
                 },
             };
             let name = w.string(&subject.name)?;
-            let class = if subject.class.is_empty() { 0 } else { w.string(&subject.class)? };
+            let class = if subject.class.is_empty() {
+                0
+            } else {
+                w.string(&subject.class)?
+            };
             let at = w.blob.at();
             match subject.actor {
                 Some(a) => w.cond(&Cond::Actor(a))?,
@@ -1300,10 +1414,34 @@ pub fn publish() -> Value {
         };
     }
     put!(
-        CM_HEADER_ROW, CM_TEXT_COL, CM_INDEX_COL, CM_PORTRAIT_X, CM_PORTRAIT_Y, CM_PORTRAIT_COLS,
-        CM_PORTRAIT_ROWS, CM_INFO_COL, CM_NAME_ROW, CM_CLASS_ROW, CM_LEVEL_ROW, CM_LEVEL_NUM_COL,
-        CM_TAB_COL, CM_TAB_ROW0, CM_TABS_MAX, CM_HELP_ROW0, CM_VALUE_COL, CM_SLASH_COL, CM_CAP_COL,
-        CM_COUNTER_COL, CM_BODY_ROW0, CM_TABLE_ROW0, CM_WHITE, CM_GRAY, CM_RED, CM_INKS_FIRST, CM_BORDER_CGRAM, CM_LAYOUT_SUBJECTS,
+        CM_HEADER_ROW,
+        CM_TEXT_COL,
+        CM_INDEX_COL,
+        CM_PORTRAIT_X,
+        CM_PORTRAIT_Y,
+        CM_PORTRAIT_COLS,
+        CM_PORTRAIT_ROWS,
+        CM_INFO_COL,
+        CM_NAME_ROW,
+        CM_CLASS_ROW,
+        CM_LEVEL_ROW,
+        CM_LEVEL_NUM_COL,
+        CM_TAB_COL,
+        CM_TAB_ROW0,
+        CM_TABS_MAX,
+        CM_HELP_ROW0,
+        CM_VALUE_COL,
+        CM_SLASH_COL,
+        CM_CAP_COL,
+        CM_COUNTER_COL,
+        CM_BODY_ROW0,
+        CM_TABLE_ROW0,
+        CM_WHITE,
+        CM_GRAY,
+        CM_RED,
+        CM_INKS_FIRST,
+        CM_BORDER_CGRAM,
+        CM_LAYOUT_SUBJECTS,
     );
     Value::Object(m)
 }
@@ -1334,7 +1472,10 @@ mod tests {
     #[test]
     fn a_page_without_a_body_window_on_top_takes_the_whole_screen() {
         assert_eq!(page_windows(None, true), vec![CM_HEADER, (0, 32, 256, 192)]);
-        assert_eq!(page_windows(Some(9), false), vec![CM_HEADER, (0, 32, 256, 192)]);
+        assert_eq!(
+            page_windows(Some(9), false),
+            vec![CM_HEADER, (0, 32, 256, 192)]
+        );
         assert_eq!(lines_in(CM_BODY_Y), 11);
         assert_eq!(first_row(CM_BODY_Y), 5);
     }

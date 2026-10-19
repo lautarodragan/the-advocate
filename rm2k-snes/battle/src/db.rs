@@ -92,7 +92,10 @@ impl Db {
             enemies: by_id(enemies, |e| e.id),
             troops: by_id(troops, |t| t.id),
             states: by_id(dump.section("states").map_err(answer)?, |s: &State| s.id),
-            attributes: by_id(dump.section("attributes").map_err(answer)?, |a: &Attribute| a.id),
+            attributes: by_id(
+                dump.section("attributes").map_err(answer)?,
+                |a: &Attribute| a.id,
+            ),
             terms: dump.section("terms").map_err(answer)?,
         })
     }

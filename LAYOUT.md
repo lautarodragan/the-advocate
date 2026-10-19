@@ -261,8 +261,8 @@ the core with; a fix to one goes to the other.
 ## CI
 
     .github/workflows/ci.yml
-                 what GitHub Actions runs on every push to `main`: the Rust
-                 workspace and its tests, `just test`, and the test game
+                 what GitHub Actions runs on every push to `main`: rustfmt
+                 and clippy, the Rust workspace and its tests, `just test`, and the test game
                  with the tools installed from the commit, in both cores,
                  Goombario over its cartridge among its tests
     requirements.txt

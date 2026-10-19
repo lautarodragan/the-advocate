@@ -101,7 +101,8 @@ unsafe extern "C" fn on_environment(cmd: c_uint, data: *mut c_void) -> bool {
                     // "Description; one|two|three": the default is the first.
                     let after = text.split_once(';').map_or(&*text, |(_, rest)| rest);
                     let default = after.trim().split('|').next().unwrap_or("").trim();
-                    s.options.insert(key, CString::new(default).unwrap_or_default());
+                    s.options
+                        .insert(key, CString::new(default).unwrap_or_default());
                     v = v.add(1);
                 }
             });
@@ -154,7 +155,12 @@ unsafe extern "C" fn on_audio_batch(data: *const i16, frames: usize) -> usize {
 
 unsafe extern "C" fn on_input_poll() {}
 
-unsafe extern "C" fn on_input_state(_port: c_uint, _device: c_uint, _index: c_uint, _id: c_uint) -> i16 {
+unsafe extern "C" fn on_input_state(
+    _port: c_uint,
+    _device: c_uint,
+    _index: c_uint,
+    _id: c_uint,
+) -> i16 {
     0
 }
 
@@ -194,27 +200,42 @@ impl Console {
         {
             let mut guard = STATE.lock().unwrap_or_else(|e| e.into_inner());
             if guard.is_some() {
-                return Err(Bad::usage("one console per process: a core's state is global".to_string()));
+                return Err(Bad::usage(
+                    "one console per process: a core's state is global".to_string(),
+                ));
             }
-            *guard = Some(State { options: HashMap::new(), directory: c(directory), audio: Vec::new() });
+            *guard = Some(State {
+                options: HashMap::new(),
+                directory: c(directory),
+                audio: Vec::new(),
+            });
         }
         let path = c(rom);
         let core_c = c(core);
         unsafe {
             let lib = libc::dlopen(core_c.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL);
             if lib.is_null() {
-                let why = CStr::from_ptr(libc::dlerror()).to_string_lossy().into_owned();
-                return Err(Bad::usage(format!("cannot load the core {}: {why}", core.display())));
+                let why = CStr::from_ptr(libc::dlerror())
+                    .to_string_lossy()
+                    .into_owned();
+                return Err(Bad::usage(format!(
+                    "cannot load the core {}: {why}",
+                    core.display()
+                )));
             }
-            let get_system_info: unsafe extern "C" fn(*mut SystemInfo) = symbol(lib, "retro_get_system_info")?;
-            let set_environment: unsafe extern "C" fn(EnvironmentFn) = symbol(lib, "retro_set_environment")?;
+            let get_system_info: unsafe extern "C" fn(*mut SystemInfo) =
+                symbol(lib, "retro_get_system_info")?;
+            let set_environment: unsafe extern "C" fn(EnvironmentFn) =
+                symbol(lib, "retro_set_environment")?;
             let init: unsafe extern "C" fn() = symbol(lib, "retro_init")?;
             let set_video: unsafe extern "C" fn(VideoFn) = symbol(lib, "retro_set_video_refresh")?;
             let set_sample: unsafe extern "C" fn(SampleFn) = symbol(lib, "retro_set_audio_sample")?;
-            let set_batch: unsafe extern "C" fn(BatchFn) = symbol(lib, "retro_set_audio_sample_batch")?;
+            let set_batch: unsafe extern "C" fn(BatchFn) =
+                symbol(lib, "retro_set_audio_sample_batch")?;
             let set_poll: unsafe extern "C" fn(PollFn) = symbol(lib, "retro_set_input_poll")?;
             let set_state: unsafe extern "C" fn(StateFn) = symbol(lib, "retro_set_input_state")?;
-            let load_game: unsafe extern "C" fn(*const GameInfo) -> bool = symbol(lib, "retro_load_game")?;
+            let load_game: unsafe extern "C" fn(*const GameInfo) -> bool =
+                symbol(lib, "retro_load_game")?;
 
             let mut info: SystemInfo = std::mem::zeroed();
             get_system_info(&mut info);
@@ -233,7 +254,11 @@ impl Console {
 
             let game = GameInfo {
                 path: path.as_ptr(),
-                data: if wants_path { std::ptr::null() } else { data.as_ptr() as *const c_void },
+                data: if wants_path {
+                    std::ptr::null()
+                } else {
+                    data.as_ptr() as *const c_void
+                },
                 size: data.len(),
                 meta: std::ptr::null(),
             };
@@ -253,7 +278,10 @@ impl Console {
             libc::close(devnull);
             libc::close(saved);
             if !loaded {
-                return Err(Bad::usage(format!("the core could not load {}", rom.display())));
+                return Err(Bad::usage(format!(
+                    "the core could not load {}",
+                    rom.display()
+                )));
             }
             Ok(Console {
                 run: symbol(lib, "retro_run")?,

@@ -26,10 +26,15 @@ use std::path::PathBuf;
 pub const QUERIES: [&str; 5] = ["scan", "compile", "leaders", "map-context", "boxes"];
 
 fn common(c: clap::Command) -> clap::Command {
-    let mut c = c.arg(Arg::new("project").long("project").value_name("DIRECTORY").help(
-        "the game's directory, where its rm2k-snes.toml is; without this, it is looked for \
+    let mut c = c.arg(
+        Arg::new("project")
+            .long("project")
+            .value_name("DIRECTORY")
+            .help(
+            "the game's directory, where its rm2k-snes.toml is; without this, it is looked for \
          from the current directory upwards",
-    ));
+        ),
+    );
     for arg in environment::arguments(crate::options::MACHINE) {
         c = c.arg(arg);
     }
@@ -57,7 +62,12 @@ fn command() -> clap::Command {
                      with --maps and no number, none —the indices are the whole game's anyway—",
                 )
                 .arg(maps_arg(false))
-                .arg(Arg::new("test_commands").long("test-commands").value_name("FILE").action(ArgAction::Append))
+                .arg(
+                    Arg::new("test_commands")
+                        .long("test-commands")
+                        .value_name("FILE")
+                        .action(ArgAction::Append),
+                )
                 .arg(
                     Arg::new("extra_variable")
                         .long("extra-variable")
@@ -109,19 +119,23 @@ fn command() -> clap::Command {
                      dump, the directories pictures are looked for in, the project's files and \
                      the names it gives the map's graphics",
                 )
-                .arg(Arg::new("map").long("map").required(true).value_parser(value_parser!(i32))),
-        )
-        .subcommand(
-            common(clap::Command::new("boxes"))
-                .about(
-                    "The text boxes the converter hands the event compiler, rebuilt for the \
-                     window, and the window they were rebuilt for",
+                .arg(
+                    Arg::new("map")
+                        .long("map")
+                        .required(true)
+                        .value_parser(value_parser!(i32)),
                 ),
         )
+        .subcommand(common(clap::Command::new("boxes")).about(
+            "The text boxes the converter hands the event compiler, rebuilt for the \
+                     window, and the window they were rebuilt for",
+        ))
 }
 
 fn ints(m: &ArgMatches, id: &str) -> Vec<i32> {
-    m.get_many::<i32>(id).map(|v| v.copied().collect()).unwrap_or_default()
+    m.get_many::<i32>(id)
+        .map(|v| v.copied().collect())
+        .unwrap_or_default()
 }
 
 fn commands_of(file: &str) -> Result<Vec<Command>> {
@@ -171,7 +185,8 @@ pub fn run(argv: Vec<String>) -> Result<()> {
             let compiler = Compiler::new(&game, &settings)?;
             let maps = ints(m, "maps");
             let scan = compiler.scan(&maps, &[], &BTreeSet::new(), None, &[])?;
-            let read: Vec<crate::game::GameMap> = maps.iter().map(|id| game.map(*id)).collect::<Result<_>>()?;
+            let read: Vec<crate::game::GameMap> =
+                maps.iter().map(|id| game.map(*id)).collect::<Result<_>>()?;
             let refs: Vec<&crate::game::GameMap> = read.iter().collect();
             let changes = crate::scan::party_changes(&refs, &scan)?;
             json!(crate::scan::possible_leaders(&changes, &ints(m, "party")))
@@ -196,6 +211,9 @@ pub fn run(argv: Vec<String>) -> Result<()> {
         }
         other => return Err(Stop::usage(format!("{other} is not a question"))),
     };
-    println!("{}", serde_json::to_string(&answer).expect("an answer is JSON"));
+    println!(
+        "{}",
+        serde_json::to_string(&answer).expect("an answer is JSON")
+    );
     Ok(())
 }

@@ -167,7 +167,9 @@ pub fn build(
     rate: i64,
     whole: &BTreeMap<String, i64>,
 ) -> Result<Option<SoundEffect>> {
-    let Some((raw, source)) = wav else { return Ok(None) };
+    let Some((raw, source)) = wav else {
+        return Ok(None);
+    };
     if raw.is_empty() {
         return Ok(None);
     }
@@ -179,7 +181,8 @@ pub fn build(
         rate = r;
         keep = raw.len();
     }
-    let out = ((num::round((keep as i64 * rate) as f64 / source as f64) / BLOCK as i64) * BLOCK as i64)
+    let out = ((num::round((keep as i64 * rate) as f64 / source as f64) / BLOCK as i64)
+        * BLOCK as i64)
         .max(BLOCK as i64) as usize;
     let audio = samples::normalize(&samples::resample(&raw[..keep], out, false, &[]));
     let mut loop_block = None;
@@ -238,7 +241,8 @@ const RATES: [i64; 20] = [
 /// it.
 fn msu_size(length: usize, source_rate: i64, rate: i64) -> i64 {
     let rate = rate.min(source_rate);
-    let count = ((num::round((length as i64 * rate) as f64 / source_rate as f64) / 16) * 16).max(16);
+    let count =
+        ((num::round((length as i64 * rate) as f64 / source_rate as f64) / 16) * 16).max(16);
     count / 16 * BLOCK_BYTES as i64
 }
 
@@ -275,7 +279,11 @@ pub struct MsuSource {
 
 impl MsuSource {
     pub fn new(wav: &(Vec<i64>, i64)) -> MsuSource {
-        MsuSource { length: wav.0.len(), rate: wav.1, audible: Audible::new(&wav.0, wav.1) }
+        MsuSource {
+            length: wav.0.len(),
+            rate: wav.1,
+            audible: Audible::new(&wav.0, wav.1),
+        }
     }
 
     fn size(&self, rate: i64) -> i64 {
@@ -320,7 +328,11 @@ pub fn rates_per_package(
             continue;
         }
         let room = free - margin - p.music_bytes;
-        let bottom = || own.iter().map(|e| RATES[RATES.len() - 1].max(floor(effects, e))).collect();
+        let bottom = || {
+            own.iter()
+                .map(|e| RATES[RATES.len() - 1].max(floor(effects, e)))
+                .collect()
+        };
         let rates = fit(&own, effects, sources, room).unwrap_or_else(|| {
             println!(
                 "  high-quality sound effects: package {} does not fit even at {} Hz; the \
@@ -330,7 +342,10 @@ pub fn rates_per_package(
             );
             bottom()
         });
-        out.push((p.name.clone(), own.iter().map(|e| e.to_string()).zip(rates).collect()));
+        out.push((
+            p.name.clone(),
+            own.iter().map(|e| e.to_string()).zip(rates).collect(),
+        ));
     }
     out
 }
@@ -382,7 +397,12 @@ fn fit(
     // WAV has, so that a step down is always a lower rate.
     let rate = |i: usize, step: usize| RATES[step].max(floors[i]);
     let top: Vec<usize> = (0..own.len())
-        .map(|i| RATES.iter().position(|&r| r <= source(i).rate).unwrap_or(RATES.len() - 1))
+        .map(|i| {
+            RATES
+                .iter()
+                .position(|&r| r <= source(i).rate)
+                .unwrap_or(RATES.len() - 1)
+        })
         .collect();
     let mut steps = top.clone();
     let size = |i: usize, step: usize| source(i).size(rate(i, step));
@@ -455,7 +475,10 @@ mod tests {
     fn eight_bits_are_unsigned_and_stereo_is_averaged_down() {
         let (raw, rate) = read_wav_bytes(&wav(1, 8, &[128, 255, 0])).unwrap();
         assert_eq!((raw, rate), (vec![0, 127 << 8, -128 << 8], 22050));
-        let data: Vec<u8> = [100i16, -101, 7, 8].iter().flat_map(|s| s.to_le_bytes()).collect();
+        let data: Vec<u8> = [100i16, -101, 7, 8]
+            .iter()
+            .flat_map(|s| s.to_le_bytes())
+            .collect();
         let (raw, _) = read_wav_bytes(&wav(2, 16, &data)).unwrap();
         // -1 // 2 floors to -1.
         assert_eq!(raw, [-1, 7]);
@@ -471,20 +494,43 @@ mod tests {
 
     fn tone(hz: f64, seconds: f64) -> (Vec<i64>, i64) {
         let n = (22050.0 * seconds) as usize;
-        ((0..n).map(|i| (8000.0 * (2.0 * std::f64::consts::PI * hz * i as f64 / 22050.0).sin()) as i64).collect(), 22050)
+        (
+            (0..n)
+                .map(|i| {
+                    (8000.0 * (2.0 * std::f64::consts::PI * hz * i as f64 / 22050.0).sin()) as i64
+                })
+                .collect(),
+            22050,
+        )
     }
 
     fn rates_of(wavs: &[(&str, (Vec<i64>, i64))], floor: i64, room: i64) -> Vec<(String, i64)> {
         let effects: BTreeMap<String, SoundEffect> = wavs
             .iter()
             .map(|(n, _)| {
-                let e = SoundEffect { name: n.to_string(), data: vec![], rate: floor, loop_block: 0, repeats: floor == 0, seconds: 1.0 };
+                let e = SoundEffect {
+                    name: n.to_string(),
+                    data: vec![],
+                    rate: floor,
+                    loop_block: 0,
+                    repeats: floor == 0,
+                    seconds: 1.0,
+                };
                 (n.to_string(), e)
             })
             .collect();
-        let sources = wavs.iter().map(|(n, w)| (n.to_string(), MsuSource::new(w))).collect();
-        let package = MsuPackage { name: "p".into(), effects: wavs.iter().map(|(n, _)| n.to_string()).collect(), music_bytes: 0 };
-        rates_per_package(&[package], &effects, &sources, room, 0).remove(0).1
+        let sources = wavs
+            .iter()
+            .map(|(n, w)| (n.to_string(), MsuSource::new(w)))
+            .collect();
+        let package = MsuPackage {
+            name: "p".into(),
+            effects: wavs.iter().map(|(n, _)| n.to_string()).collect(),
+            music_bytes: 0,
+        };
+        rates_per_package(&[package], &effects, &sources, room, 0)
+            .remove(0)
+            .1
     }
 
     #[test]
@@ -495,14 +541,20 @@ mod tests {
         // rumble after it. Lowering the heaviest first would have taken the
         // tone to 14,000, where it is gone.
         let wavs = [("crack", tone(7000.0, 2.0)), ("rumble", tone(60.0, 1.0))];
-        assert_eq!(rates_of(&wavs, 0, 30000), [("crack".into(), 16000), ("rumble".into(), 20000)]);
+        assert_eq!(
+            rates_of(&wavs, 0, 30000),
+            [("crack".into(), 16000), ("rumble".into(), 20000)]
+        );
     }
 
     #[test]
     fn what_is_left_over_goes_back_only_if_it_is_heard() {
         // Everything fits at the top: nothing goes down.
         let wavs = [("a", tone(440.0, 0.2)), ("b", tone(880.0, 0.2))];
-        assert_eq!(rates_of(&wavs, 0, 100_000), [("a".into(), 22050), ("b".into(), 22050)]);
+        assert_eq!(
+            rates_of(&wavs, 0, 100_000),
+            [("a".into(), 22050), ("b".into(), 22050)]
+        );
         // A floor of the cartridge's is kept even if the rest does not fit.
         let wavs = [("a", tone(440.0, 2.0))];
         assert_eq!(rates_of(&wavs, 6000, 10), [("a".into(), 6000)]);

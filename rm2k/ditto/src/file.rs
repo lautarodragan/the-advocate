@@ -9,6 +9,11 @@ use crate::lcf::*;
 use crate::schema::*;
 use serde::{Deserialize, Serialize};
 
+// The database is much bigger than a map or the tree, and clippy would box
+// it; but a document is read or written one at a time, so there is no array
+// of them for the size to waste, and boxing would only add a `*` to every
+// match on it here and in whoever reads one.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "format")]
 pub enum Document {

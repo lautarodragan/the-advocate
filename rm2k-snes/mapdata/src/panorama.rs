@@ -150,7 +150,8 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         format!("PANO_STRIDE = {PANO_STRIDE}"),
     ];
     let mut records = Vec::new();
-    let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> = std::collections::HashMap::new();
+    let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> =
+        std::collections::HashMap::new();
     for (number, map) in maps.iter().enumerate() {
         let Some(p) = &map.panorama else { continue };
         // A painted map has its own table: see `paint_table`.
@@ -159,7 +160,10 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         }
         let layout = crate::record::layout_of(map)?;
         let pieces = layout.panorama.ok_or_else(|| {
-            Bad::answer(format!("map {}: it shows a panorama and its layout {} has none", map.id, layout.name))
+            Bad::answer(format!(
+                "map {}: it shows a panorama and its layout {} has none",
+                map.id, layout.name
+            ))
         })?;
         if pieces.mode != p.mode {
             return Err(Bad::answer(format!(
@@ -213,7 +217,11 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
                 )));
             }
             // The tilemap with its tile numbers where the tiles land.
-            let base = if p.mode == 3 { layout.above.base } else { pieces.tiles[0].base };
+            let base = if p.mode == 3 {
+                layout.above.base
+            } else {
+                pieces.tiles[0].base
+            };
             let mut cells = Vec::new();
             for row in &pic.tilemap {
                 for &entry in row {
@@ -230,16 +238,35 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
             // moves with the camera.
             let (num_x, den_x) = proportion(map.size[0], RM2K_W, pic.size[0]);
             let (num_y, den_y) = proportion(map.size[1], RM2K_H, pic.size[1]);
-            let flags = u8::from(pic.looped[0]) | (u8::from(pic.looped[1]) << 1) | (u8::from(p.above_bg1) << 2);
-            let words = |v: &[i64]| v.iter().map(|w| format!("${:04X}", w & 0xFFFF)).collect::<Vec<_>>().join(", ");
+            let flags = u8::from(pic.looped[0])
+                | (u8::from(pic.looped[1]) << 1)
+                | (u8::from(p.above_bg1) << 2);
+            let words = |v: &[i64]| {
+                v.iter()
+                    .map(|w| format!("${:04X}", w & 0xFFFF))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
             let mut r = String::new();
-            let _ = writeln!(r, "    ; --- map {} {:?}: {} in mode {} ---", map.id, map.name, pic.name, p.mode);
+            let _ = writeln!(
+                r,
+                "    ; --- map {} {:?}: {} in mode {} ---",
+                map.id, map.name, pic.name, p.mode
+            );
             let _ = writeln!(r, "    .word {number}");
             let _ = writeln!(r, "    .byte {}, {flags}", p.mode);
-            let _ = writeln!(r, "    .word {}", words(&[auto_step(pic.auto[0]), auto_step(pic.auto[1])]));
+            let _ = writeln!(
+                r,
+                "    .word {}",
+                words(&[auto_step(pic.auto[0]), auto_step(pic.auto[1])])
+            );
             let _ = writeln!(r, "    .word {}", words(&[pic.stretch[0], pic.stretch[1]]));
             let _ = writeln!(r, "    .word {}", words(&[num_x, num_y, den_x, den_y]));
-            let _ = writeln!(r, "    .word {}", words(&[lcm(512, pic.stretch[0]), lcm(256, pic.stretch[1])]));
+            let _ = writeln!(
+                r,
+                "    .word {}",
+                words(&[lcm(512, pic.stretch[0]), lcm(256, pic.stretch[1])])
+            );
             let _ = writeln!(r, "    .word {}", words(&[cols, rows]));
             // Two maps that converted the same panorama the same way —the two
             // missile maps of A Blurred Line— share its tiles and tilemap.
@@ -247,17 +274,23 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
                 if let Some(label) = emitted.get(&(kind.to_string(), bytes.clone())) {
                     return label.clone();
                 }
-                let label = if k == 0 { format!("pano_{kind}_{number}") } else { format!("pano_{kind}_{number}_{k}") };
+                let label = if k == 0 {
+                    format!("pano_{kind}_{number}")
+                } else {
+                    format!("pano_{kind}_{number}_{k}")
+                };
                 out.push(msu_block(&label, &bytes, msu && kind == "tiles"));
                 emitted.insert((kind.to_string(), bytes), label.clone());
                 label
             };
             let map_label = shared("map", cells);
             let tiles_label = shared("tiles", pic.tiles.clone());
-            let palette_label = match pic.palette.filter(|_| swaps) {
-                Some((_, words)) => Some(shared("colors", words.iter().flat_map(|w| w.to_le_bytes()).collect())),
-                None => None,
-            };
+            let palette_label = pic.palette.filter(|_| swaps).map(|(_, words)| {
+                shared(
+                    "colors",
+                    words.iter().flat_map(|w| w.to_le_bytes()).collect(),
+                )
+            });
             let _ = writeln!(r, "    .byte {}, 0", pointer(&map_label));
             let _ = writeln!(r, "    .byte {}, 0", pointer(&tiles_label));
             let _ = writeln!(
@@ -278,10 +311,16 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
             let _ = writeln!(
                 r,
                 "    .word {}",
-                words(&[(map.size[0] * 16 - RM2K_W).max(0), (map.size[1] * 16 - RM2K_H).max(0)])
+                words(&[
+                    (map.size[0] * 16 - RM2K_W).max(0),
+                    (map.size[1] * 16 - RM2K_H).max(0)
+                ])
             );
             if swaps {
-                let (entry, colors) = pic.palette.filter(|_| palette_label.is_some()).map_or((0, 0), |(e, w)| (e, w.len()));
+                let (entry, colors) = pic
+                    .palette
+                    .filter(|_| palette_label.is_some())
+                    .map_or((0, 0), |(e, w)| (e, w.len()));
                 match &palette_label {
                     Some(label) => {
                         let _ = writeln!(r, "    .byte {}", pointer(label));
@@ -338,15 +377,24 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
     ];
     let mut records = Vec::new();
     for (number, map) in maps.iter().enumerate() {
-        let Some(p) = map.panorama.as_ref().filter(|p| p.mode == 4) else { continue };
+        let Some(p) = map.panorama.as_ref().filter(|p| p.mode == 4) else {
+            continue;
+        };
         let layout = crate::record::layout_of(map)?;
         let pieces = layout.panorama.filter(|q| q.mode == 4).ok_or_else(|| {
-            Bad::answer(format!("map {}: it is painted and its layout {} is not for a painted map", map.id, layout.name))
+            Bad::answer(format!(
+                "map {}: it is painted and its layout {} is not for a painted map",
+                map.id, layout.name
+            ))
         })?;
         let rows = p.tilemap.len();
         let cols = p.tilemap.first().map_or(0, Vec::len);
         let column_bytes = rows * 32;
-        if rows == 0 || p.tiles.len() != cols * column_bytes || rows * cols > 0x10000 || column_bytes > 0x8000 {
+        if rows == 0
+            || p.tiles.len() != cols * column_bytes
+            || rows * cols > 0x10000
+            || column_bytes > 0x8000
+        {
             return Err(Bad::answer(format!(
                 "map {}: a painting of {cols}x{rows} cells with {} bytes of tiles",
                 map.id,
@@ -356,7 +404,8 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
         // The runtime keeps its queue at the end of the grid's bank, $7EFE00:
         // the grid and what lives behind it have to end before. See
         // `PAINT_Q` in `painted.s`.
-        let in_wram = map.grid().len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
+        let in_wram =
+            map.grid().len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
         if in_wram > 0x7E00 {
             return Err(Bad::answer(format!(
                 "map {}: it is painted and its grid takes {in_wram} bytes of WRAM, past the painted maps' queue",
@@ -389,11 +438,20 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
             out.push(format!("    .byte {c}"));
         }
         let mut r = String::new();
-        let _ = writeln!(r, "    ; --- map {} {:?}: {} painted ---", map.id, map.name, p.name);
+        let _ = writeln!(
+            r,
+            "    ; --- map {} {:?}: {} painted ---",
+            map.id, map.name, p.name
+        );
         let _ = writeln!(r, "    .word {number}, {cols}, {rows}");
         let _ = writeln!(r, "    .byte {}", pointer(&attrs_label));
         let _ = writeln!(r, "    .byte {}", pointer(&columns_label));
-        let _ = writeln!(r, "    .word ${:04X}, ${:04X}", pieces.tiles[0].base, vram::PAINTED_BLANK);
+        let _ = writeln!(
+            r,
+            "    .word ${:04X}, ${:04X}",
+            pieces.tiles[0].base,
+            vram::PAINTED_BLANK
+        );
         records.push(r);
     }
     out.push(format!(".block {}", PAINT_STRIDE * records.len() + 2));
@@ -432,7 +490,10 @@ mod tests {
     /// and the pictures `images` names besides it.
     fn with_panorama(images: &[&str], none_first: bool) -> Map {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
-        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        let mut map = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps
+            .remove(0);
         map.layout = vram::LAYOUT_PANORAMA_MODE3.name.to_string();
         let picture = |name: &str, colour: u16| {
             serde_json::json!({
@@ -445,7 +506,11 @@ mod tests {
         pano["mode"] = serde_json::json!(3);
         pano["loop"] = serde_json::json!([true, false]);
         pano["auto"] = serde_json::json!([2, 0]);
-        pano["images"] = images.iter().enumerate().map(|(k, n)| picture(n, k as u16 + 2)).collect();
+        pano["images"] = images
+            .iter()
+            .enumerate()
+            .map(|(k, n)| picture(n, k as u16 + 2))
+            .collect();
         pano["none_first"] = serde_json::json!(none_first);
         map.panorama = Some(serde_json::from_value(pano).unwrap());
         map
@@ -460,12 +525,24 @@ mod tests {
         let records = |out: &str| out.matches("    ; --- map ").count();
         let alone = panorama_table(&[with_panorama(&[], false)], false).unwrap();
         assert_eq!(records(&alone), 1);
-        assert!(alone.contains(&format!(".res {}", PANO_STRIDE - 54)), "{alone}");
+        assert!(
+            alone.contains(&format!(".res {}", PANO_STRIDE - 54)),
+            "{alone}"
+        );
         assert!(!alone.contains("pano_colors"), "{alone}");
         let two = panorama_table(&[with_panorama(&["other"], false)], false).unwrap();
         assert_eq!(records(&two), 2);
-        assert!(two.contains("pano_colors_0:") && two.contains("pano_colors_0_1:"), "{two}");
-        assert!(two.contains(&format!("    .byte 112\n    .word 16\n    .byte 2\n    .res {}", PANO_STRIDE - 61)), "{two}");
+        assert!(
+            two.contains("pano_colors_0:") && two.contains("pano_colors_0_1:"),
+            "{two}"
+        );
+        assert!(
+            two.contains(&format!(
+                "    .byte 112\n    .word 16\n    .byte 2\n    .res {}",
+                PANO_STRIDE - 61
+            )),
+            "{two}"
+        );
         assert!(two.contains(": other in mode 3 ---"), "{two}");
         let none = panorama_table(&[with_panorama(&["other"], true)], false).unwrap();
         assert_eq!(records(&none), 3);
@@ -473,7 +550,10 @@ mod tests {
         let first = &first[..first.find("    ; --- map 1 ").map_or(first.len(), |i| i)];
         // The empty one: mode 3, no loop; no scroll of its own; 8x8; no colours.
         assert!(first.contains(": no panorama in mode 3 ---\n    .word 0\n    .byte 3, 0\n    .word $0000, $0000\n    .word $0008, $0008"), "{first}");
-        assert!(first.contains("    .byte 0, 0, 0\n    .byte 0\n    .word 0\n    .byte 3\n"), "{first}");
+        assert!(
+            first.contains("    .byte 0, 0, 0\n    .byte 0\n    .word 0\n    .byte 3\n"),
+            "{first}"
+        );
     }
 
     #[test]

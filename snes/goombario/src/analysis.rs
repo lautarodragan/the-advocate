@@ -32,9 +32,14 @@ impl Check {
     }
 
     pub fn from_name(s: &str) -> Option<Check> {
-        [Check::PullBranch, Check::CallReturn, Check::Stack, Check::Width]
-            .into_iter()
-            .find(|c| c.name() == s)
+        [
+            Check::PullBranch,
+            Check::CallReturn,
+            Check::Stack,
+            Check::Width,
+        ]
+        .into_iter()
+        .find(|c| c.name() == s)
     }
 }
 
@@ -178,7 +183,11 @@ fn resolve(w: W, declared: Option<bool>) -> Option<bool> {
 }
 
 fn bits(m8: bool) -> &'static str {
-    if m8 { "8" } else { "16" }
+    if m8 {
+        "8"
+    } else {
+        "16"
+    }
 }
 
 impl<'a> Analysis<'a> {
@@ -200,7 +209,11 @@ impl<'a> Analysis<'a> {
     /// One finding per check and instruction: the first path that shows it.
     fn find(&mut self, check: Check, addr: u32, message: String) {
         if self.found.insert((check, addr)) {
-            self.findings.insert(Finding { check, addr, message });
+            self.findings.insert(Finding {
+                check,
+                addr,
+                message,
+            });
         }
     }
 
@@ -225,17 +238,32 @@ impl<'a> Analysis<'a> {
         }
         self.call_returns();
         let immediate = |a: &u32| {
-            matches!(cpu::mode(self.p.bytes(*a, 1).map_or(0, |b| b[0])), cpu::Mode::ImmM | cpu::Mode::ImmX)
+            matches!(
+                cpu::mode(self.p.bytes(*a, 1).map_or(0, |b| b[0])),
+                cpu::Mode::ImmM | cpu::Mode::ImmX
+            )
         };
         let w = &mut self.stats.width;
         for &(a, _) in &self.width_known {
-            if immediate(&a) { w.immediates_known += 1 } else { w.others_known += 1 }
+            if immediate(&a) {
+                w.immediates_known += 1
+            } else {
+                w.others_known += 1
+            }
         }
         for k in self.width_unknown.difference(&self.width_known) {
-            if immediate(&k.0) { w.immediates_unknown += 1 } else { w.others_unknown += 1 }
+            if immediate(&k.0) {
+                w.immediates_unknown += 1
+            } else {
+                w.others_unknown += 1
+            }
         }
         for &(a, _) in &self.width_wrong {
-            if immediate(&a) { w.immediates_wrong += 1 } else { w.others_wrong += 1 }
+            if immediate(&a) {
+                w.immediates_wrong += 1
+            } else {
+                w.others_wrong += 1
+            }
         }
         (self.findings.into_iter().collect(), self.stats)
     }
@@ -263,7 +291,9 @@ impl<'a> Analysis<'a> {
                 if live == 0 || !seen.insert((addr, live)) || seen.len() > 256 {
                     continue;
                 }
-                let Some(insn) = self.p.insns.get(&addr) else { continue };
+                let Some(insn) = self.p.insns.get(&addr) else {
+                    continue;
+                };
                 if let Some(flag) = cpu::branch_flag(insn.op) {
                     if live & flag != 0 {
                         self.pull_branch(pull, insn, flag);
@@ -289,7 +319,11 @@ impl<'a> Analysis<'a> {
             cpu::flag_name(flag),
             cpu::mnemonic(pull_insn.op),
             self.at(pull),
-            if flag == cpu::Z || flag == cpu::N { ": `sep` and `rep` do not set it" } else { "" },
+            if flag == cpu::Z || flag == cpu::N {
+                ": `sep` and `rep` do not set it"
+            } else {
+                ""
+            },
         );
         self.find(Check::PullBranch, branch.addr, message);
     }
@@ -300,8 +334,15 @@ impl<'a> Analysis<'a> {
         let bank = insn.addr & 0xFF_0000;
         let next = insn.addr + insn.len;
         match insn.op {
-            cpu::JSR | cpu::JSL | cpu::JSR_X | cpu::RTS | cpu::RTL | cpu::RTI | cpu::JMP_IND
-            | cpu::JMP_X | cpu::JML_IND => vec![],
+            cpu::JSR
+            | cpu::JSL
+            | cpu::JSR_X
+            | cpu::RTS
+            | cpu::RTL
+            | cpu::RTI
+            | cpu::JMP_IND
+            | cpu::JMP_X
+            | cpu::JML_IND => vec![],
             0x00 | 0x02 | 0xDB => vec![],
             cpu::JMP => vec![bank | self.p.operand(insn)],
             cpu::JML => self.p.locate(self.p.operand(insn)).into_iter().collect(),
@@ -330,7 +371,11 @@ impl<'a> Analysis<'a> {
     fn table(&self, insn: &Insn) -> Option<Vec<u32>> {
         let bank = insn.addr & 0xFF_0000;
         let start = self.p.locate(bank | self.p.operand(insn))?;
-        let end = self.p.next_label(start).unwrap_or(start + 512).min(start + 512);
+        let end = self
+            .p
+            .next_label(start)
+            .unwrap_or(start + 512)
+            .min(start + 512);
         let bytes = self.p.bytes(start, (end - start) as usize & !1)?;
         Some(
             bytes
@@ -361,7 +406,11 @@ impl<'a> Analysis<'a> {
             for t in targets {
                 if self.p.insns.contains_key(&t) {
                     entries.entry(t).or_default().insert(kind);
-                    self.callers.entry(t).or_default().entry(kind).or_insert(insn.addr);
+                    self.callers
+                        .entry(t)
+                        .or_default()
+                        .entry(kind)
+                        .or_insert(insn.addr);
                 }
             }
         }
@@ -375,12 +424,18 @@ impl<'a> Analysis<'a> {
             (0xFFEE, Kind::Interrupt),
             (0xFFFC, Kind::Reset),
         ] {
-            let Some(b) = self.p.bytes(vector, 2) else { continue };
+            let Some(b) = self.p.bytes(vector, 2) else {
+                continue;
+            };
             let target = b[0] as u32 | (b[1] as u32) << 8;
             if let Some(t) = self.p.locate(target) {
                 if self.p.insns.contains_key(&t) {
                     entries.entry(t).or_default().insert(kind);
-                    self.callers.entry(t).or_default().entry(kind).or_insert(vector);
+                    self.callers
+                        .entry(t)
+                        .or_default()
+                        .entry(kind)
+                        .or_insert(vector);
                 }
             }
         }
@@ -401,9 +456,20 @@ impl<'a> Analysis<'a> {
 
     fn walk(&mut self, entry: u32) -> Summary {
         let p = self.p;
-        let declared = p.insns.get(&entry).map(|i| p.declared(i)).unwrap_or_default();
-        let mut summary = Summary { declared, ..Summary::default() };
-        let start = State { m: W::Entry, x: W::Entry, stack: Some(Vec::new()) };
+        let declared = p
+            .insns
+            .get(&entry)
+            .map(|i| p.declared(i))
+            .unwrap_or_default();
+        let mut summary = Summary {
+            declared,
+            ..Summary::default()
+        };
+        let start = State {
+            m: W::Entry,
+            x: W::Entry,
+            stack: Some(Vec::new()),
+        };
         let mut seen: HashSet<(u32, State)> = HashSet::new();
         let mut per_addr: HashMap<u32, Vec<State>> = HashMap::new();
         // The stack's findings wait for the end of the walk: if the routine
@@ -452,7 +518,10 @@ impl<'a> Analysis<'a> {
                             summary.unfollowed = true;
                             self.unfollowed(
                                 addr,
-                                format!("reached from `{}`, and it is not in the ROM", p.name(entry)),
+                                format!(
+                                    "reached from `{}`, and it is not in the ROM",
+                                    p.name(entry)
+                                ),
                             );
                             continue;
                         }
@@ -475,7 +544,11 @@ impl<'a> Analysis<'a> {
                 cpu::StackEffect::Push(n) => n as i32,
                 cpu::StackEffect::Pull(n) => -(n as i32),
                 cpu::StackEffect::PushWidth(r) | cpu::StackEffect::PullWidth(r) => {
-                    let w = if r == 'm' { resolve_m(&s) } else { resolve_x(&s) };
+                    let w = if r == 'm' {
+                        resolve_m(&s)
+                    } else {
+                        resolve_x(&s)
+                    };
                     let n = match w {
                         Some(true) => 1,
                         Some(false) => 2,
@@ -484,7 +557,11 @@ impl<'a> Analysis<'a> {
                             0
                         }
                     };
-                    if matches!(cpu::stack_effect(op), cpu::StackEffect::PushWidth(_)) { n } else { -n }
+                    if matches!(cpu::stack_effect(op), cpu::StackEffect::PushWidth(_)) {
+                        n
+                    } else {
+                        -n
+                    }
                 }
             };
             let mut restored = None;
@@ -493,7 +570,11 @@ impl<'a> Analysis<'a> {
                     for _ in 0..size {
                         stack.push(Slot {
                             pushed_at: addr,
-                            saved: if op == cpu::PHP { Some((s.m, s.x)) } else { None },
+                            saved: if op == cpu::PHP {
+                                Some((s.m, s.x))
+                            } else {
+                                None
+                            },
                         });
                     }
                     if stack.len() > MAX_STACK {
@@ -596,7 +677,11 @@ impl<'a> Analysis<'a> {
                         self.unfollowed(addr, "a call to somewhere outside the ROM".into());
                     }
                     for t in targets {
-                        let callee = if p.insns.contains_key(&t) { self.summary(t) } else { None };
+                        let callee = if p.insns.contains_key(&t) {
+                            self.summary(t)
+                        } else {
+                            None
+                        };
                         let Some(callee) = callee else {
                             m = join(m, W::Unknown);
                             x = join(x, W::Unknown);
@@ -607,8 +692,22 @@ impl<'a> Analysis<'a> {
                         summary.needs_m |= callee.needs_m && s.m == W::Entry;
                         summary.needs_x |= callee.needs_x && s.x == W::Entry;
                         self.call_widths(insn, t, &callee, &s, &decl, here);
-                        m = join(m, match callee.exit_m { Some(W::Entry) => s.m, Some(w) => w, None => W::Unknown });
-                        x = join(x, match callee.exit_x { Some(W::Entry) => s.x, Some(w) => w, None => W::Unknown });
+                        m = join(
+                            m,
+                            match callee.exit_m {
+                                Some(W::Entry) => s.m,
+                                Some(w) => w,
+                                None => W::Unknown,
+                            },
+                        );
+                        x = join(
+                            x,
+                            match callee.exit_x {
+                                Some(W::Entry) => s.x,
+                                Some(w) => w,
+                                None => W::Unknown,
+                            },
+                        );
                     }
                     s.m = m.unwrap_or(W::Unknown);
                     s.x = x.unwrap_or(W::Unknown);
@@ -671,8 +770,18 @@ impl<'a> Analysis<'a> {
     /// declares. For an immediate the declaration is in the ROM —how many
     /// bytes `ca65` emitted—, and a mismatch means the CPU reads the
     /// instruction with a different length from the one assembled.
-    fn widths(&mut self, insn: &Insn, s: &State, entry: &Widths, here: Widths, from: u32, summary: &mut Summary) {
-        let Some(reg) = cpu::width_of(insn.op) else { return };
+    fn widths(
+        &mut self,
+        insn: &Insn,
+        s: &State,
+        entry: &Widths,
+        here: Widths,
+        from: u32,
+        summary: &mut Summary,
+    ) {
+        let Some(reg) = cpu::width_of(insn.op) else {
+            return;
+        };
         let (w, declared_entry, declared_here) = if reg == 'm' {
             (s.m, entry.m8, here.m8)
         } else {
@@ -686,7 +795,11 @@ impl<'a> Analysis<'a> {
             }
         }
         let immediate = matches!(cpu::mode(insn.op), cpu::Mode::ImmM | cpu::Mode::ImmX);
-        let believed = if immediate { Some(insn.len == 2) } else { declared_here };
+        let believed = if immediate {
+            Some(insn.len == 2)
+        } else {
+            declared_here
+        };
         let actual = resolve(w, declared_entry);
         let (Some(actual), Some(believed)) = (actual, believed) else {
             self.width_unknown.insert((insn.addr, reg));
@@ -731,10 +844,32 @@ impl<'a> Analysis<'a> {
 
     /// 4, at a call: the caller's widths against what the callee declares at
     /// its entry, for the registers the callee uses before setting them.
-    fn call_widths(&mut self, insn: &Insn, target: u32, callee: &Summary, s: &State, entry: &Widths, here: Widths) {
+    fn call_widths(
+        &mut self,
+        insn: &Insn,
+        target: u32,
+        callee: &Summary,
+        s: &State,
+        entry: &Widths,
+        here: Widths,
+    ) {
         for (reg, needs, w, declared_entry, declared_here, callee_declares) in [
-            ('m', callee.needs_m, s.m, entry.m8, here.m8, callee.declared.m8),
-            ('x', callee.needs_x, s.x, entry.x8, here.x8, callee.declared.x8),
+            (
+                'm',
+                callee.needs_m,
+                s.m,
+                entry.m8,
+                here.m8,
+                callee.declared.m8,
+            ),
+            (
+                'x',
+                callee.needs_x,
+                s.x,
+                entry.x8,
+                here.x8,
+                callee.declared.x8,
+            ),
         ] {
             if !needs {
                 continue;
@@ -772,7 +907,9 @@ impl<'a> Analysis<'a> {
     fn call_returns(&mut self) {
         let callers = std::mem::take(&mut self.callers);
         for (entry, kinds) in &callers {
-            let Some(Some(summary)) = self.summaries.get(entry).cloned() else { continue };
+            let Some(Some(summary)) = self.summaries.get(entry).cloned() else {
+                continue;
+            };
             for (&kind, &site) in kinds {
                 if kind == Kind::Reset {
                     continue;
@@ -787,11 +924,23 @@ impl<'a> Analysis<'a> {
                          which pulls {} bytes of return address where {} pushed {}",
                         self.p.name(*entry),
                         kind.name(),
-                        if kind == Kind::Interrupt { format!("the vector ${:04X}", site) } else { self.at(site) },
+                        if kind == Kind::Interrupt {
+                            format!("the vector ${:04X}", site)
+                        } else {
+                            self.at(site)
+                        },
                         cpu::mnemonic(op),
-                        match op { cpu::RTS => 2, cpu::RTL => 3, _ => 4 },
+                        match op {
+                            cpu::RTS => 2,
+                            cpu::RTL => 3,
+                            _ => 4,
+                        },
                         kind.name(),
-                        match kind { Kind::Jsr => 2, Kind::Jsl => 3, _ => 4 },
+                        match kind {
+                            Kind::Jsr => 2,
+                            Kind::Jsl => 3,
+                            _ => 4,
+                        },
                     );
                     self.find(Check::CallReturn, ret, message);
                 }

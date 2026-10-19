@@ -38,13 +38,24 @@ fn reaches_out(half: &str, file: &Path, text: &str) -> Vec<String> {
     let own = format!("crate::{half}::");
     // `mod.rs` is the half itself: its `super` is the crate root. Any other
     // file is a module inside the half, whose `super::super` is the root.
-    let climb = if file.file_name().is_some_and(|n| n == "mod.rs") { "super::" } else { "super::super" };
+    let climb = if file.file_name().is_some_and(|n| n == "mod.rs") {
+        "super::"
+    } else {
+        "super::super"
+    };
     let mut wrong = Vec::new();
     for (number, line) in text.lines().enumerate() {
-        let outside = line.match_indices("crate::").any(|(at, _)| !line[at..].starts_with(&own))
+        let outside = line
+            .match_indices("crate::")
+            .any(|(at, _)| !line[at..].starts_with(&own))
             || line.contains(climb);
         if outside {
-            wrong.push(format!("{}:{}: {}", file.display(), number + 1, line.trim()));
+            wrong.push(format!(
+                "{}:{}: {}",
+                file.display(),
+                number + 1,
+                line.trim()
+            ));
         }
     }
     wrong

@@ -11,7 +11,9 @@ use rm2k_render::{battle, picture, show_picture as rm2k_picture};
 use rm2k_snes_images::request::{
     self, Animations, Backdrops, Background, Battlers, Fullscreen, ShowPicture,
 };
-use rm2k_snes_images::{animation, background, fullscreen, mode7, scene, show_picture, Bad, Result};
+use rm2k_snes_images::{
+    animation, background, fullscreen, mode7, scene, show_picture, Bad, Result,
+};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -197,9 +199,9 @@ fn do_background(args: &Plain) -> Result<()> {
         }
         _ => None,
     };
-    let mut answer = layer
-        .as_ref()
-        .map_or(Value::Null, |l| request::background_answer(l, texture.as_ref()));
+    let mut answer = layer.as_ref().map_or(Value::Null, |l| {
+        request::background_answer(l, texture.as_ref())
+    });
     if r.mode7.is_some() && texture.is_none() && !answer.is_null() {
         answer["mode7"] = Value::Null;
     }

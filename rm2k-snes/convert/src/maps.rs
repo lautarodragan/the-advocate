@@ -60,9 +60,17 @@ pub fn page_graphic(page: &crate::game::Page, chipset: &str) -> Option<Graphic> 
     }
     let column = if page.pattern == 3 { 1 } else { page.pattern };
     Some(if page.character_name.is_empty() {
-        (tile_name(chipset, page.character_index), 0, (page.direction * 3 + column) as i64)
+        (
+            tile_name(chipset, page.character_index),
+            0,
+            (page.direction * 3 + column) as i64,
+        )
     } else {
-        (page.character_name.clone(), page.character_index as i64, (page.direction * 3 + column) as i64)
+        (
+            page.character_name.clone(),
+            page.character_index as i64,
+            (page.direction * 3 + column) as i64,
+        )
     })
 }
 
@@ -127,7 +135,12 @@ pub fn maps_per_character(maps: &[&GameMap]) -> BTreeMap<(String, i32), usize> {
 /// with that NPC, so both flashed. It is solved by counting those NPCs'
 /// graphic as another one, with `COPY_SUFFIX`: the same drawing, with its
 /// own palette. `commands` are those of the test pages that run here.
-pub fn separate_from_hero(game: &Game, map: &mut GameMap, leaders: &[i32], commands: &[Command]) -> Result<()> {
+pub fn separate_from_hero(
+    game: &Game,
+    map: &mut GameMap,
+    leaders: &[i32],
+    commands: &[Command],
+) -> Result<()> {
     let flashes = commands
         .iter()
         .chain(map.all_commands())
@@ -152,7 +165,10 @@ pub fn separate_from_hero(game: &Game, map: &mut GameMap, leaders: &[i32], comma
 
 /// The `(upper layer, old, new)` of the `TileSubstitution`s in `lists`,
 /// each once, in the order they are met.
-pub fn substitution_triples<'a>(lists: impl IntoIterator<Item = &'a Command>, into: &mut Vec<(bool, i32, i32)>) {
+pub fn substitution_triples<'a>(
+    lists: impl IntoIterator<Item = &'a Command>,
+    into: &mut Vec<(bool, i32, i32)>,
+) {
     for cmd in lists {
         if cmd.code != TILE_SUBSTITUTION || cmd.parameters.len() < 3 {
             continue;
@@ -250,7 +266,13 @@ fn system_path(game: &Game) -> Result<PathBuf> {
         .or_else(|| Some(game.game_dir.join(format!("{name}.png"))).filter(|p| p.exists()))
         .or_else(|| crate::resources::find(&rtp, "System", name, &[".png", ".bmp"]))
         .map(|p| rm2k_project::absolute(&p))
-        .ok_or_else(|| Stop::new(format!("System {} is not in {}", crate::text::repr(name), game.game_dir.display())))
+        .ok_or_else(|| {
+            Stop::new(format!(
+                "System {} is not in {}",
+                crate::text::repr(name),
+                game.game_dir.display()
+            ))
+        })
 }
 
 pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Result<Prepared> {
@@ -258,7 +280,10 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     let mut map = game.map(map_id)?;
     let chipset = game.chipset(map.chipset_id)?;
     let chipset_filename = chipset.chipset_name.clone();
-    let passability = rm2k_rules::chipset::passability_table(&chipset.passable_data_lower, &chipset.passable_data_upper);
+    let passability = rm2k_rules::chipset::passability_table(
+        &chipset.passable_data_lower,
+        &chipset.passable_data_upper,
+    );
     let test_event = c.has_cases && map_id == c.order[c.start_index];
     if test_event {
         // The test page's event goes **first**: the ROM walks the events
@@ -266,7 +291,15 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // game's. It has no pages: it only takes index 0 so that
         // everything that numbers events after reading the map numbers
         // the same. The stage puts its own.
-        map.events.insert(0, Event { id: 0, x: 0, y: 0, pages: Vec::new() });
+        map.events.insert(
+            0,
+            Event {
+                id: 0,
+                x: 0,
+                y: 0,
+                pages: Vec::new(),
+            },
+        );
     }
     // And the one with the copies of the automatic common events, last:
     // see [`crate::common_pages`]. Wally does not know it, as it does not
@@ -286,7 +319,12 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .as_array()
         .map(|list| {
             list.iter()
-                .map(|g| (g[0].as_str().unwrap_or("").to_string(), g[1].as_i64().unwrap_or(0)))
+                .map(|g| {
+                    (
+                        g[0].as_str().unwrap_or("").to_string(),
+                        g[1].as_i64().unwrap_or(0),
+                    )
+                })
                 .collect()
         })
         .unwrap_or_default();
@@ -311,7 +349,12 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .and_then(Value::as_array)
         .map(|list| {
             list.iter()
-                .map(|g| (g[0].as_str().unwrap_or("").to_string(), g[1].as_i64().unwrap_or(0)))
+                .map(|g| {
+                    (
+                        g[0].as_str().unwrap_or("").to_string(),
+                        g[1].as_i64().unwrap_or(0),
+                    )
+                })
                 .collect()
         })
         .unwrap_or_default();
@@ -341,7 +384,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
-    let mut keys: Vec<Value> = scanned.get("pictures").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut keys: Vec<Value> = scanned
+        .get("pictures")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     // The map's own come first, and then those only the copies of the
     // common events show, if the map carries them: the scan says how many
     // are its own. See [`crate::common_pages`].
@@ -352,9 +399,15 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .map(|n| keys[..n as usize].to_vec());
     // The ones that are part of a map are drawn into it, and their commands
     // are accepted without being done.
-    keys.retain(|k| !c.map_pictures.done(map_id, k["name"].as_str().unwrap_or("")));
+    keys.retain(|k| {
+        !c.map_pictures
+            .done(map_id, k["name"].as_str().unwrap_or(""))
+    });
     if let Some(own) = own_keys.as_mut() {
-        own.retain(|k| !c.map_pictures.done(map_id, k["name"].as_str().unwrap_or("")));
+        own.retain(|k| {
+            !c.map_pictures
+                .done(map_id, k["name"].as_str().unwrap_or(""))
+        });
     }
     // And the numbers the map tones, which do not share a palette.
     let tinted: Vec<i64> = scanned
@@ -364,7 +417,13 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .unwrap_or_default();
     let pictures = pictures::for_map(&game.game_dir, &keys, &tinted, map_id, &game.cropped)?;
     let pictures_own = match &own_keys {
-        Some(own) => Some(pictures::for_map(&game.game_dir, own, &tinted, map_id, &game.cropped)?),
+        Some(own) => Some(pictures::for_map(
+            &game.game_dir,
+            own,
+            &tinted,
+            map_id,
+            &game.cropped,
+        )?),
         None => None,
     };
     let singles: Vec<Value> = c
@@ -373,9 +432,14 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .filter(|(_, n)| **n == 1)
         .map(|((name, index), _)| json!([name, index]))
         .collect();
-    let zooms: Vec<Value> = scanned.get("zooms").and_then(Value::as_array).cloned().unwrap_or_default();
+    let zooms: Vec<Value> = scanned
+        .get("zooms")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let big_pictures = pictures::big_for_map(&game.game_dir, &keys, &zooms, map_id, &game.cropped)?;
-    let shows_animation = animations.map_shows_animation(game, map.all_commands(), &case_commands)?;
+    let shows_animation =
+        animations.map_shows_animation(game, map.all_commands(), &case_commands)?;
     let mut triples = Vec::new();
     let mut lists: Vec<&Command> = map.all_commands().collect();
     for (m, cmds) in &c.cases {
@@ -445,7 +509,16 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     if let Some(own) = &pictures_own {
         request["picture_own"] = own.as_ref().map_or(Value::Null, |p| p.asked.clone());
     }
-    Ok(Prepared { map, chipset_filename, passability, route_graphics, pictures, pictures_own, big_pictures, request })
+    Ok(Prepared {
+        map,
+        chipset_filename,
+        passability,
+        route_graphics,
+        pictures,
+        pictures_own,
+        big_pictures,
+        request,
+    })
 }
 
 /// Runs the stage on every prepared map, in parallel, and hands back what
@@ -456,10 +529,15 @@ pub fn run_all(c: &Cartridge, prepared: &[Prepared]) -> Result<Vec<BTreeMap<Stri
         flags.push("--search-dir".into());
         flags.push(rm2k_project::absolute(dir).into_os_string());
     }
-    let workers = std::thread::available_parallelism().map_or(1, |n| n.get()).min(prepared.len()).max(1);
+    let workers = std::thread::available_parallelism()
+        .map_or(1, |n| n.get())
+        .min(prepared.len())
+        .max(1);
     let next = std::sync::atomic::AtomicUsize::new(0);
-    let results: Vec<std::sync::Mutex<Option<Result<BTreeMap<String, Vec<u8>>>>>> =
-        prepared.iter().map(|_| std::sync::Mutex::new(None)).collect();
+    let results: Vec<std::sync::Mutex<Option<Result<BTreeMap<String, Vec<u8>>>>>> = prepared
+        .iter()
+        .map(|_| std::sync::Mutex::new(None))
+        .collect();
     std::thread::scope(|scope| {
         for _ in 0..workers {
             scope.spawn(|| loop {
@@ -473,7 +551,10 @@ pub fn run_all(c: &Cartridge, prepared: &[Prepared]) -> Result<Vec<BTreeMap<Stri
             });
         }
     });
-    results.into_iter().map(|r| r.into_inner().unwrap().unwrap()).collect()
+    results
+        .into_iter()
+        .map(|r| r.into_inner().unwrap().unwrap())
+        .collect()
 }
 
 /// A page as the converter keeps it: the compiler's record, with what it
@@ -585,7 +666,9 @@ pub struct MapInfo {
 }
 
 fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Vec<u8>> {
-    written.get(name).ok_or_else(|| Stop::new(format!("{STAGE} did not write {name}")))
+    written
+        .get(name)
+        .ok_or_else(|| Stop::new(format!("{STAGE} did not write {name}")))
 }
 
 fn family(name: &str) -> &str {
@@ -620,7 +703,12 @@ fn int(v: &Value) -> i64 {
 /// The most tiles any of a map's panoramas takes: the layout holds the one
 /// shown, and a `ChangePBG` uploads another over it.
 fn panorama_tiles(pano: &Value) -> i64 {
-    pano["images"].as_array().into_iter().flatten().map(|i| int(&i["tiles"])).fold(int(&pano["tiles"]), i64::max)
+    pano["images"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|i| int(&i["tiles"]))
+        .fold(int(&pano["tiles"]), i64::max)
 }
 
 /// The panoramas a map carries, in the order the bytecode numbers them —
@@ -680,7 +768,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         let text = note["text"].as_str().unwrap_or("");
         let stop = note["stop"].as_bool().unwrap_or(false);
         if let Some(loss) = note["loss"].as_str() {
-            let events = note["events"].as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default();
+            let events = note["events"]
+                .as_array()
+                .map(|a| a.iter().map(int).collect())
+                .unwrap_or_default();
             losses.push((loss.to_string(), text.to_string(), events));
         }
         if note["kind"] == "discard" {
@@ -697,12 +788,21 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let above_tiles = file(&written, "above.bin")?.clone();
     let above_cgram = file(&written, "above-cgram.bin")?.clone();
     let tilemap = bg["tilemap"].as_array().cloned().unwrap_or_default();
-    let tilemap_dims = (tilemap.first().and_then(Value::as_array).map_or(0, Vec::len), tilemap.len());
+    let tilemap_dims = (
+        tilemap
+            .first()
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len),
+        tilemap.len(),
+    );
     let mut runs = Vec::new();
     for run in bg["runs"].as_array().cloned().unwrap_or_default() {
         let mut drawings = Vec::new();
         for name in run["drawings"].as_array().cloned().unwrap_or_default() {
-            drawings.push(json!(crate::text::hex(file(&written, name.as_str().unwrap_or(""))?)));
+            drawings.push(json!(crate::text::hex(file(
+                &written,
+                name.as_str().unwrap_or("")
+            )?)));
         }
         runs.push(json!({"family": run["family"], "base": run["base"], "tiles": run["tiles"], "drawings": drawings}));
     }
@@ -735,7 +835,14 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         let layout = if layers["panorama"].is_null() {
             vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok()
         } else {
-            vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8, tiles_count as u32, count as u32, above_count as u32, panorama_tiles(&layers["panorama"]) as u32).ok()
+            vram::panorama_layout(
+                int(&layers["panorama"]["mode"]) as u8,
+                tiles_count as u32,
+                count as u32,
+                above_count as u32,
+                panorama_tiles(&layers["panorama"]) as u32,
+            )
+            .ok()
         };
         if layout.is_none() {
             // Not the box: the map's own tiles fit no layout, with or without it.
@@ -768,14 +875,19 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         _ => &p.pictures,
     };
     let pictures = match went_in {
-        Some(f) if int(&s["image"][0]) != 0 => Some((s["image"][0].clone(), f.table.clone(), f.images.clone())),
+        Some(f) if int(&s["image"][0]) != 0 => {
+            Some((s["image"][0].clone(), f.table.clone(), f.images.clone()))
+        }
         _ => None,
     };
     let npcs = answer["npcs"].clone();
     let mut where_ = HashMap::new();
     for entry in s["place"].as_array().cloned().unwrap_or_default() {
         let slot = &entry[0];
-        if truthy(slot.get("hero")) || truthy(slot.get("turn")) || slot.get("event").is_some() || slot.get("shared").is_some()
+        if truthy(slot.get("hero"))
+            || truthy(slot.get("turn"))
+            || slot.get("event").is_some()
+            || slot.get("shared").is_some()
             || slot.get("cache").is_some()
         {
             continue;
@@ -788,8 +900,18 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         where_.insert(key, (entry[1].clone(), entry[2].clone()));
     }
     let mut cached = HashMap::new();
-    for (v, still) in s["cache"]["stills"].as_array().cloned().unwrap_or_default().iter().enumerate() {
-        let key = (still[0].as_str().unwrap_or("").to_string(), int(&still[1]), int(&still[2]));
+    for (v, still) in s["cache"]["stills"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+    {
+        let key = (
+            still[0].as_str().unwrap_or("").to_string(),
+            int(&still[1]),
+            int(&still[2]),
+        );
         cached.insert(key, (json!(v), still[4].clone()));
     }
     let tiles_name = s["tiles"].as_str().unwrap_or("").to_string();
@@ -836,7 +958,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         animated.len()
     );
     let npc_list = npcs.as_array().cloned().unwrap_or_default();
-    println!("  {} NPCs with a CharSet out of {} events", npc_list.len(), p.map.events.len());
+    println!(
+        "  {} NPCs with a CharSet out of {} events",
+        npc_list.len(),
+        p.map.events.len()
+    );
     let open_ones = passable.iter().filter(|&&b| b == 0x0F).count();
     println!(
         "  collision: {} cells, {} open on all four sides ({}%), the hero starts at ({},{})",
@@ -921,8 +1047,12 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         );
     }
     let layout = if pano.is_null() {
-        vram::vram_layout(tiles_count as u32, (sprite_tiles.len() / 32) as u32, above_count as u32)
-            .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?
+        vram::vram_layout(
+            tiles_count as u32,
+            (sprite_tiles.len() / 32) as u32,
+            above_count as u32,
+        )
+        .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?
     } else {
         let layout = vram::panorama_layout(
             int(&pano["mode"]) as u8,
@@ -951,7 +1081,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         // uploads the tiles and fills the tilemap's ring with the screen off.
         let images = pano["images"].as_array().cloned().unwrap_or_default();
         let bytes_per_tile = if int(&pano["mode"]) == 1 { 16 } else { 32 };
-        let rom = |p: &Value| int(&p["tiles"]) * bytes_per_tile + int(&p["stretch"][0]) / 8 * (int(&p["stretch"][1]) / 8) * 2;
+        let rom = |p: &Value| {
+            int(&p["tiles"]) * bytes_per_tile
+                + int(&p["stretch"][0]) / 8 * (int(&p["stretch"][1]) / 8) * 2
+        };
         for image in &images {
             println!(
                 "  panorama {} too, by a ChangePBG: a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged, {} bytes of ROM",
@@ -991,7 +1124,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         record["tile_count"] = pano["tiles"].clone();
         record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
         for (k, image) in pano["images"].as_array().into_iter().flatten().enumerate() {
-            record["images"][k]["tiles"] = json!(crate::text::hex(file(&written, image["file"].as_str().unwrap_or(""))?));
+            record["images"][k]["tiles"] = json!(crate::text::hex(file(
+                &written,
+                image["file"].as_str().unwrap_or("")
+            )?));
         }
         Some(record)
     };
@@ -1016,13 +1152,22 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         }
         let set: HashSet<(String, i64)> = n["outside"]
             .as_array()
-            .map(|a| a.iter().map(|k| (k[0].as_str().unwrap_or("").to_string(), int(&k[1]))).collect())
+            .map(|a| {
+                a.iter()
+                    .map(|k| (k[0].as_str().unwrap_or("").to_string(), int(&k[1])))
+                    .collect()
+            })
             .unwrap_or_default();
         outside.insert(event, set);
     }
     let mut shared = HashMap::new();
     if let Some(sh) = s["shared"].as_object() {
-        for e in sh.get("events").and_then(Value::as_array).cloned().unwrap_or_default() {
+        for e in sh
+            .get("events")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()
+        {
             let slot = int(&e[1]) as usize;
             shared.insert(int(&e[0]), (sh["slots"][slot].clone(), e[3].clone()));
         }
@@ -1097,7 +1242,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         pictures,
         big_pictures: p.big_pictures,
         big_table: Vec::new(),
-        decorative: answer["decorative"].as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default(),
+        decorative: answer["decorative"]
+            .as_array()
+            .map(|a| a.iter().map(int).collect())
+            .unwrap_or_default(),
         pages: Vec::new(),
         sub_keys: BTreeSet::new(),
         evcode: Vec::new(),
@@ -1123,12 +1271,14 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
             .events
             .get(event as usize)
             .and_then(|e| e.pages.get(page_index as usize))
-            .ok_or_else(|| Stop::new(format!("map {}: no page {page_index} of event {event}", info.id)))?;
+            .ok_or_else(|| {
+                Stop::new(format!(
+                    "map {}: no page {page_index} of event {event}",
+                    info.id
+                ))
+            })?;
         let graphic = page_graphic(page, &info.chipset_filename);
-        let code = match r["code"].as_str() {
-            Some(hex) => Some(crate::text::unhex(hex)),
-            None => None,
-        };
+        let code = r["code"].as_str().map(crate::text::unhex);
         let tile_pass = graphic
             .as_ref()
             .and_then(|g| event_tile_passability(&info.passability, &g.0, page.layer));
@@ -1167,7 +1317,8 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
 pub fn write_adeleine(dir: &Path, maps: &[MapInfo]) -> Result<()> {
     std::fs::create_dir_all(dir).map_err(|e| crate::fail::io(dir, e))?;
     for m in maps {
-        let mut pictures: Vec<(&str, &Vec<u8>)> = m.pictures_bg.iter().map(|(n, p)| (n.as_str(), p)).collect();
+        let mut pictures: Vec<(&str, &Vec<u8>)> =
+            m.pictures_bg.iter().map(|(n, p)| (n.as_str(), p)).collect();
         pictures.push(("encima", &m.above_png));
         for (name, png) in pictures {
             let path = dir.join(format!("{:04}-{name}.png", m.id));

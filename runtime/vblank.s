@@ -84,6 +84,21 @@ no_strip:
     ; is already reset for the next one. See `anim_drawing_dma`.
     lda f:ANIMB_UPLOAD
     beq no_anim_frame
+    ; **But not in a vblank the window takes**: a line of a box —the last
+    ; one comes with the box's appearance— or a System's window, which are
+    ; 1920 bytes and the HDMA's tables on their own. With the frame on top
+    ; the vblank ran ten lines past its end, and the window's HDMA was turned
+    ; on there, mid-frame: on the console and in bsnes its face channel ran
+    ; that frame from a stale table and wrote garbage into the map's
+    ; palettes, which stayed. taro saw it on 2026-10-19 in Zounds' map 89,
+    ; whose tower plays an animation and opens a box while it draws. The
+    ; frame waits for the next vblank, `ANIMB_UPLOAD` still set: what goes
+    ; up then is the newest one built.
+    lda msg_upload
+.if ::WINDOW_SYSTEMS > 1
+    ora f:WINDOW_SWAP
+.endif
+    bne no_anim_frame
     lda #0
     sta f:ANIMB_UPLOAD
     jsr anim_drawing_dma
@@ -232,6 +247,13 @@ no_upload:
     lda msg_state
     cmp #2
     bne no_finished
+    ; Only while the vblank lasts: what follows builds the tables the HDMA
+    ; reads while it draws, and a window without its background writes its
+    ; arrow's colours into CGRAM, which past the vblank land on whatever
+    ; entry the PPU is reading. If this vblank ran out the window appears
+    ; on the next one. See the battle animation's frame, above.
+    bit HVBJOY
+    bpl no_finished
     stz msg_state
     lda #1
     sta msg_open
@@ -261,6 +283,13 @@ no_finished:
     ora #HDMA_WINDOW
     ora f:PANO_HDMA             ; and BG1's mask, in a flattened map
     ora f:MSG_FACE_HDMA         ; and a face's palette, on the window's lines
+    ; And only while the vblank lasts, too: a channel is set up at the top
+    ; of the frame, and one turned on after it runs that frame from
+    ; wherever its table was left. The face's writes CGRAM, and what it
+    ; wrote stayed. Past the vblank HDMAEN stays as it was for one more
+    ; frame, and the next vblank writes it.
+    bit HVBJOY
+    bpl on
     sta HDMAEN
     bra on
 no_window:

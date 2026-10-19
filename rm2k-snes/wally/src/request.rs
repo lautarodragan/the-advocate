@@ -121,7 +121,13 @@ pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudge
     };
     let baked = index(field(p, "baked_tiles", whose)?, "`baked_tiles`", whose)?;
     let painted = p.get("painted").and_then(Value::as_bool).unwrap_or(false);
-    Ok(Some(PanoramaBudget { layouts, baked, way, extra: Vec::new(), painted }))
+    Ok(Some(PanoramaBudget {
+        layouts,
+        baked,
+        way,
+        extra: Vec::new(),
+        painted,
+    }))
 }
 
 fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {
@@ -168,14 +174,24 @@ pub fn patches(data: &Value, whose: &str, game: &mut Game) -> Result<()> {
     // Not required: a request that leaves nothing out does not have to say
     // it, and the ones written before it existed stay as they were.
     if let Some(d) = data.get("dropped_events") {
-        let obj = d.as_object().ok_or_else(|| Bad::answer(format!("{whose}: `dropped_events` is not an object")))?;
+        let obj = d
+            .as_object()
+            .ok_or_else(|| Bad::answer(format!("{whose}: `dropped_events` is not an object")))?;
         for (k, v) in obj {
-            let map = k.parse::<i32>().map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
+            let map = k
+                .parse::<i32>()
+                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
             let ids = v
                 .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: map {k}'s `dropped_events` is not a list")))?
+                .ok_or_else(|| {
+                    Bad::answer(format!("{whose}: map {k}'s `dropped_events` is not a list"))
+                })?
                 .iter()
-                .map(|e| e.as_i64().map(|e| e as i32).ok_or_else(|| Bad::answer(format!("{whose}: {e} is not an event"))))
+                .map(|e| {
+                    e.as_i64()
+                        .map(|e| e as i32)
+                        .ok_or_else(|| Bad::answer(format!("{whose}: {e} is not an event")))
+                })
                 .collect::<Result<_>>()?;
             game.dropped.insert(map, ids);
         }
@@ -193,7 +209,8 @@ impl LayersRequest {
             .map(|pair| {
                 let bad = || Bad::answer(format!("{whose}: a baked cell is {pair}"));
                 let pair = pair.as_array().filter(|p| p.len() == 2).ok_or_else(bad)?;
-                let cell = usize::try_from(number(&pair[0], "a cell", whose)?).map_err(|_| bad())?;
+                let cell =
+                    usize::try_from(number(&pair[0], "a cell", whose)?).map_err(|_| bad())?;
                 let tile = i16::try_from(number(&pair[1], "a tile", whose)?).map_err(|_| bad())?;
                 Ok((cell, tile))
             })
@@ -201,7 +218,11 @@ impl LayersRequest {
         Ok(LayersRequest {
             map: i32::try_from(map).map_err(|_| Bad::answer(format!("{whose}: map {map}")))?,
             baked,
-            window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
+            window_colors: index(
+                field(data, "window_colors", whose)?,
+                "`window_colors`",
+                whose,
+            )?,
             panorama: panorama_budget(data, whose)?,
             fuse_tiles: match data.get("fuse_tiles") {
                 None | Some(Value::Null) => None,
@@ -225,11 +246,13 @@ fn text(v: &Value, what: &str, whose: &str) -> Result<String> {
 }
 
 fn index(v: &Value, what: &str, whose: &str) -> Result<usize> {
-    usize::try_from(number(v, what, whose)?).map_err(|_| Bad::answer(format!("{whose}: {what} is {v}")))
+    usize::try_from(number(v, what, whose)?)
+        .map_err(|_| Bad::answer(format!("{whose}: {what} is {v}")))
 }
 
 fn small(v: &Value, what: &str, whose: &str) -> Result<i32> {
-    i32::try_from(number(v, what, whose)?).map_err(|_| Bad::answer(format!("{whose}: {what} is {v}")))
+    i32::try_from(number(v, what, whose)?)
+        .map_err(|_| Bad::answer(format!("{whose}: {what} is {v}")))
 }
 
 /// `[charset, index]`.
@@ -238,7 +261,10 @@ fn key(v: &Value, whose: &str) -> Result<(String, i32)> {
         .as_array()
         .filter(|p| p.len() == 2)
         .ok_or_else(|| Bad::answer(format!("{whose}: a graphic is {v}, not [CharSet, index]")))?;
-    Ok((text(&pair[0], "a CharSet", whose)?, small(&pair[1], "an index", whose)?))
+    Ok((
+        text(&pair[0], "a CharSet", whose)?,
+        small(&pair[1], "an index", whose)?,
+    ))
 }
 
 fn keys(v: &Value, whose: &str) -> Result<Vec<(String, i32)>> {
@@ -261,7 +287,11 @@ fn triples(data: &Value, name: &str, whose: &str) -> Result<Vec<crate::substitut
     list(data, name, whose)?
         .iter()
         .map(|t| {
-            let bad = || Bad::answer(format!("{whose}: a substitution is {t}, not [upper, old, new]"));
+            let bad = || {
+                Bad::answer(format!(
+                    "{whose}: a substitution is {t}, not [upper, old, new]"
+                ))
+            };
             let a = t.as_array().filter(|a| a.len() == 3).ok_or_else(bad)?;
             Ok((
                 a[0].as_bool().ok_or_else(bad)?,
@@ -369,7 +399,10 @@ impl crate::map::MapRequest {
                 .filter(|a| a.len() == 3)
                 .ok_or_else(|| Bad::answer(format!("{whose}: a name is {n}")))?;
             names.insert(
-                (small(&a[0], "an event", whose)?, small(&a[1], "a page", whose)?),
+                (
+                    small(&a[0], "an event", whose)?,
+                    small(&a[1], "a page", whose)?,
+                ),
                 text(&a[2], "a name", whose)?,
             );
         }
@@ -420,7 +453,9 @@ impl crate::map::MapRequest {
             picture,
             picture_own,
             battle_animation: flag("battle_animation")?,
-            singles: keys(field(data, "singles", whose)?, whose)?.into_iter().collect(),
+            singles: keys(field(data, "singles", whose)?, whose)?
+                .into_iter()
+                .collect(),
             weights,
             dither: text(field(data, "dither", whose)?, "`dither`", whose)?,
             substitutions: triples(data, "substitutions", whose)?,
@@ -437,10 +472,17 @@ impl crate::map::MapRequest {
                     ))
                 })
                 .collect::<Result<_>>()?,
-            window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
+            window_colors: index(
+                field(data, "window_colors", whose)?,
+                "`window_colors`",
+                whose,
+            )?,
             panorama: panorama_budget(data, whose)?,
             fuse_tiles: None,
-            decorative: data.get("decorative").and_then(Value::as_bool).unwrap_or(false),
+            decorative: data
+                .get("decorative")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
             test_commands: match data.get("test_commands") {
                 None | Some(Value::Null) => Vec::new(),
                 Some(v) => v
@@ -448,9 +490,18 @@ impl crate::map::MapRequest {
                     .ok_or_else(|| Bad::answer(format!("{whose}: `test_commands` is not a list")))?
                     .iter()
                     .map(|c| {
-                        let bad = || Bad::answer(format!("{whose}: a test command is {c}, not [code, [parameters]]"));
+                        let bad = || {
+                            Bad::answer(format!(
+                                "{whose}: a test command is {c}, not [code, [parameters]]"
+                            ))
+                        };
                         let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
-                        let parameters = c[1].as_array().ok_or_else(bad)?.iter().map(|p| small(p, "a parameter", whose)).collect::<Result<_>>()?;
+                        let parameters = c[1]
+                            .as_array()
+                            .ok_or_else(bad)?
+                            .iter()
+                            .map(|p| small(p, "a parameter", whose))
+                            .collect::<Result<_>>()?;
                         Ok((small(&c[0], "a command's code", whose)?, parameters))
                     })
                     .collect::<Result<_>>()?,
@@ -473,7 +524,10 @@ fn picture_asked(p: &Value, whose: &str) -> Result<Option<crate::map::PictureAsk
                 let values = a[1].as_array().filter(|v| v.len() == 64).ok_or_else(bad)?;
                 let mut cell = [[0u8; 8]; 8];
                 for (i, v) in values.iter().enumerate() {
-                    cell[i / 8][i % 8] = v.as_u64().and_then(|n| u8::try_from(n).ok()).ok_or_else(bad)?;
+                    cell[i / 8][i % 8] = v
+                        .as_u64()
+                        .and_then(|n| u8::try_from(n).ok())
+                        .ok_or_else(bad)?;
                 }
                 cells.push((index(&a[0], "a picture tile", whose)?, cell));
             }

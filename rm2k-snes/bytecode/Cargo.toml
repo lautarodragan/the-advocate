@@ -7,3 +7,6 @@ description = "The two bytecodes an rm2k-snes cartridge reads, declared once: th
 [lib]
 name = "rm2k_snes_bytecode"
 path = "src/lib.rs"
+
+[lints]
+workspace = true

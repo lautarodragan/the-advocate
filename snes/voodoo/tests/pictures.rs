@@ -53,7 +53,7 @@ fn one_solid_cell_is_one_tile_besides_the_empty_one() {
     assert_eq!(done.report.colors, 1);
     assert_eq!(done.report.palettes, 1);
     assert_eq!(done.tiles.len(), 64); // two 4bpp tiles
-    // Tile 1, palette 1: the palette comes from the index, not from a choice.
+                                      // Tile 1, palette 1: the palette comes from the index, not from a choice.
     assert_eq!(done.tilemap[0][0], 1 | (1 << 10));
 }
 
@@ -72,7 +72,10 @@ fn at_two_bits_a_palette_is_four_entries() {
 
 #[test]
 fn at_two_bits_a_cell_with_two_palettes_is_refused() {
-    let message = answer(convert(&picture(8, 8, |x, _| if x < 4 { 17 } else { 21 }), 2));
+    let message = answer(convert(
+        &picture(8, 8, |x, _| if x < 4 { 17 } else { 21 }),
+        2,
+    ));
     assert!(message.contains("palettes 4 and 5"), "{message}");
 }
 
@@ -82,7 +85,11 @@ fn at_two_bits_a_cell_with_two_palettes_is_refused() {
 fn a_mirrored_cell_reuses_the_tile_and_sets_the_flip_bits() {
     let mark = |x: usize, y: usize| if x == 0 && y == 0 { 1 } else { 2 };
     let done = convert(
-        &picture(16, 8, |x, y| if x < 8 { mark(x, y) } else { mark(15 - x, y) }),
+        &picture(
+            16,
+            8,
+            |x, y| if x < 8 { mark(x, y) } else { mark(15 - x, y) },
+        ),
         4,
     )
     .unwrap();
@@ -151,8 +158,12 @@ fn priority_is_set_on_the_cells_that_draw() {
         priority: 1,
         ..Options::at(4)
     };
-    let done = voodoo::convert(&picture(16, 8, |x, _| if x < 8 { 1 } else { 0 }), &[], &options)
-        .unwrap();
+    let done = voodoo::convert(
+        &picture(16, 8, |x, _| if x < 8 { 1 } else { 0 }),
+        &[],
+        &options,
+    )
+    .unwrap();
     assert_eq!(done.tilemap[0][0] & 0x2000, 0x2000);
     assert_eq!(done.tilemap[0][1], 0);
 }
@@ -173,7 +184,11 @@ fn colour_memory_is_the_palette_of_the_picture() {
     assert_eq!(done.cgram.len(), 2 * ENTRIES);
     for (entry, word) in done.cgram.chunks_exact(2).enumerate() {
         let expected = voodoo::cgram_word(((entry % 32) as u8, (entry / 32) as u8, 0));
-        assert_eq!(u16::from_le_bytes([word[0], word[1]]), expected, "entry {entry}");
+        assert_eq!(
+            u16::from_le_bytes([word[0], word[1]]),
+            expected,
+            "entry {entry}"
+        );
     }
 }
 
@@ -280,7 +295,15 @@ fn animated(picture: &Picture, animations: &[Vec<Picture>]) -> voodoo::Result<vo
 #[test]
 fn an_animated_cell_gets_its_own_tile_in_a_run_after_the_still_ones() {
     let base = picture(24, 8, |x, _| if x < 16 { 9 } else { 10 });
-    let frame = picture(24, 8, |x, _| if x < 8 { 9 } else if x < 16 { 11 } else { 10 });
+    let frame = picture(24, 8, |x, _| {
+        if x < 8 {
+            9
+        } else if x < 16 {
+            11
+        } else {
+            10
+        }
+    });
     let done = animated(&base, &[vec![frame]]).unwrap();
     // Still: blank, the 9 cell, the 10 cell. Then the run: the moving 9 cell.
     assert_eq!(done.report.tiles, 4);
@@ -323,7 +346,10 @@ fn a_cell_moving_with_two_animations_is_refused() {
     let base = picture(8, 8, |_, _| 9);
     let message = answer(animated(
         &base,
-        &[vec![picture(8, 8, |_, _| 10)], vec![picture(8, 8, |_, _| 11)]],
+        &[
+            vec![picture(8, 8, |_, _| 10)],
+            vec![picture(8, 8, |_, _| 11)],
+        ],
     ));
     assert!(message.contains("animations 0 and 1"), "{message}");
 }
@@ -333,14 +359,32 @@ fn a_cell_moving_with_two_animations_is_refused() {
 #[test]
 fn a_mirrored_animated_cell_is_reused_only_if_every_frame_mirrors() {
     let mark = |x: usize, y: usize, a: u8, b: u8| if x == 0 && y == 0 { a } else { b };
-    let base = picture(16, 8, |x, y| if x < 8 { mark(x, y, 1, 2) } else { mark(15 - x, y, 1, 2) });
+    let base = picture(16, 8, |x, y| {
+        if x < 8 {
+            mark(x, y, 1, 2)
+        } else {
+            mark(15 - x, y, 1, 2)
+        }
+    });
     // Frame 1: the left cell mirrors into the right one; the right cell's
     // frame is its own mirror too, so they share.
-    let same = picture(16, 8, |x, y| if x < 8 { mark(x, y, 3, 2) } else { mark(15 - x, y, 3, 2) });
+    let same = picture(16, 8, |x, y| {
+        if x < 8 {
+            mark(x, y, 3, 2)
+        } else {
+            mark(15 - x, y, 3, 2)
+        }
+    });
     let done = animated(&base, &[vec![same]]).unwrap();
     assert_eq!(done.animations[0].count, 1);
     // Frame 1 again, but the right cell does not mirror the left one there.
-    let apart = picture(16, 8, |x, y| if x < 8 { mark(x, y, 3, 2) } else { mark(15 - x, y, 4, 2) });
+    let apart = picture(16, 8, |x, y| {
+        if x < 8 {
+            mark(x, y, 3, 2)
+        } else {
+            mark(15 - x, y, 4, 2)
+        }
+    });
     let done = animated(&base, &[vec![apart]]).unwrap();
     assert_eq!(done.animations[0].count, 2);
 }
