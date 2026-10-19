@@ -377,10 +377,24 @@ impl Game {
                     game_maps.insert(n);
                 }
             }
-            Forks::read(&project.manual_patches()?, &game_maps)?
+            let game_commons = dump
+                .section::<Vec<schema::CommonEvent>>("commonevents")?
+                .iter()
+                .map(|c| c.id)
+                .collect();
+            Forks::read(&project.manual_patches()?, &game_maps, &game_commons)?
         } else {
             Forks::default()
         };
+        // The common events the project redid go in a dump of their own,
+        // which every stage is handed from here on: see
+        // `fork::with_common_events`.
+        let dump_path = crate::fork::with_common_events(
+            &dump_path,
+            &forks,
+            &project.build()?.join("patches-manual"),
+        )?;
+        let dump = Dump::open(&dump_path)?;
         let db = database(&dump, &forks)?;
         let mut tree = Tree::default();
         for node in dump.tree()?.maps {
