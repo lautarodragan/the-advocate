@@ -11,7 +11,7 @@ use crate::background::blocks::Blocks;
 use crate::background::Converted;
 use crate::baking::{self, bakeable};
 use crate::decor::{self, Decoration};
-use crate::events::{changes_graphic, collect_npcs, events, Event};
+use crate::events::{changes_graphic, collect_npcs, dressed_by_routes, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::layers::{self as stage_layers, Drawn};
@@ -1088,6 +1088,38 @@ fn convert_with(
     let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
     let gone: BTreeSet<usize> = kept_decor.iter().map(|d| d.event).collect();
     npcs0.retain(|n| !gone.contains(&n.event));
+    // And the events a route dresses whose pages draw nothing: a hidden row
+    // each, with the graphics that draw something —one that dresses an
+    // event with a blank slot is hiding it, and that needs no row—. See
+    // `dressed_by_routes`.
+    let mut dressing: BTreeMap<usize, Vec<Key>> = BTreeMap::new();
+    for page in request.pages.iter().filter(|p| p.compiles) {
+        for &(event, k) in &page.route_graphics {
+            let Some(key) = request.route_graphics.get(k) else {
+                continue;
+            };
+            drawer.draw(&key.0)?;
+            let draws = drawer
+                .sheets()
+                .get(&key.0)
+                .and_then(Option::as_ref)
+                .is_some_and(|s| !sprite_colors(s, key.1, None).is_empty());
+            let graphics = dressing.entry(event).or_default();
+            if draws && !graphics.contains(key) {
+                graphics.push(key.clone());
+            }
+        }
+    }
+    let drawn: BTreeSet<usize> = npcs0.iter().map(|n| n.event).collect();
+    let dressed = dressed_by_routes(&events, &chipset_name, &drawn, &dressing);
+    if !dressed.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: events {} draw nothing on any page and a route dresses them: a hidden row each",
+            dressed.iter().map(|n| events[n.event].id.to_string()).collect::<Vec<_>>().join(", ")
+        )));
+        npcs0.extend(dressed);
+        npcs0.sort_by_key(|n| n.event);
+    }
     // More than the console's table holds: some lose their row. Before
     // anything counts poses, slots or palettes, so what is not drawn costs
     // nothing in the sprite bank either.
