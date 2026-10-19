@@ -4,7 +4,8 @@
 //! RM2k runs an automatic common event —trigger 3— whenever its switch is
 //! on, on whatever map, exactly like an automatic page of the map. Here its
 //! body is compiled a single time, without a map —no events to name, no
-//! audio package to note effects in, no pictures—, and the ROM looks at its
+//! audio package to note effects in, no pictures but the big ones, which are
+//! the cartridge's: see [`Setting::pictures`]—, and the ROM looks at its
 //! switch each time the foreground interpreter is free: see `common_start`
 //! in runtime/common_events.s, and easyrpg's
 //! `Game_Map::UpdateForegroundEvents`, which is what it copies.
@@ -36,7 +37,7 @@ use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
 use crate::losses::{Losses, Origin};
 use crate::messages::Messages;
-use crate::registry::{Songs, Troops};
+use crate::registry::{Pictures, Songs, Troops};
 use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -94,6 +95,27 @@ pub fn automatic(game: &Game, indices: &Indices) -> Vec<(i32, i32)> {
         // `indices::switch_top`—, so it guards a mistake, not a game.
         .filter(|(_, c)| indices.holds_switch(c.switch_id as i64))
         .map(|(&n, c)| (n, c.switch_id))
+        .collect()
+}
+
+/// The common events that run on whatever map without a page of it calling
+/// them: the automatic ones and the parallel ones, but those a custom menu
+/// replaces, whose body is the menu's opcode. What the pictures they show
+/// are gathered from, in the scan —their calls pasted, which is where the
+/// pictures of the bodies they call come from—: see
+/// `Request::common_pictures`.
+pub fn running_anywhere(game: &Game, indices: &Indices) -> Vec<i32> {
+    let parallel = game
+        .common_events
+        .iter()
+        .filter(|(_, c)| c.trigger == COMMON_PARALLEL && !c.commands.is_empty())
+        .filter(|(_, c)| !c.switch_flag || indices.holds_switch(c.switch_id as i64))
+        .map(|(&n, _)| n);
+    automatic(game, indices)
+        .into_iter()
+        .map(|(n, _)| n)
+        .chain(parallel)
+        .filter(|n| !game.patches.menus.replaced.contains_key(n))
         .collect()
 }
 
@@ -189,6 +211,13 @@ pub struct Setting<'a> {
     pub indices: &'a Indices,
     pub sound: &'a SoundSettings,
     pub map_index: &'a dyn Fn(i64) -> Option<usize>,
+    /// The big pictures the bodies can show: the cartridge carries each
+    /// once, and the console shows it the same on any map, so a body
+    /// without a map shows them as a page does —Book of Three's map item,
+    /// common event 23, shows its 640x480 `bo3map` wherever it is used—.
+    /// The small ones are each map's, in its sprite bank, and are not here:
+    /// see `Request::common_pictures`.
+    pub pictures: &'a Pictures,
 }
 
 /// One body, with whatever registries it is given.
@@ -229,6 +258,7 @@ fn body_of(
     } else {
         &s.game.common_events[&number].commands
     };
+    let mut pictures = s.pictures.clone();
     let mut ctx = Ctx {
         game: s.game,
         indices: s.indices,
@@ -237,7 +267,7 @@ fn body_of(
         messages: Some(messages),
         songs: Some(songs),
         graphics: None,
-        pictures: None,
+        pictures: Some(&mut pictures),
         troops: Some(troops),
         commons: Some(commons),
         shared: None,
@@ -533,6 +563,7 @@ pub fn parallel_commons(
             code.push(OP_DONE);
             Some(code)
         } else {
+            let mut pictures = s.pictures.clone();
             let mut ctx = Ctx {
                 game: s.game,
                 indices: s.indices,
@@ -541,7 +572,7 @@ pub fn parallel_commons(
                 messages: Some(&mut *messages),
                 songs: Some(&mut *songs),
                 graphics: None,
-                pictures: None,
+                pictures: Some(&mut pictures),
                 troops: Some(&mut *troops),
                 commons: None,
                 shared: None,

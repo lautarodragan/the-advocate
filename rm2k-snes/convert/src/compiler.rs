@@ -122,6 +122,10 @@ pub struct Compiler<'a> {
     /// The automatic common events copied into the maps, and into which:
     /// see [`crate::common_pages`]. None in a cartridge without them.
     pub common_pages: Option<Value>,
+    /// The big pictures the common events without a map can show, as a
+    /// map's big table: see `common_pictures` in `rm2k-snes-events`. Empty
+    /// in a cartridge whose common events show none.
+    pub common_pictures: Vec<Value>,
 }
 
 impl<'a> Compiler<'a> {
@@ -158,6 +162,7 @@ impl<'a> Compiler<'a> {
             keep_request: None,
             extra_switches: BTreeSet::new(),
             common_pages: None,
+            common_pictures: Vec::new(),
         })
     }
 
@@ -206,6 +211,9 @@ impl<'a> Compiler<'a> {
         r.insert("menus".into(), self.menus.clone());
         if let Some(c) = &self.common_pages {
             r.insert("common_pages".into(), c.clone());
+        }
+        if !self.common_pictures.is_empty() {
+            r.insert("common_pictures".into(), json!(self.common_pictures));
         }
         if !self.systems.is_empty() {
             r.insert("systems".into(), json!(self.systems));
