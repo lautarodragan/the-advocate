@@ -107,9 +107,10 @@ impl Encounters {
             // its own **and** areas, so the order of the zones —the map's
             // own first, see `encounter_zones`— cannot change which troop
             // comes out.
-            let theirs = game.tree.encounter_zones(map.id as i32, map.width, map.height);
-            let steps =
-                steps.unwrap_or_else(|| game.tree.encounter_steps(map.id as i32) as i64);
+            let theirs = game
+                .tree
+                .encounter_zones(map.id as i32, map.width, map.height);
+            let steps = steps.unwrap_or_else(|| game.tree.encounter_steps(map.id as i32) as i64);
             if theirs.is_empty() || base(steps) == 0 {
                 e.per_map.push(NONE);
                 continue;

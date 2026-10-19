@@ -26,3 +26,6 @@ flate2 = "1"
 # `preserve_order`: a table's keys come back in the order the file writes
 # them. The cartridges are built and printed in that order.
 toml = { version = "1", features = ["preserve_order"] }
+
+[lints]
+workspace = true

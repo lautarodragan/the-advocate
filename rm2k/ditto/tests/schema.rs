@@ -192,7 +192,10 @@ fn every_enum_name_is_the_one_serde_uses() {
     // Spot-checked against the real codec: these three are the ones the port
     // reads on every map, and a rename would be silent.
     let page: EventPage = serde_json::from_str(r#"{"trigger": "auto_start"}"#).unwrap();
-    assert_eq!(page.trigger.to_i32(), value("EventPageTrigger", "auto_start"));
+    assert_eq!(
+        page.trigger.to_i32(),
+        value("EventPageTrigger", "auto_start")
+    );
     let page: EventPage = serde_json::from_str(r#"{"layer": "same"}"#).unwrap();
     assert_eq!(page.layer.to_i32(), value("EventPageLayers", "same"));
     let command: EventCommand = serde_json::from_str(r#"{"code": "ShowMessage"}"#).unwrap();
@@ -225,8 +228,8 @@ fn the_chunks_and_the_persist_flags_are_pinned() {
     let field = |n: &str| actor.iter().find(|f| f.name == n).unwrap();
     assert_eq!(field("id").chunk, None);
     assert_eq!(field("final_level").chunk, Some(0x08));
-    assert_eq!(field("final_level").persist, false);
-    assert_eq!(field("skills").persist, true);
+    assert!(!field("final_level").persist);
+    assert!(field("skills").persist);
     assert_eq!(field("skills").nested, Some("Learning"));
     assert_eq!(field("parameters").nested, Some("Parameters"));
 }
@@ -263,7 +266,11 @@ fn the_published_json_says_what_the_tables_say() {
     for (name, variants) in ENUMS {
         let published = enums[*name].as_object().unwrap();
         for (variant, v) in *variants {
-            assert_eq!(published[*variant], serde_json::json!(v), "{name}.{variant}");
+            assert_eq!(
+                published[*variant],
+                serde_json::json!(v),
+                "{name}.{variant}"
+            );
         }
     }
 }

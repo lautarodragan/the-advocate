@@ -1,7 +1,9 @@
 //! Round trips, the edges of the header, and streams a correct decoder has to
 //! refuse.
 
-use lz2::{compress, compress_with, decompress, decompress_prefix, parse, Error, Options, INCREASING};
+use lz2::{
+    compress, compress_with, decompress, decompress_prefix, parse, Error, Options, INCREASING,
+};
 
 /// A small deterministic generator, so a failing case can be rerun as is.
 struct Rng(u64);
@@ -20,7 +22,11 @@ impl Rng {
 
 fn round_trip(data: &[u8]) -> Vec<u8> {
     let stream = compress(data).expect("compresses");
-    assert_eq!(decompress(&stream).expect("decodes"), data, "the round trip changed the data");
+    assert_eq!(
+        decompress(&stream).expect("decodes"),
+        data,
+        "the round trip changed the data"
+    );
     stream
 }
 
@@ -33,7 +39,7 @@ fn mixed(rng: &mut Rng, len: usize) -> Vec<u8> {
             0 => {
                 let b = rng.byte();
                 let n = 1 + (rng.next() % 1500) as usize;
-                out.extend(std::iter::repeat(b).take(n));
+                out.extend(std::iter::repeat_n(b, n));
             }
             1 => {
                 let (a, b) = (rng.byte(), rng.byte());
@@ -52,7 +58,7 @@ fn mixed(rng: &mut Rng, len: usize) -> Vec<u8> {
                     let b = out[from + k];
                     out.push(b);
                 }
-                if rng.next() % 2 == 0 {
+                if rng.next().is_multiple_of(2) {
                     let at = out.len() - 1;
                     out[at] ^= 0x55;
                 }
@@ -99,7 +105,9 @@ fn a_counter_is_an_increasing_fill() {
 
 #[test]
 fn an_alternating_pair_is_a_word_fill() {
-    let data: Vec<u8> = (0..20).map(|k| if k % 2 == 0 { 0xAB } else { 0xCD }).collect();
+    let data: Vec<u8> = (0..20)
+        .map(|k| if k % 2 == 0 { 0xAB } else { 0xCD })
+        .collect();
     assert_eq!(round_trip(&data), vec![0x40 | 19, 0xAB, 0xCD, 0xFF]);
 }
 
@@ -111,7 +119,11 @@ fn a_repeat_carries_its_address_big_endian() {
     let stream = round_trip(&data);
     // 260 is $0104: the high byte goes first.
     let at = stream.windows(3).position(|w| w == [0x80 | 29, 0x01, 0x04]);
-    assert!(at.is_some(), "no repeat of 30 from $0104 in {:02X?}", stream);
+    assert!(
+        at.is_some(),
+        "no repeat of 30 from $0104 in {:02X?}",
+        stream
+    );
 }
 
 #[test]
@@ -128,7 +140,12 @@ fn noise_round_trips_and_grows_by_at_most_one_in_thirty_two() {
     let mut rng = Rng(12345);
     let data: Vec<u8> = (0..20000).map(|_| rng.byte()).collect();
     let stream = round_trip(&data);
-    assert!(stream.len() <= data.len() + data.len() / 32 + 2, "{} bytes for {}", stream.len(), data.len());
+    assert!(
+        stream.len() <= data.len() + data.len() / 32 + 2,
+        "{} bytes for {}",
+        stream.len(),
+        data.len()
+    );
 }
 
 #[test]
@@ -160,14 +177,23 @@ fn too_long_an_input_is_refused() {
 
 #[test]
 fn a_stream_without_its_terminator_is_truncated() {
-    assert!(matches!(decompress(&[0x01, 0xAA, 0xBB]), Err(Error::Truncated(_))));
+    assert!(matches!(
+        decompress(&[0x01, 0xAA, 0xBB]),
+        Err(Error::Truncated(_))
+    ));
     assert!(matches!(decompress(&[0x21]), Err(Error::Truncated(_))));
 }
 
 #[test]
 fn bytes_after_the_terminator_are_refused_but_a_prefix_is_fine() {
-    assert_eq!(decompress(&[0x00, 0x11, 0xFF, 0x00]), Err(Error::Trailing(3)));
-    assert_eq!(decompress_prefix(&[0x00, 0x11, 0xFF, 0x00]).unwrap(), (vec![0x11], 3));
+    assert_eq!(
+        decompress(&[0x00, 0x11, 0xFF, 0x00]),
+        Err(Error::Trailing(3))
+    );
+    assert_eq!(
+        decompress_prefix(&[0x00, 0x11, 0xFF, 0x00]).unwrap(),
+        (vec![0x11], 3)
+    );
 }
 
 #[test]
@@ -175,20 +201,39 @@ fn a_repeat_from_the_future_is_refused() {
     // One literal, then a repeat from position 1 while producing position 1.
     assert_eq!(
         decompress(&[0x00, 0x11, 0x80, 0x00, 0x01, 0xFF]),
-        Err(Error::BadRepeat { offset: 2, from: 1, at: 1 })
+        Err(Error::BadRepeat {
+            offset: 2,
+            from: 1,
+            at: 1
+        })
     );
 }
 
 #[test]
 fn an_overlapping_repeat_repeats() {
     // "ab", then 6 from position 0: abababab.
-    assert_eq!(decompress(&[0x01, b'a', b'b', 0x85, 0x00, 0x00, 0xFF]).unwrap(), b"abababab");
+    assert_eq!(
+        decompress(&[0x01, b'a', b'b', 0x85, 0x00, 0x00, 0xFF]).unwrap(),
+        b"abababab"
+    );
 }
 
 #[test]
 fn commands_five_and_six_do_not_exist() {
-    assert_eq!(decompress(&[0xA0, 0xFF]), Err(Error::BadCommand { offset: 0, command: 5 }));
-    assert_eq!(decompress(&[0xF8, 0x00, 0xFF]), Err(Error::BadCommand { offset: 0, command: 6 }));
+    assert_eq!(
+        decompress(&[0xA0, 0xFF]),
+        Err(Error::BadCommand {
+            offset: 0,
+            command: 5
+        })
+    );
+    assert_eq!(
+        decompress(&[0xF8, 0x00, 0xFF]),
+        Err(Error::BadCommand {
+            offset: 0,
+            command: 6
+        })
+    );
 }
 
 #[test]
@@ -209,7 +254,11 @@ fn without_increasing_a_counter_takes_other_commands() {
     let stream = compress_with(&data, options).unwrap();
     assert_eq!(decompress(&stream).unwrap(), data);
     let commands = lz2::parse_with(&data, options).unwrap();
-    assert!(commands.iter().all(|c| c.kind != INCREASING), "{:?}", commands);
+    assert!(
+        commands.iter().all(|c| c.kind != INCREASING),
+        "{:?}",
+        commands
+    );
     // The second counter repeats the first.
     assert!(stream.len() < 256 + 16, "{} bytes", stream.len());
 }

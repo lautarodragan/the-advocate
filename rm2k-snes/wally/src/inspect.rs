@@ -12,13 +12,13 @@ use crate::game::Game;
 use crate::map::MapRequest;
 use crate::moves::moves;
 use crate::sheets::Drawer;
-use rm2k_render::picture;
-use rm2k_rules::chipset::passability_table;
-use rm2k_rules::charset::{OFFSET_X, OFFSET_Y};
-use rm2k_rules::passability::cell;
 use crate::sprites::extras::timer_colors;
 use crate::sprites::npc::map_poses;
 use crate::sprites::split::{drawable_npcs, Ask};
+use rm2k_render::picture;
+use rm2k_rules::charset::{OFFSET_X, OFFSET_Y};
+use rm2k_rules::chipset::passability_table;
+use rm2k_rules::passability::cell;
 use serde_json::{json, Value};
 
 /// The alpha of the 16x16 pixels of upper tile `index`, as the event's sheet
@@ -57,7 +57,10 @@ pub fn bakeable_report(game: &Game, request: &MapRequest) -> Result<Value> {
     let baked = bakeable(&mut drawer, &map, &events, &npcs)?;
     let mut rows = Vec::new();
     for (event, (at, tile)) in &baked {
-        let imposed = npcs.iter().find(|n| n.event == *event).and_then(|n| n.tile_pass);
+        let imposed = npcs
+            .iter()
+            .find(|n| n.event == *event)
+            .and_then(|n| n.tile_pass);
         rows.push(json!({
             "event": event, "cell": at, "tile": tile, "imposed": imposed,
             "after": cell(&flags, lower[*at], *tile),
@@ -82,9 +85,21 @@ pub fn split_report(game: &Game, request: &MapRequest, palettes: usize) -> Resul
     let leaders: Vec<(String, i32)> = request
         .leaders
         .iter()
-        .map(|a| actors.get(a).cloned().ok_or_else(|| Bad::answer(format!("actor {a} is not in the database"))))
+        .map(|a| {
+            actors
+                .get(a)
+                .cloned()
+                .ok_or_else(|| Bad::answer(format!("actor {a} is not in the database")))
+        })
         .collect::<Result<_>>()?;
-    let who = moves(&request.pages, &events, &npcs, &chipset.chipset_name, &request.also_walk, crate::moves::Animate::ALL);
+    let who = moves(
+        &request.pages,
+        &events,
+        &npcs,
+        &chipset.chipset_name,
+        &request.also_walk,
+        crate::moves::Animate::ALL,
+    );
     let poses = map_poses(
         &leaders,
         &npcs,

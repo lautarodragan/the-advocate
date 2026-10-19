@@ -354,8 +354,7 @@ fn lay_out(base: &Grid, groups: &[Vec<Grid>], options: &Options) -> Result<LaidO
                         indices
                     })
                     .collect();
-                tilemap[y][x] =
-                    place(&frames, palette, options, &mut pool, &mut numbered)?;
+                tilemap[y][x] = place(&frames, palette, options, &mut pool, &mut numbered)?;
             }
         }
         if let Some(a) = class {
@@ -403,7 +402,9 @@ fn palette_of_cells(cells: &[&Cell], x: usize, y: usize, bpp: usize) -> Result<O
         .map(|&i| i as usize / palette_size(bpp))
         .collect();
     let mut found = used.iter();
-    let Some(&palette) = found.next() else { return Ok(None) };
+    let Some(&palette) = found.next() else {
+        return Ok(None);
+    };
     if let Some(&other) = found.next() {
         return Err(Bad::answer(format!(
             "the cell at column {x}, row {y} draws with palettes {palette} and {other}, \
@@ -431,7 +432,13 @@ fn place(
         let key: Vec<Indices> = flipped.iter().map(|f| f[k].0).collect();
         if let Some(number) = pool.get(&(palette, key)) {
             let (_, horizontal, vertical) = flipped[0][k];
-            return Ok(entry(*number, horizontal, vertical, options.priority, palette as u8));
+            return Ok(entry(
+                *number,
+                horizontal,
+                vertical,
+                options.priority,
+                palette as u8,
+            ));
         }
     }
     let number = numbered.len();

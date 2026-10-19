@@ -32,7 +32,11 @@ pub const ANIMATED_STEPS: u32 = 4;
 /// table does not name—, 0, 1, 2 in a circle, because easyrpg only asks
 /// whether it is zero.
 pub fn water_drawing(frame: u32, animation_type: ChipsetAnimType, animation_speed: i32) -> u32 {
-    let frames = if animation_speed == 0 { WATER_FRAMES_SLOW } else { WATER_FRAMES_FAST };
+    let frames = if animation_speed == 0 {
+        WATER_FRAMES_SLOW
+    } else {
+        WATER_FRAMES_FAST
+    };
     let step = frame / frames;
     if animation_type.to_i32() != 0 {
         step % 3

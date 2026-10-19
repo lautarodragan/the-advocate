@@ -94,7 +94,9 @@ pub fn file_fingerprint(path: &Path) -> Option<String> {
 /// Where a program is on the PATH.
 fn which(program: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
-    std::env::split_paths(&path).map(|d| d.join(program)).find(|p| p.is_file())
+    std::env::split_paths(&path)
+        .map(|d| d.join(program))
+        .find(|p| p.is_file())
 }
 
 /// Which program produced a track: the binary on the PATH and what it says
@@ -125,7 +127,8 @@ fn program_fingerprint(program: &str, version_flag: &str, missing: &str) -> Resu
 /// the tracks; and it is the only thing that changes exactly when the code
 /// does, without anyone having to remember to bump a number.
 fn own_version() -> Result<String> {
-    let exe = std::env::current_exe().map_err(|e| Bad::usage(format!("the running executable: {e}")))?;
+    let exe =
+        std::env::current_exe().map_err(|e| Bad::usage(format!("the running executable: {e}")))?;
     file_sha256(&exe).map_err(|e| io(&exe, e))
 }
 
@@ -153,7 +156,10 @@ pub fn followed_link(path: &Path) -> Option<PathBuf> {
     }
     let text = std::fs::read_to_string(path).ok()?;
     let line = text.lines().next()?.trim();
-    let line = line.strip_suffix("loop").or_else(|| line.strip_suffix("LOOP")).unwrap_or(line);
+    let line = line
+        .strip_suffix("loop")
+        .or_else(|| line.strip_suffix("LOOP"))
+        .unwrap_or(line);
     let mut here = path.parent()?.to_path_buf();
     for part in line.split(['\\', '/']).filter(|p| !p.is_empty()) {
         if part == ".." {
@@ -220,14 +226,20 @@ fn read_wav(path: &Path) -> Result<(Vec<i16>, usize)> {
             format = Some((channels, bits, rate));
         } else if id == b"data" {
             if format != Some((2, 16, 44100)) {
-                return Err(Bad::usage(format!("{} is not 16-bit stereo at 44100", path.display())));
+                return Err(Bad::usage(format!(
+                    "{} is not 16-bit stereo at 44100",
+                    path.display()
+                )));
             }
             // Whole frames only, and no further than the file goes: that is
             // what reading `nframes` frames gave.
             let end = body.saturating_add(size).min(bytes.len());
             let frames = (end - body) / 4;
             let data = &bytes[body..body + frames * 4];
-            let samples = data.chunks_exact(2).map(|c| i16::from_le_bytes([c[0], c[1]])).collect();
+            let samples = data
+                .chunks_exact(2)
+                .map(|c| i16::from_le_bytes([c[0], c[1]]))
+                .collect();
             return Ok((samples, frames));
         }
         at = body.saturating_add(size).saturating_add(size & 1);
@@ -253,7 +265,11 @@ pub fn track(samples: &[i16], loop_point: u32, peak: f64) -> (Vec<u8>, f64) {
     out.extend_from_slice(&loop_point.to_le_bytes());
     let rescale = !(1.0..=1.02).contains(&scale);
     for &s in samples {
-        let v = if rescale { (s as f64 * scale).trunc().clamp(-32768.0, 32767.0) as i16 } else { s };
+        let v = if rescale {
+            (s as f64 * scale).trunc().clamp(-32768.0, 32767.0) as i16
+        } else {
+            s
+        };
         out.extend_from_slice(&v.to_le_bytes());
     }
     (out, scale)
@@ -329,23 +345,45 @@ impl Tracks {
     pub fn midi_key(&self, midi: &Path) -> Result<String> {
         let own = self.once(&self.own, own_version)?;
         let synth = self.once(&self.fluidsynth, || {
-            program_fingerprint("fluidsynth", "--version", "fluidsynth is missing: on Arch, pacman -S fluidsynth")
+            program_fingerprint(
+                "fluidsynth",
+                "--version",
+                "fluidsynth is missing: on Arch, pacman -S fluidsynth",
+            )
         })?;
-        let font = self.once(&self.font, || file_sha256(&self.soundfont).map_err(|e| io(&self.soundfont, e)))?;
+        let font = self.once(&self.font, || {
+            file_sha256(&self.soundfont).map_err(|e| io(&self.soundfont, e))
+        })?;
         let raw = std::fs::read(midi).map_err(|e| io(midi, e))?;
         let scaling = format!("{:?} {:?}", self.gain, PEAK);
-        Ok(cache::key(&[own.as_bytes(), synth.as_bytes(), font.as_bytes(), scaling.as_bytes(), &raw]))
+        Ok(cache::key(&[
+            own.as_bytes(),
+            synth.as_bytes(),
+            font.as_bytes(),
+            scaling.as_bytes(),
+            &raw,
+        ]))
     }
 
     /// The same, for a track that comes from an audio file: a replacement,
     /// or a song that in the game is a WAV.
     pub fn audio_key(&self, audio: &Path) -> Result<String> {
         let own = self.once(&self.own, own_version)?;
-        let decoder =
-            self.once(&self.ffmpeg, || program_fingerprint("ffmpeg", "-version", "ffmpeg is missing: on Arch, pacman -S ffmpeg"))?;
+        let decoder = self.once(&self.ffmpeg, || {
+            program_fingerprint(
+                "ffmpeg",
+                "-version",
+                "ffmpeg is missing: on Arch, pacman -S ffmpeg",
+            )
+        })?;
         let raw = std::fs::read(audio).map_err(|e| io(audio, e))?;
         let scaling = format!("{:?}", PEAK);
-        Ok(cache::key(&[own.as_bytes(), decoder.as_bytes(), scaling.as_bytes(), &raw]))
+        Ok(cache::key(&[
+            own.as_bytes(),
+            decoder.as_bytes(),
+            scaling.as_bytes(),
+            &raw,
+        ]))
     }
 
     fn cached(&self, key: &str) -> Option<String> {
@@ -373,8 +411,10 @@ impl Tracks {
         let mut audio = replacement(self.replacements.as_deref(), name);
         let mut midi = None;
         if audio.is_none() {
-            let source =
-                self.game.track_source(name).ok_or_else(|| Bad::usage(format!("cannot find the music for {name}")))?;
+            let source = self
+                .game
+                .track_source(name)
+                .ok_or_else(|| Bad::usage(format!("cannot find the music for {name}")))?;
             if source.to_string_lossy().to_lowercase().ends_with(".mid") {
                 midi = Some(source);
             } else {
@@ -413,7 +453,9 @@ impl Tracks {
         if let Some(fp) = file_fingerprint(&out_path) {
             self.store(&key, &fp);
         }
-        let from = audio.map(|a| format!("  (from {})", a.display())).unwrap_or_default();
+        let from = audio
+            .map(|a| format!("  (from {})", a.display()))
+            .unwrap_or_default();
         Ok(Outcome::Made(format!(
             "track {number}: {name:<22} {:6.1} s, {} MB, normalized x{scale:.2} -> {}{from}",
             frames as f64 / 44100.0,
@@ -427,7 +469,12 @@ impl Tracks {
     /// Each line goes to `print` in order, as it is known; `verbose` false
     /// leaves out the tracks that were already there. Returns how many it
     /// made and how many were already there.
-    pub fn build(&self, rom: &Path, verbose: bool, print: &mut dyn FnMut(&str)) -> Result<(usize, usize)> {
+    pub fn build(
+        &self,
+        rom: &Path,
+        verbose: bool,
+        print: &mut dyn FnMut(&str),
+    ) -> Result<(usize, usize)> {
         // Python's `splitext`, which is what `Path::with_extension` does:
         // `abl.sfc` gives `abl`, and a name without a dot stays as it is.
         let base = rom.with_extension("").to_string_lossy().into_owned();
@@ -435,7 +482,11 @@ impl Tracks {
         // with its data, so here it is created only if missing —a loose ROM,
         // built by hand—, and empty. Appending does not truncate it.
         let msu = PathBuf::from(format!("{base}.msu"));
-        std::fs::OpenOptions::new().create(true).append(true).open(&msu).map_err(|e| io(&msu, e))?;
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&msu)
+            .map_err(|e| io(&msu, e))?;
 
         let tracks = cartridge_tracks(rom)?;
         let numbers: std::collections::BTreeSet<i64> = tracks.iter().map(|&(_, n)| n).collect();
@@ -444,11 +495,21 @@ impl Tracks {
             Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
             _ => PathBuf::from("."),
         };
-        let stem = base_path.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        let stem = base_path
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
         let mut old = Vec::new();
         for entry in std::fs::read_dir(&dir).map_err(|e| io(&dir, e))? {
-            let file = entry.map_err(|e| io(&dir, e))?.file_name().to_string_lossy().into_owned();
-            let Some(number) = file.strip_prefix(&format!("{stem}-")).and_then(|r| r.strip_suffix(".pcm")) else {
+            let file = entry
+                .map_err(|e| io(&dir, e))?
+                .file_name()
+                .to_string_lossy()
+                .into_owned();
+            let Some(number) = file
+                .strip_prefix(&format!("{stem}-"))
+                .and_then(|r| r.strip_suffix(".pcm"))
+            else {
                 continue;
             };
             if !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit()) {
@@ -462,13 +523,18 @@ impl Tracks {
         old.sort();
         for (number, path) in old {
             std::fs::remove_file(&path).map_err(|e| io(&path, e))?;
-            print(&format!("track {number}: no longer belongs to any song, deleted"));
+            print(&format!(
+                "track {number}: no longer belongs to any song, deleted"
+            ));
         }
 
         // The tracks at once, in threads: each one writes its own file, the
         // heavy part runs in fluidsynth or ffmpeg, and one by one they were
         // what took longest in a cold build. What is printed stays in order.
-        let workers = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1).min(tracks.len().max(1));
+        let workers = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
+            .min(tracks.len().max(1));
         let next = Mutex::new(0usize);
         let (tx, rx) = mpsc::channel();
         let mut made = 0;
@@ -487,7 +553,9 @@ impl Tracks {
                         *n += 1;
                         i
                     };
-                    let Some((name, number)) = tracks.get(i) else { break };
+                    let Some((name, number)) = tracks.get(i) else {
+                        break;
+                    };
                     if tx.send((i, self.one(base, name, *number))).is_err() {
                         break;
                     }
@@ -542,7 +610,10 @@ fn decode(audio: &Path, out: &Path) -> Result<()> {
         .status()
         .map_err(|e| Bad::usage(format!("ffmpeg: {e}")))?;
     if !status.success() {
-        return Err(Bad::usage(format!("ffmpeg could not decode {}: {status}", audio.display())));
+        return Err(Bad::usage(format!(
+            "ffmpeg could not decode {}: {status}",
+            audio.display()
+        )));
     }
     Ok(())
 }
@@ -565,7 +636,10 @@ fn render(midi: &Path, out: &Path, soundfont: &Path, gain: f64) -> Result<()> {
         .status()
         .map_err(|e| Bad::usage(format!("fluidsynth: {e}")))?;
     if !status.success() {
-        return Err(Bad::usage(format!("fluidsynth could not render {}: {status}", midi.display())));
+        return Err(Bad::usage(format!(
+            "fluidsynth could not render {}: {status}",
+            midi.display()
+        )));
     }
     Ok(())
 }
@@ -576,14 +650,22 @@ mod tests {
 
     #[test]
     fn a_link_wav_is_followed_to_the_mp3_it_names() {
-        let root = std::env::temp_dir().join(format!("rm2k-snes-audio-link-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("rm2k-snes-audio-link-{}", std::process::id()));
         let music = root.join("Music");
         std::fs::create_dir_all(&music).unwrap();
         std::fs::create_dir_all(root.join("mp3")).unwrap();
         std::fs::write(root.join("mp3").join("Credits.MP3"), b"ID3").unwrap();
-        std::fs::write(music.join("Credits.link.wav"), "..\\mp3\\Credits.mp3loop\r\n").unwrap();
+        std::fs::write(
+            music.join("Credits.link.wav"),
+            "..\\mp3\\Credits.mp3loop\r\n",
+        )
+        .unwrap();
         std::fs::write(music.join("Plain.wav"), b"RIFF").unwrap();
-        assert_eq!(followed_link(&music.join("Credits.link.wav")), Some(root.join("mp3").join("Credits.MP3")));
+        assert_eq!(
+            followed_link(&music.join("Credits.link.wav")),
+            Some(root.join("mp3").join("Credits.MP3"))
+        );
         assert_eq!(followed_link(&music.join("Plain.wav")), None);
         std::fs::remove_dir_all(&root).unwrap();
     }
@@ -593,7 +675,10 @@ mod tests {
         let (bytes, scale) = track(&[100, -200, 50, 0], 7, PEAK);
         assert_eq!(&bytes[..4], b"MSU1");
         assert_eq!(u32::from_le_bytes(bytes[4..8].try_into().unwrap()), 7);
-        let samples: Vec<i16> = bytes[8..].chunks(2).map(|c| i16::from_le_bytes([c[0], c[1]])).collect();
+        let samples: Vec<i16> = bytes[8..]
+            .chunks(2)
+            .map(|c| i16::from_le_bytes([c[0], c[1]]))
+            .collect();
         assert_eq!(scale, 0.97 * 32767.0 / 200.0);
         // Truncated towards zero, not rounded.
         assert_eq!(samples, vec![15891, -31783, 7945, 0]);
@@ -603,7 +688,10 @@ mod tests {
     fn a_scale_close_to_one_leaves_the_audio_as_it_came() {
         let top = (0.97f64 * 32767.0 / 1.01) as i16;
         let (bytes, _) = track(&[top, -3], 0, PEAK);
-        assert_eq!(&bytes[8..], &[top.to_le_bytes(), (-3i16).to_le_bytes()].concat()[..]);
+        assert_eq!(
+            &bytes[8..],
+            &[top.to_le_bytes(), (-3i16).to_le_bytes()].concat()[..]
+        );
     }
 
     #[test]

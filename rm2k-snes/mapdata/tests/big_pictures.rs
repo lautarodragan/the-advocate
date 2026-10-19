@@ -20,14 +20,22 @@ fn as_tall_as_the_screen_it_is_two_screens_side_by_side() {
     let right = SCREEN * SCREEN;
     for r in 0..28 {
         let row = r * SCREEN;
-        assert_eq!(map[row + 5], 1 + (row + 5) as u16, "the left screen is the picture");
+        assert_eq!(
+            map[row + 5],
+            1 + (row + 5) as u16,
+            "the left screen is the picture"
+        );
         // What a wave brings in on the right: column 31, then 30, mirrored.
         assert_eq!(map[right + row], (1 + (row + 31) as u16) ^ HFLIP);
         assert_eq!(map[right + row + 1], (1 + (row + 30) as u16) ^ HFLIP);
         // And on the left, from the right screen's end: column 0, then 1.
         assert_eq!(map[right + row + 31], (1 + row as u16) ^ HFLIP);
         assert_eq!(map[right + row + 30], (1 + (row + 1) as u16) ^ HFLIP);
-        assert_eq!(map[right + row + 10], 0, "the middle of the right screen is empty");
+        assert_eq!(
+            map[right + row + 10],
+            0,
+            "the middle of the right screen is empty"
+        );
     }
     assert!(map[28 * SCREEN..SCREEN * SCREEN].iter().all(|&e| e == 0));
 }
@@ -75,10 +83,16 @@ fn a_texture_s_rows_are_the_plane_s() {
     assert_eq!(tiles.len(), 3 * 64);
     assert_eq!(rows.len(), 2 * 128);
     assert_eq!(&rows[..SCREEN], &t.map[..SCREEN]);
-    assert!(rows[SCREEN..128].iter().all(|&b| b == 0), "past the layer, the blank tile");
+    assert!(
+        rows[SCREEN..128].iter().all(|&b| b == 0),
+        "past the layer, the blank tile"
+    );
     assert_eq!(&rows[128..128 + SCREEN], &t.map[SCREEN..]);
     // A map that is not the layer's, or more tiles than the plane names.
     assert!(big_mode7(3, &t).is_err());
-    let many = Mode7Texture { tiles: vec![0; 257 * 64], ..t };
+    let many = Mode7Texture {
+        tiles: vec![0; 257 * 64],
+        ..t
+    };
     assert!(big_mode7(2, &many).is_err());
 }

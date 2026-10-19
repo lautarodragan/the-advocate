@@ -2,15 +2,15 @@
 //! [`crate::background`], and written for the caller; and the map as
 //! blocks of 16x16, which are made of what the two layers were converted to.
 
+use crate::background::blocks::{self, Blocks};
+use crate::background::panorama::{Mode, Way};
+use crate::background::{Converted, Merge, Run};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::request::LayersRequest;
 use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
-use crate::background::blocks::{self, Blocks};
-use crate::background::panorama::{Mode, Way};
-use crate::background::{Converted, Merge, Run};
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -98,7 +98,13 @@ const CONSOLE_HERO: (usize, usize) = (128 - 8, 112 - 8);
 /// shows less, is from that one. That is the whole map walked a pixel at a
 /// time. A `PanScreen` can take the camera further, and that is not
 /// counted.
-pub fn reach(map: usize, (rm2k, rm2k_hero): (usize, usize), (console, console_hero): (usize, usize), pano: usize, looped: bool) -> usize {
+pub fn reach(
+    map: usize,
+    (rm2k, rm2k_hero): (usize, usize),
+    (console, console_hero): (usize, usize),
+    pano: usize,
+    looped: bool,
+) -> usize {
     if looped {
         return pano;
     }
@@ -176,20 +182,47 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
                 .flat_map(|e| &e.pages)
                 .flat_map(|p| &p.event_commands)
                 .filter(|c| c.code.to_i32() == CHANGE_PBG && c.parameters.len() >= 2)
-                .fold((false, false), |(x, y), c| (x || c.parameters[0] != 0, y || c.parameters[1] != 0));
-            let w = reach(mw, (RM2K_SCREEN.0, RM2K_HERO.0), (CONSOLE_SCREEN.0, CONSOLE_HERO.0), whole.width, map.parallax_loop_x || changed.0);
-            let h = reach(mh, (RM2K_SCREEN.1, RM2K_HERO.1), (CONSOLE_SCREEN.1, CONSOLE_HERO.1), whole.height, map.parallax_loop_y || changed.1);
+                .fold((false, false), |(x, y), c| {
+                    (x || c.parameters[0] != 0, y || c.parameters[1] != 0)
+                });
+            let w = reach(
+                mw,
+                (RM2K_SCREEN.0, RM2K_HERO.0),
+                (CONSOLE_SCREEN.0, CONSOLE_HERO.0),
+                whole.width,
+                map.parallax_loop_x || changed.0,
+            );
+            let h = reach(
+                mh,
+                (RM2K_SCREEN.1, RM2K_HERO.1),
+                (CONSOLE_SCREEN.1, CONSOLE_HERO.1),
+                whole.height,
+                map.parallax_loop_y || changed.1,
+            );
             Some(Panorama {
                 name,
                 size: (whole.width, whole.height),
                 picture: whole.crop(0, 0, w, h),
                 whole: whole.clone(),
-                changes: map.events.iter().flat_map(|e| &e.pages).flat_map(|p| &p.event_commands).any(|c| c.code.to_i32() == CHANGE_PBG),
+                changes: map
+                    .events
+                    .iter()
+                    .flat_map(|e| &e.pages)
+                    .flat_map(|p| &p.event_commands)
+                    .any(|c| c.code.to_i32() == CHANGE_PBG),
                 changed_loops: changed,
                 looped: (map.parallax_loop_x, map.parallax_loop_y),
                 auto: (
-                    if map.parallax_loop_x && map.parallax_auto_loop_x { map.parallax_sx } else { 0 },
-                    if map.parallax_loop_y && map.parallax_auto_loop_y { map.parallax_sy } else { 0 },
+                    if map.parallax_loop_x && map.parallax_auto_loop_x {
+                        map.parallax_sx
+                    } else {
+                        0
+                    },
+                    if map.parallax_loop_y && map.parallax_auto_loop_y {
+                        map.parallax_sy
+                    } else {
+                        0
+                    },
                 ),
             })
         }
@@ -216,9 +249,9 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         .filter(|d| d.blocks())
         .map(|d| d.y as usize * drawn.width + d.x as usize)
         .collect();
-    let fused = request
-        .fuse_tiles
-        .map_or(0, |max| crate::background::fuse::fuse_lower(&mut layers, max));
+    let fused = request.fuse_tiles.map_or(0, |max| {
+        crate::background::fuse::fuse_lower(&mut layers, max)
+    });
     // The cells a `TileSubstitution` will need and the map does not draw,
     // in rows of their own below it: see `Drawn::extended`.
     let extra: &[(i32, i32)] = request.panorama.as_ref().map_or(&[], |b| &b.extra);
@@ -289,20 +322,27 @@ pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
 
 fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let (Some(p), Some(budget)) = (&drawn.panorama, &request.panorama) else {
-        return Ok(crate::background::convert_with(&drawn.layers, request.window_colors, None)?);
+        return Ok(crate::background::convert_with(
+            &drawn.layers,
+            request.window_colors,
+            None,
+        )?);
     };
     let wc = request.window_colors;
     let attempt = |way: Way| -> std::result::Result<Converted, String> {
         let done = match way {
-            Way::Hidden | Way::Black => crate::background::convert_with(&on_black(&drawn.layers), wc, None),
+            Way::Hidden | Way::Black => {
+                crate::background::convert_with(&on_black(&drawn.layers), wc, None)
+            }
             Way::Painted => {
                 // The layer above's tiles the layout leaves: the roofs' edges.
                 let above = budget.of_mode(4).map(|l| l.above).max().unwrap_or(1);
                 return painted(drawn, p, wc, above);
             }
             Way::Baked => {
-                let done = crate::background::convert_with(&baked(&drawn.layers, &p.whole), wc, None)
-                    .map_err(|e| e.to_string())?;
+                let done =
+                    crate::background::convert_with(&baked(&drawn.layers, &p.whole), wc, None)
+                        .map_err(|e| e.to_string())?;
                 if done.background.tiles.len() / 64 > budget.baked {
                     return Err(format!(
                         "baked, the background spends {} tiles and the most it can get is {}",
@@ -313,7 +353,11 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 Ok(done)
             }
             Way::Mode3 | Way::Flattened | Way::Mode1 => {
-                let (mode, number) = if way == Way::Mode1 { (Mode::One, 1) } else { (Mode::Three, 3) };
+                let (mode, number) = if way == Way::Mode1 {
+                    (Mode::One, 1)
+                } else {
+                    (Mode::Three, 3)
+                };
                 let flat;
                 let layers = if way == Way::Flattened {
                     flat = flattened(drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l));
@@ -323,11 +367,19 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 };
                 let mut why = format!("there is no layout for mode {number}");
                 for layout in budget.of_mode(number) {
-                    let ask = crate::background::PanoramaAsk { picture: &p.picture, mode, tiles: layout.panorama };
-                    let done = crate::background::convert_with(layers, wc, Some(&ask)).map_err(|e| e.to_string())?;
+                    let ask = crate::background::PanoramaAsk {
+                        picture: &p.picture,
+                        mode,
+                        tiles: layout.panorama,
+                    };
+                    let done = crate::background::convert_with(layers, wc, Some(&ask))
+                        .map_err(|e| e.to_string())?;
                     let spent = done.background.tiles.len() / 64;
                     if spent <= layout.background {
-                        let mut done = Converted { way: Some(way), ..done };
+                        let mut done = Converted {
+                            way: Some(way),
+                            ..done
+                        };
                         if way == Way::Flattened {
                             let unflat = drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l);
                             done.above_lost = raise_above(&mut done, &unflat.upper).0;
@@ -342,10 +394,20 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 return Err(why);
             }
         };
-        done.map(|d| Converted { way: Some(way), ..d }).map_err(|e| e.to_string())
+        done.map(|d| Converted {
+            way: Some(way),
+            ..d
+        })
+        .map_err(|e| e.to_string())
     };
     if let Some(way) = budget.way {
-        return attempt(way).map_err(|why| Bad::answer(format!("map {}: its panorama can't go {}: {why}", request.map, way.name())));
+        return attempt(way).map_err(|why| {
+            Bad::answer(format!(
+                "map {}: its panorama can't go {}: {why}",
+                request.map,
+                way.name()
+            ))
+        });
     }
     if !shows(&drawn.layers) {
         return attempt(Way::Hidden).map_err(Bad::answer);
@@ -489,12 +551,19 @@ fn paintable(drawn: &Drawn, p: &Panorama) -> bool {
 /// own layers draw nothing: its background is one black tile and its layer
 /// above none, and the painting's palettes travel as the layer above's, as a
 /// mode-3 panorama's do.
-fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize, above: usize) -> std::result::Result<Converted, String> {
+fn painted(
+    drawn: &Drawn,
+    p: &Panorama,
+    window_colors: usize,
+    above: usize,
+) -> std::result::Result<Converted, String> {
     let (w, h) = (drawn.map.width * 16, drawn.map.height * 16);
     let mut whole = picture::Picture::transparent(w, h);
     for y in 0..h {
         for x in 0..w {
-            let mut px = p.whole.get((x % p.whole.width) as i64, (y % p.whole.height) as i64);
+            let mut px = p
+                .whole
+                .get((x % p.whole.width) as i64, (y % p.whole.height) as i64);
             px[3] = 255;
             whole.rgba[(y * w + x) * 4..(y * w + x) * 4 + 4].copy_from_slice(&px);
         }
@@ -504,13 +573,15 @@ fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize, above: usize) -> s
         upper: picture::Picture::transparent(w, h),
         variants: Vec::new(),
     };
-    let mut done = crate::background::convert_with(&on_black(&blank), window_colors, None).map_err(|e| e.to_string())?;
+    let mut done = crate::background::convert_with(&on_black(&blank), window_colors, None)
+        .map_err(|e| e.to_string())?;
     // That black tile is never seen —BG1 shows the painting's cells, see
     // `runtime/painted.s`—, so it takes no colour: with a message window of
     // fifteen, its one entry would fall on the painting's first palette.
     done.background.cgram.clear();
     done.background.used = 0;
-    let (mut pano, decided) = crate::background::painted::painted(&whole).map_err(|e| e.to_string())?;
+    let (mut pano, decided) =
+        crate::background::painted::painted(&whole).map_err(|e| e.to_string())?;
     // What goes in front of the hero: BG1's priority, and the edges in BG2,
     // the layer above's place, in its tiles but the blank one.
     if let Some(front) = &drawn.front {
@@ -522,7 +593,10 @@ fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize, above: usize) -> s
     }
     done.above.first = pano.first / crate::background::layers::COLORS_PER_PALETTE;
     done.above.cgram = pano.cgram.iter().flat_map(|w| w.to_le_bytes()).collect();
-    done.pictures.push(crate::background::Decided { name: "panorama".to_string(), picture: decided });
+    done.pictures.push(crate::background::Decided {
+        name: "panorama".to_string(),
+        picture: decided,
+    });
     done.panorama = Some(pano);
     done.way = Some(Way::Painted);
     Ok(done)
@@ -538,7 +612,10 @@ fn draws_above(layers: &Layers) -> bool {
 /// `Game_Map::Parallax` puts the panorama's corner on the map's, unless it
 /// scrolls on its own.
 fn still(drawn: &Drawn, p: &Panorama) -> bool {
-    drawn.map.width * 16 <= RM2K_SCREEN.0 && drawn.map.height * 16 <= RM2K_SCREEN.1 && p.auto == (0, 0) && !p.changes
+    drawn.map.width * 16 <= RM2K_SCREEN.0
+        && drawn.map.height * 16 <= RM2K_SCREEN.1
+        && p.auto == (0, 0)
+        && !p.changes
 }
 
 /// The layer behind the hero, and each drawing of its animation, with
@@ -585,7 +662,11 @@ fn baked(layers: &Layers, whole: &picture::Picture) -> Layers {
 fn flattened(layers: &Layers) -> Layers {
     let over = |below: &picture::Picture| {
         let mut out = below.clone();
-        for (px, up) in out.rgba.chunks_exact_mut(4).zip(layers.upper.rgba.chunks_exact(4)) {
+        for (px, up) in out
+            .rgba
+            .chunks_exact_mut(4)
+            .zip(layers.upper.rgba.chunks_exact(4))
+        {
             if up[3] != 0 {
                 px.copy_from_slice(up);
             }
@@ -612,7 +693,11 @@ fn flattened(layers: &Layers) -> Layers {
 pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Blocks)> {
     let rows = drawn.map.height * 2;
     if converted.background.tilemap.len() > rows {
-        let map = &drawn.extended.as_ref().expect("a tilemap past the map comes from its extension").0;
+        let map = &drawn
+            .extended
+            .as_ref()
+            .expect("a tilemap past the map comes from its extension")
+            .0;
         let (mut passability, mut made) = blocks_of(drawn, map, converted)?;
         let cells = drawn.map.width * drawn.map.height;
         passability.truncate(cells);
@@ -637,7 +722,10 @@ fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>
     for &cell in &drawn.blocked {
         passability[cell] = 0;
     }
-    let terrain: Vec<i32> = lower.iter().map(|&l| terrain_of(&drawn.chipset, l)).collect();
+    let terrain: Vec<i32> = lower
+        .iter()
+        .map(|&l| terrain_of(&drawn.chipset, l))
+        .collect();
     let made = blocks::blocks(
         &blocks::Map {
             width: map.width,
@@ -770,5 +858,11 @@ pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
     let drawn = draw(game, request)?;
     let mut converted = convert(&drawn, request)?;
     let (passability, made) = blocks(&drawn, &mut converted)?;
-    write(out, &converted, drawn.panorama.as_ref(), &passability, &made)
+    write(
+        out,
+        &converted,
+        drawn.panorama.as_ref(),
+        &passability,
+        &made,
+    )
 }

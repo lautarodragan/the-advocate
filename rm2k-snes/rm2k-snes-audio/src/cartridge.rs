@@ -72,7 +72,12 @@ impl Songs {
     pub fn exit_songs(&self, map: usize) -> Vec<usize> {
         self.exits
             .get(&Key::Map(map))
-            .map(|e| e.iter().filter(|(_, is_exit)| *is_exit).map(|(t, _)| *t).collect())
+            .map(|e| {
+                e.iter()
+                    .filter(|(_, is_exit)| *is_exit)
+                    .map(|(t, _)| *t)
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -82,16 +87,25 @@ impl Songs {
 
     /// The event compiler's answer, `songs` of it.
     pub fn from_json(v: &Value) -> Result<Songs> {
-        let bad = |what: &str| Bad::usage(format!("the request's songs: {what} is not what it should be"));
+        let bad = |what: &str| {
+            Bad::usage(format!(
+                "the request's songs: {what} is not what it should be"
+            ))
+        };
         let key = |k: &Value| -> Result<Key> {
             match k {
                 Value::String(s) if s == "battle" => Ok(Key::Battle),
-                k => k.as_u64().map(|i| Key::Map(i as usize)).ok_or_else(|| bad("a package")),
+                k => k
+                    .as_u64()
+                    .map(|i| Key::Map(i as usize))
+                    .ok_or_else(|| bad("a package")),
             }
         };
         let index = |v: &Value, what: &str| v.as_u64().map(|i| i as usize).ok_or_else(|| bad(what));
         let list = |v: Option<&Value>, what: &str| -> Result<Vec<Value>> {
-            v.and_then(Value::as_array).cloned().ok_or_else(|| bad(what))
+            v.and_then(Value::as_array)
+                .cloned()
+                .ok_or_else(|| bad(what))
         };
         let indices = |v: Option<&Value>, what: &str| -> Result<Vec<usize>> {
             list(v, what)?.iter().map(|i| index(i, what)).collect()
@@ -99,7 +113,12 @@ impl Songs {
         let pairs = |what: &str| -> Result<Vec<(Key, Value)>> {
             list(v.get(what), what)?
                 .iter()
-                .map(|p| Ok((key(p.get(0).ok_or_else(|| bad(what))?)?, p.get(1).cloned().ok_or_else(|| bad(what))?)))
+                .map(|p| {
+                    Ok((
+                        key(p.get(0).ok_or_else(|| bad(what))?)?,
+                        p.get(1).cloned().ok_or_else(|| bad(what))?,
+                    ))
+                })
                 .collect()
         };
         let names = list(v.get("names"), "names")?
@@ -109,8 +128,20 @@ impl Songs {
         let sounds = list(v.get("sounds"), "sounds")?
             .iter()
             .map(|s| {
-                let int = |k: usize| s.get(k).and_then(Value::as_i64).ok_or_else(|| bad("sounds"));
-                Ok((s.get(0).and_then(Value::as_str).ok_or_else(|| bad("sounds"))?.to_string(), int(1)?, int(2)?, int(3)?))
+                let int = |k: usize| {
+                    s.get(k)
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| bad("sounds"))
+                };
+                Ok((
+                    s.get(0)
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| bad("sounds"))?
+                        .to_string(),
+                    int(1)?,
+                    int(2)?,
+                    int(3)?,
+                ))
             })
             .collect::<Result<_>>()?;
         let mut per_package = HashMap::new();
@@ -132,7 +163,9 @@ impl Songs {
                 .map(|p| {
                     Ok((
                         index(p.get(0).ok_or_else(|| bad("exits"))?, "exits")?,
-                        p.get(1).and_then(Value::as_bool).ok_or_else(|| bad("exits"))?,
+                        p.get(1)
+                            .and_then(Value::as_bool)
+                            .ok_or_else(|| bad("exits"))?,
                     ))
                 })
                 .collect::<Result<_>>()?;
@@ -146,7 +179,13 @@ impl Songs {
                     let dest = index(p.get(0).ok_or_else(|| bad("jumps"))?, "jumps")?;
                     let songs = list(p.get(1), "jumps")?
                         .iter()
-                        .map(|s| if s.is_null() { Ok(None) } else { index(s, "jumps").map(Some) })
+                        .map(|s| {
+                            if s.is_null() {
+                                Ok(None)
+                            } else {
+                                index(s, "jumps").map(Some)
+                            }
+                        })
                         .collect::<Result<_>>()?;
                     Ok((dest, songs))
                 })
@@ -157,7 +196,14 @@ impl Songs {
             None => Vec::new(),
             some => indices(some, "troop_songs")?,
         };
-        Ok(Songs { names, sounds, per_package, exits, jumps, troop_songs })
+        Ok(Songs {
+            names,
+            sounds,
+            per_package,
+            exits,
+            jumps,
+            troop_songs,
+        })
     }
 }
 
@@ -235,7 +281,11 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     let n = c.maps.len();
     let mut names = s.names.clone();
     let own = &c.map_music[c.start];
-    let boot = if own.is_empty() { NONE } else { number(&mut names, own) };
+    let boot = if own.is_empty() {
+        NONE
+    } else {
+        number(&mut names, own)
+    };
     let title_song = match c.title.as_deref() {
         Some(t) if !t.is_empty() => number(&mut names, t),
         _ => NONE,
@@ -246,7 +296,11 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     };
     let mut map_song = Vec::with_capacity(n);
     for name in &c.map_music {
-        let index = if name.is_empty() { NONE } else { number(&mut names, name) };
+        let index = if name.is_empty() {
+            NONE
+        } else {
+            number(&mut names, name)
+        };
         if index > 0xFF {
             return Err(Bad::answer(format!("song {name:?} doesn't fit in a byte")));
         }
@@ -261,8 +315,11 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     // cost the music, because the copies count the cartridge's sound
     // effects. It happens with the route ones of `[sound_effects]
     // route_effects_left_out`.
-    let packed: HashSet<&str> =
-        s.per_package.values().flat_map(|w| w.sounds.iter().map(String::as_str)).collect();
+    let packed: HashSet<&str> = s
+        .per_package
+        .values()
+        .flat_map(|w| w.sounds.iter().map(String::as_str))
+        .collect();
     let mut effects: Vec<&str> = Vec::new();
     for (name, ..) in &s.sounds {
         if !effects.contains(&name.as_str()) && packed.contains(name.as_str()) {
@@ -312,7 +369,9 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
         let separate: Vec<usize> = owned
             .iter()
             .copied()
-            .filter(|&t| apart.is_some_and(|a| a.contains(&names[t])) && t != map_song[i] && !booting(t))
+            .filter(|&t| {
+                apart.is_some_and(|a| a.contains(&names[t])) && t != map_song[i] && !booting(t)
+            })
             .collect();
         owned.retain(|t| !separate.contains(t));
         separate_ones.push(separate);
@@ -371,16 +430,34 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
         job_packages.push(json!({"name": "titulo", "songs": songs, "effects": theirs}));
     }
     let in_package: Vec<Vec<usize>> = packages.iter().map(|(owned, ..)| owned.clone()).collect();
-    let inheritance =
-        inherited_songs(s, &map_song, c.start, title_song, &package_names, Some(&in_package), &separate_ones, &c.not_given);
+    let inheritance = inherited_songs(
+        s,
+        &map_song,
+        c.start,
+        title_song,
+        &package_names,
+        Some(&in_package),
+        &separate_ones,
+        &c.not_given,
+    );
 
     let mut emit = Map::new();
     emit.insert("packages".into(), json!(packages.len()));
     emit.insert("boot".into(), json!(boot));
     emit.insert("title".into(), json!(title_song));
-    emit.insert("game_over".into(), json!([game_over_song, game_over_package]));
+    emit.insert(
+        "game_over".into(),
+        json!([game_over_song, game_over_package]),
+    );
     emit.insert("map_song".into(), json!(map_song));
-    emit.insert("sounds".into(), json!(s.sounds.iter().map(|(n, v, t, b)| json!([n, v, t, b])).collect::<Vec<_>>()));
+    emit.insert(
+        "sounds".into(),
+        json!(s
+            .sounds
+            .iter()
+            .map(|(n, v, t, b)| json!([n, v, t, b]))
+            .collect::<Vec<_>>()),
+    );
     emit.insert("start".into(), json!(c.start));
     emit.insert("decompress_frames".into(), json!(c.decompress_frames));
     // Only when it is so: a job without it is the one it always was.
@@ -391,7 +468,13 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     job.insert("songs".into(), json!(names));
     job.insert("effects".into(), json!(effects));
     job.insert("packages".into(), Value::Array(job_packages));
-    job.insert("inheritance".into(), json!(inheritance.iter().map(|(p, t)| json!([p, t])).collect::<Vec<_>>()));
+    job.insert(
+        "inheritance".into(),
+        json!(inheritance
+            .iter()
+            .map(|(p, t)| json!([p, t]))
+            .collect::<Vec<_>>()),
+    );
     job.insert("measuring_headroom".into(), json!(c.measuring_headroom));
     job.insert("system_songs".into(), json!(c.system_songs));
     // Only when there are some: a job without them is the one it always was.
@@ -464,11 +547,19 @@ pub fn inherited_songs(
     let wants: Vec<&Wants> = (0..n).map(|i| songs.wants(i).unwrap_or(&empty)).collect();
     let no_separate = Vec::new();
     let separate_of = |i: usize| separate.get(i).unwrap_or(&no_separate);
-    let index: HashMap<&str, usize> =
-        package_names[..n.min(package_names.len())].iter().enumerate().map(|(i, name)| (name.as_str(), i)).collect();
+    let index: HashMap<&str, usize> = package_names[..n.min(package_names.len())]
+        .iter()
+        .enumerate()
+        .map(|(i, name)| (name.as_str(), i))
+        .collect();
     let not_given: HashSet<(usize, usize)> = not_given
         .iter()
-        .filter_map(|(a, b)| Some((*index.get(a.to_string().as_str())?, *index.get(b.to_string().as_str())?)))
+        .filter_map(|(a, b)| {
+            Some((
+                *index.get(a.to_string().as_str())?,
+                *index.get(b.to_string().as_str())?,
+            ))
+        })
         .collect();
     let mut fits: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); n];
     if title != NONE {
@@ -479,8 +570,12 @@ pub fn inherited_songs(
         if map_song[i] != NONE {
             return BTreeSet::from([map_song[i]]);
         }
-        let theirs: BTreeSet<usize> =
-            wants[i].songs.iter().copied().filter(|t| !separate_of(i).contains(t)).collect();
+        let theirs: BTreeSet<usize> = wants[i]
+            .songs
+            .iter()
+            .copied()
+            .filter(|t| !separate_of(i).contains(t))
+            .collect();
         let exits: BTreeSet<usize> = songs.exit_songs(i).into_iter().collect();
         // Not the boot one: it is the router, which jumps to mid-game
         // according to variables, and without looking at conditions
@@ -544,7 +639,13 @@ fn block(label: &str, data: &[u8]) -> String {
     let mut out = format!(".block {}\n{label}:", data.len());
     for chunk in data.chunks(16) {
         out.push_str("\n    .byte ");
-        out.push_str(&chunk.iter().map(|b| format!("${b:02X}")).collect::<Vec<_>>().join(","));
+        out.push_str(
+            &chunk
+                .iter()
+                .map(|b| format!("${b:02X}"))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
     }
     out
 }
@@ -574,13 +675,21 @@ pub struct Msu {
 /// pitch it plays there, is [`crate::msu::effects`]'s. This puts them in the
 /// file.
 pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4]) -> Result<Msu> {
-    let mut entries: Vec<&[u8]> = backdrops.iter().flat_map(|(t, c)| [t.as_slice(), c.as_slice()]).collect();
+    let mut entries: Vec<&[u8]> = backdrops
+        .iter()
+        .flat_map(|(t, c)| [t.as_slice(), c.as_slice()])
+        .collect();
     // Which entry each sound effect of each package is, in SRCN order: two
     // of the same package never share a place.
     let mut first = Vec::new();
     for package in &quality.packages {
         first.push(entries.len());
-        entries.extend(package.versions.iter().map(|&v| quality.versions[v].data.as_slice()));
+        entries.extend(
+            package
+                .versions
+                .iter()
+                .map(|&v| quality.versions[v].data.as_slice()),
+        );
     }
     let (blob, offset) = msu_data::build(&entries, backdrops.len(), magic)?;
     let signature = blob[..msu_data::SIGNATURE_SIZE].to_vec();
@@ -622,7 +731,10 @@ pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4])
     }
     for table in [&rows, &heights] {
         if table.len() > 0x8000 {
-            return Err(Bad::answer(format!("the .msu sound effect tables go over a bank: {} B", table.len())));
+            return Err(Bad::answer(format!(
+                "the .msu sound effect tables go over a bank: {} B",
+                table.len()
+            )));
         }
     }
     let mut backdrop_pos = Vec::new();
@@ -635,7 +747,13 @@ pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4])
     }
     let effects = entries.len() - 2 * backdrops.len();
     let empty = vec![0u8; 2];
-    let or_two = |d: &Vec<u8>| if d.is_empty() { empty.clone() } else { d.clone() };
+    let or_two = |d: &Vec<u8>| {
+        if d.is_empty() {
+            empty.clone()
+        } else {
+            d.clone()
+        }
+    };
     let blocks: Vec<String> = [
         ("msu_data_signature", or_two(&signature)),
         ("msu_backdrop_pos", backdrop_pos),
@@ -659,7 +777,12 @@ pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4])
         effects,
         blocks.join("\n")
     );
-    Ok(Msu { blob, inc, backdrops: backdrops.len(), effects })
+    Ok(Msu {
+        blob,
+        inc,
+        backdrops: backdrops.len(),
+        effects,
+    })
 }
 
 /// `effects.json`: which sound each row of `sound_table` is and at which
@@ -680,10 +803,14 @@ pub fn effects_json(music: &Music, sounds: &[(String, i64, i64, i64)], rates: &V
 
 /// What `[music] apart_themes` says: {map: its separate songs}.
 pub fn apart_themes(list: &[toml::Value]) -> Result<HashMap<i64, HashSet<String>>> {
-    let bad = || Bad::usage("[music] apart_themes: each one is {map = N, themes = [...]}".to_string());
+    let bad =
+        || Bad::usage("[music] apart_themes: each one is {map = N, themes = [...]}".to_string());
     let mut out = HashMap::new();
     for entry in list {
-        let map = entry.get("map").and_then(toml::Value::as_integer).ok_or_else(bad)?;
+        let map = entry
+            .get("map")
+            .and_then(toml::Value::as_integer)
+            .ok_or_else(bad)?;
         let themes = entry
             .get("themes")
             .and_then(toml::Value::as_array)
@@ -698,11 +825,17 @@ pub fn apart_themes(list: &[toml::Value]) -> Result<HashMap<i64, HashSet<String>
 
 /// What `[music] jumps_that_never_happen` says: (map, destination) pairs.
 pub fn never_happen(list: &[toml::Value]) -> Result<Vec<(i64, i64)>> {
-    let bad = || Bad::usage("[music] jumps_that_never_happen: each one is [map, destination]".to_string());
+    let bad = || {
+        Bad::usage("[music] jumps_that_never_happen: each one is [map, destination]".to_string())
+    };
     list.iter()
         .map(|p| {
             let pair = p.as_array().ok_or_else(bad)?;
-            let n = |k: usize| pair.get(k).and_then(toml::Value::as_integer).ok_or_else(bad);
+            let n = |k: usize| {
+                pair.get(k)
+                    .and_then(toml::Value::as_integer)
+                    .ok_or_else(bad)
+            };
             Ok((n(0)?, n(1)?))
         })
         .collect()
@@ -741,7 +874,12 @@ pub fn rates_line(theirs: &Map<String, Value>) -> String {
     for v in theirs.values() {
         *count.entry(v.as_i64().unwrap_or(0)).or_default() += 1;
     }
-    count.iter().rev().map(|(t, n)| format!("{t} Hz: {n}")).collect::<Vec<_>>().join(", ")
+    count
+        .iter()
+        .rev()
+        .map(|(t, n)| format!("{t} Hz: {n}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[cfg(test)]
@@ -753,17 +891,38 @@ mod tests {
     const T: usize = 2; // tsmedit
     const V: usize = 3; // vswar
 
-    fn songs(per_map: &[(usize, &[usize], &[usize])], exits: &[(usize, &[usize])], jumps: &[(usize, &[(usize, &[Option<usize>])])]) -> Songs {
+    fn songs(
+        per_map: &[(usize, &[usize], &[usize])],
+        exits: &[(usize, &[usize])],
+        jumps: &[(usize, &[(usize, &[Option<usize>])])],
+    ) -> Songs {
         Songs {
             names: vec!["K".into(), "G".into(), "T".into(), "V".into()],
             per_package: per_map
                 .iter()
-                .map(|&(m, s, d)| (Key::Map(m), Wants { songs: s.to_vec(), sounds: vec![], destinations: d.to_vec() }))
+                .map(|&(m, s, d)| {
+                    (
+                        Key::Map(m),
+                        Wants {
+                            songs: s.to_vec(),
+                            sounds: vec![],
+                            destinations: d.to_vec(),
+                        },
+                    )
+                })
                 .collect(),
-            exits: exits.iter().map(|&(m, e)| (Key::Map(m), e.iter().map(|&t| (t, true)).collect())).collect(),
+            exits: exits
+                .iter()
+                .map(|&(m, e)| (Key::Map(m), e.iter().map(|&t| (t, true)).collect()))
+                .collect(),
             jumps: jumps
                 .iter()
-                .map(|&(m, j)| (Key::Map(m), j.iter().map(|&(d, s)| (d, s.to_vec())).collect()))
+                .map(|&(m, j)| {
+                    (
+                        Key::Map(m),
+                        j.iter().map(|&(d, s)| (d, s.to_vec())).collect(),
+                    )
+                })
                 .collect(),
             ..Songs::default()
         }
@@ -787,7 +946,13 @@ mod tests {
     #[test]
     fn a_map_that_only_starts_exit_songs_lets_the_previous_through() {
         let s = songs(
-            &[(0, &[], &[1]), (1, &[K], &[2]), (2, &[G], &[1, 3]), (3, &[T], &[2, 4]), (4, &[], &[3])],
+            &[
+                (0, &[], &[1]),
+                (1, &[K], &[2]),
+                (2, &[G], &[1, 3]),
+                (3, &[T], &[2, 4]),
+                (4, &[], &[3]),
+            ],
             &[(2, &[G]), (3, &[T])],
             &[
                 (2, &[(1, &[Some(G)]), (3, &[None])]),
@@ -797,9 +962,15 @@ mod tests {
         );
         let got = inheritance(&s, 5, &[]);
         for map in [3, 4] {
-            assert!(got.contains(&(map, K)), "K is playing on arrival at map {map} and the package does not count it");
+            assert!(
+                got.contains(&(map, K)),
+                "K is playing on arrival at map {map} and the package does not count it"
+            );
         }
-        assert!(!got.contains(&(3, G)), "G only plays to go back to 37 and 40 inherits it anyway");
+        assert!(
+            !got.contains(&(3, G)),
+            "G only plays to go back to 37 and 40 inherits it anyway"
+        );
         assert!(got.contains(&(2, T)) && got.contains(&(1, G)));
     }
 
@@ -820,7 +991,11 @@ mod tests {
     /// and not V reaches the maps it exits to.
     #[test]
     fn a_separate_song_does_not_leave_its_map() {
-        let s = songs(&[(0, &[], &[1]), (1, &[V, G], &[2]), (2, &[], &[])], &[], &[(1, &[(2, &[None])])]);
+        let s = songs(
+            &[(0, &[], &[1]), (1, &[V, G], &[2]), (2, &[], &[])],
+            &[],
+            &[(1, &[(2, &[None])])],
+        );
         assert!(inheritance(&s, 3, &[]).contains(&(2, V)));
         let got = inheritance(&s, 3, &[vec![], vec![V], vec![]]);
         assert!(!got.contains(&(2, V)) && got.contains(&(2, G)));
@@ -828,7 +1003,10 @@ mod tests {
 
     #[test]
     fn the_floor_is_read_from_the_source() {
-        assert_eq!(boot_frames_floor("X = 1\nBOOT_FRAMES_FLOOR = 40   ; why\n"), Some(40));
+        assert_eq!(
+            boot_frames_floor("X = 1\nBOOT_FRAMES_FLOOR = 40   ; why\n"),
+            Some(40)
+        );
         assert_eq!(boot_frames_floor("; BOOT_FRAMES_FLOOR = 40\n"), None);
         assert_eq!(boot_frames_floor("BOOT_FRAMES = 40\n"), None);
     }

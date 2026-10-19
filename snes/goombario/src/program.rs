@@ -61,17 +61,38 @@ struct RawSpan {
 
 /// The directives that put bytes in a segment and are not instructions.
 const DATA_DIRECTIVES: &[&str] = &[
-    ".byte", ".byt", ".db", ".word", ".dbyt", ".addr", ".dw", ".faraddr", ".dword", ".res",
-    ".align", ".incbin", ".asciiz", ".lobytes", ".hibytes", ".bankbytes", ".tag",
+    ".byte",
+    ".byt",
+    ".db",
+    ".word",
+    ".dbyt",
+    ".addr",
+    ".dw",
+    ".faraddr",
+    ".dword",
+    ".res",
+    ".align",
+    ".incbin",
+    ".asciiz",
+    ".lobytes",
+    ".hibytes",
+    ".bankbytes",
+    ".tag",
 ];
 
 fn is_data_directive(text: &str) -> bool {
     // Past a label, if the line has one.
     let text = match text.split_once(':') {
-        Some((label, rest)) if !label.contains(char::is_whitespace) && !rest.starts_with(':') => rest,
+        Some((label, rest)) if !label.contains(char::is_whitespace) && !rest.starts_with(':') => {
+            rest
+        }
         _ => text,
     };
-    let first = text.split_whitespace().next().unwrap_or("").to_ascii_lowercase();
+    let first = text
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
     DATA_DIRECTIVES.contains(&first.as_str())
 }
 
@@ -95,8 +116,12 @@ impl Program {
                 None => false,
             };
             for span_id in &line.spans {
-                let Some(span) = info.spans.get(span_id) else { continue };
-                let Some(seg) = info.segments.get(&span.seg) else { continue };
+                let Some(span) = info.spans.get(span_id) else {
+                    continue;
+                };
+                let Some(seg) = info.segments.get(&span.seg) else {
+                    continue;
+                };
                 let Some(ooffs) = seg.ooffs else { continue };
                 if span.size == 0 || ooffs + (span.start + span.size) as usize > rom.len() {
                     continue;
@@ -106,7 +131,8 @@ impl Program {
                     offset: ooffs + span.start as usize,
                     size: span.size,
                     line: id,
-                    in_macro: line.in_macro || declared.macro_lines.contains_key(&(line.file, line.line)),
+                    in_macro: line.in_macro
+                        || declared.macro_lines.contains_key(&(line.file, line.line)),
                     data: span.data || directive,
                 });
             }
@@ -138,7 +164,11 @@ impl Program {
             labels: BTreeMap::new(),
             routines: BTreeMap::new(),
             files: info.files.clone(),
-            lines: info.lines.iter().map(|(&id, l)| (id, (l.file, l.line))).collect(),
+            lines: info
+                .lines
+                .iter()
+                .map(|(&id, l)| (id, (l.file, l.line)))
+                .collect(),
             declared,
             expanded: HashMap::new(),
             undecoded: Vec::new(),
@@ -148,7 +178,10 @@ impl Program {
             program.data_lines.entry(s.addr).or_insert(s.line);
         }
         for s in spans.iter().filter(|s| !s.data) {
-            let hint = info.lines.get(&s.line).map(|l| program.declared_at(l.file, l.line));
+            let hint = info
+                .lines
+                .get(&s.line)
+                .map(|l| program.declared_at(l.file, l.line));
             if !program.decode(s, hint.unwrap_or_default()) {
                 let (file, line) = program.lines[&s.line];
                 let name = program.files.get(&file).cloned().unwrap_or_default();
@@ -165,7 +198,11 @@ impl Program {
         // whose span covers it.
         for s in spans.iter().filter(|s| !s.data) {
             for (_, insn) in program.insns.range_mut(s.addr..s.addr + s.size) {
-                let slot = if s.in_macro { &mut insn.macro_line } else { &mut insn.line };
+                let slot = if s.in_macro {
+                    &mut insn.macro_line
+                } else {
+                    &mut insn.line
+                };
                 if slot.is_none() {
                     *slot = Some(s.line);
                 }
@@ -176,7 +213,10 @@ impl Program {
         // `rep`/`sep` change them for the instructions after them: `.smart`
         // follows them inside the expansion too.
         for s in spans.iter().filter(|s| !s.data && !s.in_macro) {
-            let mut inside = program.insns.range(s.addr..s.addr + s.size).filter(|(_, i)| i.line == Some(s.line));
+            let mut inside = program
+                .insns
+                .range(s.addr..s.addr + s.size)
+                .filter(|(_, i)| i.line == Some(s.line));
             if inside.clone().count() < 2 {
                 continue;
             }
@@ -202,21 +242,30 @@ impl Program {
             if !sym.label {
                 continue;
             }
-            let Some(addr) = program.locate(value) else { continue };
+            let Some(addr) = program.locate(value) else {
+                continue;
+            };
             // A label made by a macro's `.local` is in the file's scope, with
             // a name of `ca65`'s: it is not a routine.
             if sym.scope == 0 && !sym.name.starts_with("LOCAL-MACRO") {
                 program.routines.insert(addr, sym.name.clone());
                 program.labels.insert(addr, sym.name.clone());
             } else {
-                program.labels.entry(addr).or_insert_with(|| sym.name.clone());
+                program
+                    .labels
+                    .entry(addr)
+                    .or_insert_with(|| sym.name.clone());
             }
         }
         program
     }
 
     fn data_at(&self, addr: u32) -> Option<u32> {
-        self.data.range(..=addr).next_back().filter(|(_, &end)| addr < end).map(|(_, &end)| end)
+        self.data
+            .range(..=addr)
+            .next_back()
+            .filter(|(_, &end)| addr < end)
+            .map(|(_, &end)| end)
     }
 
     /// Reads the instructions of one span, unless they are already read.
@@ -249,7 +298,14 @@ impl Program {
                     } else {
                         cpu::length(op, m8, x8)
                     };
-                    new.push(Insn { addr: p, offset, op, len, line: None, macro_line: None });
+                    new.push(Insn {
+                        addr: p,
+                        offset,
+                        op,
+                        len,
+                        line: None,
+                        macro_line: None,
+                    });
                     (op, len)
                 };
                 if op == cpu::REP || op == cpu::SEP {
@@ -277,7 +333,11 @@ impl Program {
     /// banks `$80-$BF` are taken as mirrors of `$00-$3F` from `$8000` up,
     /// which is how every Super NES memory map has the system area.
     pub fn locate(&self, addr: u32) -> Option<u32> {
-        let inside = |a: u32| self.segments.iter().any(|s| a >= s.start && a < s.start + s.size);
+        let inside = |a: u32| {
+            self.segments
+                .iter()
+                .any(|s| a >= s.start && a < s.start + s.size)
+        };
         if inside(addr) {
             return Some(addr);
         }
@@ -291,7 +351,10 @@ impl Program {
     /// The bytes at an address of the ROM.
     pub fn bytes(&self, addr: u32, n: usize) -> Option<&[u8]> {
         let addr = self.locate(addr)?;
-        let seg = self.segments.iter().find(|s| addr >= s.start && addr < s.start + s.size)?;
+        let seg = self
+            .segments
+            .iter()
+            .find(|s| addr >= s.start && addr < s.start + s.size)?;
         let offset = seg.ooffs? + (addr - seg.start) as usize;
         self.rom.get(offset..offset + n)
     }
@@ -318,7 +381,11 @@ impl Program {
     /// The routine an address is in: the last label outside any `.proc`
     /// at or before it.
     pub fn routine(&self, addr: u32) -> &str {
-        self.routines.range(..=addr).next_back().map(|(_, n)| n.as_str()).unwrap_or("?")
+        self.routines
+            .range(..=addr)
+            .next_back()
+            .map(|(_, n)| n.as_str())
+            .unwrap_or("?")
     }
 
     /// A name for an address in messages: its label, or the routine and how
@@ -345,7 +412,9 @@ impl Program {
         if let Some(insn) = self.insns.get(&addr) {
             return self.place(insn);
         }
-        let start = self.data_at(addr).and(self.data.range(..=addr).next_back().map(|(&a, _)| a))?;
+        let start = self
+            .data_at(addr)
+            .and(self.data.range(..=addr).next_back().map(|(&a, _)| a))?;
         let (file, line) = *self.lines.get(self.data_lines.get(&start)?)?;
         Some((self.files.get(&file)?.as_str(), line))
     }
@@ -359,13 +428,27 @@ impl Program {
         let op = *self.bytes(addr, 1)?.first()?;
         let len = cpu::length(op, m8, x8);
         self.bytes(addr, len as usize)?;
-        let seg = self.segments.iter().find(|s| addr >= s.start && addr < s.start + s.size)?;
+        let seg = self
+            .segments
+            .iter()
+            .find(|s| addr >= s.start && addr < s.start + s.size)?;
         let offset = seg.ooffs? + (addr - seg.start) as usize;
-        Some(Insn { addr, offset, op, len, line: None, macro_line: None })
+        Some(Insn {
+            addr,
+            offset,
+            op,
+            len,
+            line: None,
+            macro_line: None,
+        })
     }
 
     fn declared_at(&self, file: usize, line: u32) -> Widths {
-        self.declared.at.get(&(file, line)).copied().unwrap_or_default()
+        self.declared
+            .at
+            .get(&(file, line))
+            .copied()
+            .unwrap_or_default()
     }
 
     /// The widths the source declares where the instruction is.
@@ -378,7 +461,10 @@ impl Program {
         // changed before the line.
         if let Some(&(file, line)) = insn.macro_line.and_then(|l| self.lines.get(&l)) {
             if let Some(body) = self.declared.macro_lines.get(&(file, line)) {
-                return Widths { m8: body.m8.or(at_line.m8), x8: body.x8.or(at_line.x8) };
+                return Widths {
+                    m8: body.m8.or(at_line.m8),
+                    x8: body.x8.or(at_line.x8),
+                };
             }
         }
         if let Some(&w) = self.expanded.get(&insn.addr) {

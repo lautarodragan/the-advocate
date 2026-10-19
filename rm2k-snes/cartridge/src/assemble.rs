@@ -272,26 +272,22 @@ pub fn assemble(
     let rom_r = under(rom, &root);
     let obj = with_suffix(&rom_r, ".o");
     let dbg = with_suffix(&rom_r, ".dbg");
-    run(
-        Command::new(&ca65)
-            .args(["-g", "--cpu", "65816", "-I"])
-            .arg(&include_r)
-            .arg(&source_r)
-            .arg("-o")
-            .arg(&obj)
-            .current_dir(&root),
-    )?;
-    run(
-        Command::new(&ld65)
-            .arg("-C")
-            .arg(include_r.join(MEMORY_MAP))
-            .arg(&obj)
-            .arg("-o")
-            .arg(&rom_r)
-            .arg("--dbgfile")
-            .arg(&dbg)
-            .current_dir(&root),
-    )?;
+    run(Command::new(&ca65)
+        .args(["-g", "--cpu", "65816", "-I"])
+        .arg(&include_r)
+        .arg(&source_r)
+        .arg("-o")
+        .arg(&obj)
+        .current_dir(&root))?;
+    run(Command::new(&ld65)
+        .arg("-C")
+        .arg(include_r.join(MEMORY_MAP))
+        .arg(&obj)
+        .arg("-o")
+        .arg(&rom_r)
+        .arg("--dbgfile")
+        .arg(&dbg)
+        .current_dir(&root))?;
     let mut data = std::fs::read(rom).map_err(|e| format!("{}: {e}", rom.display()))?;
     mirror(&mut data)?;
     checksum(&mut data)?;

@@ -23,3 +23,6 @@ voodoo = { path = "../../snes/voodoo" }
 
 [dev-dependencies]
 sha2 = "0.10"
+
+[lints]
+workspace = true

@@ -29,7 +29,8 @@ use std::path::{Path, PathBuf};
 /// The commands that pick a tile **at run time**: with one of these the
 /// map's layers no longer say what is drawn, and pruning cannot know what
 /// to keep. It stops instead of guessing.
-const TILE_PICKING_COMMANDS: [(i32, &str); 2] = [(11710, "ChangeMapTileset"), (11750, "TileSubstitution")];
+const TILE_PICKING_COMMANDS: [(i32, &str); 2] =
+    [(11710, "ChangeMapTileset"), (11750, "TileSubstitution")];
 
 /// The water and the animated tiles share this rectangle of the ChipSet.
 const WATER_BOX: (usize, usize, usize, usize) = (0, 0, 96, 128);
@@ -45,16 +46,25 @@ struct Indexed {
 
 impl Indexed {
     fn blank(width: usize, height: usize) -> Indexed {
-        Indexed { width, height, pixels: vec![0; width * height], palette: Vec::new() }
+        Indexed {
+            width,
+            height,
+            pixels: vec![0; width * height],
+            palette: Vec::new(),
+        }
     }
 
     fn read(path: &Path) -> Result<Indexed> {
         let file = std::fs::File::open(path).map_err(|e| io(path, e))?;
         let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
         decoder.set_transformations(png::Transformations::IDENTITY);
-        let mut reader = decoder.read_info().map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+        let mut reader = decoder
+            .read_info()
+            .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
         let mut buffer = vec![0; reader.output_buffer_size()];
-        let frame = reader.next_frame(&mut buffer).map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+        let frame = reader
+            .next_frame(&mut buffer)
+            .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
         if frame.color_type != png::ColorType::Indexed {
             crate::stop!("{}: not an indexed PNG", path.display());
         }
@@ -71,17 +81,32 @@ impl Indexed {
             }
         }
         let raw = reader.info().palette.as_deref().unwrap_or(&[]).to_vec();
-        let palette = raw.chunks(3).filter(|c| c.len() == 3).map(|c| [c[0], c[1], c[2]]).collect();
-        Ok(Indexed { width, height, pixels, palette })
+        let palette = raw
+            .chunks(3)
+            .filter(|c| c.len() == 3)
+            .map(|c| [c[0], c[1], c[2]])
+            .collect();
+        Ok(Indexed {
+            width,
+            height,
+            pixels,
+            palette,
+        })
     }
 
     fn write(&self, path: &Path) -> Result<()> {
         let file = std::fs::File::create(path).map_err(|e| io(path, e))?;
-        let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), self.width as u32, self.height as u32);
+        let mut encoder = png::Encoder::new(
+            std::io::BufWriter::new(file),
+            self.width as u32,
+            self.height as u32,
+        );
         encoder.set_color(png::ColorType::Indexed);
         encoder.set_depth(png::BitDepth::Eight);
         encoder.set_palette(self.palette.iter().flatten().copied().collect::<Vec<u8>>());
-        let mut writer = encoder.write_header().map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+        let mut writer = encoder
+            .write_header()
+            .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
         writer
             .write_image_data(&self.pixels)
             .map_err(|e| Stop::new(format!("{}: {e}", path.display())))
@@ -95,8 +120,11 @@ impl Indexed {
         let mut out = Indexed::blank(x1 - x0, y1 - y0);
         for y in y0..y1 {
             for x in x0..x1 {
-                out.pixels[(y - y0) * out.width + (x - x0)] =
-                    if x < self.width && y < self.height { self.get(x, y) } else { 0 };
+                out.pixels[(y - y0) * out.width + (x - x0)] = if x < self.width && y < self.height {
+                    self.get(x, y)
+                } else {
+                    0
+                };
             }
         }
         out
@@ -158,7 +186,10 @@ fn what_it_draws(map: &GameMap) -> Result<(bool, BTreeSet<i32>, BTreeSet<i32>)> 
                 commons.insert(144 + page.character_index);
             }
             for command in &page.commands {
-                if let Some((_, name)) = TILE_PICKING_COMMANDS.iter().find(|(c, _)| *c == command.code) {
+                if let Some((_, name)) = TILE_PICKING_COMMANDS
+                    .iter()
+                    .find(|(c, _)| *c == command.code)
+                {
                     crate::stop!(
                         "map {map_id} uses {name}, which picks a tile at run time: with that the \
                          layers do not say what is drawn and pruning the ChipSet would erase art \
@@ -176,7 +207,10 @@ fn what_it_draws(map: &GameMap) -> Result<(bool, BTreeSet<i32>, BTreeSet<i32>)> 
 fn prune(map: &GameMap, image: &mut Indexed) -> Result<()> {
     let (water, terrains, commons) = what_it_draws(map)?;
     if !water {
-        image.paste(&Indexed::blank(WATER_BOX.2, WATER_BOX.3), (WATER_BOX.0, WATER_BOX.1));
+        image.paste(
+            &Indexed::blank(WATER_BOX.2, WATER_BOX.3),
+            (WATER_BOX.0, WATER_BOX.1),
+        );
     }
     for n in 0..12 {
         if !terrains.contains(&n) {
@@ -215,7 +249,11 @@ impl Palette {
             }
         }
         let free = (1..=255u8).filter(|i| !used.contains(i)).collect();
-        Palette { colors, where_, free }
+        Palette {
+            colors,
+            where_,
+            free,
+        }
     }
 
     fn index(&mut self, color: [u8; 3]) -> Result<u8> {
@@ -259,7 +297,10 @@ fn build(
     let number = int(&data["chipset"]["id"]);
     let base = recipe["base"].as_str().unwrap_or("");
     let source = find("ChipSet", base).ok_or_else(|| {
-        Stop::new(format!("ChipSet {}, which {number} comes from, is missing", crate::text::repr(base)))
+        Stop::new(format!(
+            "ChipSet {}, which {number} comes from, is missing",
+            crate::text::repr(base)
+        ))
     })?;
     let mut image = Indexed::read(&source)?;
     // The pruning first, because it frees palette indices the operations
@@ -267,11 +308,19 @@ fn build(
     if let Some(map) = recipe.get("prune") {
         prune(&map_of(int(map) as i32)?, &mut image)?;
     }
-    for pair in recipe["lower_blocks"].as_array().cloned().unwrap_or_default() {
+    for pair in recipe["lower_blocks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+    {
         let block = image.crop(terrain_box(int(&pair[0]) as i32));
         image.paste(&block, corner(terrain_box(int(&pair[1]) as i32)));
     }
-    for pair in recipe["upper_tiles"].as_array().cloned().unwrap_or_default() {
+    for pair in recipe["upper_tiles"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+    {
         // Upper tile `u` is common tile 144 + u.
         let tile = image.crop(common_box(144 + int(&pair[0]) as i32));
         image.paste(&tile, corner(common_box(144 + int(&pair[1]) as i32)));
@@ -283,20 +332,31 @@ fn build(
     if let Some(item) = from_image {
         for entry in item["cells"].as_array().cloned().unwrap_or_default() {
             if entry.as_array().map_or(0, Vec::len) <= 3 {
-                image.paste(&Indexed::blank(16, 16), corner(common_box(144 + int(&entry[2]) as i32)));
+                image.paste(
+                    &Indexed::blank(16, 16),
+                    corner(common_box(144 + int(&entry[2]) as i32)),
+                );
             }
         }
     }
-    let from_charset = recipe.get("from_charset").and_then(Value::as_array).filter(|a| !a.is_empty()).cloned();
+    let from_charset = recipe
+        .get("from_charset")
+        .and_then(Value::as_array)
+        .filter(|a| !a.is_empty())
+        .cloned();
     // The two operations that bring pixels from outside share **a single**
     // palette.
-    let mut palette = (from_charset.is_some() || from_image.is_some()).then(|| Palette::new(&image));
+    let mut palette =
+        (from_charset.is_some() || from_image.is_some()).then(|| Palette::new(&image));
     if let Some(items) = &from_charset {
         let palette = palette.as_mut().unwrap();
         for item in items {
             let name = item["charset"].as_str().unwrap_or("");
             let sheet = find("CharSet", name).ok_or_else(|| {
-                Stop::new(format!("CharSet {}, which ChipSet {number} bakes, is missing", crate::text::repr(name)))
+                Stop::new(format!(
+                    "CharSet {}, which ChipSet {number} bakes, is missing",
+                    crate::text::repr(name)
+                ))
             })?;
             let source = Indexed::read(&sheet)?;
             // A pose's 24x32 frame: a CharSet is eight characters in 4x2,
@@ -331,7 +391,9 @@ fn build(
         let folder = item["folder"].as_str().unwrap_or("");
         let name = item["image"].as_str().unwrap_or("");
         let path = find(folder, name).ok_or_else(|| {
-            Stop::new(format!("{folder}/{name}, which ChipSet {number} bakes, is missing"))
+            Stop::new(format!(
+                "{folder}/{name}, which ChipSet {number} bakes, is missing"
+            ))
         })?;
         let source = Indexed::read(&path)?;
         // RM2k scales images with **nearest neighbour**, and so does this,
@@ -339,9 +401,16 @@ fn build(
         let scale = item.get("scale").map_or(100, int) as usize;
         let width = source.width * scale / 100;
         let height = source.height * scale / 100;
-        let (ax, ay) = (source.width as f64 / width as f64, source.height as f64 / height as f64);
-        let xin: Vec<usize> = (0..width).map(|x| (ax * (x as f64 + 0.5)) as usize).collect();
-        let yin: Vec<usize> = (0..height).map(|y| (ay * (y as f64 + 0.5)) as usize).collect();
+        let (ax, ay) = (
+            source.width as f64 / width as f64,
+            source.height as f64 / height as f64,
+        );
+        let xin: Vec<usize> = (0..width)
+            .map(|x| (ax * (x as f64 + 0.5)) as usize)
+            .collect();
+        let yin: Vec<usize> = (0..height)
+            .map(|y| (ay * (y as f64 + 0.5)) as usize)
+            .collect();
         let small = |x: usize, y: usize| source.get(xin[x], yin[y]);
         // Where the drawing's pixel (0,0) lands inside its first cell.
         let (dx, dy) = item
@@ -353,7 +422,11 @@ fn build(
         let transparent: Vec<[u8; 3]> = item
             .get("transparent")
             .and_then(Value::as_array)
-            .map(|list| list.iter().map(|c| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8]).collect())
+            .map(|list| {
+                list.iter()
+                    .map(|c| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8])
+                    .collect()
+            })
             .unwrap_or_default();
         for entry in item["cells"].as_array().cloned().unwrap_or_default() {
             let (column, row, slot) = (int(&entry[0]), int(&entry[1]), int(&entry[2]));
@@ -371,7 +444,8 @@ fn build(
                     }
                     let index = small(px as usize, py as usize);
                     if index != 0 && !transparent.contains(&source.palette[index as usize]) {
-                        tile.pixels[(y * 16 + x) as usize] = palette.index(to_15_bits(source.palette[index as usize]))?;
+                        tile.pixels[(y * 16 + x) as usize] =
+                            palette.index(to_15_bits(source.palette[index as usize]))?;
                     }
                 }
             }
@@ -396,7 +470,9 @@ fn build(
 /// which then goes first in the resource search. The originals are looked
 /// for in `search_dirs` only: never among the images built before.
 pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Result<()> {
-    let find = |folder: &str, name: &str| crate::resources::find(search_dirs, folder, name, &[".png", ".bmp"]);
+    let find = |folder: &str, name: &str| {
+        crate::resources::find(search_dirs, folder, name, &[".png", ".bmp"])
+    };
     for (_path, data) in game.forks.chipsets.values() {
         build(data, out_dir, &find, &|id| game.map(id))?;
     }
@@ -429,7 +505,12 @@ mod tests {
             chipset_id: 55,
             width: 2,
             height: 1,
-            events: vec![Event { id: 1, x: 0, y: 0, pages }],
+            events: vec![Event {
+                id: 1,
+                x: 0,
+                y: 0,
+                pages,
+            }],
             lower_layer: lower,
             upper_layer: upper,
             twins: Vec::new(),
@@ -441,7 +522,11 @@ mod tests {
         // An event without a CharSet is drawn with a tile of the upper
         // page, which is on no layer: pruning without counting it once lost
         // a slot, and the byte-for-byte comparison caught it, not a test.
-        let m = map(vec![4050, 5003], vec![10007, 10000], vec![page("", 13, vec![]), page("Hero", 13, vec![])]);
+        let m = map(
+            vec![4050, 5003],
+            vec![10007, 10000],
+            vec![page("", 13, vec![]), page("Hero", 13, vec![])],
+        );
         let (water, terrains, commons) = what_it_draws(&m).unwrap();
         assert!(!water);
         assert_eq!(terrains, BTreeSet::from([1]));
@@ -452,8 +537,17 @@ mod tests {
     fn pruning_stops_if_the_map_picks_tiles_at_run_time() {
         // With `ChangeMapTileset` or `TileSubstitution` the layers stop
         // saying what the map draws: it stops instead of guessing.
-        let substitution = Command { code: 11750, indent: 0, string: String::new(), parameters: vec![0] };
-        let m = map(vec![5000, 5000], vec![10000, 10000], vec![page("", 0, vec![substitution])]);
+        let substitution = Command {
+            code: 11750,
+            indent: 0,
+            string: String::new(),
+            parameters: vec![0],
+        };
+        let m = map(
+            vec![5000, 5000],
+            vec![10000, 10000],
+            vec![page("", 0, vec![substitution])],
+        );
         let refusal = what_it_draws(&m).err().unwrap().message;
         assert!(refusal.contains("TileSubstitution"), "{refusal}");
     }
@@ -462,7 +556,12 @@ mod tests {
     fn indexed(width: usize, height: usize, fill: u8, palette: &[[u8; 3]]) -> Indexed {
         let mut colors = palette.to_vec();
         colors.resize(256, [0, 0, 0]);
-        Indexed { width, height, pixels: vec![fill; width * height], palette: colors }
+        Indexed {
+            width,
+            height,
+            pixels: vec![fill; width * height],
+            palette: colors,
+        }
     }
 
     #[test]
@@ -497,7 +596,13 @@ mod tests {
             },
         });
         let (chip, pic) = (dir.join("base.png"), dir.join("drawing.png"));
-        let find = move |folder: &str, _name: &str| Some(if folder == "ChipSet" { chip.clone() } else { pic.clone() });
+        let find = move |folder: &str, _name: &str| {
+            Some(if folder == "ChipSet" {
+                chip.clone()
+            } else {
+                pic.clone()
+            })
+        };
         let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
         let built = Indexed::read(&out).unwrap();
         let color = |slot: i32, x: usize, y: usize| {
@@ -510,10 +615,18 @@ mod tests {
         let (index, rgb) = color(6, 0, 0);
         assert_ne!(index, 0, "the drawing fell on index 0, the transparent one");
         assert_eq!(rgb, [248, 128, 64], "it did not round to fifteen bits");
-        assert_eq!(color(6, 12, 12).0, 0, "the drawing's transparency painted something");
+        assert_eq!(
+            color(6, 12, 12).0,
+            0,
+            "the drawing's transparency painted something"
+        );
         // Slot 7 starts from 5's drawing and the new one covers it only
         // where it paints.
-        assert_eq!(color(7, 0, 0).1, [248, 128, 64], "it did not compose over the base");
+        assert_eq!(
+            color(7, 0, 0).1,
+            [248, 128, 64],
+            "it did not compose over the base"
+        );
         assert_eq!(color(7, 12, 12).1, [7, 7, 7], "composing erased the base");
         let _ = std::fs::remove_dir_all(&dir);
     }

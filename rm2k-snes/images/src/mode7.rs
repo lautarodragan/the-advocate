@@ -138,8 +138,8 @@ fn distance(a: &[f32; SHAPE], b: &[f32; SHAPE]) -> f32 {
 /// and each next one the shape farthest from all the centres so far,
 /// weighted: k-means++ without its dice.
 fn kmeans(shapes: &[[f32; SHAPE]], weight: &[f32], k: usize) -> Vec<usize> {
-    let first = (0..shapes.len())
-        .fold(0, |best, i| if weight[i] > weight[best] { i } else { best });
+    let first =
+        (0..shapes.len()).fold(0, |best, i| if weight[i] > weight[best] { i } else { best });
     let mut centres = vec![shapes[first]];
     let mut near: Vec<f32> = shapes.iter().map(|s| distance(s, &shapes[first])).collect();
     while centres.len() < k {
@@ -205,7 +205,10 @@ fn medoids(shapes: &[[f32; SHAPE]], weight: &[f32], group: &[usize], k: usize) -
     for (g, m) in members.iter().enumerate() {
         let mut best = (usize::MAX, f32::INFINITY);
         for &i in m {
-            let cost: f32 = m.iter().map(|&j| weight[j] * distance(&shapes[i], &shapes[j])).sum();
+            let cost: f32 = m
+                .iter()
+                .map(|&j| weight[j] * distance(&shapes[i], &shapes[j]))
+                .sum();
             if cost < best.1 {
                 best = (i, cost);
             }

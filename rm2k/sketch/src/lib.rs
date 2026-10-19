@@ -100,10 +100,16 @@ pub fn read(text: &str) -> Result<Layers, Error> {
         // a sketch that mixed up its two numbers: the binary would take it
         // and the editor would draw something else.
         if !(0..UPPER as i16).contains(&cell.lower) {
-            return Err(Error(format!("legend: {key:?} has lower = {}, which is not a lower-layer tile", cell.lower)));
+            return Err(Error(format!(
+                "legend: {key:?} has lower = {}, which is not a lower-layer tile",
+                cell.lower
+            )));
         }
         if !(UPPER as i16..(UPPER + TILES_PER_LAYER) as i16).contains(&cell.upper) {
-            return Err(Error(format!("legend: {key:?} has upper = {}, which is not an upper-layer tile", cell.upper)));
+            return Err(Error(format!(
+                "legend: {key:?} has upper = {}, which is not an upper-layer tile",
+                cell.upper
+            )));
         }
         legend.insert(c, cell);
     }
@@ -115,16 +121,25 @@ pub fn read(text: &str) -> Result<Layers, Error> {
     if width == 0 {
         return Err(Error("grid: it is empty".into()));
     }
-    let mut layers = Layers { width, height: rows.len(), lower: Vec::new(), upper: Vec::new() };
+    let mut layers = Layers {
+        width,
+        height: rows.len(),
+        lower: Vec::new(),
+        upper: Vec::new(),
+    };
     for (y, row) in rows.iter().enumerate() {
         let n = row.chars().count();
         if n != width {
-            return Err(Error(format!("grid: row {y} has {n} cells and the first one {width}")));
+            return Err(Error(format!(
+                "grid: row {y} has {n} cells and the first one {width}"
+            )));
         }
         for (x, c) in row.chars().enumerate() {
-            let cell = legend
-                .get(&c)
-                .ok_or_else(|| Error(format!("grid: {c:?}, at column {x} of row {y}, is not in the legend")))?;
+            let cell = legend.get(&c).ok_or_else(|| {
+                Error(format!(
+                    "grid: {c:?}, at column {x} of row {y}, is not in the legend"
+                ))
+            })?;
             layers.lower.push(cell.lower);
             layers.upper.push(cell.upper);
         }
@@ -136,7 +151,8 @@ pub fn read(text: &str) -> Result<Layers, Error> {
 mod tests {
     use super::*;
 
-    const LEGEND: &str = "[legend]\n\".\" = { lower = 4000 }\n\"#\" = { lower = 5001, upper = 10007 }\n";
+    const LEGEND: &str =
+        "[legend]\n\".\" = { lower = 4000 }\n\"#\" = { lower = 5001, upper = 10007 }\n";
 
     fn sketch(grid: &str) -> String {
         format!("grid = '''\n{grid}'''\n{LEGEND}")
@@ -153,8 +169,14 @@ mod tests {
     #[test]
     fn the_tiles_are_what_ditto_reads_back() {
         let tiles = read(&sketch("#.\n")).unwrap().tiles();
-        assert_eq!(tiles, ditto::dump::grid(2, 1, &[5001, 4000], &[10007, 10000]));
-        assert!(tiles.contains("# lower\n  5001  4000\n# upper\n 10007 10000\n"), "{tiles}");
+        assert_eq!(
+            tiles,
+            ditto::dump::grid(2, 1, &[5001, 4000], &[10007, 10000])
+        );
+        assert!(
+            tiles.contains("# lower\n  5001  4000\n# upper\n 10007 10000\n"),
+            "{tiles}"
+        );
     }
 
     #[test]

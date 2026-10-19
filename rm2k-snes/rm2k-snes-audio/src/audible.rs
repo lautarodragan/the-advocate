@@ -44,7 +44,8 @@ impl Audible {
         let mut power = vec![0.0; bands];
         for k in 1..=n / 2 {
             let f = k as f64 * rate as f64 / n as f64;
-            power[((f / BAND) as usize).min(bands - 1)] += (re[k] * re[k] + im[k] * im[k]) * a_weighting(f);
+            power[((f / BAND) as usize).min(bands - 1)] +=
+                (re[k] * re[k] + im[k] * im[k]) * a_weighting(f);
         }
         let total: f64 = power.iter().sum();
         let mut below = Vec::with_capacity(bands + 1);
@@ -123,7 +124,11 @@ mod tests {
 
     fn tone(hz: f64, rate: i64, seconds: f64) -> Vec<i64> {
         let n = (rate as f64 * seconds) as usize;
-        (0..n).map(|i| (10000.0 * (2.0 * std::f64::consts::PI * hz * i as f64 / rate as f64).sin()) as i64).collect()
+        (0..n)
+            .map(|i| {
+                (10000.0 * (2.0 * std::f64::consts::PI * hz * i as f64 / rate as f64).sin()) as i64
+            })
+            .collect()
     }
 
     #[test]

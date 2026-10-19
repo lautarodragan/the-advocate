@@ -26,7 +26,9 @@ pub fn floor_div(a: i64, b: i64) -> i64 {
 /// A float rounded to `digits` decimals, correctly: the decimal nearest to
 /// the exact binary value, ties to even, as Python's `round(x, digits)`.
 pub fn round_to(x: f64, digits: usize) -> f64 {
-    format!("{x:.digits$}").parse().expect("a formatted float parses back")
+    format!("{x:.digits$}")
+        .parse()
+        .expect("a formatted float parses back")
 }
 
 /// The sum of a slice the way numpy adds one up: pairwise, in blocks of

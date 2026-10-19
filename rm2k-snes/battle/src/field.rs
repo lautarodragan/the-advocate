@@ -35,7 +35,13 @@ use rm2k_rules::skill::cures_death;
 ///   by `effect - 1`. A skill that revives without touching HP heals the
 ///   revived one `effect` percent of its maximum, minus that one.
 /// * If it was of use to anyone, the SP, once.
-pub fn use_skill(skill: &Skill, party: &mut [Combatant], user: usize, target: usize, rng: &mut Rng) -> bool {
+pub fn use_skill(
+    skill: &Skill,
+    party: &mut [Combatant],
+    user: usize,
+    target: usize,
+    rng: &mut Rng,
+) -> bool {
     if skill.r#type.to_i32() != SKILL_NORMAL || party[user].sp < skill.sp_cost as i64 {
         return false;
     }
@@ -49,7 +55,11 @@ pub fn use_skill(skill: &Skill, party: &mut [Combatant], user: usize, target: us
     for t in targets {
         let source = party[user].clone();
         let critical = rng.percent(0);
-        let effect = apply_variance(skill_effect(&source, &party[t], skill, critical), skill.variance as i64, rng);
+        let effect = apply_variance(
+            skill_effect(&source, &party[t], skill, critical),
+            skill.variance as i64,
+            rng,
+        );
         let one = &mut party[t];
         let mut revived = 0;
         if cures_death(skill) && one.hp == 0 {

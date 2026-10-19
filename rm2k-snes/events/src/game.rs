@@ -50,16 +50,19 @@ impl Command {
 pub struct Condition {
     pub switch_a: Option<i32>,
     pub switch_b: Option<i32>,
-    /// The variable and the value it has to reach.
-    pub variable: Option<(i32, i32)>,
+    /// The variable, how it is compared —`CheckOperator`'s codes, see
+    /// [`CONDITION_OPERATOR`]— and against what.
+    pub variable: Option<(i32, i32, i32)>,
     pub item: Option<i32>,
     pub actor: Option<i32>,
     /// The seconds the timer has to be at or under.
     pub timer: Option<i32>,
 }
 
-/// `compare_operator` is RPG Maker 2003's, and a 2000 game always holds
-/// its default: `>=`, which is 1.
+/// How RPG Maker 2000 compares a page's variable: `>=`, which is 1 of
+/// `CheckOperator`'s codes —`==` `>=` `<=` `>` `<` `!=`—. 2003 lets the page
+/// choose, in `compare_operator`, and a 2000 game ignores the field, as
+/// `Game_Event::AreConditionsMet` does with `Player::IsRPG2k()`.
 pub const CONDITION_OPERATOR: i32 = 1;
 
 /// One of the versions an event can take.
@@ -466,8 +469,11 @@ impl Game {
         let two_weapons = raw.iter().filter(|a| a.two_weapon).map(|a| a.id).collect();
         let raw: Vec<schema::Skill> = dump.section("skills").map_err(answer)?;
         let skills = raw.iter().map(|s| s.id).collect();
-        let mut database_switches: BTreeSet<i32> =
-            raw.iter().filter(|s| s.r#type == schema::SkillType::Switch).map(|s| s.switch_id).collect();
+        let mut database_switches: BTreeSet<i32> = raw
+            .iter()
+            .filter(|s| s.r#type == schema::SkillType::Switch)
+            .map(|s| s.switch_id)
+            .collect();
         // A dump without items equips nothing: `ChangeEquipment` to equip
         // then does not compile, which is what it did before it read them.
         // The small game of this crate's tests has none.
@@ -477,7 +483,11 @@ impl Game {
             .map(|i| (i.id, (i.r#type.to_i32(), i.actor_set.clone())))
             .collect();
         let two_handed = raw.iter().filter(|i| i.two_handed).map(|i| i.id).collect();
-        database_switches.extend(raw.iter().filter(|i| i.r#type == schema::ItemType::Switch).map(|i| i.switch_id));
+        database_switches.extend(
+            raw.iter()
+                .filter(|i| i.r#type == schema::ItemType::Switch)
+                .map(|i| i.switch_id),
+        );
 
         Ok(Game {
             dump: data.to_path_buf(),
@@ -508,17 +518,30 @@ impl Game {
     pub fn system_names(&self) -> Result<Vec<String>> {
         let mut out: Vec<String> = Vec::new();
         let mut note = |c: &Command| {
-            if c.code == CHANGE_SYSTEM_GRAPHICS && !out.iter().any(|s| s.eq_ignore_ascii_case(&c.string)) {
+            if c.code == CHANGE_SYSTEM_GRAPHICS
+                && !out.iter().any(|s| s.eq_ignore_ascii_case(&c.string))
+            {
                 out.push(c.string.clone());
             }
         };
         for &id in &self.map_ids {
             for event in self.map(id)?.events {
-                event.pages.iter().flat_map(|p| p.commands.iter()).for_each(&mut note);
+                event
+                    .pages
+                    .iter()
+                    .flat_map(|p| p.commands.iter())
+                    .for_each(&mut note);
             }
         }
-        self.common_events.values().flat_map(|c| c.commands.iter()).for_each(&mut note);
-        self.troops.values().flatten().flat_map(|p| p.commands.iter()).for_each(&mut note);
+        self.common_events
+            .values()
+            .flat_map(|c| c.commands.iter())
+            .for_each(&mut note);
+        self.troops
+            .values()
+            .flatten()
+            .flat_map(|p| p.commands.iter())
+            .for_each(&mut note);
         Ok(out)
     }
 
@@ -547,8 +570,11 @@ impl Game {
 
     fn convert(&self, id: i32, raw: &schema::Map) -> Map {
         let dropped = self.patches.dropped.get(&id);
-        let mut events: Vec<&schema::Event> =
-            raw.events.iter().filter(|e| dropped.is_none_or(|d| !d.contains(&e.id))).collect();
+        let mut events: Vec<&schema::Event> = raw
+            .events
+            .iter()
+            .filter(|e| dropped.is_none_or(|d| !d.contains(&e.id)))
+            .collect();
         events.sort_by_key(|e| e.id);
         let events = events
             .into_iter()
@@ -565,6 +591,11 @@ impl Game {
                         .map(|p| {
                             let c = &p.condition;
                             let f = &c.flags;
+                            let comparison = if self.is_2003 {
+                                c.compare_operator.to_i32()
+                            } else {
+                                CONDITION_OPERATOR
+                            };
                             let name = self
                                 .patches
                                 .names
@@ -581,7 +612,12 @@ impl Game {
                                 character_name: name,
                                 character_index: p.character_index,
                                 character_pattern: p.character_pattern.to_i32(),
-                                commands: if self.patches.boxed_exits.get(&id).is_some_and(|b| b.contains(&e.id)) {
+                                commands: if self
+                                    .patches
+                                    .boxed_exits
+                                    .get(&id)
+                                    .is_some_and(|b| b.contains(&e.id))
+                                {
                                     exit_left_out_box()
                                 } else {
                                     commands(&p.event_commands, Some(&self.patches.boxes))
@@ -597,9 +633,10 @@ impl Game {
                                 condition: Condition {
                                     switch_a: f.switch_a.then_some(c.switch_a_id),
                                     switch_b: f.switch_b.then_some(c.switch_b_id),
-                                    variable: f
-                                        .variable
-                                        .then_some((c.variable_id, c.variable_value)),
+                                    // A comparison outside `CheckOperator`'s six
+                                    // asks for nothing, as in `AreConditionsMet`.
+                                    variable: (f.variable && (0..=5).contains(&comparison))
+                                        .then_some((c.variable_id, comparison, c.variable_value)),
                                     item: f.item.then_some(c.item_id),
                                     actor: f.actor.then_some(c.actor_id),
                                     timer: f.timer.then_some(c.timer_sec),
@@ -655,5 +692,38 @@ mod tests {
             ]
         );
         assert!(out.iter().all(|c| c.indent == 1));
+    }
+
+    /// A page's variable comparison is 2003's to choose and 2000 always
+    /// asks `>=`. Until 2026-10-19 the 2003 one was dropped and every page
+    /// asked `>=`: Zounds' map 88 asked "X <= 1" as "X >= 1", and the
+    /// desert sent the hero back to its middle forever —see
+    /// tasks/zounds-entering-map-88-loops-on-a-teleport.md—.
+    #[test]
+    fn a_2003_page_keeps_its_comparison_and_a_2000_one_asks_at_least() {
+        let mut raw = schema::Map::default();
+        let mut event = schema::Event {
+            id: 1,
+            ..Default::default()
+        };
+        let mut page = schema::EventPage {
+            id: 1,
+            ..Default::default()
+        };
+        page.condition.flags.variable = true;
+        page.condition.variable_id = 7;
+        page.condition.variable_value = 1;
+        page.condition.compare_operator = schema::EventPageConditionComparison::LessEqual;
+        event.pages.push(page);
+        raw.events.push(event);
+        let asks = |is_2003: bool| {
+            let game = Game {
+                is_2003,
+                ..Game::default()
+            };
+            game.convert(88, &raw).events[0].pages[0].condition.variable
+        };
+        assert_eq!(asks(true), Some((7, 2, 1)));
+        assert_eq!(asks(false), Some((7, CONDITION_OPERATOR, 1)));
     }
 }

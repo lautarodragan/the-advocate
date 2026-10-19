@@ -174,10 +174,7 @@ fn the_cells_land_where_the_python_put_them() {
     )];
     for (sheet, first) in [(&indexed, &small_indexed), (&rgba, &small_rgba)] {
         let frame_0: Vec<Cell> = first.iter().chain(zoomed_small[0]).copied().collect();
-        check(
-            drawn(&small(), sheet),
-            &[&frame_0, zoomed_small[1], &[]],
-        );
+        check(drawn(&small(), sheet), &[&frame_0, zoomed_small[1], &[]]);
     }
     for sheet in [&indexed, &rgba] {
         check(

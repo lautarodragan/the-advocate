@@ -13,10 +13,10 @@
 
 use crate::codes::*;
 use crate::compile::{compile_page, Ctx, ACCEPTED_UNDONE, CALL_MAX};
-use crate::losses::Origin;
 use crate::fail::Result;
 use crate::game::{Command, Game, TroopPage};
 use crate::indices::battle_branch;
+use crate::losses::Origin;
 use crate::messages::Messages;
 use crate::registry::Package;
 use serde_json::{json, Value};
@@ -242,7 +242,8 @@ pub(crate) fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
     if f.switch_b {
         t.switch_b = c.switch_b_id;
     }
-    if !ctx.indices.holds_switch(t.switch_a as i64) || !ctx.indices.holds_switch(t.switch_b as i64) {
+    if !ctx.indices.holds_switch(t.switch_a as i64) || !ctx.indices.holds_switch(t.switch_b as i64)
+    {
         return None;
     }
     if f.variable {
@@ -289,8 +290,15 @@ pub(crate) fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
 /// width: before, the battle cut every line at its edge, and "The Captain
 /// has taken off in the ship!" came out "...taken off in th".
 #[cfg(test)]
-fn reflow(raw: Vec<Command>, measure: &rm2k_snes_text::refit::Measure, rows: usize) -> Vec<Command> {
-    reflow_from(raw, measure, rows).into_iter().map(|(_, c)| c).collect()
+fn reflow(
+    raw: Vec<Command>,
+    measure: &rm2k_snes_text::refit::Measure,
+    rows: usize,
+) -> Vec<Command> {
+    reflow_from(raw, measure, rows)
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect()
 }
 
 /// [`reflow`], with the index in `raw` each command comes from: a box cut
@@ -376,13 +384,26 @@ pub(crate) fn called_common(cmd: &Command) -> Option<i32> {
 /// same. The pasted commands' indent is shifted by the call's, so that the
 /// callee's branches close inside the caller's. In Zounds this is the steal
 /// mechanic: 18 pages calling common event 2, which calls two more.
-pub(crate) fn expand_calls(game: &Game, raw: &[Command]) -> (Vec<(usize, Command)>, Vec<(usize, i32)>) {
+pub(crate) fn expand_calls(
+    game: &Game,
+    raw: &[Command],
+) -> (Vec<(usize, Command)>, Vec<(usize, i32)>) {
     /// Common event `id`'s body into `out`, shifted by `shift`, with the
     /// calls inside it pasted the same way: `None` if a command of its own
     /// does not run in a battle, and then nothing of it is pasted; the
     /// calls it makes that are skipped go to `skipped`.
-    fn paste(game: &Game, id: i32, shift: i32, stack: &mut Vec<i32>, skipped: &mut Vec<i32>) -> Option<Vec<Command>> {
-        let body = game.common_events.get(&id).map(|c| c.commands.as_slice()).unwrap_or(&[]);
+    fn paste(
+        game: &Game,
+        id: i32,
+        shift: i32,
+        stack: &mut Vec<i32>,
+        skipped: &mut Vec<i32>,
+    ) -> Option<Vec<Command>> {
+        let body = game
+            .common_events
+            .get(&id)
+            .map(|c| c.commands.as_slice())
+            .unwrap_or(&[]);
         let mut out = Vec::with_capacity(body.len());
         for cmd in body {
             if let Some(callee) = called_common(cmd) {
@@ -402,7 +423,10 @@ pub(crate) fn expand_calls(game: &Game, raw: &[Command]) -> (Vec<(usize, Command
             if !runs_in_battle(cmd) {
                 return None;
             }
-            out.push(Command { indent: cmd.indent + shift, ..cmd.clone() });
+            out.push(Command {
+                indent: cmd.indent + shift,
+                ..cmd.clone()
+            });
         }
         Some(out)
     }
@@ -533,10 +557,15 @@ impl TroopPages {
                         face: None,
                     };
                     let mark = inner.losses.mark();
-                    inner.losses.enter(Origin::Troop { troop: number, page: k as i32 + 1 });
+                    inner.losses.enter(Origin::Troop {
+                        troop: number,
+                        page: k as i32 + 1,
+                    });
                     let code = compile_page(&mut inner, &cmds, None, 0, 0);
                     inner.losses.leave();
-                    inner.losses.reindex_from(mark, |i| from.get(i).copied().unwrap_or(i));
+                    inner
+                        .losses
+                        .reindex_from(mark, |i| from.get(i).copied().unwrap_or(i));
                     // The calls `expand_calls` skipped, at the call's own
                     // index: after the reindexing, which is for the rebuilt
                     // list's.
@@ -560,7 +589,9 @@ impl TroopPages {
                 .commands
                 .iter()
                 .map(|c| c.code)
-                .filter(|code| ACCEPTED_UNDONE.contains(code) || TROOP_ACCEPTED_UNDONE.contains(code))
+                .filter(|code| {
+                    ACCEPTED_UNDONE.contains(code) || TROOP_ACCEPTED_UNDONE.contains(code)
+                })
                 .collect();
             for code in undone {
                 self.debts.entry(code).or_default().push((number, k));
@@ -615,9 +646,9 @@ impl TroopPages {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::losses::Losses;
     use crate::compile::{Indices, SoundSettings};
     use crate::game::Game;
+    use crate::losses::Losses;
     use crate::messages::Window;
     use rm2k_snes_bytecode::events::*;
 
@@ -654,7 +685,11 @@ mod tests {
         // 2026-10-14 the command kept the page out, and with it the only way
         // that fight ends.
         let mut game = Game::default();
-        let anim = |frames| crate::game::Animation { timings: vec![], frames, scope: 0 };
+        let anim = |frames| crate::game::Animation {
+            timings: vec![],
+            frames,
+            scope: 0,
+        };
         game.animations.insert(128, anim(10));
         game.animations.insert(129, anim(0));
         let indices = Indices::default();
@@ -702,7 +737,8 @@ mod tests {
     /// calls goes to a common event with a `Teleport`, which the battle has
     /// no stand-in for, and that call alone is skipped.
     #[test]
-    fn a_call_to_a_common_event_is_pasted_in_the_battle_and_a_callee_the_battle_cannot_run_is_skipped() {
+    fn a_call_to_a_common_event_is_pasted_in_the_battle_and_a_callee_the_battle_cannot_run_is_skipped(
+    ) {
         let mut game = Game::default();
         let common = |commands: Vec<Command>| crate::game::CommonEvent {
             trigger: 0,
@@ -719,15 +755,29 @@ mod tests {
                 Command::new(END, 0, "", vec![]),
             ]),
         );
-        game.common_events.insert(65, common(vec![Command::new(CONTROL_SWITCHES, 0, "", vec![0, 4, 4, 0])]));
-        game.common_events.insert(70, common(vec![Command::new(TELEPORT, 0, "", vec![1, 1, 1])]));
+        game.common_events.insert(
+            65,
+            common(vec![Command::new(
+                CONTROL_SWITCHES,
+                0,
+                "",
+                vec![0, 4, 4, 0],
+            )]),
+        );
+        game.common_events.insert(
+            70,
+            common(vec![Command::new(TELEPORT, 0, "", vec![1, 1, 1])]),
+        );
         let page = vec![
             Command::new(COND_BRANCH, 0, "", vec![0, 3, 0]),
             Command::new(CALL_COMMON_EVENT, 1, "", vec![2]),
             Command::new(COND_END, 0, "", vec![]),
         ];
         let (expanded, skipped) = expand_calls(&game, &page);
-        let codes: Vec<(usize, i32, i32)> = expanded.iter().map(|(i, c)| (*i, c.code, c.indent)).collect();
+        let codes: Vec<(usize, i32, i32)> = expanded
+            .iter()
+            .map(|(i, c)| (*i, c.code, c.indent))
+            .collect();
         assert_eq!(
             codes,
             vec![
@@ -739,23 +789,62 @@ mod tests {
             ],
             "the callee's body in the call's place, at the call's indent, with the call it makes pasted too"
         );
-        assert_eq!(skipped, vec![(1, 70)], "the callee with the teleport is skipped, by the call's index");
+        assert_eq!(
+            skipped,
+            vec![(1, 70)],
+            "the callee with the teleport is skipped, by the call's index"
+        );
         assert!(commands(&expanded.into_iter().map(|(_, c)| c).collect::<Vec<_>>()).is_some());
         // A call to a map event's page has no place in a battle; one to a
         // common event does, and so does RPG Maker 2003's own command.
-        assert!(!runs_in_battle(&Command::new(CALL_EVENT, 0, "", vec![1, 5, 1])));
-        assert!(runs_in_battle(&Command::new(CALL_EVENT, 0, "", vec![0, 5, 0])));
-        assert!(runs_in_battle(&Command::new(CALL_COMMON_EVENT, 0, "", vec![2])));
+        assert!(!runs_in_battle(&Command::new(
+            CALL_EVENT,
+            0,
+            "",
+            vec![1, 5, 1]
+        )));
+        assert!(runs_in_battle(&Command::new(
+            CALL_EVENT,
+            0,
+            "",
+            vec![0, 5, 0]
+        )));
+        assert!(runs_in_battle(&Command::new(
+            CALL_COMMON_EVENT,
+            0,
+            "",
+            vec![2]
+        )));
     }
 
     /// Zounds' own Escape command: `ForceFlee` for the party, and nothing
     /// for an enemy, which the 2000 battle has no way to send off.
     #[test]
     fn force_flee_is_the_party_s_and_not_an_enemy_s() {
-        assert!(runs_in_battle(&Command::new(FORCE_FLEE, 0, "", vec![0, 0, 1])));
-        assert!(!runs_in_battle(&Command::new(FORCE_FLEE, 0, "", vec![1, 0, 1])));
-        assert!(!runs_in_battle(&Command::new(FORCE_FLEE, 0, "", vec![2, 3, 0])));
-        assert!(runs_in_battle(&Command::new(CHANGE_SP, 0, "", vec![0, 1, 1, 0, 5])));
+        assert!(runs_in_battle(&Command::new(
+            FORCE_FLEE,
+            0,
+            "",
+            vec![0, 0, 1]
+        )));
+        assert!(!runs_in_battle(&Command::new(
+            FORCE_FLEE,
+            0,
+            "",
+            vec![1, 0, 1]
+        )));
+        assert!(!runs_in_battle(&Command::new(
+            FORCE_FLEE,
+            0,
+            "",
+            vec![2, 3, 0]
+        )));
+        assert!(runs_in_battle(&Command::new(
+            CHANGE_SP,
+            0,
+            "",
+            vec![0, 1, 1, 0, 5]
+        )));
     }
 
     /// A page conditioned on what only RPG Maker 2003 asks —an actor's
@@ -784,7 +873,10 @@ mod tests {
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.switch_a = true;
         condition.switch_a_id = 3;
-        let on_switch = TroopPage { condition: condition.clone(), commands: vec![] };
+        let on_switch = TroopPage {
+            condition: condition.clone(),
+            commands: vec![],
+        };
         assert!(trigger(&ctx, &on_switch).is_some());
         for set in [
             |f: &mut ditto::schema::TroopPageConditionFlags| f.command_actor = true,
@@ -793,16 +885,31 @@ mod tests {
         ] {
             let mut condition = condition.clone();
             set(&mut condition.flags);
-            assert!(trigger(&ctx, &TroopPage { condition, commands: vec![] }).is_none());
+            assert!(trigger(
+                &ctx,
+                &TroopPage {
+                    condition,
+                    commands: vec![]
+                }
+            )
+            .is_none());
         }
     }
 
     #[test]
     fn a_comment_runs_in_battle_as_nothing() {
         for code in [COMMENT, COMMENT_2] {
-            assert!(runs_in_battle(&Command::new(code, 0, "a note", vec![])), "{code}");
+            assert!(
+                runs_in_battle(&Command::new(code, 0, "a note", vec![])),
+                "{code}"
+            );
         }
-        assert!(!runs_in_battle(&Command::new(TELEPORT, 0, "", vec![1, 1, 1])));
+        assert!(!runs_in_battle(&Command::new(
+            TELEPORT,
+            0,
+            "",
+            vec![1, 1, 1]
+        )));
     }
 
     #[test]
@@ -814,7 +921,13 @@ mod tests {
         let lines: Vec<&str> = out.iter().map(|c| c.string.as_str()).collect();
         assert_eq!(
             lines,
-            ["MARLO", "The Admiral has sailed off", "in the boat!", "", "Nothing happens at all."]
+            [
+                "MARLO",
+                "The Admiral has sailed off",
+                "in the boat!",
+                "",
+                "Nothing happens at all."
+            ]
         );
         assert_eq!(out[3].code, CONTROL_SWITCHES);
         assert!(out.iter().all(|c| c.indent == 1));

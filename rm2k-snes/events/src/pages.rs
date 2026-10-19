@@ -3,11 +3,11 @@
 
 use crate::codes::*;
 use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
-use crate::losses::Origin;
 use crate::fail::{Bad, Result, Step, Stop};
-use crate::game::{Command, Map, Page, CONDITION_OPERATOR};
-use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
+use crate::game::{Command, Map, Page};
+use crate::losses::Origin;
 use crate::route;
+use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
 use serde_json::{json, Value};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -183,7 +183,7 @@ impl MapEvents {
             .events
             .iter()
             .flat_map(|e| e.pages.iter())
-            .filter_map(|p| p.condition.variable.map(|(v, _)| v))
+            .filter_map(|p| p.condition.variable.map(|(v, _, _)| v))
             .collect();
         MapEvents {
             shared: Rc::new(Shared {
@@ -352,7 +352,11 @@ impl MapEvents {
 fn triggerable(trigger: i32) -> bool {
     matches!(
         trigger,
-        TRIGGER_ACTION | TRIGGER_TOUCH_HERO | TRIGGER_COLLISION | TRIGGER_AUTOSTART | TRIGGER_PARALLEL
+        TRIGGER_ACTION
+            | TRIGGER_TOUCH_HERO
+            | TRIGGER_COLLISION
+            | TRIGGER_AUTOSTART
+            | TRIGGER_PARALLEL
     )
 }
 
@@ -452,7 +456,10 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
     for event in &map.events {
         if let Some((why, warn)) = left_out_why(ctx.indices, event) {
             if warn {
-                eprintln!("  map {}: WARNING, event {} is left out: {why}", map.id, event.id);
+                eprintln!(
+                    "  map {}: WARNING, event {} is left out: {why}",
+                    map.id, event.id
+                );
             }
             left_out(ctx, event, format!("the event is left out: {why}"));
             skipped.insert(event.id);
@@ -528,9 +535,9 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             // for it —the 81 of map 312, the fire's Game Over— and no page
             // asks for both; one that did is left out above.
             let variable = match (c.variable, c.timer) {
-                (Some((v, value)), _) => {
+                (Some((v, comparison, value)), _) => {
                     let slot = variable_slot(ctx.indices, v)?;
-                    json!([slot, CONDITION_OPERATOR, value])
+                    json!([slot, comparison, value])
                 }
                 (None, Some(seconds)) => json!([TIMER_SLOT, AT_MOST, seconds]),
                 (None, None) => Value::Null,
@@ -567,7 +574,10 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             call.path.clone(),
             Some(CALL_EVENT),
             "call-skipped",
-            format!("event {}'s page {} does not compile here, and the call is skipped", call.event, call.page),
+            format!(
+                "event {}'s page {} does not compile here, and the call is skipped",
+                call.event, call.page
+            ),
         );
     }
     // And the chains of calls deeper than the console's stack: a call past
@@ -595,7 +605,8 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 ),
             };
             ctx.losses.enter(place(event, Some(page.id)));
-            ctx.losses.lose(Some(CALL_EVENT), "call-stack-exceeded", text);
+            ctx.losses
+                .lose(Some(CALL_EVENT), "call-stack-exceeded", text);
             ctx.losses.leave();
         }
     }
@@ -613,7 +624,10 @@ fn left_out_why(indices: &Indices, event: &crate::game::Event) -> Option<(String
         .iter()
         .any(|p| p.condition.timer.is_some() && p.condition.variable.is_some())
     {
-        return Some(("a page's condition asks for the timer and a variable".into(), false));
+        return Some((
+            "a page's condition asks for the timer and a variable".into(),
+            false,
+        ));
     }
     // A page whose condition names a variable that has no slot (the game
     // has more than fit in far RAM).
@@ -621,10 +635,13 @@ fn left_out_why(indices: &Indices, event: &crate::game::Event) -> Option<(String
         .pages
         .iter()
         .filter_map(|p| p.condition.variable)
-        .map(|(v, _)| v)
+        .map(|(v, _, _)| v)
         .find(|&v| variable_slot(indices, v).is_err())
     {
-        return Some((format!("a page's condition names variable {v}, which has no slot in far RAM"), true));
+        return Some((
+            format!("a page's condition names variable {v}, which has no slot in far RAM"),
+            true,
+        ));
     }
     // And the same with a switch past the ROM's table, which the console
     // would test in whatever RAM follows it: until 2026-10-15 the table
@@ -638,7 +655,10 @@ fn left_out_why(indices: &Indices, event: &crate::game::Event) -> Option<(String
         .flatten()
         .find(|&s| !indices.holds_switch(s as i64))
     {
-        return Some((format!("a page's condition names switch {s}, past the ROM's table"), true));
+        return Some((
+            format!("a page's condition names switch {s}, past the ROM's table"),
+            true,
+        ));
     }
     None
 }
@@ -657,7 +677,12 @@ enum Node {
 /// has, through both. None if the calls loop. A pasted call counts as a
 /// frame too: it is a bound, and the console's stack is what it is measured
 /// against.
-fn call_depth(ctx: &Ctx, me: &MapEvents, compiled: &HashSet<(i32, i32)>, root: Node) -> Option<usize> {
+fn call_depth(
+    ctx: &Ctx,
+    me: &MapEvents,
+    compiled: &HashSet<(i32, i32)>,
+    root: Node,
+) -> Option<usize> {
     fn walk(
         ctx: &Ctx,
         me: &MapEvents,
@@ -675,15 +700,27 @@ fn call_depth(ctx: &Ctx, me: &MapEvents, compiled: &HashSet<(i32, i32)>, root: N
         open.push(node);
         let empty = Vec::new();
         let commands: &[Command] = match node {
-            Node::Page(e, p) => me.pages(e).and_then(|pages| pages.get((p - 1) as usize)).unwrap_or(&empty),
-            Node::Common(n) => ctx.game.common_events.get(&n).map_or(&empty[..], |c| &c.commands),
+            Node::Page(e, p) => me
+                .pages(e)
+                .and_then(|pages| pages.get((p - 1) as usize))
+                .unwrap_or(&empty),
+            Node::Common(n) => ctx
+                .game
+                .common_events
+                .get(&n)
+                .map_or(&empty[..], |c| &c.commands),
         };
         let mut deepest = 0;
-        for c in commands.iter().filter(|c| c.code == CALL_EVENT && c.parameters.len() >= 2) {
+        for c in commands
+            .iter()
+            .filter(|c| c.code == CALL_EVENT && c.parameters.len() >= 2)
+        {
             let p = &c.parameters;
             let callee = match (p[0], node) {
                 (0, _) if ctx.shared.is_some_and(|s| s.contains_key(&p[1])) => Node::Common(p[1]),
-                (1, Node::Page(..)) if p.len() >= 3 && compiled.contains(&(p[1], p[2])) => Node::Page(p[1], p[2]),
+                (1, Node::Page(..)) if p.len() >= 3 && compiled.contains(&(p[1], p[2])) => {
+                    Node::Page(p[1], p[2])
+                }
                 _ => continue,
             };
             deepest = deepest.max(walk(ctx, me, compiled, callee, open, memo)?);
@@ -692,7 +729,14 @@ fn call_depth(ctx: &Ctx, me: &MapEvents, compiled: &HashSet<(i32, i32)>, root: N
         memo.insert(node, deepest + 1);
         Some(deepest + 1)
     }
-    walk(ctx, me, compiled, root, &mut Vec::new(), &mut HashMap::new())
+    walk(
+        ctx,
+        me,
+        compiled,
+        root,
+        &mut Vec::new(),
+        &mut HashMap::new(),
+    )
 }
 
 /// What a map's page loses whatever its commands: the fields nothing
@@ -701,10 +745,16 @@ fn call_depth(ctx: &Ctx, me: &MapEvents, compiled: &HashSet<(i32, i32)>, root: N
 fn page_losses(ctx: &mut Ctx, page: &Page) {
     let mut lose = |kind, text: &str| ctx.losses.lose(None, kind, text);
     if page.translucent && !page.character_name.is_empty() {
-        lose("translucent-drawn-opaque", "the event is drawn opaque instead of half transparent");
+        lose(
+            "translucent-drawn-opaque",
+            "the event is drawn opaque instead of half transparent",
+        );
     }
     if page.overlap_forbidden && page.move_type != MOVE_STATIONARY {
-        lose("overlap-not-forbidden", "\"forbid overlap\" is not kept: it collides only with events on its layer");
+        lose(
+            "overlap-not-forbidden",
+            "\"forbid overlap\" is not kept: it collides only with events on its layer",
+        );
     }
     let walks = (MOVE_RANDOM..=MOVE_AWAY).contains(&page.move_type)
         || (page.move_type == MOVE_CUSTOM && !page.route.is_empty());
@@ -712,17 +762,26 @@ fn page_losses(ctx: &mut Ctx, page: &Page) {
         return;
     }
     if route::own(page).is_none() {
-        lose("own-route-not-walked", "the page's own route is not walked: the event stands still");
+        lose(
+            "own-route-not-walked",
+            "the page's own route is not walked: the event stands still",
+        );
         return;
     }
     if page.move_type != MOVE_CUSTOM {
         return;
     }
     if page.route.contains(&ROUTE_SOUND) {
-        lose("sound-not-played", "the sound in the page's own route does not play");
+        lose(
+            "sound-not-played",
+            "the sound in the page's own route does not play",
+        );
     }
     if page.route.iter().any(|c| ROUTE_TRANSPARENCY.contains(c)) {
-        lose("route-transparency-dropped", "the page's own route's steps of transparency are not done");
+        lose(
+            "route-transparency-dropped",
+            "the page's own route's steps of transparency are not done",
+        );
     }
 }
 
@@ -805,6 +864,11 @@ mod tests {
         // action pages with nothing in them. RM2k never turns them, and
         // here turning kept each one out of its twins' slot.
         assert!(!turns(&page(Vec::new())));
-        assert!(turns(&page(vec![Command::new(10110, 0, "hot", Vec::new())])));
+        assert!(turns(&page(vec![Command::new(
+            10110,
+            0,
+            "hot",
+            Vec::new()
+        )])));
     }
 }

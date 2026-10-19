@@ -111,7 +111,12 @@ pub fn fit(troop: &mut Troop) -> Option<Cut> {
         place_now += 1;
         !left_out.contains(&(place_now - 1))
     });
-    Some(Cut { troop: troop.id, members: n, left_out, scenery })
+    Some(Cut {
+        troop: troop.id,
+        members: n,
+        left_out,
+        scenery,
+    })
 }
 
 /// The places to leave out, sorted.
@@ -141,7 +146,10 @@ fn kind(troop: &Troop, p: usize) -> u8 {
             if code == SHOW_HIDDEN_MONSTER {
                 shown = true;
                 standing = true;
-            } else if code == CHANGE_MONSTER_CONDITION && remove(c) == Some(false) && state(c) == Some(DEATH) {
+            } else if code == CHANGE_MONSTER_CONDITION
+                && remove(c) == Some(false)
+                && state(c) == Some(DEATH)
+            {
                 standing = false;
             }
         }
@@ -246,9 +254,18 @@ mod tests {
             members: invisible
                 .iter()
                 .enumerate()
-                .map(|(k, &invisible)| TroopMember { id: k as i32 + 1, enemy_id: 1, invisible, ..Default::default() })
+                .map(|(k, &invisible)| TroopMember {
+                    id: k as i32 + 1,
+                    enemy_id: 1,
+                    invisible,
+                    ..Default::default()
+                })
                 .collect(),
-            pages: vec![TroopPage { id: 1, event_commands: commands, ..Default::default() }],
+            pages: vec![TroopPage {
+                id: 1,
+                event_commands: commands,
+                ..Default::default()
+            }],
             ..Default::default()
         }
     }
@@ -278,17 +295,28 @@ mod tests {
         page.extend((3..8).map(show));
         page.extend((3..8).rev().map(kill));
         page.push(show(8));
-        let mut t = troop(&[false, true, true, true, true, true, true, true, true], page);
+        let mut t = troop(
+            &[false, true, true, true, true, true, true, true, true],
+            page,
+        );
         let cut = fit(&mut t).unwrap();
         assert_eq!(cut.left_out, vec![7]);
         assert!(cut.scenery);
         assert_eq!(t.members.len(), ENEMIES_MAX);
-        assert_eq!(t.members.last().unwrap().id, 9, "the ninth is kept, at the last place");
+        assert_eq!(
+            t.members.last().unwrap().id,
+            9,
+            "the ninth is kept, at the last place"
+        );
         let commands = &t.pages[0].event_commands;
         // show(7) and kill(7) are comments, at their indices.
         assert_eq!(commands[9].code.to_i32(), COMMENT);
         assert_eq!(commands[10].code.to_i32(), COMMENT);
-        assert_eq!(commands.last().unwrap().parameters, vec![7], "show(8) is now show(7)");
+        assert_eq!(
+            commands.last().unwrap().parameters,
+            vec![7],
+            "show(8) is now show(7)"
+        );
         assert_eq!(commands[11].parameters[0], 6, "kill(6) stays at 6");
     }
 
@@ -323,11 +351,18 @@ mod tests {
 
     #[test]
     fn with_no_scenery_the_last_places_go_and_it_says_so() {
-        let mut t = troop(&[false; 10], vec![command(SHOW_BATTLE_ANIMATION_B, &[1, 9, 1])]);
+        let mut t = troop(
+            &[false; 10],
+            vec![command(SHOW_BATTLE_ANIMATION_B, &[1, 9, 1])],
+        );
         let cut = fit(&mut t).unwrap();
         assert_eq!(cut.left_out, vec![8, 9]);
         assert!(!cut.scenery);
-        assert!(cut.text().contains("member 9, 10 left out"), "{}", cut.text());
+        assert!(
+            cut.text().contains("member 9, 10 left out"),
+            "{}",
+            cut.text()
+        );
         assert_eq!(t.pages[0].event_commands[0].parameters, vec![1, -1, 1]);
     }
 }

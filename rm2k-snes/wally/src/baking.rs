@@ -12,12 +12,12 @@
 use crate::events::{route_target, tile_name, unbaked, Event, LAYER_BELOW, UPPER_BASE};
 use crate::fail::Result;
 use crate::sheets::Drawer;
+use crate::sprites::npc::Npc;
+use crate::sprites::split::TILE_PREFIX;
 use rm2k_render::Picture;
 use rm2k_rules::charset::{OFFSET_X, OFFSET_Y};
 use rm2k_rules::chipset::TILE;
 use rm2k_rules::passability::{cell, ABOVE};
-use crate::sprites::npc::Npc;
-use crate::sprites::split::TILE_PREFIX;
 use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 

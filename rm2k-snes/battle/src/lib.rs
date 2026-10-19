@@ -68,8 +68,8 @@ impl Request {
         let text = std::fs::read_to_string(path)
             .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
         let whose = path.display().to_string();
-        let data: Value = serde_json::from_str(&text)
-            .map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
+        let data: Value =
+            serde_json::from_str(&text).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
         let field = |data: &'_ Value, name: &str, whose: &str| -> Result<Value> {
             data.get(name)
                 .cloned()

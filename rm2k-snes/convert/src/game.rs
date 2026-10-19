@@ -96,7 +96,9 @@ pub struct GameMap {
 impl GameMap {
     /// Every command of every page, in order.
     pub fn all_commands(&self) -> impl Iterator<Item = &Command> {
-        self.events.iter().flat_map(|e| e.pages.iter().flat_map(|p| p.commands.iter()))
+        self.events
+            .iter()
+            .flat_map(|e| e.pages.iter().flat_map(|p| p.commands.iter()))
     }
 }
 
@@ -344,7 +346,8 @@ impl Game {
         let rtp: Vec<PathBuf> = self.rtp_dir.iter().cloned().collect();
         for name in self.window_backgrounds.keys() {
             let found = name.to_lowercase() == starting
-                || crate::resources::find(&[&self.game_dir], "System", name, &[".png", ".bmp"]).is_some()
+                || crate::resources::find(&[&self.game_dir], "System", name, &[".png", ".bmp"])
+                    .is_some()
                 || crate::resources::find(&rtp, "System", name, &[".png", ".bmp"]).is_some();
             if !found {
                 crate::stop!(
@@ -366,7 +369,10 @@ impl Game {
             // those, and a new map is none of them.
             let mut game_maps = std::collections::BTreeSet::new();
             for path in dump.map_files()? {
-                let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+                let stem = path
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_default();
                 if let Some(n) = stem.strip_prefix("Map").and_then(|n| n.parse::<i32>().ok()) {
                     game_maps.insert(n);
                 }
@@ -439,7 +445,13 @@ impl Game {
         test_event_map: Option<i32>,
         events_max: usize,
     ) -> Result<()> {
-        let common: Vec<&Command> = self.db.common_events.values().flatten().chain(test_commands).collect();
+        let common: Vec<&Command> = self
+            .db
+            .common_events
+            .values()
+            .flatten()
+            .chain(test_commands)
+            .collect();
         for &id in maps {
             let raw = self.raw_map(id)?;
             let cap = events_max - usize::from(test_event_map == Some(id));
@@ -452,7 +464,12 @@ impl Game {
             // twins with it.
             let twins = crate::trim::twins(&raw.events, &named);
             let twin_ids: BTreeSet<i32> = twins.iter().map(|&(t, _)| t).collect();
-            let rest: Vec<schema::Event> = raw.events.iter().filter(|e| !twin_ids.contains(&e.id)).cloned().collect();
+            let rest: Vec<schema::Event> = raw
+                .events
+                .iter()
+                .filter(|e| !twin_ids.contains(&e.id))
+                .cloned()
+                .collect();
             let mut out = crate::trim::left_out(&rest, &named, cap);
             // An exit left out would do nothing, and nothing would say why:
             // taro walked into the six of Zounds' map 47 and stood there.
@@ -462,9 +479,16 @@ impl Game {
             let mut boxed = None;
             if out.iter().any(|&(_, l)| l == crate::trim::Loss::Exit) {
                 out = crate::trim::left_out(&rest, &named, cap - 1);
-                boxed = out.iter().find(|&&(_, l)| l == crate::trim::Loss::Exit).map(|&(e, _)| e);
+                boxed = out
+                    .iter()
+                    .find(|&&(_, l)| l == crate::trim::Loss::Exit)
+                    .map(|&(e, _)| e);
             }
-            let gone: BTreeSet<i32> = out.iter().map(|&(e, _)| e).filter(|&e| Some(e) != boxed).collect();
+            let gone: BTreeSet<i32> = out
+                .iter()
+                .map(|&(e, _)| e)
+                .filter(|&e| Some(e) != boxed)
+                .collect();
             let at = |e: i32| raw.events.iter().find(|r| r.id == e).map(|r| (r.x, r.y));
             let mut kept: Vec<(i32, i32, i32)> = twins
                 .iter()
@@ -474,11 +498,24 @@ impl Game {
             if let Some(b) = boxed {
                 // The exits left out, and the twins of those that had any:
                 // twins of the boxed one now, all at once.
-                let exits: BTreeSet<i32> =
-                    out.iter().filter(|&&(e, l)| l == crate::trim::Loss::Exit && e != b).map(|&(e, _)| e).collect();
+                let exits: BTreeSet<i32> = out
+                    .iter()
+                    .filter(|&&(e, l)| l == crate::trim::Loss::Exit && e != b)
+                    .map(|&(e, _)| e)
+                    .collect();
                 kept.retain(|&(_, _, owner)| !exits.contains(&owner));
-                let theirs: Vec<i32> = twins.iter().filter(|(_, o)| exits.contains(o)).map(|&(t, _)| t).collect();
-                kept.extend(exits.iter().copied().chain(theirs).filter_map(|e| at(e).map(|(x, y)| (x, y, b))));
+                let theirs: Vec<i32> = twins
+                    .iter()
+                    .filter(|(_, o)| exits.contains(o))
+                    .map(|&(t, _)| t)
+                    .collect();
+                kept.extend(
+                    exits
+                        .iter()
+                        .copied()
+                        .chain(theirs)
+                        .filter_map(|e| at(e).map(|(x, y)| (x, y, b))),
+                );
                 self.boxed_exits.entry(id).or_default().insert(b);
             }
             if !twins.is_empty() {
@@ -499,16 +536,26 @@ impl Game {
                     }
                 }
                 lost.sort();
-                println!("{}", crate::trim::warning(id, raw.events.len() - twins.len(), cap, &lost));
+                println!(
+                    "{}",
+                    crate::trim::warning(id, raw.events.len() - twins.len(), cap, &lost)
+                );
                 for &(e, loss) in &lost {
                     if loss == crate::trim::Loss::Nothing {
                         continue;
                     }
-                    let at = raw.events.iter().find(|r| r.id == e).map_or((0, 0), |r| (r.x, r.y));
+                    let at = raw
+                        .events
+                        .iter()
+                        .find(|r| r.id == e)
+                        .map_or((0, 0), |r| (r.x, r.y));
                     self.trimmed.push((id, e, at, loss.describe()));
                 }
             }
-            self.dropped.insert(id, twin_ids.into_iter().chain(gone.iter().copied()).collect());
+            self.dropped.insert(
+                id,
+                twin_ids.into_iter().chain(gone.iter().copied()).collect(),
+            );
             if !kept.is_empty() {
                 self.twins.insert(id, kept);
             }
@@ -519,13 +566,22 @@ impl Game {
     /// [`Game::dropped`] as the stages' requests carry it: the ids by map
     /// number as text.
     pub fn dropped_json(&self) -> Value {
-        Value::Object(self.dropped.iter().map(|(m, ids)| (m.to_string(), serde_json::json!(ids))).collect())
+        Value::Object(
+            self.dropped
+                .iter()
+                .map(|(m, ids)| (m.to_string(), serde_json::json!(ids)))
+                .collect(),
+        )
     }
 
     /// The same, only map `id`'s: what a map's own request carries.
     pub fn dropped_json_of(&self, id: i32) -> Value {
         Value::Object(
-            self.dropped.get(&id).map(|ids| (id.to_string(), serde_json::json!(ids))).into_iter().collect(),
+            self.dropped
+                .get(&id)
+                .map(|ids| (id.to_string(), serde_json::json!(ids)))
+                .into_iter()
+                .collect(),
         )
     }
 
@@ -542,8 +598,11 @@ impl Game {
     pub fn map(&self, id: i32) -> Result<GameMap> {
         let raw = self.raw_map(id)?;
         let dropped = self.dropped.get(&id);
-        let mut events: Vec<&schema::Event> =
-            raw.events.iter().filter(|e| dropped.is_none_or(|d| !d.contains(&e.id))).collect();
+        let mut events: Vec<&schema::Event> = raw
+            .events
+            .iter()
+            .filter(|e| dropped.is_none_or(|d| !d.contains(&e.id)))
+            .collect();
         events.sort_by_key(|e| e.id);
         let events = events
             .into_iter()
@@ -593,7 +652,8 @@ impl Game {
     /// what a sweep over the whole game walks.
     pub fn game_map_ids(&self) -> Result<Vec<i32>> {
         let mut ids = Vec::new();
-        let entries = std::fs::read_dir(&self.game_dir).map_err(|e| crate::fail::io(&self.game_dir, e))?;
+        let entries =
+            std::fs::read_dir(&self.game_dir).map_err(|e| crate::fail::io(&self.game_dir, e))?;
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             // `Map[0-9][0-9][0-9][0-9].lmu`, as the glob had it.
@@ -613,7 +673,10 @@ impl Game {
     pub fn dump_map_ids(&self) -> Result<Vec<i32>> {
         let mut ids = Vec::new();
         for path in Dump::open(&self.dump)?.map_files()? {
-            let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+            let stem = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
             if let Some(n) = stem.strip_prefix("Map").and_then(|n| n.parse::<i32>().ok()) {
                 ids.push(n);
             }
@@ -687,7 +750,9 @@ fn database(dump: &Dump, forks: &Forks) -> Result<Database> {
     }
     for (number, (path, data)) in &forks.chipsets {
         if db.chipsets.contains_key(number) {
-            crate::stop!("ChipSet {number} is already in the dump: the project adds, it does not replace");
+            crate::stop!(
+                "ChipSet {number} is already in the dump: the project adds, it does not replace"
+            );
         }
         let entry: schema::Chipset = serde_json::from_value(data["chipset"].clone())
             .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;

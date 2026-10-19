@@ -117,7 +117,11 @@ impl Map {
     /// the grid does not fit: see [`crate::materials::cell_bytes`].
     pub fn cell_bytes(&self) -> Option<usize> {
         let ram = self.blocks.len() + self.block_pass.len();
-        crate::materials::cell_bytes(self.cells.len() / 2, self.blocks.len() / crate::materials::BLOCK_BYTES, ram)
+        crate::materials::cell_bytes(
+            self.cells.len() / 2,
+            self.blocks.len() / crate::materials::BLOCK_BYTES,
+            ram,
+        )
     }
 
     /// Whether its grid goes one byte a cell.

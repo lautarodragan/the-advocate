@@ -58,7 +58,11 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
                 .iter()
                 .map(|p| {
                     Ok(Package {
-                        name: p.get("name").and_then(Value::as_str).ok_or_else(|| bad_job("package name"))?.into(),
+                        name: p
+                            .get("name")
+                            .and_then(Value::as_str)
+                            .ok_or_else(|| bad_job("package name"))?
+                            .into(),
                         songs: indices(p.get("songs"), "package songs")?,
                         effects: strings(p.get("effects"), "package effects")?,
                         exits: indices(p.get("exits"), "package exits")?,
@@ -74,8 +78,14 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
         Some(Value::Array(items)) => items
             .iter()
             .map(|pair| {
-                let name = pair.get(0).and_then(Value::as_str).ok_or_else(|| bad_job("inheritance"))?;
-                let song = pair.get(1).and_then(Value::as_u64).ok_or_else(|| bad_job("inheritance"))?;
+                let name = pair
+                    .get(0)
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| bad_job("inheritance"))?;
+                let song = pair
+                    .get(1)
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| bad_job("inheritance"))?;
                 Ok((name.to_string(), song as usize))
             })
             .collect::<Result<_>>()?,
@@ -103,7 +113,10 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
             let byte = |key: &str| -> Result<u8> {
                 u8::try_from(int(e.get(key), key)?).map_err(|_| bad_job(key))
             };
-            let game_over = e.get("game_over").and_then(Value::as_array).ok_or_else(|| bad_job("game_over"))?;
+            let game_over = e
+                .get("game_over")
+                .and_then(Value::as_array)
+                .ok_or_else(|| bad_job("game_over"))?;
             let sounds = e
                 .get("sounds")
                 .and_then(Value::as_array)
@@ -111,7 +124,11 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
                 .iter()
                 .map(|s| {
                     Ok(SoundRequest {
-                        effect: s.get(0).and_then(Value::as_str).ok_or_else(|| bad_job("sounds"))?.into(),
+                        effect: s
+                            .get(0)
+                            .and_then(Value::as_str)
+                            .ok_or_else(|| bad_job("sounds"))?
+                            .into(),
                         volume: int(s.get(1), "sounds")?,
                         tempo: int(s.get(2), "sounds")?,
                         balance: int(s.get(3), "sounds")?,
@@ -123,8 +140,10 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
                 boot: byte("boot")?,
                 title: byte("title")?,
                 game_over: (
-                    u8::try_from(int(game_over.first(), "game_over")?).map_err(|_| bad_job("game_over"))?,
-                    u16::try_from(int(game_over.get(1), "game_over")?).map_err(|_| bad_job("game_over"))?,
+                    u8::try_from(int(game_over.first(), "game_over")?)
+                        .map_err(|_| bad_job("game_over"))?,
+                    u16::try_from(int(game_over.get(1), "game_over")?)
+                        .map_err(|_| bad_job("game_over"))?,
                 ),
                 map_song: indices(e.get("map_song"), "map_song")?
                     .into_iter()
@@ -132,8 +151,14 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
                     .collect::<Result<_>>()?,
                 sounds,
                 start: int(e.get("start"), "start")? as usize,
-                decompress_frames: e.get("decompress_frames").and_then(Value::as_f64).unwrap_or(0.0),
-                msu_samples: e.get("msu_samples").and_then(Value::as_bool).unwrap_or(false),
+                decompress_frames: e
+                    .get("decompress_frames")
+                    .and_then(Value::as_f64)
+                    .unwrap_or(0.0),
+                msu_samples: e
+                    .get("msu_samples")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
             })
         }
     };

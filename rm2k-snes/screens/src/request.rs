@@ -28,7 +28,8 @@ pub struct Json {
 impl Json {
     pub fn read(path: &Path) -> Result<Json> {
         let whose = path.display().to_string();
-        let text = std::fs::read_to_string(path).map_err(|e| Bad::usage(format!("{whose}: {e}")))?;
+        let text =
+            std::fs::read_to_string(path).map_err(|e| Bad::usage(format!("{whose}: {e}")))?;
         let data = serde_json::from_str(&text).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
         Ok(Json { data, whose })
     }
@@ -72,7 +73,9 @@ impl Json {
 
     pub fn text(&self, name: &str) -> Result<String> {
         let v = self.field(name)?;
-        v.as_str().map(str::to_string).ok_or_else(|| self.bad(name, v))
+        v.as_str()
+            .map(str::to_string)
+            .ok_or_else(|| self.bad(name, v))
     }
 
     pub fn numbers(&self, name: &str) -> Result<Vec<i64>> {
@@ -183,7 +186,10 @@ impl Json {
         let mut menus = Vec::new();
         if let Some(list) = self.get("menus") {
             for m in list.as_array().ok_or_else(|| self.bad("menus", list))? {
-                let name = m.get("name").and_then(Value::as_str).ok_or_else(|| self.bad("menus", m))?;
+                let name = m
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| self.bad("menus", m))?;
                 let spec = m.get("spec").cloned().ok_or_else(|| self.bad("menus", m))?;
                 menus.push((name.to_string(), spec));
             }
@@ -191,7 +197,10 @@ impl Json {
         let mut menu_context = crate::custom_menu::Context::default();
         if let Some(v) = self.get("variables") {
             for pair in v.as_array().ok_or_else(|| self.bad("variables", v))? {
-                let p = pair.as_array().filter(|p| p.len() == 2).ok_or_else(|| self.bad("variables", v))?;
+                let p = pair
+                    .as_array()
+                    .filter(|p| p.len() == 2)
+                    .ok_or_else(|| self.bad("variables", v))?;
                 let (var, slot) = (p[0].as_i64(), p[1].as_u64());
                 match (var, slot) {
                     (Some(var), Some(slot)) => {
@@ -204,8 +213,14 @@ impl Json {
         let mut names = Vec::new();
         if let Some(v) = self.get("names") {
             for pair in v.as_array().ok_or_else(|| self.bad("names", v))? {
-                let p = pair.as_array().filter(|p| p.len() == 2).ok_or_else(|| self.bad("names", v))?;
-                match (p[0].as_i64().and_then(|a| i32::try_from(a).ok()), p[1].as_str()) {
+                let p = pair
+                    .as_array()
+                    .filter(|p| p.len() == 2)
+                    .ok_or_else(|| self.bad("names", v))?;
+                match (
+                    p[0].as_i64().and_then(|a| i32::try_from(a).ok()),
+                    p[1].as_str(),
+                ) {
                     (Some(actor), Some(name)) => names.push((actor, name.to_string())),
                     _ => return Err(self.bad("names", v)),
                 }
@@ -242,16 +257,28 @@ impl Json {
         let bad = || self.bad("systems", v);
         let mut out = Vec::new();
         for s in v.as_array().ok_or_else(bad)? {
-            let system = s.get("system").and_then(Value::as_str).ok_or_else(bad)?.to_string();
+            let system = s
+                .get("system")
+                .and_then(Value::as_str)
+                .ok_or_else(bad)?
+                .to_string();
             let background = match s.get("background") {
                 None | Some(Value::Null) => None,
                 Some(b) => Some(b.as_str().ok_or_else(bad)?.to_string()),
             };
             let stretch = match s.get("stretch") {
                 None | Some(Value::Null) => None,
-                Some(n) => Some(n.as_i64().and_then(|n| i32::try_from(n).ok()).ok_or_else(bad)?),
+                Some(n) => Some(
+                    n.as_i64()
+                        .and_then(|n| i32::try_from(n).ok())
+                        .ok_or_else(bad)?,
+                ),
             };
-            out.push(OtherSystem { system, background, stretch });
+            out.push(OtherSystem {
+                system,
+                background,
+                stretch,
+            });
         }
         Ok(out)
     }
@@ -265,8 +292,12 @@ impl Json {
         let bad = || self.bad("text_rows", v);
         let mut out = Vec::new();
         for class in v.as_array().ok_or_else(bad)? {
-            let rows: Option<Vec<usize>> =
-                class.as_array().ok_or_else(bad)?.iter().map(|r| r.as_u64().map(|r| r as usize)).collect();
+            let rows: Option<Vec<usize>> = class
+                .as_array()
+                .ok_or_else(bad)?
+                .iter()
+                .map(|r| r.as_u64().map(|r| r as usize))
+                .collect();
             out.push(rows.ok_or_else(bad)?);
         }
         let mut all: Vec<usize> = out.iter().flatten().copied().collect();
@@ -305,7 +336,11 @@ impl Json {
                     e.as_array()
                         .ok_or_else(|| self.bad("party_equipment", v))?
                         .iter()
-                        .map(|i| i.as_i64().map(|i| i as i32).ok_or_else(|| self.bad("party_equipment", v)))
+                        .map(|i| {
+                            i.as_i64()
+                                .map(|i| i as i32)
+                                .ok_or_else(|| self.bad("party_equipment", v))
+                        })
                         .collect()
                 })
                 .collect::<Result<_>>()?,
@@ -318,7 +353,12 @@ impl Json {
             inventory: self.by_number("inventory")?,
             party_equipment,
             party: self.optional_actors("party")?.unwrap_or_default(),
-            frames: self.optional_actors("frames")?.unwrap_or_default().into_iter().map(|f| f as usize).collect(),
+            frames: self
+                .optional_actors("frames")?
+                .unwrap_or_default()
+                .into_iter()
+                .map(|f| f as usize)
+                .collect(),
             phase: self.index_or("phase", 0)?,
             mode: self.index_or("mode", 0)?,
             chosen: self.index_or("chosen", 0)?,
@@ -344,7 +384,11 @@ impl Json {
                     .as_array()
                     .ok_or_else(|| self.bad("parties", v))?
                     .iter()
-                    .map(|a| a.as_i64().map(|a| a as i32).ok_or_else(|| self.bad("parties", v)))
+                    .map(|a| {
+                        a.as_i64()
+                            .map(|a| a as i32)
+                            .ok_or_else(|| self.bad("parties", v))
+                    })
                     .collect::<Result<_>>()?;
                 Ok((slot, members))
             })

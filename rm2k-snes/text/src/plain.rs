@@ -122,7 +122,10 @@ pub fn plain_loss(letters: &[char]) -> String {
         .iter()
         .map(|&c| format!("{c} as {}", plain(c).unwrap_or("?")))
         .collect();
-    format!("letters the box does not draw are shown plain: {}", each.join(", "))
+    format!(
+        "letters the box does not draw are shown plain: {}",
+        each.join(", ")
+    )
 }
 
 #[cfg(test)]
@@ -186,7 +189,10 @@ mod tests {
 
     #[test]
     fn what_is_drawn_stays() {
-        assert_eq!(plain_text_but("Ñandú…", |c| c == 'ú'), ("Nandú...".to_string(), vec!['Ñ', '…']));
+        assert_eq!(
+            plain_text_but("Ñandú…", |c| c == 'ú'),
+            ("Nandú...".to_string(), vec!['Ñ', '…'])
+        );
     }
 
     #[test]

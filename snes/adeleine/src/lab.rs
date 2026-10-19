@@ -46,7 +46,13 @@ pub fn lab(color: Color) -> [i64; 3] {
     let x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
     let y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     let z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
-    let f = |t: f64| if t > 0.008856 { t.cbrt() } else { 7.787 * t + 16.0 / 116.0 };
+    let f = |t: f64| {
+        if t > 0.008856 {
+            t.cbrt()
+        } else {
+            7.787 * t + 16.0 / 116.0
+        }
+    };
     let (fx, fy, fz) = (f(x), f(y), f(z));
     [116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz)].map(|v| (v * 10.0).round() as i64)
 }
@@ -74,7 +80,10 @@ mod tests {
         // darker: to the luma distance the olive is nearer.
         let grey = [16, 16, 16];
         let (olive, other) = ([17, 17, 8], [13, 13, 13]);
-        assert!(luma_distance(grey, olive) < luma_distance(grey, other), "the luma distance's mistake");
+        assert!(
+            luma_distance(grey, olive) < luma_distance(grey, other),
+            "the luma distance's mistake"
+        );
         assert!(lab_distance(grey, other) < lab_distance(grey, olive));
     }
 

@@ -106,10 +106,12 @@ fn run_culprits(c: &CulpritArgs) -> Result<()> {
     let judged = culprits::judge_game(&game, &request, c.every_map)?;
     let report = culprits::report(&judged);
     print!("{}", culprits::table(&report));
-    let io = |path: &std::path::Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
+    let io =
+        |path: &std::path::Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
     std::fs::create_dir_all(&args.out).map_err(|e| io(&args.out, e))?;
     let path = args.out.join(culprits::ANSWER_FILE);
-    std::fs::write(&path, serde_json::to_string_pretty(&report).unwrap() + "\n").map_err(|e| io(&path, e))
+    std::fs::write(&path, serde_json::to_string_pretty(&report).unwrap() + "\n")
+        .map_err(|e| io(&path, e))
 }
 
 fn main() -> ExitCode {

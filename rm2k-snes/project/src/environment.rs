@@ -139,13 +139,17 @@ impl Environment {
 
     fn require(&self, name: &str) -> Result<&Path, Error> {
         let f = flag(name);
-        let value = self.values.get(f.name).map(PathBuf::as_path).ok_or_else(|| {
-            Error(format!(
-                "missing {}: {}. It belongs to the machine, so it has no default value; \
+        let value = self
+            .values
+            .get(f.name)
+            .map(PathBuf::as_path)
+            .ok_or_else(|| {
+                Error(format!(
+                    "missing {}: {}. It belongs to the machine, so it has no default value; \
                  whoever runs this passes it",
-                f.flag, f.help
-            ))
-        })?;
+                    f.flag, f.help
+                ))
+            })?;
         // A `.zip` nobody unpacked would be read as a directory with nothing
         // in it, and a lookup that finds nothing in the game falls back to
         // the RTP without a word: that is why it is an error here.
@@ -169,7 +173,9 @@ impl Environment {
     /// is the only place that knows about the `.zip`: the lookups do not.
     pub fn unpack(&mut self, project: &Project) -> Result<(), Error> {
         for name in PACKABLE {
-            let Some(value) = self.values.get(name).cloned() else { continue };
+            let Some(value) = self.values.get(name).cloned() else {
+                continue;
+            };
             if !archive::is_zip(&value) {
                 continue;
             }

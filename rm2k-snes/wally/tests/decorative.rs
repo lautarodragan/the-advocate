@@ -25,7 +25,15 @@ fn write(path: &Path, width: usize, height: usize, pixel: impl Fn(usize, usize) 
         }
     }
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    picture::write_png(path, &Picture { width, height, rgba }).unwrap();
+    picture::write_png(
+        path,
+        &Picture {
+            width,
+            height,
+            rgba,
+        },
+    )
+    .unwrap();
 }
 
 fn page(name: &str, layer: i32, animation: i32, commands: Value) -> Value {
@@ -51,7 +59,11 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     let dump = dir.join("dump");
     std::fs::create_dir_all(dump.join("maps")).unwrap();
     std::fs::create_dir_all(dump.join("db")).unwrap();
-    std::fs::write(dump.join("ditto.json"), json!({"ditto": 2, "view": "resolved"}).to_string()).unwrap();
+    std::fs::write(
+        dump.join("ditto.json"),
+        json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     std::fs::write(
         dump.join("db/chipsets.json"),
         json!([{"id": 2, "chipset_name": "tiles", "passable_data_lower": vec![15u8; 162],
@@ -90,7 +102,11 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     let upper: Vec<String> = (0..3).map(|_| [" 10000"; 8].concat()).collect();
     std::fs::write(
         dump.join("maps/Map0007.tiles"),
-        format!("# 8x3\n# lower\n{}\n# upper\n{}\n", lower.join("\n"), upper.join("\n")),
+        format!(
+            "# 8x3\n# lower\n{}\n# upper\n{}\n",
+            lower.join("\n"),
+            upper.join("\n")
+        ),
     )
     .unwrap();
     let pictures = dir.join("game");
@@ -102,7 +118,12 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     // the cell is, in a colour for each column.
     write(&pictures.join("CharSet/Folk.png"), 288, 256, |x, y| {
         let k = (x / 6 + y / 4 * 3) % 9;
-        [(k * 40 % 256) as u8, (k * 90 % 256) as u8, (k * 150 % 256) as u8, 255]
+        [
+            (k * 40 % 256) as u8,
+            (k * 90 % 256) as u8,
+            (k * 150 % 256) as u8,
+            255,
+        ]
     });
     write(&pictures.join("CharSet/Water.png"), 288, 256, |x, y| {
         let (px, py) = (x % 24, y % 32);
@@ -143,14 +164,25 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, decorative: Option<bool>) -
         .arg(&out)
         .output()
         .unwrap();
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    let map: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
-    let layers: Value = serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let map: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    let layers: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
     (map, layers)
 }
 
 fn events(map: &Value) -> Vec<i64> {
-    map["npcs"].as_array().unwrap().iter().map(|n| n["event"].as_i64().unwrap()).collect()
+    map["npcs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["event"].as_i64().unwrap())
+        .collect()
 }
 
 #[test]

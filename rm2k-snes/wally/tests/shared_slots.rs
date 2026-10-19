@@ -26,7 +26,15 @@ fn write(path: &Path, width: usize, height: usize, pixel: impl Fn(usize, usize) 
         }
     }
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    picture::write_png(path, &Picture { width, height, rgba }).unwrap();
+    picture::write_png(
+        path,
+        &Picture {
+            width,
+            height,
+            rgba,
+        },
+    )
+    .unwrap();
 }
 
 /// A page facing `direction` (0 up, 1 right, 2 down, 3 left), with
@@ -46,7 +54,11 @@ fn game(dir: &Path, commands: Value) -> (PathBuf, PathBuf) {
     let dump = dir.join("dump");
     std::fs::create_dir_all(dump.join("maps")).unwrap();
     std::fs::create_dir_all(dump.join("db")).unwrap();
-    std::fs::write(dump.join("ditto.json"), json!({"ditto": 2, "view": "resolved"}).to_string()).unwrap();
+    std::fs::write(
+        dump.join("ditto.json"),
+        json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     std::fs::write(
         dump.join("db/chipsets.json"),
         json!([{"id": 2, "chipset_name": "tiles", "passable_data_lower": vec![15u8; 162],
@@ -81,7 +93,11 @@ fn game(dir: &Path, commands: Value) -> (PathBuf, PathBuf) {
     let upper: Vec<String> = (0..4).map(|_| [" 10000"; 40].concat()).collect();
     std::fs::write(
         dump.join("maps/Map0007.tiles"),
-        format!("# 40x4\n# lower\n{}\n# upper\n{}\n", lower.join("\n"), upper.join("\n")),
+        format!(
+            "# 40x4\n# lower\n{}\n# upper\n{}\n",
+            lower.join("\n"),
+            upper.join("\n")
+        ),
     )
     .unwrap();
     let pictures = dir.join("game");
@@ -94,7 +110,12 @@ fn game(dir: &Path, commands: Value) -> (PathBuf, PathBuf) {
             return [0, 0, 0, 0];
         }
         let k = (x / 6 + y / 4 * 3) % 9;
-        [(k * 40 % 256) as u8, (k * 90 % 256) as u8, (k * 150 % 256) as u8, 255]
+        [
+            (k * 40 % 256) as u8,
+            (k * 90 % 256) as u8,
+            (k * 150 % 256) as u8,
+            255,
+        ]
     });
     (dump, pictures)
 }
@@ -125,8 +146,13 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, layouts: Value) -> Value {
         .arg(&out)
         .output()
         .unwrap();
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    let mut answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let mut answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     answer["tiles"] = json!(std::fs::read(out.join("sprites.bin")).unwrap().len() / 32);
     answer
 }
@@ -149,20 +175,36 @@ fn far_apart_still_ones_take_turns_only_when_the_map_does_not_fit() {
     let sprite = &tight["sprite"];
     let place = sprite["place"].as_array().unwrap();
     assert_eq!(place.len(), 3);
-    assert_eq!(place[1][0], json!({"charset": "Folk", "index": 0, "pose": 10}));
+    assert_eq!(
+        place[1][0],
+        json!({"charset": "Folk", "index": 0, "pose": 10})
+    );
     assert_eq!(place[2][0], json!({"shared": 0}));
     let shared = &sprite["shared"];
     // Each with its slot, its pose among the slot's and its palette.
     let palette = &place[2][2];
-    assert_eq!(shared["events"], json!([[0, 0, 1, palette], [1, 0, 0, palette]]));
+    assert_eq!(
+        shared["events"],
+        json!([[0, 0, 1, palette], [1, 0, 0, palette]])
+    );
     // Their poses come from the cartridge's twelve of Folk:0, after the
     // leader's.
     assert_eq!(sprite["animated"], json!([["Folk", 1], ["Folk", 0]]));
     assert_eq!(shared["poses"], json!([[1, 4], [1, 7]]));
     assert_eq!(shared["slots"], json!([place[2][1]]));
     assert!(tight["tiles"].as_u64().unwrap() < tiles);
-    let notes: Vec<&str> = tight["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
-    assert!(notes.contains(&"  map 7: 2 still events take turns in 1 slots, never two of them on screen at once"), "{notes:?}");
+    let notes: Vec<&str> = tight["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap())
+        .collect();
+    assert!(
+        notes.contains(
+            &"  map 7: 2 still events take turns in 1 slots, never two of them on screen at once"
+        ),
+        "{notes:?}"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -170,8 +212,11 @@ fn far_apart_still_ones_take_turns_only_when_the_map_does_not_fit() {
 fn one_that_something_places_elsewhere_does_not_take_turns() {
     let dir = scratch("placed");
     // The third one's page places the second one: `SetEventLocation`.
-    let (dump, pictures) = game(&dir, json!([{"code": 10860, "indent": 0, "string": "",
-                                             "parameters": [2, 0, 5, 1]}]));
+    let (dump, pictures) = game(
+        &dir,
+        json!([{"code": 10860, "indent": 0, "string": "",
+                                             "parameters": [2, 0, 5, 1]}]),
+    );
     let plain = convert(&dir, &dump, &pictures, json!([]));
     let tiles = plain["tiles"].as_u64().unwrap();
     // Nobody is left to take turns with the first: it is not shared. What
@@ -187,8 +232,11 @@ fn a_map_that_does_not_fit_even_taking_turns_gets_a_cache() {
     let dir = scratch("cache");
     // The third one placed elsewhere: nobody takes turns, so only a cache
     // can make it fit.
-    let (dump, pictures) = game(&dir, json!([{"code": 10860, "indent": 0, "string": "",
-                                             "parameters": [2, 0, 5, 1]}]));
+    let (dump, pictures) = game(
+        &dir,
+        json!([{"code": 10860, "indent": 0, "string": "",
+                                             "parameters": [2, 0, 5, 1]}]),
+    );
     let plain = convert(&dir, &dump, &pictures, json!([]));
     let tiles = plain["tiles"].as_u64().unwrap();
     let tight = convert(&dir, &dump, &pictures, json!([[1000, tiles - 1, 1000]]));
@@ -207,14 +255,26 @@ fn a_map_that_does_not_fit_even_taking_turns_gets_a_cache() {
     let palette = &cache["stills"][0][4];
     assert_eq!(
         cache["stills"],
-        json!([["Folk", 0, 4, 1, palette], ["Folk", 0, 7, 1, palette], ["Folk", 0, 10, 1, palette]])
+        json!([
+            ["Folk", 0, 4, 1, palette],
+            ["Folk", 0, 7, 1, palette],
+            ["Folk", 0, 10, 1, palette]
+        ])
     );
     assert_eq!(sprite["animated"], json!([["Folk", 1], ["Folk", 0]]));
     // Each event starts asking for its own pose.
-    assert_eq!(cache["events"], json!([[0, 1, palette], [1, 0, palette], [2, 2, palette]]));
+    assert_eq!(
+        cache["events"],
+        json!([[0, 1, palette], [1, 0, palette], [2, 2, palette]])
+    );
     // The second one is 29 cells from the other two: no camera shows the
     // three, so two slots are enough and nothing warns.
-    let notes: Vec<&str> = tight["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
+    let notes: Vec<&str> = tight["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap())
+        .collect();
     assert_eq!(
         notes,
         ["  map 7: 3 events take a slot of a cache of 2 when they come into view, 3 still poses among \

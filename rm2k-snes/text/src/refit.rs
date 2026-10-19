@@ -161,7 +161,9 @@ pub fn escape_tail(lines: &[String]) -> Result<Untailed, CannotCompile> {
             .windows(2)
             .filter(|w| w[0] == ESCAPE && w[1] == ESCAPE_PAUSE)
             .count();
-        auto_close = tail.windows(2).any(|w| w[0] == ESCAPE && w[1] == ESCAPE_CLOSE);
+        auto_close = tail
+            .windows(2)
+            .any(|w| w[0] == ESCAPE && w[1] == ESCAPE_CLOSE);
         let n = lines.len();
         lines[n - 1] = text[..cut].iter().collect();
     }
@@ -174,7 +176,12 @@ pub fn escape_tail(lines: &[String]) -> Result<Untailed, CannotCompile> {
     if pauses > PAUSES_MAX {
         return Err(CannotCompile);
     }
-    Ok(Untailed { lines, pauses, auto_close, dropped })
+    Ok(Untailed {
+        lines,
+        pauses,
+        auto_close,
+        dropped,
+    })
 }
 
 /// Where the escape tail of a box's last line starts, in characters: the
@@ -229,7 +236,10 @@ pub fn is_backslash_mark(c: char) -> bool {
 
 /// The mark of the wait whose escape letter is `escape`, one of [`WAITS`].
 pub fn wait_mark(escape: char) -> char {
-    let i = WAITS.iter().position(|&w| w == escape).expect("a wait's escape");
+    let i = WAITS
+        .iter()
+        .position(|&w| w == escape)
+        .expect("a wait's escape");
     char::from_u32(WAIT_MARK + i as u32).unwrap()
 }
 
@@ -383,8 +393,16 @@ impl Measure {
     /// move the line by `advances`: how a request carries a font that is
     /// only measured.
     pub fn from_advances(advances: Vec<u8>, width: usize) -> Measure {
-        let letter = advances.get(('n' as usize) - 32).copied().unwrap_or(1).max(1) as usize;
-        Measure { advances, width, letter }
+        let letter = advances
+            .get(('n' as usize) - 32)
+            .copied()
+            .unwrap_or(1)
+            .max(1) as usize;
+        Measure {
+            advances,
+            width,
+            letter,
+        }
     }
 
     /// The advances it measures with, from the space on.
@@ -395,7 +413,10 @@ impl Measure {
     /// Lines of `columns` characters of a fixed-width font: RM2k's, which
     /// is how the reflow measured until 2026-10-03.
     pub fn columns(columns: usize) -> Measure {
-        Measure::new(&Font::rm2k(crate::font::MINCHO), columns * crate::font::WIDTH)
+        Measure::new(
+            &Font::rm2k(crate::font::MINCHO),
+            columns * crate::font::WIDTH,
+        )
     }
 
     /// The pixels `text` takes: from where it starts to where the next
@@ -415,7 +436,11 @@ impl Measure {
             return 0; // a wait draws nothing
         }
         if c as u32 >= crate::font::LATIN_FIRST {
-            if let Some(&a) = self.advances.get((c as u32 - 32) as usize).filter(|&&a| a > 0) {
+            if let Some(&a) = self
+                .advances
+                .get((c as u32 - 32) as usize)
+                .filter(|&&a| a > 0)
+            {
                 return a as usize;
             }
         }
@@ -425,7 +450,11 @@ impl Measure {
         let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;
         let i = (code.wrapping_sub(32)) as usize;
-        let i = if code >= 32 && i < self.advances.len() { i } else { 0 };
+        let i = if code >= 32 && i < self.advances.len() {
+            i
+        } else {
+            0
+        };
         self.advances[i] as usize
     }
 
@@ -523,7 +552,12 @@ struct Parts {
 /// short. A `\^` in the middle of the box goes to the tail, which is where
 /// it acts.
 fn tail(lines: &[String]) -> Result<Parts, CannotCompile> {
-    let Untailed { lines: untailed, auto_close, dropped, .. } = escape_tail(lines)?;
+    let Untailed {
+        lines: untailed,
+        auto_close,
+        dropped,
+        ..
+    } = escape_tail(lines)?;
     let mut tail: String = match lines.last() {
         None => String::new(),
         Some(last) => last.chars().skip(tail_start(last)).collect(),
@@ -532,7 +566,11 @@ fn tail(lines: &[String]) -> Result<Parts, CannotCompile> {
         tail.push(ESCAPE);
         tail.push(ESCAPE_CLOSE);
     }
-    Ok(Parts { untailed, tail, dropped: dropped.concat() })
+    Ok(Parts {
+        untailed,
+        tail,
+        dropped: dropped.concat(),
+    })
 }
 
 fn prefix(text: &str, n: usize) -> String {
@@ -827,7 +865,11 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
         Err(CannotCompile) | Ok(true) => return vec![lines.to_vec()],
         Ok(false) => {}
     }
-    let Parts { mut untailed, tail, dropped } = match tail(lines) {
+    let Parts {
+        mut untailed,
+        tail,
+        dropped,
+    } = match tail(lines) {
         Ok(t) => t,
         Err(CannotCompile) => return vec![lines.to_vec()],
     };
@@ -854,7 +896,12 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
     // compiler finds it to say it was lost: where it was among the words is
     // gone with the reflow, and it does not matter while the console draws
     // none of it. A color that is drawn some day will want its place back.
-    frames.iter_mut().flatten().next().expect("a line").insert_str(0, &dropped);
+    frames
+        .iter_mut()
+        .flatten()
+        .next()
+        .expect("a line")
+        .insert_str(0, &dropped);
     for line in frames.iter_mut().flatten() {
         *line = with_wait_escapes(line);
     }
@@ -875,9 +922,19 @@ mod tests {
         assert_eq!(t.lines, s(&["Hi", "there"]));
         assert_eq!((t.pauses, t.auto_close), (2, true));
         let middle = escape_tail(&s(&["a \\| b\\. c\\!"])).unwrap().lines;
-        let marks: String = ['a', ' ', wait_mark('|'), ' ', 'b', wait_mark('.'), ' ', 'c', wait_mark('!')]
-            .iter()
-            .collect();
+        let marks: String = [
+            'a',
+            ' ',
+            wait_mark('|'),
+            ' ',
+            'b',
+            wait_mark('.'),
+            ' ',
+            'c',
+            wait_mark('!'),
+        ]
+        .iter()
+        .collect();
         assert_eq!(middle, vec![marks]);
     }
 
@@ -891,8 +948,19 @@ mod tests {
         let b = s(&["one two\\. three four five six\\! seven\\|\\^"]);
         let boxes = refit_measured(&b, &m, 4);
         let all = boxes.concat().join(" ");
-        assert!(all.contains("two\\.") && all.contains("six\\!"), "{boxes:?}");
-        assert!(boxes.last().unwrap().last().unwrap().ends_with("seven\\|\\^"), "{boxes:?}");
+        assert!(
+            all.contains("two\\.") && all.contains("six\\!"),
+            "{boxes:?}"
+        );
+        assert!(
+            boxes
+                .last()
+                .unwrap()
+                .last()
+                .unwrap()
+                .ends_with("seven\\|\\^"),
+            "{boxes:?}"
+        );
         for b in &boxes {
             assert!(fits(b, &m, 4).unwrap(), "{b:?}");
         }
@@ -908,8 +976,14 @@ mod tests {
         let boxes = refit_measured(&b, &m, 2);
         assert!(boxes.len() > 1, "{boxes:?}");
         assert!(boxes[0][0].starts_with("\\c[2]\\c[0]one"), "{boxes:?}");
-        assert!(boxes.last().unwrap().last().unwrap().ends_with("seven\\^"), "{boxes:?}");
-        let dropped: Vec<String> = boxes.iter().flat_map(|b| escape_tail(b).unwrap().dropped).collect();
+        assert!(
+            boxes.last().unwrap().last().unwrap().ends_with("seven\\^"),
+            "{boxes:?}"
+        );
+        let dropped: Vec<String> = boxes
+            .iter()
+            .flat_map(|b| escape_tail(b).unwrap().dropped)
+            .collect();
         assert_eq!(dropped, s(&["\\c[2]", "\\c[0]"]));
         assert!(boxes.iter().all(|b| fits(b, &m, 2).unwrap()), "{boxes:?}");
     }

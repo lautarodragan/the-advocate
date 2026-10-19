@@ -15,11 +15,13 @@ use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Game, Sound};
 use crate::losses::{Losses, Origin};
 use crate::messages::{Messages, Window, FACE_TEXT_X};
+use crate::pages::MapEvents;
+use crate::registry::{
+    Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops,
+};
+use crate::route;
 use rm2k_snes_bytecode::events::*;
 use rm2k_snes_text::refit::refit_measured;
-use crate::pages::MapEvents;
-use crate::registry::{Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
-use crate::route;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 // --- the engine's numbers ------------------------------------------------------
@@ -697,12 +699,20 @@ impl Ctx<'_> {
         let mut seen = BTreeSet::new();
         for escape in messages.take_dropped() {
             if seen.insert(escape.clone()) {
-                self.losses.lose(Some(cmd.code), "message-escape-dropped", crate::messages::dropped_escape(&escape));
+                self.losses.lose(
+                    Some(cmd.code),
+                    "message-escape-dropped",
+                    crate::messages::dropped_escape(&escape),
+                );
             }
         }
         let plain = messages.take_plain();
         if !plain.is_empty() {
-            self.losses.lose(Some(cmd.code), "letter-plain", rm2k_snes_text::plain::plain_loss(&plain));
+            self.losses.lose(
+                Some(cmd.code),
+                "letter-plain",
+                rm2k_snes_text::plain::plain_loss(&plain),
+            );
         }
     }
 
@@ -1191,7 +1201,10 @@ fn page(
                 compile_command(ctx, &loose[0], &[], map_events.as_ref())?,
                 compile_command(ctx, &loose[1], &[], map_events.as_ref())?,
             ];
-            let branches = [branch_bytes(ctx, &loose[2], map_events.as_ref())?, branch_bytes(ctx, &loose[3], map_events.as_ref())?];
+            let branches = [
+                branch_bytes(ctx, &loose[2], map_events.as_ref())?,
+                branch_bytes(ctx, &loose[3], map_events.as_ref())?,
+            ];
             match cell_test_piece(&writes, &branches)? {
                 None => {
                     ctx.losses.rewind(lost);
@@ -1243,7 +1256,11 @@ fn page(
             // (word), abort (word)
             let troop = encounter_troop(cmd)?;
             if cmd.p(5).is_some_and(|f| f != 0) {
-                ctx.lose(cmd, "first-strike-dropped", "the battle does not start with the party's first strike");
+                ctx.lose(
+                    cmd,
+                    "first-strike-dropped",
+                    "the battle does not start with the party's first strike",
+                );
             }
             if let Some(troops) = ctx.troops.as_deref_mut() {
                 troops.request(troop as i32, encounter_backdrop(cmd));
@@ -1445,7 +1462,7 @@ fn page(
             if cancel_branch && current.cancel_body.is_some() {
                 return cannot();
             }
-            if !cancel_branch && !(0 <= n && n < current.n as i64) {
+            if !cancel_branch && !(0..current.n as i64).contains(&n) {
                 return cannot();
             }
             // The previous option's body ends here: it is taken out of the
@@ -1802,7 +1819,11 @@ fn compile_call(
         return Ok(vec![]);
     }
     if depth >= CALL_MAX {
-        ctx.lose(cmd, "call-skipped", format!("a call nested past {CALL_MAX} levels is skipped"));
+        ctx.lose(
+            cmd,
+            "call-skipped",
+            format!("a call nested past {CALL_MAX} levels is skipped"),
+        );
         return Ok(vec![]);
     }
     if p[0] == 0 && ctx.game.patches.counters.contains_key(&p[1]) {
@@ -1818,11 +1839,19 @@ fn compile_call(
         return Ok(match commons.get(&p[1]) {
             Some(&index) => vec![OP_CALL, index],
             None => {
-                if ctx.game.common_events.get(&p[1]).is_some_and(|c| !c.commands.is_empty()) {
+                if ctx
+                    .game
+                    .common_events
+                    .get(&p[1])
+                    .is_some_and(|c| !c.commands.is_empty())
+                {
                     ctx.lose(
                         cmd,
                         "call-skipped",
-                        format!("common event {} does not compile, and the call is skipped", p[1]),
+                        format!(
+                            "common event {} does not compile, and the call is skipped",
+                            p[1]
+                        ),
                     );
                 }
                 vec![]
@@ -1899,7 +1928,10 @@ fn compile_call(
             ctx.lose(
                 cmd,
                 "call-skipped",
-                format!("a call to event {}'s page from a common event's shared body is skipped", p[1]),
+                format!(
+                    "a call to event {}'s page from a common event's shared body is skipped",
+                    p[1]
+                ),
             );
         }
         return Ok(vec![]);
@@ -1913,7 +1945,10 @@ fn compile_call(
     ctx.losses.enter(if p[0] == 0 {
         Origin::Common(p[1])
     } else {
-        Origin::Called { event: p[1], page: p[2] }
+        Origin::Called {
+            event: p[1],
+            page: p[2],
+        }
     });
     let pasted = compile_page(ctx, &body, context, length, depth + 1);
     ctx.losses.leave();
@@ -1924,7 +1959,11 @@ fn compile_call(
         } else {
             format!("event {}'s page {}", p[1], p[2])
         };
-        ctx.lose(cmd, "call-skipped", format!("{what} does not compile here, and the call is skipped"));
+        ctx.lose(
+            cmd,
+            "call-skipped",
+            format!("{what} does not compile here, and the call is skipped"),
+        );
     }
     Ok(pasted.unwrap_or_default())
 }
@@ -1997,7 +2036,10 @@ fn shares<'a>(
         m.rewind(mark);
     }
     ctx.losses.rewind(lost);
-    let (with_map, without) =(with_map.map_err(Stop::Fatal)?, without.map_err(Stop::Fatal)?);
+    let (with_map, without) = (
+        with_map.map_err(Stop::Fatal)?,
+        without.map_err(Stop::Fatal)?,
+    );
     Ok(with_map.is_some() && with_map == without)
 }
 
@@ -2097,7 +2139,11 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     }
     let (kind, price) = (cmd.p(0).unwrap(), cmd.p(1).unwrap());
     if price == 0 {
-        ctx.lose(cmd, "inn-not-staged", "the inn heals on the spot, without the fade to black or its music");
+        ctx.lose(
+            cmd,
+            "inn-not-staged",
+            "the inn heals on the spot, without the fade to black or its music",
+        );
         return Ok(vec![OP_HEAL, 0, 0, 0]);
     }
     ctx.lose(
@@ -2120,7 +2166,11 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     let t = &ctx.game.inn_terms[kind as usize];
     let greeting = format!("{} {}{} {}", t[0], price, ctx.game.gold_term, t[1]);
     let at = messages.add(&[greeting, t[2].clone()])?;
-    let frames = choice_boxes(&[(0, t[3].clone()), (1, t[4].clone())], ctx.indices, messages)?;
+    let frames = choice_boxes(
+        &[(0, t[3].clone()), (1, t[4].clone())],
+        ctx.indices,
+        messages,
+    )?;
     ctx.lose_dropped(cmd);
     let end = length + 30;
     let mut out = vec![OP_MESSAGE];
@@ -2189,7 +2239,11 @@ fn choice_options(commands: &[Command], i: usize) -> Vec<(i64, String)> {
 /// also puts the options' text further in. `Messages` deduplicates by
 /// content, so the box is stored once. The table keeps its shape so the
 /// opcode does not change.
-fn choice_boxes(options: &[(i64, String)], indices: &Indices, messages: &mut Messages) -> Step<Vec<usize>> {
+fn choice_boxes(
+    options: &[(i64, String)],
+    indices: &Indices,
+    messages: &mut Messages,
+) -> Step<Vec<usize>> {
     // The options go through the same escapes as a `ShowMessage`'s lines: a
     // `\N[n]` and a `\V[n]` come off here. The ROM writes the variable's
     // digits when the box opens, in a choice's lines like in any other.
@@ -2284,7 +2338,11 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
         if !(0..=3).contains(&direction) {
             return cannot();
         }
-        let mut out = vec![OP_IF_FACING, target_of(number, map_events)?, direction as u8];
+        let mut out = vec![
+            OP_IF_FACING,
+            target_of(number, map_events)?,
+            direction as u8,
+        ];
         out.extend([0, 0]);
         return Ok(out);
     }
@@ -2833,7 +2891,11 @@ fn sound_index(ctx: &mut Ctx, cmd: &Command, sound: Sound, from_route: bool) -> 
     }
     let k = songs.sound((name.clone(), volume, tempo, balance), in_package);
     if name != asked {
-        ctx.lose(cmd, "sound-replaced", format!("{asked:?} plays as {name:?} on this map, by the project's choice"));
+        ctx.lose(
+            cmd,
+            "sound-replaced",
+            format!("{asked:?} plays as {name:?} on this map, by the project's choice"),
+        );
     }
     if !in_package {
         ctx.lose(
@@ -2962,8 +3024,13 @@ pub fn compile_picture(
         // The number can name a picture in the sprites and a big one; which
         // is up is not known until it runs, so both are taken down —the one
         // that is not up costs a byte to read—.
-        let small = p.first().and_then(|&n| pictures.numbered(n).next()).map(|&(_, s)| s);
-        let big = p.first().is_some_and(|&n| pictures.numbered_big(n).next().is_some());
+        let small = p
+            .first()
+            .and_then(|&n| pictures.numbered(n).next())
+            .map(|&(_, s)| s);
+        let big = p
+            .first()
+            .is_some_and(|&n| pictures.numbered_big(n).next().is_some());
         let mut out = Vec::new();
         if let Some(slot) = small {
             out.extend([OP_PICTURE_ERASE, slot]);
@@ -3023,7 +3090,10 @@ pub fn compile_picture(
     // another picture by then—, so it is enough that one of them is at the
     // move's zoom: the one this page showed, almost always. The console
     // computes the corner it goes to with the size of the one that is up.
-    let at_zoom: Vec<&(PictureKey, u8)> = pictures.numbered(p[0]).filter(|(key, _)| key.zoom == p[5]).collect();
+    let at_zoom: Vec<&(PictureKey, u8)> = pictures
+        .numbered(p[0])
+        .filter(|(key, _)| key.zoom == p[5])
+        .collect();
     let Some(&&(_, slot)) = at_zoom.first() else {
         return Ok(None);
     };
@@ -3035,7 +3105,10 @@ pub fn compile_picture(
     let (mode, x, y) = if stays {
         (0, 0, 0)
     } else if p[1] == 1 {
-        match (indices.variable_slot(p[2] as i64), indices.variable_slot(p[3] as i64)) {
+        match (
+            indices.variable_slot(p[2] as i64),
+            indices.variable_slot(p[3] as i64),
+        ) {
             (Ok(sx), Ok(sy)) => (PICTURE_MOVES | PICTURE_BY_VARIABLE, sx as i64, sy as i64),
             _ => return Ok(None),
         }
@@ -3148,13 +3221,17 @@ fn compile_big_picture(cmd: &Command, pictures: &Pictures) -> Step<Option<Vec<u8
     let size = |b: &BigPicture| p[5] * 100 / b.key.zoom.max(1);
     let Some(big) = pictures
         .numbered_big(p[0])
-        .find(|b| b.center.0 == p[2] && (p[5] <= b.key.zoom || (b.texture && size(b) <= ZOOM_SIZE_MAX)))
+        .find(|b| {
+            b.center.0 == p[2] && (p[5] <= b.key.zoom || (b.texture && size(b) <= ZOOM_SIZE_MAX))
+        })
         .cloned()
     else {
         return Ok(None);
     };
     let Some(&tenths) = p.get(14) else {
-        return Err(Stop::Fatal(Bad::answer("a MovePicture without its duration")));
+        return Err(Stop::Fatal(Bad::answer(
+            "a MovePicture without its duration",
+        )));
     };
     let frames = tenths as i64 * FRAMES_PER_TENTH;
     if !(0..=PICTURE_FRAMES_MAX).contains(&frames) {
@@ -3196,9 +3273,9 @@ fn big_zoom_as_fade(cmd: &Command, pictures: Option<&Pictures>) -> Option<String
         return None;
     }
     let size = |b: &BigPicture| p[5] * 100 / b.key.zoom.max(1);
-    let big = pictures
-        .numbered_big(p[0])
-        .find(|b| b.center.0 == p[2] && (p[5] <= b.key.zoom || (b.texture && size(b) <= ZOOM_SIZE_MAX)))?;
+    let big = pictures.numbered_big(p[0]).find(|b| {
+        b.center.0 == p[2] && (p[5] <= b.key.zoom || (b.texture && size(b) <= ZOOM_SIZE_MAX))
+    })?;
     (!big.texture && p[5] != big.key.zoom).then(|| {
         format!(
             "picture {} shrinks from {}% to {}% in RM2k and fades to black here instead",
@@ -3240,7 +3317,9 @@ fn digit_image(name: &str) -> Option<u8> {
 fn counter_place(game: &Game, common: i32) -> Result<(u8, u8)> {
     let whose = format!("the counter of common event {common}");
     let Some(c) = game.common_events.get(&common) else {
-        return Err(Bad::answer(format!("{whose}: there is no such common event")));
+        return Err(Bad::answer(format!(
+            "{whose}: there is no such common event"
+        )));
     };
     let mut places: BTreeMap<i32, (i64, i64)> = BTreeMap::new();
     for cmd in &c.commands {
@@ -3275,7 +3354,9 @@ fn counter_place(game: &Game, common: i32) -> Result<(u8, u8)> {
     let y = cy * CONSOLE_SCREEN.1 / RM_SCREEN.1 - COUNTER_GLYPH.1 / 2;
     match (u8::try_from(x), u8::try_from(y)) {
         (Ok(x), Ok(y)) => Ok((x, y)),
-        _ => Err(Bad::answer(format!("{whose}: it falls off the screen, at ({x}, {y})"))),
+        _ => Err(Bad::answer(format!(
+            "{whose}: it falls off the screen, at ({x}, {y})"
+        ))),
     }
 }
 
@@ -3365,7 +3446,11 @@ fn whole_instructions(code: &[u8]) -> Result<()> {
             "the compiler emitted a page that does not walk by the declared \
              sizes —it ends at {at} and is {} bytes long—; it starts {}",
             code.len(),
-            code.iter().take(32).map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
+            code.iter()
+                .take(32)
+                .map(|b| format!("{b:02X}"))
+                .collect::<Vec<_>>()
+                .join(" ")
         )))
     }
 }
@@ -3445,8 +3530,14 @@ pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
                     i += 2;
                     continue;
                 }
-                if chars[i] == '\\' && matches!(chars.get(i + 1), Some('N' | 'n')) && chars.get(i + 2) == Some(&'[') {
-                    let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
+                if chars[i] == '\\'
+                    && matches!(chars.get(i + 1), Some('N' | 'n'))
+                    && chars.get(i + 2) == Some(&'[')
+                {
+                    let digits: String = chars[i + 3..]
+                        .iter()
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect();
                     let close = i + 3 + digits.len();
                     let actor = digits.parse::<i32>().ok();
                     if chars.get(close) == Some(&']') {
@@ -3455,7 +3546,10 @@ pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
                             i = close + 1;
                             continue;
                         }
-                        if let Some(n) = actor.filter(|&n| indices.name_at_run_time(n)).and_then(|n| u8::try_from(n).ok()) {
+                        if let Some(n) = actor
+                            .filter(|&n| indices.name_at_run_time(n))
+                            .and_then(|n| u8::try_from(n).ok())
+                        {
                             text.push(crate::messages::name_mark(n));
                             i = close + 1;
                             continue;
@@ -3495,12 +3589,20 @@ pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> 
                 i += 2;
                 continue;
             }
-            if chars[i] == '\\' && matches!(chars.get(i + 1), Some('V' | 'v')) && chars.get(i + 2) == Some(&'[') {
-                let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
+            if chars[i] == '\\'
+                && matches!(chars.get(i + 1), Some('V' | 'v'))
+                && chars.get(i + 2) == Some(&'[')
+            {
+                let digits: String = chars[i + 3..]
+                    .iter()
+                    .take_while(|c| c.is_ascii_digit())
+                    .collect();
                 let close = i + 3 + digits.len();
                 if !digits.is_empty() && chars.get(close) == Some(&']') {
                     let number: i64 = digits.parse().map_err(|_| Stop::Cannot)?;
-                    text.push(crate::messages::variable_mark(indices.variable_slot(number)?));
+                    text.push(crate::messages::variable_mark(
+                        indices.variable_slot(number)?,
+                    ));
                     i = close + 1;
                     continue;
                 }
@@ -3535,7 +3637,12 @@ pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> 
 /// one font.
 fn change_system(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
     let wanted = cmd.string.to_lowercase();
-    let index = ctx.game.patches.systems.iter().position(|s| s.to_lowercase() == wanted);
+    let index = ctx
+        .game
+        .patches
+        .systems
+        .iter()
+        .position(|s| s.to_lowercase() == wanted);
     match index {
         Some(k) => Ok(vec![OP_CHANGE_SYSTEM, byte(k as i64)?]),
         None => cannot(),
@@ -3574,12 +3681,25 @@ const RM2K_TRANSITIONS: [&str; 21] = [
 /// Showing with "none" is the cut too, but there the two cannot be told
 /// apart. -1, the teleport's, is resolved when it runs.
 fn transition_loss(ctx: &mut Ctx, cmd: &Command, rm2k: i64, erasing: bool) {
-    let name = |k: i64| RM2K_TRANSITIONS.get(k as usize).copied().unwrap_or("unknown");
+    let name = |k: i64| {
+        RM2K_TRANSITIONS
+            .get(k as usize)
+            .copied()
+            .unwrap_or("unknown")
+    };
     let how = if erasing { "erasing" } else { "showing" };
     if rm2k == RM2K_CUT_TRANSITIONS[1] && erasing {
-        ctx.lose(cmd, "transition-as-cut", "the screen erased with \"none\" goes to black for a frame instead");
+        ctx.lose(
+            cmd,
+            "transition-as-cut",
+            "the screen erased with \"none\" goes to black for a frame instead",
+        );
     } else if rm2k > 0 && rm2k != RM2K_TRANSITION_MOSAIC && !RM2K_CUT_TRANSITIONS.contains(&rm2k) {
-        ctx.lose(cmd, "transition-as-fade", format!("the {} transition {how} the screen is a fade", name(rm2k)));
+        ctx.lose(
+            cmd,
+            "transition-as-fade",
+            format!("the {} transition {how} the screen is a fade", name(rm2k)),
+        );
     }
 }
 
@@ -3659,7 +3779,11 @@ pub fn compile_command(
                 return Ok(vec![]);
             }
             if ctx.songs.is_none() {
-                ctx.lose(cmd, "sound-not-played", format!("{:?} does not sound: no song registry here", cmd.string));
+                ctx.lose(
+                    cmd,
+                    "sound-not-played",
+                    format!("{:?} does not sound: no song registry here", cmd.string),
+                );
                 return Ok(vec![]);
             }
             let k = sound_index(ctx, cmd, (cmd.string.clone(), p[0], p[1], p[2]), false);
@@ -3711,7 +3835,11 @@ pub fn compile_command(
                     4 => "sandstorm",
                     _ => "weather",
                 };
-                ctx.lose(cmd, "weather-not-drawn", format!("the {what} is not drawn, and it turns the rain off"));
+                ctx.lose(
+                    cmd,
+                    "weather-not-drawn",
+                    format!("the {what} is not drawn, and it turns the rain off"),
+                );
             }
             Ok(vec![
                 OP_WEATHER,
@@ -3750,7 +3878,11 @@ pub fn compile_command(
                 return cannot();
             }
             if sells.len() != p.len() - 4 {
-                ctx.lose(cmd, "shop-item-dropped", "an item the inventory cannot hold is not sold");
+                ctx.lose(
+                    cmd,
+                    "shop-item-dropped",
+                    "an item the inventory cannot hold is not sold",
+                );
             }
             let mut out = vec![OP_SHOP, q(0) as u8, q(1) as u8, sells.len() as u8];
             for i in sells {
@@ -4094,7 +4226,11 @@ pub fn compile_command(
             } else if n == 10 {
                 ([at(6), at(7), at(8), at(9)], at(5), false, false, false)
             } else if ctx.game.is_2003 {
-                let dirs = if n < 10 { [at(2); 4] } else { [at(10), at(11), at(12), at(13)] };
+                let dirs = if n < 10 {
+                    [at(2); 4]
+                } else {
+                    [at(10), at(11), at(12), at(13)]
+                };
                 (dirs, at(9) && n > 10, at(5), at(6), at(8))
             } else {
                 // A 2000 game with six to nine or more than ten: 1.50's
@@ -4118,12 +4254,19 @@ pub fn compile_command(
                 // wait.
                 return cannot();
             }
-            for (asked, key) in [(shift, "shift"), (numbers, "the number keys"), (operators, "the operator keys")] {
+            for (asked, key) in [
+                (shift, "shift"),
+                (numbers, "the number keys"),
+                (operators, "the operator keys"),
+            ] {
                 if asked {
                     ctx.lose(
                         cmd,
                         "key-not-on-the-pad",
-                        format!("variable {} never gets {key}: the pad does not have it", q(0)),
+                        format!(
+                            "variable {} never gets {key}: the pad does not have it",
+                            q(0)
+                        ),
                     );
                 }
             }
@@ -4455,7 +4598,11 @@ pub fn compile_command(
             // which puts on one of three songs.
             if ctx.songs.is_none() {
                 if !cmd.string.is_empty() {
-                    ctx.lose(cmd, "bgm-not-played", format!("{:?} does not play: no song registry here", cmd.string));
+                    ctx.lose(
+                        cmd,
+                        "bgm-not-played",
+                        format!("{:?} does not play: no song registry here", cmd.string),
+                    );
                 }
                 return Ok(vec![]);
             }
@@ -4468,7 +4615,10 @@ pub fn compile_command(
                 ctx.lose(
                     cmd,
                     "bgm-fade-in-dropped",
-                    format!("{:?} starts at once instead of fading in over {} ms", cmd.string, p[0]),
+                    format!(
+                        "{:?} starts at once instead of fading in over {} ms",
+                        cmd.string, p[0]
+                    ),
                 );
             }
             let songs = ctx.songs.as_deref_mut().unwrap();
@@ -4478,7 +4628,14 @@ pub fn compile_command(
             }
             let at = |i: usize, default: i64| cmd.parameters.get(i).map_or(default, |&v| v as i64);
             let (left, right, step) = bgm_level(at(1, 100), at(2, 100), at(3, 50));
-            Ok(vec![OP_BGM, (index & 0xFF) as u8, left, right, step as u8, (step >> 8) as u8])
+            Ok(vec![
+                OP_BGM,
+                (index & 0xFF) as u8,
+                left,
+                right,
+                step as u8,
+                (step >> 8) as u8,
+            ])
         }
         PAN_SCREEN => {
             // Moving the camera without the hero: `CommandPanScreen`, in its
@@ -4617,13 +4774,20 @@ pub fn compile_command(
                     SHOW_PICTURE => ctx.losses.lose_about(
                         Some(cmd.code),
                         "picture-not-shown",
-                        format!("picture {} {:?} is not shown here", p.first().unwrap_or(&0), cmd.string),
+                        format!(
+                            "picture {} {:?} is not shown here",
+                            p.first().unwrap_or(&0),
+                            cmd.string
+                        ),
                         &cmd.string,
                     ),
                     MOVE_PICTURE => ctx.lose(
                         cmd,
                         "picture-move-not-done",
-                        format!("the move of picture {} is not done", p.first().unwrap_or(&0)),
+                        format!(
+                            "the move of picture {} is not done",
+                            p.first().unwrap_or(&0)
+                        ),
                     ),
                     _ => {}
                 }
@@ -4675,12 +4839,27 @@ pub fn compile_command(
         // 2026-09-13, the speech ran whole, the teleport back worked, and then
         // nothing else happened.
         CHANGE_SYSTEM_BGM => {
-            let which = ["battle", "victory", "inn", "vehicle", "vehicle", "vehicle", "game over"];
-            let what = cmd.p(0).and_then(|k| which.get(k as usize)).copied().unwrap_or("system");
+            let which = [
+                "battle",
+                "victory",
+                "inn",
+                "vehicle",
+                "vehicle",
+                "vehicle",
+                "game over",
+            ];
+            let what = cmd
+                .p(0)
+                .and_then(|k| which.get(k as usize))
+                .copied()
+                .unwrap_or("system");
             ctx.lose(
                 cmd,
                 "system-bgm-not-changed",
-                format!("the {what} song stays the database's instead of {:?}", cmd.string),
+                format!(
+                    "the {what} song stays the database's instead of {:?}",
+                    cmd.string
+                ),
             );
             Ok(vec![])
         }
@@ -4692,14 +4871,23 @@ pub fn compile_command(
             // screen that draws the actor's name asks the ROM which one it
             // carries, and so does `\N[n]`.
             let actor = *p.first().ok_or(Stop::Cannot)?;
-            let place = ctx.indices.renamed_actors().iter().position(|&a| a == actor).ok_or(Stop::Cannot)?;
+            let place = ctx
+                .indices
+                .renamed_actors()
+                .iter()
+                .position(|&a| a == actor)
+                .ok_or(Stop::Cannot)?;
             let which = ctx
                 .indices
                 .renames
                 .iter()
                 .position(|(a, n)| *a == actor && *n == cmd.string)
                 .ok_or(Stop::Cannot)?;
-            Ok(vec![OP_CHANGE_NAME, byte(place as i64)?, byte(which as i64 + 1)?])
+            Ok(vec![
+                OP_CHANGE_NAME,
+                byte(place as i64)?,
+                byte(which as i64 + 1)?,
+            ])
         }
         // `ChangeMapTileset` (11710): the map drawn, from here on and until
         // the next teleport, with another ChipSet —its graphics, its
@@ -4739,7 +4927,15 @@ pub fn compile_command(
             Ok(vec![])
         }
         CHANGE_HERO_TITLE => {
-            ctx.lose(cmd, "hero-title-not-changed", format!("actor {}'s title is not changed to {:?}", p.first().unwrap_or(&0), cmd.string));
+            ctx.lose(
+                cmd,
+                "hero-title-not-changed",
+                format!(
+                    "actor {}'s title is not changed to {:?}",
+                    p.first().unwrap_or(&0),
+                    cmd.string
+                ),
+            );
             Ok(vec![])
         }
         // Only the message window changes: see
@@ -4792,7 +4988,11 @@ pub fn compile_command(
             } else {
                 TRANSITION_FADE
             };
-            let op = if cmd.code == ERASE_SCREEN { OP_ERASE_SCREEN } else { OP_SHOW_SCREEN };
+            let op = if cmd.code == ERASE_SCREEN {
+                OP_ERASE_SCREEN
+            } else {
+                OP_SHOW_SCREEN
+            };
             Ok(vec![op, kind])
         }
         // `ChangeFaceGraphic` (10130): [index, right, flipped] and the
@@ -4838,7 +5038,12 @@ pub fn compile_command(
             ctx.lose(
                 cmd,
                 "actor-face-not-changed",
-                format!("actor {}'s face stays the database's, not {:?} {}", q(0), cmd.string, if n > 1 { q(1) } else { 0 }),
+                format!(
+                    "actor {}'s face stays the database's, not {:?} {}",
+                    q(0),
+                    cmd.string,
+                    if n > 1 { q(1) } else { 0 }
+                ),
             );
             Ok(vec![])
         }
@@ -4862,7 +5067,12 @@ pub fn compile_command(
             if remove && q(2) == DEATH_STATE {
                 return cannot();
             }
-            Ok(vec![OP_MONSTER_STATE, q(0) as u8, u8::from(remove), q(2) as u8])
+            Ok(vec![
+                OP_MONSTER_STATE,
+                q(0) as u8,
+                u8::from(remove),
+                q(2) as u8,
+            ])
         }
         // `TerminateBattle` (13410): the page and the battle end, with no
         // victory —EasyRPG's `AsyncOp::MakeTerminateBattle(Abort)`—. It only
@@ -5054,7 +5264,11 @@ pub fn compile_command(
             // Without a song registry it is accepted and not done, like
             // `PlayBGM`.
             if ctx.songs.is_none() {
-                ctx.lose(cmd, "bgm-not-played", "the memorized song is not noted or put back: no song registry here");
+                ctx.lose(
+                    cmd,
+                    "bgm-not-played",
+                    "the memorized song is not noted or put back: no song registry here",
+                );
                 return Ok(vec![]);
             }
             Ok(vec![
@@ -5132,7 +5346,10 @@ pub fn compile_command(
                 ctx.lose(
                     cmd,
                     "panorama-not-changed",
-                    format!("the panorama stays the map's instead of {:?}; its scroll does change", cmd.string),
+                    format!(
+                        "the panorama stays the map's instead of {:?}; its scroll does change",
+                        cmd.string
+                    ),
                 );
             }
             let mut out = vec![OP_PANORAMA, u8::from(lx) | (u8::from(ly) << 1)];
@@ -5198,7 +5415,11 @@ pub fn compile_command(
             // The hero's is the converter's to look at: whom he shares a
             // palette with depends on the party.
             if let Some(me) = map_events.filter(|_| target != 0) {
-                let who = if q(0) == ROUTE_THIS_EVENT { me.owner } else { Some(p[0]) };
+                let who = if q(0) == ROUTE_THIS_EVENT {
+                    me.owner
+                } else {
+                    Some(p[0])
+                };
                 if me.shares_graphic(who) {
                     ctx.lose(
                         cmd,
@@ -5267,7 +5488,11 @@ pub fn compile_command(
                         ctx.lose(
                             cmd,
                             "variable-saturated",
-                            format!("variable {} is set to {a} instead of {}: the word saturates", q(1), q(5)),
+                            format!(
+                                "variable {} is set to {a} instead of {}: the word saturates",
+                                q(1),
+                                q(5)
+                            ),
                         );
                     }
                 }
@@ -5297,7 +5522,9 @@ pub fn compile_command(
                 // (`Game_Actor::GetItemCount`).
                 let held = 1..ITEMS_N;
                 let equipped = 0..=0x1FFF;
-                if !(b == 0 && held.contains(&a) || b == ITEM_COUNT_EQUIPPED && equipped.contains(&a)) {
+                if !(b == 0 && held.contains(&a)
+                    || b == ITEM_COUNT_EQUIPPED && equipped.contains(&a))
+                {
                     return cannot();
                 }
             } else if operand_kind == VAR_OTHER {
@@ -5336,7 +5563,10 @@ pub fn compile_command(
                     ctx.lose(
                         cmd,
                         "variable-saturated",
-                        format!("variable {} takes actor {a}'s experience saturated at 32767: the word", q(1)),
+                        format!(
+                            "variable {} takes actor {a}'s experience saturated at 32767: the word",
+                            q(1)
+                        ),
                     );
                 }
             } else if operand_kind == VAR_CHARACTER {
@@ -5345,7 +5575,10 @@ pub fn compile_command(
                 // and not the RM2k id: the bytecode never sees an id again,
                 // which is what `MapEvents` exists to guarantee. `b` is which
                 // coordinate.
-                if !matches!(b, CHARACTER_X | CHARACTER_Y | CHARACTER_SCREEN_X | CHARACTER_SCREEN_Y) {
+                if !matches!(
+                    b,
+                    CHARACTER_X | CHARACTER_Y | CHARACTER_SCREEN_X | CHARACTER_SCREEN_Y
+                ) {
                     return cannot();
                 }
                 // Not checked as a byte: it goes as a word.
@@ -5409,7 +5642,11 @@ pub fn compile_command(
                 // no battles: it is compiled anyway and ignored, like the rest
                 // of what belongs to combat.
                 if q(0) == TIMER_START && q(4) != 0 {
-                    ctx.lose(cmd, "timer-battle-flag-dropped", "the timer's \"also in battle\" is dropped");
+                    ctx.lose(
+                        cmd,
+                        "timer-battle-flag-dropped",
+                        "the timer's \"also in battle\" is dropped",
+                    );
                 }
                 return Ok(vec![
                     OP_TIMER,
@@ -5598,7 +5835,11 @@ pub fn compile_command(
             }
             let amount = match q(2) {
                 0 if (0..=0x7FFF).contains(&q(3)) => {
-                    if q(1) != 0 { -q(3) } else { q(3) }
+                    if q(1) != 0 {
+                        -q(3)
+                    } else {
+                        q(3)
+                    }
                 }
                 1 => {
                     what |= ENEMY_BY_VARIABLE;
@@ -5765,12 +6006,13 @@ pub fn compile_command(
                 ctx.lose(
                     cmd,
                     "tint-gradient-dropped",
-                    format!("the tint is applied at once instead of over {} tenths of a second", q(4)),
+                    format!(
+                        "the tint is applied at once instead of over {} tenths of a second",
+                        q(4)
+                    ),
                 );
             }
-            let mut out = vec![
-                OP_TINT, p[0] as u8, p[1] as u8, p[2] as u8, p[3] as u8,
-            ];
+            let mut out = vec![OP_TINT, p[0] as u8, p[1] as u8, p[2] as u8, p[3] as u8];
             if n >= 6 && q(5) != 0 {
                 out.push(OP_DELAY);
                 out.extend(word(q(4) * FRAMES_PER_TENTH)?);
@@ -5816,7 +6058,11 @@ pub fn compile_command(
             // name or a variable measure as a space here, about a digit.
             if faced {
                 let window = messages.window;
-                let narrow = Window { width: window.width.saturating_sub(FACE_TEXT_X), ..window }.measure();
+                let narrow = Window {
+                    width: window.width.saturating_sub(FACE_TEXT_X),
+                    ..window
+                }
+                .measure();
                 let mut out = Vec::new();
                 for frame in refit_measured(&lines, &narrow, window.lines) {
                     let at = messages.add_waiting(&frame)?;
@@ -5898,7 +6144,11 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         return cannot();
     }
     if p[2] != 0 {
-        ctx.lose(cmd, "route-repeat-dropped", "the forced route runs once instead of repeating");
+        ctx.lose(
+            cmd,
+            "route-repeat-dropped",
+            "the forced route runs once instead of repeating",
+        );
     }
     let mut path: Vec<i64> = Vec::new();
     // Whether the cursor is between a `begin_jump` and its `end_jump`. Inside
@@ -5911,7 +6161,11 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
     for (command, extras) in commands {
         // On the hero, the ones that look at the hero look at himself: see
         // `route::on_hero`.
-        let command = if target == 0 { route::on_hero(command) } else { command };
+        let command = if target == 0 {
+            route::on_hero(command)
+        } else {
+            command
+        };
         if command == ROUTE_JUMP_START {
             in_jump = true;
         } else if command == ROUTE_JUMP_END {
@@ -5939,7 +6193,14 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
                 continue;
             }
             if ctx.songs.is_none() {
-                ctx.lose(cmd, "sound-not-played", format!("the route's {:?} does not sound: no song registry here", extras[0].text()));
+                ctx.lose(
+                    cmd,
+                    "sound-not-played",
+                    format!(
+                        "the route's {:?} does not sound: no song registry here",
+                        extras[0].text()
+                    ),
+                );
                 continue;
             }
             let sound = (
@@ -5961,7 +6222,11 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // not compile without this. They cost no frames: in
             // `UpdateMoveRoute` they go through the branch that does not touch
             // the stop counter.
-            ctx.lose(cmd, "route-transparency-dropped", "the route's step of transparency is not done");
+            ctx.lose(
+                cmd,
+                "route-transparency-dropped",
+                "the route's step of transparency is not done",
+            );
             continue;
         }
         // Turning, waiting and moving. The `move_*`s came in on 2026-09-03,
@@ -6027,7 +6292,9 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
                 continue;
             };
             if target != 0 {
-                graphics.on_events.insert((extras[0].text().to_string(), extras[1].int() as i32));
+                graphics
+                    .on_events
+                    .insert((extras[0].text().to_string(), extras[1].int() as i32));
             }
             path.push(command as i64);
             path.push(chosen as i64);
@@ -6195,18 +6462,51 @@ fn compile_animation(
         ANIM_NO_DRAWING as i64
     };
     if number == ANIM_NO_DRAWING as i64 {
-        let why = if p[0] > 255 { "its number does not fit the ROM's table" } else { "it is global" };
-        ctx.lose(cmd, "battle-animation-not-drawn", format!("battle animation {} is heard and flashes but is not drawn: {why}", p[0]));
+        let why = if p[0] > 255 {
+            "its number does not fit the ROM's table"
+        } else {
+            "it is global"
+        };
+        ctx.lose(
+            cmd,
+            "battle-animation-not-drawn",
+            format!(
+                "battle animation {} is heard and flashes but is not drawn: {why}",
+                p[0]
+            ),
+        );
     }
     if late {
-        ctx.lose(cmd, "battle-animation-cut", format!("battle animation {}'s sounds and flashes past frame 128 are dropped", p[0]));
+        ctx.lose(
+            cmd,
+            "battle-animation-cut",
+            format!(
+                "battle animation {}'s sounds and flashes past frame 128 are dropped",
+                p[0]
+            ),
+        );
     }
     if unflashed {
-        let whom = if target == 0 { "the hero" } else { "an event that shares its palette" };
-        ctx.lose(cmd, "battle-animation-flash-dropped", format!("battle animation {}'s flash on {whom} is not done", p[0]));
+        let whom = if target == 0 {
+            "the hero"
+        } else {
+            "an event that shares its palette"
+        };
+        ctx.lose(
+            cmd,
+            "battle-animation-flash-dropped",
+            format!("battle animation {}'s flash on {whom} is not done", p[0]),
+        );
     }
     if unheard {
-        ctx.lose(cmd, "sound-not-played", format!("battle animation {}'s sounds do not play: no song registry here", p[0]));
+        ctx.lose(
+            cmd,
+            "sound-not-played",
+            format!(
+                "battle animation {}'s sounds do not play: no song registry here",
+                p[0]
+            ),
+        );
     }
     // What it is drawn over: with "screen" scope —`Animation::Scope_screen`,
     // which is 1— RM2k draws it at the center and asks the target nothing;
@@ -6348,11 +6648,24 @@ mod tests {
     fn pan_screen_lock_and_unlock_compile_with_the_shift_and_the_return() {
         let game = Game::default();
         let one = |p: &[i32]| compile_with(&game, &[cmd(PAN_SCREEN, p, "")]).unwrap();
-        assert_eq!(one(&[0, 0, 1, 4, 1]).unwrap(), [OP_PAN, 0, 0, 0, 0, 0, 0, 0, OP_DONE]);
-        assert_eq!(one(&[1, 0, 10, 1, 1]).unwrap(), [OP_PAN, 1, 0, 0, 0, 0, 0, 0, OP_DONE]);
+        assert_eq!(
+            one(&[0, 0, 1, 4, 1]).unwrap(),
+            [OP_PAN, 0, 0, 0, 0, 0, 0, 0, OP_DONE]
+        );
+        assert_eq!(
+            one(&[1, 0, 10, 1, 1]).unwrap(),
+            [OP_PAN, 1, 0, 0, 0, 0, 0, 0, OP_DONE]
+        );
         // Up two cells at speed 4, waiting: -512 in y, a step of 32.
-        assert_eq!(one(&[2, 0, 2, 4, 1]).unwrap(), [OP_PAN, 2, 0, 0, 0x00, 0xFE, 32, 1, OP_DONE]);
-        assert_eq!(one(&[4, 0, 2, 4, 1]), None, "Maniac's pixel pans do not compile");
+        assert_eq!(
+            one(&[2, 0, 2, 4, 1]).unwrap(),
+            [OP_PAN, 2, 0, 0, 0x00, 0xFE, 32, 1, OP_DONE]
+        );
+        assert_eq!(
+            one(&[4, 0, 2, 4, 1]),
+            None,
+            "Maniac's pixel pans do not compile"
+        );
     }
 
     /// A flash longer than the byte the console counts it in fades out in
@@ -6360,12 +6673,21 @@ mod tests {
     #[test]
     fn a_flash_past_255_frames_is_shortened_and_its_wait_is_not() {
         let game = Game::default();
-        let (out, losses) = losses_on_a_map(&game, &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 60, 1], "")]);
+        let (out, losses) = losses_on_a_map(
+            &game,
+            &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 60, 1], "")],
+        );
         let out = out.unwrap();
         assert_eq!(out[..7], [OP_FLASH, 0, 31, 31, 31, 31, 255]);
         assert_eq!(out[7..10], [OP_DELAY, (360 & 0xFF) as u8, (360 >> 8) as u8]);
-        assert_eq!(losses.iter().map(|l| l.kind).collect::<Vec<_>>(), ["flash-shortened"]);
-        let (short, losses) = losses_on_a_map(&game, &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 20, 0], "")]);
+        assert_eq!(
+            losses.iter().map(|l| l.kind).collect::<Vec<_>>(),
+            ["flash-shortened"]
+        );
+        let (short, losses) = losses_on_a_map(
+            &game,
+            &[cmd(FLASH_SPRITE, &[10001, 31, 31, 31, 31, 20, 0], "")],
+        );
         assert_eq!(short.unwrap()[..7], [OP_FLASH, 0, 31, 31, 31, 31, 120]);
         assert!(losses.is_empty());
     }
@@ -6383,19 +6705,35 @@ mod tests {
         // Variable 48 is slot 5 in `compile_with`. The waiting form, every
         // key: KEY_START first, then the one that looks, both with the
         // refresh bit, since there is no map to say nobody reads it.
-        let all = |game: &Game, p: &[i32]| compile_with(game, &[cmd(KEY_INPUT_PROC, p, "")]).unwrap();
+        let all =
+            |game: &Game, p: &[i32]| compile_with(game, &[cmd(KEY_INPUT_PROC, p, "")]).unwrap();
         let short = all(&game_2000, &[48, 1, 1, 1, 1]).unwrap();
         assert_eq!(short, [OP_KEY, 5, 0x9F, OP_KEY, 5, 0x8F, OP_DONE]);
         // RM2k 1.50's ten, the four directions one by one and shift: the
         // same program, and the shift is noted as a key the pad lacks.
-        assert_eq!(all(&game_2000, &[48, 1, 1, 1, 1, 1, 1, 1, 1, 1]).unwrap(), short);
-        assert_eq!(all(&game_2000, &[48, 1, 0, 1, 1, 0, 1, 1, 1, 1]).unwrap(), short);
+        assert_eq!(
+            all(&game_2000, &[48, 1, 1, 1, 1, 1, 1, 1, 1, 1]).unwrap(),
+            short
+        );
+        assert_eq!(
+            all(&game_2000, &[48, 1, 0, 1, 1, 0, 1, 1, 1, 1]).unwrap(),
+            short
+        );
         // 2003 1.05+'s fourteen, the way Zounds writes it: numbers,
         // operators, the time variable, not timed, shift and the four.
-        assert_eq!(all(&game_2003, &[48, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]).unwrap(), short);
-        assert_eq!(all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]).unwrap(), short);
+        assert_eq!(
+            all(&game_2003, &[48, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]).unwrap(),
+            short
+        );
+        assert_eq!(
+            all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]).unwrap(),
+            short
+        );
         // And 2003's nine, before 1.05: the directions as a block.
-        assert_eq!(all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 1, 0]).unwrap(), short);
+        assert_eq!(
+            all(&game_2003, &[48, 1, 1, 1, 1, 0, 0, 1, 0]).unwrap(),
+            short
+        );
         // The decision key alone, long: the same as the short one's.
         assert_eq!(
             all(&game_2000, &[48, 1, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
@@ -6428,14 +6766,24 @@ mod tests {
         game.actors.insert(14, vec![]);
         for b in 0..=14 {
             assert_eq!(
-                compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, b], "")]).unwrap().unwrap(),
+                compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, b], "")])
+                    .unwrap()
+                    .unwrap(),
                 [OP_VAR, 5, 0x80, 5, 14, 0, b as u8, 0, OP_DONE],
                 "stat {b}"
             );
         }
-        assert!(compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 15], "")]).unwrap().is_none());
+        assert!(
+            compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 15], "")])
+                .unwrap()
+                .is_none()
+        );
         // An actor the database lacks, no.
-        assert!(compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 13, 0], "")]).unwrap().is_none());
+        assert!(
+            compile_with(&game, &[cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 13, 0], "")])
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
@@ -6443,9 +6791,17 @@ mod tests {
         // Without a window for it there is nothing to draw with: the page
         // is left out, as with any command the ROM cannot carry.
         let mut game = Game::default();
-        assert!(compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]).unwrap().is_none());
+        assert!(
+            compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")])
+                .unwrap()
+                .is_none()
+        );
         game.patches.systems = vec!["Start".into()];
-        assert!(compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]).unwrap().is_none());
+        assert!(
+            compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")])
+                .unwrap()
+                .is_none()
+        );
     }
 
     /// A `ChangeFaceGraphic` is the face's place among the game's and its
@@ -6474,11 +6830,22 @@ mod tests {
                 losses: Losses::default(),
                 face: None,
             };
-            compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+            compile_page(&mut ctx, commands, None, 0, 0)
+                .unwrap()
+                .unwrap()
         };
-        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 0, 0], "Jack")]), [OP_FACE, 0, 0, 0, OP_DONE]);
-        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 1, 1], "Jack")]), [OP_FACE, 1, 0, 1, OP_DONE]);
-        assert_eq!(compile(&[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "")]), [OP_FACE, 0xFF, 0xFF, 0, OP_DONE]);
+        assert_eq!(
+            compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 0, 0], "Jack")]),
+            [OP_FACE, 0, 0, 0, OP_DONE]
+        );
+        assert_eq!(
+            compile(&[cmd(CHANGE_FACE_GRAPHIC, &[2, 1, 1], "Jack")]),
+            [OP_FACE, 1, 0, 1, OP_DONE]
+        );
+        assert_eq!(
+            compile(&[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "")]),
+            [OP_FACE, 0xFF, 0xFF, 0, OP_DONE]
+        );
         assert!(!ACCEPTED_UNDONE.contains(&CHANGE_FACE_GRAPHIC));
     }
 
@@ -6490,7 +6857,10 @@ mod tests {
     fn a_box_with_a_face_makes_room_for_it() {
         use crate::messages::{Messages, Window};
         let game = Game::default();
-        let faces = Indices { faces: vec![("Jack".into(), 0, false)], ..Default::default() };
+        let faces = Indices {
+            faces: vec![("Jack".into(), 0, false)],
+            ..Default::default()
+        };
         let none = Indices::default();
         let lines_of = |indices: &Indices, commands: &[Command]| -> Vec<u8> {
             let sound = SoundSettings::default();
@@ -6510,7 +6880,9 @@ mod tests {
                 losses: Losses::default(),
                 face: None,
             };
-            let code = compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap();
+            let code = compile_page(&mut ctx, commands, None, 0, 0)
+                .unwrap()
+                .unwrap();
             // The lines of each box opened, from its header's low bits.
             let mut out = Vec::new();
             let mut i = 0;
@@ -6529,10 +6901,26 @@ mod tests {
         };
         let long = "a".repeat(30); // 180 px: one line whole, two with a face
         let box_ = cmd(SHOW_MESSAGE, &[], &long);
-        assert_eq!(lines_of(&none, &[box_.clone()]), [1]);
-        assert_eq!(lines_of(&faces, &[box_.clone()]), [2], "the page does not say, and the game shows faces");
-        assert_eq!(lines_of(&faces, &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "Jack"), box_.clone()]), [2]);
-        assert_eq!(lines_of(&faces, &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], ""), box_.clone()]), [1]);
+        assert_eq!(lines_of(&none, std::slice::from_ref(&box_)), [1]);
+        assert_eq!(
+            lines_of(&faces, std::slice::from_ref(&box_)),
+            [2],
+            "the page does not say, and the game shows faces"
+        );
+        assert_eq!(
+            lines_of(
+                &faces,
+                &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], "Jack"), box_.clone()]
+            ),
+            [2]
+        );
+        assert_eq!(
+            lines_of(
+                &faces,
+                &[cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], ""), box_.clone()]
+            ),
+            [1]
+        );
     }
 
     /// `ChangeActorFace` runs its page and changes nothing: a debt.
@@ -6540,8 +6928,16 @@ mod tests {
     fn change_actor_face_is_a_debt() {
         let game = Game::default();
         let command = cmd(CHANGE_ACTOR_FACE, &[1, 3], "Jack");
-        assert_eq!(compile_with(&game, std::slice::from_ref(&command)).unwrap().unwrap(), [OP_DONE]);
-        assert_eq!(page_debts(&game, &Indices::default(), &[command], None).unwrap(), [CHANGE_ACTOR_FACE]);
+        assert_eq!(
+            compile_with(&game, std::slice::from_ref(&command))
+                .unwrap()
+                .unwrap(),
+            [OP_DONE]
+        );
+        assert_eq!(
+            page_debts(&game, &Indices::default(), &[command], None).unwrap(),
+            [CHANGE_ACTOR_FACE]
+        );
     }
 
     #[test]
@@ -6555,7 +6951,9 @@ mod tests {
             ([7, 0, 1], [OP_MONSTER_STATE, 7, 0, 1]),
         ] {
             let command = cmd(CHANGE_MONSTER_CONDITION, &p, "");
-            let code = compile_with(&game, &[command.clone()]).unwrap().unwrap();
+            let code = compile_with(&game, std::slice::from_ref(&command))
+                .unwrap()
+                .unwrap();
             assert_eq!(code, [&out[..], &[OP_DONE]].concat(), "{p:?}");
             assert!(page_debts(&game, &Indices::default(), &[command], None)
                 .unwrap()
@@ -6575,7 +6973,9 @@ mod tests {
     #[test]
     fn terminate_battle_ends_the_page_and_the_battle() {
         let game = Game::default();
-        let code = compile_with(&game, &[cmd(TERMINATE_BATTLE, &[], "")]).unwrap().unwrap();
+        let code = compile_with(&game, &[cmd(TERMINATE_BATTLE, &[], "")])
+            .unwrap()
+            .unwrap();
         assert_eq!(code, [OP_BATTLE_ABORT, OP_DONE]);
     }
 
@@ -6596,7 +6996,11 @@ mod tests {
         let [victory, _, _, abort] = battle_destinations(&code);
         assert_eq!(victory, 11, "the victory's body, right after the opcode");
         assert!(abort > victory);
-        assert_eq!(code[abort..abort + 3], [OP_SWITCH, 8, 0], "the command after `EndBattle`");
+        assert_eq!(
+            code[abort..abort + 3],
+            [OP_SWITCH, 8, 0],
+            "the command after `EndBattle`"
+        );
     }
 
     fn compile_with(game: &Game, commands: &[Command]) -> Result<Option<Vec<u8>>> {
@@ -6650,11 +7054,18 @@ mod tests {
         // Another image on it, or a digit on a picture that is not the
         // counter's, is still any picture: accepted without being done.
         for other in [show(2, "Gauge"), show(1, "9")] {
-            let code = compile_with(&game, &[other.clone()]);
+            let code = compile_with(&game, std::slice::from_ref(&other));
             assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
-            assert_eq!(page_debts(&game, &Indices::default(), &[other], None).unwrap(), [SHOW_PICTURE]);
+            assert_eq!(
+                page_debts(&game, &Indices::default(), &[other], None).unwrap(),
+                [SHOW_PICTURE]
+            );
         }
-        assert!(page_debts(&game, &Indices::default(), &[show(3, "4")], None).unwrap().is_empty());
+        assert!(
+            page_debts(&game, &Indices::default(), &[show(3, "4")], None)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -6686,7 +7097,10 @@ mod tests {
 
     /// The same, with these indices.
     fn on_a_map_with(indices: &Indices, commands: &[Command]) -> Option<Vec<u8>> {
-        let map = crate::game::Map { id: 5, events: Vec::new() };
+        let map = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
         on_this_map(&Game::default(), indices, &map, commands)
     }
 
@@ -6699,8 +7113,10 @@ mod tests {
     ) -> Option<Vec<u8>> {
         use crate::messages::{Messages, Window};
         let sound = SoundSettings::default();
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
@@ -6722,11 +7138,16 @@ mod tests {
     }
 
     /// What [`on_this_map`] notes as lost, as event 1's page 1 at (2, 3).
-    fn losses_on_a_map(game: &Game, commands: &[Command]) -> (Option<Vec<u8>>, Vec<crate::losses::Loss>) {
+    fn losses_on_a_map(
+        game: &Game,
+        commands: &[Command],
+    ) -> (Option<Vec<u8>>, Vec<crate::losses::Loss>) {
         use crate::messages::{Messages, Window};
         let (indices, sound) = (Indices::default(), SoundSettings::default());
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
@@ -6743,9 +7164,19 @@ mod tests {
             losses: Losses::default(),
             face: None,
         };
-        let map = crate::game::Map { id: 5, events: Vec::new() };
-        ctx.losses.enter(Origin::Page { map: 5, event: 1, page: Some(1), x: 2, y: 3 });
-        let code = compile_page(&mut ctx, commands, Some(MapEvents::new(&map, None)), 0, 0).unwrap();
+        let map = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
+        ctx.losses.enter(Origin::Page {
+            map: 5,
+            event: 1,
+            page: Some(1),
+            x: 2,
+            y: 3,
+        });
+        let code =
+            compile_page(&mut ctx, commands, Some(MapEvents::new(&map, None)), 0, 0).unwrap();
         ctx.losses.leave();
         (code, ctx.losses.take())
     }
@@ -6756,15 +7187,40 @@ mod tests {
 
     #[test]
     fn what_is_compiled_with_less_is_noted_where_it_is() {
-        let route = cmd(MOVE_EVENT, &[ROUTE_HERO as i32, route::FREQUENCY, 1, 0, 0], "");
+        let route = cmd(
+            MOVE_EVENT,
+            &[ROUTE_HERO as i32, route::FREQUENCY, 1, 0, 0],
+            "",
+        );
         let (code, losses) = losses_on_a_map(&Game::default(), &[fading_in(), route]);
         assert!(code.is_some());
-        let kinds: Vec<(&str, Option<usize>)> = losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
-        assert_eq!(kinds, [("bgm-fade-in-dropped", Some(0)), ("route-repeat-dropped", Some(1))]);
+        let kinds: Vec<(&str, Option<usize>)> =
+            losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
+        assert_eq!(
+            kinds,
+            [
+                ("bgm-fade-in-dropped", Some(0)),
+                ("route-repeat-dropped", Some(1))
+            ]
+        );
         let json = losses[0].to_json();
         assert_eq!(
-            (&json["map"], &json["event"], &json["page"], &json["x"], &json["y"], &json["name"]),
-            (&json!(5), &json!(1), &json!(1), &json!(2), &json!(3), &json!("PlayBGM"))
+            (
+                &json["map"],
+                &json["event"],
+                &json["page"],
+                &json["x"],
+                &json["y"],
+                &json["name"]
+            ),
+            (
+                &json!(5),
+                &json!(1),
+                &json!(1),
+                &json!(2),
+                &json!(3),
+                &json!("PlayBGM")
+            )
         );
     }
 
@@ -6781,7 +7237,12 @@ mod tests {
         let mut game = Game::default();
         game.common_events.insert(
             4,
-            CommonEvent { trigger: 5, switch_flag: false, switch_id: 1, commands: vec![fading_in()] },
+            CommonEvent {
+                trigger: 5,
+                switch_flag: false,
+                switch_id: 1,
+                commands: vec![fading_in()],
+            },
         );
         let page = [cmd(WAIT, &[1], ""), cmd(CALL_EVENT, &[0, 4, 0], "")];
         let (_, losses) = losses_on_a_map(&game, &page);
@@ -6802,8 +7263,10 @@ mod tests {
         let game = Game::default();
         let indices = Indices::default();
         let sound = SoundSettings::default();
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::measuring(1, Window::columns(39, 4));
         for k in 0..2000 {
             let line = format!("{k:>39}");
@@ -6825,7 +7288,10 @@ mod tests {
             losses: Losses::default(),
             face: None,
         };
-        let map = crate::game::Map { id: 5, events: Vec::new() };
+        let map = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
         let me = MapEvents::new(&map, None);
         let page = [cmd(SHOW_MESSAGE, &[], "one more box")];
         let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap();
@@ -6839,8 +7305,10 @@ mod tests {
         let game = Game::default();
         let indices = Indices::default();
         let sound = SoundSettings::default();
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game: &game,
@@ -6883,7 +7351,15 @@ mod tests {
         // -1 is the teleport's, resolved by the ROM when it runs; 17 the
         // mosaic; 19 and past it the cut; the rest, the fade. The same
         // table as `ChangeScreenTransitions`.
-        for (rm2k, kind) in [(-1, 0xFF), (0, 0), (5, 0), (16, 0), (17, 1), (19, 2), (20, 2)] {
+        for (rm2k, kind) in [
+            (-1, 0xFF),
+            (0, 0),
+            (5, 0),
+            (16, 0),
+            (17, 1),
+            (19, 2),
+            (20, 2),
+        ] {
             assert_eq!(
                 on_a_map(&[cmd(ERASE_SCREEN, &[rm2k], "")]).unwrap(),
                 [OP_ERASE_SCREEN, kind, OP_DONE],
@@ -6906,7 +7382,10 @@ mod tests {
         // loaded again. The target is the index plus one, as in `OP_ROUTE`:
         // event 1 is the first of the map's table.
         let erase = cmd(ERASE_EVENT, &[], "");
-        assert_eq!(as_the_only_event(&[erase.clone()]).unwrap(), [OP_ERASE_EVENT, 1, OP_DONE]);
+        assert_eq!(
+            as_the_only_event(std::slice::from_ref(&erase)).unwrap(),
+            [OP_ERASE_EVENT, 1, OP_DONE]
+        );
         // A page that is nobody's has no event to erase, and is cut.
         assert_eq!(on_a_map(&[erase]), None);
     }
@@ -6918,8 +7397,10 @@ mod tests {
         // event with the command in it.
         let mut game = Game::default();
         let on = cmd(CONTROL_SWITCHES, &[0, 11, 11, 0], "");
-        game.common_events.insert(2, common(5, None, vec![cmd(ERASE_EVENT, &[], ""), on]));
-        game.common_events.insert(4, common(3, Some(30), vec![call(2)]));
+        game.common_events
+            .insert(2, common(5, None, vec![cmd(ERASE_EVENT, &[], ""), on]));
+        game.common_events
+            .insert(4, common(3, Some(30), vec![call(2)]));
         let s = shared(&game);
         assert_eq!(s.bodies[0].1, [OP_SWITCH, 11, 0, 1, OP_RETURN]);
     }
@@ -6930,7 +7411,10 @@ mod tests {
             cmd(COND_BRANCH, &[2, 30, 1, 0, 0, 0], ""),
             cmd(COND_END, &[], ""),
         ]);
-        assert_eq!(code.unwrap(), [OP_IF, COND_TIMER as u8, 30, 0, 1, 7, 0, OP_DONE]);
+        assert_eq!(
+            code.unwrap(),
+            [OP_IF, COND_TIMER as u8, 30, 0, 1, 7, 0, OP_DONE]
+        );
     }
 
     #[test]
@@ -6941,7 +7425,12 @@ mod tests {
         let route = |who: i32, commands: &[i32]| {
             let mut p = vec![who, 8, 0, 1];
             p.extend(commands);
-            on_this_map(&Game::default(), &Indices::default(), &map, &[cmd(MOVE_EVENT, &p, "")])
+            on_this_map(
+                &Game::default(),
+                &Indices::default(),
+                &map,
+                &[cmd(MOVE_EVENT, &p, "")],
+            )
         };
         // 8 walks at random, 10 away from the hero and 22 turns away; 11
         // goes forward and 16 to 20 turn relative to the facing.
@@ -6998,7 +7487,10 @@ mod tests {
                 &Game::default(),
                 &Indices::default(),
                 &map,
-                &[cmd(COND_BRANCH, &[6, who, 2, 0, 0, 0], ""), cmd(COND_END, &[], "")],
+                &[
+                    cmd(COND_BRANCH, &[6, who, 2, 0, 0, 0], ""),
+                    cmd(COND_END, &[], ""),
+                ],
             )
         };
         assert_eq!(ask(10001).unwrap(), [OP_IF_FACING, 0, 2, 5, 0, OP_DONE]);
@@ -7020,7 +7512,8 @@ mod tests {
         let code = on_a_map(&choice).unwrap();
         assert_eq!(&code[..3], [OP_CHOICE, 3, 0xFF]);
         assert_eq!(instruction_size(&code, 0), 3 + 4 * 3);
-        let entry = |k: usize| u16::from_le_bytes([code[3 + 4 * k + 2], code[3 + 4 * k + 3]]) as usize;
+        let entry =
+            |k: usize| u16::from_le_bytes([code[3 + 4 * k + 2], code[3 + 4 * k + 3]]) as usize;
         let end = code.len() - 1;
         assert_eq!(entry(2), end, "cancel lands after the choice");
         assert!(entry(0) < entry(1) && entry(1) <= end);
@@ -7037,7 +7530,12 @@ mod tests {
             for (n, text) in texts.iter().chain(&[""]).enumerate() {
                 let n = if n == texts.len() { 4 } else { n };
                 choice.push(Command::new(SHOW_CHOICE_OPTION, 0, text, vec![n as i32]));
-                choice.push(Command::new(CONTROL_SWITCHES, 1, "", vec![0, n as i32 + 1, n as i32 + 1, 0]));
+                choice.push(Command::new(
+                    CONTROL_SWITCHES,
+                    1,
+                    "",
+                    vec![0, n as i32 + 1, n as i32 + 1, 0],
+                ));
                 choice.push(Command::new(END, 1, "", vec![]));
             }
             choice.push(cmd(SHOW_CHOICE_END, &[], ""));
@@ -7045,18 +7543,25 @@ mod tests {
             let entries = texts.len() + 1;
             assert_eq!(&code[..3], [OP_CHOICE, entries as u8, 0xFF]);
             assert_eq!(instruction_size(&code, 0), 3 + 4 * entries);
-            let entry = |k: usize| u16::from_le_bytes([code[3 + 4 * k + 2], code[3 + 4 * k + 3]]) as usize;
+            let entry =
+                |k: usize| u16::from_le_bytes([code[3 + 4 * k + 2], code[3 + 4 * k + 3]]) as usize;
             for k in 1..entries {
                 assert!(entry(k - 1) < entry(k), "the bodies go in order");
             }
             let end = code.len() - 1;
-            assert!(entry(entries - 1) < end, "cancel lands on its branch, not on the end");
+            assert!(
+                entry(entries - 1) < end,
+                "cancel lands on its branch, not on the end"
+            );
             // The last body is the cancel branch's: it reaches the end of
             // the choice without a jump, and the one before ends in a jump
             // to the end.
             let before = entry(entries - 1) - 3;
             assert_eq!(code[before], OP_GOTO);
-            assert_eq!(u16::from_le_bytes([code[before + 1], code[before + 2]]) as usize, end);
+            assert_eq!(
+                u16::from_le_bytes([code[before + 1], code[before + 2]]) as usize,
+                end
+            );
         }
         // Two cancel branches do not compile.
         let mut twice = vec![cmd(SHOW_CHOICE, &[5], "A")];
@@ -7233,7 +7738,10 @@ mod tests {
         choice.push(cmd(SHOW_CHOICE_END, &[], ""));
         assert_eq!(on_a_map(&choice), None);
         // Into the last one it does.
-        let last = choice.iter().rposition(|c| c.code == SHOW_CHOICE_OPTION).unwrap();
+        let last = choice
+            .iter()
+            .rposition(|c| c.code == SHOW_CHOICE_OPTION)
+            .unwrap();
         let first = choice.iter().position(|c| c.code == LABEL).unwrap();
         let moved = choice.remove(first);
         choice.insert(last, moved);
@@ -7282,7 +7790,13 @@ mod tests {
         let indices = with_the_password();
         let message = |lines: usize| -> Vec<Command> {
             (0..lines)
-                .map(|k| cmd(if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 }, &[], "line"))
+                .map(|k| {
+                    cmd(
+                        if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 },
+                        &[],
+                        "line",
+                    )
+                })
                 .collect()
         };
         let input = |digits: i32| cmd(INPUT_NUMBER, &[digits, 143], "");
@@ -7316,7 +7830,10 @@ mod tests {
             )
         };
         let code = branch(CMP_EQUAL as i32, 35421).unwrap();
-        assert_eq!(&code[..6], [OP_IF_VAR, 3, VAR_CONSTANT as u8, 0, 0x5D, 0x8A]);
+        assert_eq!(
+            &code[..6],
+            [OP_IF_VAR, 3, VAR_CONSTANT as u8, 0, 0x5D, 0x8A]
+        );
         assert!(branch(CMP_NOT_EQUAL as i32, 35421).is_some());
         // Ordered, it would be signed; and 65535 is also everything an
         // `InputNumber` saturates to.
@@ -7338,18 +7855,30 @@ mod tests {
         // opcode, and winning to the command that follows it.
         let switch_on = cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "");
         let game = Game::default();
-        let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 1, 0, 0], "bg"), switch_on.clone()])
-            .unwrap()
-            .unwrap();
+        let code = compile_with(
+            &game,
+            &[
+                cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 1, 0, 0], "bg"),
+                switch_on.clone(),
+            ],
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(code[11], OP_DONE);
         let [victory, escape, defeat, abort] = battle_destinations(&code);
         assert_eq!((victory, escape, defeat, abort), (12, 11, BATTLE_LOSE, 12));
         // `escape_mode` 0 keeps its shape —eleven bytes, and winning goes
         // on— and its escape says it cannot be taken.
-        let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 0, 0, 0], "bg"), switch_on])
-            .unwrap()
-            .unwrap();
-        assert_eq!(battle_destinations(&code), [11, BATTLE_NO_ESCAPE, BATTLE_LOSE, 11]);
+        let code = compile_with(
+            &game,
+            &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 0, 0, 0], "bg"), switch_on],
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            battle_destinations(&code),
+            [11, BATTLE_NO_ESCAPE, BATTLE_LOSE, 11]
+        );
     }
 
     #[test]
@@ -7373,7 +7902,10 @@ mod tests {
         assert_eq!(code[escape], OP_DONE);
         assert_eq!(code[escape - 3], OP_GOTO);
         let past = escape + 1;
-        assert_eq!(u16::from_le_bytes([code[escape - 2], code[escape - 1]]) as usize, past);
+        assert_eq!(
+            u16::from_le_bytes([code[escape - 2], code[escape - 1]]) as usize,
+            past
+        );
         assert_eq!(code[past], OP_DONE, "the page's own end");
         assert!(victory < defeat && defeat < escape);
         // A `TerminateBattle` picks no handler and does not end the page.
@@ -7388,8 +7920,14 @@ mod tests {
         let sound = SoundSettings::default();
         let mut songs = Songs::default();
         let mut messages = Messages::new(1, Window::columns(39, 4));
-        let map = crate::game::Map { id: 5, events: Vec::new() };
-        let page = [cmd(TELEPORT, &[999, 1, 2], ""), cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")];
+        let map = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
+        let page = [
+            cmd(TELEPORT, &[999, 1, 2], ""),
+            cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], ""),
+        ];
         let mut ctx = Ctx {
             game: &game,
             indices: &indices,
@@ -7406,12 +7944,17 @@ mod tests {
             face: None,
         };
         let me = MapEvents::new(&map, None);
-        let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap().unwrap();
+        let code = compile_page(&mut ctx, &page, Some(me), 0, 0)
+            .unwrap()
+            .unwrap();
         // The screen shown with the cut, in case an event erased it before
         // the jump; the box, then the rest of the page: it is not left out.
         // Opcode by opcode, and not `contains(&OP_TELEPORT)`: the cut's
         // operand is the same byte.
-        assert_eq!(code[..5], [OP_SHOW_SCREEN, TRANSITION_CUT, OP_MESSAGE, 0, 0]);
+        assert_eq!(
+            code[..5],
+            [OP_SHOW_SCREEN, TRANSITION_CUT, OP_MESSAGE, 0, 0]
+        );
         assert_eq!(code[5], OP_SWITCH, "the page goes on");
         assert_eq!(messages.count(), 1, "one box, which is a single line");
     }
@@ -7439,7 +7982,20 @@ mod tests {
         );
         assert_eq!(
             code.unwrap(),
-            [OP_ENCOUNTER_STEPS, 0xFF, 0xFF, 1, 1, 1, 1, 2, 2, 2, 0xFF, OP_DONE]
+            [
+                OP_ENCOUNTER_STEPS,
+                0xFF,
+                0xFF,
+                1,
+                1,
+                1,
+                1,
+                2,
+                2,
+                2,
+                0xFF,
+                OP_DONE
+            ]
         );
     }
 
@@ -7494,7 +8050,10 @@ mod tests {
     fn a_troop_pages_song_is_played_and_noted_as_a_troop_song() {
         let mut songs = Songs::default();
         let map_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "map")];
-        assert_eq!(with_songs(&map_page, &mut songs, &|_| None), Some(vec![OP_BGM, 0, 128, 128, 0, 1, OP_DONE]));
+        assert_eq!(
+            with_songs(&map_page, &mut songs, &|_| None),
+            Some(vec![OP_BGM, 0, 128, 128, 0, 1, OP_DONE])
+        );
         let game = Game::default();
         let indices = Indices::default();
         let sound = SoundSettings::default();
@@ -7598,12 +8157,23 @@ mod tests {
         // those are the three an implementation that counted from zero would
         // get wrong. It is the shape of the inn that brought `ShowInn`, a
         // message and then the inn at 5.
-        let mut game = Game::default();
-        game.gold_term = "G".into();
+        let mut game = Game {
+            gold_term: "G".into(),
+            ..Default::default()
+        };
         for terms in game.inn_terms.iter_mut() {
-            *terms = ["Stay for".into(), "?".into(), "Rested.".into(), "Yes".into(), "No".into()];
+            *terms = [
+                "Stay for".into(),
+                "?".into(),
+                "Rested.".into(),
+                "Yes".into(),
+                "No".into(),
+            ];
         }
-        let map = crate::game::Map { id: 5, events: Vec::new() };
+        let map = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
         let code = on_this_map(
             &game,
             &Indices::default(),
@@ -7614,7 +8184,10 @@ mod tests {
         let (greeting, yes, no) = (word_at(&code, 4), word_at(&code, 9), word_at(&code, 13));
         // The two options are one box: the bar under the highlighted one is
         // the console's, see `choice_boxes`.
-        assert!(0 < greeting && greeting < yes && yes == no, "{greeting} {yes} {no}");
+        assert!(
+            0 < greeting && greeting < yes && yes == no,
+            "{greeting} {yes} {no}"
+        );
         let w = |v: usize| [(v & 0xFF) as u8, (v >> 8) as u8];
         let mut expected = vec![OP_MESSAGE, 0, 0, OP_MESSAGE];
         expected.extend(w(greeting));
@@ -7647,7 +8220,7 @@ mod tests {
             route_repeat: false,
             route_skippable: false,
             condition: Condition {
-                variable: Some((watched, 8)),
+                variable: Some((watched, crate::game::CONDITION_OPERATOR, 8)),
                 ..Default::default()
             },
             id: 1,
@@ -7692,7 +8265,10 @@ mod tests {
         // it is not known who looks. It is the chest that did not show up
         // after a `Teleport` although its variable was already 8: the map
         // the page was on did not look at it.
-        let quiet = crate::game::Map { id: 5, events: Vec::new() };
+        let quiet = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
         let jump = cmd(TELEPORT, &[7, 4, 7], "");
         assert_ne!(writing_123(&quiet, &[jump]) & VAR_REFRESH, 0);
     }
@@ -7702,7 +8278,10 @@ mod tests {
         // The control of the one above: on a map that does not look at 123,
         // writing it asks for nothing; on one that does, it asks. And a
         // jump **to the same** map does not change who looks.
-        let quiet = crate::game::Map { id: 5, events: Vec::new() };
+        let quiet = crate::game::Map {
+            id: 5,
+            events: Vec::new(),
+        };
         assert_eq!(writing_123(&quiet, &[]) & VAR_REFRESH, 0);
         assert_ne!(writing_123(&watching(5, 123), &[]) & VAR_REFRESH, 0);
         let same = cmd(TELEPORT, &[5, 22, 12], "");
@@ -7718,12 +8297,23 @@ mod tests {
             Command::new(code, indent, "", p.iter().map(|&v| v as i32).collect())
         };
         let mut commands = vec![
-            at(CONTROL_VARS, 0, &[0, 36, 36, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_Y]),
-            at(CONTROL_VARS, 0, &[0, 37, 37, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_X]),
+            at(
+                CONTROL_VARS,
+                0,
+                &[0, 36, 36, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_Y],
+            ),
+            at(
+                CONTROL_VARS,
+                0,
+                &[0, 37, 37, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_X],
+            ),
             at(COND_BRANCH, 0, &[COND_VARIABLE, 36, 1, 34, CMP_EQUAL, 1]),
             at(COND_BRANCH, 1, &[COND_VARIABLE, 37, 1, 35, CMP_EQUAL, 1]),
         ];
-        commands.extend(body.iter().map(|&(code, indent, p)| Command::new(code, indent, "", p.to_vec())));
+        commands.extend(
+            body.iter()
+                .map(|&(code, indent, p)| Command::new(code, indent, "", p.to_vec())),
+        );
         commands
     }
 
@@ -7749,11 +8339,15 @@ mod tests {
         // four variables as offsets —the slot times two—, which coordinate
         // goes to each, and the two destinations, which without an `else`
         // are both the end of their branch.
-        let code = on_the_cell_compiled(&on_the_cell(&[SWITCH_172, (COND_END, 1, &[]), (COND_END, 0, &[])]));
+        let code = on_the_cell_compiled(&on_the_cell(&[
+            SWITCH_172,
+            (COND_END, 1, &[]),
+            (COND_END, 0, &[]),
+        ]));
         assert_eq!(opcodes_of(&code), [OP_CELL_TEST, OP_SWITCH, OP_DONE]);
         let refresh = CELL_REFRESH as usize;
         assert_eq!(code[1], 0, "the target is the hero");
-        assert_eq!(word_at(&code, 2) & !refresh, 5 * 2 | CELL_Y as usize);
+        assert_eq!(word_at(&code, 2) & !refresh, (5 * 2) | CELL_Y as usize);
         assert_eq!(word_at(&code, 4) & !refresh, 6 * 2);
         assert_eq!((word_at(&code, 6), word_at(&code, 8)), (5 * 2, 3 * 2));
         assert_eq!((word_at(&code, 12), word_at(&code, 14)), (6 * 2, 4 * 2));
@@ -7776,7 +8370,10 @@ mod tests {
             (COND_END, 0, &[]),
         ]));
         let at: Vec<usize> = instructions(&code).collect();
-        assert_eq!(opcodes_of(&code), [OP_CELL_TEST, OP_SWITCH, OP_GOTO, OP_SWITCH, OP_DONE]);
+        assert_eq!(
+            opcodes_of(&code),
+            [OP_CELL_TEST, OP_SWITCH, OP_GOTO, OP_SWITCH, OP_DONE]
+        );
         let (goto, otherwise, end) = (at[2], at[3], at[4]);
         assert_eq!(word_at(&code, CELL_DEST_B), otherwise);
         assert_eq!(word_at(&code, goto + 1), end);
@@ -7813,16 +8410,39 @@ mod tests {
         // Two levels off the party, with the message: its pages right after.
         assert_eq!(
             one(cmd(CHANGE_LEVEL, &[0, 0, 1, 0, 2, 1], "")),
-            [OP_EXP, 0, EXP_BY_LEVELS | EXP_SUBTRACTS | EXP_WITH_MESSAGE, 2, 0, 0, OP_LEVEL_PAGE, OP_DONE]
+            [
+                OP_EXP,
+                0,
+                EXP_BY_LEVELS | EXP_SUBTRACTS | EXP_WITH_MESSAGE,
+                2,
+                0,
+                0,
+                OP_LEVEL_PAGE,
+                OP_DONE
+            ]
         );
         // By a variable: its slot, and 48 is the fifth.
         assert_eq!(
             one(cmd(CHANGE_LEVEL, &[1, 14, 0, 1, 48, 0], "")),
-            [OP_EXP, 14, EXP_BY_LEVELS | EXP_BY_VARIABLE, 5, 0, 0, OP_DONE]
+            [
+                OP_EXP,
+                14,
+                EXP_BY_LEVELS | EXP_BY_VARIABLE,
+                5,
+                0,
+                0,
+                OP_DONE
+            ]
         );
         // The actor by a variable, and more than RM2k's cap, do not compile.
-        assert_eq!(compile_with(&game, &[cmd(CHANGE_EXP, &[2, 3, 0, 0, 5, 0], "")]).unwrap(), None);
-        assert_eq!(compile_with(&game, &[cmd(CHANGE_EXP, &[1, 14, 0, 0, 1_000_000, 0], "")]).unwrap(), None);
+        assert_eq!(
+            compile_with(&game, &[cmd(CHANGE_EXP, &[2, 3, 0, 0, 5, 0], "")]).unwrap(),
+            None
+        );
+        assert_eq!(
+            compile_with(&game, &[cmd(CHANGE_EXP, &[1, 14, 0, 0, 1_000_000, 0], "")]).unwrap(),
+            None
+        );
     }
 
     #[test]
@@ -7842,7 +8462,16 @@ mod tests {
         // RM2k's 999, in the word.
         assert_eq!(
             branch(&[5, 10, 3, 999, 0, 1]).unwrap(),
-            [OP_IF_ACTOR, COND_ACTOR_HP as u8, 10, 0xE7, 0x03, 7, 0, OP_DONE]
+            [
+                OP_IF_ACTOR,
+                COND_ACTOR_HP as u8,
+                10,
+                0xE7,
+                0x03,
+                7,
+                0,
+                OP_DONE
+            ]
         );
         // An actor the database does not have does not compile.
         assert_eq!(branch(&[5, 11, 3, 1, 0, 1]), None);
@@ -7859,9 +8488,20 @@ mod tests {
         assert_eq!(
             compile_with(&game, &body).unwrap().unwrap(),
             [
-                OP_IF_ACTOR, COND_ACTOR_HP as u8, 10, 1, 0, 10, 0,
-                OP_GOTO, 14, 0,
-                OP_HEAL, 10, 1, 0,
+                OP_IF_ACTOR,
+                COND_ACTOR_HP as u8,
+                10,
+                1,
+                0,
+                10,
+                0,
+                OP_GOTO,
+                14,
+                0,
+                OP_HEAL,
+                10,
+                1,
+                0,
                 OP_DONE,
             ]
         );
@@ -7887,7 +8527,14 @@ mod tests {
         // By a variable: its slot, and 48 is the fifth.
         assert_eq!(
             one(cmd(CHANGE_SP, &[1, 14, 1, 1, 48], "")),
-            [OP_ACTOR, 14, ACT_SP | ACT_SUBTRACT | ACT_VARIABLE, 5, 0, OP_DONE]
+            [
+                OP_ACTOR,
+                14,
+                ACT_SP | ACT_SUBTRACT | ACT_VARIABLE,
+                5,
+                0,
+                OP_DONE
+            ]
         );
         // Removing death gets the party up; another state, nothing.
         assert_eq!(
@@ -7923,7 +8570,17 @@ mod tests {
         game.two_handed.insert(200);
         assert_eq!(
             equip(&game, 200).unwrap(),
-            [OP_ACTOR, 14, ACT_EQUIP, 200, 0, OP_EQUIPMENT, 14, 1, OP_DONE]
+            [
+                OP_ACTOR,
+                14,
+                ACT_EQUIP,
+                200,
+                0,
+                OP_EQUIPMENT,
+                14,
+                1,
+                OP_DONE
+            ]
         );
         game.two_weapons.insert(14);
         assert!(equip(&game, 200).is_none());
@@ -7953,18 +8610,65 @@ mod tests {
     /// A `ShowPicture` of `name` on `number`: centred at (cx, cy), with
     /// `mode` —RM2k's p[1], 1 by variables—, with the map if `map`, at
     /// `zoom`, transparency `trans`.
-    fn picture(number: i32, name: &str, mode: i32, at: (i32, i32), map: bool, zoom: i32, trans: i32) -> Command {
+    fn picture(
+        number: i32,
+        name: &str,
+        mode: i32,
+        at: (i32, i32),
+        map: bool,
+        zoom: i32,
+        trans: i32,
+    ) -> Command {
         cmd(
             SHOW_PICTURE,
-            &[number, mode, at.0, at.1, i32::from(map), zoom, trans, 1, 100, 90, 80, 100, 0, 0],
+            &[
+                number,
+                mode,
+                at.0,
+                at.1,
+                i32::from(map),
+                zoom,
+                trans,
+                1,
+                100,
+                90,
+                80,
+                100,
+                0,
+                0,
+            ],
             name,
         )
     }
 
-    fn moving(number: i32, at: (i32, i32), zoom: i32, trans: i32, tenths: i32, wait: bool) -> Command {
+    fn moving(
+        number: i32,
+        at: (i32, i32),
+        zoom: i32,
+        trans: i32,
+        tenths: i32,
+        wait: bool,
+    ) -> Command {
         cmd(
             MOVE_PICTURE,
-            &[number, 0, at.0, at.1, 0, zoom, trans, 0, 0, 0, 0, 100, 0, 0, tenths, i32::from(wait)],
+            &[
+                number,
+                0,
+                at.0,
+                at.1,
+                0,
+                zoom,
+                trans,
+                0,
+                0,
+                0,
+                0,
+                100,
+                0,
+                0,
+                tenths,
+                i32::from(wait),
+            ],
             "",
         )
     }
@@ -7976,7 +8680,11 @@ mod tests {
     }
 
     /// `commands` compiled for a map that carries `table`.
-    fn with_pictures(table: &[(PictureKey, u8)], indices: &Indices, commands: &[Command]) -> Vec<u8> {
+    fn with_pictures(
+        table: &[(PictureKey, u8)],
+        indices: &Indices,
+        commands: &[Command],
+    ) -> Vec<u8> {
         let game = Game::default();
         let sound = SoundSettings::default();
         let mut pictures = Pictures {
@@ -8001,7 +8709,9 @@ mod tests {
             losses: Losses::default(),
             face: None,
         };
-        compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+        compile_page(&mut ctx, commands, None, 0, 0)
+            .unwrap()
+            .unwrap()
     }
 
     /// Where `judged_page` says a page stopped, compiled with nothing.
@@ -8035,7 +8745,15 @@ mod tests {
     fn a_page_that_does_not_compile_names_the_command_it_stopped_at() {
         let wait = cmd(WAIT, &[1], "");
         // The inn's "stayed" does not compile, two commands in.
-        assert_eq!(stopped_at(&[wait.clone(), wait.clone(), cmd(INN_STAY, &[], ""), wait.clone()]), Some(Some(2)));
+        assert_eq!(
+            stopped_at(&[
+                wait.clone(),
+                wait.clone(),
+                cmd(INN_STAY, &[], ""),
+                wait.clone()
+            ]),
+            Some(Some(2))
+        );
         // Inside a branch, it is the command and not the branch.
         let branch = Command::new(COND_BRANCH, 0, "", vec![0, 1, 0, 0, 0, 0]);
         let inside = Command::new(INN_STAY, 1, "", vec![]);
@@ -8109,7 +8827,9 @@ mod tests {
         let at = code.len() - 1 - switch.len();
         assert_eq!(&code[at..code.len() - 1], switch);
         assert_eq!(&code[at - 3..at], &[OP_GOTO, 0, 0]);
-        let goto = code.windows(3).position(|x| x[0] == OP_GOTO && x[1] as usize == at && x[2] == 0);
+        let goto = code
+            .windows(3)
+            .position(|x| x[0] == OP_GOTO && x[1] as usize == at && x[2] == 0);
         assert!(goto.is_some(), "no jump lands past the EndLoop: {code:?}");
     }
 
@@ -8117,7 +8837,11 @@ mod tests {
     fn a_loop_that_never_waits_does_not_compile() {
         let on = |indent| Command::new(CONTROL_SWITCHES, indent, "", vec![0, 1, 1, 0]);
         assert_eq!(
-            bare(&[Command::new(LOOP, 0, "", vec![]), on(1), Command::new(END_LOOP, 0, "", vec![])]),
+            bare(&[
+                Command::new(LOOP, 0, "", vec![]),
+                on(1),
+                Command::new(END_LOOP, 0, "", vec![])
+            ]),
             None
         );
         // An EndLoop without its Loop: RPG_RT stays on it.
@@ -8152,7 +8876,9 @@ mod tests {
             losses: Losses::default(),
             face: None,
         };
-        compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+        compile_page(&mut ctx, commands, None, 0, 0)
+            .unwrap()
+            .unwrap()
     }
 
     #[test]
@@ -8176,12 +8902,34 @@ mod tests {
             "",
         );
         assert_eq!(
-            with_big(std::slice::from_ref(&big), &[show, up, cmd(ERASE_PICTURE, &[6], "")]),
+            with_big(
+                std::slice::from_ref(&big),
+                &[show, up, cmd(ERASE_PICTURE, &[6], "")]
+            ),
             [
-                OP_BIG_SHOW, 2, 100, 100, 100, 0, 100, 0,
-                OP_BIG_MOVE, 100, 100, 100, 0, 240, 50, 0, 0, 100,
-                OP_DELAY, 240, 0,
-                OP_PICTURE_ERASE, PICTURE_BIG,
+                OP_BIG_SHOW,
+                2,
+                100,
+                100,
+                100,
+                0,
+                100,
+                0,
+                OP_BIG_MOVE,
+                100,
+                100,
+                100,
+                0,
+                240,
+                50,
+                0,
+                0,
+                100,
+                OP_DELAY,
+                240,
+                0,
+                OP_PICTURE_ERASE,
+                PICTURE_BIG,
                 OP_DONE
             ]
         );
@@ -8206,8 +8954,24 @@ mod tests {
         assert_eq!(
             with_big(&[big], &[photo, shrink]),
             [
-                OP_BIG_SHOW, 0, 100, 100, 100, 0, 200, 8,
-                OP_BIG_MOVE, 100, 100, 100, 100, 120, 120, 0, 4, 100,
+                OP_BIG_SHOW,
+                0,
+                100,
+                100,
+                100,
+                0,
+                200,
+                8,
+                OP_BIG_MOVE,
+                100,
+                100,
+                100,
+                100,
+                120,
+                120,
+                0,
+                4,
+                100,
                 OP_DONE
             ]
         );
@@ -8231,17 +8995,51 @@ mod tests {
         };
         let shrink = cmd(
             MOVE_PICTURE,
-            &[20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1],
+            &[
+                20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1,
+            ],
             "",
         );
         let half = moving(20, (160, 120), 50, 0, 0, false);
         assert_eq!(
-            with_big(std::slice::from_ref(&big), &[photo.clone(), shrink.clone(), half]),
+            with_big(
+                std::slice::from_ref(&big),
+                &[photo.clone(), shrink.clone(), half]
+            ),
             [
-                OP_BIG_SHOW, 3, 100, 100, 100, 0, 100, 0,
-                OP_BIG_ZOOM, 100, 100, 100, 0, 120, 120, 0, 0, 100, 0,
-                OP_DELAY, 120, 0,
-                OP_BIG_ZOOM, 0, 0, 0, 0, 0, 120, 0, 0, 100, 50,
+                OP_BIG_SHOW,
+                3,
+                100,
+                100,
+                100,
+                0,
+                100,
+                0,
+                OP_BIG_ZOOM,
+                100,
+                100,
+                100,
+                0,
+                120,
+                120,
+                0,
+                0,
+                100,
+                0,
+                OP_DELAY,
+                120,
+                0,
+                OP_BIG_ZOOM,
+                0,
+                0,
+                0,
+                0,
+                0,
+                120,
+                0,
+                0,
+                100,
+                50,
                 OP_DONE
             ]
         );
@@ -8253,9 +9051,12 @@ mod tests {
             "Photo",
         );
         let grown = moving(20, (160, 120), 100, 0, 10, false);
-        let mut big = BigPicture { key: picture_key(&small).unwrap(), ..big };
+        let mut big = BigPicture {
+            key: picture_key(&small).unwrap(),
+            ..big
+        };
         assert_eq!(
-            with_big(std::slice::from_ref(&big), &[grown.clone()]),
+            with_big(std::slice::from_ref(&big), std::slice::from_ref(&grown)),
             [OP_BIG_ZOOM, 0, 0, 0, 0, 60, 120, 0, 0, 100, 200, OP_DONE]
         );
         big.texture = false;
@@ -8290,7 +9091,11 @@ mod tests {
         ];
         compile_page(&mut ctx, &commands, None, 0, 0).unwrap();
         assert_eq!(pictures.zooms, [(20, 0), (3, 100)]);
-        assert_eq!(pictures.tinted, [20, 3], "and their tone, black, is not the neutral");
+        assert_eq!(
+            pictures.tinted,
+            [20, 3],
+            "and their tone, black, is not the neutral"
+        );
     }
 
     #[test]
@@ -8298,13 +9103,40 @@ mod tests {
         let a = picture(3, "Sign", 0, (100, 175), false, 100, 0);
         let b = picture(1, "Rec", 0, (250, 200), false, 50, 0);
         let table = [(picture_key(&a).unwrap(), 0), (picture_key(&b).unwrap(), 1)];
-        let code = with_pictures(&table, &Indices::default(), &[a, b, cmd(ERASE_PICTURE, &[3], "")]);
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[a, b, cmd(ERASE_PICTURE, &[3], "")],
+        );
         assert_eq!(
             code,
             [
-                OP_PICTURE, 0, 0, 0, 100, 0, 175, 0, 100, 90, 80, 0,
-                OP_PICTURE, 1, 1, 0, 250, 0, 200, 0, 100, 90, 80, 0,
-                OP_PICTURE_ERASE, 0,
+                OP_PICTURE,
+                0,
+                0,
+                0,
+                100,
+                0,
+                175,
+                0,
+                100,
+                90,
+                80,
+                0,
+                OP_PICTURE,
+                1,
+                1,
+                0,
+                250,
+                0,
+                200,
+                0,
+                100,
+                90,
+                80,
+                0,
+                OP_PICTURE_ERASE,
+                0,
                 OP_DONE
             ]
         );
@@ -8317,7 +9149,11 @@ mod tests {
         let table = [(picture_key(&a).unwrap(), 0)];
         // The same file somewhere else is another picture: its pixels round
         // differently.
-        let code = with_pictures(&table, &Indices::default(), &[elsewhere, cmd(ERASE_PICTURE, &[4], "")]);
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[elsewhere, cmd(ERASE_PICTURE, &[4], "")],
+        );
         assert_eq!(code, [OP_DONE]);
     }
 
@@ -8329,11 +9165,18 @@ mod tests {
         let mut indices = Indices::default();
         indices.variables.insert(153, 7);
         indices.variables.insert(154, 9);
-        let code = with_pictures(&[(key, 1)], &indices, &[smoke.clone()]);
+        let code = with_pictures(&[(key, 1)], &indices, std::slice::from_ref(&smoke));
         let mode = PICTURE_BY_VARIABLE | PICTURE_MAP_FIXED;
-        assert_eq!(code, [OP_PICTURE, 1, 0, mode, 7, 0, 9, 0, 100, 90, 80, 40, OP_DONE]);
+        assert_eq!(
+            code,
+            [OP_PICTURE, 1, 0, mode, 7, 0, 9, 0, 100, 90, 80, 40, OP_DONE]
+        );
         // Without a slot for its variables it cannot be placed.
-        let code = with_pictures(&[(picture_key(&smoke).unwrap(), 1)], &Indices::default(), &[smoke]);
+        let code = with_pictures(
+            &[(picture_key(&smoke).unwrap(), 1)],
+            &Indices::default(),
+            &[smoke],
+        );
         assert_eq!(code, [OP_DONE]);
     }
 
@@ -8341,24 +9184,96 @@ mod tests {
     fn a_move_changes_tone_and_transparency_and_waits() {
         let sign = picture(3, "Sign", 0, (100, 175), false, 100, 0);
         let table = [(picture_key(&sign).unwrap(), 0)];
-        let code = with_pictures(&table, &Indices::default(), &[moving(3, (100, 175), 100, 50, 35, true)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 50, 210, 0, 0, 0, 0, 0, OP_DELAY, 210, 0, OP_DONE]);
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[moving(3, (100, 175), 100, 50, 35, true)],
+        );
+        assert_eq!(
+            code,
+            [
+                OP_PICTURE_MOVE,
+                0,
+                0,
+                0,
+                0,
+                50,
+                210,
+                0,
+                0,
+                0,
+                0,
+                0,
+                OP_DELAY,
+                210,
+                0,
+                OP_DONE
+            ]
+        );
         // At another zoom it does not: the console does not zoom small
         // pictures.
         let zooms = moving(3, (100, 175), 50, 0, 10, false);
-        assert_eq!(with_pictures(&table, &Indices::default(), &[zooms]), [OP_DONE]);
+        assert_eq!(
+            with_pictures(&table, &Indices::default(), &[zooms]),
+            [OP_DONE]
+        );
         // Two pictures under one number, one placed elsewhere: it goes to
         // the move's place, whichever is up.
         let other = picture(3, "Other", 0, (10, 10), false, 100, 0);
         let both = [table[0].clone(), (picture_key(&other).unwrap(), 0)];
-        let code = with_pictures(&both, &Indices::default(), &[moving(3, (10, 10), 100, 0, 1, false)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 0, 6, PICTURE_MOVES, 10, 0, 10, 0, OP_DONE]);
+        let code = with_pictures(
+            &both,
+            &Indices::default(),
+            &[moving(3, (10, 10), 100, 0, 1, false)],
+        );
+        assert_eq!(
+            code,
+            [
+                OP_PICTURE_MOVE,
+                0,
+                0,
+                0,
+                0,
+                0,
+                6,
+                PICTURE_MOVES,
+                10,
+                0,
+                10,
+                0,
+                OP_DONE
+            ]
+        );
         // With the map, RM2k 2000 does not move it either, so the place does
         // not matter.
         let shadow = picture(17, "shadow", 0, (100, 115), true, 55, 100);
         let table = [(picture_key(&shadow).unwrap(), 1)];
-        let code = with_pictures(&table, &Indices::default(), &[moving(17, (0, 0), 55, 50, 10, true)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 1, 0, 0, 0, 50, 60, 0, 0, 0, 0, 0, OP_DELAY, 60, 0, OP_DONE]);
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[moving(17, (0, 0), 55, 50, 10, true)],
+        );
+        assert_eq!(
+            code,
+            [
+                OP_PICTURE_MOVE,
+                1,
+                0,
+                0,
+                0,
+                50,
+                60,
+                0,
+                0,
+                0,
+                0,
+                0,
+                OP_DELAY,
+                60,
+                0,
+                OP_DONE
+            ]
+        );
     }
 
     #[test]
@@ -8367,18 +9282,50 @@ mod tests {
         // frames —a tenth and a third, rounded by the tenths to six—.
         let bar = picture(5, "Bar", 0, (160, 0), false, 100, 100);
         let table = [(picture_key(&bar).unwrap(), 2)];
-        let code = with_pictures(&table, &Indices::default(), &[moving(5, (160, 8), 100, 0, 1, false)]);
-        assert_eq!(code, [OP_PICTURE_MOVE, 2, 0, 0, 0, 0, 6, PICTURE_MOVES, 160, 0, 8, 0, OP_DONE]);
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[moving(5, (160, 8), 100, 0, 1, false)],
+        );
+        assert_eq!(
+            code,
+            [
+                OP_PICTURE_MOVE,
+                2,
+                0,
+                0,
+                0,
+                0,
+                6,
+                PICTURE_MOVES,
+                160,
+                0,
+                8,
+                0,
+                OP_DONE
+            ]
+        );
         // Off the left of the screen is a negative centre.
-        let code = with_pictures(&table, &Indices::default(), &[moving(5, (-60, 8), 100, 0, 1, false)]);
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[moving(5, (-60, 8), 100, 0, 1, false)],
+        );
         assert_eq!(&code[7..12], &[PICTURE_MOVES, 0xC4, 0xFF, 8, 0]);
         // By variables, their slots; without slots it is not done.
         let mut indices = Indices::default();
         indices.variables.insert(162, 3);
         indices.variables.insert(163, 4);
         let code = with_pictures(&table, &indices, &[moving_by_variables(5, (162, 163), 1)]);
-        assert_eq!(&code[7..12], &[PICTURE_MOVES | PICTURE_BY_VARIABLE, 3, 0, 4, 0]);
-        let code = with_pictures(&table, &Indices::default(), &[moving_by_variables(5, (162, 163), 1)]);
+        assert_eq!(
+            &code[7..12],
+            &[PICTURE_MOVES | PICTURE_BY_VARIABLE, 3, 0, 4, 0]
+        );
+        let code = with_pictures(
+            &table,
+            &Indices::default(),
+            &[moving_by_variables(5, (162, 163), 1)],
+        );
         assert_eq!(code, [OP_DONE]);
     }
 
@@ -8404,7 +9351,14 @@ mod tests {
         );
         assert_eq!(
             one(cmd(CHANGE_GOLD, &[1, 1, 48], "")),
-            Some(vec![OP_GOLD, GOLD_SUBTRACTS | GOLD_BY_VARIABLE, 5, 0, 0, OP_DONE])
+            Some(vec![
+                OP_GOLD,
+                GOLD_SUBTRACTS | GOLD_BY_VARIABLE,
+                5,
+                0,
+                0,
+                OP_DONE
+            ])
         );
     }
 
@@ -8420,16 +9374,35 @@ mod tests {
         );
         assert_eq!(
             one(cmd(CHANGE_ITEMS, &[1, 1, 48, 0, 3], "")),
-            Some(vec![OP_ITEM_VAR, ITEM_SUBTRACTS | ITEM_BY_VARIABLE, 5, 0, 3, 0, OP_DONE])
+            Some(vec![
+                OP_ITEM_VAR,
+                ITEM_SUBTRACTS | ITEM_BY_VARIABLE,
+                5,
+                0,
+                3,
+                0,
+                OP_DONE
+            ])
         );
         assert_eq!(
             one(cmd(CHANGE_ITEMS, &[0, 1, 48, 1, 48], "")),
-            Some(vec![OP_ITEM_VAR, ITEM_BY_VARIABLE | AMOUNT_BY_VARIABLE, 5, 0, 5, 0, OP_DONE])
+            Some(vec![
+                OP_ITEM_VAR,
+                ITEM_BY_VARIABLE | AMOUNT_BY_VARIABLE,
+                5,
+                0,
+                5,
+                0,
+                OP_DONE
+            ])
         );
         // A variable with no slot, or a constant item out of the inventory,
         // does not compile.
         assert_eq!(one(cmd(CHANGE_ITEMS, &[0, 1, 49, 0, 1], "")), None);
-        assert_eq!(one(cmd(CHANGE_ITEMS, &[0, 0, ITEMS_N as i32, 1, 48], "")), None);
+        assert_eq!(
+            one(cmd(CHANGE_ITEMS, &[0, 0, ITEMS_N as i32, 1, 48], "")),
+            None
+        );
         // The constant one is still OP_ITEM.
         assert_eq!(
             one(cmd(CHANGE_ITEMS, &[1, 0, 130, 0, 2], "")),
@@ -8445,15 +9418,36 @@ mod tests {
         let one = |c: Command| compile_with(&game, &[c]).unwrap();
         assert_eq!(
             one(cmd(CHANGE_MONSTER_HP, &[0, 1, 1, 48, 0], "")),
-            Some(vec![OP_ENEMY, 0, ENEMY_BY_VARIABLE | ENEMY_SUBTRACTS, 5, 0, OP_DONE])
+            Some(vec![
+                OP_ENEMY,
+                0,
+                ENEMY_BY_VARIABLE | ENEMY_SUBTRACTS,
+                5,
+                0,
+                OP_DONE
+            ])
         );
         assert_eq!(
             one(cmd(CHANGE_MONSTER_HP, &[2, 0, 1, 48, 1], "")),
-            Some(vec![OP_ENEMY, 2, ENEMY_BY_VARIABLE | ENEMY_LETHAL, 5, 0, OP_DONE])
+            Some(vec![
+                OP_ENEMY,
+                2,
+                ENEMY_BY_VARIABLE | ENEMY_LETHAL,
+                5,
+                0,
+                OP_DONE
+            ])
         );
         assert_eq!(
             one(cmd(CHANGE_MONSTER_MP, &[1, 1, 1, 48], "")),
-            Some(vec![OP_ENEMY, 1, ENEMY_SP | ENEMY_BY_VARIABLE | ENEMY_SUBTRACTS, 5, 0, OP_DONE])
+            Some(vec![
+                OP_ENEMY,
+                1,
+                ENEMY_SP | ENEMY_BY_VARIABLE | ENEMY_SUBTRACTS,
+                5,
+                0,
+                OP_DONE
+            ])
         );
         // The percentage, and a variable with no slot, do not.
         assert_eq!(one(cmd(CHANGE_MONSTER_HP, &[0, 1, 2, 50, 0], "")), None);
@@ -8475,8 +9469,14 @@ mod tests {
             Some(vec![OP_VAR, 5, 0x80, 6, 0, 0, 5, 0, OP_DONE])
         );
         // The facing and the map id still do not compile.
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 3], "")), None);
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 0], "")), None);
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 3], "")),
+            None
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 0], "")),
+            None
+        );
     }
 
     #[test]
@@ -8495,7 +9495,10 @@ mod tests {
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 0, -999_999, 0], "")),
             Some(vec![OP_VAR, 5, 0x80, 0, 0x00, 0x80, 0, 0, OP_DONE])
         );
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 0, 999_999, 0], "")), None);
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 0, 999_999, 0], "")),
+            None
+        );
     }
 
     #[test]
@@ -8523,8 +9526,14 @@ mod tests {
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, -10, -5], "")),
             Some(vec![OP_VAR, 5, 0x80, 3, 0xF6, 0xFF, 0xFB, 0xFF, OP_DONE])
         );
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, 0, 0x8000], "")), None);
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, -0x8001, 0], "")), None);
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, 0, 0x8000], "")),
+            None
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, -0x8001, 0], "")),
+            None
+        );
     }
 
     #[test]
@@ -8547,7 +9556,10 @@ mod tests {
             one(cmd(CONTROL_VARS, &[0, 48, 48, 5, 3, 1, 6], "")),
             Some(vec![OP_VAR, 5, 0x85, 3, 1, 0, 6, 0, OP_DONE])
         );
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 3, 0, 0x8000, 0], "")), None);
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 3, 0, 0x8000, 0], "")),
+            None
+        );
         // Bitwise or and the rest are Maniacs', not RM2k's.
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 6, 0, 1, 0], "")), None);
     }
@@ -8568,7 +9580,10 @@ mod tests {
         );
         // Held: only what the inventory carries; and no third count.
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, 0, 0], "")), None);
-        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, ITEMS_N as i32, 0], "")), None);
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, ITEMS_N as i32, 0], "")),
+            None
+        );
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, 1, 2], "")), None);
     }
 
@@ -8597,13 +9612,18 @@ mod tests {
             variables: BTreeMap::from([(173, 7)]),
             ..Default::default()
         };
-        let code = on_a_map_with(&indices, &[cmd(SHOW_MESSAGE, &[], "has \\V[0173] souls")]).unwrap();
+        let code =
+            on_a_map_with(&indices, &[cmd(SHOW_MESSAGE, &[], "has \\V[0173] souls")]).unwrap();
         assert_eq!(code, [OP_MESSAGE, 0, 0, OP_DONE]);
-        let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
+        let mut messages =
+            crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
         let lines = with_variables(&["a\\v[173]b".to_string()], &indices).unwrap();
         let at = messages.add(&lines).ok().unwrap();
         // One line of three units: a, the value, b.
-        assert_eq!(messages.data[at..], [1, 3, 65, crate::messages::VARIABLE, 7, 66]);
+        assert_eq!(
+            messages.data[at..],
+            [1, 3, 65, crate::messages::VARIABLE, 7, 66]
+        );
     }
 
     #[test]
@@ -8637,13 +9657,29 @@ mod tests {
             variables: BTreeMap::from([(31, 1), (32, 2)]),
             ..Default::default()
         };
-        let lines = with_variables(&["HP: \\V[0031] \\\\ \\V[0032]".to_string()], &indices).unwrap();
-        let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
+        let lines =
+            with_variables(&["HP: \\V[0031] \\\\ \\V[0032]".to_string()], &indices).unwrap();
+        let mut messages =
+            crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
         let at = messages.add(&lines).ok().unwrap();
         // 'H' 'P' ':' ' ' value ' ' '\' ' ' value, as font indices (ASCII - 32).
         assert_eq!(
             messages.data[at..],
-            [1, 9, 40, 48, 26, 0, crate::messages::VARIABLE, 1, 0, 60, 0, crate::messages::VARIABLE, 2]
+            [
+                1,
+                9,
+                40,
+                48,
+                26,
+                0,
+                crate::messages::VARIABLE,
+                1,
+                0,
+                60,
+                0,
+                crate::messages::VARIABLE,
+                2
+            ]
         );
         // A `\\V[1]` is a backslash and the letters "V[1]", not a variable.
         let lines = with_variables(&["\\\\V[1]".to_string()], &indices).unwrap();
@@ -8660,16 +9696,24 @@ mod tests {
         };
         // The leader and the renamed actor 3 go as marks, for the ROM to
         // write; actor 4, who is in no database, stays as it was.
-        let out = with_names(&["Hi \\N[2]! \\n[2] \\N[0] \\N[03] \\N[4]".to_string()], &indices);
+        let out = with_names(
+            &["Hi \\N[2]! \\n[2] \\N[0] \\N[03] \\N[4]".to_string()],
+            &indices,
+        );
         let (leader, three) = (crate::messages::name_mark(0), crate::messages::name_mark(3));
         assert_eq!(out, [format!("Hi Kai! Kai {leader} {three} \\N[4]")]);
         // The box takes them whole; without them the escape is dropped, and
         // the box compiles without the name and says so.
-        let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
-        assert!(messages.add(&with_names(&["\\N[2] \\N[0] \\N[3]".to_string()], &indices)).is_ok());
+        let mut messages =
+            crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
+        assert!(messages
+            .add(&with_names(&["\\N[2] \\N[0] \\N[3]".to_string()], &indices))
+            .is_ok());
         assert!(messages.take_dropped().is_empty());
         assert!(messages.add(&["\\N[2]".to_string()]).is_ok());
-        assert!(messages.add(&with_names(&["\\N[4]".to_string()], &indices)).is_ok());
+        assert!(messages
+            .add(&with_names(&["\\N[4]".to_string()], &indices))
+            .is_ok());
         assert_eq!(messages.take_dropped(), ["\\N[2]", "\\N[4]"]);
     }
 
@@ -8695,8 +9739,18 @@ mod tests {
             .filter(|l| l.kind == "message-escape-dropped")
             .map(|l| (l.path[0].1, l.text.split(' ').next().unwrap().to_string()))
             .collect();
-        let want = [(0, "\\$"), (0, "\\c[2]"), (0, "\\c[0]"), (0, "\\q"), (2, "\\>"), (2, "\\_")];
-        let want: Vec<(Option<usize>, String)> = want.iter().map(|(i, e)| (Some(*i), e.to_string())).collect();
+        let want = [
+            (0, "\\$"),
+            (0, "\\c[2]"),
+            (0, "\\c[0]"),
+            (0, "\\q"),
+            (2, "\\>"),
+            (2, "\\_"),
+        ];
+        let want: Vec<(Option<usize>, String)> = want
+            .iter()
+            .map(|(i, e)| (Some(*i), e.to_string()))
+            .collect();
         assert_eq!(dropped, want);
         assert!(losses[0].text.contains("gold window"), "{}", losses[0].text);
     }
@@ -8706,11 +9760,22 @@ mod tests {
     /// page was left out whole.
     #[test]
     fn a_tileset_change_is_dropped_and_the_page_runs() {
-        let page = [cmd(CHANGE_MAP_TILESET, &[11], ""), cmd(WAIT, &[1], ""), cmd(CHANGE_MAP_TILESET, &[0], "")];
+        let page = [
+            cmd(CHANGE_MAP_TILESET, &[11], ""),
+            cmd(WAIT, &[1], ""),
+            cmd(CHANGE_MAP_TILESET, &[0], ""),
+        ];
         let (code, losses) = losses_on_a_map(&Game::default(), &page);
         assert!(code.is_some(), "the page compiles");
-        let kinds: Vec<(&str, Option<usize>)> = losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
-        assert_eq!(kinds, [("tileset-not-changed", Some(0)), ("tileset-not-changed", Some(2))]);
+        let kinds: Vec<(&str, Option<usize>)> =
+            losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
+        assert_eq!(
+            kinds,
+            [
+                ("tileset-not-changed", Some(0)),
+                ("tileset-not-changed", Some(2))
+            ]
+        );
         assert!(losses[0].text.contains("tileset 11"), "{}", losses[0].text);
         assert_eq!(losses[0].to_json()["name"], "ChangeMapTileset");
         // A debt the converter warns about, map by map.
@@ -8724,7 +9789,11 @@ mod tests {
     #[test]
     fn a_rename_is_the_actors_place_and_the_names() {
         let indices = Indices {
-            renames: vec![(5, "Ann".to_string()), (2, "Bo".to_string()), (5, "Cid".to_string())],
+            renames: vec![
+                (5, "Ann".to_string()),
+                (2, "Bo".to_string()),
+                (5, "Cid".to_string()),
+            ],
             ..Default::default()
         };
         assert_eq!(indices.renamed_actors(), [5, 2]);
@@ -8769,9 +9838,13 @@ mod tests {
         // would go past `switches`.
         let mut game = Game::default();
         let on = cmd(CONTROL_SWITCHES, &[0, 1, 1, 0], "");
-        game.common_events.insert(4, common(3, Some(2000), vec![on.clone()]));
+        game.common_events
+            .insert(4, common(3, Some(2000), vec![on.clone()]));
         game.common_events.insert(5, common(3, Some(20), vec![on]));
-        let indices = Indices { switch_top: 1023, ..Default::default() };
+        let indices = Indices {
+            switch_top: 1023,
+            ..Default::default()
+        };
         assert_eq!(crate::commons::automatic(&game, &indices), [(5, 20)]);
     }
 
@@ -8779,7 +9852,10 @@ mod tests {
 
     /// The Frozen World's table: it names up to 1077.
     fn frozen_world() -> Indices {
-        Indices { switch_top: 1077, ..Default::default() }
+        Indices {
+            switch_top: 1077,
+            ..Default::default()
+        }
     }
 
     /// Map 19's event 12 starts by turning on switch 1051, past the 1024 the
@@ -8787,12 +9863,23 @@ mod tests {
     /// compiles, with the switch as a word.
     #[test]
     fn a_switch_past_1023_is_turned_on_when_the_table_holds_it() {
-        let code = on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, &[0, 1051, 1051, 0], "")])
-            .expect("the page does not compile");
+        let code = on_a_map_with(
+            &frozen_world(),
+            &[cmd(CONTROL_SWITCHES, &[0, 1051, 1051, 0], "")],
+        )
+        .expect("the page does not compile");
         assert_eq!(code[..4], [OP_SWITCH, 0x1B, 0x04, 1]);
         // And a range that ends at the table's last one, and a toggle.
-        assert!(on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, &[1, 1070, 1077, 1], "")]).is_some());
-        assert!(on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, &[0, 1077, 1077, 2], "")]).is_some());
+        assert!(on_a_map_with(
+            &frozen_world(),
+            &[cmd(CONTROL_SWITCHES, &[1, 1070, 1077, 1], "")]
+        )
+        .is_some());
+        assert!(on_a_map_with(
+            &frozen_world(),
+            &[cmd(CONTROL_SWITCHES, &[0, 1077, 1077, 2], "")]
+        )
+        .is_some());
     }
 
     /// Until 2026-10-15 a `ControlSwitches` was not checked at all, and one
@@ -8800,7 +9887,8 @@ mod tests {
     /// compile, and neither does a range or a toggle that reaches past.
     #[test]
     fn a_switch_past_the_table_is_not_written() {
-        let past = |p: &[i32]| on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, p, "")]).is_none();
+        let past =
+            |p: &[i32]| on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, p, "")]).is_none();
         assert!(past(&[0, 1078, 1078, 0]));
         assert!(past(&[1, 1070, 1080, 1]));
         assert!(past(&[0, 1078, 1078, 2]));
@@ -8813,7 +9901,10 @@ mod tests {
         let branch = |s: i32| {
             on_a_map_with(
                 &frozen_world(),
-                &[cmd(COND_BRANCH, &[0, s, 0, 0, 0, 0], ""), cmd(COND_END, &[], "")],
+                &[
+                    cmd(COND_BRANCH, &[0, s, 0, 0, 0, 0], ""),
+                    cmd(COND_END, &[], ""),
+                ],
             )
         };
         let code = branch(1060).expect("the branch does not compile");
@@ -8839,7 +9930,15 @@ mod tests {
             map_index: &|_| None,
         };
         let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
-        crate::commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops, &mut Losses::default()).unwrap()
+        crate::commons::compile(
+            &setting,
+            &plan,
+            &mut messages,
+            &mut songs,
+            &mut troops,
+            &mut Losses::default(),
+        )
+        .unwrap()
     }
 
     #[test]
@@ -8851,8 +9950,10 @@ mod tests {
         let mut game = Game::default();
         let on = |s: i32| cmd(CONTROL_SWITCHES, &[0, s, s, 0], "");
         game.common_events.insert(2, common(5, None, vec![on(11)]));
-        game.common_events.insert(3, common(5, None, vec![cmd(LOOP, &[], "")]));
-        game.common_events.insert(4, common(3, Some(30), vec![call(2), call(3), call(2)]));
+        game.common_events
+            .insert(3, common(5, None, vec![cmd(LOOP, &[], "")]));
+        game.common_events
+            .insert(4, common(3, Some(30), vec![call(2), call(3), call(2)]));
         game.common_events.insert(5, common(3, None, vec![on(12)]));
         game.common_events.insert(6, common(5, None, vec![on(13)]));
         let s = shared(&game);
@@ -8873,7 +9974,8 @@ mod tests {
         let mut game = Game::default();
         let on = |s: i32| cmd(CONTROL_SWITCHES, &[0, s, s, 0], "");
         game.common_events.insert(2, common(5, None, vec![on(11)]));
-        game.common_events.insert(4, common(3, Some(30), vec![call(2)]));
+        game.common_events
+            .insert(4, common(3, Some(30), vec![call(2)]));
         game.common_events.insert(
             6,
             common(5, None, vec![on(12), cmd(SHOW_MESSAGE, &[], "Counted.")]),
@@ -8883,7 +9985,10 @@ mod tests {
         let s = shared(&game);
         let numbers: Vec<i32> = s.bodies.iter().map(|(n, _)| *n).collect();
         assert_eq!(numbers, [4, 6]);
-        assert_eq!(s.bodies[0].1, [OP_MENU_OPEN, 1, OP_SWITCH, 30, 0, 0, OP_RETURN]);
+        assert_eq!(
+            s.bodies[0].1,
+            [OP_MENU_OPEN, 1, OP_SWITCH, 30, 0, 0, OP_RETURN]
+        );
         assert_eq!(s.bodies[1].1, [OP_SWITCH, 12, 0, 1, OP_RETURN]);
         assert_eq!(s.menu_before, [(6, 1)]);
         assert_eq!(s.autostart, [(30, 0)]);
@@ -8892,7 +9997,8 @@ mod tests {
     #[test]
     fn a_body_a_menu_runs_before_a_page_cannot_wait() {
         let mut game = Game::default();
-        game.common_events.insert(6, common(5, None, vec![cmd(WAIT, &[10], "")]));
+        game.common_events
+            .insert(6, common(5, None, vec![cmd(WAIT, &[10], "")]));
         game.patches.menus.before.insert(6);
         assert!(crate::commons::before_commands(&game, 6).is_err());
     }
@@ -8901,7 +10007,8 @@ mod tests {
     fn an_automatic_common_event_that_does_not_compile_has_no_body() {
         let mut game = Game::default();
         game.common_events.insert(2, common(5, None, vec![]));
-        game.common_events.insert(4, common(3, Some(30), vec![call(2), cmd(LOOP, &[], "")]));
+        game.common_events
+            .insert(4, common(3, Some(30), vec![call(2), cmd(LOOP, &[], "")]));
         let s = shared(&game);
         assert!(s.bodies.is_empty());
         assert!(s.autostart.is_empty());
@@ -8913,11 +10020,16 @@ mod tests {
         // in a shared body the escape goes to an `OP_RETURN`.
         let mut game = Game::default();
         for name in BATTLE_AUDIO_SE {
-            game.system_se.insert(name, ("(OFF)".to_string(), 100, 100, 50));
+            game.system_se
+                .insert(name, ("(OFF)".to_string(), 100, 100, 50));
         }
         game.common_events.insert(
             4,
-            common(3, Some(30), vec![cmd(ENEMY_ENCOUNTER, &[0, 7, 0, 1, 1, 0, 0], "")]),
+            common(
+                3,
+                Some(30),
+                vec![cmd(ENEMY_ENCOUNTER, &[0, 7, 0, 1, 1, 0, 0], "")],
+            ),
         );
         let s = shared(&game);
         let body = &s.bodies[0].1;
@@ -8935,8 +10047,10 @@ mod tests {
             variables: BTreeMap::from([(40, 0)]),
             ..Default::default()
         };
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(0));
+        let mut songs = Songs {
+            current: Some(Package::Map(0)),
+            ..Default::default()
+        };
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
@@ -8953,9 +10067,14 @@ mod tests {
             losses: Losses::default(),
             face: None,
         };
-        let map = Map { id: 5, events: Vec::new() };
+        let map = Map {
+            id: 5,
+            events: Vec::new(),
+        };
         let me = MapEvents::new(&map, None);
-        compile_page(&mut ctx, &[call(2), call(3)], Some(me), 0, 0).unwrap().unwrap()
+        compile_page(&mut ctx, &[call(2), call(3)], Some(me), 0, 0)
+            .unwrap()
+            .unwrap()
     }
 
     #[test]
@@ -8967,9 +10086,16 @@ mod tests {
         let mut game = Game::default();
         game.common_events.insert(
             2,
-            common(5, None, vec![cmd(CONTROL_VARS, &[0, 40, 40, 0, 0, 1, 0], "")]),
+            common(
+                5,
+                None,
+                vec![cmd(CONTROL_VARS, &[0, 40, 40, 0, 0, 1, 0], "")],
+            ),
         );
-        game.common_events.insert(3, common(5, None, vec![cmd(PLAY_SOUND, &[100, 100, 50], "Thunder")]));
+        game.common_events.insert(
+            3,
+            common(5, None, vec![cmd(PLAY_SOUND, &[100, 100, 50], "Thunder")]),
+        );
         let sound = SoundSettings {
             per_map: vec![("Thunder".into(), 5, "Thunder-5".into())],
             ..Default::default()
@@ -9013,7 +10139,13 @@ mod tests {
             id,
             events: events
                 .into_iter()
-                .map(|(id, pages)| crate::game::Event { id, x: 0, y: 0, pages, starting: None })
+                .map(|(id, pages)| crate::game::Event {
+                    id,
+                    x: 0,
+                    y: 0,
+                    pages,
+                    starting: None,
+                })
                 .collect(),
         }
     }
@@ -9033,8 +10165,17 @@ mod tests {
         let map = map_of(
             5,
             vec![
-                (1, vec![page_with(0, vec![]), page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")])]),
-                (2, vec![page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 9, 9, 0], "")])]),
+                (
+                    1,
+                    vec![
+                        page_with(0, vec![]),
+                        page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")]),
+                    ],
+                ),
+                (
+                    2,
+                    vec![page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 9, 9, 0], "")])],
+                ),
             ],
         );
         let game = Game::default();
@@ -9060,7 +10201,9 @@ mod tests {
                 losses: Losses::default(),
                 face: None,
             };
-            compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap().unwrap()
+            compile_page(&mut ctx, commands, Some(me), 0, 0)
+                .unwrap()
+                .unwrap()
         };
         assert_eq!(
             compile(me.clone(), &[call_page(2, 1), call_page(1, 2)]),
@@ -9069,7 +10212,10 @@ mod tests {
         let pasted = [OP_SWITCH, 9, 0, 1, OP_DONE];
         assert_eq!(compile(me.pasting(), &[call_page(2, 1)]), pasted);
         assert_eq!(
-            compile(me.clone(), &[cmd(TELEPORT, &[7, 1, 2], ""), call_page(2, 1)]),
+            compile(
+                me.clone(),
+                &[cmd(TELEPORT, &[7, 1, 2], ""), call_page(2, 1)]
+            ),
             [OP_TELEPORT, 1, 0, 1, 0, 2, 0, OP_SWITCH, 9, 0, 1, OP_DONE]
         );
         // A page the map does not have, or an event left out of the table:
@@ -9084,9 +10230,16 @@ mod tests {
     }
 
     /// The pages of `map` as `map_pages` emits them, and what it noted lost.
-    fn pages_and_losses(game: &Game, map: &crate::game::Map) -> (Vec<serde_json::Value>, Vec<crate::losses::Loss>) {
+    fn pages_and_losses(
+        game: &Game,
+        map: &crate::game::Map,
+    ) -> (Vec<serde_json::Value>, Vec<crate::losses::Loss>) {
         use crate::messages::{Messages, Window};
-        let (indices, sound, mut songs) = (Indices::default(), SoundSettings::default(), Songs::default());
+        let (indices, sound, mut songs) = (
+            Indices::default(),
+            SoundSettings::default(),
+            Songs::default(),
+        );
         songs.current = Some(Package::Map(0));
         let mut messages = Messages::new(1, Window::columns(39, 4));
         let shared = BTreeMap::from([(2, 0)]);
@@ -9118,17 +10271,51 @@ mod tests {
         let map = map_of(
             5,
             vec![
-                (1, vec![page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], ""), call_page(2, 1)])]),
-                (2, vec![page_with(0, vec![cmd(COND_BRANCH, &[0, 1, 0, 0, 0, 0], "")])]),
+                (
+                    1,
+                    vec![page_with(
+                        0,
+                        vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], ""), call_page(2, 1)],
+                    )],
+                ),
+                (
+                    2,
+                    vec![page_with(
+                        0,
+                        vec![cmd(COND_BRANCH, &[0, 1, 0, 0, 0, 0], "")],
+                    )],
+                ),
             ],
         );
         let (pages, losses) = pages_and_losses(&Game::default(), &map);
-        assert_eq!(pages[0]["code"], json!(crate::pages::hex(&[OP_SWITCH, 7, 0, 1, OP_CALL_PAGE, 1, 0, OP_DONE])));
+        assert_eq!(
+            pages[0]["code"],
+            json!(crate::pages::hex(&[
+                OP_SWITCH,
+                7,
+                0,
+                1,
+                OP_CALL_PAGE,
+                1,
+                0,
+                OP_DONE
+            ]))
+        );
         assert!(pages[1]["code"].is_null());
-        let skipped: Vec<serde_json::Value> = losses.iter().filter(|l| l.kind == "call-skipped").map(|l| l.to_json()).collect();
+        let skipped: Vec<serde_json::Value> = losses
+            .iter()
+            .filter(|l| l.kind == "call-skipped")
+            .map(|l| l.to_json())
+            .collect();
         assert_eq!(skipped.len(), 1, "{losses:?}");
-        assert_eq!((&skipped[0]["event"], &skipped[0]["command"]), (&json!(1), &json!(1)));
-        assert_eq!(skipped[0]["text"], "event 2's page 1 does not compile here, and the call is skipped");
+        assert_eq!(
+            (&skipped[0]["event"], &skipped[0]["command"]),
+            (&json!(1), &json!(1))
+        );
+        assert_eq!(
+            skipped[0]["text"],
+            "event 2's page 1 does not compile here, and the call is skipped"
+        );
         assert!(skipped[0].get("via").is_none());
     }
 
@@ -9142,7 +10329,10 @@ mod tests {
         // compiles: the console is the one that skips the calls past the
         // stack.
         let mut game = Game::default();
-        game.common_events.insert(2, common(5, None, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")]));
+        game.common_events.insert(
+            2,
+            common(5, None, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")]),
+        );
         let mut events = Vec::new();
         for e in 1..=10 {
             let mut commands = vec![call(2)];
@@ -9178,7 +10368,8 @@ mod tests {
     fn calls_that_loop_have_no_depth() {
         let mut game = Game::default();
         game.common_events.insert(2, common(5, None, vec![call(4)]));
-        game.common_events.insert(4, common(3, Some(30), vec![call(2)]));
+        game.common_events
+            .insert(4, common(3, Some(30), vec![call(2)]));
         let s = shared(&game);
         assert_eq!(s.bodies.len(), 2);
         assert_eq!(s.depth, None);

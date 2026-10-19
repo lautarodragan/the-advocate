@@ -20,11 +20,11 @@
 //! off is 80A→80—, so the block one needs is created by another, and the
 //! order the pages are compiled in cannot decide what compiles.
 
+use crate::background::blocks::{Blocks, BLOCK_BYTES, MAX_BLOCKS};
 use crate::fail::{Bad, Result};
 use ditto::schema::Chipset;
 use rm2k_rules::chipset::{terrain_of, LOWER, TILES_PER_LAYER, UPPER};
 use rm2k_rules::passability::{cell, ABOVE};
-use crate::background::blocks::{Blocks, BLOCK_BYTES, MAX_BLOCKS};
 use std::collections::{BTreeMap, HashMap};
 
 /// A `TileSubstitution`: whether it is the upper layer's, and the old and
@@ -65,7 +65,13 @@ pub struct Substitutions<'a> {
 impl<'a> Substitutions<'a> {
     /// The substitutions of map `id`, over its blocks. `flags` are its
     /// ChipSet's passability by tile id.
-    pub fn new(id: i32, blocks: &'a mut Blocks, flags: &'a [u8], chipset: &'a Chipset, flattened: bool) -> Self {
+    pub fn new(
+        id: i32,
+        blocks: &'a mut Blocks,
+        flags: &'a [u8],
+        chipset: &'a Chipset,
+        flattened: bool,
+    ) -> Self {
         let mut cells: [HashMap<i32, Vec<u8>>; 2] = [HashMap::new(), HashMap::new()];
         for &((low, high), block) in &blocks.combos {
             // **The lower half is only usable if the upper tile of that
@@ -270,7 +276,8 @@ fn with_side(combination: (i32, i32), layer: usize, tile: i32) -> (i32, i32) {
 /// a map that draws both layers as one has to draw anyway —see
 /// `Drawn::extended`—, since it cannot build them out of halves.
 pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32)> {
-    let drawn: std::collections::BTreeSet<(i32, i32)> = lower.iter().copied().zip(upper.iter().copied()).collect();
+    let drawn: std::collections::BTreeSet<(i32, i32)> =
+        lower.iter().copied().zip(upper.iter().copied()).collect();
     let mut all = drawn.clone();
     let mut out = Vec::new();
     loop {
@@ -281,7 +288,11 @@ pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32
             }
             let layer = usize::from(up);
             let (old_id, new_id) = ids(up, old, new);
-            let sources: Vec<(i32, i32)> = all.iter().copied().filter(|&c| side(c, layer) == old_id).collect();
+            let sources: Vec<(i32, i32)> = all
+                .iter()
+                .copied()
+                .filter(|&c| side(c, layer) == old_id)
+                .collect();
             for c in sources {
                 let dest = with_side(c, layer, new_id);
                 if all.insert(dest) {

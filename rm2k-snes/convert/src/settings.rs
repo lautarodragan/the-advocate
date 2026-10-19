@@ -98,7 +98,12 @@ fn find_variables(v: &Value, key: Option<&str>, out: &mut Vec<i64>) {
                         if let Some(n) = r.get(1).and_then(Value::as_i64) {
                             out.push(n);
                         }
-                        if let Some(n) = r.get(2).and_then(Value::as_str).and_then(|s| s.strip_prefix('v')).and_then(|s| s.parse().ok()) {
+                        if let Some(n) = r
+                            .get(2)
+                            .and_then(Value::as_str)
+                            .and_then(|s| s.strip_prefix('v'))
+                            .and_then(|s| s.parse().ok())
+                        {
                             out.push(n);
                         }
                     }
@@ -130,7 +135,9 @@ fn to_json(value: &toml::Value) -> Value {
     match value {
         toml::Value::String(s) => Value::String(s.clone()),
         toml::Value::Integer(i) => Value::from(*i),
-        toml::Value::Float(f) => serde_json::Number::from_f64(*f).map_or(Value::Null, Value::Number),
+        toml::Value::Float(f) => {
+            serde_json::Number::from_f64(*f).map_or(Value::Null, Value::Number)
+        }
         toml::Value::Boolean(b) => Value::Bool(*b),
         toml::Value::Datetime(d) => Value::String(d.to_string()),
         toml::Value::Array(a) => Value::Array(a.iter().map(to_json).collect()),
@@ -183,7 +190,10 @@ impl<'a> Settings<'a> {
             let parsed: toml::Table = toml::from_str(&text)
                 .map_err(|e| Stop::new(format!("menu {name:?}: {}: {e}", path.display())))?;
             let spec = to_json(&toml::Value::Table(parsed));
-            out.push(CustomMenu { name: name.clone(), spec });
+            out.push(CustomMenu {
+                name: name.clone(),
+                spec,
+            });
         }
         Ok(out)
     }
@@ -217,7 +227,12 @@ impl<'a> Settings<'a> {
 
     /// A text that ends up in the ROM as is: printable ASCII without
     /// quotes, exactly `length` long or at most `max_length`.
-    pub fn ascii(&self, keys: &[&str], length: Option<usize>, max_length: Option<usize>) -> Result<String> {
+    pub fn ascii(
+        &self,
+        keys: &[&str],
+        length: Option<usize>,
+        max_length: Option<usize>,
+    ) -> Result<String> {
         self.project
             .ascii(keys, length, max_length)
             .map(str::to_string)

@@ -97,7 +97,11 @@ impl Font {
     /// RM2k's: easyrpg's Mincho for `font_id` 1 and Gothic for anything
     /// else, as easyrpg does, every letter six pixels wide.
     pub fn rm2k(font_id: i32) -> Font {
-        let table = if font_id == MINCHO { &glyphs::MINCHO } else { &glyphs::GOTHIC };
+        let table = if font_id == MINCHO {
+            &glyphs::MINCHO
+        } else {
+            &glyphs::GOTHIC
+        };
         Font {
             rows: table.iter().map(|g| g.map(u16::from)).collect(),
             advance: vec![WIDTH as u8; GLYPHS],
@@ -145,9 +149,13 @@ impl Font {
                  shadow on the next one, since each letter's air is where its shadow falls"
             ));
         }
-        let widest = (0..self.advance.len()).max_by_key(|&i| self.advance[i]).unwrap_or(0);
+        let widest = (0..self.advance.len())
+            .max_by_key(|&i| self.advance[i])
+            .unwrap_or(0);
         // An empty Latin-1 cell stays empty: no advance, not drawn.
-        let undrawn: Vec<usize> = (GLYPHS..self.advance.len()).filter(|&g| self.advance[g] == 0).collect();
+        let undrawn: Vec<usize> = (GLYPHS..self.advance.len())
+            .filter(|&g| self.advance[g] == 0)
+            .collect();
         let spaced = self.advance[widest] as usize + pixels as usize;
         if spaced > SPACED_ADVANCE_MAX {
             return Err(format!(
@@ -196,7 +204,9 @@ impl Font {
             ));
         }
         if cell > 16 {
-            return Err(format!("its cells are {cell} wide, and a glyph is at most 16"));
+            return Err(format!(
+                "its cells are {cell} wide, and a glyph is at most 16"
+            ));
         }
         let at = |x: usize, y: usize| indices[y * width + x];
         let mut rows = Vec::with_capacity(GLYPHS + LATIN_GLYPHS);
@@ -206,7 +216,10 @@ impl Font {
             let ch = glyph_char(g);
             // The cell: Latin-1's start at the seventh row, past DEL's.
             let i = if g < GLYPHS { g } else { g + 1 };
-            let (x0, y0) = (1 + (i % PER_ROW) * (cell + 1), 1 + (i / PER_ROW) * (CELL_ROWS + 1));
+            let (x0, y0) = (
+                1 + (i % PER_ROW) * (cell + 1),
+                1 + (i / PER_ROW) * (CELL_ROWS + 1),
+            );
             let mut glyph = [0u16; HEIGHT];
             for (y, row) in glyph.iter_mut().enumerate() {
                 for x in 0..cell {
@@ -225,7 +238,9 @@ impl Font {
             let marks: Vec<bool> = (0..cell).map(|x| at(x0 + x, y0 + HEIGHT) == MARK).collect();
             let n = marks.iter().filter(|m| **m).count();
             if marks[..n].iter().any(|m| !m) {
-                return Err(format!("the advance mark of {ch:?} is not stuck to the left"));
+                return Err(format!(
+                    "the advance mark of {ch:?} is not stuck to the left"
+                ));
             }
             rows.push(glyph);
             advance.push(n as u8);
@@ -286,7 +301,12 @@ impl Font {
         if ch == CURSOR_BLANK || ch == FIGURE_BLANK {
             return 0;
         }
-        let ink = self.rows(ch).iter().map(|r| 16 - r.leading_zeros() as usize).max().unwrap_or(0);
+        let ink = self
+            .rows(ch)
+            .iter()
+            .map(|r| 16 - r.leading_zeros() as usize)
+            .max()
+            .unwrap_or(0);
         if ink == 0 {
             0
         } else {
@@ -323,7 +343,11 @@ impl Font {
             return true;
         }
         let latin = (LATIN_FIRST..LATIN_FIRST + LATIN_GLYPHS as u32).contains(&code);
-        latin && self.advance.get(GLYPHS + (code - LATIN_FIRST) as usize).is_some_and(|&a| a > 0)
+        latin
+            && self
+                .advance
+                .get(GLYPHS + (code - LATIN_FIRST) as usize)
+                .is_some_and(|&a| a > 0)
     }
 
     /// The Latin-1 letters it draws, with their advances: every one its
@@ -361,7 +385,11 @@ impl Font {
 
 /// The character glyph `g` of a font is: ASCII's 95 and then Latin-1's.
 fn glyph_char(g: usize) -> char {
-    let code = if g < GLYPHS { FIRST + g as u32 } else { LATIN_FIRST + (g - GLYPHS) as u32 };
+    let code = if g < GLYPHS {
+        FIRST + g as u32
+    } else {
+        LATIN_FIRST + (g - GLYPHS) as u32
+    };
     char::from_u32(code).expect("ASCII or Latin-1")
 }
 
@@ -397,7 +425,9 @@ fn sheet_size(cell: usize, latin: bool) -> (usize, usize) {
 fn read_indexed(bytes: &[u8]) -> Result<(Vec<u8>, usize, usize), String> {
     let mut decoder = png::Decoder::new(bytes);
     decoder.set_transformations(png::Transformations::IDENTITY);
-    let mut reader = decoder.read_info().map_err(|e| format!("not a PNG this can read: {e}"))?;
+    let mut reader = decoder
+        .read_info()
+        .map_err(|e| format!("not a PNG this can read: {e}"))?;
     let mut buffer = vec![0; reader.output_buffer_size()];
     let frame = reader.next_frame(&mut buffer).map_err(|e| e.to_string())?;
     if frame.color_type != png::ColorType::Indexed {
@@ -450,7 +480,12 @@ mod tests {
         // never reaches the cell where the next text starts.
         for i in 0..GLYPHS {
             let ch = char::from_u32(FIRST + i as u32).unwrap();
-            let ink = font.rows(ch).iter().map(|r| 16 - r.leading_zeros() as usize).max().unwrap();
+            let ink = font
+                .rows(ch)
+                .iter()
+                .map(|r| 16 - r.leading_zeros() as usize)
+                .max()
+                .unwrap();
             assert!(ink == 0 || ink < font.advance(ch), "{ch:?}");
         }
         // The digits are all the same width, so numbers line up.
@@ -500,7 +535,12 @@ mod tests {
         assert_eq!(font.latin_letters().len(), LATIN_GLYPHS - 2 - 4);
         assert!(!font.draws('ø'));
         for (c, a) in font.latin_letters() {
-            let ink = font.rows(c).iter().map(|r| 16 - r.leading_zeros() as usize).max().unwrap();
+            let ink = font
+                .rows(c)
+                .iter()
+                .map(|r| 16 - r.leading_zeros() as usize)
+                .max()
+                .unwrap();
             assert!(ink == 0 || ink < a as usize, "{c:?}");
         }
         let m = font.measure_advances();

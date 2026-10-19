@@ -111,8 +111,16 @@ pub fn float(x: f64) -> String {
         return format!("{sign}{text}");
     }
     let (first, rest) = digits.split_at(1);
-    let rest = if rest.is_empty() { String::new() } else { format!(".{rest}") };
-    format!("{sign}{first}{rest}e{}{:02}", if exponent < 0 { '-' } else { '+' }, exponent.abs())
+    let rest = if rest.is_empty() {
+        String::new()
+    } else {
+        format!(".{rest}")
+    };
+    format!(
+        "{sign}{first}{rest}e{}{:02}",
+        if exponent < 0 { '-' } else { '+' },
+        exponent.abs()
+    )
 }
 
 /// The text Python would write for `value`.
