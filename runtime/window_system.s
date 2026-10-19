@@ -30,8 +30,9 @@ WS_BACKDROP  = 15
 WS_BAR       = 18
 WS_BAR_BARE  = 21
 WS_ARROW_OBJ = 24
+WS_GOLD      = 27
 .if ::WINDOW_SYSTEMS > 1
-.assert WINDOW_SYSTEM_BYTES = WS_ARROW_OBJ + 3, error, "window_systems has another number of pieces than WS_ says"
+.assert WINDOW_SYSTEM_BYTES = WS_GOLD + 3, error, "window_systems has another number of pieces than WS_ says"
 .endif
 
 ; What the System adds to a saved game: `WINDOW_SYSTEM`'s byte, in a

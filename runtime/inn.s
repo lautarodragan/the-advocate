@@ -54,6 +54,10 @@ MSU_AUDIO_PLAYING = $10
 .i16
     lda [code_ptr], y
     iny
+    cmp #3
+    bcc staging
+    jmp inn_gold                ; 3 and 4, the inn's choice: see gold_window.s
+staging:
     cmp #1
     beq wait
     bcs put

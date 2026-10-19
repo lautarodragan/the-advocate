@@ -109,7 +109,11 @@
 //! purpose: both inns of the test game stage the night —the fades, the
 //! song noted and put back, the heal in the black—, which is RM2k's
 //! `Scene_Map::CallInn`. With `inn_staging` answering the heal alone, the
-//! answer was the one before.
+//! answer was the one before. And again, on purpose: a paid inn opens with
+//! `OP_INN 3`, a gold branch and `OP_INN 4` —its gold window and its greyed
+//! "Yes"—. Without those eleven bytes in front of the greeting, and the
+//! choice's and the branch's destinations eleven back, the answer was the
+//! one before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};

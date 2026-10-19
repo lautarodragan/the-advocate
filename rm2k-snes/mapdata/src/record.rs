@@ -1126,11 +1126,20 @@ pub const OBJ_PALETTES: usize = 8;
 /// side —`WINDOW_ARROW_CELLS`, which the runtime checks against this—.
 pub const ARROW_OBJ_TILES: usize = 2;
 
+/// The tiles the gold window takes as objects, after the arrow's: 88x32 in
+/// 8x8 tiles. See the runtime's gold_window.s.
+pub const GOLD_OBJ_TILES: usize = 11 * 4;
+
+/// The bit of [`arrow_obj`]'s word that says the gold window fits too.
+pub const GOLD_ROOM: u16 = 0x4000;
+
 /// Where a window without its background draws its arrow as two objects,
 /// per map: the first of its two tiles and a sprite palette nobody else
-/// takes, as a word —the tile in bits 0 to 8, the palette in 9 to 11, and
+/// takes, as a word —the tile in bits 0 to 8, the palette in 9 to 11, bit
+/// 14 if the gold window's [`GOLD_OBJ_TILES`] fit after the arrow's two, and
 /// bit 15 set—; 0 if the map has no room for one of the two, and there the
-/// arrow stays in the window's cells and keeps BG2 on its eight lines.
+/// arrow stays in the window's cells and keeps BG2 on its eight lines, and
+/// an inn shows no gold window.
 ///
 /// **The tiles are the two past the bank**, if the layout's sprite tiles
 /// reach them: everything the console writes into the bank —the slots, the
@@ -1174,7 +1183,14 @@ fn arrow_room(map: &Map) -> Result<std::result::Result<u16, String>> {
         )));
     }
     let palette = OBJ_PALETTES - 1 - top;
-    Ok(Ok(0x8000 | (palette as u16) << 9 | tiles as u16))
+    // And the gold window's tiles after the arrow's, in the same palette, if
+    // the bank's room reaches them.
+    let gold = if tiles + ARROW_OBJ_TILES + GOLD_OBJ_TILES <= cap {
+        GOLD_ROOM
+    } else {
+        0
+    };
+    Ok(Ok(0x8000 | gold | (palette as u16) << 9 | tiles as u16))
 }
 
 /// What the converter's log says of each map that keeps the arrow in the
@@ -2226,8 +2242,8 @@ mod tests {
         sprite.animation = None;
         assert_eq!(
             arrow_obj(&map).unwrap(),
-            0x8000 | 7 << 9 | 300,
-            "tile 300, palette 7"
+            0x8000 | GOLD_ROOM | 7 << 9 | 300,
+            "tile 300, palette 7, and the gold window after"
         );
         // Under two palettes of pictures, and over an animation's box.
         let sprite = map.sprite.as_mut().unwrap();
@@ -2236,7 +2252,7 @@ mod tests {
             base: 192,
             palette: 3,
         });
-        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 5 << 9 | 300);
+        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | GOLD_ROOM | 5 << 9 | 300);
         // With the eight taken, the cells.
         let sprite = map.sprite.as_mut().unwrap();
         sprite.palettes = vec![vec![[1, 2, 3]]; 4];
@@ -2246,17 +2262,31 @@ mod tests {
         });
         sprite.image = (256, 3);
         assert_eq!(arrow_obj(&map).unwrap(), 0);
-        // And with the bank reaching the layout's last tile but one, too.
+        // The gold window's 44 tiles after the arrow's two, while they reach.
         let sprite = map.sprite.as_mut().unwrap();
         sprite.image = (0, 0);
         sprite.animation = None;
+        let gold = ARROW_OBJ_TILES + GOLD_OBJ_TILES;
+        sprite.tiles = vec![0; (cap - gold) * TILE_BYTES];
+        assert_eq!(
+            arrow_obj(&map).unwrap(),
+            0x8000 | GOLD_ROOM | 7 << 9 | (cap - gold) as u16
+        );
+        // And without them, the arrow alone, until the last tile but one.
+        let sprite = map.sprite.as_mut().unwrap();
+        sprite.tiles = vec![0; (cap - gold + 1) * TILE_BYTES];
+        assert_eq!(
+            arrow_obj(&map).unwrap(),
+            0x8000 | 7 << 9 | (cap - gold + 1) as u16
+        );
+        let sprite = map.sprite.as_mut().unwrap();
         sprite.tiles = vec![0; (cap - 2) * TILE_BYTES];
         assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 7 << 9 | (cap - 2) as u16);
         map.sprite.as_mut().unwrap().tiles = vec![0; (cap - 1) * TILE_BYTES];
         assert_eq!(arrow_obj(&map).unwrap(), 0);
         // A map nobody is drawn in has the whole bank.
         map.sprite = None;
-        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 7 << 9);
+        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | GOLD_ROOM | 7 << 9);
     }
 
     #[test]

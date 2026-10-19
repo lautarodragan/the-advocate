@@ -23,7 +23,7 @@ use crate::settings::Settings;
 use crate::stage;
 use crate::text::{hex, repr, unhex};
 use rm2k_project::Project;
-use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE, OP_TELEPORT};
+use rm2k_snes_bytecode::events::{INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT};
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
 use rm2k_snes_mapdata::{engine, record, vram};
 
@@ -1489,6 +1489,22 @@ pub fn run(options: Options) -> Result<()> {
             json!({"commons": copies["commons"], "maps": maps}),
         );
     }
+    // The maps whose pages open an inn's gold window, `OP_INN 3`: the
+    // emission says which of them have no room for it in the sprites. See
+    // `arrow_obj` in rm2k-snes-mapdata and the runtime's gold_window.s.
+    let mut gold_maps = Vec::new();
+    for m in &infos {
+        let mut wants = false;
+        for page in &m.pages {
+            let code = page.code.as_slice();
+            for i in bytecode::walk(code)? {
+                wants |= code[i] == OP_INN && bytecode::at(code, i + 1) == INN_GOLD_WINDOW;
+            }
+        }
+        if wants {
+            gold_maps.push(m.id as i64);
+        }
+    }
     let mut request = json!({
         "maps": infos
             .iter()
@@ -1574,6 +1590,7 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     request["faces"] = Value::Array(faces);
+    request["gold_maps"] = json!(gold_maps);
     let emitted = emit::emit(&output, &request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",

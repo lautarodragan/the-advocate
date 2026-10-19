@@ -2132,11 +2132,15 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 /// What comes out, with the offsets relative to the start of the block:
 ///
 /// ```text
-///  0  OP_MESSAGE  the greeting, two lines
-///  3  OP_CHOICE   "Yes" and "No"; cancel is "No"
-/// 14  OP_IF       gold >= price, and if not, to the end
-/// 21  OP_GOLD     it is charged
-/// 26  the staging, with the heal
+///  0  OP_INN 3     the choice that follows is the inn's: the gold window
+///                  opens with its boxes, and "Yes" is greyed
+///  2  OP_IF        gold >= price, and if not, to 11
+///  9  OP_INN 4     "Yes" is not greyed: the price is paid for
+/// 11  OP_MESSAGE   the greeting, two lines
+/// 14  OP_CHOICE    "Yes" and "No"; cancel is "No"
+/// 25  OP_IF        gold >= price, and if not, to the end
+/// 32  OP_GOLD      it is charged
+/// 37  the staging, with the heal
 ///     the end, which is where "No" and "cannot afford it" land
 /// ```
 ///
@@ -2146,16 +2150,21 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 /// game's `greeting_2` starts with one— and `greeting_3` on the second. The
 /// terms are from the LDB: see `Game::inn_terms`.
 ///
-/// **Two declared debts**, and both are about what is seen and not about
-/// what happens:
+/// **The gold window and the greyed "Yes"** are `SetShowGoldWindow(true)`
+/// and `PushChoice(accept, can_afford)`, with `can_afford` decided when the
+/// command runs, before the greeting: the two phases of `OP_INN` before it,
+/// and the runtime's gold_window.s. A greyed "Yes" refuses A and the choice
+/// stays open; cancel is "No", which is never greyed. The gold branch after
+/// the choice stays: a parallel page that spends the gold while the choice
+/// is open makes it "No", where RM2k would charge what there is.
 ///
-/// * there is no gold window next to the greeting;
-/// * "Yes" is not grayed out when it cannot be afforded, so it can be
-///   chosen; choosing it amounts to "No", which is what the gold branch
-///   does. In RM2k the cursor does not let it be selected.
+/// What is still not RM2k's: the greeting is its own box and the choice
+/// another, as with every `ShowMessage` before a `ShowChoice` here, so the
+/// greeting waits for a key and the gold window closes between them for as
+/// long as the choice takes to compose.
 ///
-/// The third one, the staging, was paid on 2026-10-19: until then the inn
-/// healed on the spot.
+/// Its three debts were paid on 2026-10-19: the staging —until then the
+/// inn healed on the spot—, the gold window and the greyed "Yes".
 ///
 /// **A free inn is just the staging**: with the price at zero
 /// `CommandShowInn` shows nothing and goes straight to
@@ -2190,22 +2199,21 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
         ctx.indices,
         messages,
     )?;
-    ctx.lose(
-        cmd,
-        "inn-no-gold-window",
-        "the inn has no gold window, and lets \"Yes\" be chosen without the gold",
-    );
     ctx.lose_dropped(cmd);
     let staging = inn_staging(ctx, cmd)?;
-    let end = length + 26 + staging.len();
-    let mut out = vec![OP_MESSAGE];
+    let end = length + 37 + staging.len();
+    let mut out = vec![OP_INN, INN_GOLD_WINDOW, OP_IF, COND_GOLD as u8];
+    out.extend(word(price)?);
+    out.push(0);
+    out.extend(usize_word(length + 11)?);
+    out.extend([OP_INN, INN_AFFORDED, OP_MESSAGE]);
     out.extend(usize_word(at)?);
     // Cancel is the second option: there the default `choice_cancel_type` is
     // 5 and `inn_stay` is `choice_result == 0`, that is cancelling is not
     // staying.
     out.extend([OP_CHOICE, 2, 2]);
     out.extend(usize_word(frames[0])?);
-    out.extend(usize_word(length + 14)?);
+    out.extend(usize_word(length + 25)?);
     out.extend(usize_word(frames[1])?);
     out.extend(usize_word(end)?);
     out.extend([OP_IF, COND_GOLD as u8]);
@@ -8374,7 +8382,7 @@ mod tests {
             &[cmd(SHOW_MESSAGE, &[], "Hi"), cmd(SHOW_INN, &[0, 5, 0], "")],
         )
         .unwrap();
-        let (greeting, yes, no) = (word_at(&code, 4), word_at(&code, 9), word_at(&code, 13));
+        let (greeting, yes, no) = (word_at(&code, 15), word_at(&code, 20), word_at(&code, 24));
         // The two options are one box: the bar under the highlighted one is
         // the console's, see `choice_boxes`.
         assert!(
@@ -8382,14 +8390,18 @@ mod tests {
             "{greeting} {yes} {no}"
         );
         let w = |v: usize| [(v & 0xFF) as u8, (v >> 8) as u8];
-        let mut expected = vec![OP_MESSAGE, 0, 0, OP_MESSAGE];
+        let mut expected = vec![OP_MESSAGE, 0, 0];
+        // The gold window and "Yes" greyed, and not greyed if the price is
+        // paid for: past the `OP_INN 4` when it is not.
+        expected.extend([OP_INN, 3, OP_IF, COND_GOLD as u8, 5, 0, 0, 14, 0]);
+        expected.extend([OP_INN, 4, OP_MESSAGE]);
         expected.extend(w(greeting));
         expected.extend([OP_CHOICE, 2, 2]); // cancelling is "No"
         expected.extend(w(yes));
-        expected.extend([17, 0]); // "Yes" goes to the branch
+        expected.extend([28, 0]); // "Yes" goes to the branch
         expected.extend(w(no));
-        expected.extend([44, 0]); // "No" to the end
-        expected.extend([OP_IF, COND_GOLD as u8, 5, 0, 0, 44, 0]);
+        expected.extend([55, 0]); // "No" to the end
+        expected.extend([OP_IF, COND_GOLD as u8, 5, 0, 0, 55, 0]);
         expected.extend([OP_GOLD, 1, 5, 0, 0]);
         expected.extend(STAGING_WITHOUT_MUSIC);
         expected.push(OP_DONE);

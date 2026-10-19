@@ -743,7 +743,7 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
         window_pieces(out, r, w, t, &suffix, one_line)?;
     }
     if windows.len() > 1 {
-        window_systems_table(out, windows.len());
+        window_systems_table(out, windows.len(), windows[0].get("gold").is_some());
     }
     let window = &windows[0];
     line(out, &block("font_table", &bytes_at(window, "font")?));
@@ -963,6 +963,48 @@ fn window_pieces(
         out,
         &block(&format!("window_arrow_obj{suffix}"), &arrow_obj),
     );
+    // And the gold window, which `ShowInn` opens next to its greeting, as
+    // objects in the arrow's sprite palette: its 44 tiles, the fifteen words
+    // of that palette from entry 1 —the window's own and the colours it
+    // adds—, and the twelve entries a greyed option's glyph rows take. See
+    // `gold` in rm2k-snes-screens' `message_window.rs`, and the runtime's
+    // gold_window.s.
+    // A request without it is a test's made-up window, which assembles
+    // nothing.
+    if let Some(gold) = window.get("gold") {
+        let mut gold_block = bytes_at(gold, "tiles")?;
+        if gold_block.len() != GOLD_TILES * 32 {
+            return Err(Bad::answer(format!(
+                "the gold window has {} bytes of tiles, not {}",
+                gold_block.len(),
+                GOLD_TILES * 32
+            )));
+        }
+        let gold_cgram = ints_at(gold, "cgram")?;
+        gold_block.extend(words_le(
+            gold_cgram.iter().skip(1).take(15).map(|&w| w as u32),
+        ));
+        let disabled = ints_at(window, "disabled")?;
+        if disabled.len() != 12 {
+            return Err(Bad::answer(format!(
+                "the window's disabled ink has {} rows, not twelve",
+                disabled.len()
+            )));
+        }
+        gold_block.extend(disabled.iter().map(|&i| i as u8));
+        if suffix.is_empty() {
+            out.push_str(&format!(
+                "; The gold window: its size, where its number ends and its text's top,\n\
+                 ; in pixels. See the runtime's gold_window.s.\n\
+                 GOLD_WIDTH = {}\nGOLD_HEIGHT = {}\nGOLD_RIGHT = {}\nGOLD_TEXT_Y = {}\n",
+                int_at(gold, "width")?,
+                int_at(gold, "height")?,
+                int_at(gold, "right")?,
+                int_at(gold, "text_y")?,
+            ));
+        }
+        line(out, &block(&format!("window_gold{suffix}"), &gold_block));
+    }
     // The text area's background, one line —two cell rows— after another,
     // which `prime_line` copies under each line before its letters. When
     // every line is the same —a window over one colour, `[windows.
@@ -1010,19 +1052,29 @@ fn backdrop_is_one_line(window: &Value, t: &Geometry) -> Result<bool> {
     Ok(backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]))
 }
 
-/// How many bytes a System's entry takes in `window_systems`: the nine
+/// How many bytes a System's entry takes in `window_systems`: the ten
 /// 24-bit pointers `window_select` copies to `WINDOW_NOW`, in the order of
 /// `WS_TILES` and the rest in the runtime's `window_system.s`.
-pub const WINDOW_SYSTEM_BYTES: usize = 27;
+pub const WINDOW_SYSTEM_BYTES: usize = 30;
+
+/// The gold window's tiles: 88x32 in 8x8 objects. `GOLD_OBJ_TILES` in
+/// record.rs, which keeps room for them past a map's sprite bank.
+const GOLD_TILES: usize = crate::record::GOLD_OBJ_TILES;
 
 /// The table the runtime finds each System's window in: per System, in the
 /// cartridge's order, a pointer to each of its pieces.
-fn window_systems_table(out: &mut String, systems: usize) {
+fn window_systems_table(out: &mut String, systems: usize, gold: bool) {
+    // A test's made-up window has no gold window: see `window_pieces`.
+    let bytes = if gold {
+        WINDOW_SYSTEM_BYTES
+    } else {
+        WINDOW_SYSTEM_BYTES - 3
+    };
     out.push_str(&format!(
         "; The message window of each System, for `window_select`.\n\
-         WINDOW_SYSTEM_BYTES = {WINDOW_SYSTEM_BYTES}\n\
+         WINDOW_SYSTEM_BYTES = {bytes}\n\
          .block {}\nwindow_systems:\n",
-        systems * WINDOW_SYSTEM_BYTES
+        systems * bytes
     ));
     for k in 0..systems {
         let suffix = if k == 0 {
@@ -1040,7 +1092,11 @@ fn window_systems_table(out: &mut String, systems: usize) {
             "window_bar",
             "window_bar_bare",
             "window_arrow_obj",
-        ] {
+            "window_gold",
+        ]
+        .iter()
+        .filter(|p| gold || **p != "window_gold")
+        {
             out.push_str(&format!(
                 "    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"
             ));

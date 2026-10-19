@@ -498,24 +498,10 @@ check_a:
     lda pad_a_prev
     bne nothing                 ; it was already held: not an edge
 picks:
-    lda pick_sel
-    asl
-    asl
-    rep #$20
-.a16
-    and #$00FF
-    clc
-    adc pick_table
-    inc a
-    inc a                       ; the destination comes after the box
-    tay
-    lda [code_ptr], y
-    sta ev_cur
-    sep #$20
-.a8
-    stz pick_active
-    stz msg_open                ; and with that `flush_video` turns HDMA off
-    lda #1
+    ; The page to the option's body and the window closed, or nothing if A
+    ; fell on an option nobody can pick —an inn's "Yes" without the gold—:
+    ; `choice_pick`, in gold_window.s, answers in A and Z.
+    jsl f:choice_pick
     rts
 nothing:
     lda #0

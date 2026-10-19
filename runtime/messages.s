@@ -500,6 +500,7 @@ other:
 .a8
     bcs no_draw
     jsr compose_char
+    jsl f:msg_grey_char         ; an option nobody can pick: gold_window.s
 no_draw:
     ; And the next one starts where this one's advance says: x is
     ; sixteen bits, so a line that grows past the edge does not wrap around
