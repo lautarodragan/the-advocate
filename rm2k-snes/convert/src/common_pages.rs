@@ -72,7 +72,12 @@ impl CommonPages {
             .iter()
             .map(|(&n, &s)| (n, s))
             .filter(|(n, _)| !left_out.contains(n))
-            .filter(|(n, _)| game.db.common_events.get(n).is_some_and(|c| c.iter().any(|c| c.code == SHOW_PICTURE)))
+            .filter(|(n, _)| {
+                game.db
+                    .common_events
+                    .get(n)
+                    .is_some_and(|c| c.iter().any(|c| c.code == SHOW_PICTURE))
+            })
             .collect();
         if candidates.is_empty() {
             return Ok(CommonPages::default());
@@ -100,13 +105,22 @@ impl CommonPages {
                         _ => on.extend(switches.iter()),
                     }
                 }
-                if c.code == CALL_EVENT && p.len() >= 2 && p[0] == 0 && !candidates.contains_key(&p[1]) && seen.insert(p[1]) {
+                if c.code == CALL_EVENT
+                    && p.len() >= 2
+                    && p[0] == 0
+                    && !candidates.contains_key(&p[1])
+                    && seen.insert(p[1])
+                {
                     stack.extend(game.db.common_events.get(&p[1]).into_iter().flatten());
                 }
             }
             on
         };
-        let everywhere = turned(&mut global.iter().flat_map(|n| game.db.common_events.get(n).into_iter().flatten()));
+        let everywhere = turned(
+            &mut global
+                .iter()
+                .flat_map(|n| game.db.common_events.get(n).into_iter().flatten()),
+        );
         let mut on_some = everywhere.clone();
         let mut maps = BTreeSet::new();
         for &id in order {
@@ -120,8 +134,11 @@ impl CommonPages {
                 }
             }
         }
-        let mut commons: Vec<i32> =
-            candidates.iter().filter(|(_, s)| on_some.contains(s)).map(|(&n, _)| n).collect();
+        let mut commons: Vec<i32> = candidates
+            .iter()
+            .filter(|(_, s)| on_some.contains(s))
+            .map(|(&n, _)| n)
+            .collect();
         commons.sort_by(|a, b| b.cmp(a));
         if commons.is_empty() {
             maps.clear();
@@ -159,6 +176,11 @@ impl CommonPages {
                 commands: game.db.common_events[n].clone(),
             })
             .collect();
-        Some(Event { id, x: 0, y: 0, pages })
+        Some(Event {
+            id,
+            x: 0,
+            y: 0,
+            pages,
+        })
     }
 }

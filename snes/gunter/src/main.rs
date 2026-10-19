@@ -216,8 +216,7 @@ impl Json {
 // --- encode -----------------------------------------------------------------
 
 fn read_audio(path: &Path, rate: Option<u32>) -> Result<wav::Audio> {
-    let bytes =
-        std::fs::read(path).map_err(|e| Bad(format!("{}: {e}", path.display())))?;
+    let bytes = std::fs::read(path).map_err(|e| Bad(format!("{}: {e}", path.display())))?;
     if wav::looks_like_wav(&bytes) {
         let mut audio = wav::read(&bytes, path)?;
         if let Some(rate) = rate {
@@ -232,8 +231,7 @@ fn read_audio(path: &Path, rate: Option<u32>) -> Result<wav::Audio> {
 fn write_out(path: &Path, bytes: &[u8]) -> Result<()> {
     if let Some(dir) = path.parent() {
         if !dir.as_os_str().is_empty() {
-            std::fs::create_dir_all(dir)
-                .map_err(|e| Bad(format!("{}: {e}", dir.display())))?;
+            std::fs::create_dir_all(dir).map_err(|e| Bad(format!("{}: {e}", dir.display())))?;
         }
     }
     std::fs::write(path, bytes).map_err(|e| Bad(format!("{}: {e}", path.display())))
@@ -303,7 +301,10 @@ fn encode(args: &Encode) -> Result<u8> {
             data.len() as f64 / (audio.samples.len() * 2) as f64
         );
         match loop_block {
-            Some(b) => say!("  loops back to block {b} (sample {})", b * codec::BLOCK_SAMPLES),
+            Some(b) => say!(
+                "  loops back to block {b} (sample {})",
+                b * codec::BLOCK_SAMPLES
+            ),
             None => say!("  does not loop"),
         }
         say!("  worst sample off by {worst:.2}% of the peak");
@@ -322,8 +323,7 @@ fn encode(args: &Encode) -> Result<u8> {
 // --- decode and info --------------------------------------------------------
 
 fn read_blocks(path: &Path) -> Result<Vec<u8>> {
-    let data =
-        std::fs::read(path).map_err(|e| Bad(format!("{}: {e}", path.display())))?;
+    let data = std::fs::read(path).map_err(|e| Bad(format!("{}: {e}", path.display())))?;
     if data.is_empty() || data.len() % codec::BLOCK_BYTES != 0 {
         return Err(Bad(format!(
             "{}: {} bytes is not a whole number of {}-byte BRR blocks",
@@ -356,8 +356,10 @@ fn decode(args: &Decode) -> Result<u8> {
 
 fn info(args: &Info) -> Result<u8> {
     let data = read_blocks(&args.input)?;
-    let headers: Vec<codec::Header> =
-        data.chunks_exact(codec::BLOCK_BYTES).map(|b| codec::Header::of(b[0])).collect();
+    let headers: Vec<codec::Header> = data
+        .chunks_exact(codec::BLOCK_BYTES)
+        .map(|b| codec::Header::of(b[0]))
+        .collect();
 
     let mut filters = [0usize; 4];
     let mut shifts = [0usize; 16];
@@ -368,8 +370,13 @@ fn info(args: &Info) -> Result<u8> {
     let last = headers.last().expect("read_blocks refuses an empty file");
     // A loop flag anywhere but the last block is ignored by the DSP, and is
     // the usual sign of a file assembled by hand.
-    let stray = headers[..headers.len() - 1].iter().filter(|h| h.loops).count();
-    let unusable = shifts[(codec::MAX_SHIFT as usize + 1)..].iter().sum::<usize>();
+    let stray = headers[..headers.len() - 1]
+        .iter()
+        .filter(|h| h.loops)
+        .count();
+    let unusable = shifts[(codec::MAX_SHIFT as usize + 1)..]
+        .iter()
+        .sum::<usize>();
 
     if args.json {
         Json::new()
@@ -391,7 +398,11 @@ fn info(args: &Info) -> Result<u8> {
         say!(
             "  last block: {}{}",
             if last.end { "end" } else { "no end flag" },
-            if last.loops { ", loops" } else { ", does not loop" }
+            if last.loops {
+                ", loops"
+            } else {
+                ", does not loop"
+            }
         );
         for (filter, count) in filters.iter().enumerate() {
             if *count > 0 {
@@ -409,8 +420,10 @@ fn info(args: &Info) -> Result<u8> {
             say!("  {stray} block(s) before the last carry a loop flag, which the DSP ignores");
         }
         if unusable > 0 {
-            say!("  {unusable} block(s) ask for a range above {}, which the DSP does not decode",
-                     codec::MAX_SHIFT);
+            say!(
+                "  {unusable} block(s) ask for a range above {}, which the DSP does not decode",
+                codec::MAX_SHIFT
+            );
         }
     }
     Ok(0)
@@ -432,8 +445,12 @@ fn soundfont(args: &Sf2) -> Result<u8> {
                     .print();
             }
         } else {
-            say!("{}: {} presets, {} samples",
-                     args.file.display(), font.preset_count(), font.samples.len() - 1);
+            say!(
+                "{}: {} presets, {} samples",
+                args.file.display(),
+                font.preset_count(),
+                font.samples.len() - 1
+            );
             let mut rows: Vec<(u16, u16, String)> = (0..font.preset_count())
                 .map(|i| {
                     let (p, name) = font.preset(i);
@@ -483,7 +500,7 @@ fn soundfont(args: &Sf2) -> Result<u8> {
 
     let Some(text) = &args.extract else {
         return Err(Bad(
-            "nothing to do: pass --list, --list-samples or --extract".into()
+            "nothing to do: pass --list, --list-samples or --extract".into(),
         ));
     };
 
@@ -512,7 +529,10 @@ fn soundfont(args: &Sf2) -> Result<u8> {
     if args.json {
         Json::new()
             .text("name", &sample.name)
-            .maybe("output", args.output.as_ref().map(|p| format!("{:?}", p.display())))
+            .maybe(
+                "output",
+                args.output.as_ref().map(|p| format!("{:?}", p.display())),
+            )
             .num("frames", audio.len())
             .num("rate", sample.rate)
             .num("root_key", root)
@@ -533,7 +553,12 @@ fn soundfont(args: &Sf2) -> Result<u8> {
         if let Some(path) = &args.output {
             say!("wrote {}", path.display());
         }
-        say!("  {} ({} frames at {} Hz)", sample.name, audio.len(), sample.rate);
+        say!(
+            "  {} ({} frames at {} Hz)",
+            sample.name,
+            audio.len(),
+            sample.rate
+        );
         say!("  plays at key {root}, off by {cents} cents");
         match (loop_start, loop_end) {
             (Some(a), Some(b)) => say!("  loops {a}..{b} ({} frames)", b - a),
@@ -653,8 +678,9 @@ mod tests {
         let input = dir.join("noise.wav");
         // Sample-to-sample noise at full scale is the worst case there is: no
         // filter predicts it and the range cannot cover the jumps.
-        let noisy: Vec<i16> =
-            (0..512).map(|i: i32| if i % 2 == 0 { 32767 } else { -32768 }).collect();
+        let noisy: Vec<i16> = (0..512)
+            .map(|i: i32| if i % 2 == 0 { 32767 } else { -32768 })
+            .collect();
         std::fs::write(&input, wav::write(&noisy, 16000)).unwrap();
 
         let mut args = Encode {

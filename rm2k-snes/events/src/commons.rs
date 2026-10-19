@@ -29,7 +29,6 @@
 //! registries: what they number goes at the end and moves nobody's index.
 
 use crate::codes::*;
-use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use crate::compile::{
     compile_page, Ctx, Indices, SoundSettings, COND_ACTOR, COND_ACTOR_EQUIPMENT, COND_SWITCH,
 };
@@ -38,6 +37,7 @@ use crate::game::{Command, Game};
 use crate::losses::{Losses, Origin};
 use crate::messages::Messages;
 use crate::registry::{Songs, Troops};
+use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -140,10 +140,28 @@ pub fn menu_open(game: &Game, n: i32) -> Vec<u8> {
 /// what it counted, are left out —the menu's page shows it instead—, and
 /// anything else is refused.
 const BEFORE_KEEPS: [i32; 13] = [
-    END, CONTROL_SWITCHES, CONTROL_VARS, COND_BRANCH, COND_ELSE, COND_END, LABEL, JUMP_TO_LABEL,
-    CALL_EVENT, COMMENT, COMMENT_2, LOOP, END_LOOP,
+    END,
+    CONTROL_SWITCHES,
+    CONTROL_VARS,
+    COND_BRANCH,
+    COND_ELSE,
+    COND_END,
+    LABEL,
+    JUMP_TO_LABEL,
+    CALL_EVENT,
+    COMMENT,
+    COMMENT_2,
+    LOOP,
+    END_LOOP,
 ];
-const BEFORE_DROPS: [i32; 6] = [SHOW_MESSAGE, SHOW_MESSAGE_2, SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE, PLAY_SOUND];
+const BEFORE_DROPS: [i32; 6] = [
+    SHOW_MESSAGE,
+    SHOW_MESSAGE_2,
+    SHOW_PICTURE,
+    MOVE_PICTURE,
+    ERASE_PICTURE,
+    PLAY_SOUND,
+];
 
 /// Common event `n`'s commands as a custom menu runs it before a page.
 pub fn before_commands(game: &Game, n: i32) -> Result<Vec<Command>> {
@@ -277,7 +295,9 @@ pub fn plan(
     let mut before_calls = BTreeSet::new();
     for &n in &s.game.patches.menus.before {
         if !s.game.common_events.contains_key(&n) {
-            return Err(Bad::answer(format!("a custom menu runs common event {n}, and there is none")));
+            return Err(Bad::answer(format!(
+                "a custom menu runs common event {n}, and there is none"
+            )));
         }
         before_calls.extend(callees(s.game, &before_commands(s.game, n)?));
     }
@@ -294,7 +314,17 @@ pub fn plan(
         let mut m = Messages::measuring(messages.step, messages.window);
         let mut so = songs.clone();
         let mut t = Troops::default();
-        if body(s, n, &every, &mut m, &mut so, &mut t, &mut Losses::default())?.is_some() {
+        if body(
+            s,
+            n,
+            &every,
+            &mut m,
+            &mut so,
+            &mut t,
+            &mut Losses::default(),
+        )?
+        .is_some()
+        {
             compiles.insert(n);
         }
     }
@@ -417,8 +447,16 @@ fn depth(game: &Game, plan: &Plan) -> Option<usize> {
 /// on what an actor has equipped, and the commands that only set a state
 /// —its skills, the three permissions—, with their block ends and comments.
 const PURE_KEEPS: [i32; 10] = [
-    COND_BRANCH, COND_ELSE, COND_END, END, CHANGE_SKILLS, CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
-    CHANGE_ESCAPE_ACCESS, COMMENT, COMMENT_2,
+    COND_BRANCH,
+    COND_ELSE,
+    COND_END,
+    END,
+    CHANGE_SKILLS,
+    CHANGE_SAVE_ACCESS,
+    CHANGE_MENU_ACCESS,
+    CHANGE_ESCAPE_ACCESS,
+    COMMENT,
+    COMMENT_2,
 ];
 
 /// Whether a parallel common event is pure: it only reads switches and the
@@ -453,7 +491,9 @@ pub fn pure(commands: &[Command]) -> bool {
 /// battle screen, is 113 `if switch → ChangePBG`, and running it every
 /// frame cost the screen ~110 of the frame's 262 lines.
 pub fn pure_page(commands: &[Command]) -> bool {
-    commands.iter().all(|c| c.code == CHANGE_PBG || pure(std::slice::from_ref(c)))
+    commands
+        .iter()
+        .all(|c| c.code == CHANGE_PBG || pure(std::slice::from_ref(c)))
 }
 
 /// The parallel common events —trigger 4, with commands—, each compiled
@@ -538,7 +578,11 @@ mod tests {
     fn backdrop_setter() -> Vec<Command> {
         let mut page = Vec::new();
         for switch in [700, 701] {
-            page.push(c(COND_BRANCH, 0, vec![COND_SWITCH as i32, switch, 0, 0, 0, 0]));
+            page.push(c(
+                COND_BRANCH,
+                0,
+                vec![COND_SWITCH as i32, switch, 0, 0, 0, 0],
+            ));
             page.push(c(CHANGE_PBG, 1, vec![0, 0, 0, 0, 0, 0, 0]));
             page.push(c(END, 1, vec![]));
             page.push(c(COND_END, 0, vec![]));
@@ -564,7 +608,10 @@ mod tests {
         page.insert(0, c(CALL_EVENT, 0, vec![0, 38, 0]));
         assert!(!pure_page(&page));
         // And a branch on a variable reads what nobody owes it.
-        let page = vec![c(COND_BRANCH, 0, vec![1, 174, 0, 50, 1, 0]), c(COND_END, 0, vec![])];
+        let page = vec![
+            c(COND_BRANCH, 0, vec![1, 174, 0, 50, 1, 0]),
+            c(COND_END, 0, vec![]),
+        ];
         assert!(!pure_page(&page));
     }
 }

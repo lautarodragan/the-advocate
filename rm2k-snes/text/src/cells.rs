@@ -28,7 +28,10 @@ pub fn ink(font: &Font, x: usize, text: &str, cells: &mut BTreeSet<usize>) {
 /// The pairs of tiles a screen asks of the pool: per distinct row —its
 /// runs, `(x, text, colour)`—, the cells it puts ink on. Rows that say
 /// the same share their tiles.
-pub fn pairs<'a>(font: &Font, rows: impl IntoIterator<Item = &'a [(usize, String, usize)]>) -> usize {
+pub fn pairs<'a>(
+    font: &Font,
+    rows: impl IntoIterator<Item = &'a [(usize, String, usize)]>,
+) -> usize {
     let mut seen: BTreeSet<Vec<(usize, String, usize)>> = BTreeSet::new();
     let mut total = 0;
     for row in rows {
@@ -63,6 +66,9 @@ mod tests {
     fn rows_that_say_the_same_share_their_pairs() {
         let font = Font::rm2k(crate::font::MINCHO);
         let row = vec![(1, "AB".to_string(), 0)];
-        assert_eq!(pairs(&font, [row.as_slice(), row.as_slice()]), pairs(&font, [row.as_slice()]));
+        assert_eq!(
+            pairs(&font, [row.as_slice(), row.as_slice()]),
+            pairs(&font, [row.as_slice()])
+        );
     }
 }

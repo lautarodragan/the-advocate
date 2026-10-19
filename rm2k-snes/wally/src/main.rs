@@ -5,10 +5,10 @@
 //! has a default path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use wally::map::{self, MapRequest};
-use wally::{inspect, layers, request, Bad, Game, LayersRequest, Result};
 use std::path::PathBuf;
 use std::process::ExitCode;
+use wally::map::{self, MapRequest};
+use wally::{inspect, layers, request, Bad, Game, LayersRequest, Result};
 
 /// "The map's colours cannot be split" is this tool answering no; "that
 /// flag makes no sense" is the call being wrong.
@@ -87,7 +87,8 @@ struct LayersArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "Writes into --out what `layers` writes, for the layers as they end \
+#[command(
+    after_help = "Writes into --out what `layers` writes, for the layers as they end \
     up, and:\n  \
     sprites.bin     the sprite bank, 4bpp, one pose per slot and the extras \
                     at its end\n  \
@@ -104,7 +105,8 @@ struct LayersArgs {
     `route_graphics`, `also_walk`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
     `palette_weight`, `dither`, `window_colors` as for `layers`, and the `TileSubstitution`s it can run —`substitutions`, \
     whose blocks are built, and `common_substitutions`, only translated—. See \
-    `MapRequest::from_json`.")]
+    `MapRequest::from_json`."
+)]
 struct MapArgs {
     #[command(flatten)]
     place: Where,
@@ -145,7 +147,11 @@ fn write_answer(out: &std::path::Path, name: &str, answer: &serde_json::Value) -
 fn do_bakeable(args: &MapArgs) -> Result<()> {
     let (game, data, whose) = game(&args.place)?;
     let request = MapRequest::partial(&data, &whose)?;
-    write_answer(&args.place.out, "bakeable.json", &inspect::bakeable_report(&game, &request)?)
+    write_answer(
+        &args.place.out,
+        "bakeable.json",
+        &inspect::bakeable_report(&game, &request)?,
+    )
 }
 
 fn do_split(args: &MapArgs) -> Result<()> {
@@ -155,7 +161,11 @@ fn do_split(args: &MapArgs) -> Result<()> {
         .get("palettes")
         .and_then(serde_json::Value::as_u64)
         .ok_or_else(|| Bad::answer(format!("{whose}: no `palettes`, how many the split gets")))?;
-    write_answer(&args.place.out, "split.json", &inspect::split_report(&game, &request, palettes as usize)?)
+    write_answer(
+        &args.place.out,
+        "split.json",
+        &inspect::split_report(&game, &request, palettes as usize)?,
+    )
 }
 
 fn main() -> ExitCode {

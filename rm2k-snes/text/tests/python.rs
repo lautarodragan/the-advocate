@@ -17,13 +17,37 @@ use rm2k_snes_text::{font, line, refit};
 use sha2::{Digest, Sha256};
 
 fn sha(data: &[u8]) -> String {
-    Sha256::digest(data).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(data)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 const WORDS: [&str; 24] = [
-    "the", "Link", "Colony", "is", "connected", "to", "Block.", "Sector", "33.", "Well,",
-    "maybe...", "\"Odile.\"", "surprise!", "why?", "(really)", "no-one", "a", "an",
-    "electromagnetic", "supercalifragilisticexpialidocious", "Remember,", "it's", "I", "go",
+    "the",
+    "Link",
+    "Colony",
+    "is",
+    "connected",
+    "to",
+    "Block.",
+    "Sector",
+    "33.",
+    "Well,",
+    "maybe...",
+    "\"Odile.\"",
+    "surprise!",
+    "why?",
+    "(really)",
+    "no-one",
+    "a",
+    "an",
+    "electromagnetic",
+    "supercalifragilisticexpialidocious",
+    "Remember,",
+    "it's",
+    "I",
+    "go",
 ];
 
 fn made_up_boxes() -> Vec<Vec<String>> {
@@ -89,7 +113,11 @@ pub fn system() -> Picture {
             return [10, 10, 10, 255];
         }
         if (32..48).contains(&y) && (32..120).contains(&x) {
-            return if !(x + y).is_multiple_of(3) { [255, 255, 0, 255] } else { [0; 4] };
+            return if !(x + y).is_multiple_of(3) {
+                [255, 255, 0, 255]
+            } else {
+                [0; 4]
+            };
         }
         if y >= 48 {
             let n = x / 16 + 10 * ((y - 48) / 16);
@@ -120,19 +148,59 @@ pub fn system() -> Picture {
 fn a_line_in_each_font_and_four_colours() {
     let system = system();
     let expected = [
-        (font::GOTHIC, 0, "5ae6a73541aec4a6020e326554b45f9c3ddcf7ff02a5df1f79f737a9e937df78"),
-        (font::GOTHIC, 1, "2c62aa85b796a7b69cd50e66fe27cb2186bef4ef30ba7ad770f7115b6c6b7269"),
-        (font::GOTHIC, 3, "94929c4a5ba24f75eaeb19501d0e4c5a0dfd26a93896834a3eeca89ac9bb1aaa"),
-        (font::GOTHIC, 19, "f417650c08ecd8c3511a4c13919bcb7871b7ab6848af1befbab32cfe12fc90bf"),
-        (font::MINCHO, 0, "f0758889403a98193db17d3bae15a99e5f369725b1ada233abed5e74a37024e7"),
-        (font::MINCHO, 1, "ae3fab21ad7ecdda5eba217dc271f2ba261d959366140cc0c62e804d66fd6e88"),
-        (font::MINCHO, 3, "ffc9a68ae375ebeaba40599126124b36306ddc1cf0a40862058ef2cfdd14e853"),
-        (font::MINCHO, 19, "44e55170763c611b826ee5a9919cd603811bff87d4061caff692c6e8e79c62e8"),
+        (
+            font::GOTHIC,
+            0,
+            "5ae6a73541aec4a6020e326554b45f9c3ddcf7ff02a5df1f79f737a9e937df78",
+        ),
+        (
+            font::GOTHIC,
+            1,
+            "2c62aa85b796a7b69cd50e66fe27cb2186bef4ef30ba7ad770f7115b6c6b7269",
+        ),
+        (
+            font::GOTHIC,
+            3,
+            "94929c4a5ba24f75eaeb19501d0e4c5a0dfd26a93896834a3eeca89ac9bb1aaa",
+        ),
+        (
+            font::GOTHIC,
+            19,
+            "f417650c08ecd8c3511a4c13919bcb7871b7ab6848af1befbab32cfe12fc90bf",
+        ),
+        (
+            font::MINCHO,
+            0,
+            "f0758889403a98193db17d3bae15a99e5f369725b1ada233abed5e74a37024e7",
+        ),
+        (
+            font::MINCHO,
+            1,
+            "ae3fab21ad7ecdda5eba217dc271f2ba261d959366140cc0c62e804d66fd6e88",
+        ),
+        (
+            font::MINCHO,
+            3,
+            "ffc9a68ae375ebeaba40599126124b36306ddc1cf0a40862058ef2cfdd14e853",
+        ),
+        (
+            font::MINCHO,
+            19,
+            "44e55170763c611b826ee5a9919cd603811bff87d4061caff692c6e8e79c62e8",
+        ),
     ];
     for (font_id, color, hash) in expected {
         let mut dest = Picture::transparent(64, 24);
         // Past the left edge and the right one: the line is cut.
-        let end = line::draw_line(&mut dest, &system, -2, 3, "Hi, g{}~|!", color, &font::Font::rm2k(font_id));
+        let end = line::draw_line(
+            &mut dest,
+            &system,
+            -2,
+            3,
+            "Hi, g{}~|!",
+            color,
+            &font::Font::rm2k(font_id),
+        );
         assert_eq!(end, 58);
         assert_eq!(sha(&dest.rgba), hash, "font {font_id}, colour {color}");
     }

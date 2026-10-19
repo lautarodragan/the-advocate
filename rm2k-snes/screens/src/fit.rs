@@ -139,17 +139,24 @@ struct Bank {
 impl Bank {
     fn new(cells: &[Tile]) -> Bank {
         let empty: Tile = [[None; cells::CELL]; cells::CELL];
-        let mut bank = Bank { tiles: vec![empty], weights: vec![0], of: HashMap::from([(empty, (0, false, false))]) };
+        let mut bank = Bank {
+            tiles: vec![empty],
+            weights: vec![0],
+            of: HashMap::from([(empty, (0, false, false))]),
+        };
         for cell in cells {
             let at = match bank.of.get(cell) {
                 Some(&at) => at,
                 None => {
-                    let found = [(true, false), (false, true), (true, true)].iter().find_map(|&(fx, fy)| {
-                        let (n, gx, gy) = *bank.of.get(&adeleine::fuse::flipped(cell, fx, fy))?;
-                        // `cell` mirrored is tile `n` mirrored by (gx, gy):
-                        // so `cell` is tile `n` mirrored by both.
-                        Some((n, fx ^ gx, fy ^ gy))
-                    });
+                    let found = [(true, false), (false, true), (true, true)]
+                        .iter()
+                        .find_map(|&(fx, fy)| {
+                            let (n, gx, gy) =
+                                *bank.of.get(&adeleine::fuse::flipped(cell, fx, fy))?;
+                            // `cell` mirrored is tile `n` mirrored by (gx, gy):
+                            // so `cell` is tile `n` mirrored by both.
+                            Some((n, fx ^ gx, fy ^ gy))
+                        });
                     let at = found.unwrap_or_else(|| {
                         bank.tiles.push(*cell);
                         bank.weights.push(0);
@@ -177,7 +184,12 @@ impl Bank {
 /// The Frozen World's item text 82 pairs of the 132 it asks for. If the
 /// text alone takes the whole bank there is nothing to give it: the windows
 /// fit the bank, and the converter says the text does not.
-pub fn skin_for(game: &Game, skin: &Skin, screen: Screen, text: usize) -> Result<(Skin, Option<(usize, usize)>)> {
+pub fn skin_for(
+    game: &Game,
+    skin: &Skin,
+    screen: Screen,
+    text: usize,
+) -> Result<(Skin, Option<(usize, usize)>)> {
     let whole = tiles_max(screen);
     let max = if text < whole { whole - text } else { whole };
     let bank = Bank::new(&cut_cells(&layers(game, skin, screen)?));
@@ -197,6 +209,9 @@ pub fn skin_for(game: &Game, skin: &Skin, screen: Screen, text: usize) -> Result
             redrawn.cells.insert(*cell, to);
         }
     }
-    let fitted = Skin { redrawn: Some(Rc::new(redrawn)), ..skin.clone() };
+    let fitted = Skin {
+        redrawn: Some(Rc::new(redrawn)),
+        ..skin.clone()
+    };
     Ok((fitted, Some((bank.tiles.len(), max))))
 }

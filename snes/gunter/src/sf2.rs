@@ -275,8 +275,7 @@ fn signed(amount: u16) -> i32 {
 
 impl SoundFont {
     pub fn open(path: &Path) -> Result<SoundFont> {
-        let mut handle = File::open(path)
-            .map_err(|e| Bad(format!("{}: {e}", path.display())))?;
+        let mut handle = File::open(path).map_err(|e| Bad(format!("{}: {e}", path.display())))?;
 
         let mut header = [0u8; 12];
         handle
@@ -296,7 +295,9 @@ impl SoundFont {
 
         let mut position = 12u64;
         while position < total {
-            let Some((tag, size)) = read_tag(&mut handle, position) else { break };
+            let Some((tag, size)) = read_tag(&mut handle, position) else {
+                break;
+            };
             if &tag == b"LIST" {
                 let mut kind = [0u8; 4];
                 if handle.read_exact(&mut kind).is_err() {
@@ -317,7 +318,10 @@ impl SoundFont {
         }
 
         let (pcm_offset, pcm_size) = pcm.ok_or_else(|| {
-            Bad(format!("{}: no smpl chunk, so the file carries no audio", path.display()))
+            Bad(format!(
+                "{}: no smpl chunk, so the file carries no audio",
+                path.display()
+            ))
         })?;
 
         let table = |tag: &[u8; 4], size: usize| -> Result<Vec<&[u8]>> {
@@ -336,19 +340,33 @@ impl SoundFont {
         let phdr = table(b"phdr", 38)?;
         let presets: Vec<Preset> = phdr
             .iter()
-            .map(|r| Preset { program: u16_at(r, 20), bank: u16_at(r, 22), bag: u16_at(r, 24) })
+            .map(|r| Preset {
+                program: u16_at(r, 20),
+                bank: u16_at(r, 22),
+                bag: u16_at(r, 24),
+            })
             .collect();
         let preset_names: Vec<String> = phdr.iter().map(|r| name_at(r, 0, 20)).collect();
-        let preset_bags: Vec<Bag> =
-            table(b"pbag", 4)?.iter().map(|r| Bag { gen: u16_at(r, 0) }).collect();
-        let preset_gens: Vec<(u16, u16)> =
-            table(b"pgen", 4)?.iter().map(|r| (u16_at(r, 0), u16_at(r, 2))).collect();
-        let instruments: Vec<(String, u16)> =
-            table(b"inst", 22)?.iter().map(|r| (name_at(r, 0, 20), u16_at(r, 20))).collect();
-        let inst_bags: Vec<Bag> =
-            table(b"ibag", 4)?.iter().map(|r| Bag { gen: u16_at(r, 0) }).collect();
-        let inst_gens: Vec<(u16, u16)> =
-            table(b"igen", 4)?.iter().map(|r| (u16_at(r, 0), u16_at(r, 2))).collect();
+        let preset_bags: Vec<Bag> = table(b"pbag", 4)?
+            .iter()
+            .map(|r| Bag { gen: u16_at(r, 0) })
+            .collect();
+        let preset_gens: Vec<(u16, u16)> = table(b"pgen", 4)?
+            .iter()
+            .map(|r| (u16_at(r, 0), u16_at(r, 2)))
+            .collect();
+        let instruments: Vec<(String, u16)> = table(b"inst", 22)?
+            .iter()
+            .map(|r| (name_at(r, 0, 20), u16_at(r, 20)))
+            .collect();
+        let inst_bags: Vec<Bag> = table(b"ibag", 4)?
+            .iter()
+            .map(|r| Bag { gen: u16_at(r, 0) })
+            .collect();
+        let inst_gens: Vec<(u16, u16)> = table(b"igen", 4)?
+            .iter()
+            .map(|r| (u16_at(r, 0), u16_at(r, 2)))
+            .collect();
         let samples: Vec<Sample> = table(b"shdr", 46)?
             .iter()
             .map(|r| Sample {
@@ -454,7 +472,13 @@ impl SoundFont {
     pub fn preset_zones(&self, index: usize) -> Vec<Zone> {
         let first = self.presets[index].bag as usize;
         let last = self.presets[index + 1].bag as usize;
-        Self::zones(&self.preset_bags, &self.preset_gens, first, last, GEN_INSTRUMENT)
+        Self::zones(
+            &self.preset_bags,
+            &self.preset_gens,
+            first,
+            last,
+            GEN_INSTRUMENT,
+        )
     }
 
     pub fn instrument_zones(&self, index: usize) -> Vec<Zone> {
@@ -472,7 +496,9 @@ impl SoundFont {
     pub fn zone_for(&self, program: u16, key: u8, bank: u16) -> Option<Found> {
         let preset = self.find_preset(program, bank)?;
         for zone in self.preset_zones(preset) {
-            let Some(instrument) = zone.get(GEN_INSTRUMENT) else { continue };
+            let Some(instrument) = zone.get(GEN_INSTRUMENT) else {
+                continue;
+            };
             if !zone.covers(key) {
                 continue;
             }
@@ -481,7 +507,9 @@ impl SoundFont {
                 continue;
             }
             for inner in self.instrument_zones(instrument) {
-                let Some(id) = inner.sample_id() else { continue };
+                let Some(id) = inner.sample_id() else {
+                    continue;
+                };
                 if !inner.covers(key) {
                     continue;
                 }
@@ -490,7 +518,11 @@ impl SoundFont {
                     continue;
                 }
                 let sample = self.samples[id].clone();
-                return Some(Found { preset: zone, zone: inner, sample });
+                return Some(Found {
+                    preset: zone,
+                    zone: inner,
+                    sample,
+                });
             }
         }
         None
@@ -511,16 +543,17 @@ impl SoundFont {
             .seek(SeekFrom::Start(self.pcm_offset + start as u64 * 2))
             .map_err(|e| Bad(format!("{}: {e}", self.path.display())))?;
         let mut raw = vec![0u8; count * 2];
-        self.handle
-            .read_exact(&mut raw)
-            .map_err(|_| {
-                Bad(format!(
-                    "{}: the audio block ends before sample {end} (it holds {})",
-                    self.path.display(),
-                    self.pcm_frames
-                ))
-            })?;
-        Ok(raw.chunks_exact(2).map(|c| i16::from_le_bytes([c[0], c[1]])).collect())
+        self.handle.read_exact(&mut raw).map_err(|_| {
+            Bad(format!(
+                "{}: the audio block ends before sample {end} (it holds {})",
+                self.path.display(),
+                self.pcm_frames
+            ))
+        })?;
+        Ok(raw
+            .chunks_exact(2)
+            .map(|c| i16::from_le_bytes([c[0], c[1]]))
+            .collect())
     }
 }
 
@@ -542,7 +575,9 @@ fn read_list(
 ) -> Result<()> {
     let mut position = start;
     while position < end {
-        let Some((tag, size)) = read_tag(handle, position) else { break };
+        let Some((tag, size)) = read_tag(handle, position) else {
+            break;
+        };
         if &tag == b"smpl" {
             // Of the PCM only its whereabouts are kept: it is most of the file.
             *pcm = Some((position + 8, size));

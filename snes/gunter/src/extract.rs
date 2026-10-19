@@ -43,13 +43,21 @@ pub fn parse_selector(text: &str) -> Result<Selector> {
                     .parse()
                     .map_err(|_| Bad(format!("key {k:?} is not a number 0-127")))?,
             };
-            Ok(Selector::Program { program, bank: 0, key })
+            Ok(Selector::Program {
+                program,
+                bank: 0,
+                key,
+            })
         }
         "drum" => {
             let key: u8 = rest
                 .parse()
                 .map_err(|_| Bad(format!("drum key {rest:?} is not a number 0-127")))?;
-            Ok(Selector::Program { program: 0, bank: sf2::DRUM_BANK, key })
+            Ok(Selector::Program {
+                program: 0,
+                bank: sf2::DRUM_BANK,
+                key,
+            })
         }
         "sample" => Ok(Selector::Named(rest.to_string())),
         _ => Err(bad()),
@@ -93,16 +101,22 @@ pub fn contract(font: &SoundFont, selector: &Selector) -> Option<Contract> {
     let (zone, envelope, sample) = match selector {
         Selector::Program { program, bank, key } => {
             let found = font.zone_for(*program, *key, *bank)?;
-            (Some(found.zone.clone()), Some(found.envelope()), found.sample)
+            (
+                Some(found.zone.clone()),
+                Some(found.envelope()),
+                found.sample,
+            )
         }
         Selector::Named(name) => (None, None, font.find_sample(name)?.clone()),
     };
 
     // The loop is reported relative to the extracted audio, because that is
     // the only place it means anything once the sample is out of the file.
-    let looped = zone.as_ref().map_or(sample.loop_end > sample.loop_start, |z| {
-        z.looped() && sample.loop_end > sample.loop_start
-    });
+    let looped = zone
+        .as_ref()
+        .map_or(sample.loop_end > sample.loop_start, |z| {
+            z.looped() && sample.loop_end > sample.loop_start
+        });
     let loop_start = looped.then(|| sample.loop_start.saturating_sub(sample.start));
     let loop_end = looped.then(|| sample.loop_end.saturating_sub(sample.start));
 
@@ -114,7 +128,10 @@ pub fn contract(font: &SoundFont, selector: &Selector) -> Option<Contract> {
     // that reads only one of them plays the sample out of tune.
     let tuning_cents = sample.correction as i32
         + zone.as_ref().map_or(0, |z| z.get_or(sf2::GEN_FINE_TUNE, 0))
-        + 100 * zone.as_ref().map_or(0, |z| z.get_or(sf2::GEN_COARSE_TUNE, 0));
+        + 100
+            * zone
+                .as_ref()
+                .map_or(0, |z| z.get_or(sf2::GEN_COARSE_TUNE, 0));
 
     Some(Contract {
         name: sample.name.clone(),

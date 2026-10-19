@@ -66,8 +66,14 @@ pub fn screen(font: &Font, png: &Path) -> Result<Screen> {
     let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), w as u32, h as u32);
     encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = encoder.write_header().map_err(|e| Stop::new(format!("{}: {e}", png.display())))?;
-    writer.write_image_data(&rgb).map_err(|e| Stop::new(format!("{}: {e}", png.display())))?;
-    writer.finish().map_err(|e| Stop::new(format!("{}: {e}", png.display())))?;
+    let mut writer = encoder
+        .write_header()
+        .map_err(|e| Stop::new(format!("{}: {e}", png.display())))?;
+    writer
+        .write_image_data(&rgb)
+        .map_err(|e| Stop::new(format!("{}: {e}", png.display())))?;
+    writer
+        .finish()
+        .map_err(|e| Stop::new(format!("{}: {e}", png.display())))?;
     fullscreen::compressed(png, 0, 256, &[])
 }

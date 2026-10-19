@@ -64,7 +64,11 @@ pub enum Error {
     /// A header at this offset names a command that does not exist.
     BadCommand { offset: usize, command: u8 },
     /// A repeat at this offset reads at or past the byte it is producing.
-    BadRepeat { offset: usize, from: usize, at: usize },
+    BadRepeat {
+        offset: usize,
+        from: usize,
+        at: usize,
+    },
     /// The output would pass [`MAX_OUTPUT`].
     Overflow(usize),
     /// There are bytes after the terminator, which ends at this offset.
@@ -91,7 +95,9 @@ impl fmt::Display for Error {
             Error::Overflow(at) => {
                 write!(f, "byte {}: the output passes {} bytes", at, MAX_OUTPUT)
             }
-            Error::Trailing(at) => write!(f, "the stream ends at byte {} and the input goes on", at),
+            Error::Trailing(at) => {
+                write!(f, "the stream ends at byte {} and the input goes on", at)
+            }
         }
     }
 }
@@ -152,7 +158,10 @@ impl MinTree {
         while size < n {
             size <<= 1;
         }
-        MinTree { size, nodes: vec![(u64::MAX, usize::MAX); 2 * size] }
+        MinTree {
+            size,
+            nodes: vec![(u64::MAX, usize::MAX); 2 * size],
+        }
     }
 
     fn set(&mut self, at: usize, value: u64) {
@@ -204,7 +213,8 @@ fn suffix_array(data: &[u8]) -> Vec<usize> {
     let mut k = 1;
     loop {
         // The pair (rank of i, rank of i + k), with "past the end" smallest.
-        let key = |i: usize, rank: &Vec<usize>| (rank[i], if i + k < n { rank[i + k] + 1 } else { 0 });
+        let key =
+            |i: usize, rank: &Vec<usize>| (rank[i], if i + k < n { rank[i + k] + 1 } else { 0 });
         sa.sort_unstable_by_key(|&i| key(i, &rank));
         next[sa[0]] = 0;
         for w in 1..n {
@@ -255,7 +265,13 @@ fn longest_matches(data: &[u8]) -> Vec<(usize, usize)> {
     while 2 * width <= n {
         let last = table.last().unwrap();
         let row: Vec<usize> = (0..n)
-            .map(|r| if r + width < n { last[r].min(last[r + width]) } else { last[r] })
+            .map(|r| {
+                if r + width < n {
+                    last[r].min(last[r + width])
+                } else {
+                    last[r]
+                }
+            })
             .collect();
         table.push(row);
         width *= 2;
@@ -350,16 +366,31 @@ pub fn parse_with(data: &[u8], options: Options) -> Result<Vec<Command>, Error> 
     // the one two before it: `same2[k]` counts how many in a row from k on.
     let mut same2 = vec![0usize; n + 2];
     for k in (2..n).rev() {
-        same2[k] = if data[k] == data[k - 2] { same2[k + 1] + 1 } else { 0 };
+        same2[k] = if data[k] == data[k - 2] {
+            same2[k + 1] + 1
+        } else {
+            0
+        };
     }
     for i in 0..n {
-        word_run[i] = if i + 1 >= n { 1 } else { (2 + same2[i + 2]).min(MAX_RUN) };
+        word_run[i] = if i + 1 >= n {
+            1
+        } else {
+            (2 + same2[i + 2]).min(MAX_RUN)
+        };
     }
 
     // cost[i] = (size, commands) of the best encoding of data[i..].
     let mut size = vec![0u64; n + 1];
     let mut count = vec![0u64; n + 1];
-    let mut choice = vec![Command { kind: 0, len: 0, from: 0 }; n];
+    let mut choice = vec![
+        Command {
+            kind: 0,
+            len: 0,
+            from: 0
+        };
+        n
+    ];
     // Tree A: key of the suffix at j. Tree B: the same with j added to the
     // size, for literals, whose cost grows by one per byte covered.
     let mut tree_a = MinTree::new(n + 1);
@@ -369,33 +400,38 @@ pub fn parse_with(data: &[u8], options: Options) -> Result<Vec<Command>, Error> 
 
     for i in (0..n).rev() {
         let mut best = u64::MAX;
-        let mut best_cmd = Command { kind: 0, len: 0, from: 0 };
+        let mut best_cmd = Command {
+            kind: 0,
+            len: 0,
+            from: 0,
+        };
         let remaining = n - i;
 
         // A command of `kind` whose operand cost does not depend on its
         // length, usable for any length in 1..=run.
-        let try_run = |kind: u8, run: usize, from: usize, best: &mut u64, best_cmd: &mut Command| {
-            let run = run.min(remaining);
-            if run == 0 {
-                return;
-            }
-            for &(lo, hi) in &[(1usize, SHORT_RUN), (SHORT_RUN + 1, MAX_RUN)] {
-                if lo > run {
-                    break;
+        let try_run =
+            |kind: u8, run: usize, from: usize, best: &mut u64, best_cmd: &mut Command| {
+                let run = run.min(remaining);
+                if run == 0 {
+                    return;
                 }
-                let hi = hi.min(run);
-                let (k, j) = tree_a.min(i + lo, i + hi);
-                if k == u64::MAX {
-                    continue;
+                for &(lo, hi) in &[(1usize, SHORT_RUN), (SHORT_RUN + 1, MAX_RUN)] {
+                    if lo > run {
+                        break;
+                    }
+                    let hi = hi.min(run);
+                    let (k, j) = tree_a.min(i + lo, i + hi);
+                    if k == u64::MAX {
+                        continue;
+                    }
+                    let len = j - i;
+                    let total = k + key(command_bytes(kind, len), 1);
+                    if total < *best {
+                        *best = total;
+                        *best_cmd = Command { kind, len, from };
+                    }
                 }
-                let len = j - i;
-                let total = k + key(command_bytes(kind, len), 1);
-                if total < *best {
-                    *best = total;
-                    *best_cmd = Command { kind, len, from };
-                }
-            }
-        };
+            };
 
         try_run(BYTE_FILL, byte_run[i], 0, &mut best, &mut best_cmd);
         if remaining >= 2 {
@@ -424,7 +460,11 @@ pub fn parse_with(data: &[u8], options: Options) -> Result<Vec<Command>, Error> 
             // On a tie a literal wins: it says plainly what the bytes are.
             if total <= best {
                 best = total;
-                best_cmd = Command { kind: LITERAL, len: j - i, from: 0 };
+                best_cmd = Command {
+                    kind: LITERAL,
+                    len: j - i,
+                    from: 0,
+                };
             }
         }
 
@@ -523,7 +563,7 @@ pub fn decompress_prefix(stream: &[u8]) -> Result<(Vec<u8>, usize), Error> {
             BYTE_FILL => {
                 let b = byte(i)?;
                 i += 1;
-                out.extend(std::iter::repeat(b).take(len));
+                out.extend(std::iter::repeat_n(b, len));
             }
             WORD_FILL => {
                 let pair = [byte(i)?, byte(i + 1)?];
@@ -539,14 +579,23 @@ pub fn decompress_prefix(stream: &[u8]) -> Result<(Vec<u8>, usize), Error> {
                 let from = (byte(i)? as usize) << 8 | byte(i + 1)? as usize;
                 i += 2;
                 if from >= out.len() {
-                    return Err(Error::BadRepeat { offset: at, from, at: out.len() });
+                    return Err(Error::BadRepeat {
+                        offset: at,
+                        from,
+                        at: out.len(),
+                    });
                 }
                 for k in 0..len {
                     let b = out[from + k];
                     out.push(b);
                 }
             }
-            command => return Err(Error::BadCommand { offset: at, command }),
+            command => {
+                return Err(Error::BadCommand {
+                    offset: at,
+                    command,
+                })
+            }
         }
     }
 }

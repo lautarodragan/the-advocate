@@ -365,7 +365,13 @@ impl Materials {
     /// which names the same blocks when it is the same text. It keeps the
     /// `label` it is asked for the first time, and `size` is its bytes, for
     /// the `.block` and the report.
-    pub fn store_text(&mut self, kind: &str, label: &str, size: usize, body: &str) -> (String, String) {
+    pub fn store_text(
+        &mut self,
+        kind: &str,
+        label: &str,
+        size: usize,
+        body: &str,
+    ) -> (String, String) {
         let key = (kind.to_string(), body.to_string());
         if self.dedupe {
             if let Some(label) = self.texts.get(&key).cloned() {
@@ -374,7 +380,10 @@ impl Materials {
             }
         }
         self.texts.entry(key).or_insert_with(|| label.to_string());
-        (label.to_string(), format!(".block {size}\n{label}:\n{body}"))
+        (
+            label.to_string(),
+            format!(".block {size}\n{label}:\n{body}"),
+        )
     }
 
     fn count_shared(&mut self, kind: &str, bytes: usize) {
@@ -515,14 +524,23 @@ mod tests {
         let lines = |l: &str| vec![format!("    .byte <({l}), >({l}), ^({l})")];
         let (first, text) = m.store_symbolic("npc_poses", 3, 36, &lines("pose_1"));
         assert_eq!(first, "npc_poses_3");
-        assert_eq!(text, ".block 36\nnpc_poses_3:\n    .byte <(pose_1), >(pose_1), ^(pose_1)");
+        assert_eq!(
+            text,
+            ".block 36\nnpc_poses_3:\n    .byte <(pose_1), >(pose_1), ^(pose_1)"
+        );
         assert_eq!(
             m.store_symbolic("npc_poses", 7, 36, &lines("pose_1")),
             ("npc_poses_3".to_string(), String::new())
         );
-        assert_eq!(m.store_symbolic("npc_poses", 8, 36, &lines("pose_2")).0, "npc_poses_8");
+        assert_eq!(
+            m.store_symbolic("npc_poses", 8, 36, &lines("pose_2")).0,
+            "npc_poses_8"
+        );
         // A kind's text never answers for another's.
-        assert_eq!(m.store_symbolic("actor_table", 9, 36, &lines("pose_1")).0, "actor_table_9");
+        assert_eq!(
+            m.store_symbolic("actor_table", 9, 36, &lines("pose_1")).0,
+            "actor_table_9"
+        );
     }
 
     use super::*;
@@ -533,18 +551,31 @@ mod tests {
         let mut m = Materials::new(true, HashMap::new());
         assert_eq!(
             m.store_text("actor_table", "actor_table_4", 3, body),
-            ("actor_table_4".to_string(), format!(".block 3\nactor_table_4:\n{body}"))
+            (
+                "actor_table_4".to_string(),
+                format!(".block 3\nactor_table_4:\n{body}")
+            )
         );
         assert_eq!(
             m.store_text("actor_table", "actor_table_9", 3, body),
             ("actor_table_4".to_string(), String::new())
         );
-        assert_eq!(m.store_text("actor_table", "actor_table_10", 1, "    .byte $00").0, "actor_table_10");
-        assert_eq!(m.report()[0], "  actor_table     1 shared block(s),    0.0 KB");
+        assert_eq!(
+            m.store_text("actor_table", "actor_table_10", 1, "    .byte $00")
+                .0,
+            "actor_table_10"
+        );
+        assert_eq!(
+            m.report()[0],
+            "  actor_table     1 shared block(s),    0.0 KB"
+        );
         // Without sharing, each keeps its own.
         let mut m = Materials::new(false, HashMap::new());
         m.store_text("actor_table", "actor_table_4", 3, body);
-        assert_eq!(m.store_text("actor_table", "actor_table_9", 3, body).0, "actor_table_9");
+        assert_eq!(
+            m.store_text("actor_table", "actor_table_9", 3, body).0,
+            "actor_table_9"
+        );
     }
 
     #[test]
@@ -624,14 +655,10 @@ mod tests {
     #[test]
     fn what_lives_behind_the_grid_has_to_fit_in_what_it_leaves_of_bank_7f() {
         let blocks = |cells: usize, ram: usize, code: usize| -> RawBlocks {
-            [
-                ("map_cells", cells),
-                ("map_ram", ram),
-                ("map_code", code),
-            ]
-            .into_iter()
-            .map(|(k, n)| (k.to_string(), vec![0; n]))
-            .collect()
+            [("map_cells", cells), ("map_ram", ram), ("map_code", code)]
+                .into_iter()
+                .map(|(k, n)| (k.to_string(), vec![0; n]))
+                .collect()
         };
         // A grid of 40,000 bytes takes 7,232 of $7F's half.
         check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 100)).unwrap();

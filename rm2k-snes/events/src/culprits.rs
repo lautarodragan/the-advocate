@@ -32,10 +32,10 @@
 //! battle. What a page needs is the command, not the half of it.
 
 use crate::codes::*;
-use crate::compile::{judged_page, Culprit, Ctx, Indices, SoundSettings};
-use crate::losses::Losses;
+use crate::compile::{judged_page, Ctx, Culprit, Indices, SoundSettings};
 use crate::fail::{Result, Stop};
 use crate::game::{Command, Game, TroopPage};
+use crate::losses::Losses;
 use crate::messages::{Messages, Window};
 use crate::pages::{MapEvents, Substitutions};
 use crate::registry::{Graphics, Songs};
@@ -82,7 +82,10 @@ impl Chase {
 
     /// Whether the family `code` is all that keeps it out.
     fn only(&self, code: i32) -> bool {
-        !self.trigger && !self.whole && self.fatal.is_none() && self.families() == BTreeSet::from([code])
+        !self.trigger
+            && !self.whole
+            && self.fatal.is_none()
+            && self.families() == BTreeSet::from([code])
     }
 }
 
@@ -203,8 +206,12 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
         request.maps = game.map_ids.clone();
     }
     let (indices, _, maps) = crate::prepare(game, &request)?;
-    let order: HashMap<i64, usize> =
-        request.maps.iter().enumerate().map(|(i, &m)| (m as i64, i)).collect();
+    let order: HashMap<i64, usize> = request
+        .maps
+        .iter()
+        .enumerate()
+        .map(|(i, &m)| (m as i64, i))
+        .collect();
     let map_index = |m: i64| order.get(&m).copied();
     let sound = SoundSettings::default();
     let window = request.window();
@@ -226,14 +233,34 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
         for event in &map.events {
             for (k, page) in event.pages.iter().enumerate() {
                 let found = chase(page.commands.clone(), |commands| {
-                    judge(game, &indices, &sound, &map_index, window, commands, Some(me.for_event(event.id)), None, false)
+                    judge(
+                        game,
+                        &indices,
+                        &sound,
+                        &map_index,
+                        window,
+                        commands,
+                        Some(me.for_event(event.id)),
+                        None,
+                        false,
+                    )
                 });
                 let mut skipped = Vec::new();
                 for n in pasted_commons(game, &page.commands) {
                     let body = game.common_events[&n].commands.clone();
                     let callee = chase(body, |commands| {
                         let me = Some(me.for_event(event.id));
-                        judge(game, &indices, &sound, &map_index, window, commands, me, Some(&every_common), false)
+                        judge(
+                            game,
+                            &indices,
+                            &sound,
+                            &map_index,
+                            window,
+                            commands,
+                            me,
+                            Some(&every_common),
+                            false,
+                        )
                     });
                     if !callee.compiles() {
                         skipped.push((n, callee));
@@ -259,7 +286,17 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
     // even if it compiles where it is called: `skipped` says that.
     for (&number, common) in &game.common_events {
         let found = chase(common.commands.clone(), |commands| {
-            judge(game, &indices, &sound, &map_index, window, commands, None, Some(&every_common), true)
+            judge(
+                game,
+                &indices,
+                &sound,
+                &map_index,
+                window,
+                commands,
+                None,
+                Some(&every_common),
+                true,
+            )
         });
         out.push(Judged {
             place: Place::Common(number),
@@ -294,7 +331,9 @@ fn pasted_commons(game: &Game, commands: &[Command]) -> BTreeSet<i32> {
         .filter(|c| c.code == CALL_EVENT && c.parameters.len() >= 2 && c.parameters[0] == 0)
         .map(|c| c.parameters[1])
         .filter(|n| game.common_events.contains_key(n))
-        .filter(|n| !game.patches.counters.contains_key(n) && !game.patches.menus.replaced.contains_key(n))
+        .filter(|n| {
+            !game.patches.counters.contains_key(n) && !game.patches.menus.replaced.contains_key(n)
+        })
         .collect()
 }
 
@@ -326,7 +365,11 @@ fn judge(
         // A shared body is compiled by `commons::body` with no graphics
         // registry, so what changes a graphic (a `MoveEvent` on the hero)
         // keeps it out there even if it compiles pasted into a page.
-        graphics: if shared_body { None } else { Some(&mut graphics) },
+        graphics: if shared_body {
+            None
+        } else {
+            Some(&mut graphics)
+        },
         pictures: None,
         troops: None,
         commons,
@@ -383,7 +426,8 @@ fn chase_troop_page(
         }
     }
     let reflowed = troops::reflow_from(commands, &window.measure(), window.lines);
-    let reflowed: Vec<(usize, Command)> = reflowed.into_iter().map(|(i, c)| (origin[i], c)).collect();
+    let reflowed: Vec<(usize, Command)> =
+        reflowed.into_iter().map(|(i, c)| (origin[i], c)).collect();
     let (from, commands): (Vec<usize>, Vec<Command>) = reflowed.into_iter().unzip();
     let rest = chase(commands, |commands| {
         let mut messages = Messages::new(1, window);
@@ -408,12 +452,23 @@ fn chase_troop_page(
     // A culprit inside a pasted body is named as itself, at the call's
     // index: the call is where it is in the page, the command is what has
     // to be looked at.
-    found.culprits.extend(rest.culprits.into_iter().map(|(i, cmd)| {
-        let own = &page.commands[from[i]];
-        (from[i], if troops::called_common(own).is_some() { cmd } else { own.clone() })
-    }));
+    found
+        .culprits
+        .extend(rest.culprits.into_iter().map(|(i, cmd)| {
+            let own = &page.commands[from[i]];
+            (
+                from[i],
+                if troops::called_common(own).is_some() {
+                    cmd
+                } else {
+                    own.clone()
+                },
+            )
+        }));
     found.whole = rest.whole;
-    found.fatal = rest.fatal.map(|(at, message)| (at.map(|i| from[i]), message));
+    found.fatal = rest
+        .fatal
+        .map(|(at, message)| (at.map(|i| from[i]), message));
     Ok(found)
 }
 
@@ -607,7 +662,13 @@ mod tests {
 
     #[test]
     fn the_chase_finds_every_culprit_in_order() {
-        let page = vec![cmd(WAIT, 0), cmd(LOOP, 0), cmd(WAIT, 1), cmd(END_LOOP, 0), cmd(GAME_OVER, 0)];
+        let page = vec![
+            cmd(WAIT, 0),
+            cmd(LOOP, 0),
+            cmd(WAIT, 1),
+            cmd(END_LOOP, 0),
+            cmd(GAME_OVER, 0),
+        ];
         let found = chase(page, refusing(&[LOOP, END_LOOP, GAME_OVER]));
         let at: Vec<usize> = found.culprits.iter().map(|(i, _)| *i).collect();
         assert_eq!(at, [1, 3, 4]);

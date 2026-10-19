@@ -24,7 +24,13 @@ use serde_json::{json, Value};
 pub enum Origin {
     /// A map's event: its page, by RM2k's number —None is the whole
     /// event—, and its cell.
-    Page { map: i32, event: i32, page: Option<i32>, x: i32, y: i32 },
+    Page {
+        map: i32,
+        event: i32,
+        page: Option<i32>,
+        x: i32,
+        y: i32,
+    },
     /// A common event, by number.
     Common(i32),
     /// A troop's page, by RM2k's numbers: the troop, and the page from 1.
@@ -36,7 +42,13 @@ pub enum Origin {
 impl Origin {
     fn to_json(&self) -> Value {
         match self {
-            Origin::Page { map, event, page, x, y } => {
+            Origin::Page {
+                map,
+                event,
+                page,
+                x,
+                y,
+            } => {
                 json!({"map": map, "event": event, "page": page, "x": x, "y": y})
             }
             Origin::Common(n) => json!({"common": n}),
@@ -131,7 +143,10 @@ impl Losses {
     }
 
     pub fn mark(&self) -> Mark {
-        Mark { found: self.found.len(), frames: self.frames.len() }
+        Mark {
+            found: self.found.len(),
+            frames: self.frames.len(),
+        }
     }
 
     /// Back to `mark`: what was found after it was in a page that does not
@@ -144,7 +159,13 @@ impl Losses {
     /// Notes a loss where the compiler is. Outside any frame —a test, the
     /// scan's questions— it is noted without a place, and nobody reads it.
     pub fn lose(&mut self, code: Option<i32>, kind: &'static str, text: impl Into<String>) {
-        self.found.push(Loss { path: self.frames.clone(), code, kind, text: text.into(), subject: None });
+        self.found.push(Loss {
+            path: self.frames.clone(),
+            code,
+            kind,
+            text: text.into(),
+            subject: None,
+        });
     }
 
     /// The frames the compiler is in, with the command each one is at: to
@@ -155,12 +176,30 @@ impl Losses {
     }
 
     /// [`Losses::lose`] at a place the compiler was: see [`Losses::path`].
-    pub fn lose_on(&mut self, path: Vec<(Origin, Option<usize>)>, code: Option<i32>, kind: &'static str, text: impl Into<String>) {
-        self.found.push(Loss { path, code, kind, text: text.into(), subject: None });
+    pub fn lose_on(
+        &mut self,
+        path: Vec<(Origin, Option<usize>)>,
+        code: Option<i32>,
+        kind: &'static str,
+        text: impl Into<String>,
+    ) {
+        self.found.push(Loss {
+            path,
+            code,
+            kind,
+            text: text.into(),
+            subject: None,
+        });
     }
 
     /// [`Losses::lose`], saying what it is about: see [`Loss::subject`].
-    pub fn lose_about(&mut self, code: Option<i32>, kind: &'static str, text: impl Into<String>, subject: &str) {
+    pub fn lose_about(
+        &mut self,
+        code: Option<i32>,
+        kind: &'static str,
+        text: impl Into<String>,
+        subject: &str,
+    ) {
         self.lose(code, kind, text);
         self.found.last_mut().unwrap().subject = Some(subject.to_string());
     }

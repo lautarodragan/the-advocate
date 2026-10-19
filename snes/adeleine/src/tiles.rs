@@ -80,7 +80,8 @@ fn nearest(s: &Shape, centres: &[Shape]) -> usize {
 /// and each next one the shape farthest from all the centres so far,
 /// weighted: k-means++ without its dice.
 fn kmeans(shapes: &[Shape], weight: &[f32], k: usize) -> Vec<usize> {
-    let first = (0..shapes.len()).fold(0, |best, i| if weight[i] > weight[best] { i } else { best });
+    let first =
+        (0..shapes.len()).fold(0, |best, i| if weight[i] > weight[best] { i } else { best });
     let mut centres = vec![shapes[first]];
     let mut near: Vec<f32> = shapes.iter().map(|s| distance(s, &shapes[first])).collect();
     while centres.len() < k {
@@ -136,7 +137,10 @@ fn medoids(shapes: &[Shape], weight: &[f32], group: &[usize], k: usize) -> Vec<u
     for (g, m) in members.iter().enumerate() {
         let mut best = (usize::MAX, f32::INFINITY);
         for &i in m {
-            let cost: f32 = m.iter().map(|&j| weight[j] * distance(&shapes[i], &shapes[j])).sum();
+            let cost: f32 = m
+                .iter()
+                .map(|&j| weight[j] * distance(&shapes[i], &shapes[j]))
+                .sum();
             if cost < best.1 {
                 best = (i, cost);
             }
@@ -175,6 +179,9 @@ mod tests {
     fn the_same_tiles_give_the_same_grouping() {
         let tiles: Vec<Tile> = (0..40).map(|i| solid(i as u8 % 31)).collect();
         let weights = vec![1.0; 40];
-        assert_eq!(group_tiles(&tiles, &weights, 7), group_tiles(&tiles, &weights, 7));
+        assert_eq!(
+            group_tiles(&tiles, &weights, 7),
+            group_tiles(&tiles, &weights, 7)
+        );
     }
 }

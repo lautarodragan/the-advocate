@@ -78,7 +78,11 @@ fn a_hand_written_default_is_lost() {
         original,
         "the raw reassembly does not give the original"
     );
-    assert_eq!(round_trip(&original), original, "the plain round trip already fails");
+    assert_eq!(
+        round_trip(&original),
+        original,
+        "the plain round trip already fails"
+    );
 
     let mut with = chunks.clone();
     with.push((FIELD, vec![0x01]));
@@ -92,7 +96,10 @@ fn a_hand_written_default_is_lost() {
         input.len() - 3,
         "the explicit chunk should be lost: those are its 3 bytes"
     );
-    assert_eq!(output, original, "what comes out is the file without that chunk");
+    assert_eq!(
+        output, original,
+        "what comes out is the file without that chunk"
+    );
 }
 
 /// The other half of the number: the editor **does** omit. Over a real game,

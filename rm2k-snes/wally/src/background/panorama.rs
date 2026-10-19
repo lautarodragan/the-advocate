@@ -39,25 +39,46 @@ const MODE1_ENTRIES: usize = 4;
 /// `adeleine::reduce_colors`, for grids: groups their places by colour and
 /// chooses a palette for each group. Answers the remapped grids, the palettes
 /// and the palette-local changes.
-pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(Vec<Grid>, Vec<Vec<Color>>, Vec<Merge>)> {
+pub(crate) fn reduce(
+    grids: &[&Grid],
+    limit: usize,
+    per: usize,
+) -> Result<(Vec<Grid>, Vec<Vec<Color>>, Vec<Merge>)> {
     let totals = counts(grids);
     let tiles: Vec<BTreeSet<Color>> = grids
         .iter()
         .flat_map(|g| g.at.iter().map(|&i| colors(&g.cells[i])))
         .collect();
     let reduced = adeleine::reduce_colors(&totals, &tiles, limit, per)?;
-    let mappings: Vec<HashMap<Color, Color>> = tiles.iter().zip(&reduced.tiles)
-        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
+    let mappings: Vec<HashMap<Color, Color>> = tiles
+        .iter()
+        .zip(&reduced.tiles)
+        .map(|(tile, decided)| {
+            tile.iter()
+                .copied()
+                .zip(decided.mapping.iter().copied())
+                .collect()
+        })
         .collect();
     let mut at = 0;
-    let mapped = grids.iter().map(|grid| {
-        let end = at + grid.at.len();
-        let out = grid.remap_places(&mappings[at..end]);
-        at = end;
-        out
-    }).collect();
-    Ok((mapped, reduced.palettes.into_iter().map(|g| g.into_iter().collect()).collect(),
-        reduced.merges.into_iter().map(Merge::from).collect()))
+    let mapped = grids
+        .iter()
+        .map(|grid| {
+            let end = at + grid.at.len();
+            let out = grid.remap_places(&mappings[at..end]);
+            at = end;
+            out
+        })
+        .collect();
+    Ok((
+        mapped,
+        reduced
+            .palettes
+            .into_iter()
+            .map(|g| g.into_iter().collect())
+            .collect(),
+        reduced.merges.into_iter().map(Merge::from).collect(),
+    ))
 }
 
 /// How a map shows its panorama, which the map and the panorama decide
@@ -109,9 +130,17 @@ impl Way {
     }
 
     pub fn from_name(name: &str) -> Option<Way> {
-        [Way::Hidden, Way::Baked, Way::Mode3, Way::Flattened, Way::Mode1, Way::Painted, Way::Black]
-            .into_iter()
-            .find(|w| w.name() == name)
+        [
+            Way::Hidden,
+            Way::Baked,
+            Way::Mode3,
+            Way::Flattened,
+            Way::Mode1,
+            Way::Painted,
+            Way::Black,
+        ]
+        .into_iter()
+        .find(|w| w.name() == name)
     }
 }
 
@@ -230,8 +259,22 @@ fn grouped(grid: &Grid, max: usize) -> (Grid, usize) {
 fn fitted(
     grid: &Grid,
     budget: usize,
-    convert: impl Fn(&Grid) -> Result<(voodoo::Converted, Picture, Vec<Vec<Color>>, Vec<Merge>, Grid)>,
-) -> Result<(voodoo::Converted, Picture, Vec<Vec<Color>>, Vec<Merge>, usize)> {
+    convert: impl Fn(
+        &Grid,
+    ) -> Result<(
+        voodoo::Converted,
+        Picture,
+        Vec<Vec<Color>>,
+        Vec<Merge>,
+        Grid,
+    )>,
+) -> Result<(
+    voodoo::Converted,
+    Picture,
+    Vec<Vec<Color>>,
+    Vec<Merge>,
+    usize,
+)> {
     // Tile 0 is the blank one.
     let mut max = budget - 1;
     loop {
@@ -254,7 +297,11 @@ fn fitted(
 /// last ones of the lower half of colour memory, and `budget` tiles.
 /// Answers it with what was decided, as an indexed picture of colour-memory
 /// entries.
-pub fn mode3(picture: &rm2k_render::Picture, free: usize, budget: usize) -> Result<(Panorama, Picture)> {
+pub fn mode3(
+    picture: &rm2k_render::Picture,
+    free: usize,
+    budget: usize,
+) -> Result<(Panorama, Picture)> {
     let grid = Grid::quantize(picture);
     let colors_before = counts(&[&grid]).len();
     let (done, decided, palettes, merges, distinct) = fitted(&grid, budget, |g| {
@@ -268,30 +315,44 @@ pub fn mode3(picture: &rm2k_render::Picture, free: usize, budget: usize) -> Resu
     let cgram = (first..first + palettes.len() * COLORS_PER_PALETTE)
         .map(|e| u16::from_le_bytes([done.cgram[2 * e], done.cgram[2 * e + 1]]))
         .collect();
-    Ok((Panorama {
-        mode: Mode::Three,
-        tiles: done.tiles,
-        tilemap: done.tilemap,
-        first,
-        cgram,
-        backdrop: None,
-        distinct,
-        colors: colors_before,
-        kept: palettes.iter().flatten().collect::<BTreeSet<_>>().len(),
-        merges,
-    }, decided))
+    Ok((
+        Panorama {
+            mode: Mode::Three,
+            tiles: done.tiles,
+            tilemap: done.tilemap,
+            first,
+            cgram,
+            backdrop: None,
+            distinct,
+            colors: colors_before,
+            kept: palettes.iter().flatten().collect::<BTreeSet<_>>().len(),
+            merges,
+        },
+        decided,
+    ))
 }
 
 /// A grid at 4 bits in `palettes` from palette `first`: each cell takes the
 /// first palette that has all its colours.
-fn four_bits(grid: &Grid, palettes: &[Vec<Color>], first: usize) -> Result<(voodoo::Converted, Picture)> {
-    let sets: Vec<BTreeSet<Color>> = palettes.iter().map(|p| p.iter().copied().collect()).collect();
+fn four_bits(
+    grid: &Grid,
+    palettes: &[Vec<Color>],
+    first: usize,
+) -> Result<(voodoo::Converted, Picture)> {
+    let sets: Vec<BTreeSet<Color>> = palettes
+        .iter()
+        .map(|p| p.iter().copied().collect())
+        .collect();
     let tables: Vec<HashMap<Color, u8>> = palettes
         .iter()
         .enumerate()
         .map(|(i, palette)| {
             let base = (first + i) * COLORS_PER_PALETTE;
-            palette.iter().enumerate().map(|(k, &c)| (c, (base + k + 1) as u8)).collect()
+            palette
+                .iter()
+                .enumerate()
+                .map(|(k, &c)| (c, (base + k + 1) as u8))
+                .collect()
         })
         .collect();
     let mut missing = None;
@@ -368,18 +429,21 @@ pub fn mode1(picture: &rm2k_render::Picture, budget: usize) -> Result<(Panorama,
         .collect();
     let mut kept: BTreeSet<Color> = palettes.iter().flatten().copied().collect();
     kept.insert(backdrop);
-    Ok((Panorama {
-        mode: Mode::One,
-        tiles: done.tiles,
-        tilemap: done.tilemap,
-        first,
-        cgram,
-        backdrop: Some(voodoo::cgram_word((backdrop[0], backdrop[1], backdrop[2]))),
-        distinct,
-        colors: colors_before,
-        kept: kept.len(),
-        merges,
-    }, decided))
+    Ok((
+        Panorama {
+            mode: Mode::One,
+            tiles: done.tiles,
+            tilemap: done.tilemap,
+            first,
+            cgram,
+            backdrop: Some(voodoo::cgram_word((backdrop[0], backdrop[1], backdrop[2]))),
+            distinct,
+            colors: colors_before,
+            kept: kept.len(),
+            merges,
+        },
+        decided,
+    ))
 }
 
 /// The 2-bit palettes: three colours each, merging the colour that shows
@@ -393,14 +457,25 @@ fn two_bit_palettes(grid: &Grid) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> 
 }
 
 /// A grid at 2 bits in BG3's palettes 4 to 7.
-fn two_bits(grid: &Grid, palettes: &[Vec<Color>], backdrop: Color) -> Result<(voodoo::Converted, Picture)> {
-    let sets: Vec<BTreeSet<Color>> = palettes.iter().map(|p| p.iter().copied().collect()).collect();
+fn two_bits(
+    grid: &Grid,
+    palettes: &[Vec<Color>],
+    backdrop: Color,
+) -> Result<(voodoo::Converted, Picture)> {
+    let sets: Vec<BTreeSet<Color>> = palettes
+        .iter()
+        .map(|p| p.iter().copied().collect())
+        .collect();
     let tables: Vec<HashMap<Color, u8>> = palettes
         .iter()
         .enumerate()
         .map(|(i, palette)| {
             let base = (MODE1_FIRST_PALETTE + i) * MODE1_ENTRIES;
-            palette.iter().enumerate().map(|(k, &c)| (c, (base + k + 1) as u8)).collect()
+            palette
+                .iter()
+                .enumerate()
+                .map(|(k, &c)| (c, (base + k + 1) as u8))
+                .collect()
         })
         .collect();
     let mut missing = None;

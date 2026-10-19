@@ -50,7 +50,10 @@ fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     // A question a game's test asks goes by its word, first; anything else
     // is a conversion.
-    let done = if argv.first().is_some_and(|a| queries::QUERIES.contains(&a.as_str())) {
+    let done = if argv
+        .first()
+        .is_some_and(|a| queries::QUERIES.contains(&a.as_str()))
+    {
         queries::run(argv)
     } else {
         options::parse(argv).and_then(convert::run)

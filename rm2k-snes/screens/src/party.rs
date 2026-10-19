@@ -70,14 +70,18 @@ pub fn member(game: &Game, actor: i32) -> Result<Option<Member>> {
     let a = &game.actors[&actor];
     let index = a.character_index;
     let poses: BTreeSet<i32> = (0..FRAMES as i32).map(|f| FACING_DOWN * 3 + f).collect();
-    let (colors, lookup, mapping) =
-        character::character_palette(&sheet, index, None, Some(&poses)).map_err(|e| Bad::answer(e.0))?;
+    let (colors, lookup, mapping) = character::character_palette(&sheet, index, None, Some(&poses))
+        .map_err(|e| Bad::answer(e.0))?;
     let mut frames = Vec::new();
     for &pose in &poses {
         frames.push(frame_tiles(&sheet, index, pose, &lookup, &mapping)?);
     }
     let greys = colors.iter().map(|&c| grey(c)).collect();
-    Ok(Some(Member { frames, colors, greys }))
+    Ok(Some(Member {
+        frames,
+        colors,
+        greys,
+    }))
 }
 
 /// A frame's twelve tiles, by rows, without the 32x32 object's margins.
@@ -136,17 +140,33 @@ pub fn arrows(skin: &Skin) -> Result<(Vec<Indices>, Vec<Color>)> {
         counted.iter().map(|&(c, _)| (c, c)).collect()
     } else {
         let merged = adeleine::merge_least_visible(&counted, PALETTE)?;
-        counted.iter().map(|&(c, _)| c).zip(merged.mapping).collect()
+        counted
+            .iter()
+            .map(|&(c, _)| c)
+            .zip(merged.mapping)
+            .collect()
     };
-    let colors: Vec<Color> = mapping.values().copied().collect::<BTreeSet<_>>().into_iter().collect();
-    let index: HashMap<Color, u8> = colors.iter().enumerate().map(|(i, &c)| (c, i as u8 + 1)).collect();
+    let colors: Vec<Color> = mapping
+        .values()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let index: HashMap<Color, u8> = colors
+        .iter()
+        .enumerate()
+        .map(|(i, &c)| (c, i as u8 + 1))
+        .collect();
     let mut tiles = Vec::with_capacity(ARROW_TILES);
     for kind in 0..TI_ARROW_KINDS {
         for frame in 0..TI_ARROW_FRAMES {
             let mut cell = [[0u8; CELL]; CELL];
             for (y, row) in cell.iter_mut().enumerate() {
                 for (x, entry) in row.iter_mut().enumerate() {
-                    let p = system.get(ARROWS_X + (frame * CELL + x) as i64, ARROWS_Y + (kind * CELL + y) as i64);
+                    let p = system.get(
+                        ARROWS_X + (frame * CELL + x) as i64,
+                        ARROWS_Y + (kind * CELL + y) as i64,
+                    );
                     if p[3] != 0 {
                         *entry = index[&mapping[&rgb15(p)]];
                     }
@@ -174,28 +194,50 @@ pub struct Shown {
 /// item on against without it.
 pub fn shown(game: &Game, actor: i32, equipment: &[i32], item: i32) -> Result<Shown> {
     if item == 0 {
-        return Ok(Shown { usable: true, arrow: None });
+        return Ok(Shown {
+            usable: true,
+            arrow: None,
+        });
     }
     let it = game.item(item)?;
     let usable = rm2k_snes_battle::rules::item_usable_by(it, actor as i64);
     let kind = it.r#type.to_i32();
     if !usable || !(1..=5).contains(&kind) {
-        return Ok(Shown { usable, arrow: None });
+        return Ok(Shown {
+            usable,
+            arrow: None,
+        });
     }
     if equipment.contains(&item) {
-        return Ok(Shown { usable, arrow: Some(TI_ARROW_EQUIPPED) });
+        return Ok(Shown {
+            usable,
+            arrow: Some(TI_ARROW_EQUIPPED),
+        });
     }
-    let before: i64 = crate::texts::equipped_params(game, actor, equipment).iter().sum();
+    let before: i64 = crate::texts::equipped_params(game, actor, equipment)
+        .iter()
+        .sum();
     let mut after_equipment = equipment.to_vec();
     let mut inventory = std::collections::BTreeMap::from([(item, 1)]);
-    crate::render::equip(game, &mut after_equipment, &mut inventory, (kind - 1) as usize, item)?;
-    let after: i64 = crate::texts::equipped_params(game, actor, &after_equipment).iter().sum();
+    crate::render::equip(
+        game,
+        &mut after_equipment,
+        &mut inventory,
+        (kind - 1) as usize,
+        item,
+    )?;
+    let after: i64 = crate::texts::equipped_params(game, actor, &after_equipment)
+        .iter()
+        .sum();
     let arrow = match after.cmp(&before) {
         std::cmp::Ordering::Greater => TI_ARROW_UP,
         std::cmp::Ordering::Equal => TI_ARROW_SAME,
         std::cmp::Ordering::Less => TI_ARROW_DOWN,
     };
-    Ok(Shown { usable, arrow: Some(arrow) })
+    Ok(Shown {
+        usable,
+        arrow: Some(arrow),
+    })
 }
 
 /// The walking frame a member shows at `phase` —0 to 3, a step every
@@ -255,12 +297,24 @@ pub fn draw(
             let frame = frames.get(i).copied().filter(|&f| f < FRAMES).unwrap_or(1);
             let colors = if s.usable { &m.colors } else { &m.greys };
             for (k, cell) in m.frames[frame].iter().enumerate() {
-                tile(on, x + (k % FRAME_COLS) * CELL, TI_PARTY_Y0 + (k / FRAME_COLS) * CELL, cell, colors);
+                tile(
+                    on,
+                    x + (k % FRAME_COLS) * CELL,
+                    TI_PARTY_Y0 + (k / FRAME_COLS) * CELL,
+                    cell,
+                    colors,
+                );
             }
         }
         if let Some(arrow) = s.arrow {
             let cell = &arrow_tiles[arrow * TI_ARROW_FRAMES + arrow_frame(phase, arrow)];
-            tile(on, x + TI_ARROW_DX, TI_PARTY_Y0 + TI_ARROW_DY, cell, &arrow_colors);
+            tile(
+                on,
+                x + TI_ARROW_DX,
+                TI_PARTY_Y0 + TI_ARROW_DY,
+                cell,
+                &arrow_colors,
+            );
         }
     }
     Ok(())

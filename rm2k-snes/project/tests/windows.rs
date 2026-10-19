@@ -6,7 +6,11 @@ use rm2k_project::windows::{color_text, WindowBackground};
 use rm2k_project::Project;
 
 fn project(windows: &str) -> Project {
-    Project::from_text(Path::new("/games/one"), &format!("[paths]\ndata = \"data\"\n{windows}")).unwrap()
+    Project::from_text(
+        Path::new("/games/one"),
+        &format!("[paths]\ndata = \"data\"\n{windows}"),
+    )
+    .unwrap()
 }
 
 #[test]
@@ -21,10 +25,17 @@ fn a_colour_and_a_gradient_by_system_name_without_case() {
     let p = project(
         "[windows.background]\nplainskin = \"#000000\"\nDusk = [\"#783f31\", \"#5a231f\", \"#421D2D\"]\n",
     );
-    assert_eq!(p.window_background("PlainSkin").unwrap(), Some(WindowBackground::Color([0, 0, 0])));
+    assert_eq!(
+        p.window_background("PlainSkin").unwrap(),
+        Some(WindowBackground::Color([0, 0, 0]))
+    );
     assert_eq!(
         p.window_background("dusk").unwrap(),
-        Some(WindowBackground::Gradient(vec![[0x78, 0x3f, 0x31], [0x5a, 0x23, 0x1f], [0x42, 0x1d, 0x2d]]))
+        Some(WindowBackground::Gradient(vec![
+            [0x78, 0x3f, 0x31],
+            [0x5a, 0x23, 0x1f],
+            [0x42, 0x1d, 0x2d]
+        ]))
     );
     assert_eq!(p.window_background("other").unwrap(), None);
 }
@@ -41,10 +52,19 @@ fn a_gradient_is_drawn_flat_with_its_average() {
 
 #[test]
 fn what_is_not_a_colour_says_which_system_and_what_it_takes() {
-    for bad in ["\"black\"", "\"#00000\"", "[\"#000000\"]", "[\"#000000\", 3]", "0"] {
+    for bad in [
+        "\"black\"",
+        "\"#00000\"",
+        "[\"#000000\"]",
+        "[\"#000000\", 3]",
+        "0",
+    ] {
         let p = project(&format!("[windows.background]\nplainskin = {bad}\n"));
         let e = p.window_backgrounds().unwrap_err().0;
-        assert!(e.contains("windows.background.plainskin") && e.contains("#rrggbb"), "{bad}: {e}");
+        assert!(
+            e.contains("windows.background.plainskin") && e.contains("#rrggbb"),
+            "{bad}: {e}"
+        );
     }
 }
 

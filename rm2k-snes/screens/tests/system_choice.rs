@@ -15,7 +15,11 @@ fn game_with_another_system(name: &str) -> (Game, PathBuf) {
     let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("system-choice-{name}"));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("System")).unwrap();
-    std::fs::copy(here().join("pictures/System/Skin.png"), dir.join("System/Skin.png")).unwrap();
+    std::fs::copy(
+        here().join("pictures/System/Skin.png"),
+        dir.join("System/Skin.png"),
+    )
+    .unwrap();
     let other = dir.join("System/Other.png");
     std::fs::copy(here().join("pictures/FaceSet/Faces.png"), &other).unwrap();
     (Game::from_dump(&here().join("dump"), &dir).unwrap(), other)

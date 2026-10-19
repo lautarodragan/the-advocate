@@ -55,7 +55,10 @@ fn the_runtime_uses_only_declared_opcodes_and_declares_none() {
     let source = runtime();
     // Only the uses as an operand: bare names in comments do not count.
     let used = names_after(&source, "#");
-    assert!(!used.is_empty(), "not a single use of an opcode in the runtime");
+    assert!(
+        !used.is_empty(),
+        "not a single use of an opcode in the runtime"
+    );
     let declared: BTreeSet<String> = events::BYTECODE
         .opcodes
         .iter()

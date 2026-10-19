@@ -33,7 +33,7 @@ fn u32_at(data: &[u8], at: usize) -> u32 {
 
 /// Signed 16-bit little-endian with no header at all.
 pub fn read_raw(bytes: &[u8], rate: u32, path: &Path) -> Result<Audio> {
-    if bytes.len() % 2 != 0 {
+    if !bytes.len().is_multiple_of(2) {
         return Err(Bad(format!(
             "{}: {} bytes of raw 16-bit PCM, which is not a whole number of samples",
             path.display(),
@@ -76,13 +76,15 @@ pub fn read(bytes: &[u8], path: &Path) -> Result<Audio> {
         at = body + size + (size & 1);
     }
 
-    let fmt = fmt_chunk
-        .ok_or_else(|| Bad(format!("{}: no fmt chunk", where_())))?;
+    let fmt = fmt_chunk.ok_or_else(|| Bad(format!("{}: no fmt chunk", where_())))?;
     if fmt.len() < 16 {
-        return Err(Bad(format!("{}: fmt chunk is {} bytes, needs 16", where_(), fmt.len())));
+        return Err(Bad(format!(
+            "{}: fmt chunk is {} bytes, needs 16",
+            where_(),
+            fmt.len()
+        )));
     }
-    let data = data_chunk
-        .ok_or_else(|| Bad(format!("{}: no data chunk", where_())))?;
+    let data = data_chunk.ok_or_else(|| Bad(format!("{}: no data chunk", where_())))?;
 
     let format = u16_at(fmt, 0);
     let channels = u16_at(fmt, 2) as usize;
@@ -126,9 +128,16 @@ pub fn read(bytes: &[u8], path: &Path) -> Result<Audio> {
     }
 
     Ok(Audio {
-        samples: frames.into_iter().map(|s| s.clamp(-32768, 32767) as i16).collect(),
+        samples: frames
+            .into_iter()
+            .map(|s| s.clamp(-32768, 32767) as i16)
+            .collect(),
         rate,
-        note: if notes.is_empty() { None } else { Some(notes.join(", ")) },
+        note: if notes.is_empty() {
+            None
+        } else {
+            Some(notes.join(", "))
+        },
     })
 }
 

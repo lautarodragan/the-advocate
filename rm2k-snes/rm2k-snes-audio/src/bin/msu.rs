@@ -58,7 +58,11 @@ fn run() -> Result<(), Bad> {
     };
     let soundfont = environment.soundfont()?.to_path_buf();
     let replacements = environment.msu_replacements().map(Path::to_path_buf);
-    let cache_dir = if cache::disabled() { None } else { Some(environment.cache(&game.project)?) };
+    let cache_dir = if cache::disabled() {
+        None
+    } else {
+        Some(environment.cache(&game.project)?)
+    };
     let gain = matches.get_one::<f64>("gain").copied().unwrap_or(GAIN);
     let rom = PathBuf::from(matches.get_one::<String>("rom").unwrap());
     let tracks = Tracks::new(game, soundfont, gain, replacements, cache_dir);

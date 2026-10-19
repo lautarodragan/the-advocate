@@ -61,7 +61,10 @@ pub fn symbols(text: &str) -> BTreeMap<String, i64> {
         if let Some(id) = c.get("id") {
             scopes.insert(
                 id.clone(),
-                (c.get("name").cloned().unwrap_or_default(), c.get("parent").cloned()),
+                (
+                    c.get("name").cloned().unwrap_or_default(),
+                    c.get("parent").cloned(),
+                ),
             );
         }
     }
@@ -82,7 +85,9 @@ pub fn symbols(text: &str) -> BTreeMap<String, i64> {
             }
             scope = parent.clone();
         }
-        let Some(mut value) = number(val) else { continue };
+        let Some(mut value) = number(val) else {
+            continue;
+        };
         if value >= 1 << 31 {
             value -= 1 << 32;
         }

@@ -27,8 +27,11 @@ const ARMOR: i32 = 9;
 const SKILL: i32 = 9;
 
 fn db() -> Db {
-    let db = Db::from_dump(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/game/dump"), false)
-        .unwrap();
+    let db = Db::from_dump(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/game/dump"),
+        false,
+    )
+    .unwrap();
     assert_eq!(db.attributes[&1].r#type, AttributeType::Physical);
     assert_eq!(db.attributes[&2].r#type, AttributeType::Magical);
     db
@@ -61,7 +64,10 @@ fn a_flame_skill_on_a_flame_weak_enemy_does_half_again() {
     assert_eq!(skill_effect(&source, &neutral, skill, false), base);
     assert_eq!(skill_effect(&source, &weak, skill, false), 150 * base / 100);
     // The critical triples what the attribute left.
-    assert_eq!(skill_effect(&source, &weak, skill, true), 3 * (150 * base / 100));
+    assert_eq!(
+        skill_effect(&source, &weak, skill, true),
+        3 * (150 * base / 100)
+    );
 }
 
 #[test]
@@ -74,7 +80,10 @@ fn a_resisted_sword_does_three_quarters_and_rolls_the_same_variance() {
     let base = (source.attack() / 2 - 12 / 4).max(0);
     assert!(base > 4, "the variance has to have room");
     let expected = apply_variance(75 * base / 100, 4, &mut Rng { state: BATTLE_SEED });
-    assert_eq!(normal_damage(&source, &target, false, &mut Rng { state: BATTLE_SEED }), expected);
+    assert_eq!(
+        normal_damage(&source, &target, false, &mut Rng { state: BATTLE_SEED }),
+        expected
+    );
 }
 
 #[test]
@@ -86,7 +95,10 @@ fn an_enemys_attack_carries_no_attribute() {
     let target = Combatant::actor(&db, 3, None, None).unwrap();
     let base = (source.attack() / 2 - target.defense() / 4).max(0);
     let expected = apply_variance(base, 4, &mut Rng { state: BATTLE_SEED });
-    assert_eq!(normal_damage(&source, &target, false, &mut Rng { state: BATTLE_SEED }), expected);
+    assert_eq!(
+        normal_damage(&source, &target, false, &mut Rng { state: BATTLE_SEED }),
+        expected
+    );
 }
 
 #[test]
@@ -105,7 +117,10 @@ fn armor_carrying_an_attribute_moves_the_actor_one_rank_up() {
     let immune = Combatant::actor(&db, 1, None, None).unwrap();
     assert_eq!(immune.received[FLAME].rate, 0);
     let source = enemy_with(&mut db, 1, [C, C]);
-    assert_eq!(skill_effect(&source, &immune, db.skill(SKILL).unwrap(), false), 0);
+    assert_eq!(
+        skill_effect(&source, &immune, db.skill(SKILL).unwrap(), false),
+        0
+    );
 }
 
 #[test]
@@ -152,7 +167,13 @@ fn no_effect(db: &mut Db, skill: i32) {
 fn battle(db: &mut Db) -> Battle {
     let actor = Combatant::actor(db, 1, Some(&[WEAPON, 0, 0, 0, 0]), None).unwrap();
     let enemy = enemy_with(db, 1, [C, C]);
-    Battle::new(vec![actor], vec![enemy], BATTLE_SEED, vec![], BTreeMap::new())
+    Battle::new(
+        vec![actor],
+        vec![enemy],
+        BATTLE_SEED,
+        vec![],
+        BTreeMap::new(),
+    )
 }
 
 #[test]
@@ -163,15 +184,22 @@ fn a_barrier_makes_the_party_one_step_more_resistant_for_the_battle() {
     let mut b = battle(&mut db);
     let before = skill_effect(&b.enemies[0], &b.actors[0], db.skill(SKILL).unwrap(), false);
     assert!(before > 1);
-    b.use_skill(&db, Who::Actor(0), BARRIER, Who::Actor(0)).unwrap();
+    b.use_skill(&db, Who::Actor(0), BARRIER, Who::Actor(0))
+        .unwrap();
     assert_eq!(b.actors[0].received[FLAME].shift, 1);
     assert_eq!(b.actors[0].received[FLAME].rate, 50, "C and a step up: D");
-    assert_eq!(b.actors[0].received[SWORD].shift, 0, "the barrier carries no Sword");
+    assert_eq!(
+        b.actors[0].received[SWORD].shift, 0,
+        "the barrier carries no Sword"
+    );
     // The Flame skill the enemy throws afterwards reads the shifted rank.
     let after = skill_effect(&b.enemies[0], &b.actors[0], db.skill(SKILL).unwrap(), false);
     assert_eq!(after, 50 * before / 100);
     // It is shown in the answer, and only where there is one.
-    assert_eq!(b.actors[0].to_json()["attribute_shift"], serde_json::json!([0, 1]));
+    assert_eq!(
+        b.actors[0].to_json()["attribute_shift"],
+        serde_json::json!([0, 1])
+    );
     assert!(b.enemies[0].to_json().get("attribute_shift").is_none());
 }
 
@@ -182,15 +210,20 @@ fn a_curse_makes_an_enemy_one_step_weaker_and_rolls_once_per_attribute() {
     no_effect(&mut db, CURSE);
     let mut b = battle(&mut db);
     let mut rng = Rng { state: BATTLE_SEED };
-    b.use_skill(&db, Who::Actor(0), CURSE, Who::Enemy(0)).unwrap();
+    b.use_skill(&db, Who::Actor(0), CURSE, Who::Enemy(0))
+        .unwrap();
     rng.percent(0); // the critical
     rng.percent(100); // and the step
     assert_eq!(b.rng.state, rng.state);
     assert_eq!(b.enemies[0].received[FLAME].shift, -1);
-    assert_eq!(b.enemies[0].received[FLAME].rate, 150, "C and a step down: B");
+    assert_eq!(
+        b.enemies[0].received[FLAME].rate, 150,
+        "C and a step down: B"
+    );
     // A second one finds it at the bound, and **rolls nothing** for it:
     // only the critical.
-    b.use_skill(&db, Who::Actor(0), CURSE, Who::Enemy(0)).unwrap();
+    b.use_skill(&db, Who::Actor(0), CURSE, Who::Enemy(0))
+        .unwrap();
     rng.percent(0);
     assert_eq!(b.rng.state, rng.state);
     assert_eq!(b.enemies[0].received[FLAME].rate, 150);
@@ -203,7 +236,8 @@ fn a_missed_step_leaves_the_rank_and_still_rolled() {
     no_effect(&mut db, CURSE);
     let mut b = battle(&mut db);
     let mut rng = Rng { state: BATTLE_SEED };
-    b.use_skill(&db, Who::Actor(0), CURSE, Who::Enemy(0)).unwrap();
+    b.use_skill(&db, Who::Actor(0), CURSE, Who::Enemy(0))
+        .unwrap();
     rng.percent(0);
     rng.percent(0);
     assert_eq!(b.rng.state, rng.state);
@@ -216,7 +250,8 @@ fn a_skill_without_affect_attr_defence_shifts_nothing() {
     with_shift(&mut db, BARRIER, 100);
     db.skills.get_mut(&BARRIER).unwrap().affect_attr_defence = false;
     let mut b = battle(&mut db);
-    b.use_skill(&db, Who::Actor(0), BARRIER, Who::Actor(0)).unwrap();
+    b.use_skill(&db, Who::Actor(0), BARRIER, Who::Actor(0))
+        .unwrap();
     assert_eq!(b.actors[0].received[FLAME].shift, 0);
 }
 
@@ -225,7 +260,8 @@ fn getting_up_brings_the_ranks_back() {
     let mut db = db();
     with_shift(&mut db, BARRIER, 100);
     let mut b = battle(&mut db);
-    b.use_skill(&db, Who::Actor(0), BARRIER, Who::Actor(0)).unwrap();
+    b.use_skill(&db, Who::Actor(0), BARRIER, Who::Actor(0))
+        .unwrap();
     assert_eq!(b.actors[0].received[FLAME].rate, 50);
     b.actors[0].unshift();
     assert_eq!(b.actors[0].received[FLAME].shift, 0);

@@ -60,7 +60,12 @@ pub fn refit_each(boxes: &[Vec<String>], measure: &Measure, rows: usize) -> Valu
 /// they are first found: the dump's maps by file name, then `map_files`
 /// —the project's, which override the dump's: both are read, which only
 /// adds boxes nobody asks for—, then the common events.
-pub fn table(data: &std::path::Path, map_files: &[PathBuf], measure: &Measure, rows: usize) -> Result<Value> {
+pub fn table(
+    data: &std::path::Path,
+    map_files: &[PathBuf],
+    measure: &Measure,
+    rows: usize,
+) -> Result<Value> {
     let dump = Dump::open(data).map_err(answer)?;
     let mut paths = dump.map_files().map_err(answer)?;
     paths.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
