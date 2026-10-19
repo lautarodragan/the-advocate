@@ -104,6 +104,14 @@
 //! purpose: `OP_PANORAMA` carries the picture a `ChangePBG` swaps in, $FF
 //! for the one there is, which every `ChangePBG` here keeps. Without that
 //! byte the answer was the one before.
+//!
+//! And the same day the hashes of both `maps`, and of the compilation's
+//! `songs` and `battle_audio`, moved on purpose: `OP_BGM` carries a
+//! `PlayBGM`'s fade-in, `ChangeSystemBGM` of the battle compiles to
+//! `OP_SYSTEM_BGM` and notes its song in the battle's package, and
+//! `battle_audio` says the level of the database's two songs. With the fade
+//! word left out, the `ChangeSystemBGM` arm answering no bytes as before and
+//! no levels in `battle_audio`, the answer was the one before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};

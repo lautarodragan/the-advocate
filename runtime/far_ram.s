@@ -925,8 +925,13 @@ FADE_BEFORE = FADE_N + $02            ; word
 ;   GAIN_DIRTY  the gain changed with the song playing: `irq_music` rewrites
 ;               the volume of every voice
 ;
-; **They do not travel in the save**: a loaded game plays its song as
-; written. Reset gives them a value: see `bgm_level_reset`.
+; **`BGM_NOW` travels in the save**, since 2026-10-19: a loaded game plays its
+; song at the level it was saved with. Reset gives them a value: see
+; `bgm_level_reset`. And the fade-in a start asks for is two bytes apart,
+; `BGM_ASK_FADE`, in bgm_level.s.
+; The bytes of each of the battle's and the victory's songs in `SYS_SONGS`
+; —bgm_level.s—: the song, then its four bytes of level and two of fade-in.
+SYS_SONG_BYTES = 7
 BGM_ASK           = MSU_BASE + $16        ; 4 bytes
 BGM_NOW           = MSU_BASE + $12        ; 4 bytes
 BGM_BEFORE_BATTLE = MSU_BASE + $0E        ; 4 bytes

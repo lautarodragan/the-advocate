@@ -269,10 +269,16 @@ recorded:
     ; second and a half, and it is the entry transition that hides it. See
     ; `battle_fade.s`.
     jsl f:battle_fade_in
+    ; The battle's song is the one the last `ChangeSystemBGM` gave it, or the
+    ; database's, and it goes first in the package: one a `ChangeSystemBGM`
+    ; names is a separate song of it, uploaded with its sound effects and
+    ; without the database's. See `battle_extra_l`.
+    jsl f:bgm_level_battle_in   ; the map's level, kept; the battle's song in A
+    pha
     ldx #BA_PACKAGE
     jsr battle_audio_load
-    lda #BA_SONG
-    jsl f:bgm_level_battle_in   ; the map's level, kept; the battle's, as written
+    jsl f:battle_extra_clear
+    pla
     jsr battle_bgm
     plb
     ; The data bank, at $7E: that is what lets the battle code use absolute

@@ -1263,6 +1263,17 @@ fn without_faces(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without the levels the battle's two songs start a game with,
+/// which came on 2026-10-19: six lines after `BA_PACKAGE`, the song as
+/// written when the request brings none, as here.
+fn without_song_levels(text: &str) -> String {
+    let lines = "BA_SONG_GAINS     = $8080\nBA_SONG_STEP      = $0100\n\
+                 BA_SONG_FADE      = $0000\nBA_SONG_END_GAINS = $8080\n\
+                 BA_SONG_END_STEP  = $0100\nBA_SONG_END_FADE  = $0000\n";
+    assert!(text.contains(lines), "no battle song levels as written");
+    text.replacen(lines, "", 1)
+}
+
 /// The text with `PanScreen`'s two operations, as it was: since 2026-10-16
 /// the header names all four, because the lock and the unlock compile.
 fn without_grid_narrow(text: &str) -> String {
@@ -1322,7 +1333,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&text),
+                                    &without_grid_narrow(&without_song_levels(&text)),
                                 )),
                             )),
                         ))),
@@ -1355,7 +1366,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&text),
+                                    &without_grid_narrow(&without_song_levels(&text)),
                                 )),
                             )),
                         ))),

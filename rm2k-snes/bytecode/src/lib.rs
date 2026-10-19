@@ -11,6 +11,9 @@
 //! * [`music`]: the music stream, which `rm2k-snes-audio` writes and the
 //!   runtime's `irq_music` reads.
 //!
+//! And [`level`], how loud, how fast and how gradually a song starts, which
+//! `OP_BGM`, `OP_SYSTEM_BGM` and a map's own song carry in the same units.
+//!
 //! The Rust side takes the constants with a `use`, and the 65816 side gets
 //! them from [`asm`]: `rm2k-snes-assemble` writes them next to the
 //! cartridge's other generated files every time it builds one, so there is
@@ -27,6 +30,7 @@
 //! opcodes and writes none by hand. They need no game.
 
 pub mod asm;
+pub mod level;
 mod message;
 
 /// How an argument is stored. Words and longs are little endian.
