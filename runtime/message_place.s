@@ -160,6 +160,8 @@ store:
     ; stamped again without the arrow. `msg_arrow` writes them next vblank.
     lda #$FF
     sta f:MSG_ARROW_UP
+    ; And whether it goes in them or in objects, before `msg_bands` asks.
+    jsr arrow_obj_choose
     lda f:MSG_PLACE
     and #MSG_WHERE
     rep #$20
@@ -400,8 +402,8 @@ window_bands_end:
 
 ; Which bands a window without its background draws on, in A: those of its
 ; lines with text, which `msg_line_rows` left in `MSG_ROWS` as the composer
-; went through them, and the bottom row if the page can show the arrow.
-; The top row, never: nothing is drawn there without the frame.
+; went through them, and the bottom row if the page can show the arrow in
+; the cells. The top row, never: nothing is drawn there without the frame.
 .proc msg_bands
 .a8
 .i16
@@ -413,6 +415,10 @@ window_bands_end:
     ; the digits it cannot, nor with a `\^` closing the page —unless it is
     ; cut at a `\!`, which waits for the key with the arrow—. RM2k draws it
     ; with the window's opacity at zero too: `Window::Draw` blits it apart.
+    ; Unless it is drawn as objects, in a map with room for them: then the
+    ; bottom row is the map's too. See `arrow_obj_choose`.
+    lda f:MSG_ARROW_OBJ + 1
+    bmi no_arrow
     lda pick_active
     bne no_arrow
     lda f:FAR_MSG_AUTO

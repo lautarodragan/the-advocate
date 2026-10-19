@@ -895,6 +895,23 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
         }
     }
     line(out, &block(&format!("window_arrow_cells{suffix}"), &words_le(arrow_table)));
+    // And the arrow over nothing as two objects' tiles, for a window
+    // without its background in a map that has room for them: the same
+    // tiles the window's cells name, in the window's palette, which the
+    // console copies to a sprite palette. See `arrow_obj` in record.rs.
+    //
+    // A tile the window does not carry goes blank: the screens stage always
+    // carries the arrow's, among `tiles` before `base`, and only a made-up
+    // window —the tests' carry three tiles— names one past them.
+    let tiles = bytes_at(window, "tiles")?;
+    let mut arrow_obj = Vec::with_capacity(arrow_cells * 32);
+    for &tile in &arrow[arrow_cells..] {
+        let at = tile as usize * 32;
+        let mut bytes = tiles.get(at..).unwrap_or_default().iter().take(32).copied().collect::<Vec<u8>>();
+        bytes.resize(32, 0);
+        arrow_obj.extend(bytes);
+    }
+    line(out, &block(&format!("window_arrow_obj{suffix}"), &arrow_obj));
     // The text area's background, one line —two cell rows— after another,
     // which `prime_line` copies under each line before its letters. When
     // every line is the same —a window over one colour, `[windows.
@@ -930,10 +947,10 @@ fn backdrop_is_one_line(window: &Value, t: &Geometry) -> Result<bool> {
     Ok(backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]))
 }
 
-/// How many bytes a System's entry takes in `window_systems`: the eight
+/// How many bytes a System's entry takes in `window_systems`: the nine
 /// 24-bit pointers `window_select` copies to `WINDOW_NOW`, in the order of
 /// `WS_TILES` and the rest in the runtime's `window_system.s`.
-pub const WINDOW_SYSTEM_BYTES: usize = 24;
+pub const WINDOW_SYSTEM_BYTES: usize = 27;
 
 /// The table the runtime finds each System's window in: per System, in the
 /// cartridge's order, a pointer to each of its pieces.
@@ -955,6 +972,7 @@ fn window_systems_table(out: &mut String, systems: usize) {
             "window_backdrop",
             "window_bar",
             "window_bar_bare",
+            "window_arrow_obj",
         ] {
             out.push_str(&format!("    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"));
         }
@@ -3169,6 +3187,17 @@ impl Rest<'_> {
             })
             .collect::<Result<_>>()?;
         bytes_asm(out, "skill_affects", &hex2(affects), true);
+        // Whether it shifts its target's rank in the attributes it carries,
+        // `affect_attr_defence`: see `ba_attr_shift` in battle_attributes.s.
+        // Without an attribute it has nothing to shift.
+        bytes_asm(
+            out,
+            "skill_shifts",
+            &per_skill(&|s| {
+                i64::from(s.affect_attr_defence && s.attribute_effects.iter().any(|&a| a))
+            })?,
+            true,
+        );
         bytes_asm(
             out,
             "skill_scope",
@@ -3500,6 +3529,13 @@ impl Rest<'_> {
     /// anything. They are numbered again from 0 in database order, and
     /// `ATTR_N` says how many; at zero the routine returns at once.
     ///
+    /// **The ones a skill can shift go first** —those a carried skill with
+    /// `affect_attr_defence` carries, `ATTR_SHIFT_N` of them, still in
+    /// database order among themselves—: the battle keeps a shift per
+    /// combatant only for those, in `ba_attr_shifts`, and an attribute is
+    /// one of them if its number is below `ATTR_SHIFT_N`. The order changes
+    /// nothing else: of each kind the best rate counts, whatever the order.
+    ///
     /// * `attr_rate`: a word per attribute and rank, `A` to `E`. A negative
     ///   rate counts for nothing in RM2k 2000, and goes as -1.
     /// * `attr_magic`: whether each one is magical.
@@ -3507,6 +3543,12 @@ impl Rest<'_> {
     ///   attribute; row 0 is the empty set, and equal sets share a row.
     ///   `item_attr` and `skill_attr` give each item and skill its row, as
     ///   the byte where it starts.
+    /// * `skill_weapon`: per skill, the row of the attributes it asks a
+    ///   weapon for —its physical ones, unless it has
+    ///   `affect_attr_defence`: `weapon_attributes_asked` in `rm2k-rules`, through
+    ///   `rm2k-snes-battle`'s—;
+    ///   row 0, the empty set, asks for nothing. `ba_weapons_allow` greys
+    ///   it by them, in battle and in the menu.
     /// * `attr_ranks`: rows of `ATTR_N` ranks, one per actor —its own,
     ///   before its armor— and then one per enemy, in `enemy_*` order: the
     ///   enemy `k`'s row is `ACTORS_N + k`.
@@ -3544,12 +3586,22 @@ impl Rest<'_> {
                 }
             }
         }
-        let used: Vec<usize> = used.into_iter().collect();
+        let mut shifting = BTreeSet::new();
+        for &h in &x.rom_skills {
+            let s = db.skill(h as i32).map_err(bad)?;
+            if s.affect_attr_defence {
+                shifting.extend(s.attribute_effects.iter().enumerate().filter(|(_, &has)| has).map(|(k, _)| k));
+            }
+        }
+        let (first, rest): (Vec<usize>, Vec<usize>) =
+            used.into_iter().partition(|k| shifting.contains(k));
+        let n_shift = first.len();
+        let used: Vec<usize> = first.into_iter().chain(rest).collect();
         let n = used.len();
         if n > 255 {
             return Err(Bad::answer(format!("{n} attributes, and `ATTR_N` multiplies as a byte")));
         }
-        out.push_str(&format!("ATTR_N = {n}\n"));
+        out.push_str(&format!("ATTR_N = {n}\nATTR_SHIFT_N = {n_shift}\n"));
         let attrs: Vec<&ditto::schema::Attribute> = db.attributes.values().collect();
         let mut rates = Vec::new();
         for &k in &used {
@@ -3586,12 +3638,23 @@ impl Rest<'_> {
         };
         let item_rows: Vec<usize> = item_sets.iter().map(|s| place(s)).collect();
         let skill_rows: Vec<usize> = skill_sets.iter().map(|s| place(s)).collect();
+        // A subset of the skill's own, so its attributes are all among
+        // `used`.
+        let weapon_rows: Vec<usize> = x
+            .rom_skills
+            .iter()
+            .map(|&h| {
+                let skill = db.skill(h as i32).map_err(bad)?;
+                Ok(place(&rm2k_snes_battle::rules::weapon_attributes_asked(db, skill)))
+            })
+            .collect::<Result<_>>()?;
         if rows.len() > 0x10000 {
             return Err(Bad::answer("the attribute sets don't fit in a bank"));
         }
         bytes_asm(out, "attr_sets", &decimal(rows), true);
         words_asm(out, "item_attr", &decimal(item_rows), true);
         words_asm(out, "skill_attr", &decimal(skill_rows), true);
+        words_asm(out, "skill_weapon", &decimal(weapon_rows), true);
         let mut ranks = Vec::new();
         for a in 0..n_actors {
             for &k in &used {

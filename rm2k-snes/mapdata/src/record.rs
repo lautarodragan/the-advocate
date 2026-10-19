@@ -1055,6 +1055,101 @@ pub fn pose_masks_table(maps: &[Map]) -> String {
     out.join("\n")
 }
 
+/// The sprite palettes an object names: OAM has three bits for them.
+pub const OBJ_PALETTES: usize = 8;
+
+/// The tiles the message window's arrow takes as objects: two 8x8, side by
+/// side —`WINDOW_ARROW_CELLS`, which the runtime checks against this—.
+pub const ARROW_OBJ_TILES: usize = 2;
+
+/// Where a window without its background draws its arrow as two objects,
+/// per map: the first of its two tiles and a sprite palette nobody else
+/// takes, as a word —the tile in bits 0 to 8, the palette in 9 to 11, and
+/// bit 15 set—; 0 if the map has no room for one of the two, and there the
+/// arrow stays in the window's cells and keeps BG2 on its eight lines.
+///
+/// **The tiles are the two past the bank**, if the layout's sprite tiles
+/// reach them: everything the console writes into the bank —the slots, the
+/// cache's, the animation's box, a picture's 8x8 objects— is inside its
+/// length, so what is past it nobody touches. **The palette is the top one
+/// the pictures leave**, if it is above the characters' and the animation
+/// box's: the pictures take theirs from 7 down and the rest from 0 up. The
+/// console copies the window's colours into it, and the arrow's tiles from
+/// the window's own, when the window appears: see `arrow_obj_load` in the
+/// runtime's message_arrow.s. Nobody tints it —the tint runs over the
+/// map's palettes only—, and RM2k does not tint the window either.
+pub fn arrow_obj(map: &Map) -> Result<u16> {
+    Ok(arrow_room(map)?.unwrap_or(0))
+}
+
+/// [`arrow_obj`]'s word, or why there is no room: what the converter's log
+/// says of each map that keeps the arrow in the cells.
+fn arrow_room(map: &Map) -> Result<std::result::Result<u16, String>> {
+    let layout = layout_of(map)?;
+    let (tiles, characters, animation, top) = match &map.sprite {
+        None => (0, 0, None, 0),
+        Some(s) => (
+            s.tiles.len() / TILE_BYTES,
+            s.palettes.len(),
+            s.animation.as_ref().map(|a| a.palette as usize),
+            s.image.1.max(0) as usize,
+        ),
+    };
+    let cap = layout.sprites.count as usize;
+    if tiles + ARROW_OBJ_TILES > cap {
+        return Ok(Err(format!("its sprite bank takes {tiles} of the {cap} sprite tiles of its layout")));
+    }
+    let low = characters.max(animation.map_or(0, |a| a + 1));
+    if low + top >= OBJ_PALETTES {
+        return Ok(Err(format!(
+            "its {OBJ_PALETTES} sprite palettes are taken: up to {} by the characters{}, and the top {top} by the pictures",
+            low - 1,
+            if animation.is_some() { " and the battle animation's box" } else { "" }
+        )));
+    }
+    let palette = OBJ_PALETTES - 1 - top;
+    Ok(Ok(0x8000 | (palette as u16) << 9 | tiles as u16))
+}
+
+/// What the converter's log says of each map that keeps the arrow in the
+/// window's cells.
+fn arrow_notes(maps: &[Map]) -> Result<Vec<String>> {
+    let mut notes = Vec::new();
+    for map in maps {
+        if let Err(why) = arrow_room(map)? {
+            notes.push(format!(
+                "  map {}: the message arrow stays in the window's cells, and a window without its \
+                 background keeps the layer above off its bottom row: {why}",
+                map.id
+            ));
+        }
+    }
+    Ok(notes)
+}
+
+/// `arrow_obj` for every map, a word each in the order of `map_table`:
+/// `arrow_objs`. It goes here and not in the record because the record is
+/// full.
+pub fn arrow_objs_table(maps: &[Map]) -> Result<String> {
+    let words = maps.iter().map(arrow_obj).collect::<Result<Vec<u16>>>()?;
+    Ok([
+        ".segment \"RODATA\"".to_string(),
+        "; Where a window without its background draws its arrow as objects, per map: see `arrow_obj` in rm2k-snes-mapdata.".into(),
+        format!("ARROW_OBJ_TILES = {ARROW_OBJ_TILES}"),
+        format!(".block {}", 2 * maps.len().max(1)),
+        "arrow_objs:".into(),
+        format!(
+            "    .word {}",
+            if words.is_empty() {
+                "0".to_string()
+            } else {
+                words.iter().map(|w| format!("${w:04X}")).collect::<Vec<_>>().join(", ")
+            }
+        ),
+    ]
+    .join("\n"))
+}
+
 /// Each block's mask, from the sprite bank's tiles as they are uploaded:
 /// a tile beyond the bank holds whatever VRAM had.
 fn block_masks(tiles: &[u8]) -> Vec<u16> {
@@ -1900,6 +1995,7 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         cache_table(maps)?
     );
     let _ = write!(tables, "\n{}\n", pose_masks_table(maps));
+    let _ = write!(tables, "\n{}\n", arrow_objs_table(maps)?);
     // Only in a cartridge that shows some panorama: one that does not gets
     // the same `.inc` as before there were any. See `pano.s`.
     if maps.iter().any(|m| m.panorama.is_some()) {
@@ -1914,7 +2010,7 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         offsets: offsets(),
         maps: text,
         tables,
-        notes: poses.notes,
+        notes: poses.notes.into_iter().chain(arrow_notes(maps)?).collect(),
         report: materials.report(),
         frames,
         raw,
@@ -2005,6 +2101,45 @@ mod tests {
         }
         // And the page that asks for the case variable at 299 says so whole.
         assert!(table.contains(".word 299 ; +26 against what"), "{table}");
+    }
+
+    /// The arrow's objects take the two tiles past the bank and the top
+    /// palette the pictures leave, and nothing when one of the two is not
+    /// there: the tiles past the layout's sprites, or the palettes all
+    /// taken between the characters, the animation's box and the pictures.
+    #[test]
+    fn the_arrow_s_objects_go_past_the_bank_and_under_the_pictures() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        let cap = layout_of(&map).unwrap().sprites.count as usize;
+        let sprite = map.sprite.as_mut().unwrap();
+        sprite.tiles = vec![0; 300 * TILE_BYTES];
+        sprite.palettes = vec![vec![[1, 2, 3]]; 3];
+        sprite.image = (0, 0);
+        sprite.animation = None;
+        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 7 << 9 | 300, "tile 300, palette 7");
+        // Under two palettes of pictures, and over an animation's box.
+        let sprite = map.sprite.as_mut().unwrap();
+        sprite.image = (256, 2);
+        sprite.animation = Some(crate::request::Animation { base: 192, palette: 3 });
+        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 5 << 9 | 300);
+        // With the eight taken, the cells.
+        let sprite = map.sprite.as_mut().unwrap();
+        sprite.palettes = vec![vec![[1, 2, 3]]; 4];
+        sprite.animation = Some(crate::request::Animation { base: 192, palette: 4 });
+        sprite.image = (256, 3);
+        assert_eq!(arrow_obj(&map).unwrap(), 0);
+        // And with the bank reaching the layout's last tile but one, too.
+        let sprite = map.sprite.as_mut().unwrap();
+        sprite.image = (0, 0);
+        sprite.animation = None;
+        sprite.tiles = vec![0; (cap - 2) * TILE_BYTES];
+        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 7 << 9 | (cap - 2) as u16);
+        map.sprite.as_mut().unwrap().tiles = vec![0; (cap - 1) * TILE_BYTES];
+        assert_eq!(arrow_obj(&map).unwrap(), 0);
+        // A map nobody is drawn in has the whole bank.
+        map.sprite = None;
+        assert_eq!(arrow_obj(&map).unwrap(), 0x8000 | 7 << 9);
     }
 
     #[test]

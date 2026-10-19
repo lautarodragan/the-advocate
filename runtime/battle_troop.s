@@ -936,6 +936,25 @@ stays:
     jsr ba_x
     rep #$20
 .a16
+    ; One a page got up —`FullHeal`, the `ChangeCondition` that revives—
+    ; gets up without its shifted ranks: see battle_attributes.s.
+    lda BA_ONE + BA_HP, x
+    bne was_up
+    lda BA_S0
+    and #$00FF
+    asl a
+    tay
+    lda FAR_HP, y
+    beq was_up
+    sep #$20
+.a8
+    lda BA_S1
+    jsr ba_attr_unshift
+    lda BA_S1
+    jsr ba_x
+    rep #$20
+.a16
+was_up:
     lda BA_S0
     and #$00FF
     asl a
@@ -985,6 +1004,8 @@ free:
     bra free
 found:
     jsr ba_actor_setup
+    lda BA_S1
+    jsr ba_attr_unshift         ; it comes in with the database's ranks
     lda BA_S1
     inc a
     cmp BA_NACTORS

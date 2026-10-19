@@ -319,11 +319,24 @@ fn do_render(args: &GameArgs) -> Result<()> {
             let hp_max = json.number_or("hp_max", curve(&a.parameters.maxhp))?;
             let sp_max = json.number_or("sp_max", curve(&a.parameters.maxsp))?;
             let skills: Vec<i32> = json.numbers("skills")?.into_iter().map(|n| n as i32).collect();
+            // What it holds in its first two slots, the starting ones when
+            // the request does not say: its weapons grey a skill.
+            let held = match json.data.get("held") {
+                Some(_) => {
+                    let h = json.numbers("held")?;
+                    if h.len() != 2 {
+                        return Err(Bad::usage(format!("{}: `held` is two items, weapon and shield", json.whose)));
+                    }
+                    [h[0] as i32, h[1] as i32]
+                }
+                None => [a.initial_equipment.weapon_id, a.initial_equipment.shield_id],
+            };
             render::skill_screen(
                 &game,
                 &fitted(fit::Screen::Skills)?,
                 actor,
                 &skills,
+                held,
                 level,
                 (json.number_or("hp", hp_max)?, hp_max),
                 (json.number_or("sp", sp_max)?, sp_max),

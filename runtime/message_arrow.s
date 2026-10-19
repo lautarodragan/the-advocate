@@ -97,7 +97,16 @@ up:
     rtl                         ; the cells already say so
 changed:
     sta f:MSG_ARROW_UP
-    cmp #0                      ; `sta` leaves the `cmp`'s Z, not A's
+    ; Drawn as objects, `arrow_oam` reads that and there are no cells to
+    ; write: see the end of this file.
+    pha
+    lda f:MSG_ARROW_OBJ + 1
+    bpl in_cells
+    pla
+    rtl
+in_cells:
+    pla
+    cmp #0                      ; `pla` leaves A's Z, but `cmp` says it plainly
     beq off
     lda #ARROW_WAY
 off:
@@ -239,3 +248,229 @@ size:
 bar_lines:
     .word 0, TEXT_BUF_BYTES, TEXT_BUF_BYTES * 2, TEXT_BUF_BYTES * 3
 .endproc
+
+; --- the arrow as objects, in a window without its background ----------------
+;
+; Without the background, the window's cells take BG2 —the map's layer
+; above, roofs and treetops— on every line they are on, edge to edge: see
+; `msg_bands`. The arrow alone kept the bottom row's eight lines, so where
+; the map has room it is drawn as two 8x8 objects instead, and those lines
+; are the map's. It is where RM2k has it: over everything but the timer
+; —`Priority_Window` is 130 and `Priority_Timer` 140—, so priority 3 and the
+; first objects after the timer's, which cover the characters' too.
+;
+; The room is a word per map, `arrow_objs`, which rm2k-snes-mapdata decides:
+; two tiles past the sprite bank and a sprite palette nobody takes, or 0.
+; Into them go the window's own arrow tiles and the window's colours, so
+; nothing of the System is redrawn or loses a colour, and nobody tints them
+; —the tint runs over the map's palettes only—, which is what RM2k does
+; with the window. A map without that room keeps the arrow in the cells.
+;
+; FAR3, like the rest of what is decided when the window appears. Data bank
+; 0, as in the vblank and in `build_oam`, which are its callers.
+.pushseg
+.segment "FAR3"
+.a8
+.i16
+.assert ARROW_OBJ_TILES = WINDOW_ARROW_CELLS, error, "the arrow's objects are not as many as its cells"
+.assert CGRAM_BASE <= 16, error, "the window's colours do not fit in a sprite palette"
+
+; Whether this window draws its arrow as objects: the map's word in
+; `MSG_ARROW_OBJ`, or 0 for the cells —a window with its background, a map
+; without room, or a big picture up, which has the window's tilemap
+; elsewhere and its tiles over the sprite bank—; and if so, its tiles and
+; its colours to their places. From `msg_hdma_build`, in the vblank in which
+; the window appears or with the screen off.
+.proc arrow_obj_choose
+.a8
+.i16
+    rep #$20
+.a16
+    lda #0
+    sta f:MSG_ARROW_OBJ
+    sep #$20
+.a8
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq cells
+    ; A big picture moves the window's tilemap from the map's: see
+    ; `big_load`, which calls this before it sets BIG_ON.
+    ldx map_ofs
+    lda f:map_table + M_VRAM_WINDOW_MAP + 1, x
+    cmp f:MSG_SC
+    bne cells
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    tax
+    lda f:arrow_objs, x
+    sta f:MSG_ARROW_OBJ
+    sep #$20                    ; `sep` does not touch Z
+.a8
+    beq cells
+    jsr arrow_obj_load
+cells:
+    rts
+.endproc
+
+; The arrow's two tiles and the window's colours to the place
+; `MSG_ARROW_OBJ` says: the tiles from the sprites' base, sixteen words
+; each, and the colours from entry 1 of its palette —0 is the objects'
+; transparent—. 64 and up to 30 bytes, in the vblank.
+.proc arrow_obj_load
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda f:MSG_ARROW_OBJ
+    and #$01FF
+    asl a
+    asl a
+    asl a
+    asl a
+    ldx map_ofs
+    clc
+    adc f:map_table + M_VRAM_SPRITE, x
+    sta VMADDL
+    win_lo window_arrow_obj, WS_ARROW_OBJ
+    sta A1T0L
+    lda #(ARROW_OBJ_TILES * 32)
+    sta DAS0L
+    sep #$20
+.a8
+    win_bank window_arrow_obj, WS_ARROW_OBJ
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    lda f:MSG_ARROW_OBJ + 1
+    and #$0E                    ; the palette, times two
+    asl a
+    asl a
+    asl a
+    ora #$81                    ; the sprites' half, past the transparent
+    sta CGADD
+    rep #$20
+.a16
+    win_lo window_cgram, WS_CGRAM
+    inc a
+    inc a
+    sta A1T0L
+    lda #((CGRAM_BASE - 1) * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    win_bank window_cgram, WS_CGRAM
+    sta A1B0
+    stz DMAP0                   ; one register, byte by byte
+    lda #$22
+    sta BBAD0                   ; CGDATA
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; `arrow_obj_load` for `window_swap_upload`, in FAR2: a System changed with
+; the window up brings its own arrow and colours.
+.proc arrow_obj_load_l
+.a8
+.i16
+    lda f:MSG_ARROW_OBJ + 1
+    bpl none
+    jsr arrow_obj_load
+none:
+    rtl
+.endproc
+
+; The arrow's two objects, from `build_oam` with a window on screen, while
+; `msg_arrow`'s count has it up and the window draws it as objects. Its corner is
+; the cells' —`WINDOW_ARROW_COL` and `WINDOW_ARROW_ROW` of the window—:
+; an object's Y is the line of the screen it starts on, the way the
+; window's scroll puts its first row on the line the window starts. Measured
+; against the cells, on 2026-10-18: the same pixels on the same lines.
+;
+; **It is drawn as the arrow will be on the next frame**, not as it is: the
+; OAM built now goes up in the next vblank, where `msg_arrow` counts the
+; blink one more, and the cells change in that vblank too. Read off
+; `MSG_ARROW_UP`, the objects went up and down a frame after the cells
+; did, on every edge of the blink. So the count one ahead; what it cannot
+; see coming is the first frame —the count starts in the vblank the window
+; appears, and the OAM was built without it— and a quiet that starts, where
+; it shows one frame more, as before.
+.proc arrow_oam
+.a8
+.i16
+    lda f:MSG_ARROW_T
+    cmp #$FF
+    beq done                    ; quiet
+    inc a
+    cmp #(ARROW_FRAMES * 2)
+    bcc counted
+    lda #0
+counted:
+    cmp #ARROW_FRAMES
+    bcs done                    ; off on the next frame
+    lda f:MSG_ARROW_OBJ + 1
+    bpl done
+    stz obj_big                 ; 8x8
+    lda f:MSG_PLACE
+    and #MSG_WHERE
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a                       ; four bytes per position
+    tax
+    lda f:place_rows + 0, x
+    and #$00FF
+    clc
+    adc #(WINDOW_ARROW_ROW * 8)
+    sta obj_y
+    lda #(WINDOW_ARROW_COL * 8)
+    sta obj_x
+    lda f:MSG_ARROW_OBJ
+    ldy #ARROW_OBJ_TILES
+each:
+    pha
+    sep #$20
+.a8
+    sta obj_tile
+    xba
+    and #$0F                    ; vhoopppN: the palette and the ninth bit,
+    ora #$30                    ; and priority 3, in front of everything
+    sta obj_attr
+    phy
+    jsl f:emit_object_far + FAST
+    ply
+    rep #$20
+.a16
+    lda obj_x
+    clc
+    adc #8
+    sta obj_x
+    pla
+    inc a                       ; the next tile, its ninth bit included
+    dey
+    bne each
+    sep #$20
+.a8
+    lda #$02                    ; and whatever follows is 32x32 again
+    sta obj_big
+done:
+    rtl
+.endproc
+
+.popseg
+
+; What the window without its background decided about its arrow when it
+; appeared: the map's word of `arrow_objs`, or 0 if it is in the cells.
+.pushseg
+.segment "FARBSS"
+MSG_ARROW_OBJ: .res 2
+.popseg

@@ -11,7 +11,9 @@
 ; `magical * (physical * effect / 100) / 100`—. A normal attack carries its
 ; weapons' attributes, and only an actor's; a skill, its own. The target's
 ; rank is its own, and an actor's goes one step up —more resistant— if any
-; armor it wears carries the attribute.
+; armor it wears carries the attribute; and then the shift a skill with
+; `affect_attr_defence` gave it in this battle, one step at most either way:
+; see `ba_attr_shift`.
 ;
 ; The tables are the converter's, outside bank 0: see `attributes` in
 ; rm2k-snes/mapdata's `emit.rs`. The attributes are numbered from 0 among the
@@ -21,6 +23,20 @@
 ; to `ba_mul` and `ba_div`, and `temp`: nothing here lives past the call,
 ; and adding far RAM for it was not worth it. `ba_mul` is only called before
 ; `ATTR_ACTOR` is written, because it clobbers `comp_or23`.
+;
+; **The shifts do live past the call**, the whole battle: a signed byte per
+; combatant and attribute, -1, 0 or +1 —easyrpg's `attribute_shift`—, only
+; for the attributes some carried skill can shift, which the converter
+; numbers first, `ATTR_SHIFT_N` of them. A row of `ATTR_SHIFT_N` per
+; combatant, in combatant order. They are cleared when the battle starts,
+; when an actor gets up or comes in —easyrpg clears them when the dead state
+; is added, which is the same seen from outside: a fallen one is neither hit
+; nor shifted—, and for the target of a heal from the skills screen, which
+; borrows combatant 1 and must find no shift there.
+.pushseg
+.segment "FARBSS"
+ba_attr_shifts: .res BA_COMB_MAX * ATTR_SHIFT_N
+.popseg
 ATTR_EFFECT = comp_dup          ; word: the effect being multiplied
 ATTR_ROW1   = comp_dup + 2      ; word: one set's row in `attr_sets`
 ATTR_ROW2   = comp_or01         ; word: and the other's; 0 is the empty set
@@ -350,6 +366,37 @@ boosted:
     bcs ranked                  ; already `E`
     inc BA_T1
 ranked:
+    ; And the shift, if this attribute can have one: base plus shift,
+    ; clamped to `A`..`E`, which is `GetAttributeRate`.
+    lda ATTR_A
+    cmp #ATTR_SHIFT_N
+    bcs unshifted
+    sep #$20
+.a8
+    lda BA_MTGT
+    jsr ba_attr_row
+    rep #$21                    ; and the carry clear for the addition
+.a16
+    txa
+    adc ATTR_A
+    tax
+    lda .loword(ba_attr_shifts), x
+    and #$00FF
+    cmp #$0080
+    bcc shift_ready
+    ora #$FF00                  ; -1
+shift_ready:
+    clc
+    adc BA_T1
+    bpl not_below_a
+    lda #0
+not_below_a:
+    cmp #5
+    bcc unshifted_a
+    lda #4
+unshifted_a:
+    sta BA_T1
+unshifted:
     lda BA_T1
     rts
 
@@ -406,5 +453,147 @@ too_big:
     lda #$7FFF
 scaled:
     sta ATTR_EFFECT
+    rts
+.endproc
+
+; --- the shifts --------------------------------------------------------------
+
+; A8 = a combatant; X = where its row starts in `ba_attr_shifts`: the
+; combatant times `ATTR_SHIFT_N`, added up, since it is at most eleven times.
+; Leaves A8. Clobbers Y.
+.proc ba_attr_row
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    lda #0
+    cpy #0
+    beq ready
+add:
+    clc
+    adc #ATTR_SHIFT_N
+    dey
+    bne add
+ready:
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; A8 = a combatant: its ranks back to the database's. Clobbers A, X and Y.
+.proc ba_attr_unshift
+.a8
+.i16
+    jsr ba_attr_row
+    ldy #ATTR_SHIFT_N
+    beq done
+clear:
+    stz .loword(ba_attr_shifts), x
+    inx
+    dey
+    bne clear
+done:
+    rts
+.endproc
+
+; Nobody has a shift: from `battle_run`, before anything. Clobbers A and X.
+.proc ba_attr_unshift_all
+.a8
+.i16
+    ldx #BA_COMB_MAX * ATTR_SHIFT_N
+    beq done
+clear:
+    dex
+    stz .loword(ba_attr_shifts), x
+    bne clear
+    ; (`stz` leaves the flags alone: the `bne` sees the `dex`.)
+done:
+    rts
+.endproc
+
+; `affect_attr_defence` on `BA_MTGT`, after the four parameters, as
+; `Skill::vExecute` and the model's `skill_on` in `rm2k-snes-battle`, which
+; is where the rule is explained: for each attribute of skill `BA_MSKILL`,
+; in database order, if the target's shift can still move —a step weaker on
+; one it targets as an enemy, a step more resistant on an ally, never past
+; one step—, a roll against the hit rate in `BA_S0`, and the step if it comes
+; up. **At the bound there is no roll.** The damage, already done, read the
+; rank as it was. Clobbers `BA_S1`, `BA_S2`, `BA_S4`, `BA_S5`, what
+; `ba_pct` does, A, X and Y.
+.proc ba_attr_shift
+.a8
+.i16
+    lda BA_MSKILL
+    jsr ba_ax
+    lda f:skill_shifts, x
+    bne shifts
+    rts
+shifts:
+    lda f:skill_affects, x
+    and #$40                    ; it targets enemies
+    beq ally
+    lda #$FF
+    bra step_ready
+ally:
+    lda #1
+step_ready:
+    sta BA_S5                   ; the step, +1 or -1
+    lda BA_MTGT
+    jsr ba_attr_row
+    stx BA_S4                   ; the target's row
+    rep #$20
+.a16
+    lda BA_MSKILL
+    and #$00FF
+    asl a
+    tax
+    lda f:skill_attr, x
+    sta BA_S1                   ; the skill's set
+    stz BA_S2                   ; the attribute
+attribute:
+    lda BA_S2
+    cmp #ATTR_SHIFT_N           ; the skill carries no other: see the top
+    bcs done
+    clc
+    adc BA_S1
+    tax
+    sep #$20
+.a8
+    lda f:attr_sets, x
+    beq next
+    jsr shift_x
+    lda .loword(ba_attr_shifts), x
+    cmp BA_S5
+    beq next                    ; already a step that way
+    lda BA_S0
+    jsr ba_pct
+    beq next
+    jsr shift_x
+    lda .loword(ba_attr_shifts), x
+    clc
+    adc BA_S5
+    sta .loword(ba_attr_shifts), x
+next:
+    rep #$20
+.a16
+    inc BA_S2
+    bra attribute
+done:
+    sep #$20
+.a8
+    rts
+
+; X = the target's byte for attribute `BA_S2`. Leaves A8.
+shift_x:
+    rep #$21                    ; and the carry clear for the addition
+.a16
+    lda BA_S4
+    adc BA_S2
+    tax
+    sep #$20
+.a8
     rts
 .endproc
