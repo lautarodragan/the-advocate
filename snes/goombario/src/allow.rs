@@ -41,13 +41,20 @@ pub fn scan(file: &str, text: &str) -> (Vec<Annotation>, Vec<String>) {
     let mut out = Vec::new();
     let mut wrong = Vec::new();
     for (i, raw) in lines.iter().enumerate() {
-        let Some(at) = comment_start(raw) else { continue };
+        let Some(at) = comment_start(raw) else {
+            continue;
+        };
         let comment = raw[at..].trim_start_matches(';').trim();
-        let Some(rest) = comment.strip_prefix(MARK) else { continue };
+        let Some(rest) = comment.strip_prefix(MARK) else {
+            continue;
+        };
         let n = i as u32 + 1;
         let place = format!("{}:{}", file, n);
         let Some((name, why)) = rest.split_once(':') else {
-            wrong.push(format!("{}: a goombario annotation is `goombario: CHECK: why`", place));
+            wrong.push(format!(
+                "{}: a goombario annotation is `goombario: CHECK: why`",
+                place
+            ));
             continue;
         };
         let Some(check) = Check::from_name(name.trim()) else {
@@ -84,7 +91,13 @@ pub fn scan(file: &str, text: &str) -> (Vec<Annotation>, Vec<String>) {
         } else {
             n
         };
-        out.push(Annotation { check, file: file.to_string(), line: n, covers, why: why.to_string() });
+        out.push(Annotation {
+            check,
+            file: file.to_string(),
+            line: n,
+            covers,
+            why: why.to_string(),
+        });
     }
     (out, wrong)
 }
@@ -113,7 +126,10 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert_eq!((list[0].check, list[0].covers), (Check::PullBranch, 2));
         assert_eq!(list[0].why, "the value to write");
-        assert_eq!((list[1].check, list[1].line, list[1].covers), (Check::Stack, 3, 5));
+        assert_eq!(
+            (list[1].check, list[1].line, list[1].covers),
+            (Check::Stack, 3, 5)
+        );
     }
 
     #[test]
@@ -131,7 +147,15 @@ mod tests {
 
     #[test]
     fn other_comments_and_strings_are_not_annotations() {
-        let (list, wrong) = scan("a.s", ".byte \"; goombario: stack: x\"\nrts ; see goombario: stack: x\n");
-        assert!(list.is_empty() && wrong.is_empty(), "{:?} {:?}", list, wrong);
+        let (list, wrong) = scan(
+            "a.s",
+            ".byte \"; goombario: stack: x\"\nrts ; see goombario: stack: x\n",
+        );
+        assert!(
+            list.is_empty() && wrong.is_empty(),
+            "{:?} {:?}",
+            list,
+            wrong
+        );
     }
 }

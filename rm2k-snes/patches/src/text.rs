@@ -64,8 +64,11 @@ pub fn map_text(map: &MapDecision) -> String {
         for merge in merges {
             let (palette, victim, dest, pixels) = merge.parts();
             let local = palette.map_or(String::new(), |p| format!("palette = {p}, "));
-            lines.push(format!("  {{ {local}from = {}, to = {}, pixels = {pixels} }},",
-                color(victim), color(dest)));
+            lines.push(format!(
+                "  {{ {local}from = {}, to = {}, pixels = {pixels} }},",
+                color(victim),
+                color(dest)
+            ));
         }
         lines.push("]".into());
     }
@@ -103,8 +106,11 @@ pub fn map_text(map: &MapDecision) -> String {
                 for merge in &p.merges {
                     let (palette, victim, dest, pixels) = merge.parts();
                     let local = palette.map_or(String::new(), |n| format!("palette = {n}, "));
-                    lines.push(format!("  {{ {local}from = {}, to = {}, pixels = {pixels} }},",
-                        color(victim), color(dest)));
+                    lines.push(format!(
+                        "  {{ {local}from = {}, to = {}, pixels = {pixels} }},",
+                        color(victim),
+                        color(dest)
+                    ));
                 }
                 lines.push("]".into());
             }

@@ -36,7 +36,11 @@ impl Parsed {
 
     /// ...and the percussion keys it plays.
     pub fn hits(&self) -> BTreeSet<u8> {
-        self.notes.iter().filter(|n| n.channel == midi::DRUM_CHANNEL).map(|n| n.pitch).collect()
+        self.notes
+            .iter()
+            .filter(|n| n.channel == midi::DRUM_CHANNEL)
+            .map(|n| n.pitch)
+            .collect()
     }
 }
 
@@ -47,7 +51,9 @@ impl Parsed {
 /// carries its index— but its stream is a lone `OP_END` and the ROM stays
 /// silent when it is played.
 pub fn read(name: &str, game: &Game) -> Result<Option<Parsed>> {
-    let Some(path) = game.song_path(name) else { return Ok(None) };
+    let Some(path) = game.song_path(name) else {
+        return Ok(None);
+    };
     if !path.to_string_lossy().to_lowercase().ends_with(".mid") {
         return Ok(None);
     }

@@ -12,10 +12,10 @@ use crate::screen::{
     self, BA_ENEMY_NAME_WIDTH, BA_ITEM_NAME_WIDTH, BA_NAME_WIDTH, BA_SKILL_NAME_WIDTH,
     BA_STATE_WIDTH,
 };
+use crate::simulate::{self, Battle, Combatant, Command, TroopPage, BATTLE_SEED};
 use rm2k_rules::actor::Standing;
 use rm2k_snes_text::cells;
 use rm2k_snes_text::font::Font;
-use crate::simulate::{self, Battle, Combatant, Command, TroopPage, BATTLE_SEED};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -182,8 +182,13 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
     let (cut, pairs_asked) = match request.get("font") {
         None => (Vec::new(), Value::Null),
         Some(spec) => {
-            let spec = spec.as_str().ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
-            let spacing = request.get("letter_spacing").and_then(Value::as_i64).unwrap_or(0);
+            let spec = spec
+                .as_str()
+                .ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
+            let spacing = request
+                .get("letter_spacing")
+                .and_then(Value::as_i64)
+                .unwrap_or(0);
             let font = Font::named(spec, rm2k_snes_text::font::MINCHO)
                 .and_then(|f| f.with_spacing(spacing))
                 .map_err(Bad::answer)?;
@@ -207,30 +212,69 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
                 }
             }
             let party_skills: BTreeSet<i32> = known.values().flatten().copied().collect();
-            let enemy_names: Vec<String> =
-                enemies.iter().map(|&e| Ok(db.enemy(e)?.name.clone())).collect::<Result<_>>()?;
-            let skill_names: Vec<String> =
-                party_skills.iter().map(|&h| Ok(db.skill(h)?.name.clone())).collect::<Result<_>>()?;
-            let actor_names: Vec<String> =
-                actors.iter().filter_map(|a| db.actors.get(a)).map(|a| a.name.clone()).collect();
+            let enemy_names: Vec<String> = enemies
+                .iter()
+                .map(|&e| Ok(db.enemy(e)?.name.clone()))
+                .collect::<Result<_>>()?;
+            let skill_names: Vec<String> = party_skills
+                .iter()
+                .map(|&h| Ok(db.skill(h)?.name.clone()))
+                .collect::<Result<_>>()?;
+            let actor_names: Vec<String> = actors
+                .iter()
+                .filter_map(|a| db.actors.get(a))
+                .map(|a| a.name.clone())
+                .collect();
             let states = vec![db.terms.normal_status.clone(), screen::dead_text(db)?];
             let mut all_commands = commands.clone();
             all_commands.extend(
-                [&db.terms.command_attack, &db.terms.command_defend, &db.terms.command_item, &db.terms.battle_escape]
-                    .map(|t| screen::command_text(t)),
+                [
+                    &db.terms.command_attack,
+                    &db.terms.command_defend,
+                    &db.terms.command_item,
+                    &db.terms.battle_escape,
+                ]
+                .map(|t| screen::command_text(t)),
             );
             let places = [
-                ("actor names in the battle", &actor_names, WHOLE, BA_NAME_WIDTH),
+                (
+                    "actor names in the battle",
+                    &actor_names,
+                    WHOLE,
+                    BA_NAME_WIDTH,
+                ),
                 ("states in the battle", &states, WHOLE, BA_STATE_WIDTH),
-                ("enemy names in the battle", &enemy_names, WHOLE, BA_ENEMY_NAME_WIDTH),
-                ("skill names in the battle", &skill_names, WHOLE, BA_SKILL_NAME_WIDTH),
-                ("item names in the battle", &usable, name_width, BA_ITEM_NAME_WIDTH),
-                ("commands in the battle", &all_commands, screen::BA_COMMAND_WIDTH, screen::BA_COMMAND_CELLS),
+                (
+                    "enemy names in the battle",
+                    &enemy_names,
+                    WHOLE,
+                    BA_ENEMY_NAME_WIDTH,
+                ),
+                (
+                    "skill names in the battle",
+                    &skill_names,
+                    WHOLE,
+                    BA_SKILL_NAME_WIDTH,
+                ),
+                (
+                    "item names in the battle",
+                    &usable,
+                    name_width,
+                    BA_ITEM_NAME_WIDTH,
+                ),
+                (
+                    "commands in the battle",
+                    &all_commands,
+                    screen::BA_COMMAND_WIDTH,
+                    screen::BA_COMMAND_CELLS,
+                ),
             ];
             party_line = screen::check_party_line(&font, &db.terms.hp_short, &db.terms.sp_short);
             let cut: Vec<Value> = places
                 .iter()
-                .filter_map(|(place, names, letters, cells)| cut_in_cells(&font, place, names, *letters, *cells))
+                .filter_map(|(place, names, letters, cells)| {
+                    cut_in_cells(&font, place, names, *letters, *cells)
+                })
                 .collect();
             let lists = BusiestLists { font: &font };
             let mut skills_asked = (0, 0, 0);
@@ -301,10 +345,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
 
     let mut enemy_names = Map::new();
     for &e in &enemies {
-        enemy_names.insert(
-            e.to_string(),
-            json!(db.enemy(e)?.name),
-        );
+        enemy_names.insert(e.to_string(), json!(db.enemy(e)?.name));
     }
     let mut skill_texts = Map::new();
     for &h in &skills {
@@ -614,7 +655,11 @@ pub fn experience(db: &Db, request: &Value) -> Result<Value> {
         let learned = match (optional(c, "exp_by"), optional(c, "levels_by")) {
             (Some(by), None) => at.change_exp(actor, at.exp + number(by, "`exp_by`")?),
             (None, Some(by)) => at.change_level(actor, at.level + number(by, "`levels_by`")?),
-            _ => return Err(Bad::answer("a change is `exp_by` or `levels_by`, one of the two")),
+            _ => {
+                return Err(Bad::answer(
+                    "a change is `exp_by` or `levels_by`, one of the two",
+                ))
+            }
         };
         let mut lines = Vec::new();
         if at.level > before {
@@ -667,7 +712,10 @@ pub fn field_skill(db: &Db, request: &Value) -> Result<Value> {
     let place = |name: &str| -> Result<usize> {
         let p = optional(request, name).map_or(Ok(0), |v| number(v, name))?;
         if p < 0 || p as usize >= party.len() {
-            return Err(Bad::answer(format!("`{name}` is {p} and the party has {}", party.len())));
+            return Err(Bad::answer(format!(
+                "`{name}` is {p} and the party has {}",
+                party.len()
+            )));
         }
         Ok(p as usize)
     };
@@ -696,8 +744,13 @@ fn font_of(request: &Value) -> Result<Option<Font>> {
     let Some(spec) = request.get("font") else {
         return Ok(None);
     };
-    let spec = spec.as_str().ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
-    let spacing = request.get("letter_spacing").and_then(Value::as_i64).unwrap_or(0);
+    let spec = spec
+        .as_str()
+        .ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
+    let spacing = request
+        .get("letter_spacing")
+        .and_then(Value::as_i64)
+        .unwrap_or(0);
     Font::named(spec, rm2k_snes_text::font::MINCHO)
         .and_then(|f| f.with_spacing(spacing))
         .map(Some)
@@ -718,7 +771,13 @@ const WHOLE: usize = usize::MAX;
 /// each, and of those, the ones whose advances add up to `cells` cells
 /// —the console's `scr_cap`—. `{"place", "cells", "names": [[name, its
 /// pixels, what shows]]}`, or nothing if none is cut.
-fn cut_in_cells(font: &Font, place: &str, names: &[String], letters: usize, cells: usize) -> Option<Value> {
+fn cut_in_cells(
+    font: &Font,
+    place: &str,
+    names: &[String],
+    letters: usize,
+    cells: usize,
+) -> Option<Value> {
     let mut seen = BTreeSet::new();
     let mut cut = Vec::new();
     for name in names {

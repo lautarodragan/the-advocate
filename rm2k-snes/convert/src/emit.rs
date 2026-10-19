@@ -127,12 +127,20 @@ pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> 
     std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
     let answer = crate::stage::json(&written, "mapdata.json")?;
     for note in answer["notes"].as_array().cloned().unwrap_or_default() {
-        println!("{}", note.as_str().map_or_else(|| note.to_string(), str::to_string));
+        println!(
+            "{}",
+            note.as_str()
+                .map_or_else(|| note.to_string(), str::to_string)
+        );
     }
     Ok(Emitted {
         report: answer["report"]
             .as_array()
-            .map(|r| r.iter().map(|l| l.as_str().unwrap_or("").to_string()).collect())
+            .map(|r| {
+                r.iter()
+                    .map(|l| l.as_str().unwrap_or("").to_string())
+                    .collect()
+            })
             .unwrap_or_default(),
         frames: answer["frames"].as_array().cloned().unwrap_or_default(),
         losses: answer["losses"].as_array().cloned().unwrap_or_default(),

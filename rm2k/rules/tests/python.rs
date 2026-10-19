@@ -30,11 +30,18 @@ fn read<T: serde::de::DeserializeOwned>(v: &Value) -> T {
 }
 
 fn numbers(v: &Value) -> Vec<i32> {
-    v.as_array().unwrap().iter().map(|n| n.as_i64().unwrap() as i32).collect()
+    v.as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n.as_i64().unwrap() as i32)
+        .collect()
 }
 
 fn sha256(data: &[u8]) -> String {
-    Sha256::digest(data).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(data)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 #[test]
@@ -51,7 +58,11 @@ fn the_tile_ids_and_the_chipset_tables() {
         .map(|c| chipset::passability_table(&c.passable_data_lower, &c.passable_data_upper))
         .collect();
     let hashes: Vec<String> = tables.iter().map(|t| sha256(t)).collect();
-    assert_eq!(json!(hashes), answers["passability_sha256"], "the passability table");
+    assert_eq!(
+        json!(hashes),
+        answers["passability_sha256"],
+        "the passability table"
+    );
 
     let terrain: Vec<Vec<i32>> = chipsets
         .iter()
@@ -116,7 +127,10 @@ fn the_animated_tiles() {
 fn what_a_page_draws_and_what_it_does_to_its_cell() {
     let f = fixture();
     let chipsets: Vec<Chipset> = read(&f["inputs"]["chipsets"]);
-    let (lower, upper) = (&chipsets[0].passable_data_lower, &chipsets[0].passable_data_upper);
+    let (lower, upper) = (
+        &chipsets[0].passable_data_lower,
+        &chipsets[0].passable_data_upper,
+    );
     let flags = chipset::passability_table(lower, upper);
     let (mut graphics, mut passes) = (Vec::new(), Vec::new());
     for p in f["inputs"]["pages"].as_array().unwrap() {
@@ -131,8 +145,16 @@ fn what_a_page_draws_and_what_it_does_to_its_cell() {
         });
         passes.push(graphic.and_then(|g| event::tile_passability(&flags, &g, page.layer)));
     }
-    assert_eq!(json!(graphics), f["answers"]["page_graphic"], "page_graphic");
-    assert_eq!(json!(passes), f["answers"]["tile_passability"], "tile_passability");
+    assert_eq!(
+        json!(graphics),
+        f["answers"]["page_graphic"],
+        "page_graphic"
+    );
+    assert_eq!(
+        json!(passes),
+        f["answers"]["tile_passability"],
+        "tile_passability"
+    );
 }
 
 #[test]
@@ -152,7 +174,12 @@ fn experience_and_level() {
     let f = fixture();
     let gains: Vec<Vec<i64>> = read(&f["inputs"]["exp_gains"]);
     let answers = f["answers"]["actors"].as_array().unwrap();
-    for (data, expected) in f["inputs"]["actors"].as_array().unwrap().iter().zip(answers) {
+    for (data, expected) in f["inputs"]["actors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(answers)
+    {
         let a: Actor = read(data);
         let top = actor::max_level(&a);
         let got = json!({
@@ -185,8 +212,14 @@ fn what_a_map_inherits_from_the_tree() {
     }
     ids.push(99);
     let background: Vec<Option<&str>> = ids.iter().map(|&i| tree.background(i)).collect();
-    assert_eq!(json!(background), f["answers"]["background"], "the battle background");
-    let music: Vec<Option<&str>> =
-        ids.iter().map(|&i| tree.music(i).map(|m| m.name.as_str())).collect();
+    assert_eq!(
+        json!(background),
+        f["answers"]["background"],
+        "the battle background"
+    );
+    let music: Vec<Option<&str>> = ids
+        .iter()
+        .map(|&i| tree.music(i).map(|m| m.name.as_str()))
+        .collect();
     assert_eq!(json!(music), f["answers"]["music"], "the song");
 }

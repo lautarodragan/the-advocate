@@ -29,10 +29,13 @@ Exit codes: 1 a stream does not decode or an input does not fit; 2 the call
 itself is wrong (missing arguments, a file that cannot be read).";
 
 fn pairs(args: &[String]) -> Result<Vec<(&str, &str)>, String> {
-    if args.is_empty() || args.len() % 2 != 0 {
+    if args.is_empty() || !args.len().is_multiple_of(2) {
         return Err("expected IN OUT pairs".into());
     }
-    Ok(args.chunks(2).map(|p| (p[0].as_str(), p[1].as_str())).collect())
+    Ok(args
+        .chunks(2)
+        .map(|p| (p[0].as_str(), p[1].as_str()))
+        .collect())
 }
 
 fn read(path: &str) -> Result<Vec<u8>, (u8, String)> {
@@ -53,7 +56,11 @@ fn stats(path: &str, stream: &[u8]) -> Result<String, (u8, String)> {
             break;
         }
         let (kind, len, header) = if h >> 5 == 7 {
-            ((h >> 2) & 7, ((h as usize & 3) << 8 | stream[i + 1] as usize) + 1, 2)
+            (
+                (h >> 2) & 7,
+                ((h as usize & 3) << 8 | stream[i + 1] as usize) + 1,
+                2,
+            )
         } else {
             (h >> 5, (h as usize & 31) + 1, 1)
         };
@@ -92,18 +99,23 @@ fn run(args: &[String]) -> Result<(), (u8, String)> {
                 options.increasing = false;
                 rest = &rest[1..];
             }
-            for (input, output) in pairs(rest).map_err(|e| (MISUSE, format!("{}\n\n{}", e, USAGE)))? {
+            for (input, output) in
+                pairs(rest).map_err(|e| (MISUSE, format!("{}\n\n{}", e, USAGE)))?
+            {
                 let data = read(input)?;
-                let stream =
-                    lz2::compress_with(&data, options).map_err(|e| (NO, format!("{}: {}", input, e)))?;
+                let stream = lz2::compress_with(&data, options)
+                    .map_err(|e| (NO, format!("{}: {}", input, e)))?;
                 write(output, &stream)?;
             }
             Ok(())
         }
         "decompress" => {
-            for (input, output) in pairs(rest).map_err(|e| (MISUSE, format!("{}\n\n{}", e, USAGE)))? {
+            for (input, output) in
+                pairs(rest).map_err(|e| (MISUSE, format!("{}\n\n{}", e, USAGE)))?
+            {
                 let stream = read(input)?;
-                let data = lz2::decompress(&stream).map_err(|e| (NO, format!("{}: {}", input, e)))?;
+                let data =
+                    lz2::decompress(&stream).map_err(|e| (NO, format!("{}: {}", input, e)))?;
                 write(output, &data)?;
             }
             Ok(())

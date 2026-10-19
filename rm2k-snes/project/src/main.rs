@@ -50,7 +50,10 @@ fn run() -> Result<(), Error> {
         return Ok(());
     }
     let out = resolved(&project)?;
-    println!("{}", serde_json::to_string_pretty(&out).expect("a JSON value always serializes"));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&out).expect("a JSON value always serializes")
+    );
     Ok(())
 }
 

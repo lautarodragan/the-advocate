@@ -100,7 +100,9 @@ pub fn number(s: &str) -> Result<u32, String> {
 }
 
 fn get<'a>(f: &HashMap<&str, &'a str>, key: &str, kind: &str) -> Result<&'a str, String> {
-    f.get(key).copied().ok_or_else(|| format!("a {} record without {}", kind, key))
+    f.get(key)
+        .copied()
+        .ok_or_else(|| format!("a {} record without {}", kind, key))
 }
 
 fn id(f: &HashMap<&str, &str>, kind: &str) -> Result<usize, String> {
@@ -108,7 +110,9 @@ fn id(f: &HashMap<&str, &str>, kind: &str) -> Result<usize, String> {
 }
 
 fn ids(s: &str) -> Result<Vec<usize>, String> {
-    s.split('+').map(|x| number(x).map(|n| n as usize)).collect()
+    s.split('+')
+        .map(|x| number(x).map(|n| n as usize))
+        .collect()
 }
 
 pub fn parse(text: &str) -> Result<DebugInfo, String> {
@@ -119,10 +123,14 @@ pub fn parse(text: &str) -> Result<DebugInfo, String> {
         let at = |e: String| format!("line {} of the debug file: {}", n + 1, e);
         match kind {
             "file" => {
-                info.files.insert(id(&f, kind).map_err(at)?, get(&f, "name", kind).map_err(at)?.to_string());
+                info.files.insert(
+                    id(&f, kind).map_err(at)?,
+                    get(&f, "name", kind).map_err(at)?.to_string(),
+                );
             }
             "mod" => {
-                info.main_files.push(number(get(&f, "file", kind).map_err(at)?).map_err(at)? as usize);
+                info.main_files
+                    .push(number(get(&f, "file", kind).map_err(at)?).map_err(at)? as usize);
             }
             "seg" => {
                 let seg = Segment {

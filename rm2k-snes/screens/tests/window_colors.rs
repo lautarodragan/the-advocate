@@ -3,9 +3,9 @@
 //! game —"the window, its arrow and its cursor use N colours and 15
 //! fit"—; now Adeleine takes it to fifteen and the window is built.
 
-use rm2k_snes_screens::{borders, message_window};
 use rm2k_snes_screens::game::Skin;
 use rm2k_snes_screens::Game;
+use rm2k_snes_screens::{borders, message_window};
 use std::path::PathBuf;
 
 fn here() -> PathBuf {
@@ -31,15 +31,26 @@ fn gradient_skin() -> Skin {
 fn a_window_with_more_colours_than_a_palette_is_reduced() {
     let skin = gradient_skin();
     let (brought, merges) = message_window::reduction(&skin).unwrap();
-    assert!(brought > 15, "the gradient has to overflow the palette: {brought} colours");
-    assert_eq!(merges.len(), brought - 15, "Adeleine merges exactly down to fifteen");
+    assert!(
+        brought > 15,
+        "the gradient has to overflow the palette: {brought} colours"
+    );
+    assert_eq!(
+        merges.len(),
+        brought - 15,
+        "Adeleine merges exactly down to fifteen"
+    );
     assert_eq!(message_window::colors(&skin).unwrap(), 15);
 
     let window = message_window::convert(&skin, 16).unwrap();
     assert_eq!(window.cgram.len(), 16);
     // The text keeps colours of its own: every glyph row and the shadow
     // index a palette entry, none the transparent one.
-    assert!(window.color.iter().chain([&window.shadow]).all(|&i| (1..16).contains(&i)));
+    assert!(window
+        .color
+        .iter()
+        .chain([&window.shadow])
+        .all(|&i| (1..16).contains(&i)));
     // And it is deterministic: the same System, the same merges.
     assert_eq!(message_window::reduction(&skin).unwrap().1, merges);
 }
@@ -50,7 +61,10 @@ fn the_text_screens_windows_with_more_colours_than_room_are_reduced() {
     // screens take their colours in a row from an entry; with the gradient
     // they are more than the room, and that used to stop the game too.
     let skin = gradient_skin();
-    let screen = borders::Screen { background: borders::item_windows(&skin, None), bars: vec![] };
+    let screen = borders::Screen {
+        background: borders::item_windows(&skin, None),
+        bars: vec![],
+    };
     let (first, cap) = (128, 144);
     let out = borders::borders(&[screen], 0, first, cap).unwrap();
     assert_eq!(out.colors.len(), cap - first);
@@ -88,7 +102,10 @@ fn two_systems_compose_their_text_with_the_same_entries() {
     // the same one, and only their palettes differ.
     let flat = text_skin(|_| [0, 0, 0, 255]);
     let pairs = text_skin(|y| [(y / 2 * 40) as u8, 200, 200, 255]);
-    let each = [message_window::text_rows(&flat).unwrap(), message_window::text_rows(&pairs).unwrap()];
+    let each = [
+        message_window::text_rows(&flat).unwrap(),
+        message_window::text_rows(&pairs).unwrap(),
+    ];
     assert_eq!(each[0].len(), 1);
     let rows = message_window::common_rows(&each);
     assert_eq!(rows, each[1], "the finer split is the common one");
@@ -121,5 +138,8 @@ fn a_system_switched_to_fits_in_what_the_starting_one_takes() {
     let (_, merges) = message_window::reduction_capped(&gradient, Some(&rows), colors).unwrap();
     assert!(!merges.is_empty());
     let window = message_window::convert_with(&gradient, colors + 1, Some(&rows)).unwrap();
-    assert!(window.cgram[colors + 1..].iter().all(|&w| w == 0), "past the starting System's entries");
+    assert!(
+        window.cgram[colors + 1..].iter().all(|&w| w == 0),
+        "past the starting System's entries"
+    );
 }

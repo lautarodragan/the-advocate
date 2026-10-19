@@ -26,8 +26,11 @@ const TELEPORT: i32 = 7;
 const PARTY_HEAL: i32 = 6;
 
 fn db_with(skill: i32) -> Db {
-    let mut db =
-        Db::from_dump(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/game/dump"), false).unwrap();
+    let mut db = Db::from_dump(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/game/dump"),
+        false,
+    )
+    .unwrap();
     let item = db.items.get_mut(&ITEM).unwrap();
     item.r#type = ItemType::Special;
     item.skill_id = skill;
@@ -38,7 +41,10 @@ fn db_with(skill: i32) -> Db {
 fn a_special_item_casts_a_normal_skill_and_a_switch_one_with_occasion_battle() {
     let db = db_with(SKILL);
     assert_eq!(db.skill(SKILL).unwrap().r#type, SkillType::Normal);
-    assert_eq!(item_skill_in_battle(&db, db.item(ITEM).unwrap()), Some(SKILL));
+    assert_eq!(
+        item_skill_in_battle(&db, db.item(ITEM).unwrap()),
+        Some(SKILL)
+    );
     assert!(item_in_battle(&db, db.item(ITEM).unwrap()));
 
     let mut db = db_with(SWITCH);
@@ -46,7 +52,10 @@ fn a_special_item_casts_a_normal_skill_and_a_switch_one_with_occasion_battle() {
     db.skills.get_mut(&SWITCH).unwrap().occasion_battle = false;
     assert_eq!(item_skill_in_battle(&db, db.item(ITEM).unwrap()), None);
     db.skills.get_mut(&SWITCH).unwrap().occasion_battle = true;
-    assert_eq!(item_skill_in_battle(&db, db.item(ITEM).unwrap()), Some(SWITCH));
+    assert_eq!(
+        item_skill_in_battle(&db, db.item(ITEM).unwrap()),
+        Some(SWITCH)
+    );
 
     let db = db_with(TELEPORT);
     assert_eq!(db.skill(TELEPORT).unwrap().r#type, SkillType::Teleport);
@@ -73,7 +82,13 @@ fn one_turn(db: &Db, command: Command) -> Battle {
     let mut actor = Combatant::actor(db, 1, None, None).unwrap();
     actor.sp = actor.sp_max;
     let enemy = Combatant::enemy(db, 1, 0, false).unwrap();
-    let mut battle = Battle::new(vec![actor], vec![enemy], BATTLE_SEED, Vec::new(), BTreeMap::new());
+    let mut battle = Battle::new(
+        vec![actor],
+        vec![enemy],
+        BATTLE_SEED,
+        Vec::new(),
+        BTreeMap::new(),
+    );
     battle.start(db).unwrap();
     battle.play_turn(db, &[command]).unwrap();
     battle
@@ -82,12 +97,36 @@ fn one_turn(db: &Db, command: Command) -> Battle {
 #[test]
 fn the_item_does_what_the_skill_does_without_the_sp() {
     let db = db_with(SKILL);
-    let item = one_turn(&db, Command { command: COMMAND_ITEM, what: ITEM as i64, target: 0 });
-    let skill = one_turn(&db, Command { command: COMMAND_SKILL, what: SKILL as i64, target: 0 });
-    let defend = one_turn(&db, Command { command: COMMAND_DEFEND, what: 0, target: 0 });
+    let item = one_turn(
+        &db,
+        Command {
+            command: COMMAND_ITEM,
+            what: ITEM as i64,
+            target: 0,
+        },
+    );
+    let skill = one_turn(
+        &db,
+        Command {
+            command: COMMAND_SKILL,
+            what: SKILL as i64,
+            target: 0,
+        },
+    );
+    let defend = one_turn(
+        &db,
+        Command {
+            command: COMMAND_DEFEND,
+            what: 0,
+            target: 0,
+        },
+    );
     let hp_max = defend.enemies[0].hp;
     assert!(item.enemies[0].hp < hp_max, "the item has to hurt");
-    assert_eq!(item.enemies[0].hp, skill.enemies[0].hp, "the same rolls, the same damage");
+    assert_eq!(
+        item.enemies[0].hp, skill.enemies[0].hp,
+        "the same rolls, the same damage"
+    );
     assert_eq!(item.rng.state, skill.rng.state);
     let full = item.actors[0].sp_max;
     assert_eq!(item.actors[0].sp, full, "the item spends no SP");
@@ -98,7 +137,14 @@ fn the_item_does_what_the_skill_does_without_the_sp() {
 fn a_skill_on_the_party_asks_for_no_target() {
     let db = db_with(PARTY_HEAL);
     // A place past the party: a skill on the whole party does not read it.
-    one_turn(&db, Command { command: COMMAND_ITEM, what: ITEM as i64, target: 5 });
+    one_turn(
+        &db,
+        Command {
+            command: COMMAND_ITEM,
+            what: ITEM as i64,
+            target: 5,
+        },
+    );
 }
 
 #[test]
@@ -108,10 +154,23 @@ fn an_actor_its_actor_set_leaves_out_cannot_use_it() {
     let mut actor = Combatant::actor(&db, 1, None, None).unwrap();
     actor.sp = actor.sp_max;
     let enemy = Combatant::enemy(&db, 1, 0, false).unwrap();
-    let mut battle = Battle::new(vec![actor], vec![enemy], BATTLE_SEED, Vec::new(), BTreeMap::new());
+    let mut battle = Battle::new(
+        vec![actor],
+        vec![enemy],
+        BATTLE_SEED,
+        Vec::new(),
+        BTreeMap::new(),
+    );
     battle.start(&db).unwrap();
     let refused = battle
-        .play_turn(&db, &[Command { command: COMMAND_ITEM, what: ITEM as i64, target: 0 }])
+        .play_turn(
+            &db,
+            &[Command {
+                command: COMMAND_ITEM,
+                what: ITEM as i64,
+                target: 0,
+            }],
+        )
         .unwrap_err();
     assert!(format!("{refused:?}").contains("actor_set"), "{refused:?}");
 }
@@ -125,5 +184,8 @@ fn the_model_carries_the_items_skill() {
     assert_eq!(answer["item_battle"], json!([true, true]));
     assert_eq!(answer["item_skill"], json!([0, SKILL]));
     assert!(answer["skills"].as_array().unwrap().contains(&json!(SKILL)));
-    assert_eq!(answer["texts"]["skills"][SKILL.to_string()]["name"], json!("Skill number 9"));
+    assert_eq!(
+        answer["texts"]["skills"][SKILL.to_string()]["name"],
+        json!("Skill number 9")
+    );
 }

@@ -85,11 +85,21 @@ pub struct Key {
 
 impl Key {
     pub fn program(program: u8, key: u8) -> Key {
-        Key { kind: b'p', number: program, root: key, copies: Vec::new() }
+        Key {
+            kind: b'p',
+            number: program,
+            root: key,
+            copies: Vec::new(),
+        }
     }
 
     pub fn hit(key: u8) -> Key {
-        Key { kind: b'g', number: key, root: 0, copies: Vec::new() }
+        Key {
+            kind: b'g',
+            number: key,
+            root: 0,
+            copies: Vec::new(),
+        }
     }
 
     pub fn is_hit(&self) -> bool {
@@ -186,7 +196,11 @@ impl Samples {
             .font
             .envelope(program, key)
             .or_else(|| self.font.envelope(program, REFERENCE_KEY))
-            .ok_or_else(|| Bad::answer(format!("the SoundFont has no envelope for program {program}")))?;
+            .ok_or_else(|| {
+                Bad::answer(format!(
+                    "the SoundFont has no envelope for program {program}"
+                ))
+            })?;
         Ok(crate::sdsp::envelope(&found, key as i64))
     }
 }
@@ -194,7 +208,9 @@ impl Samples {
 /// The samples a song asks for: `root_keys` are the ones from
 /// [`most_used_zones`]; without one, middle C.
 pub fn song_keys(parsed: Option<&Parsed>, root_keys: &BTreeMap<u8, u8>) -> BTreeSet<Key> {
-    let Some(parsed) = parsed else { return BTreeSet::new() };
+    let Some(parsed) = parsed else {
+        return BTreeSet::new();
+    };
     let mut keys: BTreeSet<Key> = parsed
         .melodic()
         .into_iter()
@@ -228,11 +244,19 @@ pub fn most_used_zones(songs: &[Option<Parsed>], font: &SoundFontSamples) -> BTr
                 continue;
             }
             let program = parsed.program(note.channel);
-            let Some(zone) = font.zone(program, note.pitch) else { continue };
-            *time_by_zone.entry(program).or_default().entry(zone.clone()).or_default() +=
-                note.end - note.start;
-            *inside.entry((program, zone)).or_default().entry(note.pitch).or_default() +=
-                note.end - note.start;
+            let Some(zone) = font.zone(program, note.pitch) else {
+                continue;
+            };
+            *time_by_zone
+                .entry(program)
+                .or_default()
+                .entry(zone.clone())
+                .or_default() += note.end - note.start;
+            *inside
+                .entry((program, zone))
+                .or_default()
+                .entry(note.pitch)
+                .or_default() += note.end - note.start;
         }
     }
     let mut root_keys = BTreeMap::new();
@@ -294,10 +318,17 @@ pub fn free_for(samples: i64, effects: i64, aram_end: i64) -> i64 {
 pub fn constraints_for(assignment: &Assignment, groups: &[Group], free: i64) -> Vec<Constraint> {
     let mut out = Vec::new();
     for g in groups {
-        let keys: BTreeSet<Key> =
-            g.songs.iter().flat_map(|&t| assignment[t].values().cloned()).collect();
+        let keys: BTreeSet<Key> = g
+            .songs
+            .iter()
+            .flat_map(|&t| assignment[t].values().cloned())
+            .collect();
         if !keys.is_empty() {
-            out.push(Constraint { name: g.name.clone(), keys, free: free - g.effect_bytes });
+            out.push(Constraint {
+                name: g.name.clone(),
+                keys,
+                free: free - g.effect_bytes,
+            });
         }
     }
     out
@@ -321,14 +352,21 @@ pub fn allocate(
     let mut fraction: HashMap<&Key, f64> = HashMap::new();
     let mut limited_by: BTreeMap<Key, String> = BTreeMap::new();
     let mut free_voices: BTreeSet<&Key> = keys.iter().collect();
-    let active: Vec<&Constraint> =
-        constraints.iter().filter(|r| r.keys.iter().any(|k| free_voices.contains(k))).collect();
+    let active: Vec<&Constraint> = constraints
+        .iter()
+        .filter(|r| r.keys.iter().any(|k| free_voices.contains(k)))
+        .collect();
     // Each constraint's totals are kept up to date as samples freeze,
     // instead of summing them again on every pass: the copies allocate
     // thousands of times per conversion.
-    let mut own: Vec<BTreeSet<&Key>> =
-        active.iter().map(|r| r.keys.iter().filter(|k| free_voices.contains(k)).collect()).collect();
-    let mut sums: Vec<i64> = own.iter().map(|s| s.iter().map(|k| natives[*k]).sum()).collect();
+    let mut own: Vec<BTreeSet<&Key>> = active
+        .iter()
+        .map(|r| r.keys.iter().filter(|k| free_voices.contains(k)).collect())
+        .collect();
+    let mut sums: Vec<i64> = own
+        .iter()
+        .map(|s| s.iter().map(|k| natives[*k]).sum())
+        .collect();
     let mut fixed = vec![0.0f64; active.len()];
     let mut where_: HashMap<&Key, Vec<usize>> = HashMap::new();
     for (i, s) in own.iter().enumerate() {
@@ -421,11 +459,16 @@ pub fn copies(
 ) -> Result<Assignment> {
     let cap = DIRECTORY_MAX;
     let until = COPY_UNTIL;
-    let mut assignment: Assignment =
-        keys_of.iter().map(|ks| ks.iter().map(|k| (k.clone(), k.clone())).collect()).collect();
+    let mut assignment: Assignment = keys_of
+        .iter()
+        .map(|ks| ks.iter().map(|k| (k.clone(), k.clone())).collect())
+        .collect();
     let mut natives: HashMap<Key, i64> = HashMap::new();
     let mut rates: HashMap<Key, f64> = HashMap::new();
-    let native = |key: &Key, natives: &mut HashMap<Key, i64>, rates: &mut HashMap<Key, f64>| -> Result<i64> {
+    let native = |key: &Key,
+                  natives: &mut HashMap<Key, i64>,
+                  rates: &mut HashMap<Key, f64>|
+     -> Result<i64> {
         if let Some(&n) = natives.get(key) {
             return Ok(n);
         }
@@ -435,7 +478,11 @@ pub fn copies(
         Ok(voice.data.len() as i64)
     };
     let users = |asg: &Assignment, key: &Key| -> Vec<usize> {
-        asg.iter().enumerate().filter(|(_, a)| a.values().any(|v| v == key)).map(|(t, _)| t).collect()
+        asg.iter()
+            .enumerate()
+            .filter(|(_, a)| a.values().any(|v| v == key))
+            .map(|(t, _)| t)
+            .collect()
     };
     let with_copy = |asg: &Assignment, key: &Key, copy: &Key, inside: &[usize]| -> Assignment {
         let mut new = asg.clone();
@@ -452,14 +499,20 @@ pub fn copies(
     for g in groups {
         songs_of.insert(&g.name, g.songs.iter().copied().collect());
     }
-    let all_keys = |asg: &Assignment| -> BTreeSet<Key> { asg.iter().flat_map(|a| a.values().cloned()).collect() };
+    let all_keys = |asg: &Assignment| -> BTreeSet<Key> {
+        asg.iter().flat_map(|a| a.values().cloned()).collect()
+    };
 
     loop {
         let keys = all_keys(&assignment);
         if keys.len() as i64 + usual >= cap {
             break;
         }
-        let rs = constraints_for(&assignment, groups, free_for(keys.len() as i64, usual, aram_end));
+        let rs = constraints_for(
+            &assignment,
+            groups,
+            free_for(keys.len() as i64, usual, aram_end),
+        );
         for k in &keys {
             native(k, &mut natives, &mut rates)?;
         }
@@ -472,12 +525,22 @@ pub fn copies(
                 continue;
             }
             let own = users(&assignment, key);
-            let inside: Vec<usize> = own.iter().copied().filter(|t| songs_of[name.as_str()].contains(t)).collect();
+            let inside: Vec<usize> = own
+                .iter()
+                .copied()
+                .filter(|t| songs_of[name.as_str()].contains(t))
+                .collect();
             let outside = (own.len() - inside.len()) as i64;
             if inside.is_empty() || outside == 0 {
                 continue;
             }
-            let option = (num::round_to(fraction, 3), -outside, key.clone(), name.clone(), inside);
+            let option = (
+                num::round_to(fraction, 3),
+                -outside,
+                key.clone(),
+                name.clone(),
+                inside,
+            );
             let better = match &worst {
                 None => true,
                 Some(w) => {
@@ -490,19 +553,29 @@ pub fn copies(
                 worst = Some(option);
             }
         }
-        let Some((_, _, key, name, inside)) = worst else { break };
+        let Some((_, _, key, name, inside)) = worst else {
+            break;
+        };
         assignment = with_copy(&assignment, &key, &key.copy_for(&name), &inside);
     }
 
     let free = free_for(cap - effects, effects, aram_end);
     // (keys, budget, the kHz each song plays each key at)
     type Khz = (BTreeSet<Key>, BTreeMap<Key, i64>, Vec<BTreeMap<Key, f64>>);
-    let khz = |asg: &Assignment, natives: &mut HashMap<Key, i64>, rates: &mut HashMap<Key, f64>| -> Result<Khz> {
+    let khz = |asg: &Assignment,
+               natives: &mut HashMap<Key, i64>,
+               rates: &mut HashMap<Key, f64>|
+     -> Result<Khz> {
         let keys = all_keys(asg);
         for k in &keys {
             native(k, natives, rates)?;
         }
-        let (budget, _) = allocate(&keys, &constraints_for(asg, real, free), ARAM_MARGIN, natives);
+        let (budget, _) = allocate(
+            &keys,
+            &constraints_for(asg, real, free),
+            ARAM_MARGIN,
+            natives,
+        );
         let raised = asg
             .iter()
             .map(|a| {
@@ -530,8 +603,11 @@ pub fn copies(
             }
             let own = users(&assignment, key);
             for g in groups {
-                let inside: Vec<usize> =
-                    own.iter().copied().filter(|t| songs_of[g.name.as_str()].contains(t)).collect();
+                let inside: Vec<usize> = own
+                    .iter()
+                    .copied()
+                    .filter(|t| songs_of[g.name.as_str()].contains(t))
+                    .collect();
                 let copy = key.copy_for(&g.name);
                 if inside.is_empty()
                     || inside.len() == own.len()
@@ -550,7 +626,13 @@ pub fn copies(
             );
             x.partial_cmp(&y).unwrap()
         });
-        let mut best: Option<(f64, Assignment, BTreeSet<Key>, BTreeMap<Key, i64>, Vec<BTreeMap<Key, f64>>)> = None;
+        let mut best: Option<(
+            f64,
+            Assignment,
+            BTreeSet<Key>,
+            BTreeMap<Key, i64>,
+            Vec<BTreeMap<Key, f64>>,
+        )> = None;
         for candidate in candidates {
             let known = bound.get(&candidate).copied().unwrap_or(f64::INFINITY);
             if let Some(b) = &best {
@@ -599,16 +681,26 @@ pub fn copies(
 /// package has sound effects are enough. The ROM cannot tell from the entry
 /// which sound effect is there: it records it when uploading it.
 pub fn effect_places(packages: &[Vec<String>], names: &[String]) -> BTreeMap<String, usize> {
-    let mut touches: BTreeMap<&str, BTreeSet<&str>> =
-        names.iter().map(|n| (n.as_str(), BTreeSet::new())).collect();
+    let mut touches: BTreeMap<&str, BTreeSet<&str>> = names
+        .iter()
+        .map(|n| (n.as_str(), BTreeSet::new()))
+        .collect();
     for own in packages {
-        let own: Vec<&str> = own.iter().map(|s| s.as_str()).filter(|n| touches.contains_key(n)).collect();
+        let own: Vec<&str> = own
+            .iter()
+            .map(|s| s.as_str())
+            .filter(|n| touches.contains_key(n))
+            .collect();
         for n in &own {
             let others: Vec<&str> = own.iter().copied().filter(|o| o != n).collect();
             touches.get_mut(n).unwrap().extend(others);
         }
     }
-    let order: HashMap<&str, usize> = names.iter().enumerate().map(|(i, n)| (n.as_str(), i)).collect();
+    let order: HashMap<&str, usize> = names
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (n.as_str(), i))
+        .collect();
     let mut place: HashMap<&str, usize> = HashMap::new();
     while place.len() < touches.len() {
         // The most constrained first —the one with the most distinct places
@@ -618,12 +710,17 @@ pub fn effect_places(packages: &[Vec<String>], names: &[String]) -> BTreeMap<Str
             .keys()
             .filter(|n| !place.contains_key(*n))
             .max_by_key(|n| {
-                let taken: BTreeSet<usize> =
-                    touches[*n].iter().filter_map(|v| place.get(v).copied()).collect();
+                let taken: BTreeSet<usize> = touches[*n]
+                    .iter()
+                    .filter_map(|v| place.get(v).copied())
+                    .collect();
                 (taken.len(), touches[*n].len(), -(order[*n] as i64))
             })
             .unwrap();
-        let taken: BTreeSet<usize> = touches[n].iter().filter_map(|v| place.get(v).copied()).collect();
+        let taken: BTreeSet<usize> = touches[n]
+            .iter()
+            .filter_map(|v| place.get(v).copied())
+            .collect();
         let free = (0..=taken.len()).find(|p| !taken.contains(p)).unwrap();
         place.insert(n, free);
     }
@@ -703,13 +800,18 @@ impl Bank {
         let (mut budget, limited_by) = allocate(&present, &constraints, ARAM_MARGIN, &natives);
         let mut voice: BTreeMap<Key, Rc<Voice>> = BTreeMap::new();
         let build = |k: &Key, b: i64| -> Result<Rc<Voice>> {
-            samples.sample(k, b)?.ok_or_else(|| Bad::answer(format!("{k} does not fit in {b} B")))
+            samples
+                .sample(k, b)?
+                .ok_or_else(|| Bad::answer(format!("{k} does not fit in {b} B")))
         };
         for k in &present {
             voice.insert(k.clone(), build(k, budget[k])?);
         }
         let sum = |voice: &BTreeMap<Key, Rc<Voice>>, keys: &BTreeSet<Key>| -> i64 {
-            keys.iter().filter_map(|k| voice.get(k)).map(|v| v.data.len() as i64).sum()
+            keys.iter()
+                .filter_map(|k| voice.get(k))
+                .map(|v| v.data.len() as i64)
+                .sum()
         };
         // The budget is a guide: the real length is rounded up to BRR
         // blocks, so what it really takes is checked and, if a constraint
@@ -717,14 +819,22 @@ impl Bank {
         // its samples are asked for less and it is built again.
         let mut fits = false;
         for _ in 0..20 {
-            let over: Vec<&Constraint> = constraints.iter().filter(|r| sum(&voice, &r.keys) > r.free).collect();
+            let over: Vec<&Constraint> = constraints
+                .iter()
+                .filter(|r| sum(&voice, &r.keys) > r.free)
+                .collect();
             if over.is_empty() {
                 fits = true;
                 break;
             }
             for r in over {
                 let used = sum(&voice, &r.keys);
-                let built: Vec<Key> = r.keys.iter().filter(|k| voice.contains_key(*k)).cloned().collect();
+                let built: Vec<Key> = r
+                    .keys
+                    .iter()
+                    .filter(|k| voice.contains_key(*k))
+                    .cloned()
+                    .collect();
                 for k in &built {
                     let b = (((budget[k] * r.free) as f64 / used as f64 * 0.98) as i64).max(FLOOR);
                     budget.insert(k.clone(), b);
@@ -752,7 +862,15 @@ impl Bank {
         let voices: Vec<Rc<Voice>> = keys.iter().map(|k| voice[k].clone()).collect();
         // One entry per key until `merge_identical`, in `compile`, merges them.
         let directory = (0..voices.len()).collect();
-        Ok(Bank { keys, voices, directory, limited_by, constraints, free, assignment })
+        Ok(Bank {
+            keys,
+            voices,
+            directory,
+            limited_by,
+            constraints,
+            free,
+            assignment,
+        })
     }
 
     /// The directory's music entries: the distinct samples, in the order
@@ -792,7 +910,8 @@ impl Bank {
     /// The bank as song `t` sees it: its programs and its hits point to the
     /// samples it was given, copies included.
     pub fn for_song(&self, t: usize) -> (BTreeMap<u8, usize>, BTreeMap<u8, usize>) {
-        let index: HashMap<&Key, usize> = self.keys.iter().enumerate().map(|(i, k)| (k, i)).collect();
+        let index: HashMap<&Key, usize> =
+            self.keys.iter().enumerate().map(|(i, k)| (k, i)).collect();
         let (mut melodic, mut hits) = (BTreeMap::new(), BTreeMap::new());
         for (base, k) in &self.assignment[t] {
             if let Some(&i) = index.get(k) {
@@ -831,7 +950,9 @@ mod tests {
     #[test]
     fn over_255_keys_the_least_used_are_left_out() {
         // 300 programs: the first 100 are in two songs, the rest in one.
-        let all: BTreeSet<Key> = (0..300u32).map(|i| Key::program((i / 128) as u8, (i % 128) as u8)).collect();
+        let all: BTreeSet<Key> = (0..300u32)
+            .map(|i| Key::program((i / 128) as u8, (i % 128) as u8))
+            .collect();
         let shared: BTreeSet<Key> = all.iter().take(100).cloned().collect();
         let mut songs = vec![all.clone(), shared.clone()];
         let dropped = drop_surplus(&mut songs, 250);
@@ -850,7 +971,12 @@ mod tests {
 
     #[test]
     fn keys_sort_as_the_bank_numbers_them_and_print_as_they_parse() {
-        let mut keys = [Key::hit(36), Key::program(0, 60).copy_for("3"), Key::program(0, 60), Key::program(0, 72)];
+        let mut keys = [
+            Key::hit(36),
+            Key::program(0, 60).copy_for("3"),
+            Key::program(0, 60),
+            Key::program(0, 72),
+        ];
         keys.sort();
         let text: Vec<String> = keys.iter().map(|k| k.to_string()).collect();
         assert_eq!(text, ["g:36", "p:0:60", "p:0:60@3", "p:0:72"]);
@@ -883,8 +1009,16 @@ mod tests {
         let (a, b, c) = (Key::hit(35), Key::hit(36), Key::hit(38));
         let natives = HashMap::from([(a.clone(), 1000), (b.clone(), 1000), (c.clone(), 1000)]);
         let keys: BTreeSet<Key> = [a.clone(), b.clone(), c.clone()].into();
-        let tight = Constraint { name: "tight".into(), keys: [a.clone(), b.clone()].into(), free: 1000 };
-        let loose = Constraint { name: "loose".into(), keys: [b.clone(), c.clone()].into(), free: 10000 };
+        let tight = Constraint {
+            name: "tight".into(),
+            keys: [a.clone(), b.clone()].into(),
+            free: 1000,
+        };
+        let loose = Constraint {
+            name: "loose".into(),
+            keys: [b.clone(), c.clone()].into(),
+            free: 10000,
+        };
         let (budget, limited) = allocate(&keys, &[tight, loose], 0, &natives);
         assert_eq!((budget[&a], budget[&b], budget[&c]), (500, 500, 1000));
         assert_eq!(limited.get(&a).map(|s| s.as_str()), Some("tight"));

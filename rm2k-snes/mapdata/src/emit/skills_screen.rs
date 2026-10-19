@@ -62,7 +62,10 @@ pub fn section(out: &mut String, screens: &Value) -> Result<()> {
     let sk = screens
         .get("skills_screen")
         .ok_or_else(|| Bad::answer("the screens have no `skills_screen`"))?;
-    let get = |key: &str| sk.get(key).ok_or_else(|| Bad::answer(format!("the skills screen has no `{key}`")));
+    let get = |key: &str| {
+        sk.get(key)
+            .ok_or_else(|| Bad::answer(format!("the skills screen has no `{key}`")))
+    };
     let border_tiles = tiles(get("tiles")?)?;
     let border_colors = colors(get("colors")?)?;
     let map = words(get("map")?)?;

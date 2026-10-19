@@ -15,3 +15,6 @@ ditto = { path = "../ditto" }
 serde = "1"
 serde_json = "1"
 sha2 = "0.10"
+
+[lints]
+workspace = true

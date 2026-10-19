@@ -183,7 +183,14 @@ struct Canvas {
 impl Canvas {
     /// The picture's pixels, `w` x `h` with their corner at `(x, y)` of the
     /// screen, on the canvas: `None` where it draws nothing.
-    fn draw(&self, pixels: &[Option<Color>], x: i64, y: i64, w: usize, h: usize) -> Vec<Option<Color>> {
+    fn draw(
+        &self,
+        pixels: &[Option<Color>],
+        x: i64,
+        y: i64,
+        w: usize,
+        h: usize,
+    ) -> Vec<Option<Color>> {
         let mut out = vec![None; self.width * self.height];
         for row in 0..self.height {
             let py = row as i64 + self.top - y;
@@ -221,12 +228,20 @@ impl Canvas {
 }
 
 /// The canvas as tiles, or `None` if they are more than `room` holds.
-fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<Option<Background>> {
+fn layer(
+    canvas: &Canvas,
+    drawn: &[Option<Color>],
+    room: Room,
+) -> crate::Result<Option<Background>> {
     let opaque: Vec<Color> = drawn.iter().flatten().copied().collect();
     let totals = counts(&opaque);
     let cells = canvas.cells(drawn);
     let reduced = reduce_colors(&totals, &cells, room.palettes, USABLE_COLORS)?;
-    let palettes: Vec<Vec<Color>> = reduced.palettes.into_iter().map(|p| p.into_iter().collect()).collect();
+    let palettes: Vec<Vec<Color>> = reduced
+        .palettes
+        .into_iter()
+        .map(|p| p.into_iter().collect())
+        .collect();
 
     // Each cell uses the palette Adeleine chose for its group, and each
     // colour uses that cell's local mapping.
@@ -236,8 +251,11 @@ fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<
         let Some(p) = decided.palette else {
             continue;
         };
-        let mapping: HashMap<Color, Color> = set.iter().copied()
-            .zip(decided.mapping.iter().copied()).collect();
+        let mapping: HashMap<Color, Color> = set
+            .iter()
+            .copied()
+            .zip(decided.mapping.iter().copied())
+            .collect();
         let entry = (room.first_palette + p) * 16;
         let (cx, cy) = (k % columns, k / columns);
         for y in 0..CELL {
@@ -245,7 +263,10 @@ fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<
                 let at = (cy * CELL + y) * canvas.width + cx * CELL + x;
                 if let Some(c) = drawn[at] {
                     let target = mapping[&c];
-                    let i = palettes[p].iter().position(|q| *q == target).expect("in its palette");
+                    let i = palettes[p]
+                        .iter()
+                        .position(|q| *q == target)
+                        .expect("in its palette");
                     indices[at] = (entry + 1 + i) as u8;
                 }
             }
@@ -277,7 +298,11 @@ fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<
         sixteen.resize(16, [0, 0, 0]);
         out_palettes.push(sixteen);
     }
-    let colors = indexed.colors.iter().map(|c| c.map_or([0, 0, 0], |(r, g, b)| [r, g, b])).collect();
+    let colors = indexed
+        .colors
+        .iter()
+        .map(|c| c.map_or([0, 0, 0], |(r, g, b)| [r, g, b]))
+        .collect();
     Ok(Some(Background {
         top: canvas.top,
         rows: canvas.height / CELL,

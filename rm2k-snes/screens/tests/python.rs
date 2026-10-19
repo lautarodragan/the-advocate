@@ -66,7 +66,10 @@ fn game() -> Game {
 }
 
 fn sha(data: &[u8]) -> String {
-    Sha256::digest(data).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(data)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// A value as Python's `json.dumps(sort_keys=True, separators=(",", ":"),
@@ -83,7 +86,10 @@ fn canon(v: &Value) -> String {
                 .collect();
             format!("{{{}}}", fields.join(","))
         }
-        Value::Array(items) => format!("[{}]", items.iter().map(canon).collect::<Vec<_>>().join(",")),
+        Value::Array(items) => format!(
+            "[{}]",
+            items.iter().map(canon).collect::<Vec<_>>().join(",")
+        ),
         other => other.to_string(),
     }
 }
@@ -93,7 +99,10 @@ fn vram() -> Vram {
     Vram {
         slot_vram: 0x2000,
         slot_map: 0x3C00,
-        bg1_banks: vec![("WINDOW".into(), 0x1000, 0x5000), ("WINDOW_BG".into(), 0x1000, 0x5000)],
+        bg1_banks: vec![
+            ("WINDOW".into(), 0x1000, 0x5000),
+            ("WINDOW_BG".into(), 0x1000, 0x5000),
+        ],
     }
 }
 
@@ -212,14 +221,28 @@ fn the_system_and_the_faces_come_from_the_rtp_too() {
     std::fs::create_dir_all(&empty).unwrap();
     std::fs::create_dir_all(rtp.join("system")).unwrap();
     std::fs::create_dir_all(rtp.join("FACESET")).unwrap();
-    std::fs::copy(here().join("pictures/System/Skin.png"), rtp.join("system/SKIN.PNG")).unwrap();
-    std::fs::copy(here().join("pictures/FaceSet/Faces.png"), rtp.join("FACESET/faces.png")).unwrap();
+    std::fs::copy(
+        here().join("pictures/System/Skin.png"),
+        rtp.join("system/SKIN.PNG"),
+    )
+    .unwrap();
+    std::fs::copy(
+        here().join("pictures/FaceSet/Faces.png"),
+        rtp.join("FACESET/faces.png"),
+    )
+    .unwrap();
     let from_game = game();
     let mut game = Game::from_dump(&here().join("dump"), &empty).unwrap();
     assert!(game.skin().is_err(), "without the RTP there is no System");
     game.rtp_dir = Some(rtp);
-    assert_eq!(game.skin().unwrap().picture.rgba, from_game.skin().unwrap().picture.rgba);
-    assert_eq!(game.face(1).unwrap().unwrap().rgba, from_game.face(1).unwrap().unwrap().rgba);
+    assert_eq!(
+        game.skin().unwrap().picture.rgba,
+        from_game.skin().unwrap().picture.rgba
+    );
+    assert_eq!(
+        game.face(1).unwrap().unwrap().rgba,
+        from_game.face(1).unwrap().unwrap().rgba
+    );
     let _ = std::fs::remove_dir_all(&tmp);
 }
 
@@ -234,14 +257,26 @@ fn the_skills_screen_windows_fit() {
     let windows = rm2k_snes_screens::skills::windows_json(&skin).unwrap();
     let tiles = windows["tiles"].as_array().unwrap().len();
     assert!(tiles > 0 && tiles <= rm2k_snes_screens::skills::SK_TILES_MAX);
-    let map: Vec<i64> = windows["map"].as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+    let map: Vec<i64> = windows["map"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_i64().unwrap())
+        .collect();
     assert_eq!(map.len(), 32 * 28);
-    let bars: Vec<i64> = windows["bars"].as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+    let bars: Vec<i64> = windows["bars"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_i64().unwrap())
+        .collect();
     assert_eq!(bars.len(), 16 * 2 * 16);
     for (p, bar) in bars.chunks(32).enumerate() {
         let row0 = 11 + 2 * (p / 2);
         let col0 = 16 * (p % 2);
-        let under: Vec<i64> = (0..2).flat_map(|r| map[(row0 + r) * 32 + col0..(row0 + r) * 32 + col0 + 16].to_vec()).collect();
+        let under: Vec<i64> = (0..2)
+            .flat_map(|r| map[(row0 + r) * 32 + col0..(row0 + r) * 32 + col0 + 16].to_vec())
+            .collect();
         assert_ne!(bar, under.as_slice(), "the bar on place {p} draws nothing");
     }
 }
@@ -258,8 +293,18 @@ fn the_battle_windows_fit() {
     assert_eq!(windows["help"].as_array().unwrap().len(), 4 * 32);
     // Every bar draws something, inside the band.
     for sets in windows["bars"].as_array().unwrap() {
-        for bar in sets.as_array().unwrap().iter().flat_map(|s| s.as_array().unwrap()) {
-            let b: Vec<i64> = bar.as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+        for bar in sets
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|s| s.as_array().unwrap())
+        {
+            let b: Vec<i64> = bar
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_i64().unwrap())
+                .collect();
             assert!(b[0] >= 16 && b[0] + b[2] <= 28 && b[3] > 0, "{b:?}");
         }
     }
@@ -284,13 +329,30 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         names: Vec::new(),
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
-    assert!(bad.message().contains("has no room for the composed names"), "{}", bad.message());
+    assert!(
+        bad.message().contains("has no room for the composed names"),
+        "{}",
+        bad.message()
+    );
 }
 
 fn inventory() -> BTreeMap<i32, i64> {
-    [(1, 3), (2, 1), (3, 99), (4, 1), (5, 2), (6, 2), (7, 1), (8, 1), (9, 1), (10, 4), (11, 1), (12, 7)]
-        .into_iter()
-        .collect()
+    [
+        (1, 3),
+        (2, 1),
+        (3, 99),
+        (4, 1),
+        (5, 2),
+        (6, 2),
+        (7, 1),
+        (8, 1),
+        (9, 1),
+        (10, 4),
+        (11, 1),
+        (12, 7),
+    ]
+    .into_iter()
+    .collect()
 }
 
 fn check(name: &str, picture: rm2k_render::Picture, expected: &str) {
@@ -339,28 +401,53 @@ fn the_screens_as_the_console_shows_them() {
         render::item_screen(&game, &skin, &inventory(), 11, 2, None).unwrap(),
         "76f0b4e08732bb3c137e0a1d55b9d5ce5177cadd48c90b26ede01e102a8a26de",
     );
-    let parties: BTreeMap<usize, Vec<i32>> = [(0, vec![2, 1]), (2, vec![7, 8, 3, 4])].into_iter().collect();
+    let parties: BTreeMap<usize, Vec<i32>> = [(0, vec![2, 1]), (2, vec![7, 8, 3, 4])]
+        .into_iter()
+        .collect();
     let levels: BTreeMap<usize, i64> = [(0, 9)].into_iter().collect();
     check(
         "slots",
-        render::slot_screen(&game, &skin, 4, &[true, false, true, false], 2, 1, &parties, &levels).unwrap(),
+        render::slot_screen(
+            &game,
+            &skin,
+            4,
+            &[true, false, true, false],
+            2,
+            1,
+            &parties,
+            &levels,
+        )
+        .unwrap(),
         "9f86cbe89c8c0de62efe8963d13f919d4923aa01201de7c64d3a380ed93a8e85",
     );
     let worn = [6, 8, 0, 10, 0];
     check(
         "equipment",
-        render::equipment_screen(&game, &skin, 1, &worn, &inventory(), 0, false, 0, 0, None).unwrap(),
+        render::equipment_screen(&game, &skin, 1, &worn, &inventory(), 0, false, 0, 0, None)
+            .unwrap(),
         "81af83c5e9cce8ddf6bcf5d0778a3d1ccecf903e6ca6dcceda52ad57cebcae3d",
     );
     check(
         "equipment-list",
-        render::equipment_screen(&game, &skin, 1, &worn, &inventory(), 0, true, 1, 0, None).unwrap(),
+        render::equipment_screen(&game, &skin, 1, &worn, &inventory(), 0, true, 1, 0, None)
+            .unwrap(),
         "5ccf555d7e01bed1c0443bba68ec9df6b8a30b72077dd775c2db979ee115b3e4",
     );
     check(
         "equipment-shield",
-        render::equipment_screen(&game, &skin, 3, &[7, 0, 0, 0, 0], &inventory(), 1, true, 0, 0, None)
-            .unwrap(),
+        render::equipment_screen(
+            &game,
+            &skin,
+            3,
+            &[7, 0, 0, 0, 0],
+            &inventory(),
+            1,
+            true,
+            0,
+            0,
+            None,
+        )
+        .unwrap(),
         "3baca089f32ec028d2163de659bbc40853673e9d1ccaba462de57c6180e2688c",
     );
     let shops = [
@@ -390,7 +477,11 @@ fn the_screens_as_the_console_shows_them() {
             regreeting: mode == 0,
             known: None::<BTreeSet<i32>>,
         };
-        check(&format!("shop-{mode}"), render::shop_screen(&game, &skin, &shop).unwrap(), expected);
+        check(
+            &format!("shop-{mode}"),
+            render::shop_screen(&game, &skin, &shop).unwrap(),
+            expected,
+        );
     }
     check(
         "end-0",
@@ -406,7 +497,13 @@ fn the_screens_as_the_console_shows_them() {
 
 #[test]
 fn the_boxes_of_the_maps_and_the_common_events() {
-    let table = boxes::table(&here().join("dump"), &[], &rm2k_snes_text::refit::Measure::columns(39), 4).unwrap();
+    let table = boxes::table(
+        &here().join("dump"),
+        &[],
+        &rm2k_snes_text::refit::Measure::columns(39),
+        4,
+    )
+    .unwrap();
     assert_eq!(table.as_array().unwrap().len(), 4);
     assert_eq!(
         sha(canon(&table).as_bytes()),

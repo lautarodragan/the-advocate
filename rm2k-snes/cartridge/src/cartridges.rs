@@ -178,7 +178,9 @@ fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
         return Ok(found);
     }
     for entry in entries(&folder)? {
-        let Some(base) = entry.strip_suffix(".json") else { continue };
+        let Some(base) = entry.strip_suffix(".json") else {
+            continue;
+        };
         let id = base
             .strip_prefix("Map")
             .filter(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
@@ -195,8 +197,8 @@ fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
                 )
             })?;
         // A node in the dump's shape: Ditto's type reads it.
-        let node = serde_json::from_value(node.clone())
-            .map_err(|e| format!("{entry}: tree: {e}"))?;
+        let node =
+            serde_json::from_value(node.clone()).map_err(|e| format!("{entry}: tree: {e}"))?;
         found.insert(id, node);
     }
     Ok(found)
@@ -343,8 +345,11 @@ impl Cartridges {
         }
         flags.extend(["--map-id".to_string(), start_map.to_string()]);
         // Without other maps, no `--maps`: empty, the converter refuses it.
-        let others: Vec<String> =
-            maps.iter().filter(|&&m| m != start_map).map(i64::to_string).collect();
+        let others: Vec<String> = maps
+            .iter()
+            .filter(|&&m| m != start_map)
+            .map(i64::to_string)
+            .collect();
         if !others.is_empty() {
             flags.push("--maps".to_string());
             flags.extend(others);
@@ -354,9 +359,14 @@ impl Cartridges {
                 .as_array()
                 .and_then(|a| Some((a.first()?.as_str()?, a.get(1)?.as_str()?)))
                 .ok_or_else(|| {
-                    p.wrong_type(&key("test_graphics"), "a list of [CharSet, index]", graphic).0
+                    p.wrong_type(&key("test_graphics"), "a list of [CharSet, index]", graphic)
+                        .0
                 })?;
-            flags.extend(["--test-graphic".to_string(), pair.0.to_string(), pair.1.to_string()]);
+            flags.extend([
+                "--test-graphic".to_string(),
+                pair.0.to_string(),
+                pair.1.to_string(),
+            ]);
         }
         flags.extend(p.strings(&key("flags"))?);
         if with_enemy_hp {
@@ -473,7 +483,11 @@ impl Cartridges {
 
     /// Whether the cartridge starts without a title screen.
     pub fn without_title(&self, name: &str) -> Result<bool, String> {
-        Ok(self.cartridge(name)?.flags.iter().any(|f| f == "--no-title"))
+        Ok(self
+            .cartridge(name)?
+            .flags
+            .iter()
+            .any(|f| f == "--no-title"))
     }
 
     /// The cartridges that carry the case: first the ones that carry all of
@@ -624,7 +638,12 @@ impl Cartridges {
         // And each custom menu's file, which `[menus]` names and the
         // converter reads whole: changing a page's text changes the ROM
         // without touching the project file.
-        if let Some(menus) = self.project.settings().get("menus").and_then(|m| m.as_table()) {
+        if let Some(menus) = self
+            .project
+            .settings()
+            .get("menus")
+            .and_then(|m| m.as_table())
+        {
             for file in menus.values().filter_map(|f| f.as_str()) {
                 parts.push(self.project.directory().join(file));
             }
@@ -698,7 +717,10 @@ impl Cartridges {
         if self.environment.archive("rtp_dir").is_none() {
             h.update(format!("rtp {}\n", self.environment.rtp()?.display()));
         }
-        h.update(format!("soundfont {}\n", self.environment.soundfont()?.display()));
+        h.update(format!(
+            "soundfont {}\n",
+            self.environment.soundfont()?.display()
+        ));
         // And each song's volume ceiling, which changes the streams: by its
         // values and not by the file, because the tool that measures them
         // rewrites it after building with what it measured —the peak, the
@@ -712,13 +734,19 @@ impl Cartridges {
     /// {song: headroom} from the versioned table of volume ceilings; empty if
     /// it does not exist.
     fn ceilings(&self) -> Result<BTreeMap<String, String>, String> {
-        let path = self.project.auto_patches()?.join("music").join("ceilings.toml");
+        let path = self
+            .project
+            .auto_patches()?
+            .join("music")
+            .join("ceilings.toml");
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
             Err(e) => return Err(format!("{}: {e}", path.display())),
         };
-        let table: toml::Table = text.parse().map_err(|e| format!("{}: {e}", path.display()))?;
+        let table: toml::Table = text
+            .parse()
+            .map_err(|e| format!("{}: {e}", path.display()))?;
         let songs = table
             .get("songs")
             .and_then(toml::Value::as_table)
@@ -760,7 +788,9 @@ impl Cartridges {
             return Ok(Some("is not built"));
         };
         if stamped != self.stamp(name, inputs)? {
-            return Ok(Some("was built with other sources, other flags or other cases"));
+            return Ok(Some(
+                "was built with other sources, other flags or other cases",
+            ));
         }
         // The converter writes it along with the ROM and it does not go into
         // the stamp: without it the cartridge would work, but the MSU-1 would
@@ -793,7 +823,13 @@ impl Cartridges {
     /// even if it is up to date. `extra` are extra flags for the converter:
     /// that is how a copy of a cartridge is built with some other setting,
     /// without touching the real one.
-    pub fn convert(&self, name: &str, dest: &Path, sfc: &Path, extra: &[String]) -> Result<(), String> {
+    pub fn convert(
+        &self,
+        name: &str,
+        dest: &Path,
+        sfc: &Path,
+        extra: &[String],
+    ) -> Result<(), String> {
         let cartridge = self.cartridge(name)?;
         std::fs::create_dir_all(dest).map_err(|e| format!("{}: {e}", dest.display()))?;
         let log = dest.join("converter.log");

@@ -10,13 +10,13 @@ use crate::effects::{self, SoundEffect};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::midi::{self, TICKS_PER_SECOND};
-use rm2k_snes_bytecode::music::OP_END;
 use crate::relief::{self, Loss, Sizes};
 use crate::sdsp;
 use crate::song::{self, Parsed};
 use crate::spc700;
 use crate::stream::{self, Sound, Write};
 use crate::voices::{self, Allotted, Instruments, SampleInfo};
+use rm2k_snes_bytecode::music::OP_END;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -122,7 +122,9 @@ pub struct Music {
 impl Music {
     /// A sound effect's SRCN: its place after the music's samples.
     pub fn srcn(&self, effect: &str) -> Option<usize> {
-        self.place.get(effect).map(|p| self.bank.entries().len() + p)
+        self.place
+            .get(effect)
+            .map(|p| self.bank.entries().len() + p)
     }
 
     /// A sound effect's number.
@@ -137,7 +139,11 @@ impl Music {
             .entries()
             .into_iter()
             .map(|v| (v.data.as_slice(), v.loop_block))
-            .chain(self.effects.iter().map(|e| (e.data.as_slice(), e.loop_block)))
+            .chain(
+                self.effects
+                    .iter()
+                    .map(|e| (e.data.as_slice(), e.loop_block)),
+            )
             .collect()
     }
 }
@@ -155,7 +161,11 @@ struct SongBank<'a> {
 impl Instruments for SongBank<'_> {
     fn sample(&self, index: usize) -> SampleInfo {
         let v = &self.bank.voices[index];
-        SampleInfo { root: v.root as f64, rate: v.rate, frames: v.frames as i64 }
+        SampleInfo {
+            root: v.root as f64,
+            rate: v.rate,
+            frames: v.frames as i64,
+        }
     }
     fn melodic(&self, program: u8) -> Option<usize> {
         self.melodic.get(&program).copied()
@@ -203,7 +213,11 @@ pub fn mix_fingerprint(writes: &[Write], bank: &Bank) -> String {
             h.update(&v.data);
         }
     }
-    h.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>()[..16].to_string()
+    h.finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>()[..16]
+        .to_string()
 }
 
 /// That the extra space the whole sound effects take fits, in each package,
@@ -227,10 +241,19 @@ fn whole_effects_fit(
 ) -> Result<()> {
     let mut keys_of: HashMap<&str, BTreeSet<Key>> = HashMap::new();
     for p in packages {
-        keys_of.insert(&p.name, p.songs.iter().flat_map(|&t| bank.keys_of(t)).collect());
+        keys_of.insert(
+            &p.name,
+            p.songs.iter().flat_map(|&t| bank.keys_of(t)).collect(),
+        );
     }
-    fn own_effects<'a>(p: &'a Package, effects: &BTreeMap<String, SoundEffect>) -> BTreeSet<&'a String> {
-        p.effects.iter().filter(|e| effects.contains_key(*e)).collect()
+    fn own_effects<'a>(
+        p: &'a Package,
+        effects: &BTreeMap<String, SoundEffect>,
+    ) -> BTreeSet<&'a String> {
+        p.effects
+            .iter()
+            .filter(|e| effects.contains_key(*e))
+            .collect()
     }
     let mut not_fitting = Vec::new();
     for p in packages {
@@ -277,14 +300,24 @@ fn whole_effects_fit(
     }
     for (name, inherited) in inheritance {
         let own = &effects_of[name.as_str()];
-        if !own.iter().any(|e| whole.contains_key(*e) && !paid.contains(*e)) {
+        if !own
+            .iter()
+            .any(|e| whole.contains_key(*e) && !paid.contains(*e))
+        {
             continue;
         }
-        let keys: BTreeSet<Key> =
-            keys_of[name.as_str()].iter().cloned().chain(bank.keys_of(*inherited)).collect();
+        let keys: BTreeSet<Key> = keys_of[name.as_str()]
+            .iter()
+            .cloned()
+            .chain(bank.keys_of(*inherited))
+            .collect();
         let music = bank.takes(&keys);
         let before = music + own.iter().map(|e| budgeted[*e]).sum::<i64>();
-        let now = music + own.iter().map(|e| effects[*e].data.len() as i64).sum::<i64>();
+        let now = music
+            + own
+                .iter()
+                .map(|e| effects[*e].data.len() as i64)
+                .sum::<i64>();
         if before <= bank.free && bank.free < now {
             println!(
                 "  with {} playing, the whole sound effects of package {name} do not fit \
@@ -304,10 +337,23 @@ fn whole_effects_fit(
 fn in_song(bad: Bad, packages: &[Package], i: usize, name: &str) -> Bad {
     let carry: Vec<String> = packages
         .iter()
-        .filter(|p| p.name != name && (p.songs.contains(&i) || p.exits.contains(&i) || p.separate.contains(&i)))
-        .map(|p| if p.name.parse::<i64>().is_ok() { format!("map {}", p.name) } else { format!("package {}", p.name) })
+        .filter(|p| {
+            p.name != name
+                && (p.songs.contains(&i) || p.exits.contains(&i) || p.separate.contains(&i))
+        })
+        .map(|p| {
+            if p.name.parse::<i64>().is_ok() {
+                format!("map {}", p.name)
+            } else {
+                format!("package {}", p.name)
+            }
+        })
         .collect();
-    let whose = if carry.is_empty() { format!("song {name:?}") } else { format!("song {name:?}, in {}", carry.join(", ")) };
+    let whose = if carry.is_empty() {
+        format!("song {name:?}")
+    } else {
+        format!("song {name:?}, in {}", carry.join(", "))
+    };
     match bad {
         Bad::Answer(m) => Bad::Answer(format!("{whose}: {m}")),
         Bad::Usage(m) => Bad::Usage(format!("{whose}: {m}")),
@@ -324,11 +370,15 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
     let whole = game.whole_effects()?;
     let paid = game.paid_by_music()?;
 
-    let parsed: Vec<Option<Parsed>> =
-        names.iter().map(|n| song::read(n, game)).collect::<Result<_>>()?;
+    let parsed: Vec<Option<Parsed>> = names
+        .iter()
+        .map(|n| song::read(n, game))
+        .collect::<Result<_>>()?;
     let root_keys = bank::most_used_zones(&parsed, &samples.font);
-    let keys_of: Vec<BTreeSet<Key>> =
-        parsed.iter().map(|p| bank::song_keys(p.as_ref(), &root_keys)).collect();
+    let keys_of: Vec<BTreeSet<Key>> = parsed
+        .iter()
+        .map(|p| bank::song_keys(p.as_ref(), &root_keys))
+        .collect();
 
     // **All** the sound effects go in: which ones fit is decided by the ROM
     // map by map, when it builds its audio package. They are built before
@@ -346,12 +396,16 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
         }
         wavs.insert(name.clone(), wav);
     }
-    let built_effects: BTreeMap<String, SoundEffect> =
-        effect_list.iter().map(|e| (e.name.clone(), e.clone())).collect();
+    let built_effects: BTreeMap<String, SoundEffect> = effect_list
+        .iter()
+        .map(|e| (e.name.clone(), e.clone()))
+        .collect();
     // What the music budgets for each sound effect: the usual one, even if
     // it goes whole.
-    let mut budgeted: BTreeMap<String, i64> =
-        built_effects.iter().map(|(n, e)| (n.clone(), e.data.len() as i64)).collect();
+    let mut budgeted: BTreeMap<String, i64> = built_effects
+        .iter()
+        .map(|(n, e)| (n.clone(), e.data.len() as i64))
+        .collect();
     for n in built_effects.keys() {
         if whole.contains_key(n) && !paid.contains(n) {
             let usual = effects::build(n, wavs[n].as_ref(), effects::SE_RATE, &BTreeMap::new())?
@@ -375,7 +429,11 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
         names
             .iter()
             .enumerate()
-            .map(|(i, n)| Package { name: n.clone(), songs: vec![i], ..Default::default() })
+            .map(|(i, n)| Package {
+                name: n.clone(),
+                songs: vec![i],
+                ..Default::default()
+            })
             .collect()
     });
 
@@ -394,27 +452,62 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
         if sizes.contains_key(k) {
             continue;
         }
-        let (Some(least), Some(native)) = (samples.sample(k, bank::FLOOR)?, samples.sample(k, bank::NATIVE)?) else {
+        let (Some(least), Some(native)) = (
+            samples.sample(k, bank::FLOOR)?,
+            samples.sample(k, bank::NATIVE)?,
+        ) else {
             continue;
         };
         let floor = relief::floor_bytes(native.data.len() as i64, native.rate);
-        sizes.insert(k.clone(), Sizes { minimum: least.data.len() as i64, floor });
+        sizes.insert(
+            k.clone(),
+            Sizes {
+                minimum: least.data.len() as i64,
+                floor,
+            },
+        );
     }
     let present: BTreeSet<&Key> = keys_of_present.iter().flatten().collect();
     let places_at_least = packages
         .iter()
-        .map(|p| p.effects.iter().filter(|e| built_effects.contains_key(*e)).collect::<BTreeSet<_>>().len())
+        .map(|p| {
+            p.effects
+                .iter()
+                .filter(|e| built_effects.contains_key(*e))
+                .collect::<BTreeSet<_>>()
+                .len()
+        })
         .max()
         .unwrap_or(0) as i64;
     let free_now = bank::free_for(present.len() as i64, places_at_least, job.aram_end);
-    let room = bank::free_for(bank::DIRECTORY_MAX - places_at_least, places_at_least, job.aram_end) - bank::ARAM_MARGIN;
-    let enters: Vec<bool> = (0..packages.len()).map(|i| job.enters.get(i).copied().unwrap_or(true)).collect();
-    let mut losses =
-        relief::relieve(&mut packages, &enters, &keys_of_present, &sizes, &budgeted, free_now, room, names);
+    let room = bank::free_for(
+        bank::DIRECTORY_MAX - places_at_least,
+        places_at_least,
+        job.aram_end,
+    ) - bank::ARAM_MARGIN;
+    let enters: Vec<bool> = (0..packages.len())
+        .map(|i| job.enters.get(i).copied().unwrap_or(true))
+        .collect();
+    let mut losses = relief::relieve(
+        &mut packages,
+        &enters,
+        &keys_of_present,
+        &sizes,
+        &budgeted,
+        free_now,
+        room,
+        names,
+    );
     // And the same for a package next to a song that may be playing when it
     // loads: a pair that does not fit at the minimum is not asked for.
-    let (inheritance, more) =
-        relief::relieve_inheritance(&job.inheritance, &packages, &keys_of_present, &sizes, free_now, names);
+    let (inheritance, more) = relief::relieve_inheritance(
+        &job.inheritance,
+        &packages,
+        &keys_of_present,
+        &sizes,
+        free_now,
+        names,
+    );
     losses.extend(more);
 
     // What has to fit together: each package with its sound effects; each
@@ -426,35 +519,70 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
     let mut songs_of: HashMap<&str, Vec<usize>> = HashMap::new();
     for p in &packages {
         songs_of.insert(&p.name, p.songs.clone());
-        let own: BTreeSet<&String> = p.effects.iter().filter(|e| built_effects.contains_key(*e)).collect();
+        let own: BTreeSet<&String> = p
+            .effects
+            .iter()
+            .filter(|e| built_effects.contains_key(*e))
+            .collect();
         let effect_bytes: i64 = own.iter().map(|e| budgeted[*e]).sum();
-        let real_bytes: i64 = own.iter().map(|e| built_effects[*e].data.len() as i64).sum();
-        groups.push(Group { name: p.name.clone(), songs: p.songs.clone(), effect_bytes });
-        real.push(Group { name: p.name.clone(), songs: p.songs.clone(), effect_bytes: real_bytes });
+        let real_bytes: i64 = own
+            .iter()
+            .map(|e| built_effects[*e].data.len() as i64)
+            .sum();
+        groups.push(Group {
+            name: p.name.clone(),
+            songs: p.songs.clone(),
+            effect_bytes,
+        });
+        real.push(Group {
+            name: p.name.clone(),
+            songs: p.songs.clone(),
+            effect_bytes: real_bytes,
+        });
         for &t in &p.exits {
-            let g = Group { name: format!("{}>{}", p.name, names[t]), songs: vec![t], effect_bytes: 0 };
+            let g = Group {
+                name: format!("{}>{}", p.name, names[t]),
+                songs: vec![t],
+                effect_bytes: 0,
+            };
             groups.push(g.clone());
             real.push(g);
         }
         for &t in &p.separate {
             let name = format!("{}>{}", p.name, names[t]);
-            groups.push(Group { name: name.clone(), songs: vec![t], effect_bytes });
-            real.push(Group { name, songs: vec![t], effect_bytes: real_bytes });
+            groups.push(Group {
+                name: name.clone(),
+                songs: vec![t],
+                effect_bytes,
+            });
+            real.push(Group {
+                name,
+                songs: vec![t],
+                effect_bytes: real_bytes,
+            });
         }
     }
     for (name, inherited) in &inheritance {
-        let mut songs = songs_of
-            .get(name.as_str())
-            .cloned()
-            .ok_or_else(|| Bad::usage(format!("inheritance names package {name:?}, which is not one")))?;
+        let mut songs = songs_of.get(name.as_str()).cloned().ok_or_else(|| {
+            Bad::usage(format!(
+                "inheritance names package {name:?}, which is not one"
+            ))
+        })?;
         songs.push(*inherited);
-        let g = Group { name: format!("{name}+{}", names[*inherited]), songs, effect_bytes: 0 };
+        let g = Group {
+            name: format!("{name}+{}", names[*inherited]),
+            songs,
+            effect_bytes: 0,
+        };
         groups.push(g.clone());
         real.push(g);
     }
     let effect_names: Vec<String> = effect_list.iter().map(|e| e.name.clone()).collect();
     let place = bank::effect_places(
-        &packages.iter().map(|p| p.effects.clone()).collect::<Vec<_>>(),
+        &packages
+            .iter()
+            .map(|p| p.effects.clone())
+            .collect::<Vec<_>>(),
         &effect_names,
     );
     let places = place.values().max().map_or(0, |m| m + 1);
@@ -474,20 +602,45 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
     }
     // Never fewer than the places the effects really take: the copies
     // would fill the directory the sound effects need.
-    let usual = (effect_list.len() as i64).min(game.effect_slots_of_first_copies()?).max(places as i64);
-    let assignment: Assignment =
-        bank::copies(samples, &keys_of_present, &groups, places as i64, usual, &real, job.aram_end)?;
-    let all_keys: BTreeSet<Key> = assignment.iter().flat_map(|a| a.values().cloned()).collect();
+    let usual = (effect_list.len() as i64)
+        .min(game.effect_slots_of_first_copies()?)
+        .max(places as i64);
+    let assignment: Assignment = bank::copies(
+        samples,
+        &keys_of_present,
+        &groups,
+        places as i64,
+        usual,
+        &real,
+        job.aram_end,
+    )?;
+    let all_keys: BTreeSet<Key> = assignment
+        .iter()
+        .flat_map(|a| a.values().cloned())
+        .collect();
     let free = bank::free_for(all_keys.len() as i64, places as i64, job.aram_end);
     let constraints = bank::constraints_for(&assignment, &real, free);
     let bank = Bank::new(samples, &all_keys, constraints, free, assignment)?;
-    whole_effects_fit(&bank, &packages, &inheritance, &built_effects, &budgeted, names, &whole, &paid)?;
+    whole_effects_fit(
+        &bank,
+        &packages,
+        &inheritance,
+        &built_effects,
+        &budgeted,
+        names,
+        &whole,
+        &paid,
+    )?;
 
     let tracks = game.track_numbers(&job.system_songs, &job.named_songs)?;
     let envelopes = RefCell::new(HashMap::new());
     let mut songs = Vec::new();
     for (i, (name, parsed)) in names.iter().zip(parsed).enumerate() {
-        let track = if name.is_empty() { None } else { tracks.get(&name.to_lowercase()).copied() };
+        let track = if name.is_empty() {
+            None
+        } else {
+            tracks.get(&name.to_lowercase()).copied()
+        };
         let Some(parsed) = parsed else {
             songs.push(Built {
                 name: name.clone(),
@@ -510,7 +663,13 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             .filter(|h| *h != 0.0)
             .unwrap_or_else(|| *ceilings.get(name).unwrap_or(&sdsp::HEADROOM));
         let (melodic, hits) = bank.for_song(i);
-        let view = SongBank { bank: &bank, samples, melodic, hits, envelopes: &envelopes };
+        let view = SongBank {
+            bank: &bank,
+            samples,
+            melodic,
+            hits,
+            envelopes: &envelopes,
+        };
         let mut allocation = Vec::new();
         let frames = voices::build_events(
             &parsed.notes,
@@ -524,7 +683,8 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
         .map_err(|e| in_song(e, &packages, i, name))?;
         let init = stream::init_writes();
         let reference = stream::writes(&frames, parsed.length, &init);
-        let (flat, sounds) = stream::pack(&frames, parsed.length, &init).map_err(|e| in_song(e, &packages, i, name))?;
+        let (flat, sounds) = stream::pack(&frames, parsed.length, &init)
+            .map_err(|e| in_song(e, &packages, i, name))?;
         stream::check(name, &flat, &sounds, &reference)?;
         // The same, with what it repeats read from where it first said it:
         // the writes are checked again, following the repeats as the 65816
@@ -562,7 +722,17 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             parsed: Some(parsed),
         });
     }
-    Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages, aram_end: job.aram_end, losses })
+    Ok(Music {
+        driver,
+        bank,
+        songs,
+        effects: effect_list,
+        place,
+        places,
+        packages,
+        aram_end: job.aram_end,
+        losses,
+    })
 }
 
 /// Every song of the cartridge, sharing a single sample bank, with the
@@ -599,9 +769,23 @@ pub fn merge_identical(music: &mut Music) -> Result<()> {
         // has its value, so an SRCN that went from one copy to the other
         // and now stays is one write less.
         let writes = stream::decode(&song.stream, &song.sounds)?;
-        let sample_before = |i: u8| bank.voices.get(i as usize).map(|v| (v.data.as_slice(), v.loop_block));
-        let sample_after = |i: u8| entries.get(i as usize).map(|v| (v.data.as_slice(), v.loop_block));
-        sounds_the_same(&song.name, &song.writes, sample_before, &writes, sample_after)?;
+        let sample_before = |i: u8| {
+            bank.voices
+                .get(i as usize)
+                .map(|v| (v.data.as_slice(), v.loop_block))
+        };
+        let sample_after = |i: u8| {
+            entries
+                .get(i as usize)
+                .map(|v| (v.data.as_slice(), v.loop_block))
+        };
+        sounds_the_same(
+            &song.name,
+            &song.writes,
+            sample_before,
+            &writes,
+            sample_after,
+        )?;
         song.writes = writes;
     }
     Ok(())
@@ -624,7 +808,9 @@ pub fn sounds_the_same<'a>(
     let (mut srcn_before, mut srcn_after) = ([None; 8], [None; 8]);
     let mut rest = after.iter();
     let bad = |what: String| {
-        Bad::answer(format!("the music of {name} sounds different merging its samples: {what}"))
+        Bad::answer(format!(
+            "the music of {name} sounds different merging its samples: {what}"
+        ))
     };
     for w in before {
         if is_srcn(w) {
@@ -678,7 +864,11 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
             },
             100.0 * lost,
             100.0 * floor,
-            if Some(i) == boot { ", plays from boot" } else { "" }
+            if Some(i) == boot {
+                ", plays from boot"
+            } else {
+                ""
+            }
         ));
     }
     if music.songs.is_empty() {
@@ -711,10 +901,19 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
             name,
             voice.rate / 1000.0,
             voice.data.len(),
-            if key.is_hit() { String::new() } else { format!(", root {}", voice.root) },
-            bank.limited_by.get(key).map_or(String::new(), |n| format!(", limited by {n}")),
+            if key.is_hit() {
+                String::new()
+            } else {
+                format!(", root {}", voice.root)
+            },
+            bank.limited_by
+                .get(key)
+                .map_or(String::new(), |n| format!(", limited by {n}")),
             if copied {
-                format!(", for {}", use_.get(key).map_or(String::new(), |u| u.join(" ")))
+                format!(
+                    ", for {}",
+                    use_.get(key).map_or(String::new(), |u| u.join(" "))
+                )
             } else {
                 String::new()
             }
@@ -742,7 +941,12 @@ mod tests {
         let (a, b): (&[u8], &[u8]) = (&[1; 9], &[2; 9]);
         // Voice 0: SRCN, then KON. Before, keys 0 and 1 are the same BRR.
         let srcn = sdsp::V_SRCN;
-        let before = [(0, srcn, 0), (0, sdsp::KON, 1), (5, srcn, 1), (5, sdsp::KON, 1)];
+        let before = [
+            (0, srcn, 0),
+            (0, sdsp::KON, 1),
+            (5, srcn, 1),
+            (5, sdsp::KON, 1),
+        ];
         let same = |i: u8| Some((if i < 2 { a } else { b }, 0));
         // Merged, key 1 is entry 0, and its write is skipped: the same.
         let after = [(0, srcn, 0), (0, sdsp::KON, 1), (5, sdsp::KON, 1)];
@@ -777,7 +981,12 @@ mod tests {
         );
         // A `compile` job: each song its own package, named as the song.
         assert_eq!(
-            in_song(Bad::usage("x"), &[package("Boss", vec![0], vec![])], 0, "Boss"),
+            in_song(
+                Bad::usage("x"),
+                &[package("Boss", vec![0], vec![])],
+                0,
+                "Boss"
+            ),
             Bad::usage("song \"Boss\": x")
         );
     }

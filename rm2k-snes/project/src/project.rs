@@ -98,9 +98,9 @@ impl Project {
     /// A project from the text of its file, as if it were at `directory`:
     /// what the tests use, so they do not need one on disk.
     pub fn from_text(directory: &Path, text: &str) -> Result<Project, Error> {
-        let settings: Table = text.parse().map_err(|e| {
-            Error(format!("{}: {e}", directory.join(FILENAME).display()))
-        })?;
+        let settings: Table = text
+            .parse()
+            .map_err(|e| Error(format!("{}: {e}", directory.join(FILENAME).display())))?;
         Ok(Project {
             directory: absolute(directory),
             settings,
@@ -135,9 +135,14 @@ impl Project {
             if k + 1 == keys.len() {
                 return Ok(found);
             }
-            table = found.as_table().ok_or_else(|| self.missing(&keys[..=k + 1]))?;
+            table = found
+                .as_table()
+                .ok_or_else(|| self.missing(&keys[..=k + 1]))?;
         }
-        Err(Error(format!("{}: no key asked for", self.file().display())))
+        Err(Error(format!(
+            "{}: no key asked for",
+            self.file().display()
+        )))
     }
 
     fn missing(&self, keys: &[&str]) -> Error {
@@ -159,7 +164,8 @@ impl Project {
 
     pub fn int(&self, keys: &[&str]) -> Result<i64, Error> {
         let v = self.value(keys)?;
-        v.as_integer().ok_or_else(|| self.wrong_type(keys, "int", v))
+        v.as_integer()
+            .ok_or_else(|| self.wrong_type(keys, "int", v))
     }
 
     /// An int setting that may be missing, and then is `default`. Only for

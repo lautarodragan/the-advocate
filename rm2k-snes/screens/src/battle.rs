@@ -51,19 +51,32 @@ fn layout_screen(skin: &Skin, layout: i64) -> Screen {
         bars: a
             .iter()
             .chain(b.iter())
-            .map(|&r| (picture(skin, &windows, Some(r)), r.1 / cells::CELL, r.3.div_ceil(cells::CELL)))
+            .map(|&r| {
+                (
+                    picture(skin, &windows, Some(r)),
+                    r.1 / cells::CELL,
+                    r.3.div_ceil(cells::CELL),
+                )
+            })
             .collect(),
     }
 }
 
 /// The layouts, in the order of their screens in [`layers`].
-const LAYOUTS: [i64; 3] = [bs::BA_LAYOUT_COMMAND, bs::BA_LAYOUT_TARGET, bs::BA_LAYOUT_WIDE];
+const LAYOUTS: [i64; 3] = [
+    bs::BA_LAYOUT_COMMAND,
+    bs::BA_LAYOUT_TARGET,
+    bs::BA_LAYOUT_WIDE,
+];
 
 /// The battle's screens as `borders` cuts them: each layout's, with its
 /// bars, and the description's window last.
 pub fn layers(skin: &Skin) -> Vec<Screen> {
     let mut screens: Vec<Screen> = LAYOUTS.iter().map(|&l| layout_screen(skin, l)).collect();
-    screens.push(Screen { background: picture(skin, &[bs::BA_HELP_WINDOW], None), bars: vec![] });
+    screens.push(Screen {
+        background: picture(skin, &[bs::BA_HELP_WINDOW], None),
+        bars: vec![],
+    });
     screens
 }
 
@@ -105,7 +118,11 @@ pub fn battle_windows(skin: &Skin) -> Result<Value> {
         let [a, b] = bs::layout_bars(layout);
         let mut sets = vec![Vec::new(), Vec::new()];
         for (i, cursor) in with_bar.iter().enumerate() {
-            let (set, rect) = if i < a.len() { (0, a[i]) } else { (1, b[i - a.len()]) };
+            let (set, rect) = if i < a.len() {
+                (0, a[i])
+            } else {
+                (1, b[i - a.len()])
+            };
             let row0 = rect.1 / cells::CELL;
             let n = rect.3.div_ceil(cells::CELL);
             let differs: Vec<(usize, usize)> = (0..n)
@@ -113,7 +130,9 @@ pub fn battle_windows(skin: &Skin) -> Result<Value> {
                 .filter(|&(f, c)| cursor[f * COLS + c] != map[(row0 + f) * COLS + c])
                 .collect();
             if differs.is_empty() {
-                return Err(Bad::answer(format!("a bar of battle layout {layout} draws nothing")));
+                return Err(Bad::answer(format!(
+                    "a bar of battle layout {layout} draws nothing"
+                )));
             }
             let f0 = differs.iter().map(|d| d.0).min().unwrap();
             let nf = differs.iter().map(|d| d.0).max().unwrap() + 1 - f0;

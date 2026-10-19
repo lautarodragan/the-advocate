@@ -118,7 +118,8 @@ impl Cropped {
 /// The file of the picture `name`, or None if the game does not have it.
 /// Without regard to case, as RPG_RT finds it.
 pub fn path_of(game_dir: &Path, name: &str) -> Option<PathBuf> {
-    crate::resources::find(&[game_dir], "Picture", name, &[".png"]).map(|p| rm2k_project::absolute(&p))
+    crate::resources::find(&[game_dir], "Picture", name, &[".png"])
+        .map(|p| rm2k_project::absolute(&p))
 }
 
 /// A PNG's width and height, from its header.
@@ -172,7 +173,11 @@ fn convert(path: &Path, key: &Value) -> Result<Converted> {
         .as_array()
         .map(|rows| {
             rows.iter()
-                .map(|r| r.as_array().map(|r| r.iter().map(int).collect()).unwrap_or_default())
+                .map(|r| {
+                    r.as_array()
+                        .map(|r| r.iter().map(int).collect())
+                        .unwrap_or_default()
+                })
                 .collect()
         })
         .unwrap_or_default();
@@ -273,7 +278,9 @@ pub struct Big {
 /// its number that goes to another size than the one it was shown at.
 /// `zooms` is what the scan wrote down, `[number, zoom]` per move.
 fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
-    zooms.iter().any(|z| int(&z[0]) == int(&key["number"]) && int(&z[1]) != int(&key["zoom"]))
+    zooms
+        .iter()
+        .any(|z| int(&z[0]) == int(&key["number"]) && int(&z[1]) != int(&key["zoom"]))
 }
 
 /// The big pictures of `keys`. The ones that do not fit even cut to the
@@ -290,7 +297,9 @@ pub fn big_for_map(
     let mut out = Vec::new();
     for key in keys {
         let name = key["name"].as_str().unwrap_or("");
-        let Some(path) = path_of(game_dir, name) else { continue };
+        let Some(path) = path_of(game_dir, name) else {
+            continue;
+        };
         if !is_big(&path, key, cropped)? {
             continue;
         }
@@ -317,13 +326,21 @@ pub fn big_for_map(
             continue;
         };
         let (width, height) = png_size(&path)?;
-        let object = layer.as_object_mut().ok_or_else(|| Stop::new("a layer is not an object"))?;
+        let object = layer
+            .as_object_mut()
+            .ok_or_else(|| Stop::new("a layer is not an object"))?;
         object.insert(
             "half".into(),
-            json!([zoomed(width, zoom).div_euclid(2), zoomed(height, zoom).div_euclid(2)]),
+            json!([
+                zoomed(width, zoom).div_euclid(2),
+                zoomed(height, zoom).div_euclid(2)
+            ]),
         );
         object.insert("center".into(), json!([cx, cy]));
-        out.push(Big { key: key.clone(), layer });
+        out.push(Big {
+            key: key.clone(),
+            layer,
+        });
     }
     Ok(out)
 }
@@ -347,8 +364,13 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
     for bigs in maps {
         let mut map = Vec::new();
         for big in bigs.iter() {
-            let ident = json!([big.key["name"], big.key["zoom"], big.key["transparent_color"], big.layer["center"]])
-                .to_string();
+            let ident = json!([
+                big.key["name"],
+                big.key["zoom"],
+                big.key["transparent_color"],
+                big.layer["center"]
+            ])
+            .to_string();
             let number = *index.entry(ident).or_insert_with(|| {
                 layers.push(big.layer.clone());
                 layers.len() - 1
@@ -376,7 +398,10 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
         tables.push(table);
     }
     if !layers.is_empty() {
-        println!("  the cartridge carries {} big picture(s) in the background layer", layers.len());
+        println!(
+            "  the cartridge carries {} big picture(s) in the background layer",
+            layers.len()
+        );
     }
     (layers, tables)
 }
@@ -466,8 +491,17 @@ fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<Value>> {
 
 /// How far apart two colours are: the most any channel differs.
 fn far(a: &Value, b: &Value) -> i64 {
-    let channels = |c: &Value| -> Vec<i64> { c.as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default() };
-    channels(a).iter().zip(channels(b)).map(|(x, y)| (x - y).abs()).max().unwrap_or(i64::MAX)
+    let channels = |c: &Value| -> Vec<i64> {
+        c.as_array()
+            .map(|a| a.iter().map(int).collect())
+            .unwrap_or_default()
+    };
+    channels(a)
+        .iter()
+        .zip(channels(b))
+        .map(|(x, y)| (x - y).abs())
+        .max()
+        .unwrap_or(i64::MAX)
 }
 
 /// Where the colours `own` go in `palette`: each one's index from one —0
@@ -484,7 +518,11 @@ fn fit(palette: &[Value], own: &[Value]) -> Option<(Vec<i64>, Vec<Value>)> {
             to.push(all.len() as i64 + 1);
             added.push(c.clone());
         } else {
-            let (k, d) = all.iter().enumerate().map(|(k, p)| (k, far(p, c))).min_by_key(|&(_, d)| d)?;
+            let (k, d) = all
+                .iter()
+                .enumerate()
+                .map(|(k, p)| (k, far(p, c)))
+                .min_by_key(|&(_, d)| d)?;
             if d > NEAR {
                 return None;
             }
@@ -501,7 +539,11 @@ fn cell_at(info: &Converted, x: i64, y: i64) -> Vec<i64> {
     for py in 0..8 {
         for px in 0..8 {
             let (x, y) = (x + px, y + py);
-            cell.push(if y < info.height && x < info.width { info.indices[y as usize][x as usize] } else { 0 });
+            cell.push(if y < info.height && x < info.width {
+                info.indices[y as usize][x as usize]
+            } else {
+                0
+            });
         }
     }
     cell
@@ -537,21 +579,35 @@ impl Bank {
                 let cells: Vec<Vec<i64>> = (0..OBJ_SIDE * OBJ_SIDE)
                     .map(|k| cell_at(info, ox + (k % OBJ_SIDE) * 8, oy + (k / OBJ_SIDE) * 8))
                     .collect();
-                let drawn: Vec<usize> = (0..cells.len()).filter(|&k| cells[k].iter().any(|&v| v != 0)).collect();
+                let drawn: Vec<usize> = (0..cells.len())
+                    .filter(|&k| cells[k].iter().any(|&v| v != 0))
+                    .collect();
                 if drawn.len() > SMALL_CELLS {
-                    let at = self.blocks.iter().position(|b| *b == cells).unwrap_or_else(|| {
-                        self.blocks.push(cells.clone());
-                        self.blocks.len() - 1
-                    });
+                    let at = self
+                        .blocks
+                        .iter()
+                        .position(|b| *b == cells)
+                        .unwrap_or_else(|| {
+                            self.blocks.push(cells.clone());
+                            self.blocks.len() - 1
+                        });
                     out.push((ox, oy, Piece::Block(at)));
                 } else {
                     for k in drawn {
-                        let at = self.cells.iter().position(|c| *c == cells[k]).unwrap_or_else(|| {
-                            self.cells.push(cells[k].clone());
-                            self.cells.len() - 1
-                        });
+                        let at = self
+                            .cells
+                            .iter()
+                            .position(|c| *c == cells[k])
+                            .unwrap_or_else(|| {
+                                self.cells.push(cells[k].clone());
+                                self.cells.len() - 1
+                            });
                         let k = k as i64;
-                        out.push((ox + (k % OBJ_SIDE) * 8, oy + (k / OBJ_SIDE) * 8, Piece::Cell(at)));
+                        out.push((
+                            ox + (k % OBJ_SIDE) * 8,
+                            oy + (k / OBJ_SIDE) * 8,
+                            Piece::Cell(at),
+                        ));
                     }
                 }
                 ox += OBJ;
@@ -577,7 +633,11 @@ impl Bank {
         }
         let after = -((-blocks).div_euclid(4)) * BLOCK_ROW;
         (0..self.cells.len() as i64)
-            .map(|i| free.get(i as usize).copied().unwrap_or(after + i - free.len() as i64))
+            .map(|i| {
+                free.get(i as usize)
+                    .copied()
+                    .unwrap_or(after + i - free.len() as i64)
+            })
             .collect()
     }
 
@@ -628,7 +688,9 @@ pub fn for_map(
         let number = int(&key["number"]);
         let name = key["name"].as_str().unwrap_or("");
         // The big ones are `big_for_map`'s, and take no slot.
-        let Some(path) = path_of(game_dir, name) else { continue };
+        let Some(path) = path_of(game_dir, name) else {
+            continue;
+        };
         if is_big(&path, key, cropped)? {
             continue;
         }
@@ -663,11 +725,19 @@ pub fn for_map(
                 ((cy - hh) * HEIGHT).div_euclid(RM_HEIGHT),
             );
             if (info.x, info.y) != expected {
-                crate::stop!("{key}: converted at ({}, {}) and the console puts it at {expected:?}", info.x, info.y);
+                crate::stop!(
+                    "{key}: converted at ({}, {}) and the console puts it at {expected:?}",
+                    info.x,
+                    info.y
+                );
             }
         }
         let entry: Map<String, Value> = key.as_object().cloned().unwrap_or_default();
-        shown.push(Shown { entry, name: name.to_string(), info });
+        shown.push(Shown {
+            entry,
+            name: name.to_string(),
+            info,
+        });
     }
     if shown.is_empty() {
         return Ok(None);
@@ -706,7 +776,11 @@ pub fn for_map(
         "palettes": palettes.len(),
     });
     let table = shown.into_iter().map(|s| Value::Object(s.entry)).collect();
-    Ok(Some(ForMap { asked, table, images }))
+    Ok(Some(ForMap {
+        asked,
+        table,
+        images,
+    }))
 }
 
 #[cfg(test)]
@@ -723,14 +797,24 @@ mod tests {
         assert_eq!(cropped.of("photoa"), Some((8, 16)));
         assert_eq!(cropped.of("PHOTOA"), Some((8, 16)));
         assert_eq!(cropped.of("PhotoB"), None);
-        assert!(Cropped::read(&project("cropped_pictures = {}")).unwrap().of("PhotoA").is_none());
+        assert!(Cropped::read(&project("cropped_pictures = {}"))
+            .unwrap()
+            .of("PhotoA")
+            .is_none());
     }
 
     #[test]
     fn a_crop_is_two_numbers_and_the_table_is_declared() {
-        for bad in ["{ PhotoA = [8] }", "{ PhotoA = [8, \"16\"] }", "{ PhotoA = 8 }"] {
+        for bad in [
+            "{ PhotoA = [8] }",
+            "{ PhotoA = [8, \"16\"] }",
+            "{ PhotoA = 8 }",
+        ] {
             let e = Cropped::read(&project(&format!("cropped_pictures = {bad}"))).unwrap_err();
-            assert!(e.to_string().contains("graphics.cropped_pictures.PhotoA"), "{e}");
+            assert!(
+                e.to_string().contains("graphics.cropped_pictures.PhotoA"),
+                "{e}"
+            );
         }
         let e = Cropped::read(&project("opaque = []")).unwrap_err();
         assert!(e.to_string().contains("graphics.cropped_pictures"), "{e}");
@@ -741,19 +825,32 @@ mod tests {
         // The same photo on three maps: still on the first, zoomed on the
         // second; and another one, still, on the third.
         let key = |name: &str| json!({"name": name, "zoom": 100, "transparent_color": true, "number": 20});
-        let layer = |texture: bool| {
-            json!({"center": [160, 120], "tiles": "00", "mode7": if texture { json!({"map": []}) } else { Value::Null }})
-        };
-        let still = [Big { key: key("Photo"), layer: layer(false) }];
-        let zoomed = [Big { key: key("Photo"), layer: layer(true) }];
-        let other = [Big { key: key("Other"), layer: layer(false) }];
+        let layer = |texture: bool| json!({"center": [160, 120], "tiles": "00", "mode7": if texture { json!({"map": []}) } else { Value::Null }});
+        let still = [Big {
+            key: key("Photo"),
+            layer: layer(false),
+        }];
+        let zoomed = [Big {
+            key: key("Photo"),
+            layer: layer(true),
+        }];
+        let other = [Big {
+            key: key("Other"),
+            layer: layer(false),
+        }];
         let (layers, tables) = number_big(&[&still, &zoomed, &other]);
         assert_eq!(layers.len(), 2);
         assert!(textured(&layers[0]) && !textured(&layers[1]));
         assert_eq!(tables[0][0]["image"], 0);
-        assert_eq!(tables[0][0]["texture"], true, "the map that shows it still too");
+        assert_eq!(
+            tables[0][0]["texture"], true,
+            "the map that shows it still too"
+        );
         assert_eq!(tables[1][0]["texture"], true);
-        assert!(tables[2][0].get("texture").is_none(), "and nothing for one that does not zoom");
+        assert!(
+            tables[2][0].get("texture").is_none(),
+            "and nothing for one that does not zoom"
+        );
         // Which moves zoom: another size than the one shown, under its number.
         let zooms = [json!([20, 100]), json!([3, 0])];
         assert!(!moved_to_another_size(&key("Photo"), &zooms));
@@ -781,15 +878,30 @@ mod tests {
         for &(x, y, v) in drawn {
             indices[y][x] = v;
         }
-        Converted { x: 0, y: 0, width, height, half: (width / 2, height / 2), palette, indices }
+        Converted {
+            x: 0,
+            y: 0,
+            width,
+            height,
+            half: (width / 2, height / 2),
+            palette,
+            indices,
+        }
     }
 
     #[test]
     fn a_sparse_block_goes_as_cells_and_a_full_one_whole() {
         // 40x8: the first block has one cell drawn, the second (from x = 32)
         // one too; and a 32x32 with all sixteen.
-        let sparse = info(40, 8, json!([[0, 0, 0], [8, 8, 8]]), &[(0, 0, 1), (39, 7, 2)]);
-        let full: Vec<(usize, usize, i64)> = (0..32).flat_map(|y| (0..32).map(move |x| (x, y, 1))).collect();
+        let sparse = info(
+            40,
+            8,
+            json!([[0, 0, 0], [8, 8, 8]]),
+            &[(0, 0, 1), (39, 7, 2)],
+        );
+        let full: Vec<(usize, usize, i64)> = (0..32)
+            .flat_map(|y| (0..32).map(move |x| (x, y, 1)))
+            .collect();
         let full = info(32, 32, json!([[0, 0, 0]]), &full);
         let mut bank = Bank::default();
         let cut = bank.cut(&sparse);
@@ -813,7 +925,10 @@ mod tests {
 
     #[test]
     fn cells_without_blocks_start_at_the_base_and_four_blocks_leave_no_gap() {
-        let mut bank = Bank { blocks: vec![Vec::new(); 4], cells: vec![Vec::new(); 2] };
+        let mut bank = Bank {
+            blocks: vec![Vec::new(); 4],
+            cells: vec![Vec::new(); 2],
+        };
         assert_eq!(bank.cell_tiles(), [BLOCK_ROW, BLOCK_ROW + 1]);
         bank.blocks.clear();
         assert_eq!(bank.cell_tiles(), [0, 1]);
@@ -834,7 +949,10 @@ mod tests {
         ];
         let palettes = share_palettes(&mut pictures, &[]);
         assert_eq!(palettes.len(), 2);
-        assert_eq!(palettes[0], [json!([1, 1, 1]), json!([2, 2, 2]), json!([3, 3, 3])]);
+        assert_eq!(
+            palettes[0],
+            [json!([1, 1, 1]), json!([2, 2, 2]), json!([3, 3, 3])]
+        );
         assert_eq!(pictures[1].entry["palette"], 0);
         assert_eq!(pictures[2].entry["palette"], 1);
         // The second one's indices are the shared palette's: its first
@@ -846,9 +964,17 @@ mod tests {
         let fifteen = || Value::Array((0..15).map(|k| json!([k, 0, 0])).collect());
         let mut pictures = vec![shown(fifteen()), shown(Value::Array(near))];
         assert_eq!(share_palettes(&mut pictures, &[]).len(), 1);
-        assert_eq!(pictures[1].info.indices[0][..2], [1, 15], "[16, 2, 1] drawn as [14, 0, 0]");
+        assert_eq!(
+            pictures[1].info.indices[0][..2],
+            [1, 15],
+            "[16, 2, 1] drawn as [14, 0, 0]"
+        );
         let mut pictures = vec![shown(fifteen()), shown(json!([[0, 0, 0], [20, 20, 20]]))];
-        assert_eq!(share_palettes(&mut pictures, &[]).len(), 2, "but not one three steps away or more");
+        assert_eq!(
+            share_palettes(&mut pictures, &[]).len(),
+            2,
+            "but not one three steps away or more"
+        );
         // A toned number has its own, which its other pictures share.
         let numbered = |number: i64| {
             let mut s = shown(json!([[1, 1, 1]]));
@@ -857,7 +983,10 @@ mod tests {
         };
         let mut pictures = vec![numbered(1), numbered(3), numbered(2), numbered(3)];
         assert_eq!(share_palettes(&mut pictures, &[3]).len(), 2);
-        let palettes: Vec<Value> = pictures.iter().map(|p| p.entry["palette"].clone()).collect();
+        let palettes: Vec<Value> = pictures
+            .iter()
+            .map(|p| p.entry["palette"].clone())
+            .collect();
         assert_eq!(palettes, [json!(0), json!(1), json!(0), json!(1)]);
     }
 }

@@ -26,7 +26,15 @@ fn write(path: &Path, width: usize, height: usize, pixel: impl Fn(usize, usize) 
         }
     }
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    picture::write_png(path, &Picture { width, height, rgba }).unwrap();
+    picture::write_png(
+        path,
+        &Picture {
+            width,
+            height,
+            rgba,
+        },
+    )
+    .unwrap();
 }
 
 fn page(name: &str, commands: Value) -> Value {
@@ -46,7 +54,11 @@ fn game(dir: &Path, count: usize, doing: usize) -> (PathBuf, PathBuf) {
     let dump = dir.join("dump");
     std::fs::create_dir_all(dump.join("maps")).unwrap();
     std::fs::create_dir_all(dump.join("db")).unwrap();
-    std::fs::write(dump.join("ditto.json"), json!({"ditto": 2, "view": "resolved"}).to_string()).unwrap();
+    std::fs::write(
+        dump.join("ditto.json"),
+        json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     std::fs::write(
         dump.join("db/chipsets.json"),
         json!([{"id": 2, "chipset_name": "tiles", "passable_data_lower": vec![15u8; 162],
@@ -70,7 +82,10 @@ fn game(dir: &Path, count: usize, doing: usize) -> (PathBuf, PathBuf) {
         .map(|id| {
             let cell = id - 1;
             let p = if id == 1 {
-                page("Folk", json!([{"code": 11330, "indent": 0, "string": "", "parameters": [count, 0]}]))
+                page(
+                    "Folk",
+                    json!([{"code": 11330, "indent": 0, "string": "", "parameters": [count, 0]}]),
+                )
             } else if id <= doing {
                 page("Folk", wait.clone())
             } else {
@@ -88,7 +103,11 @@ fn game(dir: &Path, count: usize, doing: usize) -> (PathBuf, PathBuf) {
     let upper: Vec<String> = (0..8).map(|_| [" 10000"; 16].concat()).collect();
     std::fs::write(
         dump.join("maps/Map0007.tiles"),
-        format!("# 16x8\n# lower\n{}\n# upper\n{}\n", lower.join("\n"), upper.join("\n")),
+        format!(
+            "# 16x8\n# lower\n{}\n# upper\n{}\n",
+            lower.join("\n"),
+            upper.join("\n")
+        ),
     )
     .unwrap();
     let pictures = dir.join("game");
@@ -98,7 +117,12 @@ fn game(dir: &Path, count: usize, doing: usize) -> (PathBuf, PathBuf) {
     });
     write(&pictures.join("CharSet/Folk.png"), 288, 256, |x, y| {
         let k = (x / 6 + y / 4 * 3) % 9;
-        [(k * 40 % 256) as u8, (k * 90 % 256) as u8, (k * 150 % 256) as u8, 255]
+        [
+            (k * 40 % 256) as u8,
+            (k * 90 % 256) as u8,
+            (k * 150 % 256) as u8,
+            255,
+        ]
     });
     write(&pictures.join("CharSet/Water.png"), 288, 256, |x, y| {
         let (px, py) = (x % 24, y % 32);
@@ -143,18 +167,32 @@ fn convert_with(dir: &Path, dump: &Path, pictures: &Path, extra: Value) -> Value
         .arg(&out)
         .output()
         .unwrap();
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
     serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap()
 }
 
 fn events(map: &Value) -> Vec<i64> {
-    let mut out: Vec<i64> = map["npcs"].as_array().unwrap().iter().map(|n| n["event"].as_i64().unwrap()).collect();
+    let mut out: Vec<i64> = map["npcs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["event"].as_i64().unwrap())
+        .collect();
     out.sort();
     out
 }
 
 fn notes(map: &Value) -> Vec<String> {
-    map["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap().to_string()).collect()
+    map["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap().to_string())
+        .collect()
 }
 
 #[test]
@@ -163,7 +201,11 @@ fn a_map_that_fits_keeps_every_row_and_says_nothing() {
     let (dump, pictures) = game(&dir, NPC_MAX, NPC_MAX - 10);
     let map = convert(&dir, &dump, &pictures);
     assert_eq!(events(&map), (0..NPC_MAX as i64).collect::<Vec<_>>());
-    assert!(!notes(&map).iter().any(|n| n.contains("table holds")), "{:?}", notes(&map));
+    assert!(
+        !notes(&map).iter().any(|n| n.contains("table holds")),
+        "{:?}",
+        notes(&map)
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -183,7 +225,9 @@ fn the_ones_that_do_nothing_go_first_and_the_highest_first() {
     let notes = notes(&map);
     let ids: Vec<String> = dropped.iter().map(|e| (e + 1).to_string()).collect();
     assert!(
-        notes.iter().any(|n| n.contains("WARNING") && n.contains(&ids.join(", "))),
+        notes
+            .iter()
+            .any(|n| n.contains("WARNING") && n.contains(&ids.join(", "))),
         "{notes:?}"
     );
     std::fs::remove_dir_all(&dir).unwrap();
@@ -207,9 +251,19 @@ fn a_dropped_event_is_not_in_the_map() {
     // events after it are numbered one less. Its cell is the second.
     let dir = scratch("dropped");
     let (dump, pictures) = game(&dir, 5, 5);
-    let map = convert_with(&dir, &dump, &pictures, json!({"dropped_events": {"7": [2]}}));
+    let map = convert_with(
+        &dir,
+        &dump,
+        &pictures,
+        json!({"dropped_events": {"7": [2]}}),
+    );
     assert_eq!(events(&map), [0, 1, 2, 3]);
-    let second = map["npcs"].as_array().unwrap().iter().find(|n| n["event"] == 1).unwrap();
+    let second = map["npcs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["event"] == 1)
+        .unwrap();
     assert_eq!(second["x"], json!(2), "{second}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

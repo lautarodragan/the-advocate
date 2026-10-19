@@ -163,7 +163,12 @@ impl Splitter<'_> {
         // Someone else's. Which one is decided by `lend`, at the end, when
         // the palettes have every colour they are going to have: one that
         // looked far now can take, later, the colours that bring it near.
-        if !s.palettes.iter().enumerate().any(|(n, p)| !s.leader_owned.contains(&n) && !p.is_empty()) {
+        if !s
+            .palettes
+            .iter()
+            .enumerate()
+            .any(|(n, p)| !s.leader_owned.contains(&n) && !p.is_empty())
+        {
             return Ok(false); // the console overwrites the leaders' with theirs
         }
         s.lent.insert(key.clone());
@@ -204,7 +209,11 @@ impl Splitter<'_> {
                     .iter()
                     .map(|(c, n)| {
                         let own = mapping[c];
-                        let shown = if existing.contains(&own) { own } else { nearest(existing, own) };
+                        let shown = if existing.contains(&own) {
+                            own
+                        } else {
+                            nearest(existing, own)
+                        };
                         n * (lab_distance(*c, shown) as u64).isqrt()
                     })
                     .sum();
@@ -273,7 +282,9 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
                 slot_leader = sp.split.palette_of.get(key);
             }
         } else {
-            sp.split.palette_of.set(key.clone(), slot_leader.unwrap_or(0));
+            sp.split
+                .palette_of
+                .set(key.clone(), slot_leader.unwrap_or(0));
             sp.split.own.insert(key.clone());
         }
     }
@@ -316,7 +327,8 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     // The graphics of command 34, while they fit; a transparent one asks
     // for nothing.
     for key in ask.route_graphics {
-        if !seen.contains(key) && !sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty() {
+        if !seen.contains(key) && !sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty()
+        {
             seen.insert(key.clone());
             sp.fits(key, false, false)?;
         }
@@ -330,7 +342,11 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
                 continue;
             }
             let mut union = s.palettes[number].clone();
-            union.extend(ask.timer_colors.iter().filter(|c| !s.palettes[number].contains(c)));
+            union.extend(
+                ask.timer_colors
+                    .iter()
+                    .filter(|c| !s.palettes[number].contains(c)),
+            );
             if union.len() <= OBJ_COLORS {
                 s.palettes[number] = union;
                 break;
@@ -353,7 +369,11 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
                 outside.insert(key);
             }
         }
-        npc.outside = npc.keys().into_iter().filter(|k| outside.contains(k)).collect();
+        npc.outside = npc
+            .keys()
+            .into_iter()
+            .filter(|k| outside.contains(k))
+            .collect();
         discarded.extend(npc.outside.iter().map(|k| (npc.event, k.0.clone())));
         if outside.contains(&(npc.charset.clone(), npc.index)) {
             npc.visible = false;
@@ -412,7 +432,11 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
             if counts.is_empty() {
                 continue;
             }
-            let missing = ask.timer_colors.iter().filter(|c| !s.palettes[n].contains(c)).count();
+            let missing = ask
+                .timer_colors
+                .iter()
+                .filter(|c| !s.palettes[n].contains(c))
+                .count();
             let new_cap = OBJ_COLORS - missing;
             let merged = merge_least_visible(&counts, new_cap)?;
             let moved: u64 = counts
@@ -439,7 +463,11 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
                 key.1,
                 new_cap,
                 100.0 * ratio,
-                if foreign { ", and with a pose bank of its own" } else { "" }
+                if foreign {
+                    ", and with a pose bank of its own"
+                } else {
+                    ""
+                }
             ));
             s.palettes[n] = palette;
             s.caps.insert(key, new_cap);

@@ -4,7 +4,9 @@
 
 use crate::animations::{self, Animations};
 use crate::bytecode;
-use crate::compiler::{self, CompileMap, Compiler, Indices, CASE_VARIABLE, COMPARE_AT_LEAST, TEST_SWITCH};
+use crate::compiler::{
+    self, CompileMap, Compiler, Indices, CASE_VARIABLE, COMPARE_AT_LEAST, TEST_SWITCH,
+};
 use crate::degradations::Degradations;
 use crate::emit;
 use crate::fail::{Result, Stop};
@@ -21,8 +23,8 @@ use crate::settings::Settings;
 use crate::stage;
 use crate::text::{hex, repr, unhex};
 use rm2k_project::Project;
-use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
 use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE, OP_TELEPORT};
+use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
 use rm2k_snes_mapdata::{engine, record, vram};
 
 /// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
@@ -47,9 +49,14 @@ pub const SUB_MAX: usize = 16;
 /// name or its number, and only the fields that say something.
 pub fn handwritten_commands(path: &std::path::Path) -> Result<Vec<Command>> {
     let text = std::fs::read_to_string(path).map_err(|e| crate::fail::io(path, e))?;
-    let data: Value = serde_json::from_str(&text).map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+    let data: Value =
+        serde_json::from_str(&text).map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
     let mut out = Vec::new();
-    for c in data["event_commands"].as_array().cloned().unwrap_or_default() {
+    for c in data["event_commands"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+    {
         let code = match &c["code"] {
             Value::String(name) => ditto::schema::EventCommandCode::from_json_name(name)
                 .map(|c| c.to_i32())
@@ -59,7 +66,11 @@ pub fn handwritten_commands(path: &std::path::Path) -> Result<Vec<Command>> {
         out.push(Command {
             code,
             indent: c.get("indent").and_then(Value::as_i64).unwrap_or(0) as i32,
-            string: c.get("string").and_then(Value::as_str).unwrap_or("").to_string(),
+            string: c
+                .get("string")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
             parameters: c
                 .get("parameters")
                 .and_then(Value::as_array)
@@ -77,7 +88,10 @@ fn page_party(commands: &[Command], party: &[i32]) -> Option<Vec<i32>> {
     let mut touches = false;
     for cmd in commands {
         let p = &cmd.parameters;
-        if cmd.code == rm2k_snes_events::codes::CHANGE_PARTY_MEMBERS && p.len() >= 3 && p[1] == scan::PARTY_FIXED_ID {
+        if cmd.code == rm2k_snes_events::codes::CHANGE_PARTY_MEMBERS
+            && p.len() >= 3
+            && p[1] == scan::PARTY_FIXED_ID
+        {
             state.change_party(p[0], p[2]);
             touches = true;
         }
@@ -90,7 +104,11 @@ fn int(v: &Value) -> i64 {
 }
 
 fn join<T: ToString>(items: impl IntoIterator<Item = T>, sep: &str) -> String {
-    items.into_iter().map(|i| i.to_string()).collect::<Vec<_>>().join(sep)
+    items
+        .into_iter()
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>()
+        .join(sep)
 }
 
 pub fn run(options: Options) -> Result<()> {
@@ -101,7 +119,11 @@ pub fn run(options: Options) -> Result<()> {
     environment.unpack(&project)?;
     let order = options.map_order();
     if !(0 <= options.start_index && (options.start_index as usize) < order.len()) {
-        crate::stop!("--start-index {} but there are {} maps", options.start_index, order.len());
+        crate::stop!(
+            "--start-index {} but there are {} maps",
+            options.start_index,
+            order.len()
+        );
     }
     let start_index = options.start_index as usize;
     let output = match &options.output {
@@ -118,8 +140,12 @@ pub fn run(options: Options) -> Result<()> {
         let run_map = case_map(file, &commands, &order, start_index)?;
         cases.push((file.clone(), commands, run_map));
     }
-    let file_commands: Vec<Command> = cases.iter().flat_map(|(_, c, _)| c.iter().cloned()).collect();
-    let case_pairs: Vec<(i32, Vec<Command>)> = cases.iter().map(|(_, c, m)| (*m, c.clone())).collect();
+    let file_commands: Vec<Command> = cases
+        .iter()
+        .flat_map(|(_, c, _)| c.iter().cloned())
+        .collect();
+    let case_pairs: Vec<(i32, Vec<Command>)> =
+        cases.iter().map(|(_, c, m)| (*m, c.clone())).collect();
 
     let mut game = Game::read(&game_dir, &project)?;
     game.rtp_dir = Some(rtp_dir.clone());
@@ -134,14 +160,22 @@ pub fn run(options: Options) -> Result<()> {
     // The events that do not fit in the console's RAM, before anything
     // reads a map: from here on every stage numbers them without those.
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
-    let events_max = options.test_events_max.unwrap_or(rm2k_snes_mapdata::record::EV_MAX);
+    let events_max = options
+        .test_events_max
+        .unwrap_or(rm2k_snes_mapdata::record::EV_MAX);
     game.trim(&order, &file_commands, test_event_map, events_max)?;
     // What the cartridge does with less than RM2k, gathered from whoever
     // loses it and written next to the ROM: see [`crate::degradations`].
     let mut degradations = Degradations::default();
     for &(map, event, at, what) in &game.trimmed {
         let text = format!("the event is left out: the console's RAM does not hold every event, and it loses {what}");
-        degradations.event(map as i64, event as i64, (at.0 as i64, at.1 as i64), "event-left-out", &text);
+        degradations.event(
+            map as i64,
+            event as i64,
+            (at.0 as i64, at.1 as i64),
+            "event-left-out",
+            &text,
+        );
     }
 
     let search_dirs = search_dirs(&game, &project, &rtp_dir)?;
@@ -172,7 +206,8 @@ pub fn run(options: Options) -> Result<()> {
     }
     // The Systems the pages switch to, which the compiler numbers and the
     // screens draw a message window for.
-    let (switched, any_system, system_says) = crate::systems::switched(&game, &every_refs, &file_commands);
+    let (switched, any_system, system_says) =
+        crate::systems::switched(&game, &every_refs, &file_commands);
     for line in &system_says {
         println!("{line}");
     }
@@ -184,7 +219,9 @@ pub fn run(options: Options) -> Result<()> {
     // And the ones the custom menus' conditions ask for, which no page may
     // name.
     for menu in &custom_menus {
-        compiler.extra_switches.extend(menu.switches().into_iter().map(|s| s as i32));
+        compiler
+            .extra_switches
+            .extend(menu.switches().into_iter().map(|s| s as i32));
     }
     compiler.systems = crate::systems::names(&game, &switched, any_system);
     // The automatic common events with pictures, copied into every map
@@ -195,12 +232,29 @@ pub fn run(options: Options) -> Result<()> {
         .filter_map(|m| m.spec.get("replaces_common").and_then(Value::as_i64))
         .map(|n| n as i32)
         .collect();
-    not_copied.extend(compiler::counters(&settings)?.iter().filter_map(|c| c["common_event"].as_i64()).map(|n| n as i32));
-    let common_pages = crate::common_pages::CommonPages::decide(&game, &not_copied, &order, test_event_map, events_max)?;
+    not_copied.extend(
+        compiler::counters(&settings)?
+            .iter()
+            .filter_map(|c| c["common_event"].as_i64())
+            .map(|n| n as i32),
+    );
+    let common_pages = crate::common_pages::CommonPages::decide(
+        &game,
+        &not_copied,
+        &order,
+        test_event_map,
+        events_max,
+    )?;
     if !common_pages.maps.is_empty() {
         println!(
             "  common events {} copied into {} of the {} maps, for their pictures",
-            common_pages.commons.iter().rev().map(|n| n.to_string()).collect::<Vec<_>>().join(", "),
+            common_pages
+                .commons
+                .iter()
+                .rev()
+                .map(|n| n.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
             common_pages.maps.len(),
             order.len()
         );
@@ -208,7 +262,9 @@ pub fn run(options: Options) -> Result<()> {
     compiler.common_pages = common_pages.to_json();
     // For `rm2k-snes-events culprits --request`, which asks the same thing
     // of the same dump.
-    compiler.keep_request = output.parent().map(|d| rm2k_project::absolute(d).join("events-request.json"));
+    compiler.keep_request = output
+        .parent()
+        .map(|d| rm2k_project::absolute(d).join("events-request.json"));
     if !switched.is_empty() {
         println!("  Systems: {}", compiler.systems.join(", "));
     }
@@ -219,7 +275,12 @@ pub fn run(options: Options) -> Result<()> {
     // the pages that name one (`variable_slot`), so the game loses those
     // pages and not the cartridge.
     let slot_max = rm2k_snes_mapdata::engine::VAR_SLOT_MAX as i64;
-    let lost: Vec<i64> = indices.variables.iter().filter(|(_, s)| *s > slot_max).map(|(v, _)| *v).collect();
+    let lost: Vec<i64> = indices
+        .variables
+        .iter()
+        .filter(|(_, s)| *s > slot_max)
+        .map(|(v, _)| *v)
+        .collect();
     if !lost.is_empty() {
         indices.variables.retain(|(_, s)| *s <= slot_max);
         println!(
@@ -254,19 +315,33 @@ pub fn run(options: Options) -> Result<()> {
         .map(|(_, _, m)| *m)
         .collect();
     if !options.no_timer {
-        let never: BTreeSet<i32> =
-            project.ints(&["graphics", "timer_never_runs_in"])?.into_iter().map(|m| m as i32).collect();
+        let never: BTreeSet<i32> = project
+            .ints(&["graphics", "timer_never_runs_in"])?
+            .into_iter()
+            .map(|m| m as i32)
+            .collect();
         // A knob at rest when it is missing, as `int_or` says: a game
         // without a hub the walk floods from does not write it.
         let stays: BTreeSet<i32> = match project.value(&["graphics", "timer_stays_in"]) {
             Err(_) => BTreeSet::new(),
-            Ok(_) => project.ints(&["graphics", "timer_stays_in"])?.into_iter().map(|m| m as i32).collect(),
+            Ok(_) => project
+                .ints(&["graphics", "timer_stays_in"])?
+                .into_iter()
+                .map(|m| m as i32)
+                .collect(),
         };
         let counters: BTreeSet<i32> = compiler::counters(&settings)?
             .iter()
             .map(|c| int(&c["common_event"]) as i32)
             .collect();
-        timer_maps.extend(scan::timer_reach(&every_refs, &scan_answer, &game.db.common_events, &never, &stays, &counters)?);
+        timer_maps.extend(scan::timer_reach(
+            &every_refs,
+            &scan_answer,
+            &game.db.common_events,
+            &never,
+            &stays,
+            &counters,
+        )?);
     }
     println!(
         "  the timer's digits go in {} of the {} maps: {}",
@@ -316,7 +391,10 @@ pub fn run(options: Options) -> Result<()> {
             order.len()
         );
         for (map, shows) in &decided.per_map {
-            let names: Vec<String> = shows.iter().map(|p| format!("'{}' at {} %", p.name, 100 - p.transparency)).collect();
+            let names: Vec<String> = shows
+                .iter()
+                .map(|p| format!("'{}' at {} %", p.name, 100 - p.transparency))
+                .collect();
             println!("  map {map}: drawn into the map: {}", names.join(", "));
         }
         // The translucent big ones the rule leaves as pictures stay over
@@ -359,8 +437,12 @@ pub fn run(options: Options) -> Result<()> {
             Ok(Value::Object(t)) => t
                 .iter()
                 .map(|(k, v)| {
-                    let map = k.parse::<i32>().map_err(|_| Stop::new(format!("[maps] panorama_ways: {k:?} is not a map")))?;
-                    let way = v.as_str().ok_or_else(|| Stop::new(format!("[maps] panorama_ways: map {k} is {v}, not a way")))?;
+                    let map = k.parse::<i32>().map_err(|_| {
+                        Stop::new(format!("[maps] panorama_ways: {k:?} is not a map"))
+                    })?;
+                    let way = v.as_str().ok_or_else(|| {
+                        Stop::new(format!("[maps] panorama_ways: map {k} is {v}, not a way"))
+                    })?;
                     Ok((map, way.to_string()))
                 })
                 .collect::<Result<_>>()?,
@@ -378,7 +460,8 @@ pub fn run(options: Options) -> Result<()> {
     // What stops one map says which in its own line, also from Wally's
     // calls in `run_all`: see `Stop::in_map`.
     for id in &order {
-        prepared.push(maps::prepare(&cartridge, &mut animation_cache, *id).map_err(|e| e.in_map(*id))?);
+        prepared
+            .push(maps::prepare(&cartridge, &mut animation_cache, *id).map_err(|e| e.in_map(*id))?);
     }
     let answers = maps::run_all(&cartridge, &prepared)?;
     let mut infos: Vec<MapInfo> = Vec::new();
@@ -413,7 +496,10 @@ pub fn run(options: Options) -> Result<()> {
     }
     let boot_map = order[start_index];
     let order: Vec<i32> = infos.iter().map(|m| m.id).collect();
-    let start_index = order.iter().position(|&m| m == boot_map).expect("the boot map stays");
+    let start_index = order
+        .iter()
+        .position(|&m| m == boot_map)
+        .expect("the boot map stays");
     // The big pictures, which the cartridge carries once whatever map shows
     // them.
     let bigs: Vec<&[pictures::Big]> = infos.iter().map(|m| m.big_pictures.as_slice()).collect();
@@ -422,7 +508,8 @@ pub fn run(options: Options) -> Result<()> {
         m.big_table = table;
     }
     // Teleports are resolved when all the maps are there.
-    let table_index: BTreeMap<i32, usize> = infos.iter().enumerate().map(|(n, m)| (m.id, n)).collect();
+    let table_index: BTreeMap<i32, usize> =
+        infos.iter().enumerate().map(|(n, m)| (m.id, n)).collect();
     for m in &infos {
         for (upper, old, new) in &m.missing_substitutions {
             // It doesn't stop the conversion: the page that asks for it
@@ -485,7 +572,9 @@ pub fn run(options: Options) -> Result<()> {
         })
         .collect();
     let test_graphics: BTreeMap<i32, Vec<(String, i32)>> = match &options.test_graphic {
-        Some(graphics) if !graphics.is_empty() => test_maps.iter().map(|m| (*m, graphics.clone())).collect(),
+        Some(graphics) if !graphics.is_empty() => {
+            test_maps.iter().map(|m| (*m, graphics.clone())).collect()
+        }
         _ => BTreeMap::new(),
     };
     let compiled = compiler.compile(
@@ -497,12 +586,16 @@ pub fn run(options: Options) -> Result<()> {
         &test_graphics,
         &encounters["troops"],
     )?;
-    degradations.from_events(&compiled);
+    degradations.add_compiler_answer(&compiled);
     // The pictures drawn into their map were shown by the conversion, not
     // lost: the compiler is not given them, so it says they are not shown.
     degradations.forget(|l| {
         l["kind"] == "picture-not-shown"
-            && l["map"].as_i64().is_some_and(|m| cartridge.map_pictures.done(m as i32, l["subject"].as_str().unwrap_or("")))
+            && l["map"].as_i64().is_some_and(|m| {
+                cartridge
+                    .map_pictures
+                    .done(m as i32, l["subject"].as_str().unwrap_or(""))
+            })
     });
     // And what the copies of the automatic common events lose: the common
     // event's own body says it once, under `"common"`, and a copy whose
@@ -542,7 +635,10 @@ pub fn run(options: Options) -> Result<()> {
             degradations.troop(*n as i64, "troop-members-left-out", &cut.text());
         }
     }
-    if let Some(commons) = compiled.get("commons").filter(|c| !c.is_null() && c.as_object().is_some_and(|o| !o.is_empty())) {
+    if let Some(commons) = compiled
+        .get("commons")
+        .filter(|c| !c.is_null() && c.as_object().is_some_and(|o| !o.is_empty()))
+    {
         let bodies = commons["bodies"].as_array().cloned().unwrap_or_default();
         println!(
             "shared common events: {} bodies, {} bytes; automatic ones that run: {}; left out, not compiling: {}",
@@ -564,7 +660,13 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let mut test_code: Vec<Vec<u8>> = Vec::new();
-    for (k, code) in compiled["cases"].as_array().cloned().unwrap_or_default().iter().enumerate() {
+    for (k, code) in compiled["cases"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+    {
         match code.as_str() {
             None => crate::stop!("{}: the test page doesn't compile", cases[k].0),
             Some(hex) => test_code.push(unhex(hex)),
@@ -587,10 +689,16 @@ pub fn run(options: Options) -> Result<()> {
         // start from are the keys of the ROM's table. See `SUB_MAX`.
         let mut sub_keys = BTreeSet::new();
         let truthy = |v: &Value| v.as_bool().unwrap_or_else(|| int(v) != 0);
-        for asked in entry["substitutions"].as_array().cloned().unwrap_or_default() {
+        for asked in entry["substitutions"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default()
+        {
             let upper = truthy(&asked[0]);
             let found = m.substitution_table.as_array().and_then(|t| {
-                t.iter().find(|s| truthy(&s["upper"]) == upper && s["old"] == asked[1] && s["new"] == asked[2])
+                t.iter().find(|s| {
+                    truthy(&s["upper"]) == upper && s["old"] == asked[1] && s["new"] == asked[2]
+                })
             });
             if let Some(pairs) = found.and_then(|s| s["pairs"].as_array()) {
                 for pair in pairs {
@@ -616,13 +724,21 @@ pub fn run(options: Options) -> Result<()> {
             );
         }
         if !with_parallel.is_empty() {
-            println!("  map {}: {} event(s) with a parallel page", m.id, with_parallel.len());
+            println!(
+                "  map {}: {} event(s) with a parallel page",
+                m.id,
+                with_parallel.len()
+            );
         }
         // The graphics command 34 and `ChangeSpriteAssociation` carry by
         // index: the two passes have to have numbered them the same.
         let graphics: Vec<(String, i64)> = entry["graphics"]
             .as_array()
-            .map(|a| a.iter().map(|g| (g[0].as_str().unwrap_or("").to_string(), int(&g[1]))).collect())
+            .map(|a| {
+                a.iter()
+                    .map(|g| (g[0].as_str().unwrap_or("").to_string(), int(&g[1])))
+                    .collect()
+            })
             .unwrap_or_default();
         if graphics != m.route_graphics {
             crate::stop!(
@@ -632,7 +748,11 @@ pub fn run(options: Options) -> Result<()> {
                 m.route_graphics
             );
         }
-        for g in entry["graphics_dropped"].as_array().cloned().unwrap_or_default() {
+        for g in entry["graphics_dropped"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default()
+        {
             println!(
                 "  map {}: WARNING, a route changes to the graphic {} {} and the ROM's table of {} is full: the change is ignored",
                 m.id,
@@ -653,7 +773,10 @@ pub fn run(options: Options) -> Result<()> {
             }
             let event = &m.map.events[page.event as usize];
             for c in &event.pages[page.page as usize].commands {
-                if c.code == TELEPORT && !c.parameters.is_empty() && !table_index.contains_key(&c.parameters[0]) {
+                if c.code == TELEPORT
+                    && !c.parameters.is_empty()
+                    && !table_index.contains_key(&c.parameters[0])
+                {
                     outside_of.insert(c.parameters[0]);
                     how_many += 1;
                 }
@@ -696,13 +819,22 @@ pub fn run(options: Options) -> Result<()> {
             // has no code.
             for (k, code) in test_code.iter().enumerate() {
                 let variable = if k > 0 {
-                    json!([indices.variable_slot(CASE_VARIABLE as i64)?, COMPARE_AT_LEAST, k])
+                    json!([
+                        indices.variable_slot(CASE_VARIABLE as i64)?,
+                        COMPARE_AT_LEAST,
+                        k
+                    ])
                 } else {
                     Value::Null
                 };
                 m.pages.push(test_page(k as i64, 0, variable, code.clone()));
             }
-            m.pages.push(test_page(cases.len() as i64, TEST_SWITCH as i64, Value::Null, Vec::new()));
+            m.pages.push(test_page(
+                cases.len() as i64,
+                TEST_SWITCH as i64,
+                Value::Null,
+                Vec::new(),
+            ));
         }
         let code = lay_out_code(&mut m.pages);
         // What each page of the events that change graphic draws: where
@@ -712,21 +844,26 @@ pub fn run(options: Options) -> Result<()> {
             if !continues && !m.appearing.contains(&page.event) {
                 continue;
             }
-            let Some(graphic) = &page.graphic else { continue };
-            if m.outside.get(&page.event).is_some_and(|o| o.contains(&(graphic.0.clone(), graphic.1))) {
+            let Some(graphic) = &page.graphic else {
+                continue;
+            };
+            if m.outside
+                .get(&page.event)
+                .is_some_and(|o| o.contains(&(graphic.0.clone(), graphic.1)))
+            {
                 continue;
             }
             let (mut block, mut palette) = (Value::Null, json!(0));
             // A map with a cache of slots: the page carries its still pose,
             // and the console finds it a slot. See `sprites::cache` in Wally.
             if continues && !m.cached.is_empty() {
-                let (key, p) = m
-                    .cached
-                    .get(graphic)
-                    .cloned()
-                    .ok_or_else(|| Stop::new(format!("map {}: {graphic:?} is not in the cache", m.id)))?;
-                page.draws = Some(json!({"block": null, "key": key, "palette": p, "pose": graphic.2,
-                                         "tile_pass": page.tile_pass}));
+                let (key, p) = m.cached.get(graphic).cloned().ok_or_else(|| {
+                    Stop::new(format!("map {}: {graphic:?} is not in the cache", m.id))
+                })?;
+                page.draws = Some(
+                    json!({"block": null, "key": key, "palette": p, "pose": graphic.2,
+                                         "tile_pass": page.tile_pass}),
+                );
                 continue;
             }
             if continues {
@@ -734,16 +871,19 @@ pub fn run(options: Options) -> Result<()> {
                 // row points at its slot of twelve poses.
                 let (b, p) = match m.shared.get(&page.event) {
                     Some(shared) => shared.clone(),
-                    None => m
-                        .where_
-                        .get(graphic)
-                        .cloned()
-                        .ok_or_else(|| Stop::new(format!("map {}: {graphic:?} is not in the sprite bank", m.id)))?,
+                    None => m.where_.get(graphic).cloned().ok_or_else(|| {
+                        Stop::new(format!(
+                            "map {}: {graphic:?} is not in the sprite bank",
+                            m.id
+                        ))
+                    })?,
                 };
                 block = b;
                 palette = p;
             }
-            page.draws = Some(json!({"block": block, "palette": palette, "pose": graphic.2, "tile_pass": page.tile_pass}));
+            page.draws = Some(
+                json!({"block": block, "palette": palette, "pose": graphic.2, "tile_pass": page.tile_pass}),
+            );
         }
         m.evcode = code;
         // The ROM's substitution table has a fixed cap and **doesn't warn**
@@ -759,7 +899,12 @@ pub fn run(options: Options) -> Result<()> {
         // route that finds no room is discarded **without saying
         // anything**. The pages that **run** here: the map's and those of
         // the cases that jump to it.
-        let mut run_here: Vec<&[u8]> = m.pages.iter().filter(|p| p.has_code && !p.test).map(|p| p.code.as_slice()).collect();
+        let mut run_here: Vec<&[u8]> = m
+            .pages
+            .iter()
+            .filter(|p| p.has_code && !p.test)
+            .map(|p| p.code.as_slice())
+            .collect();
         for (k, (_, _, run_map)) in cases.iter().enumerate() {
             if *run_map == m.id {
                 run_here.push(&test_code[k]);
@@ -799,19 +944,25 @@ pub fn run(options: Options) -> Result<()> {
             for i in bytecode::walk(code)? {
                 if code[i] == OP_TELEPORT {
                     teleported = true;
-                    at = bytecode::at(code, i + 1) as usize | (bytecode::at(code, i + 2) as usize) << 8;
+                    at = bytecode::at(code, i + 1) as usize
+                        | (bytecode::at(code, i + 2) as usize) << 8;
                 } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
                     let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
                     let mut k = 0;
                     while k < path.len() {
                         if path[k] == 34 {
                             k += 1;
-                            hero = path.get(k).and_then(|&g| m.route_graphics.get(g as usize)).cloned();
+                            hero = path
+                                .get(k)
+                                .and_then(|&g| m.route_graphics.get(g as usize))
+                                .cloned();
                         }
                         k += 1;
                     }
                 } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
-                    flashes.entry((at, hero.clone(), teleported)).or_insert(m.id);
+                    flashes
+                        .entry((at, hero.clone(), teleported))
+                        .or_insert(m.id);
                 }
             }
         }
@@ -832,7 +983,12 @@ pub fn run(options: Options) -> Result<()> {
         }
         let runnable = m.pages.iter().filter(|p| p.has_code).count();
         if !m.pages.is_empty() {
-            println!("  map {}: {} automatic event page(s), {} runnable", m.id, m.pages.len(), runnable);
+            println!(
+                "  map {}: {} automatic event page(s), {} runnable",
+                m.id,
+                m.pages.len(),
+                runnable
+            );
         }
     }
 
@@ -841,7 +997,12 @@ pub fn run(options: Options) -> Result<()> {
         let m = &infos[*index];
         let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
         for npc in m.npcs.as_array().cloned().unwrap_or_default() {
-            *graphics.entry((npc["charset"].as_str().unwrap_or("").to_string(), int(&npc["index"]))).or_insert(0) += 1;
+            *graphics
+                .entry((
+                    npc["charset"].as_str().unwrap_or("").to_string(),
+                    int(&npc["index"]),
+                ))
+                .or_insert(0) += 1;
         }
         // The graphic a route gave the hero, or each leader's own: the flash
         // is on its palette, which an NPC drawn with the same one shares.
@@ -851,7 +1012,11 @@ pub fn run(options: Options) -> Result<()> {
             None => {
                 for actor in &leaders {
                     let a = game.db.actor(*actor)?;
-                    heroes.push((a.character_name.clone(), a.character_index as i64, format!("actor {actor}")));
+                    heroes.push((
+                        a.character_name.clone(),
+                        a.character_index as i64,
+                        format!("actor {actor}"),
+                    ));
                 }
             }
         }
@@ -885,7 +1050,12 @@ pub fn run(options: Options) -> Result<()> {
     // The screens, all at once. And the items that can be in the
     // inventory, to carry their name and their description; the ones the
     // enemies of the cartridge's troops drop too.
-    let items_rom = scan::possible_items(every_refs.iter().copied(), &members, &game.db, &file_commands);
+    let items_rom = scan::possible_items(
+        every_refs.iter().copied(),
+        &members,
+        &game.db,
+        &file_commands,
+    );
     let mut items_all: BTreeSet<i32> = items_rom.iter().copied().collect();
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
@@ -911,10 +1081,22 @@ pub fn run(options: Options) -> Result<()> {
         // actors' text.
         "names": indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>(),
     });
-    let screens_answer =
-        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors, &window_answer["text_rows"], &compiled["messages"]["letters"])?;
+    let screens_answer = screens::convert(
+        &game,
+        &font,
+        &members,
+        &items_all,
+        !options.no_title,
+        &menus_request,
+        window_colors,
+        &window_answer["text_rows"],
+        &compiled["messages"]["letters"],
+    )?;
     for loss in screens_answer["losses"].as_array().into_iter().flatten() {
-        degradations.cartridge(loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""));
+        degradations.cartridge(
+            loss["kind"].as_str().unwrap_or(""),
+            loss["text"].as_str().unwrap_or(""),
+        );
     }
     let w = &screens_answer["window"];
     println!(
@@ -926,7 +1108,11 @@ pub fn run(options: Options) -> Result<()> {
         message_count,
         messages.len()
     );
-    for line in screens_answer["says"].as_array().cloned().unwrap_or_default() {
+    for line in screens_answer["says"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+    {
         println!("{}", line.as_str().unwrap_or(""));
     }
     vram::check_splits().map_err(|e| Stop::new(e.message().to_string()))?;
@@ -940,7 +1126,15 @@ pub fn run(options: Options) -> Result<()> {
     faces.sort();
     let face_names: Vec<String> = faces
         .iter()
-        .map(|a| format!("{a} {}", game.db.actors.get(&(*a as i32)).map_or("", |x| x.name.as_str())))
+        .map(|a| {
+            format!(
+                "{a} {}",
+                game.db
+                    .actors
+                    .get(&(*a as i32))
+                    .map_or("", |x| x.name.as_str())
+            )
+        })
         .collect();
     println!(
         "  slots screen: {}, {} 4bpp tiles ({} B) + {} palettes, {} B of cells; {} actors with a face: {}",
@@ -962,8 +1156,13 @@ pub fn run(options: Options) -> Result<()> {
         // when there is none.
         let picture = crate::resources::find(&[&game.game_dir, &rtp_dir], "Title", name, &[".png"])
             .unwrap_or_else(|| game.game_dir.join("Title").join(format!("{name}.png")));
-        let texts: Vec<String> =
-            t["texts"].as_array().cloned().unwrap_or_default().iter().map(|v| v.as_str().unwrap_or("").to_string()).collect();
+        let texts: Vec<String> = t["texts"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default()
+            .iter()
+            .map(|v| v.as_str().unwrap_or("").to_string())
+            .collect();
         let menu_tiles = t["tiles"].as_array().map_or(0, Vec::len);
         let menu_palette: Vec<[u8; 3]> = t["palette"]
             .as_array()
@@ -981,7 +1180,8 @@ pub fn run(options: Options) -> Result<()> {
         while (below.len() as i64) < fullscreen::MENU_CGRAM {
             below.push([0, 0, 0]);
         }
-        let screen = fullscreen::compressed(&picture, fullscreen::MENU_CGRAM, fullscreen::COLORS, &below)?;
+        let screen =
+            fullscreen::compressed(&picture, fullscreen::MENU_CGRAM, fullscreen::COLORS, &below)?;
         println!(
             "  title screen {}: {} 8bpp tiles + {} colors, {} B in an LZ2 stream of {} B",
             repr(name),
@@ -1027,7 +1227,11 @@ pub fn run(options: Options) -> Result<()> {
                 four.raw,
                 four.stream.len()
             );
-            let dir = output.parent().map(rm2k_project::absolute).unwrap_or_default().join("adeleine");
+            let dir = output
+                .parent()
+                .map(rm2k_project::absolute)
+                .unwrap_or_default()
+                .join("adeleine");
             std::fs::create_dir_all(&dir).map_err(|e| crate::fail::io(&dir, e))?;
             let path = dir.join("title.png");
             std::fs::write(&path, png).map_err(|e| crate::fail::io(&path, e))?;
@@ -1038,7 +1242,12 @@ pub fn run(options: Options) -> Result<()> {
     // game's or the RTP's `GameOver/` —as RM2k looks for it—, compressed.
     let mut game_over = None;
     let gameover_name = &game.db.gameover_name;
-    let path = crate::resources::find(&[&game.game_dir, &rtp_dir], "GameOver", gameover_name, &[".png", ".bmp"]);
+    let path = crate::resources::find(
+        &[&game.game_dir, &rtp_dir],
+        "GameOver",
+        gameover_name,
+        &[".png", ".bmp"],
+    );
     if let (false, Some(path)) = (gameover_name.is_empty(), path) {
         let screen = fullscreen::compressed(&path, 0, 256, &[])?;
         println!(
@@ -1053,10 +1262,18 @@ pub fn run(options: Options) -> Result<()> {
     }
     // Whether the cartridge needs the MSU-1, and if it does, the screen
     // that says so when it is not there.
-    let msu_data = if options.msu_everything { "everything" } else { settings.msu()? };
+    let msu_data = if options.msu_everything {
+        "everything"
+    } else {
+        settings.msu()?
+    };
     let mut msu_missing = None;
     if msu_data != "optional" {
-        let png = output.parent().map(rm2k_project::absolute).unwrap_or_default().join("sin-msu.png");
+        let png = output
+            .parent()
+            .map(rm2k_project::absolute)
+            .unwrap_or_default()
+            .join("sin-msu.png");
         let screen = crate::msu_missing::screen(&font.font, &png)?;
         println!(
             "  the cartridge needs the MSU-1 ({msu_data}); the screen that says so when it is missing: \
@@ -1069,7 +1286,11 @@ pub fn run(options: Options) -> Result<()> {
     }
     // The battle animations the already emitted bytecode shows: their
     // prerendered frames go to the cartridge.
-    let shown = animations::shown(infos.iter().flat_map(|m| m.pages.iter().map(|p| p.code.as_slice())))?;
+    let shown = animations::shown(
+        infos
+            .iter()
+            .flat_map(|m| m.pages.iter().map(|p| p.code.as_slice())),
+    )?;
     let shown: Vec<i32> = shown.into_iter().collect();
     let animations: BTreeMap<i32, animations::Info> = animation_cache
         .by_numbers(&game, &shown)?
@@ -1106,12 +1327,18 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let in_rom: BTreeSet<usize> = scenes.backdrops.iter().map(|b| b.number).collect();
-    let outside: Vec<usize> = (0..scenes.game.len()).filter(|k| !in_rom.contains(k)).collect();
+    let outside: Vec<usize> = (0..scenes.game.len())
+        .filter(|k| !in_rom.contains(k))
+        .collect();
     if !outside.is_empty() && !scenes.backdrops.is_empty() {
         let line = format!(
             "  battle backdrops only in the .msu, which without MSU-1 fall back to {}: {}",
             repr(&scenes.backdrops[scenes.fallback_of[outside[0]]].name),
-            outside.iter().map(|k| format!("{k} {}", scenes.game[*k])).collect::<Vec<_>>().join(", ")
+            outside
+                .iter()
+                .map(|k| format!("{k} {}", scenes.game[*k]))
+                .collect::<Vec<_>>()
+                .join(", ")
         );
         println!("{line}");
         degradations.cartridge("backdrop-only-in-msu", &line);
@@ -1187,7 +1414,11 @@ pub fn run(options: Options) -> Result<()> {
     let asked = &battle_model["pairs"];
     if !asked.is_null() {
         let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));
-        let warning = if skills.max(items) > pool { "WARNING, " } else { "" };
+        let warning = if skills.max(items) > pool {
+            "WARNING, "
+        } else {
+            ""
+        };
         let line = format!(
             "  {warning}battle text: the skill list asks for {skills} pairs of tiles at most \
              (actor {}, who can know {} skills) and the item list {items}, of the {pool} of \
@@ -1204,7 +1435,11 @@ pub fn run(options: Options) -> Result<()> {
     // switch is on: the ones that compile, and a line for those that do not.
     let mut parallel_common = Vec::new();
     let mut parallel_left_out = Vec::new();
-    for e in compiled["parallel_commons"].as_array().into_iter().flatten() {
+    for e in compiled["parallel_commons"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
         let number = e[0].as_i64().unwrap_or(-1);
         match e[3].as_str() {
             Some(code) => parallel_common.push(json!([e[1], number, e[2], code])),
@@ -1218,14 +1453,28 @@ pub fn run(options: Options) -> Result<()> {
             parallel_left_out.len()
         );
     }
-    let case_slot = if cases.len() > 1 { Some(indices.variable_slot(CASE_VARIABLE as i64)?) } else { None };
+    let case_slot = if cases.len() > 1 {
+        Some(indices.variable_slot(CASE_VARIABLE as i64)?)
+    } else {
+        None
+    };
     // The shared bodies, with the copies of the automatic ones by map index:
     // see [`crate::common_pages`].
     let mut commons_with_copies = compiled.get("commons").cloned().unwrap_or(Value::Null);
-    if let (Some(c), Some(copies)) = (commons_with_copies.as_object_mut(), cartridge.common_pages.to_json()) {
-        let maps: Vec<usize> =
-            order.iter().enumerate().filter(|(_, m)| cartridge.common_pages.maps.contains(m)).map(|(k, _)| k).collect();
-        c.insert("copies".into(), json!({"commons": copies["commons"], "maps": maps}));
+    if let (Some(c), Some(copies)) = (
+        commons_with_copies.as_object_mut(),
+        cartridge.common_pages.to_json(),
+    ) {
+        let maps: Vec<usize> = order
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| cartridge.common_pages.maps.contains(m))
+            .map(|(k, _)| k)
+            .collect();
+        c.insert(
+            "copies".into(),
+            json!({"commons": copies["commons"], "maps": maps}),
+        );
     }
     let mut request = json!({
         "maps": infos
@@ -1283,7 +1532,11 @@ pub fn run(options: Options) -> Result<()> {
     request["switch_top"] = json!(indices.switch_top);
     // And the names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
     // counts them, apart for the same reason.
-    request["names"] = json!(indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>());
+    request["names"] = json!(indices
+        .names
+        .iter()
+        .map(|(a, n)| json!([a, n]))
+        .collect::<Vec<_>>());
     // And the faces the message window shows, in the order `OP_FACE` counts
     // them, drawn by the screens. One whose FaceSet is nowhere comes as the
     // window's own background —blank, the text still moves over for it—
@@ -1315,7 +1568,10 @@ pub fn run(options: Options) -> Result<()> {
         output.display(),
         infos[start_index].id
     );
-    let directory = output.parent().map(rm2k_project::absolute).unwrap_or_default();
+    let directory = output
+        .parent()
+        .map(rm2k_project::absolute)
+        .unwrap_or_default();
     // Wally's losses, map by map, and the emission's.
     for m in &infos {
         for (kind, text, events) in &m.losses {
@@ -1324,7 +1580,12 @@ pub fn run(options: Options) -> Result<()> {
     }
     for loss in &emitted.losses {
         let map = loss["map"].as_i64().unwrap_or(-1);
-        degradations.map(map, loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""), &[]);
+        degradations.map(
+            map,
+            loss["kind"].as_str().unwrap_or(""),
+            loss["text"].as_str().unwrap_or(""),
+            &[],
+        );
     }
     // `degradations.json` is written after the music, below: the audio
     // stage is the last to decide what is lost.
@@ -1376,13 +1637,20 @@ pub fn run(options: Options) -> Result<()> {
             })
             .collect::<Vec<_>>(),
     });
-    stage::hand_over("rm2k-snes-patches", "patches", &patches_request, &[directory.clone().into_os_string()], None)?;
+    stage::hand_over(
+        "rm2k-snes-patches",
+        "patches",
+        &patches_request,
+        &[directory.clone().into_os_string()],
+        None,
+    )?;
     // And who asked for each one, which isn't versioned: what separates, in
     // the ROM that is played, what belongs to the game from what only
     // exists because of the suite.
     let uses = scene::patch_uses(&infos, &game)?;
     let uses_path = directory.join("patches").join("uses.json");
-    std::fs::write(&uses_path, crate::pyjson::to_string(&uses)).map_err(|e| crate::fail::io(&uses_path, e))?;
+    std::fs::write(&uses_path, crate::pyjson::to_string(&uses))
+        .map_err(|e| crate::fail::io(&uses_path, e))?;
     if !emitted.report.is_empty() {
         println!("material compressed and shared between maps:");
         for line in &emitted.report {
@@ -1393,7 +1661,11 @@ pub fn run(options: Options) -> Result<()> {
     // them together is the only thing that guarantees both describe the
     // same ROM. What each map's package carries, whether the boot fits and
     // the `.msu` are `rm2k-snes-audio cartridge`'s.
-    let msu = options.msu.clone().map(rm2k_project::absolute).unwrap_or_else(|| directory.join("datos.msu"));
+    let msu = options
+        .msu
+        .clone()
+        .map(rm2k_project::absolute)
+        .unwrap_or_else(|| directory.join("datos.msu"));
     let mut flags: Vec<OsString> = vec![
         "--out".into(),
         directory.clone().into_os_string(),
@@ -1435,9 +1707,15 @@ pub fn run(options: Options) -> Result<()> {
     let audio_path = directory.join("audio.json");
     let audio: Value = std::fs::read_to_string(&audio_path)
         .map_err(|e| crate::fail::io(&audio_path, e))
-        .and_then(|text| serde_json::from_str(&text).map_err(|e| Stop::new(format!("{}: {e}", audio_path.display()))))?;
+        .and_then(|text| {
+            serde_json::from_str(&text)
+                .map_err(|e| Stop::new(format!("{}: {e}", audio_path.display())))
+        })?;
     for loss in audio["losses"].as_array().into_iter().flatten() {
-        let (kind, text) = (loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""));
+        let (kind, text) = (
+            loss["kind"].as_str().unwrap_or(""),
+            loss["text"].as_str().unwrap_or(""),
+        );
         match loss["map"].as_i64() {
             Some(map) => degradations.map(map, kind, text, &[]),
             None => degradations.cartridge(kind, text),
@@ -1452,8 +1730,16 @@ pub fn run(options: Options) -> Result<()> {
 /// Where the pictures are looked for: the images of the ChipSets the
 /// project adds go first, built now —see `chipsets`—, and then the suite's,
 /// the game's and the RTP.
-pub fn search_dirs(game: &Game, project: &Project, rtp_dir: &std::path::Path) -> Result<Vec<PathBuf>> {
-    let mut dirs: Vec<PathBuf> = vec![rm2k_project::suite::root(), game.game_dir.clone(), rtp_dir.to_path_buf()];
+pub fn search_dirs(
+    game: &Game,
+    project: &Project,
+    rtp_dir: &std::path::Path,
+) -> Result<Vec<PathBuf>> {
+    let mut dirs: Vec<PathBuf> = vec![
+        rm2k_project::suite::root(),
+        game.game_dir.clone(),
+        rtp_dir.to_path_buf(),
+    ];
     let built = project.build()?.join("patches-manual");
     crate::chipsets::build_images(game, &built, &dirs)?;
     dirs.insert(0, built);
@@ -1531,6 +1817,35 @@ fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecor
     }
 }
 
+/// One place of the battle that cuts names, as `rm2k-snes-battle`'s model
+/// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
+/// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
+/// A warning: the console cuts and the battle goes on.
+fn cut_report(place: &Value) -> String {
+    let cells = int(&place["cells"]);
+    let names: Vec<String> = place["names"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .map(|n| {
+            format!(
+                "{:?} {} px, shows {:?}",
+                n[0].as_str().unwrap_or(""),
+                int(&n[1]),
+                n[2].as_str().unwrap_or("")
+            )
+        })
+        .collect();
+    format!(
+        "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
+        names.len(),
+        place["place"].as_str().unwrap_or(""),
+        8 * cells,
+        names.join("; ")
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1552,7 +1867,10 @@ mod tests {
                 .unwrap_or_else(|| panic!("{} no longer says {prefix}", path.display()))
                 .to_string()
         };
-        assert_eq!(line("SUB_MAX ").split('=').nth(1).unwrap().trim(), SUB_MAX.to_string());
+        assert_eq!(
+            line("SUB_MAX ").split('=').nth(1).unwrap().trim(),
+            SUB_MAX.to_string()
+        );
         assert!(line("sub_key:").contains(".res SUB_MAX * 2"));
         assert!(line("sub_value:").contains(".res SUB_MAX * 2"));
     }
@@ -1601,30 +1919,13 @@ mod tests {
 
     #[test]
     fn a_test_page_party_is_only_that_of_the_cases_that_touch_it() {
-        let add = Command { code: 10330, indent: 0, string: String::new(), parameters: vec![0, 0, 11] };
+        let add = Command {
+            code: 10330,
+            indent: 0,
+            string: String::new(),
+            parameters: vec![0, 0, 11],
+        };
         assert_eq!(page_party(&[add], &[10]), Some(vec![10, 11]));
         assert_eq!(page_party(&[], &[10]), None);
     }
-}
-
-/// One place of the battle that cuts names, as `rm2k-snes-battle`'s model
-/// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
-/// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
-/// A warning: the console cuts and the battle goes on.
-fn cut_report(place: &Value) -> String {
-    let cells = int(&place["cells"]);
-    let names: Vec<String> = place["names"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-        .iter()
-        .map(|n| format!("{:?} {} px, shows {:?}", n[0].as_str().unwrap_or(""), int(&n[1]), n[2].as_str().unwrap_or("")))
-        .collect();
-    format!(
-        "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
-        names.len(),
-        place["place"].as_str().unwrap_or(""),
-        8 * cells,
-        names.join("; ")
-    )
 }

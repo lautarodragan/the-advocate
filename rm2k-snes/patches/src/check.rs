@@ -68,7 +68,11 @@ fn quoted(value: Option<&Value>) -> String {
         Some(Value::Boolean(b)) => if *b { "True" } else { "False" }.into(),
         Some(Value::Array(items)) => format!(
             "[{}]",
-            items.iter().map(|v| quoted(Some(v))).collect::<Vec<_>>().join(", ")
+            items
+                .iter()
+                .map(|v| quoted(Some(v)))
+                .collect::<Vec<_>>()
+                .join(", ")
         ),
         Some(v) => v.to_string(),
     }
@@ -77,7 +81,11 @@ fn quoted(value: Option<&Value>) -> String {
 /// A text with its quotes: single ones, unless it has a single quote and no
 /// double one.
 fn repr(s: &str) -> String {
-    let quote = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
+    let quote = if s.contains('\'') && !s.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
     let mut out = String::from(quote);
     for c in s.chars() {
         match c {
@@ -136,7 +144,14 @@ fn merges<'a>(doc: &'a Table, layer: &str) -> Vec<MergeRow<'a>> {
         .and_then(Value::as_array)
         .map(|rows| {
             rows.iter()
-                .filter_map(|f| Some((f.get("palette"), f.get("from")?, f.get("to")?, f.get("pixels"))))
+                .filter_map(|f| {
+                    Some((
+                        f.get("palette"),
+                        f.get("from")?,
+                        f.get("to")?,
+                        f.get("pixels"),
+                    ))
+                })
                 .collect()
         })
         .unwrap_or_default()
@@ -169,7 +184,10 @@ fn map_diff(old: &Table, new: &Table) -> Vec<String> {
                 if a.0.is_none() && b.0.is_none() {
                     out.push(format!(
                         "layer {layer}: merge {i} sent {} to {} and now sends {} to {}",
-                        color(a.1), color(a.2), color(b.1), color(b.2)
+                        color(a.1),
+                        color(a.2),
+                        color(b.1),
+                        color(b.2)
                     ));
                 } else {
                     out.push(format!(
@@ -181,31 +199,62 @@ fn map_diff(old: &Table, new: &Table) -> Vec<String> {
                 let word = if a.0.is_none() { "merge" } else { "change" };
                 out.push(format!(
                     "layer {layer}: {word} {i} of {} moved {} pixel(s) and now moves {}",
-                    color(a.1), shown(a.3), shown(b.3)
+                    color(a.1),
+                    shown(a.3),
+                    shown(b.3)
                 ));
             }
         }
         for (p, v, d, _) in after.iter().skip(before.len()) {
             match p {
-                None => out.push(format!("layer {layer}: extra merge {} -> {}", color(v), color(d))),
-                Some(palette) => out.push(format!("layer {layer}: extra change in palette {}: {} -> {}", shown(Some(palette)), color(v), color(d))),
+                None => out.push(format!(
+                    "layer {layer}: extra merge {} -> {}",
+                    color(v),
+                    color(d)
+                )),
+                Some(palette) => out.push(format!(
+                    "layer {layer}: extra change in palette {}: {} -> {}",
+                    shown(Some(palette)),
+                    color(v),
+                    color(d)
+                )),
             }
         }
         for (p, v, d, _) in before.iter().skip(after.len()) {
             match p {
-                None => out.push(format!("layer {layer}: no longer merges {} -> {}", color(v), color(d))),
-                Some(palette) => out.push(format!("layer {layer}: no longer changes {} -> {} in palette {}", color(v), color(d), shown(Some(palette)))),
+                None => out.push(format!(
+                    "layer {layer}: no longer merges {} -> {}",
+                    color(v),
+                    color(d)
+                )),
+                Some(palette) => out.push(format!(
+                    "layer {layer}: no longer changes {} -> {} in palette {}",
+                    color(v),
+                    color(d),
+                    shown(Some(palette))
+                )),
             }
         }
     }
-    for name in ["way", "image", "mode", "tiles", "distinct", "colors", "kept"] {
+    for name in [
+        "way", "image", "mode", "tiles", "distinct", "colors", "kept",
+    ] {
         let a = field(old, &["panorama", name]);
         let b = field(new, &["panorama", name]);
         if a != b {
-            out.push(format!("panorama: {name} went from {} to {}", shown(a), shown(b)));
+            out.push(format!(
+                "panorama: {name} went from {} to {}",
+                shown(a),
+                shown(b)
+            ));
         }
     }
-    let rows = |doc: &Table| field(doc, &["panorama", "merges"]).and_then(Value::as_array).cloned().unwrap_or_default();
+    let rows = |doc: &Table| {
+        field(doc, &["panorama", "merges"])
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()
+    };
     let (before, after) = (rows(old), rows(new));
     if before != after {
         out.push(format!(

@@ -154,7 +154,10 @@ fn run() -> Result<(), String> {
                 scope.spawn(move || {
                     let built = cartridges.build(name, inputs, force);
                     let Some(sender) = sender else {
-                        return Outcome { built: Some(built), tracks: None };
+                        return Outcome {
+                            built: Some(built),
+                            tracks: None,
+                        };
                     };
                     // `release` says it is built before its tracks start.
                     let ok = built.is_ok();

@@ -58,3 +58,10 @@ e8b9287b9d740a0339bad09f53f910730111b566
 # .pcm), and their .dbg with the same symbols save the renamed names.
 81df01f4e2ba24610972fa52a60672b5c826b86d
 29567e7878bc6667ba4c391576f02ebf74bc1397
+
+# `cargo fmt` over the whole Rust workspace, the first time it was run:
+# rustfmt's default config, 258 files, nothing else. Every tool installed
+# from it and from `54ec3daf`, and every game of the ports built with each
+# with NO_CACHE=1: the .sfc, .msu, .inc and .pcm came out byte for byte
+# equal, and the .dbg too save ld65's source mtimes.
+cab6995ddb1fbdd9aec9867b629214d07757e64f

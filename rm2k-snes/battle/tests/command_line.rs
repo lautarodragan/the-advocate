@@ -34,7 +34,10 @@ fn game(dir: &Path, actors: i64) {
         })
         .collect();
     // What makes the directory a Ditto dump, and which view it is.
-    write(&dir.join("dump/ditto.json"), &json!({"ditto": 2, "view": "resolved"}));
+    write(
+        &dir.join("dump/ditto.json"),
+        &json!({"ditto": 2, "view": "resolved"}),
+    );
     write(&dir.join("dump/db/actors.json"), &Value::Array(actors));
     write(
         &dir.join("dump/maps.json"),
@@ -122,7 +125,10 @@ fn a_missing_request_is_a_bad_call() {
 fn a_broken_dump_is_a_no_that_says_where() {
     let dir = scratch("broken");
     game(&dir, 1);
-    write(&dir.join("dump/db/actors.json"), &json!([{"id": 1, "parameters": "none"}]));
+    write(
+        &dir.join("dump/db/actors.json"),
+        &json!([{"id": 1, "parameters": "none"}]),
+    );
     request(&dir, &[1]);
     let out = run(&dir);
     assert_eq!(out.status.code(), Some(1));

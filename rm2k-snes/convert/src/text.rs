@@ -20,7 +20,11 @@ pub fn unhex(text: &str) -> Vec<u8> {
 /// A name quoted as the log quotes it: between single quotes, or double
 /// ones if it has a single quote and no double one.
 pub fn repr(text: &str) -> String {
-    let quote = if text.contains('\'') && !text.contains('"') { '"' } else { '\'' };
+    let quote = if text.contains('\'') && !text.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
     let mut out = String::new();
     out.push(quote);
     for c in text.chars() {
@@ -33,7 +37,9 @@ pub fn repr(text: &str) -> String {
                 out.push('\\');
                 out.push(c);
             }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                out.push_str(&format!("\\x{:02x}", c as u32))
+            }
             c => out.push(c),
         }
     }
@@ -42,6 +48,10 @@ pub fn repr(text: &str) -> String {
 }
 
 /// A float with no decimals, rounding half to even, as `%.0f` does.
+// Two branches give `floor` and two `floor + 1.0`: they are the rule's four
+// cases —below half, above, and half on an even or an odd floor—, spelled as
+// it reads.
+#[allow(clippy::if_same_then_else)]
 pub fn round0(value: f64) -> String {
     let floor = value.floor();
     let diff = value - floor;

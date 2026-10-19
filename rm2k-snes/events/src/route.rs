@@ -365,7 +365,8 @@ pub fn own(page: &Page) -> Option<Value> {
         }
         commands.push(command);
     }
-    if !by_type && min_frequency(page.move_frequency, &commands, page.route_repeat) < FREQUENCY_MIN {
+    if !by_type && min_frequency(page.move_frequency, &commands, page.route_repeat) < FREQUENCY_MIN
+    {
         // Commands 30 and 31 would take it down to 1.
         return None;
     }
@@ -481,7 +482,10 @@ mod tests {
         assert!(r.get("spin").is_none());
         for move_type in MOVE_RANDOM..=MOVE_AWAY {
             marcy.move_type = move_type;
-            assert_eq!(own(&marcy).unwrap()["commands"], json!([ROUTE_BY_TYPE + move_type]));
+            assert_eq!(
+                own(&marcy).unwrap()["commands"],
+                json!([ROUTE_BY_TYPE + move_type])
+            );
         }
         // Frequency 1 goes in, as Sunset over Imdahl's ravens: the ROM waits
         // 255 frames after each step and not 256. A route that low does not.
@@ -507,15 +511,28 @@ mod tests {
         assert!(own(&guard).is_none());
         // The others that look at the hero, at the generator or at where it
         // faces walk too, and the moves among them not inside a jump.
-        for command in [ROUTE_FACE_HERO, ROUTE_FACE_AWAY, ROUTE_TURN_RIGHT, ROUTE_FACE_RANDOM] {
+        for command in [
+            ROUTE_FACE_HERO,
+            ROUTE_FACE_AWAY,
+            ROUTE_TURN_RIGHT,
+            ROUTE_FACE_RANDOM,
+        ] {
             guard.route = vec![9, command];
-            assert_eq!(own(&guard).unwrap()["commands"], json!([9, command]), "{command}");
+            assert_eq!(
+                own(&guard).unwrap()["commands"],
+                json!([9, command]),
+                "{command}"
+            );
             guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
             assert!(own(&guard).is_some(), "{command} in a jump");
         }
         for command in [ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FORWARD] {
             guard.route = vec![9, command];
-            assert_eq!(own(&guard).unwrap()["commands"], json!([9, command]), "{command}");
+            assert_eq!(
+                own(&guard).unwrap()["commands"],
+                json!([9, command]),
+                "{command}"
+            );
             guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
             assert!(own(&guard).is_none(), "{command} in a jump");
         }

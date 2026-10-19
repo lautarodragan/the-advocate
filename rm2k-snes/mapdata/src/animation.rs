@@ -41,7 +41,8 @@ fn tile_uses(map: &Map, tiles: usize) -> Vec<u64> {
         // The first four words are the background's: see `blocks.rs` in wally.
         for k in 0..4 {
             let at = block * BLOCK_BYTES + 2 * k;
-            let tile = usize::from(u16::from_le_bytes([map.blocks[at], map.blocks[at + 1]]) & 0x3FF);
+            let tile =
+                usize::from(u16::from_le_bytes([map.blocks[at], map.blocks[at + 1]]) & 0x3FF);
             if let Some(u) = uses.get_mut(tile) {
                 *u += n;
             }
@@ -82,20 +83,29 @@ pub fn choose(offers: &[Offer], budget: usize) -> Vec<usize> {
 
 /// [`fit`] for each map, and what each one lost, in order.
 pub fn fit_all(maps: &mut [Map]) -> Vec<String> {
-    fit_all_by_map(maps).into_iter().map(|(_, note)| note).collect()
+    fit_all_by_map(maps)
+        .into_iter()
+        .map(|(_, note)| note)
+        .collect()
 }
 
 /// [`fit_all`], with the map each note is about: what it says is a loss,
 /// which the converter lists in the cartridge's degradations.
 pub fn fit_all_by_map(maps: &mut [Map]) -> Vec<(i64, String)> {
-    maps.iter_mut().filter_map(|m| fit(m).map(|note| (m.id, note))).collect()
+    maps.iter_mut()
+        .filter_map(|m| fit(m).map(|note| (m.id, note)))
+        .collect()
 }
 
 /// Cuts the map's runs until their drawings fit in WRAM, and says what it
 /// lost; nothing, and nothing touched, if they already fit.
 pub fn fit(map: &mut Map) -> Option<String> {
     let per_tile = BYTES_PER_TILE * map.bpp / 8;
-    let bytes: usize = map.runs.iter().map(|r| r.drawings.iter().map(Vec::len).sum::<usize>()).sum();
+    let bytes: usize = map
+        .runs
+        .iter()
+        .map(|r| r.drawings.iter().map(Vec::len).sum::<usize>())
+        .sum();
     if bytes <= LZ2_CAP_ANIM {
         return None;
     }
@@ -114,7 +124,10 @@ pub fn fit(map: &mut Map) -> Option<String> {
                 let u = uses.get(run.base as usize + t).copied().unwrap_or(0);
                 covered.push(covered[t] + u);
             }
-            Offer { drawings: run.drawings.len(), covered }
+            Offer {
+                drawings: run.drawings.len(),
+                covered,
+            }
         })
         .collect();
     let keep = choose(&offers, LZ2_CAP_ANIM / per_tile);

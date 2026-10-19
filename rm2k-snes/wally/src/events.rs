@@ -5,10 +5,10 @@
 //! against its cell, one drawn apart from the hero—, which arrive in the
 //! request; and, in the map where a test starts, an empty event first.
 
-use ditto::schema::{Event as DumpEvent, EventPage};
-use rm2k_rules::passability::{ABOVE, ALL};
 use crate::sprites::npc::{Graphic, Npc};
 use crate::sprites::split::TILE_PREFIX;
+use ditto::schema::{Event as DumpEvent, EventPage};
+use rm2k_rules::passability::{ABOVE, ALL};
 use std::collections::BTreeMap;
 
 /// The suffix a translucent CharSet baked against its cell carries, with
@@ -72,7 +72,11 @@ fn conditions(page: &EventPage) -> Vec<&'static str> {
 /// The map's events: sorted by id, their pages too, each graphic with the
 /// name the port gives it —`names`, by `(event id, page id)`—, and an empty
 /// one first if a test starts here.
-pub fn events(dump: &[DumpEvent], names: &BTreeMap<(i32, i32), String>, test_event: bool) -> Vec<Event> {
+pub fn events(
+    dump: &[DumpEvent],
+    names: &BTreeMap<(i32, i32), String>,
+    test_event: bool,
+) -> Vec<Event> {
     let mut sorted: Vec<&DumpEvent> = dump.iter().collect();
     sorted.sort_by_key(|e| e.id);
     let mut out = Vec::with_capacity(sorted.len() + 1);
@@ -80,7 +84,12 @@ pub fn events(dump: &[DumpEvent], names: &BTreeMap<(i32, i32), String>, test_eve
         // It goes first because the console walks the events from the lowest
         // to the highest, and the test's page has to run before the game's.
         // It has no pages: it only takes index 0.
-        out.push(Event { id: 0, x: 0, y: 0, pages: Vec::new() });
+        out.push(Event {
+            id: 0,
+            x: 0,
+            y: 0,
+            pages: Vec::new(),
+        });
     }
     for e in sorted {
         let mut pages: Vec<&EventPage> = e.pages.iter().collect();
@@ -92,7 +101,10 @@ pub fn events(dump: &[DumpEvent], names: &BTreeMap<(i32, i32), String>, test_eve
             pages: pages
                 .into_iter()
                 .map(|p| Page {
-                    name: names.get(&(e.id, p.id)).cloned().unwrap_or_else(|| p.character_name.clone()),
+                    name: names
+                        .get(&(e.id, p.id))
+                        .cloned()
+                        .unwrap_or_else(|| p.character_name.clone()),
                     index: p.character_index,
                     pose: rm2k_rules::charset::pose(p.character_direction, p.character_pattern),
                     layer: p.layer.to_i32(),
@@ -101,7 +113,11 @@ pub fn events(dump: &[DumpEvent], names: &BTreeMap<(i32, i32), String>, test_eve
                     move_type: p.move_type.to_i32(),
                     own_route: !p.move_route.move_commands.is_empty(),
                     conditions: conditions(p),
-                    commands: p.event_commands.iter().map(|c| (c.code.to_i32(), c.parameters.clone())).collect(),
+                    commands: p
+                        .event_commands
+                        .iter()
+                        .map(|c| (c.code.to_i32(), c.parameters.clone()))
+                        .collect(),
                 })
                 .collect(),
         });
@@ -166,7 +182,11 @@ fn active_page(event: &Event) -> Option<&Page> {
 pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
     let mut npcs = Vec::new();
     for (number, event) in events.iter().enumerate() {
-        let graphics: Vec<Option<Graphic>> = event.pages.iter().map(|p| page_graphic(p, chipset)).collect();
+        let graphics: Vec<Option<Graphic>> = event
+            .pages
+            .iter()
+            .map(|p| page_graphic(p, chipset))
+            .collect();
         if graphics.iter().all(Option::is_none) {
             continue;
         }
@@ -177,16 +197,18 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
             }
         }
         let none = None;
-        if event.pages.first().is_some_and(|p| !p.conditions.is_empty()) && !possible.contains(&&none) {
+        if event
+            .pages
+            .first()
+            .is_some_and(|p| !p.conditions.is_empty())
+            && !possible.contains(&&none)
+        {
             possible.push(&none);
         }
-        let supported = event
-            .pages
-            .iter()
-            .all(|p| {
-                p.conditions.iter().all(|c| SUPPORTED.contains(c))
-                    && !(p.conditions.contains(&"timer") && p.conditions.contains(&"variable"))
-            });
+        let supported = event.pages.iter().all(|p| {
+            p.conditions.iter().all(|c| SUPPORTED.contains(c))
+                && !(p.conditions.contains(&"timer") && p.conditions.contains(&"variable"))
+        });
         let changes = possible.len() > 1 && supported;
         let active = active_page(event);
         let visible = active.is_some_and(|p| page_graphic(p, chipset).is_some());
@@ -205,7 +227,11 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
                 .unwrap()
         };
         let (charset, index, pose) = page_graphic(page, chipset).unwrap();
-        let tile_pass = if visible { tile_passability(flags, &charset, page.layer) } else { None };
+        let tile_pass = if visible {
+            tile_passability(flags, &charset, page.layer)
+        } else {
+            None
+        };
         npcs.push(Npc {
             event: number,
             x: event.x,
@@ -247,7 +273,11 @@ pub fn route_target(events: &[Event], who: i32) -> Option<usize> {
 /// what separates a decoration that is lost from a mechanism —a door that
 /// opens— that breaks.
 pub fn changes_graphic(event: &Event) -> bool {
-    let mut graphics: Vec<(&str, i32)> = event.pages.iter().map(|p| (p.name.trim(), p.index)).collect();
+    let mut graphics: Vec<(&str, i32)> = event
+        .pages
+        .iter()
+        .map(|p| (p.name.trim(), p.index))
+        .collect();
     graphics.sort();
     graphics.dedup();
     graphics.len() > 1

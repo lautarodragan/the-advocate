@@ -101,7 +101,8 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         format!("PANO_STRIDE = {PANO_STRIDE}"),
     ];
     let mut records = Vec::new();
-    let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> = std::collections::HashMap::new();
+    let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> =
+        std::collections::HashMap::new();
     for (number, map) in maps.iter().enumerate() {
         let Some(p) = &map.panorama else { continue };
         // A painted map has its own table: see `paint_table`.
@@ -110,7 +111,10 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         }
         let layout = crate::record::layout_of(map)?;
         let pieces = layout.panorama.ok_or_else(|| {
-            Bad::answer(format!("map {}: it shows a panorama and its layout {} has none", map.id, layout.name))
+            Bad::answer(format!(
+                "map {}: it shows a panorama and its layout {} has none",
+                map.id, layout.name
+            ))
         })?;
         if pieces.mode != p.mode {
             return Err(Bad::answer(format!(
@@ -128,7 +132,11 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
             )));
         }
         // The tilemap with its tile numbers where the tiles land.
-        let base = if p.mode == 3 { layout.above.base } else { pieces.tiles[0].base };
+        let base = if p.mode == 3 {
+            layout.above.base
+        } else {
+            pieces.tiles[0].base
+        };
         let mut cells = Vec::new();
         for row in &p.tilemap {
             for &entry in row {
@@ -145,16 +153,34 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         // moves with the camera.
         let (num_x, den_x) = proportion(map.size[0], RM2K_W, p.size[0]);
         let (num_y, den_y) = proportion(map.size[1], RM2K_H, p.size[1]);
-        let flags = u8::from(p.looped[0]) | (u8::from(p.looped[1]) << 1) | (u8::from(p.above_bg1) << 2);
-        let words = |v: &[i64]| v.iter().map(|w| format!("${:04X}", w & 0xFFFF)).collect::<Vec<_>>().join(", ");
+        let flags =
+            u8::from(p.looped[0]) | (u8::from(p.looped[1]) << 1) | (u8::from(p.above_bg1) << 2);
+        let words = |v: &[i64]| {
+            v.iter()
+                .map(|w| format!("${:04X}", w & 0xFFFF))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
         let mut r = String::new();
-        let _ = writeln!(r, "    ; --- map {} {:?}: {} in mode {} ---", map.id, map.name, p.name, p.mode);
+        let _ = writeln!(
+            r,
+            "    ; --- map {} {:?}: {} in mode {} ---",
+            map.id, map.name, p.name, p.mode
+        );
         let _ = writeln!(r, "    .word {number}");
         let _ = writeln!(r, "    .byte {}, {flags}", p.mode);
-        let _ = writeln!(r, "    .word {}", words(&[auto_step(p.auto[0]), auto_step(p.auto[1])]));
+        let _ = writeln!(
+            r,
+            "    .word {}",
+            words(&[auto_step(p.auto[0]), auto_step(p.auto[1])])
+        );
         let _ = writeln!(r, "    .word {}", words(&[p.stretch[0], p.stretch[1]]));
         let _ = writeln!(r, "    .word {}", words(&[num_x, num_y, den_x, den_y]));
-        let _ = writeln!(r, "    .word {}", words(&[lcm(512, p.stretch[0]), lcm(256, p.stretch[1])]));
+        let _ = writeln!(
+            r,
+            "    .word {}",
+            words(&[lcm(512, p.stretch[0]), lcm(256, p.stretch[1])])
+        );
         let _ = writeln!(r, "    .word {}", words(&[cols, rows]));
         // Two maps that converted the same panorama the same way —the two
         // missile maps of A Blurred Line— share its tiles and tilemap.
@@ -189,7 +215,10 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         let _ = writeln!(
             r,
             "    .word {}",
-            words(&[(map.size[0] * 16 - RM2K_W).max(0), (map.size[1] * 16 - RM2K_H).max(0)])
+            words(&[
+                (map.size[0] * 16 - RM2K_W).max(0),
+                (map.size[1] * 16 - RM2K_H).max(0)
+            ])
         );
         let _ = writeln!(r, "    .res {}", PANO_STRIDE - 54);
         records.push(r);
@@ -232,15 +261,24 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
     ];
     let mut records = Vec::new();
     for (number, map) in maps.iter().enumerate() {
-        let Some(p) = map.panorama.as_ref().filter(|p| p.mode == 4) else { continue };
+        let Some(p) = map.panorama.as_ref().filter(|p| p.mode == 4) else {
+            continue;
+        };
         let layout = crate::record::layout_of(map)?;
         let pieces = layout.panorama.filter(|q| q.mode == 4).ok_or_else(|| {
-            Bad::answer(format!("map {}: it is painted and its layout {} is not for a painted map", map.id, layout.name))
+            Bad::answer(format!(
+                "map {}: it is painted and its layout {} is not for a painted map",
+                map.id, layout.name
+            ))
         })?;
         let rows = p.tilemap.len();
         let cols = p.tilemap.first().map_or(0, Vec::len);
         let column_bytes = rows * 32;
-        if rows == 0 || p.tiles.len() != cols * column_bytes || rows * cols > 0x10000 || column_bytes > 0x8000 {
+        if rows == 0
+            || p.tiles.len() != cols * column_bytes
+            || rows * cols > 0x10000
+            || column_bytes > 0x8000
+        {
             return Err(Bad::answer(format!(
                 "map {}: a painting of {cols}x{rows} cells with {} bytes of tiles",
                 map.id,
@@ -250,7 +288,8 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
         // The runtime keeps its queue at the end of the grid's bank, $7EFE00:
         // the grid and what lives behind it have to end before. See
         // `PAINT_Q` in `painted.s`.
-        let in_wram = map.grid().len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
+        let in_wram =
+            map.grid().len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
         if in_wram > 0x7E00 {
             return Err(Bad::answer(format!(
                 "map {}: it is painted and its grid takes {in_wram} bytes of WRAM, past the painted maps' queue",
@@ -283,11 +322,20 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
             out.push(format!("    .byte {c}"));
         }
         let mut r = String::new();
-        let _ = writeln!(r, "    ; --- map {} {:?}: {} painted ---", map.id, map.name, p.name);
+        let _ = writeln!(
+            r,
+            "    ; --- map {} {:?}: {} painted ---",
+            map.id, map.name, p.name
+        );
         let _ = writeln!(r, "    .word {number}, {cols}, {rows}");
         let _ = writeln!(r, "    .byte {}", pointer(&attrs_label));
         let _ = writeln!(r, "    .byte {}", pointer(&columns_label));
-        let _ = writeln!(r, "    .word ${:04X}, ${:04X}", pieces.tiles[0].base, vram::PAINTED_BLANK);
+        let _ = writeln!(
+            r,
+            "    .word ${:04X}, ${:04X}",
+            pieces.tiles[0].base,
+            vram::PAINTED_BLANK
+        );
         records.push(r);
     }
     out.push(format!(".block {}", PAINT_STRIDE * records.len() + 2));

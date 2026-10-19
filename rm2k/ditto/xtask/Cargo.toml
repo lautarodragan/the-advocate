@@ -3,3 +3,6 @@ name = "xtask"
 version = "0.1.0"
 edition = "2021"
 description = "Generates src/schema/ from liblcf's CSV tables"
+
+[lints]
+workspace = true

@@ -12,7 +12,9 @@ fn samples() -> Option<Samples> {
         eprintln!("skipped: a real SoundFont is needed, SOUNDFONT=<the .sf2>");
         return None;
     };
-    Some(Samples { font: SoundFontSamples::open(path.as_ref()).unwrap() })
+    Some(Samples {
+        font: SoundFontSamples::open(path.as_ref()).unwrap(),
+    })
 }
 
 /// The General MIDI synth bass (38) of the SoundFont the game was composed
@@ -37,6 +39,10 @@ fn the_piano_decays_differently_per_key_until_silent() {
     let Some(s) = samples() else { return };
     let (_, low, _) = s.envelope(0, 36).unwrap();
     let (_, high, _) = s.envelope(0, 84).unwrap();
-    assert_eq!((low >> 5, high >> 5), (7, 7), "ADSR2 {low:#04x} {high:#04x}");
+    assert_eq!(
+        (low >> 5, high >> 5),
+        (7, 7),
+        "ADSR2 {low:#04x} {high:#04x}"
+    );
     assert!(high & 0x1F > low & 0x1F, "ADSR2 {low:#04x} {high:#04x}");
 }

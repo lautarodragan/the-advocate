@@ -22,6 +22,9 @@
 
 pub mod cells;
 pub mod font;
+// Generated from easyrpg-player's headers, one glyph per line with its
+// character beside it: rustfmt would break each row in three.
+#[rustfmt::skip]
 mod glyphs;
 pub mod line;
 pub mod plain;

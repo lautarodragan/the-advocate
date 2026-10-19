@@ -114,10 +114,18 @@ pub fn unpack(game: &Path, exact: &Path, resolved: &Path) -> Result<Vec<PathBuf>
     let ldb = read_doc(&in_any_case(game, "RPG_RT.ldb")?)?;
     let lmt = read_doc(&in_any_case(game, "RPG_RT.lmt")?)?;
 
-    let Document::Ldb { header: db_header, data: db } = ldb else {
+    let Document::Ldb {
+        header: db_header,
+        data: db,
+    } = ldb
+    else {
         return error("RPG_RT.ldb is not a database");
     };
-    let Document::Lmt { header: tree_header, data: tree } = lmt else {
+    let Document::Lmt {
+        header: tree_header,
+        data: tree,
+    } = lmt
+    else {
         return error("RPG_RT.lmt is not a map tree");
     };
     let mut maps = Vec::new();
@@ -128,7 +136,13 @@ pub fn unpack(game: &Path, exact: &Path, resolved: &Path) -> Result<Vec<PathBuf>
         };
         maps.push((stem, header, data));
     }
-    let game = Game { db_header, db, tree_header, tree, maps };
+    let game = Game {
+        db_header,
+        db,
+        tree_header,
+        tree,
+        maps,
+    };
 
     let mut written = write_view(&game, exact, View::Exact)?;
     written.extend(crate::lcf::as_resolved(|| {
@@ -154,7 +168,10 @@ fn write_view(game: &Game, out: &Path, view: View) -> Result<Vec<PathBuf>> {
     for (name, value) in split_database(&game.db)? {
         written.push(write_json(&out.join(DB).join(name), &value)?);
     }
-    written.push(write_json(&out.join(TREE), &serde_json::to_value(&game.tree)?)?);
+    written.push(write_json(
+        &out.join(TREE),
+        &serde_json::to_value(&game.tree)?,
+    )?);
 
     let mut overrides = JsonMap::new();
     for (stem, header, map) in &game.maps {
@@ -162,9 +179,15 @@ fn write_view(game: &Game, out: &Path, view: View) -> Result<Vec<PathBuf>> {
             overrides.insert(stem.clone(), Value::String(header.clone()));
         }
         let (json, tiles) = split_map(map)?;
-        written.push(write_json(&out.join(MAPS).join(format!("{stem}.json")), &json)?);
+        written.push(write_json(
+            &out.join(MAPS).join(format!("{stem}.json")),
+            &json,
+        )?);
         if let Some(t) = tiles {
-            written.push(write_text(&out.join(MAPS).join(format!("{stem}.tiles")), &t)?);
+            written.push(write_text(
+                &out.join(MAPS).join(format!("{stem}.tiles")),
+                &t,
+            )?);
         }
     }
 
@@ -233,13 +256,17 @@ fn split_map(map: &Map) -> Result<(Value, Option<String>)> {
         return error("a map did not serialize as an object");
     };
     let (w, h) = (map.width.max(0) as usize, map.height.max(0) as usize);
-    let fits = |v: Option<&Value>| v.map_or(false, |v| v.as_array().map_or(false, |a| a.len() == w * h));
+    let fits =
+        |v: Option<&Value>| v.is_some_and(|v| v.as_array().is_some_and(|a| a.len() == w * h));
     if !(fits(fields.get(LOWER)) && fits(fields.get(UPPER))) {
         return Ok((Value::Object(fields), None));
     }
     fields.remove(LOWER);
     fields.remove(UPPER);
-    Ok((Value::Object(fields), Some(grid(w, h, &map.lower_layer, &map.upper_layer))))
+    Ok((
+        Value::Object(fields),
+        Some(grid(w, h, &map.lower_layer, &map.upper_layer)),
+    ))
 }
 
 /// The two layers as one number per tile, `width` per line: a `.tiles`.
@@ -309,7 +336,11 @@ impl Dump {
                 ))
             }
         };
-        Ok(Dump { dir: dir.to_path_buf(), view, manifest })
+        Ok(Dump {
+            dir: dir.to_path_buf(),
+            view,
+            manifest,
+        })
     }
 
     pub fn dir(&self) -> &Path {
@@ -420,14 +451,20 @@ pub fn pack(dump: &Path, out: &Path) -> Result<Vec<PathBuf>> {
 
     written.push(write_binary(
         &out.join("RPG_RT.lmt"),
-        &Document::Lmt { header: source.header("tree", "LcfMapTree"), data: source.tree()? },
+        &Document::Lmt {
+            header: source.header("tree", "LcfMapTree"),
+            data: source.tree()?,
+        },
     )?);
 
     for path in source.map_files()? {
         let stem = stem(&path)?;
         written.push(write_binary(
             &out.join(format!("{stem}.lmu")),
-            &Document::Lmu { header: source.map_header(&stem), data: read_map(&path)? },
+            &Document::Lmu {
+                header: source.map_header(&stem),
+                data: read_map(&path)?,
+            },
         )?);
     }
 
@@ -459,7 +496,10 @@ fn join_database(dir: &Path) -> Result<Value> {
 /// changed— has its layers there too, and whoever checks such a file is
 /// whole asks here instead of copying the layout.
 pub fn layers_path(map: &Path) -> PathBuf {
-    let stem = map.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let stem = map
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
     map.with_file_name(format!("{stem}.tiles"))
 }
 
@@ -515,9 +555,12 @@ fn ungrid(path: &Path) -> Result<(Vec<i16>, Vec<i16>)> {
             continue;
         }
         for word in line.split_whitespace() {
-            let t: i16 = word
-                .parse()
-                .map_err(|e| Error(format!("{}: {word:?} is not a tile id: {e}", path.display())))?;
+            let t: i16 = word.parse().map_err(|e| {
+                Error(format!(
+                    "{}: {word:?} is not a tile id: {e}",
+                    path.display()
+                ))
+            })?;
             if into_upper {
                 upper.push(t);
             } else {
@@ -716,7 +759,11 @@ fn in_any_case(dir: &Path, name: &str) -> Result<PathBuf> {
     let found = std::fs::read_dir(dir)
         .map_err(|e| Error(format!("{}: {e}", dir.display())))?
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .find(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.eq_ignore_ascii_case(name)));
+        .find(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.eq_ignore_ascii_case(name))
+        });
     Ok(found.unwrap_or(exact))
 }
 

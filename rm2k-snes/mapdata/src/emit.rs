@@ -22,8 +22,8 @@ use crate::pyf;
 use crate::pyfmt::{format, Arg};
 use crate::record::{
     self, ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE, ANIM_STRIDE, EV_MAX, EV_STRIDE, FAMILIES,
-    FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX, TWIN_STRIDE,
-    ROUTE_GFX_MAX, TURN_NONE,
+    FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX,
+    ROUTE_GFX_MAX, TURN_NONE, TWIN_STRIDE,
 };
 use crate::request::{Emit, MessageFace, MsuData};
 use crate::snes::{
@@ -302,7 +302,9 @@ fn python_json(value: &Value) -> String {
 pub fn switch_bytes(top: i64) -> Result<i64> {
     let bytes = top.max(0) / 8 + 1;
     if bytes > 256 {
-        return Err(Bad::answer(format!("switch {top} does not fit the ROM's switch table, 256 bytes")));
+        return Err(Bad::answer(format!(
+            "switch {top} does not fit the ROM's switch table, 256 bytes"
+        )));
     }
     Ok(bytes)
 }
@@ -376,7 +378,6 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     // Everything that goes per map, first: it is also where what each map
     // spends is checked against its VRAM layout.
     let per_map = record::maps_with(&r.maps, r.rom.msu != MsuData::Optional)?;
-
 
     let windows = normalized_windows(at(screens, "window")?, &r.window_systems)?;
     let window = &windows[0];
@@ -573,10 +574,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     ];
     let menu_counts = match title_menu {
         None => (0, 0),
-        Some(menu) => (
-            list_at(menu, "tiles")?.len(),
-            list_at(menu, "texts")?.len(),
-        ),
+        Some(menu) => (list_at(menu, "tiles")?.len(), list_at(menu, "texts")?.len()),
     };
     args.extend([
         menu_counts.0.into(),
@@ -689,7 +687,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         faces: &faces,
     };
     rest.write(&mut out, &mut notes)?;
-    custom_menu::section(&mut out, screens.get("custom_menus").unwrap_or(&Value::Null))?;
+    custom_menu::section(
+        &mut out,
+        screens.get("custom_menus").unwrap_or(&Value::Null),
+    )?;
     skills_screen::section(&mut out, screens)?;
     out.push_str(&per_map.tables);
     timer_and_case(&mut out, r);
@@ -727,9 +728,18 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
     // How many: the runtime reads the pieces through `window_systems` only
     // when there are more than one —see `window_system.s`—.
     out.push_str(&format!("WINDOW_SYSTEMS = {}\n", windows.len()));
-    let one_line = windows.iter().map(|w| backdrop_is_one_line(w, t)).collect::<Result<Vec<bool>>>()?.iter().all(|&b| b);
+    let one_line = windows
+        .iter()
+        .map(|w| backdrop_is_one_line(w, t))
+        .collect::<Result<Vec<bool>>>()?
+        .iter()
+        .all(|&b| b);
     for (k, w) in windows.iter().enumerate() {
-        let suffix = if k == 0 { String::new() } else { format!("_{k}") };
+        let suffix = if k == 0 {
+            String::new()
+        } else {
+            format!("_{k}")
+        };
         window_pieces(out, r, w, t, &suffix, one_line)?;
     }
     if windows.len() > 1 {
@@ -740,7 +750,10 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
     // How far each letter moves the line, and how far it paints: the
     // composer adds the first and checks the second against the edge.
     let small = |name: &str| -> Result<Vec<u8>> {
-        Ok(ints_at(window, name)?.into_iter().map(|n| n as u8).collect())
+        Ok(ints_at(window, name)?
+            .into_iter()
+            .map(|n| n as u8)
+            .collect())
     };
     line(out, &block("font_advance", &small("advances")?));
     line(out, &block("font_reach", &small("reach")?));
@@ -796,12 +809,17 @@ fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
         line(out, &block(&format!("message_face_{k}"), &data));
     }
     // The pointers, by hand: a word and a bank each, like `window_systems`.
-    out.push_str(&format!(".block {}\nmessage_face_ptr:\n", (faces.len() * 3).max(1)));
+    out.push_str(&format!(
+        ".block {}\nmessage_face_ptr:\n",
+        (faces.len() * 3).max(1)
+    ));
     if faces.is_empty() {
         out.push_str("    .byte $FF\n");
     }
     for k in 0..faces.len() {
-        out.push_str(&format!("    .word .loword(message_face_{k})\n    .byte ^message_face_{k}\n"));
+        out.push_str(&format!(
+            "    .word .loword(message_face_{k})\n    .byte ^message_face_{k}\n"
+        ));
     }
     out.push('\n');
     Ok(())
@@ -812,9 +830,22 @@ fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
 /// background and the bar over it. `suffix` goes after every label: empty
 /// for the System the cartridge starts with, `_k` for the `k`-th it
 /// switches to.
-fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffix: &str, one_line: bool) -> Result<()> {
+fn window_pieces(
+    out: &mut String,
+    r: &Emit,
+    window: &Value,
+    t: &Geometry,
+    suffix: &str,
+    one_line: bool,
+) -> Result<()> {
     let reserved = cgram_reserved(r.window_colors);
-    line(out, &block(&format!("window_tiles{suffix}"), &bytes_at(window, "tiles")?));
+    line(
+        out,
+        &block(
+            &format!("window_tiles{suffix}"),
+            &bytes_at(window, "tiles")?,
+        ),
+    );
     // Only the `reserved` at the bottom: from there up it is the
     // background's.
     let cgram = ints_at(window, "cgram")?;
@@ -823,7 +854,10 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
         .take(reserved as usize)
         .map(|&w| w as u32)
         .collect();
-    line(out, &block(&format!("window_cgram{suffix}"), &words_le(words)));
+    line(
+        out,
+        &block(&format!("window_cgram{suffix}"), &words_le(words)),
+    );
     // One layout of the cells per window base the VRAM layouts use, with
     // the upper layer's priority so it covers the hero and the events.
     //
@@ -882,7 +916,9 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
     }
     let mut arrow_table = Vec::new();
     for base in WINDOW_BASES {
-        let cell = |tile: i64| entry(base + tile as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10);
+        let cell = |tile: i64| {
+            entry(base + tile as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10)
+        };
         for k in 0..arrow_cells {
             arrow_table.push(cell(under[arrow_col + k]));
         }
@@ -894,7 +930,13 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
             arrow_table.push(cell(tile));
         }
     }
-    line(out, &block(&format!("window_arrow_cells{suffix}"), &words_le(arrow_table)));
+    line(
+        out,
+        &block(
+            &format!("window_arrow_cells{suffix}"),
+            &words_le(arrow_table),
+        ),
+    );
     // And the arrow over nothing as two objects' tiles, for a window
     // without its background in a map that has room for them: the same
     // tiles the window's cells name, in the window's palette, which the
@@ -907,11 +949,20 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
     let mut arrow_obj = Vec::with_capacity(arrow_cells * 32);
     for &tile in &arrow[arrow_cells..] {
         let at = tile as usize * 32;
-        let mut bytes = tiles.get(at..).unwrap_or_default().iter().take(32).copied().collect::<Vec<u8>>();
+        let mut bytes = tiles
+            .get(at..)
+            .unwrap_or_default()
+            .iter()
+            .take(32)
+            .copied()
+            .collect::<Vec<u8>>();
         bytes.resize(32, 0);
         arrow_obj.extend(bytes);
     }
-    line(out, &block(&format!("window_arrow_obj{suffix}"), &arrow_obj));
+    line(
+        out,
+        &block(&format!("window_arrow_obj{suffix}"), &arrow_obj),
+    );
     // The text area's background, one line —two cell rows— after another,
     // which `prime_line` copies under each line before its letters. When
     // every line is the same —a window over one colour, `[windows.
@@ -927,13 +978,25 @@ fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffi
     }
     line(
         out,
-        &block(&format!("window_backdrop{suffix}"), if one_line { lines[0] } else { &backdrop }),
+        &block(
+            &format!("window_backdrop{suffix}"),
+            if one_line { lines[0] } else { &backdrop },
+        ),
     );
     // And the same background with the System's cursor on each line, and
     // one line's with the cursor over nothing: a choice's highlighted
     // option is composed over these. See `prime_line` in the runtime.
-    line(out, &block(&format!("window_bar{suffix}"), &bytes_at(window, "bar")?));
-    line(out, &block(&format!("window_bar_bare{suffix}"), &bytes_at(window, "bar_bare")?));
+    line(
+        out,
+        &block(&format!("window_bar{suffix}"), &bytes_at(window, "bar")?),
+    );
+    line(
+        out,
+        &block(
+            &format!("window_bar_bare{suffix}"),
+            &bytes_at(window, "bar_bare")?,
+        ),
+    );
     Ok(())
 }
 
@@ -962,7 +1025,11 @@ fn window_systems_table(out: &mut String, systems: usize) {
         systems * WINDOW_SYSTEM_BYTES
     ));
     for k in 0..systems {
-        let suffix = if k == 0 { String::new() } else { format!("_{k}") };
+        let suffix = if k == 0 {
+            String::new()
+        } else {
+            format!("_{k}")
+        };
         for piece in [
             "window_tiles",
             "window_cgram",
@@ -974,7 +1041,9 @@ fn window_systems_table(out: &mut String, systems: usize) {
             "window_bar_bare",
             "window_arrow_obj",
         ] {
-            out.push_str(&format!("    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"));
+            out.push_str(&format!(
+                "    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"
+            ));
         }
     }
     out.push('\n');
@@ -1012,7 +1081,14 @@ fn normalized_windows(window: &Value, others: &[Value]) -> Result<Vec<Value>> {
         tiles.resize(base as usize * 32, 0);
         let cells: Vec<Value> = list_at(w, "cells")?
             .iter()
-            .map(|row| Ok(Value::from(ints(row)?.into_iter().map(|c| if c >= own { c - own + base } else { c }).collect::<Vec<i64>>())))
+            .map(|row| {
+                Ok(Value::from(
+                    ints(row)?
+                        .into_iter()
+                        .map(|c| if c >= own { c - own + base } else { c })
+                        .collect::<Vec<i64>>(),
+                ))
+            })
             .collect::<Result<_>>()?;
         w["tiles"] = Value::from(tiles.iter().map(|b| format!("{b:02x}")).collect::<String>());
         w["cells"] = Value::from(cells);
@@ -1062,19 +1138,28 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
         if n == 0 || n > 255 {
             return Err(whose(format!("{n} pictures")));
         }
-        data.extend(u16::try_from(p.base).map_err(|_| whose(format!("pictures at tile {}", p.base)))?.to_le_bytes());
+        data.extend(
+            u16::try_from(p.base)
+                .map_err(|_| whose(format!("pictures at tile {}", p.base)))?
+                .to_le_bytes(),
+        );
         data.push(n as u8);
         let entries = data.len();
         data.resize(entries + n * PICTURE_ENTRY, 0);
         // Each palette's colours once, by its index.
-        let mut colors_of: std::collections::BTreeMap<i64, usize> = std::collections::BTreeMap::new();
+        let mut colors_of: std::collections::BTreeMap<i64, usize> =
+            std::collections::BTreeMap::new();
         for (i, image) in p.images.iter().enumerate() {
             let objects_at = data.len() - start;
             for &[dx, dy, tile] in &image.objects {
                 let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
                 data.push(byte(dx)?);
                 data.push(byte(dy)?);
-                data.extend(u16::try_from(tile).map_err(|_| whose(format!("an object's tile {tile}")))?.to_le_bytes());
+                data.extend(
+                    u16::try_from(tile)
+                        .map_err(|_| whose(format!("an object's tile {tile}")))?
+                        .to_le_bytes(),
+                );
             }
             let colors_at = match colors_of.get(&image.palette_index) {
                 Some(&at) => at,
@@ -1089,30 +1174,43 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
                 }
             };
             let word = |v: i64| -> Result<[u8; 2]> {
-                Ok(i16::try_from(v).map_err(|_| whose(format!("a picture's {v}")))?.to_le_bytes())
+                Ok(i16::try_from(v)
+                    .map_err(|_| whose(format!("a picture's {v}")))?
+                    .to_le_bytes())
             };
             let palette = u8::try_from(image.palette_index)
                 .ok()
                 .filter(|&p| p < 8)
-                .ok_or_else(|| whose(format!("sprite palette {} from the top", image.palette_index)))?;
+                .ok_or_else(|| {
+                    whose(format!(
+                        "sprite palette {} from the top",
+                        image.palette_index
+                    ))
+                })?;
             let at = entries + i * PICTURE_ENTRY;
             let mut entry = Vec::with_capacity(PICTURE_ENTRY);
             entry.extend(word(image.half[0])?);
             entry.extend(word(image.half[1])?);
-            entry.push(u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?);
+            entry.push(
+                u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
+            );
             entry.push(palette);
             entry.extend(word((start + objects_at) as i64)?);
             entry.extend(word((start + colors_at) as i64)?);
             entry.extend(word(p.base)?);
             data[at..at + entry.len()].copy_from_slice(&entry);
         }
-        starts.push(u16::try_from(start).map_err(|_| whose("the pictures' table passes 64 KB".into()))?);
+        starts.push(
+            u16::try_from(start).map_err(|_| whose("the pictures' table passes 64 KB".into()))?,
+        );
     }
     Ok((words_le(starts.iter().map(|&s| u32::from(s))), data))
 }
 
 fn picture_section(out: &mut String, r: &Emit) -> Result<()> {
-    out.push_str("\n; --- the ShowPicture pictures: see `picture_tables` in rm2k-snes-mapdata ---\n");
+    out.push_str(
+        "\n; --- the ShowPicture pictures: see `picture_tables` in rm2k-snes-mapdata ---\n",
+    );
     out.push_str(&format!("PICTURE_ENTRY = {PICTURE_ENTRY}\n"));
     let (maps, data) = picture_tables(&r.maps)?;
     line(out, &block("picture_maps", &maps));
@@ -1168,7 +1266,9 @@ pub fn big_tilemap(rows: usize, cells: &[u16], wider: bool) -> Result<(Vec<u16>,
         )));
     }
     if rows > 2 * BIG_SCREEN {
-        return Err(Bad::answer(format!("a big picture of {rows} rows: the tilemap holds 64")));
+        return Err(Bad::answer(format!(
+            "a big picture of {rows} rows: the tilemap holds 64"
+        )));
     }
     let mut map = vec![0u16; 2 * BIG_SCREEN * BIG_SCREEN];
     if rows > BIG_SCREEN {
@@ -1249,11 +1349,13 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
     let streams = crate::compress::compress_many(&refs)?;
-    out.push_str(&format!(".block {}\nbig_table:\n", BIG_ENTRY * r.big_pictures.len()));
+    out.push_str(&format!(
+        ".block {}\nbig_table:\n",
+        BIG_ENTRY * r.big_pictures.len()
+    ));
     for (k, big) in r.big_pictures.iter().enumerate() {
         let vofs = (-big.top - 1) as i16 as u16;
-        let corner =
-            ((big.center[1] - big.half[1]) * BIG_CONSOLE_HEIGHT).div_euclid(BIG_RM_HEIGHT);
+        let corner = ((big.center[1] - big.half[1]) * BIG_CONSOLE_HEIGHT).div_euclid(BIG_RM_HEIGHT);
         out.push_str(&format!(
             "    .word .loword(big_tiles_{k})\n    .byte ^big_tiles_{k}\n\
              \x20   .word .loword(big_map_{k})\n    .byte ^big_map_{k}\n\
@@ -1291,7 +1393,12 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
         let mut colors = Vec::with_capacity(BIG_PALETTES * 32);
         for p in 0..BIG_PALETTES {
             for i in 0..16 {
-                let c = big.palettes.get(p).and_then(|p| p.get(i)).copied().unwrap_or([0, 0, 0]);
+                let c = big
+                    .palettes
+                    .get(p)
+                    .and_then(|p| p.get(i))
+                    .copied()
+                    .unwrap_or([0, 0, 0]);
                 colors.extend(cgram_word(c).to_le_bytes());
             }
         }
@@ -1320,7 +1427,7 @@ const BIG_M7_TILE: usize = 64;
 /// A big picture's mode 7 texture as the cartridge carries it: its tiles,
 /// and its map's rows as VRAM's low bytes take them, padded to 128.
 pub fn big_mode7(rows: usize, t: &crate::request::Mode7Texture) -> Result<(Vec<u8>, Vec<u8>)> {
-    if t.tiles.len() % BIG_M7_TILE != 0 || t.tiles.len() > BIG_M7_TILES * BIG_M7_TILE {
+    if !t.tiles.len().is_multiple_of(BIG_M7_TILE) || t.tiles.len() > BIG_M7_TILES * BIG_M7_TILE {
         return Err(Bad::answer(format!(
             "a mode 7 texture of {} bytes: it holds {BIG_M7_TILES} tiles of {BIG_M7_TILE}",
             t.tiles.len()
@@ -1581,7 +1688,10 @@ impl Rest<'_> {
         // The font precomposed for the bank's text palette, a table per
         // phase: the names are composed with it —`tl_strip`—.
         for (phase, data) in list_at(slots, "prerender")?.iter().enumerate() {
-            line(out, &block(&format!("slot_pre{phase}"), &crate::json::bytes(data)?));
+            line(
+                out,
+                &block(&format!("slot_pre{phase}"), &crate::json::bytes(data)?),
+            );
         }
         // Each cell block with its own label, named by a pointer table. The
         // bank of the slots and the menu goes with the priority bit set: the
@@ -1640,7 +1750,10 @@ impl Rest<'_> {
         // letter in two cells.
         let inks = at(screens, "text_inks")?;
         for (phase, data) in list_at(inks, "prerender")?.iter().enumerate() {
-            line(out, &block(&format!("scr_pre{phase}"), &crate::json::bytes(data)?));
+            line(
+                out,
+                &block(&format!("scr_pre{phase}"), &crate::json::bytes(data)?),
+            );
         }
         let item_palettes: Vec<Vec<Color>> = list_at(inks, "palettes")?
             .iter()
@@ -1710,7 +1823,10 @@ impl Rest<'_> {
             for (set, room) in [(0, 10), (1, 6)] {
                 let bars = list(&sets[set])?;
                 if bars.len() > room {
-                    return Err(Bad::answer(format!("a battle layout has {} bars in a set of {room}", bars.len())));
+                    return Err(Bad::answer(format!(
+                        "a battle layout has {} bars in a set of {room}",
+                        bars.len()
+                    )));
                 }
                 for k in 0..room {
                     match bars.get(k) {
@@ -1862,14 +1978,25 @@ impl Rest<'_> {
             members.push((actor, k));
         }
         if members.len() > 255 {
-            return Err(Bad::answer(format!("the shop's party has {} members with a CharSet and a byte names 255", members.len())));
+            return Err(Bad::answer(format!(
+                "the shop's party has {} members with a CharSet and a byte names 255",
+                members.len()
+            )));
         }
         let n_party_actors = members.iter().map(|&(a, _)| a + 1).max().unwrap_or(1);
         for a in 0..n_party_actors {
-            party_k.push(members.iter().find(|&&(b, _)| b == a).map_or(0xFF, |&(_, k)| k as u8));
+            party_k.push(
+                members
+                    .iter()
+                    .find(|&&(b, _)| b == a)
+                    .map_or(0xFF, |&(_, k)| k as u8),
+            );
         }
         line(out, &block("ti_party_k", &party_k));
-        line(out, &format!(".block {}\nti_party_ptr:", 3 * party_pointers.len().max(1)));
+        line(
+            out,
+            &format!(".block {}\nti_party_ptr:", 3 * party_pointers.len().max(1)),
+        );
         if party_pointers.is_empty() {
             line(out, "    .byte 0, 0, 0");
         }
@@ -1882,7 +2009,13 @@ impl Rest<'_> {
         line(out, &block("ti_party_cgram", &party_cgram));
         let arrows = tiles(at(party, "arrows")?)?;
         line(out, &block("ti_arrow_tiles", &packed(&arrows, 4)));
-        line(out, &block("ti_arrow_cgram", &palette16(&colors(at(party, "arrow_colors")?)?)));
+        line(
+            out,
+            &block(
+                "ti_arrow_cgram",
+                &palette16(&colors(at(party, "arrow_colors")?)?),
+            ),
+        );
         let party_tile0 = int_at(party, "tile0")?;
         // The whole OAM the shop opens with: each member's twelve objects,
         // three across by four down with palette `i` over every layer, the
@@ -2006,7 +2139,11 @@ impl Rest<'_> {
             actor_text.insert(a, texts.add(&plain(name)));
         }
         // And each rename's, in the order `OP_CHANGE_NAME` counts them.
-        let name_text: Vec<i64> = r.names.iter().map(|(_, name)| texts.add(&plain(name))).collect();
+        let name_text: Vec<i64> = r
+            .names
+            .iter()
+            .map(|(_, name)| texts.add(&plain(name)))
+            .collect();
         let mut shop_text = None;
         for messages in list_at(textos, "shop")? {
             for lines in list(messages)? {
@@ -2070,7 +2207,9 @@ impl Rest<'_> {
         let item_battle = list_at(model, "item_battle")?;
         let item_list = list_at(textos, "items")?;
         if item_battle.len() != item_list.len() {
-            return Err(Bad::answer("the battle's items and the screens' are not the same list"));
+            return Err(Bad::answer(
+                "the battle's items and the screens' are not the same list",
+            ));
         }
         let mut item_desc_battle = Vec::new();
         for (item, battle) in item_list.iter().zip(item_battle) {
@@ -2274,7 +2413,11 @@ impl Rest<'_> {
         out.push_str(&format!(
             "menu_done:\n     .byte {}\n",
             (0..t.n("MENU_OPTIONS") + custom_n)
-                .map(|n| if done.contains(&n) || n >= t.n("MENU_OPTIONS") { "1" } else { "0" })
+                .map(|n| if done.contains(&n) || n >= t.n("MENU_OPTIONS") {
+                    "1"
+                } else {
+                    "0"
+                })
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
@@ -2306,12 +2449,24 @@ impl Rest<'_> {
         let bg1_cell = |row: i64, col: i64| t.n("TARGET_MAP") + row * 32 + col;
         let cmd_at = ints_at(target, "menu_cmd_at")?;
         let cmd_vram: Vec<String> = (0..t.n("MENU_OPTIONS") + custom_n)
-            .map(|n| bg1_cell(cmd_at[0] + n * t.n("MENU_OPT_STEP").div_euclid(cell), cmd_at[2]).to_string())
+            .map(|n| {
+                bg1_cell(
+                    cmd_at[0] + n * t.n("MENU_OPT_STEP").div_euclid(cell),
+                    cmd_at[2],
+                )
+                .to_string()
+            })
             .collect();
         words_asm(out, "menu_cursor_vram", &cmd_vram, true);
         let slot_at = ints_at(target, "slot_bar_at")?;
         let slot_bar_vram: Vec<String> = (0..i64::from(SLOTS))
-            .map(|n| bg1_cell(slot_at[0] + n * t.n("SLOT_STEP").div_euclid(cell), slot_at[2]).to_string())
+            .map(|n| {
+                bg1_cell(
+                    slot_at[0] + n * t.n("SLOT_STEP").div_euclid(cell),
+                    slot_at[2],
+                )
+                .to_string()
+            })
             .collect();
         words_asm(out, "slot_bar_vram", &slot_bar_vram, true);
         let empty = format!(
@@ -2394,7 +2549,10 @@ impl Rest<'_> {
         let term_at = ints_at(skill, "term_at")?;
         let all_at = ints_at(skill, "all_at")?;
         line(out, &block("target_term", &words(at(skill, "term")?)?));
-        line(out, &block("target_all_rows", &bars(at(skill, "all_rows")?)?));
+        line(
+            out,
+            &block("target_all_rows", &bars(at(skill, "all_rows")?)?),
+        );
         let mut all_index = Vec::new();
         for which in list_at(skill, "all")? {
             all_index.extend(ints(which)?.into_iter().map(|k| k as u8));
@@ -2521,7 +2679,11 @@ impl Rest<'_> {
             )));
         }
         for pair in renamed {
-            let row = format!("{:<w$}", text(&list(pair)?[1])?, w = SLOT_TEXT_WIDTH as usize);
+            let row = format!(
+                "{:<w$}",
+                text(&list(pair)?[1])?,
+                w = SLOT_TEXT_WIDTH as usize
+            );
             strip.extend(row.bytes());
         }
         if n_actors_slots as usize + r.names.len() > 256 {
@@ -2544,7 +2706,12 @@ impl Rest<'_> {
              NAME_SLOTS = {}\nSLOT_TEXT_ROWS = {n_actors_slots}\n",
             renamed_actors.len()
         ));
-        words_asm(out, "name_actor", &decimal(renamed_actors.iter().copied()), true);
+        words_asm(
+            out,
+            "name_actor",
+            &decimal(renamed_actors.iter().copied()),
+            true,
+        );
         out.push_str(&format!(
             ".block {}\nslot_actor_text:\n        .byte {}\n",
             strip.len().max(1),
@@ -2646,8 +2813,10 @@ impl Rest<'_> {
                     .map_or(0, |st| f(st).clamp(0, 255))
             }))
         };
-        out.push_str(&format!("STATES_N = {n}
-"));
+        out.push_str(&format!(
+            "STATES_N = {n}
+"
+        ));
         bytes_asm(out, "state_priority", &per(&|st| st.priority.into()), true);
         bytes_asm(
             out,
@@ -2656,9 +2825,24 @@ impl Rest<'_> {
             true,
         );
         bytes_asm(out, "state_hold", &per(&|st| st.hold_turn.into()), true);
-        bytes_asm(out, "state_auto", &per(&|st| st.auto_release_prob.into()), true);
-        bytes_asm(out, "state_damage", &per(&|st| st.release_by_damage.into()), true);
-        bytes_asm(out, "state_hit", &per(&|st| st.reduce_hit_ratio.into()), true);
+        bytes_asm(
+            out,
+            "state_auto",
+            &per(&|st| st.auto_release_prob.into()),
+            true,
+        );
+        bytes_asm(
+            out,
+            "state_damage",
+            &per(&|st| st.release_by_damage.into()),
+            true,
+        );
+        bytes_asm(
+            out,
+            "state_hit",
+            &per(&|st| st.reduce_hit_ratio.into()),
+            true,
+        );
         // Which parameters it halves, one bit each in the order of
         // `BA_ATK`, `BA_DEF`, `BA_SPI`, `BA_AGI`.
         bytes_asm(
@@ -2672,8 +2856,18 @@ impl Rest<'_> {
             }),
             true,
         );
-        words_asm(out, "state_affected", &decimal(x.state_affected_text.iter()), true);
-        words_asm(out, "state_recovery", &decimal(x.state_recovery_text.iter()), true);
+        words_asm(
+            out,
+            "state_affected",
+            &decimal(x.state_affected_text.iter()),
+            true,
+        );
+        words_asm(
+            out,
+            "state_recovery",
+            &decimal(x.state_recovery_text.iter()),
+            true,
+        );
         Ok(())
     }
 }
@@ -2796,15 +2990,24 @@ impl Rest<'_> {
                 0xFF
             } else {
                 rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
-                    Bad::answer(format!("an item casts skill {h}, which the cartridge does not carry"))
+                    Bad::answer(format!(
+                        "an item casts skill {h}, which the cartridge does not carry"
+                    ))
                 })? as i64
             });
         }
         if item_skill.len() != items.len() {
-            return Err(Bad::answer("the battle's `item_skill` and the items are not the same list"));
+            return Err(Bad::answer(
+                "the battle's `item_skill` and the items are not the same list",
+            ));
         }
         bytes_asm(out, "item_skill", &decimal(item_skill), true);
-        words_asm(out, "ba_item_desc", &decimal(x.item_desc_battle.iter().copied()), true);
+        words_asm(
+            out,
+            "ba_item_desc",
+            &decimal(x.item_desc_battle.iter().copied()),
+            true,
+        );
         let per_item = |f: &dyn Fn(&ditto::schema::Item) -> i64| -> Result<Vec<String>> {
             Ok(decimal(
                 items
@@ -2873,7 +3076,11 @@ impl Rest<'_> {
                 it.spi_points2,
                 it.agi_points2,
             ] {
-                up.push(if material { i64::from(points) & 0xFFFF } else { 0 });
+                up.push(if material {
+                    i64::from(points) & 0xFFFF
+                } else {
+                    0
+                });
             }
         }
         words_asm(out, "item_up", &decimal(up), true);
@@ -2995,9 +3202,19 @@ impl Rest<'_> {
         bonuses.sort();
         bonuses.dedup();
         let column = |b: i32| bonuses.iter().position(|&x| x == b).unwrap_or(0) as i64;
-        bytes_asm(out, "item_crit_k", &per_item(&|i| column(crit_bonus(i)))?, true);
+        bytes_asm(
+            out,
+            "item_crit_k",
+            &per_item(&|i| column(crit_bonus(i)))?,
+            true,
+        );
         let row = |a: i64| owns.iter().position(|&o| o == own(a)).unwrap_or(0) * bonuses.len();
-        words_asm(out, "actor_crit_row", &decimal((0..n_actors).map(|a| row(a) as i64)), true);
+        words_asm(
+            out,
+            "actor_crit_row",
+            &decimal((0..n_actors).map(|a| row(a) as i64)),
+            true,
+        );
         let mut table = Vec::new();
         for &o in &owns {
             for &b in &bonuses {
@@ -3240,7 +3457,8 @@ impl Rest<'_> {
             }
             // Bit 0, the map can use it; bit 1, it raises the fallen, which
             // only a skill the map can use is asked.
-            let flag = |name: &str| -> Result<bool> { Ok(at(of(h)?, name)?.as_bool().unwrap_or(false)) };
+            let flag =
+                |name: &str| -> Result<bool> { Ok(at(of(h)?, name)?.as_bool().unwrap_or(false)) };
             let on_map = flag("field")?;
             field.push(i64::from(on_map) | i64::from(on_map && flag("revives")?) << 1);
             name_cut.push(int_at(of(h)?, "name_cut")?);
@@ -3258,7 +3476,10 @@ impl Rest<'_> {
         // runs always—, whether it is pure, and where its body starts.
         let parallel = &r.parallel_common;
         out.push_str(&format!("COMPAR_N = {}\n", parallel.len()));
-        out.push_str(&format!(".block {}\ncompar_table:\n", 6 * parallel.len().max(1)));
+        out.push_str(&format!(
+            ".block {}\ncompar_table:\n",
+            6 * parallel.len().max(1)
+        ));
         if parallel.is_empty() {
             out.push_str("    .byte 0, 0, 0, 0, 0, 0\n");
         }
@@ -3276,7 +3497,10 @@ impl Rest<'_> {
             ));
         }
         for (_, n, _, code) in parallel {
-            line(out, &block(&format!("common_parallel_{n}"), &crate::hex::decode(code)?));
+            line(
+                out,
+                &block(&format!("common_parallel_{n}"), &crate::hex::decode(code)?),
+            );
         }
         // The shared common event bodies, by index, and the automatic ones:
         // see `common_events.s`. A cartridge without them carries the
@@ -3306,7 +3530,10 @@ impl Rest<'_> {
         words_asm(
             out,
             "common_body_lo",
-            &or_dummy(labels.iter().map(|l| format!(".loword({l})")).collect(), "0"),
+            &or_dummy(
+                labels.iter().map(|l| format!(".loword({l})")).collect(),
+                "0",
+            ),
             true,
         );
         words_asm(
@@ -3344,7 +3571,12 @@ impl Rest<'_> {
         // Which automatic ones have copies in the maps, and which maps carry
         // them, a bit per map index: see `switch_of` in `common_events.s`.
         let copied = commons.autostart.iter().map(|a| {
-            u8::from(commons.bodies.get(a.1 as usize).is_some_and(|(n, _)| commons.copies.commons.contains(n)))
+            u8::from(
+                commons
+                    .bodies
+                    .get(a.1 as usize)
+                    .is_some_and(|(n, _)| commons.copies.commons.contains(n)),
+            )
         });
         bytes_asm(out, "comauto_copied", &or_dummy(decimal(copied), "0"), true);
         let mut bitmap = vec![0u8; r.maps.len().div_ceil(8).max(1)];
@@ -3352,7 +3584,11 @@ impl Rest<'_> {
             let m = usize::try_from(m)
                 .ok()
                 .filter(|&m| m < r.maps.len())
-                .ok_or_else(|| Bad::answer(format!("a copy of a common event on map index {m}, past the cartridge's maps")))?;
+                .ok_or_else(|| {
+                    Bad::answer(format!(
+                        "a copy of a common event on map index {m}, past the cartridge's maps"
+                    ))
+                })?;
             bitmap[m / 8] |= 1 << (m % 8);
         }
         bytes_asm(out, "comcopy_maps", &decimal(bitmap), true);
@@ -3396,7 +3632,13 @@ impl Rest<'_> {
         variables.sort_by_key(|v| v.1);
         out.push_str(&format!(
             "; The signature of the save format: see `SRAM_SIGNATURE`.\nGAME_SIGNATURE = ${:04X}\n",
-            save_signature(&variables, &pairs, &r.battle_tables.slots, n_actors, switch_bytes(r.switch_top)?)
+            save_signature(
+                &variables,
+                &pairs,
+                &r.battle_tables.slots,
+                n_actors,
+                switch_bytes(r.switch_top)?
+            )
         ));
         words_asm(out, "skill_pair_init", &decimal(skill_pair_start), true);
         bytes_asm(out, "skill_pair_n", &decimal(skill_pair_n), true);
@@ -3610,7 +3852,13 @@ impl Rest<'_> {
         for &h in &x.rom_skills {
             let s = db.skill(h as i32).map_err(bad)?;
             if s.affect_attr_defence {
-                shifting.extend(s.attribute_effects.iter().enumerate().filter(|(_, &has)| has).map(|(k, _)| k));
+                shifting.extend(
+                    s.attribute_effects
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, &has)| has)
+                        .map(|(k, _)| k),
+                );
             }
         }
         let (first, rest): (Vec<usize>, Vec<usize>) =
@@ -3619,7 +3867,9 @@ impl Rest<'_> {
         let used: Vec<usize> = first.into_iter().chain(rest).collect();
         let n = used.len();
         if n > 255 {
-            return Err(Bad::answer(format!("{n} attributes, and `ATTR_N` multiplies as a byte")));
+            return Err(Bad::answer(format!(
+                "{n} attributes, and `ATTR_N` multiplies as a byte"
+            )));
         }
         out.push_str(&format!("ATTR_N = {n}\nATTR_SHIFT_N = {n_shift}\n"));
         let attrs: Vec<&ditto::schema::Attribute> = db.attributes.values().collect();
@@ -3628,7 +3878,10 @@ impl Rest<'_> {
             for rank in 0..5 {
                 let rate = at::rate_of(attrs[k], rank);
                 if rate > 0x7FFF {
-                    return Err(Bad::answer(format!("attribute {}: a rate of {rate}", k + 1)));
+                    return Err(Bad::answer(format!(
+                        "attribute {}: a rate of {rate}",
+                        k + 1
+                    )));
                 }
                 rates.push(rate.max(-1) & 0xFFFF);
             }
@@ -3665,7 +3918,9 @@ impl Rest<'_> {
             .iter()
             .map(|&h| {
                 let skill = db.skill(h as i32).map_err(bad)?;
-                Ok(place(&rm2k_snes_battle::rules::weapon_attributes_asked(db, skill)))
+                Ok(place(&rm2k_snes_battle::rules::weapon_attributes_asked(
+                    db, skill,
+                )))
             })
             .collect::<Result<_>>()?;
         if rows.len() > 0x10000 {
@@ -3889,7 +4144,11 @@ impl Rest<'_> {
         self.attributes(out, x, n_actors)?;
         // The battle scene: the backdrops and the battlers, in the order of
         // `troop_id`.
-        out.push_str(&crate::scene::scenes_asm(&r.scene, used, r.rom.msu != MsuData::Optional)?);
+        out.push_str(&crate::scene::scenes_asm(
+            &r.scene,
+            used,
+            r.rom.msu != MsuData::Optional,
+        )?);
         out.push_str(".segment \"TABLES\"\n");
         // Two products that have to fit in sixteen bits: the healing's
         // `recover_hp_rate * hp_max`, and the hit's `(100 - hit) * agility`.
@@ -4136,11 +4395,19 @@ fn timer_and_case(out: &mut String, r: &Emit) {
     ));
     // And what each map forbids, one byte per map: `map_access_enter`
     // writes it over the permissions when the map is entered.
-    let access: Vec<String> = r.maps.iter().map(|m| format!("${:02X}", m.access)).collect();
+    let access: Vec<String> = r
+        .maps
+        .iter()
+        .map(|m| format!("${:02X}", m.access))
+        .collect();
     out.push_str(&format!(
         ".block {}\nmap_access:\n    .byte {}\n",
         access.len().max(1),
-        if access.is_empty() { "0".to_string() } else { access.join(", ") }
+        if access.is_empty() {
+            "0".to_string()
+        } else {
+            access.join(", ")
+        }
     ));
     if let Some(slot) = r.case_slot {
         out.push_str(&format!("\nCASE_SLOT = {slot}\n"));

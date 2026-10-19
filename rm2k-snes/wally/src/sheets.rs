@@ -14,10 +14,10 @@ use crate::fail::Result;
 use crate::game::Game;
 use crate::layers::{draw, Drawn};
 use crate::request::LayersRequest;
-use rm2k_render::charset::{tile_sheet, translucent};
-use rm2k_render::{picture, Picture};
 use crate::sprites::character::Sheets;
 use crate::sprites::split::{DITHER_SUFFIX, TILE_PREFIX};
+use rm2k_render::charset::{tile_sheet, translucent};
+use rm2k_render::{picture, Picture};
 use std::collections::HashMap;
 
 /// The same drawing, counted as another graphic so it gets a palette of its
@@ -50,7 +50,9 @@ pub fn drops(pattern: &str, x: usize, y: usize) -> bool {
 fn baked_parts(name: &str) -> Option<(&str, (i32, i64, i64))> {
     let mark = format!("{BAKED_SUFFIX}:");
     let at = name.find(&mark)?;
-    let mut rest = name[at + mark.len()..].split(':').map(|n| n.parse::<i64>().ok());
+    let mut rest = name[at + mark.len()..]
+        .split(':')
+        .map(|n| n.parse::<i64>().ok());
     let (m, x, y) = (rest.next()??, rest.next()??, rest.next()??);
     Some((&name[..at], (m as i32, x, y)))
 }
@@ -135,7 +137,10 @@ impl<'a> Drawer<'a> {
             return Ok(done.clone());
         }
         // Only drawn, never converted: the window's colours do not matter.
-        let request = LayersRequest { map, ..LayersRequest::default() };
+        let request = LayersRequest {
+            map,
+            ..LayersRequest::default()
+        };
         let done = match draw(self.game, &request) {
             Ok(Drawn { layers, .. }) => Some(layers.lower),
             Err(_) => None,

@@ -206,7 +206,11 @@ pub fn cell_block(
     for row in 0..rows {
         for col in col0..col0 + cols {
             let cell = cut(layer, col, row0 + row, index)?;
-            let (at, flip) = if mirror { bank.add_mirrored(cell) } else { (bank.add(cell), 0) };
+            let (at, flip) = if mirror {
+                bank.add_mirrored(cell)
+            } else {
+                (bank.add(cell), 0)
+            };
             out.push(at as u16 | flip | palette << 10);
         }
     }

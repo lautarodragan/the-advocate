@@ -25,7 +25,11 @@ fn picture_of(width: usize, height: usize, pixel: impl Fn(usize, usize) -> [u8; 
             rgba.extend_from_slice(&pixel(x, y));
         }
     }
-    Picture { width, height, rgba }
+    Picture {
+        width,
+        height,
+        rgba,
+    }
 }
 
 fn write(path: &Path, picture: &Picture) {
@@ -58,7 +62,12 @@ fn charset(path: &Path, colors: usize) {
             return [0, 0, 0, 0];
         }
         let k = (x / 6 + y / 4 * 3) % colors;
-        [(k * 40 % 256) as u8, (k * 90 % 256) as u8, (k * 150 % 256) as u8, 255]
+        [
+            (k * 40 % 256) as u8,
+            (k * 90 % 256) as u8,
+            (k * 150 % 256) as u8,
+            255,
+        ]
     });
     write(path, &picture);
 }
@@ -77,7 +86,11 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     let dump = dir.join("dump");
     std::fs::create_dir_all(dump.join("maps")).unwrap();
     std::fs::create_dir_all(dump.join("db")).unwrap();
-    std::fs::write(dump.join("ditto.json"), json!({"ditto": 2, "view": "resolved"}).to_string()).unwrap();
+    std::fs::write(
+        dump.join("ditto.json"),
+        json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     let mut upper = vec![15u8; 144];
     upper[5] = 0x0F;
     std::fs::write(
@@ -113,7 +126,11 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     let upper: Vec<String> = (0..4).map(|_| [" 10000"; 6].concat()).collect();
     std::fs::write(
         dump.join("maps/Map0007.tiles"),
-        format!("# 6x4\n# lower\n{}\n# upper\n{}\n", lower.join("\n"), upper.join("\n")),
+        format!(
+            "# 6x4\n# lower\n{}\n# upper\n{}\n",
+            lower.join("\n"),
+            upper.join("\n")
+        ),
     )
     .unwrap();
     let pictures = dir.join("game");
@@ -132,7 +149,10 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
     });
     write(&pictures.join("System/system.png"), &system);
     // Nobody's CharSet is fully transparent: a leader with no graphic.
-    write(&pictures.join("CharSet/Nobody.png"), &Picture::transparent(288, 256));
+    write(
+        &pictures.join("CharSet/Nobody.png"),
+        &Picture::transparent(288, 256),
+    );
     (dump, pictures)
 }
 
@@ -176,21 +196,40 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     let (dump, pictures) = game(&dir);
     let out = dir.join("out");
     let done = run(&dump, &pictures, &request(&dir, &pictures, false), &out);
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
 
     // The tile event is baked into its cell, and its row starts hidden.
     assert_eq!(answer["baked"], json!([[0, 7, 10005]]));
-    let notes: Vec<&str> = answer["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
-    assert!(notes.contains(&"  map 7: 1 opaque event(s) baked into the map: 1"), "{notes:?}");
+    let notes: Vec<&str> = answer["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap())
+        .collect();
+    assert!(
+        notes.contains(&"  map 7: 1 opaque event(s) baked into the map: 1"),
+        "{notes:?}"
+    );
     let npcs = answer["npcs"].as_array().unwrap();
     assert_eq!(npcs.len(), 3);
     assert_eq!(npcs[0]["visible"], json!(false));
     assert_eq!(npcs[0]["charset"], json!("@tile:tiles:5"));
     // The layers were converted with it: the upper tile is in the table.
-    let layers: Value = serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
+    let layers: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
     let combos = layers["blocks"]["combos"].as_array().unwrap();
-    assert!(combos.iter().any(|c| c[0] == json!(5000) && c[1] == json!(10005)), "{combos:?}");
+    assert!(
+        combos
+            .iter()
+            .any(|c| c[0] == json!(5000) && c[1] == json!(10005)),
+        "{combos:?}"
+    );
 
     // Who moves comes back with the answer.
     assert_eq!(answer["movable"], json!([2]));
@@ -203,7 +242,12 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     assert_eq!(sprite["animated"], json!([["Hero", 0], ["Other", 1]]));
     assert_eq!(sprite["actors"][1], json!([2, 0, null, []]));
     for bank in sprite["banks"].as_array().unwrap() {
-        assert_eq!(std::fs::read(out.join(bank[2].as_str().unwrap())).unwrap().len(), 12 * 512);
+        assert_eq!(
+            std::fs::read(out.join(bank[2].as_str().unwrap()))
+                .unwrap()
+                .len(),
+            12 * 512
+        );
     }
     let tiles = std::fs::read(out.join("sprites.bin")).unwrap();
     assert_eq!(tiles.len() % 32, 0);
@@ -246,18 +290,40 @@ fn a_map_whose_animation_box_does_not_fit_loses_the_box() {
         std::fs::write(&path, body.to_string()).unwrap();
         let out = dir.join(name);
         let done = run(&dump, &pictures, &path, &out);
-        assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-        let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
-        (answer, std::fs::read(out.join("sprites.bin")).unwrap().len() / 32)
+        assert!(
+            done.status.success(),
+            "{}",
+            String::from_utf8_lossy(&done.stderr)
+        );
+        let answer: Value =
+            serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+        (
+            answer,
+            std::fs::read(out.join("sprites.bin")).unwrap().len() / 32,
+        )
     };
     let (_, without) = ask_map("plain", body(false, json!([])));
     // Room for everything but the box, which is 64 tiles.
     let layouts = json!([[1000, without, 1000]]);
     let (answer, tiles) = ask_map("asked", body(true, layouts));
-    assert!(answer["sprite"]["animation"].is_null(), "{}", answer["sprite"]["animation"]);
+    assert!(
+        answer["sprite"]["animation"].is_null(),
+        "{}",
+        answer["sprite"]["animation"]
+    );
     assert_eq!(tiles, without);
-    let notes: Vec<&str> = answer["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
-    assert!(notes.iter().any(|n| n.contains("WARNING, battle animations aren't drawn here")), "{notes:?}");
+    let notes: Vec<&str> = answer["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap())
+        .collect();
+    assert!(
+        notes
+            .iter()
+            .any(|n| n.contains("WARNING, battle animations aren't drawn here")),
+        "{notes:?}"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -276,23 +342,41 @@ fn ask(command: &str, dump: &Path, pictures: &Path, dir: &Path, body: Value) -> 
         .arg(&out)
         .output()
         .unwrap();
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    serde_json::from_str(&std::fs::read_to_string(out.join(format!("{command}.json"))).unwrap()).unwrap()
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    serde_json::from_str(&std::fs::read_to_string(out.join(format!("{command}.json"))).unwrap())
+        .unwrap()
 }
 
 #[test]
 fn bakeable_says_what_is_baked_and_why_it_is_safe() {
     let dir = scratch("bakeable");
     let (dump, pictures) = game(&dir);
-    let answer = ask("bakeable", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}}));
+    let answer = ask(
+        "bakeable",
+        &dump,
+        &pictures,
+        &dir,
+        json!({"map": 7, "map_files": {}, "chipset_files": {}}),
+    );
     let baked = answer["baked"].as_array().unwrap();
     assert_eq!(baked.len(), 1);
     let b = &baked[0];
-    assert_eq!((b["event"].clone(), b["cell"].clone(), b["tile"].clone()), (json!(0), json!(7), json!(10005)));
+    assert_eq!(
+        (b["event"].clone(), b["cell"].clone(), b["tile"].clone()),
+        (json!(0), json!(7), json!(10005))
+    );
     // What the row imposed is what the table says once the tile is in.
     assert_eq!(b["imposed"], b["after"]);
     assert!(b["alphas"].as_array().unwrap().iter().all(|a| a == 255));
-    assert!(answer["tile_zero"].as_array().unwrap().iter().all(|a| a == 0));
+    assert!(answer["tile_zero"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|a| a == 0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -301,17 +385,36 @@ fn bakeable_says_what_is_baked_and_why_it_is_safe() {
 #[test]
 fn an_event_a_page_moves_is_not_baked() {
     for (name, mover, command) in [
-        ("swapped-second", 1, json!({"code": 10870, "indent": 0, "parameters": [4, 1], "string": ""})),
-        ("swapped-first", 1, json!({"code": 10870, "indent": 0, "parameters": [1, 4], "string": ""})),
-        ("moves-itself", 0, json!({"code": 10860, "indent": 0, "parameters": [10005, 0, 2, 2], "string": ""})),
+        (
+            "swapped-second",
+            1,
+            json!({"code": 10870, "indent": 0, "parameters": [4, 1], "string": ""}),
+        ),
+        (
+            "swapped-first",
+            1,
+            json!({"code": 10870, "indent": 0, "parameters": [1, 4], "string": ""}),
+        ),
+        (
+            "moves-itself",
+            0,
+            json!({"code": 10860, "indent": 0, "parameters": [10005, 0, 2, 2], "string": ""}),
+        ),
     ] {
         let dir = scratch(&format!("not-baked-{name}"));
         let (dump, pictures) = game(&dir);
         let path = dump.join("maps/Map0007.json");
-        let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let mut map: Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
         map["events"][mover]["pages"][0]["event_commands"] = json!([command]);
         std::fs::write(&path, map.to_string()).unwrap();
-        let answer = ask("bakeable", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}}));
+        let answer = ask(
+            "bakeable",
+            &dump,
+            &pictures,
+            &dir,
+            json!({"map": 7, "map_files": {}, "chipset_files": {}}),
+        );
         assert_eq!(answer["baked"].as_array().unwrap().len(), 0, "{name}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
@@ -321,7 +424,13 @@ fn an_event_a_page_moves_is_not_baked() {
 fn split_answers_with_the_palettes_it_is_given() {
     let dir = scratch("split");
     let (dump, pictures) = game(&dir);
-    let answer = ask("split", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 8}));
+    let answer = ask(
+        "split",
+        &dump,
+        &pictures,
+        &dir,
+        json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 8}),
+    );
     let owners: Vec<Value> = answer["palette_of"].as_array().unwrap().clone();
     assert!(owners.contains(&json!(["Hero", 0, 0])), "{owners:?}");
     assert_eq!(answer["leader_owned"], json!([0]));
@@ -329,7 +438,13 @@ fn split_answers_with_the_palettes_it_is_given() {
     // With a single palette the leader, who is also an event here, does
     // not take it for itself: it would leave the other events none. It
     // shares it, and the tile goes in with it.
-    let tight = ask("split", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 1}));
+    let tight = ask(
+        "split",
+        &dump,
+        &pictures,
+        &dir,
+        json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 1}),
+    );
     assert_eq!(tight["shared_leaders"], json!([["Hero", 0]]));
     assert_eq!(tight["leader_owned"], json!([]));
     assert_eq!(tight["discarded"], json!([]));
@@ -342,9 +457,19 @@ fn the_test_event_goes_first() {
     let (dump, pictures) = game(&dir);
     let out = dir.join("out");
     let done = run(&dump, &pictures, &request(&dir, &pictures, true), &out);
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
-    let events: Vec<u64> = answer["npcs"].as_array().unwrap().iter().map(|n| n["event"].as_u64().unwrap()).collect();
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    let events: Vec<u64> = answer["npcs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["event"].as_u64().unwrap())
+        .collect();
     assert_eq!(events, [1, 2, 3]);
     assert_eq!(answer["baked"], json!([[1, 7, 10005]]));
     std::fs::remove_dir_all(&dir).unwrap();
@@ -366,12 +491,29 @@ fn a_leader_with_no_charset_has_no_graphic() {
     .unwrap();
     let request = request(&dir, &pictures, false);
     let text = std::fs::read_to_string(&request).unwrap();
-    std::fs::write(&request, text.replace("\"leaders\":[1,2]", "\"leaders\":[2,1]")).unwrap();
+    std::fs::write(
+        &request,
+        text.replace("\"leaders\":[1,2]", "\"leaders\":[2,1]"),
+    )
+    .unwrap();
     let out = dir.join("out");
     let done = run(&dump, &pictures, &request, &out);
-    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-    let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
-    let notes: Vec<&str> = answer["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
-    assert!(!notes.iter().any(|n| n.contains("can't find CharSet")), "{notes:?}");
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    let notes: Vec<&str> = answer["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap())
+        .collect();
+    assert!(
+        !notes.iter().any(|n| n.contains("can't find CharSet")),
+        "{notes:?}"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }

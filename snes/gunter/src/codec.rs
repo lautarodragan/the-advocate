@@ -137,7 +137,11 @@ pub fn encode_block(
         bytes[1 + i] = (nibbles[i * 2] << 4) | nibbles[i * 2 + 1];
     }
 
-    Encoded { bytes, old: new_old, older: new_older }
+    Encoded {
+        bytes,
+        old: new_old,
+        older: new_older,
+    }
 }
 
 /// A whole sample, with the loop point on whichever block it is told.
@@ -147,7 +151,7 @@ pub fn encode_block(
 /// multiple of sixteen, because the DSP only understands whole blocks.
 pub fn encode(samples: &[i16], loop_block: Option<usize>) -> Vec<u8> {
     let mut padded: Vec<i32> = samples.iter().map(|&s| s as i32).collect();
-    while padded.len() % BLOCK_SAMPLES != 0 {
+    while !padded.len().is_multiple_of(BLOCK_SAMPLES) {
         padded.push(0);
     }
 
@@ -259,7 +263,9 @@ mod tests {
     use super::*;
 
     fn headers(data: &[u8]) -> Vec<Header> {
-        data.chunks_exact(BLOCK_BYTES).map(|b| Header::of(b[0])).collect()
+        data.chunks_exact(BLOCK_BYTES)
+            .map(|b| Header::of(b[0]))
+            .collect()
     }
 
     #[test]
@@ -329,8 +335,9 @@ mod tests {
     fn a_square_wave_survives_the_round_trip() {
         // The hard case for a predictor: every prediction is wrong at the
         // edges, and only the range can absorb it.
-        let square: Vec<i16> =
-            (0..256).map(|i| if (i / 8) % 2 == 0 { 20000 } else { -20000 }).collect();
+        let square: Vec<i16> = (0..256)
+            .map(|i| if (i / 8) % 2 == 0 { 20000 } else { -20000 })
+            .collect();
         let data = encode(&square, None);
         let back = decode(&data);
         assert_eq!(back.len(), square.len());
@@ -343,7 +350,11 @@ mod tests {
         impulse[3] = 30000;
         let back = decode(&encode(&impulse, None));
         assert!(back[3] > 24000, "the spike should survive: {}", back[3]);
-        assert!(back[48..].iter().all(|s| s.abs() < 1200), "{:?}", &back[48..]);
+        assert!(
+            back[48..].iter().all(|s| s.abs() < 1200),
+            "{:?}",
+            &back[48..]
+        );
     }
 
     #[test]
@@ -359,8 +370,9 @@ mod tests {
 
     #[test]
     fn no_block_ever_asks_for_an_unusable_range() {
-        let noisy: Vec<i16> =
-            (0..1024).map(|i: i32| ((i * 7919) % 65536 - 32768) as i16).collect();
+        let noisy: Vec<i16> = (0..1024)
+            .map(|i: i32| ((i * 7919) % 65536 - 32768) as i16)
+            .collect();
         for h in headers(&encode(&noisy, None)) {
             assert!(h.shift <= MAX_SHIFT, "range {} is not decodable", h.shift);
         }

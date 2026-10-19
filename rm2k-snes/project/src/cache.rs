@@ -48,8 +48,7 @@ pub fn version_of<P: AsRef<Path>>(base: &Path, files: &[P]) -> Result<String, Er
     let mut h = Sha256::new();
     for name in files {
         let path = base.join(name);
-        let bytes = std::fs::read(&path)
-            .map_err(|e| Error(format!("{}: {e}", path.display())))?;
+        let bytes = std::fs::read(&path).map_err(|e| Error(format!("{}: {e}", path.display())))?;
         h.update(bytes);
     }
     Ok(hex(&h.finalize()))

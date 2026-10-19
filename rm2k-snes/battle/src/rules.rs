@@ -389,7 +389,11 @@ mod tests {
         assert_eq!(critical_percent(Some(1), 0), 100);
         assert_eq!(critical_percent(None, 0), 0);
         assert_eq!(critical_percent(Some(0), 0), 3, "zero is the default, 30");
-        assert_eq!(critical_percent(Some(25), 0), 3, "1 / 25 is a hair under 0.04");
+        assert_eq!(
+            critical_percent(Some(25), 0),
+            3,
+            "1 / 25 is a hair under 0.04"
+        );
         assert_eq!(critical_percent(None, 12), 11, "0.12 is a hair under too");
         assert_eq!(critical_percent(Some(10), 25), 34);
         assert_eq!(critical_percent(Some(30), 10), 13);

@@ -65,12 +65,20 @@ pub fn asm(bytecode: &Bytecode, jump_table: bool) -> String {
         out.push("; so an opcode at or above it is not one, and must not index the table.".into());
         out.push(format!("{prefix}_OPCODE_COUNT = ${:02X}", ordered.len()));
         out.push(String::new());
-        out.push("; One `.addr` per opcode, in the order of their numbers, to expand where a".into());
-        out.push("; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is".into());
+        out.push(
+            "; One `.addr` per opcode, in the order of their numbers, to expand where a".into(),
+        );
+        out.push(
+            "; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is".into(),
+        );
         out.push("; named after it, in lower case, and a missing one does not assemble.".into());
         out.push(format!(".macro {prefix}_HANDLERS"));
         for o in &ordered {
-            out.push(format!("    .addr {:<20} ; ${:02X}", o.name.to_lowercase(), o.code));
+            out.push(format!(
+                "    .addr {:<20} ; ${:02X}",
+                o.name.to_lowercase(),
+                o.code
+            ));
         }
         out.push(".endmacro".into());
         out.push(String::new());
@@ -84,19 +92,37 @@ mod tests {
     use crate::{Arg, Opcode, Repeated, Type};
 
     const fn arg(name: &'static str, kind: Type, count: bool) -> Arg {
-        Arg { name, kind, signed: false, count }
+        Arg {
+            name,
+            kind,
+            signed: false,
+            count,
+        }
     }
 
     const ITEMS: &[Arg] = &[arg("y", Type::Word, false)];
 
     const SAMPLE: &[Opcode] = &[
-        Opcode { name: "OP_NONE", code: 0x00, args: &[], repeated: None },
-        Opcode { name: "OP_ONE", code: 0x01, args: &[arg("x", Type::Word, false)], repeated: None },
+        Opcode {
+            name: "OP_NONE",
+            code: 0x00,
+            args: &[],
+            repeated: None,
+        },
+        Opcode {
+            name: "OP_ONE",
+            code: 0x01,
+            args: &[arg("x", Type::Word, false)],
+            repeated: None,
+        },
         Opcode {
             name: "OP_MANY",
             code: 0x02,
             args: &[arg("n", Type::Byte, true)],
-            repeated: Some(Repeated { name: "items", args: ITEMS }),
+            repeated: Some(Repeated {
+                name: "items",
+                args: ITEMS,
+            }),
         },
     ];
 
@@ -104,7 +130,10 @@ mod tests {
     const GAPPED: &[Opcode] = &[SAMPLE[0], SAMPLE[2]];
 
     fn sample() -> Bytecode {
-        Bytecode { name: "test", opcodes: SAMPLE }
+        Bytecode {
+            name: "test",
+            opcodes: SAMPLE,
+        }
     }
 
     /// An invisible trailing space would show up as a diff of the `.dbg` on
@@ -133,7 +162,13 @@ mod tests {
     /// declaration lists them in: that is the whole contract of the table.
     #[test]
     fn the_jump_table_follows_the_numbers_and_lowercases_the_names() {
-        let out = asm(&Bytecode { name: "test", opcodes: REVERSED }, true);
+        let out = asm(
+            &Bytecode {
+                name: "test",
+                opcodes: REVERSED,
+            },
+            true,
+        );
         let handlers: Vec<&str> = out
             .lines()
             .filter_map(|l| l.trim_start().strip_prefix(".addr "))
@@ -148,13 +183,25 @@ mod tests {
     #[test]
     #[should_panic(expected = "nothing takes 0x01")]
     fn a_jump_table_with_a_gap_is_refused() {
-        asm(&Bytecode { name: "test", opcodes: GAPPED }, true);
+        asm(
+            &Bytecode {
+                name: "test",
+                opcodes: GAPPED,
+            },
+            true,
+        );
     }
 
     /// Without the table, the same declaration is fine: a stream with an end
     /// marker at 0xFF is a normal declaration and a pointless table.
     #[test]
     fn without_the_table_a_gap_is_fine() {
-        asm(&Bytecode { name: "test", opcodes: GAPPED }, false);
+        asm(
+            &Bytecode {
+                name: "test",
+                opcodes: GAPPED,
+            },
+            false,
+        );
     }
 }

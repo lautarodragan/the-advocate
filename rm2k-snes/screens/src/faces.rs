@@ -45,7 +45,11 @@ pub type Request = (String, i32, bool);
 
 /// The `faces` of a request: `[[FaceSet, index, mirrored], ...]`.
 pub fn requested(data: &Value, whose: &str) -> Result<Vec<Request>> {
-    let bad = || Bad::answer(format!("{whose}: `faces` is not a list of [FaceSet, index, mirrored]"));
+    let bad = || {
+        Bad::answer(format!(
+            "{whose}: `faces` is not a list of [FaceSet, index, mirrored]"
+        ))
+    };
     data.get("faces")
         .and_then(Value::as_array)
         .ok_or_else(bad)?
@@ -126,14 +130,23 @@ pub fn palette(face: &Picture) -> Result<(Vec<Color>, HashMap<Color, u8>)> {
         let mut colors: Vec<Color> = merged.mapping.clone();
         colors.sort();
         colors.dedup();
-        (colors, counts.iter().map(|(c, _)| *c).zip(merged.mapping).collect())
+        (
+            colors,
+            counts.iter().map(|(c, _)| *c).zip(merged.mapping).collect(),
+        )
     } else {
-        (used.by_use(), used.in_order().iter().map(|(c, _)| (*c, *c)).collect())
+        (
+            used.by_use(),
+            used.in_order().iter().map(|(c, _)| (*c, *c)).collect(),
+        )
     };
     let index = dest
         .into_iter()
         .map(|(color, target)| {
-            let at = colors.iter().position(|c| *c == target).expect("the target is in the palette");
+            let at = colors
+                .iter()
+                .position(|c| *c == target)
+                .expect("the target is in the palette");
             (color, at as u8 + 1)
         })
         .collect();
@@ -153,7 +166,11 @@ fn one(face: &Picture) -> Result<DrawnFace> {
     }
     let mut palette: Vec<u16> = colors.iter().map(|c| cgram_word(*c)).collect();
     palette.resize(FACE_COLORS, 0);
-    Ok(DrawnFace { tiles, palette, missing: false })
+    Ok(DrawnFace {
+        tiles,
+        palette,
+        missing: false,
+    })
 }
 
 /// The answer of `faces`: `{"faces": [face, ...]}`, see the command's help.
@@ -199,7 +216,10 @@ mod tests {
         // No pixel at index 0: unpack each tile and look.
         for tile in drawn.tiles.chunks_exact(32) {
             for row in voodoo::pack::unpack_tile(tile, 4) {
-                assert!(row.iter().all(|&i| i != 0), "a face pixel at the transparent index");
+                assert!(
+                    row.iter().all(|&i| i != 0),
+                    "a face pixel at the transparent index"
+                );
             }
         }
     }
@@ -212,6 +232,13 @@ mod tests {
             face.rgba[x as usize * 4..x as usize * 4 + 4].copy_from_slice(&[x, 0, 0, 255]);
         }
         let mirrored = face.mirrored();
-        assert_eq!(mirrored.rgba.chunks_exact(4).map(|p| p[0]).collect::<Vec<_>>(), [3, 2, 1, 0]);
+        assert_eq!(
+            mirrored
+                .rgba
+                .chunks_exact(4)
+                .map(|p| p[0])
+                .collect::<Vec<_>>(),
+            [3, 2, 1, 0]
+        );
     }
 }

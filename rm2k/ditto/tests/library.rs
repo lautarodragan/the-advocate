@@ -38,8 +38,16 @@ impl Drop for Temp {
 fn database() -> Database {
     Database {
         actors: vec![
-            Actor { id: 1, name: "Ditto".into(), initial_level: 5, ..Default::default() },
-            Actor { id: 2, ..Default::default() },
+            Actor {
+                id: 1,
+                name: "Ditto".into(),
+                initial_level: 5,
+                ..Default::default()
+            },
+            Actor {
+                id: 2,
+                ..Default::default()
+            },
         ],
         animations: vec![Animation {
             id: 1,
@@ -59,14 +67,33 @@ fn database() -> Database {
 fn tree() -> TreeMap {
     TreeMap {
         maps: vec![
-            MapInfo { id: 0, r#type: TreeMapMapType::Root, ..Default::default() },
-            MapInfo { id: 1, r#type: TreeMapMapType::Map, encounter_steps: 0, ..Default::default() },
+            MapInfo {
+                id: 0,
+                r#type: TreeMapMapType::Root,
+                ..Default::default()
+            },
+            MapInfo {
+                id: 1,
+                r#type: TreeMapMapType::Map,
+                encounter_steps: 0,
+                ..Default::default()
+            },
             MapInfo {
                 id: 2,
                 parent_map: 1,
                 r#type: TreeMapMapType::Area,
-                encounters: vec![Encounter { id: 1, troop_id: 7, ..Default::default() }],
-                area_rect: Rect { l: 1, t: 1, r: 2, b: 2, ..Default::default() },
+                encounters: vec![Encounter {
+                    id: 1,
+                    troop_id: 7,
+                    ..Default::default()
+                }],
+                area_rect: Rect {
+                    l: 1,
+                    t: 1,
+                    r: 2,
+                    b: 2,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
         ],
@@ -96,7 +123,13 @@ fn map() -> Map {
         height: 2,
         lower_layer: vec![5000, 5001, 5002, 5003, 5004, 5005],
         upper_layer: vec![10000; 6],
-        events: vec![Event { id: 1, x: 2, y: 1, pages: vec![page], ..Default::default() }],
+        events: vec![Event {
+            id: 1,
+            x: 2,
+            y: 1,
+            pages: vec![page],
+            ..Default::default()
+        }],
         ..Default::default()
     }
 }
@@ -108,9 +141,27 @@ fn both_views(tmp: &Temp) -> (PathBuf, PathBuf) {
     let write = |name: &str, doc: Document| {
         std::fs::write(game.join(name), ditto::file::write(&doc).unwrap()).unwrap();
     };
-    write("RPG_RT.ldb", Document::Ldb { header: "LcfDataBase".into(), data: database() });
-    write("RPG_RT.lmt", Document::Lmt { header: "LcfMapTree".into(), data: tree() });
-    write("Map0001.lmu", Document::Lmu { header: "LcfMapUnit".into(), data: map() });
+    write(
+        "RPG_RT.ldb",
+        Document::Ldb {
+            header: "LcfDataBase".into(),
+            data: database(),
+        },
+    );
+    write(
+        "RPG_RT.lmt",
+        Document::Lmt {
+            header: "LcfMapTree".into(),
+            data: tree(),
+        },
+    );
+    write(
+        "Map0001.lmu",
+        Document::Lmu {
+            header: "LcfMapUnit".into(),
+            data: map(),
+        },
+    );
     let (exact, resolved) = (tmp.0.join("exact"), tmp.0.join("resolved"));
     unpack(&game, &exact, &resolved).unwrap();
     (exact, resolved)
@@ -123,7 +174,11 @@ fn both_views_read_into_the_same_values() {
     for (dir, view) in [(&exact, View::Exact), (&resolved, View::Resolved)] {
         let dump = Dump::open(dir).unwrap();
         assert_eq!(dump.view(), view);
-        assert_eq!(dump.database().unwrap(), database(), "{view:?}: the database");
+        assert_eq!(
+            dump.database().unwrap(),
+            database(),
+            "{view:?}: the database"
+        );
         assert_eq!(dump.tree().unwrap(), tree(), "{view:?}: the tree");
         assert_eq!(dump.map(1).unwrap(), map(), "{view:?}: the map");
     }
@@ -140,9 +195,27 @@ fn the_file_names_are_read_in_any_case() {
     let write = |name: &str, doc: Document| {
         std::fs::write(game.join(name), ditto::file::write(&doc).unwrap()).unwrap();
     };
-    write("RPG_RT.LDB", Document::Ldb { header: "LcfDataBase".into(), data: database() });
-    write("rpg_rt.Lmt", Document::Lmt { header: "LcfMapTree".into(), data: tree() });
-    write("Map0001.lmu", Document::Lmu { header: "LcfMapUnit".into(), data: map() });
+    write(
+        "RPG_RT.LDB",
+        Document::Ldb {
+            header: "LcfDataBase".into(),
+            data: database(),
+        },
+    );
+    write(
+        "rpg_rt.Lmt",
+        Document::Lmt {
+            header: "LcfMapTree".into(),
+            data: tree(),
+        },
+    );
+    write(
+        "Map0001.lmu",
+        Document::Lmu {
+            header: "LcfMapUnit".into(),
+            data: map(),
+        },
+    );
     let (exact, resolved) = (tmp.0.join("exact"), tmp.0.join("resolved"));
     unpack(&game, &exact, &resolved).unwrap();
     let dump = Dump::open(&resolved).unwrap();
@@ -161,7 +234,10 @@ fn a_section_reads_on_its_own() {
     let dump = Dump::open(&resolved).unwrap();
     let actors: Vec<Actor> = dump.section("actors").unwrap();
     assert_eq!(actors, database().actors);
-    assert!(dump.database().is_err(), "the broken section should break the whole");
+    assert!(
+        dump.database().is_err(),
+        "the broken section should break the whole"
+    );
 }
 
 /// A map in the dump's shape that is not in a dump —one a project changed,
@@ -199,6 +275,8 @@ fn another_version_is_refused() {
     let manifest = resolved.join("ditto.json");
     let text = std::fs::read_to_string(&manifest).unwrap();
     std::fs::write(&manifest, text.replace("\"ditto\": 2", "\"ditto\": 1")).unwrap();
-    let e = Dump::open(Path::new(&resolved)).err().expect("version 1 should be refused");
+    let e = Dump::open(Path::new(&resolved))
+        .err()
+        .expect("version 1 should be refused");
     assert!(e.0.contains("version 1"), "{}", e.0);
 }

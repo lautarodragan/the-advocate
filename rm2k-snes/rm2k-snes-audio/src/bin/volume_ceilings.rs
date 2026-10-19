@@ -80,17 +80,27 @@ fn row_json(row: &Row) -> Value {
 
 /// One song, in a process of its own.
 fn play_apart(sfc: &Path, song: usize, frames: i64, lufs: bool) -> Result<Row, Bad> {
-    let exe = std::env::current_exe().map_err(|e| Bad::usage(format!("the running executable: {e}")))?;
+    let exe =
+        std::env::current_exe().map_err(|e| Bad::usage(format!("the running executable: {e}")))?;
     let mut cmd = std::process::Command::new(exe);
-    cmd.arg("--play").arg(sfc).args(["--song", &song.to_string(), "--frames", &frames.to_string()]);
+    cmd.arg("--play")
+        .arg(sfc)
+        .args(["--song", &song.to_string(), "--frames", &frames.to_string()]);
     if lufs {
         cmd.arg("--lufs");
     }
-    let out = cmd.stderr(Stdio::inherit()).output().map_err(|e| Bad::usage(format!("--play: {e}")))?;
+    let out = cmd
+        .stderr(Stdio::inherit())
+        .output()
+        .map_err(|e| Bad::usage(format!("--play: {e}")))?;
     if !out.status.success() {
-        return Err(Bad::usage(format!("playing song {song} of {} failed", sfc.display())));
+        return Err(Bad::usage(format!(
+            "playing song {song} of {} failed",
+            sfc.display()
+        )));
     }
-    let v: Value = serde_json::from_slice(&out.stdout).map_err(|e| Bad::usage(format!("--play: {e}")))?;
+    let v: Value =
+        serde_json::from_slice(&out.stdout).map_err(|e| Bad::usage(format!("--play: {e}")))?;
     Ok(Row {
         clipped: v["clipped"].as_u64().unwrap_or(0) as usize,
         peak: v["peak"].as_i64().unwrap_or(0),
@@ -111,7 +121,11 @@ fn measure(directory: &Path, rom_name: &str, lufs: bool) -> Result<BTreeMap<Stri
         .filter(|(i, n)| !n.is_empty() && built.get(*i).is_some_and(|b| b.length != 0))
         .map(|(i, _)| (i, built[i].length + 60))
         .collect();
-    let workers: usize = std::env::var("PROCESSES").ok().and_then(|p| p.parse().ok()).unwrap_or(8).max(1);
+    let workers: usize = std::env::var("PROCESSES")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8)
+        .max(1);
     let next = Mutex::new(0usize);
     let results = Mutex::new(Vec::new());
     std::thread::scope(|scope| {
@@ -122,7 +136,9 @@ fn measure(directory: &Path, rom_name: &str, lufs: bool) -> Result<BTreeMap<Stri
                     *n += 1;
                     *n - 1
                 };
-                let Some(&(song, frames)) = jobs.get(k) else { break };
+                let Some(&(song, frames)) = jobs.get(k) else {
+                    break;
+                };
                 let got = play_apart(&sfc, song, frames, lufs);
                 results.lock().unwrap().push((song, got));
             });
@@ -145,16 +161,23 @@ impl Run {
     /// values.
     fn cartridges(&self, args: &[&str], capture: bool) -> Result<String, Bad> {
         let mut cmd = std::process::Command::new(CARTRIDGES);
-        cmd.arg("--project").arg(self.project.directory()).args(self.environment.as_flags(TO_CONVERTER)).args(args);
+        cmd.arg("--project")
+            .arg(self.project.directory())
+            .args(self.environment.as_flags(TO_CONVERTER))
+            .args(args);
         if capture {
             cmd.stderr(Stdio::inherit());
-            let out = cmd.output().map_err(|e| Bad::usage(format!("{CARTRIDGES}: {e}")))?;
+            let out = cmd
+                .output()
+                .map_err(|e| Bad::usage(format!("{CARTRIDGES}: {e}")))?;
             if !out.status.success() {
                 return Err(Bad::usage(format!("{CARTRIDGES} failed: {}", out.status)));
             }
             Ok(String::from_utf8_lossy(&out.stdout).into_owned())
         } else {
-            let status = cmd.status().map_err(|e| Bad::usage(format!("{CARTRIDGES}: {e}")))?;
+            let status = cmd
+                .status()
+                .map_err(|e| Bad::usage(format!("{CARTRIDGES}: {e}")))?;
             if !status.success() {
                 return Err(Bad::usage(format!("{CARTRIDGES} failed: {status}")));
             }
@@ -169,7 +192,8 @@ impl Run {
     fn write(&self, text: &str) -> Result<(), Bad> {
         let path = self.ceilings_path()?;
         if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir).map_err(|e| Bad::usage(format!("{}: {e}", dir.display())))?;
+            std::fs::create_dir_all(dir)
+                .map_err(|e| Bad::usage(format!("{}: {e}", dir.display())))?;
         }
         std::fs::write(&path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
     }
@@ -190,10 +214,15 @@ fn run() -> Result<(), Bad> {
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
     let environment = Environment::from_matches(&matches, TO_CONVERTER);
     let rom_name = project.string(&["rom", "name"])?.to_string();
-    let run = Run { project, environment };
+    let run = Run {
+        project,
+        environment,
+    };
     let listed: Value = serde_json::from_str(&run.cartridges(&["--list", "--json"], true)?)
         .map_err(|e| Bad::usage(format!("{CARTRIDGES} --list --json: {e}")))?;
-    let release_name = listed["release"].as_str().ok_or_else(|| Bad::usage("no release cartridge".to_string()))?;
+    let release_name = listed["release"]
+        .as_str()
+        .ok_or_else(|| Bad::usage("no release cartridge".to_string()))?;
     let release = listed["cartridges"]
         .as_array()
         .and_then(|cs| cs.iter().find(|c| c["name"] == release_name))
@@ -201,21 +230,38 @@ fn run() -> Result<(), Bad> {
         .map(PathBuf::from)
         .ok_or_else(|| Bad::usage(format!("{release_name} is not among the cartridges")))?;
     if matches.get_flag("measure") {
-        print!("{}", ceilings::report(&measure(&release, &rom_name, true)?, None));
+        print!(
+            "{}",
+            ceilings::report(&measure(&release, &rom_name, true)?, None)
+        );
         return Ok(());
     }
 
     // The half-volume copy, in its own build directory.
     let measure_dir = run.project.build()?.join("ceilings");
-    println!("a copy of release with the headroom at {MEASURING_HEADROOM:?}, in {}", measure_dir.display());
+    println!(
+        "a copy of release with the headroom at {MEASURING_HEADROOM:?}, in {}",
+        measure_dir.display()
+    );
     let _ = std::io::stdout().flush();
     let measure_dir_text = measure_dir.to_string_lossy().into_owned();
     run.cartridges(
-        &[release_name, "--convert-into", &measure_dir_text, "--", "--measure-headroom", &format!("{MEASURING_HEADROOM:?}")],
+        &[
+            release_name,
+            "--convert-into",
+            &measure_dir_text,
+            "--",
+            "--measure-headroom",
+            &format!("{MEASURING_HEADROOM:?}"),
+        ],
         false,
     )?;
     let at_half = measure(&measure_dir, &rom_name, false)?;
-    let clipping: Vec<&str> = at_half.iter().filter(|(_, r)| r.clipped != 0).map(|(n, _)| n.as_str()).collect();
+    let clipping: Vec<&str> = at_half
+        .iter()
+        .filter(|(_, r)| r.clipped != 0)
+        .map(|(n, _)| n.as_str())
+        .collect();
     if !clipping.is_empty() {
         return Err(Bad::answer(format!(
             "with the headroom at {MEASURING_HEADROOM:?} these clip: {}: lower MEASURING_HEADROOM",
@@ -224,14 +270,29 @@ fn run() -> Result<(), Bad> {
     }
     let mut ceilings: BTreeMap<String, f64> = at_half
         .iter()
-        .map(|(n, r)| (n.clone(), ceilings::ceiling(r.peak as f64, MEASURING_HEADROOM, HEADROOM)))
+        .map(|(n, r)| {
+            (
+                n.clone(),
+                ceilings::ceiling(r.peak as f64, MEASURING_HEADROOM, HEADROOM),
+            )
+        })
         .collect();
 
     let mut measured = BTreeMap::new();
     let mut done = false;
     for attempt in 0..4 {
-        let provisional: BTreeMap<String, Row> =
-            at_half.iter().map(|(n, r)| (n.clone(), Row { lufs: Some(0.0), ..r.clone() })).collect();
+        let provisional: BTreeMap<String, Row> = at_half
+            .iter()
+            .map(|(n, r)| {
+                (
+                    n.clone(),
+                    Row {
+                        lufs: Some(0.0),
+                        ..r.clone()
+                    },
+                )
+            })
+            .collect();
         run.write(&ceilings::table(&ceilings, &provisional, &BTreeMap::new()))?;
         println!("release with the table, round {}", attempt + 1);
         let _ = std::io::stdout().flush();
@@ -239,8 +300,11 @@ fn run() -> Result<(), Bad> {
         // tracks do not depend on the headroom.
         run.cartridges(&[release_name, "--without-tracks"], false)?;
         measured = measure(&release, &rom_name, true)?;
-        let clipping: Vec<(String, i64)> =
-            measured.iter().filter(|(_, r)| r.clipped != 0).map(|(n, r)| (n.clone(), r.peak)).collect();
+        let clipping: Vec<(String, i64)> = measured
+            .iter()
+            .filter(|(_, r)| r.clipped != 0)
+            .map(|(n, r)| (n.clone(), r.peak))
+            .collect();
         if clipping.is_empty() {
             done = true;
             break;
@@ -251,8 +315,15 @@ fn run() -> Result<(), Bad> {
         }
     }
     if !done {
-        let still: Vec<&str> = measured.iter().filter(|(_, r)| r.clipped != 0).map(|(n, _)| n.as_str()).collect();
-        return Err(Bad::answer(format!("after four rounds these still clip: {}", still.join(", "))));
+        let still: Vec<&str> = measured
+            .iter()
+            .filter(|(_, r)| r.clipped != 0)
+            .map(|(n, _)| n.as_str())
+            .collect();
+        return Err(Bad::answer(format!(
+            "after four rounds these still clip: {}",
+            still.join(", ")
+        )));
     }
     let fingerprints: BTreeMap<String, String> = ceilings::built_songs(&release)?
         .into_iter()
