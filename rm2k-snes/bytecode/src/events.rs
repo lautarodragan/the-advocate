@@ -229,7 +229,14 @@ bytecode! {
 
     OP_RESERVED_3A = 0x3A ();
 
-    OP_RESERVED_3B = 0x3B ();
+    /// `ShowInn`'s staging, RM2k's `Scene_Map::CallInn`, in three phases the
+    /// page puts around the fade and the heal: 0 notes the song playing and
+    /// its level, apart from `MemorizeBGM`'s; 1 freezes the world until the
+    /// song playing —the System's inn music— has come round once, or ten
+    /// seconds, and stops it; 2 puts the noted song back from the top. See
+    /// `compile_inn` in rm2k-snes-events and `inn_tick` in the runtime's
+    /// `inn.s`.
+    OP_INN = 0x3B (phase: byte);
 
     OP_RESERVED_3C = 0x3C ();
 

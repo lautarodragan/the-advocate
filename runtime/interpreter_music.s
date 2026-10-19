@@ -54,6 +54,22 @@ touch:
 
 .endproc
 
+; `OP_INN`: only the entry, like `op_memorized_bgm`. The body is `inn_phase`,
+; in inn.s, which returns with V set when the page has to end the frame here
+; —the wait for the inn's music begins on the next one—, and with carry set
+; and the song in A when the song before the inn goes back on, which is a
+; `PlayBGM`.
+.proc op_inn
+    jsl f:inn_phase
+    bvs wait
+    bcs op_memorized_bgm::touch
+    jmp run_code::other
+wait:
+    sty ev_cur
+    rts
+
+.endproc
+
 ; `FadeOutBGM`. The operand is how much the volume drops per frame; it is
 ; lowered by `bgm_fade_tick`, not here, and the page carries on in this same
 ; frame, which is what `CommandFadeOutBGM` does by returning true.

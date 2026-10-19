@@ -136,6 +136,7 @@ put:
     sta f:TRANSITION_ERASE
     sta f:TRANSITION_SHOW
     sta f:SCREEN_ERASED         ; and the screen, not erased
+    sta f:INN_WAIT              ; and no inn waiting for its music: see inn.s
     lda #$FF
     sta f:SCREEN_FADE           ; the harness's fades do not go through `fade_from`
     rtl

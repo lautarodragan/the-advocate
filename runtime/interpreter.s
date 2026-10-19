@@ -109,7 +109,6 @@ op_return = op_done
 ; they land, each one ends the page, like a number that is not an opcode.
 op_reserved_39 = page_ends
 op_reserved_3a = page_ends
-op_reserved_3b = page_ends
 op_reserved_3c = page_ends
 op_reserved_52 = page_ends
 op_reserved_53 = page_ends
