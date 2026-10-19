@@ -358,6 +358,29 @@ mod tests {
         p
     }
 
+    /// Drawn for the console, the layer keeps the picture's pixels: an 88x56
+    /// at RM2k's (160, 120) from the console's (84, 84), each column of
+    /// stripes where it was.
+    #[test]
+    fn drawn_for_the_console_the_layer_is_not_scaled() {
+        let picture = stripes(88, 56, 4);
+        let layer = convert(&picture, 160, 120, SCREENS, 100, None, true, ROOM)
+            .unwrap()
+            .unwrap();
+        assert_eq!(layer.center, (84 + 44, 84 + 28));
+        let colour = |x: usize, y: usize| layer.pixels[y * 256 + x];
+        assert_eq!(colour(83, 100), 0, "left of the picture, nothing");
+        for x in 0..88 {
+            assert_eq!(
+                colour(84 + x, 84),
+                colour(84 + x % 4, 84 + 55),
+                "column {x}"
+            );
+        }
+        assert_ne!(colour(84, 84), colour(85, 84));
+        assert!(convert(&picture, 160, 120, SCREENS, 50, None, true, ROOM).is_err());
+    }
+
     #[test]
     fn a_picture_inside_the_screen_leaves_the_rest_blank() {
         // 80x60 of RM2k's, in the middle: 64x56 of the console's, from
