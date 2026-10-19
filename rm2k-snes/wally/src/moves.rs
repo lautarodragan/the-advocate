@@ -32,6 +32,9 @@ pub struct ScannedPage {
     pub compiles: bool,
     /// The events its code sends a route to, by index.
     pub route_targets: Vec<usize>,
+    /// The graphics those routes give events —command 34—, as `(event
+    /// index, index in the map's route graphics)`.
+    pub route_graphics: Vec<(usize, usize)>,
     /// Whether it walks a route of its own.
     pub own_route: bool,
     /// Whether it turns toward the hero when triggered.

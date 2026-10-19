@@ -11,7 +11,7 @@ use crate::background::blocks::Blocks;
 use crate::background::Converted;
 use crate::baking::{self, bakeable};
 use crate::decor::{self, Decoration};
-use crate::events::{changes_graphic, collect_npcs, events, Event};
+use crate::events::{changes_graphic, collect_npcs, dressed_by_routes, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::layers::{self as stage_layers, Drawn};
@@ -414,6 +414,11 @@ pub struct Whole {
     /// Whether the pictures that went in are `picture_own` and not
     /// `picture`: see [`MapRequest::picture_own`].
     pub own_pictures: bool,
+    /// The events that got a row only because a route dresses them, by
+    /// RM2k id: see `dressed_by_routes`.
+    pub dressed: Vec<i32>,
+    /// The graphics drawn with someone else's palette.
+    pub lent: BTreeSet<Key>,
 }
 
 /// The final layers and their blocks.
@@ -433,6 +438,92 @@ pub struct Final {
 /// fitting or not. Only a map that does not fit changes: every other map
 /// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
+    let with = convert_fitting(game, request)?;
+    if with.dressed.is_empty() {
+        return Ok(with);
+    }
+    let bare = MapRequest {
+        pages: request
+            .pages
+            .iter()
+            .map(|p| ScannedPage {
+                route_graphics: Vec::new(),
+                ..p.clone()
+            })
+            .collect(),
+        ..request.clone()
+    };
+    let mut without = convert_fitting(game, &bare)?;
+    let dressing: BTreeSet<Key> = with
+        .npcs
+        .iter()
+        .filter(|n| n.dressed())
+        .map(|n| (n.charset.clone(), n.index))
+        .collect();
+    let Some(what) = loses_more(&with, &without, &dressing) else {
+        return Ok(with);
+    };
+    without.notes.push(lost(
+        "dressed-not-drawn",
+        with.dressed.clone(),
+        format!(
+        "  map {}: WARNING, events {} draw nothing on any page and a route dresses them, and they \
+         aren't drawn: with them the map loses {what}",
+        request.map,
+        with.dressed.iter().map(i32::to_string).collect::<Vec<_>>().join(", ")
+    ),
+    ));
+    Ok(without)
+}
+
+/// What the map converted `with` the rows a route dresses loses that it does
+/// not `without` them, if anything: a loss of another kind, or of another
+/// event, or a graphic lent a palette that is not one of the `dressing`
+/// ones. The dressed characters drawn with someone else's palette, or
+/// waiting for a slot of the cache, are their own cost and go; the map's
+/// pictures, its animations or its characters' colours are not paid for
+/// them.
+fn loses_more(with: &Whole, without: &Whole, dressing: &BTreeSet<Key>) -> Option<String> {
+    let losses = |w: &Whole| -> BTreeSet<(&'static str, Option<i32>)> {
+        let mut out = BTreeSet::new();
+        for n in &w.notes {
+            let Some(kind) = n.loss else { continue };
+            if kind == "palette-lent" {
+                continue;
+            }
+            if n.events.is_empty() {
+                out.insert((kind, None));
+            }
+            for e in &n.events {
+                if !with.dressed.contains(e) {
+                    out.insert((kind, Some(*e)));
+                }
+            }
+        }
+        out
+    };
+    let before = losses(without);
+    let mut more: Vec<String> = losses(with)
+        .difference(&before)
+        .map(|(kind, e)| match e {
+            Some(e) => format!("{kind} (event {e})"),
+            None => kind.to_string(),
+        })
+        .collect();
+    let lent: Vec<String> = with
+        .lent
+        .iter()
+        .filter(|k| !without.lent.contains(*k) && !dressing.contains(*k))
+        .map(|k| format!("{}:{}'s palette", k.0, k.1))
+        .collect();
+    more.extend(lent);
+    more.dedup();
+    (!more.is_empty()).then(|| more.join(", "))
+}
+
+/// [`convert`] without its first question —whether the rows a route
+/// dresses cost the map something—: as it always was, fitting a layout.
+fn convert_fitting(game: &Game, request: &MapRequest) -> Result<Whole> {
     // The pictures of the common events' copies go in only if they cost
     // nothing: the map as it is, with them placed and fitting a layout.
     // Otherwise the map is converted with its own, as if it had no copies,
@@ -447,7 +538,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             picture_own: None,
             ..request.clone()
         };
-        let mut done = convert(game, &without)?;
+        let mut done = convert_fitting(game, &without)?;
         let plain = convert_with(game, request, Mode::Plain, None)?;
         let placed = plain.objects.as_ref().is_some_and(|o| o.image.0 != 0);
         let losses = |w: &Whole| {
@@ -499,7 +590,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             picture: None,
             ..request.clone()
         };
-        let mut done = convert(game, &without)?;
+        let mut done = convert_fitting(game, &without)?;
         done.notes.push(lost(
             "pictures-not-drawn",
             vec![],
@@ -560,7 +651,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             battle_animation: false,
             ..request.clone()
         };
-        let mut done = convert(game, &without)?;
+        let mut done = convert_fitting(game, &without)?;
         if fits(&done, &layouts_for(&done.layers.converted, &without)) {
             done.notes.push(lost(
                 "battle-animations-not-drawn",
@@ -594,7 +685,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
                     fuse_tiles: Some(cap),
                     ..request.clone()
                 };
-                let done = convert(game, &asked)?;
+                let done = convert_fitting(game, &asked)?;
                 if fits(&done, &layouts_for(&done.layers.converted, request)) {
                     return Ok(done);
                 }
@@ -1088,6 +1179,39 @@ fn convert_with(
     let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
     let gone: BTreeSet<usize> = kept_decor.iter().map(|d| d.event).collect();
     npcs0.retain(|n| !gone.contains(&n.event));
+    // And the events a route dresses whose pages draw nothing: a hidden row
+    // each, with the graphics that draw something —one that dresses an
+    // event with a blank slot is hiding it, and that needs no row—. See
+    // `dressed_by_routes`.
+    let mut dressing: BTreeMap<usize, Vec<Key>> = BTreeMap::new();
+    for page in request.pages.iter().filter(|p| p.compiles) {
+        for &(event, k) in &page.route_graphics {
+            let Some(key) = request.route_graphics.get(k) else {
+                continue;
+            };
+            drawer.draw(&key.0)?;
+            let draws = drawer
+                .sheets()
+                .get(&key.0)
+                .and_then(Option::as_ref)
+                .is_some_and(|s| !sprite_colors(s, key.1, None).is_empty());
+            let graphics = dressing.entry(event).or_default();
+            if draws && !graphics.contains(key) {
+                graphics.push(key.clone());
+            }
+        }
+    }
+    let drawn: BTreeSet<usize> = npcs0.iter().map(|n| n.event).collect();
+    let dressed = dressed_by_routes(&events, &chipset_name, &drawn, &dressing);
+    let dressed_ids: Vec<i32> = dressed.iter().map(|n| events[n.event].id).collect();
+    if !dressed.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: events {} draw nothing on any page and a route dresses them: a hidden row each",
+            dressed.iter().map(|n| events[n.event].id.to_string()).collect::<Vec<_>>().join(", ")
+        )));
+        npcs0.extend(dressed);
+        npcs0.sort_by_key(|n| n.event);
+    }
     // More than the console's table holds: some lose their row. Before
     // anything counts poses, slots or palettes, so what is not drawn costs
     // nothing in the sprite bank either.
@@ -1338,6 +1462,8 @@ fn convert_with(
         moves: who.clone(),
         own_pictures: false,
         substitutions: substituted,
+        dressed: dressed_ids,
+        lent: split.lent.iter().cloned().collect(),
     };
 
     for (event, tile) in &d.discarded {

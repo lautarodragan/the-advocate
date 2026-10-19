@@ -570,6 +570,8 @@ end16:
 no_pages:
     sep #$20
 .a8
+    lda #0
+    sta f:pages_again           ; every row has been set up again
     rts
 .endproc
 
@@ -1369,6 +1371,16 @@ has_row:
     sty npc_row
     lda pg_pose
     bmi with_graphic
+    ; The same page again, only because the poses were forgotten —a battle, a
+    ; big picture—: one that draws nothing leaves the row as it was. A route
+    ; may have dressed it (`change_graphic`), and RM2k does not set the page
+    ; up again when it comes back from a battle: in The Book of Three's
+    ; Gurgi scene, map 21, Gwydion and Gurgi are events with no graphic that
+    ; a route dresses before the fight, and they talk after it.
+    lda f:applied_again
+    beq :+
+    rts
+:
     lda #0                      ; the page draws nothing: hidden
     sta npc_buf + 14, y
     lda #$FF
@@ -2520,19 +2532,28 @@ no:
 ; events: see tasks/frozen-world-the-battle-maps-lag.md. Calandria had seen
 ; it reading the code, in a draft deleted when this fixed it.
 ;
-; It is forgotten —all $FFFF— on loading a map and when the rows' poses are
-; forgotten (`npc_poses_forget`), so the next refresh sets every row up
-; again; and per event when it is hidden: the page that comes back after is
-; set up again even if it is the same.
+; It is forgotten —all $FFFF— on loading a map, so the next refresh sets
+; every row up again; and per event when it is hidden: the page that comes
+; back after is set up again even if it is the same. When the rows' poses are
+; forgotten (`npc_poses_forget`) the next full refresh sets every row up
+; again too, the same page included, but `applied_again` tells `page_graphic`
+; it is the same: a walker's page has to upload its pose again, and a page
+; that draws nothing must not hide what a route dressed.
 .pushseg
 .segment "FARBSS"
 applied_page: .res EV_MAX * 2
+; Nonzero from `npc_poses_forget` to the end of the next `apply_pages`.
+pages_again: .res 1
+; Nonzero while `apply_pages` sets up an event's page that it already had,
+; because `pages_again` asked: what `page_applied` answered last.
+applied_again: .res 1
 .popseg
 
 .pushseg
 .segment "FAR3"
 ; The event in `rp_ev` gets the page at `page_ofs`: C=1 if it already had it
-; set up, and else it is noted and C=0. Clobbers A and X.
+; set up, and else it is noted and C=0. After `npc_poses_forget` the same page
+; is C=0 too, with `applied_again` set. Clobbers A and X.
 .proc page_applied
 .a8
 .i16
@@ -2547,12 +2568,29 @@ applied_page: .res EV_MAX * 2
     sta f:applied_page, x
     sep #$20
 .a8
+    lda #0
+    sta f:applied_again
     clc
     rtl
 .a16
 same:
     sep #$20
 .a8
+    lda f:pages_again           ; neither touches C
+    sta f:applied_again
+    beq kept
+    clc                         ; set it up again
+kept:
+    rtl
+.endproc
+
+; Every event's page is set up again on the next full refresh, the same one
+; too, with `applied_again` saying it is the same. Clobbers A.
+.proc applied_again_all
+.a8
+.i16
+    lda #1
+    sta f:pages_again
     rtl
 .endproc
 

@@ -126,7 +126,7 @@ ready:
     ; has nobody to upload its pose but its page —see `walker_graphic`—, and
     ; the bank just restored put back the converter's, which can be another
     ; page's graphic. Every page, even the same one: see `applied_page`.
-    jsl f:applied_forget
+    jsl f:applied_again_all
     lda #1
     sta refresh
     rts

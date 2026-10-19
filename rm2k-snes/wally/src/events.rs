@@ -165,6 +165,15 @@ pub fn tile_passability(flags: &[u8], charset: &str, layer: i32) -> Option<u8> {
     (value & ABOVE == 0).then_some(value & ALL)
 }
 
+/// Whether the console understands the conditions of all the event's pages,
+/// which is what lets its graphic follow them.
+fn supported(event: &Event) -> bool {
+    event.pages.iter().all(|p| {
+        p.conditions.iter().all(|c| SUPPORTED.contains(c))
+            && !(p.conditions.contains(&"timer") && p.conditions.contains(&"variable"))
+    })
+}
+
 /// The page RM2k shows in a freshly started game: the last one without a
 /// condition.
 fn active_page(event: &Event) -> Option<&Page> {
@@ -205,10 +214,7 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
         {
             possible.push(&none);
         }
-        let supported = event.pages.iter().all(|p| {
-            p.conditions.iter().all(|c| SUPPORTED.contains(c))
-                && !(p.conditions.contains(&"timer") && p.conditions.contains(&"variable"))
-        });
+        let supported = supported(event);
         let changes = possible.len() > 1 && supported;
         let active = active_page(event);
         let visible = active.is_some_and(|p| page_graphic(p, chipset).is_some());
@@ -255,6 +261,67 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
     npcs
 }
 
+/// The rows of the events whose pages draw nothing and that a route dresses
+/// —command 34—: `dressing` says, by event index, the graphics its routes
+/// give it that draw something, in the map's order.
+///
+/// [`collect_npcs`] leaves out an event without a graphic on any page, and
+/// without a row the ROM's `change_graphic` drops the change: in The Book of
+/// Three a cutscene places such an event with `ChangeEventLocation`, dresses
+/// it with a route and has it talk, and the scene went on with nobody. The
+/// row starts hidden, with the first graphic a route gives it, and its
+/// graphic follows the page: a page that becomes active draws nothing and
+/// hides it again, which is `SetupFromPage` taking the page's empty
+/// graphic. The rest —its layer, its speed, its pose— is the page active at
+/// load's, or the first one's.
+pub fn dressed_by_routes(
+    events: &[Event],
+    chipset: &str,
+    drawn: &std::collections::BTreeSet<usize>,
+    dressing: &BTreeMap<usize, Vec<(String, i32)>>,
+) -> Vec<Npc> {
+    let mut out = Vec::new();
+    for (&number, graphics) in dressing {
+        let Some(event) = events.get(number) else {
+            continue;
+        };
+        let Some((charset, index)) = graphics.first().cloned() else {
+            continue;
+        };
+        if drawn.contains(&number)
+            || event.pages.is_empty()
+            || event
+                .pages
+                .iter()
+                .any(|p| page_graphic(p, chipset).is_some())
+        {
+            continue;
+        }
+        let supported = supported(event);
+        let page = active_page(event).unwrap_or(&event.pages[0]);
+        out.push(Npc {
+            event: number,
+            x: event.x,
+            y: event.y,
+            charset,
+            index,
+            pose: page.pose,
+            layer: page.layer,
+            blocks: page.layer == LAYER_SAME,
+            speed: page.speed,
+            animates: matches!(page.animation, 1 | 3),
+            visible: false,
+            changes: supported,
+            graphics: vec![None; event.pages.len()],
+            layers: event.pages.iter().map(|p| p.layer).collect(),
+            tile_pass: None,
+            outside: Default::default(),
+            appears: false,
+        });
+    }
+    out
+}
+
 /// Where a route command sends: 0 the hero, an event's index plus one, and
 /// `None` for "this event" without an owner and an id the map lacks.
 pub fn route_target(events: &[Event], who: i32) -> Option<usize> {
@@ -281,4 +348,64 @@ pub fn changes_graphic(event: &Event) -> bool {
     graphics.sort();
     graphics.dedup();
     graphics.len() > 1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    fn page(name: &str, conditions: Vec<&'static str>) -> Page {
+        Page {
+            name: name.into(),
+            index: 0,
+            pose: 7,
+            layer: LAYER_SAME,
+            speed: 3,
+            animation: 0,
+            move_type: 0,
+            own_route: false,
+            conditions,
+            commands: Vec::new(),
+        }
+    }
+
+    fn event(id: i32, pages: Vec<Page>) -> Event {
+        Event {
+            id,
+            x: 4,
+            y: 5,
+            pages,
+        }
+    }
+
+    #[test]
+    fn an_event_a_route_dresses_gets_a_hidden_row_that_follows_its_pages() {
+        // The Book of Three's map 32: the visitor in the cell has pages
+        // without a graphic, and the scene's route dresses it.
+        let events = vec![
+            event(1, vec![page("Guard", vec![])]),
+            event(2, vec![page("", vec![]), page("", vec!["switch_a"])]),
+            event(3, vec![page("", vec![])]),
+        ];
+        let npcs = collect_npcs(&events, "tiles", &[0; 10200]);
+        assert_eq!(npcs.iter().map(|n| n.event).collect::<Vec<_>>(), [0]);
+        let drawn: BTreeSet<usize> = npcs.iter().map(|n| n.event).collect();
+        let dressing = BTreeMap::from([
+            (0, vec![("Other".to_string(), 1)]),
+            (
+                1,
+                vec![("Visitor".to_string(), 2), ("Other".to_string(), 1)],
+            ),
+            (2, vec![]),
+        ]);
+        let rows = dressed_by_routes(&events, "tiles", &drawn, &dressing);
+        // Not the one already drawn, nor the one only dressed blank.
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!((row.event, row.x, row.y), (1, 4, 5));
+        assert_eq!((row.charset.as_str(), row.index), ("Visitor", 2));
+        assert!(!row.visible && row.changes);
+        assert_eq!(row.graphics, vec![None, None]);
+    }
 }
