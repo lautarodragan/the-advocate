@@ -15,9 +15,11 @@ themselves. One reader of the file means one set of rules:
 ## Which game: the project file
 
 The tools do not know where any game lives: they find it, the way cargo finds
-its `Cargo.toml`. A game declares itself with an `rm2k-snes.toml` at its root,
+its `Cargo.toml`. A game declares itself with an `advocate.toml` at its root,
 and a tool looks for one from the current directory upwards, or is told with
-`--project <directory>`:
+`--project <directory>`. Until 2026-10-20 the file was called
+`rm2k-snes.toml`; that name is not read, and a directory that still has it
+stops the search with an error that says to rename it:
 
 ```rust
 let project = Project::locate(explicit.as_deref())?;

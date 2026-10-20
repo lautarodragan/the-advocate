@@ -58,7 +58,7 @@ project's build, where `wally` finds it first.
 
 ## What the project says
 
-The project file —`rm2k-snes.toml`, found from the current directory or
+The project file —`advocate.toml`, found from the current directory or
 with `--project`— says where the dump, the build and the manual patches
 are, and what the game decided: the opaque translucent graphics, the
 palette weights, the maps the timer never runs in, the pictures cropped to

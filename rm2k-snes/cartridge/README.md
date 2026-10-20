@@ -7,7 +7,7 @@ how much room they have left. Three executables share one library:
     rm2k-snes-assemble      bank packing, ca65 + ld65, header checksum, symbols
     rm2k-snes-space         how much is left in each bank and each RAM area
 
-They read the game's `rm2k-snes.toml` through `rm2k-project` (see
+They read the game's `advocate.toml` through `rm2k-project` (see
 `../project/`), and run the rest of the suite **from the PATH**: the converter
 (`rm2k-snes-convert`), the MSU-1 tracks (`rm2k-snes-msu`) and `ca65`/`ld65`,
 from the cc65 project.

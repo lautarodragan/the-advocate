@@ -35,7 +35,7 @@ commits and a free SoundFont— passes its tests in snes9x and in bsnes,
 Goombario over its cartridge among them. It runs no ported game, so it
 does not replace A Blurred Line's suite, below.
 
-A game is a directory with an `rm2k-snes.toml`, which the tools look for
+A game is a directory with an `advocate.toml`, which the tools look for
 from where they run upwards, the way cargo looks for its `Cargo.toml`; what
 belongs to the machine —where the original game is, the RTP, the
 SoundFont— reaches them through flags. **There is no `justfile` at the

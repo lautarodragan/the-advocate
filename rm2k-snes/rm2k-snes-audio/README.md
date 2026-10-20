@@ -23,7 +23,7 @@ when it is entered. The console only plays it back.
 
 It uses [Gunter](../../snes/gunter/) as a library for what is about formats —reading
 the SoundFont, encoding BRR—, and `rm2k-project` to read what the game
-decides about its music in its `rm2k-snes.toml`. Where the game, the RTP
+decides about its music in its `advocate.toml`. Where the game, the RTP
 and the SoundFont are is the caller's to say: nothing here has a default
 path.
 

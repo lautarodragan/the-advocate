@@ -43,7 +43,7 @@ Sword, for the cases that read an actor's stats.
                         fails if a picture has no line there
     LICENSE-CC-BY-4.0.txt
                         the license most of them are under
-    rm2k-snes.toml      its cartridge, like a port's
+    advocate.toml       its cartridge, like a port's
     cases/              the test pages the cartridge carries, one JSON
                         each, like a port's; a test chooses one with
                         `Session(core, case=...)`

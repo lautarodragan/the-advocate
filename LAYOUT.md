@@ -127,7 +127,7 @@ can go on its own, to a game that is not for the console or a console game
 that is not from RPG Maker. `tests/test_layers.py` enforces it, from `cargo
 metadata`; and since a crate can also know the layer above without
 depending on it, by reading its files, it also fails if anything in
-`snes/` or `rm2k/` names `rm2k-snes.toml`, the project file.
+`snes/` or `rm2k/` names `advocate.toml`, the project file.
 
 They are one Cargo workspace, `Cargo.toml` here: one `Cargo.lock` and one
 `target/`, so what they share is compiled once and at one version. The
@@ -150,7 +150,7 @@ They are used from the PATH: nothing here builds them or looks for them in
                  Blurred Line. Its `README.md` says what is in it, how it is
                  built and how it is tested
 
-It is a project like a port's —its `rm2k-snes.toml`, its `justfile`—, and
+It is a project like a port's —its `advocate.toml`, its `justfile`—, and
 it builds with the installed tools, like any game. Its tests run the
 cartridge in an emulator, so they are not in `tests/` and `just test` does
 not run them: `just test-game` does.
@@ -195,7 +195,7 @@ Each puts it first on the PATH of its recipes: see the recipe, and
 cases each cartridge carries, what the ROM is called, the title in its
 header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
-palettes. The game declares it at its root, in `rm2k-snes.toml`, and it is
+palettes. The game declares it at its root, in `advocate.toml`, and it is
 read by one reader, `rm2k-project`: `project.int(&["maps", "below"])`.
 Whoever is not a tool asks `rm2k-snes-project` instead of reading it.
 
@@ -217,7 +217,7 @@ Whoever is not a tool asks `rm2k-snes-project` instead of reading it.
 ## How they find the game
 
 **The tools do not know where any game lives: they find it**, the way cargo
-finds its `Cargo.toml`. They look for `rm2k-snes.toml` from the current
+finds its `Cargo.toml`. They look for `advocate.toml` from the current
 directory upwards, or receive it through `--project <directory>`; if they do
 not find it, they stop and say where they searched from.
 

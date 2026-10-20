@@ -42,7 +42,7 @@ has to exist: `test_index.py` enforces it.
   files may cite it; the few lines that may too are listed with their reason
 * `test_layers.py`: that the Rust projects' layers only depend downwards:
   `snes/` and `rm2k/` on nothing of the other two, `rm2k-snes/` on both;
-  and that neither of the first two names `rm2k-snes.toml`
+  and that neither of the first two names `advocate.toml`
 * `test_dump_readers.py`: that no Rust project but Ditto names a file of
   a Ditto dump: the others read it with `ditto::dump::Dump`
 * `test_test_game_assets.py`: that every picture, song and sound in
