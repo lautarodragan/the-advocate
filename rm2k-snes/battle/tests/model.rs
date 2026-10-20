@@ -123,9 +123,28 @@ fn check(name: &str, answer: fn(&Db, &Value) -> rm2k_snes_battle::Result<Value>)
     cases.len()
 }
 
+/// A battle as the Python answered it: it wrote no line for what a skill
+/// did on each target, which the model says since 2026-10-20 in
+/// `results`, so they are taken out wherever they are.
+fn pythons_battle(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
+    fn without_results(v: &mut Value) {
+        match v {
+            Value::Object(o) => {
+                o.remove("results");
+                o.values_mut().for_each(without_results);
+            }
+            Value::Array(a) => a.iter_mut().for_each(without_results),
+            _ => {}
+        }
+    }
+    let mut v = model::simulate(db, request)?;
+    without_results(&mut v);
+    Ok(v)
+}
+
 #[test]
 fn every_battle_plays_as_the_pythons() {
-    let n = check("battles.json", model::simulate);
+    let n = check("battles.json", pythons_battle);
     assert!(n >= 400, "the battles are {n}");
 }
 

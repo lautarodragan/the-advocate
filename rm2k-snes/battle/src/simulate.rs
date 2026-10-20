@@ -1052,6 +1052,29 @@ pub struct Battle {
     /// `HealedByAttack` of `ProcessBattleActionDamage` choose them. Whether
     /// the text is empty is the LDB's to say.
     pub state_log: Vec<(i64, String, i64, bool)>,
+    /// What a skill wrote on each target after its using lines, in order:
+    /// [`SkillResult`]. The console writes one line per entry.
+    pub results: Vec<SkillResult>,
+}
+
+/// One of the lines `Scene_Battle_Rpg2k` writes under a skill's using
+/// lines for a target —`ProcessBattleActionDamage`,
+/// `ProcessBattleActionParamEffects` and `ProcessBattleActionFailure`—: the
+/// turn, the target, what the line says and its number.
+///
+/// `what` is `damage` —`GetDamagedMessage`, or `GetUndamagedMessage` at
+/// zero—, `hp` —`GetHpRecoveredMessage`, what it really recovered—, `sp`
+/// —recovered, or reduced if negative—, `attack`, `defense`, `spirit` and
+/// `agility` —`GetParameterChangeMessage`, how much the modifier really
+/// moved— or `miss` —`GetSkillFailureMessage`, number 0—. The conditions
+/// and the attribute shifts write lines of their own in RM2k that this
+/// battle does not: see the book's divergences.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SkillResult {
+    pub turn: i64,
+    pub target: String,
+    pub what: &'static str,
+    pub value: i64,
 }
 
 fn average_agility(whom: &[Combatant]) -> i64 {
@@ -1092,6 +1115,7 @@ impl Battle {
             drops: Vec::new(),
             cancelled: BTreeSet::new(),
             state_log: Vec::new(),
+            results: Vec::new(),
         };
         battle.escape_chance = battle.initial_escape_chance();
         battle
@@ -1685,8 +1709,9 @@ impl Battle {
     /// always at zero for a skill of the database—, the variance if the
     /// effect is above zero, and one roll against the hit chance for each
     /// thing it affects, in the order HP, SP, attack, defense, spirit,
-    /// agility, and then the attribute ranks it shifts —see
-    /// [`Battle::skill_on`]—. Giving or taking states, absorbing
+    /// agility, and then the attribute ranks it shifts, as far as
+    /// `vExecute` goes —see [`Battle::skill_rolls`]—. Giving or taking
+    /// states, absorbing
     /// and reviving are not here; what a damaging one releases is, see
     /// [`Battle::released_by_damage`].
     pub fn use_skill(&mut self, db: &Db, source: Who, skill: i32, target: Who) -> Result<()> {
@@ -1731,8 +1756,6 @@ impl Battle {
     }
 
     fn skill_on(&mut self, source: Who, skill: &Skill, target: Who) {
-        // `CalcSkillToHit`: the skill's `hit`.
-        let hit_rate = skill.hit as i64;
         let critical = self.rng.percent(0);
         let (s, t) = (self.get(source).clone(), self.get(target).clone());
         let mut effect = skill_effect(&s, &t, skill, critical);
@@ -1742,8 +1765,38 @@ impl Battle {
         if !positive {
             effect = -effect;
         }
+        // Whether it did anything, `SetIsSuccess`: each line it writes is
+        // one, and so is an attribute shift, which writes none here. If not,
+        // the failure's line —`ProcessBattleActionFailure`—.
+        let lines = self.results.len();
+        let shifted = self.skill_rolls(skill, target, effect, positive, lines);
+        if !shifted && self.results.len() == lines {
+            self.result(target, "miss", 0);
+        }
+        self.logged(source, target, true, critical, -effect);
+    }
+
+    /// `vExecute` from the effect on: one roll against the hit chance —the
+    /// skill's `hit`, `CalcSkillToHit`— for each thing it affects, and their
+    /// lines, [`SkillResult`]. Whether an attribute rank moved where a line
+    /// would still be written.
+    ///
+    /// **`vExecute` returns early in two places and this goes on**: once the
+    /// damage kills —"If target will be killed, no further affects are
+    /// applied"—, and when one that targets enemies and touches HP or SP did
+    /// nothing to either. From there RM2k neither rolls nor applies anything,
+    /// and here everything is still rolled and applied, as before 2026-10-20:
+    /// stopping moves 61 of the 400 battles of `tests/model.rs`, whose answer
+    /// is not regenerated without taro —the draft
+    /// `a-skill-rolls-past-where-vexecute-returns`—. What is written does
+    /// stop there: no line after a kill, and the failure's after nothing.
+    fn skill_rolls(&mut self, skill: &Skill, target: Who, effect: i64, positive: bool, lines: usize) -> bool {
+        let hit_rate = skill.hit as i64;
+        // Past where `vExecute` returns: nothing more is written.
+        let mut quiet = false;
         if skill.affect_hp && self.rng.percent(hit_rate) {
             let t = self.get_mut(target);
+            let before = t.hp;
             let hp = if positive {
                 // A heal does not kill: `max(-(cur_hp - 1), hp_effect)`.
                 effect.max(-(t.hp - 1))
@@ -1753,28 +1806,51 @@ impl Battle {
                 effect
             };
             t.hp = (t.hp + hp).min(t.hp_max).max(0);
+            let (after, alive) = (t.hp, t.hp > 0);
+            // The damage line says the effect as it was asked for, zero
+            // included —"undamaged"—; the recovery one what was really
+            // recovered, which at full HP is zero —`ApplyHpEffect` in
+            // `ePreHp`—; and a heal of nothing writes nothing.
+            if !positive || hp < 0 {
+                self.result(target, "damage", -hp);
+            } else if hp != 0 {
+                self.result(target, "hp", after - before);
+            }
             // Damage that did not kill releases what a hit releases, at
             // `physical_rate * 10` percent.
-            if !positive && t.hp > 0 {
+            if !positive && alive {
                 self.released_by_damage(target, skill.physical_rate as i64 * 10);
             }
+            quiet = !alive;
         }
         if skill.affect_sp && self.rng.percent(hit_rate) {
             let t = self.get_mut(target);
+            let before = t.sp;
             t.sp = (t.sp + effect).min(t.sp_max).max(0);
+            let moved = t.sp - before;
+            if moved != 0 && !quiet {
+                self.result(target, "sp", moved);
+            }
+        }
+        if !positive && self.results.len() == lines && (skill.affect_hp || skill.affect_sp) {
+            quiet = true;
         }
         let affects = [
-            skill.affect_attack,
-            skill.affect_defense,
-            skill.affect_spirit,
-            skill.affect_agility,
+            (skill.affect_attack, "attack"),
+            (skill.affect_defense, "defense"),
+            (skill.affect_spirit, "spirit"),
+            (skill.affect_agility, "agility"),
         ];
-        for (k, affected) in affects.into_iter().enumerate() {
+        for (k, (affected, what)) in affects.into_iter().enumerate() {
             if !affected || !self.rng.percent(hit_rate) {
                 continue;
             }
             let t = self.get_mut(target);
-            t.modifier[k] += modifier_change(t.modifier[k], t.base[k], effect);
+            let moved = modifier_change(t.modifier[k], t.base[k], effect);
+            t.modifier[k] += moved;
+            if moved != 0 && !quiet {
+                self.result(target, what, moved);
+            }
         }
         // `affect_attr_defence`: for each attribute the skill carries, in
         // order, if the target's rank can still move —an enemy's a step
@@ -1786,6 +1862,7 @@ impl Battle {
         // each attribute looks only at its own. It goes after the damage,
         // which read the rank as it was. (`IsImmuneToAttributeDownshifts` is
         // EasyRPG's, false in an RM2k game.)
+        let mut shifted = false;
         if skill.affect_attr_defence {
             let by = if positive { 1 } else { -1 };
             for (k, &has) in skill.attribute_effects.iter().enumerate() {
@@ -1796,10 +1873,21 @@ impl Battle {
                     .map_or(0, |r| r.can_shift(by));
                 if has && movable != 0 && self.rng.percent(hit_rate) {
                     self.get_mut(target).received[k].shift_by(by);
+                    shifted |= !quiet;
                 }
             }
         }
-        self.logged(source, target, true, critical, -effect);
+        shifted
+    }
+
+    fn result(&mut self, target: Who, what: &'static str, value: i64) {
+        let entry = SkillResult {
+            turn: self.turn,
+            target: self.get(target).name.clone(),
+            what,
+            value,
+        };
+        self.results.push(entry);
     }
 
     /// `Game_EnemyParty::GetExp` on winning: that of the dead, which are all
@@ -2031,6 +2119,15 @@ impl Battle {
                 .state_log
                 .iter()
                 .map(|l| json!([l.0, l.1, l.2, l.3]))
+                .collect::<Vec<_>>());
+        }
+        // And only if a skill wrote a line, likewise: `[turn, target, what,
+        // number]`, see `SkillResult`.
+        if !self.results.is_empty() {
+            out["results"] = json!(self
+                .results
+                .iter()
+                .map(|r| json!([r.turn, r.target, r.what, r.value]))
                 .collect::<Vec<_>>());
         }
         out
