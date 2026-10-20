@@ -28,6 +28,7 @@
     sta BA_TARGET_TOP
     sta BA_FLEE_FAILED
     sta BA_MSP_NEXT             ; no item's SP line pending: see `ba_execute`
+    sta .loword(ba_res_n)       ; nor a skill's result: see battle_skills.s
     sta f:ba_abort              ; no `TerminateBattle` yet
     jsr ba_tone_clear           ; nor a flash of the map's: see battle_tone.s
     jsr ba_st_clear             ; nor conditions: see battle_states.s

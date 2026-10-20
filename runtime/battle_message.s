@@ -82,6 +82,10 @@ attack:
     jsr ba_put_text
     ; The second line: the result on the target.
     jsr ba_mnext
+damage:
+    ; `<target> <damage><enemy_damaged>`, or `<target><enemy_undamaged>` when
+    ; it missed —`BA_MDMG` at $FFFF—. A skill's damage comes here too, from
+    ; `result`.
     lda BA_MTGT
     jsr ba_put_name
     rep #$20
@@ -150,7 +154,14 @@ item:
     sep #$20
 .a8
     bne sp_line
-    jmp ba_flow                 ; nothing changed: the first line alone
+    ; Nothing changed: the first line alone. Or it is a special item's, and
+    ; this message is one of its skill's results.
+    lda .loword(ba_res_show)
+    beq alone
+    jsr ba_mnext
+    jmp result
+alone:
+    jmp ba_flow
 revived:
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
     ; stuck to the name. RM2k does not show the HP one when it revives
@@ -165,7 +176,7 @@ revived:
     jmp ba_flow
 hp_line:
     ; `<target> HP <n> Recovered`, which is `GetHpSpRecoveredMessage`.
-    ldx #BA_TXT_HP
+    ldx #BA_TXT_HP_POINTS
     rep #$20
 .a16
     lda BA_MHEAL
@@ -174,33 +185,20 @@ sp_line:
 .a8
     ; And with the SP: `GetSpRecoveredMessage` is the same with
     ; `spirit_points`.
-    ldx #BA_TXT_SP
+    ldx #BA_TXT_SP_POINTS
     rep #$20
 .a16
     lda BA_MSP
 recovered:
-    pha                         ; the number, and below it the term
+    sta BA_T0
     sep #$20
 .a8
     phx
     jsr ba_mnext
-    lda BA_MTGT
-    jsr ba_put_name
-    lda #$20
-    jsr ba_put
     plx
-    jsr ba_put_text
-    lda #$20
-    jsr ba_put
-    rep #$20
-.a16
-    pla
-    sta BA_T0
-    sep #$20
-.a8
-    jsr ba_put_number
-    ldx #BA_TXT_RECOVERED
-    jsr ba_put_text
+    ldy #BA_TXT_RECOVERED
+    lda BA_MTGT
+    jsr ba_put_stat
     jmp ba_flow
 skill:
     ; `<who><using_message1>` on top and `<using_message2>` below, which is
@@ -231,6 +229,103 @@ skill:
     sep #$20
 .a8
     jsr ba_put_text
+    ; And under them, if this message is one, a result on a target: on the
+    ; third line, or on the second if the skill has none —RM2k does not push
+    ; an empty `using_message2`, `Skill::GetStartMessage`—.
+    lda .loword(ba_res_show)
+    beq alone
+    rep #$20
+.a16
+    lda BA_MPTR
+    cmp BA_MSTART + 2
+    sep #$20
+.a8
+    beq result
+    jsr ba_mnext
+result:
+    ; Entry `ba_res_i - 1` of the queue `ba_skill_one` left: whom, what and
+    ; the number. See `ba_res_add` in battle_skills.s.
+    lda .loword(ba_res_i)
+    dec a
+    jsr bm_ax
+    lda .loword(ba_res_who), x
+    sta BA_MTGT
+    lda .loword(ba_res_what), x
+    pha
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda .loword(ba_res_value), x
+    sta BA_T0
+    sep #$20
+.a8
+    pla
+    beq missed                  ; goombario: pull-branch: what was pulled is what the line says
+    dec a
+    beq damaged
+    ; `<target> <points> <n><hp_recovery>` —`GetHpSpRecoveredMessage`— or
+    ; `<target> <parameter> <n><parameter_increase>` and `_decrease`
+    ; —`GetParameterChangeMessage`, with the number without its sign—. The
+    ; SP that go down say it the second way, `GetSpReduceMessage`.
+    pha
+    ldy #BA_TXT_RECOVERED
+    cmp #(BA_RES_ATK - 1)
+    bcc points
+    ldy #BA_TXT_UP
+points:
+    rep #$20
+.a16
+    lda BA_T0
+    bpl up
+    eor #$FFFF
+    inc a
+    sta BA_T0
+    ldy #BA_TXT_DOWN
+up:
+    sep #$20
+.a8
+    pla                         ; what, less one
+    rep #$21                    ; and the carry clear
+.a16
+    and #$00FF
+    adc #(BA_TXT_HP_POINTS - BA_RES_HP + 1)
+    tax
+    sep #$20
+.a8
+    lda BA_MTGT
+    jsr ba_put_stat
+    jmp ba_flow
+damaged:
+    ; `GetDamagedMessage`, the attack's, and at zero `GetUndamagedMessage`,
+    ; which the attack writes for a miss.
+    rep #$20
+.a16
+    lda BA_T0
+    bne hurt
+    dec a
+hurt:
+    sta BA_MDMG
+    sep #$20
+.a8
+    jmp damage
+missed:
+    ; `GetSkillFailureMessage`: `<target><skill_failure_a>`, `_b`, `_c` or
+    ; `<dodge>`, as the skill's `failure_message` says.
+    lda BA_MTGT
+    jsr ba_put_name
+    lda BA_MSKILL
+    jsr bm_ax
+    lda f:skill_fail, x
+    rep #$21                    ; and the carry clear
+.a16
+    and #$00FF
+    adc #BA_TXT_FAIL_A
+    tax
+    sep #$20
+.a8
+    jsr ba_put_text
     jmp ba_flow
 failed:
     lda BA_MTGT
@@ -245,9 +340,32 @@ fails_says:
     jmp ba_flow
 .endproc
 
+.assert BA_TXT_DODGE = BA_TXT_FAIL_A + 3, error, "the failures are not in `failure_message`'s order: see RESULT_TERMS"
+.assert BA_TXT_AGI - BA_TXT_HP_POINTS = BA_RES_AGI - BA_RES_HP, error, "the points and parameters are not in the results' order: see RESULT_TERMS"
+
+; `<who A8> <text X> <BA_T0><text Y>` at the end of the line:
+; `GetHpSpRecoveredMessage` and `GetParameterChangeMessage`. Clobbers X, Y
+; and `BA_T0`.
+.proc ba_put_stat
+.a8
+.i16
+    phy
+    phx
+    jsr ba_put_name
+    lda #$20
+    jsr ba_put
+    plx
+    jsr ba_put_text
+    lda #$20
+    jsr ba_put
+    jsr ba_put_number
+    plx
+    jmp ba_put_text
+.endproc
+
 ; --- the message, put together before it is drawn ----------------------------
 ;
-; `BA_MBUF` holds RM2k's two lines, one after the other, a letter per byte;
+; `BA_MBUF` holds RM2k's lines, one after the other, a letter per byte;
 ; `BA_MPTR` is where the next letter goes and `BA_MLIM` where the line being
 ; written ends. What does not fit in `BA_MBUF_MAX` is dropped: no message of
 ; the game comes near it.
@@ -271,24 +389,27 @@ fails_says:
     rts
 .endproc
 
-; The second line: the first ends where it is.
+; The next line: the one being written ends where it is, and the next starts
+; where its room ended. Clobbers X.
 .proc ba_mnext
 .a8
 .i16
+    lda BA_MN
+    asl a
+    jsr bm_ax                   ; two bytes per line: X is the next one's
     rep #$20
 .a16
     lda BA_MPTR
-    sta BA_MEND
-    lda #BA_MBUF + BA_MBUF_MAX
+    sta BA_MEND - 2, x
+    lda BA_MLIM
     sta BA_MPTR
-    sta BA_MSTART + 2
+    sta BA_MSTART, x
     clc
     adc #BA_MBUF_MAX
     sta BA_MLIM
     sep #$20
 .a8
-    lda #2
-    sta BA_MN
+    inc BA_MN
     rts
 .endproc
 
@@ -444,15 +565,12 @@ some:
 .a8
 .i16
     lda BA_MN
-    cmp #2                      ; C=1 if it is the second
+    asl a
+    jsr bm_ax
     rep #$20
 .a16
     lda BA_MPTR
-    ldx #0
-    bcc first_end
-    ldx #2
-first_end:
-    sta BA_MEND, x              ; where the line being written ends
+    sta BA_MEND - 2, x          ; where the line being written ends
     sep #$20
 .a8
     stz BA_MDN
