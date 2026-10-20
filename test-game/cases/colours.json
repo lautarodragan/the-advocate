@@ -1,0 +1,11 @@
+{
+  "event_commands": [
+    {"code": "ShowMessage", "string": "\\c[2]Orange\\c[0], \\c[4]gold\\c[0] and \\c[1]blue\\c[0] words: the"},
+    {"code": "ShowMessage_2", "string": "first colour takes the box's ink, the"},
+    {"code": "ShowMessage_2", "string": "rest the window's nearest. \\c[2]A line"},
+    {"code": "ShowMessage_2", "string": "all in orange\\c[0], and plain again."},
+    {"code": "ShowMessage", "string": "Typed at speed one, two a frame."},
+    {"code": "ShowMessage", "string": "\\s[10]Typed at speed ten."},
+    {"code": "ShowMessage", "string": "\\s[20]a\\.b, and \\>all this at once\\< then."}
+  ]
+}

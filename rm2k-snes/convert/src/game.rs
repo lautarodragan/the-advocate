@@ -247,6 +247,10 @@ pub struct Game {
     /// `[graphics] system`, the System the cartridge draws with instead of
     /// the database's —see [`system_choice`]—. None, the database's.
     pub system: Option<String>,
+    /// Whether the cartridge's message boxes type a text colour other than
+    /// 0, so its message window keeps an entry for the box's ink: see
+    /// `scan::types_a_colour`. False until the converter has looked.
+    pub text_ink: bool,
     /// `[windows.background]`: what fills the windows of each System
     /// instead of its own background, by its name —see
     /// [`Game::window_background`]—.
@@ -433,6 +437,7 @@ impl Game {
             translucent,
             cropped: crate::pictures::Cropped::read(project)?,
             system: system_choice(project)?,
+            text_ink: false,
             window_backgrounds: project.window_backgrounds()?,
             decorative: match project.value(&["graphics", "decorative_events"]) {
                 Err(_) => false,

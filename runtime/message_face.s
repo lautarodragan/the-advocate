@@ -139,6 +139,7 @@ FACE_PLANE_STEP = TEXT_WINDOW_ROWS * 32 - 6 * 32
 .a8
 .i16
     jsr gold_clear              ; and no inn's gold window: gold_window.s
+    jsr msg_pace_clear          ; nor a box being typed: message_pace.s
     lda #$FF
     sta f:MSG_FACE
     sta f:MSG_FACE + 1
@@ -180,6 +181,7 @@ FACE_PLANE_STEP = TEXT_WINDOW_ROWS * 32 - 6 * 32
 .proc msg_face_begin
 .a8
 .i16
+    jsr msg_pace_begin          ; it is typed, its lines blanked first: message_pace.s
     jsr gold_begin              ; and the inn's gold window: gold_window.s
     lda #FACE_STEPS
     sta f:MSG_FACE_PENDING
@@ -399,6 +401,10 @@ first_row:
 .proc msg_face_vblank
 .a8
 .i16
+    ; A line that went up whole takes the cells typed in it: see `typed_up`
+    ; in message_pace.s.
+    lda #0
+    sta f:MSG_TYPED
     jsr gold_vblank             ; a row of the inn's gold window: gold_window.s
     lda f:MSG_FACE_PENDING
     beq done

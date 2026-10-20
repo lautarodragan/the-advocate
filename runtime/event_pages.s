@@ -668,18 +668,15 @@ no_choice:
     lda msg_open
     ora msg_state               ; also while it is being composed
     beq no_message
-    ; A box with waits in the middle holds the page while it is being
-    ; drawn in stretches, and its tail counts from the last one: see
-    ; message_waits.s.
-    lda f:MSG_WAIT_HOLD
+    ; The box holds the page while it is being typed, and its tail counts
+    ; from when it is done: see message_pace.s.
+    lda msg_state
     bne no_advances
-    ; The `\|` pause, if the box has one. It is counted **from when the page
-    ; asked for the message** and not from when the window finished composing:
-    ; that way it does not depend on how long composing takes, which goes from
-    ; nine to nineteen frames depending on the text. With a pause of 61 the
-    ; composing finishes long before, so the screen shows the same thing.
-    ; A box with waits in the middle is the exception: the hold above keeps
-    ; this from counting until its last stretch is on screen.
+    ; The `\|` pause, if the box has one, from when the box is typed: RPG_RT
+    ; reads the tail after the box's last letter. Until 2026-10-20 it was
+    ; counted from when the page asked for the message, since the window
+    ; appeared whole in nine to nineteen frames and a pause of 61 outlasted
+    ; them; a typed box takes as long as its letters.
     ; **A does not skip it**: in `Window_Message::Update` the
     ; `if (wait_count > 0)` goes before `WaitForInput()`, so while the pause
     ; runs the button is not looked at. That is why it goes at the very top

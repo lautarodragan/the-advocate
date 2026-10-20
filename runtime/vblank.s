@@ -254,7 +254,9 @@ no_upload:
     ; on the next one. See the battle animation's frame, above.
     bit HVBJOY
     bpl no_finished
-    stz msg_state
+    ; `msg_state` to 0, or to 1 for a box whose lines were blanked and is
+    ; typed from here: see message_pace.s.
+    jsl f:msg_opened
     lda #1
     sta msg_open
     ; The tables for where this window goes, which `msg_start` decided: here
@@ -293,6 +295,12 @@ no_finished:
     sta HDMAEN
     bra on
 no_window:
+    ; Only while the vblank lasts, as when the window turns on: turned off
+    ; in the middle of a frame, a face's channel would leave its colours in
+    ; palette 1 —the map's— without the lines that put the map's back. The
+    ; window stays up one frame more, and the next vblank turns it off.
+    bit HVBJOY
+    bpl not_traded
     lda f:BIG_FLAGS
     and #BIG_WAVE_ON
     sta HDMAEN

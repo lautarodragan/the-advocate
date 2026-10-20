@@ -52,18 +52,13 @@ ARROW_BASE = ARROW_WAY * 4
 .proc msg_arrow
 .a8
 .i16
-    ; A box cut at a wait in the middle: up while a `\!` waits for its key,
-    ; which is RM2k's `SetPause(true)`, and quiet while a timed one runs and
-    ; while the box is being drawn. See message_waits.s.
-    lda f:MSG_WAIT_HOLD
-    beq not_held
-    cmp #HOLD_WAITING
-    bne quiet
-    lda f:MSG_WAIT_KIND
-    ora f:msg_state
-    bne quiet
-    bra blinks
-not_held:
+    ; What the box typed goes up first, and its ink: see message_pace.s.
+    jsl f:msg_pace_vblank
+    ; A box being typed: up while a `\!` waits for its key, which is RM2k's
+    ; `SetPause(true)`, and quiet while it types or a timed wait runs —
+    ; `msg_state` is not 0 until it is done—.
+    lda f:MSG_KEY
+    bne blinks
     lda f:msg_state
     ora pick_active
     ora f:FAR_MSG_AUTO

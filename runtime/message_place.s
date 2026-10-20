@@ -415,8 +415,9 @@ window_bands_end:
     pha
     ; The arrow is up when `msg_arrow` says, and that is decided frame by
     ; frame: what is known here is whether it can be, and with a choice or
-    ; the digits it cannot, nor with a `\^` closing the page —unless it is
-    ; cut at a `\!`, which waits for the key with the arrow—. RM2k draws it
+    ; the digits it cannot, nor with a `\^` closing the page —unless its
+    ; typing stops at a `\!`, which waits for the key with the arrow: the
+    ; tables are built again then, see `msg_pace_vblank`—. RM2k draws it
     ; with the window's opacity at zero too: `Window::Draw` blits it apart.
     ; Unless it is drawn as objects, in a map with room for them: then the
     ; bottom row is the map's too. See `arrow_obj_choose`.
@@ -426,7 +427,7 @@ window_bands_end:
     bne no_arrow
     lda f:FAR_MSG_AUTO
     beq arrow
-    lda f:MSG_WAIT_HOLD
+    lda f:MSG_KEY
     beq no_arrow
 arrow:
     pla
@@ -439,18 +440,16 @@ no_arrow:
 
 ; The start of each line, from `message_tick` with its length read —zero
 ; for a line the box does not carry—: whether the window draws on its band,
-; in `MSG_ROWS`. It is decided here and not by the converter because the
-; window does not appear until the composer has gone through every line
-; —the whole page, or up to a wait that cuts it—, so `msg_hdma_build`
-; already finds them all; and a line with a `\N` or a `\V` has a length
-; anyway.
+; in `MSG_ROWS`. It is decided here and not by the converter because a line
+; with a `\N` or a `\V` has a length anyway. A box being typed reaches its
+; lines with the window already up, so the tables are built again when a
+; line's band changes: see `msg_pace_vblank` in message_pace.s.
 ;
 ; A line draws if it has letters; on a choice, if it is an option, even an
 ; empty one, which the bar goes over and the window must not jump when it
 ; moves; and with a face, all four, because the face covers lines 16 to 63
 ; of the window. Only this line's bit is written: the digits of an
-; `InputNumber` and a box cut at a wait compose from a line down, and the
-; ones above keep theirs.
+; `InputNumber` compose from a line down, and the ones above keep theirs.
 .proc msg_line_rows
 .a8
 .i16

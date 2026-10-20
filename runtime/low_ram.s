@@ -120,7 +120,8 @@ msg_owner:   .res 1
 ; The per-pass budget is not an optimization but what keeps the game's pace:
 ; if a pass overran the frame, `wait_vblank` would catch the next one and the
 ; hero would walk at half speed.
-msg_state:   .res 1     ; 0 idle, 1 composing, 2 ready
+msg_state:   .res 1     ; 0 idle, 1 composing, 2 ready, 3 a typed box's last `\!`
+                        ; waits for its key: see message_pace.s
 msg_line:    .res 1     ; which line is being built
 msg_lines:   .res 1     ; how many the message has
 msg_col:     .res 1     ; which character it is on

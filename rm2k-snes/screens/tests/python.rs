@@ -158,6 +158,10 @@ fn everything_a_cartridge_carries() {
     let window = answer["window"].as_object_mut().unwrap();
     window.remove("gold");
     window.remove("disabled");
+    // Nor the text's twenty colours and the box's ink, since 2026-10-20:
+    // the Python dropped `\c[n]`. See `inks` in `message_window.rs`.
+    window.remove("ink");
+    window.remove("inks");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()

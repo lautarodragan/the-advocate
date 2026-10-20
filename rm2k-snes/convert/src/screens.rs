@@ -45,6 +45,11 @@ fn game_flags(game: &Game) -> Vec<OsString> {
             color_text(background.flat()).into(),
         ]);
     }
+    // And the box's ink, in a cartridge whose boxes type a colour: one entry
+    // of the window's palette, in every screen that counts it.
+    if game.text_ink {
+        flags.push("--text-ink".into());
+    }
     flags
 }
 

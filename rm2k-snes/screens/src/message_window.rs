@@ -67,10 +67,14 @@ pub struct Window {
     /// `Font::ColorDisabled`, as **the nearest of the window's own
     /// entries**. The palette has no room for colours of its own: the
     /// maps' backgrounds start right after it, so a grey of its own would
-    /// take an entry from every map. See `msg_grey_char` in the runtime.
+    /// take an entry from every map. See `msg_ink_char` in the runtime.
     pub disabled: Vec<u8>,
     /// How many entries of the palette, from 1, are the window's.
     pub entries: usize,
+    /// The entry the box's ink takes, the last one the window reserves:
+    /// `None` in a cartridge whose messages use no text colour but 0. See
+    /// [`inks`].
+    pub ink: Option<u8>,
 }
 
 /// A picture cut to the console's colours, pixel by pixel: over black if
@@ -118,6 +122,10 @@ fn over_black(picture: &Picture) -> Vec<Color> {
 ///
 /// The converter asks for it once and hands it to everyone who shares
 /// colour memory with the window: each map's background starts after it.
+///
+/// With [`Skin::ink`] the box's ink is the last of them, and the count is
+/// the same as without it: the window gives up one of its own colours to
+/// leave it room —see [`draw`] and [`inks`]—.
 pub fn colors(skin: &Skin) -> Result<usize> {
     colors_with(skin, None)
 }
@@ -125,7 +133,7 @@ pub fn colors(skin: &Skin) -> Result<usize> {
 /// [`colors`], with the text's colours laid out by `rows` —see
 /// [`TextRows`]—: two Systems' entries may hold the same colour twice.
 pub fn colors_with(skin: &Skin, rows: Option<&TextRows>) -> Result<usize> {
-    Ok(draw(skin, rows, PALETTE_ENTRIES)?.entries(rows))
+    Ok(draw(skin, rows, PALETTE_ENTRIES)?.entries(rows) + skin.ink as usize)
 }
 
 /// The entries a window may take after the transparent one: a palette's.
@@ -237,8 +245,13 @@ pub fn convert_with(skin: &Skin, reserved: usize, rows: Option<&TextRows>) -> Re
     // step on it and the cartridge would draw the text with a colour of the
     // map. The highest entry is the number of colours —0 is transparent and
     // the rest go in order—, and not how many words are nonzero: a black
-    // colour has word zero and would not be counted.
-    if entries >= reserved {
+    // colour has word zero and would not be counted. The box's ink, if the
+    // window keeps one, is the last entry before what follows: the same in
+    // every System, whose own colours may stop short of it.
+    let ink = skin
+        .ink
+        .then(|| reserved.saturating_sub(1).min(PALETTE_ENTRIES) as u8);
+    if entries + skin.ink as usize >= reserved {
         return Err(Bad::answer(format!(
             "the message window, its arrow and its cursor use colour-memory entries up to {entries} and \
              what follows starts at {reserved}"
@@ -329,6 +342,7 @@ pub fn convert_with(skin: &Skin, reserved: usize, rows: Option<&TextRows>) -> Re
     cgram.resize(COLORS_PER_PALETTE, 0);
     Ok(Window {
         disabled,
+        ink,
         entries: palette.len(),
         tiles: tiles.iter().flat_map(|t| pack_tile(t, 4)).collect(),
         cgram,
@@ -483,6 +497,105 @@ fn nearest(palette: &[Color], c: Color) -> u8 {
         .map_or(0, |(i, _)| i as u8 + 1)
 }
 
+/// The text in the System's twenty colours, `\c[n]`, as the console draws
+/// it: for each colour, the word the box's ink entry takes when that colour
+/// is the box's ink, and the palette index each of the glyph's twelve rows
+/// takes with it and without it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Inks {
+    /// One per text colour, 0 to 19.
+    pub colours: Vec<Ink>,
+}
+
+/// One text colour: see [`Inks`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct Ink {
+    /// The colour the ink entry takes for it: the mean of its rows'
+    /// colours, weighted by how many of the font's pixels each row has.
+    pub word: u16,
+    /// Each glyph row's entry when it is the box's ink: the ink's, or one
+    /// of the window's if it is nearer.
+    pub inked: Vec<u8>,
+    /// And when another colour has the ink: the window's nearest.
+    pub plain: Vec<u8>,
+}
+
+/// The colours a box can type, for `window`, drawn with `font`.
+///
+/// **One entry for all of them, the box's ink.** RM2k draws a colour with
+/// the System's 16x16 block, a gradient of some eight shades, and the
+/// console's window has no room for them: its palette is 0, the maps'
+/// backgrounds start right after it, and Systems that fill the fifteen
+/// entries are common. So a cartridge whose boxes use a colour keeps one
+/// entry for it —[`Skin::ink`]—, which one of the window's own colours gives
+/// up —see [`draw`]—, and the first colour other than 0 a box types takes
+/// it: the console writes its `word` there and recolours that
+/// colour's letters with `inked`. Another colour in the same box is drawn
+/// with `plain`, the window's nearest, as the grey of an option nobody can
+/// pick is —see `disabled`—. Colour 0 is the window's own: its rows are the
+/// font's.
+pub fn inks(skin: &Skin, window: &Window, font: &Font) -> Inks {
+    let palette: Vec<Color> = window.cgram[1..=window.entries]
+        .iter()
+        .map(|&w| [(w & 31) as u8, (w >> 5 & 31) as u8, (w >> 10 & 31) as u8])
+        .collect();
+    // How many of the font's pixels each row has, over its printable ASCII:
+    // what the ink's one colour has to look like most.
+    let mut weight = [0u32; font::HEIGHT];
+    for ch in (33u8..127).map(char::from) {
+        for (_, py) in font.pixels(ch) {
+            if py < font::HEIGHT {
+                weight[py] += 1;
+            }
+        }
+    }
+    let total: u32 = weight.iter().sum::<u32>().max(1);
+    let colours = (0..rm2k_snes_text::refit::COLOURS as i32)
+        .map(|n| {
+            if n == 0 {
+                return Ink {
+                    word: 0,
+                    inked: window.color.clone(),
+                    plain: window.color.clone(),
+                };
+            }
+            let rows = ink_colors(skin, n);
+            let mean: Color = std::array::from_fn(|k| {
+                let sum: u32 = rows.iter().zip(weight).map(|(c, w)| c[k] as u32 * w).sum();
+                ((sum + total / 2) / total) as u8
+            });
+            let plain: Vec<u8> = rows.iter().map(|c| nearest(&palette, *c)).collect();
+            let inked = match window.ink {
+                None => plain.clone(),
+                Some(entry) => {
+                    let far = |p: &Color, c: &Color| -> u32 {
+                        (0..3)
+                            .map(|k| (p[k] as i32 - c[k] as i32).pow(2) as u32)
+                            .sum()
+                    };
+                    rows.iter()
+                        .zip(&plain)
+                        .map(|(c, &own)| {
+                            let window_far = far(&palette[own as usize - 1], c);
+                            if far(&mean, c) <= window_far {
+                                entry
+                            } else {
+                                own
+                            }
+                        })
+                        .collect()
+                }
+            };
+            Ink {
+                word: cgram_word(mean),
+                inked,
+                plain,
+            }
+        })
+        .collect();
+    Inks { colours }
+}
+
 /// RM2k's `Window_Gold`, which `ShowInn` opens next to its greeting: the
 /// empty window, 88x32, with the gold term written at its right edge in
 /// text colour 1, cut into 8x8 tiles row by row for the console's
@@ -592,8 +705,26 @@ pub fn mixed_text_rows(skin: &Skin) -> Vec<usize> {
 }
 
 /// The window drawn, with its colours taken to `cap` entries at most —see
-/// [`Drawn::entries`]—.
+/// [`Drawn::entries`]—; and if it keeps the box's ink, to one fewer than it
+/// would take without it.
+///
+/// **The window pays for its ink, not the maps**: the entries it takes are
+/// the same with the ink as without it, and one of its own colours is
+/// merged to leave the ink room —Adeleine decides which, and the converter
+/// writes it in the game's patches like any colour a System loses—. Taking
+/// an entry past the window instead would take it from every map's
+/// background, which starts right after: in the test game's meadow that
+/// was a dark green of the bushes, 2,168 pixels of every capture.
 fn draw(skin: &Skin, rows: Option<&TextRows>, cap: usize) -> Result<Drawn> {
+    if !skin.ink {
+        return draw_colours(skin, rows, cap);
+    }
+    let plain = draw_colours(skin, rows, cap)?.entries(rows);
+    draw_colours(skin, rows, plain.min(cap).saturating_sub(1).max(1))
+}
+
+/// [`draw`], without the ink.
+fn draw_colours(skin: &Skin, rows: Option<&TextRows>, cap: usize) -> Result<Drawn> {
     let mut empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
     let arrow = rm2k_render::system::arrow_down(&skin.picture);
     let frame_fused = fit_frame(skin, &mut empty, &arrow);
