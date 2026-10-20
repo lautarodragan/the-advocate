@@ -648,6 +648,23 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         title.as_ref().map_or(8, |(full, _)| full.bpp).into(),
         MENU_CGRAM.into(),
     ];
+    // Where the slot screen's names go. An answer without it is one from
+    // before 2026-10-20, whose names went after the whole bank, up to its
+    // tilemap.
+    let slot_names = match slots.get("slot_names") {
+        Some(pair) => match ints(pair)?.as_slice() {
+            &[first, end] => (first as usize, end as usize),
+            _ => {
+                return Err(Bad::answer(
+                    "the slot screen's `slot_names` is not two numbers",
+                ))
+            }
+        },
+        None => (
+            list_at(slots, "tiles")?.len(),
+            ((SLOT_MAP - SLOT_VRAM) / 16) as usize,
+        ),
+    };
     let menu_counts = match title_menu {
         None => (0, 0),
         Some(menu) => (list_at(menu, "tiles")?.len(), list_at(menu, "texts")?.len()),
@@ -664,6 +681,8 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             .and_then(Value::as_u64)
             .map_or(list_at(slots, "tiles")?.len(), |n| n as usize)
             .into(),
+        slot_names.0.into(),
+        slot_names.1.into(),
         (t.n("HEADER_Y").div_euclid(cell)).into(),
         t.n("HEADER_ROWS").into(),
         (t.n("HEADER_ROWS") * cols).into(),

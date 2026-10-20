@@ -138,17 +138,25 @@ fn strips_asked(
     Ok((party, medicine, request.slots * leaders))
 }
 
+/// The tiles the slot screen's names can take: whole pairs, from the first
+/// even tile of the bank's `slot_names`.
+fn slot_free(bank: &slots::Slots) -> usize {
+    let (first, end) = bank.slot_names;
+    end.saturating_sub(first.div_ceil(2) * 2)
+}
+
 /// Whether the names fit in what `bank` leaves free: the menu's after the
-/// tiles it shows, the slot screen's after all of them.
+/// tiles it shows, the slot screen's where the bank says.
 fn strips_fit(asked: (usize, usize, usize), bank: &slots::Slots) -> bool {
     let (party, medicine, slots) = asked;
-    party + medicine <= free_after(bank.menu_tiles) && slots <= free_after(bank.tiles.len())
+    party + medicine <= free_after(bank.menu_tiles) && slots <= slot_free(bank)
 }
 
 /// The slot screen and the menu's bank, in the order that leaves room for
-/// their composed names: as they are drawn, and if that does not, with the
-/// slot screen's text last —see [`slots::Order`]—. What the error says is
-/// what is missing in the second.
+/// their composed names: as they are drawn; if that does not, with the
+/// slot screen's text last; and if that does not either, with each
+/// screen's text apart, so the slot screen composes over the menu's —see
+/// [`slots::Order`]—. What the error says is what is missing in the last.
 ///
 /// And if it does not fit even so, **faces are left out, one at a time,
 /// the last actor's first**, until it does: the third thing returned is
@@ -189,9 +197,13 @@ fn slots_with_room(
             bank = build(slots::Order::MenuFirst)?;
             order = ", the slot screen's text last";
         }
+        if !fits(&bank) {
+            bank = build(slots::Order::Apart)?;
+            order = ", each screen's text apart";
+        }
         let tiles = bank.tiles.len();
         let menu_free = free_after(bank.menu_tiles);
-        let slot_free = free_after(tiles);
+        let slot_free = slot_free(&bank);
         if fits(&bank) {
             let said = format!(
                 "  menu bank: {tiles} tiles of {SLOT_TILES_MAX}{order}; the composed names ask for \
@@ -210,11 +222,12 @@ fn slots_with_room(
                     " and without any face"
                 };
                 return Err(Bad::answer(format!(
-                    "the menu's bank has no room for the composed names, even with the slot screen's \
-                     text last{without}: the menu shows {} tiles and leaves {menu_free} free up to its \
-                     tilemap, and its names can ask for {}: {party} the party's and {medicine} a \
-                     medicine's; the slot screen shows {tiles} of {SLOT_TILES_MAX} and leaves \
-                     {slot_free}, and its leaders can ask for {slot_names}",
+                    "the menu's bank has no room for the composed names, even with each screen's \
+                     text apart{without}: the menu shows {} tiles and leaves {menu_free} free up to \
+                     its tilemap, and its names can ask for {}: {party} the party's and {medicine} \
+                     a medicine's; the bank is {tiles} tiles of {SLOT_TILES_MAX}, the slot screen \
+                     leaves {slot_free} of the menu's text for its leaders, and they can ask for \
+                     {slot_names}",
                     bank.menu_tiles,
                     party + medicine,
                 )));
@@ -916,6 +929,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         "slots": {
             "tiles": tiles_json(&slots.tiles),
             "menu_tiles": slots.menu_tiles,
+            "slot_names": [slots.slot_names.0, slots.slot_names.1],
             "palettes": slots.palettes,
             "headers": slots.headers,
             "rows": slots.rows,
