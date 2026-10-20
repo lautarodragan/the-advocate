@@ -479,7 +479,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
 /// What the map converted `with` the rows a route dresses loses that it does
 /// not `without` them, if anything: a loss of another kind, or of another
 /// event, or a graphic lent a palette that is not one of the `dressing`
-/// ones. The dressed characters drawn with someone else's palette, or
+/// ones nor a tile —see [`lent_more`]—. The dressed characters drawn with someone else's palette, or
 /// waiting for a slot of the cache, are their own cost and go; the map's
 /// pictures, its animations or its characters' colours are not paid for
 /// them.
@@ -510,15 +510,35 @@ fn loses_more(with: &Whole, without: &Whole, dressing: &BTreeSet<Key>) -> Option
             None => kind.to_string(),
         })
         .collect();
-    let lent: Vec<String> = with
-        .lent
-        .iter()
-        .filter(|k| !without.lent.contains(*k) && !dressing.contains(*k))
-        .map(|k| format!("{}:{}'s palette", k.0, k.1))
-        .collect();
-    more.extend(lent);
+    more.extend(lent_more(&with.lent, &without.lent, dressing));
     more.dedup();
     (!more.is_empty()).then(|| more.join(", "))
+}
+
+/// The graphics drawn with someone else's palette `with` the dressed rows
+/// that were not `without` them, as [`loses_more`] names them: not the
+/// `dressing` ones, which are their own cost.
+///
+/// **Nor a tile event's.** The split serves the tiles last, after every
+/// character and the routes' graphics —`drawable_npcs`: "a tile goes in
+/// only while it fits"—, so a tile that ends up lent is the order the map
+/// already chose, not a loss the dressed ones cause. And it is the cheap
+/// end of the trade: on The Book of Three's lava tunnels, map 46, the rope
+/// bridge's two tiles lent a palette are 344 pixels with one blue for
+/// another, against Eilonwy and Gurgi missing from the rescue scene; on A
+/// Blurred Line's factory, map 83, the pump's tile is nine pixels against
+/// Forem. The log still names them, in the map's "drawn with someone
+/// else's" line (2026-10-20).
+fn lent_more(
+    with: &BTreeSet<Key>,
+    without: &BTreeSet<Key>,
+    dressing: &BTreeSet<Key>,
+) -> Vec<String> {
+    with.iter()
+        .filter(|k| !without.contains(*k) && !dressing.contains(*k))
+        .filter(|k| !k.0.starts_with(TILE_PREFIX))
+        .map(|k| format!("{}:{}'s palette", k.0, k.1))
+        .collect()
 }
 
 /// [`convert`] without its first question —whether the rows a route
@@ -2409,4 +2429,38 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         answer["pictures_own"] = json!(true);
     }
     file(ANSWER_FILE, answer.to_string().as_bytes())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn keys(names: &[(&str, i32)]) -> BTreeSet<Key> {
+        names.iter().map(|(n, i)| ((*n).to_string(), *i)).collect()
+    }
+
+    // The Book of Three's lava tunnels, map 46: with Eilonwy and Gurgi the
+    // rope bridge's two tiles take someone else's palette, and Gurgi too.
+    #[test]
+    fn a_tile_lent_a_palette_does_not_leave_the_dressed_out() {
+        let with = keys(&[("@tile:cave4:39", 0), ("@tile:cave4:41", 0), ("Gurgi", 0)]);
+        let dressing = keys(&[("Eilonwy", 0), ("Gurgi", 0)]);
+        assert!(lent_more(&with, &BTreeSet::new(), &dressing).is_empty());
+    }
+
+    #[test]
+    fn a_character_lent_a_palette_does() {
+        let with = keys(&[("Monster1", 5), ("@tile:cave4:39", 0)]);
+        let dressing = keys(&[("Gurgi", 0)]);
+        assert_eq!(
+            lent_more(&with, &BTreeSet::new(), &dressing),
+            ["Monster1:5's palette"]
+        );
+    }
+
+    #[test]
+    fn what_was_lent_without_them_is_not_theirs() {
+        let with = keys(&[("Monster1", 5)]);
+        assert!(lent_more(&with, &with, &BTreeSet::new()).is_empty());
+    }
 }
