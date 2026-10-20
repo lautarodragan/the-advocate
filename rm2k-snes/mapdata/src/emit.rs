@@ -1075,8 +1075,14 @@ fn window_pieces(
         // And the text's twenty colours, which go with the grey: for each,
         // the word the box's ink entry takes and the entries of the glyph's
         // twelve rows with the ink and without it. See `inks` in
-        // rm2k-snes-screens and the runtime's message_pace.s.
-        gold_block.extend(text_inks(window)?);
+        // rm2k-snes-screens and the runtime's message_pace.s. Only in a
+        // cartridge whose boxes type a colour, the one whose window keeps the
+        // ink: the others never read them —`colour` in the runtime is 0
+        // without an ink—, and half a kilobyte of nothing would only move
+        // the rest of the packing.
+        if window.get("ink").and_then(Value::as_i64).unwrap_or(0) > 0 {
+            gold_block.extend(text_inks(window)?);
+        }
         if suffix.is_empty() {
             out.push_str(&format!(
                 "; The gold window: its size, where its number ends and its text's top,\n\

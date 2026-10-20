@@ -214,6 +214,9 @@ typing:
 .proc msg_pace_tick
 .a8
 .i16
+    ; Nothing composing, nothing to do: it is every frame of the game.
+    lda f:msg_state
+    beq done
     lda #MSG_CHARS
     sta f:MSG_BUDGET
     lda f:MSG_TYPE
@@ -627,14 +630,21 @@ done:
 ; colour other than 0 a box types takes the ink, and its word goes to
 ; CGRAM in the next vblank; another colour goes with the window's nearest.
 ; See `inks` in rm2k-snes-screens' `message_window.rs`. Keeps nothing.
+;
+; A cartridge whose boxes type no colour other than 0 has no ink and no
+; tables —see `text_inks` in rm2k-snes-mapdata—, and a colour here is 0.
 .proc colour
 .a8
 .i16
+.if ::TEXT_INK_ENTRY = 0
+    lda #0
+    sta f:MSG_COLOUR
+    rts
+.else
     sta f:MSG_COLOUR
     cmp #0
     beq done
     jsr gold_source
-.if ::TEXT_INK_ENTRY > 0
     lda f:MSG_INK
     bpl taken                   ; $FF: no colour has it yet
     lda f:MSG_COLOUR
@@ -649,7 +659,6 @@ done:
     lda #1
     sta f:MSG_INK_SET
 taken:
-.endif
     ; Its rows with the ink, past the word, if it is the ink's colour; the
     ; window's nearest, past those, if it is not.
     ldy #2
@@ -671,6 +680,7 @@ rows:
 .a8
 done:
     rts
+.endif
 .endproc
 
 ; Where colour `MSG_COLOUR`'s piece starts in `window_gold`, in A16.
