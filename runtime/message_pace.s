@@ -730,7 +730,30 @@ no_ink:
 .endif
     lda f:MSG_TYPED
     beq no_typed
+    ; Only if its DMA still fits: one that runs past the vblank writes
+    ; nothing from there on, and the tail of the cells would be a hole until
+    ; the line goes up whole. Late, `MSG_TYPED` and the cells stay for the
+    ; next vblank. It is `upload_line`'s test, with this one's size.
+    lda f:STAT78                ; resets the counters' flip-flop
+    lda f:SLHV                  ; latches them
+    lda f:OPVCT
+    xba
+    lda f:OPVCT
+    and #$01                    ; the ninth bit; the rest is open bus
+    xba
+    rep #$20
+.a16
+    cmp #TYPED_LATEST + 1
+    bcs late
+    cmp #LINES + 1              ; on the screen's lines: the vblank is over
+    bcc late
+    sep #$20
+.a8
     jsr typed_up
+    bra no_typed
+late:
+    sep #$20
+.a8
 no_typed:
     lda f:MSG_PLACE
     and #MSG_BARE
@@ -745,6 +768,12 @@ done:
     plx
     rtl
 .endproc
+
+; The last line on which `typed_up` may start: the five letters a frame
+; types touch some eight cells, 512 bytes in its two DMAs —three lines at
+; eight master cycles a byte, 1364 to a line—, one more for setting them
+; up, and the vblank's last line is 261. Late, the cells wait.
+TYPED_LATEST = 261 - 3 - 1
 
 ; The cells of the line being typed that its letters touched since the
 ; last time, both cell rows, to the window's tile bank: two DMAs of a few
