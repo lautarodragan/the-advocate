@@ -623,7 +623,7 @@ mod tests {
         // A switch past the game's table, or one without its number, leaves
         // the route out.
         walker.route = vec![ROUTE_SWITCH_ON];
-        walker.route_switches = vec![indices.switch_top as i32 + 1];
+        walker.route_switches = vec![indices.switch_top + 1];
         assert!(own(&walker, &indices).is_none());
         walker.route_switches = vec![];
         assert!(own(&walker, &indices).is_none());
