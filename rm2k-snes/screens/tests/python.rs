@@ -379,14 +379,36 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu",
-        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, None).unwrap(),
+        render::menu(
+            &game,
+            &skin,
+            4,
+            &party(&[1, 2, 5]),
+            1234,
+            2,
+            false,
+            None,
+            false,
+        )
+        .unwrap(),
         "06cf2dc59dae4c259ec988b9ad36077794461b1b73506df09925c419288936b0",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
     // the Python, which never had it.
     check(
         "menu-choosing",
-        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
+        render::menu(
+            &game,
+            &skin,
+            4,
+            &party(&[1, 2, 5]),
+            1234,
+            2,
+            false,
+            Some(1),
+            false,
+        )
+        .unwrap(),
         "4a5b495d0fcec60fd1cea120ec612802c92f39115dc83600cd5fbac4bd4f3a5f",
     );
     let state = Party {
@@ -398,7 +420,7 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu-state",
-        render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
+        render::menu(&game, &skin, 4, &state, 999_999, 0, true, None, false).unwrap(),
         "c252a58e29252d837e2c911f116fce4c6876f5ec53de1d9fce0181aed5cedaac",
     );
     check(

@@ -264,7 +264,8 @@ fn actor_row(
 /// the cursor and `save_allowed` what `ChangeSaveAccess` left. With
 /// `choosing`, the party row the bar is on while choosing whom a command
 /// is for —`Scene_Menu::UpdateActorSelection`—; the command keeps its
-/// cursor.
+/// cursor. With `debug`, the debug screen's option on the row after End
+/// Game, as a cartridge with `[debug] debug_screen` draws it.
 #[allow(clippy::too_many_arguments)]
 pub fn menu(
     game: &Game,
@@ -275,9 +276,18 @@ pub fn menu(
     chosen: usize,
     save_allowed: bool,
     choosing: Option<usize>,
+    debug: bool,
 ) -> Result<Picture> {
     let known = party.known();
-    let bank = slots::slots_screen(game, skin, slots, &known, slots::Order::Drawn)?;
+    let custom: Vec<String> = if debug {
+        vec![crate::debug_screen::LABEL.to_string()]
+    } else {
+        Vec::new()
+    };
+    let bank = slots::slots_screen_with(game, skin, slots, &known, slots::Order::Drawn, &custom)?;
+    if !bank.fits() {
+        return Err(bank.too_many());
+    }
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::menu_bar(skin, choosing));
@@ -287,6 +297,14 @@ pub fn menu(
         p.paste(
             &menu.options[option][if done { 0 } else { 1 }],
             (MENU_OPT_Y + option * MENU_OPT_STEP) / CELL,
+            MENU_OPT_COL,
+            MENU_OPT_COLS,
+        );
+    }
+    if debug {
+        p.paste(
+            &menu.options[MENU_OPTIONS][0],
+            (MENU_OPT_Y + MENU_OPTIONS * MENU_OPT_STEP) / CELL,
             MENU_OPT_COL,
             MENU_OPT_COLS,
         );

@@ -249,6 +249,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
                 n if n < 0 => None,
                 n => Some(n as usize),
             },
+            json.flag("debug", false)?,
         )?,
         // With `skill`, the choice for a skill: `all` puts the bar over the
         // whole party; otherwise it is on `chosen`, the user's row for a
