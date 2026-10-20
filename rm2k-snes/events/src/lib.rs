@@ -95,12 +95,18 @@ pub struct Request {
     /// [`Pictures`]. A map that is not here carries none.
     pub pictures: BTreeMap<i32, Pictures>,
     /// The pictures the common events compiled without a map can show —the
-    /// shared bodies and the parallel ones—: only big ones, which the
+    /// shared bodies and the parallel ones—: the big ones, which the
     /// cartridge carries once and the console shows the same on every map
-    /// —see `runtime/big_picture.s`—. A small one lives in a map's sprite
-    /// bank, so a body without a map has none. The scan gathers what they
-    /// can show apart, as `commons_pictures`.
+    /// —see `runtime/big_picture.s`—, and the small ones of the cartridge's
+    /// common table, by set, which it uploads beside the map's bank when
+    /// shown —see [`registry::CommonPicture`]—. The scan gathers what they
+    /// can show apart, as `commons_pictures` and `common_sets`.
     pub common_pictures: Pictures,
+    /// Which set of the common pictures each body is compiled with, by
+    /// whether it is a parallel one's and its number: see
+    /// [`commons::picture_sets`]. The caller answers the sets the scan
+    /// gave, those it kept, as `common_sets`.
+    pub common_sets: BTreeMap<(bool, i32), usize>,
     /// Per map, the panoramas it carries, in the order the bytecode numbers
     /// them: its own first —or an empty name, if it starts with none— and
     /// the ones its `ChangePBG`s name after it. A map that is not here
@@ -295,7 +301,9 @@ fn by_map<T>(
 
 /// A list of pictures as the caller answers them: each entry a picture in
 /// the map's sprite bank, with its slot, or —with `"plane": "background"`— a
-/// big one, with its entry in the cartridge's table and half its size.
+/// big one, with its entry in the cartridge's table and half its size, or
+/// —with `"plane": "common"`— one of the common events' small ones, with
+/// its image, its slot and its set: see [`registry::CommonPicture`].
 fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
     let mut pictures = Pictures::default();
     for e in v
@@ -327,6 +335,19 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
                 image,
                 center: pair("center")?,
                 texture: e.get("texture").and_then(Value::as_bool).unwrap_or(false),
+            });
+        } else if e.get("plane").and_then(Value::as_str) == Some("common") {
+            // Bit 7 set and not $FF, PIC_NONE: see `CommonPicture`.
+            let image = int(field(e, "image", whose)?, whose)?;
+            let image = u8::try_from(image)
+                .ok()
+                .filter(|&i| i & registry::PICTURE_COMMON != 0 && i != 0xFF)
+                .ok_or_else(|| Bad::answer(format!("{whose}: common picture {image}")))?;
+            pictures.common.push(registry::CommonPicture {
+                key,
+                image,
+                slot: int(field(e, "slot", whose)?, whose)? as u8,
+                set: int(field(e, "set", whose)?, whose)? as usize,
             });
         } else {
             pictures
@@ -542,6 +563,19 @@ impl Request {
         if let Some(p) = data.get("common_pictures") {
             r.common_pictures = pictures_of(p, whose)?;
         }
+        if let Some(sets) = data.get("common_sets") {
+            for (k, set) in sets
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `common_sets` is not a list")))?
+                .iter()
+                .enumerate()
+            {
+                let parallel = field(set, "parallel", whose)?.as_bool().unwrap_or(false);
+                for n in list(set, "commons", whose)? {
+                    r.common_sets.insert((parallel, int(n, whose)? as i32), k);
+                }
+            }
+        }
         if let Some(s) = data.get("sound_effects") {
             for a in list(s, "per_map", whose)? {
                 r.sound.per_map.push((
@@ -626,9 +660,11 @@ impl Request {
 /// events of `common_pages`, each an automatic page on the common event's
 /// switch: last, so no event of the game changes its index. RM2k runs an automatic common event on whatever map, and
 /// the cartridge already does, from the shared body —see [`commons`]—; but a
-/// shared body is compiled without a map, so without pictures, and a menu
-/// built of `ShowPicture`s works blind: Frozen World's `BringUpMenu`, common
-/// 15. The copy is compiled with the map, so its pictures go in the map's
+/// shared body is compiled without a map, so without the map's pictures
+/// —its small ones are the cartridge's, and go up beside the map's bank only
+/// if they fit there—, and a menu built of `ShowPicture`s could work blind:
+/// Frozen World's `BringUpMenu`, common 15. The copy is compiled with the
+/// map, so its pictures go in the map's
 /// sprite bank like the map's own. It runs instead of the shared body,
 /// which does not start on a map with a copy: see `switch_of` in the
 /// runtime's `common_events.s`. The shared body stays, for the maps that
@@ -1023,10 +1059,53 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             }));
         }
     }
+    // And their small ones, by set: see [`commons::picture_sets`]. Each
+    // body gathered as it is compiled: a shared one with its calls as calls,
+    // a parallel one with them pasted.
+    let every: BTreeMap<i32, u8> = game.common_events.keys().map(|&n| (n, 0)).collect();
+    let sets = commons::picture_sets(game, &indices, &mut |n, paste| {
+        let mut messages = Messages::measuring(request.messages_step, request.window());
+        let mut songs = Songs::default();
+        let mut troops = Troops::default();
+        let mut pictures = Pictures::gathering();
+        let mut ctx = Ctx {
+            game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &map_index,
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: Some(&mut pictures),
+            troops: Some(&mut troops),
+            commons: (!paste).then_some(&every),
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+            landings: Some(&*landings),
+            jump: None,
+        };
+        let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
+        Ok(compiles.map(|_| pictures))
+    })?;
     let mut answer = indices_json(&indices, &associations);
     answer.insert("maps".into(), json!(out));
     if !gathered.is_empty() {
         answer.insert("commons_pictures".into(), json!(gathered));
+    }
+    if !sets.is_empty() {
+        answer.insert(
+            "common_sets".into(),
+            json!(sets
+                .iter()
+                .map(|set| json!({
+                    "parallel": set.parallel,
+                    "commons": set.commons,
+                    "pictures": set.pictures.keys_json(),
+                    "tinted": set.pictures.tinted,
+                }))
+                .collect::<Vec<_>>()),
+        );
     }
     Ok(Value::Object(answer))
 }
@@ -1138,6 +1217,7 @@ fn compile_pass(
         sound: &request.sound,
         map_index: &map_index,
         pictures: &request.common_pictures,
+        sets: &request.common_sets,
         landings: Some(&*landings),
     };
     let from_pages: BTreeSet<i32> = maps

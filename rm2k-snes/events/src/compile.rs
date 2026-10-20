@@ -3149,7 +3149,7 @@ pub fn compile_picture(
         let small = p
             .first()
             .and_then(|&n| pictures.numbered(n).next())
-            .map(|&(_, s)| s);
+            .map(|(_, s)| s);
         let big = p
             .first()
             .is_some_and(|&n| pictures.numbered_big(n).next().is_some());
@@ -3162,8 +3162,18 @@ pub fn compile_picture(
         }
         return Ok((!out.is_empty()).then_some(out));
     }
-    if let Some(out) = compile_big_picture(cmd, pictures)? {
-        return Ok(Some(out));
+    // A `MovePicture` of a number the body's set of common pictures shows
+    // small moves that one, not a big one: the big ones a body can show are
+    // every common event's —`commons::Setting::pictures`—, and another's
+    // under the same number would take the move. Zounds' record player, 36,
+    // moved the notebook's background, 29's, and never faded its record in.
+    let own_small = cmd.code == MOVE_PICTURE
+        && p.first()
+            .is_some_and(|&n| pictures.common.iter().any(|c| c.key.number == n));
+    if !own_small {
+        if let Some(out) = compile_big_picture(cmd, pictures)? {
+            return Ok(Some(out));
+        }
     }
     if !picture_fits(p) {
         return Ok(None);
@@ -3212,11 +3222,11 @@ pub fn compile_picture(
     // another picture by then—, so it is enough that one of them is at the
     // move's zoom: the one this page showed, almost always. The console
     // computes the corner it goes to with the size of the one that is up.
-    let at_zoom: Vec<&(PictureKey, u8)> = pictures
+    let at_zoom: Vec<(&PictureKey, u8)> = pictures
         .numbered(p[0])
         .filter(|(key, _)| key.zoom == p[5])
         .collect();
-    let Some(&&(_, slot)) = at_zoom.first() else {
+    let Some(&(_, slot)) = at_zoom.first() else {
         return Ok(None);
     };
     // Where it goes, unless every one of them stays: going with the map, or
@@ -9227,6 +9237,7 @@ mod tests {
             gathering: false,
             zooms: Vec::new(),
             tinted: Vec::new(),
+            common: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -9400,6 +9411,7 @@ mod tests {
             gathering: false,
             zooms: Vec::new(),
             tinted: Vec::new(),
+            common: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -10495,6 +10507,16 @@ mod tests {
     }
 
     fn shared_with(game: &Game, pictures: &Pictures) -> crate::commons::Shared {
+        shared_with_sets(game, pictures, &BTreeMap::new())
+    }
+
+    /// [`shared_with`], each body compiled with the common pictures of its
+    /// set in `sets`.
+    fn shared_with_sets(
+        game: &Game,
+        pictures: &Pictures,
+        sets: &BTreeMap<(bool, i32), usize>,
+    ) -> crate::commons::Shared {
         use crate::messages::{Messages, Window};
         let indices = Indices::default();
         let sound = SoundSettings::default();
@@ -10507,6 +10529,7 @@ mod tests {
             sound: &sound,
             map_index: &|_| None,
             pictures,
+            sets,
             landings: None,
         };
         let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
@@ -10595,6 +10618,89 @@ mod tests {
             ]
             .concat()
         );
+    }
+
+    /// Zounds' record player, common event 36: automatic on switch 95,
+    /// which the item turns on from the menu on any map, it slides its bar
+    /// —number 1— down onto the screen and fades a disc in —number 2—. The
+    /// body, compiled without a map, names both by the cartridge's common
+    /// table, image bit 7 set, in its set's slots from the top; and the
+    /// fade moves the disc, not the big picture another common event shows
+    /// under number 2 —the notebook's background, 29's—, which every body
+    /// can show. Until 2026-10-20 neither was shown, and from that day to
+    /// this test the fade was the big one's.
+    #[test]
+    fn a_common_event_without_a_map_shows_its_small_pictures() {
+        let bar = cmd(
+            SHOW_PICTURE,
+            &[1, 0, 160, -15, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0, 0, 0],
+            "Zounds_Barra_Tocadiscos",
+        );
+        let disc = cmd(
+            SHOW_PICTURE,
+            &[
+                2, 0, 160, 30, 0, 100, 100, 1, 100, 100, 100, 100, 0, 0, 100, 0,
+            ],
+            "Discos Test",
+        );
+        let notebook = cmd(
+            SHOW_PICTURE,
+            &[
+                2, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 100, 0,
+            ],
+            "Zounds_Notas_Fondo",
+        );
+        let mut game = Game::default();
+        game.common_events.insert(
+            36,
+            common(
+                3,
+                Some(95),
+                vec![
+                    bar.clone(),
+                    disc.clone(),
+                    cmd(
+                        MOVE_PICTURE,
+                        &[2, 0, 160, 30, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0, 8, 0],
+                        "",
+                    ),
+                    cmd(CONTROL_SWITCHES, &[0, 95, 95, 1], ""),
+                ],
+            ),
+        );
+        let entry = |c: &Command, image: u8, slot: u8| crate::registry::CommonPicture {
+            key: picture_key(c).unwrap(),
+            image,
+            slot,
+            set: 0,
+        };
+        let pictures = Pictures {
+            big: vec![BigPicture {
+                key: picture_key(&notebook).unwrap(),
+                image: 0,
+                center: (160, 120),
+                texture: false,
+            }],
+            common: vec![entry(&bar, 0x80, 15), entry(&disc, 0x81, 14)],
+            ..Pictures::default()
+        };
+        let off = [OP_SWITCH, 95, 0, 0];
+        let sets = BTreeMap::from([((false, 36), 0)]);
+        let seen = shared_with_sets(&game, &pictures, &sets);
+        assert_eq!(
+            seen.bodies[0].1,
+            [
+                &[OP_PICTURE, 15, 0x80, 0, 160, 0, 241, 255, 100, 100, 100, 0][..],
+                &[OP_PICTURE, 14, 0x81, 0, 160, 0, 30, 0, 100, 100, 100, 100],
+                &[OP_PICTURE_MOVE, 14, 100, 100, 100, 0, 48, 0, 0, 0, 0, 0],
+                &off,
+                &[OP_RETURN],
+            ]
+            .concat()
+        );
+        // Without a set, as every body was until then: not shown.
+        let blind = shared_with(&game, &pictures);
+        assert!(!blind.bodies[0].1.contains(&OP_PICTURE));
     }
 
     #[test]

@@ -132,6 +132,9 @@ pub struct Compiler<'a> {
     /// map's big table: see `common_pictures` in `rm2k-snes-events`. Empty
     /// in a cartridge whose common events show none.
     pub common_pictures: Vec<Value>,
+    /// The sets of the common events' small pictures, by their index: see
+    /// [`crate::common_pictures`]. Empty in a cartridge without them.
+    pub common_sets: Vec<Value>,
 }
 
 impl<'a> Compiler<'a> {
@@ -170,6 +173,7 @@ impl<'a> Compiler<'a> {
             test_switch: TEST_SWITCH,
             common_pages: None,
             common_pictures: Vec::new(),
+            common_sets: Vec::new(),
         })
     }
 
@@ -221,6 +225,9 @@ impl<'a> Compiler<'a> {
         }
         if !self.common_pictures.is_empty() {
             r.insert("common_pictures".into(), json!(self.common_pictures));
+        }
+        if !self.common_sets.is_empty() {
+            r.insert("common_sets".into(), json!(self.common_sets));
         }
         if !self.systems.is_empty() {
             r.insert("systems".into(), json!(self.systems));

@@ -419,13 +419,14 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .and_then(Value::as_array)
         .map(|t| t.iter().filter_map(Value::as_i64).collect())
         .unwrap_or_default();
-    let pictures = pictures::for_map(&game.game_dir, &keys, &tinted, map_id, &game.cropped)?;
+    let whose = format!("map {map_id}");
+    let pictures = pictures::for_map(&game.game_dir, &keys, &tinted, &whose, &game.cropped)?;
     let pictures_own = match &own_keys {
         Some(own) => Some(pictures::for_map(
             &game.game_dir,
             own,
             &tinted,
-            map_id,
+            &whose,
             &game.cropped,
         )?),
         None => None,

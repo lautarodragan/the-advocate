@@ -336,6 +336,25 @@ pub struct Emit {
     /// The big pictures, each as a background layer: see [`BigLayer`].
     #[serde(default)]
     pub big_pictures: Vec<BigLayer>,
+    /// The small pictures of the common events compiled without a map, by
+    /// set: see [`CommonSet`]. Missing, none.
+    #[serde(default)]
+    pub common_pictures: Vec<CommonSet>,
+}
+
+/// A set of the common events' small pictures, as the converter cut it —see
+/// `common_pictures` in rm2k-snes-convert—: like a map's pictures, but from
+/// tile 0 and palette 0 of its own, since where they go is each map's.
+/// Who shows it, the tiles from its first it reserves, its tiles as
+/// `[tile, 64 colour indices]`, its palettes and its pictures, in the order
+/// of the common table.
+#[derive(Deserialize)]
+pub struct CommonSet {
+    pub name: String,
+    pub tiles: usize,
+    pub cells: Vec<(usize, Vec<u8>)>,
+    pub palettes: usize,
+    pub images: Vec<PictureImage>,
 }
 
 /// A `ShowPicture` picture too big for the sprites, as `rm2k-snes-images

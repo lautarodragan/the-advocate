@@ -812,7 +812,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
 
     let mut notes = per_map.notes.clone();
     window_section(&mut out, r, &windows, &t)?;
-    picture_section(&mut out, r)?;
+    picture_section(&mut out, r, &mut notes)?;
     big_pictures_section(&mut out, r)?;
     animations_section(&mut out, r)?;
     title_section(&mut out, title_menu.copied())?;
@@ -1408,14 +1408,237 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
     Ok((words_le(starts.iter().map(|&s| u32::from(s))), data))
 }
 
-fn picture_section(out: &mut String, r: &Emit) -> Result<()> {
+/// The common events' small pictures' entries, after the maps' in
+/// `picture_data`: as a map's —see [`picture_tables`]—, with the base tile
+/// at 0 and the palette counted from the set's first, since both are each
+/// map's —see [`picture_common_section`]—, the set's index at byte 12 and $80, a
+/// common one, at byte 13.
+/// Answers where the first is, which the console finds as `PICTURE_COMMON`;
+/// 0 without any.
+pub fn common_entries(sets: &[crate::request::CommonSet], data: &mut Vec<u8>) -> Result<usize> {
+    let count: usize = sets.iter().map(|s| s.images.len()).sum();
+    if count == 0 {
+        return Ok(0);
+    }
+    if count > 0x7F {
+        return Err(Bad::answer(format!(
+            "{count} common pictures, and an image's seven bits name 127"
+        )));
+    }
+    let entries = data.len();
+    data.resize(entries + count * PICTURE_ENTRY, 0);
+    let mut at = entries;
+    for (k, set) in sets.iter().enumerate() {
+        let whose = |what: String| Bad::answer(format!("{}: {what}", set.name));
+        let mut colors_of: BTreeMap<i64, usize> = BTreeMap::new();
+        for image in &set.images {
+            let objects_at = data.len();
+            for &[dx, dy, tile] in &image.objects {
+                let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
+                data.push(byte(dx)?);
+                data.push(byte(dy)?);
+                data.extend(
+                    u16::try_from(tile)
+                        .map_err(|_| whose(format!("an object's tile {tile}")))?
+                        .to_le_bytes(),
+                );
+            }
+            let colors_at = match colors_of.get(&image.palette_index) {
+                Some(&c) => c,
+                None => {
+                    let c = data.len();
+                    let mut colors = vec![[0, 0, 0]];
+                    colors.extend_from_slice(&image.palette);
+                    colors.resize(16, [0, 0, 0]);
+                    data.extend(cgram_bytes(&colors));
+                    colors_of.insert(image.palette_index, c);
+                    c
+                }
+            };
+            let word = |v: i64| -> Result<[u8; 2]> {
+                Ok(i16::try_from(v)
+                    .map_err(|_| whose(format!("a picture's {v}")))?
+                    .to_le_bytes())
+            };
+            let palette = u8::try_from(image.palette_index)
+                .ok()
+                .filter(|&p| (p as usize) < set.palettes.max(1))
+                .ok_or_else(|| whose(format!("palette {}", image.palette_index)))?;
+            let mut entry = Vec::with_capacity(PICTURE_ENTRY);
+            entry.extend(word(image.half[0])?);
+            entry.extend(word(image.half[1])?);
+            entry.push(
+                u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
+            );
+            entry.push(palette);
+            entry.extend(
+                u16::try_from(objects_at)
+                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
+                    .to_le_bytes(),
+            );
+            entry.extend(
+                u16::try_from(colors_at)
+                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
+                    .to_le_bytes(),
+            );
+            entry.extend([0, 0]);
+            entry.push(k as u8);
+            entry.push(0x80);
+            data[at..at + entry.len()].copy_from_slice(&entry);
+            at += PICTURE_ENTRY;
+        }
+    }
+    if data.len() > 0x10000 {
+        return Err(Bad::answer(
+            "the pictures' table with the common ones passes 64 KB",
+        ));
+    }
+    Ok(entries)
+}
+
+/// How many sets of common pictures a map's mask names: see
+/// [`picture_common_section`].
+pub const COMMON_SETS: usize = 8;
+/// The bytes of an entry of `picture_sets` and of `picture_common_maps`.
+const COMMON_SET_ENTRY: usize = 8;
+const COMMON_MAP_ENTRY: usize = 8;
+/// A 4-bit tile.
+const COMMON_TILE: usize = 32;
+
+/// The common events' small pictures, as the console uploads them: see
+/// `runtime/picture_common.s`.
+///
+/// ```text
+///   picture_sets, an entry per set:
+///     long  its tiles, raw, from its first
+///     word  their bytes
+///     byte  how many sprite palettes it takes
+///     two bytes of nothing
+///   picture_common_maps, an entry per map, in the order of `map_table`:
+///     word  the tile of the bank the sets go at
+///     word  its VRAM word
+///     byte  the first sprite palette they take, counted from the top
+///     byte  which sets fit there, a bit each from bit 0
+///     two bytes of nothing
+/// ```
+///
+/// A set fits on a map if its tiles fit past what the map's bank, the
+/// message arrow and the gold window take, and its palettes under what its
+/// pictures and the arrow take and over its characters': see
+/// [`crate::record::common_room`]. Only one set is in VRAM at a time, so
+/// each is judged alone. The log says on how many maps each one fits.
+fn picture_common_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -> Result<()> {
+    let sets = &r.common_pictures;
+    out.push_str(&format!("PICTURE_SETS = {}\n", sets.len()));
+    if sets.is_empty() {
+        line(out, &block("picture_sets", &[0]));
+        line(out, &block("picture_common_maps", &[0]));
+        return Ok(());
+    }
+    if sets.len() > COMMON_SETS {
+        return Err(Bad::answer(format!(
+            "{} sets of common pictures, and a map's mask names {COMMON_SETS}",
+            sets.len()
+        )));
+    }
+    out.push_str(&format!(
+        ".block {}\npicture_sets:\n",
+        COMMON_SET_ENTRY * sets.len()
+    ));
+    for (k, set) in sets.iter().enumerate() {
+        out.push_str(&format!(
+            "    .word .loword(picture_set_tiles_{k})\n    .byte ^picture_set_tiles_{k}\n\
+             \x20   .word {}\n    .byte {}\n    .res 2\n",
+            set.tiles * COMMON_TILE,
+            set.palettes
+        ));
+    }
+    out.push('\n');
+    let mut maps = Vec::with_capacity(COMMON_MAP_ENTRY * r.maps.len());
+    let mut fits = vec![0usize; sets.len()];
+    for map in &r.maps {
+        let room = crate::record::common_room(map)?;
+        let layout = crate::record::layout_of(map)?;
+        let mut mask = 0u8;
+        for (k, set) in sets.iter().enumerate() {
+            if set.tiles <= room.tiles && set.palettes <= room.palettes {
+                mask |= 1 << k;
+                fits[k] += 1;
+            }
+        }
+        let vram = layout.sprites.base as usize + room.base * 16;
+        maps.extend((room.base as u16).to_le_bytes());
+        maps.extend(
+            u16::try_from(vram)
+                .map_err(|_| Bad::answer(format!("map {}: VRAM word {vram}", map.id)))?
+                .to_le_bytes(),
+        );
+        maps.push(room.palette as u8);
+        maps.push(mask);
+        maps.extend([0, 0]);
+    }
+    line(out, &block("picture_common_maps", &maps));
+    for (k, set) in sets.iter().enumerate() {
+        // One that fits no map is never uploaded: its tiles stay out.
+        if fits[k] == 0 {
+            line(out, &block(&format!("picture_set_tiles_{k}"), &[0]));
+            notes.push(format!(
+                "  {}: WARNING, their small pictures fit on none of the {} maps, and aren't shown",
+                set.name,
+                r.maps.len()
+            ));
+            continue;
+        }
+        let mut tiles = vec![0u8; set.tiles * COMMON_TILE];
+        for (number, cell) in &set.cells {
+            if cell.len() != 64 || *number >= set.tiles {
+                return Err(Bad::answer(format!(
+                    "{}: tile {number} of {} with {} pixels",
+                    set.name,
+                    set.tiles,
+                    cell.len()
+                )));
+            }
+            tiles[number * COMMON_TILE..(number + 1) * COMMON_TILE].copy_from_slice(&pack4(cell));
+        }
+        line(out, &block(&format!("picture_set_tiles_{k}"), &tiles));
+        notes.push(format!(
+            "  {}: their small pictures fit on {} of the {} maps",
+            set.name,
+            fits[k],
+            r.maps.len()
+        ));
+    }
+    Ok(())
+}
+
+/// An 8x8 cell of colour indices as the console's 4-bit tile: two planes
+/// at a time, a row each two bytes.
+fn pack4(cell: &[u8]) -> [u8; COMMON_TILE] {
+    let mut out = [0u8; COMMON_TILE];
+    for (i, &v) in cell.iter().enumerate() {
+        let (y, x) = (i / 8, i % 8);
+        let bit = 0x80 >> x;
+        for plane in 0..4 {
+            if (v >> plane) & 1 == 1 {
+                out[(plane / 2) * 16 + y * 2 + plane % 2] |= bit;
+            }
+        }
+    }
+    out
+}
+
+fn picture_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -> Result<()> {
     out.push_str(
         "\n; --- the ShowPicture pictures: see `picture_tables` in rm2k-snes-mapdata ---\n",
     );
     out.push_str(&format!("PICTURE_ENTRY = {PICTURE_ENTRY}\n"));
-    let (maps, data) = picture_tables(&r.maps)?;
+    let (maps, mut data) = picture_tables(&r.maps)?;
+    let common = common_entries(&r.common_pictures, &mut data)?;
+    out.push_str(&format!("PICTURE_COMMON = {common}\n"));
     line(out, &block("picture_maps", &maps));
     line(out, &block("picture_data", &data));
+    picture_common_section(out, r, notes)?;
     // The screen flash's products, `d * level // 31`, so the console does not
     // multiply and divide for each of its 96 entries every odd frame.
     let products: Vec<u8> = (0..32u32)
@@ -4696,6 +4919,55 @@ fn timer_and_case(out: &mut String, r: &Emit) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A common picture's entry goes after the maps' in `picture_data`, as
+    /// theirs, but with the base tile at 0, its palette counted from its
+    /// set's first, and the set and $80 in bytes 12 and 13: the console adds
+    /// the loaded map's base and palette, and tells it from a map's by the
+    /// $80. See `runtime/picture_common.s`.
+    #[test]
+    fn a_common_picture_s_entry_says_its_set() {
+        let image = |palette_index| crate::request::PictureImage {
+            half: [4, 3],
+            objects: vec![[0, 0, 0x8000], [8, 0, 0x8001]],
+            palette: vec![[31, 0, 0]],
+            palette_index,
+        };
+        let set = |name: &str, images| crate::request::CommonSet {
+            name: name.into(),
+            tiles: 2,
+            cells: vec![],
+            palettes: 2,
+            images,
+        };
+        let sets = [set("a", vec![image(0)]), set("b", vec![image(1), image(1)])];
+        let mut data = vec![0u8; 5];
+        let first = common_entries(&sets, &mut data).unwrap();
+        assert_eq!(first, 5);
+        let entry = |k: usize| &data[first + k * PICTURE_ENTRY..first + (k + 1) * PICTURE_ENTRY];
+        assert_eq!(entry(0)[..6], [4, 0, 3, 0, 2, 0]);
+        assert_eq!(entry(0)[10..14], [0, 0, 0, 0x80]);
+        assert_eq!(entry(1)[5], 1);
+        assert_eq!(entry(1)[10..14], [0, 0, 1, 0x80]);
+        // The two of set b share their colours.
+        assert_eq!(entry(1)[8..10], entry(2)[8..10]);
+        // Each one's objects where the entry says.
+        let objects = u16::from_le_bytes([entry(1)[6], entry(1)[7]]) as usize;
+        assert_eq!(data[objects..objects + 8], [0, 0, 0, 0x80, 8, 0, 1, 0x80]);
+    }
+
+    /// The console's 4-bit tile: planes 0 and 1 a row at a time, then 2
+    /// and 3, the leftmost pixel in bit 7.
+    #[test]
+    fn a_cell_packs_as_a_four_bit_tile() {
+        let mut cell = vec![0u8; 64];
+        cell[0] = 0xF;
+        cell[9] = 0x5;
+        let tile = pack4(&cell);
+        assert_eq!(tile[0..4], [0x80, 0x80, 0x40, 0x00]);
+        assert_eq!(tile[16..20], [0x80, 0x80, 0x40, 0x00]);
+        assert!(tile[4..16].iter().chain(&tile[20..]).all(|&b| b == 0));
+    }
 
     #[test]
     fn the_crc_is_zlib_s() {
