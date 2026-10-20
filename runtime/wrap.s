@@ -569,24 +569,24 @@ no:
 loops:
     rep #$20
 .a16
+    ldy #0                      ; how many of the two moved
     ldx #0
     lda pass_x
     jsr into_map
     sta f:WRAP_PX
-    eor pass_x                  ; zero if it stayed
-    sta f:WRAP_U
-    lda f:WRAP_PX
+    cmp pass_x
+    beq :+
     sta pass_x
-    ldx #2
+    iny
+:   ldx #2
     lda pass_y
     jsr into_map
     sta f:WRAP_PY
-    eor pass_y
-    ora f:WRAP_U
-    tay                         ; zero if neither moved
-    lda f:WRAP_PY
+    cmp pass_y
+    beq :+
     sta pass_y
-    tya
+    iny
+:   tya
     beq same
     jsr wrap_ptr
 same:
