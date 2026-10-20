@@ -647,11 +647,54 @@ go:
     rts
 .endproc
 
-; Uploads the composed line to the window's tile bank. It goes in the vblank,
-; from `flush_video`, and it is 1920 bytes in a single DMA.
+; Uploads the composed line to the window's tile bank, and the face's step
+; that goes with it. It goes in the vblank, from `flush_video`, and it is
+; 1920 bytes in a single DMA.
+;
+; **Only if it still fits.** A DMA to VRAM that runs past the vblank writes
+; nothing from there on, and what the line did not write stays: a hole of
+; colour 0 in the window, which shows BG1 through it until the next box
+; covers it. The budget in `flush_video` keeps the poses down while a line
+; waits, but a step of the ChipSet's animation goes up whatever it says, up
+; to 1664 bytes, and the line goes after it: on The Book of Three's lava
+; tunnels, map 46, both families stepped in the vblank Fflewddur's box
+; opened, and the line ended on line 1 of the next frame —a black block,
+; four and a half cells of the window's second line— (2026-10-20). So the
+; line looks at the clock, and from `LINE_LATEST` on it waits for the next
+; vblank with `msg_upload` still set: `message_tick` does not touch the
+; buffer meanwhile, and `flush_video` does not show a box whose last line
+; is not up.
+;
+; Outside bank 0, the tightest: it is reached with `jsl`. What it
+; reads with `lda` alone is low RAM, which `flush_video`'s bank sees the
+; same.
+.pushseg
+.segment "FAR3"
+
+; The last line on which the DMA may start: it takes some twelve —1920
+; bytes at eight master cycles, 1364 to a line—, the face's step up to
+; one more, and the vblank's last line is 261. Two of margin for what goes
+; after it in the same vblank: `msg_arrow`'s cells.
+LINE_LATEST = 261 - 12 - 1 - 2
+
 .proc upload_line
 .a8
 .i16
+    lda f:STAT78                ; resets the counters' flip-flop: `tl_line`
+    lda f:SLHV                  ; latches them
+    lda f:OPVCT
+    xba
+    lda f:OPVCT
+    and #$01                    ; the ninth bit; the rest is open bus
+    xba
+    rep #$20
+.a16
+    cmp #LINE_LATEST + 1
+    bcs late
+    cmp #LINES + 1              ; on the screen's lines: the vblank is over
+    bcc late
+    sep #$20
+.a8
     stz msg_upload
     lda #$80
     sta VMAIN
@@ -697,8 +740,17 @@ go:
     sta BBAD0
     lda #$01
     sta MDMAEN
-    rts
+    ; And, while a box asks for it, one step per line's vblank: the face's
+    ; cells in the window's tilemap and the HDMA table of its palette, if it
+    ; has one. See message_face.s.
+    jsl f:msg_face_vblank
+    rtl
+late:
+    sep #$20
+.a8
+    rtl
 .endproc
+.popseg
 
 ; One character, from its already composed data: `font_pre0` to
 ; `font_pre7`, one table per phase, built by `font_prerender` in the

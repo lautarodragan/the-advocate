@@ -221,11 +221,7 @@ big_up:
     ; none are left.
     lda msg_upload
     beq no_upload
-    jsr upload_line
-    ; And, while a box asks for it, one step per line's vblank: the face's
-    ; cells in the window's tilemap and the HDMA table of its palette, if it
-    ; has one. See message_face.s.
-    jsl f:msg_face_vblank
+    jsl f:upload_line           ; and the face's step, if the line still fits
 .if ::WINDOW_SYSTEMS > 1
     bra no_swap
 no_upload:
@@ -246,6 +242,8 @@ no_upload:
 .endif
     lda msg_state
     cmp #2
+    bne no_finished
+    lda msg_upload              ; its last line did not fit: next vblank
     bne no_finished
     ; Only while the vblank lasts: what follows builds the tables the HDMA
     ; reads while it draws, and a window without its background writes its

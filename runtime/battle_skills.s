@@ -123,6 +123,10 @@ down_ok:
     adc BA_S5
     tax
     lda temp
+    sec
+    sbc BA_ONE, x
+    pha                         ; how much it really moved, for its line
+    lda temp
     sta BA_ONE, x               ; the new modifier
     clc
     adc BA_T0                   ; base + modifier
@@ -144,6 +148,19 @@ effective_ready:
     tax
     lda BA_T2
     sta BA_ONE, x
+    ; Its line, if it moved: `GetParameterChangeMessage`. Which parameter is
+    ; which modifier, `BA_MATK` to `BA_MAGI`, a word apart.
+    pla
+    beq unmoved                 ; goombario: pull-branch: what was pulled is how much it moved
+    pha
+    lda BA_S5
+    lsr a
+    sec
+    sbc #(BA_MATK / 2 - BA_RES_ATK)
+    tay
+    pla
+    jsr ba_res_add
+unmoved:
     sep #$20
 .a8
     rts
@@ -388,6 +405,7 @@ applies:
 .i16
     ldx BA_S4
     lda BA_ONE + BA_HP, x
+    pha                         ; the HP before
     clc
     adc BA_T0
     bmi in_zero
@@ -399,10 +417,45 @@ in_zero:
     lda #0
 fits:
     sta BA_ONE + BA_HP, x
-    cmp #0
+    ; Its line: `GetDamagedMessage` with the effect as it was asked for —at
+    ; zero, `GetUndamagedMessage`— if the skill targets enemies or the effect
+    ; came out negative; if not, what it really recovered —`ApplyHpEffect`
+    ; in `ePreHp`, zero at full HP—, and nothing for a heal of nothing.
+    sec
+    sbc 1, s
+    sta 1, s                    ; what it really moved, over the HP before
     sep #$20
 .a8
-    beq killed
+    lda BA_S3
+    and #$40
+    rep #$20
+.a16
+    bne a_damage
+    lda BA_T0
+    bmi a_damage
+    beq said
+    lda 1, s
+    ldy #BA_RES_HP
+    bra say
+a_damage:
+    lda BA_T0
+    eor #$FFFF
+    inc a
+    ldy #BA_RES_DAMAGE
+say:
+    jsr ba_res_add
+said:
+    pla
+    ldx BA_S4
+    lda BA_ONE + BA_HP, x
+    sep #$20
+.a8
+    bne alive
+    ; "If target will be killed, no further affects are applied": nothing
+    ; after this is written for it. See `ba_res_quiet`.
+    inc .loword(ba_res_quiet)
+    rts
+alive:
     ; Damage that did not kill releases what a hit releases, at
     ; `physical_rate * 10` percent —`BattlePhysicalStateHeal` in `vExecute`—:
     ; only a skill that targets enemies, bit 6 of `BA_S3`. See
@@ -436,6 +489,7 @@ killed:
     rep #$20
 .a16
     lda BA_ONE + BA_SP, x
+    pha                         ; the SP before
     clc
     adc BA_MEFFECT
     bmi sp_in_zero
@@ -447,15 +501,29 @@ sp_in_zero:
     lda #0
 sp_fits:
     sta BA_ONE + BA_SP, x
+    ; Its line, if they moved: `GetSpRecoveredMessage` or
+    ; `GetSpReduceMessage`.
+    sec
+    sbc 1, s
+    tay
+    pla
+    tya                         ; the flags from what moved, not from the pull
+    beq unmoved
+    ldy #BA_RES_SP
+    jsr ba_res_add
+unmoved:
     sep #$20
 .a8
     rts
 .endproc
 
-; The skill `BA_MWHO` chose, on `BA_MTGT`. Leaves the message ready.
+; The skill `BA_MWHO` chose, on `BA_MTGT`. Leaves the message ready, and
+; its result lines in the queue: see `ba_res_add`.
 .proc ba_skill_use
 .a8
 .i16
+    stz .loword(ba_res_n)
+    stz .loword(ba_res_i)
     lda BA_MWHO
     jsr ba_ax
     lda BA_ACC_SKILL, x
@@ -516,8 +584,7 @@ not_switch:
     ;
     ; `enemy` and `ally` on the chosen one, `self` on the user, and `enemies`
     ; and `party` on each living one on the opposing side or its own, in
-    ; screen order and **each with its own rolls**. The message gets the last
-    ; one.
+    ; screen order and **each with its own rolls** and its own lines.
     lda BA_MSKILL
     jsr ba_ax
     lda f:skill_scope, x
@@ -578,6 +645,8 @@ all_ready:
 .proc ba_skill_one
 .a8
 .i16
+    stz .loword(ba_res_ok)
+    stz .loword(ba_res_quiet)
     jsr ba_skill_effect
     ; the variance, with the skill's `variance`
     lda BA_MSKILL
@@ -640,6 +709,19 @@ no_hp:
     beq no_sp
     jsr ba_skill_sp
 no_sp:
+    ; "!IsPositive() && !IsSuccess() && (affect_hp || affect_sp)": one that
+    ; targets enemies and did nothing to the HP or the SP it touches has
+    ; failed, and `vExecute` returns. Here the rest is still rolled and
+    ; applied —see `skill_rolls` in rm2k-snes-battle's simulate.rs— and only
+    ; its lines are not written.
+    lda BA_S3
+    and #$43
+    cmp #$41
+    bcc goes_on                 ; not against enemies, or not HP nor SP
+    lda .loword(ba_res_ok)
+    bne goes_on
+    inc .loword(ba_res_quiet)
+goes_on:
     ; --- the four parameters, in `vExecute`'s order ---
     lda BA_MTGT
     jsr ba_x
@@ -723,9 +805,91 @@ no_spi:
 no_agi:
     ; And the attribute ranks it shifts: see battle_attributes.s.
     jsr ba_attr_shift
+    ; Nothing done is a failure, with its line: `ProcessBattleActionFailure`.
+    lda .loword(ba_res_ok)
+    bne succeeded
+    stz .loword(ba_res_quiet)
+    rep #$20
+.a16
+    lda #0
+    ldy #BA_RES_MISS
+    jsr ba_res_add
+    sep #$20
+.a8
+succeeded:
     ; And what a condition halves, halved again: `ba_mod` does not know.
     lda BA_MTGT
     jmp ba_st_params_held
+.endproc
+
+; --- what a skill wrote on each target -------------------------------------
+;
+; `Scene_Battle_Rpg2k` writes, under a skill's using lines, a line for each
+; thing it did on each target —`ProcessBattleActionDamage` and
+; `ProcessBattleActionParamEffects`—, or the failure's when it did nothing.
+; `ba_skill_one` leaves them here while it executes, and `ba_execute` shows
+; them one message each, after the using one: see `result` in `ba_message`.
+; The model says the same lines, `results` in rm2k-snes-battle's answer.
+;
+; One entry per line: whom, what —`BA_RES_*`— and the number. A target gets
+; six at most, the HP and the SP and the four parameters.
+BA_RES_MISS   = 0               ; `GetSkillFailureMessage`, no number
+BA_RES_DAMAGE = 1               ; `GetDamagedMessage`, `GetUndamagedMessage` at 0
+BA_RES_HP     = 2               ; `GetHpRecoveredMessage`, what was recovered
+BA_RES_SP     = 3               ; `GetSpRecoveredMessage`, or `GetSpReduceMessage`
+BA_RES_ATK    = 4               ; `GetParameterChangeMessage`, signed: attack,
+BA_RES_DEF    = 5               ; defense,
+BA_RES_SPI    = 6               ; spirit
+BA_RES_AGI    = 7               ; and agility, as the modifiers go
+BA_RES_MAX    = BA_COMB_MAX * 6
+.assert BA_MDEF = BA_MATK + 2 && BA_MSPI = BA_MATK + 4 && BA_MAGI = BA_MATK + 6, error, "ba_mod tells the parameter by its modifier's place"
+.pushseg
+.segment "FARBSS"
+ba_res_who:   .res BA_RES_MAX
+ba_res_what:  .res BA_RES_MAX
+ba_res_value: .res 2 * BA_RES_MAX
+ba_res_n:     .res 1            ; how many there are
+ba_res_i:     .res 1            ; how many `ba_execute` has shown
+ba_res_show:  .res 1            ; whether the message on screen is one
+ba_res_ok:    .res 1            ; whether this target got something:
+                                ; `SetIsSuccess`
+ba_res_quiet: .res 1            ; whether `vExecute` would have returned for
+                                ; this target: no line after that
+.popseg
+
+; A line for `BA_MTGT`: Y what, A16 the number. None once `ba_res_quiet`
+; says `vExecute` would have returned, and every one is a success. Comes and
+; goes in A16; clobbers X.
+.proc ba_res_add
+.a16
+.i16
+    pha
+    sep #$20
+.a8
+    lda .loword(ba_res_quiet)
+    bne full
+    inc .loword(ba_res_ok)
+    lda .loword(ba_res_n)
+    cmp #BA_RES_MAX
+    bcs full
+    inc .loword(ba_res_n)
+    jsr ba_ax
+    lda BA_MTGT
+    sta .loword(ba_res_who), x
+    tya
+    sta .loword(ba_res_what), x
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda 1, s
+    sta .loword(ba_res_value), x
+full:
+    rep #$20
+.a16
+    pla
+    rts
 .endproc
 
 ; --- skills in battle ------------------------------------------------------
@@ -1035,7 +1199,8 @@ message:
     beq not_victory
     jmp ba_vic_message
 not_victory:
-    jmp ba_message
+    jsl f:ba_message            ; in `FAR3`: see battle_message.s
+    rts
 commands:
     ; The bars: on the command while choosing one or whom it goes to, and on
     ; the actor giving it or the one it goes to.

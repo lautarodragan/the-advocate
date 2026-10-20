@@ -336,6 +336,76 @@ fn without_skill_in_battle(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text with the items' uses as they were before 2026-10-20, when
+/// `item_uses` came —a byte per item, how many uses spend one, which the
+/// runtime counts as RM2k's `item_usage`— and took the place of two flag
+/// bits: bit 1 of `item_use`, "a usable item that opens no actor choice
+/// and has uses", and bit 2 of `item_medicine`, "it has uses". The block
+/// goes, and the bits come back from it. `item_uses` is zero for the normal
+/// items and the equipment, which the bits counted by their `uses`: every
+/// item of the test game has `uses` 1, so for those it is 1.
+fn with_the_uses_as_before(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let bytes = |line: &str| -> Vec<u32> {
+        line.trim_start_matches("    .byte ")
+            .split(", ")
+            .map(|v| v.parse().unwrap())
+            .collect()
+    };
+    let at = lines.iter().position(|l| l == "item_uses:").unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let uses = bytes(&lines[at + 1]);
+    lines.drain(at - 1..at + 2);
+    let at = lines.iter().position(|l| l == "item_type:").unwrap();
+    let uses: Vec<u32> = bytes(&lines[at + 1])
+        .iter()
+        .zip(&uses)
+        .map(|(&t, &u)| if t < 6 { 1 } else { u })
+        .collect();
+    let at = lines.iter().position(|l| l == "item_use:").unwrap();
+    let flags: Vec<String> = bytes(&lines[at + 1])
+        .iter()
+        .zip(&uses)
+        .map(|(&f, &u)| {
+            (if f & 1 != 0 && f & 4 == 0 && u != 0 {
+                f | 2
+            } else {
+                f
+            })
+            .to_string()
+        })
+        .collect();
+    lines[at + 1] = format!("    .byte {}", flags.join(", "));
+    let at = lines.iter().position(|l| l == "item_medicine:").unwrap();
+    let flags: Vec<String> = bytes(&lines[at + 1])
+        .iter()
+        .zip(&uses)
+        .map(|(&f, &u)| (if u != 0 { f | 4 } else { f }).to_string())
+        .collect();
+    lines[at + 1] = format!("    .byte {}", flags.join(", "));
+    lines.join("\n")
+}
+
+/// The text without what a skill's result lines brought on 2026-10-20: a
+/// `BA_TXT_*` per term of `RESULT_TERMS` —whose texts go after the
+/// conditions' and are cut with them, see [`without_states`]— and
+/// `skill_fail`, a byte per skill in its `.block`, all 3 —`dodge`, the
+/// editor's default, which every skill of the test game keeps—.
+fn without_skill_results(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    for (name, _) in rm2k_snes_mapdata::emit::RESULT_TERMS {
+        let constant = format!("BA_TXT_{:<11}= ", name.to_uppercase());
+        let at = lines.iter().position(|l| l.starts_with(&constant)).unwrap();
+        lines.remove(at);
+    }
+    let at = lines.iter().position(|l| *l == "skill_fail:").unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let bytes = lines[at + 1].trim_start_matches("    .byte ");
+    assert!(bytes.split(", ").all(|b| b == "3"), "{bytes}");
+    lines.drain(at - 1..at + 2);
+    lines.join("\n")
+}
+
 /// The shop's party in the screens stage's answer, which came on
 /// 2026-10-15, after the requests were written: no member with a CharSet
 /// and the System's sixteen arrows blank, with its geometry; taken out of
@@ -1065,8 +1135,20 @@ fn without_custom_menus(text: &str) -> String {
 /// The text without `SLOT_MENU_TILES` and its comment, which came after
 /// the Python too, on 2026-10-03: a request without `menu_tiles` says all
 /// of the bank, checked here.
+///
+/// And without `SLOT_NAMES_FIRST` and `SLOT_NAMES_END` and their comment,
+/// which came on 2026-10-20: a request without `slot_names` says after
+/// all of the bank and up to its tilemap, checked here too.
 fn without_menu_tiles(text: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
+    let first = lines
+        .iter()
+        .position(|l| l.starts_with("SLOT_NAMES_FIRST "))
+        .unwrap();
+    let tiles = lines.iter().find(|l| l.starts_with("SLOT_TILES ")).unwrap();
+    assert_eq!(lines[first].split('=').nth(1), tiles.split('=').nth(1));
+    assert_eq!(lines[first + 1], "SLOT_NAMES_END    = 448");
+    lines.drain(first - 4..=first + 1);
     let at = lines
         .iter()
         .position(|l| l.starts_with("SLOT_MENU_TILES "))
@@ -1384,7 +1466,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "bare"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(&text))),
+            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
+                &with_the_uses_as_before(&without_skill_results(&text)),
+            ))),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
@@ -1419,7 +1503,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "whole"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(&text))),
+            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
+                &with_the_uses_as_before(&without_skill_results(&text)),
+            ))),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(

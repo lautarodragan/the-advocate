@@ -113,31 +113,16 @@ ready:
     rts
 .endproc
 
-; One less in the inventory of the `k` in X. It is what RM2k does when it is
-; chosen and not when it is used: otherwise the last one of an item could be
-; handed out to two actors in the same turn. One without uses is not spent
-; —`ConsumeItemUse` with `uses` 0—, which until 2026-10-19 the battle spent
-; anyway and the menu did not.
+; One use of the `k` in X spent: `item_spend`, which counts the uses of an
+; item of several. It is what RM2k does when it is chosen and not when it is
+; used: otherwise the last one of an item could be handed out to two actors
+; in the same turn. One without uses is not spent —`ConsumeItemUse` with
+; `uses` 0—, which until 2026-10-19 the battle spent anyway and the menu did
+; not.
 .proc ba_item_consume
 .a8
 .i16
-    lda f:item_medicine, x
-    and #MED_USES
-    beq ready
-    rep #$20
-.a16
-    txa
-    asl a
-    tax
-    lda f:item_id, x
-    tax
-    sep #$20
-.a8
-    lda FAR_ITEMS, x
-    beq ready
-    dec a
-    sta FAR_ITEMS, x
-ready:
+    jsl f:item_spend
     rts
 .endproc
 

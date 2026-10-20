@@ -387,30 +387,10 @@ view_list:
     jsr items_view
     jmp wait
 from_switch:
-    ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
-    ; straight to the map. `set_switch` asks for the page refresh, which is
-    ; the `SetNeedRefresh(true)` over there.
-    lda f:item_use, x
-    and #2
-    beq no_consume
-    ldx item_sel
-    jsr item_count
-    dec a
-    pha
-    rep #$20
-.a16
-    lda item_sel
-    asl a
-    tax
-    lda f:item_id, x
-    clc
-    adc #FAR_ITEMS
-    sta WMADDL
-    sep #$20
-.a8
-    pla
-    sta WMDATA
-no_consume:
+    ; A switch item: `ConsumeItemUse` —`item_spend`, X is its `k`—, the
+    ; switch turned on and straight to the map. `set_switch` asks for the
+    ; page refresh, which is the `SetNeedRefresh(true)` over there.
+    jsl f:item_spend
     rep #$20
 .a16
     lda item_sel

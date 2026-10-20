@@ -576,6 +576,11 @@ attribute:
     clc
     adc BA_S5
     sta .loword(ba_attr_shifts), x
+    ; A success, `SetIsSuccess`, though this battle writes no line for it:
+    ; see `ba_res_ok` in battle_skills.s.
+    lda .loword(ba_res_quiet)
+    bne next
+    inc .loword(ba_res_ok)
 next:
     rep #$20
 .a16

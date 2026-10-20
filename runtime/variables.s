@@ -152,9 +152,10 @@ same:
 .a16
     lda #FAR_MSG_OPTIONS
     sta WMADDL
-    ; Up to the end of the inventory, with whatever gap there is between the
-    ; variables and it: it is one pass at reset and it does not matter.
-    ldx #(FAR_ITEMS + ITEMS_N - FAR_MSG_OPTIONS - 5)
+    ; Up to the end of the inventory's uses, with whatever gap there is
+    ; between the variables and it: it is one pass at reset and it does not
+    ; matter.
+    ldx #(FAR_ITEM_USAGE + ITEMS_N - FAR_MSG_OPTIONS - 5)
     sep #$20
 .a8
     stz WMADDH

@@ -28,6 +28,7 @@
     sta BA_TARGET_TOP
     sta BA_FLEE_FAILED
     sta BA_MSP_NEXT             ; no item's SP line pending: see `ba_execute`
+    sta .loword(ba_res_n)       ; nor a skill's result: see battle_skills.s
     sta f:ba_abort              ; no `TerminateBattle` yet
     jsr ba_tone_clear           ; nor a flash of the map's: see battle_tone.s
     jsr ba_st_clear             ; nor conditions: see battle_states.s
@@ -816,21 +817,7 @@ gives_back:
     tax
     sep #$20
 .a8
-    lda f:item_medicine, x      ; one without uses was not spent
-    and #MED_USES
-    beq next
-    rep #$20
-.a16
-    txa
-    asl a
-    tax
-    lda f:item_id, x
-    tax
-    sep #$20
-.a8
-    lda FAR_ITEMS, x
-    inc a                       ; it was spent from here: it fits again
-    sta FAR_ITEMS, x
+    jsl f:item_unspend          ; it was spent on choosing it
 next:
     inc BA_S0
     bra other

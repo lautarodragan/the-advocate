@@ -90,6 +90,11 @@ pub struct Songs {
     /// The package being compiled: what is asked for is noted in its own.
     /// None notes nothing.
     pub current: Option<Package>,
+    /// While a body that belongs to no package compiles —`current` None—,
+    /// the effects it asks for, if this is Some: a parallel common event's,
+    /// which the caller then notes in the packages of the maps where it can
+    /// run. See [`Songs::note_sounds`].
+    pub loose: Option<Vec<String>>,
     /// And who asks for what: each song and each effect is noted in the
     /// package being compiled, in the order they appear. It is what builds
     /// each map's audio package: see `package_load` in
@@ -179,9 +184,23 @@ impl Songs {
         if in_package {
             self.requested += 1;
             let name = sound.0.clone();
+            if let (None, Some(loose)) = (self.current, self.loose.as_mut()) {
+                push_new(loose, name.clone());
+            }
             self.note(|w| push_new(&mut w.sounds, name));
         }
         self.sounds.iter().position(|s| *s == sound).unwrap()
+    }
+
+    /// Notes `names` in `package`'s effects, after what its own pages asked
+    /// for: those of a body compiled without a package —[`Songs::loose`]—
+    /// that can run on that map. Last, so a package too full to carry
+    /// everything leaves them out before its own.
+    pub fn note_sounds(&mut self, package: Package, names: &[String]) {
+        let wants = entry(&mut self.per_package, package);
+        for name in names {
+            push_new(&mut wants.sounds, name.clone());
+        }
     }
 
     pub fn to_json(&self) -> Value {

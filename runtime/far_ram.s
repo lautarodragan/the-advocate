@@ -64,6 +64,14 @@ FAR_VARIABLES  = .loword(far_variables)
 ; `Game_Party::AddItem`. It travels in the save and is cleared with the
 ; variables.
 FAR_ITEMS      = .loword(far_items)
+; And right after it, how many uses of each item are spent: RM2k's
+; `item_usage` of the save, a byte per LDB number like the inventory. An
+; item with `uses` above one —the converter's `item_uses`— loses one of the
+; count only when they reach it: see `item_spend`. Taking items away with
+; `ChangeItems` or selling them puts it back at zero, as `Game_Party::AddItem`
+; with an amount below zero; adding them does not. It travels in the save
+; and is cleared with the inventory.
+FAR_ITEM_USAGE = .loword(far_item_usage)
 ; And the random state: a sixteen-bit xorshift, the same as `random_next` in
 ; events.py, seeded on reset. It goes here and not in the direct page
 ; because the direct page ended up at 258 of 256 when that was tried;
@@ -104,7 +112,8 @@ MSG_CONTINUE = $10              ; the events go on moving during a page
 MSG_DEFAULT  = 2 | MSG_DODGE
 ; **These six are one block, in this order**, in far_ram_game.s:
 ; `clear_variables` writes the first five bytes and clears the rest up to
-; the inventory's end in one pass through the WMADD window.
+; the end of the inventory's uses, which come right after it, in one pass
+; through the WMADD window.
 ; And the list of the items screen —and of the equipment's, the shop's selling
 ; one and the battle's—, one `k` per word: see items.s, which declares it.
 FAR_ITEM_LIST  = .loword(far_item_list)
@@ -359,13 +368,11 @@ MED_HP:       .res 2            ; word: the `hp_change`
 MED_SP:       .res 2            ; word: the `sp_change`
 MED_P:        .res 4            ; four bytes: the product, and the quotient
 MED_R:        .res 2            ; word: the remainder
-MED_ID:       .res 2            ; word: the item's RM2k number
 .popseg
 ; The `item_medicine` bits, which the converter emits. `medicine_use` writes
 ; them by number; the battle, which reads them since 2026-09-26, by name.
 MED_KO_ONLY   = $01             ; only on a fallen one
 MED_RAISES    = $02             ; removes the dead state: revives the fallen one
-MED_USES      = $04             ; it has uses: using it spends one
 MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GROWTH`
 
 ; --- what the materials added: its state in far RAM ---------------------------
@@ -545,30 +552,35 @@ BA_MSP_NEXT = BA_MREVIVED + $04
 ; The battle's message, put together before it is drawn: see `ba_message` and
 ; `ba_flow`. It lasts
 ; as long as one message is composed, so it does not travel in the save.
+;
+; **Three of RM2k's lines** since 2026-10-20 —until then, two—: a skill's
+; two using lines and, under them, its result on a target, which
+; `Scene_Battle_Rpg2k` pushes below the using ones. See `ba_result`.
+BA_MBUF_LINES = 3
+BA_MBUF_MAX   = 96
+BA_MTEXT      = BA_MBUF_LINES * BA_MBUF_MAX
+BA_MLINES_MAX = 4               ; the window's four
+BA_MBUF_BYTES = BA_MTEXT + 4 + 4 * BA_MBUF_LINES + 10 + 3 * BA_MLINES_MAX
 .pushseg
 .segment "FARBSS"
-far_ba_mbuf: .res $D6 + 3 * 4
+far_ba_mbuf: .res BA_MBUF_BYTES
 .popseg
-BA_MBUF       = .loword(far_ba_mbuf)           ; RM2k's two lines, BA_MBUF_MAX letters each
-BA_MBUF_MAX   = 96
-BA_MPTR       = BA_MBUF + $C0           ; word: where the next letter goes
-BA_MLIM       = BA_MBUF + $C2           ; word: where the line being written ends
-BA_MSTART     = BA_MBUF + $C4           ; two words: where each line starts
-BA_MEND       = BA_MBUF + $C8           ; two words: and where it ends
-BA_MP         = BA_MBUF + $CC           ; word: where `ba_flow` is cutting
-BA_ME         = BA_MBUF + $CE           ; word: the end of what it cuts
-BA_MB         = BA_MBUF + $D0           ; word: the space it cuts at
-BA_MN         = BA_MBUF + $D2           ; how many of RM2k's lines: 1 or 2
-BA_MCOUNT     = BA_MBUF + $D3           ; the letters a text has left to copy, or
+BA_MBUF       = .loword(far_ba_mbuf)    ; RM2k's lines, BA_MBUF_MAX letters each
+BA_MPTR       = BA_MBUF + BA_MTEXT      ; word: where the next letter goes
+BA_MLIM       = BA_MPTR + 2             ; word: where the line being written ends
+BA_MSTART     = BA_MLIM + 2             ; a word per line: where each starts
+BA_MEND       = BA_MSTART + 2 * BA_MBUF_LINES ; and where it ends
+BA_MP         = BA_MEND + 2 * BA_MBUF_LINES ; word: where `ba_flow` is cutting
+BA_ME         = BA_MP + 2               ; word: the end of what it cuts
+BA_MB         = BA_MP + 4               ; word: the space it cuts at
+BA_MN         = BA_MP + 6               ; how many of RM2k's lines, 1 to 3
+BA_MCOUNT     = BA_MP + 7               ; the letters a text has left to copy, or
                                 ; whether a number wrote a digit already
-BA_MDN        = BA_MBUF + $D4           ; how many lines go on the screen
-BA_MI         = BA_MBUF + $D5           ; which one `ba_flow` is on
-BA_MDL        = BA_MBUF + $D6           ; BA_MLINES_MAX of three bytes: where each
+BA_MDN        = BA_MP + 8               ; how many lines go on the screen
+BA_MI         = BA_MP + 9               ; which one `ba_flow` is on
+BA_MDL        = BA_MP + 10              ; BA_MLINES_MAX of three bytes: where each
                                 ; line on the screen starts, and its length
-BA_MLINES_MAX = 4               ; the two message lines and the last two
-                                ; of the party's
-.assert BA_MBUF + 2 * BA_MBUF_MAX <= BA_MPTR, error, "the battle's message overflows its buffer"
-.assert BA_MDL + 3 * BA_MLINES_MAX <= BA_MBUF + $D6 + 3 * 4, error, "the battle's message overflows its range"
+.assert BA_MDL + 3 * BA_MLINES_MAX = BA_MBUF + BA_MBUF_BYTES, error, "the battle's message does not fill its block"
 
 ; The combatants: the first four are the party and the next eight the troop.
 ; That the place is fixed and not a compacted list is what keeps a dead one
@@ -673,9 +685,8 @@ BA_MSG_FRAMES = 120
 ; twenty-four were chosen when sound effects had a single voice and the new
 ; one cut off the previous one's voice, so they had to stay apart by ear;
 ; since 8c9c182 they are two voices —see `sound_effects.s`— and two
-; different sound effects no longer cut each other off; the same sound effect
-; twice does, because `sound_play` fires it again on the voice that is
-; already playing it.
+; different sound effects no longer cut each other off, and since
+; 2026-10-20 neither does the same one twice while the other voice is free.
 BA_SE2_FRAMES = BA_MSG_FRAMES - 24
 ; The hit rate of an actor with no weapon that changes it:
 ; `Game_Actor::GetHitChance`.

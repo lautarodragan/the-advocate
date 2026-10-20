@@ -92,6 +92,32 @@ pub const BATTLE_TERMS: [(&str, &str); 29] = [
     ("normal", "normal_status"),
 ];
 
+/// The terms of the lines a skill writes on each target under its using
+/// ones, since 2026-10-20 —see `ba_result` in the runtime's battle.s—: the
+/// failure, by the skill's `failure_message`, and what moved,
+/// `<target> <points> <n><hp_recovery>` and `<target> <attack>
+/// <n><parameter_increase>`. A medicine's recovery line writes the points
+/// with these too: `GetHpSpRecoveredMessage` asks for `health_points` and
+/// `spirit_points`, not the short ones the party's window writes —they
+/// differ in The Book of Three, `H` and `HP`—. They go after every other
+/// text, so the ones before keep their numbers, and **in this order**: the
+/// console adds `failure_message` to `fail_a`'s number and what moved to
+/// `hp_points`'.
+pub const RESULT_TERMS: [(&str, &str); 12] = [
+    ("fail_a", "skill_failure_a"),
+    ("fail_b", "skill_failure_b"),
+    ("fail_c", "skill_failure_c"),
+    ("dodge", "dodge"),
+    ("up", "parameter_increase"),
+    ("down", "parameter_decrease"),
+    ("hp_points", "health_points"),
+    ("sp_points", "spirit_points"),
+    ("atk", "attack"),
+    ("def", "defense"),
+    ("spi", "spirit"),
+    ("agi", "agility"),
+];
+
 /// A term of the database, by liblcf's name.
 fn term(db: &Db, name: &str) -> Result<String> {
     let t = &db.terms;
@@ -126,6 +152,18 @@ fn term(db: &Db, name: &str) -> Result<String> {
         "sp_short" => &t.sp_short,
         "normal_status" => &t.normal_status,
         "lvl_short" => &t.lvl_short,
+        "skill_failure_a" => &t.skill_failure_a,
+        "skill_failure_b" => &t.skill_failure_b,
+        "skill_failure_c" => &t.skill_failure_c,
+        "dodge" => &t.dodge,
+        "parameter_increase" => &t.parameter_increase,
+        "parameter_decrease" => &t.parameter_decrease,
+        "health_points" => &t.health_points,
+        "spirit_points" => &t.spirit_points,
+        "attack" => &t.attack,
+        "defense" => &t.defense,
+        "spirit" => &t.spirit,
+        "agility" => &t.agility,
         _ => return Err(Bad::usage(format!("there is no term {name:?}"))),
     }
     .clone())
@@ -141,9 +179,10 @@ fn term(db: &Db, name: &str) -> Result<String> {
 /// Windows-1252, and the console wrote `Kazar 3'I?_???[?W…` until
 /// 2026-10-19. The console fights with the 2000 battle, which writes them.
 /// Each goes after a name, as `<who><attacking>`, `<target>
-/// <n><actor_damaged>`, `<who> <item><use_item>` and `<target> HP
-/// <n><hp_recovery>` —see `ba_message` in the runtime's battle.s—.
-pub const UNSHOWN_IN_2003: [(&str, &str); 9] = [
+/// <n><actor_damaged>`, `<who> <item><use_item>`, `<target> HP
+/// <n><hp_recovery>`, `<target><skill_failure_a>` and `<target> Attack
+/// <n><parameter_increase>` —see `ba_message` in the runtime's battle.s—.
+pub const UNSHOWN_IN_2003: [(&str, &str); 15] = [
     ("attacking", " attacks!"),
     ("defending", " defends."),
     ("actor_critical", " A critical hit!"),
@@ -153,6 +192,12 @@ pub const UNSHOWN_IN_2003: [(&str, &str); 9] = [
     ("actor_undamaged", " takes no damage."),
     ("use_item", " used."),
     ("hp_recovery", " recovered."),
+    ("skill_failure_a", " is not affected."),
+    ("skill_failure_b", " is not affected."),
+    ("skill_failure_c", " is not affected."),
+    ("dodge", " dodges the attack."),
+    ("parameter_increase", " up."),
+    ("parameter_decrease", " down."),
 ];
 
 /// A battle term as the battle writes it: the project's `[battle.terms]`
@@ -178,7 +223,8 @@ const FROM_THE_MODEL: [&str; 4] = ["attack", "defend", "escape", "victory"];
 fn check_battle_terms(r: &Emit) -> Result<()> {
     let given = BATTLE_TERMS
         .iter()
-        .filter(|(short, _)| !FROM_THE_MODEL.contains(short));
+        .filter(|(short, _)| !FROM_THE_MODEL.contains(short))
+        .chain(RESULT_TERMS.iter());
     for name in r.battle_terms.keys() {
         if !given.clone().any(|(_, liblcf)| liblcf == name) {
             return Err(Bad::usage(format!(
@@ -648,6 +694,23 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         title.as_ref().map_or(8, |(full, _)| full.bpp).into(),
         MENU_CGRAM.into(),
     ];
+    // Where the slot screen's names go. An answer without it is one from
+    // before 2026-10-20, whose names went after the whole bank, up to its
+    // tilemap.
+    let slot_names = match slots.get("slot_names") {
+        Some(pair) => match ints(pair)?.as_slice() {
+            &[first, end] => (first as usize, end as usize),
+            _ => {
+                return Err(Bad::answer(
+                    "the slot screen's `slot_names` is not two numbers",
+                ))
+            }
+        },
+        None => (
+            list_at(slots, "tiles")?.len(),
+            ((SLOT_MAP - SLOT_VRAM) / 16) as usize,
+        ),
+    };
     let menu_counts = match title_menu {
         None => (0, 0),
         Some(menu) => (list_at(menu, "tiles")?.len(), list_at(menu, "texts")?.len()),
@@ -664,6 +727,8 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             .and_then(Value::as_u64)
             .map_or(list_at(slots, "tiles")?.len(), |n| n as usize)
             .into(),
+        slot_names.0.into(),
+        slot_names.1.into(),
         (t.n("HEADER_Y").div_euclid(cell)).into(),
         t.n("HEADER_ROWS").into(),
         (t.n("HEADER_ROWS") * cols).into(),
@@ -2469,6 +2534,14 @@ impl Rest<'_> {
         // conditions', for the same reason they go last.
         let level_text = texts.add(&term(db, "lvl_short")?);
         out.push_str(&format!("SK_TXT_LEVEL = {level_text}\n"));
+        // And the terms of a skill's result lines, since 2026-10-20: after
+        // that, for the same reason, and one after the other —see
+        // `RESULT_TERMS`—.
+        for (name, liblcf) in RESULT_TERMS {
+            let value = battle_term(&self.r.battle_terms, db, liblcf)?;
+            let k = texts.add(&plain(&value));
+            out.push_str(&pyf!("BA_TXT_%-11s= %d\n", name.to_uppercase(), k));
+        }
         let item_texts = if texts.data.is_empty() {
             vec![0]
         } else {
@@ -3129,8 +3202,8 @@ impl Rest<'_> {
         );
         words_asm(out, "item_id", &decimal(items.iter()), true);
         // Whether it goes in white and does something on the map, whether
-        // using it spends one, whether it opens the actor choice, and whether
-        // it is a two-handed weapon.
+        // it opens the actor choice, and whether it is a two-handed weapon.
+        // Whether using it spends it is `item_uses`'s, below.
         let textos = at(self.screens, "texts")?;
         let mut flags: HashMap<i64, (bool, bool)> = HashMap::new();
         for i in list_at(textos, "items")? {
@@ -3146,14 +3219,7 @@ impl Rest<'_> {
                 .ok_or_else(|| Bad::answer(format!("item {n} has no text")))?;
             let it = item(n)?;
             uses.push(
-                i64::from(usable)
-                    | if usable && !needs && it.uses != 0 {
-                        2
-                    } else {
-                        0
-                    }
-                    | if needs { 4 } else { 0 }
-                    | if it.two_handed { 8 } else { 0 },
+                i64::from(usable) | if needs { 4 } else { 0 } | if it.two_handed { 8 } else { 0 },
             );
         }
         bytes_asm(out, "item_use", &decimal(uses), true);
@@ -3241,14 +3307,13 @@ impl Rest<'_> {
         );
         // The `MED_*` bits of the runtime. A material is only what it is
         // —the editor keeps the fields of the type it had before, and RM2k
-        // reads none of them for one—, and whether it has uses.
+        // reads none of them for one—.
         bytes_asm(
             out,
             "item_medicine",
             &per_item(&|i| {
-                let uses = if i.uses != 0 { 4 } else { 0 };
                 if i.r#type.to_i32() == rm2k_snes_battle::db::ITEM_MATERIAL {
-                    return 8 | uses;
+                    return 8;
                 }
                 i64::from(i.ko_only)
                     | if i.state_set.first() == Some(&true) {
@@ -3256,7 +3321,24 @@ impl Rest<'_> {
                     } else {
                         0
                     }
-                    | uses
+            })?,
+            true,
+        );
+        // How many uses spend one of the item, `uses`, which the runtime
+        // counts per item in `FAR_ITEM_USAGE` —`item_spend`—: The Book of
+        // Three's bags of five shells. Zero is never spent, and so are the
+        // normal items and the equipment, whatever their `uses` says:
+        // `Game_Party::ConsumeItemUse` returns before looking at it for
+        // them. The editor stops at 99, so it is a byte.
+        bytes_asm(
+            out,
+            "item_uses",
+            &per_item(&|i| {
+                if i.r#type.to_i32() < rm2k_snes_battle::db::ITEM_MEDICINE {
+                    0
+                } else {
+                    i64::from(i.uses).clamp(0, 255)
+                }
             })?,
             true,
         );
@@ -3613,6 +3695,14 @@ impl Rest<'_> {
         );
         bytes_asm(out, "skill_var", &per_skill(&|s| s.variance.into())?, true);
         bytes_asm(out, "skill_hit", &per_skill(&|s| s.hit.into())?, true);
+        // Which failure it says when it did nothing, 0 to 3: `skill_failure_a`
+        // to `_c` and `dodge`, the order of `RESULT_TERMS`. Since 2026-10-20.
+        bytes_asm(
+            out,
+            "skill_fail",
+            &per_skill(&|s| s.failure_message.clamp(0, 3).into())?,
+            true,
+        );
         // What it touches, one bit each in the order `Skill::vExecute` looks
         // at them; bit 6 whether it targets enemies, 7 whether it ignores
         // defense.
@@ -4702,7 +4792,13 @@ mod tests {
             "\u{a1}Victoria!"
         );
         for (name, stand_in) in UNSHOWN_IN_2003 {
-            assert!(BATTLE_TERMS.iter().any(|(_, l)| *l == name), "{name}");
+            assert!(
+                BATTLE_TERMS
+                    .iter()
+                    .chain(RESULT_TERMS.iter())
+                    .any(|(_, l)| *l == name),
+                "{name}"
+            );
             assert!(stand_in.chars().all(|c| (' '..='~').contains(&c)), "{name}");
         }
     }

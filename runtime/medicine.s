@@ -55,7 +55,6 @@ FAR_GROWTH: .res EXP_K * GROWTH_BYTES
     asl a
     tax
     lda f:item_id, x
-    sta .loword(MED_ID)
     tax
     sep #$20
 .a8
@@ -235,20 +234,13 @@ sp_set:
     lda #1
     sta .loword(MED_USED)
 consume:
-    ; `ConsumeItemUse`, if it was of use and the item has uses. One at a
-    ; time: RM2k counts the uses of a multi-use item, and this port does not,
-    ; but this game's medicines are all single-use.
+    ; `ConsumeItemUse`, if it was of use: see `item_spend`.
     sep #$20
 .a8
     lda .loword(MED_USED)
     beq ready
-    lda .loword(MED_FLAGS)
-    and #MED_USES
-    beq ready
-    ldx .loword(MED_ID)
-    lda FAR_ITEMS, x
-    dec a
-    sta FAR_ITEMS, x
+    jsr k_in_x
+    jsl item_spend
     bra ready
 no_serves:
     stz .loword(MED_USED)
@@ -443,3 +435,83 @@ no_enters:
     rts
 .endproc
 
+; --- spending a use of an item ---------------------------------------------
+;
+; `Game_Party::ConsumeItemUse`, for the `k` in X: an item counts its uses in
+; `FAR_ITEM_USAGE` and loses one of the count when they reach its `uses`
+; —the converter's `item_uses`—, and then counts from zero again. So The
+; Book of Three's bag of five shells throws five, and an item of one use
+; goes on the first, as always. One with `uses` 0 is never spent, and the
+; converter gives that to the normal items and the equipment too, which
+; `ConsumeItemUse` leaves alone. With none in the inventory it does nothing,
+; the `!has` over there.
+;
+; The menu's medicines and switch items, and the battle's items, which spend
+; one on choosing it. It is entered with `jsl`, with any data bank. A8 and
+; I16; it clobbers A and X.
+.proc item_spend
+.a8
+.i16
+    lda f:item_uses, x
+    beq ready
+    pha                         ; the uses
+    jsr item_number
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    beq none
+    lda f:FAR_LENGTH + FAR_ITEM_USAGE, x
+    inc a
+    cmp 1, s
+    bcc counted                 ; uses left in this one
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    dec a
+    sta f:FAR_LENGTH + FAR_ITEMS, x
+    lda #0                      ; and its uses start again
+counted:
+    sta f:FAR_LENGTH + FAR_ITEM_USAGE, x
+none:
+    pla
+ready:
+    rtl
+.endproc
+
+; And the other way, for the `k` in X: the use `item_spend` took, given
+; back. The battle spends an item when it is chosen, and gives it back when
+; the action is not run —a failed escape forgets what was chosen—, so the
+; count and the uses come back as they were: one use fewer, or, if spending
+; it took one of the count, that one again with all its uses spent but the
+; last. RM2k has no such thing, because it spends the item when the action
+; runs. Same entry as `item_spend`.
+.proc item_unspend
+.a8
+.i16
+    lda f:item_uses, x
+    beq ready
+    pha                         ; the uses
+    jsr item_number
+    lda f:FAR_LENGTH + FAR_ITEM_USAGE, x
+    bne counted                 ; it had a use counted: one fewer
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    inc a                       ; it was spent from here: it fits again
+    sta f:FAR_LENGTH + FAR_ITEMS, x
+    lda 1, s
+counted:
+    dec a
+    sta f:FAR_LENGTH + FAR_ITEM_USAGE, x
+    pla
+ready:
+    rtl
+.endproc
+
+; The `k` in X, as its RM2k number, which indexes the inventory. A8 and I16.
+.proc item_number
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:item_id, x
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
