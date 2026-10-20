@@ -135,6 +135,11 @@
 //! `arrow_objs`, apart from the record, and each System's window the
 //! arrow's two tiles, `window_arrow_obj`. `without_arrow_objs` takes both
 //! away, and with them the text is the old one byte for byte.
+//!
+//! On 2026-10-19 the record said which axes a map loops on, in the fourth
+//! byte of its last pointer: the offsets got an `M_WRAP` line, which
+//! `without_wrap_and_grid_narrow` takes away with `M_GRID_NARROW`'s. No map
+//! here loops, so their bytes did not move.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -157,7 +162,7 @@ fn maps() -> Maps {
 fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     let written = record::maps(&maps().maps).unwrap();
     assert_eq!(
-        sha(&without_grid_narrow(&written.offsets)),
+        sha(&without_wrap_and_grid_narrow(&written.offsets)),
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
@@ -1305,6 +1310,15 @@ fn without_grid_narrow(text: &str) -> String {
     text.replacen(&line, "", 1)
 }
 
+/// The text without the record's `M_WRAP` line, which came on 2026-10-19
+/// with the maps that loop —see `record::wrap_offset`—, nor the
+/// `M_GRID_NARROW` one: they are next to each other.
+fn without_wrap_and_grid_narrow(text: &str) -> String {
+    let line = format!("\nM_WRAP         = {}", record::wrap_offset());
+    assert!(text.contains(&line));
+    without_grid_narrow(&text.replacen(&line, "", 1))
+}
+
 fn with_two_pan_operations_as_before(text: &str) -> String {
     let now = "; PanScreen's four operations.\nPAN_LOCK    = 0\nPAN_UNLOCK  = 1\n";
     assert!(text.contains(now));
@@ -1356,7 +1370,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&without_song_levels(
+                                    &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&text),
                                     )),
                                 )),
@@ -1391,7 +1405,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                         &without_arrow_objs(&without_pose_masks(&with_frequency_one_as_before(
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
-                                    &without_grid_narrow(&without_song_levels(
+                                    &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&text),
                                     )),
                                 )),

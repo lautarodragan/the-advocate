@@ -55,6 +55,48 @@ pub fn access_bits(access: rm2k_rules::tree::Access) -> u8 {
         | (if access.teleport { 0 } else { 0x08 })
 }
 
+/// Which axes of the map loop on the console, `(x, y)`, and why an axis
+/// RM2k loops does not, for `degradations.json`. An axis loops if the map
+/// asks for it —`scroll_type`, where 1 is vertical and 2 horizontal— and:
+///
+/// * it is wider than the screen by a character on each side: 20 cells
+///   across, 15 down. The runtime keeps a character's distance to the camera
+///   inside one lap of the map, centred on the screen —`wrap_fold_x` in
+///   `wrap.s`—, and a lap narrower than that would show it on both sides,
+///   which takes the clones RM2k has and the console does not. Every map that
+///   loops in the ports is at least that size;
+/// * the map is not painted: a painted map's BG1 is uploaded by `painted.s`
+///   from where the window is, and that does not know about laps. None of the
+///   ports' is.
+pub fn wrap_axes(m: &MapInfo) -> ((bool, bool), Vec<String>) {
+    let asks_x = matches!(m.map.scroll_type, 2 | 3);
+    let asks_y = matches!(m.map.scroll_type, 1 | 3);
+    let painted = m.panorama_way.as_str() == Some("painted");
+    let mut why = Vec::new();
+    let mut fits = |asks: bool, size: i32, least: i32, axis: &str| {
+        if !asks {
+            return false;
+        }
+        if painted {
+            why.push(format!(
+                "it loops {axis} in RM2k, and a painted map does not loop on the console"
+            ));
+            return false;
+        }
+        if size < least {
+            why.push(format!(
+                "it loops {axis} in RM2k, and with {size} cells it is too small to loop on the \
+                 console, which needs {least}"
+            ));
+            return false;
+        }
+        true
+    };
+    let x = fits(asks_x, m.map.width, 20, "across");
+    let y = fits(asks_y, m.map.height, 15, "down");
+    ((x, y), why)
+}
+
 /// A map as the emission takes it: see `Map` in its `request.rs`. `access`
 /// is what it forbids, from [`access_bits`].
 pub fn map_record(m: &MapInfo, access: u8) -> Value {
@@ -76,6 +118,7 @@ pub fn map_record(m: &MapInfo, access: u8) -> Value {
         "block_pass": hex(&m.block_pass),
         "block_terrain": hex(&m.block_terrain),
         "terrain_outside": m.terrain_outside,
+        "wrap": [wrap_axes(m).0 .0, wrap_axes(m).0 .1],
         "sprite": m.objects,
         "npcs": m.npcs, "movable": m.movable,
         "animates_still": m.animates_still,

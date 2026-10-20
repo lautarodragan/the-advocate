@@ -84,6 +84,10 @@ pub struct GameMap {
     pub chipset_id: i32,
     pub width: i32,
     pub height: i32,
+    /// RM2k's `scroll_type`: 0 none, 1 vertical, 2 horizontal, 3 both. A
+    /// map that loops on an axis is a torus on it: see `wrap.s` in the
+    /// runtime, and [`crate::emit::wrap_axes`] for what the console keeps.
+    pub scroll_type: i32,
     pub events: Vec<Event>,
     /// The two tile layers, which only the fork's ChipSet images look at.
     pub lower_layer: Vec<i16>,
@@ -655,6 +659,7 @@ impl Game {
             chipset_id: raw.chipset_id,
             width: raw.width,
             height: raw.height,
+            scroll_type: raw.scroll_type.to_i32(),
             events,
             lower_layer: raw.lower_layer,
             upper_layer: raw.upper_layer,

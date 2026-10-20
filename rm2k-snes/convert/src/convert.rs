@@ -1079,6 +1079,12 @@ pub fn run(options: Options) -> Result<()> {
             println!("{line}");
             degradations.map(m.id as i64, "route-slots-short", &line, &[]);
         }
+        // A map RM2k loops on an axis the console cannot: see `wrap_axes`.
+        for why in emit::wrap_axes(m).1 {
+            let line = format!("  map {}: WARNING, {why}: its edges are walls", m.id);
+            println!("{line}");
+            degradations.map(m.id as i64, "map-does-not-wrap", &line, &[]);
+        }
         let runnable = m.pages.iter().filter(|p| p.has_code).count();
         if !m.pages.is_empty() {
             println!(

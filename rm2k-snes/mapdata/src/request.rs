@@ -66,6 +66,10 @@ pub struct Map {
     #[serde(deserialize_with = "hex::bytes")]
     pub block_terrain: Vec<u8>,
     pub terrain_outside: i64,
+    /// Whether the map loops across and down, `[x, y]`: the converter
+    /// decided it from RM2k's `scroll_type`. Missing, it does not.
+    #[serde(default)]
+    pub wrap: [bool; 2],
     /// The objects, as `wally` answered them.
     pub sprite: Option<Sprite>,
     /// The events that are drawn, and who among them walks and who

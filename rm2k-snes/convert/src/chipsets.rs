@@ -520,6 +520,7 @@ mod tests {
             chipset_id: 55,
             width: 2,
             height: 1,
+            scroll_type: 0,
             events: vec![Event {
                 id: 1,
                 x: 0,

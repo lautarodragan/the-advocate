@@ -719,6 +719,7 @@ pub fn offsets() -> String {
         ));
     }
     out.push(format!("M_GRID_NARROW  = {}", grid_narrow_offset()));
+    out.push(format!("M_WRAP         = {}", wrap_offset()));
     out.join("\n")
 }
 
@@ -731,6 +732,20 @@ pub fn grid_narrow_offset() -> usize {
         .position(|&p| p == "map_cells")
         .expect("the grid has a pointer");
     MAP_PTR_BASE + cells * MAP_PTR_STEP + 3
+}
+
+/// Where the record says which axes the map loops on —bit 0 across, bit 1
+/// down; see `wrap.s`—: the fourth byte of the last pointer, the ChipSet
+/// animation's, which nobody reads. Like [`grid_narrow_offset`], because
+/// the record has no other room; and zero in a map that does not loop, so
+/// a cartridge without one comes out as before.
+pub fn wrap_offset() -> usize {
+    MAP_PTR_BASE + (MAP_POINTERS.len() - 1) * MAP_PTR_STEP + 3
+}
+
+/// The bits of [`wrap_offset`].
+fn wrap_bits(map: &Map) -> u8 {
+    u8::from(map.wrap[0]) | u8::from(map.wrap[1]) << 1
 }
 
 /// The table the console walks to know what to load. `labels` says, per
@@ -802,9 +817,11 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
         for name in MAP_POINTERS {
             let label = &labels[number][name];
             let fourth = if name == "map_cells" && map.narrow() {
-                "$01"
+                "$01".to_string()
+            } else if name == MAP_POINTERS[MAP_POINTERS.len() - 1] {
+                format!("${:02X}", wrap_bits(map))
             } else {
-                "$00"
+                "$00".to_string()
             };
             out.push(format!(
                 "    .byte <({label}), >({label}), ^({label}), {fourth} ; +{used}  {name}"
@@ -2116,6 +2133,11 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
             "\n{}\n",
             crate::panorama::panorama_table(maps, msu)?
         );
+    }
+    // And the code of the maps that loop, only in a cartridge that has one:
+    // see `wrap.s`, which assembles nothing without `wrap_maps`.
+    if maps.iter().any(|m| m.wrap[0] || m.wrap[1]) {
+        tables.push_str("\n; Some map loops: see `wrap.s`.\nwrap_maps = 1\n");
     }
     // And the painted ones, only in a cartridge that has some: see
     // `painted.s`, which assembles nothing without `paint_table`.

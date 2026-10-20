@@ -460,6 +460,7 @@ mod tests {
             chipset_id: 1,
             width: 20,
             height: 15,
+            scroll_type: 0,
             events: pages
                 .into_iter()
                 .enumerate()
