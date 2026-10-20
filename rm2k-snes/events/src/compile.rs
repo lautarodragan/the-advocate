@@ -3256,11 +3256,29 @@ pub fn compile_picture(
     out.extend(x.to_le_bytes());
     out.extend(y.to_le_bytes());
     // `options.wait`: the page waits as long as it lasts, like `FlashScreen`.
-    if p.len() > 15 && p[15] != 0 && frames != 0 {
-        out.push(OP_DELAY);
-        out.extend(word(frames)?);
-    }
+    out.extend(picture_wait(p)?);
     Ok(Some(out))
+}
+
+/// A `MovePicture`'s wait, `options.wait`: the page waits as long as the
+/// move lasts, like `FlashScreen`; nothing if it does not ask to. A zero
+/// still ends the frame, RM2k's "0.0 waits 1 frame" —`SetupWait`—, which
+/// is what `OP_DELAY 0` does: `loop_waits` takes any of them as a wait,
+/// and a loop whose only wait let no frame go by would hang the console.
+/// The duration is the one easyrpg clamps to, ten thousand tenths.
+fn picture_wait(p: &[i32]) -> Step<Vec<u8>> {
+    if p.get(15).is_none_or(|&w| w == 0) {
+        return Ok(Vec::new());
+    }
+    let Some(&tenths) = p.get(14) else {
+        return Err(Stop::Fatal(Bad::answer(
+            "a MovePicture without its duration",
+        )));
+    };
+    let frames = i64::from(tenths.clamp(0, 10000)) * FRAMES_PER_TENTH;
+    let mut out = vec![OP_DELAY];
+    out.extend(word(frames)?);
+    Ok(out)
 }
 
 /// The largest size `OP_BIG_ZOOM` takes, in percent of the size shown: what
@@ -3378,10 +3396,7 @@ fn compile_big_picture(cmd: &Command, pictures: &Pictures) -> Step<Option<Vec<u8
         out.extend([wave(p), p[11] as u8]);
         out
     };
-    if p.len() > 15 && p[15] != 0 && frames != 0 {
-        out.push(OP_DELAY);
-        out.extend(word(frames)?);
-    }
+    out.extend(picture_wait(p)?);
     Ok(Some(out))
 }
 
@@ -4899,7 +4914,19 @@ pub fn compile_command(
                     ctx.lose(cmd, "picture-zoom-as-fade", how);
                 }
             }
-            Ok(done.unwrap_or_default())
+            // A move that is not done still waits, if it asks to: the wait is
+            // not the move's —easyrpg's `CommandMovePicture` calls
+            // `SetupWait` whatever happened to the picture— and `loop_waits`
+            // counted it. Until 2026-10-20 it went with the move, and
+            // Vampires Dawn's Tradan hung: a parallel page loops showing a
+            // cloud and sliding it sideways for ten seconds, a move the
+            // console does not do, and the loop was left with nothing that
+            // ends a frame.
+            match done {
+                Some(code) => Ok(code),
+                None if cmd.code == MOVE_PICTURE => picture_wait(p),
+                None => Ok(Vec::new()),
+            }
         }
         // `ChangeSystemBGM` (10660): changes the song the system uses for
         // fighting, for winning, for the inn, the vehicles and Game Over.
@@ -9672,6 +9699,36 @@ mod tests {
             &[elsewhere, cmd(ERASE_PICTURE, &[4], "")],
         );
         assert_eq!(code, [OP_DONE]);
+    }
+
+    #[test]
+    fn a_move_not_done_still_waits() {
+        // Vampires Dawn's Tradan, EV0029: a parallel loop that shows a cloud
+        // and slides it sideways for ten seconds, waiting. The map does not
+        // carry the picture —or the console cannot move it like that—, so
+        // the move is not done; its wait is, or the loop never ends a frame.
+        let slide = moving(19, (320, 120), 100, 40, 100, true);
+        let code = with_pictures(
+            &[],
+            &Indices::default(),
+            &[
+                Command::new(LOOP, 0, "", vec![]),
+                Command {
+                    indent: 1,
+                    ..slide.clone()
+                },
+                Command::new(END_LOOP, 0, "", vec![]),
+            ],
+        );
+        assert_eq!(code, [OP_DELAY, 0x58, 0x02, OP_GOTO, 0, 0, OP_DONE]);
+        // Without the wait, nothing; with a zero, the frame still ends.
+        let still = moving(19, (320, 120), 100, 40, 100, false);
+        assert_eq!(with_pictures(&[], &Indices::default(), &[still]), [OP_DONE]);
+        let at_once = moving(19, (320, 120), 100, 40, 0, true);
+        assert_eq!(
+            with_pictures(&[], &Indices::default(), &[at_once]),
+            [OP_DELAY, 0, 0, OP_DONE]
+        );
     }
 
     #[test]
