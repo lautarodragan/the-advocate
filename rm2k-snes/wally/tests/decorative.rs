@@ -137,6 +137,17 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
 }
 
 fn convert(dir: &Path, dump: &Path, pictures: &Path, decorative: Option<bool>) -> (Value, Value) {
+    convert_with(dir, dump, pictures, decorative, json!({}))
+}
+
+/// [`convert`], with `extra`'s keys added to the request.
+fn convert_with(
+    dir: &Path,
+    dump: &Path,
+    pictures: &Path,
+    decorative: Option<bool>,
+    extra: Value,
+) -> (Value, Value) {
     let request = dir.join("request.json");
     let mut body = json!({
         "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
@@ -149,6 +160,9 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, decorative: Option<bool>) -
     });
     if let Some(on) = decorative {
         body["decorative"] = json!(on);
+    }
+    for (k, v) in extra.as_object().unwrap() {
+        body[k] = v.clone();
     }
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
@@ -221,6 +235,24 @@ fn decoration_goes_into_the_background_and_the_hero_one_still_blocks() {
     assert_eq!(runs[0]["drawings"].as_array().unwrap().len(), 3);
     // And the objects it did not spend.
     assert!(events(&map).len() < events(&plain).len());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_wall_the_caller_left_out_closes_its_cell() {
+    // The converter left event 6 out —it does not fit in the console's
+    // RAM— and says its cell, and an empty one's, are still walls: the
+    // passability closes both, with or without decoration.
+    let dir = scratch("walls");
+    let (dump, pictures) = game(&dir);
+    let extra = json!({"dropped_events": {"7": [6]}, "walls": {"7": [[7, 1], [3, 1]]}});
+    let (_, plain) = convert(&dir, &dump, &pictures, None);
+    let (map, layers) = convert_with(&dir, &dump, &pictures, None, extra);
+    let pass = |l: &Value, x: usize| l["passability"][8 + x].as_i64().unwrap();
+    assert_eq!((pass(&plain, 7), pass(&plain, 3)), (15, 15));
+    assert_eq!((pass(&layers, 7), pass(&layers, 3)), (0, 0));
+    assert_eq!(pass(&layers, 6), 15);
+    assert_eq!(events(&map).len(), 5);
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

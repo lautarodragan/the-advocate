@@ -51,8 +51,9 @@ pub struct Drawn {
     /// halves: the blocks it needs have to be drawn, and they are drawn
     /// here, converted with the map and cut off after the blocks are made.
     pub extended: Option<(Map, Layers)>,
-    /// The cells a decorative event on the hero's layer closes: the map's
-    /// passability says it, since the event is not in the table any more.
+    /// The cells a decorative event on the hero's layer closes, and the
+    /// walls the caller left out —[`Game::walls`]—: the map's passability
+    /// says it, since the event is not in the table any more.
     pub blocked: Vec<usize>,
     /// The map's pixels that its pictures put in front of the hero, if they
     /// are drawn into a panorama fixed to the map: see
@@ -360,11 +361,20 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
         &mut layers,
         into,
     )?;
+    // And the walls the caller left out of the map's events: the same, an
+    // event on the hero's layer that is not in the table any more.
+    let walls = game.walls.get(&id).map_or(&[][..], Vec::as_slice);
     let blocked: Vec<usize> = request
         .decor
         .iter()
         .filter(|d| d.blocks())
         .map(|d| d.y as usize * drawn.width + d.x as usize)
+        .chain(
+            walls
+                .iter()
+                .filter(|&&(x, y)| x < drawn.width && y < drawn.height)
+                .map(|&(x, y)| y * drawn.width + x),
+        )
         .collect();
     let fused = request.fuse_tiles.map_or(0, |max| {
         crate::background::fuse::fuse_lower(&mut layers, max)
