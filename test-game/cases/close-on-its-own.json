@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "ShowMessage", "string": "Typed whole, and gone without a key.\\^"},
+    {"code": "ControlSwitches", "parameters": [0, 1320, 1320, 0]}
+  ]
+}
