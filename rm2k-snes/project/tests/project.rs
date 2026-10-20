@@ -57,6 +57,20 @@ fn a_directory_without_the_file_says_what_project_means() {
 }
 
 #[test]
+fn the_old_name_is_found_and_told_to_be_renamed() {
+    let root = scratch("old_name");
+    fs::write(root.join("rm2k-snes.toml"), "").unwrap();
+    let deep = root.join("a/b");
+    fs::create_dir_all(&deep).unwrap();
+    assert_eq!(Project::find(&deep), Some(root.clone()));
+    let error = Project::open(&root).unwrap_err().to_string();
+    assert!(
+        error.contains("has rm2k-snes.toml, which is called advocate.toml"),
+        "{error}"
+    );
+}
+
+#[test]
 fn a_missing_key_is_named_up_to_where_it_is_missing() {
     let p = project();
     let error = p.int(&["cartridges", "release", "start_map"]).unwrap_err();

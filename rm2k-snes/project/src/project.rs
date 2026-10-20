@@ -10,6 +10,11 @@ use crate::paths::absolute;
 /// The project file's name. A game declares itself by having one at its root.
 pub const FILENAME: &str = "advocate.toml";
 
+/// What the project file was called until 2026-10-20. It is not read: a game
+/// that still has one is found, and told to rename it, instead of being
+/// skipped for some other project further up or reported as missing.
+const OLD_FILENAME: &str = "rm2k-snes.toml";
+
 /// What stops a tool before it does anything: no project, a setting that is
 /// missing or has the wrong type, a machine value nobody passed. What fixes
 /// it is how the tool was run or what the game declares, never the tool's
@@ -47,11 +52,12 @@ pub struct Project {
 
 impl Project {
     /// The nearest directory, `start` or one above it, that has a project
-    /// file; or None. It is how cargo finds its `Cargo.toml`.
+    /// file —or one with the old name, which `open` refuses with what to
+    /// do—; or None. It is how cargo finds its `Cargo.toml`.
     pub fn find(start: &Path) -> Option<PathBuf> {
         let mut current = absolute(start);
         loop {
-            if current.join(FILENAME).is_file() {
+            if current.join(FILENAME).is_file() || current.join(OLD_FILENAME).is_file() {
                 return Some(current);
             }
             if !current.pop() {
@@ -84,6 +90,12 @@ impl Project {
     pub fn open(directory: &Path) -> Result<Project, Error> {
         let directory = absolute(directory);
         let file = directory.join(FILENAME);
+        if !file.is_file() && directory.join(OLD_FILENAME).is_file() {
+            return Err(Error(format!(
+                "{} has {OLD_FILENAME}, which is called {FILENAME} since 2026-10-20: rename it",
+                directory.display()
+            )));
+        }
         if !file.is_file() {
             return Err(Error(format!(
                 "{} has no {FILENAME}: --project is the directory where that file is",
