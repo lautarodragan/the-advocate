@@ -1160,13 +1160,21 @@ fn compile_pass(
         .filter(|c| c.trigger == COMMON_PARALLEL && c.switch_flag)
         .map(|c| c.switch_id)
         .collect();
-    let switches_on: Vec<BTreeSet<i32>> = maps
-        .iter()
-        .map(|m| {
-            let commands = m.events.iter().flat_map(|e| &e.pages).flat_map(|p| &p.commands);
-            commons::turned_on(game, commands, &parallel_switches)
-        })
-        .collect();
+    let mut switches_on: Vec<BTreeSet<i32>> = vec![BTreeSet::new(); maps.len()];
+    for (k, m) in maps.iter().enumerate() {
+        let pages = m
+            .events
+            .iter()
+            .flat_map(|e| &e.pages)
+            .map(|p| p.commands.as_slice());
+        let turned = commons::turned_on(game, pages, &parallel_switches);
+        switches_on[k].extend(turned.here);
+        for (dest, on) in turned.at {
+            if let Some(d) = map_index(dest as i64) {
+                switches_on[d].extend(on);
+            }
+        }
+    }
     let switches_anywhere = commons::turned_on_anywhere(game, &parallel_switches);
 
     let mut maps_out = Vec::new();

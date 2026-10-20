@@ -622,9 +622,25 @@ pub fn parallel_commons(
 /// on or flip them.
 const SWITCH_OFF: i32 = 1;
 
-/// Which of `wanted` the `commands` can turn on: a `ControlSwitches` that
-/// turns one on or flips it —or that picks it by a variable—, in them and
-/// in the common events they call, followed down.
+/// The commands that take no frame and leave the map where it is: between a
+/// `ControlSwitches` and a `Teleport` they keep the switch from being seen
+/// on this map. See [`TurnedOn`].
+const INSTANT: [i32; 10] = [
+    CONTROL_SWITCHES,
+    CONTROL_VARS,
+    TIMER_OPERATION,
+    CHANGE_GOLD,
+    CHANGE_ITEMS,
+    CHANGE_PARTY_MEMBERS,
+    WEATHER_EFFECTS,
+    COMMENT,
+    COMMENT_2,
+    END,
+];
+
+/// Which of the wanted switches some commands can turn on: `here`, on the
+/// map they run on, and `at`, by map number, the ones turned on right
+/// before a `Teleport` there.
 ///
 /// It is where a parallel common event's effects go in a package: the
 /// maps whose pages can turn its switch on, and every map if the database,
@@ -635,33 +651,69 @@ const SWITCH_OFF: i32 = 1;
 /// `Raining`'s `Rain1` alone is five seconds of it. The same rule copies the
 /// automatic ones with pictures into the maps: `common_pages.rs` in the
 /// converter.
+///
+/// **A switch turned on right before a `Teleport` counts for the
+/// destination**, with only [`INSTANT`] commands in between: RM2k moves the
+/// party in the same frame —easyrpg's `Scene_Map::UpdateStage2` starts the
+/// pending teleport after the map's update, and the parallel common events
+/// went first in it—, so the common event never runs on the map that turned
+/// its switch on. That is ABL's map 21, which turns on 94 and sends the
+/// party to map 20 in the rain: counted on 21, `Rain1` took its song's
+/// guitar, trumpet and organ down to ~9 kHz, for a rain that never sounds
+/// there.
+#[derive(Debug, Default, PartialEq)]
+pub struct TurnedOn {
+    pub here: BTreeSet<i32>,
+    pub at: BTreeMap<i32, BTreeSet<i32>>,
+}
+
+/// [`TurnedOn`] for `lists` —each a page's commands, or a common event's—
+/// and the common events they call, followed down: a `ControlSwitches` that
+/// turns a switch on or flips it, or that picks it by a variable.
 pub fn turned_on<'a>(
     game: &Game,
-    commands: impl IntoIterator<Item = &'a Command>,
+    lists: impl IntoIterator<Item = &'a [Command]>,
     wanted: &BTreeSet<i32>,
-) -> BTreeSet<i32> {
-    let mut on = BTreeSet::new();
+) -> TurnedOn {
+    let mut out = TurnedOn::default();
     let mut seen = BTreeSet::new();
-    let mut stack: Vec<&Command> = commands.into_iter().collect();
-    while let Some(c) = stack.pop() {
-        let p = &c.parameters;
-        if c.code == CONTROL_SWITCHES && p.len() >= 4 && p[3] != SWITCH_OFF {
-            match p[0] {
-                0 => on.extend(wanted.iter().filter(|&&s| s == p[1])),
-                1 => on.extend(wanted.iter().filter(|&&s| p[1] <= s && s <= p[2])),
-                _ => on.extend(wanted.iter()),
+    let mut stack: Vec<&[Command]> = lists.into_iter().collect();
+    while let Some(list) = stack.pop() {
+        for (i, c) in list.iter().enumerate() {
+            let p = &c.parameters;
+            if c.code == CONTROL_SWITCHES && p.len() >= 4 && p[3] != SWITCH_OFF {
+                let on: Vec<i32> = match p[0] {
+                    0 => wanted.iter().filter(|&&s| s == p[1]).copied().collect(),
+                    1 => wanted
+                        .iter()
+                        .filter(|&&s| p[1] <= s && s <= p[2])
+                        .copied()
+                        .collect(),
+                    _ => wanted.iter().copied().collect(),
+                };
+                let teleport = list[i + 1..]
+                    .iter()
+                    .find(|n| !INSTANT.contains(&n.code))
+                    .filter(|n| n.code == TELEPORT && n.indent == c.indent)
+                    .and_then(|n| n.parameters.first());
+                match teleport {
+                    Some(&map) => out.at.entry(map).or_default().extend(on),
+                    None => out.here.extend(on),
+                }
+            }
+            if c.code == CALL_EVENT && p.len() >= 2 && p[0] == 0 && seen.insert(p[1]) {
+                if let Some(callee) = game.common_events.get(&p[1]) {
+                    stack.push(&callee.commands);
+                }
             }
         }
-        if c.code == CALL_EVENT && p.len() >= 2 && p[0] == 0 && seen.insert(p[1]) {
-            stack.extend(game.common_events.get(&p[1]).into_iter().flat_map(|c| &c.commands));
-        }
     }
-    on
+    out
 }
 
 /// Which of `wanted` can be turned on on any map: by the database —a switch
 /// item or skill— or by a parallel or automatic common event, which run
-/// wherever the party is. See [`turned_on`].
+/// wherever the party is, before a `Teleport` or not. See [`turned_on`].
 pub fn turned_on_anywhere(game: &Game, wanted: &BTreeSet<i32>) -> BTreeSet<i32> {
     let mut on: BTreeSet<i32> = wanted
         .intersection(&game.database_switches)
@@ -671,8 +723,10 @@ pub fn turned_on_anywhere(game: &Game, wanted: &BTreeSet<i32>) -> BTreeSet<i32> 
         .common_events
         .values()
         .filter(|c| c.trigger == COMMON_PARALLEL || c.trigger == COMMON_AUTOSTART)
-        .flat_map(|c| &c.commands);
-    on.extend(turned_on(game, global, wanted));
+        .map(|c| c.commands.as_slice());
+    let turned = turned_on(game, global, wanted);
+    on.extend(turned.here);
+    on.extend(turned.at.into_values().flatten());
     on
 }
 
@@ -772,13 +826,39 @@ mod tests {
             c(CALL_EVENT, 0, vec![0, 7, 0]),
         ];
         let set = |v: &[i32]| v.iter().copied().collect::<BTreeSet<i32>>();
-        assert_eq!(turned_on(&game, &page, &wanted), set(&[94, 95]));
+        let here = |list: &[Command]| turned_on(&game, [list], &wanted).here;
+        assert_eq!(here(&page), set(&[94, 95]));
         assert_eq!(turned_on_anywhere(&game, &wanted), set(&[96, 97]));
         // A range, and one picked by a variable, which may be any.
-        let range = [c(CONTROL_SWITCHES, 0, vec![1, 90, 94, 2])];
-        assert_eq!(turned_on(&game, &range, &wanted), set(&[94]));
-        let by_variable = [c(CONTROL_SWITCHES, 0, vec![2, 5, 5, 0])];
-        assert_eq!(turned_on(&game, &by_variable, &wanted), wanted);
+        assert_eq!(
+            here(&[c(CONTROL_SWITCHES, 0, vec![1, 90, 94, 2])]),
+            set(&[94])
+        );
+        assert_eq!(here(&[c(CONTROL_SWITCHES, 0, vec![2, 5, 5, 0])]), wanted);
+    }
+
+    /// ABL's map 21: switch 94 on, the rain's weather, another switch off,
+    /// and a `Teleport` to map 20 —the party leaves in the same frame—. It
+    /// counts for 20 and not for 21. With a wait in between, or the
+    /// `Teleport` inside a branch, it counts for the map itself.
+    #[test]
+    fn a_switch_turned_on_right_before_a_teleport_counts_for_the_destination() {
+        let game = Game::default();
+        let wanted: BTreeSet<i32> = [94].into_iter().collect();
+        let teleport = c(TELEPORT, 0, vec![20, 48, 38]);
+        let page = [
+            on(94),
+            c(WEATHER_EFFECTS, 0, vec![1, 2]),
+            c(CONTROL_SWITCHES, 0, vec![0, 115, 115, SWITCH_OFF]),
+            teleport.clone(),
+        ];
+        let turned = turned_on(&game, [&page[..]], &wanted);
+        assert!(turned.here.is_empty());
+        assert_eq!(turned.at, [(20, wanted.clone())].into_iter().collect());
+        let waits = [on(94), c(WAIT, 0, vec![10]), teleport.clone()];
+        assert_eq!(turned_on(&game, [&waits[..]], &wanted).here, wanted);
+        let nested = [on(94), c(TELEPORT, 1, vec![20, 48, 38])];
+        assert_eq!(turned_on(&game, [&nested[..]], &wanted).here, wanted);
     }
 
     /// And noted last in a package, after what the map's pages asked for,
@@ -800,7 +880,10 @@ mod tests {
         assert_eq!(
             sounds,
             [
-                (Package::Map(2), vec!["Thunder9".into(), "Rain1".into(), "Rain2".into()]),
+                (
+                    Package::Map(2),
+                    vec!["Thunder9".into(), "Rain1".into(), "Rain2".into()]
+                ),
                 (Package::Map(0), vec!["Rain1".into()]),
             ]
         );
