@@ -478,14 +478,16 @@ pub fn command_faces(commands: &[Command]) -> Vec<Face> {
 }
 
 /// The switches these commands name: a `ControlSwitches` on one or on a
-/// range, and a branch on one. The one by variable names a variable, and
+/// range —all of it—, and a branch on one. The one by variable names a variable, and
 /// does not compile.
 pub fn command_switches(commands: &[Command]) -> BTreeSet<i32> {
     let mut ids = BTreeSet::new();
     for cmd in commands {
         let p = &cmd.parameters;
         if cmd.code == CONTROL_SWITCHES && p.len() >= 3 && (p[0] == 0 || p[0] == 1) {
-            ids.extend([p[1], p[2]]);
+            // A range names every switch in it, not only its ends: the
+            // test pages' switch has to be one nobody touches.
+            ids.extend(p[1].min(p[2])..=p[1].max(p[2]));
         } else if cmd.code == COND_BRANCH && p.len() >= 2 && p[0] as i64 == COND_SWITCH {
             ids.insert(p[1]);
         }
@@ -509,6 +511,40 @@ pub fn command_switches(commands: &[Command]) -> BTreeSet<i32> {
 /// test pages' and the harness's. That way the table does not depend on
 /// what compiles, and a game saved with one cartridge loads in another.
 pub fn switch_top(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> Result<i32> {
+    let ids = named_switches(game, maps, extra);
+    let top = ids.last().copied().unwrap_or(0).max(0);
+    if top >= SWITCH_TABLE_MAX {
+        return Err(Bad::answer(format!(
+            "the game names switch {top} and the ROM's table holds {SWITCH_TABLE_MAX}: see SWITCHRAM in rm2k-snes/cartridge"
+        )));
+    }
+    Ok(top)
+}
+
+/// The switch the harness's test pages turn on to stop repeating: `wanted`,
+/// or the first above it that neither the game nor `extra` names.
+///
+/// Each test page turns it on first, and the last page, which asks for it,
+/// ends them; the release carries them too, with its empty case. Until
+/// 2026-10-19 it was the converter's `TEST_SWITCH`, 1023, whatever the game
+/// did with it, and The Frozen World names 1023: its battle's Monster A
+/// shows the wizard on it, so the game's first battle, which finds every
+/// switch off in RM2k, showed the wizard instead of the plant —see
+/// tasks/frozen-world-the-first-battle-shows-the-wrong-enemy.md—. A game
+/// that does not name `wanted` keeps it, so its cartridge does not move.
+pub fn test_switch(game: &Game, maps: &[Map], extra: &BTreeSet<i32>, wanted: i32) -> Result<i32> {
+    let ids = named_switches(game, maps, extra);
+    let free = (wanted..).find(|n| !ids.contains(n)).unwrap_or(wanted);
+    if free >= SWITCH_TABLE_MAX {
+        return Err(Bad::answer(format!(
+            "the test pages' switch would be {free} and the ROM's table holds {SWITCH_TABLE_MAX}: see SWITCHRAM in rm2k-snes/cartridge"
+        )));
+    }
+    Ok(free)
+}
+
+/// Every switch the game names, and `extra`: see [`switch_top`].
+fn named_switches(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> BTreeSet<i32> {
     let mut ids = extra.clone();
     ids.extend(&game.database_switches);
     for map in maps {
@@ -543,13 +579,7 @@ pub fn switch_top(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> Result<i3
         }
         ids.extend(command_switches(&c.commands));
     }
-    let top = ids.last().copied().unwrap_or(0).max(0);
-    if top >= SWITCH_TABLE_MAX {
-        return Err(Bad::answer(format!(
-            "the game names switch {top} and the ROM's table holds {SWITCH_TABLE_MAX}: see SWITCHRAM in rm2k-snes/cartridge"
-        )));
-    }
-    Ok(top)
+    ids
 }
 
 /// All of them.
@@ -567,6 +597,7 @@ pub fn build(
         renames: renames(game, maps),
         faces: faces(game, maps),
         switch_top: switch_top(game, maps, extra_switches)?,
+        test_switch: None,
     })
 }
 
@@ -634,6 +665,50 @@ mod tests {
                 starting: None,
             }],
         }
+    }
+
+    /// The test pages' switch is the one asked for unless the game names
+    /// it, and then the first above it nobody names: The Frozen World's
+    /// Monster A asks for 1023 on its page 28, and the test pages turned it
+    /// on at boot. A range names all of it.
+    #[test]
+    fn the_test_switch_is_one_the_game_does_not_name() {
+        let free = |maps: &[Map], extra: &[i32]| {
+            test_switch(
+                &Game::default(),
+                maps,
+                &extra.iter().copied().collect(),
+                1023,
+            )
+            .unwrap()
+        };
+        let control = |p: &[i32]| Command::new(CONTROL_SWITCHES, 0, "", p.to_vec());
+        assert_eq!(free(&[], &[]), 1023);
+        assert_eq!(
+            free(&[on_a_map(vec![switches_page(Some(1022), vec![])])], &[]),
+            1023
+        );
+        assert_eq!(
+            free(&[on_a_map(vec![switches_page(Some(1023), vec![])])], &[]),
+            1024
+        );
+        assert_eq!(
+            free(
+                &[on_a_map(vec![switches_page(Some(1023), vec![])])],
+                &[1024]
+            ),
+            1025
+        );
+        assert_eq!(
+            free(
+                &[on_a_map(vec![switches_page(
+                    None,
+                    vec![control(&[1, 1000, 1030, 0])]
+                )])],
+                &[]
+            ),
+            1031
+        );
     }
 
     /// Each place a switch can be named raises the table: a page's

@@ -219,10 +219,6 @@ pub fn run(options: Options) -> Result<()> {
         println!("{line}");
     }
     let mut compiler = Compiler::new(&game, &settings)?;
-    if !cases.is_empty() {
-        // The test pages turn it on, and the table has to hold it.
-        compiler.extra_switches.insert(TEST_SWITCH);
-    }
     // And the ones the custom menus' conditions ask for, which no page may
     // name.
     for menu in &custom_menus {
@@ -277,6 +273,19 @@ pub fn run(options: Options) -> Result<()> {
     }
     let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
     let mut indices = Indices::from_answer(&scan_answer);
+    if !cases.is_empty() {
+        // The test pages turn it on, and the table has to hold it: the one
+        // the scan found free, which is `TEST_SWITCH` unless the game names
+        // it.
+        let switch = indices.test_switch.ok_or_else(|| {
+            Stop::new("the events' scan does not say which switch the test pages turn on")
+        })?;
+        if switch != TEST_SWITCH as i64 {
+            println!("  the test pages turn on switch {switch}: the game names {TEST_SWITCH}");
+        }
+        compiler.test_switch = switch as i32;
+        compiler.extra_switches.insert(switch as i32);
+    }
     // The slot is a byte: the variables past it have no place in far RAM.
     // They are dropped from the list, and the compiler already leaves out
     // the pages that name one (`variable_slot`), so the game loses those
@@ -929,7 +938,7 @@ pub fn run(options: Options) -> Result<()> {
             }
             m.pages.push(test_page(
                 cases.len() as i64,
-                TEST_SWITCH as i64,
+                compiler.test_switch as i64,
                 Value::Null,
                 Vec::new(),
             ));
@@ -1650,6 +1659,9 @@ pub fn run(options: Options) -> Result<()> {
     // The highest switch the game names, which the table holds: apart, because
     // the literal above is at `json!`'s recursion limit.
     request["switch_top"] = json!(indices.switch_top);
+    // And the switch the test pages turn on, which the cartridge says to the
+    // harnesses.
+    request["test_switch"] = json!((!cases.is_empty()).then_some(compiler.test_switch));
     // And the names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
     // counts them, apart for the same reason.
     request["names"] = json!(indices

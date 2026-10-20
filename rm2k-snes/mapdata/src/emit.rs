@@ -4503,6 +4503,9 @@ fn timer_and_case(out: &mut String, r: &Emit) {
     if let Some(slot) = r.case_slot {
         out.push_str(&format!("\nCASE_SLOT = {slot}\n"));
     }
+    if let Some(switch) = r.test_switch {
+        out.push_str(&format!("\nTEST_SWITCH = {switch}\n"));
+    }
 }
 
 #[cfg(test)]
