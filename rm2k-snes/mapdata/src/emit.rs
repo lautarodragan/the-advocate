@@ -3070,8 +3070,8 @@ impl Rest<'_> {
         );
         words_asm(out, "item_id", &decimal(items.iter()), true);
         // Whether it goes in white and does something on the map, whether
-        // using it spends one, whether it opens the actor choice, and whether
-        // it is a two-handed weapon.
+        // it opens the actor choice, and whether it is a two-handed weapon.
+        // Whether using it spends it is `item_uses`'s, below.
         let textos = at(self.screens, "texts")?;
         let mut flags: HashMap<i64, (bool, bool)> = HashMap::new();
         for i in list_at(textos, "items")? {
@@ -3087,14 +3087,7 @@ impl Rest<'_> {
                 .ok_or_else(|| Bad::answer(format!("item {n} has no text")))?;
             let it = item(n)?;
             uses.push(
-                i64::from(usable)
-                    | if usable && !needs && it.uses != 0 {
-                        2
-                    } else {
-                        0
-                    }
-                    | if needs { 4 } else { 0 }
-                    | if it.two_handed { 8 } else { 0 },
+                i64::from(usable) | if needs { 4 } else { 0 } | if it.two_handed { 8 } else { 0 },
             );
         }
         bytes_asm(out, "item_use", &decimal(uses), true);
@@ -3182,14 +3175,13 @@ impl Rest<'_> {
         );
         // The `MED_*` bits of the runtime. A material is only what it is
         // —the editor keeps the fields of the type it had before, and RM2k
-        // reads none of them for one—, and whether it has uses.
+        // reads none of them for one—.
         bytes_asm(
             out,
             "item_medicine",
             &per_item(&|i| {
-                let uses = if i.uses != 0 { 4 } else { 0 };
                 if i.r#type.to_i32() == rm2k_snes_battle::db::ITEM_MATERIAL {
-                    return 8 | uses;
+                    return 8;
                 }
                 i64::from(i.ko_only)
                     | if i.state_set.first() == Some(&true) {
@@ -3197,7 +3189,24 @@ impl Rest<'_> {
                     } else {
                         0
                     }
-                    | uses
+            })?,
+            true,
+        );
+        // How many uses spend one of the item, `uses`, which the runtime
+        // counts per item in `FAR_ITEM_USAGE` —`item_spend`—: The Book of
+        // Three's bags of five shells. Zero is never spent, and so are the
+        // normal items and the equipment, whatever their `uses` says:
+        // `Game_Party::ConsumeItemUse` returns before looking at it for
+        // them. The editor stops at 99, so it is a byte.
+        bytes_asm(
+            out,
+            "item_uses",
+            &per_item(&|i| {
+                if i.r#type.to_i32() < rm2k_snes_battle::db::ITEM_MEDICINE {
+                    0
+                } else {
+                    i64::from(i.uses).clamp(0, 255)
+                }
             })?,
             true,
         );

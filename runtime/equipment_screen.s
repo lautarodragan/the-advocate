@@ -159,6 +159,11 @@ none:
 remain:
     lda comp_and
     beq ready
+    ; `RemoveItem`: the uses spent of it start again. See `FAR_ITEM_USAGE`.
+    ldx comp_or23
+    lda #0
+    sta f:FAR_LENGTH + FAR_ITEM_USAGE, x
+    lda comp_and
     dec a
 write:
     sta WMDATA

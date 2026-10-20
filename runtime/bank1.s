@@ -244,6 +244,7 @@ save_table:
     .word FAR_VARIABLES, VARIABLES_N * 2
     .word FAR_HERO_SPEED, 1     ; the hero's speed, which routes change
     .word FAR_ITEMS, ITEMS_N    ; the inventory
+    .word FAR_ITEM_USAGE, ITEMS_N   ; and the uses spent of each item
     .word FAR_ACCESS, 1         ; the save and menu permissions
     .word FAR_MSG_OPTIONS, 1    ; where and how the message window is drawn
     .word FAR_EQUIPMENT, ACTORS_N * 10  ; each actor's equipment

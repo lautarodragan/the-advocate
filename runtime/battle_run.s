@@ -816,21 +816,7 @@ gives_back:
     tax
     sep #$20
 .a8
-    lda f:item_medicine, x      ; one without uses was not spent
-    and #MED_USES
-    beq next
-    rep #$20
-.a16
-    txa
-    asl a
-    tax
-    lda f:item_id, x
-    tax
-    sep #$20
-.a8
-    lda FAR_ITEMS, x
-    inc a                       ; it was spent from here: it fits again
-    sta FAR_ITEMS, x
+    jsl f:item_unspend          ; it was spent on choosing it
 next:
     inc BA_S0
     bra other

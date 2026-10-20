@@ -163,8 +163,15 @@ item_cap:
     bra item_save
 item_rest:
     ; It subtracted: with no carry it went below zero, and it stays at zero.
-    bcs item_save
+    ; And the uses spent of it start again: see `FAR_ITEM_USAGE`.
+    bcs item_left
     lda #0
+item_left:
+    pha
+    lda #0
+    ldx temp + 2
+    sta f:FAR_LENGTH + ITEMS_N, x   ; `FAR_ITEM_USAGE`, from `FAR_ITEMS`
+    pla
 item_save:
     pha
     rep #$20

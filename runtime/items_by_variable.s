@@ -78,6 +78,17 @@ item_ready:
     bra put
 subtracts:
     ; It takes away: the count minus the amount, and below zero it is zero.
+    ; And the uses spent of it start again, which `AddItem` does with any
+    ; amount below zero: see `FAR_ITEM_USAGE`.
+    cpy #0
+    beq none_away
+    sep #$20
+.a8
+    lda #0
+    sta f:FAR_LENGTH + FAR_ITEM_USAGE, x
+    rep #$20
+.a16
+none_away:
     lda f:FAR_LENGTH + FAR_ITEMS, x
     and #$00FF
     sta temp + 2

@@ -64,6 +64,14 @@ FAR_VARIABLES  = .loword(far_variables)
 ; `Game_Party::AddItem`. It travels in the save and is cleared with the
 ; variables.
 FAR_ITEMS      = .loword(far_items)
+; And right after it, how many uses of each item are spent: RM2k's
+; `item_usage` of the save, a byte per LDB number like the inventory. An
+; item with `uses` above one —the converter's `item_uses`— loses one of the
+; count only when they reach it: see `item_spend`. Taking items away with
+; `ChangeItems` or selling them puts it back at zero, as `Game_Party::AddItem`
+; with an amount below zero; adding them does not. It travels in the save
+; and is cleared with the inventory.
+FAR_ITEM_USAGE = .loword(far_item_usage)
 ; And the random state: a sixteen-bit xorshift, the same as `random_next` in
 ; events.py, seeded on reset. It goes here and not in the direct page
 ; because the direct page ended up at 258 of 256 when that was tried;
@@ -104,7 +112,8 @@ MSG_CONTINUE = $10              ; the events go on moving during a page
 MSG_DEFAULT  = 2 | MSG_DODGE
 ; **These six are one block, in this order**, in far_ram_game.s:
 ; `clear_variables` writes the first five bytes and clears the rest up to
-; the inventory's end in one pass through the WMADD window.
+; the end of the inventory's uses, which come right after it, in one pass
+; through the WMADD window.
 ; And the list of the items screen —and of the equipment's, the shop's selling
 ; one and the battle's—, one `k` per word: see items.s, which declares it.
 FAR_ITEM_LIST  = .loword(far_item_list)
@@ -359,13 +368,11 @@ MED_HP:       .res 2            ; word: the `hp_change`
 MED_SP:       .res 2            ; word: the `sp_change`
 MED_P:        .res 4            ; four bytes: the product, and the quotient
 MED_R:        .res 2            ; word: the remainder
-MED_ID:       .res 2            ; word: the item's RM2k number
 .popseg
 ; The `item_medicine` bits, which the converter emits. `medicine_use` writes
 ; them by number; the battle, which reads them since 2026-09-26, by name.
 MED_KO_ONLY   = $01             ; only on a fallen one
 MED_RAISES    = $02             ; removes the dead state: revives the fallen one
-MED_USES      = $04             ; it has uses: using it spends one
 MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GROWTH`
 
 ; --- what the materials added: its state in far RAM ---------------------------

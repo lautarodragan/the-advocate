@@ -15,6 +15,7 @@ far_hero_speed:  .res 1
 far_random:      .res 2
 far_variables:   .res VARIABLES_N * 2
 far_items:       .res ITEMS_N
+far_item_usage:  .res ITEMS_N
 ; By LDB actor number. **ACTORS_N is the highest number plus one**, and an
 ; actor number is a byte everywhere —the party, `BA_NUMBER`—, so the
 ; converter has to keep it under 256 for these tables to be indexed whole.
@@ -32,4 +33,5 @@ route_gfx_buf:    .res ROUTE_GFX_MAX * 2
 route_gfx_colors: .res ROUTE_GFX_MAX
 .popseg
 .assert far_variables = far_msg_options + 5, error, "clear_variables walks a block that is not contiguous"
+.assert far_item_usage = far_items + ITEMS_N, error, "clear_variables clears the uses with the inventory"
 .assert ACTORS_N <= 256, error, "an actor number is a byte: the actors' tables are indexed by it"
