@@ -13,6 +13,11 @@
 .a8
 .i16
     jsr push_oam
+    ; The pictures' palettes, if a picture was put up or a ramp rebuilt one
+    ; this frame: see `pic_flush`. Before the big picture's question: one
+    ; that keeps the sprites shows the small ones over it —BIG_KEEPS in
+    ; big_picture.s—, and they may come up after it.
+    jsr pic_flush
     ; With a big picture up, BG1 and the sprites' VRAM are its own and the
     ; map is not on screen: none of what follows down to the message window
     ; goes up —poses, strips, the ChipSet's animation, palettes— and its own
@@ -149,10 +154,6 @@ no_flash:
     sep #$20
 .a8
     bcc other_flash
-
-    ; And the pictures' palettes, if a picture was put up or a ramp rebuilt
-    ; one this frame: see `pic_flush`.
-    jsr pic_flush
 
     ; And the battle animation's palette, if one just started. It is the same
     ; thirty-two bytes as the picture's and for the same reason: its entry falls

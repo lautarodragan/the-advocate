@@ -4,8 +4,9 @@
 //! RM2k runs an automatic common event —trigger 3— whenever its switch is
 //! on, on whatever map, exactly like an automatic page of the map. Here its
 //! body is compiled a single time, without a map —no events to name, no
-//! audio package to note effects in, no pictures but the big ones, which are
-//! the cartridge's: see [`Setting::pictures`]—, and the ROM looks at its
+//! audio package to note effects in, no pictures but the cartridge's: the big
+//! ones and its set of small ones, see [`Setting::pictures`]—, and the ROM
+//! looks at its
 //! switch each time the foreground interpreter is free: see `common_start`
 //! in runtime/common_events.s, and easyrpg's
 //! `Game_Map::UpdateForegroundEvents`, which is what it copies.
@@ -42,6 +43,111 @@ use crate::registry::{Pictures, Songs, Troops};
 use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
+
+/// The small pictures of the common events that run without a map, in
+/// sets: what can be up at once and goes up to VRAM together.
+///
+/// A body compiled once names its pictures by an entry of the cartridge's
+/// table of them, the same on every map, and the console uploads their
+/// tiles beside the map's bank when one is shown: see
+/// `registry::CommonPicture`. Only one set is there at a time, so a set
+/// is what one common event shows **with every body it calls**: an
+/// automatic one and its shared bodies, which run as calls; a parallel one
+/// alone, since its calls are pasted. And a shared body that two automatic
+/// ones reach is compiled once, with one set, so those two are one set.
+/// Only the bodies that show some picture are in a set.
+#[derive(Debug, Clone)]
+pub struct PictureSet {
+    pub parallel: bool,
+    /// The common events whose bodies are compiled with it.
+    pub commons: Vec<i32>,
+    pub pictures: Pictures,
+}
+
+/// [`PictureSet`]s of the common events that run anywhere: `gather` is
+/// what one body shows, compiled as it will be —`paste` for a parallel
+/// one, whose calls are pasted—, or None if it does not compile.
+pub fn picture_sets(
+    game: &Game,
+    indices: &Indices,
+    gather: &mut dyn FnMut(i32, bool) -> Result<Option<Pictures>>,
+) -> Result<Vec<PictureSet>> {
+    let mut own: BTreeMap<i32, Pictures> = BTreeMap::new();
+    let mut groups: Vec<BTreeSet<i32>> = Vec::new();
+    for (root, _) in automatic(game, indices) {
+        let mut seen = BTreeSet::new();
+        let mut pending = vec![root];
+        while let Some(n) = pending.pop() {
+            if seen.insert(n) {
+                pending.extend(calls_of(game, n));
+            }
+        }
+        let mut showing = BTreeSet::new();
+        for n in seen {
+            if game.patches.menus.replaced.contains_key(&n) {
+                continue;
+            }
+            if let std::collections::btree_map::Entry::Vacant(e) = own.entry(n) {
+                e.insert(gather(n, false)?.unwrap_or_default());
+            }
+            if !own[&n].table.is_empty() {
+                showing.insert(n);
+            }
+        }
+        if showing.is_empty() {
+            continue;
+        }
+        // One with a body of another's: both are one set.
+        let (mut merged, rest): (Vec<_>, Vec<_>) =
+            groups.into_iter().partition(|g| !g.is_disjoint(&showing));
+        let mut group = showing;
+        for g in merged.drain(..) {
+            group.extend(g);
+        }
+        groups = rest;
+        groups.push(group);
+    }
+    let union = |numbers: &mut dyn Iterator<Item = &Pictures>| {
+        let mut out = Pictures::gathering();
+        for p in numbers {
+            for (key, _) in &p.table {
+                out.gather(key.clone());
+            }
+            for &t in &p.tinted {
+                out.gather_tinted(t);
+            }
+        }
+        out
+    };
+    let mut sets: Vec<PictureSet> = groups
+        .into_iter()
+        .map(|g| PictureSet {
+            parallel: false,
+            pictures: union(&mut g.iter().map(|n| &own[n])),
+            commons: g.into_iter().collect(),
+        })
+        .collect();
+    sets.sort_by_key(|s| s.commons.first().copied());
+    let automatic: BTreeSet<i32> = automatic(game, indices)
+        .into_iter()
+        .map(|(n, _)| n)
+        .collect();
+    for n in running_anywhere(game, indices) {
+        if automatic.contains(&n) {
+            continue;
+        }
+        if let Some(p) = gather(n, true)? {
+            if !p.table.is_empty() {
+                sets.push(PictureSet {
+                    parallel: true,
+                    commons: vec![n],
+                    pictures: union(&mut std::iter::once(&p)),
+                });
+            }
+        }
+    }
+    Ok(sets)
+}
 
 /// RM2k's trigger of a common event that runs on its own while its switch
 /// is on.
@@ -216,9 +322,13 @@ pub struct Setting<'a> {
     /// once, and the console shows it the same on any map, so a body
     /// without a map shows them as a page does —Book of Three's map item,
     /// common event 23, shows its 640x480 `bo3map` wherever it is used—.
-    /// The small ones are each map's, in its sprite bank, and are not here:
-    /// see `Request::common_pictures`.
+    ///
+    /// And the small ones of the cartridge's common table, each with its
+    /// set: a body is compiled with those of its own, `sets`, and the
+    /// console shows them where the set fits beside the map's bank. See
+    /// [`picture_sets`].
     pub pictures: &'a Pictures,
+    pub sets: &'a BTreeMap<(bool, i32), usize>,
     /// The graphics the cartridge's pages give after jumping to each map: a
     /// body that jumps runs there, and numbers a route's graphic in that
     /// map's table. See [`crate::landings`].
@@ -263,7 +373,7 @@ fn body_of(
     } else {
         &s.game.common_events[&number].commands
     };
-    let mut pictures = s.pictures.clone();
+    let mut pictures = s.pictures.of_set(s.sets.get(&(false, number)).copied());
     let mut ctx = Ctx {
         game: s.game,
         indices: s.indices,
@@ -574,7 +684,7 @@ pub fn parallel_commons(
             code.push(OP_DONE);
             Some(code)
         } else {
-            let mut pictures = s.pictures.clone();
+            let mut pictures = s.pictures.of_set(s.sets.get(&(true, number)).copied());
             songs.loose = Some(Vec::new());
             let mut ctx = Ctx {
                 game: s.game,
@@ -791,6 +901,7 @@ mod tests {
             sound: &sound,
             map_index: &|_| None,
             pictures: &Pictures::default(),
+            sets: &BTreeMap::new(),
             landings: None,
         };
         let mut songs = Songs::default();

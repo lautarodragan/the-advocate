@@ -40,6 +40,16 @@
 //! it; and the three battles of `battles.json` that order the teleport skill
 //! 7 or the escape one 12, which RM2k never lets be chosen in battle, are
 //! refusals now —cases 14, 106 and 107—.
+//!
+//! **And in a third**: it rolled and applied everything a skill touches,
+//! where `Skill::vExecute` returns once the damage kills and once one
+//! against enemies missed the HP or SP it touches. Since 2026-10-20, taro's
+//! decision, the model returns there too, and the battles of
+//! `battles.json` in which skill 14 —HP and defense against every enemy—
+//! kills or misses a target carry the hash of that answer: the dead or
+//! missed target's defense is no longer rolled nor lowered, and every roll
+//! after it comes one earlier. They are exactly the battles that cross a
+//! return with a roll after it.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::model;

@@ -100,7 +100,7 @@ fn a_raised_parameter_says_how_much_the_modifier_moved() {
 
 /// "!IsPositive() && !IsSuccess() && (affect_hp || affect_sp)": `vExecute`
 /// returns there, and the defense's line never comes even if its roll would
-/// have hit. (The roll is still made here: see `Battle::skill_rolls`.)
+/// have hit.
 #[test]
 fn a_missed_hit_fails_and_says_nothing_of_the_defense() {
     let mut db = db();
@@ -111,19 +111,42 @@ fn a_missed_hit_fails_and_says_nothing_of_the_defense() {
     assert_eq!(lines(&b), [(b.enemies[0].name.clone(), "miss", 0)]);
 }
 
+/// The same return, on the randomness: past a missed hit the defense is not
+/// rolled, so the battle goes on as if the skill touched only the HP.
+#[test]
+fn a_missed_hit_rolls_nothing_after_it() {
+    let rolled = |defense: bool| {
+        let mut db = db();
+        let skill = db.skills.get_mut(&14).unwrap();
+        skill.hit = 0;
+        skill.affect_defense = defense;
+        let mut b = battle(&db);
+        b.use_skill(&db, Who::Actor(0), 14, Who::Enemy(0)).unwrap();
+        b.rng.state
+    };
+    assert_eq!(rolled(true), rolled(false));
+}
+
 /// "If target will be killed, no further affects are applied": the damage
-/// line and nothing after it, though the defense's roll hits.
+/// line and nothing after it, and the defense neither rolled nor lowered.
 #[test]
 fn a_hit_that_kills_says_nothing_after_it() {
-    let mut db = db();
-    db.skills.get_mut(&14).unwrap().hit = 100;
-    let mut b = battle(&db);
-    b.enemies[0].hp = 1;
-    b.use_skill(&db, Who::Actor(0), 14, Who::Enemy(0)).unwrap();
+    let killed = |defense: bool| {
+        let mut db = db();
+        let skill = db.skills.get_mut(&14).unwrap();
+        skill.hit = 100;
+        skill.affect_defense = defense;
+        let mut b = battle(&db);
+        b.enemies[0].hp = 1;
+        b.use_skill(&db, Who::Actor(0), 14, Who::Enemy(0)).unwrap();
+        b
+    };
+    let b = killed(true);
     assert_eq!(b.enemies[0].hp, 0, "the case wants it to kill");
-    assert_ne!(b.enemies[0].modifier[1], 0, "and the defense's roll to hit");
+    assert_eq!(b.enemies[0].modifier[1], 0, "a dead target's defense stays");
     assert_eq!(lines(&b).len(), 1, "{:?}", lines(&b));
     assert_eq!(lines(&b)[0].1, "damage");
+    assert_eq!(b.rng.state, killed(false).rng.state, "nothing rolled after");
 }
 
 /// One line per target, in the order `vExecute` walks them, each with its

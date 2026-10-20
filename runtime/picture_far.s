@@ -85,6 +85,7 @@ palettes:
     stz pic_last
     sep #$20
 .a8
+    jsl f:picc_clear            ; and the common events' set in VRAM
     jsr big_clear               ; and the big one: see big_picture.s
     rtl
 .endproc
@@ -94,6 +95,11 @@ palettes:
 .proc pic_entry
 .a8
 .i16
+    cmp #$80
+    bcc own
+    jsl f:picc_entry            ; a common event's: picture_common.s
+    rts
+own:
     rep #$20
 .a16
     and #$00FF
@@ -213,6 +219,11 @@ placed:
     lda f:picture_data + 5, x
     plx
     sta f:PIC_PAL, x
+    lda f:PIC_IMG, x
+    cmp #$80
+    bcc own
+    jsl f:picc_show             ; a common event's: the map's palette, its set up
+own:
     jsr pic_slot_palette
     ply
     rtl
@@ -1296,6 +1307,23 @@ test:
     bne each
     lda #$02
     sta obj_big
+    ; With a big picture up, nothing of the map: `build_oam` walks the rows
+    ; from `npc_ofs` and slots the hero in until `hero_drawn`, so both are
+    ; left as if it were done. Only one that keeps the sprites shows the
+    ; pictures —see BIG_KEEPS in big_picture.s—, and the characters are the
+    ; map's, which it hides.
+    lda f:BIG_FLAGS
+    lsr a                       ; BIG_ON
+    bcc map
+    lda #1
+    sta hero_drawn
+    rep #$20
+.a16
+    lda npc_total
+    sta npc_ofs
+    sep #$20
+.a8
+map:
     rtl
 .endproc
 
@@ -1320,6 +1348,14 @@ found:
     rep #$20
 .a16
     lda f:picture_data + 10, x  ; the base tile
+    jsl f:picc_base             ; or the map's for a common event's
+    bcc base
+    sep #$20
+.a8
+    plx                         ; its set is not up yet
+    rts
+.a16
+base:
     pha
     lda f:picture_data + 6, x   ; where its objects are
     pha

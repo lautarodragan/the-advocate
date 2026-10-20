@@ -544,6 +544,7 @@ pub fn run(options: Options) -> Result<()> {
             &format!("common event {n}"),
             &game.cropped,
             &|_| false,
+            None,
         )?;
         let numbers: BTreeSet<i64> = bigs
             .iter()
@@ -595,8 +596,16 @@ pub fn run(options: Options) -> Result<()> {
         bigs.push(&kept);
         (big_layers, big_tables) = pictures::number_big(&bigs);
     }
+    pictures::keep_objects(&mut big_layers);
     pictures::say_big(&big_layers);
     compiler.common_pictures = big_tables.pop().unwrap_or_default();
+    // And their small ones, in the cartridge's common table, after the big
+    // ones: see [`crate::common_pictures`].
+    let common_small = crate::common_pictures::sets(&game, &scan_answer)?;
+    compiler
+        .common_pictures
+        .extend(common_small.entries.iter().cloned());
+    compiler.common_sets = common_small.sets.clone();
     for (m, table) in infos.iter_mut().zip(big_tables) {
         m.big_table = table;
     }
@@ -1658,9 +1667,24 @@ pub fn run(options: Options) -> Result<()> {
             "mode7": l.get("mode7").cloned().unwrap_or(Value::Null),
         })).collect::<Vec<_>>(),
     });
+    // Which big pictures keep the small ones over them, apart for the same
+    // reason as what follows: see `pictures::keep_objects`.
+    for (out, l) in request["big_pictures"]
+        .as_array_mut()
+        .into_iter()
+        .flatten()
+        .zip(&big_layers)
+    {
+        out["keeps_objects"] = json!(l["keeps_objects"].as_bool().unwrap_or(false));
+    }
     // The highest switch the game names, which the table holds: apart, because
     // the literal above is at `json!`'s recursion limit.
     request["switch_top"] = json!(indices.switch_top);
+    // And the common events' small pictures, by set: see
+    // [`crate::common_pictures`]. Only when there are some.
+    if !common_small.emit.is_empty() {
+        request["common_pictures"] = json!(common_small.emit);
+    }
     // And the switch the test pages turn on, which the cartridge says to the
     // harnesses.
     request["test_switch"] = json!((!cases.is_empty()).then_some(compiler.test_switch));

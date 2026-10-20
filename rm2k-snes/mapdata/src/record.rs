@@ -1212,6 +1212,55 @@ fn arrow_room(map: &Map) -> Result<std::result::Result<u16, String>> {
     Ok(Ok(0x8000 | gold | (palette as u16) << 9 | tiles as u16))
 }
 
+/// Where a map takes the common events' small pictures —see
+/// `picture_common_section` in emit.rs—: the first tile past its bank and
+/// what the arrow and the gold window take after it, rounded to a row of
+/// blocks, as the pictures' own are; and the first sprite palette from the
+/// top past its pictures' and the arrow's. With how many tiles and palettes
+/// are left there.
+pub struct CommonRoom {
+    pub base: usize,
+    pub tiles: usize,
+    pub palette: usize,
+    pub palettes: usize,
+}
+
+pub fn common_room(map: &Map) -> Result<CommonRoom> {
+    let layout = layout_of(map)?;
+    let (tiles, characters, animation, top) = match &map.sprite {
+        None => (0, 0, None, 0),
+        Some(s) => (
+            s.tiles.len() / TILE_BYTES,
+            s.palettes.len(),
+            s.animation.as_ref().map(|a| a.palette as usize),
+            s.image.1.max(0) as usize,
+        ),
+    };
+    let arrow = arrow_obj(map)?;
+    let mut end = tiles;
+    let mut palette = top;
+    if arrow & 0x8000 != 0 {
+        end += ARROW_OBJ_TILES;
+        palette += 1;
+        if arrow & GOLD_ROOM != 0 {
+            end += GOLD_OBJ_TILES;
+        }
+    }
+    let base = end.div_ceil(BLOCK_ROW_TILES) * BLOCK_ROW_TILES;
+    let cap = layout.sprites.count as usize;
+    let low = characters.max(animation.map_or(0, |a| a + 1));
+    Ok(CommonRoom {
+        base,
+        tiles: cap.saturating_sub(base),
+        palette,
+        palettes: OBJ_PALETTES.saturating_sub(low + palette),
+    })
+}
+
+/// A row of 32x32 blocks in the sprites' name grid: four across its
+/// sixteen tiles, four tall. A picture's blocks start at one.
+pub const BLOCK_ROW_TILES: usize = 64;
+
 /// What the converter's log says of each map that keeps the arrow in the
 /// window's cells.
 fn arrow_notes(maps: &[Map]) -> Result<Vec<String>> {

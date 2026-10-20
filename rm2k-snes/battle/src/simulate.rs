@@ -1778,18 +1778,18 @@ impl Battle {
 
     /// `vExecute` from the effect on: one roll against the hit chance —the
     /// skill's `hit`, `CalcSkillToHit`— for each thing it affects, and their
-    /// lines, [`SkillResult`]. Whether an attribute rank moved where a line
-    /// would still be written.
+    /// lines, [`SkillResult`]. Whether an attribute rank moved.
     ///
-    /// **`vExecute` returns early in two places and this goes on**: once the
-    /// damage kills —"If target will be killed, no further affects are
+    /// **`vExecute` returns early in two places, and so does this**: once
+    /// the damage kills —"If target will be killed, no further affects are
     /// applied"—, and when one that targets enemies and touches HP or SP did
-    /// nothing to either. From there RM2k neither rolls nor applies anything,
-    /// and here everything is still rolled and applied, as before 2026-10-20:
-    /// stopping moves 61 of the 400 battles of `tests/model.rs`, whose answer
-    /// is not regenerated without taro —the draft
-    /// `a-skill-rolls-past-where-vexecute-returns`—. What is written does
-    /// stop there: no line after a kill, and the failure's after nothing.
+    /// nothing to either. From there nothing more is rolled, applied or
+    /// written: a missed or killing skill that also lowers a parameter does
+    /// not lower it, and the battle's randomness goes on from the last roll
+    /// RM2k made. Until 2026-10-20 everything was still rolled and applied
+    /// here and only the lines stopped; taro's decision, in the task
+    /// `a-skill-rolls-past-where-vexecute-returns`, moved the battles of
+    /// `tests/model.rs` that cross either return.
     fn skill_rolls(
         &mut self,
         skill: &Skill,
@@ -1799,8 +1799,6 @@ impl Battle {
         lines: usize,
     ) -> bool {
         let hit_rate = skill.hit as i64;
-        // Past where `vExecute` returns: nothing more is written.
-        let mut quiet = false;
         if skill.affect_hp && self.rng.percent(hit_rate) {
             let t = self.get_mut(target);
             let before = t.hp;
@@ -1823,24 +1821,28 @@ impl Battle {
             } else if hp != 0 {
                 self.result(target, "hp", after - before);
             }
+            if !alive {
+                return false;
+            }
             // Damage that did not kill releases what a hit releases, at
             // `physical_rate * 10` percent.
-            if !positive && alive {
+            if !positive {
                 self.released_by_damage(target, skill.physical_rate as i64 * 10);
             }
-            quiet = !alive;
         }
         if skill.affect_sp && self.rng.percent(hit_rate) {
             let t = self.get_mut(target);
             let before = t.sp;
             t.sp = (t.sp + effect).min(t.sp_max).max(0);
             let moved = t.sp - before;
-            if moved != 0 && !quiet {
+            if moved != 0 {
                 self.result(target, "sp", moved);
             }
         }
+        // Against enemies a line so far is `IsSuccess`: the damage always
+        // writes one, and the SP one when it moved.
         if !positive && self.results.len() == lines && (skill.affect_hp || skill.affect_sp) {
-            quiet = true;
+            return false;
         }
         let affects = [
             (skill.affect_attack, "attack"),
@@ -1855,7 +1857,7 @@ impl Battle {
             let t = self.get_mut(target);
             let moved = modifier_change(t.modifier[k], t.base[k], effect);
             t.modifier[k] += moved;
-            if moved != 0 && !quiet {
+            if moved != 0 {
                 self.result(target, what, moved);
             }
         }
@@ -1880,7 +1882,7 @@ impl Battle {
                     .map_or(0, |r| r.can_shift(by));
                 if has && movable != 0 && self.rng.percent(hit_rate) {
                     self.get_mut(target).received[k].shift_by(by);
-                    shifted |= !quiet;
+                    shifted = true;
                 }
             }
         }

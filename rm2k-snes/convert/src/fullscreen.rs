@@ -182,6 +182,7 @@ pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8
         TILES_4BPP,
         rows,
         false,
+        None,
     )?
     .ok_or_else(|| {
         Stop::new(format!(

@@ -184,6 +184,7 @@ no_tiles:
     jsl f:share_load + FAST     ; and nobody knows what the shared slots hold
     jsl f:cache_load + FAST     ; nor what the cache's do
     jsr still_touched           ; nor what the still ones that animate show
+    jsl f:picc_reload           ; and the common events' pictures go up again
 
     ; The palette goes to the upper half of CGRAM, which is the sprites': 8
     ; starts at color 128.
@@ -453,6 +454,7 @@ write:
 .proc vram_drain
 .a8
 .i16
+    jsl f:picc_drain            ; a piece of a common events' set first
     lda vq_n
     bne has
     rtl

@@ -109,6 +109,12 @@ pub struct Background {
     /// The layer as a mode 7 texture too, if it fits this; absent, not.
     #[serde(default)]
     pub mode7: Option<Mode7Room>,
+    /// A panorama to draw under it, from the corner of RM2k's screen: what
+    /// RM2k shows through the picture's holes on a map of one screen. With
+    /// it the layer is the two together, the screen's size. Absent, the
+    /// holes draw nothing.
+    #[serde(default)]
+    pub under: Option<PathBuf>,
 }
 
 /// What the console grants a layer that is also a mode 7 texture: the tiles
