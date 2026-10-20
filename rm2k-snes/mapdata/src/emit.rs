@@ -130,6 +130,70 @@ fn term(db: &Db, name: &str) -> Result<String> {
     .clone())
 }
 
+/// The terms of [`BATTLE_TERMS`] that RPG Maker 2003's battle never
+/// writes, with the plain English that stands in for each in a 2003 game
+/// whose project does not give them. Its battle tells a hit by a number
+/// that floats over the target and asks for these only with the 2000
+/// battle —easyrpg's `Game_BattleAlgorithm::*::GetStartMessage` and
+/// `Scene_Battle_Rpg2k3`—, so whatever a 2003 database holds in them its
+/// author never saw: Zounds' are the editor's Japanese defaults, read as
+/// Windows-1252, and the console wrote `Kazar 3'I?_???[?W…` until
+/// 2026-10-19. The console fights with the 2000 battle, which writes them.
+/// Each goes after a name, as `<who><attacking>`, `<target>
+/// <n><actor_damaged>`, `<who> <item><use_item>` and `<target> HP
+/// <n><hp_recovery>` —see `ba_message` in the runtime's battle.s—.
+pub const UNSHOWN_IN_2003: [(&str, &str); 9] = [
+    ("attacking", " attacks!"),
+    ("defending", " defends."),
+    ("actor_critical", " A critical hit!"),
+    ("enemy_damaged", " HP lost."),
+    ("enemy_undamaged", " takes no damage."),
+    ("actor_damaged", " HP lost."),
+    ("actor_undamaged", " takes no damage."),
+    ("use_item", " used."),
+    ("hp_recovery", " recovered."),
+];
+
+/// A battle term as the battle writes it: the project's `[battle.terms]`
+/// if it gives it, the English stand-in of [`UNSHOWN_IN_2003`] if the game
+/// is 2003's and its battle never wrote it, and the database's otherwise.
+fn battle_term(given: &BTreeMap<String, String>, db: &Db, name: &str) -> Result<String> {
+    if let Some(given) = given.get(name) {
+        return Ok(given.clone());
+    }
+    if db.is_2003 {
+        if let Some((_, stand_in)) = UNSHOWN_IN_2003.iter().find(|(n, _)| *n == name) {
+            return Ok(stand_in.to_string());
+        }
+    }
+    term(db, name)
+}
+
+/// The battle terms that come from the battle's model and not from
+/// [`battle_term`]: the three commands, trimmed, and the victory, split.
+const FROM_THE_MODEL: [&str; 4] = ["attack", "defend", "escape", "victory"];
+
+/// That every term the project gives is one [`battle_term`] answers.
+fn check_battle_terms(r: &Emit) -> Result<()> {
+    let given = BATTLE_TERMS
+        .iter()
+        .filter(|(short, _)| !FROM_THE_MODEL.contains(short));
+    for name in r.battle_terms.keys() {
+        if !given.clone().any(|(_, liblcf)| liblcf == name) {
+            return Err(Bad::usage(format!(
+                "[battle.terms] gives {name:?}, which is not a term the battle writes: \
+                 they are {}",
+                given
+                    .clone()
+                    .map(|(_, liblcf)| *liblcf)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// The geometry the screens and the battle screen were drawn with, by
 /// name.
 struct Geometry<'a>(&'a Value);
@@ -369,6 +433,7 @@ fn sine_table() -> String {
 /// Everything the cartridge carries, as the `.inc` ca65 assembles with
 /// the runtime.
 pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
+    check_battle_terms(r)?;
     let screens = &r.screens;
     let t = Geometry(at(screens, "layout")?);
     let model = &r.battle_model;
@@ -2235,7 +2300,7 @@ impl Rest<'_> {
             let value = match name {
                 "attack" | "defend" | "escape" => text_at(mtexts, name)?.to_string(),
                 "victory" => victory[0].clone(),
-                _ => term(db, liblcf)?,
+                _ => battle_term(&self.r.battle_terms, db, liblcf)?,
             };
             let k = texts.add(&plain(&value));
             battle_text.get_or_insert(k);
@@ -4533,5 +4598,36 @@ mod tests {
         assert_eq!(switch_bytes(1643).unwrap(), 206);
         assert_eq!(switch_bytes(2047).unwrap(), 256);
         assert!(switch_bytes(2048).is_err());
+    }
+
+    /// Zounds' terms, which taro saw as `Kazar 3'I?_???[?W…` in every
+    /// battle until 2026-10-19: what a 2003 database holds in the terms its
+    /// battle never writes gives way to the project's, or to the stand-in.
+    #[test]
+    fn a_2003_games_unshown_battle_terms_are_not_its_databases() {
+        let mut db = Db::default();
+        // `の攻撃！` in Shift-JIS, read as Windows-1252.
+        db.terms.attacking = "\u{201a}\u{cc}\u{8d}U\u{152}\u{201a}\u{81}I".to_string();
+        db.terms.victory = "\u{a1}Victoria!".to_string();
+        let none = BTreeMap::new();
+        let mut given = BTreeMap::new();
+        given.insert("attacking".to_string(), " ataca.".to_string());
+        // A 2000 game: its own, whatever they are.
+        assert_eq!(
+            battle_term(&none, &db, "attacking").unwrap(),
+            db.terms.attacking
+        );
+        db.is_2003 = true;
+        assert_eq!(battle_term(&none, &db, "attacking").unwrap(), " attacks!");
+        assert_eq!(battle_term(&given, &db, "attacking").unwrap(), " ataca.");
+        // One its battle writes stays the database's.
+        assert_eq!(
+            battle_term(&none, &db, "victory").unwrap(),
+            "\u{a1}Victoria!"
+        );
+        for (name, stand_in) in UNSHOWN_IN_2003 {
+            assert!(BATTLE_TERMS.iter().any(|(_, l)| *l == name), "{name}");
+            assert!(stand_in.chars().all(|c| (' '..='~').contains(&c)), "{name}");
+        }
     }
 }

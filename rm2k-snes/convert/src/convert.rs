@@ -1694,6 +1694,16 @@ pub fn run(options: Options) -> Result<()> {
     }
     request["faces"] = Value::Array(faces);
     request["gold_maps"] = json!(gold_maps);
+    // The battle terms the project gives over the database's, if any: a
+    // knob at rest when missing. See `battle_term` in the mapdata stage.
+    request["battle_terms"] = match project
+        .settings()
+        .get("battle")
+        .and_then(|b| b.get("terms"))
+    {
+        Some(_) => settings.table(&["battle", "terms"])?,
+        None => json!({}),
+    };
     let emitted = emit::emit(&output, &request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",
