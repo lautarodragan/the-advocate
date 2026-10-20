@@ -451,9 +451,9 @@ said:
     sep #$20
 .a8
     bne alive
-    ; "If target will be killed, no further affects are applied": nothing
-    ; after this is written for it. See `ba_res_quiet`.
-    inc .loword(ba_res_quiet)
+    ; "If target will be killed, no further affects are applied":
+    ; `ba_skill_one` stops here. See `ba_res_killed`.
+    inc .loword(ba_res_killed)
     rts
 alive:
     ; Damage that did not kill releases what a hit releases, at
@@ -646,7 +646,7 @@ all_ready:
 .a8
 .i16
     stz .loword(ba_res_ok)
-    stz .loword(ba_res_quiet)
+    stz .loword(ba_res_killed)
     jsr ba_skill_effect
     ; the variance, with the skill's `variance`
     lda BA_MSKILL
@@ -695,6 +695,12 @@ is_positive:
     jsr ba_pct
     beq no_hp
     jsr ba_skill_hp
+    ; "If target will be killed, no further affects are applied": `vExecute`
+    ; returns, and from here nothing is rolled, applied or written. It
+    ; returns with the damage's line, a success.
+    lda .loword(ba_res_killed)
+    beq no_hp
+    jmp returned
 no_hp:
     ; --- the SP ---
     ;
@@ -711,16 +717,16 @@ no_hp:
 no_sp:
     ; "!IsPositive() && !IsSuccess() && (affect_hp || affect_sp)": one that
     ; targets enemies and did nothing to the HP or the SP it touches has
-    ; failed, and `vExecute` returns. Here the rest is still rolled and
-    ; applied —see `skill_rolls` in rm2k-snes-battle's simulate.rs— and only
-    ; its lines are not written.
+    ; failed, and `vExecute` returns: neither the parameters nor the
+    ; attribute ranks are rolled or applied —as `skill_rolls` in
+    ; rm2k-snes-battle's simulate.rs—, and the failure's line is written.
     lda BA_S3
     and #$43
     cmp #$41
     bcc goes_on                 ; not against enemies, or not HP nor SP
     lda .loword(ba_res_ok)
     bne goes_on
-    inc .loword(ba_res_quiet)
+    jmp returned
 goes_on:
     ; --- the four parameters, in `vExecute`'s order ---
     lda BA_MTGT
@@ -805,10 +811,10 @@ no_spi:
 no_agi:
     ; And the attribute ranks it shifts: see battle_attributes.s.
     jsr ba_attr_shift
+returned:
     ; Nothing done is a failure, with its line: `ProcessBattleActionFailure`.
     lda .loword(ba_res_ok)
     bne succeeded
-    stz .loword(ba_res_quiet)
     rep #$20
 .a16
     lda #0
@@ -853,21 +859,18 @@ ba_res_i:     .res 1            ; how many `ba_execute` has shown
 ba_res_show:  .res 1            ; whether the message on screen is one
 ba_res_ok:    .res 1            ; whether this target got something:
                                 ; `SetIsSuccess`
-ba_res_quiet: .res 1            ; whether `vExecute` would have returned for
-                                ; this target: no line after that
+ba_res_killed: .res 1           ; whether the skill's damage killed this
+                                ; target, where `vExecute` returns
 .popseg
 
-; A line for `BA_MTGT`: Y what, A16 the number. None once `ba_res_quiet`
-; says `vExecute` would have returned, and every one is a success. Comes and
-; goes in A16; clobbers X.
+; A line for `BA_MTGT`: Y what, A16 the number, and every one is a success.
+; Comes and goes in A16; clobbers X.
 .proc ba_res_add
 .a16
 .i16
     pha
     sep #$20
 .a8
-    lda .loword(ba_res_quiet)
-    bne full
     inc .loword(ba_res_ok)
     lda .loword(ba_res_n)
     cmp #BA_RES_MAX
