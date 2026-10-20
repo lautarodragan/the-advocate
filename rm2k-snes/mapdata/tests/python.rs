@@ -336,6 +336,26 @@ fn without_skill_in_battle(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without what a skill's result lines brought on 2026-10-20: a
+/// `BA_TXT_*` per term of `RESULT_TERMS` —whose texts go after the
+/// conditions' and are cut with them, see [`without_states`]— and
+/// `skill_fail`, a byte per skill in its `.block`, all 3 —`dodge`, the
+/// editor's default, which every skill of the test game keeps—.
+fn without_skill_results(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    for (name, _) in rm2k_snes_mapdata::emit::RESULT_TERMS {
+        let constant = format!("BA_TXT_{:<11}= ", name.to_uppercase());
+        let at = lines.iter().position(|l| l.starts_with(&constant)).unwrap();
+        lines.remove(at);
+    }
+    let at = lines.iter().position(|l| *l == "skill_fail:").unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let bytes = lines[at + 1].trim_start_matches("    .byte ");
+    assert!(bytes.split(", ").all(|b| b == "3"), "{bytes}");
+    lines.drain(at - 1..at + 2);
+    lines.join("\n")
+}
+
 /// The shop's party in the screens stage's answer, which came on
 /// 2026-10-15, after the requests were written: no member with a CharSet
 /// and the System's sixteen arrows blank, with its geometry; taken out of
@@ -1384,7 +1404,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "bare"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(&text))),
+            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
+                &without_skill_results(&text),
+            ))),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
@@ -1419,7 +1441,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "whole"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(&text))),
+            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
+                &without_skill_results(&text),
+            ))),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
