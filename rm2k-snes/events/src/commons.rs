@@ -865,8 +865,10 @@ mod tests {
     /// once.
     #[test]
     fn the_noted_effects_go_after_the_maps_own() {
-        let mut songs = Songs::default();
-        songs.current = Some(Package::Map(2));
+        let mut songs = Songs {
+            current: Some(Package::Map(2)),
+            ..Default::default()
+        };
         songs.sound(("Thunder9".into(), 100, 80, 50), true);
         songs.sound(("Rain1".into(), 70, 100, 50), true);
         songs.current = None;
