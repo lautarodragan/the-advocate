@@ -23,13 +23,26 @@ fn db() -> Db {
 fn battle(db: &Db) -> Battle {
     let actor = Combatant::actor(db, 1, None, None).unwrap();
     let enemy = Combatant::enemy(db, 1, 0, false).unwrap();
-    Battle::new(vec![actor], vec![enemy], BATTLE_SEED, vec![], BTreeMap::new())
+    Battle::new(
+        vec![actor],
+        vec![enemy],
+        BATTLE_SEED,
+        vec![],
+        BTreeMap::new(),
+    )
 }
 
 fn lines(b: &Battle) -> Vec<(String, &'static str, i64)> {
     b.results
         .iter()
-        .map(|SkillResult { target, what, value, .. }| (target.clone(), *what, *value))
+        .map(
+            |SkillResult {
+                 target,
+                 what,
+                 value,
+                 ..
+             }| (target.clone(), *what, *value),
+        )
         .collect()
 }
 
@@ -40,7 +53,10 @@ fn a_damaging_skill_says_the_damage_on_its_target() {
     let before = b.enemies[0].hp;
     b.use_skill(&db, Who::Actor(0), 9, Who::Enemy(0)).unwrap();
     let lost = before - b.enemies[0].hp;
-    assert!(lost > 0 && b.enemies[0].hp > 0, "the case wants a hit that does not kill");
+    assert!(
+        lost > 0 && b.enemies[0].hp > 0,
+        "the case wants a hit that does not kill"
+    );
     assert_eq!(lines(&b), [(b.enemies[0].name.clone(), "damage", lost)]);
 }
 
@@ -119,7 +135,13 @@ fn a_skill_on_every_enemy_says_each_one() {
     let actor = Combatant::actor(&db, 1, None, None).unwrap();
     let one = Combatant::enemy(&db, 1, 0, false).unwrap();
     let two = Combatant::enemy(&db, 1, 1, false).unwrap();
-    let mut b = Battle::new(vec![actor], vec![one, two], BATTLE_SEED, vec![], BTreeMap::new());
+    let mut b = Battle::new(
+        vec![actor],
+        vec![one, two],
+        BATTLE_SEED,
+        vec![],
+        BTreeMap::new(),
+    );
     // Enough HP that the hit does not kill, which would leave the defense
     // unsaid.
     for e in &mut b.enemies {

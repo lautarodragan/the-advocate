@@ -1790,7 +1790,14 @@ impl Battle {
     /// is not regenerated without taro —the draft
     /// `a-skill-rolls-past-where-vexecute-returns`—. What is written does
     /// stop there: no line after a kill, and the failure's after nothing.
-    fn skill_rolls(&mut self, skill: &Skill, target: Who, effect: i64, positive: bool, lines: usize) -> bool {
+    fn skill_rolls(
+        &mut self,
+        skill: &Skill,
+        target: Who,
+        effect: i64,
+        positive: bool,
+        lines: usize,
+    ) -> bool {
         let hit_rate = skill.hit as i64;
         // Past where `vExecute` returns: nothing more is written.
         let mut quiet = false;
