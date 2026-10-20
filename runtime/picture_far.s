@@ -1296,6 +1296,23 @@ test:
     bne each
     lda #$02
     sta obj_big
+    ; With a big picture up, nothing of the map: `build_oam` walks the rows
+    ; from `npc_ofs` and slots the hero in until `hero_drawn`, so both are
+    ; left as if it were done. Only one that keeps the sprites shows the
+    ; pictures —see BIG_KEEPS in big_picture.s—, and the characters are the
+    ; map's, which it hides.
+    lda f:BIG_FLAGS
+    lsr a                       ; BIG_ON
+    bcc map
+    lda #1
+    sta hero_drawn
+    rep #$20
+.a16
+    lda npc_total
+    sta npc_ofs
+    sep #$20
+.a8
+map:
     rtl
 .endproc
 

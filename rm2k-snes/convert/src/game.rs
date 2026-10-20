@@ -635,6 +635,35 @@ impl Game {
         )
     }
 
+    /// The panorama RM2k draws still behind map `id`, if the map is one
+    /// screen —20x15, which RM2k's display never scrolls, and that does not
+    /// loop— and its panorama does not scroll on its own: its file, in the
+    /// game or the RTP. It is what a big picture with holes shows through
+    /// them there, as long as no `ChangePBG` swaps it: see
+    /// [`crate::pictures::still_over`].
+    pub fn screen_panorama(&self, id: i32) -> Result<Option<PathBuf>> {
+        let raw = self.raw_map(id)?;
+        if (raw.width, raw.height) != (20, 15)
+            || raw.scroll_type.to_i32() != 0
+            || !raw.parallax_flag
+            || raw.parallax_name.is_empty()
+            || raw.parallax_auto_loop_x
+            || raw.parallax_auto_loop_y
+        {
+            return Ok(None);
+        }
+        let rtp: Vec<PathBuf> = self.rtp_dir.iter().cloned().collect();
+        let extensions = [".png", ".bmp"];
+        Ok(crate::resources::find(
+            &[&self.game_dir],
+            "Panorama",
+            &raw.parallax_name,
+            &extensions,
+        )
+        .or_else(|| crate::resources::find(&rtp, "Panorama", &raw.parallax_name, &extensions))
+        .map(|p| rm2k_project::absolute(&p)))
+    }
+
     /// Map `id` as the project has it, with every event.
     fn raw_map(&self, id: i32) -> Result<schema::Map> {
         Ok(match self.forks.map_file(id) {

@@ -364,6 +364,10 @@ pub struct BigLayer {
     /// [`Mode7Texture`].
     #[serde(default)]
     pub mode7: Option<Mode7Texture>,
+    /// Whether the map's small pictures stay up over it: its tiles go past
+    /// the sprite bank. See `keep_objects` in rm2k-snes-convert.
+    #[serde(default)]
+    pub keeps_objects: bool,
 }
 
 /// A big picture as a mode 7 texture, as `rm2k-snes-images background`

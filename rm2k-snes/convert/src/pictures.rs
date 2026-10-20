@@ -35,9 +35,9 @@ use crate::fail::{Result, Stop};
 use crate::game::GameMap;
 use crate::images;
 use rm2k_project::Project;
-use rm2k_snes_events::codes::{SHOW_PICTURE, TINT_SCREEN};
+use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
 use serde_json::{json, Map, Value};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 /// RM2k's screen and the console's.
@@ -246,11 +246,21 @@ fn truthy(v: &Value) -> bool {
 }
 
 /// Whether the picture fits the plane of objects.
+/// How tall a picture the objects take when it is not a big one —placed by
+/// variables, or going with the map without covering the screen—: an
+/// object's place in the picture is a byte, `picture_data`'s dy. What it
+/// costs is the tiles of what it draws, which `wally` weighs against the
+/// map's VRAM: a sparse block goes as 8x8 objects, an empty one as none.
+/// Until 2026-10-20 it was [`HEIGHT_MAX`], from when every block was a
+/// whole 32x32 object; Zounds' skill list on map 190, two lines of text at
+/// the top of a 167x227 picture placed by variables, was left out by it.
+pub const OBJECTS_HEIGHT_MAX: i64 = 256;
+
 fn fits(info: &Converted) -> bool {
     0 < info.width
         && info.width <= WIDTH_MAX
         && 0 < info.height
-        && info.height <= HEIGHT_MAX
+        && info.height <= OBJECTS_HEIGHT_MAX
         && info.palette.as_array().is_some_and(|p| !p.is_empty())
 }
 
@@ -335,6 +345,10 @@ fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
 ///
 /// With `small`, the ones it says of the rest too, which would go in the
 /// sprites: see [`over_black`].
+///
+/// With `under`, a map's still panorama and the pictures [`still_over`]
+/// it: those are drawn over the panorama, which fills their holes, and
+/// their layer says so with `under`. See [`still_over`].
 pub fn big_for_map(
     game_dir: &Path,
     keys: &[Value],
@@ -342,6 +356,7 @@ pub fn big_for_map(
     whose: &str,
     cropped: &Cropped,
     small: &dyn Fn(&Value) -> bool,
+    under: Option<(&Path, &BTreeSet<(i64, String)>)>,
 ) -> Result<Vec<Big>> {
     let mut out = Vec::new();
     for key in keys {
@@ -354,6 +369,24 @@ pub fn big_for_map(
         }
         let (cx, cy) = big_center(key);
         let zoom = int(&key["zoom"]);
+        // Only one with holes —a quarter of it or more, as a picture that
+        // is part of a map, `map_pictures`—: over an opaque one the small
+        // pictures under its number would come out in front of it.
+        let panorama = match under {
+            Some((panorama, still))
+                if cropped.of(name).is_none()
+                    && !cropped.for_console(name)
+                    && zoom == 100
+                    && !moved_to_another_size(key, zooms)
+                    && shown_in(key, still)
+                    && truthy(&key["transparent_color"])
+                    && crate::map_pictures::holes(&path)?
+                        >= crate::map_pictures::OPAQUE_HOLES_MIN =>
+            {
+                Some(panorama)
+            }
+            _ => None,
+        };
         let layer = images::background(
             &path,
             truthy(&key["transparent_color"]),
@@ -367,6 +400,7 @@ pub fn big_for_map(
             BIG_TILES,
             BIG_ROWS,
             moved_to_another_size(key, zooms),
+            panorama,
         )?;
         let Some(mut layer) = layer else {
             println!(
@@ -395,6 +429,14 @@ pub fn big_for_map(
             ]),
         );
         object.insert("center".into(), json!([cx, cy]));
+        if let Some(panorama) = panorama {
+            println!(
+                "  {whose}: the picture {} is drawn over the panorama {}, which shows through its holes",
+                crate::text::repr(name),
+                crate::text::repr(&panorama.file_stem().unwrap_or_default().to_string_lossy())
+            );
+            object.insert("under".into(), json!(panorama.to_string_lossy()));
+        }
         out.push(Big {
             key: key.clone(),
             layer,
@@ -437,14 +479,72 @@ pub fn over_black(map: &GameMap) -> BTreeSet<(i64, String)> {
     out
 }
 
-/// Whether the key, as the scan answers it, is one of [`over_black`]'s.
-pub fn shown_over_black(key: &Value, black: &BTreeSet<(i64, String)>) -> bool {
+/// Whether the key, as the scan answers it, is one of `shown`'s, as
+/// [`over_black`] and [`still_over`] answer them: placed by a constant and
+/// with the screen.
+pub fn shown_in(key: &Value, shown: &BTreeSet<(i64, String)>) -> bool {
     !truthy(&key["by_variable"])
         && !truthy(&key["map_fixed"])
-        && black.contains(&(
+        && shown.contains(&(
             int(&key["number"]),
             key["name"].as_str().unwrap_or("").to_lowercase(),
         ))
+}
+
+/// The big pictures `map`'s pages show **still over its panorama**, by
+/// number and name in lowercase, as [`over_black`] answers them: placed by a
+/// constant and with the screen, at their size, opaque, untoned and without
+/// an effect, and never moved —no `MovePicture` of their number on the
+/// map—; and the map swaps no panorama with `ChangePBG`.
+///
+/// On a map of one screen —[`crate::game::Game::screen_panorama`]—, what
+/// RM2k shows through such a picture's holes is that panorama, still, and
+/// the console draws the two together as one layer, for a picture with a
+/// quarter of itself transparent or more; an opaque one is left as it was. And since the layer
+/// then covers the screen with what RM2k shows there, the map's small
+/// pictures are drawn over it, which they could not be over the black:
+/// Zounds' skill screen, map 190, frames its skill list with
+/// `Zounds_SystemBox_Pic` —the panorama's own pixels, cut out to clip the
+/// list when it scrolls— and puts its selectors and a face over them. See
+/// `big_picture.s` in the runtime, and the layer's `keeps_objects` in
+/// `crate::convert`.
+pub fn still_over(map: &GameMap) -> BTreeSet<(i64, String)> {
+    let commands: Vec<&crate::game::Command> = map.all_commands().collect();
+    if commands.iter().any(|c| c.code == CHANGE_PBG) {
+        return BTreeSet::new();
+    }
+    let moved: BTreeSet<i64> = commands
+        .iter()
+        .filter(|c| c.code == MOVE_PICTURE && !c.parameters.is_empty())
+        .map(|c| c.parameters[0] as i64)
+        .collect();
+    let mut out = BTreeSet::new();
+    let mut spoilt = BTreeSet::new();
+    for c in &commands {
+        let p = &c.parameters;
+        if c.code != SHOW_PICTURE || p.len() < 13 {
+            continue;
+        }
+        let key = (p[0] as i64, c.string.to_lowercase());
+        // With the screen, by a constant, at 100 %, opaque, untoned —red,
+        // green, blue and saturation at 100— and without an effect; and the
+        // 2003 bottom's transparency, if there is one, at 0.
+        let still = p[1] == 0
+            && p[4] == 0
+            && p[5] == 100
+            && p[6] == 0
+            && p[8..12] == [100, 100, 100, 100]
+            && p[12] == 0
+            && p.get(14).is_none_or(|&b| b == 0)
+            && !moved.contains(&key.0);
+        if still {
+            out.insert(key);
+        } else {
+            spoilt.insert(key);
+        }
+    }
+    out.retain(|k| !spoilt.contains(k));
+    out
 }
 
 /// Whether a layer carries a mode 7 texture.
@@ -470,7 +570,8 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
                 big.key["name"],
                 big.key["zoom"],
                 big.key["transparent_color"],
-                big.layer["center"]
+                big.layer["center"],
+                big.layer.get("under")
             ])
             .to_string();
             let number = *index.entry(ident).or_insert_with(|| {
@@ -502,6 +603,35 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
     (layers, tables)
 }
 
+/// The most tiles a layer can take and leave the sprite bank whole: its
+/// tiles then go from VRAM word $2000 to its tilemap at $4000, past the
+/// 512 object tiles the PPU names. `BIG_KEEP_*` in the runtime's
+/// `big_picture.s`.
+pub const BIG_KEEP_TILES: i64 = 512;
+
+/// The layers drawn over a map's panorama —[`still_over`]— that leave the
+/// map's small pictures up over them: the ones whose tiles leave the sprite
+/// bank alone, `keeps_objects` in the layer. The runtime draws only the
+/// pictures' objects while such a layer is up, not the characters, which
+/// are the map's. The rest hide the small ones, as every big picture did
+/// until 2026-10-20.
+pub fn keep_objects(layers: &mut [Value]) {
+    for layer in layers.iter_mut() {
+        if layer.get("under").is_none() {
+            continue;
+        }
+        let tiles = int(&layer["tile_count"]);
+        if tiles <= BIG_KEEP_TILES {
+            layer["keeps_objects"] = json!(true);
+        } else {
+            println!(
+                "  a big picture over {} takes {tiles} tiles: past {BIG_KEEP_TILES} it would                  overwrite the sprite bank, and the small pictures are not shown over it",
+                layer["under"].as_str().unwrap_or("")
+            );
+        }
+    }
+}
+
 /// What the log says of [`number_big`]'s layers, once they are final.
 pub fn say_big(layers: &[Value]) {
     if !layers.is_empty() {
@@ -509,6 +639,13 @@ pub fn say_big(layers: &[Value]) {
             "  the cartridge carries {} big picture(s) in the background layer",
             layers.len()
         );
+        let kept = layers
+            .iter()
+            .filter(|l| truthy(&l["keeps_objects"]))
+            .count();
+        if kept > 0 {
+            println!("  {kept} of them over a map's panorama, with the small pictures over them");
+        }
     }
 }
 
@@ -530,6 +667,37 @@ pub struct ForMap {
 /// sixteen. More cells than this and the tiles saved are not worth the
 /// objects, of which the console has 128 for everything.
 pub const SMALL_CELLS: usize = 4;
+/// And a block whose drawn cells are this many or fewer **and fill no more
+/// than two of its four rows of cells** goes as cells too —a frame's top
+/// and bottom edge, a line of text—, unless they are two whole rows side
+/// by side: a band as wide as the block, where one 32x32 costs the same
+/// slivers and a quarter of the objects. A 32x32 object costs four of the
+/// 34 slivers the console draws on a line on each of its 32 lines, even
+/// where it draws nothing; the cells cost one each, and only on their own
+/// eight. Zounds' skill screen, map 190, puts a selector's frame and two
+/// lines of the skill list on the same lines as the face: as whole blocks
+/// they were 38 slivers on 37 lines, and the PPU dropped the frame. Since
+/// 2026-10-20.
+pub const THIN_CELLS: usize = 8;
+pub const THIN_ROWS: usize = 2;
+
+/// Whether a block whose cells `drawn` —0 to 15, row by row— are drawn
+/// goes as 8x8 objects: see [`SMALL_CELLS`] and [`THIN_CELLS`].
+fn as_cells(drawn: &[usize]) -> bool {
+    let side = OBJ_SIDE as usize;
+    let mut rows: BTreeMap<usize, usize> = BTreeMap::new();
+    for &k in drawn {
+        *rows.entry(k / side).or_default() += 1;
+    }
+    let band = rows.len() == 2
+        && rows.values().all(|&n| n == side)
+        && rows
+            .keys()
+            .max()
+            .zip(rows.keys().min())
+            .is_some_and(|(a, b)| a - b == 1);
+    drawn.len() <= SMALL_CELLS || (drawn.len() <= THIN_CELLS && rows.len() <= THIN_ROWS && !band)
+}
 /// In an object's tile word, the bit that says it is an 8x8 object: the
 /// tile is the word's low nine bits, from the pictures' base. `PIC_SMALL`
 /// in the runtime's `picture_far.s`.
@@ -675,7 +843,8 @@ struct Bank {
 impl Bank {
     /// The picture cut into pieces, row by row of 32x32 blocks, leaving out
     /// what has nothing drawn: `(dx, dy, piece)`. A block with
-    /// [`SMALL_CELLS`] cells drawn or fewer goes as those cells.
+    /// [`SMALL_CELLS`] cells drawn or fewer goes as those cells, and so does
+    /// a thin one: see [`THIN_CELLS`].
     fn cut(&mut self, info: &Converted) -> Vec<(i64, i64, Piece)> {
         let mut out = Vec::new();
         let mut oy = 0;
@@ -688,7 +857,7 @@ impl Bank {
                 let drawn: Vec<usize> = (0..cells.len())
                     .filter(|&k| cells[k].iter().any(|&v| v != 0))
                     .collect();
-                if drawn.len() > SMALL_CELLS {
+                if !as_cells(&drawn) {
                     let at = self
                         .blocks
                         .iter()
@@ -976,7 +1145,114 @@ mod tests {
             BTreeSet::from([(20, "quote1".to_string()), (20, "quote2".to_string())])
         );
         let key = json!({"number": 20, "name": "QUOTE1", "by_variable": false, "map_fixed": false});
-        assert!(shown_over_black(&key, &found));
+        assert!(shown_in(&key, &found));
+    }
+
+    /// Zounds' map 190, shrunk: the frame shown once, still, over the
+    /// panorama; a selector at half transparency; a picture moved; and one
+    /// shown twice, the second time toned.
+    #[test]
+    fn the_pictures_still_over_a_panorama_are_shown_untouched_and_never_moved() {
+        use crate::game::{Command, Event, Page};
+        let c = |code: i32, string: &str, parameters: &[i32]| Command {
+            code,
+            indent: 0,
+            string: string.to_string(),
+            parameters: parameters.to_vec(),
+        };
+        // Number, by variable, place, with the map, zoom, transparency,
+        // transparent colour, tone, effect, and 2003's tail: the bottom's
+        // transparency at 14.
+        let show = |number: i32, name: &str, transparency: i32, red: i32| {
+            c(
+                SHOW_PICTURE,
+                name,
+                &[
+                    number,
+                    0,
+                    160,
+                    120,
+                    0,
+                    100,
+                    transparency,
+                    1,
+                    red,
+                    100,
+                    100,
+                    100,
+                    0,
+                    0,
+                    transparency,
+                    68,
+                ],
+            )
+        };
+        let page = |commands: Vec<Command>| Page {
+            id: 1,
+            character_name: String::new(),
+            dump_name: String::new(),
+            character_index: 0,
+            direction: 2,
+            pattern: 1,
+            layer: 0,
+            animation_type: 0,
+            commands,
+        };
+        let map = |commands: Vec<Command>| GameMap {
+            id: 190,
+            chipset_id: 1,
+            width: 20,
+            height: 15,
+            scroll_type: 0,
+            events: vec![Event {
+                id: 1,
+                x: 0,
+                y: 0,
+                pages: vec![page(commands)],
+            }],
+            lower_layer: Vec::new(),
+            upper_layer: Vec::new(),
+            twins: Vec::new(),
+        };
+        let screen = map(vec![
+            show(48, "Box", 0, 100),
+            show(49, "Bright", 50, 100),
+            show(30, "Moved", 0, 100),
+            c(
+                MOVE_PICTURE,
+                "",
+                &[30, 0, 0, 0, 100, 0, 100, 100, 100, 100, 0, 0, 10, 0],
+            ),
+            show(31, "Toned", 0, 100),
+            show(31, "Toned", 0, 50),
+        ]);
+        assert_eq!(
+            still_over(&screen),
+            BTreeSet::from([(48, "box".to_string())])
+        );
+        // A map that swaps its panorama shows none of them over it.
+        let swapped = map(vec![
+            show(48, "Box", 0, 100),
+            c(CHANGE_PBG, "Other", &[0, 0, 0, 0, 0, 0]),
+        ]);
+        assert!(still_over(&swapped).is_empty());
+    }
+
+    #[test]
+    fn a_frame_s_edges_and_a_line_of_text_go_as_cells_and_a_band_whole() {
+        // Cells are numbered row by row, four to a row.
+        let row = |r: usize| -> Vec<usize> { (0..4).map(|c| 4 * r + c).collect() };
+        // Four or fewer, as always.
+        assert!(as_cells(&[0, 5, 10, 15]));
+        // A frame's top and bottom edge: rows 0 and 3, eight cells.
+        assert!(as_cells(&[row(0), row(3)].concat()));
+        // A line of text over two rows, not all of them drawn.
+        assert!(as_cells(&[1, 2, 3, 5, 6, 7]));
+        // Two whole rows side by side: one 32x32 costs the same slivers.
+        assert!(!as_cells(&[row(1), row(2)].concat()));
+        // Three rows, or more than eight cells: a block.
+        assert!(!as_cells(&[0, 4, 8, 12, 1]));
+        assert!(!as_cells(&[row(0), row(3), vec![5]].concat()));
     }
 
     #[test]

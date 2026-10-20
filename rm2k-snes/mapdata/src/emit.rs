@@ -1367,6 +1367,12 @@ fn picture_section(out: &mut String, r: &Emit) -> Result<()> {
 const BIG_SCREEN: usize = 32;
 const BIG_WIDE: u8 = 1;
 const BIG_TALL: u8 = 2;
+/// And in the same byte, bit 7: the layer keeps the map's small pictures
+/// over it, its tiles past the sprite bank. `BIG_KEEPS` in
+/// `runtime/big_picture.s`.
+const BIG_KEEPS: u8 = 0x80;
+/// The most tiles such a layer takes: from word $2000 to its tilemap.
+const BIG_KEEP_TILES: usize = 512;
 /// How many columns of the edge the second screen mirrors on each side: the
 /// strongest wave of the editor, 10, moves a line 32 of RM2k's pixels,
 /// which is 25.6 of the console's.
@@ -1435,7 +1441,7 @@ pub fn big_tilemap(rows: usize, cells: &[u16], wider: bool) -> Result<(Vec<u16>,
 ///   long  its tilemap, an LZ2 stream of 4 KB
 ///   long  its colours, BIG_PALETTES × 16 words, raw
 ///   word  the tiles' bytes
-///   byte  BG1SC's size bits
+///   byte  BG1SC's size bits, and BIG_KEEPS
 ///   word  BG1VOFS with the screen's top at the canvas's: the rows above
 ///         it, minus the line the PPU skips
 ///   word  half its height, in RM2k's pixels
@@ -1481,7 +1487,14 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
     for big in &r.big_pictures {
         let (map, size) = big_tilemap(big.rows, &big.tilemap, big.wider)?;
         raw.push(map.iter().flat_map(|w| w.to_le_bytes()).collect());
-        sizes.push(size);
+        if big.keeps_objects && (big.tiles.len() / 32 > BIG_KEEP_TILES || big.mode7.is_some()) {
+            return Err(Bad::answer(format!(
+                "a big picture of {} tiles{} keeps the sprites: it takes at most {BIG_KEEP_TILES},                  and no texture",
+                big.tiles.len() / 32,
+                if big.mode7.is_some() { " with a texture" } else { "" }
+            )));
+        }
+        sizes.push(size | if big.keeps_objects { BIG_KEEPS } else { 0 });
     }
     let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
     let streams = crate::compress::compress_many(&refs)?;

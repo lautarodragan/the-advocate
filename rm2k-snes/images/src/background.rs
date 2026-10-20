@@ -80,6 +80,34 @@ pub struct Background {
     pub center: (i64, i64),
 }
 
+/// `picture` —as RM2k draws it, at its size— centred at `(cx, cy)` of
+/// RM2k's screen, drawn over `panorama` from the screen's corner, as RM2k
+/// shows the two on a map of one screen: one picture the size of RM2k's
+/// screen, and the centre to draw it at, the screen's. A panorama smaller
+/// than the screen leaves the rest transparent, as a picture's holes.
+pub fn over_panorama(
+    picture: &Picture,
+    panorama: &Picture,
+    cx: i64,
+    cy: i64,
+    rm_screen: (i64, i64),
+) -> (Picture, i64, i64) {
+    let (width, height) = rm_screen;
+    let mut canvas = Picture::transparent(width as usize, height as usize);
+    canvas.blit(0, 0, panorama, 0, 0, width, height);
+    let (w, h) = (picture.width as i64, picture.height as i64);
+    canvas.blit(
+        cx - w.div_euclid(2),
+        cy - h.div_euclid(2),
+        picture,
+        0,
+        0,
+        w,
+        h,
+    );
+    (canvas, width / 2, height / 2)
+}
+
 /// `picture` —as RM2k draws it— centred at `(cx, cy)` of RM2k's screen at
 /// `zoom` percent, as a layer that fits `room`; `None` if not even cut to
 /// the screen do its tiles fit. With `crop`, the console's screen cut out
@@ -379,6 +407,25 @@ mod tests {
         }
         assert_ne!(colour(84, 84), colour(85, 84));
         assert!(convert(&picture, 160, 120, SCREENS, 50, None, true, ROOM).is_err());
+    }
+
+    /// Over a panorama, the picture's holes show it and the rest of the
+    /// screen too: one opaque picture of the screen's size, centred on it.
+    #[test]
+    fn over_a_panorama_the_holes_show_it() {
+        let panorama = Picture::filled(320, 240, [10, 20, 30, 255]);
+        let mut picture = Picture::transparent(40, 20);
+        picture.rgba[..4].copy_from_slice(&[200, 0, 0, 255]);
+        let (drawn, x, y) = over_panorama(&picture, &panorama, 100, 50, (320, 240));
+        assert_eq!((drawn.width, drawn.height, x, y), (320, 240, 160, 120));
+        // The picture's corner, (80, 40), is its one drawn pixel.
+        assert_eq!(drawn.get(80, 40), [200, 0, 0, 255]);
+        assert_eq!(drawn.get(81, 40), [10, 20, 30, 255], "a hole");
+        assert_eq!(drawn.get(0, 0), [10, 20, 30, 255], "outside it");
+        // A panorama smaller than the screen leaves the rest as holes.
+        let small = Picture::filled(100, 100, [10, 20, 30, 255]);
+        let (drawn, _, _) = over_panorama(&picture, &small, 100, 50, (320, 240));
+        assert_eq!(drawn.get(200, 200)[3], 0);
     }
 
     #[test]

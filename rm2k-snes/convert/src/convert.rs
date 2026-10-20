@@ -544,6 +544,7 @@ pub fn run(options: Options) -> Result<()> {
             &format!("common event {n}"),
             &game.cropped,
             &|_| false,
+            None,
         )?;
         let numbers: BTreeSet<i64> = bigs
             .iter()
@@ -595,6 +596,7 @@ pub fn run(options: Options) -> Result<()> {
         bigs.push(&kept);
         (big_layers, big_tables) = pictures::number_big(&bigs);
     }
+    pictures::keep_objects(&mut big_layers);
     pictures::say_big(&big_layers);
     compiler.common_pictures = big_tables.pop().unwrap_or_default();
     for (m, table) in infos.iter_mut().zip(big_tables) {
@@ -1658,6 +1660,16 @@ pub fn run(options: Options) -> Result<()> {
             "mode7": l.get("mode7").cloned().unwrap_or(Value::Null),
         })).collect::<Vec<_>>(),
     });
+    // Which big pictures keep the small ones over them, apart for the same
+    // reason as what follows: see `pictures::keep_objects`.
+    for (out, l) in request["big_pictures"]
+        .as_array_mut()
+        .into_iter()
+        .flatten()
+        .zip(&big_layers)
+    {
+        out["keeps_objects"] = json!(l["keeps_objects"].as_bool().unwrap_or(false));
+    }
     // The highest switch the game names, which the table holds: apart, because
     // the literal above is at `json!`'s recursion limit.
     request["switch_top"] = json!(indices.switch_top);

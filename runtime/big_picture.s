@@ -34,7 +34,8 @@
 ; work repo. The layer above the map is BG2
 ; too, and in mode 1 it would draw over the picture: its tilemap is
 ; emptied. The sprites are off: RM2k draws pictures over the characters,
-; and the picture covers the screen.
+; and the picture covers the screen; but for one that keeps them —see
+; BIG_KEEPS below—.
 ;
 ; **Erasing it reloads the map**, the way coming back from a battle does,
 ; with its two black frames: `big_back_far`, in picture.s. A map change
@@ -47,10 +48,26 @@
 
 ; Where the layer lives, in VRAM words.
 BIG_VRAM_MAP    = $4000
+; **A layer drawn over its map's panorama keeps the small pictures over
+; it**: bit 7 of its BG1SC byte. Zounds' skill screen, map 190, frames its
+; list with a picture that has holes, and puts its selectors and a face
+; over them; the converter draws the map's still panorama in the holes
+; —`still_over` and `keep_objects` in rm2k-snes/convert/src/pictures.rs—, so
+; what the layer covers is what RM2k shows there. Its tiles then go from
+; word $2000, past the 512 object tiles OAM names, at most 512 of them up to
+; the tilemap; BG1's base says so; and the sprites stay on, drawing only the
+; pictures —`pic_oam`—, which are uploaded with the map and do not move.
+; The characters are the map's, and stay hidden like it.
+BIG_KEEPS       = $80
+BIG_KEEP_VRAM   = $2000
+BIG_KEEP_NBA    = BIG_KEEP_VRAM >> 12
+.assert BIG_KEEP_VRAM + 512 * 16 = BIG_VRAM_MAP, error, "512 tiles from BIG_KEEP_VRAM reach the tilemap: `BIG_KEEP_TILES` in rm2k-snes-mapdata"
+.assert BIG_KEEP_VRAM >= 512 * 16, error, "BIG_KEEP_VRAM leaves the 512 sprite tiles alone"
 BIG_VRAM_WINDOW = $4800
 ; BG1SC carries the tilemap's address in its six high bits; the size bits
 ; come with each picture.
 BIG_BG1SC       = >BIG_VRAM_MAP
+BIG_WIDE_TALL   = $03               ; the size bits of the entry's byte
 ; Its palettes: the seven above the window's. `BIG_PALETTES` in
 ; rm2k-snes/convert/src/pictures.rs, which the emission in rm2k-snes-mapdata
 ; checks against.
@@ -70,7 +87,7 @@ BE_TILES  = 0                   ; long: the tiles, raw
 BE_MAP    = 3                   ; long: the tilemap's
 BE_COLORS = 6                   ; long: the colours, raw
 BE_BYTES  = 9                   ; word: the tiles' bytes
-BE_SIZE   = 11                  ; byte: BG1SC's size bits
+BE_SIZE   = 11                  ; byte: BG1SC's size bits, and BIG_KEEPS
 BE_VOFS   = 12                  ; word: BG1VOFS with the scroll at zero
 BE_HALF_Y = 14                  ; word: half its height, in RM2k's pixels
 BE_CORNER_Y = 16                ; word: its top on the console's screen, as shown
@@ -207,7 +224,8 @@ still:
     jmp big_load_hybrid
 plain:
     phx
-    ; The tiles, from the cartridge to word 0.
+    ; The tiles, from the cartridge to word 0, or to BIG_KEEP_VRAM for one
+    ; that keeps the sprites.
     rep #$20
 .a16
     lda f:big_table + BE_BYTES, x
@@ -217,6 +235,11 @@ plain:
     stz VMADDL
     sep #$20
 .a8
+    lda f:big_table + BE_SIZE, x
+    bpl word_0                  ; BIG_KEEPS is bit 7
+    lda #>BIG_KEEP_VRAM
+    sta VMADDL + 1               ; VMADDH
+word_0:
     lda f:big_table + BE_TILES + 2, x
     sta A1B0
     jsr big_dma_vram
@@ -268,20 +291,35 @@ plain:
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; The registers: mode 1, BG1's tiles from word 0 and BG2's where the map
-    ; has them, BG1's tilemap at its place and size, and the two layers
-    ; without the sprites.
+    ; The registers: mode 1, BG1's tiles from word 0 —or BIG_KEEP_VRAM— and
+    ; BG2's where the map has them, BG1's tilemap at its place and size, and
+    ; the two layers without the sprites —or with them, for one that keeps
+    ; them—.
     lda #$01
     sta BGMODE
     ldx map_ofs
     lda f:map_table + M_BG12NBA_VALUE, x
     and #$F0
-    sta BG12NBA
     plx
+    pha
     lda f:big_table + BE_SIZE, x
+    bpl bases                   ; BIG_KEEPS is bit 7
+    pla
+    ora #BIG_KEEP_NBA
+    pha
+bases:
+    pla
+    sta BG12NBA
+    lda f:big_table + BE_SIZE, x
+    and #BIG_WIDE_TALL
     ora #BIG_BG1SC
     sta BG1SC
+    lda f:big_table + BE_SIZE, x
+    asl a                       ; BIG_KEEPS to the carry
     lda #$03
+    bcc layers                  ; `lda` does not touch the carry
+    lda #$13                    ; and the sprites, as `ppu_init`
+layers:
     sta TM
     lda f:BIG_FLAGS
     ora #BIG_ON

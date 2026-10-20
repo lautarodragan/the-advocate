@@ -441,6 +441,10 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
+    // On a map of one screen, the ones shown still over its panorama go
+    // with it under them: see [`pictures::still_over`].
+    let panorama = game.screen_panorama(map_id)?;
+    let still = pictures::still_over(&map);
     let big_pictures = pictures::big_for_map(
         &game.game_dir,
         &keys,
@@ -448,6 +452,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         &format!("map {map_id}"),
         &game.cropped,
         &|_| false,
+        panorama.as_deref().map(|p| (p, &still)),
     )?;
     // And the small ones the map shows over a black screen, in the
     // background layer too: what goes in if the sprites have no room for
@@ -459,7 +464,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         let already: Vec<&Value> = big_pictures.iter().map(|b| &b.key).collect();
         let small: Vec<Value> = keys
             .iter()
-            .filter(|k| pictures::shown_over_black(k, &black) && !already.contains(k))
+            .filter(|k| pictures::shown_in(k, &black) && !already.contains(k))
             .cloned()
             .collect();
         pictures::big_for_map(
@@ -469,6 +474,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
             &format!("map {map_id}"),
             &game.cropped,
             &|_| true,
+            None,
         )?
     };
     let shows_animation =
