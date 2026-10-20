@@ -1151,6 +1151,23 @@ fn compile_pass(
         .collect();
     let plan = commons::plan(&setting, from_pages, &messages, &songs)?;
     let callers = callers(game, &maps);
+    // Which parallel common events' switches each map can turn on, and
+    // which any map can: their effects go in those maps' packages, after
+    // compiling them. See [`commons::turned_on`].
+    let parallel_switches: BTreeSet<i32> = game
+        .common_events
+        .values()
+        .filter(|c| c.trigger == COMMON_PARALLEL && c.switch_flag)
+        .map(|c| c.switch_id)
+        .collect();
+    let switches_on: Vec<BTreeSet<i32>> = maps
+        .iter()
+        .map(|m| {
+            let commands = m.events.iter().flat_map(|e| &e.pages).flat_map(|p| &p.commands);
+            commons::turned_on(game, commands, &parallel_switches)
+        })
+        .collect();
+    let switches_anywhere = commons::turned_on_anywhere(game, &parallel_switches);
 
     let mut maps_out = Vec::new();
     let mut cases_out: Vec<Option<String>> = vec![None; request.cases.len()];
@@ -1332,13 +1349,20 @@ fn compile_pass(
     // The parallel common events, each compiled once without a map, after
     // the shared bodies so what they number moves nobody's index. See
     // [`commons::parallel_commons`].
-    let parallel = commons::parallel_commons(
+    let (parallel, parallel_sounds) = commons::parallel_commons(
         &setting,
         &mut messages,
         &mut songs,
         &mut troops,
         &mut losses,
     )?;
+    for (switch, names) in &parallel_sounds {
+        for (k, on) in switches_on.iter().enumerate() {
+            if *switch == 0 || switches_anywhere.contains(switch) || on.contains(switch) {
+                songs.note_sounds(Package::Map(k), names);
+            }
+        }
+    }
     let mut ctx = Ctx {
         game,
         indices: &indices,

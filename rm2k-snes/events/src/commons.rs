@@ -548,15 +548,19 @@ pub fn pure_page(commands: &[Command]) -> bool {
 /// A `CallEvent` in them is **pasted**, as in a map's parallel page: the
 /// ROM has one call stack, the foreground's, and a parallel that waits in
 /// the middle of a call would hold it across frames. Songs and effects are
-/// numbered but noted in no package, as in the shared bodies.
+/// numbered but noted in no package, as in the shared bodies; the effects
+/// each one asks for come back apart, as `(switch, names)`, for the caller
+/// to note in the packages of the maps where it can run: see
+/// [`turned_on`].
 pub fn parallel_commons(
     s: &Setting,
     messages: &mut Messages,
     songs: &mut Songs,
     troops: &mut Troops,
     losses: &mut Losses,
-) -> Result<Vec<Value>> {
+) -> Result<(Vec<Value>, Vec<(i32, Vec<String>)>)> {
     let mut out = Vec::new();
+    let mut sounds = Vec::new();
     for (&number, c) in &s.game.common_events {
         if c.trigger != COMMON_PARALLEL || c.commands.is_empty() {
             continue;
@@ -571,6 +575,7 @@ pub fn parallel_commons(
             Some(code)
         } else {
             let mut pictures = s.pictures.clone();
+            songs.loose = Some(Vec::new());
             let mut ctx = Ctx {
                 game: s.game,
                 indices: s.indices,
@@ -595,7 +600,12 @@ pub fn parallel_commons(
             let code = compile_page(&mut ctx, &c.commands, None, 0, 0);
             ctx.losses.leave();
             *losses = std::mem::take(&mut ctx.losses);
-            code?
+            let asked = songs.loose.take().unwrap_or_default();
+            let code = code?;
+            if code.is_some() && !asked.is_empty() {
+                sounds.push((if c.switch_flag { c.switch_id } else { 0 }, asked));
+            }
+            code
         };
         let switch = if c.switch_flag { c.switch_id } else { 0 };
         out.push(json!([
@@ -605,12 +615,72 @@ pub fn parallel_commons(
             code.map(|c| crate::pages::hex(&c))
         ]));
     }
-    Ok(out)
+    Ok((out, sounds))
+}
+
+/// `ControlSwitches`' operation that turns them off: the others turn them
+/// on or flip them.
+const SWITCH_OFF: i32 = 1;
+
+/// Which of `wanted` the `commands` can turn on: a `ControlSwitches` that
+/// turns one on or flips it —or that picks it by a variable—, in them and
+/// in the common events they call, followed down.
+///
+/// It is where a parallel common event's effects go in a package: the
+/// maps whose pages can turn its switch on, and every map if the database,
+/// or a parallel or automatic common event, can. A map the party only
+/// reaches with the switch already on, and that does not turn it on itself,
+/// does not carry them, and there the effects stay silent: carrying them in
+/// every map instead costs each package their ARAM, and A Blurred Line's
+/// `Raining`'s `Rain1` alone is five seconds of it. The same rule copies the
+/// automatic ones with pictures into the maps: `common_pages.rs` in the
+/// converter.
+pub fn turned_on<'a>(
+    game: &Game,
+    commands: impl IntoIterator<Item = &'a Command>,
+    wanted: &BTreeSet<i32>,
+) -> BTreeSet<i32> {
+    let mut on = BTreeSet::new();
+    let mut seen = BTreeSet::new();
+    let mut stack: Vec<&Command> = commands.into_iter().collect();
+    while let Some(c) = stack.pop() {
+        let p = &c.parameters;
+        if c.code == CONTROL_SWITCHES && p.len() >= 4 && p[3] != SWITCH_OFF {
+            match p[0] {
+                0 => on.extend(wanted.iter().filter(|&&s| s == p[1])),
+                1 => on.extend(wanted.iter().filter(|&&s| p[1] <= s && s <= p[2])),
+                _ => on.extend(wanted.iter()),
+            }
+        }
+        if c.code == CALL_EVENT && p.len() >= 2 && p[0] == 0 && seen.insert(p[1]) {
+            stack.extend(game.common_events.get(&p[1]).into_iter().flat_map(|c| &c.commands));
+        }
+    }
+    on
+}
+
+/// Which of `wanted` can be turned on on any map: by the database —a switch
+/// item or skill— or by a parallel or automatic common event, which run
+/// wherever the party is. See [`turned_on`].
+pub fn turned_on_anywhere(game: &Game, wanted: &BTreeSet<i32>) -> BTreeSet<i32> {
+    let mut on: BTreeSet<i32> = wanted
+        .intersection(&game.database_switches)
+        .copied()
+        .collect();
+    let global = game
+        .common_events
+        .values()
+        .filter(|c| c.trigger == COMMON_PARALLEL || c.trigger == COMMON_AUTOSTART)
+        .flat_map(|c| &c.commands);
+    on.extend(turned_on(game, global, wanted));
+    on
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::CommonEvent;
+    use crate::registry::Package;
 
     fn c(code: i32, indent: i32, parameters: Vec<i32>) -> Command {
         Command::new(code, indent, "", parameters)
@@ -632,6 +702,108 @@ mod tests {
         }
         page.push(c(END, 0, vec![]));
         page
+    }
+
+    fn common(trigger: i32, switch: Option<i32>, commands: Vec<Command>) -> CommonEvent {
+        CommonEvent {
+            trigger,
+            switch_flag: switch.is_some(),
+            switch_id: switch.unwrap_or(1),
+            commands,
+        }
+    }
+
+    fn on(switch: i32) -> Command {
+        c(CONTROL_SWITCHES, 0, vec![0, switch, switch, 0])
+    }
+
+    /// A Blurred Line's `Raining`, common event 3: parallel on switch 94,
+    /// `Rain1` and a three-second wait. Its effect comes back apart with
+    /// the switch, and is noted in no package: until 2026-10-20 it was
+    /// noted nowhere at all, and on map 20 the rain was silent.
+    #[test]
+    fn a_parallel_common_event_gives_back_its_effects_with_its_switch() {
+        use crate::messages::{Messages, Window};
+        let mut game = Game::default();
+        let rain = Command::new(PLAY_SOUND, 0, "Rain1", vec![70, 100, 50]);
+        game.common_events.insert(
+            3,
+            common(COMMON_PARALLEL, Some(94), vec![rain, c(WAIT, 0, vec![30])]),
+        );
+        let (indices, sound) = (Indices::default(), SoundSettings::default());
+        let setting = Setting {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            pictures: &Pictures::default(),
+            landings: None,
+        };
+        let mut songs = Songs::default();
+        let (bodies, sounds) = parallel_commons(
+            &setting,
+            &mut Messages::new(1, Window::columns(39, 4)),
+            &mut songs,
+            &mut Troops::default(),
+            &mut Losses::default(),
+        )
+        .unwrap();
+        assert_eq!(bodies.len(), 1);
+        assert_eq!(sounds, [(94, vec!["Rain1".to_string()])]);
+        assert!(songs.per_package.is_empty());
+        assert!(songs.loose.is_none());
+    }
+
+    /// Where its effects go: the maps that can turn its switch on, by
+    /// themselves or through a common event they call, and every map if a
+    /// switch item or skill, or a parallel or automatic common event, can.
+    /// Turning it off is not turning it on.
+    #[test]
+    fn a_switch_is_turned_on_by_a_map_by_a_call_or_anywhere() {
+        let mut game = Game::default();
+        game.common_events.insert(7, common(5, None, vec![on(95)]));
+        game.common_events
+            .insert(8, common(COMMON_AUTOSTART, Some(1), vec![on(96)]));
+        game.database_switches.insert(97);
+        let wanted: BTreeSet<i32> = [94, 95, 96, 97].into_iter().collect();
+        let page = [
+            on(94),
+            c(CONTROL_SWITCHES, 0, vec![0, 96, 96, SWITCH_OFF]),
+            c(CALL_EVENT, 0, vec![0, 7, 0]),
+        ];
+        let set = |v: &[i32]| v.iter().copied().collect::<BTreeSet<i32>>();
+        assert_eq!(turned_on(&game, &page, &wanted), set(&[94, 95]));
+        assert_eq!(turned_on_anywhere(&game, &wanted), set(&[96, 97]));
+        // A range, and one picked by a variable, which may be any.
+        let range = [c(CONTROL_SWITCHES, 0, vec![1, 90, 94, 2])];
+        assert_eq!(turned_on(&game, &range, &wanted), set(&[94]));
+        let by_variable = [c(CONTROL_SWITCHES, 0, vec![2, 5, 5, 0])];
+        assert_eq!(turned_on(&game, &by_variable, &wanted), wanted);
+    }
+
+    /// And noted last in a package, after what the map's pages asked for,
+    /// once.
+    #[test]
+    fn the_noted_effects_go_after_the_maps_own() {
+        let mut songs = Songs::default();
+        songs.current = Some(Package::Map(2));
+        songs.sound(("Thunder9".into(), 100, 80, 50), true);
+        songs.sound(("Rain1".into(), 70, 100, 50), true);
+        songs.current = None;
+        songs.note_sounds(Package::Map(2), &["Rain1".into(), "Rain2".into()]);
+        songs.note_sounds(Package::Map(0), &["Rain1".into()]);
+        let sounds: Vec<(Package, Vec<String>)> = songs
+            .per_package
+            .iter()
+            .map(|(p, w)| (*p, w.sounds.clone()))
+            .collect();
+        assert_eq!(
+            sounds,
+            [
+                (Package::Map(2), vec!["Thunder9".into(), "Rain1".into(), "Rain2".into()]),
+                (Package::Map(0), vec!["Rain1".into()]),
+            ]
+        );
     }
 
     #[test]
