@@ -70,11 +70,14 @@ fn join(a: Option<W>, b: W) -> Option<W> {
 }
 
 /// One byte on the stack: where it was pushed, and, for a `php`, the widths
-/// it saved.
+/// it saved; and its value, when the walk knows it —`phk`, `pea`, `per`—,
+/// which is what makes an `rts` or `rtl` over a return address the routine
+/// pushed itself a jump.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Slot {
     pushed_at: u32,
     saved: Option<(W, W)>,
+    value: Option<u8>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -82,8 +85,18 @@ struct State {
     m: W,
     x: W,
     /// What the routine has pushed since its entry; None once it cannot be
-    /// followed (`tcs`, `txs`, a pull of more than was pushed).
+    /// followed (`txs`, a `tcs` of something that is not the stack pointer
+    /// moved by a constant, a push or a pull after taking off its own
+    /// return address).
     stack: Option<Vec<Slot>>,
+    /// How many bytes of its own return address the routine has taken off,
+    /// and the instruction that started taking them: the next return then
+    /// pulls its caller's, and returns from the caller.
+    dropped: Option<(u8, u32)>,
+    /// While A holds the stack pointer, from a `tsc`: the bytes the stack
+    /// would hold if a `tcs` put it back —counted as `stack`, below the
+    /// entry if negative—, and the carry, if a `clc` or `sec` said it.
+    a_sp: Option<(i32, Option<bool>)>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -118,10 +131,18 @@ impl Kind {
 #[derive(Clone, Debug, Default)]
 pub struct Summary {
     declared: Widths,
-    /// Every `rts`, `rtl` and `rti` some path reaches.
-    returns: BTreeSet<u32>,
+    /// Every `rts`, `rtl` and `rti` some path reaches, with its opcode; and
+    /// the calls to a routine that returns from this one —see
+    /// `caller_returns`—, with the opcode of that return.
+    returns: BTreeMap<u32, u8>,
     exit_m: Option<W>,
     exit_x: Option<W>,
+    /// The returns some path reaches having taken the routine's own return
+    /// address off the stack: they return from whoever called it, and are
+    /// that caller's. With the widths they leave.
+    caller_returns: BTreeMap<u32, u8>,
+    caller_exit_m: Option<W>,
+    caller_exit_x: Option<W>,
     /// Whether some instruction depends on the width the routine was
     /// entered with, before the routine sets it.
     needs_m: bool,
@@ -187,6 +208,28 @@ fn bits(m8: bool) -> &'static str {
         "8"
     } else {
         "16"
+    }
+}
+
+/// The bytes a push leaves on the stack, in the order they go on, where the
+/// walk knows them: `phk` its bank, `pea` its operand and `per` the address
+/// it makes, each high byte first.
+fn pushed_values(p: &Program, insn: &Insn, n: usize) -> Vec<Option<u8>> {
+    let word = |w: u32| vec![Some((w >> 8) as u8), Some(w as u8)];
+    let known = match insn.op {
+        cpu::PHK => vec![Some((insn.addr >> 16) as u8)],
+        cpu::PEA => word(p.operand(insn)),
+        cpu::PER => word(
+            insn.addr
+                .wrapping_add(insn.len)
+                .wrapping_add(p.operand(insn) as u16 as i16 as u32),
+        ),
+        _ => vec![None; n],
+    };
+    if known.len() == n {
+        known
+    } else {
+        vec![None; n]
     }
 }
 
@@ -469,7 +512,32 @@ impl<'a> Analysis<'a> {
             m: W::Entry,
             x: W::Entry,
             stack: Some(Vec::new()),
+            dropped: None,
+            a_sp: None,
         };
+        // How many bytes a return address of each way in has: taking off
+        // exactly that and returning is returning from the caller.
+        let ways_in: Vec<u8> = self
+            .callers
+            .get(&entry)
+            .map(|k| {
+                k.keys()
+                    .filter_map(|k| match k {
+                        Kind::Jsr => Some(2),
+                        Kind::Jsl => Some(3),
+                        Kind::Interrupt => Some(4),
+                        Kind::Reset => None,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        // The pulls and `tcs` that take bytes of the return address, and
+        // whether each path from them ends in a return from the caller: a
+        // finding unless all of them do.
+        let mut drops: Vec<(u32, String)> = Vec::new();
+        let mut drop_good: HashSet<u32> = HashSet::new();
+        let mut drop_bad: HashSet<u32> = HashSet::new();
+        let mut from_caller: Vec<(u32, u8, W, W, u32)> = Vec::new();
         let mut seen: HashSet<(u32, State)> = HashSet::new();
         let mut per_addr: HashMap<u32, Vec<State>> = HashMap::new();
         // The stack's findings wait for the end of the walk: if the routine
@@ -497,6 +565,9 @@ impl<'a> Analysis<'a> {
                 continue;
             }
             if before.len() >= MAX_STATES {
+                if let Some((_, at)) = s.dropped {
+                    drop_bad.insert(at);
+                }
                 summary.unfollowed = true;
                 self.unfollowed(addr, "too many different states reach it".into());
                 continue;
@@ -515,6 +586,9 @@ impl<'a> Analysis<'a> {
                             &decoded
                         }
                         None => {
+                            if let Some((_, at)) = s.dropped {
+                                drop_bad.insert(at);
+                            }
                             summary.unfollowed = true;
                             self.unfollowed(
                                 addr,
@@ -565,9 +639,18 @@ impl<'a> Analysis<'a> {
                 }
             };
             let mut restored = None;
+            if size > 0 || op == cpu::TXS {
+                // Once the return address is going, what can follow is more
+                // pulls and the return that pulls the caller's.
+                if let Some((_, at)) = s.dropped.take() {
+                    drop_bad.insert(at);
+                    s.stack = None;
+                }
+            }
             if let Some(stack) = s.stack.as_mut() {
                 if size > 0 {
-                    for _ in 0..size {
+                    let values = pushed_values(p, insn, size as usize);
+                    for value in values {
                         stack.push(Slot {
                             pushed_at: addr,
                             saved: if op == cpu::PHP {
@@ -575,6 +658,7 @@ impl<'a> Analysis<'a> {
                             } else {
                                 None
                             },
+                            value,
                         });
                     }
                     if stack.len() > MAX_STACK {
@@ -584,8 +668,21 @@ impl<'a> Analysis<'a> {
                     }
                 } else if size < 0 {
                     let n = (-size) as usize;
-                    if stack.len() < n {
-                        stack_findings.push((
+                    if let Some((d, at)) = s.dropped {
+                        // More than any return address: into the caller's
+                        // own stack, which the walk does not follow.
+                        let d = d as usize + n;
+                        if ways_in.iter().all(|&w| (w as usize) < d) {
+                            drop_bad.insert(at);
+                            s.dropped = None;
+                            s.stack = None;
+                        } else {
+                            s.dropped = Some((d as u8, at));
+                        }
+                    } else if stack.len() < n {
+                        // Bytes of the return address: right only if what
+                        // comes next is the return from the caller.
+                        drops.push((
                             addr,
                             format!(
                                 "`{}` pulls more than `{}` has pushed since its entry: it takes \
@@ -594,7 +691,8 @@ impl<'a> Analysis<'a> {
                                 p.name(entry)
                             ),
                         ));
-                        s.stack = None;
+                        s.dropped = Some(((n - stack.len()) as u8, addr));
+                        stack.clear();
                     } else {
                         let top = stack.split_off(stack.len() - n);
                         if op == cpu::PLP {
@@ -603,9 +701,84 @@ impl<'a> Analysis<'a> {
                     }
                 }
             }
-            if op == cpu::TCS || op == cpu::TXS {
+            if op == cpu::TXS {
                 s.stack = None;
             }
+            if op == cpu::TCS {
+                // The stack pointer moved by a constant, as `tsc`, `clc`,
+                // `adc #n`, `tcs` does: taking `n` bytes off, or making room
+                // for as many with `sec` and `sbc`.
+                match (s.a_sp, s.stack.as_mut()) {
+                    (Some((depth, _)), Some(stack)) if depth >= 0 && s.dropped.is_none() => {
+                        let depth = depth as usize;
+                        if depth <= stack.len() {
+                            stack.truncate(depth);
+                        } else {
+                            stack.resize(
+                                depth,
+                                Slot {
+                                    pushed_at: addr,
+                                    saved: None,
+                                    value: None,
+                                },
+                            );
+                        }
+                    }
+                    (Some((depth, _)), Some(stack)) if depth < 0 => {
+                        let at = match s.dropped {
+                            Some((_, at)) => at,
+                            None => {
+                                drops.push((
+                                    addr,
+                                    format!(
+                                        "`tcs` puts the stack above what `{}` has pushed since \
+                                         its entry: it takes bytes of the return address",
+                                        p.name(entry)
+                                    ),
+                                ));
+                                addr
+                            }
+                        };
+                        s.dropped = Some(((-depth) as u8, at));
+                        stack.clear();
+                    }
+                    _ => {
+                        if let Some((_, at)) = s.dropped.take() {
+                            drop_bad.insert(at);
+                        }
+                        s.stack = None
+                    }
+                }
+            }
+            s.a_sp = match op {
+                cpu::TSC => s.stack.as_ref().map(|stack| {
+                    (
+                        stack.len() as i32 - s.dropped.map_or(0, |d| d.0 as i32),
+                        None,
+                    )
+                }),
+                cpu::CLC => s.a_sp.map(|(d, _)| (d, Some(false))),
+                cpu::SEC => s.a_sp.map(|(d, _)| (d, Some(true))),
+                cpu::TCS => s.a_sp,
+                // A sixteen-bit `adc #n` or `sbc #n` with the carry known.
+                cpu::ADC_IMM | cpu::SBC_IMM if insn.len == 3 => match s.a_sp {
+                    Some((d, Some(carry))) => {
+                        let n = p.operand(insn) as i32;
+                        Some(if op == cpu::ADC_IMM {
+                            (d - n - carry as i32, None)
+                        } else {
+                            (d + n + !carry as i32, None)
+                        })
+                    }
+                    _ => None,
+                },
+                cpu::INC_A | cpu::DEC_A if resolve_m(&s) == Some(false) => s
+                    .a_sp
+                    .map(|(d, c)| (if op == cpu::INC_A { d - 1 } else { d + 1 }, c)),
+                _ if cpu::writes_a(op) => None,
+                _ if cpu::writes_flags(op, imm) & cpu::C != 0 => s.a_sp.map(|(d, _)| (d, None)),
+                _ => s.a_sp,
+            };
 
             // The widths.
             match op {
@@ -632,9 +805,53 @@ impl<'a> Analysis<'a> {
 
             // Where it goes.
             let bank = addr & 0xFF_0000;
+            let pending = work.len();
+            let mut returned = false;
+            let dropped = s.dropped;
+            let pulled = match op {
+                cpu::RTS => 2,
+                cpu::RTL => 3,
+                _ => 0,
+            };
+            let pushed_here = s.stack.as_ref().and_then(|stack| {
+                let top = stack.get(stack.len().checked_sub(pulled)?..)?;
+                let bytes: Option<Vec<u8>> = top.iter().rev().map(|t| t.value).collect();
+                bytes.filter(|b| b.len() == pulled && pulled > 0)
+            });
             match op {
+                cpu::RTS | cpu::RTL | cpu::RTI if dropped.is_some() => {
+                    // The caller's return address: this returns from it.
+                    let (bytes, at) = dropped.unwrap_or_default();
+                    if !ways_in.is_empty() && ways_in.iter().all(|&w| w == bytes) {
+                        drop_good.insert(at);
+                        from_caller.push((addr, op, s.m, s.x, at));
+                        returned = true;
+                    } else {
+                        drop_bad.insert(at);
+                    }
+                }
+                cpu::RTS | cpu::RTL if pushed_here.is_some() => {
+                    // A return address the routine pushed itself: a jump.
+                    let b = pushed_here.unwrap_or_default();
+                    if let Some(stack) = s.stack.as_mut() {
+                        stack.truncate(stack.len() - pulled);
+                    }
+                    let to = (b[0] as u32 | (b[1] as u32) << 8).wrapping_add(1) & 0xFFFF;
+                    let target = if op == cpu::RTS {
+                        Some(bank | to)
+                    } else {
+                        p.locate((b[2] as u32) << 16 | to)
+                    };
+                    match target {
+                        Some(t) => work.push((t, s)),
+                        None => {
+                            summary.unfollowed = true;
+                            self.unfollowed(addr, "a return to somewhere outside the ROM".into());
+                        }
+                    }
+                }
                 cpu::RTS | cpu::RTL | cpu::RTI => {
-                    summary.returns.insert(addr);
+                    summary.returns.insert(addr, op);
                     summary.exit_m = join(summary.exit_m, s.m);
                     summary.exit_x = join(summary.exit_x, s.x);
                     self.stats.returns_checked += 1;
@@ -672,7 +889,12 @@ impl<'a> Analysis<'a> {
                         _ => self.call_target(insn).into_iter().collect(),
                     };
                     let (mut m, mut x) = (None, None);
+                    s.a_sp = None;
+                    // Whether some callee comes back here: not if all it
+                    // does is return from this routine.
+                    let mut comes_back = false;
                     if targets.is_empty() {
+                        comes_back = true;
                         summary.unfollowed = true;
                         self.unfollowed(addr, "a call to somewhere outside the ROM".into());
                     }
@@ -685,8 +907,44 @@ impl<'a> Analysis<'a> {
                         let Some(callee) = callee else {
                             m = join(m, W::Unknown);
                             x = join(x, W::Unknown);
+                            comes_back = true;
                             continue;
                         };
+                        comes_back |=
+                            !callee.returns.is_empty() || callee.caller_returns.is_empty();
+                        // A callee that takes its own return address off and
+                        // returns: that return is this routine's, here.
+                        for &ret_op in callee.caller_returns.values() {
+                            if let Some((_, at)) = s.dropped {
+                                drop_bad.insert(at);
+                                continue;
+                            }
+                            summary.returns.insert(addr, ret_op);
+                            let back = |w: Option<W>, ours: W| match w {
+                                Some(W::Entry) => ours,
+                                Some(w) => w,
+                                None => W::Unknown,
+                            };
+                            summary.exit_m = join(summary.exit_m, back(callee.caller_exit_m, s.m));
+                            summary.exit_x = join(summary.exit_x, back(callee.caller_exit_x, s.x));
+                            self.stats.returns_checked += 1;
+                            if let Some(stack) = s.stack.as_ref().filter(|st| !st.is_empty()) {
+                                stack_findings.push((
+                                    addr,
+                                    format!(
+                                        "`{}` returns from `{}` with an `{}` of its own, and `{}` \
+                                         has {} byte{} still pushed here: it returns to wherever \
+                                         those bytes point",
+                                        p.name(t),
+                                        p.name(entry),
+                                        cpu::mnemonic(ret_op),
+                                        p.name(entry),
+                                        stack.len(),
+                                        if stack.len() == 1 { "" } else { "s" },
+                                    ),
+                                ));
+                            }
+                        }
                         // Passing on the width it was entered with to a callee
                         // that uses it is using it.
                         summary.needs_m |= callee.needs_m && s.m == W::Entry;
@@ -711,7 +969,9 @@ impl<'a> Analysis<'a> {
                     }
                     s.m = m.unwrap_or(W::Unknown);
                     s.x = x.unwrap_or(W::Unknown);
-                    work.push((next, s));
+                    if comes_back {
+                        work.push((next, s));
+                    }
                 }
                 cpu::JMP_IND | cpu::JML_IND => {
                     summary.unfollowed = true;
@@ -742,6 +1002,29 @@ impl<'a> Analysis<'a> {
                     work.push((next, s));
                 }
                 _ => work.push((next, s)),
+            }
+            // A path that took bytes of the return address and ends here
+            // without returning from the caller.
+            if let Some((_, at)) = dropped {
+                if work.len() == pending && !returned {
+                    drop_bad.insert(at);
+                }
+            }
+        }
+        // The returns from the caller, if every path from where the return
+        // address started going ends in one, and the stack was followed.
+        if stack_loop.is_none() {
+            for (ret, op, m, x, at) in from_caller {
+                if !drop_bad.contains(&at) {
+                    summary.caller_returns.insert(ret, op);
+                    summary.caller_exit_m = join(summary.caller_exit_m, m);
+                    summary.caller_exit_x = join(summary.caller_exit_x, x);
+                }
+            }
+        }
+        for (at, message) in drops {
+            if drop_bad.contains(&at) || !drop_good.contains(&at) {
+                stack_findings.push((at, message));
             }
         }
         match stack_loop {
@@ -914,13 +1197,18 @@ impl<'a> Analysis<'a> {
                 if kind == Kind::Reset {
                     continue;
                 }
-                for &ret in &summary.returns {
-                    let op = self.p.bytes(ret, 1).map_or(0, |b| b[0]);
+                for (&ret, &op) in &summary.returns {
                     if op == kind.returns_with() {
                         continue;
                     }
+                    // A call whose callee returns from this routine.
+                    let through = if self.p.bytes(ret, 1).map_or(0, |b| b[0]) == op {
+                        ""
+                    } else {
+                        " of the routine it calls here, which takes its own return address off"
+                    };
                     let message = format!(
-                        "`{}` is entered with {} (at {}), and this path out of it is an `{}`, \
+                        "`{}` is entered with {} (at {}), and this path out of it is an `{}`{}, \
                          which pulls {} bytes of return address where {} pushed {}",
                         self.p.name(*entry),
                         kind.name(),
@@ -930,6 +1218,7 @@ impl<'a> Analysis<'a> {
                             self.at(site)
                         },
                         cpu::mnemonic(op),
+                        through,
                         match op {
                             cpu::RTS => 2,
                             cpu::RTL => 3,

@@ -63,6 +63,20 @@ pub(crate) fn strip_comment(line: &str) -> &str {
     &line[..comment_start(line).unwrap_or(line.len())]
 }
 
+/// Whether a line is one that puts code in the program when it is assembled:
+/// an instruction or a macro, not a directive, a label alone or an
+/// assignment.
+pub(crate) fn is_code(line: &str) -> bool {
+    let t = strip_labels(strip_comment(line)).trim();
+    let mut words = t.split_whitespace();
+    let Some(first) = words.next() else {
+        return false;
+    };
+    let assigns =
+        |w: &str| w.starts_with('=') || w.starts_with(":=") || w.eq_ignore_ascii_case(".set");
+    !first.starts_with('.') && !first.contains('=') && !words.next().is_some_and(assigns)
+}
+
 /// The line without its labels: `name:`, `@name:` and the anonymous `:`.
 fn strip_labels(mut s: &str) -> &str {
     loop {
@@ -335,6 +349,8 @@ mod tests {
         assert_eq!(strip_labels("foo: rep #$30"), "rep #$30");
         assert_eq!(strip_labels("@x: : sep #$20"), "sep #$20");
         assert_eq!(strip_labels(":+"), ":+");
+        assert!(is_code("foo: lda #1 ; x") && is_code("    CALL0 x"));
+        assert!(!is_code(".a8") && !is_code("foo:") && !is_code("X = 3") && !is_code("; lda"));
         assert_eq!(strip_labels("lda ::x"), "lda ::x");
         assert_eq!(strip_comment("lda #';' ; hi"), "lda #';' ");
         assert_eq!(constant("$20 | $10"), Some(0x30));

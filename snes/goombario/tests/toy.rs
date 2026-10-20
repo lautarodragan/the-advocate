@@ -512,3 +512,183 @@ fn the_root_is_where_the_debug_file_names_are_from() {
     assert_eq!(program.missing_sources().len(), 1);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn a_return_address_pushed_by_the_routine_is_a_jump() {
+    // `far` calls `near`, which ends in `rts`, by pushing where that `rts`
+    // goes —`back_l`'s `rtl`, in bank 0— and where that `rtl` goes —`back`,
+    // here— and jumping. Neither return is `far`'s, and the walk goes on
+    // after `back`: the `lda #1` there is assembled for A8 and `near`
+    // leaves A16, which only a walk that came back would see.
+    let Some(r) = lint(
+        "pushed-return",
+        r#"
+.proc main
+    jsl far
+    jsl leaves_one
+    stp
+.endproc
+.proc near
+    rep #$20
+.a16
+    rts
+.endproc
+.proc back_l
+    rtl
+.endproc
+.a8
+.segment "FAR"
+.proc far
+    phk
+    per back - 1
+    pea .loword(back_l - 1)
+    jml near
+back:
+    lda #1
+    sep #$20
+    rtl
+.endproc
+; The same with a byte of its own left on the stack: its `rtl` is then the
+; routine's own, with that byte still there.
+.proc leaves_one
+    pha
+    phk
+    per back - 1
+    pea .loword(back_l - 1)
+    jml near
+back:
+    sep #$20
+    rtl
+.endproc
+"#,
+    ) else {
+        return;
+    };
+    assert_eq!(found(&r, Check::CallReturn), vec![]);
+    assert_eq!(found(&r, Check::Stack), vec![pair("leaves_one", "rtl")]);
+    assert_eq!(found(&r, Check::Width), vec![pair("far", "lda #1")]);
+}
+
+#[test]
+fn a_routine_that_drops_its_return_address_returns_from_its_caller() {
+    // `hook`, called with `jsl` from the top of `near`, either comes back or
+    // takes its own three bytes off and leaves through an `rts` in bank 0:
+    // that `rts` is `near`'s. The same in sixteen bits with `tsc`/`tcs`. A
+    // caller entered with `jsl`, or with a byte of its own still pushed, is
+    // wrong, and the finding goes on its call; and two bytes off a `jsl` are
+    // not its return address.
+    let Some(r) = lint(
+        "drop",
+        r#"
+.proc main
+    jsr near
+    jsr near16
+    jsl entered_long
+    jsr pushed
+    jsl half
+    stp
+.endproc
+.proc near
+    jsl hook
+    nop
+    rts
+.endproc
+.proc near16
+    jsl hook16
+    nop
+    rts
+.endproc
+.proc entered_long
+    jsl hook
+    rtl
+.endproc
+.proc pushed
+    pha
+    jsl hook
+    pla
+    rts
+.endproc
+.proc near_rts
+    rts
+.endproc
+.segment "FAR"
+.proc hook
+    lda $10
+    bne mine
+    rtl
+mine:
+    pla
+    pla
+    pla
+    lda #1
+    jml near_rts
+.endproc
+.proc hook16
+    rep #$20
+.a16
+    lda $10
+    bne mine
+    sep #$20
+.a8
+    rtl
+.a16
+mine:
+    tsc
+    clc
+    adc #3
+    tcs
+    sep #$20
+.a8
+    jml near_rts
+.endproc
+.proc half
+    pla
+    pla
+    jml near_rts
+.endproc
+"#,
+    ) else {
+        return;
+    };
+    assert_eq!(
+        found(&r, Check::CallReturn),
+        vec![pair("entered_long", "jsl hook")]
+    );
+    assert_eq!(
+        found(&r, Check::Stack),
+        vec![pair("half", "pla"), pair("pushed", "jsl hook")]
+    );
+}
+
+#[test]
+fn an_annotation_on_a_line_this_program_does_not_assemble_is_not_judged() {
+    // A program that assembles a routine only in some builds: where it does
+    // not, its annotations have no finding to allow, and are not stale for
+    // that. One on a line that never assembles anything still is.
+    let Some((r, list, wrong)) = lint_annotated(
+        "allow-unassembled",
+        r#"
+.proc main
+    stp
+.endproc
+.ifdef NOT_IN_THIS_ONE
+.proc sometimes
+    pha
+    pla
+    beq :+              ; goombario: pull-branch: the pulled value
+    nop
+:   rts
+.endproc
+.endif
+    ; goombario: pull-branch: on a directive, which is never code
+.a8
+"#,
+    ) else {
+        return;
+    };
+    assert!(r.is_empty(), "{:?}", r);
+    assert!(wrong.is_empty(), "{:?}", wrong);
+    let (_, unused) = goombario::apply_exceptions(r, &list);
+    assert_eq!(unused.len(), 1, "{:?}", unused);
+    assert_eq!(unused[0].why, "on a directive, which is never code");
+}

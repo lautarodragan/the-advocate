@@ -8,7 +8,7 @@
 //! decoded from the start of its span with the widths that make it end
 //! exactly where the span ends.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
 use crate::cpu;
@@ -42,6 +42,9 @@ pub struct Program {
     routines: BTreeMap<u32, String>,
     pub files: HashMap<usize, String>,
     lines: HashMap<usize, (usize, u32)>,
+    /// The lines of the text that put bytes in the ROM, code or data, by
+    /// file id and line number.
+    assembled: HashSet<(usize, u32)>,
     declared: Declared,
     /// The widths of each instruction of a line with several, which the
     /// line's own do not say.
@@ -169,10 +172,16 @@ impl Program {
                 .iter()
                 .map(|(&id, l)| (id, (l.file, l.line)))
                 .collect(),
+            assembled: HashSet::new(),
             declared,
             expanded: HashMap::new(),
             undecoded: Vec::new(),
         };
+        for s in &spans {
+            if let Some(&place) = program.lines.get(&s.line) {
+                program.assembled.insert(place);
+            }
+        }
         for s in spans.iter().filter(|s| s.data) {
             program.data.insert(s.addr, s.addr + s.size);
             program.data_lines.entry(s.addr).or_insert(s.line);
@@ -398,6 +407,15 @@ impl Program {
             Some((&a, n)) => format!("{}+{}", n, addr - a),
             None => format!("${:06X}", addr),
         }
+    }
+
+    /// Whether a line of a source file put any bytes in the ROM. One that
+    /// did not may be one an `.if` left out of this program.
+    pub fn assembles(&self, file: &str, line: u32) -> bool {
+        self.files
+            .iter()
+            .filter(|(_, name)| name.as_str() == file)
+            .any(|(&id, _)| self.assembled.contains(&(id, line)))
     }
 
     /// The file and line number an instruction came from.

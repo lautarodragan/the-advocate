@@ -50,7 +50,17 @@ pub fn annotations(
             continue;
         };
         let (a, w) = allow::scan(file, &text);
-        list.extend(a);
+        // A line of code that put nothing in this program is one an `.if`
+        // left out of it: there is nothing there to allow or not, and the
+        // annotation is judged in the programs that assemble it. One on a
+        // line that is never code —a directive, a label— is judged here.
+        let lines: Vec<&str> = text.lines().collect();
+        list.extend(a.into_iter().filter(|a| {
+            program.assembles(file, a.covers)
+                || !lines
+                    .get(a.covers as usize - 1)
+                    .is_some_and(|l| source::is_code(l))
+        }));
         wrong.extend(w);
     }
     (list, wrong)

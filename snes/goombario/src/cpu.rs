@@ -217,6 +217,26 @@ pub const PHP: u8 = 0x08;
 pub const XCE: u8 = 0xFB;
 pub const TCS: u8 = 0x1B;
 pub const TXS: u8 = 0x9A;
+pub const TSC: u8 = 0x3B;
+pub const CLC: u8 = 0x18;
+pub const SEC: u8 = 0x38;
+pub const ADC_IMM: u8 = 0x69;
+pub const SBC_IMM: u8 = 0xE9;
+pub const INC_A: u8 = 0x1A;
+pub const DEC_A: u8 = 0x3A;
+pub const PHK: u8 = 0x4B;
+pub const PEA: u8 = 0xF4;
+pub const PER: u8 = 0x62;
+
+/// Whether an instruction writes A: the walk forgets what it knew A held.
+pub fn writes_a(op: u8) -> bool {
+    match mnemonic(op) {
+        "lda" | "pla" | "txa" | "tya" | "tdc" | "tsc" | "xba" | "adc" | "sbc" | "and" | "ora"
+        | "eor" | "mvn" | "mvp" => true,
+        // The accumulator's own `inc`, `dec` and shifts, not memory's.
+        _ => matches!(op, 0x1A | 0x3A | 0x0A | 0x4A | 0x2A | 0x6A),
+    }
+}
 
 /// What an instruction does to the stack: bytes pushed (positive) or pulled
 /// (negative), when it does not depend on a width; `'m'` or `'x'` when its
@@ -263,5 +283,9 @@ mod tests {
         assert_eq!(length(0x22, true, true), 4);
         assert_eq!(length(0xF4, true, true), 3); // pea
         assert_eq!(length(0xD4, true, true), 2); // pei
+        assert_eq!(
+            [TSC, CLC, SEC, ADC_IMM, SBC_IMM, INC_A, DEC_A, PHK, PEA, PER].map(mnemonic),
+            ["tsc", "clc", "sec", "adc", "sbc", "inc", "dec", "phk", "pea", "per"]
+        );
     }
 }

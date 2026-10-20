@@ -79,6 +79,24 @@ caller entered it. The interrupt vectors are entries too, and come back with
 
 The finding goes on the return, and names the entry and one caller.
 
+Two ways of leaving a routine are not its own return, and the walk follows
+them as what they are:
+
+* **a return address the routine pushed itself.** `phk`, `pea` and `per`
+  push values the walk knows, and an `rts` or `rtl` that pulls only those is
+  a jump to where they point. That is how code in one bank calls a routine
+  of another that ends the other way —`phk`, `per back - 1`, `pea
+  .loword(an_rtl - 1)`, `jml routine`—: the routine's `rts` goes to an `rtl`
+  that comes back to `back`, and the walk goes on from there;
+* **its own return address taken off**, by pulls or by a `tcs` of the stack
+  pointer moved by a constant (`tsc`, `clc`, `adc #3`, `tcs`), and nothing
+  else before the next return: that return pulls its caller's return address
+  and returns from the caller. It is the caller's, at the call: checked
+  against how the caller was entered, with the caller's bytes still pushed
+  there as a `stack` finding on the call. It holds when every path from the
+  first byte taken off ends that way and the bytes are exactly the return
+  address of every way in; otherwise the pull is a `stack` finding.
+
 ### `stack`: what a routine pushes, it pulls
 
 The same walk counts the bytes each path has pushed since the entry: `pha`
@@ -94,7 +112,8 @@ What it does not follow, and so does not report:
   How many bytes there are depends on data, and every count but the right
   one would be a finding. The whole routine's stack goes unchecked, and
   `--unfollowed` lists it;
-* `tcs` and `txs`: the stack is somewhere else after them;
+* `txs`, and a `tcs` of anything but the stack pointer moved by a constant:
+  the stack is somewhere else after them;
 * a jump through a pointer —`jmp (abs)`, `jml [abs]`— and a call outside the
   ROM. A `jmp (table, x)` or `jsr (table, x)` is followed when its table is
   in the ROM: the words from the table's label to the next label.
@@ -154,7 +173,10 @@ the code.
 
 Only the source files `--only` keeps are read for annotations, so with
 `--only` an annotation in a file it leaves out is neither applied nor
-reported.
+reported. Nor is one on a line of code that put no bytes in this program:
+an `.if` left it out, and the annotation is judged in the programs that
+assemble it. One on a line that is never code —a directive, a label alone—
+is still an annotation that allows nothing.
 
 ## What it assumes
 
