@@ -680,9 +680,8 @@ BA_MSG_FRAMES = 120
 ; twenty-four were chosen when sound effects had a single voice and the new
 ; one cut off the previous one's voice, so they had to stay apart by ear;
 ; since 8c9c182 they are two voices —see `sound_effects.s`— and two
-; different sound effects no longer cut each other off; the same sound effect
-; twice does, because `sound_play` fires it again on the voice that is
-; already playing it.
+; different sound effects no longer cut each other off, and since
+; 2026-10-20 neither does the same one twice while the other voice is free.
 BA_SE2_FRAMES = BA_MSG_FRAMES - 24
 ; The hit rate of an actor with no weapon that changes it:
 ; `Game_Actor::GetHitChance`.

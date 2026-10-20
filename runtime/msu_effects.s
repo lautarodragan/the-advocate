@@ -152,7 +152,8 @@ no:
 ; sound add up, and the opening's rain —five seconds, triggered again every
 ; four— used to start again on the voice of the one still playing and cut
 ; off its last second; taro heard it. Until 2026-10-11 it did that, here and
-; with 7 and 6, which is still what happens without MSU-1 (`sound_play`).
+; with 7 and 6; without MSU-1 `sound_play` too gives a copy a free voice
+; first, since 2026-10-20.
 ;
 ; C at 0 if voices 0 to 5 are not the sound effects', and `sound_play` picks
 ; between 7 and 6 as always. C at 1 if it chose: with Z at 1 it already took
