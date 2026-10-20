@@ -901,6 +901,7 @@ mod tests {
             sound: &sound,
             map_index: &|_| None,
             pictures: &Pictures::default(),
+            sets: &BTreeMap::new(),
             landings: None,
         };
         let mut songs = Songs::default();
