@@ -336,7 +336,11 @@ with_map:
 :   cmp 1, s
     bcc :+
     lda 1, s
-:   clc
+:
+.ifdef wrap_maps
+    jsl f:wrap_pic_x            ; a map that loops has no edge: see wrap.s
+.endif
+    clc
     adc temp
     sta temp
     pla
@@ -354,7 +358,11 @@ with_map:
 :   cmp 1, s
     bcc :+
     lda 1, s
-:   clc
+:
+.ifdef wrap_maps
+    jsl f:wrap_pic_y
+.endif
+    clc
     adc temp + 2
     sta temp + 2
     pla

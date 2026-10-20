@@ -389,6 +389,9 @@ away:
     adc #8 + WALK_MARGIN
     sec
     sbc camera_x
+.ifdef wrap_maps
+    jsl f:wrap_fold_x           ; on the lap the screen is on: see wrap.s
+.endif
     cmp #256 + 2 * WALK_MARGIN + 1
     bcs out
     lda cell_y
@@ -400,6 +403,9 @@ away:
     adc #16 + WALK_MARGIN
     sec
     sbc camera_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_y
+.endif
     cmp #224 + 2 * WALK_MARGIN + 1
     bcs out
     sep #$20

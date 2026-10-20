@@ -445,6 +445,9 @@ locked:
 .a8
 .i16
     jsr pan_follow
+.ifdef wrap_maps
+    jsl f:wrap_camera           ; a map that loops does it there, and returns
+.endif                          ; from here: see wrap.s
     rep #$20
 .a16
     lda f:PAN_BASE              ; the hero, unless the camera was locked

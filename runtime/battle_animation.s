@@ -492,6 +492,9 @@ with_cell:
     sec
     sbc camera_y
     sta obj_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_obj         ; on the lap the screen is on: see wrap.s
+.endif
     bra subtract_anchor
 screen:
 .a8

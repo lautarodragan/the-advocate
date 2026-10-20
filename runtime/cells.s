@@ -10,6 +10,9 @@
 .proc cell_neighbor_exists
 .a8
 .i16
+.ifdef wrap_maps
+    jsl f:wrap_neighbor         ; across a seam it always exists, and that
+.endif                          ; returns from here: see wrap.s
     cmp #DIR_UP
     bne test_down
     rep #$20
@@ -157,6 +160,9 @@ enters:
     jsr add_a_to_pass_x
     lda f:step_dy_table, x
     jsr add_a_to_pass_y
+.ifdef wrap_maps
+    jsl f:wrap_pass             ; across a seam, the cell on the other side
+.endif
     rep #$20
 .a16
     jsr pass_of_ptr
@@ -301,6 +307,9 @@ more_y:
     sep #$20
 .a8
 no_y:
+.ifdef wrap_maps
+    jsl f:wrap_cell             ; an elbow across a seam is on the other side
+.endif
     rts
 .endproc
 
@@ -365,6 +374,16 @@ remains:
     rts
 .endproc
 
+.ifdef wrap_maps
+; Where a bank 0 routine that wrap.s calls comes back to it —see `CALL0`—,
+; and where wrap.s returns from the bank 0 routine that called it —see
+; `RTS0`—. Nobody reaches them but through `WRAP_JUMP`.
+wrap_rtl:
+    rtl
+wrap_rts:
+    rts
+.endif
+
 ; They add the signed byte A carries to dest_x / dest_y.
 .proc add_a_to_dest_x
 .a8
@@ -399,6 +418,9 @@ positive:
     sta dest_y
     sep #$20
 .a8
+.ifdef wrap_maps
+    jsl f:wrap_dest             ; across a seam, the cell on the other side
+.endif
     rts
 .endproc
 

@@ -192,6 +192,10 @@ straight:
     xba
     sta hero_dir
     sta hero_heading
+.ifdef wrap_maps
+    jsl f:wrap_hero_step        ; a step across a seam goes there: see wrap.s
+    bcs tried
+.endif
     cmp #DIR_UP
     bne not_up
     jsr try_up
@@ -301,6 +305,9 @@ facing_ready:
     sta cell_y
     sep #$20
 .a8
+.ifdef wrap_maps
+    jsl f:wrap_tile             ; across a seam, the cell on the other side
+.endif
     jsr cell_ptr                ; the destination, which `begin_step` gives the hero
     jmp begin_step
 blocked:

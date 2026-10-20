@@ -66,6 +66,9 @@ DODGE_BOTTOM     = 144           ; from here, the bottom one moves up
     lda hero_y
     sec
     sbc camera_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_y           ; on the lap the screen is on: see wrap.s
+.endif
     clc
     adc #16
     bpl on_screen

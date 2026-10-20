@@ -215,6 +215,9 @@ set:
 .ifdef paint_table
     jsl f:paint_find            ; and whether it is painted: see painted.s
 .endif
+.ifdef wrap_maps
+    jsl f:wrap_find             ; and whether it loops: see wrap.s
+.endif
     ; The grid, to WRAM, before anyone asks about a cell: it comes compressed.
     ; See `GRID`.
     jsl f:lz2_grid + FAST

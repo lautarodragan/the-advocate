@@ -90,6 +90,9 @@ touches_npc:
     lda npc_buf + 0, x          ; its position on the map
     sec
     sbc screen_x
+.ifdef wrap_maps
+    jsl f:wrap_fold_x           ; on the lap the screen is on: see wrap.s
+.endif
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
@@ -785,6 +788,9 @@ no:
     lda npc_buf + 2, x
     sec
     sbc camera_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_y
+.endif
     sec
     sbc #SPRITE_OFF_Y
     sta obj_y
@@ -959,6 +965,9 @@ same_pose:
     sec
     sbc jump_height             ; the arc raises the drawing, not the order
     sta obj_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_obj         ; on the lap the screen is on: see wrap.s
+.endif
     sep #$20
 .a8
     jsr emit_object

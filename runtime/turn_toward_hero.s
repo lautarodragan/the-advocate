@@ -113,6 +113,9 @@ can:
     lda cell_x
     sec
     sbc tile_x
+.ifdef wrap_maps
+    jsl f:wrap_fold_cx          ; the short way round: see wrap.s
+.endif
     pha                         ; sx
     bpl sx_pos
     eor #$FFFF
@@ -122,6 +125,9 @@ sx_pos:
     lda cell_y
     sec
     sbc tile_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_cy
+.endif
     sta temp + 2                ; sy
     bpl sy_pos
     eor #$FFFF

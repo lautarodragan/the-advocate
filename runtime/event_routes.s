@@ -176,6 +176,9 @@ reused:
     lda cell_x
     sec
     sbc tile_x
+.ifdef wrap_maps
+    jsl f:wrap_fold_cx          ; the short way round: see wrap.s
+.endif
     sta temp                    ; sx, signed: positive is "the hero is to the left"
     bpl :+
     eor #$FFFF
@@ -184,6 +187,9 @@ reused:
     lda cell_y
     sec
     sbc tile_y
+.ifdef wrap_maps
+    jsl f:wrap_fold_cy
+.endif
     sta temp + 2                ; sy: positive is "the hero is further up"
     bpl :+
     eor #$FFFF
@@ -1023,6 +1029,9 @@ no_dx:
     sep #$20
 .a8
 no_dy:
+.ifdef wrap_maps
+    jsl f:wrap_ev_pos           ; across a seam, the cell on the other side
+.endif
     rts
 .endproc
 

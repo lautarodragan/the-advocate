@@ -157,6 +157,9 @@ ready:
 .proc build_column
 .a16
 .i16
+.ifdef wrap_maps
+    jsl f:wrap_build_column     ; a map that loops builds it there, and returns
+.endif                          ; from here: see wrap.s
     stz col_addr
     cpx map_cw
     bcc inside
@@ -274,6 +277,9 @@ same:
 .proc build_row
 .a16
 .i16
+.ifdef wrap_maps
+    jsl f:wrap_build_row        ; a map that loops builds it there, and returns
+.endif                          ; from here: see wrap.s
     stz row_addr
     cpx map_ch
     bcc inside
