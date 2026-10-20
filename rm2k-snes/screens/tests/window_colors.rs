@@ -163,7 +163,10 @@ fn the_box_s_ink_is_the_window_s_last_entry_and_costs_the_maps_nothing() {
     assert_eq!(inks.colours.len(), 20);
     assert_eq!(inks.colours[0].inked, window.color);
     for ink in &inks.colours[1..] {
-        assert!(ink.plain.iter().all(|&i| (1..=window.entries as u8).contains(&i)));
+        assert!(ink
+            .plain
+            .iter()
+            .all(|&i| (1..=window.entries as u8).contains(&i)));
         assert!(ink
             .inked
             .iter()
