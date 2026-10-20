@@ -517,3 +517,109 @@ fn a_leader_with_no_charset_has_no_graphic() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// The game with its events renumbered as if some had been deleted in the
+/// editor: the tile event is id 3, the hero-looking one 5 and the walker 8.
+/// Requests still name them by index; the notes name them by id.
+fn renumbered(dump: &Path) {
+    let path = dump.join("maps/Map0007.json");
+    let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    for (event, id) in map["events"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .zip([3, 5, 8])
+    {
+        event["id"] = json!(id);
+    }
+    std::fs::write(&path, map.to_string()).unwrap();
+}
+
+fn notes_of(out: &Path) -> Vec<String> {
+    let answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    answer["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["text"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn the_baked_note_names_the_event_by_its_id() {
+    let dir = scratch("baked-id");
+    let (dump, pictures) = game(&dir);
+    renumbered(&dump);
+    let out = dir.join("out");
+    let done = run(&dump, &pictures, &request(&dir, &pictures, false), &out);
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let notes = notes_of(&out);
+    assert!(
+        notes.contains(&"  map 7: 1 opaque event(s) baked into the map: 3".to_string()),
+        "{notes:?}"
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// With the eight sprite palettes taken by CharSets of fifteen colours
+/// each, the baked tile event is lent someone else's palette and goes back
+/// to being a sprite: the note names it by its id.
+#[test]
+fn the_lent_baked_note_names_the_event_by_its_id() {
+    let dir = scratch("lent-id");
+    let (dump, pictures) = game(&dir);
+    renumbered(&dump);
+    let path = dump.join("maps/Map0007.json");
+    let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    // Eight CharSets of fifteen colours no other has, on the free cells of
+    // the top and bottom rows.
+    for k in 0..8usize {
+        let name = format!("Fill{k}");
+        let sheet = picture_of(288, 256, |x, y| {
+            let j = (x / 4 + y / 4) % 15;
+            [(8 * (j + 1)) as u8, (128 + 8 * k) as u8, 8, 255]
+        });
+        write(&pictures.join(format!("CharSet/{name}.png")), &sheet);
+        let (x, y) = (k % 6, if k < 6 { 0 } else { 3 });
+        map["events"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"id": 10 + k, "x": x, "y": y, "pages": [page(&name, 0, 1, 0)]}));
+    }
+    std::fs::write(&path, map.to_string()).unwrap();
+    let request = dir.join("request.json");
+    std::fs::write(
+        &request,
+        json!({
+            "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+            "test_event": false, "leaders": [1], "pages": [],
+            "route_graphics": [], "also_walk": [],
+            "timer": null, "rain": false, "picture": null,
+            "battle_animation": false, "singles": [], "palette_weight": {},
+            "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+            "layouts": [], "window_colors": 13,
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let out = dir.join("out");
+    let done = run(&dump, &pictures, &request, &out);
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let notes = notes_of(&out);
+    assert!(
+        notes.contains(
+            &"  map 7: event 3 is drawn with someone else's palette, so it isn't baked".to_string()
+        ),
+        "{notes:?}"
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}
