@@ -381,6 +381,12 @@ fn the_scan_says_the_highest_switch() {
     request.extra_switches.clear();
     let own = scan(&g, &request).unwrap()["switch_top"].as_i64().unwrap();
     assert!((1..1023).contains(&own), "{own}");
+    // Asked which switch the test pages can turn on, 1023, which this game
+    // does not name: that one, and the table holds it.
+    request.test_switch = Some(1023);
+    let answer = scan(&g, &request).unwrap();
+    assert_eq!(answer["test_switch"], 1023);
+    assert_eq!(answer["switch_top"], 1023);
 }
 
 #[test]

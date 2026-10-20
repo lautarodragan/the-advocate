@@ -77,6 +77,10 @@ pub struct Request {
     /// And switches no page names that the table has to hold anyway: the
     /// harness's `TEST_SWITCH`, which every test page turns on.
     pub extra_switches: BTreeSet<i32>,
+    /// The switch the harness's test pages would like to turn on: the
+    /// answer says which one they can, `test_switch`. See
+    /// [`indices::test_switch`].
+    pub test_switch: Option<i32>,
     /// The map the test pages boot in, which carries an event without pages
     /// at index 0 so that they run before the game's.
     pub test_event_map: Option<i32>,
@@ -422,6 +426,9 @@ impl Request {
                 .map(|m| int(m, whose).map(|x| x as i32))
                 .collect::<Result<_>>()?;
         }
+        if let Some(s) = data.get("test_switch").filter(|s| !s.is_null()) {
+            r.test_switch = Some(int(s, whose)? as i32);
+        }
         let t = field(data, "test_event_map", whose)?;
         r.test_event_map = if t.is_null() {
             None
@@ -722,6 +729,10 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
     );
     // The highest switch the game names: the cartridge's table holds it.
     out.insert("switch_top".into(), json!(indices.switch_top));
+    // And the one the test pages can turn on, if they asked.
+    if let Some(s) = indices.test_switch {
+        out.insert("test_switch".into(), json!(s));
+    }
     // The names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME` counts
     // them: the converter writes their texts and the table of the renamed
     // actors from this.
@@ -765,6 +776,11 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
         &extra_pairs,
         &extra_switches,
     )?;
+    if let Some(wanted) = request.test_switch {
+        let switch = indices::test_switch(game, &every, &extra_switches, wanted)?;
+        indices.switch_top = indices.switch_top.max(switch);
+        indices.test_switch = Some(switch);
+    }
     // And the names the test pages give, after the game's: a renamed actor's
     // name is not baked into any text.
     for pair in indices::command_renames(&request.test_commands) {

@@ -320,6 +320,11 @@ pub struct Emit {
     pub text_padding: usize,
     /// Where the harness writes the case number, if there is more than one.
     pub case_slot: Option<i64>,
+    /// The switch the test pages turn on, in a cartridge that carries them:
+    /// `TEST_SWITCH` in the converter, or the first above it the game does
+    /// not name. It goes in the `.inc` as `TEST_SWITCH`, for the harnesses.
+    #[serde(default)]
+    pub test_switch: Option<i64>,
     /// The big pictures, each as a background layer: see [`BigLayer`].
     #[serde(default)]
     pub big_pictures: Vec<BigLayer>,
