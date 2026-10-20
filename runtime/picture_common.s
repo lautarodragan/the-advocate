@@ -195,6 +195,8 @@ each:
     tyx
     lda #PIC_NONE
     sta f:PIC_IMG, x
+    lda #0
+    sta f:PIC_R_STEPS, x        ; and its ramp, as `pic_erase`
 next:
     iny
     cpy #PIC_SLOTS
