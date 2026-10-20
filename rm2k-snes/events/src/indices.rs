@@ -642,6 +642,7 @@ mod tests {
             character_pattern: 1,
             commands,
             route: Vec::new(),
+            route_switches: Vec::new(),
             route_repeat: false,
             route_skippable: false,
             condition: crate::game::Condition {

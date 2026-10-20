@@ -731,6 +731,7 @@ fn common_pages(game: &Game, numbers: &[i32]) -> Vec<crate::game::Page> {
             character_pattern: 1,
             commands: c.commands.clone(),
             route: Vec::new(),
+            route_switches: Vec::new(),
             route_repeat: true,
             route_skippable: false,
             condition: crate::game::Condition {

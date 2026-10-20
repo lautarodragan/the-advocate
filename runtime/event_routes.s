@@ -548,7 +548,9 @@ not_graphic:
     jmp sound_ev                ; 35, with its operand
 not_sound:
     cmp #36
-    bcc follow                  ; 32 and 33, the switches, do not get here
+    bcs not_switch
+    jmp switch_ev               ; 32 and 33, the switches, with their operand
+not_switch:
     cmp #38
     bcs anim
     ; 36 turns going through walls on and 37 turns it off.
@@ -731,6 +733,26 @@ sound_ev:
     jsr sound_play              ; returns with 8-bit A
 .a8
     plx
+    jmp other_command
+
+; `switch_on` and `switch_off`: 32 and 33, with the switch's number after it in
+; two bytes. See `route_switch`, which the hero's shares.
+switch_ev:
+    pha
+    lda route_ev + 5, x         ; the cursor is already on the operand
+    inc a
+    inc a
+    sta route_ev + 5, x         ; and moves past it
+    dec a
+    dec a
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    pla
+    jsr route_switch            ; keeps X, the slot
     jmp other_command
 face:
     sec
@@ -1050,3 +1072,36 @@ ready:
     rts
 .endproc
 
+
+; A route's `switch_on` or `switch_off` —32 or 33, in A— on the switch whose
+; number is at Y in the route, two bytes: `set_switch`, `ControlSwitches`'
+; path. Keeps X; clobbers Y and `temp`.
+;
+; RM2k refreshes the map's pages **right there**, in the middle of the route
+; —`Game_Character::UpdateMoveRoute` calls `Game_Map::Refresh`—. Here it is
+; the `refresh` `set_switch` leaves, the same a `ControlSwitches` leaves: the
+; events' routes run before the interpreter, so the autostart pass on leaving
+; it —`events_tick`— already sees it on this frame, and the full one, with
+; the pages' graphics and their own routes, runs at the start of the next
+; frame. One frame late against RM2k in what is drawn, and the same frame in
+; which autostart runs; on the hero, whose route runs after the events', the
+; same. Like `ControlSwitches`, it costs no frame: the next command runs in
+; this one.
+.proc route_switch
+.a8
+.i16
+    and #$01                    ; 32 turns it on and 33 off, so the low bit
+    eor #$01                    ; inverted is the value
+    pha
+    rep #$20
+.a16
+    lda [route_ptr], y
+    sta temp
+    sep #$20
+.a8
+    pla
+    phx
+    jsr set_switch              ; clobbers X and Y
+    plx
+    rts
+.endproc

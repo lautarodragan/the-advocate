@@ -2,6 +2,7 @@
 //! and the one a page walks on its own.
 
 use crate::codes::*;
+use crate::compile::Indices;
 use crate::fail::{Step, Stop};
 use crate::game::Page;
 use serde_json::{json, Value};
@@ -215,12 +216,15 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
 ///   single route in the whole game** uses them —the one that shakes Manta
 ///   in the Emitter Room scene, which goes down twice from 8 to 6— and
 ///   without them that page does not compile.
-/// * Changing the graphic in the middle of a route, 34. It is the **only
-///   command with an operand**: the bytecode carries after it the CharSet's
-///   index in `Graphics`.
+/// * Changing the graphic in the middle of a route, 34: the bytecode
+///   carries after it the CharSet's index in `Graphics`.
+/// * Turning a switch on or off, 32 and 33, since 2026-10-20: the bytecode
+///   carries after it the switch's number in two bytes. They are not here
+///   because both callers handle them before asking, with the game's switch
+///   table at hand —see `compile_route` and [`own`]—.
 pub fn known(command: i32) -> bool {
-    // Every command but the switches, 32 and 33; the sound and the
-    // transparency are handled before asking.
+    // Every command but the switches, 32 and 33, which have their own arm in
+    // both callers; the sound and the transparency are handled before asking.
     (0..=ROUTE_FREQ_DOWN).contains(&command)
         || (ROUTE_CHANGE_GRAPHIC..=ROUTE_ANIM_RESUME).contains(&command)
 }
@@ -271,7 +275,7 @@ pub const ROUTE_BY_TYPE: i32 = 48;
 /// to put its operand —see `ROUTE_SOUND` in `compile_route`—. The diagonals
 /// go in: an own route is always an event's, which is what the ROM walks
 /// them on. What is left out: moving toward or away from the hero, changing
-/// the graphic —none uses it— and the switches; and turning in place
+/// the graphic —none uses it—; and turning in place
 /// (`AnimType_spin`), which neither of the game's two pages that use it is
 /// in the first maps. The other movement types —random, vertical,
 /// horizontal, toward the hero— go in another way, since 2026-10-14: see
@@ -304,7 +308,15 @@ pub const ROUTE_BY_TYPE: i32 = 48;
 /// them, and other games wait on them: Desert Nightmare's 34 pages that face
 /// the hero, the random steps of 21 pages of Sunset over Imdahl and 29 of
 /// Vampires Dawn. 8, 10 and forward stay out of a jump, as 9.
-pub fn own(page: &Page) -> Option<Value> {
+///
+/// **And the switches since 2026-10-20**, with their number in two bytes
+/// after the code, as in a forced route —see `compile_route`—: the ROM's
+/// machine is the same. Their numbers come in [`Page::route_switches`],
+/// since the route is a bare list of codes. Four pages of the eight games
+/// asked for it: Sunset over Imdahl's map 56, event 5, whose long walk ends
+/// turning on switch 64, and Vampires Dawn's map 163, event 30, which
+/// flicks four switches on and off as it walks round.
+pub fn own(page: &Page, indices: &Indices) -> Option<Value> {
     let spin = page.animation_type == ANIM_SPIN;
     let still_spinning = spin && page.move_type == MOVE_STATIONARY;
     let by_type = (MOVE_RANDOM..=MOVE_AWAY).contains(&page.move_type);
@@ -334,7 +346,12 @@ pub fn own(page: &Page) -> Option<Value> {
     } else {
         &page.route
     };
+    // The bytes, with the switches' operands, and the bare codes, which are
+    // what the frequency is looked at over: an operand could read as a 30
+    // or a 31.
     let mut commands = Vec::new();
+    let mut codes = Vec::new();
+    let mut switches = page.route_switches.iter();
     // Whether the cursor is between a `begin_jump` and its `end_jump`: there
     // the moves by looking are refused, as `compile_route` does in a forced
     // route.
@@ -352,6 +369,19 @@ pub fn own(page: &Page) -> Option<Value> {
             commands.push(command);
             continue;
         }
+        if command == ROUTE_SWITCH_ON || command == ROUTE_SWITCH_OFF {
+            let number = *switches.next()? as i64;
+            // Inside a jump RM2k does not run it, as in a forced route.
+            if in_jump {
+                continue;
+            }
+            if !indices.holds_switch(number) {
+                return None;
+            }
+            commands.extend([command, (number & 0xFF) as i32, (number >> 8) as i32]);
+            codes.push(command);
+            continue;
+        }
         if !known(command) || (in_jump && moves_by_looking(command)) {
             return None;
         }
@@ -364,9 +394,9 @@ pub fn own(page: &Page) -> Option<Value> {
             return None;
         }
         commands.push(command);
+        codes.push(command);
     }
-    if !by_type && min_frequency(page.move_frequency, &commands, page.route_repeat) < FREQUENCY_MIN
-    {
+    if !by_type && min_frequency(page.move_frequency, &codes, page.route_repeat) < FREQUENCY_MIN {
         // Commands 30 and 31 would take it down to 1.
         return None;
     }
@@ -439,6 +469,7 @@ mod tests {
             character_pattern: 2,
             commands: Vec::new(),
             route,
+            route_switches: Vec::new(),
             route_repeat: true,
             route_skippable: false,
             condition: Default::default(),
@@ -451,7 +482,11 @@ mod tests {
     #[test]
     fn a_page_that_spins_walks_its_route_spinning() {
         // ABL's dancers, on map 127: a square, turning in place.
-        let r = own(&spinning(MOVE_CUSTOM, vec![3, 2, 1, 0])).unwrap();
+        let r = own(
+            &spinning(MOVE_CUSTOM, vec![3, 2, 1, 0]),
+            &Indices::default(),
+        )
+        .unwrap();
         assert_eq!(r["commands"], json!([3, 2, 1, 0]));
         assert_eq!(r["spin"], json!(true));
         assert_eq!(r["pattern"], json!(2));
@@ -461,7 +496,7 @@ mod tests {
     #[test]
     fn a_still_page_that_spins_gets_an_empty_route_that_repeats() {
         // The console only animates an event with a route slot.
-        let r = own(&spinning(MOVE_STATIONARY, Vec::new())).unwrap();
+        let r = own(&spinning(MOVE_STATIONARY, Vec::new()), &Indices::default()).unwrap();
         assert_eq!(r["commands"], json!([]));
         assert_eq!(r["repeats"], json!(true));
         assert_eq!(r["spin"], json!(true));
@@ -474,7 +509,7 @@ mod tests {
         let mut marcy = spinning(3, vec![0, 1]);
         marcy.animation_type = 0;
         marcy.move_frequency = 8;
-        let r = own(&marcy).unwrap();
+        let r = own(&marcy, &Indices::default()).unwrap();
         assert_eq!(r["commands"], json!([ROUTE_BY_TYPE + 3]));
         assert_eq!(r["repeats"], json!(true));
         assert_eq!(r["frequency"], json!(8));
@@ -483,16 +518,19 @@ mod tests {
         for move_type in MOVE_RANDOM..=MOVE_AWAY {
             marcy.move_type = move_type;
             assert_eq!(
-                own(&marcy).unwrap()["commands"],
+                own(&marcy, &Indices::default()).unwrap()["commands"],
                 json!([ROUTE_BY_TYPE + move_type])
             );
         }
         // Frequency 1 goes in, as Sunset over Imdahl's ravens: the ROM waits
         // 255 frames after each step and not 256. A route that low does not.
         marcy.move_frequency = 1;
-        assert_eq!(own(&marcy).unwrap()["frequency"], json!(1));
+        assert_eq!(
+            own(&marcy, &Indices::default()).unwrap()["frequency"],
+            json!(1)
+        );
         marcy.move_frequency = 0;
-        assert!(own(&marcy).is_none());
+        assert!(own(&marcy, &Indices::default()).is_none());
     }
 
     #[test]
@@ -503,12 +541,12 @@ mod tests {
         guard.animation_type = 0;
         guard.move_frequency = 8;
         guard.move_speed = 5;
-        let r = own(&guard).unwrap();
+        let r = own(&guard, &Indices::default()).unwrap();
         assert_eq!(r["commands"], json!([9, 2, 9, 0, 9]));
         assert_eq!(r["speed"], json!(5));
         // Inside a jump the commands only add up: no asking about the hero.
         guard.route = vec![ROUTE_JUMP_START, 9, ROUTE_JUMP_END];
-        assert!(own(&guard).is_none());
+        assert!(own(&guard, &Indices::default()).is_none());
         // The others that look at the hero, at the generator or at where it
         // faces walk too, and the moves among them not inside a jump.
         for command in [
@@ -519,26 +557,76 @@ mod tests {
         ] {
             guard.route = vec![9, command];
             assert_eq!(
-                own(&guard).unwrap()["commands"],
+                own(&guard, &Indices::default()).unwrap()["commands"],
                 json!([9, command]),
                 "{command}"
             );
             guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
-            assert!(own(&guard).is_some(), "{command} in a jump");
+            assert!(
+                own(&guard, &Indices::default()).is_some(),
+                "{command} in a jump"
+            );
         }
         for command in [ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FORWARD] {
             guard.route = vec![9, command];
             assert_eq!(
-                own(&guard).unwrap()["commands"],
+                own(&guard, &Indices::default()).unwrap()["commands"],
                 json!([9, command]),
                 "{command}"
             );
             guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
-            assert!(own(&guard).is_none(), "{command} in a jump");
+            assert!(
+                own(&guard, &Indices::default()).is_none(),
+                "{command} in a jump"
+            );
         }
-        // The switches are still out.
-        guard.route = vec![ROUTE_SWITCH_ON];
-        assert!(own(&guard).is_none());
+    }
+
+    #[test]
+    fn an_own_route_turns_switches_with_their_number_after_the_code() {
+        // Vampires Dawn's map 163, event 30, shortened: a switch past 255 on,
+        // a step, and off again.
+        let mut walker = spinning(MOVE_CUSTOM, vec![ROUTE_SWITCH_ON, 0, ROUTE_SWITCH_OFF]);
+        walker.animation_type = 0;
+        walker.route_switches = vec![806, 806];
+        let indices = Indices::default();
+        let r = own(&walker, &indices).unwrap();
+        assert_eq!(
+            r["commands"],
+            json!([
+                ROUTE_SWITCH_ON,
+                806 & 0xFF,
+                806 >> 8,
+                0,
+                ROUTE_SWITCH_OFF,
+                806 & 0xFF,
+                806 >> 8
+            ])
+        );
+        // An operand that reads as a 31 does not lower the frequency: switch
+        // 31 at frequency 2 goes in.
+        walker.move_frequency = FREQUENCY_MIN;
+        walker.route_switches = vec![31, 31];
+        assert!(own(&walker, &indices).is_some());
+        // Inside a jump it is not run, as in RM2k, and its number is skipped.
+        walker.route = vec![
+            ROUTE_JUMP_START,
+            ROUTE_SWITCH_ON,
+            ROUTE_JUMP_END,
+            ROUTE_SWITCH_OFF,
+        ];
+        walker.route_switches = vec![5, 6];
+        assert_eq!(
+            own(&walker, &indices).unwrap()["commands"],
+            json!([ROUTE_JUMP_START, ROUTE_JUMP_END, ROUTE_SWITCH_OFF, 6, 0])
+        );
+        // A switch past the game's table, or one without its number, leaves
+        // the route out.
+        walker.route = vec![ROUTE_SWITCH_ON];
+        walker.route_switches = vec![indices.switch_top as i32 + 1];
+        assert!(own(&walker, &indices).is_none());
+        walker.route_switches = vec![];
+        assert!(own(&walker, &indices).is_none());
     }
 
     #[test]

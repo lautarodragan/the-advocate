@@ -84,6 +84,9 @@ pub struct Page {
     /// The page's own route: its commands' codes, whether it repeats and
     /// whether a blocked command is skipped.
     pub route: Vec<i32>,
+    /// The switch each 32 and 33 of `route` turns, in order: the only
+    /// operand of an own route that reaches the ROM —see `route::own`—.
+    pub route_switches: Vec<i32>,
     pub route_repeat: bool,
     pub route_skippable: bool,
     pub condition: Condition,
@@ -644,6 +647,16 @@ impl Game {
                                     .move_commands
                                     .iter()
                                     .map(|m| m.command_id.to_i32())
+                                    .collect(),
+                                route_switches: p
+                                    .move_route
+                                    .move_commands
+                                    .iter()
+                                    .filter(|m| {
+                                        [ROUTE_SWITCH_ON, ROUTE_SWITCH_OFF]
+                                            .contains(&m.command_id.to_i32())
+                                    })
+                                    .map(|m| m.parameter_a)
                                     .collect(),
                                 route_repeat: p.move_route.repeat,
                                 route_skippable: p.move_route.skippable,
