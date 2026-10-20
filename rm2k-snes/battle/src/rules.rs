@@ -87,9 +87,25 @@ pub fn equipped_params(
 /// Whether this battle knows how to offer this skill: of type `normal` or
 /// `switch` —`teleport` and `escape` do not exist here, and `subskill` is
 /// RM2k3's—, and with a cost of two digits, which is what the list writes.
-/// All five scopes are in.
+/// All five scopes are in. Offering it is not letting it be chosen: see
+/// [`usable_in_battle`].
 pub fn skill_usable(skill: &Skill) -> bool {
     matches!(skill.r#type.to_i32(), SKILL_NORMAL | SKILL_SWITCH) && skill.sp_cost <= 99
+}
+
+/// Whether the battle lets it be chosen at all, whoever uses it and with
+/// whatever SP: `Algo::IsSkillUsable` in battle, which
+/// `Window_Skill::CheckEnable` asks of every row. A `normal` skill always —it
+/// has no occasion flags—, a `switch` one only with `occasion_battle`, and a
+/// `teleport` or `escape` one never. RM2k 2000 lists the others anyway, grey,
+/// and A on one only sounds the buzzer: Emily's Change Tape, a switch skill
+/// for the map, is one. What the converter emits as `skill_in_battle`.
+pub fn usable_in_battle(skill: &Skill) -> bool {
+    match skill.r#type.to_i32() {
+        SKILL_NORMAL => true,
+        SKILL_SWITCH => skill.occasion_battle,
+        _ => false,
+    }
 }
 
 /// The attributes `skill` asks a weapon for, by index —`id - 1`—: its
@@ -271,11 +287,7 @@ pub fn item_skill_in_battle(db: &Db, item: &Item) -> Option<i32> {
         return None;
     }
     let skill = db.skills.get(&item.skill_id)?;
-    match skill.r#type.to_i32() {
-        SKILL_NORMAL => Some(skill.id),
-        SKILL_SWITCH if skill.occasion_battle => Some(skill.id),
-        _ => None,
-    }
+    usable_in_battle(skill).then_some(skill.id)
 }
 
 /// Whether the item goes in the battle's list: a medicine

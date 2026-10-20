@@ -32,6 +32,14 @@
 //! is still the right one for every request. The actors' critical is
 //! covered by `the_critical_hit_adds_in_floating_point` and by the
 //! console's tests.
+//!
+//! **And in a second one**: it let any skill be ordered in battle, and RM2k
+//! lets only the ones `Algo::IsSkillUsable` allows —`usable_in_battle`, since
+//! 2026-10-20—. So this game's switch skill 2 has `occasion_battle` —it did
+//! not—, which keeps the Python's answer right for the battles that order
+//! it; and the three battles of `battles.json` that order the teleport skill
+//! 7 or the escape one 12, which RM2k never lets be chosen in battle, are
+//! refusals now —cases 14, 106 and 107—.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::model;
