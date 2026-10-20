@@ -32,7 +32,10 @@ pub const LINES: u32 = 4;
 
 /// The switch the harness's test pages turn on to stop repeating, and the
 /// variable it writes the case number into: conventions of the test
-/// harness, which every test page of a cartridge carries.
+/// harness, which every test page of a cartridge carries. The switch is the
+/// one they ask for: a game that names it gets the first above it that it
+/// does not name, which the scan answers —see `test_switch` in
+/// `rm2k-snes-events`— and the cartridge says as `TEST_SWITCH`.
 pub const TEST_SWITCH: i32 = 1023;
 pub const CASE_VARIABLE: i32 = 1000;
 /// The `>=` of RM2k's page conditions.
@@ -117,8 +120,11 @@ pub struct Compiler<'a> {
     /// temporary directory and deleted.
     pub keep_request: Option<std::path::PathBuf>,
     /// Switches no page names that the ROM's table has to hold anyway:
-    /// `TEST_SWITCH`, in a cartridge with test pages.
+    /// the test pages', in a cartridge with them.
     pub extra_switches: BTreeSet<i32>,
+    /// The switch the test pages turn on: `TEST_SWITCH` until the scan
+    /// answers, and what it answers after.
+    pub test_switch: i32,
     /// The automatic common events copied into the maps, and into which:
     /// see [`crate::common_pages`]. None in a cartridge without them.
     pub common_pages: Option<Value>,
@@ -161,6 +167,7 @@ impl<'a> Compiler<'a> {
             systems: Vec::new(),
             keep_request: None,
             extra_switches: BTreeSet::new(),
+            test_switch: TEST_SWITCH,
             common_pages: None,
             common_pictures: Vec::new(),
         })
@@ -253,6 +260,9 @@ impl<'a> Compiler<'a> {
                 "messages_step".into(),
                 json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
             );
+            // Which switch they can turn on: the scan sees every switch the
+            // game names.
+            r.insert("test_switch".into(), json!(TEST_SWITCH));
         }
         // And the counters, so a counter's digits are its and not
         // pictures: without them its body is pasted where it is called,
@@ -325,12 +335,13 @@ impl<'a> Compiler<'a> {
         r.insert("sound_effects".into(), self.sound_effects()?);
         // Each test page turns itself off first: it is a convention of the
         // harness and not of the case —see `TEST_SWITCH`—, and an automatic
-        // page that does not turn off repeats forever.
+        // page that does not turn off repeats forever. With the switch the
+        // scan answered.
         let turn_off = Command {
             code: rm2k_snes_events::codes::CONTROL_SWITCHES,
             indent: 0,
             string: String::new(),
-            parameters: vec![SWITCH_SINGLE, TEST_SWITCH, TEST_SWITCH, SWITCH_ON],
+            parameters: vec![SWITCH_SINGLE, self.test_switch, self.test_switch, SWITCH_ON],
         };
         r.insert(
             "cases".into(),
@@ -493,6 +504,8 @@ pub struct Indices {
     pub skills: Vec<((i64, i64), i64)>,
     /// The highest switch the game names: the ROM's table holds 0 to it.
     pub switch_top: i64,
+    /// The switch the test pages can turn on, if the scan was asked.
+    pub test_switch: Option<i64>,
     /// Every (actor, name) a `ChangeHeroName` gives, in the order
     /// `OP_CHANGE_NAME` counts them: the screens and the emission write
     /// their texts in it.
@@ -545,6 +558,7 @@ impl Indices {
                     .collect(),
             ),
             switch_top: answer["switch_top"].as_i64().unwrap_or(0),
+            test_switch: answer["test_switch"].as_i64(),
             names: answer["names"]
                 .as_array()
                 .map(|list| {

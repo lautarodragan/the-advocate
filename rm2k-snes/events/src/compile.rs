@@ -534,6 +534,10 @@ pub struct Indices {
     /// more, so a command, a branch or a condition past it does not
     /// compile: it would read or write whatever RAM follows the table.
     pub switch_top: i32,
+    /// The switch the harness's test pages may turn on: the one the
+    /// request asks for, or the first above it the game does not name. See
+    /// [`crate::indices::test_switch`]. None if the request asks for none.
+    pub test_switch: Option<i32>,
 }
 
 /// Only the tests use it: without a game, the table holds every switch it
@@ -547,6 +551,7 @@ impl Default for Indices {
             renames: Vec::new(),
             faces: Vec::new(),
             switch_top: SWITCH_TABLE_MAX - 1,
+            test_switch: None,
         }
     }
 }

@@ -56,9 +56,6 @@ FRAMES_PER_TICK = 3000
 # waiting for 2 can miss it: see `runtime/low_ram.s`.
 MESSAGE_SHOWN = 0
 
-# The switch each test page turns on first: `TEST_SWITCH` in the converter.
-TEST_SWITCH = 1023
-
 # The WRAM's size, which `Session.reset` powers on again.
 WRAM = 0x20000
 
@@ -168,9 +165,12 @@ class Session:
         assert case in self.cartridge.cases, (
             "the cartridge does not carry the case %r: is it in cases/?"
             % case)
-        address = self._ram("switches") + TEST_SWITCH // 8
+        # The cartridge says which: 1023, or the first above it the game
+        # does not name —see `test_switch` in rm2k-snes-events—.
+        switch = self.symbol("TEST_SWITCH")
+        address = self._ram("switches") + switch // 8
         octet = self.console.ram(address, 1)[0]
-        self.console.write_ram(address, [octet & ~(1 << (TEST_SWITCH % 8)) & 0xFF])
+        self.console.write_ram(address, [octet & ~(1 << (switch % 8)) & 0xFF])
         self._choose(self.cartridge.cases.index(case))
 
     def _choose(self, page):
