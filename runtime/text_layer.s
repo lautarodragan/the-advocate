@@ -78,6 +78,19 @@
 ; Composing them one bit per pixel, shifted as it went, was measured first:
 ; a description of fifty letters took nine frames to show. See `tl_glyph`.
 ;
+; **In the 512-wide mode**, mode 5, which only the debug screen asks for
+; —`tl_hires`—, a cell of the tilemap is 16 of the screen's pixels and two
+; tiles side by side, N and N + 1, and the font's pixels are the screen's:
+; the same letters, half as wide, twice as many to a line. A column is
+; then **a quad**: four tiles, the top two and the bottom two, where a
+; pair is two —the pool, the records and the cells count quads instead of
+; pairs and nothing else changes—. A record's x stays in the 256-wide
+; pixels a cell is eight of, and is doubled when it is typeset; the stage
+; is twice as wide, 64 columns of eight, in `TL_STAGE_HI`, and a quad goes
+; up from its two columns in four pieces, because the stage keeps a column's
+; top and bottom together and the VRAM wants the two tops together. What
+; is apart for it lives in `FAR3`, at the end.
+;
 ; The layer's tilemap is its own and not `text_buf`: that one is the message
 ; window's line, and a row finished after a screen closed would land in the
 ; middle of a message being composed.
@@ -193,7 +206,9 @@ TL_SPLIT     = TL_WIN_KEY + 18  ; the row being typeset: its first column
                                 ; composed; the ones before keep their tiles
 TL_SPLIT_AT  = TL_WIN_KEY + 20  ; and its first run composed, a record offset
 TL_REL_FROM  = TL_WIN_KEY + 22  ; `tl_release_cols`: the first column it frees
-TL_END       = TL_WIN_KEY + 24
+TL_HIRES     = TL_WIN_KEY + 24  ; nonzero: the 512-wide mode —see `tl_hires`—
+TL_CLIP      = TL_WIN_KEY + 26  ; a glyph that would reach this x is cut
+TL_END       = TL_WIN_KEY + 28
 ; A run's colour byte with this bit says it goes by reference: three bytes
 ; of address after its count, and no letters.
 TL_REF_BIT   = $80
@@ -349,6 +364,9 @@ records:
     stz TL_T_REF
     stz TL_ADOPTED
     stz TL_SPLIT
+    stz TL_HIRES
+    lda #257
+    sta TL_CLIP
     lda #$FFFF
     sta TL_WIN_KEY              ; the shop's windows, not uploaded yet
     sta TL_T_ROW
@@ -994,6 +1012,11 @@ width:
     dey
     bne width
 measured:
+    ldx TL_HIRES
+    beq low_width
+    inc a                       ; in the 512-wide mode, half: the record's x
+    lsr a                       ; is in the pixels a cell is eight of
+low_width:
     sta TL_T2                   ; the run's width
     ; x = 8 * (column + 1) + TL_XOFS - 1 - width: the last digit's advance
     ; ends with the cell.
@@ -1064,6 +1087,11 @@ out:
 .proc tl_dma_pairs
 .a8
 .i16
+    lda TL_HIRES
+    beq pairs
+    jsl f:tl_dma_quads
+    rts
+pairs:
     rep #$20
 .a16
     lda TL_UP_N
@@ -1969,16 +1997,14 @@ shown:
     inc TL_PEND_N
 still:
     lda TL_MAP, y
-    and #$03FF
-    lsr a
+    jsr tl_pair_of
     cmp TL_C
     bne not_upper
     lda #0
     sta TL_MAP, y
 not_upper:
     lda TL_MAP + 64, y
-    and #$03FF
-    lsr a
+    jsr tl_pair_of
     cmp TL_C
     bne not_lower
     lda #0
@@ -1991,6 +2017,23 @@ empty:
     iny
     dec TL_T1
     bne column
+    rts
+.endproc
+
+; The pair, or the quad, tilemap word A16 points to. A16.
+.proc tl_pair_of
+.a16
+.i16
+    and #$03FF
+    lsr a
+    pha
+    lda TL_HIRES
+    beq pair
+    pla
+    lsr a                       ; four tiles a quad
+    rts
+pair:
+    pla
     rts
 .endproc
 
@@ -2065,6 +2108,11 @@ copy:
     adc #TL_SHOWN
     sta TL_T_POS                ; its first run composed: see `tl_split`
     stz TL_T_LEFT
+    lda TL_HIRES
+    beq low
+    jsl f:tl_stage_clear_hi
+    bra used_none
+low:
     ; The stage, cleared through the WRAM port: a DMA from a fixed zero.
     lda #TL_STAGE
     sta f:WMADDL
@@ -2090,6 +2138,7 @@ copy:
     sta f:MDMAEN
     rep #$20
 .a16
+used_none:
     ldx #0
 used:
     stz TL_USED, x
@@ -2120,6 +2169,10 @@ a_run:
     lda a:0, x
     and #$00FF
     sta TL_X
+    lda TL_HIRES
+    beq low_x
+    asl TL_X                    ; the font's pixels are the screen's
+low_x:
     lda a:2, x
     and #$00FF
     sta TL_T_LEFT
@@ -2184,8 +2237,13 @@ normal:
     beq advance                 ; a blank paints nothing
     clc
     adc TL_X
-    cmp #257
+    cmp TL_CLIP
     bcs advance                 ; it would paint past the screen: cut
+    lda TL_HIRES
+    beq low_glyph
+    jsl f:tl_glyph_hi
+    bra advance
+low_glyph:
     jsr tl_glyph
 advance:
     ldx TL_C
@@ -2444,11 +2502,23 @@ column:
     asl a                       ; the palette, bits 10 to 12
     ora #$2000
     sta TL_GG
+    lda TL_HIRES
+    bne quad
     lda TL_C
     asl a
     ora TL_GG
     sta TL_MAP, x
     inc a
+    bra lower
+quad:
+    lda TL_C                    ; tiles 4q and 4q + 1 on top, the next two
+    asl a                       ; below
+    asl a
+    ora TL_GG
+    sta TL_MAP, x
+    inc a
+    inc a
+lower:
     sta TL_MAP + 64, x
     ; And the upload: column and pair.
     lda TL_UP_N
@@ -3050,6 +3120,11 @@ headed:
     ; The first column the head does not ink, and every other run after it.
     lda TL_T2
     beq whole
+    ldy TL_HIRES
+    beq low_column
+    inc a                       ; sixteen pixels a column: half, rounded up,
+    lsr a                       ; and then as eight
+low_column:
     clc
     adc #7
     lsr a
@@ -3129,6 +3204,10 @@ ink:
     lda TL_CUR, x
     and #$00FF
     sta TL_X
+    lda TL_HIRES
+    beq low_x
+    asl TL_X
+low_x:
     lda TL_CUR + 2, x
     and #$00FF
     sta TL_N
@@ -3176,4 +3255,326 @@ measured:
     rts
 .endproc
 .assert TL_SHOWN - TL_CUR = TL_ROWS * TL_RECORD, error, "tl_split reads what the screen shows as TL_CUR past its rows"
+; --- the 512-wide mode ---------------------------------------------------------
+;
+; What the layer does apart in mode 5, which only the debug screen asks for:
+; see the header. A quad is a column's four tiles, 64 words from `TL_VRAM`:
+; tiles 4q and 4q + 1 its top cell —its left eight pixels and its right
+; eight—, and 4q + 2 and 4q + 3 its bottom one. The stage is
+; `TL_STAGE_HI`, 64 columns of eight like `TL_STAGE`'s 32, in
+; `LZ2_BUFFER`: the debug screen decompresses nothing while it is open, and
+; the map that comes back after it reloads that buffer as it does after a
+; custom menu's portrait —see `LZ2_BUFFER` in far_ram.s—. Far RAM had no
+; 4 KB left. A `.define` and not a symbol: it is the load buffer, not a
+; new tenant of the WRAM's upper half —`test_wram_reservations.py`—.
+.define TL_STAGE_HI LZ2_BUFFER
+TL_STAGE_HI_BYTES = 2 * TL_STAGE_BYTES
+TL_QUAD_WORDS = 2 * TL_PAIR_WORDS
+; Half the pairs' per vblank: a quad is two pairs' bytes.
+TL_QUADS_PER_VBLANK = TL_PAIRS_PER_VBLANK / 2
+.assert TL_STAGE_HI + TL_STAGE_HI_BYTES <= CODE_CARRY, error, "the wide stage reaches the carried bytecode"
+.assert .loword(TL_STAGE_HI) + TL_STAGE_HI_BYTES <= $10000, error, "the wide stage crosses a bank"
+
+; The 512-wide mode, A8 nonzero, or back to the 256-wide one, A8 zero:
+; right after `tl_reset`, which leaves the 256-wide one, and before
+; anything is written. A8.
+.proc tl_hires
+.a8
+.i16
+    pha
+    tl_enter
+    rep #$20
+.a16
+    lda 2, s
+    and #$00FF
+    beq off
+    lda #1
+    sta TL_HIRES
+    lda #513                    ; the font's pixels are the screen's
+    sta TL_CLIP
+    bra done
+off:
+    stz TL_HIRES
+    lda #257
+    sta TL_CLIP
+done:
+    sep #$20
+.a8
+    plb
+    pla
+    rtl
+.endproc
+
+; `tl_begin`'s clear, of the wide stage: through the WRAM port, a DMA from a
+; fixed zero. A16, data bank $7E.
+.proc tl_stage_clear_hi
+.a16
+.i16
+    lda #.loword(TL_STAGE_HI)
+    sta f:WMADDL
+    sep #$20
+.a8
+    lda #(^TL_STAGE_HI & $01)   ; bit 16 of the 17: 1 is bank $7F
+    sta f:WMADDH
+    lda #$08                    ; one register, the source does not move
+    sta f:DMAP0
+    lda #<WMDATA
+    sta f:BBAD0
+    lda #^tl_zero
+    sta f:A1B0
+    rep #$20
+.a16
+    lda #.loword(tl_zero)
+    sta f:A1T0L
+    lda #TL_STAGE_HI_BYTES
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    rtl
+.endproc
+.assert ^TL_STAGE_HI = $7E || ^TL_STAGE_HI = $7F, error, "the wide stage is cleared through WMADD"
+
+; `tl_glyph_row`, for the wide stage: X is the stage byte of the glyph's first
+; column of eight, and the data bank the stage's, so the layer's own words go
+; long.
+.macro tl_glyph_row_hi K, OFS
+    ldy #(K * 12)
+    lda [comp_glyph], y
+    cmp #$FFFF
+    beq :+
+    sta f:$7E0000 + TL_KEEP
+    ldy #(K * 12 + 2)
+    lda a:OFS, x
+    and f:$7E0000 + TL_KEEP
+    ora [comp_glyph], y
+    sta a:OFS, x
+    ldy #(K * 12 + 4)
+    lda a:OFS + 16, x
+    and f:$7E0000 + TL_KEEP
+    ora [comp_glyph], y
+    sta a:OFS + 16, x
+:   ldy #(K * 12 + 6)
+    lda [comp_glyph], y
+    cmp #$FFFF
+    beq :+
+    sta f:$7E0000 + TL_KEEP
+    ldy #(K * 12 + 8)
+    lda a:OFS + 64, x
+    and f:$7E0000 + TL_KEEP
+    ora [comp_glyph], y
+    sta a:OFS + 64, x
+    ldy #(K * 12 + 10)
+    lda a:OFS + 80, x
+    and f:$7E0000 + TL_KEEP
+    ora [comp_glyph], y
+    sta a:OFS + 80, x
+:
+.endmacro
+
+; `tl_glyph` in the wide stage: the same letter, the same tables —the font's
+; pixels are the screen's—, its eight-pixel columns 64 bytes apart as in the
+; other, and the columns it marks are the tilemap's, of sixteen. A16, data
+; bank $7E.
+.proc tl_glyph_hi
+.a16
+.i16
+    sep #$20
+.a8
+    lda TL_C
+    sta f:WRMPYA
+    lda #FONT_PRE_CHAR
+    sta f:WRMPYB                ; starts: what follows gives it the cycles
+    rep #$20
+.a16
+    ldx TL_C
+    lda f:font_reach, x
+    and #$00FF
+    dec a
+    clc
+    adc TL_X
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    tax
+    sep #$20
+.a8
+    lda TL_VAR
+    inc a
+    sta TL_USED, x
+    rep #$20
+.a16
+    lda TL_X
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    tax
+    sep #$20
+.a8
+    lda TL_VAR
+    inc a
+    sta TL_USED, x
+    rep #$20
+.a16
+    lda TL_X
+    lsr a
+    lsr a
+    lsr a                       ; its column of eight
+    xba
+    lsr a
+    lsr a                       ; 64 bytes each
+    clc
+    adc #.loword(TL_STAGE_HI)
+    sta TL_BASE
+    lda TL_X
+    and #$0007
+    asl a
+    clc
+    adc TL_PRE
+    tax
+    lda f:scr_pre_lo, x
+    clc
+    adc f:RDMPYL
+    sta comp_glyph
+    sep #$20
+.a8
+    lda f:scr_pre_bk, x
+    sta comp_glyph + 2
+    ldx TL_BASE                 ; before the data bank is the stage's
+    phb
+    lda #^TL_STAGE_HI
+    pha
+    plb
+    rep #$20
+.a16
+    tl_glyph_row_hi 0, 4
+    tl_glyph_row_hi 1, 6
+    tl_glyph_row_hi 2, 8
+    tl_glyph_row_hi 3, 10
+    tl_glyph_row_hi 4, 12
+    tl_glyph_row_hi 5, 14
+    tl_glyph_row_hi 6, 32
+    tl_glyph_row_hi 7, 34
+    tl_glyph_row_hi 8, 36
+    tl_glyph_row_hi 9, 38
+    tl_glyph_row_hi 10, 40
+    tl_glyph_row_hi 11, 42
+    tl_glyph_row_hi 12, 44
+    plb
+    rtl
+.endproc
+
+; One of a quad's four pieces: 32 bytes from the stage, `TL_T1` + SRC, to the
+; VRAM, `TL_T0` + DST words. A16.
+.macro tl_quad_piece SRC, DST
+    lda TL_T0
+    clc
+    adc #DST
+    sta f:VMADDL
+    lda TL_T1
+    clc
+    adc #SRC
+    sta f:A1T0L
+    lda #32
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+.endmacro
+
+; `tl_dma_pairs` of the 512-wide mode: the quads of the row typeset last,
+; `TL_QUADS_PER_VBLANK` at most, or all of them with the screen off. The
+; stage keeps each column of eight's top and bottom together and the VRAM
+; wants a cell's two tops together, so a quad goes in four pieces: its left
+; column's top to tile 4q, its right column's to 4q + 1, and their bottoms
+; to 4q + 2 and 4q + 3. A8, data bank $7E.
+.proc tl_dma_quads
+.a8
+.i16
+    rep #$20
+.a16
+    lda TL_UP_N
+    bne some
+    sep #$20
+.a8
+    rtl
+.a16
+some:
+    lda TL_SETTLE
+    beq capped
+    lda TL_UP_N
+    bra stop
+capped:
+    lda TL_UP_I
+    clc
+    adc #TL_QUADS_PER_VBLANK
+    cmp TL_UP_N
+    bcc stop
+    lda TL_UP_N
+stop:
+    sta TL_T2                   ; where this one stops
+    sep #$20
+.a8
+    lda #$80
+    sta f:VMAIN
+    lda #$01
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #^TL_STAGE_HI
+    sta f:A1B0
+    rep #$20
+.a16
+    lda TL_UP_I
+    asl a
+    asl a
+    tax
+quad:
+    lda TL_UPLOAD + 2, x        ; the quad
+    xba
+    lsr a
+    lsr a                       ; 64 words each
+    clc
+    adc TL_VRAM
+    sta TL_T0
+    lda TL_UPLOAD, x            ; the column
+    xba
+    lsr a                       ; 128 bytes each
+    clc
+    adc #.loword(TL_STAGE_HI)
+    sta TL_T1
+    tl_quad_piece 0, 0          ; left, top
+    tl_quad_piece 64, 16        ; right, top
+    tl_quad_piece 32, 32        ; left, bottom
+    tl_quad_piece 96, 48        ; right, bottom
+    inx
+    inx
+    inx
+    inx
+    txa
+    lsr a
+    lsr a
+    cmp TL_T2
+    bcs last
+    jmp quad
+last:
+    sta TL_UP_I
+    cmp TL_UP_N
+    bcc more                    ; the rest, next vblank
+    stz TL_UP_N
+    stz TL_UP_I
+more:
+    sep #$20
+.a8
+    rtl
+.endproc
+.assert TL_QUAD_WORDS = 64, error, "tl_dma_quads puts a quad 64 words apart"
 .popseg

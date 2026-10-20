@@ -9,7 +9,7 @@ use crate::json::{bytes, colors, ints, list_at, tiles};
 use crate::snes::{cgram_bytes, pack_tile, words_le};
 use serde_json::Value;
 
-/// How many bytes a BG1 tilemap of the screen takes: 32 by 28 words.
+/// How many bytes the windows' tilemap takes: 32 by 28 words.
 const SCREEN_MAP_BYTES: usize = 32 * 28 * 2;
 /// And a bar: two cell rows of it.
 const BAR_BYTES: usize = 2 * 32 * 2;
@@ -75,7 +75,8 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
     }
     out.push_str(&block("dbg_bars", &bars));
     out.push('\n');
-    let packed: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 8)).collect();
+    // At 2bpp: BG2's in mode 5, the 512-wide mode the screen runs in.
+    let packed: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 2)).collect();
     out.push_str(&block("dbg_border_tiles", &packed));
     out.push('\n');
     out.push_str(&block("dbg_border_cgram", &cgram_bytes(&border_colors)));
