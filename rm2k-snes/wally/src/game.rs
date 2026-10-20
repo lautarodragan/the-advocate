@@ -29,6 +29,11 @@ pub struct Game {
     /// console's RAM, by map and id: the caller decides them, and the map
     /// is read without them so the indices are the caller's.
     pub dropped: BTreeMap<i32, BTreeSet<i32>>,
+    /// The cells of walls the caller left out, `(x, y)` by map: invisible
+    /// events on the hero's layer that never stop blocking, which the map's
+    /// passability closes instead —as it does a decorative event's on that
+    /// layer—. The caller decides them.
+    pub walls: BTreeMap<i32, Vec<(usize, usize)>>,
     /// Where the pictures are looked up, in order: the first directory that
     /// has one wins.
     pub search_dirs: Vec<PathBuf>,

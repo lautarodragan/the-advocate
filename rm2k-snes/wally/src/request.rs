@@ -196,6 +196,29 @@ pub fn patches(data: &Value, whose: &str, game: &mut Game) -> Result<()> {
             game.dropped.insert(map, ids);
         }
     }
+    // Not required either, the same way: `{"<map>": [[x, y], …]}`.
+    if let Some(w) = data.get("walls") {
+        let obj = w
+            .as_object()
+            .ok_or_else(|| Bad::answer(format!("{whose}: `walls` is not an object")))?;
+        for (k, v) in obj {
+            let map = k
+                .parse::<i32>()
+                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
+            let cells = v
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: map {k}'s `walls` is not a list")))?
+                .iter()
+                .map(|c| {
+                    let bad = || Bad::answer(format!("{whose}: a wall's cell is {c}"));
+                    let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
+                    let at = |v: &Value| v.as_u64().map(|n| n as usize).ok_or_else(bad);
+                    Ok((at(&c[0])?, at(&c[1])?))
+                })
+                .collect::<Result<_>>()?;
+            game.walls.insert(map, cells);
+        }
+    }
     Ok(())
 }
 

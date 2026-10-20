@@ -485,6 +485,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         "map": map_id,
         "map_files": compiler::map_files(game),
         "dropped_events": game.dropped_json_of(map_id),
+        // The still walls left out, which Wally closes in the passability.
+        "walls": game.walls_json_of(map_id),
         "chipset_files": compiler::chipset_files(game),
         "names": compiler::names([&map]).into_iter().map(|e| json!([e[1], e[2], e[3]])).collect::<Vec<_>>(),
         "test_event": test_event,

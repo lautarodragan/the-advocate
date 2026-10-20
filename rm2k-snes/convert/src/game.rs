@@ -277,6 +277,10 @@ pub struct Game {
     /// `(map, event, (x, y), what it loses)`, for the cartridge's
     /// degradations.
     pub trimmed: Vec<(i32, i32, (i32, i32), &'static str)>,
+    /// The cells of the still walls each map leaves out, `(x, y)` by map:
+    /// Wally closes them in the map's passability, so the wall stays
+    /// without its row. See [`crate::trim::still_wall`].
+    pub walls: BTreeMap<i32, Vec<(i32, i32)>>,
     /// The exit of each map that keeps its row only to say, in a box, that
     /// the map's exits did not all fit: see [`Game::trim`]. The event
     /// compiler gets it as `boxed_exits` and compiles its pages as that box.
@@ -445,6 +449,7 @@ impl Game {
             dropped: BTreeMap::new(),
             twins: BTreeMap::new(),
             trimmed: Vec::new(),
+            walls: BTreeMap::new(),
             boxed_exits: BTreeMap::new(),
         })
     }
@@ -559,14 +564,23 @@ impl Game {
                     crate::trim::warning(id, raw.events.len() - twins.len(), cap, &lost)
                 );
                 for &(e, loss) in &lost {
-                    if loss == crate::trim::Loss::Nothing {
-                        continue;
-                    }
                     let at = raw
                         .events
                         .iter()
                         .find(|r| r.id == e)
                         .map_or((0, 0), |r| (r.x, r.y));
+                    if matches!(
+                        loss,
+                        crate::trim::Loss::StillWall | crate::trim::Loss::LooksAndStillWall
+                    ) {
+                        self.walls.entry(id).or_default().push(at);
+                    }
+                    if matches!(
+                        loss,
+                        crate::trim::Loss::Nothing | crate::trim::Loss::StillWall
+                    ) {
+                        continue;
+                    }
                     self.trimmed.push((id, e, at, loss.describe()));
                 }
             }
@@ -598,6 +612,24 @@ impl Game {
             self.dropped
                 .get(&id)
                 .map(|ids| (id.to_string(), serde_json::json!(ids)))
+                .into_iter()
+                .collect(),
+        )
+    }
+
+    /// Map `id`'s [`Game::walls`] as its Wally request carries them:
+    /// `{"<id>": [[x, y], …]}`, empty if it leaves none out.
+    pub fn walls_json_of(&self, id: i32) -> Value {
+        Value::Object(
+            self.walls
+                .get(&id)
+                .map(|cells| {
+                    let cells: Vec<Value> = cells
+                        .iter()
+                        .map(|&(x, y)| serde_json::json!([x, y]))
+                        .collect();
+                    (id.to_string(), Value::Array(cells))
+                })
                 .into_iter()
                 .collect(),
         )

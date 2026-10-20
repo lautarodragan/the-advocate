@@ -54,11 +54,19 @@ pub enum Loss {
     /// It does nothing: no page has a command, nobody names it, it draws
     /// nothing and does not block.
     Nothing,
+    /// A wall and nothing else that never stops being one —[`still_wall`]—:
+    /// its cell goes closed in the map's passability, so nothing is lost.
+    StillWall,
     /// Only its looks: a drawing, walking or not, that does not block.
     Looks,
-    /// Only a wall: nothing drawn, on the hero's layer.
+    /// A drawing and a wall that never stops being one: the drawing is
+    /// lost, the wall goes to the map's passability as a [`Loss::StillWall`]
+    /// does.
+    LooksAndStillWall,
+    /// Only a wall: nothing drawn, on the hero's layer, and one that may
+    /// stop blocking —see [`still_wall`]—, so it cannot be baked.
     Wall,
-    /// Its looks and a wall.
+    /// Its looks and a wall, one that may stop blocking.
     LooksAndWall,
     /// Pages that run, but nobody names it.
     Pages,
@@ -75,7 +83,11 @@ impl Loss {
     pub fn describe(self) -> &'static str {
         match self {
             Loss::Nothing => "nothing",
+            Loss::StillWall => "nothing: a still wall, closed in the map's passability",
             Loss::Looks => "only their looks",
+            Loss::LooksAndStillWall => {
+                "only their looks: their wall stays, closed in the map's passability"
+            }
             Loss::Wall => "an invisible wall",
             Loss::LooksAndWall => "their looks and a wall",
             Loss::Pages => "pages that run",
@@ -144,12 +156,42 @@ pub fn loss(e: &schema::Event, named: &BTreeSet<i32>) -> Loss {
         .iter()
         .any(|p| !p.character_name.is_empty() || p.character_index != 0);
     let blocks = pages.iter().any(|p| p.layer.to_i32() == LAYER_SAME);
-    match (drawn, blocks) {
-        (false, false) => Loss::Nothing,
-        (true, false) => Loss::Looks,
-        (false, true) => Loss::Wall,
-        (true, true) => Loss::LooksAndWall,
+    match (drawn, blocks, blocks && still_wall(e)) {
+        (false, false, _) => Loss::Nothing,
+        (true, false, _) => Loss::Looks,
+        (false, true, true) => Loss::StillWall,
+        (true, true, true) => Loss::LooksAndStillWall,
+        (false, true, false) => Loss::Wall,
+        (true, true, false) => Loss::LooksAndWall,
     }
+}
+
+/// Whether `e`, which runs nothing and nobody names, blocks its cell all
+/// the time and in the same cell: every page on the hero's layer, none
+/// that walks —no move type, no route of its own, which could also make it
+/// pass through things—, and one page with no conditions, so a page is
+/// always active. Conditions are not read: any page can be the active one,
+/// so all of them have to be walls, and the worst is assumed. Erasing it, or
+/// moving it, would take a command of its own or one that names it, and
+/// [`loss`] only asks this of an event without either.
+///
+/// Such a wall left out is not lost: its cell goes closed in the map's
+/// passability, as Wally does with a decorative event on that layer —see
+/// [`crate::game::Game::walls`]—. Desert Nightmare's maps 4 and 14 and
+/// their night copies have more than a hundred of them.
+pub fn still_wall(e: &schema::Event) -> bool {
+    let pages = &e.pages;
+    !pages.is_empty()
+        && pages.iter().all(|p| {
+            p.layer.to_i32() == LAYER_SAME
+                && p.move_type.to_i32() == 0
+                && p.move_route.move_commands.is_empty()
+                && p.event_commands.iter().all(|c| c.code.to_i32() == 0)
+        })
+        && pages.iter().any(|p| {
+            let f = &p.condition.flags;
+            !(f.switch_a || f.switch_b || f.variable || f.item || f.actor || f.timer || f.timer2)
+        })
 }
 
 /// "This event", in the commands that name one.
@@ -177,18 +219,20 @@ const TRIGGER_PARALLEL: i32 = 4;
 /// are grids of invisible signs on that layer, two hundred the same
 /// message, and before that they were left out by the hundred.
 fn can_be_twin(e: &schema::Event, named: &BTreeSet<i32>) -> bool {
-    matches!(loss(e, named), Loss::Wall | Loss::Pages | Loss::Exit)
-        && e.pages.iter().all(|p| {
-            p.character_name.is_empty()
-                && p.character_index == 0
-                && p.move_type.to_i32() == 0
-                && p.move_route.move_commands.is_empty()
-                && !matches!(p.trigger.to_i32(), TRIGGER_AUTOSTART | TRIGGER_PARALLEL)
-                && p.event_commands.iter().all(|c| {
-                    c.code.to_i32() != ERASE_EVENT
-                        && !names(c.code.to_i32(), &c.parameters).contains(&THIS_EVENT)
-                })
-        })
+    matches!(
+        loss(e, named),
+        Loss::Wall | Loss::StillWall | Loss::Pages | Loss::Exit
+    ) && e.pages.iter().all(|p| {
+        p.character_name.is_empty()
+            && p.character_index == 0
+            && p.move_type.to_i32() == 0
+            && p.move_route.move_commands.is_empty()
+            && !matches!(p.trigger.to_i32(), TRIGGER_AUTOSTART | TRIGGER_PARALLEL)
+            && p.event_commands.iter().all(|c| {
+                c.code.to_i32() != ERASE_EVENT
+                    && !names(c.code.to_i32(), &c.parameters).contains(&THIS_EVENT)
+            })
+    })
 }
 
 /// The twins: events whose pages are the same as another's —every field
@@ -288,14 +332,25 @@ mod tests {
         assert!(left_out(&events, &BTreeSet::new(), 3).is_empty());
     }
 
+    /// A wall that may stop blocking: a second page, under a switch, below
+    /// the hero.
+    fn conditional(mut e: schema::Event) -> schema::Event {
+        let mut page = e.pages[0].clone();
+        page.id = 2;
+        page.layer = serde_json::from_value(json!(0)).unwrap();
+        page.condition.flags.switch_a = true;
+        e.pages.push(page);
+        e
+    }
+
     #[test]
     fn the_ones_that_do_nothing_go_first_then_looks_walls_and_pages() {
         let events = vec![
             event(1, &[(TELEPORT, vec![1, 2, 3])], "", 0),
             event(2, &[], "Chara1", 0),
             event(3, &[], "", 0),
-            event(4, &[], "", LAYER_SAME),
-            event(5, &[], "Chara1", LAYER_SAME),
+            conditional(event(4, &[], "", LAYER_SAME)),
+            conditional(event(5, &[], "Chara1", LAYER_SAME)),
             event(6, &[(TELEPORT, vec![1, 2, 3])], "", 0),
             event(7, &[], "", 0),
         ];
@@ -318,6 +373,65 @@ mod tests {
             left_out(&events, &named, 5),
             [(3, Loss::Nothing), (7, Loss::Nothing)]
         );
+    }
+
+    #[test]
+    fn a_still_wall_loses_nothing_and_one_that_can_stop_blocking_a_wall() {
+        let wall = |id| event(id, &[], "", LAYER_SAME);
+        let drawn = |id| event(id, &[], "Chara1", LAYER_SAME);
+        let named = BTreeSet::new();
+        assert_eq!(loss(&wall(1), &named), Loss::StillWall);
+        assert_eq!(loss(&drawn(1), &named), Loss::LooksAndStillWall);
+        // Any page can be the active one: one below the hero, under a
+        // switch, is enough to make it a wall that can go away.
+        assert_eq!(loss(&conditional(wall(1)), &named), Loss::Wall);
+        assert_eq!(loss(&conditional(drawn(1)), &named), Loss::LooksAndWall);
+        // Its only page under a switch: with the switch off it is not
+        // there.
+        let mut off = wall(1);
+        off.pages[0].condition.flags.variable = true;
+        assert_eq!(loss(&off, &named), Loss::Wall);
+        // A wall that walks, at random or by a route of its own.
+        let mut walks = wall(1);
+        walks.pages[0].move_type = serde_json::from_value(json!(1)).unwrap();
+        assert_eq!(loss(&walks, &named), Loss::Wall);
+        let mut routed = wall(1);
+        routed.pages[0].move_route.move_commands =
+            serde_json::from_value(json!([{"command_id": 0}])).unwrap();
+        assert_eq!(loss(&routed, &named), Loss::Wall);
+        // Two pages, both walls, one under a switch: still.
+        let mut two = wall(1);
+        let mut second = two.pages[0].clone();
+        second.condition.flags.switch_a = true;
+        two.pages.push(second);
+        assert_eq!(loss(&two, &named), Loss::StillWall);
+        // Named, it can be moved: what it is, it loses all of.
+        assert_eq!(loss(&wall(1), &BTreeSet::from([1])), Loss::Named);
+    }
+
+    #[test]
+    fn a_still_wall_goes_before_a_drawing_and_one_that_can_stop_blocking_after() {
+        // Desert Nightmare's map 14: still walls by the dozen, and four
+        // that a switch takes down. Those are kept while anything else can
+        // go.
+        let events = vec![
+            event(1, &[], "", LAYER_SAME),
+            conditional(event(2, &[], "", LAYER_SAME)),
+            event(3, &[], "Chara1", 0),
+            event(4, &[], "Chara1", LAYER_SAME),
+            event(5, &[(10110, vec![])], "", 0),
+        ];
+        let named = BTreeSet::new();
+        assert_eq!(left_out(&events, &named, 4), [(1, Loss::StillWall)]);
+        assert_eq!(
+            left_out(&events, &named, 2),
+            [
+                (1, Loss::StillWall),
+                (3, Loss::Looks),
+                (4, Loss::LooksAndStillWall)
+            ]
+        );
+        assert_eq!(left_out(&events, &named, 1)[1], (2, Loss::Wall));
     }
 
     #[test]
