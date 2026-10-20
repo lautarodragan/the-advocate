@@ -1035,7 +1035,8 @@ message:
     beq not_victory
     jmp ba_vic_message
 not_victory:
-    jmp ba_message
+    jsl f:ba_message            ; in `FAR3`: see battle_message.s
+    rts
 commands:
     ; The bars: on the command while choosing one or whom it goes to, and on
     ; the actor giving it or the one it goes to.
