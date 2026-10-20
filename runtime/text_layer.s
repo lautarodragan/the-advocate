@@ -49,8 +49,14 @@
 ;   said to what it says in one frame. A pair a row stopped using waits
 ;   until that switch, because the screen still shows it: at the top of
 ;   `TL_FREE`, which the free ones fill from the bottom. A screen that
-;   changes so much at once that the pool runs out switches earlier, with
-;   the rows not typeset yet blank —`tl_blank_dirty`—.
+;   changes so much at once that the pool runs out switches earlier: the
+;   rows not typeset yet keep what they said until their turn, or go blank
+;   if a row took another's tiles since the last switch —`tl_blank_dirty`,
+;   and `tl_step`—.
+; * **A row's head that did not change keeps its tiles**: the runs at the
+;   start of its record that are what the screen shows, if the rest starts
+;   in a column after them —`tl_split`—. The debug screen's ranges, beside
+;   a list that changes whole.
 ; * **A held arrow waits for the text**: its repeat fires only once the
 ;   screen shows what it wrote —`tl_pace`—, so a list held scrolling never
 ;   writes over a screen that was not shown.
@@ -181,7 +187,13 @@ TL_WIN_KEY   = TL_SLOT_K + 2 * TL_SLOTS ; the shop's windows as last uploaded:
 TL_BY_REF    = TL_WIN_KEY + 8   ; nonzero: the next `scr_text` goes by reference
 TL_T_REF     = TL_WIN_KEY + 10  ; nonzero: the run being typeset is one
 TL_REF_AT    = TL_WIN_KEY + 12  ; and where its next letter is, three bytes
-TL_END       = TL_WIN_KEY + 16
+TL_ADOPTED   = TL_WIN_KEY + 16  ; nonzero: a row took another's tiles since
+                                ; the last switch —see `tl_step`—
+TL_SPLIT     = TL_WIN_KEY + 18  ; the row being typeset: its first column
+                                ; composed; the ones before keep their tiles
+TL_SPLIT_AT  = TL_WIN_KEY + 20  ; and its first run composed, a record offset
+TL_REL_FROM  = TL_WIN_KEY + 22  ; `tl_release_cols`: the first column it frees
+TL_END       = TL_WIN_KEY + 24
 ; A run's colour byte with this bit says it goes by reference: three bytes
 ; of address after its count, and no letters.
 TL_REF_BIT   = $80
@@ -335,6 +347,8 @@ records:
     stz TL_PRE
     stz TL_BY_REF
     stz TL_T_REF
+    stz TL_ADOPTED
+    stz TL_SPLIT
     lda #$FFFF
     sta TL_WIN_KEY              ; the shop's windows, not uploaded yet
     sta TL_T_ROW
@@ -1191,6 +1205,7 @@ not_now:
 .a16
     stz TL_MAP_DIRTY
     stz TL_FLUSH
+    stz TL_ADOPTED              ; what the screen shows is what the rows say
     lda #1
     sta TL_SWITCHED             ; `tl_step` clears `TL_NEW` and frees the
                                 ; waiting ones, out of the vblank
@@ -1410,17 +1425,29 @@ chosen:
     jsr tl_adopt                ; A this one, `TL_SRC` the one it copies
     bra busy
 typeset:
-    ; A row takes at most a pair per column. If fewer are free and some
-    ; wait for the switch, the switch goes first; if none wait, what does not
-    ; fit stays blank.
+    ; A row takes at most a pair per column it composes —the ones before
+    ; `TL_SPLIT` keep theirs: see `tl_split`—. If fewer are free and some
+    ; wait for the switch, the switch goes first; if none wait, what does
+    ; not fit stays blank.
     pha
-    lda TL_FREE_N
-    cmp #TL_COLS
-    bcs room
+    jsl f:tl_split
+    lda #TL_COLS
+    sec
+    sbc TL_SPLIT
+    cmp TL_FREE_N
+    beq room
+    bcc room
     lda TL_PEND_N
     beq room
+    ; The switch shows the rows typeset so far, and the others keep showing
+    ; what they said until their turn. Unless a row took another's tiles
+    ; since the last switch: then a row not typeset yet may show what that
+    ; one says now, its neighbour's text, and they go blank first.
     pla
+    lda TL_ADOPTED
+    beq early
     jsl f:tl_blank_dirty
+early:
     lda #1
     sta TL_FLUSH
     bra busy
@@ -1856,6 +1883,7 @@ empty:
     jsr tl_shown_now
     lda #1
     sta TL_MAP_DIRTY
+    sta TL_ADOPTED
     rts
 .endproc
 
@@ -1872,6 +1900,13 @@ empty:
 .proc tl_release_row
 .a16
 .i16
+    stz TL_REL_FROM
+.endproc
+; The same from column `TL_REL_FROM` on: `tl_finish`'s, whose row keeps the
+; tiles of the columns before `TL_SPLIT`. A16.
+.proc tl_release_cols
+.a16
+.i16
     asl a
     asl a
     asl a
@@ -1880,9 +1915,17 @@ empty:
     sta TL_T2                   ; its first cell
     asl a
     sta TL_T3                   ; its first tilemap byte, and its first pair's
-    tay
+    clc
+    adc TL_REL_FROM
+    clc
+    adc TL_REL_FROM
+    tay                         ; the first one it frees
     lda #TL_COLS
+    sec
+    sbc TL_REL_FROM
     sta TL_T1
+    bne column
+    rts
 column:
     lda TL_PAIR, y
     beq empty
@@ -2014,10 +2057,13 @@ copy:
     txa
     clc
     adc #(TL_SHOWN + 1)
-    sta TL_T_POS                ; its first run
     clc
     adc TL_T0
     sta TL_T_END
+    lda TL_SPLIT_AT
+    clc
+    adc #TL_SHOWN
+    sta TL_T_POS                ; its first run composed: see `tl_split`
     stz TL_T_LEFT
     ; The stage, cleared through the WRAM port: a DMA from a fixed zero.
     lda #TL_STAGE
@@ -2350,11 +2396,15 @@ scr_pre_bk:
 .proc tl_finish
 .a16
 .i16
+    lda TL_SPLIT
+    sta TL_REL_FROM
     lda TL_T_ROW
-    jsr tl_release_row          ; leaves its first cell in TL_T2, tilemap TL_T3
+    jsr tl_release_cols         ; leaves its first cell in TL_T2, tilemap TL_T3
     stz TL_UP_N
     stz TL_UP_I
-    ldy #0
+    ldy TL_SPLIT
+    cpy #TL_COLS
+    bcs empty                   ; nothing composed: every column kept
 column:
     lda TL_USED, y
     and #$00FF
@@ -2891,7 +2941,10 @@ out:
 ; already taken another's tiles, and a list that scrolled showed the rows
 ; that came in as copies of their neighbour —taro, 2026-10-18: see
 ; `scrolling-a-list-shows-the-last-row-repeated-for-a-moment` in the
-; tasks—. A blank row is typeset after the switch like any other. A16.
+; tasks—. A blank row is typeset after the switch like any other. Only
+; then, since 2026-10-20: if no row took another's tiles, a row that is not
+; typeset yet shows what it said, which is no other row's, and blanking it
+; was the debug screen's black block —see `tl_step`—. A16.
 .proc tl_blank_dirty
 .a16
 .i16
@@ -2924,4 +2977,203 @@ next:
     bcc row
     rtl
 .endproc
+; Where row A16 starts being composed: `TL_SPLIT`, a column, and
+; `TL_SPLIT_AT`, its first run, an offset of the records. **The runs at the
+; head of its record that are byte for byte what the screen shows keep their
+; tiles**, if every other run, of what the row said and of what it says,
+; starts in a column after the last one they ink; if not, the whole row,
+; column 0. That is how the debug screen's ranges stay on screen while the
+; list beside them changes: a line of the layer is the screen's whole row,
+; its two windows', and composing it again took tiles for text that had not
+; changed —taro saw the ranges drawn again, and a black block over them
+; when the pool ran out: see `the-debug-screen-redraws-and-goes-wide` in
+; the tasks—. A run by reference ends the head: its letters are not in the
+; record to measure. Data bank $7E; clobbers X and Y. A16.
+.proc tl_split
+.a16
+.i16
+    asl a
+    tax
+    lda f:tl_rec_ofs, x
+    tax
+    inc a
+    pha                         ; the record's first run, for `whole`
+    sta TL_SPLIT_AT
+    lda TL_CUR, x
+    and #$00FF
+    clc
+    adc TL_SPLIT_AT
+    sta TL_T0                   ; where what it says ends
+    lda TL_SHOWN, x
+    and #$00FF
+    clc
+    adc TL_SPLIT_AT
+    sta TL_T1                   ; and what it shows
+    stz TL_T2                   ; where the head's ink ends, in pixels
+    ldx TL_SPLIT_AT
+head:
+    cpx TL_T0
+    bcs headed
+    cpx TL_T1
+    bcs headed
+    lda TL_CUR + 1, x
+    and #TL_REF_BIT
+    bne headed
+    lda TL_CUR + 2, x
+    and #$00FF
+    clc
+    adc #3
+    sta TL_T3                   ; the run's bytes
+    ; The same bytes on both sides?
+    phx
+    tay
+    sep #$20
+.a8
+same:
+    lda TL_CUR, x
+    cmp TL_SHOWN, x
+    bne differs
+    inx
+    dey
+    bne same
+    rep #$20
+.a16
+    plx
+    jsr ink
+    bra head
+.a8
+differs:
+    rep #$20
+.a16
+    plx
+headed:
+    ; The first column the head does not ink, and every other run after it.
+    lda TL_T2
+    beq whole
+    clc
+    adc #7
+    lsr a
+    lsr a
+    lsr a
+    sta TL_T3
+    ldx TL_SPLIT_AT
+    lda TL_T0
+    jsr after
+    bcc whole
+    lda TL_SPLIT_AT
+    clc
+    adc #(TL_SHOWN - TL_CUR)
+    tax
+    lda TL_T1
+    clc
+    adc #(TL_SHOWN - TL_CUR)
+    jsr after
+    bcc whole
+    pla
+    lda TL_T3
+    cmp #TL_COLS
+    bcc split
+    lda #TL_COLS
+split:
+    sta TL_SPLIT
+    rtl
+whole:
+    pla
+    sta TL_SPLIT_AT
+    stz TL_SPLIT
+    rtl
+
+; Whether every run from X to A —offsets from `TL_CUR`— starts in column
+; `TL_T3` or after: carry set if so.
+after:
+    sta TL_N
+run:
+    cpx TL_N
+    bcs every
+    lda TL_CUR, x
+    and #$00FF
+    lsr a
+    lsr a
+    lsr a
+    cmp TL_T3
+    bcc before
+    lda TL_CUR + 1, x
+    and #TL_REF_BIT
+    beq copied
+    lda #6                      ; by reference: its address and no letters
+    bra sized
+copied:
+    lda TL_CUR + 2, x
+    and #$00FF
+    clc
+    adc #3
+sized:
+    sta TL_C
+    txa
+    clc
+    adc TL_C
+    tax
+    bra run
+every:
+    sec
+    rts
+before:
+    clc
+    rts
+
+; Run X's ink, as far as it reaches past `TL_T2`, and the head up to its
+; end: X and `TL_SPLIT_AT` after it.
+ink:
+    ; Its ink: from its x, letter by letter, up to the farthest a glyph
+    ; reaches.
+    lda TL_CUR, x
+    and #$00FF
+    sta TL_X
+    lda TL_CUR + 2, x
+    and #$00FF
+    sta TL_N
+    phx
+    inx
+    inx
+    inx
+letter:
+    lda TL_N
+    beq measured
+    dec TL_N
+    lda TL_CUR, x
+    and #$00FF
+    inx
+    cmp #TL_FIGURE
+    bne glyph
+    lda f:font_advance + ('0' - ' ')
+    bra advance
+glyph:
+    phx
+    tax
+    lda f:font_reach, x
+    and #$00FF
+    beq no_ink                  ; a blank paints nothing
+    clc
+    adc TL_X
+    cmp TL_T2
+    bcc no_ink
+    sta TL_T2
+no_ink:
+    lda f:font_advance, x
+    plx
+advance:
+    and #$00FF
+    clc
+    adc TL_X
+    sta TL_X
+    bra letter
+measured:
+    pla
+    clc
+    adc TL_T3
+    tax
+    stx TL_SPLIT_AT             ; the head reaches here so far
+    rts
+.endproc
+.assert TL_SHOWN - TL_CUR = TL_ROWS * TL_RECORD, error, "tl_split reads what the screen shows as TL_CUR past its rows"
 .popseg

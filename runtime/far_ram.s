@@ -213,7 +213,7 @@ ACTOR_GFX_NONE = $FF
 ; `TL_BYTES` is what text_layer.s lays out, written as a number because
 ; the `.res` needs one before the layout exists; text_layer.s asserts that
 ; it is exactly that.
-TL_BYTES = $224A
+TL_BYTES = $2252
 .pushseg
 .segment "FARBSS"
 far_text_layer: .res TL_BYTES
