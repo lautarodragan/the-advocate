@@ -936,6 +936,24 @@ fn without_pose_masks(text: &str) -> String {
 /// two tiles. The maps here have room, so each word is a tile and a
 /// palette; and the made-up window carries three tiles, so the arrow's
 /// over nothing —its tiles 3 and 4— go blank.
+/// Without the common events' small pictures, since 2026-10-20: two
+/// constants at zero and two tables of one byte, in a cartridge without
+/// them. See `picture_common_section` in emit.rs.
+fn without_common_pictures(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    for constant in ["PICTURE_COMMON = 0", "PICTURE_SETS = 0"] {
+        let at = lines.iter().position(|l| *l == constant).expect(constant);
+        lines.remove(at);
+    }
+    for label in ["picture_sets:", "picture_common_maps:"] {
+        let at = lines.iter().position(|l| *l == label).expect(label);
+        assert_eq!(lines[at - 1], ".block 1");
+        assert_eq!(lines[at + 1], "    .byte $00");
+        lines.drain(at - 1..at + 2);
+    }
+    lines.join("\n")
+}
+
 fn without_arrow_objs(text: &str) -> String {
     let mut text = text.to_string();
     let head = "\n.segment \"RODATA\"\n; Where a window without its background draws its arrow";
@@ -1396,7 +1414,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
-                                        &with_the_route_table_as_before(&text),
+                                        &with_the_route_table_as_before(&without_common_pictures(
+                                            &text,
+                                        )),
                                     )),
                                 )),
                             )),
@@ -1431,7 +1451,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                             &with_the_actor_questions_as_before(&without_names(
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
-                                        &with_the_route_table_as_before(&text),
+                                        &with_the_route_table_as_before(&without_common_pictures(
+                                            &text,
+                                        )),
                                     )),
                                 )),
                             )),

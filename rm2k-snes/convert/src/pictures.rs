@@ -785,7 +785,7 @@ pub fn for_map(
     game_dir: &Path,
     keys: &[Value],
     tinted: &[i64],
-    map_id: i32,
+    whose: &str,
     cropped: &Cropped,
 ) -> Result<Option<ForMap>> {
     let mut slots: Vec<i64> = Vec::new();
@@ -803,7 +803,7 @@ pub fn for_map(
         let info = convert(&path, key, cropped.for_console(name))?;
         if !fits(&info) {
             println!(
-                "  map {map_id}: the picture {} is {}x{} on the console: bigger than the plane of objects",
+                "  {whose}: the picture {} is {}x{} on the console: bigger than the plane of objects",
                 crate::text::repr(name),
                 info.width,
                 info.height
@@ -813,7 +813,7 @@ pub fn for_map(
         if !slots.contains(&number) {
             if slots.len() == SLOTS {
                 println!(
-                    "  map {map_id}: the picture {} (number {number}) doesn't go in: the console keeps {SLOTS} at a time",
+                    "  {whose}: the picture {} (number {number}) doesn't go in: the console keeps {SLOTS} at a time",
                     crate::text::repr(name)
                 );
                 continue;

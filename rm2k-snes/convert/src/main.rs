@@ -16,6 +16,7 @@ mod animations;
 mod bytecode;
 mod chipsets;
 mod common_pages;
+mod common_pictures;
 mod compiler;
 mod convert;
 mod degradations;

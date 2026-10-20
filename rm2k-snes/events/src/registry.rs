@@ -451,7 +451,31 @@ pub struct Pictures {
     /// toning its palette, and another picture sharing it would be toned
     /// too.
     pub tinted: Vec<i32>,
+    /// The small pictures of the cartridge's table of the common events
+    /// compiled without a map —see [`CommonPicture`]—: in the registry of a
+    /// body, those of its set. Looked up after the map's own.
+    pub common: Vec<CommonPicture>,
 }
+
+/// A small picture of a common event compiled without a map: an entry of
+/// the cartridge's table of them, which every map shares, so a body
+/// compiled once names it by the same `image` on every map —with bit 7 set,
+/// which no map's own table reaches—, in a `slot` of the top ones. Its
+/// tiles go up to VRAM when it is shown, beside the map's bank, with the
+/// rest of its `set`: the pictures of the common events that can be up
+/// together. See `common_pictures` in rm2k-snes-convert and
+/// `runtime/picture_common.s`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommonPicture {
+    pub key: PictureKey,
+    pub image: u8,
+    pub slot: u8,
+    pub set: usize,
+}
+
+/// The bit of an `OP_PICTURE`'s image that makes it a common event's: see
+/// [`CommonPicture`].
+pub const PICTURE_COMMON: u8 = 0x80;
 
 impl Pictures {
     /// A registry that gathers.
@@ -462,6 +486,21 @@ impl Pictures {
             gathering: true,
             zooms: Vec::new(),
             tinted: Vec::new(),
+            common: Vec::new(),
+        }
+    }
+
+    /// The registry a body of `set` is compiled with: the same but for the
+    /// common pictures, which are only that set's —none without a set—.
+    pub fn of_set(&self, set: Option<usize>) -> Pictures {
+        Pictures {
+            common: self
+                .common
+                .iter()
+                .filter(|c| Some(c.set) == set)
+                .cloned()
+                .collect(),
+            ..self.clone()
         }
     }
 
@@ -475,19 +514,31 @@ impl Pictures {
         self.big.iter().filter(move |b| b.key.number == number)
     }
 
-    /// The image and the slot of `key`, if the map carries it.
+    /// The image and the slot of `key`, if the map carries it, or else if
+    /// it is one of the common pictures.
     pub fn image(&self, key: &PictureKey) -> Option<(u8, u8)> {
         self.table
             .iter()
             .position(|(k, _)| k == key)
             .map(|i| (i as u8, self.table[i].1))
+            .or_else(|| {
+                self.common
+                    .iter()
+                    .find(|c| c.key == *key)
+                    .map(|c| (c.image, c.slot))
+            })
     }
 
-    /// The map's pictures shown under `number`: what a `MovePicture` or an
+    /// The pictures shown under `number`, each with its slot, the map's
+    /// first and then the common ones: what a `MovePicture` or an
     /// `ErasePicture` can be acting on, since in RM2k the number is all that
     /// ties them to their `ShowPicture`.
-    pub fn numbered(&self, number: i32) -> impl Iterator<Item = &(PictureKey, u8)> {
-        self.table.iter().filter(move |(k, _)| k.number == number)
+    pub fn numbered(&self, number: i32) -> impl Iterator<Item = (&PictureKey, u8)> {
+        self.table
+            .iter()
+            .map(|(k, s)| (k, *s))
+            .chain(self.common.iter().map(|c| (&c.key, c.slot)))
+            .filter(move |(k, _)| k.number == number)
     }
 
     /// Gathers `key`, once.

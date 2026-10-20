@@ -85,6 +85,7 @@ palettes:
     stz pic_last
     sep #$20
 .a8
+    jsl f:picc_clear            ; and the common events' set in VRAM
     jsr big_clear               ; and the big one: see big_picture.s
     rtl
 .endproc
@@ -94,6 +95,11 @@ palettes:
 .proc pic_entry
 .a8
 .i16
+    cmp #$80
+    bcc own
+    jsl f:picc_entry            ; a common event's: picture_common.s
+    rts
+own:
     rep #$20
 .a16
     and #$00FF
@@ -213,6 +219,11 @@ placed:
     lda f:picture_data + 5, x
     plx
     sta f:PIC_PAL, x
+    lda f:PIC_IMG, x
+    cmp #$80
+    bcc own
+    jsl f:picc_show             ; a common event's: the map's palette, its set up
+own:
     jsr pic_slot_palette
     ply
     rtl
@@ -1320,6 +1331,14 @@ found:
     rep #$20
 .a16
     lda f:picture_data + 10, x  ; the base tile
+    jsl f:picc_base             ; or the map's for a common event's
+    bcc base
+    sep #$20
+.a8
+    plx                         ; its set is not up yet
+    rts
+.a16
+base:
     pha
     lda f:picture_data + 6, x   ; where its objects are
     pha
