@@ -147,6 +147,8 @@ TL_GG        = TL_VARS + 56     ; one cell's, on both bytes of a word
 TL_SS        = TL_VARS + 58
 TL_KEEP      = TL_VARS + 60
 TL_DONE      = TL_VARS + 62     ; `tl_work`: nothing was left to typeset
+TL_STRIP_OVER = TL_VARS + 64    ; `tl_strip`: the first tile past the free
+                                ; ones, plus one —see `tl_strip_reset`—
 TL_T0        = TL_VARS + 70     ; scratch
 TL_T1        = TL_VARS + 72
 TL_T2        = TL_VARS + 74
@@ -221,9 +223,11 @@ TL_SLOTS     = 8
 .assert SRAM_SLOTS_N <= TL_SLOTS, error, "tl_slot_name keeps a name per slot"
 ; The menu bank's tables in `scr_pre_lo` and `scr_pre_bk`.
 TL_SLOT_PRE  = 16
-; Where the menu bank's strips go: from the first even tile after its own,
-; up to its tilemap.
-TL_STRIP_FIRST = (SLOT_TILES + 1) & $FFFE
+; Where the slot screen's strips go: from the first even tile after the
+; bank, up to its tilemap; or, if the converter put each screen's text
+; apart —`Order::Apart` in `rm2k-snes-screens`—, over the menu's text,
+; which the slot screen does not show, up to its own.
+TL_STRIP_FIRST = (SLOT_NAMES_FIRST + 1) & $FFFE
 ; The menu's and the actor choice's: after the tiles they show, which are
 ; all of them unless the converter put the slot screen's text last to make
 ; room —`Order::MenuFirst` in `rm2k-snes-screens`—. Those screens do not
@@ -2428,10 +2432,12 @@ empty:
 ; A name is **a strip**: composed in the stage, from the menu bank's own
 ; precomposed tables —the font for the layout of its text palette, palette
 ; 0—, and uploaded to tiles of its own, which are taken in order from the
-; bank's free ones, after its tiles and up to its tilemap. Those screens
-; upload their bank whole each time they open —`slot_bank_upload`, which
-; starts the free ones over— and write their names then, with the screen off;
-; the converter measures that the most a screen asks for fits.
+; bank's free ones, after its tiles and up to its tilemap —or over the
+; other screen's text, which this one does not show: see `TL_STRIP_FIRST`—.
+; Those screens upload their bank whole each time they open
+; —`slot_bank_upload`, which starts the free ones over, and puts back the
+; text the other one composed over— and write their names then, with the
+; screen off; the converter measures that the most a screen asks for fits.
 ;
 ; The numbers stay one per cell: the menu rewrites the HP after healing, and
 ; the actor choice the medicine's count, in the vblank and with the screen
@@ -2441,8 +2447,9 @@ empty:
 ; The stage is the text layer's, which those screens do not have on: the
 ; layer stops —`tl_on`— and starts again with the next `tl_reset`.
 
-; The bank's free tiles start over, and the slot screen's names are
-; forgotten. With the bank, from `slot_bank_upload`.
+; The bank's free tiles start over, the slot screen's, and its names are
+; forgotten. With the bank, from `slot_bank_upload`. The end goes in RAM,
+; plus one, because it is the menu's when `tl_strip_menu` comes after.
 .proc tl_strip_reset
 .a8
 .i16
@@ -2451,6 +2458,8 @@ empty:
 .a16
     lda #TL_STRIP_FIRST
     sta TL_STRIP_NEXT
+    lda #(SLOT_NAMES_END + 1)
+    sta TL_STRIP_OVER
     ldx #0
 forget:
     stz TL_SLOT_K, x
@@ -2463,7 +2472,8 @@ forget:
     plb
     rtl
 .endproc
-.assert TL_STRIP_FIRST <= TL_STRIP_LAST, error, "the menu's bank reaches its tilemap"
+.assert TL_STRIP_FIRST <= SLOT_NAMES_END, error, "the slot screen has no tile for its names"
+.assert SLOT_NAMES_END <= TL_STRIP_LAST, error, "the slot screen's names reach the bank's tilemap"
 
 ; The free tiles start over for the menu or the actor choice, after the
 ; tiles they show: right after `slot_bank_upload`. Only in a cartridge whose
@@ -2478,6 +2488,8 @@ forget:
 .a16
     lda #TL_MENU_STRIP_FIRST
     sta TL_STRIP_NEXT
+    lda #(TL_STRIP_LAST + 1)
+    sta TL_STRIP_OVER
     sep #$20
 .a8
     plb
@@ -2572,7 +2584,7 @@ done:
     asl a
     clc
     adc TL_STRIP_NEXT
-    cmp #(TL_STRIP_LAST + 1)
+    cmp TL_STRIP_OVER
     bcs full                    ; the converter measured it does not happen
     lda TL_STRIP_NEXT
     sta TL_STRIP_T

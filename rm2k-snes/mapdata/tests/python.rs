@@ -1135,8 +1135,20 @@ fn without_custom_menus(text: &str) -> String {
 /// The text without `SLOT_MENU_TILES` and its comment, which came after
 /// the Python too, on 2026-10-03: a request without `menu_tiles` says all
 /// of the bank, checked here.
+///
+/// And without `SLOT_NAMES_FIRST` and `SLOT_NAMES_END` and their comment,
+/// which came on 2026-10-20: a request without `slot_names` says after
+/// all of the bank and up to its tilemap, checked here too.
 fn without_menu_tiles(text: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
+    let first = lines
+        .iter()
+        .position(|l| l.starts_with("SLOT_NAMES_FIRST "))
+        .unwrap();
+    let tiles = lines.iter().find(|l| l.starts_with("SLOT_TILES ")).unwrap();
+    assert_eq!(lines[first].split('=').nth(1), tiles.split('=').nth(1));
+    assert_eq!(lines[first + 1], "SLOT_NAMES_END    = 448");
+    lines.drain(first - 4..=first + 1);
     let at = lines
         .iter()
         .position(|l| l.starts_with("SLOT_MENU_TILES "))

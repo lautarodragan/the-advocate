@@ -60,8 +60,14 @@ pub struct Slots {
     pub prerender: Vec<Vec<u8>>,
     /// How many of `tiles`, from the first, the menu and the actor choice
     /// show: their names are composed from the first even tile after
-    /// these. All of them unless the bank went [`Order::MenuFirst`].
+    /// these. All of them unless the bank went [`Order::MenuFirst`] or
+    /// [`Order::Apart`].
     pub menu_tiles: usize,
+    /// Where the slot screen composes its leaders' names: from the first
+    /// even tile at or after `.0`, and up to `.1`, which is not taken.
+    /// After the whole bank, up to its tilemap, unless it went
+    /// [`Order::Apart`]: then over the menu's own text.
+    pub slot_names: (usize, usize),
 }
 
 /// The order the bank gathers its tiles in. The slot screen and the menu
@@ -78,6 +84,15 @@ pub enum Order {
     /// 2026-10-03, for a `[text] letter_spacing` that leaves the bank short:
     /// spaced, the baked text takes more tiles and the names more columns.
     MenuFirst,
+    /// What both screens show first —the glyphs and the faces—, then the
+    /// menu's text, then the slot screen's: the menu composes over the slot
+    /// screen's text and the free tiles, as with `MenuFirst`, and **the
+    /// slot screen over the menu's text**. So the slot screen's text never
+    /// takes a tile of the menu's, even one that is the same: it would be
+    /// overwritten under it. Since 2026-10-20, for ABL's leaders written
+    /// whole: four of them ask for 72 tiles, and after the bank there are
+    /// some fifty.
+    Apart,
 }
 
 /// What each layer drawn is, so the second pass knows where to cut it.
@@ -474,9 +489,19 @@ pub fn slots_screen_with(
         Ok(())
     };
     let slot_only = |kind: &Kind| matches!(kind, Kind::Header(_) | Kind::Row(..));
-    let (before, after): (Vec<_>, Vec<_>) = match order {
-        Order::Drawn => (layers.iter().collect(), Vec::new()),
-        Order::MenuFirst => layers.iter().partition(|(kind, _)| !slot_only(kind)),
+    let both = |kind: &Kind| matches!(kind, Kind::Glyph(_));
+    // `before` goes ahead of the faces, `menu_text` and `after` behind them.
+    let (before, menu_text, after): (Vec<_>, Vec<_>, Vec<_>) = match order {
+        Order::Drawn => (layers.iter().collect(), Vec::new(), Vec::new()),
+        Order::MenuFirst => {
+            let (menu, slot) = layers.iter().partition(|(kind, _)| !slot_only(kind));
+            (menu, Vec::new(), slot)
+        }
+        Order::Apart => {
+            let (shared, rest): (Vec<_>, Vec<_>) = layers.iter().partition(|(kind, _)| both(kind));
+            let (slot, menu) = rest.into_iter().partition(|(kind, _)| slot_only(kind));
+            (shared, menu, slot)
+        }
     };
     for (kind, image) in before {
         place(kind, image, &mut bank, &mut out)?;
@@ -515,10 +540,21 @@ pub fn slots_screen_with(
         )?;
         out.faces.insert(actor, cells);
     }
+    let menu_text_first = bank.len();
+    for (kind, image) in menu_text {
+        place(kind, image, &mut bank, &mut out)?;
+    }
     out.menu_tiles = bank.len();
+    if order == Order::Apart {
+        bank.forget_from(menu_text_first);
+    }
     for (kind, image) in after {
         place(kind, image, &mut bank, &mut out)?;
     }
+    out.slot_names = match order {
+        Order::Apart => (menu_text_first, out.menu_tiles),
+        Order::Drawn | Order::MenuFirst => (bank.len(), SLOT_TILES_MAX),
+    };
     out.tiles = bank.tiles;
     out.palettes = palettes;
     out.prerender = prerender;

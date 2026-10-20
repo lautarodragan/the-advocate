@@ -47,6 +47,12 @@
 //! moved with the windows' tiles, `shop_border`: without it, it is the old
 //! one. The party's own answer —`shop_party`— is taken out before hashing,
 //! like the battle's windows.
+//!
+//! On 2026-10-20 the slot screen's text went from x 56 to x 8, as RPG_RT
+//! writes it, and with it the leader's name from seven cells to thirteen:
+//! the `slots` hash moved, and drawn side by side with the old one only
+//! the text moved left, and a name longer than seven letters shows more of
+//! itself.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -195,22 +201,26 @@ fn everything_a_cartridge_carries() {
     // System's cursors on the menu's commands and on the slots: the bank
     // lost the ">" and the rows with it, which renumbers its tiles, the
     // commands moved two cells left, and the actor choice's tiles carry the
-    // two cursors. What it held before is 7d0558e6…5967; this one is the
-    // answer of that change, looked at in its screens' renders below and in
-    // ABL's goldens.
+    // two cursors. What it held before is 7d0558e6…5967. **Until
+    // 2026-10-20**, the slot screen's text from x 56: it went to x 8, as
+    // RPG_RT writes it, and the leader's name got thirteen cells instead of
+    // seven, so the slots' tiles moved and the answer says where their
+    // names go, `slot_names`. What it held before is b3f8812b…f645; this
+    // one is the answer of that change, looked at in the slot screen's
+    // render below and in ABL's goldens.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "b3f8812b3cb837455ccfd5ad8de9650a056a6c7d7d1292da2f0db70dcfcbf645"
+        "80b161ce9b2ee608c2be404d256a46021b1816e050a6796166ed6841dcea6df4"
     );
     assert_eq!(
         answer["says"],
         serde_json::json!([
             "  menu bank: 238 tiles of 448; the composed names ask for 62 of the 210 the menu leaves \
-             and 48 of the 210 the slot screen does",
+             and 80 of the 210 the slot screen does",
             "  WARNING, 1 actor names in the menu don't fit in 13 cells (104 px) and are cut: \
              \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
-            "  WARNING, 1 leader names in the slot screen don't fit in 7 cells (56 px) and are cut: \
-             \"Bobby-Longname\" 84 px, shows \"Bobby-L\"",
+            "  WARNING, 1 leader names in the slot screen don't fit in 13 cells (104 px) and are cut: \
+             \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
             "  WARNING, 1 medicine names in the actor choice don't fit in two lines of 11 cells and \
              are cut: \"Hi-Potion Deluxe Extra\" 132 px, shows \"Hi-Potion / Deluxe\"",
             "  shop text: its lists ask for 127 pairs of tiles at most, of the 191 of the pool",
@@ -450,7 +460,7 @@ fn the_screens_as_the_console_shows_them() {
             &levels,
         )
         .unwrap(),
-        "9f86cbe89c8c0de62efe8963d13f919d4923aa01201de7c64d3a380ed93a8e85",
+        "ab32f9e15ce795267ebee4337f293fd962f7dad7d2f47384c5cdfe66b4e35b78",
     );
     let worn = [6, 8, 0, 10, 0];
     check(

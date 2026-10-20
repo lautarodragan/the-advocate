@@ -154,6 +154,14 @@ impl Bank {
         self.tiles.len()
     }
 
+    /// From here on no tile is taken from those from `first` up: a cell
+    /// equal to one of them is added again. For a part of the bank a screen
+    /// overwrites —see `Order::Apart` in `slots`—, which the blocks of that
+    /// screen must not point into.
+    pub fn forget_from(&mut self, first: usize) {
+        self.offset.retain(|_, at| *at < first);
+    }
+
     pub fn is_empty(&self) -> bool {
         self.tiles.is_empty()
     }

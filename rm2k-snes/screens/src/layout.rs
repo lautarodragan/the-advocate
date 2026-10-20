@@ -48,8 +48,13 @@ pub const SLOT_Y: usize = 24;
 pub const SLOT_STEP: usize = 48;
 /// The 8 px cells each row takes.
 pub const SLOT_ROWS: usize = 6;
-/// Where the text starts.
-pub const SLOT_X: usize = 56;
+/// Where the text starts: eight pixels from the left edge, as RPG_RT
+/// writes "File 1" and the leader's name, which leaves the name the
+/// thirteen cells up to the first face —`Window_SaveFile` leaves it 88
+/// pixels, up to its faces at 92—. Until 2026-10-20 it was 56, from when
+/// the cursor was a ">" baked to the left of the text: the name had seven
+/// cells, and "Royal Dalia" showed as "Royal D".
+pub const SLOT_X: usize = 8;
 /// The slot cursor: `Window_SaveFile`'s, only over "File N", from four
 /// pixels left of the text and one line tall; its width is the file term's,
 /// two and a half spaces and eight more —see `slot_bar` in `borders`—.
@@ -77,6 +82,9 @@ pub const FACES_MAX: usize = 3;
 /// The leader's name, on the second line: from the text to the first face.
 pub const NAME_COL: usize = SLOT_X / CELL;
 pub const NAME_COLS: usize = FACE_COL - NAME_COL;
+// The slot screen reads the leader's name from the row the menu keeps for
+// it, `MENU_NAME_COLS` letters: a wider field would show the row cut.
+const _: () = assert!(NAME_COLS <= MENU_NAME_COLS);
 pub const NAME_ROW: usize = LINE / CELL;
 /// The third line, the level: the two digits after the level term, which
 /// is baked because it is the same for everyone. The number starts in the
