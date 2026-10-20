@@ -31,9 +31,9 @@ fn common(c: clap::Command) -> clap::Command {
             .long("project")
             .value_name("DIRECTORY")
             .help(
-            "the game's directory, where its rm2k-snes.toml is; without this, it is looked for \
+                "the game's directory, where its advocate.toml is; without this, it is looked for \
          from the current directory upwards",
-        ),
+            ),
     );
     for arg in environment::arguments(crate::options::MACHINE) {
         c = c.arg(arg);

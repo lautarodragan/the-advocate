@@ -52,7 +52,7 @@ fn the_project_is_found_from_below() {
 fn a_directory_without_the_file_says_what_project_means() {
     let root = scratch("without_the_file");
     let error = Project::open(&root).unwrap_err().to_string();
-    assert!(error.contains("has no rm2k-snes.toml"), "{error}");
+    assert!(error.contains("has no advocate.toml"), "{error}");
     assert!(error.contains("--project is the directory"), "{error}");
 }
 
@@ -62,7 +62,7 @@ fn a_missing_key_is_named_up_to_where_it_is_missing() {
     let error = p.int(&["cartridges", "release", "start_map"]).unwrap_err();
     assert_eq!(
         error.to_string(),
-        "/games/one/rm2k-snes.toml: missing key cartridges"
+        "/games/one/advocate.toml: missing key cartridges"
     );
     let error = p.string(&["rom", "nombre"]).unwrap_err();
     assert!(error.to_string().ends_with("missing key rom.nombre"));
@@ -205,7 +205,7 @@ fn a_version_is_the_hash_of_its_files_in_order() {
 #[test]
 fn resolved_has_the_paths_the_suite_and_every_setting_in_order() {
     let out = rm2k_project::resolved(&project()).unwrap();
-    assert_eq!(out["project"]["file"], "/games/one/rm2k-snes.toml");
+    assert_eq!(out["project"]["file"], "/games/one/advocate.toml");
     assert_eq!(out["project"]["build"], "/games/out");
     assert_eq!(
         out["project"]["manual_patches"],
@@ -269,5 +269,5 @@ fn the_binary_prints_it_and_fails_with_the_librarys_message() {
     assert!(!done.status.success());
     let error = String::from_utf8_lossy(&done.stderr);
     assert!(error.starts_with("rm2k-snes-project: "), "{error}");
-    assert!(error.contains("has no rm2k-snes.toml"), "{error}");
+    assert!(error.contains("has no advocate.toml"), "{error}");
 }

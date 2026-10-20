@@ -4,7 +4,7 @@
 //!
 //! * **Which game is being built**: [`Project`]. The tools do not know where
 //!   any game lives; they find it the way cargo finds its `Cargo.toml`, by
-//!   looking for `rm2k-snes.toml` from the current directory upwards, or they
+//!   looking for `advocate.toml` from the current directory upwards, or they
 //!   are told with `--project`.
 //! * **What the game decided**: the settings in that file, read through
 //!   [`Project`]. A missing key is an error that names the key, never a

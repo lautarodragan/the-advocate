@@ -24,7 +24,7 @@ fn command() -> Command {
             Arg::new("project")
                 .long("project")
                 .value_name("DIRECTORY")
-                .help("the directory where rm2k-snes.toml is. Without this, it is looked up from the current directory upwards"),
+                .help("the directory where advocate.toml is. Without this, it is looked up from the current directory upwards"),
         )
         .args(arguments(PACKABLE))
         .arg(

@@ -70,7 +70,7 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     fs::create_dir_all(dir.join("patches/manual/maps")).unwrap();
     fs::create_dir_all(dir.join("cases")).unwrap();
     fs::write(
-        dir.join("rm2k-snes.toml"),
+        dir.join("advocate.toml"),
         SETTINGS.replace("{cartridges}", cartridges),
     )
     .unwrap();
@@ -144,9 +144,9 @@ fn the_maps_are_the_rule_the_added_ones_the_debug_map_and_the_test_ones() {
 fn a_game_without_a_debug_map_loads() {
     let dir = game("no-debug-map", RELEASE);
     fs::remove_dir_all(dir.join("patches/manual/maps")).unwrap();
-    let text = fs::read_to_string(dir.join("rm2k-snes.toml")).unwrap();
+    let text = fs::read_to_string(dir.join("advocate.toml")).unwrap();
     fs::write(
-        dir.join("rm2k-snes.toml"),
+        dir.join("advocate.toml"),
         text.replace("debug_map = true", "debug_map = false"),
     )
     .unwrap();
@@ -154,7 +154,7 @@ fn a_game_without_a_debug_map_loads() {
     assert_eq!(c.debug_map, None);
     assert_eq!(c.game_maps, [1, 2, 4, 6, 7, 20]);
     // With the debug map asked for and none to give, it says so.
-    fs::write(dir.join("rm2k-snes.toml"), text).unwrap();
+    fs::write(dir.join("advocate.toml"), text).unwrap();
     let e = load(&dir)
         .err()
         .expect("debug_map = true without a debug map");
@@ -414,7 +414,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-mapdata")));
     assert!(files.contains(&bin.join("rm2k-snes-patches")));
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
-    assert!(files.contains(&dir.join("rm2k-snes.toml")));
+    assert!(files.contains(&dir.join("advocate.toml")));
     assert!(files.contains(&dir.join("patches/manual/maps/Map1000.json")));
     // And the dump, which `just dump` rewrites when the game changes and
     // which can be edited by hand.

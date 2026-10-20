@@ -8,7 +8,7 @@ use toml::{Table, Value};
 use crate::paths::absolute;
 
 /// The project file's name. A game declares itself by having one at its root.
-pub const FILENAME: &str = "rm2k-snes.toml";
+pub const FILENAME: &str = "advocate.toml";
 
 /// What stops a tool before it does anything: no project, a setting that is
 /// missing or has the wrong type, a machine value nobody passed. What fixes

@@ -82,7 +82,7 @@ struct Where {
     #[arg(long, value_name = "PATH")]
     rtp_dir: Option<PathBuf>,
 
-    /// The directory where rm2k-snes.toml is. Without this, it is looked up
+    /// The directory where advocate.toml is. Without this, it is looked up
     /// from the current directory upwards
     #[arg(long, value_name = "DIRECTORY")]
     project: Option<PathBuf>,
@@ -178,7 +178,7 @@ struct MsuFileArgs {
     /// The .msu
     msu: PathBuf,
 
-    /// The directory where rm2k-snes.toml is, which says the game's signature. Without this,
+    /// The directory where advocate.toml is, which says the game's signature. Without this,
     /// it is looked up from the current directory upwards
     #[arg(long, value_name = "DIRECTORY")]
     project: Option<PathBuf>,

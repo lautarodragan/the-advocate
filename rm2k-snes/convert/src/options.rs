@@ -41,7 +41,7 @@ fn command() -> clap::Command {
                 .long("project")
                 .value_name("DIRECTORY")
                 .help(
-                    "the game's directory, where its rm2k-snes.toml is. Without this, it is \
+                    "the game's directory, where its advocate.toml is. Without this, it is \
                        looked for from the current directory upwards",
                 ),
         );

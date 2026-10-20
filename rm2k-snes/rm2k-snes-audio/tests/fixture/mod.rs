@@ -553,7 +553,7 @@ pub fn write(dir: &Path) -> PathBuf {
         wav(1, 16, 22050, &tone(26000, 150, 9000, 13)),
     )
     .unwrap();
-    std::fs::write(dir.join("project/rm2k-snes.toml"), PROJECT).unwrap();
+    std::fs::write(dir.join("project/advocate.toml"), PROJECT).unwrap();
     std::fs::write(
         dir.join("project/patches/auto/music/ceilings.toml"),
         CEILINGS,

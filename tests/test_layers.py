@@ -72,7 +72,7 @@ def test_the_layers_only_depend_downwards(packages):
 
 
 def test_the_lower_layers_do_not_read_the_project_file():
-    """Knowing `rm2k-snes.toml` is knowing the layer above without depending
+    """Knowing `advocate.toml` is knowing the layer above without depending
     on it: copying its format instead of using `rm2k-project`. Until
     2026-09-29 `rm2k-render` looked for the file itself, to find the dump;
     `cargo metadata` does not see that, a grep does."""
@@ -85,8 +85,8 @@ def test_the_lower_layers_do_not_read_the_project_file():
                     continue
                 path = os.path.join(root, name)
                 with open(path, encoding="utf-8") as handle:
-                    if "rm2k-snes.toml" in handle.read():
+                    if "advocate.toml" in handle.read():
                         found.append(os.path.relpath(path, TOOLS))
     assert not found, (
-        "these name rm2k-snes.toml, which only rm2k-snes/ may know: %s"
+        "these name advocate.toml, which only rm2k-snes/ may know: %s"
         % ", ".join(sorted(found)))

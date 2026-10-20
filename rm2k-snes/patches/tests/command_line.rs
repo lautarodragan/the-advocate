@@ -40,7 +40,7 @@ fn game(name: &str) -> String {
 /// A project whose test maps are `[52]`, with its patches in `patches/`.
 fn project(dir: &Path) {
     std::fs::write(
-        dir.join("rm2k-snes.toml"),
+        dir.join("advocate.toml"),
         "[paths]\npatches = \"patches\"\nbuild = \"build\"\n\n[maps]\ntest = [52]\n",
     )
     .unwrap();
