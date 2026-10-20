@@ -92,6 +92,32 @@ pub const BATTLE_TERMS: [(&str, &str); 29] = [
     ("normal", "normal_status"),
 ];
 
+/// The terms of the lines a skill writes on each target under its using
+/// ones, since 2026-10-20 —see `ba_result` in the runtime's battle.s—: the
+/// failure, by the skill's `failure_message`, and what moved,
+/// `<target> <points> <n><hp_recovery>` and `<target> <attack>
+/// <n><parameter_increase>`. A medicine's recovery line writes the points
+/// with these too: `GetHpSpRecoveredMessage` asks for `health_points` and
+/// `spirit_points`, not the short ones the party's window writes —they
+/// differ in The Book of Three, `H` and `HP`—. They go after every other
+/// text, so the ones before keep their numbers, and **in this order**: the
+/// console adds `failure_message` to `fail_a`'s number and what moved to
+/// `hp_points`'.
+pub const RESULT_TERMS: [(&str, &str); 12] = [
+    ("fail_a", "skill_failure_a"),
+    ("fail_b", "skill_failure_b"),
+    ("fail_c", "skill_failure_c"),
+    ("dodge", "dodge"),
+    ("up", "parameter_increase"),
+    ("down", "parameter_decrease"),
+    ("hp_points", "health_points"),
+    ("sp_points", "spirit_points"),
+    ("atk", "attack"),
+    ("def", "defense"),
+    ("spi", "spirit"),
+    ("agi", "agility"),
+];
+
 /// A term of the database, by liblcf's name.
 fn term(db: &Db, name: &str) -> Result<String> {
     let t = &db.terms;
@@ -126,6 +152,18 @@ fn term(db: &Db, name: &str) -> Result<String> {
         "sp_short" => &t.sp_short,
         "normal_status" => &t.normal_status,
         "lvl_short" => &t.lvl_short,
+        "skill_failure_a" => &t.skill_failure_a,
+        "skill_failure_b" => &t.skill_failure_b,
+        "skill_failure_c" => &t.skill_failure_c,
+        "dodge" => &t.dodge,
+        "parameter_increase" => &t.parameter_increase,
+        "parameter_decrease" => &t.parameter_decrease,
+        "health_points" => &t.health_points,
+        "spirit_points" => &t.spirit_points,
+        "attack" => &t.attack,
+        "defense" => &t.defense,
+        "spirit" => &t.spirit,
+        "agility" => &t.agility,
         _ => return Err(Bad::usage(format!("there is no term {name:?}"))),
     }
     .clone())
@@ -141,9 +179,10 @@ fn term(db: &Db, name: &str) -> Result<String> {
 /// Windows-1252, and the console wrote `Kazar 3'I?_???[?W…` until
 /// 2026-10-19. The console fights with the 2000 battle, which writes them.
 /// Each goes after a name, as `<who><attacking>`, `<target>
-/// <n><actor_damaged>`, `<who> <item><use_item>` and `<target> HP
-/// <n><hp_recovery>` —see `ba_message` in the runtime's battle.s—.
-pub const UNSHOWN_IN_2003: [(&str, &str); 9] = [
+/// <n><actor_damaged>`, `<who> <item><use_item>`, `<target> HP
+/// <n><hp_recovery>`, `<target><skill_failure_a>` and `<target> Attack
+/// <n><parameter_increase>` —see `ba_message` in the runtime's battle.s—.
+pub const UNSHOWN_IN_2003: [(&str, &str); 15] = [
     ("attacking", " attacks!"),
     ("defending", " defends."),
     ("actor_critical", " A critical hit!"),
@@ -153,6 +192,12 @@ pub const UNSHOWN_IN_2003: [(&str, &str); 9] = [
     ("actor_undamaged", " takes no damage."),
     ("use_item", " used."),
     ("hp_recovery", " recovered."),
+    ("skill_failure_a", " is not affected."),
+    ("skill_failure_b", " is not affected."),
+    ("skill_failure_c", " is not affected."),
+    ("dodge", " dodges the attack."),
+    ("parameter_increase", " up."),
+    ("parameter_decrease", " down."),
 ];
 
 /// A battle term as the battle writes it: the project's `[battle.terms]`
@@ -178,7 +223,8 @@ const FROM_THE_MODEL: [&str; 4] = ["attack", "defend", "escape", "victory"];
 fn check_battle_terms(r: &Emit) -> Result<()> {
     let given = BATTLE_TERMS
         .iter()
-        .filter(|(short, _)| !FROM_THE_MODEL.contains(short));
+        .filter(|(short, _)| !FROM_THE_MODEL.contains(short))
+        .chain(RESULT_TERMS.iter());
     for name in r.battle_terms.keys() {
         if !given.clone().any(|(_, liblcf)| liblcf == name) {
             return Err(Bad::usage(format!(
@@ -2410,6 +2456,14 @@ impl Rest<'_> {
         // conditions', for the same reason they go last.
         let level_text = texts.add(&term(db, "lvl_short")?);
         out.push_str(&format!("SK_TXT_LEVEL = {level_text}\n"));
+        // And the terms of a skill's result lines, since 2026-10-20: after
+        // that, for the same reason, and one after the other —see
+        // `RESULT_TERMS`—.
+        for (name, liblcf) in RESULT_TERMS {
+            let value = battle_term(&self.r.battle_terms, db, liblcf)?;
+            let k = texts.add(&plain(&value));
+            out.push_str(&pyf!("BA_TXT_%-11s= %d\n", name.to_uppercase(), k));
+        }
         let item_texts = if texts.data.is_empty() {
             vec![0]
         } else {
@@ -3563,6 +3617,14 @@ impl Rest<'_> {
         );
         bytes_asm(out, "skill_var", &per_skill(&|s| s.variance.into())?, true);
         bytes_asm(out, "skill_hit", &per_skill(&|s| s.hit.into())?, true);
+        // Which failure it says when it did nothing, 0 to 3: `skill_failure_a`
+        // to `_c` and `dodge`, the order of `RESULT_TERMS`. Since 2026-10-20.
+        bytes_asm(
+            out,
+            "skill_fail",
+            &per_skill(&|s| s.failure_message.clamp(0, 3).into())?,
+            true,
+        );
         // What it touches, one bit each in the order `Skill::vExecute` looks
         // at them; bit 6 whether it targets enemies, 7 whether it ignores
         // defense.
@@ -4652,7 +4714,13 @@ mod tests {
             "\u{a1}Victoria!"
         );
         for (name, stand_in) in UNSHOWN_IN_2003 {
-            assert!(BATTLE_TERMS.iter().any(|(_, l)| *l == name), "{name}");
+            assert!(
+                BATTLE_TERMS
+                    .iter()
+                    .chain(RESULT_TERMS.iter())
+                    .any(|(_, l)| *l == name),
+                "{name}"
+            );
             assert!(stand_in.chars().all(|c| (' '..='~').contains(&c)), "{name}");
         }
     }

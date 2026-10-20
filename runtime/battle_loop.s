@@ -491,6 +491,19 @@ no_page:
 .proc ba_execute
 .a8
 .i16
+    ; A skill's results, one message each under its using lines, which
+    ; `Scene_Battle_Rpg2k` pushes and pops one after another
+    ; —`battle_action_results_index`—: see `ba_res_add` in battle_skills.s.
+    ; The message's type is still the skill's or the item's.
+    lda .loword(ba_res_i)
+    cmp .loword(ba_res_n)
+    bcs no_result
+    inc a
+    sta .loword(ba_res_i)
+    sta .loword(ba_res_show)
+    jmp ba_show
+no_result:
+    stz .loword(ba_res_show)
     ; An item that recovered HP and SP still has its SP line to show, in the
     ; place of the HP one: `ProcessBattleActionParamEffects` writes one
     ; result after the other, and the action is not over until the last.
@@ -629,8 +642,8 @@ uses_one_skill:
     jsr ba_skill_use
     ; A special item's says the item's line and not the skill's:
     ; `Skill::GetStartMessage` with an item whose `using_message` is 0, which
-    ; is `GetItemStartMessage2k`, the same first line as a medicine's. And
-    ; nothing after it, as a skill's here.
+    ; is `GetItemStartMessage2k`, the same first line as a medicine's. Its
+    ; results come after it, as a skill's: see `ba_execute`.
     lda BA_MWHO
     cmp #BA_PARTY_MAX
     bcs as_skill
