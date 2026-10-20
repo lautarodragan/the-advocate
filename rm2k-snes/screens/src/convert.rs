@@ -54,6 +54,10 @@ pub struct Request {
     /// actors' text, which the menu and the slot screen show when the actor
     /// carries it. See the runtime's `actor_names.s`.
     pub names: Vec<(i32, String)>,
+    /// Whether the cartridge carries the debug screen —the project's
+    /// `[debug] debug_screen`—: one more option of the pause menu, and its
+    /// windows and names. See `debug_screen`.
+    pub debug: bool,
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -544,7 +548,12 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         }
     }
     let menus = crate::custom_menu::read_all(game, &request.menus)?;
-    let labels: Vec<String> = menus.iter().map(|m| m.label.clone()).collect();
+    let mut labels: Vec<String> = menus.iter().map(|m| m.label.clone()).collect();
+    // The debug screen's option goes after the custom menus', as one more
+    // command: see `menu_rows_build` in the runtime.
+    if request.debug {
+        labels.push(crate::debug_screen::LABEL.to_string());
+    }
     for label in &labels {
         let taken = game.font.width(label);
         if taken > MENU_OPT_COLS * crate::cells::CELL {
@@ -875,6 +884,13 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         says.extend(built.says.iter().cloned());
         crate::custom_menu::to_json(&built)
     };
+    let debug_screen = if request.debug {
+        let built = crate::debug_screen::build(game, &skin, &request.menu_context.variables)?;
+        says.extend(built.says.iter().cloned());
+        crate::debug_screen::to_json(&built)
+    } else {
+        Value::Null
+    };
     let menu = &slots.menu;
     let gold = message_window::gold(&skin, &window, &game.font, &game.term("gold")?)?;
     let mut window_json = window_json(&window, &gold);
@@ -889,6 +905,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     window_json["prerender"] = json!(prerender.iter().map(|t| hex(t)).collect::<Vec<_>>());
     Ok(json!({
         "custom_menus": custom_menus,
+        "debug_screen": debug_screen,
         "window": window_json,
         "title": title.map(|t| json!({
             "texts": t.texts,

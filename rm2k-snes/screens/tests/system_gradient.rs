@@ -75,6 +75,7 @@ fn request() -> Request {
         menu_context: Default::default(),
         text_rows: None,
         names: Vec::new(),
+        debug: false,
     }
 }
 

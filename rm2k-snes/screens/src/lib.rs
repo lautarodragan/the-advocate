@@ -23,6 +23,7 @@ pub mod cells;
 pub mod checks;
 pub mod convert;
 pub mod custom_menu;
+pub mod debug_screen;
 pub mod end_game;
 pub mod faces;
 pub mod fail;

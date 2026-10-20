@@ -1023,6 +1023,14 @@ fn without_hero_colors(text: &str) -> String {
 /// The text without the custom menus, which came on 2026-10-04: a request
 /// without them gets the section's empty labels and the pause menu's two
 /// counts, checked here to be those of no menu.
+/// The text without the debug screen's section, which came on 2026-10-20:
+/// a cartridge without it says only that it has none.
+fn without_debug_screen(text: &str) -> String {
+    let section = "\n; --- the debug screen: see debug_screen.s ---\nDEBUG_SCREEN = 0\n";
+    assert!(text.contains(section), "no debug screen section");
+    text.replacen(section, "", 1)
+}
+
 fn without_custom_menus(text: &str) -> String {
     let start = text
         .find("\n; --- the custom menus: see custom_menu.s ---\n")
@@ -1356,7 +1364,7 @@ fn without_attribute_shifts(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_the_cursors_as_before(&emitted.text, "bare");
+    let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "bare"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&text)),
@@ -1391,7 +1399,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_the_cursors_as_before(&emitted.text, "whole");
+    let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "whole"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&text)),

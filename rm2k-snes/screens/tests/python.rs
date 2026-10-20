@@ -120,6 +120,7 @@ fn everything_a_cartridge_carries() {
         menu_context: Default::default(),
         text_rows: None,
         names: Vec::new(),
+        debug: false,
     };
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
@@ -127,6 +128,9 @@ fn everything_a_cartridge_carries() {
     // And without custom menus, what goes of them is their geometry too:
     // they came on 2026-10-04, and the Python never had them.
     answer.as_object_mut().unwrap().remove("custom_menus");
+    // Nor the debug screen, since 2026-10-20: null without `debug`, and the
+    // Python never had it.
+    answer.as_object_mut().unwrap().remove("debug_screen");
     answer.as_object_mut().unwrap().remove("battle_windows");
     // Nor the skills screen, since 2026-10-12.
     answer.as_object_mut().unwrap().remove("skills_screen");
@@ -332,6 +336,7 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         menu_context: Default::default(),
         text_rows: None,
         names: Vec::new(),
+        debug: false,
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
     assert!(

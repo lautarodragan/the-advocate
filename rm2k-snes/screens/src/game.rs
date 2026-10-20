@@ -8,7 +8,7 @@
 
 use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
-use ditto::schema::{Actor, Attribute, Item, Skill, State, System, Terms};
+use ditto::schema::{Actor, Attribute, Item, Skill, State, Switch, System, Terms, Variable};
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::source::find_resource;
 use rm2k_rules::system::{self as system_rules, Background, BACKGROUND, PIECE};
@@ -55,6 +55,10 @@ pub struct Game {
     /// The colour the windows are drawn over instead of the System's own
     /// background —see [`Game::use_window_background`]—: None, the System's.
     pub window_background: Option<[u8; 3]>,
+    /// The database's switches and variables, by number from 1: their
+    /// names, which only the debug screen shows.
+    pub switch_names: Vec<String>,
+    pub variable_names: Vec<String>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -71,6 +75,30 @@ impl Game {
         let skills: Vec<Skill> = dump.section("skills").map_err(answer)?;
         let states: Vec<State> = dump.section("states").map_err(answer)?;
         let attributes: Vec<Attribute> = dump.section("attributes").map_err(answer)?;
+        // Only the debug screen reads them, so a dump without them —the
+        // tests' fixture— is a game without names, not an error.
+        let switches: Vec<Switch> = if dump.has_section("switches") {
+            dump.section("switches").map_err(answer)?
+        } else {
+            Vec::new()
+        };
+        let variables: Vec<Variable> = if dump.has_section("variables") {
+            dump.section("variables").map_err(answer)?
+        } else {
+            Vec::new()
+        };
+        // By number: the list is the database's, 1 to its length, and an id
+        // out of order would put a name on someone else's row.
+        let by_number = |named: Vec<(i32, String)>| -> Vec<String> {
+            let n = named.iter().map(|(id, _)| *id).max().unwrap_or(0).max(0) as usize;
+            let mut out = vec![String::new(); n];
+            for (id, name) in named {
+                if id >= 1 {
+                    out[id as usize - 1] = name;
+                }
+            }
+            out
+        };
         Ok(Game {
             terms: dump.section("terms").map_err(answer)?,
             actors: actors.into_iter().map(|a| (a.id, a)).collect(),
@@ -84,6 +112,8 @@ impl Game {
             rtp_dir: None,
             system_file: None,
             window_background: None,
+            switch_names: by_number(switches.into_iter().map(|s| (s.id, s.name)).collect()),
+            variable_names: by_number(variables.into_iter().map(|v| (v.id, v.name)).collect()),
         })
     }
 

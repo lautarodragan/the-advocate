@@ -356,6 +356,13 @@ impl Dump {
         Ok(serde_json::from_value(join_database(&self.dir.join(DB))?)?)
     }
 
+    /// Whether the dump has the section `name`, as [`Dump::section`] names
+    /// it: for a reader that can do without one an older dump or a fixture
+    /// does not carry.
+    pub fn has_section(&self, name: &str) -> bool {
+        self.dir.join(DB).join(format!("{name}.json")).is_file()
+    }
+
     /// One section of the database, by the name of its field in `Database`
     /// —`actors`, `chipsets`, `system`—, without reading the others: the
     /// battle's tables have no reason to parse every animation.

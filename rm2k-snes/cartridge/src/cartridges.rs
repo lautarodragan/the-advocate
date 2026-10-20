@@ -246,6 +246,8 @@ impl Cartridges {
         }
         // The enemies' HP in battle, in every cartridge.
         let with_enemy_hp = p.boolean(&["debug", "enemy_hp"])?;
+        // And the debug screen in the pause menu, in every cartridge too.
+        let with_debug_screen = p.boolean(&["debug", "debug_screen"])?;
 
         // The tree comes from Ditto's reader, into the schema's types: this
         // crate keeps no model of the dump. A new map's node goes over the
@@ -286,7 +288,7 @@ impl Cartridges {
             .cloned()
             .collect();
         for name in names {
-            let c = cartridges.read_cartridge(&name, with_enemy_hp)?;
+            let c = cartridges.read_cartridge(&name, with_enemy_hp, with_debug_screen)?;
             cartridges.cartridges.push(c);
         }
         if !cartridges
@@ -318,7 +320,12 @@ impl Cartridges {
         }
     }
 
-    fn read_cartridge(&self, name: &str, with_enemy_hp: bool) -> Result<Cartridge, String> {
+    fn read_cartridge(
+        &self,
+        name: &str,
+        with_enemy_hp: bool,
+        with_debug_screen: bool,
+    ) -> Result<Cartridge, String> {
         let p = &self.project;
         let key = |k: &'static str| ["cartridges", name, k];
         let start_map = p.int(&key("start_map"))?;
@@ -376,6 +383,9 @@ impl Cartridges {
         flags.extend(p.strings(&key("flags"))?);
         if with_enemy_hp {
             flags.push("--enemy-hp".to_string());
+        }
+        if with_debug_screen {
+            flags.push("--debug-screen".to_string());
         }
         Ok(Cartridge {
             name: name.to_string(),

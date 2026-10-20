@@ -30,6 +30,7 @@ test = [30]
 [debug]
 debug_map = true
 enemy_hp = true
+debug_screen = true
 
 [cases]
 real_game = "nothing"
@@ -168,7 +169,13 @@ fn a_cartridge_of_one_map_passes_no_maps() {
     let c = load(&game("one-map", &(RELEASE.to_string() + &one))).unwrap();
     assert_eq!(
         c.get("test-small").unwrap().flags,
-        ["--map-id", "6", "--no-title", "--enemy-hp"]
+        [
+            "--map-id",
+            "6",
+            "--no-title",
+            "--enemy-hp",
+            "--debug-screen"
+        ]
     );
 }
 
@@ -194,13 +201,22 @@ fn the_flags_come_out_in_the_usual_order() {
             "--test-graphic",
             "Hero",
             "0",
-            "--enemy-hp"
+            "--enemy-hp",
+            "--debug-screen"
         ]
     );
     let small = c.get("test-small").unwrap();
     assert_eq!(
         small.flags,
-        ["--map-id", "6", "--maps", "1", "--no-title", "--enemy-hp"]
+        [
+            "--map-id",
+            "6",
+            "--maps",
+            "1",
+            "--no-title",
+            "--enemy-hp",
+            "--debug-screen"
+        ]
     );
     assert!(c.without_title("test-small").unwrap());
     assert!(!c.without_title("release").unwrap());

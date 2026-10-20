@@ -120,6 +120,15 @@ fn command() -> clap::Command {
             .help("the battle shows the enemies' HP, which RM2k never shows: for debugging"),
     )
     .arg(
+        Arg::new("debug_screen")
+            .long("debug-screen")
+            .action(ArgAction::SetTrue)
+            .help(
+                "the pause menu opens RM2k's F9 screen, which turns switches on and off and \
+         changes variables: for debugging",
+            ),
+    )
+    .arg(
         Arg::new("no_speed_keys")
             .long("no-speed-keys")
             .action(ArgAction::SetTrue)
@@ -225,6 +234,7 @@ pub struct Options {
     pub measure_headroom: Option<f64>,
     pub msu_everything: bool,
     pub enemy_hp: bool,
+    pub debug_screen: bool,
     pub no_speed_keys: bool,
     pub no_timer: bool,
     pub test_graphic: Option<Vec<(String, i32)>>,
@@ -311,6 +321,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         measure_headroom: matches.get_one::<f64>("measure_headroom").copied(),
         msu_everything: matches.get_flag("msu_everything"),
         enemy_hp: matches.get_flag("enemy_hp"),
+        debug_screen: matches.get_flag("debug_screen"),
         no_speed_keys: matches.get_flag("no_speed_keys"),
         no_timer: matches.get_flag("no_timer"),
         test_graphic,

@@ -39,6 +39,9 @@ excluded_cases = []
 [debug]
 debug_map = false
 enemy_hp = false
+# The pause menu's debug screen, RM2k's F9: off, so that one project of the
+# tools builds without it.
+debug_screen = false
 
 [cases]
 real_game = "nothing"

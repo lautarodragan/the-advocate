@@ -1193,6 +1193,8 @@ pub fn run(options: Options) -> Result<()> {
         // And the names `ChangeHeroName` gives: one more row each of the
         // actors' text.
         "names": indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>(),
+        // And the debug screen, which shows every variable by its slot.
+        "debug": options.debug_screen,
     });
     let screens_answer = screens::convert(
         &game,

@@ -196,6 +196,14 @@ hidden:
     jsr put
     lda #MENU_END
     jsr put
+    ; The debug screen's, the last command and the last row, always shown:
+    ; see debug_screen.s. Last so that no other row moves —the tests walk
+    ; to Save and End Game by rows—, and a cartridge without it assembles
+    ; none of this.
+.if ::DEBUG_SCREEN
+    lda #(MENU_OPTIONS + CM_MENUS)
+    jsr put
+.endif
     tya
     sta f:CM_ROWS
     rtl
@@ -224,11 +232,20 @@ put:
 .endproc
 
 ; The pause menu's custom option A: the menu, and back. The VRAM it
-; overwrote comes back when the pause menu closes —see `menu_screen`—.
+; overwrote comes back when the pause menu closes —see `menu_screen`—. The
+; one after the last menu is the debug screen, when the cartridge has it.
 .proc cm_from_menu
 .a8
 .i16
+.if ::DEBUG_SCREEN
+    cmp #CM_MENUS
+    bne custom
+    jsl f:debug_screen
+    bra dirty
+custom:
+.endif
     jsr cm_screen
+dirty:
     lda #1
     sta f:CM_DIRTY
     rtl

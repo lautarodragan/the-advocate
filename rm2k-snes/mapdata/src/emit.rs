@@ -39,6 +39,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 mod custom_menu;
+mod debug_screen;
 mod header;
 mod skills_screen;
 use header::HEADER;
@@ -765,6 +766,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     custom_menu::section(
         &mut out,
         screens.get("custom_menus").unwrap_or(&Value::Null),
+    )?;
+    debug_screen::section(
+        &mut out,
+        screens.get("debug_screen").unwrap_or(&Value::Null),
     )?;
     skills_screen::section(&mut out, screens)?;
     out.push_str(&per_map.tables);
@@ -2503,6 +2508,10 @@ impl Rest<'_> {
             Some(c) => list_at(c, "labels")?.len() as i64,
             None => 0,
         };
+        // And the debug screen's, after them: one more command, which the
+        // screens stage drew after theirs.
+        let custom_n =
+            custom_n + i64::from(screens.get("debug_screen").is_some_and(|d| !d.is_null()));
         let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS") + custom_n)
             .map(|n| (t.n("MENU_OPT_Y") + n * t.n("MENU_OPT_STEP")).div_euclid(cell))
             .collect();

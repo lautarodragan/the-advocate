@@ -240,6 +240,7 @@ impl Json {
             letters: self.letters()?,
             text_rows: self.text_rows()?,
             names,
+            debug: self.flag("debug", false)?,
             vram: Vram {
                 slot_vram: vram_field("slot_vram")?,
                 slot_map: vram_field("slot_map")?,

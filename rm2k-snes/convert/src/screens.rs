@@ -213,6 +213,11 @@ pub fn convert(
     for key in ["menus", "variables", "before_bodies", "names"] {
         request[key] = menus[key].clone();
     }
+    // And the debug screen, only when the cartridge carries it: a request
+    // without it stays as it was.
+    if menus["debug"].as_bool() == Some(true) {
+        request["debug"] = json!(true);
+    }
     let written = stage::run(BINARY, PROJECT, "convert", &request, &game_flags(game))?;
     stage::json(&written, "screens.json")
 }
