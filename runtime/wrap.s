@@ -81,35 +81,15 @@ WRAP_PX:    .res 2              ; the 16x16 cell `wrap_ptr` points at
 WRAP_PY:    .res 2
 .popseg
 
-; Where the two jumps below go: a jump through a pointer, which has to be in
-; bank 0's RAM. Its fourth byte is there for `stx`'s sixteen bits.
-.pushseg
-.segment "BSS"
-WRAP_JUMP: .res 4
-.popseg
-
 ; A routine of bank 0 that ends in `rts`, called from here: its `rts` goes
-; to `wrap_rtl`, in bank 0, and that `rtl` comes back here. A and Y and the
-; widths in and out as the routine takes and leaves them; X is lost, and
-; none of the three routines called this way takes it.
-;
-; **The jump is through a pointer on purpose**, and so is `RTS0`'s. The
-; linter, goombario, follows a `jml` to its target: here it would walk the
-; routine's `rts` as the way out of the routine that `jsl`'d here, and in
-; `RTS0` the pull of the return address; it does not follow a `jml [abs]`.
-; Its annotations cannot say it instead: one goes on the line it allows, and
-; it reads them in every cartridge, where without a map that loops this file
-; assembles nothing and an annotation that allows nothing is an error.
+; to `wrap_rtl`, in bank 0, and that `rtl` comes back here. A, X and Y and
+; the widths in and out as the routine takes and leaves them.
 .macro CALL0 routine
 .local back
     phk
     per back - 1
     pea .loword(wrap_rtl - 1)
-    ldx #.loword(routine + FAST)
-    stx WRAP_JUMP
-    ldx #^(routine + FAST)
-    stx WRAP_JUMP + 2
-    jml [WRAP_JUMP]
+    jml routine + FAST
 back:
 .endmacro
 
@@ -120,40 +100,27 @@ back:
 ; the `jsl` alone, three bytes of bank 0 fewer than a `bcc` and an `rts`
 ; of its own, in the four that end that way. With A8, and A8 out: `value`,
 ; if given, is what A comes back with; otherwise A is lost. Keeps X and Y.
+; Three `pla` and not `RTS0_16`'s `tcs`: with A8 they cost 12 cycles and
+; 3 bytes, and the `tcs` 15 and 8 with its `rep` and `sep`.
 .macro RTS0 value
-    rep #$20
-.a16
-    tsc
-    clc
-    adc #3
-    tcs                         ; the `jsl`'s three bytes, off
-    lda #.loword(wrap_rts + FAST)
-    sta WRAP_JUMP
-    sep #$20
-.a8
-    lda #^(wrap_rts + FAST)
-    sta WRAP_JUMP + 2
+    pla                         ; the `jsl`'s three bytes, off
+    pla
+    pla
 .ifnblank value
     lda #value
 .endif
-    jml [WRAP_JUMP]
+    jml wrap_rts + FAST
 .endmacro
 
-; The same with A16 in and out, and A lost.
+; The same with A16 in and out, and A lost. With A16 the `tcs` is the cheap
+; one: 9 cycles, where the pulls would need a `sep` and a `rep` for the odd
+; byte, 15.
 .macro RTS0_16
     tsc
     clc
     adc #3
-    tcs
-    lda #.loword(wrap_rts + FAST)
-    sta WRAP_JUMP
-    sep #$20
-.a8
-    lda #^(wrap_rts + FAST)
-    sta WRAP_JUMP + 2
-    rep #$20
-.a16
-    jml [WRAP_JUMP]
+    tcs                         ; the `jsl`'s three bytes, off
+    jml wrap_rts + FAST
 .endmacro
 
 ; --- the map's axes, when it loads --------------------------------------------
