@@ -184,6 +184,56 @@ pub fn skill_command_name(db: &Db, actor: i32) -> Result<String> {
     })
 }
 
+/// The `lcf::rpg::BattleCommand::Type` that does what each of the
+/// console's commands does, in [`crate::screen::BA_COMMANDS`]' order:
+/// attack, skill, defense, item and escape.
+const COMMAND_TYPES: [i32; 5] = [0, 1, 3, 4, 5];
+
+/// What the actor's commands are called, in [`crate::screen::BA_COMMANDS`]'
+/// order —attack, skill, defend, use, escape—, untrimmed.
+///
+/// A 2000 game names them with its terms, the same for everybody except
+/// the skill command, which is [`skill_command_name`]. **A 2003 game names
+/// them with its battle commands**, of which each actor carries a list
+/// —`Game_Actor::GetBattleCommands`, and `GetBattleCommandNames` in
+/// `Scene_Battle_Rpg2k3`, which writes each one's `name`—: its battle never
+/// shows the 2000 terms, so they hold whatever the editor left in them,
+/// Zounds' `command_attack` the Japanese default. Each of the console's
+/// commands takes the name of the first command of the actor's list that
+/// does the same —by `type`—: Kazar's item one is "Tirar-Usar" and Unamë's
+/// "Objeto". One the actor's list lacks takes the database's first of that
+/// type —Zounds' actors escape with a special command, 9, and the escape
+/// is 5, "Escapar"—, and one the database lacks too, the 2000 rule. **The
+/// order and the presence are still the console's**: see "A 2003 game's
+/// battle commands" in the book's divergences.
+pub fn command_names(db: &Db, actor: i32) -> Result<[String; 5]> {
+    let t = &db.terms;
+    let mut names = [
+        t.command_attack.clone(),
+        skill_command_name(db, actor)?,
+        t.command_defend.clone(),
+        t.command_item.clone(),
+        t.battle_escape.clone(),
+    ];
+    if !db.is_2003 {
+        return Ok(names);
+    }
+    let own = &db.actor(actor)?.battle_commands;
+    let first_of = |ty: i32, ids: &mut dyn Iterator<Item = i32>| {
+        ids.filter_map(|id| db.battle_commands.get(&id))
+            .find(|c| c.r#type.to_i32() == ty && !c.name.trim().is_empty())
+            .map(|c| c.name.clone())
+    };
+    for (name, &ty) in names.iter_mut().zip(&COMMAND_TYPES) {
+        let found = first_of(ty, &mut own.iter().copied())
+            .or_else(|| first_of(ty, &mut db.battle_commands.keys().copied()));
+        if let Some(found) = found {
+            *name = found;
+        }
+    }
+    Ok(names)
+}
+
 /// What attacking costs with this equipment: `CalculateWeaponSpCost`, the
 /// weapon's `sp_cost` —only the first slot, and never the armor's, even
 /// if it carries one—.
