@@ -191,6 +191,15 @@ FACE_PLANE_STEP = TEXT_WINDOW_ROWS * 32 - 6 * 32
     sep #$20
 .a8
     bcs none                    ; $FFFF, or a place the cartridge has not
+    ; A face draws the window's background even if `MessageOptions` asked
+    ; for none: its colours are palette 1 on the window's lines, and with
+    ; no background there the map under the window takes them across the
+    ; whole screen —Zounds' ship, map 21, came out in bands—. `msg_place`
+    ; has just left the bit; the composer and `msg_hdma_build` read it
+    ; after this. See "What faces do not model" in the book.
+    lda f:MSG_PLACE
+    and #<~MSG_BARE
+    sta f:MSG_PLACE
     lda f:MSG_FACE_RIGHT
     and #$01
     inc a                       ; 1 left, 2 right
