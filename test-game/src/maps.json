@@ -8,8 +8,9 @@
     {"id": 4, "indentation": 1, "name": "Clearing", "type": "map"},
     {"id": 5, "indentation": 1, "name": "Lantern", "type": "map"},
     {"id": 6, "indentation": 1, "name": "Plain", "type": "map"},
-    {"id": 7, "indentation": 1, "name": "Vast", "type": "map"}
+    {"id": 7, "indentation": 1, "name": "Vast", "type": "map"},
+    {"id": 8, "indentation": 1, "name": "Ring", "type": "map"}
   ],
   "start": {"party_map_id": 1, "party_x": 10, "party_y": 10},
-  "tree_order": [0, 1, 2, 3, 4, 5, 6, 7]
+  "tree_order": [0, 1, 2, 3, 4, 5, 6, 7, 8]
 }

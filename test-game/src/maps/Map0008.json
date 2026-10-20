@@ -1,0 +1,51 @@
+{
+  "chipset_id": 1,
+  "width": 24,
+  "height": 16,
+  "scroll_type": "both",
+  "events": [
+    {
+      "id": 1,
+      "name": "Leftward",
+      "x": 12,
+      "y": 4,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 1,
+          "move_type": "custom",
+          "move_frequency": 6,
+          "layer": "same",
+          "move_route": {
+            "move_commands": [
+              {"command_id": "move_left"}
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Upward",
+      "x": 20,
+      "y": 8,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 3,
+          "move_type": "custom",
+          "move_frequency": 6,
+          "layer": "same",
+          "move_route": {
+            "move_commands": [
+              {"command_id": "walk_everywhere_on"},
+              {"command_id": "move_up"}
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

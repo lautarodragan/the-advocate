@@ -16,7 +16,8 @@ the garden and the showcase, where the console loses colours: a little,
 and too much. They are the book's examples of the lossy optimizations,
 next to RM2k's drawing of the same. And a fourth, the clearing, with no
 events at all, and two big ones: the plain, 200x200, and the vast, too big
-for the console, which leaves it out. And a common event that shows a box with escapes the console
+for the console, which leaves it out. And the ring, which loops on both
+axes, with two walkers that go round it. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
 which it draws or shows plain. And a case that puts six small pictures
