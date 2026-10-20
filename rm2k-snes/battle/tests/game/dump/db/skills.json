@@ -57,7 +57,7 @@
   "ignore_defense": false,
   "magical_rate": 3,
   "name": "Skill number 2",
-  "occasion_battle": false,
+  "occasion_battle": true,
   "occasion_field": true,
   "physical_rate": 0,
   "power": 0,

@@ -1911,6 +1911,14 @@ impl Battle {
                     let Who::Actor(k) = actor else {
                         unreachable!("the party gives the commands")
                     };
+                    // Nor one the battle never lets be chosen: a switch skill
+                    // for the map, grey for everyone —`Algo::IsSkillUsable`—.
+                    if !rules::usable_in_battle(skill) {
+                        return Err(Bad::answer(format!(
+                            "{} cannot use skill {}: it is not usable in battle",
+                            self.actors[k].name, skill.id
+                        )));
+                    }
                     if !rules::weapons_allow(db, skill, &self.actors[k].equipment)? {
                         return Err(Bad::answer(format!(
                             "{} cannot use skill {}: its weapons do not carry its physical attributes",

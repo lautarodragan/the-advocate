@@ -319,6 +319,23 @@ fn without_item_skill(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without `skill_in_battle`, which came on 2026-10-20 with the
+/// switch skills for the map greyed in battle: a byte per skill in its
+/// `.block`, all 1, because every skill the test game's battle carries can
+/// be chosen there —its switch skill has `occasion_battle`—.
+fn without_skill_in_battle(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    let at = lines.iter().position(|l| *l == "skill_in_battle:").unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let bytes = lines[at + 1].trim_start_matches("    .byte ");
+    assert!(
+        bytes.split(", ").all(|b| b == "1"),
+        "a skill the battle greys for everyone: {bytes}"
+    );
+    lines.drain(at - 1..at + 2);
+    lines.join("\n")
+}
+
 /// The shop's party in the screens stage's answer, which came on
 /// 2026-10-15, after the requests were written: no member with a CharSet
 /// and the System's sixteen arrows blank, with its geometry; taken out of
@@ -1367,7 +1384,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "bare"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&without_item_skill(&text)),
+            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(&text))),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(
@@ -1402,7 +1419,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "whole"));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
-            &without_attribute_shifts(&without_item_skill(&text)),
+            &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(&text))),
         )))),
     ));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(

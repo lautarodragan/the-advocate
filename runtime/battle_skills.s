@@ -925,17 +925,21 @@ fits:
     rts
 .endproc
 
-; Whether combatant `BA_ACTOR` can use the `k` in A8: Z=0 if so. It has to
-; pay for it and, an actor's skill with a physical attribute, hold a weapon
-; that carries it —see `ba_weapons_allow`—. **It does not use the flag a
-; `pl*` leaves**: the usual trap. The `k` waits on the stack and not in a
-; `BA_T*`: the list's row keeps where its line starts in `BA_T1` across this.
+; Whether combatant `BA_ACTOR` can use the `k` in A8: Z=0 if so. The battle
+; has to let it be chosen at all —`skill_in_battle`, 0 for a switch skill for
+; the map—, and it has to pay for it and, an actor's skill with a physical
+; attribute, hold a weapon that carries it —see `ba_weapons_allow`—. **It
+; does not use the flag a `pl*` leaves**: the usual trap. The `k` waits on
+; the stack and not in a `BA_T*`: the list's row keeps where its line starts
+; in `BA_T1` across this.
 .proc ba_skill_reaches
 .a8
 .i16
     pha                         ; the k
-    jsr ba_skill_cost
+    jsr ba_skill_cost           ; leaves X on the k's row
     sta BA_T2
+    lda f:skill_in_battle, x    ; `Algo::IsSkillUsable` in battle
+    beq no
     lda BA_ACTOR
     jsr ba_x
     rep #$20

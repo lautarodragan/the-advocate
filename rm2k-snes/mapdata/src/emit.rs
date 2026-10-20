@@ -3532,6 +3532,14 @@ impl Rest<'_> {
             &per_skill(&|s| s.r#type.to_i32().into())?,
             true,
         );
+        // 1 if the battle lets it be chosen, 0 if its list carries it grey
+        // for everyone: `usable_in_battle`, a switch skill for the map.
+        bytes_asm(
+            out,
+            "skill_in_battle",
+            &per_skill(&|s| rm2k_snes_battle::rules::usable_in_battle(s).into())?,
+            true,
+        );
         bytes_asm(
             out,
             "skill_phys",
