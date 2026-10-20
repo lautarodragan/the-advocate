@@ -572,30 +572,31 @@ is_own:
     jmp set                     ; it took one of 0 to 5
 two_voices:
     ; Without them, two voices. Y ends up at 0 for SE_VOICE or at SE2_OFS
-    ; for the other. First the one already playing this same sample —the rain
-    ; triggers again before ending, and this way it does not steal the other
-    ; voice from the thunder—, then a free one, and otherwise the one that
-    ; ends sooner. A pending one is not overwritten if the other one can be:
-    ; nothing of it has played yet.
-    ldy #0
-    lda f:SE_NEW
-    cmp f:sound_table, x
-    bne no_same_7
-    jsr se_busy
-    bne chosen
-no_same_7:
-    ldy #SE2_OFS
-    lda f:SE2_NEW
-    cmp f:sound_table, x
-    bne no_same_6
-    jsr se2_busy
-    bne chosen
-no_same_6:
+    ; for the other. First a free one: a copy of a sound still playing
+    ; overlaps it, as in RM2k, where they add up. Then the one already
+    ; playing this same sample —so a sound that triggers again does not
+    ; steal the other voice from a different one, the opening's rain from
+    ; its thunder—, and otherwise the one that ends sooner. A pending one is
+    ; not overwritten if the other one can be: nothing of it has played yet.
+    ;
+    ; Until 2026-10-20 the same sample went first, free voice or not, and
+    ; the opening's rain —five seconds, again every four, fading in and out
+    ; over a second— cut its own last second every time: the mix dropped
+    ; almost to silence for half a second. Now the copies take turns on
+    ; the two voices, and the thunder lands where one is free.
     ldy #0
     jsr se_busy
     beq chosen
     ldy #SE2_OFS
     jsr se2_busy
+    beq chosen
+    ldy #0                      ; both busy from here on
+    lda f:SE_NEW
+    cmp f:sound_table, x
+    beq chosen
+    ldy #SE2_OFS
+    lda f:SE2_NEW
+    cmp f:sound_table, x
     beq chosen
     ldy #0
     lda f:SE2_PENDING
