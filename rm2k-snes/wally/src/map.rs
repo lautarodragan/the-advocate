@@ -1379,7 +1379,7 @@ fn convert_with(
             "  map {id}: event {} is drawn with someone else's palette, so it isn't baked",
             lent_baked
                 .iter()
-                .map(|e| (e + 1).to_string())
+                .map(|&e| events[e].id.to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         )));
@@ -1417,7 +1417,7 @@ fn convert_with(
             baked.len(),
             baked
                 .keys()
-                .map(|e| (e + 1).to_string())
+                .map(|&e| events[e].id.to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         )));
@@ -1470,7 +1470,7 @@ fn convert_with(
         let text = format!(
             "map {id}: event {}, drawn with tile {}, doesn't fit in the {palette_cap} sprite palettes and \
              isn't drawn",
-            event + 1,
+            events[*event].id,
             tile.get(TILE_PREFIX.len()..).unwrap_or("")
         );
         let stop = changes_graphic(&events[*event]);
