@@ -14,7 +14,7 @@
 
 use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
-use ditto::schema::{Actor, Attribute, Enemy, Item, Skill, State, Terms, Troop};
+use ditto::schema::{Actor, Attribute, Enemy, Item, Skill, State, System, Terms, Troop};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -54,6 +54,11 @@ pub struct Db {
     /// By id, which is also their order: see [`crate::attributes`].
     pub attributes: BTreeMap<i32, Attribute>,
     pub terms: Terms,
+    /// Whether the database is RPG Maker 2003's —`System.ldb_id` 2003—:
+    /// its battle never writes some of the terms the 2000 one does, so
+    /// they are not the game's words. See `battle_term` in the mapdata
+    /// stage's `emit.rs`.
+    pub is_2003: bool,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -98,6 +103,7 @@ impl Db {
                 |a: &Attribute| a.id,
             ),
             terms: dump.section("terms").map_err(answer)?,
+            is_2003: dump.section::<System>("system").map_err(answer)?.ldb_id == 2003,
         })
     }
 

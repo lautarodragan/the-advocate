@@ -294,6 +294,10 @@ pub struct Emit {
     /// for it are a loss. See `arrow_obj` in record.rs.
     #[serde(default)]
     pub gold_maps: Vec<i64>,
+    /// The project's `[battle.terms]`: battle terms by liblcf's name, over
+    /// the database's. See `battle_term` in emit.rs.
+    #[serde(default)]
+    pub battle_terms: std::collections::BTreeMap<String, String>,
     /// The shared common event bodies —the automatic ones and what they
     /// call—, as the compiler answered them, if any.
     #[serde(default)]
