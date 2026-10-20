@@ -181,6 +181,16 @@ fn do_background(args: &Plain) -> Result<()> {
         r.use_transparent_color,
         0,
     );
+    let (drawn, x, y) = match &r.under {
+        None => (drawn, r.x, r.y),
+        Some(under) => background::over_panorama(
+            &drawn,
+            &picture::read_unkeyed(under)?,
+            r.x,
+            r.y,
+            r.rm_screen,
+        ),
+    };
     let screens = show_picture::Screens {
         rm: r.rm_screen,
         console: r.screen,
@@ -191,16 +201,7 @@ fn do_background(args: &Plain) -> Result<()> {
         tiles: r.tiles,
         rows: r.rows,
     };
-    let layer = background::convert(
-        &drawn,
-        r.x,
-        r.y,
-        screens,
-        r.zoom,
-        r.crop,
-        r.for_console,
-        room,
-    )?;
+    let layer = background::convert(&drawn, x, y, screens, r.zoom, r.crop, r.for_console, room)?;
     // The texture, if asked for and the layer leaves room for it; if it
     // does not, the answer says so with a null.
     let texture = match (&layer, r.mode7) {

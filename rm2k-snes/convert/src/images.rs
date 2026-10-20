@@ -95,6 +95,7 @@ pub fn background(
     tiles: i64,
     rows: i64,
     mode7: bool,
+    under: Option<&Path>,
 ) -> Result<Option<Value>> {
     let mut request = json!({
         "file": file(path), "use_transparent_color": use_transparent_color,
@@ -109,6 +110,11 @@ pub fn background(
     }
     if for_console {
         request["for_console"] = json!(true);
+    }
+    // And the panorama under it, for one shown with its holes over a map's
+    // still panorama: see `pictures::still_over`.
+    if let Some(under) = under {
+        request["under"] = json!(file(under));
     }
     // The same for the texture, which only a picture that zooms asks for.
     if mode7 {

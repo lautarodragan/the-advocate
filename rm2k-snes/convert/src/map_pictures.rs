@@ -67,7 +67,7 @@ const EFFECT_WAVE: i32 = 2;
 /// How much of an opaque picture has to be its transparent colour for it
 /// to be part of the map and not a card over it: Sunset's roofs leave 52 to
 /// 99 % of themselves transparent; its test map's card, 0.
-const OPAQUE_HOLES_MIN: f64 = 0.25;
+pub const OPAQUE_HOLES_MIN: f64 = 0.25;
 
 /// One picture of a map, as `wally` draws it: see `map_pictures` in its
 /// request.
@@ -149,6 +149,12 @@ impl MapPictures {
 struct File {
     size: (i32, i32),
     holes: f64,
+}
+
+/// How much of the picture at `path` is its transparent colour, index 0: 0
+/// for one that is not indexed. See [`crate::pictures::still_over`] too.
+pub fn holes(path: &Path) -> Result<f64> {
+    Ok(read_file(path)?.holes)
 }
 
 fn read_file(path: &Path) -> Result<File> {
