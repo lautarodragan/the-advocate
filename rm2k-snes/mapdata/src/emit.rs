@@ -92,6 +92,11 @@ pub const BATTLE_TERMS: [(&str, &str); 29] = [
     ("normal", "normal_status"),
 ];
 
+/// The battle's commands, in the order the console puts them —the screen
+/// geometry's `BA_COMMANDS`—, by the name [`BATTLE_TERMS`] gives the 2000
+/// term of each.
+const BA_COMMAND_TERMS: [&str; 5] = ["attack", "skill", "defend", "use", "escape"];
+
 /// The terms of the lines a skill writes on each target under its using
 /// ones, since 2026-10-20 —see `ba_result` in the runtime's battle.s—: the
 /// failure, by the skill's `failure_message`, and what moved,
@@ -216,8 +221,11 @@ fn battle_term(given: &BTreeMap<String, String>, db: &Db, name: &str) -> Result<
 }
 
 /// The battle terms that come from the battle's model and not from
-/// [`battle_term`]: the three commands, trimmed, and the victory, split.
-const FROM_THE_MODEL: [&str; 4] = ["attack", "defend", "escape", "victory"];
+/// [`battle_term`]: the commands, trimmed and, in a 2003 game, from its
+/// battle commands —see `actor_command_txt`—, and the victory, split. The
+/// skill and item commands joined them on 2026-10-20: until then a project
+/// could give `command_skill` and `command_item`, and no project did.
+const FROM_THE_MODEL: [&str; 6] = ["attack", "defend", "escape", "victory", "use", "skill"];
 
 /// That every term the project gives is one [`battle_term`] answers.
 fn check_battle_terms(r: &Emit) -> Result<()> {
@@ -2602,13 +2610,21 @@ impl Rest<'_> {
             .map(|v| Ok(text(v)?.to_string()))
             .collect::<Result<_>>()?;
         let mut battle_text = None;
+        // The commands' texts the cartridge already has, by what they say:
+        // an actor's command that says the same points to it —see
+        // `actor_command_txt` below—.
+        let mut command_texts: HashMap<String, i64> = HashMap::new();
         for (name, liblcf) in BATTLE_TERMS {
             let value = match name {
                 "attack" | "defend" | "escape" => text_at(mtexts, name)?.to_string(),
                 "victory" => victory[0].clone(),
                 _ => battle_term(&self.r.battle_terms, db, liblcf)?,
             };
-            let k = texts.add(&plain(&value));
+            let value = plain(&value);
+            let k = texts.add(&value);
+            if BA_COMMAND_TERMS.contains(&name) {
+                command_texts.entry(value).or_insert(k);
+            }
             battle_text.get_or_insert(k);
         }
         let battle_text = battle_text.unwrap_or(0);
@@ -2684,7 +2700,10 @@ impl Rest<'_> {
         let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
         for &a in &r.actors {
-            skill_command_text.insert(a, texts.add(text_at(commands, &a.to_string())?));
+            let name = plain(text_at(commands, &a.to_string())?);
+            let k = texts.add(&name);
+            command_texts.entry(name).or_insert(k);
+            skill_command_text.insert(a, k);
         }
         // The conditions' two battle messages, by LDB number —see
         // `battle_states.s`—: the one said while it lasts and the one said
@@ -2718,6 +2737,35 @@ impl Rest<'_> {
             let value = battle_term(&self.r.battle_terms, db, liblcf)?;
             let k = texts.add(&plain(&value));
             out.push_str(&pyf!("BA_TXT_%-11s= %d\n", name.to_uppercase(), k));
+        }
+        // Each actor's commands, as the battle's model names them —a 2003
+        // game's from its battle commands, see `command_names` in
+        // `rm2k-snes-battle`'s rules—: the text the cartridge already has
+        // when it says the same, so a 2000 game adds none, and otherwise a
+        // new one, after every other for the same reason as the result
+        // terms'.
+        let actor_commands = at(mtexts, "commands")?;
+        let mut command_text = HashMap::new();
+        for &a in &r.actors {
+            let mut row = Vec::new();
+            for (slot, name) in list_at(actor_commands, &a.to_string())?.iter().enumerate() {
+                let name = plain(text(name)?);
+                // The skill command is the one `skill_commands` gave this
+                // actor, its own text since before the other four.
+                let own = skill_command_text
+                    .get(&a)
+                    .filter(|_| BA_COMMAND_TERMS[slot] == "skill");
+                let k = match own.or_else(|| command_texts.get(&name)) {
+                    Some(&k) => k,
+                    None => {
+                        let k = texts.add(&name);
+                        command_texts.insert(name, k);
+                        k
+                    }
+                };
+                row.push(k);
+            }
+            command_text.insert(a, row);
         }
         let item_texts = if texts.data.is_empty() {
             vec![0]
@@ -3195,7 +3243,7 @@ impl Rest<'_> {
                 whole_skill_text,
                 skill_msg1_text,
                 skill_msg2_text,
-                skill_command_text,
+                command_text,
                 state_affected_text,
                 state_recovery_text,
                 rom_enemies,
@@ -3231,7 +3279,8 @@ struct ItemTexts<'a> {
     whole_skill_text: HashMap<i64, i64>,
     skill_msg1_text: HashMap<i64, i64>,
     skill_msg2_text: HashMap<i64, i64>,
-    skill_command_text: HashMap<i64, i64>,
+    /// Per actor, its commands' texts, in `BA_COMMANDS`' order.
+    command_text: HashMap<i64, Vec<i64>>,
     state_affected_text: Vec<i64>,
     state_recovery_text: Vec<i64>,
     rom_enemies: Vec<i64>,
@@ -4152,10 +4201,16 @@ impl Rest<'_> {
                 rom_skills.len()
             )));
         }
+        // Five words per actor, its commands' texts —`ba_commands` in the
+        // runtime's battle_skills.s—; `$FFFF` for an actor the cartridge
+        // does not carry.
         words_asm(
             out,
-            "actor_skill_txt",
-            &hex4((0..n_actors).map(|a| x.skill_command_text.get(&a).copied().unwrap_or(0xFFFF))),
+            "actor_command_txt",
+            &hex4((0..n_actors).flat_map(|a| match x.command_text.get(&a) {
+                Some(row) => row.clone(),
+                None => vec![0xFFFF; BA_COMMAND_TERMS.len()],
+            })),
             true,
         );
         // The troops some battle asks for, by their RM2k number, and their
@@ -4815,17 +4870,11 @@ impl Rest<'_> {
             bs.n("BA_SKILL_COST_DIGITS")
         ));
         out.push_str(".segment \"RODATA\"\n");
-        let mut txt = Vec::new();
-        for c in commands {
-            let name = text(c)?;
-            let k = BATTLE_TERMS
-                .iter()
-                .position(|(n, _)| *n == name)
-                .ok_or_else(|| Bad::answer(format!("the battle command {name:?} is not a term")))?;
-            txt.push(x.battle_text + k as i64);
+        if commands.iter().map(text).collect::<Result<Vec<_>>>()? != BA_COMMAND_TERMS {
+            return Err(Bad::answer(format!(
+                "the battle's commands are {commands:?} and `actor_command_txt` has {BA_COMMAND_TERMS:?}"
+            )));
         }
-        // Two bytes: a text index does not fit in one.
-        words_asm(out, "ba_command_txt", &decimal(txt), true);
         let undone: BTreeSet<i64> = ints(bs.v("BA_COMMAND_UNDONE"))?.into_iter().collect();
         bytes_asm(
             out,

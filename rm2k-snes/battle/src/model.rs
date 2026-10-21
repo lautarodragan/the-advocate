@@ -201,7 +201,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             let mut commands = Vec::new();
             let mut known: BTreeMap<i32, BTreeSet<i32>> = BTreeMap::new();
             for &a in &actors {
-                commands.push(strip_name(&rules::skill_command_name(db, a)?));
+                commands.extend(rules::command_names(db, a)?.iter().map(|n| strip_name(n)));
                 known.insert(a, BTreeSet::new());
             }
             for &(a, h) in &pairs {
@@ -356,12 +356,17 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
                    "description": s.description}),
         );
     }
+    // Each actor's commands, as `rules::command_names` names them: the
+    // skill one alone until 2026-10-20, which is why it has its own entry.
     let mut skill_commands = Map::new();
+    let mut actor_commands = Map::new();
     for &a in &actors {
+        let names = rules::command_names(db, a)?.map(|n| screen::command_text(&n));
         skill_commands.insert(
             a.to_string(),
-            json!(screen::command_text(&rules::skill_command_name(db, a)?)),
+            json!(names[screen::BA_COMMAND_SKILL as usize]),
         );
+        actor_commands.insert(a.to_string(), json!(names));
     }
     let mut out = json!({
         "layout": screen::layout(),
@@ -381,6 +386,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             "revived": screen::revived_text(db)?,
             "dead": screen::dead_text(db)?,
             "skill_commands": skill_commands,
+            "commands": actor_commands,
             "enemies": enemy_names,
             "skills": skill_texts,
         },

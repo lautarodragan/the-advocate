@@ -171,7 +171,9 @@ fn every_battle_plays_as_the_pythons() {
 /// dead state's name, which the party's line writes since then, is taken
 /// out.
 ///
-/// Nor did it know special items, which cast their skill since 2026-10-19:
+/// Nor did it know special items, which cast their skill since 2026-10-19,
+/// nor each actor's `commands`, since 2026-10-20, which in this 2000 game
+/// are the terms it answered and are checked against them before going:
 /// the game has none, so their `item_skill` is all zeros and is taken out,
 /// and `item_battle` and `skills` are what the Python answered.
 fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
@@ -196,6 +198,23 @@ fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
     v["layout"] = read("layout-python.json");
     if let Some(texts) = v["texts"].as_object_mut() {
         texts.remove("dead");
+        // Each actor's five commands, since 2026-10-20: in a 2000 game, the
+        // three terms the Python gave, its skill command and the item term.
+        let commands = texts.remove("commands").unwrap_or_default();
+        for (a, five) in commands.as_object().unwrap() {
+            let item = rm2k_snes_battle::screen::command_text(&db.terms.command_item);
+            let expected = [
+                &texts["attack"],
+                &texts["skill_commands"][a],
+                &texts["defend"],
+                &Value::from(item),
+                &texts["escape"],
+            ];
+            assert_eq!(
+                five.as_array().unwrap().iter().collect::<Vec<_>>(),
+                expected
+            );
+        }
     }
     if let Some(all) = v.as_object_mut() {
         let item_skill = all.remove("item_skill").unwrap_or_default();

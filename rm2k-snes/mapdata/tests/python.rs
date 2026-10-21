@@ -260,6 +260,7 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     }
     value["maps"] = maps["maps"].take();
     with_no_item_skills(&mut value["battle_model"]);
+    with_the_actor_commands(&mut value["battle_model"]);
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], cursor);
@@ -294,6 +295,83 @@ fn with_the_system_cursors(screens: &mut serde_json::Value, cursor: usize) {
     screens["target"]["menu_cmd_at"] = serde_json::json!([1, 1, 1, 1]);
     screens["target"]["slot_bar"] = serde_json::json!([2]);
     screens["target"]["slot_bar_at"] = serde_json::json!([3, 1, 6, 1]);
+}
+
+/// The battle model's `commands`, each actor's five, which came on
+/// 2026-10-20: in the test game, a 2000 one, the three terms the model gave,
+/// the actor's skill command and the item term. [`with_the_command_tables_as_before`]
+/// gets the old tables back from them.
+fn with_the_actor_commands(model: &mut serde_json::Value) {
+    let item = db().terms.command_item;
+    let texts = &model["texts"];
+    let commands: serde_json::Map<String, serde_json::Value> = texts["skill_commands"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(a, skill)| {
+            let five = serde_json::json!([
+                texts["attack"],
+                skill,
+                texts["defend"],
+                item,
+                texts["escape"]
+            ]);
+            (a.clone(), five)
+        })
+        .collect();
+    model["texts"]["commands"] = commands.into();
+}
+
+/// The text with the two tables `actor_command_txt` replaced on 2026-10-20
+/// —see [`with_the_actor_commands`]—: `ba_command_txt`, the four fixed
+/// commands' texts by `BA_TXT_BASE`, right after the battle's `RODATA`
+/// opens, and `actor_skill_txt`, each actor's second word. In the test game
+/// every command says what a 2000 term says, so the new table points to
+/// the same texts and no new one is added.
+fn with_the_command_tables_as_before(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines
+        .iter()
+        .position(|l| l == "actor_command_txt:")
+        .unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let words: Vec<String> = lines[at + 1]
+        .trim_start_matches("    .word ")
+        .split(", ")
+        .map(String::from)
+        .collect();
+    assert_eq!(words.len() % 5, 0);
+    let skill: Vec<String> = words.chunks(5).map(|row| row[1].clone()).collect();
+    lines.splice(
+        at - 1..at + 2,
+        [
+            format!(".block {}", 2 * skill.len()),
+            "actor_skill_txt:".to_string(),
+            format!("    .word {}", skill.join(", ")),
+        ],
+    );
+    let base: i64 = lines
+        .iter()
+        .find_map(|l| l.strip_prefix("BA_TXT_BASE       = "))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let terms = rm2k_snes_mapdata::emit::BATTLE_TERMS;
+    let fixed: Vec<String> = ["attack", "skill", "defend", "use", "escape"]
+        .iter()
+        .map(|c| (base + terms.iter().position(|(n, _)| n == c).unwrap() as i64).to_string())
+        .collect();
+    let at = lines.iter().position(|l| l == "ba_command_gray:").unwrap();
+    assert!(lines[at - 2] == ".segment \"RODATA\"" && lines[at - 1].starts_with(".block "));
+    lines.splice(
+        at - 1..at - 1,
+        [
+            format!(".block {}", 2 * fixed.len()),
+            "ba_command_txt:".to_string(),
+            format!("    .word {}", fixed.join(", ")),
+        ],
+    );
+    lines.join("\n")
 }
 
 /// The battle model's `item_skill`, which came on 2026-10-19 with the
@@ -1485,7 +1563,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
-                &with_the_uses_as_before(&without_skill_results(&text)),
+                &with_the_uses_as_before(&without_skill_results(
+                    &with_the_command_tables_as_before(&text),
+                )),
             ))),
         )))),
     ));
@@ -1524,7 +1604,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
-                &with_the_uses_as_before(&without_skill_results(&text)),
+                &with_the_uses_as_before(&without_skill_results(
+                    &with_the_command_tables_as_before(&text),
+                )),
             ))),
         )))),
     ));
@@ -1605,6 +1687,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
         value["scene"]["troops"].as_array_mut().unwrap().push(scene);
     }
     with_no_item_skills(&mut value["battle_model"]);
+    with_the_actor_commands(&mut value["battle_model"]);
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);
@@ -1844,6 +1927,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     }
     value["maps"] = maps["maps"].take();
     with_no_item_skills(&mut value["battle_model"]);
+    with_the_actor_commands(&mut value["battle_model"]);
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);

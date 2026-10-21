@@ -14,7 +14,10 @@
 
 use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
-use ditto::schema::{Actor, Attribute, Enemy, Item, Skill, State, System, Terms, Troop};
+use ditto::schema::{
+    Actor, Attribute, BattleCommand, BattleCommands, Enemy, Item, Skill, State, System, Terms,
+    Troop,
+};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -59,6 +62,11 @@ pub struct Db {
     /// they are not the game's words. See `battle_term` in the mapdata
     /// stage's `emit.rs`.
     pub is_2003: bool,
+    /// RPG Maker 2003's battle commands, by id —`db/battlecommands.json`—,
+    /// which name each actor's commands in its battle: see
+    /// [`crate::rules::command_names`]. Empty in a 2000 game, whose
+    /// database has none.
+    pub battle_commands: BTreeMap<i32, BattleCommand>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -91,6 +99,14 @@ impl Db {
         } else {
             Vec::new()
         };
+        let is_2003 = dump.section::<System>("system").map_err(answer)?.ldb_id == 2003;
+        let battle_commands = if is_2003 {
+            dump.section::<BattleCommands>("battlecommands")
+                .map_err(answer)?
+                .commands
+        } else {
+            Vec::new()
+        };
         Ok(Db {
             actors: by_id(actors, |a| a.id),
             skills: by_id(dump.section("skills").map_err(answer)?, |s: &Skill| s.id),
@@ -103,7 +119,8 @@ impl Db {
                 |a: &Attribute| a.id,
             ),
             terms: dump.section("terms").map_err(answer)?,
-            is_2003: dump.section::<System>("system").map_err(answer)?.ldb_id == 2003,
+            is_2003,
+            battle_commands: by_id(battle_commands, |c: &BattleCommand| c.id),
         })
     }
 

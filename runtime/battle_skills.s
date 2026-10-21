@@ -906,7 +906,7 @@ full:
 ; `FAR_SKILL`, which `ChangeSkills` changes.
 
 ; A8 = the LDB actor number of combatant `BA_ACTOR`. It is what indexes
-; `skill_pair_init`, `skill_pair_n` and `actor_skill_txt`, which are by actor number
+; `skill_pair_init`, `skill_pair_n` and `actor_command_txt`, which are by actor number
 ; and not by place in the party.
 .proc ba_actor_ldb
 .a8
@@ -1296,42 +1296,39 @@ sets_variant:
     sta temp + 1
     lda #BA_COMMAND_CELLS
     sta comp_dup + 3
-    ; **The second command does not say "Tech Skill"**: it says the
-    ; `skill_name` of the actor giving commands —"AgentTrain", "Telepathy",
-    ; "Slicing"—, which is `Game_Actor::GetSkillName`. That is why its text
-    ; comes from `actor_skill_txt`, which is by actor number, and not from
-    ; `ba_command_txt`, which is fixed.
-    lda BA_S0
-    cmp #BA_COMMAND_SKILL
-    beq text_skill
-    ; **Two bytes wide**, like `actor_skill_txt` and `enemy_txt`: a text index
-    ; does not fit in one. With the 29 maps of `abl` the battle texts start at
-    ; 273, so the one-byte table that was here until 2026-09-14 truncated them
-    ; to 17, 18, 19 and 32, which are lines of an item's description: the menu
-    ; drew four long texts, one on top of the other. No cartridge in the test
-    ; suite reaches 256 texts.
-    rep #$20
-.a16
-    lda BA_S0
-    and #$00FF
-    asl a
-    tax
-    lda f:ba_command_txt, x
-    tax
-    bra text_set
-text_skill:
-.a8
-.i16
+    ; **Each actor's commands are its own**, five words per actor in
+    ; `actor_command_txt`, by actor number: the second says the `skill_name`
+    ; of the actor giving commands —"AgentTrain", "Telepathy", "Slicing"—,
+    ; which is `Game_Actor::GetSkillName`, and a 2003 game names all five
+    ; from each actor's battle commands —Zounds' Kazar uses items with
+    ; "Tirar-Usar"—: see `command_names` in rm2k-snes-battle's rules. Until
+    ; 2026-10-20 the other four came from a fixed table.
+    ;
+    ; **Two bytes wide**, like `enemy_txt`: a text index does not fit in
+    ; one. With the 29 maps of `abl` the battle texts start at 273, so the
+    ; one-byte table that was here until 2026-09-14 truncated them to 17, 18,
+    ; 19 and 32, which are lines of an item's description: the menu drew
+    ; four long texts, one on top of the other.
+.assert BA_COMMANDS_N = 5, error, "actor_command_txt has five words per actor: the times ten below"
     jsr ba_actor_ldb
     rep #$20
 .a16
     and #$00FF
     asl a
+    sta BA_T0
+    asl a
+    asl a
+    clc
+    adc BA_T0                   ; the actor times ten: five commands of two
+    sta BA_T0
+    lda BA_S0
+    and #$00FF
+    asl a
+    clc
+    adc BA_T0
     tax
-    lda f:actor_skill_txt, x
+    lda f:actor_command_txt, x
     tax
-text_set:
-.a16
     sep #$20
 .a8
     ; By reference, as everything on a line of the band that comes from the
