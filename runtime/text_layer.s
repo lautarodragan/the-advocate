@@ -2669,7 +2669,7 @@ forget:
     sta TL_STRIP_K
     lda TL_SLOT_T, x
     sta TL_STRIP_T
-    jsr tl_strip_place
+    jsl f:tl_strip_place
     bra done
 compose:
     phx
@@ -2708,8 +2708,8 @@ done:
     bcs full                    ; the converter measured it does not happen
     lda TL_STRIP_NEXT
     sta TL_STRIP_T
-    jsr tl_strip_upload
-    jsr tl_strip_place
+    jsl f:tl_strip_upload
+    jsl f:tl_strip_place
     lda TL_STRIP_K
     asl a
     clc
@@ -2754,7 +2754,7 @@ trim:
     iny
 trimmed:
     sty TL_STRIP_N
-    jsr tl_stage_clear
+    jsl f:tl_stage_clear
     lda #TL_SLOT_PRE
     sta TL_PRE
     stz TL_VAR
@@ -2811,6 +2811,16 @@ done:
     rts
 .endproc
 
+; --- what came after bank 1 filled up ------------------------------------------
+;
+; In `FAR3`, entered with `jsl` and without `+ FAST`, because they did not fit
+; in bank 1 in ABL's MSU test cartridge. They run with the data bank at $7E
+; like the rest.
+.pushseg
+.segment "FAR3"
+; The stage's clear and the strips' uploads, which run with the screen off,
+; moved here from bank 1 on 2026-10-20 to make room for the text layer's
+; wide mode there: entered with `jsl`, they return with `rtl`.
 ; The stage, cleared through the WRAM port: a DMA from a fixed zero. A16.
 .proc tl_stage_clear
 .a16
@@ -2839,7 +2849,7 @@ done:
     sta f:MDMAEN
     rep #$20
 .a16
-    rts
+    rtl
 .endproc
 
 ; The strip's columns, from the stage to its tiles: a column is its upper
@@ -2881,7 +2891,7 @@ done:
     sta f:MDMAEN
     rep #$20
 .a16
-    rts
+    rtl
 .endproc
 
 ; The strip's cells in the tilemap: column c is tiles `TL_STRIP_T` + 2c on
@@ -2905,6 +2915,8 @@ done:
     sta f:VMADDL
     lda TL_STRIP_T
     inc a
+    jsr cells
+    rtl
 cells:
     ora #$2000                  ; the priority: see `slot_tiles`
     ldx TL_STRIP_K
@@ -2919,13 +2931,6 @@ placed:
     rts
 .endproc
 
-; --- what came after bank 1 filled up ------------------------------------------
-;
-; In `FAR3`, entered with `jsl` and without `+ FAST`, because they did not fit
-; in bank 1 in ABL's MSU test cartridge. They run with the data bank at $7E
-; like the rest.
-.pushseg
-.segment "FAR3"
 
 ; More pairs for the pool, right after `tl_reset`: A16 the first, X16 one
 ; past the last, below `TL_PAIRS`. They need not follow the ones `tl_reset`
