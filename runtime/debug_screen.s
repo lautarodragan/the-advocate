@@ -31,12 +31,18 @@
 ; asks the pure parallel common events to run again when it closes
 ; —`compar_owe`—.
 ;
-; **It is the custom menus' full screen**, like the skills screen: the text
-; on BG2 with the text layer from word 0 up to `CM_BG1_MAP`, the windows on
-; BG1 at 8bpp with their tiles from `CM_BG1_VRAM` and their colours from
-; `DBG_CGRAM`, and no objects —`TM` shows BG1 and BG2 only, so the windows'
-; tiles may reach the end of the VRAM—. The map comes back as from a custom
-; menu: `CM_DIRTY`, and `big_back_far` when the pause menu closes.
+; **It is in the console's 512-wide mode**, mode 5, since 2026-10-20 —taro's,
+; so that the switches' names fit—: the text on BG1 with the text layer in
+; its wide mode —`tl_hires`: the font's same pixels, half as wide on
+; screen—, its quads from word 0 up to `CM_BG1_MAP`; the windows on BG2 at
+; 2bpp, each tilemap word a cell 16 pixels wide, with their tiles from
+; `CM_BG1_VRAM` and their colours in the first 32 entries; and no objects
+; —`TM` and `TS` show BG1 and BG2 only, both, which is what shows every
+; pixel of the 512—. The text's inks go after the windows' colours, in
+; palettes 2 and 3: `DBG_WHITE` and `DBG_GREY`. When B leaves, mode 3 and
+; no subscreen again, which is what the pause menu draws in. The map comes
+; back as from a custom menu: `CM_DIRTY`, and `big_back_far` when the pause
+; menu closes.
 ;
 ; The geometry and the data are `rm2k-snes-screens`'s `debug_screen.rs`,
 ; which says how `dbg_data` is laid out. It lives in `FAR3`, entered with
@@ -49,13 +55,24 @@
 .i16
 
 .assert DBG_BORDER_TILES > 0 && DBG_BORDER_COLORS > 0, error, "the debug screen has no windows: a DMA of 0 bytes is 64 KB"
-.assert CM_BG1_VRAM + DBG_BORDER_TILES * 32 <= $8000, error, "the debug screen's windows do not fit in the VRAM"
-.assert DBG_CGRAM + DBG_BORDER_COLORS <= 256, error, "the debug screen's colours do not fit in the colour memory"
+.assert CM_BG1_VRAM + DBG_BORDER_TILES * 8 <= $8000, error, "the debug screen's windows do not fit in the VRAM"
+.assert DBG_CGRAM + DBG_BORDER_COLORS <= 32, error, "the debug screen's colours are not BG2's eight palettes at 2bpp"
 .assert DBG_PAGES > 0, error, "the debug screen has nothing to show"
 
 ; A bar's two cell rows, in bytes, as `dbg_bars` keeps them: the ranges' ten
 ; and then the list's.
 DBG_BAR_BYTES = 2 * 32 * 2
+; The text's colours: `items_cgram`'s two palettes, white and grey, after
+; the windows' eight of four.
+DBG_INKS     = 32
+DBG_WHITE    = DBG_INKS / 16
+DBG_GREY     = DBG_WHITE + 1
+.assert ITEMS_CGRAM_N = 32, error, "the debug screen takes items_cgram's two first palettes as its white and grey"
+; The text's quads: from word 0 up to the windows' tilemap, below the
+; text's own; four tiles each, and a tilemap word names 1024 tiles.
+DBG_QUADS    = CM_BG1_MAP / 64 - 1
+.assert CM_BG1_MAP <= SLOT_MAP, error, "the debug screen's quads reach the text's tilemap"
+.assert DBG_QUADS < TL_PAIRS && 4 * DBG_QUADS + 3 < 1024, error, "the debug screen's quads do not fit the text layer's tables or BG1's tiles"
 ; Two bytes that say the state below is the screen's and not the garbage
 ; WRAM starts with: the page and the cursors are kept from one opening to
 ; the next, as easyrpg-player keeps them.
@@ -284,14 +301,19 @@ changed:
     jmp wait
 .endproc
 
-; What the objects had of the colour memory and of OBSEL, back: the pause
-; menu draws itself again over the rest. `cm_objects_back`, which is in
-; FAR2. Returns from the screen.
+; What the objects had of the colour memory and of OBSEL, back, and the
+; pause menu's mode: the pause menu draws itself again over the rest.
+; `cm_objects_back`, which is in FAR2. Returns from the screen.
 .proc objects_back
 .a8
 .i16
     lda #$80
     sta INIDISP
+    lda #$03                    ; the pause menu's mode, and no subscreen
+    sta BGMODE
+    stz TS
+    lda #0
+    jsl f:tl_hires              ; the strips the menu composes are 256 wide
     ldx map_ofs
     lda f:map_table + M_OBSEL_VALUE, x
     sta OBSEL
@@ -568,7 +590,7 @@ ready:
 ; --- writing ----------------------------------------------------------------
 ;
 ; Through the text layer, as the custom menus write: at `pick_table` —row *
-; 64 + cell * 2— in colour `temp + 1`, 0 white and 1 grey.
+; 64 + cell * 2— in colour `temp + 1`, `DBG_WHITE` or `DBG_GREY`.
 
 ; `pick_table` to row A, cell Y. Keeps X and Y.
 .proc at
@@ -739,7 +761,8 @@ put:
 .a8
 .i16
     jsl f:tl_clear + FAST
-    stz temp + 1                ; white
+    lda #DBG_WHITE
+    sta temp + 1
     lda #0
 range:
     cmp f:DBG_RANGES
@@ -795,7 +818,9 @@ row:
     rts
 row_shown:
     pha
-    stz temp + 1
+    lda #DBG_WHITE
+    sta temp + 1
+    lda 1, s
     asl a
     clc
     adc #DBG_ROW0
@@ -857,8 +882,8 @@ no_name:
     jsr switch_bit
 .a8
     bcs in_table
-    lda #1
-    sta temp + 1                ; grey
+    lda #DBG_GREY
+    sta temp + 1
     bra off
 in_table:
     and f:switches, x
@@ -902,7 +927,7 @@ value:
 not_kept:
     sep #$20
 .a8
-    lda #1
+    lda #DBG_GREY
     sta temp + 1
     lda #('-' - ' ')
     sta f:$7E0000 + TL_DIG
@@ -967,9 +992,9 @@ done:
     rts
 .endproc
 
-; The screen, from nothing, with the screen off: the text layer with the
-; battle's pairs, the inks, the windows' tiles and colours, and the
-; registers. `sk_upload` without the objects, which `TM` does not show.
+; The screen, from nothing, with the screen off: the text layer's blank quad,
+; the inks, the windows' tiles and colours, and the registers of mode 5.
+; `sk_upload` without the objects, which `TM` does not show.
 .proc dbg_upload
 .a8
 .i16
@@ -977,16 +1002,37 @@ done:
     sta INIDISP
     stz HDMAEN
     stz TM
+    stz TS
     jsl f:battle_bank_upload + FAST
+    ; Quad 0, the blank one every cell without text points to: four tiles.
     rep #$20
 .a16
-    lda #(2 * 16 * 2)
-    sta f:DBG_LEN
-    ldx #.loword(item_cgram_uploads)
+    stz VMADDL
+    lda #(2 * TL_PAIR_WORDS * 2)
+    sta DAS0L
+    lda #.loword(tl_zero)
+    sta A1T0L
     sep #$20
 .a8
-    ldy #ITEMS_CGRAM_N
-    lda #^item_cgram_uploads
+    lda #$80
+    sta VMAIN
+    lda #^tl_zero
+    sta A1B0
+    lda #$09                    ; two registers, without advancing the source
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    lda #(ITEMS_CGRAM_N * 2)
+    sta f:DBG_LEN
+    ldx #.loword(items_cgram)
+    sep #$20
+.a8
+    ldy #DBG_INKS
+    lda #^items_cgram
     jsr dma_cgram
     rep #$20
 .a16
@@ -1000,7 +1046,7 @@ done:
     jsr dma_cgram
     rep #$20
 .a16
-    lda #(DBG_BORDER_TILES * 64)
+    lda #(DBG_BORDER_TILES * 16)
     sta f:DBG_LEN
     ldx #.loword(dbg_border_tiles)
     sep #$20
@@ -1008,14 +1054,15 @@ done:
     ldy #CM_BG1_VRAM
     lda #^dbg_border_tiles
     jsr dma_vram
-    ; Mode 3, which the windows' 8bpp tiles need: the pause menu is already
-    ; in it, but `pano_mode3` is what the other screens call.
-    jsl f:pano_mode3
-    lda #(CM_BG1_VRAM / $1000)  ; BG2 from word 0, BG1 from its tiles
+    ; Mode 5: BG1 at 4bpp, the text, and BG2 at 2bpp, the windows, both
+    ; with cells 16 pixels wide.
+    lda #$05
+    sta BGMODE
+    lda #(CM_BG1_VRAM / $1000 * 16) ; BG1 from word 0, BG2 from its tiles
     sta BG12NBA
-    lda #(CM_BG1_MAP / 1024 * 4)
-    sta BG1SC
     lda #(SLOT_MAP / 1024 * 4)
+    sta BG1SC
+    lda #(CM_BG1_MAP / 1024 * 4)
     sta BG2SC
     stz BG1HOFS
     stz BG1HOFS
@@ -1028,6 +1075,7 @@ done:
     sta BG2VOFS
     rts
 .endproc
+.assert CM_BG1_VRAM .mod $1000 = 0, error, "the debug screen's windows are not at a base BG2 can name"
 
 ; The windows, the text composed whole and the bars, with the screen off;
 ; then on.
@@ -1036,11 +1084,13 @@ done:
 .i16
     rep #$20
 .a16
-    lda #CM_TEXT_POOL
+    lda #DBG_QUADS
     jsl f:tl_reset + FAST
     sep #$20
 .a8
     jsl f:tl_low + FAST
+    lda #1
+    jsl f:tl_hires
     rep #$20
 .a16
     lda #(32 * 28 * 2)
@@ -1062,6 +1112,7 @@ done:
     jsl f:tl_work + FAST
     lda #$03
     sta TM
+    sta TS                      ; both screens: each gives half the pixels
     jsl f:ba_t_vblank
     lda #$0F
     sta INIDISP
