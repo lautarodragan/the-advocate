@@ -72,8 +72,8 @@ same_bank:
 .a8
     cmp #MESSAGE_VARIABLE
     beq variable
-    cmp #MESSAGE_WAIT
-    beq wait
+    cmp #MESSAGE_CONTROL
+    beq control
     cmp #MESSAGE_NAME
     beq name
     cmp #MESSAGE_PAIR_FIRST
@@ -97,9 +97,9 @@ same_bank:
 letter:
     rtl
 
-    ; A wait in the middle of the box: see message_waits.s.
-wait:
-    jml f:msg_wait_mark
+    ; A wait, a colour, a speed or the instant text: see message_pace.s.
+control:
+    jml f:msg_control
 
     ; `\N[0]` or the `\N[n]` of a renamed actor: see actor_names.s.
 name:
@@ -189,9 +189,11 @@ no_sign:
 ; event compiler's `messages.rs`, the last of the pair range.
 MESSAGE_VARIABLE = $FF
 
-; The byte that stands for a wait in the middle of a box, `\.`, `\|` or `\!`:
-; `WAIT` in the event compiler's `messages.rs`, the one before `VARIABLE`.
-MESSAGE_WAIT = $FE
+; The byte that stands for an escape done where it is —a wait in the middle
+; of a box, `\.`, `\|` or `\!`; the colour; the speed; the instant text—:
+; `CONTROL` in the event compiler's `messages.rs`, the one before
+; `VARIABLE`.
+MESSAGE_CONTROL = $FE
 
 ; The byte that stands for an actor's name, written when the box opens:
 ; `NAME` in the event compiler's `messages.rs`, the one before `WAIT`.

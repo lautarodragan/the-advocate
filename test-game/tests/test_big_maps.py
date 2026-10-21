@@ -26,7 +26,7 @@ Seen red with the tools before the change: the build stopped at the plain,
 import json
 import os
 
-from game import Session, golden
+from game import MESSAGE_SHOWN, Session, golden
 
 MEADOW, PLAIN, VAST = 1, 6, 7
 AFTER_JUMP = 1403   # the left-out case's last command, after its Teleport
@@ -60,7 +60,10 @@ def test_a_map_too_big_for_wram_is_left_out(core):
             if loss.get("map") == VAST and loss["kind"] == "map-left-out"]
     assert left, "degradations.json does not say the vast was left out"
     assert VAST not in sess.cartridge.maps, "the vast is in the cartridge"
-    sess.until("the box of the missing map", lambda: sess.byte("msg_open"), 600)
+    # Typed whole: a key pressed while a box is typed does nothing, as in RM2k.
+    sess.until("the box of the missing map",
+               lambda: sess.byte("msg_open")
+               and sess.byte("msg_state") == MESSAGE_SHOWN, 600)
     sess.press("a")
     sess.until("with control", sess.has_control, 300)
     assert sess.switch(AFTER_JUMP), "the page did not go on past its Teleport"

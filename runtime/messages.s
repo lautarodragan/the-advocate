@@ -335,8 +335,6 @@ at_pointer:
     ; there would leave the page stuck forever.
     lda #0
     sta f:FAR_MSG_PAUSE         ; `stz` has no long mode
-    sta f:MSG_WAIT_HOLD         ; and no wait in the middle: two bytes, with
-                                ; MSG_WAIT_SKIP. See message_waits.s
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
@@ -399,7 +397,7 @@ msg_start_at = msg_start::at_pointer
 .proc message_tick
 .a8
 .i16
-    jsl f:msg_hold_tick         ; the wait in the middle of a box, if there is one
+    jsl f:msg_pace_tick         ; the box's pace: see message_pace.s
     lda msg_state
     cmp #1
     beq working
@@ -422,8 +420,8 @@ no_upload:
     ; first letter. A pair never crosses the end of a line in a box the
     ; converter wrote, but a broken length —the column cap, below— could
     ; leave one, and the WRAM does not boot at zero. And no digit of a
-    ; variable's value either; and where the line starts is kept, for the
-    ; waits: see `msg_line_start`.
+    ; variable's value either; and the line before ends for the box's pace:
+    ; see `msg_line_start`.
     jsl f:msg_line_start
     lda msg_lines
     and #HEADER_LINES           ; the header also carries the escape queue
@@ -452,16 +450,23 @@ void:
     sta msg_primed
 
 composing:
-    ldx #MSG_CHARS
+    ; One more than `MSG_CHARS`: the budget is `msg_next`'s, which stops the
+    ; loop at the one past it and asks for what was typed then.
+    ldx #MSG_CHARS + 1
 other:
     lda msg_col
     cmp msg_length
     bcs end_line
-    ; The letter, which may be half of a pair: see `msg_letter`.
+    ; The letter, which may be half of a pair: see `msg_letter`, which
+    ; `msg_next` asks at the box's pace —see message_pace.s—, stopping the
+    ; frame with the carry, or ending the line with V when the last thing
+    ; in it was not a letter.
     ; **`MSG_CHARS` counts letters, not bytes**, and so does `msg_length`: a
     ; pair is two passes of this loop, so the text comes out at the same
     ; pace and drawn the same as when each letter was its byte.
-    jsl msg_letter
+    jsl f:msg_next
+    bcs paced
+    bvs other
     rep #$20
 .a16
     and #$00FF
@@ -500,7 +505,7 @@ other:
 .a8
     bcs no_draw
     jsr compose_char
-    jsl f:msg_grey_char         ; an option nobody can pick: gold_window.s
+    jsl f:msg_ink_char          ; its colour, or a greyed option's: gold_window.s
 no_draw:
     ; And the next one starts where this one's advance says: x is
     ; sixteen bits, so a line that grows past the edge does not wrap around
@@ -518,6 +523,7 @@ no_draw:
     plx
     dex
     bne other
+paced:
     rts
 
 end_line:

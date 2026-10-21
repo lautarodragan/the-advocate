@@ -112,14 +112,15 @@ pub struct CannotCompile;
 /// A box without its escape tail: what [`escape_tail`] answers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Untailed {
-    /// The lines, with the waits in the middle as [`wait_mark`]s, a `\\` as
-    /// [`backslash_mark`] and without the escapes in [`Untailed::dropped`].
+    /// The lines, with the waits in the middle, the colour, the speed and
+    /// the instant text as [`Control`] marks, a `\\` as [`backslash_mark`]
+    /// and without the escapes in [`Untailed::dropped`].
     pub lines: Vec<String>,
     /// How many `\|` the tail carries.
     pub pauses: usize,
     /// Whether the box closes on its own: a `\^` in the tail, or anywhere.
     pub auto_close: bool,
-    /// Each escape the console cannot show, as written —`\c[2]`, `\$`, `\>`—,
+    /// Each escape the console cannot show, as written —`\$`, `\_`—,
     /// in the order of the box: they are not in `lines`, and whoever
     /// compiles the box says it lost them.
     pub dropped: Vec<String>,
@@ -131,7 +132,8 @@ pub struct Untailed {
 /// Both tail escapes are taken **as a tail at the end of the box's last
 /// line**, which is where a game puts them; the tail may carry spaces in
 /// between, and it eats them. `\\.`, `\\!` and `\\|` anywhere else are waits
-/// in the middle of the box, and come out as one [`wait_mark`] each; a `\\^`
+/// in the middle of the box, and come out as one [`wait_mark`] each; the
+/// colour, the speed and the instant text are [`Control`] marks too; a `\\^`
 /// anywhere else closes the box on its own all the same, since RPG_RT closes
 /// it at the end of the box and not where the `\\^` is (easyrpg's
 /// `Window_Message`, `kill_page`).
@@ -139,11 +141,12 @@ pub struct Untailed {
 /// **Any other escape is dropped**, with its argument if it takes one, and
 /// listed in [`Untailed::dropped`]: the box compiles without it, and the
 /// event compiler notes each one as a loss, so it is played without the
-/// color, the speed or the gold window and the build says so. taro's, from
+/// gold window or the half space and the build says so. taro's, from
 /// 2026-10-15: a game is played before each escape is done. Until that day
 /// any escape but the tail, the waits, `\c[n]` and `\s[n]` left the page
-/// out. Which ones and what each one loses is in `with_wait_marks`. More
-/// pauses than [`PAUSES_MAX`] is still [`CannotCompile`].
+/// out; until 2026-10-20 the colour, the speed and the instant text were
+/// dropped too. Which ones and what each one loses is in `with_wait_marks`.
+/// More pauses than [`PAUSES_MAX`] is still [`CannotCompile`].
 ///
 /// It is the only copy: the reflow works around it before the event
 /// compiler sees the boxes, and the compiler, `rm2k-snes-events`, cuts the
@@ -249,17 +252,100 @@ pub fn wait_of(c: char) -> Option<char> {
     WAITS.get(i).copied()
 }
 
-/// The line with its wait marks written back as RM2k's escapes: what the
-/// reflow answers, so that a box it rebuilt is RM2k text again and goes
-/// through [`escape_tail`] like any other.
+/// How many text colours a System has: RPG_RT's `\c[n]` takes 0 to 19, and
+/// one past that is colour 0 (easyrpg's `Window_Message::UpdateMessage`).
+pub const COLOURS: u8 = 20;
+
+/// The speeds `\s[n]` takes, clamped as RPG_RT clamps them: 1, the one a box
+/// starts at, to 20.
+pub const SPEED_MIN: u8 = 1;
+pub const SPEED_MAX: u8 = 20;
+
+/// Where the marks of the colour, the speed and the instant text start,
+/// past the waits' and the backslash's: one character each, `+ n` for
+/// colour `n`, `SPEED_MARK + n` for speed `n`, and the instant text's two.
+const COLOUR_MARK: u32 = WAIT_MARK + 0x10;
+const SPEED_MARK: u32 = COLOUR_MARK + COLOURS as u32;
+const INSTANT_MARK: u32 = SPEED_MARK + SPEED_MAX as u32 + 1;
+
+/// What a box carries between its letters that is not drawn: the marks a
+/// line holds in place of RM2k's escapes, each one character that takes no
+/// room. The console does each one where it is, as RPG_RT does: see
+/// `runtime/message_pace.s`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Control {
+    /// `\.`, `\|` or `\!`, by the escape's letter: see [`WAITS`].
+    Wait(char),
+    /// `\c[n]`, the text colour from here on, 0 to 19.
+    Colour(u8),
+    /// `\s[n]`, the typing speed from here on, 1 to 20.
+    Speed(u8),
+    /// `\>` (true) and `\<` (false): the instant text, which lasts at most
+    /// to the end of the line.
+    Instant(bool),
+}
+
+/// The mark that carries `control` in a line.
+pub fn control_mark(control: Control) -> char {
+    let code = match control {
+        Control::Wait(w) => return wait_mark(w),
+        Control::Colour(n) => {
+            assert!(n < COLOURS, "a colour past {COLOURS}");
+            COLOUR_MARK + n as u32
+        }
+        Control::Speed(n) => {
+            assert!((SPEED_MIN..=SPEED_MAX).contains(&n), "a speed past 1-20");
+            SPEED_MARK + n as u32
+        }
+        Control::Instant(on) => INSTANT_MARK + if on { 0 } else { 1 },
+    };
+    char::from_u32(code).unwrap()
+}
+
+/// What the mark `c` carries, or `None` if it is not one.
+pub fn control_of(c: char) -> Option<Control> {
+    if let Some(w) = wait_of(c) {
+        return Some(Control::Wait(w));
+    }
+    let code = c as u32;
+    if (COLOUR_MARK..SPEED_MARK).contains(&code) {
+        return Some(Control::Colour((code - COLOUR_MARK) as u8));
+    }
+    if (SPEED_MARK + SPEED_MIN as u32..INSTANT_MARK).contains(&code) {
+        return Some(Control::Speed((code - SPEED_MARK) as u8));
+    }
+    match code.checked_sub(INSTANT_MARK) {
+        Some(0) => Some(Control::Instant(true)),
+        Some(1) => Some(Control::Instant(false)),
+        _ => None,
+    }
+}
+
+/// Whether `c` is a mark that draws nothing: a wait, a colour, a speed or
+/// the instant text.
+pub fn is_control(c: char) -> bool {
+    control_of(c).is_some()
+}
+
+/// The escape RM2k writes for `control`.
+fn control_escape(control: Control) -> String {
+    match control {
+        Control::Wait(w) => format!("{ESCAPE}{w}"),
+        Control::Colour(n) => format!("{ESCAPE}c[{n}]"),
+        Control::Speed(n) => format!("{ESCAPE}s[{n}]"),
+        Control::Instant(true) => format!("{ESCAPE}>"),
+        Control::Instant(false) => format!("{ESCAPE}<"),
+    }
+}
+
+/// The line with its marks written back as RM2k's escapes: what the reflow
+/// answers, so that a box it rebuilt is RM2k text again and goes through
+/// [`escape_tail`] like any other.
 pub fn with_wait_escapes(line: &str) -> String {
     let mut out = String::with_capacity(line.len());
     for c in line.chars() {
-        match wait_of(c) {
-            Some(w) => {
-                out.push(ESCAPE);
-                out.push(w);
-            }
+        match control_of(c) {
+            Some(control) => out.push_str(&control_escape(control)),
             None if is_backslash_mark(c) => {
                 out.push(ESCAPE);
                 out.push(ESCAPE);
@@ -270,6 +356,20 @@ pub fn with_wait_escapes(line: &str) -> String {
     out
 }
 
+/// The colour and the speed a box is left at after `lines`, starting from
+/// `colour` and `speed`: what a box the reflow cut has to start with again.
+pub fn state_after(lines: &[String], colour: u8, speed: u8) -> (u8, u8) {
+    let (mut colour, mut speed) = (colour, speed);
+    for c in lines.iter().flat_map(|l| l.chars()) {
+        match control_of(c) {
+            Some(Control::Colour(n)) => colour = n,
+            Some(Control::Speed(n)) => speed = n,
+            _ => {}
+        }
+    }
+    (colour, speed)
+}
+
 /// The escapes that take an argument in brackets, by their letter: the
 /// color, the speed, an actor's name and a variable's value. The last two
 /// the event compiler writes before —see `with_names` and `with_variables`
@@ -277,28 +377,32 @@ pub fn with_wait_escapes(line: &str) -> String {
 /// not: an actor past 255, a variable inside a variable.
 const WITH_ARGUMENT: [char; 8] = ['c', 'C', 's', 'S', 'n', 'N', 'v', 'V'];
 
-/// The line with the waits that are not in the tail as marks: `\.` (a
-/// quarter of a second), `\|` (a second) and `\!` (a key), each a
-/// [`wait_mark`]. The console waits there in the middle of the box as
-/// easyrpg's `Window_Message` does: see `runtime/message_waits.s`. A `\\`
-/// is RM2k's literal backslash: it comes out as one [`backslash_mark`], so
-/// the letter after it is not taken as an escape either. A `\^` comes off,
-/// and the second answer says the line had one: the box closes on its own.
+/// The line with the escapes the console does as marks —see [`Control`]—:
+/// the waits that are not in the tail, `\.` (a quarter of a second), `\|` (a
+/// second) and `\!` (a key); the colour `\c[n]`, the speed `\s[n]`, and the
+/// instant text `\>` and `\<`. The console types the box as easyrpg's
+/// `Window_Message` does and does each one where it is: see
+/// `runtime/message_pace.s`. A `\\` is RM2k's literal backslash: it comes
+/// out as one [`backslash_mark`], so the letter after it is not taken as an
+/// escape either. A `\^` comes off, and the second answer says the line had
+/// one: the box closes on its own.
+///
+/// The colour's and the speed's argument is read as RPG_RT reads it
+/// (easyrpg's `Game_Message::ParseParam`): without a `[` it is 0 and only the
+/// letter goes; inside, the digits up to the first thing that is not one,
+/// and the rest up to the `]` —or to the end of the line— is skipped. A
+/// colour past 19 is 0 and a speed is clamped to 1-20, as in RPG_RT.
 ///
 /// **Every other escape is dropped and pushed to `dropped`**, as written:
 /// they take no room on screen, and being dropped here they are not
 /// measured either. What each one loses:
 ///
-/// * `\c[n]` the color and `\s[n]` the speed, which the console does not
-///   have (`tasks/message-colours-and-speed.md`); with their argument as
-///   RPG_RT reads it, up to its `]` —past a `\V[n]` inside— or to the end
-///   of the line, and only the letter without a `[`
-///   (easyrpg's `Game_Message::ParseParam`).
+/// * A colour or a speed whose argument carries a `\V[n]`, which RPG_RT
+///   reads at run time: up to its `]`, past the `\V[n]`.
 /// * `\n[n]` and `\v[n]` the event compiler did not write, the same way.
-/// * `\$` the gold window, `\>` and `\<` the instant text, and `\_` the
-///   half space, which the line loses: making it a narrow space wants a
-///   mark the composer in `runtime/` advances by, and it is done when a
-///   game misses it.
+/// * `\$` the gold window, and `\_` the half space, which the line loses:
+///   making it a narrow space wants a mark the composer in `runtime/`
+///   advances by, and it is done when a game misses it.
 /// * Any other letter, and a backslash at the end of the line: RPG_RT
 ///   shows nothing for them either (the `default` of easyrpg's
 ///   `Window_Message`), and only the letter goes, so a `[3]` after it is
@@ -329,6 +433,31 @@ fn with_wait_marks(line: &str, dropped: &mut Vec<String>) -> (String, bool) {
                 closes = true;
                 i += 2;
             }
+            Some(&on @ ('>' | '<')) => {
+                out.push(control_mark(Control::Instant(on == '>')));
+                i += 2;
+            }
+            Some(&letter @ ('c' | 'C' | 's' | 'S')) => {
+                let (value, end) = match chars.get(i + 2) {
+                    Some('[') => {
+                        let end = argument_end(&chars, i + 2);
+                        (argument_value(&chars[i + 3..end]), end)
+                    }
+                    _ => (Some(0), i + 2),
+                };
+                match value {
+                    Some(n) if matches!(letter, 'c' | 'C') => {
+                        let n = if n < COLOURS as u32 { n as u8 } else { 0 };
+                        out.push(control_mark(Control::Colour(n)));
+                    }
+                    Some(n) => {
+                        let n = n.clamp(SPEED_MIN as u32, SPEED_MAX as u32) as u8;
+                        out.push(control_mark(Control::Speed(n)));
+                    }
+                    None => dropped.push(chars[i..end].iter().collect()),
+                }
+                i = end;
+            }
             Some(&letter) if WITH_ARGUMENT.contains(&letter) && chars.get(i + 2) == Some(&'[') => {
                 let end = argument_end(&chars, i + 2);
                 dropped.push(chars[i..end].iter().collect());
@@ -345,6 +474,33 @@ fn with_wait_marks(line: &str, dropped: &mut Vec<String>) -> (String, bool) {
         }
     }
     (out, closes)
+}
+
+/// The value of an argument as RPG_RT reads it, from what follows its `[`
+/// to its `]` or to the end of the line: the digits up to the first thing
+/// that is not one, 0 if there are none. `None` if it carries a variable,
+/// `\V[n]`, whose value is only known at run time. It saturates where
+/// RPG_RT would overflow, but anything that large is colour 0 or speed 20
+/// either way.
+fn argument_value(inside: &[char]) -> Option<u32> {
+    let inside = match inside.last() {
+        Some(']') => &inside[..inside.len() - 1],
+        _ => inside,
+    };
+    if inside
+        .windows(2)
+        .any(|w| w[0] == ESCAPE && matches!(w[1], 'v' | 'V'))
+    {
+        return None;
+    }
+    Some(
+        inside
+            .iter()
+            .take_while(|c| c.is_ascii_digit())
+            .fold(0u32, |v, c| {
+                v.saturating_mul(10).saturating_add(*c as u32 - '0' as u32)
+            }),
+    )
 }
 
 /// Where the argument that opens at `open` —a `[`— ends: past its `]`,
@@ -432,8 +588,8 @@ impl Measure {
     /// compiler draws: `ß` as two letters, `…` as three. Any other
     /// character is a space.
     pub fn advance(&self, c: char) -> usize {
-        if wait_of(c).is_some() {
-            return 0; // a wait draws nothing
+        if is_control(c) {
+            return 0; // a wait, a colour, a speed: they draw nothing
         }
         if c as u32 >= crate::font::LATIN_FIRST {
             if let Some(&a) = self
@@ -507,7 +663,7 @@ fn ends_pause(word: &str) -> bool {
 
 fn ends_with(word: &str, marks: &[char]) -> bool {
     // A wait after the period —`Wait.\|`— still ends the sentence.
-    let trimmed = word.trim_end_matches(|c| matches!(c, '"' | '\'' | ')') || wait_of(c).is_some());
+    let trimmed = word.trim_end_matches(|c| matches!(c, '"' | '\'' | ')') || is_control(c));
     trimmed.chars().last().is_some_and(|c| marks.contains(&c))
 }
 
@@ -892,10 +1048,30 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
         last.push(String::new());
     }
     last.last_mut().expect("a line").push_str(&tail);
+    // A box the reflow cut goes on in the colour and at the speed the one
+    // before it was left at: RPG_RT typed it all as one page, and a new page
+    // starts at colour 0 and speed 1. The repeated speaker's line goes first
+    // with its own, and the body takes back what the box before ended in.
+    let mut carried = (0, SPEED_MIN);
+    for (k, frame) in frames.iter_mut().enumerate() {
+        let h = head.len();
+        if k > 0 && h < frame.len() {
+            let (colour, speed) = state_after(&frame[..h], 0, SPEED_MIN);
+            let mut marks = String::new();
+            if carried.0 != colour {
+                marks.push(control_mark(Control::Colour(carried.0)));
+            }
+            if carried.1 != speed {
+                marks.push(control_mark(Control::Speed(carried.1)));
+            }
+            frame[h].insert_str(0, &marks);
+        }
+        carried = state_after(frame, 0, SPEED_MIN);
+    }
     // What the box drops goes at the start of the first one, where the
     // compiler finds it to say it was lost: where it was among the words is
-    // gone with the reflow, and it does not matter while the console draws
-    // none of it. A color that is drawn some day will want its place back.
+    // gone with the reflow. The colour and the speed keep their place: they
+    // are marks inside their words, like the waits.
     frames
         .iter_mut()
         .flatten()
@@ -972,10 +1148,10 @@ mod tests {
     #[test]
     fn what_a_reflowed_box_drops_is_still_there() {
         let m = Measure::columns(10);
-        let b = s(&["one \\c[2]two\\c[0] three\\^ four five six seven"]);
+        let b = s(&["one \\$two\\_ three\\^ four five six seven"]);
         let boxes = refit_measured(&b, &m, 2);
         assert!(boxes.len() > 1, "{boxes:?}");
-        assert!(boxes[0][0].starts_with("\\c[2]\\c[0]one"), "{boxes:?}");
+        assert!(boxes[0][0].starts_with("\\$\\_one"), "{boxes:?}");
         assert!(
             boxes.last().unwrap().last().unwrap().ends_with("seven\\^"),
             "{boxes:?}"
@@ -984,8 +1160,48 @@ mod tests {
             .iter()
             .flat_map(|b| escape_tail(b).unwrap().dropped)
             .collect();
-        assert_eq!(dropped, s(&["\\c[2]", "\\c[0]"]));
+        assert_eq!(dropped, s(&["\\$", "\\_"]));
         assert!(boxes.iter().all(|b| fits(b, &m, 2).unwrap()), "{boxes:?}");
+    }
+
+    /// The colour and the speed stay among their words through the reflow,
+    /// take no room, and a box the reflow cut starts in the colour and at
+    /// the speed the one before it was left at: after its speaker's line,
+    /// which brings its own.
+    #[test]
+    fn a_reflowed_box_keeps_its_colour_and_its_speed() {
+        let m = Measure::columns(12);
+        assert_eq!(
+            m.of(&format!("ab{}", control_mark(Control::Colour(2)))),
+            m.of("ab")
+        );
+        let b = s(&[
+            "\\c[5]ODILE\\c[0]",
+            "one \\s[7]two \\c[2]three four five six seven eight nine ten",
+        ]);
+        let boxes = refit_measured(&b, &m, 2);
+        assert!(boxes.len() > 2, "{boxes:?}");
+        assert_eq!(boxes[0][0], "\\c[5]ODILE\\c[0]", "{boxes:?}");
+        assert!(boxes[0][1].starts_with("one \\s[7]two"), "{boxes:?}");
+        for b in &boxes[1..] {
+            assert_eq!(b[0], "\\c[5]ODILE\\c[0]", "{boxes:?}");
+        }
+        // The box where `\c[2]` was written has it there, and every one after
+        // starts its body with it and with the speed.
+        let at = boxes
+            .iter()
+            .position(|b| b[1].contains("\\c[2]three"))
+            .expect("the colour where it was written");
+        assert!(boxes[at][1].starts_with("\\s[7]"), "{boxes:?}");
+        for b in &boxes[at + 1..] {
+            assert!(b[1].starts_with("\\c[2]\\s[7]"), "{boxes:?}");
+        }
+        assert!(boxes.iter().all(|b| fits(b, &m, 2).unwrap()), "{boxes:?}");
+        let dropped: Vec<String> = boxes
+            .iter()
+            .flat_map(|b| escape_tail(b).unwrap().dropped)
+            .collect();
+        assert!(dropped.is_empty(), "{dropped:?}");
     }
 
     #[test]

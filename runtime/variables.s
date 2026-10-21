@@ -436,8 +436,11 @@ less:
 .proc choice_tick
 .a8
 .i16
+    lda MSG_TYPE                ; being typed, its window up: see message_pace.s
+    bne composing
     lda msg_open
     bne open
+composing:
     lda #0                      ; still being composed: nobody chooses
     rts
 open:

@@ -128,6 +128,12 @@ struct GameArgs {
     #[arg(long = "window-background", value_name = "#RRGGBB")]
     window_background: Option<String>,
 
+    /// The message window keeps an entry of its palette for the ink of a
+    /// box that types a text colour other than 0: the cartridge's messages
+    /// use one
+    #[arg(long = "text-ink")]
+    text_ink: bool,
+
     /// What the cartridge decided
     #[arg(long, value_name = "PATH")]
     request: PathBuf,
@@ -142,6 +148,7 @@ impl GameArgs {
     fn game(&self) -> Result<Game> {
         let mut game = Game::from_dump(&self.data, &self.game_dir)?;
         game.rtp_dir = self.rtp_dir.clone();
+        game.text_ink = self.text_ink;
         if let Some(system) = &self.system {
             game.use_system(system);
         }
@@ -539,7 +546,7 @@ fn do_window(args: &GameArgs) -> Result<()> {
         let gold = message_window::gold(s, &window, &game.font, &game.term("gold")?)?;
         systems.push(serde_json::json!({
             "system": name,
-            "window": convert::window_json(&window, &gold),
+            "window": convert::window_json(&window, &gold, &message_window::inks(s, &window, &game.font)),
             "brought": brought,
             "merges": merges_json(&merges),
             "colors": colors,

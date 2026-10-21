@@ -193,6 +193,13 @@ pub fn run(options: Options) -> Result<()> {
         every.push(game.map(*id)?);
     }
     let every_refs: Vec<&GameMap> = every.iter().collect();
+    // Whether the message window keeps an entry for a box's ink, before
+    // anything asks the screens for its colours.
+    game.text_ink = scan::types_a_colour(
+        every_refs.iter().copied(),
+        &game.db.common_events,
+        &file_commands,
+    );
 
     // **The indices go before anything that compiles a page**: without the
     // variables' slots no `ControlVars` compiled in that pass, and the

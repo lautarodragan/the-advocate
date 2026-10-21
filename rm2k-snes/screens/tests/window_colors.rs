@@ -143,3 +143,38 @@ fn a_system_switched_to_fits_in_what_the_starting_one_takes() {
         "past the starting System's entries"
     );
 }
+
+/// A window that keeps the box's ink takes as many entries as without it:
+/// one of its own colours gives up its entry, which is the ink's, the last.
+/// Colour 0 is the font's rows; the ink's colour goes to the ink where it is
+/// nearer than any of the window's, and every other colour to the window's.
+#[test]
+fn the_box_s_ink_is_the_window_s_last_entry_and_costs_the_maps_nothing() {
+    let game = Game::from_dump(&here().join("dump"), &here().join("pictures")).unwrap();
+    let plain = game.skin().unwrap();
+    let mut skin = plain.clone();
+    skin.ink = true;
+    let colors = message_window::colors(&plain).unwrap();
+    assert_eq!(message_window::colors(&skin).unwrap(), colors);
+    let window = message_window::convert(&skin, colors + 1).unwrap();
+    assert_eq!(window.ink, Some(colors as u8));
+    assert_eq!(window.entries, colors - 1, "one of its own colours less");
+    let inks = message_window::inks(&skin, &window, &game.font);
+    assert_eq!(inks.colours.len(), 20);
+    assert_eq!(inks.colours[0].inked, window.color);
+    for ink in &inks.colours[1..] {
+        assert!(ink
+            .plain
+            .iter()
+            .all(|&i| (1..=window.entries as u8).contains(&i)));
+        assert!(ink
+            .inked
+            .iter()
+            .all(|&i| i == colors as u8 || ink.plain.contains(&i)));
+    }
+    // And without the ink nothing of it: every colour is the window's.
+    let window = message_window::convert(&plain, colors + 1).unwrap();
+    assert_eq!(window.ink, None);
+    let inks = message_window::inks(&plain, &window, &game.font);
+    assert!(inks.colours.iter().all(|i| i.inked == i.plain));
+}

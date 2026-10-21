@@ -21,7 +21,8 @@ axes, with two walkers that go round it. And a common event that shows a box wit
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
 which it draws or shows plain. And a case that puts six small pictures
-up on the meadow at once and slides two of them. The database has three
+up on the meadow at once and slides two of them, and one that types boxes
+in the System's colours and at three speeds. The database has three
 actors —the Hero, Alda and Bram, who is in no party— and one item, the
 Sword, for the cases that read an actor's stats.
 

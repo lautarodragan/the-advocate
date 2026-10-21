@@ -1145,15 +1145,30 @@ fn window_pieces(
             )));
         }
         gold_block.extend(disabled.iter().map(|&i| i as u8));
+        // And the text's twenty colours, which go with the grey: for each,
+        // the word the box's ink entry takes and the entries of the glyph's
+        // twelve rows with the ink and without it. See `inks` in
+        // rm2k-snes-screens and the runtime's message_pace.s. Only in a
+        // cartridge whose boxes type a colour, the one whose window keeps the
+        // ink: the others never read them —`colour` in the runtime is 0
+        // without an ink—, and half a kilobyte of nothing would only move
+        // the rest of the packing.
+        if window.get("ink").and_then(Value::as_i64).unwrap_or(0) > 0 {
+            gold_block.extend(text_inks(window)?);
+        }
         if suffix.is_empty() {
             out.push_str(&format!(
                 "; The gold window: its size, where its number ends and its text's top,\n\
                  ; in pixels. See the runtime's gold_window.s.\n\
-                 GOLD_WIDTH = {}\nGOLD_HEIGHT = {}\nGOLD_RIGHT = {}\nGOLD_TEXT_Y = {}\n",
+                 GOLD_WIDTH = {}\nGOLD_HEIGHT = {}\nGOLD_RIGHT = {}\nGOLD_TEXT_Y = {}\n\
+                 ; The window's entry a box's ink takes, 0 if its boxes type no\n\
+                 ; colour but 0. See the runtime's message_pace.s.\n\
+                 TEXT_INK_ENTRY = {}\n",
                 int_at(gold, "width")?,
                 int_at(gold, "height")?,
                 int_at(gold, "right")?,
                 int_at(gold, "text_y")?,
+                window.get("ink").and_then(Value::as_i64).unwrap_or(0),
             ));
         }
         line(out, &block(&format!("window_gold{suffix}"), &gold_block));
@@ -1193,6 +1208,50 @@ fn window_pieces(
         ),
     );
     Ok(())
+}
+
+/// How many text colours a System has, and the bytes each takes in
+/// `window_gold` after the grey: the ink's word and two sets of twelve
+/// entries. `INK_COLOURS` and `INK_BYTES` in the runtime's message_pace.s.
+pub const INK_COLOURS: usize = 20;
+pub const INK_BYTES: usize = 2 + 12 + 12;
+
+/// The window's `inks` as the cartridge carries them: see [`INK_BYTES`]. A
+/// window without them —a made-up one of the tests— has every colour drawn
+/// as colour 0.
+fn text_inks(window: &Value) -> Result<Vec<u8>> {
+    let mut out = Vec::with_capacity(INK_COLOURS * INK_BYTES);
+    let Some(inks) = window.get("inks") else {
+        let color: Vec<u8> = ints_at(window, "color")?.iter().map(|&i| i as u8).collect();
+        for _ in 0..INK_COLOURS {
+            out.extend([0, 0]);
+            out.extend(&color);
+            out.extend(&color);
+        }
+        return Ok(out);
+    };
+    let inks = list(inks)?;
+    if inks.len() != INK_COLOURS {
+        return Err(Bad::answer(format!(
+            "the window has {} text colours, not {INK_COLOURS}",
+            inks.len()
+        )));
+    }
+    for ink in inks {
+        let word = int_at(ink, "word")? as u32;
+        out.extend(words_le([word]));
+        for rows in ["inked", "plain"] {
+            let rows = ints_at(ink, rows)?;
+            if rows.len() != 12 {
+                return Err(Bad::answer(format!(
+                    "a text colour has {} rows, not twelve",
+                    rows.len()
+                )));
+            }
+            out.extend(rows.iter().map(|&i| i as u8));
+        }
+    }
+    Ok(out)
 }
 
 /// Whether the text area's four lines have the same background: a window

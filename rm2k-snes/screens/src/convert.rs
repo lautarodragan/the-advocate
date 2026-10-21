@@ -439,9 +439,19 @@ pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Resul
 
 /// The message window as the emission takes it, without the font: what
 /// changes from one System to another.
-pub fn window_json(window: &message_window::Window, gold: &message_window::Gold) -> Value {
+pub fn window_json(
+    window: &message_window::Window,
+    gold: &message_window::Gold,
+    inks: &message_window::Inks,
+) -> Value {
     json!({
         "disabled": window.disabled,
+        // The box's ink entry, 0 without one, and the twenty colours: see
+        // `message_window::inks`.
+        "ink": window.ink.unwrap_or(0),
+        "inks": inks.colours.iter().map(|i| json!({
+            "word": i.word, "inked": i.inked, "plain": i.plain,
+        })).collect::<Vec<_>>(),
         "gold": {
             "tiles": hex(&gold.tiles),
             "cgram": gold.cgram,
@@ -906,7 +916,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     };
     let menu = &slots.menu;
     let gold = message_window::gold(&skin, &window, &game.font, &game.term("gold")?)?;
-    let mut window_json = window_json(&window, &gold);
+    let mut window_json = window_json(
+        &window,
+        &gold,
+        &message_window::inks(&skin, &window, &game.font),
+    );
     window_json["font"] = json!(hex(&font));
     let mut advances = game.font.console_advances();
     advances.extend(request.letters.iter().map(|&c| game.font.advance(c) as u8));

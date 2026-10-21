@@ -73,6 +73,32 @@ pub fn has_rain<'a>(maps: impl IntoIterator<Item = &'a GameMap>, extra: &[Comman
     extra.iter().any(rains) || maps.into_iter().any(|m| m.all_commands().any(rains))
 }
 
+/// Whether some message box of the cartridge's maps, its common events or
+/// `extra` types a text colour other than 0, `\c[n]`: then the message
+/// window keeps an entry for the box's ink —see `inks` in
+/// rm2k-snes-screens' `message_window.rs`—, which a cartridge without one
+/// leaves to the maps. Line by line, as written: a colour is a colour in
+/// whichever box the reflow puts it.
+pub fn types_a_colour<'a>(
+    maps: impl IntoIterator<Item = &'a GameMap>,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    extra: &[Command],
+) -> bool {
+    use rm2k_snes_text::refit::{control_of, escape_tail, Control};
+    let coloured = |c: &Command| {
+        matches!(c.code, SHOW_MESSAGE | SHOW_MESSAGE_2)
+            && escape_tail(std::slice::from_ref(&c.string)).is_ok_and(|t| {
+                t.lines
+                    .iter()
+                    .flat_map(|l| l.chars())
+                    .any(|ch| matches!(control_of(ch), Some(Control::Colour(n)) if n > 0))
+            })
+    };
+    extra.iter().any(coloured)
+        || common_events.values().flatten().any(coloured)
+        || maps.into_iter().any(|m| m.all_commands().any(coloured))
+}
+
 /// The maps of the ROM where the timer can be running: the ones that carry
 /// its digits, which cost a sprite palette.
 ///

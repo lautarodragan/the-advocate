@@ -55,6 +55,11 @@ pub struct Game {
     /// The colour the windows are drawn over instead of the System's own
     /// background —see [`Game::use_window_background`]—: None, the System's.
     pub window_background: Option<[u8; 3]>,
+    /// Whether the message window keeps an entry of its palette for the
+    /// box's ink, the text colour other than 0 its boxes type: the
+    /// converter asks for it, with `--text-ink`, when the cartridge's
+    /// messages use one. See `message_window::inks`.
+    pub text_ink: bool,
     /// The database's switches and variables, by number from 1: their
     /// names, which only the debug screen shows.
     pub switch_names: Vec<String>,
@@ -112,6 +117,7 @@ impl Game {
             rtp_dir: None,
             system_file: None,
             window_background: None,
+            text_ink: false,
             switch_names: by_number(switches.into_iter().map(|s| (s.id, s.name)).collect()),
             variable_names: by_number(variables.into_iter().map(|v| (v.id, v.name)).collect()),
         })
@@ -195,6 +201,7 @@ impl Game {
                 background,
                 path,
                 redrawn: None,
+                ink: self.text_ink,
             }),
             None => Err(Bad::answer(format!(
                 "System {name:?} is not in {}{}",
@@ -448,6 +455,9 @@ pub struct Skin {
     /// The cells a screen's windows are redrawn with so that they fit their
     /// bank: `None`, as RM2k draws them. See `fit`.
     pub redrawn: Option<std::rc::Rc<crate::fit::Redrawn>>,
+    /// Whether the message window keeps an entry for the box's ink: the
+    /// game's [`Game::text_ink`].
+    pub ink: bool,
 }
 
 impl Skin {

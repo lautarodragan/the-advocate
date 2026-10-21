@@ -98,7 +98,7 @@ GOLD_AT0 = ((GOLD_TEXT_Y >> 3) - 1) * GOLD_ROW_BYTES + (GOLD_TEXT_Y & 7) * 2
     lda #1
     sta f:GOLD_ON
     sta f:CHOICE_OFF
-    ; The current System's pieces, and its grey to where `msg_grey_char`
+    ; The current System's pieces, and its grey to where `msg_ink_char`
     ; reads it: the System does not change while the inn asks.
     jsr gold_source
     phy
@@ -231,26 +231,41 @@ no:
 .endproc
 
 ; The letter `compose_char` just composed, in grey if its line is a greyed
-; option: from `message_tick`, with `comp_glyph` and `comp_base` as it left
-; them. For each of the glyph's twelve rows and the two cells it can step
-; on, the pixels the letter set —not kept, see `font_prerender`— and of the
-; glyph's colour —not the shadow's— have their planes flipped to the grey
-; entry's: the glyph goes over whatever was there, so its pixels in the
-; buffer are exactly those. Leaves A8, and X and Y anything.
-.proc msg_grey_char
+; option, or in the box's colour if it is not 0 —`\c[n]`, see
+; message_pace.s—: from `message_tick`, with `comp_glyph` and `comp_base` as
+; it left them. For each of the glyph's twelve rows and the two cells it can
+; step on, the pixels the letter set —not kept, see `font_prerender`— and of
+; the glyph's colour —not the shadow's— have their planes flipped to the
+; entry `MSG_INK_ROWS` gives that row: the glyph goes over whatever was
+; there, so its pixels in the buffer are exactly those. And the cells it
+; touched are noted for a box being typed. Leaves A8, and X and Y anything.
+.proc msg_ink_char
 .a8
 .i16
+    rep #$20
+.a16
+    jsr ink_dirty               ; message_pace.s
+    sep #$20
+.a8
     lda f:CHOICE_OFF
-    bne some
-    rtl
-some:
+    beq coloured
     lda pick_active
     cmp #PICK_CHOICE
-    bne none
+    bne coloured
     lda f:msg_line
     jsr greyed
-    bcs grey
-none:
+    bcc coloured
+    ; The grey's rows where the colour's go: an option has no colour.
+    ldx #11
+copy:
+    lda f:GOLD_INK, x
+    sta f:MSG_INK_ROWS, x
+    dex
+    bpl copy
+    bra grey
+coloured:
+    lda f:MSG_COLOUR
+    bne grey
     rtl
 grey:
     ldy #0                      ; into the glyph's data: row by row, two cells
@@ -267,7 +282,7 @@ row:
 .a8
     lda f:font_color, x
     sta f:GREY_C
-    eor f:GOLD_INK, x
+    eor f:MSG_INK_ROWS, x
     sta f:GREY_FLIP
     ; The buffer byte where this row starts, as `compose_char` has it.
     lda f:GOLD_Y
@@ -302,7 +317,7 @@ row:
     rtl
 .endproc
 
-; One cell of one glyph row for `msg_grey_char`: Y on its three words in the
+; One cell of one glyph row for `msg_ink_char`: Y on its three words in the
 ; glyph's data —it leaves Y past them—, the buffer byte in `GOLD_AT`, the
 ; row's colour and flips in `GREY_C` and `GREY_FLIP`.
 .proc grey_cell

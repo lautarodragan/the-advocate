@@ -6223,8 +6223,9 @@ pub fn compile_command(
             let mut lines = vec![cmd.string.clone()];
             lines.extend_from_slice(extra);
             // `Messages::add_waiting` removes the escape tail, since every
-            // box goes through it, and keeps the waits in the middle; any
-            // other escape it drops, and the loss is noted right after —see
+            // box goes through it, and keeps the waits in the middle, the
+            // colours, the speeds and the instant text; any other escape it
+            // drops, and the loss is noted right after —see
             // `escape_tail`—, except `\V[n]` and `\N[n]`, which come off here.
             let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
             // A box with a face has `FACE_TEXT_X` fewer pixels a line: it is
@@ -10325,14 +10326,9 @@ mod tests {
             .filter(|l| l.kind == "message-escape-dropped")
             .map(|l| (l.path[0].1, l.text.split(' ').next().unwrap().to_string()))
             .collect();
-        let want = [
-            (0, "\\$"),
-            (0, "\\c[2]"),
-            (0, "\\c[0]"),
-            (0, "\\q"),
-            (2, "\\>"),
-            (2, "\\_"),
-        ];
+        // The `ShowMessage` types its colours; the options do not, and drop
+        // the instant text after what the escapes drop.
+        let want = [(0, "\\$"), (0, "\\q"), (2, "\\_"), (2, "\\>")];
         let want: Vec<(Option<usize>, String)> = want
             .iter()
             .map(|(i, e)| (Some(*i), e.to_string()))
