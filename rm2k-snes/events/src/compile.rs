@@ -6297,9 +6297,11 @@ fn compile_missing_teleport(ctx: &mut Ctx, map: i64) -> Step<Vec<u8>> {
 /// step. A blocked move is skipped, which is our decision and not RM2k's
 /// —RM2k would retry forever, and a hung test tells nobody anything—.
 ///
-/// OP_ROUTE: target (byte), frequency (byte), how many commands (byte), and
-/// the commands. The target is 0 for the hero, and otherwise the event's
-/// index in the map's table plus one.
+/// OP_ROUTE: target (byte), frequency (byte), how many bytes of commands
+/// (byte), and the commands. The target is 0 for the hero, and otherwise the
+/// event's index in the map's table plus one. Three commands carry operands
+/// in the path: 34 one byte, the graphic, and 32, 33 and 35 two, the switch
+/// and the sound, low byte first. Whoever walks a compiled path skips them.
 ///
 /// **The index is not the RM2k id.** 39 maps of the game have gaps in the
 /// event numbering, so a route aimed at id 8 would move whichever is eighth
@@ -6350,6 +6352,35 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             in_jump = false;
         } else if route::moves_by_looking(command) && in_jump {
             return cannot();
+        }
+        if command == ROUTE_SWITCH_ON || command == ROUTE_SWITCH_OFF {
+            // Turning a switch on or off, since 2026-10-20: it goes with two
+            // bytes after it, the switch's number, so a switch past 255 fits
+            // and so does one past 1023 when the game's table holds it —see
+            // `Indices::switch_top`—. The ROM sets it with `set_switch`, the
+            // same as `ControlSwitches`, with the same refresh: see
+            // `switch_ev` in runtime/event_routes.s for when it lands. It
+            // costs no frame: in `UpdateMoveRoute` it does not touch the stop
+            // counter.
+            //
+            // **Inside a jump it is not run**, as in RM2k: `BeginMoveRouteJump`
+            // only adds up the moves and the turns up to the `end_jump`. It is
+            // dropped here so the ROM's jump, which reads the commands as bare
+            // codes, never meets the operand.
+            //
+            // Zounds' first dungeon hangs on it: map 103's chest falls with a
+            // route that ends turning on switch 171, the only thing in the
+            // game that does, and the Silver Key's page waits on it. See
+            // `tasks/route-switch-commands-leave-the-page-out.md`.
+            if in_jump {
+                continue;
+            }
+            let number = extras.first().map_or(-1, route::Extra::int);
+            if !ctx.indices.holds_switch(number) {
+                return cannot();
+            }
+            path.extend([command as i64, number & 0xFF, number >> 8]);
+            continue;
         }
         if command == ROUTE_SOUND {
             // The sound inside the route: it plays when the route reaches that
@@ -6411,9 +6442,9 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         // and they are looked at *during* the walk and not only at the end:
         // `path` tests it, comparing four frames of a twelve-cell route with
         // waits in the middle. What goes in from `rpg::MoveCommand::Code` is
-        // `route::known`: since 2026-10-14 every command but the switches,
-        // on events and on the hero —the hero's diagonals, forward and the
-        // relative turns came in that day—.
+        // `route::known`: since 2026-10-14 every command, on events and on
+        // the hero —the hero's diagonals, forward and the relative turns came
+        // in that day—, and the switches, handled above, since 2026-10-20.
         if !route::known(command) {
             return cannot();
         }
@@ -7756,8 +7787,39 @@ mod tests {
             route(10001, &[24, 9, 4, 25]).unwrap(),
             [OP_ROUTE, 0, 8, 4, 24, 2, 4, 25, OP_DONE]
         );
-        // The switches are still out.
-        assert_eq!(route(1, &[32, 1]), None);
+    }
+
+    #[test]
+    fn a_route_turns_switches_with_their_number_after_the_code() {
+        // Zounds' map 103: the falling chest's route ends with switch 171 on,
+        // which RM2k's seven-bit integers write as 129, 43.
+        let map = watching(5, 1);
+        let indices = Indices {
+            switch_top: 1100,
+            ..Indices::default()
+        };
+        let route = |who: i32, commands: &[i32]| {
+            let mut p = vec![who, 8, 0, 1];
+            p.extend(commands);
+            on_this_map(&Game::default(), &indices, &map, &[cmd(MOVE_EVENT, &p, "")])
+        };
+        assert_eq!(
+            route(1, &[2, 32, 129, 43]).unwrap(),
+            [OP_ROUTE, 1, 8, 4, 2, 32, 171, 0, OP_DONE]
+        );
+        // Off, past 255, on the hero too.
+        assert_eq!(
+            route(10001, &[33, 136, 4]).unwrap(),
+            [OP_ROUTE, 0, 8, 3, 33, 4, 4, OP_DONE]
+        );
+        // Inside a jump RM2k does not run it: dropped, and its number with it.
+        assert_eq!(
+            route(1, &[24, 32, 5, 2, 25]).unwrap(),
+            [OP_ROUTE, 1, 8, 3, 24, 2, 25, OP_DONE]
+        );
+        // A switch past the game's table leaves the page out, as
+        // `ControlSwitches` does.
+        assert_eq!(route(1, &[32, 136, 77]), None);
     }
 
     #[test]
@@ -8650,6 +8712,7 @@ mod tests {
             character_pattern: 1,
             commands: Vec::new(),
             route: Vec::new(),
+            route_switches: Vec::new(),
             route_repeat: false,
             route_skippable: false,
             condition: Condition {
@@ -8758,6 +8821,7 @@ mod tests {
                     character_pattern: 1,
                     commands: commands.clone(),
                     route: vec![],
+                    route_switches: Vec::new(),
                     route_repeat: false,
                     route_skippable: false,
                     condition: Default::default(),
@@ -10860,6 +10924,7 @@ mod tests {
             character_pattern: 1,
             commands,
             route: Vec::new(),
+            route_switches: Vec::new(),
             route_repeat: false,
             route_skippable: false,
             condition: crate::game::Condition::default(),

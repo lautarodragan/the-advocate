@@ -110,8 +110,9 @@ not_graphic_hero:
     jmp sound_hero              ; 35, with its operand; it is far
 not_sound_hero:
     cmp #36
-    bcc other_command           ; 32 and 33, the switches, do not get here: the
-                                ; converter rejects them
+    bcs not_switch_hero
+    jmp switch_hero             ; 32 and 33, the switches, with their operand
+not_switch_hero:
     cmp #38
     bcc cross                   ; 36 and 37
     cmp #40
@@ -243,6 +244,15 @@ sound_hero:
 .a8
     jmp other_command
 
+; `switch_on` and `switch_off`: 32 and 33, with the switch's number after it in
+; two bytes, as on an event: see `route_switch`.
+switch_hero:
+    pha
+    jsr hero_command            ; the low byte: leaves Y there and `route_ptr` set
+    inc route_i                 ; and the cursor, past the high one
+    pla
+    jsr route_switch
+    jmp other_command
 
 ; The moves, 0 to 11, and the face_*, 12 to 15. 9 and 10 do not get here:
 ; toward and away from the hero, on the hero, are toward and away from

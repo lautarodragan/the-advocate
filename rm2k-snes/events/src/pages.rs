@@ -567,7 +567,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "route_targets": code.as_deref().map(route_targets).unwrap_or_default(),
                 "route_graphics": code.as_deref().map(route_graphics).unwrap_or_default(),
                 "code": code.map(|c| hex(&c)),
-                "own_route": route::own(page),
+                "own_route": route::own(page, ctx.indices),
                 "turns": turns(page),
                 "pure": page.trigger == TRIGGER_PARALLEL && crate::commons::pure_page(&page.commands),
             }));
@@ -754,6 +754,7 @@ fn call_depth(
 /// compiles, and its own route, walked without some commands or not at
 /// all —see `route::own`—.
 fn page_losses(ctx: &mut Ctx, page: &Page) {
+    let walked = route::own(page, ctx.indices).is_some();
     let mut lose = |kind, text: &str| ctx.losses.lose(None, kind, text);
     if page.translucent && !page.character_name.is_empty() {
         lose(
@@ -772,7 +773,7 @@ fn page_losses(ctx: &mut Ctx, page: &Page) {
     if !walks {
         return;
     }
-    if route::own(page).is_none() {
+    if !walked {
         lose(
             "own-route-not-walked",
             "the page's own route is not walked: the event stands still",
@@ -823,8 +824,9 @@ fn route_graphics(code: &[u8]) -> Vec<[usize; 2]> {
         let path = &code[at + 4..at + 4 + code[at + 3] as usize];
         let mut k = 0;
         while k < path.len() {
-            // The two commands with operands: 34 one byte, the graphic, and
-            // 35 two, the sound —see `compile_route`—.
+            // The commands with operands: 34 one byte, the graphic, and 35
+            // two, the sound, and 32 and 33 two, the switch —see
+            // `compile_route`—.
             match path[k] as i32 {
                 ROUTE_CHANGE_GRAPHIC => {
                     if let Some(&g) = path.get(k + 1) {
@@ -832,7 +834,7 @@ fn route_graphics(code: &[u8]) -> Vec<[usize; 2]> {
                     }
                     k += 2;
                 }
-                ROUTE_SOUND => k += 3,
+                ROUTE_SOUND | ROUTE_SWITCH_ON | ROUTE_SWITCH_OFF => k += 3,
                 _ => k += 1,
             }
         }
@@ -892,6 +894,7 @@ mod tests {
             character_pattern: 1,
             commands,
             route: Vec::new(),
+            route_switches: Vec::new(),
             route_repeat: true,
             route_skippable: false,
             condition: Condition::default(),
@@ -913,6 +916,14 @@ mod tests {
             "hot",
             Vec::new()
         )])));
+    }
+
+    #[test]
+    fn a_route_graphic_is_not_a_switch_s_number() {
+        // Switch 34 on, then graphic 1: the switch's low byte is not a
+        // command 34.
+        let code = [OP_ROUTE, 1, 8, 5, 32, 34, 0, 34, 1, OP_DONE];
+        assert_eq!(route_graphics(&code), vec![[0, 1]]);
     }
 
     #[test]

@@ -328,6 +328,7 @@ mod tests {
             character_pattern: 1,
             commands,
             route: vec![],
+            route_switches: Vec::new(),
             route_repeat: false,
             route_skippable: false,
             condition: Condition::default(),

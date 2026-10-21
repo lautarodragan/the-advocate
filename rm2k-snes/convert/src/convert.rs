@@ -1073,12 +1073,19 @@ pub fn run(options: Options) -> Result<()> {
                     let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
                     let mut k = 0;
                     while k < path.len() {
-                        if path[k] == 34 {
-                            k += 1;
-                            hero = path
-                                .get(k)
-                                .and_then(|&g| m.route_graphics.get(g as usize))
-                                .cloned();
+                        match path[k] {
+                            34 => {
+                                k += 1;
+                                hero = path
+                                    .get(k)
+                                    .and_then(|&g| m.route_graphics.get(g as usize))
+                                    .cloned();
+                            }
+                            // The sound's index and the switch's number, two
+                            // bytes each, which are not commands: a low byte
+                            // of 34 would read as a graphic change.
+                            32 | 33 | 35 => k += 2,
+                            _ => {}
                         }
                         k += 1;
                     }
