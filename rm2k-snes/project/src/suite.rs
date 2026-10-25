@@ -6,6 +6,11 @@
 //! So an installed binary answers for **the checkout it was installed from**,
 //! the same way a symlink to a script does: installing from a checkout that
 //! is later deleted leaves it pointing nowhere, and it is installed again.
+//!
+//! A binary from a release —built by `.github/workflows/release.yml`, on a
+//! machine that is gone— has no checkout to point at: its archive carries
+//! the runtime beside the `bin/` the binary is in, and that is where it
+//! looks when the checkout it was compiled from is not there.
 
 use std::path::{Path, PathBuf};
 
@@ -18,12 +23,24 @@ use std::path::{Path, PathBuf};
 /// fingerprint holds —and a fingerprint is relative to the workspace, so
 /// moving the whole workspace keeps it—: after moving it, touch this file
 /// before installing again, or the binaries keep answering the old path.
+///
+/// When that directory has no runtime, the binary is a release's: the tools
+/// are the directory above the one it is in, `<archive>/bin/`.
 pub fn tools() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+    let compiled = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(2)
         .expect("a crate lives inside its layer's directory, inside the tools")
-        .to_path_buf()
+        .to_path_buf();
+    if compiled.join("runtime/main.s").is_file() {
+        return compiled;
+    }
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.canonicalize().ok())
+        .and_then(|exe| exe.parent()?.parent().map(Path::to_path_buf))
+        .filter(|archive| archive.join("runtime/main.s").is_file())
+        .unwrap_or(compiled)
 }
 
 /// Where `ca65` and `ld65` run, so the source paths they write into a debug
