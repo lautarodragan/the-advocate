@@ -1,0 +1,140 @@
+# A release of every commit to `main` that passes CI: the tools compiled
+# for each platform, so a machine without Rust —or without the time to
+# build the workspace— downloads them and puts their `bin/` on the PATH.
+#
+# Each archive is `the-advocate/bin/` with the binaries and
+# `the-advocate/runtime/` beside it: the runtime travels with the tools, and
+# a binary that does not find the checkout it was compiled from looks for it
+# there —see `rm2k-snes/project/src/suite.rs`—. cc65 and the rest of what
+# the README asks for are still the machine's.
+#
+# It follows CI instead of running beside it, so that a red commit is never
+# released. The release is a draft until every platform has uploaded its
+# archive: a build that fails leaves a draft, not a release with holes.
+#
+# There is no Windows build: Ditto and the cartridge's tools use
+# `std::os::unix`.
+#
+# Every third-party action is pinned by its commit, with the tag beside it.
+
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # The same toolchain as CI's, for the same reasons: see `ci.yml`.
+  RUST_TOOLCHAIN: 1.96.0
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  SHA: ${{ github.event.workflow_run.head_sha }}
+  # One tag per run of CI: its number grows with every push, and the commit
+  # is in the title.
+  TAG: build-${{ github.event.workflow_run.run_number }}
+
+jobs:
+  draft:
+    name: Draft the release
+    # A push to `main` that passed: not a manual run, not a cancelled one.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Draft
+        run: |
+          short="${SHA:0:7}"
+          subject="$(gh api "repos/$GH_REPO/commits/$SHA" --jq '.commit.message | split("\n")[0]')"
+          {
+            echo "Built from $SHA: $subject"
+            echo
+            echo "Unpack it and put \`the-advocate/bin\` on the PATH. The tools still need \`ca65\` and \`ld65\` (cc65), \`python\` and a libretro core: see the README."
+            echo
+            echo "On macOS the binaries are not signed: \`xattr -dr com.apple.quarantine the-advocate\` after unpacking."
+          } > notes.md
+          gh release create "$TAG" --draft --target "$SHA" --title "$TAG ($short)" --notes-file notes.md
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: draft
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # musl, so the binaries are static and run on any distribution,
+          # whatever its glibc. The workspace is all Rust: no C to cross.
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-24.04
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            runner: macos-15
+          # Cross-compiled on the ARM runner, so it is not smoke-tested.
+          - target: x86_64-apple-darwin
+            runner: macos-15
+            cross: true
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target ${{ matrix.target }}
+          rustup default "$RUST_TOOLCHAIN"
+          rustc --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: ${{ matrix.target }}
+
+      # Every binary of the workspace but xtask's, which generates Ditto's
+      # schema and is not a tool: what `just install` installs.
+      - name: Build
+        run: cargo build --release --locked --workspace --exclude xtask --bins --target ${{ matrix.target }}
+
+      - name: Package
+        run: |
+          mkdir -p dist/the-advocate/bin
+          for bin in $(cargo metadata --no-deps --format-version 1 \
+              | jq -r '.packages[] | select(.name != "xtask") | .targets[] | select(.kind | index("bin")) | .name'); do
+            cp "target/${{ matrix.target }}/release/$bin" dist/the-advocate/bin/
+          done
+          cp -R runtime README.md dist/the-advocate/
+          ls dist/the-advocate/bin
+          archive="the-advocate-$TAG-${{ matrix.target }}.tar.gz"
+          tar -czf "dist/$archive" -C dist the-advocate
+          (cd dist && shasum -a 256 "$archive" > "$archive.sha256")
+          echo "ARCHIVE=dist/$archive" >> "$GITHUB_ENV"
+
+      # What a downloaded archive does: the checkout the binaries were
+      # compiled from is not there —its runtime is moved away—, and they
+      # find the runtime of the archive.
+      - name: Smoke test
+        if: ${{ !matrix.cross }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/unpacked"
+          tar -xzf "$ARCHIVE" -C "$RUNNER_TEMP/unpacked"
+          mv runtime/main.s "$RUNNER_TEMP/main.s.away"
+          got="$("$RUNNER_TEMP/unpacked/the-advocate/bin/rm2k-snes-project" --project test-game | jq -r .suite.runtime)"
+          mv "$RUNNER_TEMP/main.s.away" runtime/main.s
+          want="$(cd "$RUNNER_TEMP/unpacked/the-advocate/runtime" && pwd -P)"
+          echo "runtime: $got"
+          [ "$got" = "$want" ]
+
+      - name: Upload
+        run: gh release upload "$TAG" "$ARCHIVE" "$ARCHIVE.sha256"
+
+  publish:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish
+        run: gh release edit "$TAG" --draft=false --latest
