@@ -66,12 +66,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # musl, so the binaries are static and run on any distribution,
-          # whatever its glibc. The workspace is all Rust: no C to cross.
-          - target: x86_64-unknown-linux-musl
-            runner: ubuntu-24.04
-          - target: aarch64-unknown-linux-musl
-            runner: ubuntu-24.04-arm
+          # glibc and not musl: rm2k-snes-volume-ceilings plays the songs
+          # in a libretro core it loads with dlopen, and a static musl
+          # binary cannot load one ("Dynamic loading not supported"). Built
+          # on the oldest runner, so they run on any distribution with a
+          # glibc at least that old (2.35).
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
           - target: aarch64-apple-darwin
             runner: macos-15
           # Cross-compiled on the ARM runner, so it is not smoke-tested.

@@ -21,8 +21,8 @@ sources: see [Sources](https://lautarodragan.github.io/the-advocate-docs/referen
     just rust-test # those of every Rust project
 
 Or, without compiling: every commit to `main` that passes CI is a release
-(`.github/workflows/release.yml`) with the tools built for Linux —static,
-x86_64 and aarch64— and macOS —Apple silicon and Intel—. Unpack one and put
+(`.github/workflows/release.yml`) with the tools built for Linux —glibc 2.35 or
+newer, x86_64 and aarch64— and macOS —Apple silicon and Intel—. Unpack one and put
 its `the-advocate/bin` on the PATH; cc65 and the rest are still needed.
 
 The runtime travels with the tools: `rm2k-snes-cartridges` builds it from
