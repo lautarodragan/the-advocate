@@ -848,9 +848,9 @@ no_enters:
 ; stretch runs between these two: the HP and SP go out to the saved game's
 ; before, and come back after, together with whatever changed in `party`.
 
-; The HP and SP of each actor who is fighting, to `FAR_HP` and `FAR_SP`. It is
-; also what the battle does when it closes. Clobbers `BA_T0` to `BA_T2`, A
-; and X.
+; The HP and SP of each actor who is fighting, to `FAR_HP` and `FAR_SP`, and
+; its conditions to its places —see party_states.s—. It is also what the
+; battle does when it closes. Clobbers `BA_T0` to `BA_T2`, A and X.
 .proc ba_sync_out
 .a8
 .i16
@@ -879,6 +879,8 @@ other:
     sta FAR_SP, x
     sep #$20
 .a8
+    lda BA_T0                   ; and its conditions
+    jsr ba_st_actor_out
 next:
     inc BA_T0
     bra other
@@ -966,6 +968,8 @@ was_up:
     sep #$20
 .a8
     jsr ba_reparam
+    lda BA_S1                   ; and the conditions a page gave or took
+    jsr ba_st_actor_in
 next_present:
     inc BA_S1
     bra present

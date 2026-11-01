@@ -625,6 +625,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         COND_ACTOR_SKILL.into(),
         COND_ACTOR_EQUIPMENT.into(),
         COND_ACTOR_HP.into(),
+        COND_ACTOR_STATE.into(),
         GOLD_MAX.into(),
         PAN_LOCK.into(),
         PAN_UNLOCK.into(),
@@ -3422,6 +3423,49 @@ impl Rest<'_> {
             }),
             true,
         );
+        // Whether the battle's end takes it away from an actor:
+        // `State::RemoveAllBattle`, which keeps only the ones that persist
+        // —`type` 1— and never wear off on their own —`auto_release_prob`
+        // 0—.
+        bytes_asm(
+            out,
+            "state_end",
+            &per(&|st| i64::from(st.r#type.to_i32() != 1 || st.auto_release_prob > 0)),
+            true,
+        );
+        // What it does to its holder on the map, `Game_Party::
+        // ApplyStateDamage`: four words per condition —every how many of
+        // the party's steps and how many HP, then the same for SP—, the
+        // amount signed, negative a loss. Zero steps, zero amount or
+        // `ChangeType_nothing` is nothing, and both come out 0.
+        let map_change = |steps: i32, val: i32, kind: i32| -> [i64; 2] {
+            if steps <= 0 || val <= 0 || kind == 2 {
+                [0, 0]
+            } else if kind == 0 {
+                [steps.into(), -i64::from(val)]
+            } else {
+                [steps.into(), val.into()]
+            }
+        };
+        let map: Vec<i64> = (0..n)
+            .flat_map(|k| {
+                db.states.get(&(k as i32)).map_or([0; 4], |st| {
+                    let [hs, hv] = map_change(
+                        st.hp_change_map_steps,
+                        st.hp_change_map_val,
+                        st.hp_change_type.to_i32(),
+                    );
+                    let [ss, sv] = map_change(
+                        st.sp_change_map_steps,
+                        st.sp_change_map_val,
+                        st.sp_change_type.to_i32(),
+                    );
+                    [hs, hv, ss, sv]
+                })
+            })
+            .map(|v| v & 0xFFFF)
+            .collect();
+        words_asm(out, "state_map", &decimal(map), true);
         words_asm(
             out,
             "state_affected",

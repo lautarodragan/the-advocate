@@ -846,3 +846,98 @@ next:
 ready:
     rts
 .endproc
+
+; --- the actors' -----------------------------------------------------------------
+;
+; An actor's conditions are its own, on the map as in battle —see
+; party_states.s—: the battle takes them into its places when the actor
+; comes in, and gives them back each time a troop page runs and when it
+; ends, the same as the HP and SP —`ba_sync_out` and `ba_sync_in`—. A page
+; that gives or takes one writes the actor's, and the battle takes it up
+; again after the page.
+
+; Combatant A8, an actor —`BA_NUMBER`—, takes its conditions from the
+; actor's places, and its parameters with them. If its restriction changed,
+; the action it had this turn is lost, as `AddState` and `RemoveStates` do.
+; Clobbers X, Y and this file's scratch.
+.proc ba_st_actor_in
+.a8
+.i16
+    sta .loword(ba_st_c)
+    jsr ba_st_restr
+    pha                         ; the restriction before
+    lda .loword(ba_st_c)
+    jsr ba_x
+    lda BA_ONE + BA_NUMBER, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; the actor's places: `act_st_x`
+    tay
+    sep #$20
+.a8
+    lda .loword(ba_st_c)
+    jsr ba_st_x
+    rep #$20
+.a16
+    lda .loword(far_act_states), y
+    sta .loword(ba_states), x
+    lda .loword(far_act_states) + 2, y
+    sta .loword(ba_states) + 2, x
+    lda .loword(far_act_states) + 4, y
+    sta .loword(ba_states) + 4, x
+    lda .loword(far_act_states) + 6, y
+    sta .loword(ba_states) + 6, x
+    sep #$20
+.a8
+    lda .loword(ba_st_c)
+    jsr ba_st_params
+    lda .loword(ba_st_c)
+    jsr ba_st_restr
+    sta .loword(ba_st_r)
+    pla
+    cmp .loword(ba_st_r)
+    beq same
+    jsr ba_st_cancel
+same:
+    rts
+.endproc
+.assert ST_BYTES = 8, error, "ba_st_actor_in copies four places"
+
+; And back: combatant A8's conditions to its actor's places. Keeps Y;
+; clobbers A and X.
+.proc ba_st_actor_out
+.a8
+.i16
+    phy
+    pha
+    jsr ba_x
+    lda BA_ONE + BA_NUMBER, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    tay
+    sep #$20
+.a8
+    pla
+    jsr ba_st_x
+    rep #$20
+.a16
+    lda .loword(ba_states), x
+    sta .loword(far_act_states), y
+    lda .loword(ba_states) + 2, x
+    sta .loword(far_act_states) + 2, y
+    lda .loword(ba_states) + 4, x
+    sta .loword(far_act_states) + 4, y
+    lda .loword(ba_states) + 6, x
+    sta .loword(far_act_states) + 6, y
+    sep #$20
+.a8
+    ply
+    rts
+.endproc

@@ -1300,6 +1300,8 @@ fn without_bare_window(text: &str) -> String {
 /// `state_*` tables and `STATES_N`, and their messages, which are the last
 /// texts —from the empty one the conditions share on—. Checked here: each
 /// condition's two texts are among those last ones.
+/// The party's, on 2026-11-01, are two more tables of the same kind:
+/// `state_end` and `state_map`.
 fn without_states(text: &str) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     let at = lines
@@ -1316,6 +1318,8 @@ fn without_states(text: &str) -> String {
         "state_damage:",
         "state_hit:",
         "state_halves:",
+        "state_end:",
+        "state_map:",
         "state_affected:",
         "state_recovery:",
     ] {
@@ -1769,7 +1773,8 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
 
 /// The text with the actor questions of `OP_IF_ACTOR` as they were: since
 /// 2026-10-15 there are three, with `COND_ACTOR_HP`, and the comment over
-/// them no longer counts them nor points to a Python file.
+/// them no longer counts them nor points to a Python file; since 2026-11-01
+/// four, with `COND_ACTOR_STATE`.
 fn with_the_actor_questions_as_before(text: &str) -> String {
     let now = concat!(
         "; And the actor questions that carry two operands, with their\n",
@@ -1777,6 +1782,7 @@ fn with_the_actor_questions_as_before(text: &str) -> String {
         "COND_ACTOR_SKILL = 4\n",
         "COND_ACTOR_EQUIPMENT = 5\n",
         "COND_ACTOR_HP = 3\n",
+        "COND_ACTOR_STATE = 6\n",
     );
     let before = concat!(
         "; And the two actor questions that carry two operands, with their\n",

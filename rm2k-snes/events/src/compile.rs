@@ -196,6 +196,7 @@ const COND_ACTOR_IN_PARTY: i64 = 0;
 pub const COND_ACTOR_HP: i64 = 3;
 pub const COND_ACTOR_SKILL: i64 = 4;
 pub const COND_ACTOR_EQUIPMENT: i64 = 5;
+pub const COND_ACTOR_STATE: i64 = 6;
 // The route targets. 10002 to 10004 are the vehicles —boat, ship, airship—,
 // which do not exist here.
 pub const ROUTE_HERO: i64 = 10001;
@@ -2531,9 +2532,15 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
         // `Reraise KO'd chars`, a parallel common event that gives 1 HP to
         // whoever ended a battle fallen. RM2k's HP go up to 999, so the word
         // holds them all.
+        //
+        // The condition, since 2026-11-01: `actor->HasState(p[3])`, which is
+        // the actor's places —see `party_states.s` in the runtime—, and the
+        // dead one is zero HP. Vampires Dawn asks for its Curse nine times,
+        // Zounds for the dead one and its poison in its food's common event.
         if question == COND_ACTOR_SKILL
             || question == COND_ACTOR_EQUIPMENT
             || question == COND_ACTOR_HP
+            || question == COND_ACTOR_STATE
         {
             if cmd.parameters.len() < 4 {
                 return cannot();
@@ -2550,7 +2557,9 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
                 // looks at.
                 operand = ctx.indices.skill_slot(number, operand)?;
             }
-            if !(0..=0xFFFF).contains(&operand) {
+            if !(0..=0xFFFF).contains(&operand)
+                || (question == COND_ACTOR_STATE && !(1..=0xFF).contains(&operand))
+            {
                 return cannot();
             }
             let mut out = vec![OP_IF_ACTOR, question as u8, number as u8];
@@ -2859,6 +2868,11 @@ pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, Value)>> {
 const ACT_SP: u8 = 0x01;
 const ACT_REVIVE: u8 = 0x02;
 const ACT_EQUIP: u8 = 0x04;
+/// With `ACT_STATE`, OP_ACTOR's amount is a condition, given —or taken
+/// away, with `ACT_TAKE`—: `ChangeCondition`. Not `ACT_SUBTRACT`, which
+/// negates the amount before anyone reads it.
+const ACT_STATE: u8 = 0x08;
+const ACT_TAKE: u8 = 0x10;
 /// With `ACT_EQUIP`, OP_ACTOR's amount is the item with its slot on top.
 const EQUIP_SLOT_SHIFT: i64 = 13;
 /// The item types that equip, which are their slot plus one: the weapon, and
@@ -4287,26 +4301,33 @@ pub fn compile_command(
             Ok(vec![OP_HERO_VISIBLE, if q(0) != 0 { 1 } else { 0 }])
         }
         CHANGE_CONDITION => {
-            // `ChangeCondition` that removes a state compiles to nothing, and
-            // that is **not** debt: outside battle states do not exist —the
-            // battle sets them up and throws them away— so there is nothing
-            // to remove. The one that sets a state still does not compile.
+            // [type, id, removes, state]. The actors hold conditions since
+            // 2026-11-01, as `Game_Actor`'s `states`: they cross maps and
+            // the save, the battle takes them in and gives them back, and
+            // the ones that hurt walking hurt —see `party_states.s` in the
+            // runtime—. Until that day the one that removes compiled to
+            // nothing, because outside battle there were none, and the one
+            // that adds did not compile.
             //
-            // **Except death**, since 2026-09-30: an actor with no HP is one
-            // with the death state, inside battle and out, and removing it
-            // gets it up with 1 —the `SetHp(1)` of `RemoveStates`—. It is
-            // OP_ACTOR with `ACT_REVIVE`, on the actor or the party. The
-            // characters' systems use it in battle, `Sacrifice` and
-            // `Inscribe`, always on the party.
+            // **Removing death** gets the actor up with 1 HP —the `SetHp(1)`
+            // of `RemoveStates`—: OP_ACTOR with `ACT_REVIVE`, since
+            // 2026-09-30, because an actor with no HP is one with the death
+            // state, inside battle and out. Adding it is OP_ACTOR with
+            // `ACT_STATE` like any other, and the ROM drops the HP to zero.
             //
-            // [type, id, removes, state]
-            if n < 4 || q(2) != 1 {
+            // The rest, OP_ACTOR with `ACT_STATE`, `ACT_TAKE` to remove,
+            // and the condition in the amount. `CommandChangeCondition` adds
+            // even a `battle_only` one on the map —"RPG_RT always adds states
+            // from event commands"—, so that is not looked at here.
+            if n < 4 || !(1..256).contains(&q(3)) {
                 return cannot();
             }
-            if q(3) == DEATH_STATE {
+            let remove = q(2) != 0;
+            if remove && q(3) == DEATH_STATE {
                 return Ok(vec![OP_ACTOR, target_actor(p)?, ACT_REVIVE, 0, 0]);
             }
-            Ok(vec![])
+            let what = ACT_STATE | if remove { ACT_TAKE } else { 0 };
+            Ok(vec![OP_ACTOR, target_actor(p)?, what, q(3) as u8, 0])
         }
         KEY_INPUT_PROC => {
             // `KeyInputProc`: variable slot (byte) and which keys it looks at
@@ -9055,6 +9076,21 @@ mod tests {
     }
 
     #[test]
+    fn the_condition_branch_asks_an_actor_for_a_condition() {
+        // `ConditionalBranch` case 5, sub 6: `HasState(p[3])`. Vampires
+        // Dawn's Curse, `[5, 1, 6, 2, 0, 0]`.
+        let mut game = Game::default();
+        game.actors.insert(1, vec![]);
+        let branch = |p: &[i32]| {
+            compile_with(&game, &[cmd(COND_BRANCH, p, ""), cmd(COND_END, &[], "")]).unwrap()
+        };
+        assert_eq!(
+            branch(&[5, 1, 6, 2, 0, 0]).unwrap(),
+            [OP_IF_ACTOR, COND_ACTOR_STATE as u8, 1, 2, 0, 7, 0, OP_DONE]
+        );
+    }
+
+    #[test]
     fn the_hp_branch_asks_an_actor_for_at_least_that_many() {
         // `ConditionalBranch` case 5, sub 3: `GetHp() >= p[3]`. It is The
         // Book of Three's `Reraise KO'd chars`, one per actor from 10 to 15:
@@ -9145,12 +9181,24 @@ mod tests {
                 OP_DONE
             ]
         );
-        // Removing death gets the party up; another state, nothing.
+        // Removing death gets the party up; another condition is taken away,
+        // and adding one gives it —death too—.
         assert_eq!(
             one(cmd(CHANGE_CONDITION, &[0, 0, 1, 1], "")),
             [OP_ACTOR, 0, ACT_REVIVE, 0, 0, OP_DONE]
         );
-        assert_eq!(one(cmd(CHANGE_CONDITION, &[0, 0, 1, 5], "")), [OP_DONE]);
+        assert_eq!(
+            one(cmd(CHANGE_CONDITION, &[0, 0, 1, 5], "")),
+            [OP_ACTOR, 0, ACT_STATE | ACT_TAKE, 5, 0, OP_DONE]
+        );
+        assert_eq!(
+            one(cmd(CHANGE_CONDITION, &[1, 14, 0, 2], "")),
+            [OP_ACTOR, 14, ACT_STATE, 2, 0, OP_DONE]
+        );
+        assert_eq!(
+            one(cmd(CHANGE_CONDITION, &[0, 0, 0, 1], "")),
+            [OP_ACTOR, 0, ACT_STATE, 1, 0, OP_DONE]
+        );
         // Actor 14's HP into variable 48, asking for the refresh: without a map
         // there is no knowing that no page looks at it.
         assert_eq!(
@@ -10247,9 +10295,9 @@ mod tests {
         // one it does since 2026-10-16— and an actor the database does not.
         assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 15], "")));
         assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 15, 2], "")));
-        // An enemy's HP by a percentage, and adding a state.
+        // An enemy's HP by a percentage, and a condition past the byte.
         assert!(fails(cmd(CHANGE_MONSTER_HP, &[0, 1, 2, 50, 1], "")));
-        assert!(fails(cmd(CHANGE_CONDITION, &[0, 0, 0, 1], "")));
+        assert!(fails(cmd(CHANGE_CONDITION, &[0, 0, 0, 256], "")));
     }
 
     // --- `\V[n]` ---------------------------------------------------------------

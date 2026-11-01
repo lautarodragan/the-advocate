@@ -126,6 +126,7 @@ pub const HEADER: &str = concat!(
     "COND_ACTOR_SKILL = %d\n",
     "COND_ACTOR_EQUIPMENT = %d\n",
     "COND_ACTOR_HP = %d\n",
+    "COND_ACTOR_STATE = %d\n",
     "GOLD_MAX    = %d\n",
     "; PanScreen's four operations.\n",
     "PAN_LOCK    = %d\n",

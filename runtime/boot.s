@@ -272,6 +272,7 @@ party_ready:
 .endif
     jsr initial_equipment_set
     jsl f:hp_initial_set
+    jsl f:party_states_clear    ; and nobody holds a condition
     jsl f:initial_skills_set
     jsl f:compar_clear          ; and no parallel common event running
     jsr actor_gfx_clear

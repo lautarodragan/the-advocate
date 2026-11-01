@@ -81,6 +81,7 @@ pub const COND_ACTOR: u32 = 5;
 pub const COND_ACTOR_SKILL: u32 = 4;
 pub const COND_ACTOR_EQUIPMENT: u32 = 5;
 pub const COND_ACTOR_HP: u32 = 3;
+pub const COND_ACTOR_STATE: u32 = 6;
 /// `MaxGoldValue()`.
 pub const GOLD_MAX: u32 = 999_999;
 /// `PanScreen`'s four operations —its `p[0]`—, and the timer's two.
@@ -236,6 +237,7 @@ pub fn numbers() -> Vec<(&'static str, serde_json::Value)> {
         COND_ACTOR_SKILL,
         COND_ACTOR_EQUIPMENT,
         COND_ACTOR_HP,
+        COND_ACTOR_STATE,
         GOLD_MAX,
         PAN_LOCK,
         PAN_UNLOCK,

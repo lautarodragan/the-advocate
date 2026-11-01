@@ -704,6 +704,13 @@ one:
     sta f:FAR_LENGTH + FAR_HP, x
     lda 1, s
     sta f:FAR_LENGTH + FAR_SP, x
+    ; And no condition: `FullHeal`'s `RemoveAllStates`, the inn's too.
+    sep #$20
+.a8
+    lda 5, s
+    jsl f:act_st_clear
+    rep #$20
+.a16
     bra ready
 add:
     lda f:FAR_LENGTH + FAR_HP, x
@@ -734,7 +741,9 @@ ready:
 ;
 ; `what` says which: the SP and not the HP (`ACT_SP`), getting a fallen one
 ; up with 1 HP and nothing else (`ACT_REVIVE`, the `SetHp(1)` of
-; `RemoveStates`), equipping (`ACT_EQUIP`, see `actor_equip`), the amount as
+; `RemoveStates`), equipping (`ACT_EQUIP`, see `actor_equip`), giving the
+; condition in the amount —or taking it away with `ACT_TAKE`— (`ACT_STATE`,
+; `ChangeCondition`: see party_states.s), the amount as
 ; a variable's slot (`ACT_VARIABLE`), a loss of HP that can kill
 ; (`ACT_LETHAL`) and subtracting (`ACT_SUBTRACT`). The compiler writes them
 ; with the same numbers: `ACT_*` in its `compile.rs`.
@@ -747,6 +756,8 @@ ready:
 ACT_SP       = $01
 ACT_REVIVE   = $02
 ACT_EQUIP    = $04
+ACT_STATE    = $08
+ACT_TAKE     = $10
 ACT_VARIABLE = $20
 ACT_LETHAL   = $40
 ACT_SUBTRACT = $80
@@ -837,6 +848,13 @@ one:
     pla
     jmp actor_equip
 not_equip:
+    lda temp + 3
+    and #ACT_STATE
+    beq not_state
+    pla
+    jsl f:act_st_change
+    rts
+not_state:
     ldy #0                      ; `level_param`'s HP
     lda temp + 3
     and #ACT_SP
@@ -879,7 +897,15 @@ down:
     and #(ACT_LETHAL * 256)
     beq one_left                ; `std::max(1, ...)` when it is not lethal
     lda #0
-    bra put_hp
+    sta f:FAR_LENGTH + FAR_HP, x
+    ; It fell: its death's purge takes its conditions —see `act_st_fallen`—.
+    sep #$20
+.a8
+    lda 3, s                    ; the actor, under the maximum
+    jsl f:act_st_fallen
+    rep #$20
+.a16
+    bra ready
 one_left:
     lda #1
     bra put_hp

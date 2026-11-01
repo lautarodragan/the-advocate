@@ -531,7 +531,8 @@ none:
     jsr ba_x
     pla
     sta BA_ONE + BA_CRIT, x
-    rts
+    lda BA_S1                   ; and the conditions it holds: see battle_states.s
+    jmp ba_st_actor_in
 .endproc
 
 .proc ba_build

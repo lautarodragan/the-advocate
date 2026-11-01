@@ -663,6 +663,8 @@ close:
     ; troop page's stretch does before running, and it skips, like that one,
     ; the places a page left empty.
     jsr ba_sync_out
+    ; And `RemoveBattleStates` on the party: see party_states.s.
+    jsl f:act_st_battle_end
     ; Without the battle's HDMA, and BG1 where the band left it: the exit
     ; shows the scene as it is, and the map turns on its own.
     lda #0
