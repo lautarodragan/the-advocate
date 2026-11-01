@@ -70,10 +70,16 @@ pub fn text_inks(skin: &Skin, font: &Font) -> Result<Inks> {
         palettes.push(palette);
     }
     let bytes = message_window::font_bytes(font)?;
-    let rows: Vec<u8> = (0..font::HEIGHT as u8).map(|k| INK_ROW_FIRST + k).collect();
-    let prerender = message_window::font_prerender(&bytes, &rows, INK_SHADOW);
     Ok(Inks {
         palettes,
-        prerender,
+        prerender: ink_prerender(&bytes),
     })
+}
+
+/// Glyphs —`font_bytes`'s rows— precomposed for the inks' shared layout, a
+/// table per phase: the text screens' and the debug screen's, which has a
+/// font of its own.
+pub fn ink_prerender(bytes: &[u8]) -> Vec<Vec<u8>> {
+    let rows: Vec<u8> = (0..font::HEIGHT as u8).map(|k| INK_ROW_FIRST + k).collect();
+    message_window::font_prerender(bytes, &rows, INK_SHADOW)
 }

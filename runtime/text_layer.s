@@ -91,6 +91,14 @@
 ; top and bottom together and the VRAM wants the two tops together. What
 ; is apart for it lives in `FAR3`, at the end.
 ;
+; **And it has a font of its own and two pools**, since 2026-11-01: the
+; debug screen's letters, `hires-wide`, wider than the game's, from their
+; own tables —`TL_HI_ADVANCE`, `TL_HI_REACH`, `tl_hi_pre_lo`—; and the
+; screen's upper half takes its quads from one pool and the lower half from
+; another, each from its own 1024 tiles of the VRAM, which an HDMA switches
+; at line 112 —see `TL_HI_SPLIT`—. A tilemap word names 1024 tiles, 255
+; quads, and that wider font's densest pages asked for more.
+;
 ; The layer's tilemap is its own and not `text_buf`: that one is the message
 ; window's line, and a row finished after a screen closed would land in the
 ; middle of a message being composed.
@@ -116,7 +124,8 @@ TL_STAGE_BYTES = TL_COLS * 64   ; a column is two tiles, top and bottom
 .assert TL_STAGE_BYTES <= ANIM_B_BYTES, error, "the stage does not fit in ANIMB_BUF"
 .assert ^ANIMB_BUF = $7E, error, "the stage is read with the data bank at $7E"
 ; A pair's number is a word: until 2026-10-04 it was a byte, and a screen
-; had 191 at most.
+; had 191 at most. Its stacks, `TL_FREE`, are words from `TL_FBASE` —0, or
+; the lower pool's in the 512-wide mode—.
 TL_PAIR      = TL_SHOWN + TL_ROWS * TL_RECORD ; each cell's pair, a word
 TL_PAIRS     = 448                           ; a screen has 447 at most
 TL_REFS      = TL_PAIR + TL_ROWS * TL_COLS * 2 ; per pair, how many cells
@@ -208,7 +217,19 @@ TL_SPLIT_AT  = TL_WIN_KEY + 20  ; and its first run composed, a record offset
 TL_REL_FROM  = TL_WIN_KEY + 22  ; `tl_release_cols`: the first column it frees
 TL_HIRES     = TL_WIN_KEY + 24  ; nonzero: the 512-wide mode —see `tl_hires`—
 TL_CLIP      = TL_WIN_KEY + 26  ; a glyph that would reach this x is cut
-TL_END       = TL_WIN_KEY + 28
+TL_MAP_VRAM  = TL_WIN_KEY + 28  ; where `tl_switch` puts the tilemap
+; The pool the layer takes from and gives back to: its counts, where its
+; free ones start in `TL_FREE` —in bytes— and its last word —the waiting
+; ones go down from there; an index of the whole of `TL_FREE`—, and its
+; first quad. One, but two in the 512-wide mode: the other one's are kept
+; below, and `tl_pool_of_row` trades them.
+TL_FBASE     = TL_WIN_KEY + 30
+TL_FTOP      = TL_WIN_KEY + 32
+TL_QBASE     = TL_WIN_KEY + 34
+TL_POOL      = TL_WIN_KEY + 36  ; which one is in: 0 the upper half's, 1
+TL_OTHER     = TL_WIN_KEY + 38  ; the other one's free, waiting, base, top
+                                ; and first quad, five words
+TL_END       = TL_OTHER + 10
 ; A run's colour byte with this bit says it goes by reference: three bytes
 ; of address after its count, and no letters.
 TL_REF_BIT   = $80
@@ -367,6 +388,15 @@ records:
     stz TL_HIRES
     lda #257
     sta TL_CLIP
+    lda #SLOT_MAP
+    sta TL_MAP_VRAM
+    stz TL_FBASE                ; one pool, the whole of `TL_FREE`
+    lda #(TL_PAIRS - 1)
+    sta TL_FTOP
+    stz TL_QBASE
+    stz TL_POOL
+    stz TL_OTHER                ; and the other one empty
+    stz TL_OTHER + 2
     lda #$FFFF
     sta TL_WIN_KEY              ; the shop's windows, not uploaded yet
     sta TL_T_ROW
@@ -995,8 +1025,14 @@ write:
     lda temp + 1
     and #$00FF
     sta TL_T1
-    ; Its width: a digit's advance times how many.
+    ; Its width: a digit's advance times how many, of its font.
+    lda TL_HIRES
+    beq low_digit
+    lda f:TL_HI_ADVANCE + ('0' - ' ')
+    bra digit_read
+low_digit:
     lda f:font_advance + ('0' - ' ')
+digit_read:
     and #$00FF
     sta TL_T2
     lda TL_DIG_N
@@ -1213,7 +1249,7 @@ not_now:
     sta f:VMAIN
     rep #$20
 .a16
-    lda #SLOT_MAP
+    lda TL_MAP_VRAM
     sta f:VMADDL
     lda #TL_MAP
     sta f:A1T0L
@@ -1250,10 +1286,20 @@ not_now:
 .proc tl_recycle
 .a16
 .i16
-    lda TL_PEND_N
+    jsr pool
+    lda TL_HIRES
     beq done
+    jsl f:tl_swap_pool          ; and the other one's
+    jsr pool
+    jsl f:tl_swap_pool
+done:
+    rts
+pool:
+    lda TL_PEND_N
+    beq none
     sta TL_T0
-    lda #TL_PAIRS
+    lda TL_FTOP
+    inc a
     sec
     sbc TL_T0
     asl a
@@ -1262,6 +1308,8 @@ not_now:
     tax                         ; the lowest waiting one
     lda TL_FREE_N
     asl a
+    clc
+    adc TL_FBASE
     clc
     adc #TL_FREE
     tay                         ; where the free ones end
@@ -1274,7 +1322,7 @@ not_now:
     adc TL_T0
     sta TL_FREE_N
     stz TL_PEND_N
-done:
+none:
     rts
 .endproc
 
@@ -1456,7 +1504,11 @@ typeset:
     ; A row takes at most a pair per column it composes —the ones before
     ; `TL_SPLIT` keep theirs: see `tl_split`—. If fewer are free and some
     ; wait for the switch, the switch goes first; if none wait, what does
-    ; not fit stays blank.
+    ; not fit stays blank. In the row's pool.
+    ldx TL_HIRES
+    beq one_pool
+    jsl f:tl_pool_of_row
+one_pool:
     pha
     jsl f:tl_split
     lda #TL_COLS
@@ -1756,6 +1808,11 @@ scan_on:
 maybe:
     cpy TL_T1
     beq scan_on                 ; itself
+    ldx TL_HIRES
+    beq near
+    jsl f:tl_far_half
+    bcs scan_on                 ; its quads are the other pool's
+near:
     rep #$20
 .a16
     sty TL_DJ
@@ -1935,6 +1992,10 @@ empty:
 .proc tl_release_cols
 .a16
 .i16
+    ldx TL_HIRES
+    beq one_pool
+    jsl f:tl_pool_of_row
+one_pool:
     asl a
     asl a
     asl a
@@ -1980,14 +2041,16 @@ column:
 .a16
     lda TL_FREE_N
     asl a
+    clc
+    adc TL_FBASE
     tax
     lda TL_C
     sta TL_FREE, x
     inc TL_FREE_N
     bra still
 shown:
-    ; At the top of `TL_FREE`, down from its last word.
-    lda #(TL_PAIRS - 1)
+    ; At the top of the pool, down from its last word.
+    lda TL_FTOP
     sec
     sbc TL_PEND_N
     asl a
@@ -2016,7 +2079,9 @@ empty:
     iny
     iny
     dec TL_T1
-    bne column
+    beq done
+    jmp column
+done:
     rts
 .endproc
 
@@ -2031,6 +2096,7 @@ empty:
     beq pair
     pla
     lsr a                       ; four tiles a quad
+    ora TL_QBASE                ; of the row's pool's 1024 tiles
     rts
 pair:
     pla
@@ -2221,6 +2287,8 @@ copied:
     lda a:0, x
     and #$00FF
 fetched:
+    ldy TL_HIRES
+    bne hires_letter
     cmp #TL_FIGURE
     bne normal
     lda f:font_advance + ('0' - ' ')
@@ -2239,11 +2307,6 @@ normal:
     adc TL_X
     cmp TL_CLIP
     bcs advance                 ; it would paint past the screen: cut
-    lda TL_HIRES
-    beq low_glyph
-    jsl f:tl_glyph_hi
-    bra advance
-low_glyph:
     jsr tl_glyph
 advance:
     ldx TL_C
@@ -2252,6 +2315,9 @@ advance:
     clc
     adc TL_X
     sta TL_X
+    jmp loop
+hires_letter:
+    jsl f:tl_letter_hi          ; with the 512-wide mode's own font
     jmp loop
 .endproc
 
@@ -2460,6 +2526,11 @@ scr_pre_bk:
     jsr tl_release_cols         ; leaves its first cell in TL_T2, tilemap TL_T3
     stz TL_UP_N
     stz TL_UP_I
+    lda TL_HIRES
+    beq low
+    jsl f:tl_finish_hi          ; quads, from the row's pool
+    rts
+low:
     ldy TL_SPLIT
     cpy #TL_COLS
     bcs empty                   ; nothing composed: every column kept
@@ -2502,23 +2573,11 @@ column:
     asl a                       ; the palette, bits 10 to 12
     ora #$2000
     sta TL_GG
-    lda TL_HIRES
-    bne quad
     lda TL_C
     asl a
     ora TL_GG
     sta TL_MAP, x
     inc a
-    bra lower
-quad:
-    lda TL_C                    ; tiles 4q and 4q + 1 on top, the next two
-    asl a                       ; below
-    asl a
-    ora TL_GG
-    sta TL_MAP, x
-    inc a
-    inc a
-lower:
     sta TL_MAP + 64, x
     ; And the upload: column and pair.
     lda TL_UP_N
@@ -3220,6 +3279,8 @@ low_x:
     inx
     inx
     inx
+    lda TL_HIRES
+    bne letter_hi
 letter:
     lda TL_N
     beq measured
@@ -3251,6 +3312,38 @@ advance:
     adc TL_X
     sta TL_X
     bra letter
+    ; The same with the 512-wide mode's font.
+letter_hi:
+    lda TL_N
+    beq measured
+    dec TL_N
+    lda TL_CUR, x
+    and #$00FF
+    inx
+    cmp #TL_FIGURE
+    bne glyph_hi
+    lda f:TL_HI_ADVANCE + ('0' - ' ')
+    bra advance_hi
+glyph_hi:
+    phx
+    tax
+    lda f:TL_HI_REACH, x
+    and #$00FF
+    beq no_ink_hi
+    clc
+    adc TL_X
+    cmp TL_T2
+    bcc no_ink_hi
+    sta TL_T2
+no_ink_hi:
+    lda f:TL_HI_ADVANCE, x
+    plx
+advance_hi:
+    and #$00FF
+    clc
+    adc TL_X
+    sta TL_X
+    bra letter_hi
 measured:
     pla
     clc
@@ -3297,16 +3390,290 @@ TL_QUADS_PER_VBLANK = TL_PAIRS_PER_VBLANK / 2
     sta TL_HIRES
     lda #513                    ; the font's pixels are the screen's
     sta TL_CLIP
+    lda #TL_HI_MAP
+    sta TL_MAP_VRAM
+    ; The upper half's pool is what `tl_reset` gave, in the first 256 words
+    ; of `TL_FREE`; the lower half's, quads `TL_HI_LOWER_Q` + 1 on, the
+    ; rest, with the one before as its blank.
+    lda #(TL_HI_LOWER_Q - 1)
+    sta TL_FTOP
+    lda #(2 * TL_HI_LOWER_Q)
+    sta TL_OTHER + 4
+    lda #(TL_PAIRS - 1)
+    sta TL_OTHER + 6
+    lda #TL_HI_LOWER_Q
+    sta TL_OTHER + 8
+    lda #(TL_HI_LAST_Q - TL_HI_LOWER_Q)
+    sta TL_OTHER
+    stz TL_OTHER + 2
+    ldx #(2 * TL_HI_LOWER_Q)
+    lda #TL_HI_LAST_Q           ; from the last down, so the first is on top
+lower:
+    sta TL_FREE, x
+    inx
+    inx
+    dec a
+    cmp #TL_HI_LOWER_Q
+    bne lower
     bra done
 off:
     stz TL_HIRES
     lda #257
     sta TL_CLIP
+    lda #SLOT_MAP
+    sta TL_MAP_VRAM
+    lda TL_POOL
+    beq upper
+    jsl f:tl_swap_pool
+upper:
+    lda #(TL_PAIRS - 1)
+    sta TL_FTOP
+    stz TL_OTHER
+    stz TL_OTHER + 2
 done:
     sep #$20
 .a8
     plb
     pla
+    rtl
+.endproc
+
+; The two pools of the 512-wide mode: the layer's rows from `TL_HI_SPLIT`
+; on are the screen's lower half, from line 112 down, where an HDMA puts
+; BG1's tiles at `TL_HI_LOWER` —the debug screen's `dbg_hdma`—; so their
+; quads are `TL_HI_LOWER_Q` + 1 to `TL_HI_LAST_Q`, and a tilemap word names
+; them by their number less `TL_HI_LOWER_Q`. The upper half's are 1 to
+; 255, from word 0. Each half's rows take, release and wait in their own
+; pool, and a row never takes another half's tiles —`tl_far_half`—, so a
+; half's pool is asked for at most what its five lines of text say, and
+; what a sixth says while it changes: 6 * 30 quads —a line inks columns 1
+; to 30, inside the windows' frames—, which both pools hold. That is why
+; no page loses text, whatever its names; until 2026-11-01 the one pool
+; held 223, and the debug screen's font asked some pages for 260 and
+; more —see `a-wider-font-for-the-512-wide-debug-screen` in the tasks—.
+TL_HI_SPLIT   = 14              ; the first row of the lower half
+TL_HI_LOWER   = $4000           ; where its quads are, in the VRAM
+TL_HI_LOWER_Q = TL_HI_LOWER / 64
+TL_HI_LAST_Q  = TL_PAIRS - 1
+TL_HI_MAP     = $7C00           ; the layer's tilemap, BG1's
+.assert TL_HI_LOWER_Q = 256, error, "the upper half's quads are 1024 tiles from word 0"
+.assert 6 * (TL_COLS - 2) <= TL_HI_LAST_Q - TL_HI_LOWER_Q, error, "the lower half's pool does not hold what five lines and a sixth ask for"
+.assert TL_HI_SPLIT * 8 = 112, error, "the pools split where the HDMA does"
+
+; The other pool in, and this one out. A16, data bank $7E; keeps A, X and Y.
+.proc tl_swap_pool
+.a16
+.i16
+    pha
+    phx
+    ldx #0
+trade:
+    lda TL_FREE_N, x
+    pha
+    lda TL_OTHER, x
+    sta TL_FREE_N, x
+    pla
+    sta TL_OTHER, x
+    inx
+    inx
+    cpx #4
+    bcc trade
+    ; The three after the counts: base, top and first quad.
+.repeat 3, K
+    lda TL_FBASE + 2 * K
+    pha
+    lda TL_OTHER + 4 + 2 * K
+    sta TL_FBASE + 2 * K
+    pla
+    sta TL_OTHER + 4 + 2 * K
+.endrepeat
+    lda TL_POOL
+    eor #1
+    sta TL_POOL
+    plx
+    pla
+    rtl
+.endproc
+.assert TL_PEND_N = TL_FREE_N + 2, error, "tl_swap_pool trades the free and the waiting counts as two words in a row"
+.assert TL_FTOP = TL_FBASE + 2 && TL_QBASE = TL_FBASE + 4, error, "tl_swap_pool trades base, top and first quad as three words in a row"
+
+; The pool of row A16's half in, in the 512-wide mode. Keeps A, X and Y.
+; Data bank $7E.
+.proc tl_pool_of_row
+.a16
+.i16
+    pha
+    lda TL_HIRES
+    beq same
+    lda 1, s
+    cmp #TL_HI_SPLIT
+    lda #0
+    rol a                       ; 1 the lower half
+    cmp TL_POOL
+    beq same
+    jsl f:tl_swap_pool
+same:
+    pla
+    rtl
+.endproc
+
+; Whether row Y's tiles are another half's than row `TL_T1`'s, in the
+; 512-wide mode: carry set if they are, and then `tl_choose` does not take
+; them. A8; keeps A.
+.proc tl_far_half
+.a8
+.i16
+    pha
+    lda TL_HIRES
+    beq near
+    rep #$20
+.a16
+    cpy #TL_HI_SPLIT
+    bcs y_lower
+    lda TL_T1
+    cmp #TL_HI_SPLIT            ; carry set: this one is the lower half's
+    bra decided
+y_lower:
+    lda TL_T1
+    cmp #TL_HI_SPLIT
+    bcc far
+near:
+    clc
+    bra decided
+far:
+    sec
+decided:
+    sep #$20
+.a8
+    pla
+    rtl
+.endproc
+
+; The 512-wide mode's font: the debug screen's, `hires-wide` —its tables
+; are `rm2k-snes-screens`'s `debug_screen.rs`—. A cartridge without the
+; screen has nothing that asks for the mode, and they are the game's.
+.if ::DEBUG_SCREEN
+TL_HI_ADVANCE = dbg_font_advance
+TL_HI_REACH   = dbg_font_reach
+tl_hi_pre_lo:
+    .word .loword(dbg_pre0), .loword(dbg_pre1), .loword(dbg_pre2), .loword(dbg_pre3)
+    .word .loword(dbg_pre4), .loword(dbg_pre5), .loword(dbg_pre6), .loword(dbg_pre7)
+tl_hi_pre_bk:
+    .byte ^dbg_pre0, 0, ^dbg_pre1, 0, ^dbg_pre2, 0, ^dbg_pre3, 0
+    .byte ^dbg_pre4, 0, ^dbg_pre5, 0, ^dbg_pre6, 0, ^dbg_pre7, 0
+.else
+TL_HI_ADVANCE = font_advance
+TL_HI_REACH   = font_reach
+tl_hi_pre_lo = scr_pre_lo
+tl_hi_pre_bk = scr_pre_bk
+.endif
+
+; A letter, A16, in the 512-wide mode: `tl_letters`' with its font. The
+; figure is a digit's blank; a blank paints nothing; a letter that would
+; paint past the screen is cut. A16, data bank $7E.
+.proc tl_letter_hi
+.a16
+.i16
+    cmp #TL_FIGURE
+    bne normal
+    lda f:TL_HI_ADVANCE + ('0' - ' ')
+    bra moved
+normal:
+    sta TL_C
+    tax
+    lda f:TL_HI_REACH, x
+    and #$00FF
+    beq advance
+    clc
+    adc TL_X
+    cmp TL_CLIP
+    bcs advance
+    jsl f:tl_glyph_hi
+advance:
+    ldx TL_C
+    lda f:TL_HI_ADVANCE, x
+moved:
+    and #$00FF
+    clc
+    adc TL_X
+    sta TL_X
+    rtl
+.endproc
+
+; `tl_finish`'s columns in the 512-wide mode: a quad each, from the row's
+; pool —which `tl_release_cols` put in—, its stack from `TL_FBASE`, and
+; its tilemap words naming it among that pool's 1024 tiles. Apart so the
+; other screens' rows, which are most of what the layer composes, pay
+; nothing for it. A16, data bank $7E.
+.proc tl_finish_hi
+.a16
+.i16
+    ldy TL_SPLIT
+    cpy #TL_COLS
+    bcs empty
+column:
+    lda TL_USED, y
+    and #$00FF
+    beq empty
+    sta TL_G                    ; the colour + 1
+    lda TL_FREE_N
+    beq empty                   ; none left
+    dec TL_FREE_N
+    lda TL_FREE_N
+    asl a
+    clc
+    adc TL_FBASE
+    tax
+    lda TL_FREE, x
+    sta TL_C                    ; the quad
+    tax
+    sep #$20
+.a8
+    lda #1
+    sta TL_REFS, x
+    sta TL_NEW, x
+    rep #$20
+.a16
+    tya
+    asl a
+    clc
+    adc TL_T3
+    tax
+    lda TL_C
+    sta TL_PAIR, x
+    lda TL_G
+    dec a
+    xba
+    asl a
+    asl a                       ; the palette, bits 10 to 12
+    ora #$2000
+    sta TL_GG
+    lda TL_C                    ; tiles 4q and 4q + 1 on top, the next two
+    asl a                       ; below, of the pool's 1024
+    asl a
+    and #$03FF
+    ora TL_GG
+    sta TL_MAP, x
+    inc a
+    inc a
+    sta TL_MAP + 64, x
+    lda TL_UP_N
+    asl a
+    asl a
+    tax
+    tya
+    sta TL_UPLOAD, x
+    lda TL_C
+    sta TL_UPLOAD + 2, x
+    inc TL_UP_N
+empty:
+    iny
+    cpy #TL_COLS
+    bcc column
+    lda #1
+    sta TL_MAP_DIRTY
+    lda #$FFFF
+    sta TL_T_ROW
     rtl
 .endproc
 
@@ -3380,10 +3747,10 @@ done:
 :
 .endmacro
 
-; `tl_glyph` in the wide stage: the same letter, the same tables —the font's
-; pixels are the screen's—, its eight-pixel columns 64 bytes apart as in the
-; other, and the columns it marks are the tilemap's, of sixteen. A16, data
-; bank $7E.
+; `tl_glyph` in the wide stage: the letter from the mode's own font's
+; tables —its pixels are the screen's—, its eight-pixel columns 64 bytes
+; apart as in the other, and the columns it marks are the tilemap's, of
+; sixteen. A16, data bank $7E.
 .proc tl_glyph_hi
 .a16
 .i16
@@ -3396,7 +3763,7 @@ done:
     rep #$20
 .a16
     ldx TL_C
-    lda f:font_reach, x
+    lda f:TL_HI_REACH, x
     and #$00FF
     dec a
     clc
@@ -3439,16 +3806,14 @@ done:
     lda TL_X
     and #$0007
     asl a
-    clc
-    adc TL_PRE
     tax
-    lda f:scr_pre_lo, x
+    lda f:tl_hi_pre_lo, x
     clc
     adc f:RDMPYL
     sta comp_glyph
     sep #$20
 .a8
-    lda f:scr_pre_bk, x
+    lda f:tl_hi_pre_bk, x
     sta comp_glyph + 2
     ldx TL_BASE                 ; before the data bank is the stage's
     phb
@@ -3544,9 +3909,12 @@ stop:
     tax
 quad:
     lda TL_UPLOAD + 2, x        ; the quad
-    xba
-    lsr a
-    lsr a                       ; 64 words each
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 64 words each: past 255, `xba` would not do
     clc
     adc TL_VRAM
     sta TL_T0

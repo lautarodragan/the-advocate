@@ -33,10 +33,13 @@
 ;
 ; **It is in the console's 512-wide mode**, mode 5, since 2026-10-20 —taro's,
 ; so that the switches' names fit—: the text on BG1 with the text layer in
-; its wide mode —`tl_hires`: the font's same pixels, half as wide on
-; screen—, its quads from word 0 up to `CM_BG1_MAP`; the windows on BG2 at
-; 2bpp, each tilemap word a cell 16 pixels wide, with their tiles from
-; `CM_BG1_VRAM` and their colours in the first 32 entries; and no objects
+; its wide mode —`tl_hires`: a font's pixels are the screen's, and since
+; 2026-11-01 the font is the screen's own, `hires-wide`, which taro reads
+; on a CRT—; its quads from word 0 for the screen's upper half and from
+; `TL_HI_LOWER` for the lower half, each half its own 1024 tiles, which an
+; HDMA switches at line 112 —`dbg_hdma`—; the windows on BG2 at 2bpp, each
+; tilemap word a cell 16 pixels wide, with their tiles from
+; `DBG_TILES_VRAM` and their colours in the first 32 entries; and no objects
 ; —`TM` and `TS` show BG1 and BG2 only, both, which is what shows every
 ; pixel of the 512—. The text's inks go after the windows' colours, in
 ; palettes 2 and 3: `DBG_WHITE` and `DBG_GREY`. When B leaves, mode 3 and
@@ -55,7 +58,15 @@
 .i16
 
 .assert DBG_BORDER_TILES > 0 && DBG_BORDER_COLORS > 0, error, "the debug screen has no windows: a DMA of 0 bytes is 64 KB"
-.assert CM_BG1_VRAM + DBG_BORDER_TILES * 8 <= $8000, error, "the debug screen's windows do not fit in the VRAM"
+; The VRAM, in words: the text's quads from 0 —the upper half's, 1024
+; tiles— and from `TL_HI_LOWER` —the lower half's— up to the windows'
+; tiles, and the two tilemaps at the top. Nothing of the map's is kept: it
+; comes back whole when the pause menu closes.
+DBG_TILES_VRAM = $7000          ; the windows' tiles, BG2's
+DBG_WIN_MAP    = $7800          ; the windows' tilemap, BG2's
+.assert TL_HI_LOWER + 64 * (TL_HI_LAST_Q + 1 - TL_HI_LOWER_Q) <= DBG_TILES_VRAM, error, "the lower half's quads reach the windows' tiles"
+.assert DBG_TILES_VRAM + DBG_BORDER_TILES * 8 <= DBG_WIN_MAP, error, "the debug screen's windows do not fit under their tilemap: see DBG_TILES_MAX in rm2k-snes-screens"
+.assert DBG_WIN_MAP + $400 <= TL_HI_MAP && TL_HI_MAP + $400 <= $8000, error, "the debug screen's tilemaps overlap"
 .assert DBG_CGRAM + DBG_BORDER_COLORS <= 32, error, "the debug screen's colours are not BG2's eight palettes at 2bpp"
 .assert DBG_PAGES > 0, error, "the debug screen has nothing to show"
 
@@ -68,11 +79,18 @@ DBG_INKS     = 32
 DBG_WHITE    = DBG_INKS / 16
 DBG_GREY     = DBG_WHITE + 1
 .assert ITEMS_CGRAM_N = 32, error, "the debug screen takes items_cgram's two first palettes as its white and grey"
-; The text's quads: from word 0 up to the windows' tilemap, below the
-; text's own; four tiles each, and a tilemap word names 1024 tiles.
-DBG_QUADS    = CM_BG1_MAP / 64 - 1
-.assert CM_BG1_MAP <= SLOT_MAP, error, "the debug screen's quads reach the text's tilemap"
-.assert DBG_QUADS < TL_PAIRS && 4 * DBG_QUADS + 3 < 1024, error, "the debug screen's quads do not fit the text layer's tables or BG1's tiles"
+; The upper half's quads: from word 0, four tiles each, as many as a
+; tilemap word names; the lower half's are `tl_hires`'s.
+DBG_QUADS    = TL_HI_LOWER_Q - 1
+.assert 4 * DBG_QUADS + 3 < 1024, error, "the debug screen's quads do not fit BG1's tiles"
+.assert (TL_HI_SPLIT - DBG_ROW0) .mod 2 = 0 && TL_HI_SPLIT > DBG_ROW0 && TL_HI_SPLIT < DBG_ROW0 + 2 * DBG_ROWS, error, "the text layer's pools do not split the screen between two of its lines"
+; BG1's tiles from word 0 in the upper half and from `TL_HI_LOWER` in the
+; lower one, and BG2's from its own all the way: what `dbg_hdma` writes.
+DBG_NBA_UPPER = DBG_TILES_VRAM / $1000 * 16
+DBG_NBA_LOWER = DBG_NBA_UPPER | (TL_HI_LOWER / $1000)
+.assert DBG_TILES_VRAM .mod $1000 = 0 && TL_HI_LOWER .mod $1000 = 0, error, "the debug screen's tiles are not at bases BG12NBA can name"
+; The HDMA's channel, 7: see registers.s.
+DBG_HDMA     = $80
 ; Two bytes that say the state below is the screen's and not the garbage
 ; WRAM starts with: the page and the cursors are kept from one opening to
 ; the next, as easyrpg-player keeps them.
@@ -309,6 +327,7 @@ changed:
 .i16
     lda #$80
     sta INIDISP
+    stz HDMAEN                  ; BG12NBA is the pause menu's again
     lda #$03                    ; the pause menu's mode, and no subscreen
     sta BGMODE
     stz TS
@@ -1004,26 +1023,12 @@ done:
     stz TM
     stz TS
     jsl f:battle_bank_upload + FAST
-    ; Quad 0, the blank one every cell without text points to: four tiles.
-    rep #$20
-.a16
-    stz VMADDL
-    lda #(2 * TL_PAIR_WORDS * 2)
-    sta DAS0L
-    lda #.loword(tl_zero)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #$80
-    sta VMAIN
-    lda #^tl_zero
-    sta A1B0
-    lda #$09                    ; two registers, without advancing the source
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
+    ; Quad 0, the blank one every cell without text points to: four tiles;
+    ; and the lower half's, at `TL_HI_LOWER`, its tile 0.
+    ldy #0
+    jsr blank_quad
+    ldy #TL_HI_LOWER
+    jsr blank_quad
     rep #$20
 .a16
     lda #(ITEMS_CGRAM_N * 2)
@@ -1051,19 +1056,29 @@ done:
     ldx #.loword(dbg_border_tiles)
     sep #$20
 .a8
-    ldy #CM_BG1_VRAM
+    ldy #DBG_TILES_VRAM
     lda #^dbg_border_tiles
     jsr dma_vram
     ; Mode 5: BG1 at 4bpp, the text, and BG2 at 2bpp, the windows, both
     ; with cells 16 pixels wide.
     lda #$05
     sta BGMODE
-    lda #(CM_BG1_VRAM / $1000 * 16) ; BG1 from word 0, BG2 from its tiles
+    lda #DBG_NBA_UPPER          ; BG1 from word 0, BG2 from its tiles
     sta BG12NBA
-    lda #(SLOT_MAP / 1024 * 4)
+    lda #(TL_HI_MAP / 1024 * 4)
     sta BG1SC
-    lda #(CM_BG1_MAP / 1024 * 4)
+    lda #(DBG_WIN_MAP / 1024 * 4)
     sta BG2SC
+    ; And from line 112 BG1's tiles from `TL_HI_LOWER`: the HDMA, which
+    ; `dbg_view` turns on with the screen.
+    lda #$00                    ; one register, written once
+    sta DMAP7
+    lda #<BG12NBA
+    sta BBAD7
+    ldx #.loword(dbg_hdma)
+    stx A1T7L
+    lda #^dbg_hdma
+    sta A1B7
     stz BG1HOFS
     stz BG1HOFS
     stz BG2HOFS
@@ -1075,7 +1090,42 @@ done:
     sta BG2VOFS
     rts
 .endproc
-.assert CM_BG1_VRAM .mod $1000 = 0, error, "the debug screen's windows are not at a base BG2 can name"
+
+; The HDMA's table: BG12NBA for the upper half, written on line 0, and for
+; the lower one from line 112, `TL_HI_SPLIT`'s first. A line's text goes
+; from its third pixel row to its fifteenth, so the line the write lands on
+; is blank in either half. HDMA reads it from the ROM every frame.
+dbg_hdma:
+    .byte TL_HI_SPLIT * 8, DBG_NBA_UPPER
+    .byte 1, DBG_NBA_LOWER
+    .byte 0
+.assert TL_HI_SPLIT * 8 < 128, error, "an HDMA entry counts 127 lines at most"
+
+; A blank quad, four tiles of zeros, at VRAM word Y. With the screen off.
+.proc blank_quad
+.a8
+.i16
+    sty VMADDL
+    rep #$20
+.a16
+    lda #(2 * TL_PAIR_WORDS * 2)
+    sta DAS0L
+    lda #.loword(tl_zero)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    lda #^tl_zero
+    sta A1B0
+    lda #$09                    ; two registers, without advancing the source
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
 
 ; The windows, the text composed whole and the bars, with the screen off;
 ; then on.
@@ -1098,7 +1148,7 @@ done:
     ldx #.loword(dbg_layout)
     sep #$20
 .a8
-    ldy #CM_BG1_MAP
+    ldy #DBG_WIN_MAP
     lda #^dbg_layout
     jsr dma_vram
     lda #$FF
@@ -1114,6 +1164,8 @@ done:
     sta TM
     sta TS                      ; both screens: each gives half the pixels
     jsl f:ba_t_vblank
+    lda #DBG_HDMA               ; from the next frame on, in the vblank
+    sta HDMAEN
     lda #$0F
     sta INIDISP
     rts
@@ -1260,7 +1312,7 @@ row:
 .a16
     lda f:DBG_VRAM
     clc
-    adc #CM_BG1_MAP
+    adc #DBG_WIN_MAP
     tay
     lda f:DBG_SRC
     tax

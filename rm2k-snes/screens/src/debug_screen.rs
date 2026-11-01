@@ -14,6 +14,14 @@
 //! line holds twice as many. The ranges' window is as wide as its text, and
 //! a name is cut only if it does not fit in what is left.
 //!
+//! **It writes with a font of its own**, `hires-wide`, since 2026-11-01
+//! —[`Font::debug_screen`]—, in every game: the game's letters at half
+//! width had vertical strokes one pixel of the 512 wide, and on taro's CRT
+//! they were "practically unreadable". So the cartridge carries that
+//! font's tables apart —its advances, its reach and its glyphs precomposed
+//! for the inks—, which only the text layer's 512-wide mode reads; and its
+//! Latin-1, the letters the database's names use, after them.
+//!
 //! What goes to the cartridge: the windows, drawn at 256 wide like every
 //! other screen's and **each pixel twice** —BG2 at 2bpp, a 16-pixel cell
 //! per tilemap word—, a tilemap and a cursor bar per row of each window;
@@ -25,8 +33,9 @@ use crate::cells::{self, Color, Counts, BLACK, CELL, COLS, ROWS, WIDTH};
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
 use crate::layout::{Rect, SCR_TEXT_X};
-use crate::texts::item_text;
-use rm2k_snes_text::font::Font;
+use crate::items::ink_prerender;
+use crate::message_window::{font_bytes_with, font_reach_with};
+use rm2k_snes_text::font::{self, Font};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, HashMap};
 use voodoo::pack::Indices;
@@ -50,8 +59,10 @@ pub const WIDE: usize = 2;
 /// is transparent. The text's go after them —see `debug_screen.s`—.
 pub const DBG_PALETTES: usize = 8;
 pub const DBG_CGRAM: usize = 0;
-/// A tilemap word names 1024 tiles, and a cell takes two.
-pub const DBG_TILES_MAX: usize = 1024;
+/// The windows' tiles go from word $7000 of the VRAM up to the tilemaps, at
+/// $7800: the rest is the text's, its two halves of 1024 tiles each —see
+/// `debug_screen.s`—. 256 tiles at 2bpp.
+pub const DBG_TILES_MAX: usize = 256;
 /// The longest range's label and the widest number, to measure with.
 const RANGE_TEXT: &str = "S[0000-0000]";
 const NUMBER_TEXT: &str = "0000:";
@@ -61,7 +72,7 @@ const VALUE_TEXT: &str = "-00000";
 /// The gap between a name and what follows it, in the font's pixels.
 const GAP: usize = 4;
 
-/// Where each thing goes, measured with the game's font: the ranges'
+/// Where each thing goes, measured with the screen's font: the ranges'
 /// window is as wide as its widest label, and the list takes the rest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Geometry {
@@ -120,9 +131,63 @@ impl Geometry {
     }
 }
 
+/// The screen's font as the cartridge carries it, glyph by glyph: the
+/// console's, then a blank where the text layer's `TL_FIGURE` goes —a letter
+/// it draws as a digit's blank, and not from these tables—, then the
+/// Latin-1 letters the names use, which the names write from
+/// [`LATIN_CODE`] on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Glyphs {
+    pub letters: Vec<char>,
+    pub advances: Vec<u8>,
+    pub reach: Vec<u8>,
+    /// A table per phase: see `font_prerender`.
+    pub prerender: Vec<Vec<u8>>,
+}
+
+/// The byte a name writes its first Latin-1 letter with: the text layer
+/// takes a letter as its byte less 32, so this is glyph
+/// [`font::CONSOLE_GLYPHS`] + 1, past `TL_FIGURE`'s.
+pub const LATIN_CODE: usize = font::FIRST as usize + font::CONSOLE_GLYPHS + 1;
+
+impl Glyphs {
+    fn of(font: &Font, letters: Vec<char>) -> Result<Glyphs> {
+        if LATIN_CODE + letters.len() > 256 {
+            return Err(Bad::answer(format!(
+                "the debug screen's names use {} Latin-1 letters, and a byte names {}",
+                letters.len(),
+                256 - LATIN_CODE
+            )));
+        }
+        // The figure's place: a blank, which paints nothing.
+        let mut all = vec![' '];
+        all.extend(&letters);
+        let mut advances = font.console_advances();
+        advances.extend(all.iter().map(|&c| font.advance(c) as u8));
+        Ok(Glyphs {
+            advances,
+            reach: font_reach_with(font, &all),
+            prerender: ink_prerender(&font_bytes_with(font, &all)?),
+            letters,
+        })
+    }
+
+    /// `text`, already in the font's letters, as the bytes the text layer
+    /// reads.
+    fn encode(&self, text: &str) -> Vec<u8> {
+        text.chars()
+            .map(|c| match self.letters.iter().position(|&l| l == c) {
+                Some(k) => (LATIN_CODE + k) as u8,
+                None => c as u8,
+            })
+            .collect()
+    }
+}
+
 /// Everything the cartridge carries of the screen.
 pub struct Built {
     pub geometry: Geometry,
+    pub glyphs: Glyphs,
     /// How many switches and variables the database has: the list shows
     /// them all.
     pub switches: usize,
@@ -296,10 +361,21 @@ fn picture(
     out
 }
 
+/// What the screen can write of `text`: the letters the font draws, a
+/// plain ASCII one for a letter it does not —see `rm2k_snes_text::plain`—,
+/// and a '?' for the rest.
+fn drawable(font: &Font, text: &str) -> String {
+    rm2k_snes_text::plain::plain_text_but(text, |c| font.draws(c))
+        .0
+        .chars()
+        .map(|c| if font.draws(c) { c } else { '?' })
+        .collect()
+}
+
 /// A name as the screen writes it: in the font's letters and cut to `px`.
 fn fitted(font: &Font, name: &str, px: usize) -> String {
     let mut width = 0;
-    item_text(name, 255)
+    drawable(font, name)
         .chars()
         .take_while(|&c| {
             width += font.advance(c);
@@ -324,6 +400,7 @@ fn fitted(font: &Font, name: &str, px: usize) -> String {
 /// runtime—, and one that is not shows no value.
 fn blob(
     font: &Font,
+    glyphs: &Glyphs,
     geometry: &Geometry,
     switches: &[String],
     variables: &[String],
@@ -345,8 +422,9 @@ fn blob(
         }
         let at = u16::try_from(out.len())
             .map_err(|_| Bad::answer("the debug screen's names do not fit in a bank"))?;
-        out.push(text.len() as u8);
-        out.extend(text.bytes());
+        let bytes = glyphs.encode(&text);
+        out.push(bytes.len() as u8);
+        out.extend(bytes);
         strings.insert(text, at);
         Ok(at)
     };
@@ -375,7 +453,8 @@ fn blob(
 /// The screen for `game`, whose variables the cartridge keeps in `slots`
 /// —number to slot—.
 pub fn build(game: &Game, skin: &Skin, slots: &BTreeMap<i32, usize>) -> Result<Built> {
-    let geometry = Geometry::of(&game.font);
+    let font = Font::debug_screen();
+    let geometry = Geometry::of(&font);
     let screen = Screen {
         background: picture(skin, &geometry, None),
         bars: (0..2)
@@ -390,25 +469,49 @@ pub fn build(game: &Game, skin: &Skin, slots: &BTreeMap<i32, usize>) -> Result<B
             .collect(),
     };
     let borders = wide_borders(&screen)?;
+    // The Latin-1 letters the names write, in the alphabet's order: the
+    // cartridge carries those and no more.
+    let mut letters: Vec<char> = game
+        .switch_names
+        .iter()
+        .map(|n| fitted(&font, n, geometry.switch_name_px))
+        .chain(
+            game.variable_names
+                .iter()
+                .map(|n| fitted(&font, n, geometry.variable_name_px)),
+        )
+        .flat_map(|n| n.chars().collect::<Vec<_>>())
+        .filter(|c| !c.is_ascii())
+        .collect();
+    letters.sort_unstable();
+    letters.dedup();
+    let glyphs = Glyphs::of(&font, letters)?;
     let blob = blob(
-        &game.font,
+        &font,
+        &glyphs,
         &geometry,
         &game.switch_names,
         &game.variable_names,
         slots,
     )?;
     let says = vec![format!(
-        "  debug screen: {} switches and {} variables ({} kept), {} B of names, windows in {} tiles \
-         and {} palettes",
+        "  debug screen: {} switches and {} variables ({} kept), {} B of names{}, windows in {} \
+         tiles and {} palettes",
         game.switch_names.len(),
         game.variable_names.len(),
         slots.keys().filter(|&&v| v >= 1 && v as usize <= game.variable_names.len()).count(),
         blob.len(),
+        if glyphs.letters.is_empty() {
+            String::new()
+        } else {
+            format!(" with {}", glyphs.letters.iter().collect::<String>())
+        },
         borders.tiles.len(),
         borders.colors.chunks(4).filter(|p| p[1..].iter().any(|c| *c != BLACK)).count()
     )];
     Ok(Built {
         geometry,
+        glyphs,
         switches: game.switch_names.len(),
         variables: game.variable_names.len(),
         blob,
@@ -456,6 +559,11 @@ pub fn to_json(b: &Built) -> Value {
         "tiles": crate::convert::tiles_json(&b.borders.tiles),
         "colors": crate::convert::colors_json(&b.borders.colors),
         "geometry": publish(b),
+        "font": {
+            "advances": b.glyphs.advances,
+            "reach": b.glyphs.reach,
+            "prerender": b.glyphs.prerender.iter().map(|t| crate::convert::hex(t)).collect::<Vec<_>>(),
+        },
     })
 }
 
@@ -463,6 +571,31 @@ pub fn to_json(b: &Built) -> Value {
 mod tests {
     use super::*;
     use crate::cells::HEIGHT;
+
+    /// A name keeps the Latin-1 the screen's font draws —Desert
+    /// Nightmare's `Händler`, Zounds' `Señal`—, written from
+    /// [`LATIN_CODE`] on, in the order of the letters the tables carry
+    /// after the figure's blank; and what it does not draw goes plain.
+    #[test]
+    fn a_name_keeps_its_latin_1_after_the_console_s_glyphs() {
+        let font = Font::debug_screen();
+        assert_eq!(drawable(&font, "Händler"), "Händler");
+        assert_eq!(drawable(&font, "Øre"), "Ore");
+        let glyphs = Glyphs::of(&font, vec!['ä', 'ñ']).unwrap();
+        assert_eq!(
+            glyphs.encode("Señal ä"),
+            vec![b'S', b'e', LATIN_CODE as u8 + 1, b'a', b'l', b' ', LATIN_CODE as u8]
+        );
+        let figure = font::CONSOLE_GLYPHS;
+        assert_eq!(glyphs.advances.len(), figure + 3);
+        assert_eq!(glyphs.reach[figure], 0, "the figure's place paints nothing");
+        assert_eq!(glyphs.advances[figure + 2], font.advance('ñ') as u8);
+        assert_eq!(glyphs.reach[figure + 1], font.reach('ä') as u8);
+        assert_eq!(LATIN_CODE - font::FIRST as usize, figure + 1);
+        for table in &glyphs.prerender {
+            assert_eq!(table.len(), (figure + 3) * crate::layout::FONT_PRE_CHAR);
+        }
+    }
 
     #[test]
     fn the_windows_fill_the_width_and_fit_the_height() {
