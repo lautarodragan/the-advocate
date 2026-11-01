@@ -623,3 +623,79 @@ fn the_lent_baked_note_names_the_event_by_its_id() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// Zounds' spikes, map 59: two groups of lower tiles, 94 and 95, swapped
+/// through a lower tile 1 the map draws nowhere —95→1, 94→95, 1→94—, which
+/// is how RM2k swaps two tiles. Tile 1's 8x8 cells are in VRAM only if
+/// something draws it, so the map is converted with a row below it that
+/// does, and the row is cut off again: the map keeps its cells, and every
+/// substitution has its blocks.
+#[test]
+fn a_tile_the_map_does_not_draw_is_drawn_below_it_for_a_substitution() {
+    let dir = scratch("undrawn-tile");
+    let (dump, pictures) = game(&dir);
+    let row = |tiles: [&str; 6]| tiles.concat();
+    let lower = [
+        row(["  5094", "  5094", "  5095", "  5095", "  5000", "  5000"]),
+        row(["  5000"; 6]),
+        row(["  5000"; 6]),
+        row(["  5000"; 6]),
+    ];
+    let upper: Vec<String> = (0..4).map(|_| [" 10000"; 6].concat()).collect();
+    std::fs::write(
+        dump.join("maps/Map0007.tiles"),
+        format!(
+            "# 6x4\n# lower\n{}\n# upper\n{}\n",
+            lower.join("\n"),
+            upper.join("\n")
+        ),
+    )
+    .unwrap();
+    let ring = json!([[false, 95, 1], [false, 94, 95], [false, 1, 94]]);
+    let body = json!({
+        "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+        "test_event": false, "leaders": [1, 2],
+        "pages": [], "route_graphics": [], "also_walk": [],
+        "timer": pictures.join("System/system.png"), "rain": false, "picture": null,
+        "battle_animation": false, "singles": [["Hero", 0]], "palette_weight": {},
+        "dither": "five_of_eight", "substitutions": ring, "common_substitutions": [],
+        "layouts": [], "window_colors": 13,
+    });
+    let path = dir.join("request.json");
+    std::fs::write(&path, body.to_string()).unwrap();
+    let out = dir.join("out");
+    let done = run(&dump, &pictures, &path, &out);
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let answer: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    let subs = &answer["substitutions"];
+    assert_eq!(subs["missing"], json!([]), "{subs}");
+    let table = subs["table"].as_array().unwrap();
+    let pairs = |k: usize| -> Vec<(u64, u64)> {
+        let p = table[k][3]
+            .as_array()
+            .unwrap_or_else(|| panic!("{}", table[k]));
+        p.iter()
+            .map(|p| (p[0].as_u64().unwrap(), p[1].as_u64().unwrap()))
+            .collect()
+    };
+    let (b95, b1) = pairs(0)[0];
+    let (b94, to95) = pairs(1)[0];
+    let (from1, to94) = pairs(2)[0];
+    assert_eq!((to95, from1, to94), (b95, b1, b94));
+    // Three distinct blocks, or the runtime's table, which matches by
+    // value, could not tell the groups apart.
+    assert!(b1 != b94 && b1 != b95 && b94 != b95, "{table:?}");
+
+    // And the map is the map: the extra row is not in its cells.
+    let layers: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
+    assert_eq!(layers["blocks"]["cells"].as_array().unwrap().len(), 24);
+    assert_eq!(layers["passability"].as_array().unwrap().len(), 24);
+    assert_eq!(layers["background"]["tilemap"].as_array().unwrap().len(), 8);
+    std::fs::remove_dir_all(&dir).unwrap();
+}

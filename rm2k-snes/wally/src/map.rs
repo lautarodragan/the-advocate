@@ -185,6 +185,7 @@ fn layered(
     baked: &BTreeMap<usize, (usize, i32)>,
     decor: &[Decoration],
     fuse_tiles: Option<usize>,
+    extra: &[(i32, i32)],
 ) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
@@ -195,6 +196,7 @@ fn layered(
         panorama,
         fuse_tiles,
         decor: decor.to_vec(),
+        extra: extra.to_vec(),
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
@@ -269,6 +271,7 @@ fn bake_unless_split_moves(
     baked: Baked,
     decor: &[Decoration],
     fuse_tiles: Option<usize>,
+    extra: &[(i32, i32)],
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
     let with = layered(
@@ -279,6 +282,7 @@ fn bake_unless_split_moves(
         &baked,
         decor,
         fuse_tiles,
+        extra,
     )?;
     if same_split(&without.converted, &with.converted, false) {
         return Ok((with, baked));
@@ -1082,10 +1086,8 @@ fn convert_with(
     } else {
         Vec::new()
     };
-    let panorama = request.panorama.clone().map(|mut b| {
-        b.extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
-        b
-    });
+    let panorama = request.panorama.clone();
+    let extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
     let without = layered(
         game,
         id,
@@ -1094,6 +1096,7 @@ fn convert_with(
         &BTreeMap::new(),
         &[],
         request.fuse_tiles,
+        &extra,
     )?;
     // The tiles first, as they always were. Then the decoration, all of it
     // if the split holds, and if not group by group —every CharSet is
@@ -1112,6 +1115,7 @@ fn convert_with(
             baked,
             &[],
             request.fuse_tiles,
+            &extra,
             &mut notes,
         )?;
         baked = kept;
@@ -1127,6 +1131,7 @@ fn convert_with(
             &BTreeMap::new(),
             &[],
             request.fuse_tiles,
+            &extra,
         )?;
         let attempt = |decor: &[Decoration], baked: &Baked| -> Result<Option<Layered>> {
             let with = layered(
@@ -1137,6 +1142,7 @@ fn convert_with(
                 baked,
                 decor,
                 request.fuse_tiles,
+                &extra,
             )?;
             Ok(same_split(&reference.converted, &with.converted, true).then_some(with))
         };
@@ -1414,6 +1420,7 @@ fn convert_with(
             &BTreeMap::new(),
             &kept_decor,
             request.fuse_tiles,
+            &extra,
         )?;
         if !baked.is_empty() {
             let (again, kept) = bake_unless_split_moves(
@@ -1425,6 +1432,7 @@ fn convert_with(
                 baked,
                 &kept_decor,
                 request.fuse_tiles,
+                &extra,
                 &mut notes,
             )?;
             layers = again;

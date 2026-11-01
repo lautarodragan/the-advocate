@@ -46,10 +46,13 @@ pub struct Drawn {
     pub panorama: Option<Panorama>,
     /// The map with rows added below it that draw the `(lower, upper)`
     /// pairs a `TileSubstitution` will need and the map does not draw, if
-    /// there are any and the map has a panorama. A flattened map draws the
-    /// two layers into one, so a substitution can build no block out of
-    /// halves: the blocks it needs have to be drawn, and they are drawn
-    /// here, converted with the map and cut off after the blocks are made.
+    /// there are any. A flattened map draws the two layers into one, so a
+    /// substitution can build no block out of halves; and in any map a tile
+    /// no cell draws has no 8x8 cells in VRAM to build one with —Zounds'
+    /// spikes swap through a lower tile 1 the map never shows—. So the
+    /// blocks it needs are drawn here, converted with the map and cut off
+    /// after the blocks are made. A map with a panorama uses them only
+    /// flattened: its other ways convert the map as it is.
     pub extended: Option<(Map, Layers)>,
     /// The cells a decorative event on the hero's layer closes, and the
     /// walls the caller left out —[`Game::walls`]—: the map's passability
@@ -381,8 +384,10 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
     });
     // The cells a `TileSubstitution` will need and the map does not draw,
     // in rows of their own below it: see `Drawn::extended`.
-    let extra: &[(i32, i32)] = request.panorama.as_ref().map_or(&[], |b| &b.extra);
-    let extended = if panorama.is_some() && !extra.is_empty() {
+    let extra = &request.extra;
+    let extended = if extra.is_empty() {
+        None
+    } else {
         let mut map = drawn.clone();
         let rows = extra.len().div_ceil(map.width);
         for k in 0..rows * map.width {
@@ -391,11 +396,18 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
             map.upper_layer.push(i64::from(u));
         }
         map.height += rows;
-        let mut layers = map.render_over_panorama(&atlas)?;
+        let mut layers = if panorama.is_some() {
+            map.render_over_panorama(&atlas)?
+        } else {
+            map.render(&atlas)?
+        };
         crate::decor::compose(&mut layers, &request.decor);
+        // Fused the same as the map, so that its cells are the map's: they
+        // are what the blocks are made of, see `blocks`.
+        if let Some(max) = request.fuse_tiles {
+            crate::background::fuse::fuse_lower(&mut layers, max);
+        }
         Some((map, layers))
-    } else {
-        None
     };
     Ok(Drawn {
         map: drawn,
@@ -501,8 +513,10 @@ pub fn draw_converted(game: &Game, request: &LayersRequest) -> Result<(Drawn, Co
 
 fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let (Some(p), Some(budget)) = (&drawn.panorama, &request.panorama) else {
+        // With the rows its substitutions need, if it has them: they are cut
+        // off again in `blocks`.
         return Ok(crate::background::convert_with(
-            &drawn.layers,
+            drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l),
             request.window_colors,
             None,
         )?);

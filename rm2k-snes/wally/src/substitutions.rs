@@ -10,10 +10,12 @@
 //! anywhere in the map— and then it is built: the four 8x8 cells of the
 //! layer that changes come from another block that already draws the new
 //! tile, those of the other layer from the source block, and the
-//! passability and terrain are recomputed with RM2k's rules. That is where
-//! the only real limit comes from: **the new tile has to be drawn in some
-//! cell of the map**, on its layer; if it is not, its 8x8 cells did not go
-//! into VRAM and there is nothing to draw it with.
+//! passability and terrain are recomputed with RM2k's rules. For that **the
+//! new tile has to be drawn in some cell**, on its layer, or its 8x8 cells
+//! are not in VRAM: a tile the map draws nowhere —a swap through a
+//! temporary tile, 95→1, 94→95, 1→94— is drawn in rows below the map that
+//! are converted with it and cut off afterwards (`Drawn::extended`, and
+//! [`unseen`], which says which).
 //!
 //! All the blocks are built **before** any page is compiled, and not as the
 //! commands show up: substitutions chain —turning a light on is 80→80A and
@@ -273,8 +275,9 @@ fn with_side(combination: (i32, i32), layer: usize, tile: i32) -> (i32, i32) {
 
 /// The `(lower, upper)` pairs `triples` take the map's cells to, one after
 /// another as they chain, that the map does not draw itself, in order: what
-/// a map that draws both layers as one has to draw anyway —see
-/// `Drawn::extended`—, since it cannot build them out of halves.
+/// is drawn below the map —see `Drawn::extended`—, since a flattened map
+/// cannot build them out of halves and no map can build a tile it does not
+/// draw.
 pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32)> {
     let drawn: std::collections::BTreeSet<(i32, i32)> =
         lower.iter().copied().zip(upper.iter().copied()).collect();
