@@ -344,10 +344,18 @@ no_paint:
 
 ; Mode 3 for a screen that opens over the map: they all draw in mode 3, and
 ; `back_to_map` puts mode 1 back through `ppu_init`. And no mask on BG1: the
-; HDMA is off and W12SEL stays as its last line left it.
+; HDMA is off and W12SEL stays as its last line left it. And no color math:
+; a translucent picture or the hero's feet in a bush —`pic_blend`— leave it
+; on, and the screens' own objects in palettes 4 to 7 —the shop's arrows—
+; would be mixed with their layers. The map's next vblank puts it back.
 .proc pano_mode3
 .a8
 .i16
+    lda #$30                    ; color math off, as `ppu_reset` leaves it
+    sta f:CGWSEL
+    lda #0
+    sta f:CGADSUB
+    sta f:TS
     lda f:PANO_HDMA
     beq no_bg1
     lda #$10

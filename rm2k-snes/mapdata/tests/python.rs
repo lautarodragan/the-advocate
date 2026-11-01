@@ -1501,12 +1501,14 @@ fn without_faces(text: &str) -> String {
 /// runtime/terrain_steps.s—: the `item_use` bit that spares an armor's
 /// wearer, which no item of the test game has, and `terrain_damage`, from
 /// the two terrains of its dump. And, since the same day, their encounter
-/// rates and the factor each multiplies the chance by.
+/// rates and the factor each multiplies the chance by, and their bush
+/// depth.
 fn without_terrain_damage(text: &str) -> String {
     let lines = "ITEM_USE_NO_TERRAIN_DAMAGE = $10\nTERRAINS_N = 3\n.block 6\n\
                  terrain_damage:\n    .word 0, 0, 3\n\
                  .block 6\nterrain_encounter_rate:\n    .word 100, 100, 100\n\
-                 .block 6\nterrain_encounter_factor:\n    .word 256, 256, 256\n";
+                 .block 6\nterrain_encounter_factor:\n    .word 256, 256, 256\n\
+                 .block 3\nterrain_bush:\n    .byte 0, 0, 0\n";
     assert!(text.contains(lines), "no terrain damage as written");
     text.replacen(lines, "", 1)
 }

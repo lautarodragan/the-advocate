@@ -193,7 +193,8 @@ next:
 ; 207, 40, is half.
 ;
 ; It is written on every vblank of the map, from the slots: off is
-; `ppu_reset`'s, and the battle's fade leaves it that way too. See
+; `ppu_reset`'s, and the battle's fade leaves it that way too, and so does
+; every screen that opens over the map —`pano_mode3`—. See
 ; "Colour math for translucent events" in
 ; `optimizations/tried-and-left-out.md` in the book, which was about
 ; translucent **events** and not pictures.
@@ -224,10 +225,9 @@ next:
 test:
     cpx pic_last
     bne each
-    lda #$30                    ; color math off, as `ppu_reset` leaves it
-    sta CGWSEL
-    stz CGADSUB
-    stz TS
+    ; No picture mixes: the hero's feet in a bush may, or nothing does. See
+    ; `bush_blend` in terrain_steps.s.
+    jsl f:bush_blend
     rts
 .endproc
 

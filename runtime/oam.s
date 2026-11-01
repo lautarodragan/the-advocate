@@ -25,6 +25,8 @@
 no_cache:
     stz high_acc
     stz hero_drawn
+    lda #0
+    sta f:BUSH_SLOT             ; no bush unless `place_hero` draws one
     rep #$20
 .a16
     stz high_ptr
@@ -863,7 +865,8 @@ outside:
     inc hero_drawn
     lda hero_hidden             ; `PlayerVisibility`: counted as placed, not drawn
     beq shown
-    rts
+no_draw:                        ; here and not at the end: the bush's `jsl`
+    rts                         ; left the end out of a branch's reach
 shown:
 
     ; The CharSet frame: steps 0 and 2 are the side ones, and steps 1 and 3
@@ -970,8 +973,8 @@ same_pose:
 .endif
     sep #$20
 .a8
+    jsl f:bush_oam              ; its feet in a bush go first: terrain_steps.s
     jsr emit_object
-no_draw:
     rts
 .endproc
 

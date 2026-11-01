@@ -3561,6 +3561,17 @@ impl Rest<'_> {
         let factor: Vec<i64> = rate.iter().map(|&r| encounters::factor(r)).collect();
         words_asm(out, "terrain_encounter_rate", &decimal(rate), true);
         words_asm(out, "terrain_encounter_factor", &decimal(factor), true);
+        // And how much of a character standing on it is half hidden, its
+        // `bush_depth`: 0 none, 1 a third, 2 half, 3 all. See `bush_oam` in
+        // runtime/terrain_steps.s.
+        let bush: Vec<i64> = (0..=top)
+            .map(|id| {
+                db.terrains
+                    .get(&id)
+                    .map_or(0, |t| i64::from(t.bush_depth.to_i32()).clamp(0, 3))
+            })
+            .collect();
+        bytes_asm(out, "terrain_bush", &decimal(bush), true);
         words_asm(
             out,
             "item_switch",
