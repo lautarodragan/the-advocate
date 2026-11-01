@@ -338,22 +338,28 @@ pub const TARGET_TERM_COST: &str = "sp_cost";
 /// The bar goes over the row's four lines of text —the SP's is the
 /// fourth, see `MENU_SP_X`—, as in RM2k, and not over the face: it is the
 /// pause menu's, `MENU_BAR`. Until 2026-11-01 it went over three lines,
-/// from y = 2 to a cell boundary.
+/// from y = 2 to a cell boundary, and its red started on the name's top
+/// row of ink: taro saw a pixel of the text left out.
 pub const TARGET_BAR: Rect = MENU_BAR;
 /// The bar on a party row: on the pause menu, where `Scene_Menu` chooses
 /// whom to equip over its own party panel —there are no windows under it,
 /// so it is drawn over nothing—, and on the actor choice. It covers the
-/// row's four lines —the cursor's edge is one dark pixel, so the red starts
-/// one in—: the name starts at y = 3 and the fourth line, which is sprites
-/// below the cell grid, ends at y = 56, one past the row. So the bar goes
-/// from y = 2 to y = 57 —red from 3 to 56— and reaches into the next row,
-/// which has no bar then. Measured against the capture on 2026-09-30: at
-/// y = 2..53 the bottom of "Ex" was left over black.
+/// row's four lines with **a pixel of red over the text and two under
+/// it** —the cursor's edge is one dark pixel, so the red starts one in—:
+/// the name's ink starts at y = 3 and the fourth line, which is sprites
+/// below the cell grid, ends at y = 55 with its shadow. So the edges go at
+/// y = 1 and y = 58 —red from 2 to 57— and the bar reaches into the next
+/// row, which has no bar then, two lines above its text. Not higher: on
+/// the actor choice's first row y = 0 is the window's frame.
+///
+/// Measured against the captures on 2026-11-01: from y = 2 the red started
+/// on the name's top row of ink, which is the pixel taro saw left out. On
+/// 2026-09-30, at y = 2..53, the bottom of "Ex" was left over black.
 pub const MENU_BAR: Rect = (
     MENU_TEXT_X - 4,
-    2,
+    1,
     WIDTH - MENU_TEXT_X,
-    MENU_ACTOR_ROWS * CELL + 1,
+    MENU_ACTOR_ROWS * CELL + 2,
 );
 /// How many cell rows a bar on a party row reaches: the row's and the one
 /// of the next row its bottom goes into.

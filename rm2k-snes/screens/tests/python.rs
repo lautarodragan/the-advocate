@@ -210,12 +210,13 @@ fn everything_a_cartridge_carries() {
     // RPG_RT writes it, and the leader's name got thirteen cells instead of
     // seven, so the slots' tiles moved and the answer says where their
     // names go, `slot_names`. What it held before is b3f8812b…f645. **Until
-    // 2026-11-01**, 80b161ce…6df4: the bank got the SP term and the actor
-    // choice's bar its fourth line, so its bars are eight cell rows; looked
-    // at in the actor choice's render below and in ABL's goldens.
+    // 2026-11-01**, 80b161ce…6df4: the bank got the SP term, the actor
+    // choice's bar its fourth line and a line of red above the name, so
+    // its bars are eight cell rows; looked at in the actor choice's render
+    // below and in ABL's goldens.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "b054a8348d5f4b37b2b98dc65a5f939501c649fff03e1060a8a68ed29f882f64"
+        "5978d64893ade5093e9d047c9971497eff6dfeca1fe6cdb0a46fa1806afa3e29"
     );
     assert_eq!(
         answer["says"],
@@ -409,7 +410,8 @@ fn the_screens_as_the_console_shows_them() {
         "06cf2dc59dae4c259ec988b9ad36077794461b1b73506df09925c419288936b0",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
-    // the Python, which never had it.
+    // the Python, which never had it. Since 2026-11-01 the bar starts a
+    // line higher, with a line of red over the name (4a5b495d…f5f before).
     check(
         "menu-choosing",
         render::menu(
@@ -424,7 +426,7 @@ fn the_screens_as_the_console_shows_them() {
             false,
         )
         .unwrap(),
-        "4a5b495d0fcec60fd1cea120ec612802c92f39115dc83600cd5fbac4bd4f3a5f",
+        "79468d33b7f8648d52398aa028c295c12f8e7ac761de864b9b9bfb03e33dcf7f",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -442,7 +444,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "target-item",
         render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
-        "537851412cc7243226e4bac8eb302f08f84c11e0b03d88ea5d1fa05d60f5d717",
+        "b29e43c5e2f793add03289a4e510ebdd1635b5c0ed5e1765df86fcc34b5bc14a",
     );
     check(
         "items",
