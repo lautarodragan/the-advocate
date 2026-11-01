@@ -1457,7 +1457,9 @@ fn convert_with(
              them to fit the {cap} the layouts leave: the ground is drawn worse, not walked differently"
         )));
     }
-    let (passability, mut blocks) = stage_layers::blocks(&layers.drawn, &mut layers.converted)?;
+    let apart = crate::substitutions::apart(&request.substitutions, &request.common_substitutions);
+    let (passability, mut blocks) =
+        stage_layers::blocks(&layers.drawn, &mut layers.converted, &apart)?;
     let substituted = substitute(
         id,
         &mut blocks,

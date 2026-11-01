@@ -10,8 +10,13 @@
 //! Passability and terrain go into what makes a block distinct, and not
 //! for free: two cells drawn the same can come from tiles with different
 //! permissions or terrain, and the console reads both per block.
+//!
+//! And so does a tile a `TileSubstitution` names, for the same reason: the
+//! console swaps blocks, so a block a substitution swaps can only be drawn
+//! by cells that carry that tile. See [`Map::apart`].
 
 use crate::background::fail::{Bad, Result};
+use std::collections::BTreeSet;
 
 /// A block in the table: four background cells and four above, one word
 /// each.
@@ -51,11 +56,26 @@ pub struct Map<'a> {
     pub passability: &'a [u8],
     /// Each cell's terrain.
     pub terrain: &'a [i32],
+    /// The RM2k tile ids a `TileSubstitution` of the map names, going out
+    /// or coming in: a cell that carries one is never the same block as a
+    /// cell that does not, however alike they are drawn. The console's
+    /// substitution rewrites a block wherever it is, so a block shared by
+    /// two tiles would be swapped for both —Zounds' map 59 draws lower tile
+    /// 1 exactly like its floor, and its spikes swap through tile 1: shared,
+    /// the whole floor would come out as spikes—.
+    pub apart: &'a BTreeSet<i32>,
+}
+
+/// What of a cell's two tiles keeps it apart from cells drawn alike: each
+/// tile if `apart` names it, -1 if not.
+pub fn tag(apart: &BTreeSet<i32>, (low, high): (i32, i32)) -> (i32, i32) {
+    let kept = |t: i32| if apart.contains(&t) { t } else { -1 };
+    (kept(low), kept(high))
 }
 
 /// The map in blocks, from the two tilemaps the layers were converted to.
 pub fn blocks(map: &Map, background: &[Vec<u16>], above: &[Vec<u16>]) -> Result<Blocks> {
-    type Key = ([u16; 4], [u16; 4], u8, i32);
+    type Key = ([u16; 4], [u16; 4], u8, i32, (i32, i32));
     let mut numbers: std::collections::HashMap<Key, u16> = std::collections::HashMap::new();
     let mut keys: Vec<Key> = Vec::new();
     let mut cells = Vec::with_capacity(map.width * map.height);
@@ -76,6 +96,7 @@ pub fn blocks(map: &Map, background: &[Vec<u16>], above: &[Vec<u16>]) -> Result<
                 quarter(above, bx, by),
                 map.passability[at],
                 map.terrain[at],
+                tag(map.apart, (map.lower[at], map.upper[at])),
             );
             let number = *numbers.entry(key).or_insert_with(|| {
                 keys.push(key);
@@ -97,7 +118,7 @@ pub fn blocks(map: &Map, background: &[Vec<u16>], above: &[Vec<u16>]) -> Result<
     let mut table = Vec::with_capacity(BLOCK_BYTES * keys.len());
     let mut passability = Vec::with_capacity(keys.len());
     let mut terrain = Vec::with_capacity(keys.len());
-    for (bg, above, pass, ter) in keys {
+    for (bg, above, pass, ter, _) in keys {
         for cell in bg.iter().chain(&above) {
             table.extend_from_slice(&cell.to_le_bytes());
         }
@@ -134,6 +155,7 @@ mod tests {
             upper: &[10000, 10000, 10000],
             passability: &[15, 15, 15],
             terrain: &[1, 1, 2],
+            apart: &BTreeSet::new(),
         };
         let made = blocks(&map, &bg, &above).unwrap();
         assert_eq!(made.cells, [0, 0, 1]);
@@ -142,6 +164,20 @@ mod tests {
         assert_eq!(made.terrain, [1, 2]);
         // Each pair of tiles, the first time it is met.
         assert_eq!(made.combos, [((5000, 10000), 0), ((5001, 10000), 0)]);
+
+        // Unless a substitution names one of the two tiles drawn alike.
+        let apart: BTreeSet<i32> = [5001].into();
+        let made = blocks(
+            &Map {
+                apart: &apart,
+                ..map
+            },
+            &bg,
+            &above,
+        )
+        .unwrap();
+        assert_eq!(made.cells, [0, 1, 2]);
+        assert_eq!(made.combos, [((5000, 10000), 0), ((5001, 10000), 1)]);
     }
 
     #[test]
@@ -153,6 +189,7 @@ mod tests {
             upper: &[10000],
             passability: &[0],
             terrain: &[256],
+            apart: &BTreeSet::new(),
         };
         let one = vec![vec![0; 2]; 2];
         assert!(blocks(&map, &one, &one).is_err());

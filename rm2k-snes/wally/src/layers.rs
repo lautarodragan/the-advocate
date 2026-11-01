@@ -12,6 +12,7 @@ use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
 use serde_json::{json, Value};
+use std::collections::BTreeSet;
 use std::path::Path;
 
 /// The file what the caller needs to know is written to.
@@ -904,7 +905,13 @@ fn flattened(layers: &Layers) -> Layers {
 /// A map converted with the rows of [`Drawn::extended`] makes its blocks
 /// with them, so that they are in the table, and then loses them: its
 /// cells, its passability and its tilemaps are the map's.
-pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Blocks)> {
+/// `apart`: the tiles the map's substitutions name, see
+/// [`blocks::Map::apart`].
+pub fn blocks(
+    drawn: &Drawn,
+    converted: &mut Converted,
+    apart: &BTreeSet<i32>,
+) -> Result<(Vec<u8>, Blocks)> {
     let rows = drawn.map.height * 2;
     if converted.background.tilemap.len() > rows {
         let map = &drawn
@@ -912,7 +919,7 @@ pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Bloc
             .as_ref()
             .expect("a tilemap past the map comes from its extension")
             .0;
-        let (mut passability, mut made) = blocks_of(drawn, map, converted)?;
+        let (mut passability, mut made) = blocks_of(drawn, map, converted, apart)?;
         let cells = drawn.map.width * drawn.map.height;
         passability.truncate(cells);
         made.cells.truncate(cells);
@@ -921,10 +928,15 @@ pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Bloc
         converted.above.tilemap.truncate(rows);
         return Ok((passability, made));
     }
-    blocks_of(drawn, &drawn.map, converted)
+    blocks_of(drawn, &drawn.map, converted, apart)
 }
 
-fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>, Blocks)> {
+fn blocks_of(
+    drawn: &Drawn,
+    map: &Map,
+    converted: &Converted,
+    apart: &BTreeSet<i32>,
+) -> Result<(Vec<u8>, Blocks)> {
     let flags = passability_table(&map.passable_lower, &map.passable_upper);
     let lower: Vec<i32> = map.lower_layer.iter().map(|&t| t as i32).collect();
     let upper: Vec<i32> = map.upper_layer.iter().map(|&t| t as i32).collect();
@@ -948,6 +960,7 @@ fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>
             upper: &upper,
             passability: &passability,
             terrain: &terrain,
+            apart,
         },
         &converted.background.tilemap,
         &converted.above.tilemap,
@@ -1097,7 +1110,8 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
 /// into `out`.
 pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
     let (drawn, mut converted) = draw_converted(game, request)?;
-    let (passability, made) = blocks(&drawn, &mut converted)?;
+    // No substitutions here: nothing is kept apart.
+    let (passability, made) = blocks(&drawn, &mut converted, &BTreeSet::new())?;
     write(
         out,
         &converted,

@@ -22,12 +22,12 @@
 //! off is 80A→80—, so the block one needs is created by another, and the
 //! order the pages are compiled in cannot decide what compiles.
 
-use crate::background::blocks::{Blocks, BLOCK_BYTES, MAX_BLOCKS};
+use crate::background::blocks::{tag, Blocks, BLOCK_BYTES, MAX_BLOCKS};
 use crate::fail::{Bad, Result};
 use ditto::schema::Chipset;
 use rm2k_rules::chipset::{terrain_of, LOWER, TILES_PER_LAYER, UPPER};
 use rm2k_rules::passability::{cell, ABOVE};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// A `TileSubstitution`: whether it is the upper layer's, and the old and
 /// new tile, numbered within the layer.
@@ -37,9 +37,10 @@ pub type Triple = (bool, i32, i32);
 /// draws the old tile.
 pub type Pairs = Vec<(u16, u16)>;
 
-/// What makes a block distinct: its sixteen bytes, its passability and its
-/// terrain.
-type Fingerprint = (Vec<u8>, u8, u8);
+/// What makes a block distinct: its sixteen bytes, its passability, its
+/// terrain and the tiles of it a substitution names —see
+/// `blocks::Map::apart`—.
+type Fingerprint = (Vec<u8>, u8, u8, (i32, i32));
 
 /// The map's blocks, growing with what the substitutions need.
 pub struct Substitutions<'a> {
@@ -62,6 +63,8 @@ pub struct Substitutions<'a> {
     /// autotiles that draw the same— have to keep sharing it after
     /// substituting, or a single block would have to go two ways.
     by_bytes: HashMap<Fingerprint, u16>,
+    /// The tiles the substitutions name: see `blocks::Map::apart`.
+    apart: BTreeSet<i32>,
 }
 
 impl<'a> Substitutions<'a> {
@@ -73,6 +76,7 @@ impl<'a> Substitutions<'a> {
         flags: &'a [u8],
         chipset: &'a Chipset,
         flattened: bool,
+        apart: BTreeSet<i32>,
     ) -> Self {
         let mut cells: [HashMap<i32, Vec<u8>>; 2] = [HashMap::new(), HashMap::new()];
         for &((low, high), block) in &blocks.combos {
@@ -89,10 +93,17 @@ impl<'a> Substitutions<'a> {
                 .entry(high)
                 .or_insert_with(|| half(blocks, block, 1));
         }
+        // Every cell of a block carries the same named tiles —that is how
+        // the blocks were made—, so any of its combinations says which.
+        let mut tags: HashMap<u16, (i32, i32)> = HashMap::new();
+        for &(combination, block) in &blocks.combos {
+            tags.entry(block).or_insert(tag(&apart, combination));
+        }
         let mut by_bytes = HashMap::new();
         for block in 0..blocks.passability.len() {
+            let tagged = tags.get(&(block as u16)).copied().unwrap_or((-1, -1));
             by_bytes
-                .entry(fingerprint(blocks, block))
+                .entry(fingerprint(blocks, block, tagged))
                 .or_insert(block as u16);
         }
         Substitutions {
@@ -104,6 +115,7 @@ impl<'a> Substitutions<'a> {
             chipset,
             cells,
             by_bytes,
+            apart,
         }
     }
 
@@ -170,6 +182,14 @@ impl<'a> Substitutions<'a> {
             }
             out.push((block, new_block));
         }
+        // And a block that goes cannot be drawn by a combination that stays:
+        // the console would swap it there too. `apart` keeps them from
+        // sharing one; this is what holds if it did not.
+        for (&combination, &block) in &self.combos {
+            if side(combination, layer) != old_id && seen.get(&block).is_some_and(|&n| n != block) {
+                return None;
+            }
+        }
         // The count operand is one byte.
         if out.len() > 0xFF {
             return None;
@@ -201,7 +221,12 @@ impl<'a> Substitutions<'a> {
                 "a tile with terrain {terrain} and the ROM's table carries one byte per block"
             ))
         })?;
-        let print = (bytes, cell(self.flags, low, high), terrain);
+        let print = (
+            bytes,
+            cell(self.flags, low, high),
+            terrain,
+            tag(&self.apart, combination),
+        );
         let number = match self.by_bytes.get(&print) {
             Some(&n) => n,
             None => {
@@ -238,13 +263,27 @@ fn half(blocks: &Blocks, block: u16, layer: usize) -> Vec<u8> {
     blocks.table[first..first + 8].to_vec()
 }
 
-fn fingerprint(blocks: &Blocks, block: usize) -> Fingerprint {
+fn fingerprint(blocks: &Blocks, block: usize, tagged: (i32, i32)) -> Fingerprint {
     let first = block * BLOCK_BYTES;
     (
         blocks.table[first..first + BLOCK_BYTES].to_vec(),
         blocks.passability[block],
         blocks.terrain[block],
+        tagged,
     )
+}
+
+/// The RM2k tile ids the substitutions `own` and `common` name, going out or
+/// coming in: what the map's blocks keep apart, see `blocks::Map::apart`.
+pub fn apart(own: &[Triple], common: &[Triple]) -> BTreeSet<i32> {
+    own.iter()
+        .chain(common)
+        .filter(|&&(_, old, new)| in_layer(old) && in_layer(new))
+        .flat_map(|&(upper, old, new)| {
+            let (a, b) = ids(upper, old, new);
+            [a, b]
+        })
+        .collect()
 }
 
 fn in_layer(tile: i32) -> bool {
@@ -329,7 +368,7 @@ pub fn substitute(
     common: &[Triple],
     flattened: bool,
 ) -> Result<Answer> {
-    let mut subs = Substitutions::new(id, blocks, flags, chipset, flattened);
+    let mut subs = Substitutions::new(id, blocks, flags, chipset, flattened, apart(own, common));
     let missing = subs.close(own)?;
     let mut asked: Vec<Triple> = own.to_vec();
     for t in common {
@@ -441,5 +480,19 @@ mod tests {
         assert!(answer.missing.is_empty());
         assert_eq!(answer.table[0], ((false, 1, 0), Some(vec![(1, 0), (3, 2)])));
         assert_eq!(answer.table[1], ((false, 0, 1), Some(vec![(0, 1), (2, 3)])));
+    }
+
+    /// A block drawn by a tile that goes and by one that stays —made by
+    /// hand here; `blocks::Map::apart` keeps the map's from it— cannot be
+    /// swapped: the console would swap it under both.
+    #[test]
+    fn a_block_shared_with_a_tile_that_stays_does_not_go() {
+        let flags = flags_with(&[UPPER + 2]);
+        let chipset = Chipset::default();
+        let mut b = blocks();
+        // Lower tile 5 draws the same as lower tile 0: block 0.
+        b.combos.push(((LOWER + 5, UPPER), 0));
+        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 5, 1)], &[], false).unwrap();
+        assert_eq!(answer.table, vec![((false, 5, 1), None)]);
     }
 }

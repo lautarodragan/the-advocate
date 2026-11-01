@@ -630,10 +630,29 @@ fn the_lent_baked_note_names_the_event_by_its_id() {
 /// something draws it, so the map is converted with a row below it that
 /// does, and the row is cut off again: the map keeps its cells, and every
 /// substitution has its blocks.
+///
+/// And tile 1 draws exactly like the floor, tile 0, as in Zounds: the two
+/// cannot share a block, or the console's swap of tile 1's block —which it
+/// does wherever the block is— would turn the floor into spikes.
 #[test]
 fn a_tile_the_map_does_not_draw_is_drawn_below_it_for_a_substitution() {
     let dir = scratch("undrawn-tile");
     let (dump, pictures) = game(&dir);
+    let (fx, fy) = common_origin(0);
+    let (ox, oy) = common_origin(1);
+    let (zx, zy) = common_origin(144);
+    let floor_like = picture_of(480, 256, |x, y| {
+        let (mut x, mut y) = (x as i32, y as i32);
+        if (zx..zx + 16).contains(&x) && (zy..zy + 16).contains(&y) {
+            return [0, 0, 0, 0];
+        }
+        if (ox..ox + 16).contains(&x) && (oy..oy + 16).contains(&y) {
+            (x, y) = (x - ox + fx, y - oy + fy);
+        }
+        let k = (x / 4 + y / 4) % 7;
+        [(k * 36) as u8, (k * 20) as u8, (200 - k * 24) as u8, 255]
+    });
+    write(&pictures.join("ChipSet/tiles.png"), &floor_like);
     let row = |tiles: [&str; 6]| tiles.concat();
     let lower = [
         row(["  5094", "  5094", "  5095", "  5095", "  5000", "  5000"]),
@@ -697,5 +716,10 @@ fn a_tile_the_map_does_not_draw_is_drawn_below_it_for_a_substitution() {
     assert_eq!(layers["blocks"]["cells"].as_array().unwrap().len(), 24);
     assert_eq!(layers["passability"].as_array().unwrap().len(), 24);
     assert_eq!(layers["background"]["tilemap"].as_array().unwrap().len(), 8);
+    let floor = layers["blocks"]["cells"][23].as_u64().unwrap();
+    assert!(
+        floor != b1,
+        "the floor is block {floor}, the one tile 1 swaps: {table:?}"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
