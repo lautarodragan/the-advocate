@@ -177,12 +177,13 @@ bytecode! {
     );
 
     /// `ChangeEncounterSteps`: the new `1 / steps` in 1/65536 (0 turns random
-    /// encounters off) and the step at which each row of the encounter table is
-    /// crossed, rows 1 to 7, computed from the same steps. `pad` fills the eight
-    /// bytes of a threshold record, so the interpreter copies it in four words.
+    /// encounters off) and the accumulated rate at which each row of the
+    /// encounter table is crossed, rows 1 to 7, computed from the same steps.
+    /// `pad` fills the eight words of a threshold record, so the interpreter
+    /// copies it whole.
     OP_ENCOUNTER_STEPS = 0x32 (
-        base: word, row_1: byte, row_2: byte, row_3: byte, row_4: byte,
-        row_5: byte, row_6: byte, row_7: byte, pad: byte,
+        base: word, row_1: word, row_2: word, row_3: word, row_4: word,
+        row_5: word, row_6: word, row_7: word, pad: word,
     );
 
     /// `ShowHiddenMonster`, the battle-only command: the troop member at that

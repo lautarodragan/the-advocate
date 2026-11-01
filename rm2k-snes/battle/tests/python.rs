@@ -200,9 +200,12 @@ fn the_encounters_of_the_game_are_the_pythons() {
     // **And not that one either, since 2026-10-06**: `enc_map`,
     // `enc_zone_init` and `enc_troop_init` are word tables now, and "no
     // record" is 65535 and not 255. That is all that changed in the text.
+    // **Nor since 2026-11-01**: the terrain's rate counts, so the thresholds
+    // are the accumulated rate of each row and not the step —`enc_threshold`,
+    // words, `row * steps`—. Only that table changed.
     assert_eq!(
         sha256(&e.tables()),
-        "c413ba8cfdd442da7d2fc6fd27d75a319157cf4d20455128de85a7b2d8954bd5"
+        "ce06fe2c2df483257e673f13d18c6b3e2bd1530b6e7cc4f9a9fd5d66740c842e"
     );
 }
 
@@ -217,7 +220,7 @@ fn the_steps_of_a_test_cartridge_are_the_pythons() {
     assert_eq!((e.bases.len(), e.zones.len()), (6, 8));
     assert_eq!(
         sha256(&e.tables()),
-        "039546a8705414f477fc8f19e9be5369f0b334baaa4ddac419bf387c9d4d40ae"
+        "6fdcdd96dffa8e328086becdcc68af373769427f5626d906c32ed2bb12c01a92"
     );
 }
 

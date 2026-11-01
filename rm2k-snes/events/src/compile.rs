@@ -21,6 +21,7 @@ use crate::registry::{
     Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops, ROUTE_GFX_MAX,
 };
 use crate::route;
+use rm2k_snes_battle::encounters;
 use rm2k_snes_bytecode::events::*;
 use rm2k_snes_bytecode::level::Level;
 use rm2k_snes_text::refit::refit_measured;
@@ -358,37 +359,17 @@ const CELL_REFRESH: i64 = 0x8000;
 // all areas— nothing happens, which is what `PrepareEncounter` does when it
 // returns `false`.
 //
-// **Two simplifications, both measured over the whole game** and enforced by
-// `abl/tests/tooling/test_encounters.py` in the-advocate-ports, which is what keeps them
-// from becoming a lie the day someone touches the data:
+// **One simplification, measured over the whole game** and enforced by
+// `abl/tests/tooling/test_encounters.py` in the-advocate-ports, which is what
+// keeps it from becoming a lie the day someone touches the data: **no troop
+// filters by terrain**. The 129 the encounters name have an empty
+// `terrain_set`, and in RM2k empty means "on all of them". The terrain's
+// rate does count, since 2026-11-01: see `encounter_step` in
+// `runtime/encounters.s`.
 //
-// * **the terrain changes nothing**: the eleven terrain tags the 53 maps with
-//   encounters step on have `encounter_rate` 100, so the accumulated goes up
-//   by 100 always and the `rate / 100` factor is 1;
-// * **no troop filters by terrain**: the 129 the encounters name have an
-//   empty `terrain_set`, and in RM2k empty means "on all of them".
-//
-// With that the model stays entirely in integers, which is what the console
-// can do without floating point: see `enc_step_thresholds`.
-//
-// It is `UpdateEncounterSteps`' table: easyrpg's eight `pmod`s are powers of
-// two —1/16, 1/8, 1/4, 1/2, 2, 4, 8, 16— so here they go as shifts and the
-// math needs no floats. The ninth row there is `{INT_MAX, 16.0}`, that is a
-// cap that is never reached: the `while` does not go past the last of these.
-const ENC_TABLE: [(i64, i64); 8] = [
-    (0, -4),
-    (20, -3),
-    (40, -2),
-    (60, -1),
-    (100, 1),
-    (140, 2),
-    (160, 3),
-    (180, 4),
-];
-/// The `encounter_rate` the accumulated goes up by: the terrain's, which in
-/// the game this was measured on is 100 on the 53 maps with encounters. See
-/// above.
-const ENC_RATE: i64 = 100;
+// The model stays in integers, which is what the console can do without
+// floating point: `rm2k-snes-battle`'s `encounters` has it, and this
+// compiler takes from there the numbers `ChangeEncounterSteps` carries.
 // --- the battle's audio -----------------------------------------------------
 //
 // All from the LDB, nothing made up: the battle song, the victory one and the
@@ -2947,47 +2928,6 @@ fn target_actor(p: &[i32]) -> Step<u8> {
     cannot()
 }
 
-/// A step's chance of an encounter: the formula's `1 / encounter_steps`, in
-/// 1/65536.
-///
-/// A step's chance is `pmod / steps`, and `pmod` is a power of two: if the
-/// quotient is precomputed here, on the console what is left is a shift and
-/// a sixteen-bit comparison, with no division. **The truncation is part of
-/// the contract**: both sides use this same number. The cartridge's comes
-/// from `base` in `rm2k-snes-battle`, which does the same; this one is
-/// `ChangeEncounterSteps`', and the converter's model —`enc_base` in
-/// events.py— is the one the tests compare the ROM against.
-///
-/// Zero means off, which is what `encounter_steps` 0 means in RM2k. One
-/// step saturates at `$FFFF`, which still fights on every step: see `base`
-/// in `rm2k-snes-battle`, which has the arithmetic.
-pub fn enc_base(steps: i64) -> i64 {
-    if steps <= 0 {
-        0
-    } else {
-        (0x10000 / steps).min(0xFFFF)
-    }
-}
-
-/// At which step each row of `ENC_TABLE` is crossed, counting from zero.
-///
-/// There the comparison is `ratio >= row`, with `ratio = accumulated /
-/// steps` integer and `accumulated = 100 * n`. Since the row is an integer,
-///
-/// ```text
-/// accumulated / steps >= row   <=>   100 * n >= row * steps
-/// ```
-///
-/// that is `n >= ceil(row * steps / 100)`, which is what is emitted: seven
-/// bytes per map and not a single division on the console. The first row is
-/// 0 and is not needed.
-pub fn enc_step_thresholds(steps: i64) -> Vec<i64> {
-    ENC_TABLE[1..]
-        .iter()
-        .map(|&(row, _)| -((-row * steps).div_euclid(ENC_RATE)))
-        .collect()
-}
-
 // --- sound ---------------------------------------------------------------------------
 
 /// The index of an effect asked for on the map being compiled —a
@@ -5282,8 +5222,8 @@ pub fn compile_command(
             // for it, the automatic `DaliaGoingToTasgarde` on map 66, which
             // turns them off before forcing the hero's route.
             //
-            // The `1 / steps` and the rows' seven thresholds, computed here as
-            // `rm2k-snes-battle` does for the map's registry, so a change of
+            // The `1 / steps` and the rows' seven thresholds, from
+            // `rm2k-snes-battle`, as for the map's registry, so a change of
             // steps changes the chance and the rows together, same as
             // `Encounters.set_steps` in the converter's model. It lasts until
             // the next map load: the ROM sets the map's again, which is what
@@ -5292,17 +5232,15 @@ pub fn compile_command(
                 return cannot();
             }
             let steps = q(0).max(0);
-            let thresholds = enc_step_thresholds(steps);
-            if thresholds.iter().max().copied().unwrap_or(0) > 0xFF {
+            if steps > encounters::STEPS_MAX {
                 return cannot();
             }
-            let base = enc_base(steps);
             let mut out = vec![OP_ENCOUNTER_STEPS];
-            out.extend(word(base)?);
-            for t in thresholds {
-                out.push(byte(t)?);
+            out.extend(word(encounters::base(steps))?);
+            for t in encounters::rate_thresholds(steps) {
+                out.extend(word(t)?);
             }
-            out.push(0xFF);
+            out.extend(word(0xFFFF)?);
             Ok(out)
         }
         // `Comment` and its extra lines: the author's notes in the editor,
@@ -8352,7 +8290,7 @@ mod tests {
     #[test]
     fn one_encounter_step_saturates_instead_of_not_compiling() {
         // `$10000 / 1` does not fit in the operand's word: it saturates, and
-        // every threshold is the first step.
+        // each threshold is the row itself, `row * 1`, in words.
         let code = with_songs(
             &[cmd(CHANGE_ENCOUNTER_STEPS, &[1], "")],
             &mut Songs::default(),
@@ -8364,17 +8302,42 @@ mod tests {
                 OP_ENCOUNTER_STEPS,
                 0xFF,
                 0xFF,
-                1,
-                1,
-                1,
-                1,
-                2,
-                2,
-                2,
+                20,
+                0,
+                40,
+                0,
+                60,
+                0,
+                100,
+                0,
+                140,
+                0,
+                160,
+                0,
+                180,
+                0,
+                0xFF,
                 0xFF,
                 OP_DONE
             ]
         );
+    }
+
+    #[test]
+    fn more_steps_than_a_word_counts_do_not_compile() {
+        // The last row's threshold is `180 * steps`, a word up to 364.
+        let code = with_songs(
+            &[cmd(CHANGE_ENCOUNTER_STEPS, &[365], "")],
+            &mut Songs::default(),
+            &|_| None,
+        );
+        assert!(code.is_none());
+        let code = with_songs(
+            &[cmd(CHANGE_ENCOUNTER_STEPS, &[364], "")],
+            &mut Songs::default(),
+            &|_| None,
+        );
+        assert!(code.is_some());
     }
 
     #[test]
