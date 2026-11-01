@@ -52,8 +52,9 @@ pub struct Drawn {
     /// no cell draws has no 8x8 cells in VRAM to build one with —Zounds'
     /// spikes swap through a lower tile 1 the map never shows—. So the
     /// blocks it needs are drawn here, converted with the map and cut off
-    /// after the blocks are made. A map with a panorama uses them only
-    /// flattened: its other ways convert the map as it is.
+    /// after the blocks are made. A map with a panorama uses them on a
+    /// layer of its own —mode 3, mode 1, flattened—: baked, hidden or black
+    /// it converts the map as it is.
     pub extended: Option<(Map, Layers)>,
     /// The cells a decorative event on the hero's layer closes, and the
     /// walls the caller left out —[`Game::walls`]—: the map's passability
@@ -552,12 +553,15 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 } else {
                     (Mode::Three, 3)
                 };
+                // With the rows the substitutions need, in the three ways:
+                // `blocks` cuts them off again.
                 let flat;
+                let rows = drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l);
                 let layers = if way == Way::Flattened {
-                    flat = flattened(drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l));
+                    flat = flattened(rows);
                     &flat
                 } else {
-                    &drawn.layers
+                    rows
                 };
                 let with =
                     |extras: Vec<&picture::Picture>| -> std::result::Result<Converted, String> {
