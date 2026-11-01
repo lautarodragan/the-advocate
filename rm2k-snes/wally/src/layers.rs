@@ -52,9 +52,10 @@ pub struct Drawn {
     /// no cell draws has no 8x8 cells in VRAM to build one with —Zounds'
     /// spikes swap through a lower tile 1 the map never shows—. So the
     /// blocks it needs are drawn here, converted with the map and cut off
-    /// after the blocks are made. A map with a panorama uses them on a
-    /// layer of its own —mode 3, mode 1, flattened—: baked, hidden or black
-    /// it converts the map as it is.
+    /// after the blocks are made. A map with a panorama uses them
+    /// flattened, and in mode 3 or 1 only if halves are not enough
+    /// (`LayersRequest::extra_needed`); baked, hidden or black it converts
+    /// the map as it is.
     pub extended: Option<(Map, Layers)>,
     /// The cells a decorative event on the hero's layer closes, and the
     /// walls the caller left out —[`Game::walls`]—: the map's passability
@@ -553,10 +554,16 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 } else {
                     (Mode::Three, 3)
                 };
-                // With the rows the substitutions need, in the three ways:
+                // With the rows the substitutions need: always flattened,
+                // which builds nothing out of halves, and in the other two
+                // only if halves are not enough —see `extra_needed`—.
                 // `blocks` cuts them off again.
                 let flat;
-                let rows = drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l);
+                let rows = drawn
+                    .extended
+                    .as_ref()
+                    .filter(|_| way == Way::Flattened || request.extra_needed)
+                    .map_or(&drawn.layers, |(_, l)| l);
                 let layers = if way == Way::Flattened {
                     flat = flattened(rows);
                     &flat

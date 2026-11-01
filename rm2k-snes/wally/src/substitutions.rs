@@ -348,6 +348,34 @@ pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32
     }
 }
 
+/// Of the `unseen` pairs, those that cannot be built out of halves of what
+/// the map draws —see `Substitutions::create`—: a lower tile no cell draws
+/// under an upper that leaves it alone, an upper tile no cell draws, or an
+/// upper tile baked into the background, which is drawn only together with
+/// its lower. Only these have to be drawn below a map that is not
+/// flattened.
+pub fn beyond_halves(
+    lower: &[i32],
+    upper: &[i32],
+    flags: &[u8],
+    unseen: &[(i32, i32)],
+) -> Vec<(i32, i32)> {
+    let lows: BTreeSet<i32> = lower
+        .iter()
+        .zip(upper)
+        .filter(|&(_, &u)| !bakes(flags, u, false))
+        .map(|(&l, _)| l)
+        .collect();
+    let highs: BTreeSet<i32> = upper.iter().copied().collect();
+    unseen
+        .iter()
+        .copied()
+        .filter(|&(l, u)| {
+            !lows.contains(&l) || (u != UPPER && !highs.contains(&u)) || bakes(flags, u, false)
+        })
+        .collect()
+}
+
 /// What a map answers of its substitutions: each one it can run —its own
 /// and its test pages', which are closed, then the common events' that are
 /// not among them, which are only translated— with its pairs, and the ones
@@ -494,5 +522,23 @@ mod tests {
         b.combos.push(((LOWER + 5, UPPER), 0));
         let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 5, 1)], &[], false).unwrap();
         assert_eq!(answer.table, vec![((false, 5, 1), None)]);
+    }
+
+    /// Only what halves cannot build has to be drawn below the map: a lower
+    /// tile no cell draws, or an upper tile baked with its lower.
+    #[test]
+    fn beyond_halves_is_what_the_map_does_not_draw_or_bakes() {
+        let flags = flags_with(&[UPPER + 2]);
+        let lower = [LOWER, LOWER + 1, LOWER];
+        let upper = [UPPER, UPPER, UPPER + 2];
+        let unseen = [
+            (LOWER + 1, UPPER + 2), // both halves drawn
+            (LOWER + 9, UPPER),     // lower 9 drawn nowhere
+            (LOWER + 1, UPPER + 3), // upper 3 drawn nowhere, and baked
+        ];
+        assert_eq!(
+            beyond_halves(&lower, &upper, &flags, &unseen),
+            vec![(LOWER + 9, UPPER), (LOWER + 1, UPPER + 3)]
+        );
     }
 }

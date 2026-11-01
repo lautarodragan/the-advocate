@@ -185,7 +185,7 @@ fn layered(
     baked: &BTreeMap<usize, (usize, i32)>,
     decor: &[Decoration],
     fuse_tiles: Option<usize>,
-    extra: &[(i32, i32)],
+    extra: &Extra,
 ) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
@@ -196,10 +196,18 @@ fn layered(
         panorama,
         fuse_tiles,
         decor: decor.to_vec(),
-        extra: extra.to_vec(),
+        extra: extra.rows.clone(),
+        extra_needed: extra.needed,
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
+}
+
+/// The rows a map is drawn with below it for its substitutions: see
+/// `Drawn::extended` and `LayersRequest::extra_needed`.
+struct Extra {
+    rows: Vec<(i32, i32)>,
+    needed: bool,
 }
 
 /// Whether baking left everybody else's colours where they were: the layer
@@ -271,7 +279,7 @@ fn bake_unless_split_moves(
     baked: Baked,
     decor: &[Decoration],
     fuse_tiles: Option<usize>,
-    extra: &[(i32, i32)],
+    extra: &Extra,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
     let with = layered(
@@ -1087,7 +1095,14 @@ fn convert_with(
         Vec::new()
     };
     let panorama = request.panorama.clone();
-    let extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
+    // A panorama map may go flattened, and then it needs every combination
+    // drawn; any other map, only those halves cannot build.
+    let unseen = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
+    let beyond = crate::substitutions::beyond_halves(&lower, &upper, &flags, &unseen);
+    let extra = Extra {
+        needed: !beyond.is_empty(),
+        rows: if panorama.is_some() { unseen } else { beyond },
+    };
     let without = layered(
         game,
         id,

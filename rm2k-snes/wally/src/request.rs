@@ -52,6 +52,12 @@ pub struct LayersRequest {
     /// need and the map does not draw: see `Drawn::extended`. Not from
     /// the request: the map's conversion works them out.
     pub extra: Vec<(i32, i32)>,
+    /// Whether some of `extra` cannot be built out of halves of what the
+    /// map draws —see `substitutions::beyond_halves`—: only then does a map
+    /// on a layer of its own other than flattened convert with them. Drawn
+    /// for nothing, they move the colours Adeleine merges and with them
+    /// what is seen.
+    pub extra_needed: bool,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -252,6 +258,7 @@ impl LayersRequest {
             },
             decor: Vec::new(),
             extra: Vec::new(),
+            extra_needed: false,
         })
     }
 }
