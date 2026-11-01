@@ -122,6 +122,12 @@
 //! "Yes"—. Without those eleven bytes in front of the greeting, and the
 //! choice's and the branch's destinations eleven back, the answer was the
 //! one before.
+//!
+//! On 2026-11-01 the hash of the compilation's `maps` moved again, on
+//! purpose: `OP_ENCOUNTER_STEPS` carries each row's threshold as the
+//! accumulated rate, a word, and not as the step, a byte, since a
+//! terrain's `encounter_rate` counts. With the operand back to bytes
+//! —`ceil(threshold / 100)` and a `$FF`— the answer was the one before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};

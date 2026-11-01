@@ -239,8 +239,11 @@ which function each is. What is not RM2k's is on purpose and declared
 there: the randomness is a sixteen-bit xorshift with the battle's own seed,
 the divisions are integer, and states, attributes and rows do not exist.
 
-The encounters assume **the terrain changes nothing**: RM2k adds the
-terrain's `encounter_rate` each step, and this assumes 100 everywhere,
-which is what every terrain the hero steps on had in the game it was
-measured against. It is an assumption of the engine, not a fact of the
-format, and `RATE` says so.
+The encounters count **the terrain's rate**, since 2026-11-01: RM2k adds
+the `encounter_rate` of the terrain the hero steps onto each step, and the
+rows are thresholds on that accumulated rate —`rate_thresholds`— and the
+chance is multiplied by the rate as a factor in 1/256 —`factor`,
+`chance`—. Until then the engine assumed 100 everywhere, which is what
+every terrain had in the maps with encounters of the game it was measured
+against. What the console cannot count is more than `STEPS_MAX` steps,
+364: the thresholds are words.

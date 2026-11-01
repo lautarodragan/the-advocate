@@ -233,36 +233,38 @@ FAR_SKILL = .loword(far_skill)
 
 ; --- random encounters: their state in far RAM -------------------------------
 ;
-; Nine bytes. **It does not travel in the save**, just
-; as the HP of an unfinished battle do not: on load, the accumulated count
+; Fourteen bytes. **It does not travel in the save**, just
+; as the HP of an unfinished battle do not: on load, the accumulated rate
 ; starts at zero, which is the same thing that happens on entering a map.
 ;
 ; It did not fit in bank 0: the BSS is at 7680 of 7680, measured on
 ; 2026-09-13 by adding a `.res 64` and looking at the assembler's cut.
 .pushseg
 .segment "FARBSS"
-far_encounter: .res 9
+far_encounter: .res 14
 .popseg
 FAR_ENCOUNTER = .loword(far_encounter)
-ENC_N     = FAR_ENCOUNTER + 0   ; steps taken since the last encounter
-ENC_IDX   = FAR_ENCOUNTER + 1   ; the table row, which never goes down
-ENC_ASKS  = FAR_ENCOUNTER + 2   ; one came up and is collected next frame
-ENC_RNG   = FAR_ENCOUNTER + 3   ; word: the xorshift, with its own seed
-ENC_BASE  = FAR_ENCOUNTER + 5   ; word: 1/steps in 1/65536; 0 is off
-ENC_REG   = FAR_ENCOUNTER + 7   ; word: this map's record, or ENC_NONE
+ENC_ACC   = FAR_ENCOUNTER + 0   ; word: the terrains' rates added since the last encounter
+ENC_IDX   = FAR_ENCOUNTER + 2   ; the table row, which never goes down
+ENC_ASKS  = FAR_ENCOUNTER + 3   ; one came up and is collected next frame
+ENC_RNG   = FAR_ENCOUNTER + 4   ; word: the xorshift, with its own seed
+ENC_BASE  = FAR_ENCOUNTER + 6   ; word: 1/steps in 1/65536; 0 is off
+ENC_REG   = FAR_ENCOUNTER + 8   ; word: this map's record, or ENC_NONE
+ENC_P     = FAR_ENCOUNTER + 10  ; four bytes: a step's `base * factor`, shifted
 ; A map with no troops of its own and no areas covering it. **A word since
 ; the encounter tables went to two bytes**: a game like Vampires Dawn has 779
-; troops. No record is as high as $FF00 —the converter caps them at 8191, so
-; that `record * 8` fits the table's 16-bit offset— so the high byte alone
+; troops. No record is as high as $FF00 —the converter caps them at 4095, so
+; that `record * 16` fits the table's 16-bit offset— so the high byte alone
 ; tells it, which is what the 8-bit code reads: `lda ENC_REG + 1`.
 ENC_NONE  = $FFFF
 ; The eight rows of `UpdateEncounterSteps`'s table, and how many threshold
-; bytes each record carries: seven —row 0's is 0 and is not stored— plus one
-; of padding, so that the index is a shift and not a multiplication.
+; bytes each record carries: seven words —row 0's is 0 and is not stored—
+; plus one of padding, so that the index is a shift and not a multiplication.
 ENC_ROWS   = 8
-ENC_STRIDE = 8
-; The current map's thresholds, copied from `enc_threshold_n` on entry: the step
-; at which each row is crossed, from 1 to 7. They live in RAM and are not
+ENC_STRIDE = 16
+; The current map's thresholds, copied from `enc_threshold` on entry: the
+; accumulated rate at which each row is crossed, from 1 to 7 —`row * steps`,
+; see `rate_thresholds` in `rm2k-snes-battle`—. They live in RAM and are not
 ; read from the table because `ChangeEncounterSteps` changes them along with
 ; `ENC_BASE`: the chance and the rows come from the same `encounter_steps`.
 ;

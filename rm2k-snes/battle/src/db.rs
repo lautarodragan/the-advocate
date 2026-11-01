@@ -126,7 +126,9 @@ impl Db {
             terms: dump.section("terms").map_err(answer)?,
             is_2003,
             battle_commands: by_id(battle_commands, |c: &BattleCommand| c.id),
-            terrains: by_id(dump.section("terrains").map_err(answer)?, |t: &Terrain| t.id),
+            terrains: by_id(dump.section("terrains").map_err(answer)?, |t: &Terrain| {
+                t.id
+            }),
         })
     }
 

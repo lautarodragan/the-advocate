@@ -34,6 +34,7 @@ use crate::vram::{
     WINDOW_BASES,
 };
 use rm2k_snes_battle::db::Db;
+use rm2k_snes_battle::encounters;
 use rm2k_snes_battle::rules;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -3520,21 +3521,46 @@ impl Rest<'_> {
                 i64::from(usable)
                     | if needs { 4 } else { 0 }
                     | if it.two_handed { 8 } else { 0 }
-                    | if armor && it.no_terrain_damage { ITEM_USE_NO_TERRAIN_DAMAGE } else { 0 },
+                    | if armor && it.no_terrain_damage {
+                        ITEM_USE_NO_TERRAIN_DAMAGE
+                    } else {
+                        0
+                    },
             );
         }
         bytes_asm(out, "item_use", &decimal(uses), true);
-        out.push_str(&format!("ITEM_USE_NO_TERRAIN_DAMAGE = ${ITEM_USE_NO_TERRAIN_DAMAGE:02X}\n"));
+        out.push_str(&format!(
+            "ITEM_USE_NO_TERRAIN_DAMAGE = ${ITEM_USE_NO_TERRAIN_DAMAGE:02X}\n"
+        ));
         // Each terrain's HP per step, by its id, signed: `damage` of the
         // database, which `terrain_step` takes from every actor as the
         // hero begins a step onto it. Id 0 is no terrain, and a hole in the
         // ids is a terrain that hurts nobody.
         let top = db.terrains.keys().copied().max().unwrap_or(0).max(0);
         let damage: Vec<i64> = (0..=top)
-            .map(|id| db.terrains.get(&id).map_or(0, |t| i64::from(t.damage) & 0xFFFF))
+            .map(|id| {
+                db.terrains
+                    .get(&id)
+                    .map_or(0, |t| i64::from(t.damage) & 0xFFFF)
+            })
             .collect();
         out.push_str(&format!("TERRAINS_N = {}\n", damage.len()));
         words_asm(out, "terrain_damage", &decimal(damage), true);
+        // And what each adds to the steps to a battle: its `encounter_rate`,
+        // which `encounter_step` adds to the accumulated rate, and the same
+        // rate as the factor in 1/256 it multiplies the chance by —see
+        // `factor` in `rm2k-snes-battle`—. A hole in the ids is worth 100,
+        // liblcf's default.
+        let rate: Vec<i64> = (0..=top)
+            .map(|id| {
+                db.terrains
+                    .get(&id)
+                    .map_or(100, |t| i64::from(t.encounter_rate).clamp(0, 0xFFFF))
+            })
+            .collect();
+        let factor: Vec<i64> = rate.iter().map(|&r| encounters::factor(r)).collect();
+        words_asm(out, "terrain_encounter_rate", &decimal(rate), true);
+        words_asm(out, "terrain_encounter_factor", &decimal(factor), true);
         words_asm(
             out,
             "item_switch",

@@ -7,18 +7,21 @@
 ; which is what it is compared against:
 ;
 ;   * each hero step **with the pad** —a forced move route exits early, via
-;     `IsMoveRouteOverwritten`— adds the terrain's `encounter_rate` and checks
-;     whether an encounter came up;
-;   * the chance is `pmod / encounter_steps`, with `pmod` a power of two that
-;     grows as one walks without anything coming up;
+;     `IsMoveRouteOverwritten`— adds the `encounter_rate` of the terrain it
+;     steps onto and checks whether an encounter came up;
+;   * the chance is `pmod / encounter_steps * rate / 100`, with `pmod` a power
+;     of two that grows as one walks without anything coming up; a terrain
+;     worth 0 —Vampires Dawn's sea— never fights;
 ;   * if one comes up, it stays pending and is collected the next frame, with
 ;     the hero already standing still: the map's troops and those of each area
 ;     covering his cell are gathered, and one is picked at random.
 ;
 ; **All the arithmetic is integer**, which is what the console can do: the
-; converter precomputes `1 / encounter_steps` in 1/65536 —`enc_base`— and at
-; which step each row of the table is crossed —`enc_threshold_n`—, so there is
-; not a single division here. See `base` and `step_thresholds` in
+; converter precomputes `1 / encounter_steps` in 1/65536 —`enc_base`—, at
+; which accumulated rate each row of the table is crossed —`enc_threshold`—
+; and each terrain's `rate / 100` in 1/256 —`terrain_encounter_factor`—, so
+; there is not a single division here, and one multiplication per step. See
+; `base`, `rate_thresholds`, `factor` and `chance` in
 ; `rm2k-snes/battle/src/encounters.rs`, which are the same arithmetic on the
 ; other side.
 ;
@@ -68,7 +71,8 @@
     cmp #ENC_NONE
     beq no_encounters_16
     pha
-    ; The record's thresholds, into RAM: the seven bytes and the padding one.
+    ; The record's thresholds, into RAM: the seven words and the padding one.
+    asl a
     asl a
     asl a
     asl a
@@ -76,7 +80,7 @@
     ldy #0
 copy:
 .a16
-    lda f:enc_threshold_n, x
+    lda f:enc_threshold, x
     sta ENC_THR, y
     inx
     inx
@@ -97,9 +101,10 @@ with_base:
     sta ENC_BASE
     sep #$20
 .a8
-    ; And the running count at zero, as in every `MoveTo`: entering a map is
-    ; one.
-    stz ENC_N
+    ; And the accumulated rate at zero, as in every `MoveTo`: entering a map
+    ; is one.
+    stz ENC_ACC
+    stz ENC_ACC + 1
     stz ENC_IDX
     stz ENC_ASKS
     plb
@@ -110,8 +115,8 @@ with_base:
 
 ; `ChangeEncounterSteps`, the body of OP_ENCOUNTER_STEPS: the new `1 / steps`
 ; and the seven thresholds that come from the same steps, which the converter
-; already computed —see `events.enc_base` and
-; `events.enc_step_thresholds`—. Zero turns them off, which is what Dalia's
+; already computed —see `base` and `rate_thresholds` in
+; `rm2k-snes-battle`—. Zero turns them off, which is what Dalia's
 ; trip to Tasgarde asks for. It does not touch the distance walked: easyrpg's
 ; `SetEncounterSteps` does not either.
 ;
@@ -121,7 +126,7 @@ with_base:
 ; the map's back on each load.
 ;
 ; It is entered with `jsl` from the interpreter, with Y on the operand and the
-; bytecode's data bank; it returns with Y past the ten bytes.
+; bytecode's data bank; it returns with Y past the eighteen bytes.
 .proc encounter_steps
 .a8
 .i16
@@ -177,18 +182,24 @@ skip:
     lda #$7E
     pha
     plb
-    stz ENC_N
+    stz ENC_ACC
+    stz ENC_ACC + 1
     stz ENC_IDX
     stz ENC_ASKS
     plb
     rtl
 .endproc
 
-; One hero step. Enters and leaves with an 8-bit accumulator.
+; One hero step, already begun: `hero_ptr` points at the cell it goes onto,
+; whose terrain is the one `UpdateEncounterSteps` reads —`GetX`/`GetY` are
+; the destination's there too—. Enters and leaves with an 8-bit
+; accumulator; keeps X and Y. Clobbers `temp` and `cells_ptr`, as
+; `hero_terrain` does: nobody holds them across a step.
 .proc encounter_step
 .a8
 .i16
     phx
+    phy
     phb
     lda #$7E
     pha
@@ -198,75 +209,122 @@ skip:
     lda ENC_BASE
     bne has
     ; Off: `encounter_steps` at zero, or a map with no troops or areas.
+    ; `SetTotalEncounterRate(0)`.
+    stz ENC_ACC
     sep #$20
 .a8
-    stz ENC_N
     stz ENC_IDX
-    bra end
+done:
+.a8
+    plb
+    ply
+    plx
+    rtl
 has:
 .a16
     sep #$20
 .a8
-    lda ENC_N
-    inc a
-    beq continues_up            ; 255 steps without an encounter: it does not wrap around
-    sta ENC_N
-continues_up:
-.a8
-    ; The table row, which **never goes down**: it is the `last_encounter_idx`
-    ; over there. X points at the next row's threshold, in `ENC_THR`.
+    jsl f:hero_terrain
+    cmp #TERRAINS_N
+    bcs done                    ; easyrpg's "invalid terrain": no count, no roll
     rep #$20
 .a16
+    and #$00FF
+    asl a
+    tax
+    lda f:terrain_encounter_factor, x
+    sta temp                    ; the multiplier, below
+    ; `total_encounter_rate += encounter_rate`, saturating: the last row's
+    ; threshold is at most $FFFF —see `STEPS_MAX`—, so past it nothing
+    ; changes.
+    lda f:terrain_encounter_rate, x
+    clc
+    adc ENC_ACC
+    bcc added
+    lda #$FFFF
+added:
+.a16
+    sta ENC_ACC
+    ; The table row, which **never goes down**: it is the `last_encounter_idx`
+    ; over there. Y is the row and X points at the next row's threshold, a
+    ; word in `ENC_THR`.
     lda ENC_IDX
     and #$00FF
+    tay
+    asl a
     tax
-    sep #$20
-.a8
-uploads:
-.a8
-    lda ENC_IDX
-    cmp #(ENC_ROWS - 1)
+climb:
+.a16
+    cpy #(ENC_ROWS - 1)
     bcs with_row                ; the last row goes no higher
-    lda ENC_N
+    lda ENC_ACC
     cmp ENC_THR, x              ; did it reach the next one's threshold?
     bcc with_row
     inx
-    lda ENC_IDX
-    inc a
-    sta ENC_IDX
-    bra uploads
+    inx
+    iny
+    bra climb
 with_row:
+.a16
+    tya
+    sep #$20
 .a8
-    ; The random threshold: `base` shifted by the row's `pmod`. Rows 0 to 3
-    ; are 1/16, 1/8, 1/4 and 1/2; rows 4 to 7 are 2, 4, 8 and 16.
+    sta ENC_IDX
     rep #$20
 .a16
-    lda ENC_IDX
-    and #$00FF
-    tax
-    lda ENC_BASE
-    cpx #4
+    ; `base * factor`, thirty-two bits in `ENC_P`: shift and add, from the
+    ; factor's top bit. Some five hundred cycles, once per step.
+    stz ENC_P
+    stz ENC_P + 2
+    ldx #16
+multiply:
+.a16
+    asl ENC_P
+    rol ENC_P + 2
+    asl temp
+    bcc no_add
+    lda ENC_P
+    clc
+    adc ENC_BASE
+    sta ENC_P
+    bcc no_add
+    inc ENC_P + 2
+no_add:
+.a16
+    dex
+    bne multiply
+    ; The row's `pmod`, a shift of the product: rows 0 to 3 are 1/16, 1/8,
+    ; 1/4 and 1/2; rows 4 to 7 are 2, 4, 8 and 16.
+    cpy #4
     bcs to_left
 right:
 .a16
-    lsr a
-    inx
-    cpx #4
+    lsr ENC_P + 2
+    ror ENC_P
+    iny
+    cpy #4
     bcc right
-    bra with_threshold
+    bra shifted
 to_left:
 .a16
-    dex
-    dex
-    dex
+    dey
+    dey
+    dey
 left:
 .a16
-    asl a
-    bcs always                  ; went past 1: it is a certainty, like `PercentChance`
-    dex
+    asl ENC_P
+    rol ENC_P + 2
+    bcs always                  ; past 1: a certainty, like `PercentChance`
+    dey
     bne left
-with_threshold:
+shifted:
 .a16
+    ; And the `/ 256` of the factor: the chance is bits 8 to 23 of the
+    ; product, and anything above them is past 1 again.
+    lda ENC_P + 2
+    and #$FF00
+    bne always
+    lda ENC_P + 1
     sta temp
     jsr enc_random
     cmp temp
@@ -278,15 +336,16 @@ always:
 .a16
 exited:
 .a16
+    stz ENC_ACC
     sep #$20
 .a8
-    stz ENC_N
     stz ENC_IDX
     lda #1
     sta ENC_ASKS
 end:
 .a8
     plb
+    ply
     plx
     rtl
 .endproc
