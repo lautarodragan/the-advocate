@@ -833,6 +833,10 @@ high:
     jsr ptr_a_hero              ; RM2k counts from the destination cell, which is
     sep #$20                    ; where can_enter left the pointer pointing
 .a8
+    ; What the terrain of that cell does to the party, as the step begins:
+    ; it is `Game_Player::Move`, so a route's steps count too. See
+    ; terrain_steps.s.
+    jsl f:terrain_step
     jsr advance_step
     rts
 .endproc

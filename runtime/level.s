@@ -814,6 +814,15 @@ one:
     rtl
 .endproc
 
+; `actor_change_one` for whoever comes from another bank: the terrain's
+; damage, in terrain_steps.s.
+.proc actor_change_one_l
+.a8
+.i16
+    jsr actor_change_one
+    rtl
+.endproc
+
 ; Actor A, by the signed change in `temp` and the bits in `temp + 3`. The HP
 ; is `Game_Battler::ChangeHp`: a fallen one does not change, it does not go
 ; past the maximum of its level and a loss that is not lethal leaves it at 1.

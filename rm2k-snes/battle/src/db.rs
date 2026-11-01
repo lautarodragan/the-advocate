@@ -16,7 +16,7 @@ use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
 use ditto::schema::{
     Actor, Attribute, BattleCommand, BattleCommands, Enemy, Item, Skill, State, System, Terms,
-    Troop,
+    Terrain, Troop,
 };
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -67,6 +67,11 @@ pub struct Db {
     /// [`crate::rules::command_names`]. Empty in a 2000 game, whose
     /// database has none.
     pub battle_commands: BTreeMap<i32, BattleCommand>,
+    /// The terrains, by id. Not the battle's: the map's step reads their
+    /// `damage`, and the emission writes it next to the items' tables —see
+    /// `terrain_damage` in the mapdata stage's `emit.rs`—. The battle takes
+    /// its backdrop from the converter's scene, not from here.
+    pub terrains: BTreeMap<i32, Terrain>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -121,6 +126,7 @@ impl Db {
             terms: dump.section("terms").map_err(answer)?,
             is_2003,
             battle_commands: by_id(battle_commands, |c: &BattleCommand| c.id),
+            terrains: by_id(dump.section("terrains").map_err(answer)?, |t: &Terrain| t.id),
         })
     }
 

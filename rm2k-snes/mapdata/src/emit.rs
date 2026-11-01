@@ -95,6 +95,15 @@ pub const BATTLE_TERMS: [(&str, &str); 29] = [
 /// The battle's commands, in the order the console puts them —the screen
 /// geometry's `BA_COMMANDS`—, by the name [`BATTLE_TERMS`] gives the 2000
 /// term of each.
+/// `lcf::rpg::Item::Type`'s armors, the first and the last: shield, armor,
+/// helmet and accessory.
+const ITEM_SHIELD: i32 = 2;
+const ITEM_ACCESSORY: i32 = 5;
+/// The bit of `item_use` that says an armor spares its wearer a terrain's
+/// damage —`no_terrain_damage`—. The others are 1 usable on the map, 4 opens
+/// the actor choice and 8 a two-handed weapon.
+const ITEM_USE_NO_TERRAIN_DAMAGE: i64 = 0x10;
+
 const BA_COMMAND_TERMS: [&str; 5] = ["attack", "skill", "defend", "use", "escape"];
 
 /// The terms of the lines a skill writes on each target under its using
@@ -3503,11 +3512,29 @@ impl Rest<'_> {
                 .copied()
                 .ok_or_else(|| Bad::answer(format!("item {n} has no text")))?;
             let it = item(n)?;
+            // And whether it spares its wearer a terrain's damage: only an
+            // armor, which is what `PreventsTerrainDamage` walks —its
+            // `ForEachEquipment<false, true>`—. See runtime/terrain_steps.s.
+            let armor = (ITEM_SHIELD..=ITEM_ACCESSORY).contains(&it.r#type.to_i32());
             uses.push(
-                i64::from(usable) | if needs { 4 } else { 0 } | if it.two_handed { 8 } else { 0 },
+                i64::from(usable)
+                    | if needs { 4 } else { 0 }
+                    | if it.two_handed { 8 } else { 0 }
+                    | if armor && it.no_terrain_damage { ITEM_USE_NO_TERRAIN_DAMAGE } else { 0 },
             );
         }
         bytes_asm(out, "item_use", &decimal(uses), true);
+        out.push_str(&format!("ITEM_USE_NO_TERRAIN_DAMAGE = ${ITEM_USE_NO_TERRAIN_DAMAGE:02X}\n"));
+        // Each terrain's HP per step, by its id, signed: `damage` of the
+        // database, which `terrain_step` takes from every actor as the
+        // hero begins a step onto it. Id 0 is no terrain, and a hole in the
+        // ids is a terrain that hurts nobody.
+        let top = db.terrains.keys().copied().max().unwrap_or(0).max(0);
+        let damage: Vec<i64> = (0..=top)
+            .map(|id| db.terrains.get(&id).map_or(0, |t| i64::from(t.damage) & 0xFFFF))
+            .collect();
+        out.push_str(&format!("TERRAINS_N = {}\n", damage.len()));
+        words_asm(out, "terrain_damage", &decimal(damage), true);
         words_asm(
             out,
             "item_switch",

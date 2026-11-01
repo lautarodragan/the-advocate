@@ -1497,6 +1497,17 @@ fn without_faces(text: &str) -> String {
 /// The text without the levels the battle's two songs start a game with,
 /// which came on 2026-10-19: six lines after `BA_PACKAGE`, the song as
 /// written when the request brings none, as here.
+/// The text without the terrains' damage, which came on 2026-11-01 —see
+/// runtime/terrain_steps.s—: the `item_use` bit that spares an armor's
+/// wearer, which no item of the test game has, and `terrain_damage`, from
+/// the two terrains of its dump.
+fn without_terrain_damage(text: &str) -> String {
+    let lines = "ITEM_USE_NO_TERRAIN_DAMAGE = $10\nTERRAINS_N = 3\n.block 6\n\
+                 terrain_damage:\n    .word 0, 0, 3\n";
+    assert!(text.contains(lines), "no terrain damage as written");
+    text.replacen(lines, "", 1)
+}
+
 fn without_song_levels(text: &str) -> String {
     let lines = "BA_SONG_GAINS     = $8080\nBA_SONG_STEP      = $0100\n\
                  BA_SONG_FADE      = $0000\nBA_SONG_END_GAINS = $8080\n\
@@ -1579,7 +1590,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &text,
+                                            &without_terrain_damage(&text),
                                         )),
                                     )),
                                 )),
@@ -1620,7 +1631,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &text,
+                                            &without_terrain_damage(&text),
                                         )),
                                     )),
                                 )),

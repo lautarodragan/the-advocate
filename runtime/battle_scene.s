@@ -947,45 +947,16 @@ done:
     rts
 .endproc
 
-; The terrain of the cell the hero is on, in A: what `StoreTerrainID` would
-; answer —see `op_terrain`, which is where this comes from—, for the
-; background of a battle on a map that does not name its own. It runs when
-; the battle starts, before `scn_fill` overwrites the upper half of $7F,
-; which may belong to the grid, and before `scn_double` and
-; `scn_battlers_load` overwrite the lower one. `cell_replaced` is in bank 0, so its lookup is copied here.
+; The terrain of the cell the hero is on, in A, for the background of a
+; battle on a map that does not name its own: `hero_terrain`, in
+; terrain_steps.s, which the step's damage asks too. It runs when the battle
+; starts, before `scn_fill` overwrites the upper half of $7F, which may
+; belong to the grid, and before `scn_double` and `scn_battlers_load`
+; overwrite the lower one.
 .proc scn_terrain
 .a8
 .i16
-    ldx map_ofs
-    lda f:map_table + M_TERRAIN_PLANE, x
-    bne ready                   ; a single terrain on the whole map
-    rep #$20
-.a16
-    lda [hero_ptr]              ; which block the hero's cell is
-    and cell_mask
-    ldy sub_n
-    beq replaced
-seek:
-    dey
-    dey
-    cmp sub_key, y
-    beq found
-    cpy #$0000
-    bne seek
-    bra replaced
-found:
-    lda sub_value, y
-replaced:
-    sta SCN_T0
-    lda f:map_table + M_PTR_BLOCK_TERRAIN, x
-    sta cells_ptr
-    sep #$20
-.a8
-    lda f:map_table + M_PTR_BLOCK_TERRAIN + 2, x
-    sta cells_ptr + 2
-    ldy SCN_T0
-    lda [cells_ptr], y
-ready:
+    jsl f:hero_terrain
     rts
 .endproc
 
