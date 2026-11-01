@@ -50,7 +50,12 @@ fn slot_shows(b: &Slots) -> Vec<usize> {
 /// experience term, the faces and the glyphs.
 fn menu_shows(b: &Slots) -> Vec<usize> {
     let mut shown = tiles(b.menu.options.iter().flatten());
-    shown.extend(tiles([&b.menu.currency, &b.menu.row, &b.menu.exp_term]));
+    shown.extend(tiles([
+        &b.menu.currency,
+        &b.menu.row,
+        &b.menu.exp_term,
+        &b.menu.sp_term,
+    ]));
     shown.extend(tiles(b.faces.values()));
     shown.extend(tiles(b.menu.glyphs.values()));
     shown

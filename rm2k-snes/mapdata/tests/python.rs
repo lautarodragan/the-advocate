@@ -264,7 +264,37 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], cursor);
+    with_the_sp_line(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
+}
+
+/// The actor choice's SP line in the screens stage's answer, which came on
+/// 2026-11-01, after the requests were written: its term is the
+/// experience's here, and its geometry the stage's. [`without_sp_line`]
+/// takes it out of the text.
+fn with_the_sp_line(screens: &mut serde_json::Value) {
+    screens["slots"]["menu"]["sp_term"] = screens["slots"]["menu"]["exp_term"].clone();
+    let layout = &mut screens["layout"];
+    layout["MENU_SP_X"] = layout["MENU_EXP_X"].clone();
+    layout["MENU_SP_Y"] = layout["MENU_EXP_Y"].clone();
+    layout["MENU_SP_LETTERS"] = serde_json::json!(7);
+}
+
+/// The text without what [`with_the_sp_line`] adds: the term's words and
+/// the line's four numbers.
+fn without_sp_line(text: &str) -> String {
+    let label = "\nmenu_sp_finished:\n";
+    let at = text.find(label).expect("no menu_sp_finished");
+    let start = text[..at].rfind("\n.block ").expect("no .block before it");
+    let end = at + label.len() + text[at + label.len()..].find('\n').unwrap() + 1;
+    let mut out = format!("{}{}", &text[..start + 1], &text[end..]);
+    let first = out.find("MENU_SP_X ").expect("no MENU_SP_X");
+    let mut stop = first;
+    for _ in 0..4 {
+        stop += out[stop..].find('\n').unwrap() + 1;
+    }
+    out.replace_range(first..stop, "");
+    out
 }
 
 /// The System's cursors in the screens stage's answer, which came on
@@ -1605,7 +1635,10 @@ fn without_attribute_shifts(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "bare"));
+    let text = without_sp_line(&without_debug_screen(&with_the_cursors_as_before(
+        &emitted.text,
+        "bare",
+    )));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
@@ -1646,7 +1679,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_debug_screen(&with_the_cursors_as_before(&emitted.text, "whole"));
+    let text = without_sp_line(&without_debug_screen(&with_the_cursors_as_before(
+        &emitted.text,
+        "whole",
+    )));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
@@ -1737,6 +1773,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);
+    with_the_sp_line(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -1979,6 +2016,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     with_the_skills_screen(&mut value["screens"]);
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);
+    with_the_sp_line(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 

@@ -262,7 +262,7 @@ pub fn slot_bar_layer(game: &Game, skin: &Skin) -> Result<Screen> {
 }
 
 /// The actor choice, with the bar on each party row, from the first cell
-/// row of the actor's row.
+/// row of the actor's row and into the next one's first: see `MENU_BAR`.
 pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
     Ok(Screen {
         background: target_windows(game, skin, None)?,
@@ -271,7 +271,7 @@ pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
                 Ok((
                     target_windows(game, skin, Some(k))?,
                     k * MENU_ACTOR_ROWS,
-                    MENU_ACTOR_ROWS,
+                    BAR_CELL_ROWS,
                 ))
             })
             .collect::<Result<_>>()?,
@@ -445,7 +445,11 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
     let (with_map, bars_with) = &maps[0];
     let mut distinct = std::collections::BTreeSet::new();
     for (k, bar) in bars_with.iter().enumerate() {
-        let base = &with_map[k * MENU_ACTOR_ROWS * COLS..(k + 1) * MENU_ACTOR_ROWS * COLS];
+        // The last row's bar reaches past the screen's last cell row: the
+        // tilemap has those rows, nobody sees them, and nothing there is a
+        // difference.
+        let first = k * MENU_ACTOR_ROWS * COLS;
+        let base = &with_map[first..(first + BAR_CELL_ROWS * COLS).min(with_map.len())];
         for (i, (a, b)) in base.iter().zip(bar).enumerate() {
             if a != b {
                 distinct.insert((i / COLS, i % COLS));

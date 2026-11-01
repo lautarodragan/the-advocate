@@ -114,7 +114,10 @@ pub fn merge_least_visible_tiles(
         let into = nearest[victim];
         alive[victim] = false;
         left -= 1;
-        weight[into] += weight[victim];
+        // Saturating: a caller pins a tile with a huge weight —the empty
+        // cell, in `rm2k-snes-screens`' `skin_for`—, and a plain sum wrapped it
+        // negative, which made it the next victim.
+        weight[into] = weight[into].saturating_add(weight[victim]);
         // Everything the victim drew —itself and what it had taken— is now
         // drawn with `into`, composing the mirrors.
         let (fx, fy) = near[victim * n + into].1;
@@ -151,6 +154,22 @@ mod tests {
             row[y] = Some([31, 31, 31]);
         }
         t
+    }
+
+    #[test]
+    fn a_pinned_tile_that_takes_another_stays_pinned() {
+        // `skin_for` of `rm2k-snes-screens` pins the empty cell with half of
+        // `u64::MAX`. The nearly empty tile goes into it first, and the sum
+        // used to wrap negative: the pinned one became the next victim and
+        // the empty cell got drawn with a gradient's step.
+        let mut speck = solid(0);
+        speck[0][0] = Some([1, 1, 1]);
+        let tiles = [solid(0), speck, solid(20), solid(22)];
+        let weights = [u64::MAX / 2, 1, 5, 5];
+        let drawn = merge_least_visible_tiles(&tiles, &weights, 2, false);
+        assert_eq!(drawn[0].tile, 0, "the pinned tile is drawn with another");
+        assert_eq!(drawn[1].tile, 0);
+        assert_eq!(drawn[2].tile, drawn[3].tile);
     }
 
     #[test]

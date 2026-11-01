@@ -164,6 +164,9 @@ pub struct Party {
     pub actors: Option<Vec<i32>>,
     /// Each actor's current HP; without it, full.
     pub hp: BTreeMap<i32, i64>,
+    /// Each actor's current SP; without it, full. Only the actor choice
+    /// shows them.
+    pub sp: BTreeMap<i32, i64>,
     /// Each actor's level and experience; without them, the starting ones.
     pub levels: BTreeMap<i32, i64>,
     pub exps: BTreeMap<i32, i64>,
@@ -443,6 +446,19 @@ fn target_with(
             actor_row(&mut p, game, skin, &bank, row, actor, party, false)?;
         }
     }
+    // The SP, on top of everything like the menu's experience: see
+    // `MENU_SP_X`.
+    for (row, actor) in party
+        .members
+        .iter()
+        .take(MENU_PARTY_ROWS)
+        .copied()
+        .enumerate()
+    {
+        if known.contains(&actor) {
+            sp_line(&mut p, game, &bank.menu, row, actor, party)?;
+        }
+    }
     for (n, line) in name.iter().enumerate() {
         let line = texts::ljust(line, TARGET_NAME_WIDTH);
         compose_text(
@@ -463,6 +479,42 @@ fn target_with(
         TARGET_COUNT_COL,
     )?;
     Ok(p.picture())
+}
+
+/// The actor choice's fourth line on party row `row`: the SP term and the
+/// number in sprites, the number in the HP's cells and a sprite per letter
+/// —top and bottom—, which is what `menu_sp_build` puts in the OAM. A space
+/// gets no sprite.
+fn sp_line(
+    p: &mut Painter,
+    game: &Game,
+    menu: &slots::MenuBlocks,
+    row: usize,
+    actor: i32,
+    party: &Party,
+) -> Result<()> {
+    let y = (row * MENU_ACTOR_ROWS * CELL + MENU_SP_Y - GLYPH_DY) as i64;
+    for (n, &word) in menu.sp_term.iter().enumerate() {
+        p.sprite(
+            word,
+            (MENU_SP_X + (n % MENU_SP_TERM_CELLS) * CELL) as i64,
+            y + ((n / MENU_SP_TERM_CELLS) * CELL) as i64,
+        );
+    }
+    let text = texts::sp_text(game, actor, None, party.sp.get(&actor).copied());
+    for (n, letter) in text.chars().enumerate() {
+        if letter == ' ' {
+            continue;
+        }
+        let glyph = menu
+            .glyphs
+            .get(&letter)
+            .ok_or_else(|| Bad::answer(format!("the menu's bank has no {letter:?}")))?;
+        let x = ((MENU_HP_COL + n) * CELL) as i64;
+        p.sprite(glyph[0], x, y);
+        p.sprite(glyph[1], x, y + CELL as i64);
+    }
+    Ok(())
 }
 
 /// The slot screen: `full` says which slots have a save, `chosen` where

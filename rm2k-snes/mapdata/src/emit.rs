@@ -3081,6 +3081,18 @@ impl Rest<'_> {
             )
             .join(", ")
         ));
+        // The SP term the same way: the actor choice's fourth line.
+        let sp_term = ints_at(menu, "sp_term")?;
+        out.push_str(&format!(
+            ".block {}\nmenu_sp_finished:\n    .word {}\n",
+            2 * sp_term.len(),
+            hex4(
+                sp_term
+                    .into_iter()
+                    .map(|c| i64::from(entry(c as u32, false, false, 0)))
+            )
+            .join(", ")
+        ));
         // The actor choice: its windows on BG1, a single tilemap and the bar
         // only where it changes; and each medicine's name in two lines.
         let target = at(screens, "target")?;
@@ -3213,6 +3225,17 @@ impl Rest<'_> {
             t.n("MENU_EXP_DIGITS"),
             t.n("MENU_EXP_LETTERS"),
             t.n("MENU_ACTOR_ROWS") * cell
+        ));
+        // The actor choice's SP: the term at the experience's x, and the
+        // number in the HP's cells, so a letter's sprite goes where its
+        // cell would be.
+        out.push_str(&pyf!(
+            "MENU_SP_X         = %d\nMENU_SP_NUM_X     = %d\nMENU_SP_Y         = %d\n\
+             MENU_SP_LETTERS   = %d\n",
+            t.n("MENU_SP_X"),
+            t.n("MENU_HP_COL") * cell,
+            t.n("MENU_SP_Y") - t.n("GLYPH_DY"),
+            t.n("MENU_SP_LETTERS")
         ));
         // Each actor's text, in ASCII: the name with trailing spaces, the
         // two digits of the level and max HP, in one row per actor.

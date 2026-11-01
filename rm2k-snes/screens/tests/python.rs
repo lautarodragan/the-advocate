@@ -209,12 +209,14 @@ fn everything_a_cartridge_carries() {
     // 2026-10-20**, the slot screen's text from x 56: it went to x 8, as
     // RPG_RT writes it, and the leader's name got thirteen cells instead of
     // seven, so the slots' tiles moved and the answer says where their
-    // names go, `slot_names`. What it held before is b3f8812b…f645; this
-    // one is the answer of that change, looked at in the slot screen's
-    // render below and in ABL's goldens.
+    // names go, `slot_names`. What it held before is b3f8812b…f645. **Until
+    // 2026-11-01**, 80b161ce…6df4: the bank got the SP term, the actor
+    // choice's bar its fourth line and a line of red above the name, so
+    // its bars are eight cell rows; looked at in the actor choice's render
+    // below and in ABL's goldens.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "80b161ce9b2ee608c2be404d256a46021b1816e050a6796166ed6841dcea6df4"
+        "5978d64893ade5093e9d047c9971497eff6dfeca1fe6cdb0a46fa1806afa3e29"
     );
     assert_eq!(
         answer["says"],
@@ -408,7 +410,8 @@ fn the_screens_as_the_console_shows_them() {
         "06cf2dc59dae4c259ec988b9ad36077794461b1b73506df09925c419288936b0",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
-    // the Python, which never had it.
+    // the Python, which never had it. Since 2026-11-01 the bar starts a
+    // line higher, with a line of red over the name (4a5b495d…f5f before).
     check(
         "menu-choosing",
         render::menu(
@@ -423,12 +426,13 @@ fn the_screens_as_the_console_shows_them() {
             false,
         )
         .unwrap(),
-        "4a5b495d0fcec60fd1cea120ec612802c92f39115dc83600cd5fbac4bd4f3a5f",
+        "79468d33b7f8648d52398aa028c295c12f8e7ac761de864b9b9bfb03e33dcf7f",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
         actors: Some((1..=8).collect()),
         hp: [(2, 5), (7, 1234)].into_iter().collect(),
+        sp: [(2, 3), (7, 1234)].into_iter().collect(),
         levels: [(2, 11), (4, 17)].into_iter().collect(),
         exps: [(2, 900), (4, 20000)].into_iter().collect(),
     };
@@ -440,7 +444,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "target-item",
         render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
-        "bf25611db7907c38abe48a1e1616d13cf43a9c9d30fdce78cbe92774332a5fe2",
+        "b29e43c5e2f793add03289a4e510ebdd1635b5c0ed5e1765df86fcc34b5bc14a",
     );
     check(
         "items",
