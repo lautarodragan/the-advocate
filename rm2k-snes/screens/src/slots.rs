@@ -37,6 +37,8 @@ pub struct MenuBlocks {
     pub row: Vec<u16>,
     /// The experience term, loose like a glyph: sprites draw it.
     pub exp_term: Vec<u16>,
+    /// The SP term, the same way: the actor choice draws it in sprites.
+    pub sp_term: Vec<u16>,
 }
 
 /// The slot screen and the menu, cut.
@@ -104,6 +106,7 @@ enum Kind {
     Currency,
     MenuRow,
     ExpTerm,
+    SpTerm,
 }
 
 /// The level term, like `Window_SaveFile::Refresh`: `lvl_short` padded to
@@ -376,6 +379,18 @@ pub fn slots_screen_with(
         1,
     );
     layers.push((Kind::ExpTerm, image));
+    // And the SP's, `sp_short`, which the actor choice writes under the HP
+    // —see `MENU_SP_X`—: up to two letters too.
+    let mut image = cells::layer();
+    let sp: String = game.term("sp_short")?.chars().take(2).collect();
+    write(
+        &mut image,
+        GLYPH_COL * CELL,
+        GLYPH_ROW * CELL + GLYPH_DY,
+        &sp,
+        1,
+    );
+    layers.push((Kind::SpTerm, image));
 
     // The disabled commands go in **their own palette**, number 1: system
     // colour 3 is a gradient that, added to the text's, does not fit in a
@@ -431,12 +446,12 @@ pub fn slots_screen_with(
     };
     // Every block takes a tile of the bank flipped when it is one: since
     // 2026-10-14, when ABL with every map was three tiles short for the
-    // slot screen's names. **But the loose glyphs and the experience
-    // term**, which `menu_exp_paint` also draws as sprites and passes only
-    // the tile's number on to the OAM: a flip there would draw the tile
-    // unflipped.
+    // slot screen's names. **But the loose glyphs and the experience and
+    // SP terms**, which `menu_exp_paint` and `menu_sp_build` also draw as
+    // sprites and pass only the tile's number on to the OAM: a flip there
+    // would draw the tile unflipped.
     let place = |kind: &Kind, image: &Picture, bank: &mut Bank, out: &mut Slots| -> Result<()> {
-        let mirror = !matches!(kind, Kind::Glyph(_) | Kind::ExpTerm);
+        let mirror = !matches!(kind, Kind::Glyph(_) | Kind::ExpTerm | Kind::SpTerm);
         let mut block =
             |row0: usize, rows: usize, index, col0: usize, cols: usize, palette: u16| {
                 cells::cell_block(image, row0, rows, bank, index, col0, cols, palette, mirror)
@@ -477,6 +492,9 @@ pub fn slots_screen_with(
             }
             Kind::ExpTerm => {
                 out.menu.exp_term = block(GLYPH_ROW, 2, &index, GLYPH_COL, MENU_EXP_TERM_CELLS, 0)?
+            }
+            Kind::SpTerm => {
+                out.menu.sp_term = block(GLYPH_ROW, 2, &index, GLYPH_COL, MENU_SP_TERM_CELLS, 0)?
             }
             Kind::Header(mode) => {
                 out.headers[*mode] = block(HEADER_Y / CELL, HEADER_ROWS, &index, 0, COLS, 0)?

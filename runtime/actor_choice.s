@@ -642,6 +642,16 @@ skill:
 .proc target_ppu_on
 .a8
 .i16
+    lda #$03                    ; BG1 and BG2
+    bra target_ppu_with
+.endproc
+
+; The same with the layers in A, for TM: the actor choice turns its SP's
+; sprites on too —see `menu_sp_paint`—.
+.proc target_ppu_with
+.a8
+.i16
+    pha                         ; the layers, for TM
     jsl f:pano_mode3            ; the screens draw in mode 3
     lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
@@ -658,7 +668,7 @@ skill:
     sta BG2VOFS
     sta BG1VOFS
     sta BG1VOFS
-    lda #$03
+    pla
     sta TM
     lda #$0F
     sta INIDISP

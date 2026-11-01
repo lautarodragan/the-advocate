@@ -310,12 +310,13 @@ impl Json {
     }
 
     /// The party a screen shows: `party`, and optionally `actors`, `hp`,
-    /// `levels` and `exps`, by actor number.
+    /// `sp`, `levels` and `exps`, by actor number.
     pub fn party(&self) -> Result<Party> {
         Ok(Party {
             members: self.actors("party")?,
             actors: self.optional_actors("actors")?,
             hp: self.by_number("hp")?,
+            sp: self.by_number("sp")?,
             levels: self.by_number("levels")?,
             exps: self.by_number("exps")?,
         })

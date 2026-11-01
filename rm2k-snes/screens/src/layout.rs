@@ -124,7 +124,8 @@ pub const GLYPH_DY: usize = 2;
 // RM2k's `Scene_Menu` at 256x224: the command column on the left, the gold at
 // the bottom left and the party on the right, **without the windows** —black
 // background, like the slot screen— and without what does not fit: the
-// actor's title and the SP. It lives in the **same tile bank and the same
+// actor's title and the SP, which only the actor choice shows (see
+// `MENU_SP_X`). It lives in the **same tile bank and the same
 // palette** as the slot screen: the faces are the same, and the save screen
 // is opened from the menu.
 pub const MENU_OPTIONS: usize = 5;
@@ -197,6 +198,20 @@ pub const MENU_EXP_DIGITS: usize = 6;
 pub const MENU_EXP_LETTERS: usize = 2 * MENU_EXP_DIGITS + 1;
 /// The term, "Ex" in A Blurred Line: twelve pixels, two cells wide.
 pub const MENU_EXP_TERM_CELLS: usize = 2;
+/// The SP, `Window_ActorTarget`'s second column —`DrawActorSp`, under the
+/// HP—, **only on the actor choice**: there the row has no experience, so
+/// its fourth line is free, and the SP go where the menu has "Ex", in
+/// sprites too. On the pause menu a fifth line does not fit: its ink would
+/// need some 55 of the row's 56 lines and the experience already takes 120
+/// of the 128 sprites —see the task `sp-in-the-menu-and-the-item-target-
+/// picker`—. The term is `sp_short`, two cells like the experience's, and
+/// the number is the HP's —`"%3d"`, the slash and the maximum— one cell
+/// per letter, right under the HP's cells.
+pub const MENU_SP_X: usize = MENU_TEXT_X;
+pub const MENU_SP_Y: usize = MENU_EXP_Y;
+pub const MENU_SP_TERM_CELLS: usize = 2;
+/// The current SP, the slash and the maximum: the HP's seven cells.
+pub const MENU_SP_LETTERS: usize = MENU_HP_DIGITS + MENU_MAX_DIGITS;
 
 // --- the item screen ---------------------------------------------------------
 //
@@ -320,28 +335,29 @@ pub const TARGET_COUNT_COL: usize = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2;
 /// For a skill the count is its cost, and the term next to it the
 /// database's `sp_cost`, as `Window_TargetStatus` writes it.
 pub const TARGET_TERM_COST: &str = "sp_cost";
-/// The bar goes over the row's three lines of text, as in RM2k, and not
-/// over the face; from two pixels inside the row, so as not to touch the
-/// top frame, and it ends on a cell boundary: with the bottom tip
-/// mid-cell it was 64 tiles, exactly what fits before the tilemap.
-pub const TARGET_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE - 2);
-/// The same bar on the pause menu, where `Scene_Menu` chooses whom to equip
-/// over its own party panel: there are no windows under it, so it is drawn
-/// over nothing, and it is taller because the row has a fourth line, the
-/// experience. It covers every pixel of the row's text and its shadows —the
-/// cursor's edge is one dark pixel, so the red starts one in—: the name
-/// starts at y = 3 and the experience, which is sprites below the cell
-/// grid, ends at y = 56, one past the row. So the bar goes from y = 2 to
-/// y = 57 —red from 3 to 56— and reaches into the next row, which has no
-/// bar then. Measured against the capture on 2026-09-30: at y = 2..53 the
-/// bottom of "Ex" was left over black. Starting at 2 and not higher, the
-/// top cells are the actor choice's and the bar costs two tiles.
+/// The bar goes over the row's four lines of text —the SP's is the
+/// fourth, see `MENU_SP_X`—, as in RM2k, and not over the face: it is the
+/// pause menu's, `MENU_BAR`. Until 2026-11-01 it went over three lines,
+/// from y = 2 to a cell boundary.
+pub const TARGET_BAR: Rect = MENU_BAR;
+/// The bar on a party row: on the pause menu, where `Scene_Menu` chooses
+/// whom to equip over its own party panel —there are no windows under it,
+/// so it is drawn over nothing—, and on the actor choice. It covers the
+/// row's four lines —the cursor's edge is one dark pixel, so the red starts
+/// one in—: the name starts at y = 3 and the fourth line, which is sprites
+/// below the cell grid, ends at y = 56, one past the row. So the bar goes
+/// from y = 2 to y = 57 —red from 3 to 56— and reaches into the next row,
+/// which has no bar then. Measured against the capture on 2026-09-30: at
+/// y = 2..53 the bottom of "Ex" was left over black.
 pub const MENU_BAR: Rect = (
     MENU_TEXT_X - 4,
     2,
     WIDTH - MENU_TEXT_X,
     MENU_ACTOR_ROWS * CELL + 1,
 );
+/// How many cell rows a bar on a party row reaches: the row's and the one
+/// of the next row its bottom goes into.
+pub const BAR_CELL_ROWS: usize = (MENU_BAR.1 + MENU_BAR.3).div_ceil(CELL);
 /// The command cursor on the pause menu, on the first command:
 /// `Window_Command`'s, four pixels left of the text and the window's width
 /// minus eight —the column's plus eight—, one command tall. Measured against
@@ -910,6 +926,10 @@ pub fn publish() -> Value {
         MENU_EXP_DIGITS,
         MENU_EXP_LETTERS,
         MENU_EXP_TERM_CELLS,
+        MENU_SP_X,
+        MENU_SP_Y,
+        MENU_SP_TERM_CELLS,
+        MENU_SP_LETTERS,
         ITEM_DESC_Y,
         ITEM_DESC_COL,
         ITEM_DESC_WIDTH,

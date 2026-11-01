@@ -817,7 +817,7 @@ redraw:
     sta temp + 3
     lda title_sel
     jsl f:target_bar
-    jsl f:target_ppu_on
+    jsl f:menu_sp_paint         ; the SP's sprites, and the screen on with them
 wait:
     jsr wait_vblank
     jsr read_pad
@@ -867,8 +867,10 @@ check_a:
     beq medicine
     jmp redraw
 medicine:
-    ; The row's HP, in the next vblank: the use took away the current value.
-    jsr wait_vblank
+    ; The SP, which a medicine changes on its target and a skill on its
+    ; user, and in the same vblank the row's HP: the use took away the
+    ; current value.
+    jsl f:menu_sp_refresh       ; it returns in the vblank
     jsr actor_row
     sta temp
     lda title_sel

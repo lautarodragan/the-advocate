@@ -209,12 +209,13 @@ fn everything_a_cartridge_carries() {
     // 2026-10-20**, the slot screen's text from x 56: it went to x 8, as
     // RPG_RT writes it, and the leader's name got thirteen cells instead of
     // seven, so the slots' tiles moved and the answer says where their
-    // names go, `slot_names`. What it held before is b3f8812b…f645; this
-    // one is the answer of that change, looked at in the slot screen's
-    // render below and in ABL's goldens.
+    // names go, `slot_names`. What it held before is b3f8812b…f645. **Until
+    // 2026-11-01**, 80b161ce…6df4: the bank got the SP term and the actor
+    // choice's bar its fourth line, so its bars are eight cell rows; looked
+    // at in the actor choice's render below and in ABL's goldens.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "80b161ce9b2ee608c2be404d256a46021b1816e050a6796166ed6841dcea6df4"
+        "b054a8348d5f4b37b2b98dc65a5f939501c649fff03e1060a8a68ed29f882f64"
     );
     assert_eq!(
         answer["says"],
@@ -429,6 +430,7 @@ fn the_screens_as_the_console_shows_them() {
         members: vec![2, 7, 8, 4],
         actors: Some((1..=8).collect()),
         hp: [(2, 5), (7, 1234)].into_iter().collect(),
+        sp: [(2, 3), (7, 1234)].into_iter().collect(),
         levels: [(2, 11), (4, 17)].into_iter().collect(),
         exps: [(2, 900), (4, 20000)].into_iter().collect(),
     };
@@ -440,7 +442,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "target-item",
         render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
-        "bf25611db7907c38abe48a1e1616d13cf43a9c9d30fdce78cbe92774332a5fe2",
+        "537851412cc7243226e4bac8eb302f08f84c11e0b03d88ea5d1fa05d60f5d717",
     );
     check(
         "items",

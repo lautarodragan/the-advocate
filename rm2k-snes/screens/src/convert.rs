@@ -954,6 +954,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 "currency": menu.currency,
                 "row": menu.row,
                 "exp_term": menu.exp_term,
+                "sp_term": menu.sp_term,
             },
             "prerender": slots.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },

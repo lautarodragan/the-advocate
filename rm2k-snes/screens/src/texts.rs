@@ -251,6 +251,28 @@ pub fn max_text(game: &Game, actor: i32, level: Option<i64>) -> String {
     text.chars().take(MENU_MAX_DIGITS).collect()
 }
 
+/// An actor's max SP at `level` —its starting one without it—, like
+/// [`max_hp`].
+pub fn max_sp(actor: &Actor, level: Option<i64>) -> i64 {
+    let level = level.unwrap_or_else(|| rules::level_of(actor));
+    rules::curve_at(&actor.parameters.maxsp, level).unwrap_or(0)
+}
+
+/// The SP line's number on the actor choice, as the HP's is written: the
+/// current one in three places —capped at 999, as the cartridge caps it—,
+/// and the maximum after its slash, left-aligned in four: " 20/30 ".
+/// Without `sp`, full; without `level`, the starting one.
+pub fn sp_text(game: &Game, actor: i32, level: Option<i64>, sp: Option<i64>) -> String {
+    let maximum = game.actors.get(&actor).map_or(0, |a| max_sp(a, level));
+    let current = sp.unwrap_or(maximum).clamp(0, 999);
+    let after = ljust(&format!("/{}", maximum.min(999)), MENU_MAX_DIGITS);
+    format!(
+        "{}{}",
+        right(current, MENU_HP_DIGITS),
+        after.chars().take(MENU_MAX_DIGITS).collect::<String>()
+    )
+}
+
 /// The experience as `DrawActorExp` writes it: `"%6d/%6d"`, the current one
 /// and the one the next level asks for, or dashes at the cap. Without
 /// `level` or `exp`, the starting ones.
