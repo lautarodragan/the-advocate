@@ -50,6 +50,13 @@
 //! missed target's defense is no longer rolled nor lowered, and every roll
 //! after it comes one earlier. They are exactly the battles that cross a
 //! return with a roll after it.
+//!
+//! **And in a fourth**: it gave no condition, and every skill of this game
+//! carries condition 2 in its `state_effects`. Since 2026-11-01 a skill
+//! gives and takes its conditions, with two rolls more for each; so the
+//! game is read here **without** the skills' `state_effects`, which keeps
+//! the Python's answer the right one for every request. Giving them is
+//! covered by `tests/states.rs` and by the console's tests.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::model;
@@ -70,7 +77,11 @@ fn read(name: &str) -> Value {
 }
 
 fn db() -> Db {
-    Db::from_dump(&game().join("dump"), true).unwrap()
+    let mut db = Db::from_dump(&game().join("dump"), true).unwrap();
+    for skill in db.skills.values_mut() {
+        skill.state_effects.clear();
+    }
+    db
 }
 
 /// The answer with its keys sorted, compact: what the Python hashed. The

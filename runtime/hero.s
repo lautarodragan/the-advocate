@@ -163,6 +163,7 @@ after_step:
     ; And one that did not start is a bump: the touch pages in front.
     jmp try_bump
 stepped:
+    jsl f:state_step            ; `ApplyStateDamage`: see party_states.s
     jsl f:encounter_step
 no_right:
     rts

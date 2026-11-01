@@ -12,12 +12,18 @@ use rm2k_snes_battle::simulate::{Battle, Combatant, SkillResult, Who, BATTLE_SEE
 use std::collections::BTreeMap;
 use std::path::Path;
 
+/// The small game, without the condition 2 every one of its skills
+/// carries: what a skill gives is `tests/states.rs`'.
 fn db() -> Db {
-    Db::from_dump(
+    let mut db = Db::from_dump(
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/game/dump"),
         false,
     )
-    .unwrap()
+    .unwrap();
+    for skill in db.skills.values_mut() {
+        skill.state_effects.clear();
+    }
+    db
 }
 
 fn battle(db: &Db) -> Battle {

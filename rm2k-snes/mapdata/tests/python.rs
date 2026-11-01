@@ -1330,11 +1330,27 @@ fn without_bare_window(text: &str) -> String {
 /// `state_*` tables and `STATES_N`, and their messages, which are the last
 /// texts —from the empty one the conditions share on—. Checked here: each
 /// condition's two texts are among those last ones.
+/// The party's, on 2026-11-01, are more tables of the same kind:
+/// `state_end`, `state_map`, and what a skill or a weapon gives and its
+/// odds, `ST_USED_N` and the `st_*`; and three more messages, which go
+/// with the other two.
 fn without_states(text: &str) -> String {
+    const TEXT_TABLES: [&str; 5] = [
+        "state_affected:",
+        "state_recovery:",
+        "state_actor:",
+        "state_enemy:",
+        "state_already:",
+    ];
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     let at = lines
         .iter()
         .position(|l| l.starts_with("STATES_N = "))
+        .unwrap();
+    lines.remove(at);
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("ST_USED_N = "))
         .unwrap();
     lines.remove(at);
     let mut theirs = Vec::new();
@@ -1346,11 +1362,25 @@ fn without_states(text: &str) -> String {
         "state_damage:",
         "state_hit:",
         "state_halves:",
+        "state_end:",
+        "state_map:",
+        "state_turn:",
+        "state_turn_loss:",
+        "st_lists:",
+        "skill_st_at:",
+        "item_st_at:",
+        "item_st_pct:",
+        "st_used:",
+        "st_rate:",
+        "st_ranks:",
         "state_affected:",
         "state_recovery:",
+        "state_actor:",
+        "state_enemy:",
+        "state_already:",
     ] {
         let at = lines.iter().position(|l| l == label).unwrap();
-        if label == "state_affected:" || label == "state_recovery:" {
+        if TEXT_TABLES.contains(&label) {
             let values = lines[at + 1].trim_start_matches("    .word ");
             theirs.extend(values.split(", ").map(|v| v.parse::<usize>().unwrap()));
         }
@@ -1806,7 +1836,8 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
 
 /// The text with the actor questions of `OP_IF_ACTOR` as they were: since
 /// 2026-10-15 there are three, with `COND_ACTOR_HP`, and the comment over
-/// them no longer counts them nor points to a Python file.
+/// them no longer counts them nor points to a Python file; since 2026-11-01
+/// four, with `COND_ACTOR_STATE`.
 fn with_the_actor_questions_as_before(text: &str) -> String {
     let now = concat!(
         "; And the actor questions that carry two operands, with their\n",
@@ -1814,6 +1845,7 @@ fn with_the_actor_questions_as_before(text: &str) -> String {
         "COND_ACTOR_SKILL = 4\n",
         "COND_ACTOR_EQUIPMENT = 5\n",
         "COND_ACTOR_HP = 3\n",
+        "COND_ACTOR_STATE = 6\n",
     );
     let before = concat!(
         "; And the two actor questions that carry two operands, with their\n",

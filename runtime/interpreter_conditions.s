@@ -318,7 +318,8 @@ if_var_continues:
 .endproc
 
 ; `ConditionalBranch` case 5 with two operands: "has at least this many HP"
-; —sub 3—, "knows this skill" —sub 4— and "has this item equipped" —sub 5—.
+; —sub 3—, "knows this skill" —sub 4—, "has this item equipped" —sub 5— and
+; "holds this condition" —sub 6—.
 ; They go in a separate opcode and not in `OP_IF` because they carry **two**
 ; operands, the actor and the HP, the item or the skill; see OP_IF_ACTOR in
 ; the events compiler.
@@ -348,6 +349,8 @@ if_var_continues:
     beq actor_skill
     cmp #COND_ACTOR_HP
     beq actor_hp
+    cmp #COND_ACTOR_STATE
+    beq actor_state
 
     ; --- the equipped equipment ---
     ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
@@ -414,6 +417,15 @@ actor_hp:
     sep #$20
 .a8
     bcs actor_yes               ; `sep` does not touch C
+    bra actor_no
+
+    ; --- the condition ---
+    ; `HasState`: the actor's places, or zero HP for the dead one. See
+    ; party_states.s.
+actor_state:
+    lda temp + 1
+    jsl f:act_st_has
+    bne actor_yes
 actor_no:
     rep #$20
 .a16

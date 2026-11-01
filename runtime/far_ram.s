@@ -174,6 +174,11 @@ FAR_LENGTH = $7E0000
 ; whoever uses it. They start full from `actor_spmax` and travel in the save,
 ; after the HP.
 FAR_SP = .loword(far_sp)
+; And the conditions each actor holds, and the party's steps, which the
+; conditions that hurt walking count: see party_states.s. Both travel in
+; the save.
+FAR_ACT_STATES = .loword(far_act_states)
+FAR_PARTY_STEPS = .loword(far_party_steps)
 
 ; And which graphic a `ChangeSpriteAssociation` changed each LDB actor's
 ; sprite to, one byte per actor number: the index in the map's graphics table

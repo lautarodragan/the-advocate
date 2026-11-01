@@ -23,6 +23,10 @@ far_equipment:   .res ACTORS_N * 10
 far_hp:          .res ACTORS_N * 2
 far_sp:          .res ACTORS_N * 2
 far_actor_gfx:   .res ACTORS_N
+; Each actor's conditions, four places of a word: see party_states.s.
+far_act_states:  .res ACTORS_N * 8
+; And the party's steps, easyrpg's `steps`: see `state_step`.
+far_party_steps: .res 4
 far_skill:       .res SKILL_BYTES
 far_exp:         .res EXP_K * 4
 far_page:        .res 16 + TROOP_PAGE_MAX

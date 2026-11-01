@@ -150,9 +150,12 @@ fn with_shift(db: &mut Db, skill: i32, hit: i32) {
 }
 
 /// An effect of zero, which rolls no variance, and nothing else touched:
-/// only the critical and the steps are left to roll.
+/// only the critical and the steps are left to roll. The small game's
+/// skills all carry condition 2 in their `state_effects`, which rolls
+/// since 2026-11-01: it goes too.
 fn no_effect(db: &mut Db, skill: i32) {
     let s = db.skills.get_mut(&skill).unwrap();
+    s.state_effects.clear();
     s.affect_hp = false;
     s.affect_sp = false;
     s.affect_attack = false;

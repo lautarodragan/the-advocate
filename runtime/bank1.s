@@ -255,6 +255,10 @@ save_table:
     ; And which graphic a `ChangeSpriteAssociation` changed the sprite to: one
     ; byte per actor. It travels in the save as in RM2k, and survives teleport.
     .word FAR_ACTOR_GFX, ACTORS_N
+    ; And the conditions each actor holds, which RM2k saves too, and the
+    ; party's steps, which decide when a poison hurts: see party_states.s.
+    .word FAR_ACT_STATES, ACTORS_N * 8
+    .word FAR_PARTY_STEPS, 4
     ; And which skills each actor knows: one bit per (actor, skill) pair, which
     ; `ChangeSkills` sets and clears. See `FAR_SKILL`.
     .word FAR_SKILL, SKILL_BYTES

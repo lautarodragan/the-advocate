@@ -24,6 +24,7 @@ pub mod model;
 pub mod rules;
 pub mod screen;
 pub mod simulate;
+pub mod states;
 
 pub use encounters::{Encounters, Map};
 pub use fail::{Bad, Result};
