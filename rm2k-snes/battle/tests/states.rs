@@ -169,3 +169,22 @@ fn a_skill_on_its_own_side_takes_the_condition_away() {
     assert_eq!(lines(&b), [("miss", 0)]);
 }
 
+#[test]
+fn a_turn_change_is_its_value_and_its_share_of_the_maximum() {
+    use rm2k_snes_battle::simulate::TurnChange;
+    // ABL's Poison: a loss of 5 % and 1.
+    let poison = TurnChange {
+        val: 1,
+        max_pct: 5,
+        sign: -1,
+    };
+    assert_eq!(poison.on(250), -13);
+    assert_eq!(poison.on(19), -1, "5 % of 19 truncates to 0");
+    let regen = TurnChange {
+        val: 0,
+        max_pct: 10,
+        sign: 1,
+    };
+    assert_eq!(regen.on(999), 99);
+    assert_eq!(TurnChange::default().on(999), 0);
+}

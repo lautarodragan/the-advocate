@@ -1334,6 +1334,8 @@ fn without_states(text: &str) -> String {
         "state_halves:",
         "state_end:",
         "state_map:",
+        "state_turn:",
+        "state_turn_loss:",
         "st_lists:",
         "skill_st_at:",
         "item_st_at:",

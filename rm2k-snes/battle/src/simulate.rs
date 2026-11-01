@@ -282,9 +282,8 @@ pub fn normal_damage(source: &Combatant, target: &Combatant, critical: bool, rng
 }
 
 /// What a condition is, of the LDB's, for the battle: `lcf::rpg::State`
-/// with the fields this battle does. **What it does not do** —the HP and
-/// SP it takes each turn, the skills it seals, the 2003 ones— is said by the
-/// divergence
+/// with the fields this battle does. **What it does not do** —the skills it
+/// seals, the 2003 ones— is said by the divergence
 /// `what-battle-conditions-do-not-model` in the book.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateInfo {
@@ -300,6 +299,46 @@ pub struct StateInfo {
     /// RM2k it always halves —`affect_type` is 2003's—.
     pub affects: [bool; 4],
     pub reduce_hit_ratio: i64,
+    /// What it does to its holder's HP and SP each time it acts,
+    /// `ApplyConditions`: see [`TurnChange`].
+    pub hp_turn: TurnChange,
+    pub sp_turn: TurnChange,
+}
+
+/// `hp_change_val` and `hp_change_max` —a percentage of the maximum— with
+/// `hp_change_type`, or the same with SP: a loss, a gain, or nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TurnChange {
+    pub val: i64,
+    pub max_pct: i64,
+    /// 1 a gain, -1 a loss, 0 nothing.
+    pub sign: i64,
+}
+
+impl TurnChange {
+    fn of(kind: i32, val: i32, max_pct: i32) -> TurnChange {
+        TurnChange {
+            val: val.into(),
+            max_pct: max_pct.into(),
+            sign: match kind {
+                0 => -1,
+                1 => 1,
+                _ => 0,
+            },
+        }
+    }
+
+    /// On a maximum of `max`: the change, never against its sign.
+    pub fn on(&self, max: i64) -> i64 {
+        let amount = self.val + max * self.max_pct / 100;
+        if self.sign < 0 {
+            (-amount).min(0)
+        } else if self.sign > 0 {
+            amount.max(0)
+        } else {
+            0
+        }
+    }
 }
 
 impl StateInfo {
@@ -322,6 +361,16 @@ impl StateInfo {
                 s.affect_agility,
             ],
             reduce_hit_ratio: s.reduce_hit_ratio as i64,
+            hp_turn: TurnChange::of(
+                s.hp_change_type.to_i32(),
+                s.hp_change_val,
+                s.hp_change_max,
+            ),
+            sp_turn: TurnChange::of(
+                s.sp_change_type.to_i32(),
+                s.sp_change_val,
+                s.sp_change_max,
+            ),
         })
     }
 }
@@ -1465,6 +1514,17 @@ impl Battle {
                 h.turns += 1;
             }
         }
+        // `ApplyConditions`, right after: each condition still held, in
+        // order, changes the HP —never killing— and the SP. It rolls
+        // nothing and says nothing of its own.
+        let c = self.get_mut(who);
+        let changes: Vec<(TurnChange, TurnChange)> =
+            c.states.iter().map(|h| (h.info.hp_turn, h.info.sp_turn)).collect();
+        for (hp, sp) in changes {
+            let amount = hp.on(c.hp_max);
+            c.change_hp(amount, false);
+            c.sp = (c.sp + sp.on(c.sp_max)).clamp(0, c.sp_max);
+        }
         let mut all: Vec<(StateInfo, bool)> = self
             .get(who)
             .states
@@ -2393,6 +2453,8 @@ mod tests {
             release_by_damage: 100,
             affects: [false; 4],
             reduce_hit_ratio: 100,
+            hp_turn: TurnChange::default(),
+            sp_turn: TurnChange::default(),
         }
     }
 
@@ -2406,6 +2468,8 @@ mod tests {
             release_by_damage: 0,
             affects: [true, true, false, true],
             reduce_hit_ratio: 75,
+            hp_turn: TurnChange::default(),
+            sp_turn: TurnChange::default(),
         }
     }
 

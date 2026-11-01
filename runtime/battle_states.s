@@ -30,10 +30,11 @@
 ;   not kill releases with `release_by_damage` —`ba_st_by_damage`—.
 ; * The parameters: `ba_st_params` halves the effective ones a condition
 ;   halves, after the modifier, as `AdjustParam`.
+; * The HP and SP each time its holder acts, `ApplyConditions`:
+;   `ba_st_turn`, from `ba_st_heal`.
 ;
-; What it does not do —the HP and SP a condition takes each turn, the skills
-; it seals, a weapon that gives one— is said by the divergence
-; `what-battle-conditions-do-not-model` in the book.
+; What it does not do —the skills it seals, a weapon that gives one— is said
+; by the divergence `what-battle-conditions-do-not-model` in the book.
 ;
 ; Each combatant has four places, kept **in LDB order** with the empty ones
 ; at the end: that is the order easyrpg walks them in, and so the order of
@@ -719,6 +720,7 @@ done:
     lda .loword(ba_st_c)
     jsr ba_st_params
 params_ready:
+    jsr ba_st_turn              ; `ApplyConditions`, after the releases
     lda .loword(ba_st_top)
     beq silent
     jsr ba_ax
@@ -948,6 +950,184 @@ same:
     ply
     rts
 .endproc
+
+; --- each time its holder acts ----------------------------------------------------
+;
+; `Game_Battler::ApplyConditions`, which `ProcessBattleActionBegin` runs right
+; after `BattleStateHeal`: each condition `ba_st_c` still holds, in order,
+; changes its HP by `hp_change_val` plus `hp_change_max` percent of its
+; maximum —a loss never kills, `ChangeHp(-hp, false)`, and a fallen one does
+; not change— and its SP the same, between zero and the maximum. It rolls
+; nothing and says nothing of its own: the condition's message is
+; `ba_st_heal`'s. `state_turn` has the four numbers and `state_turn_loss`
+; which are losses. Keeps A; clobbers `BA_T*`, X, Y, `temp` and this
+; file's scratch.
+.proc ba_st_turn
+.a8
+.i16
+    pha
+    lda .loword(ba_st_c)
+    jsr ba_st_x
+    stx .loword(ba_st_k)
+    ldy #ST_PLACES
+place:
+    phy
+    ldx .loword(ba_st_k)
+    lda .loword(ba_states), x
+    beq out
+    sta .loword(ba_st_id)
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; `state_turn`'s row: four words
+    sta .loword(ba_st_ptr)
+    tax
+    sep #$20
+.a8
+    lda #BA_HP
+    jsr change
+    rep #$20
+.a16
+    lda .loword(ba_st_ptr)
+    clc
+    adc #4
+    tax
+    sep #$20
+.a8
+    lda #BA_SP
+    jsr change
+    rep #$20
+.a16
+    inc .loword(ba_st_k)
+    inc .loword(ba_st_k)
+    sep #$20
+.a8
+    ply
+    dey
+    bne place
+    pla
+    rts
+out:
+    ply
+    pla
+    rts
+
+; A8 = `BA_HP` or `BA_SP`, the field it changes, with its maximum two bytes
+; after it; X = its two words in `state_turn`.
+change:
+    sta .loword(ba_st_r)
+    rep #$20
+.a16
+    lda f:state_turn, x
+    sta BA_T0                   ; the value
+    lda f:state_turn + 2, x
+    sta BA_T2                   ; and the percentage, a byte for `ba_mul`
+    ora BA_T0
+    bne changes
+    sep #$20
+.a8
+    rts                         ; nothing: the usual
+changes:
+.a16
+    ; The field's place: the combatant's, plus the field.
+    sep #$20
+.a8
+    lda .loword(ba_st_c)
+    jsr ba_x
+    rep #$21                    ; and the carry clear
+.a16
+    lda .loword(ba_st_r)
+    and #$00FF
+    sta BA_T1
+    txa
+    adc BA_T1
+    sta BA_T1                   ; X for the field, from here on
+    ; `val + max * pct / 100`, in two halves so that nothing goes past
+    ; sixteen bits: `(max / 100) * pct + (max % 100) * pct / 100`, which
+    ; truncates the same.
+    tax
+    lda BA_ONE + 2, x           ; the maximum, after the field
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div                  ; the hundreds in `temp`, the rest in `comp_and`
+    lda comp_and
+    pha
+    lda temp
+    jsr ba_mul
+    clc
+    adc BA_T0
+    sta BA_T0
+    pla
+    jsr ba_mul
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    clc
+    adc BA_T0
+    sta BA_T0                   ; the amount
+    ; Is it a loss? Bit 0 for the HP, bit 1 for the SP.
+    sep #$20
+.a8
+    lda .loword(ba_st_id)
+    jsr ba_ax
+    lda f:state_turn_loss, x
+    pha
+    lda .loword(ba_st_r)
+    cmp #BA_SP
+    pla
+    ldx BA_T1                   ; neither touches C
+    bcc hp_bit                  ; `BA_HP` is the lower field
+    lsr a
+hp_bit:
+    and #1
+    rep #$20
+.a16
+    bne loses
+    ; A gain, up to the maximum. A fallen one's HP do not change.
+    lda .loword(ba_st_r)
+    and #$00FF
+    cmp #BA_HP
+    bne gains
+    lda BA_ONE, x
+    beq unchanged
+gains:
+    lda BA_ONE, x
+    clc
+    adc BA_T0
+    cmp BA_ONE + 2, x
+    bcc put
+    lda BA_ONE + 2, x
+    bra put
+loses:
+    lda BA_ONE, x
+    beq unchanged               ; fallen, or no SP: nothing to lose
+    sec
+    sbc BA_T0
+    beq floor
+    bcs put
+floor:
+    ; Below: the HP stop at 1, the SP at 0.
+    lda .loword(ba_st_r)
+    and #$00FF
+    cmp #BA_HP
+    bne zero
+    lda #1
+    bra put
+zero:
+    lda #0
+put:
+    sta BA_ONE, x
+unchanged:
+    sep #$20
+.a8
+    rts
+.endproc
+.assert BA_HPMAX = BA_HP + 2 && BA_SPMAX = BA_SP + 2, error, "ba_st_turn finds the maximum after the field"
+.assert BA_HP < BA_SP, error, "ba_st_turn tells the HP by the lower field"
 
 ; --- what a skill gives ---------------------------------------------------------
 ;

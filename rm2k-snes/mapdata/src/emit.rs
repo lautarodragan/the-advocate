@@ -3480,6 +3480,46 @@ impl Rest<'_> {
             .map(|v| v & 0xFFFF)
             .collect();
         words_asm(out, "state_map", &decimal(map), true);
+        // And what it does each time its holder acts in battle,
+        // `ApplyConditions`: four words per condition —the HP's
+        // `hp_change_val` and `hp_change_max`, a percentage of the maximum,
+        // and the same with SP—, both 0 with `ChangeType_nothing`; and per
+        // condition whether each is a loss, bit 0 the HP's and bit 1 the
+        // SP's.
+        let turn_change = |kind: i32, val: i32, pct: i32| -> [i64; 2] {
+            if kind == 2 {
+                [0, 0]
+            } else {
+                [val.clamp(0, 0x7FFF).into(), pct.clamp(0, 100).into()]
+            }
+        };
+        let turn: Vec<i64> = (0..n)
+            .flat_map(|k| {
+                db.states.get(&(k as i32)).map_or([0; 4], |st| {
+                    let [hv, hp] = turn_change(
+                        st.hp_change_type.to_i32(),
+                        st.hp_change_val,
+                        st.hp_change_max,
+                    );
+                    let [sv, sp] = turn_change(
+                        st.sp_change_type.to_i32(),
+                        st.sp_change_val,
+                        st.sp_change_max,
+                    );
+                    [hv, hp, sv, sp]
+                })
+            })
+            .collect();
+        words_asm(out, "state_turn", &decimal(turn), true);
+        bytes_asm(
+            out,
+            "state_turn_loss",
+            &per(&|st| {
+                i64::from(st.hp_change_type.to_i32() == 0)
+                    | i64::from(st.sp_change_type.to_i32() == 0) << 1
+            }),
+            true,
+        );
         self.state_odds(out, x, n_actors)?;
         words_asm(
             out,
