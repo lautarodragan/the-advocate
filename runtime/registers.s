@@ -150,6 +150,9 @@ MDMAEN   = $420B        ; start
 ; sources and it is not worth reprogramming channel 0 between them: see
 ; `scn_fill`, and `vram_drain`, which zeroes a pose's empty tiles with it.
 ; Whoever uses it sets it up whole. Channels 1 to 3 belong to HDMA, below.
+; And it is an HDMA one on the debug screen, where none of those copies
+; runs: BG1's tiles, one base for the upper half and another for the
+; lower —see `dbg_hdma`—.
 DMAP7    = $4370
 BBAD7    = $4371
 A1T7L    = $4372

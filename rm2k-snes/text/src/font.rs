@@ -79,6 +79,12 @@ pub const SPACED_ADVANCE_MAX: usize = 8;
 /// The fonts the engine carries, by the name a project file gives them.
 const BUNDLED: [(&str, &[u8]); 1] = [("low-variable", include_bytes!("../fonts/low-variable.png"))];
 
+/// The debug screen's font, `fonts/hires-wide.png`: drawn for the 512-wide
+/// mode's pixel, half the usual one, and not a game's to pick —its letters
+/// move the line up to ten pixels, more than a cell of the 256-wide
+/// screens—. See [`Font::debug_screen`].
+const DEBUG_SCREEN: &[u8] = include_bytes!("../fonts/hires-wide.png");
+
 /// The name that asks for RM2k's own fixed-width fonts, the one `font_id`
 /// picks.
 pub const RM2K: &str = "rm2k";
@@ -125,6 +131,16 @@ impl Font {
             )
         })?;
         Font::from_sheet(&bytes).map_err(|e| format!("{spec}: {e}"))
+    }
+
+    /// The font the debug screen writes with, in every game and whatever the
+    /// game's own: `hires-wide`, whose vertical strokes are two of the
+    /// 512-wide mode's pixels, so a CRT's horizontal blur does not eat them
+    /// as it ate the game's font drawn at half width. taro's, on 2026-11-01,
+    /// after trying it and a narrower one on a CRT: see
+    /// `a-wider-font-for-the-512-wide-debug-screen` in the tasks.
+    pub fn debug_screen() -> Font {
+        Font::from_sheet(DEBUG_SCREEN).expect("the debug screen's sheet is the engine's own")
     }
 
     /// This font with `pixels` more of air after every letter: the project
@@ -549,6 +565,21 @@ mod tests {
         assert_eq!(font.advances().len(), GLYPHS);
         let rm2k = Font::rm2k(MINCHO);
         assert!(!rm2k.draws('é') && rm2k.latin_letters().is_empty());
+    }
+
+    /// The debug screen's: the composer's widest ink, two pixels of air,
+    /// and the Latin-1 the games' switches and variables are named with
+    /// —German's and Spanish's, in Desert Nightmare, El Dorado, Vampires
+    /// Dawn and Zounds—. And no game can name it.
+    #[test]
+    fn the_debug_screen_s_font_fits_the_composer_and_draws_the_names_latin_1() {
+        let font = Font::debug_screen();
+        assert!(font.ink_width() <= INK_MAX);
+        assert_eq!(font.advance('o'), 9);
+        for c in "äöüÄÖÜßáéíóúñÑëËô".chars() {
+            assert!(font.draws(c), "{c:?}");
+        }
+        assert!(Font::named("hires-wide", MINCHO).is_err());
     }
 
     #[test]

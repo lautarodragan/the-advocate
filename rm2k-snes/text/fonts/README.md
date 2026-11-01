@@ -11,6 +11,7 @@ is RPG Maker 2000's own six-pixel font, the one the game's `font_id` picks.
 | sheet              | cell | what it is |
 |--------------------|------|------------|
 | `low-variable.png` | 8    | Variable width, for the console's 256 pixels: each glyph cut to its ink plus one pixel of air, and of two equal inner columns only one is kept —the "o" and the "n" go from 5 to 4—, which is what Final Fantasy VI and Chrono Trigger do. The digits and the slash by hand, 4 of ink, all 5 of advance. Derived once from RM2k's Mincho by rules, on 2026-09-30: a starting point, not a design. Its Latin-1, on 2026-10-16, the same way: see below. |
+| `hires-wide.png`   | 10   | **The debug screen's**, in every game and whatever font the game uses —no project names it—: drawn on 2026-11-01 for the 512-wide mode's pixel, half the usual one. Vertical strokes two pixels wide, so they survive a CRT's horizontal blur; round counters three wide, two of air after the ink. Lowercase advance 8.35 in the mean, 1.40 times `low-variable`'s with a spacing of 1. Its Latin-1, the accented letters of Spanish, German and French, from its own ASCII: see below. taro picked it on a CRT over a narrower sibling, `hires-compact`, which is gone. |
 
 **Where the font comes from, and its license.** `low-variable.png` descends
 from EasyRPG's `rmg2000` font ("basic halfwidth 6x12 font compatible with Don
@@ -82,6 +83,17 @@ ASCII allows, since no letter may move the line past a cell. They go plain
 until someone draws them narrower.
 
 It is a starting point, not a design, like the ASCII it sits next to.
+
+`hires-wide.png`'s Latin-1, on 2026-11-01, is its own letters with an
+accent on top, because the debug screen writes the switches' and the
+variables' names as the database has them: a lowercase letter keeps its
+body and takes the accent on rows 0 and 1; a capital is squashed to rows 2
+to 9 —one of its repeated rows less—, so that `Ö` is still taller than
+`ö`, and takes the diaeresis on row 0 or the other accents on rows 0 and
+1. The grave, the circumflex and the tilde are two rows of this sheet's
+own `` ` ``, `^` and `~`, and the acute is the grave mirrored; `ß` by hand,
+and `¡` and `¿` the `!` and the `?` turned over. The rest of Latin-1 is
+not drawn and goes plain.
 
 ## Editing it
 

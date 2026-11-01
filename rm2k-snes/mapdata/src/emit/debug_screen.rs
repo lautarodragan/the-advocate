@@ -81,5 +81,28 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
     out.push('\n');
     out.push_str(&block("dbg_border_cgram", &cgram_bytes(&border_colors)));
     out.push('\n');
+    // Its font, which only the text layer's 512-wide mode reads: how far
+    // each letter moves the line and how far it paints, and its glyphs
+    // precomposed for the inks, a table per phase —what `font_advance`,
+    // `font_reach` and `scr_pre0` to `scr_pre7` are of the game's font—.
+    let font = get("font")?;
+    let small = |name: &str| -> Result<Vec<u8>> {
+        Ok(ints(&font[name])?.into_iter().map(|n| n as u8).collect())
+    };
+    out.push_str(&block("dbg_font_advance", &small("advances")?));
+    out.push('\n');
+    out.push_str(&block("dbg_font_reach", &small("reach")?));
+    out.push('\n');
+    let phases = list_at(font, "prerender")?;
+    if phases.len() != 8 {
+        return Err(Bad::answer(format!(
+            "the debug screen's font has {} phases and a cell eight",
+            phases.len()
+        )));
+    }
+    for (phase, data) in phases.iter().enumerate() {
+        out.push_str(&block(&format!("dbg_pre{phase}"), &bytes(data)?));
+        out.push('\n');
+    }
     Ok(())
 }
