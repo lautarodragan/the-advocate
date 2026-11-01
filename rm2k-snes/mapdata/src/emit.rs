@@ -2784,11 +2784,19 @@ impl Rest<'_> {
         let states_n = db.states.keys().max().map_or(1, |&m| m.max(0) as usize + 1);
         let mut state_affected_text = vec![empty_text; states_n];
         let mut state_recovery_text = vec![empty_text; states_n];
+        // And since 2026-11-01 the three a skill's result says: given to an
+        // actor, given to an enemy, and already held.
+        let mut state_actor_text = vec![empty_text; states_n];
+        let mut state_enemy_text = vec![empty_text; states_n];
+        let mut state_already_text = vec![empty_text; states_n];
         for (&id, st) in &db.states {
             let Ok(k) = usize::try_from(id) else { continue };
             for (message, out) in [
                 (&st.message_affected, &mut state_affected_text),
                 (&st.message_recovery, &mut state_recovery_text),
+                (&st.message_actor, &mut state_actor_text),
+                (&st.message_enemy, &mut state_enemy_text),
+                (&st.message_already, &mut state_already_text),
             ] {
                 if !message.is_empty() {
                     out[k] = texts.add(message);
@@ -3315,6 +3323,9 @@ impl Rest<'_> {
                 command_text,
                 state_affected_text,
                 state_recovery_text,
+                state_actor_text,
+                state_enemy_text,
+                state_already_text,
                 rom_enemies,
                 rom_skills,
                 actions,
@@ -3352,6 +3363,9 @@ struct ItemTexts<'a> {
     command_text: HashMap<i64, Vec<i64>>,
     state_affected_text: Vec<i64>,
     state_recovery_text: Vec<i64>,
+    state_actor_text: Vec<i64>,
+    state_enemy_text: Vec<i64>,
+    state_already_text: Vec<i64>,
     rom_enemies: Vec<i64>,
     rom_skills: Vec<i64>,
     actions: &'a Value,
@@ -3364,7 +3378,7 @@ impl Rest<'_> {
     /// outside bank 0: what `battle_states.s` does with them. Every one of
     /// the database's goes, and not only the ones the troop pages give: the
     /// tables are a byte a field, and the bytecode names them by number.
-    fn states(&self, out: &mut String, x: &ItemTexts) -> Result<()> {
+    fn states(&self, out: &mut String, x: &ItemTexts, n_actors: i64) -> Result<()> {
         let db = self.db;
         let n = x.state_affected_text.len();
         if n > 256 {
@@ -3466,6 +3480,7 @@ impl Rest<'_> {
             .map(|v| v & 0xFFFF)
             .collect();
         words_asm(out, "state_map", &decimal(map), true);
+        self.state_odds(out, x, n_actors)?;
         words_asm(
             out,
             "state_affected",
@@ -3478,6 +3493,150 @@ impl Rest<'_> {
             &decimal(x.state_recovery_text.iter()),
             true,
         );
+        words_asm(
+            out,
+            "state_actor",
+            &decimal(x.state_actor_text.iter()),
+            true,
+        );
+        words_asm(
+            out,
+            "state_enemy",
+            &decimal(x.state_enemy_text.iter()),
+            true,
+        );
+        words_asm(
+            out,
+            "state_already",
+            &decimal(x.state_already_text.iter()),
+            true,
+        );
+        Ok(())
+    }
+}
+
+impl Rest<'_> {
+    /// What a skill or a weapon gives, and the odds it takes hold:
+    /// `battle_states.s`'s `ba_st_skill`, and `rm2k-snes-battle`'s
+    /// `states` for the model.
+    ///
+    /// * `st_lists`: lists of conditions by number, each ended by a 0, the
+    ///   first one empty. `skill_st_at` gives each skill the byte where its
+    ///   `state_effects` start —0, none—, and `item_st_at` each item its
+    ///   `state_set`'s.
+    /// * `item_st_pct`: an armor's `100 - state_chance`, what it leaves of
+    ///   the odds of what it lists; a weapon's `state_chance` with bit 7.
+    /// * `st_used`: per condition, its column in the ranks —only the ones a
+    ///   skill or a weapon gives have one—, or $FF.
+    /// * `st_rate`: per column, its five rates, `A` to `E`.
+    /// * `st_ranks`: rows of `ST_USED_N` ranks, one per actor —its own,
+    ///   before its armor— and then one per enemy, in `enemy_*` order: the
+    ///   enemy `k`'s row is `ACTORS_N + k`.
+    fn state_odds(&self, out: &mut String, x: &ItemTexts, n_actors: i64) -> Result<()> {
+        use rm2k_snes_battle::states as st;
+        let (r, db) = (self.r, self.db);
+        let mut lists: Vec<i64> = vec![0];
+        let mut at_of: HashMap<Vec<i64>, i64> = HashMap::new();
+        let mut used = BTreeSet::new();
+        let mut place = |ids: Vec<i64>, lists: &mut Vec<i64>| -> i64 {
+            if ids.is_empty() {
+                return 0;
+            }
+            if let Some(&at) = at_of.get(&ids) {
+                return at;
+            }
+            let at = lists.len() as i64;
+            lists.extend(&ids);
+            lists.push(0);
+            at_of.insert(ids, at);
+            at
+        };
+        let n_states = db.states.keys().max().copied().unwrap_or(0) as i64;
+        let fits = |ids: &[i64]| -> Result<()> {
+            match ids.iter().find(|&&id| id > n_states || id > 255) {
+                Some(id) => Err(Bad::answer(format!(
+                    "condition {id} is given, and the database has {n_states}"
+                ))),
+                None => Ok(()),
+            }
+        };
+        let mut skill_at = Vec::new();
+        for &h in &x.rom_skills {
+            let ids = st::of_skill(&db.skill(h as i32).map_err(bad)?.state_effects);
+            fits(&ids)?;
+            if rm2k_snes_battle::db::targets_enemies(db.skill(h as i32).map_err(bad)?) {
+                used.extend(ids.iter().copied());
+            }
+            skill_at.push(place(ids, &mut lists));
+        }
+        let mut item_at = Vec::new();
+        let mut item_pct = Vec::new();
+        for &n in &r.items {
+            let it = db.item(n as i32).map_err(bad)?;
+            let kind = it.r#type.to_i32();
+            let weapon = kind == rm2k_snes_battle::db::ITEM_WEAPON;
+            let armor = (2..=5).contains(&kind);
+            let ids = if weapon || armor {
+                st::of_skill(&it.state_set)
+            } else {
+                Vec::new()
+            };
+            fits(&ids)?;
+            let chance = i64::from(it.state_chance).clamp(0, 100);
+            if weapon {
+                used.extend(ids.iter().copied());
+                item_pct.push(chance | 0x80);
+            } else {
+                item_pct.push(100 - chance);
+            }
+            item_at.push(place(ids, &mut lists));
+        }
+        if lists.len() > 0x10000 {
+            return Err(Bad::answer("the conditions' lists don't fit in a bank"));
+        }
+        let used: Vec<i64> = used.into_iter().filter(|&id| id >= 1).collect();
+        if used.len() > 255 {
+            return Err(Bad::answer(format!("{} conditions given", used.len())));
+        }
+        out.push_str(&format!("ST_USED_N = {}\n", used.len()));
+        bytes_asm(out, "st_lists", &decimal(lists), true);
+        words_asm(out, "skill_st_at", &decimal(skill_at), true);
+        words_asm(out, "item_st_at", &decimal(item_at), true);
+        bytes_asm(out, "item_st_pct", &decimal(item_pct), true);
+        let states_n = x.state_affected_text.len() as i64;
+        bytes_asm(
+            out,
+            "st_used",
+            &decimal((0..states_n).map(|id| {
+                used.iter()
+                    .position(|&u| u == id)
+                    .map_or(0xFF, |k| k as i64)
+            })),
+            true,
+        );
+        let rates: Vec<i64> = used
+            .iter()
+            .flat_map(|&id| (0..5).map(move |rank| st::rate(db, id, rank).clamp(0, 100)))
+            .collect();
+        bytes_asm(out, "st_rate", &decimal(rates), true);
+        let mut ranks = Vec::new();
+        for a in 0..n_actors {
+            for &id in &used {
+                ranks.push(match db.actors.get(&(a as i32)) {
+                    Some(_) => st::actor_rank(db, a as i32, id).map_err(bad)?,
+                    None => st::ACTOR_RANK,
+                });
+            }
+        }
+        for &e in &x.rom_enemies {
+            for &id in &used {
+                ranks.push(st::enemy_rank(db, e as i32, id).map_err(bad)?);
+            }
+        }
+        if ranks.len() > 0x10000 {
+            return Err(Bad::answer("the condition ranks don't fit in a bank"));
+        }
+        bytes_asm(out, "st_ranks", &decimal(ranks), true);
         Ok(())
     }
 }
@@ -4121,7 +4280,7 @@ impl Rest<'_> {
         bytes_asm(out, "skill_line2_n", &decimal(lines[2].iter()), true);
         bytes_asm(out, "skill_on_map", &decimal(field), true);
         bytes_asm(out, "skill_name_cut", &decimal(name_cut), true);
-        self.states(out, &x)?;
+        self.states(out, &x, n_actors)?;
         // The parallel common events, in the order of their numbers, which
         // is the order RM2k runs them in: see `compar_tick` in
         // `common_events.s`. One entry of `COMPAR_ENTRY` bytes each: the

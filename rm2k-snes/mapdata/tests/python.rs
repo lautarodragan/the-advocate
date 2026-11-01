@@ -1300,13 +1300,27 @@ fn without_bare_window(text: &str) -> String {
 /// `state_*` tables and `STATES_N`, and their messages, which are the last
 /// texts —from the empty one the conditions share on—. Checked here: each
 /// condition's two texts are among those last ones.
-/// The party's, on 2026-11-01, are two more tables of the same kind:
-/// `state_end` and `state_map`.
+/// The party's, on 2026-11-01, are more tables of the same kind:
+/// `state_end`, `state_map`, and what a skill or a weapon gives and its
+/// odds, `ST_USED_N` and the `st_*`; and three more messages, which go
+/// with the other two.
 fn without_states(text: &str) -> String {
+    const TEXT_TABLES: [&str; 5] = [
+        "state_affected:",
+        "state_recovery:",
+        "state_actor:",
+        "state_enemy:",
+        "state_already:",
+    ];
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     let at = lines
         .iter()
         .position(|l| l.starts_with("STATES_N = "))
+        .unwrap();
+    lines.remove(at);
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("ST_USED_N = "))
         .unwrap();
     lines.remove(at);
     let mut theirs = Vec::new();
@@ -1320,11 +1334,21 @@ fn without_states(text: &str) -> String {
         "state_halves:",
         "state_end:",
         "state_map:",
+        "st_lists:",
+        "skill_st_at:",
+        "item_st_at:",
+        "item_st_pct:",
+        "st_used:",
+        "st_rate:",
+        "st_ranks:",
         "state_affected:",
         "state_recovery:",
+        "state_actor:",
+        "state_enemy:",
+        "state_already:",
     ] {
         let at = lines.iter().position(|l| l == label).unwrap();
-        if label == "state_affected:" || label == "state_recovery:" {
+        if TEXT_TABLES.contains(&label) {
             let values = lines[at + 1].trim_start_matches("    .word ");
             theirs.extend(values.split(", ").map(|v| v.parse::<usize>().unwrap()));
         }

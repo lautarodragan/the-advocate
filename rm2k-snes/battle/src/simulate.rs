@@ -54,6 +54,7 @@ use crate::db::{
 };
 use crate::fail::{Bad, Result};
 use crate::rules::{self, floor_div, Action, ACTION_RATING_ALONE, PARAM_MAX};
+use crate::states;
 use ditto::schema::{Item, Skill, TroopPageCondition};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -283,7 +284,8 @@ pub fn normal_damage(source: &Combatant, target: &Combatant, critical: bool, rng
 /// What a condition is, of the LDB's, for the battle: `lcf::rpg::State`
 /// with the fields this battle does. **What it does not do** —the HP and
 /// SP it takes each turn, the skills it seals, the 2003 ones— is said by the
-/// divergence `what-battle-conditions-do-not-model` in the book.
+/// divergence
+/// `what-battle-conditions-do-not-model` in the book.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateInfo {
     pub id: i64,
@@ -328,8 +330,9 @@ impl StateInfo {
 /// count `BattleStateHeal` compares against `hold_turn` —1 when it is
 /// given, one more each time its holder acts—.
 ///
-/// **Only enemies get them**, from a troop page's `ChangeMonsterCondition`:
-/// no skill, attack or item gives or takes one, and the actors have none.
+/// An enemy gets them from a troop page's `ChangeMonsterCondition`, an actor
+/// brings its own and a troop page's `ChangeCondition` gives it more, and a
+/// skill gives and takes them on either side: see [`Battle::skill_states`].
 /// The list is kept **by LDB number**, which is the order easyrpg walks
 /// them in, and that order is the order of the rolls.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -395,6 +398,9 @@ pub struct Combatant {
     pub drop_chance: i64,
     /// Its conditions: see [`Held`].
     pub states: Vec<Held>,
+    /// Each condition's chance of taking hold of it, by number:
+    /// `GetStateProbability` —see [`crate::states`]—.
+    pub odds: Vec<i64>,
     /// What each attribute of the database does to it, by `id - 1`: its
     /// rank's rate. An actor's comes from its equipment too, and a skill
     /// with `affect_attr_defence` shifts it: see [`Received`].
@@ -550,6 +556,7 @@ impl Combatant {
             }],
             weapon_sp: rules::weapon_sp_of(db, &equipment)?,
             received: attributes::received_by_actor(db, number, &equipment)?,
+            odds: states::actor_all(db, number, &equipment)?,
             weapon_attributes: attributes::weapon_attributes(db, &equipment)?,
             equipment,
             level,
@@ -601,6 +608,7 @@ impl Combatant {
             drop_chance: e.drop_prob as i64,
             states: Vec::new(),
             received: attributes::received_by_enemy(db, id)?,
+            odds: states::enemy_all(db, id)?,
             weapon_attributes: Vec::new(),
         })
     }
@@ -1267,6 +1275,7 @@ impl Battle {
                 r.shift_by(by);
             }
             a.weapon_attributes = attributes::weapon_attributes(db, &a.equipment)?;
+            a.odds = states::actor_all(db, a.number as i32, &a.equipment)?;
         }
         Ok(())
     }
@@ -1710,9 +1719,8 @@ impl Battle {
     /// effect is above zero, and one roll against the hit chance for each
     /// thing it affects, in the order HP, SP, attack, defense, spirit,
     /// agility, and then the attribute ranks it shifts, as far as
-    /// `vExecute` goes —see [`Battle::skill_rolls`]—. Giving or taking
-    /// states, absorbing
-    /// and reviving are not here; what a damaging one releases is, see
+    /// `vExecute` goes —see [`Battle::skill_rolls`]—, the conditions
+    /// included. Absorbing and reviving are not here; what a damaging one releases is, see
     /// [`Battle::released_by_damage`].
     pub fn use_skill(&mut self, db: &Db, source: Who, skill: i32, target: Who) -> Result<()> {
         self.cast(db, source, skill, target, true)
@@ -1736,7 +1744,7 @@ impl Battle {
             return Ok(());
         }
         for one in self.skill_targets(source, s, target) {
-            self.skill_on(source, s, one);
+            self.skill_on(db, source, s, one)?;
         }
         Ok(())
     }
@@ -1755,7 +1763,7 @@ impl Battle {
         }
     }
 
-    fn skill_on(&mut self, source: Who, skill: &Skill, target: Who) {
+    fn skill_on(&mut self, db: &Db, source: Who, skill: &Skill, target: Who) -> Result<()> {
         let critical = self.rng.percent(0);
         let (s, t) = (self.get(source).clone(), self.get(target).clone());
         let mut effect = skill_effect(&s, &t, skill, critical);
@@ -1769,11 +1777,12 @@ impl Battle {
         // one, and so is an attribute shift, which writes none here. If not,
         // the failure's line —`ProcessBattleActionFailure`—.
         let lines = self.results.len();
-        let shifted = self.skill_rolls(skill, target, effect, positive, lines);
+        let shifted = self.skill_rolls(db, skill, target, effect, positive, lines)?;
         if !shifted && self.results.len() == lines {
             self.result(target, "miss", 0);
         }
         self.logged(source, target, true, critical, -effect);
+        Ok(())
     }
 
     /// `vExecute` from the effect on: one roll against the hit chance —the
@@ -1792,12 +1801,13 @@ impl Battle {
     /// `tests/model.rs` that cross either return.
     fn skill_rolls(
         &mut self,
+        db: &Db,
         skill: &Skill,
         target: Who,
         effect: i64,
         positive: bool,
         lines: usize,
-    ) -> bool {
+    ) -> Result<bool> {
         let hit_rate = skill.hit as i64;
         if skill.affect_hp && self.rng.percent(hit_rate) {
             let t = self.get_mut(target);
@@ -1822,7 +1832,7 @@ impl Battle {
                 self.result(target, "hp", after - before);
             }
             if !alive {
-                return false;
+                return Ok(false);
             }
             // Damage that did not kill releases what a hit releases, at
             // `physical_rate * 10` percent.
@@ -1842,7 +1852,7 @@ impl Battle {
         // Against enemies a line so far is `IsSuccess`: the damage always
         // writes one, and the SP one when it moved.
         if !positive && self.results.len() == lines && (skill.affect_hp || skill.affect_sp) {
-            return false;
+            return Ok(false);
         }
         let affects = [
             (skill.affect_attack, "attack"),
@@ -1860,6 +1870,12 @@ impl Battle {
             if moved != 0 {
                 self.result(target, what, moved);
             }
+        }
+        // The conditions of its `state_effects`, in order: see
+        // [`Battle::skill_states`]. One that gives death skips the
+        // attributes, as `vExecute` does.
+        if self.skill_states(db, skill, target, positive)? {
+            return Ok(false);
         }
         // `affect_attr_defence`: for each attribute the skill carries, in
         // order, if the target's rank can still move —an enemy's a step
@@ -1886,7 +1902,62 @@ impl Battle {
                 }
             }
         }
-        shifted
+        Ok(shifted)
+    }
+
+    /// `vExecute`'s conditions, after the parameters and before the
+    /// attributes: for each of the skill's `state_effects`, in order. One
+    /// that targets enemies and finds it already held says so —"already",
+    /// `message_already`— and rolls nothing; otherwise **one roll** against
+    /// the skill's hit chance and, if it comes up, the skill that targets
+    /// its own side takes it away —"healed", `message_recovery`— if it is
+    /// there, and the one that targets enemies rolls **a second time**
+    /// against its odds on the target —`GetStateProbability`— and gives it
+    /// —"inflicted", `message_actor` or `message_enemy`—. Each line is a
+    /// success. The dead one given kills, as a troop page's does, and is
+    /// not taken away here: no target of a skill is dead. Whether it gave
+    /// death, after which `vExecute` skips the attributes.
+    fn skill_states(
+        &mut self,
+        db: &Db,
+        skill: &Skill,
+        target: Who,
+        positive: bool,
+    ) -> Result<bool> {
+        let hit_rate = skill.hit as i64;
+        let mut death = false;
+        for id in states::of_skill(&skill.state_effects) {
+            let t = self.get(target);
+            let has = if id == DEATH_STATE {
+                t.hp == 0
+            } else {
+                t.has_state(id)
+            };
+            if !positive && has {
+                self.result(target, "already", id);
+                continue;
+            }
+            if !self.rng.percent(hit_rate) {
+                continue;
+            }
+            if positive {
+                if has && id != DEATH_STATE && self.remove_state(target, id) {
+                    self.result(target, "healed", id);
+                }
+                continue;
+            }
+            let odds = self.get(target).odds.get(id as usize).copied().unwrap_or(0);
+            if !self.rng.percent(odds) {
+                continue;
+            }
+            self.add_state(db, target, id)?;
+            let t = self.get(target);
+            if id == DEATH_STATE || t.has_state(id) {
+                self.result(target, "inflicted", id);
+                death |= id == DEATH_STATE;
+            }
+        }
+        Ok(death)
     }
 
     fn result(&mut self, target: Who, what: &'static str, value: i64) {
@@ -2182,6 +2253,7 @@ mod tests {
             drop_item: 0,
             drop_chance: 0,
             states: vec![],
+            odds: vec![],
             received: vec![],
             weapon_attributes: vec![],
         }
@@ -2270,6 +2342,7 @@ mod tests {
                 drop_item: 0,
                 drop_chance: 0,
                 states: vec![],
+                odds: vec![],
                 received: vec![],
                 weapon_attributes: vec![],
             };

@@ -4,9 +4,11 @@
 ;
 ; RM2k's states, `Game_Battler`'s, with what the battle does with them —and the
 ; model too, `Held` in `rm2k-snes-battle`'s `simulate.rs`, which rolls in the
-; same order: that order is the contract—. **Only enemies get them**, from a
-; troop page's `ChangeMonsterCondition` (OP_MONSTER_STATE): no skill, attack
-; or item gives one, and the actors have none. What a condition is comes from
+; same order: that order is the contract—. An enemy gets them from a troop
+; page's `ChangeMonsterCondition` (OP_MONSTER_STATE); an actor brings its own
+; from the map —see party_states.s, and `ba_st_actor_in` below— and a page's
+; `ChangeCondition` gives it more; and since 2026-11-01 a skill gives and
+; takes them on either side —`ba_st_skill`—. What a condition is comes from
 ; the converter, one row per LDB number in the `state_*` tables.
 ;
 ; What they do, and where:
@@ -30,8 +32,8 @@
 ;   halves, after the modifier, as `AdjustParam`.
 ;
 ; What it does not do —the HP and SP a condition takes each turn, the skills
-; it seals— is said by the divergence `what-battle-conditions-do-not-model`
-; in the book.
+; it seals, a weapon that gives one— is said by the divergence
+; `what-battle-conditions-do-not-model` in the book.
 ;
 ; Each combatant has four places, kept **in LDB order** with the empty ones
 ; at the end: that is the order easyrpg walks them in, and so the order of
@@ -66,6 +68,11 @@ ba_st_top_rel:  .res 1
 ba_st_rate:     .res 1
 ba_st_restr_of: .res 1
 ba_st_gone:     .res 1          ; `ba_st_heal` released something
+ba_st_ptr:      .res 2          ; `ba_st_skill`: where in `st_lists`,
+ba_st_held:     .res 1          ; whether the target holds the one looked at,
+ba_st_died:     .res 1          ; and whether it gave death
+ba_st_col:      .res 1          ; `ba_st_odds`: the condition's column,
+ba_st_keep:     .res 1          ; and what the armor leaves of it
 .popseg
 
 ; Nobody has anything, no action waits and no message is pending. From
@@ -940,4 +947,308 @@ same:
 .a8
     ply
     rts
+.endproc
+
+; --- what a skill gives ---------------------------------------------------------
+;
+; `Skill::vExecute`'s conditions, after the parameters and before the
+; attributes, from `ba_skill_one` —the model's `skill_states` in
+; `rm2k-snes-battle`, which rolls the same in the same order—. For each
+; condition of the skill's `state_effects`, in order, on `BA_MTGT`:
+;
+; * against enemies, one it already holds says so —`message_already`— and
+;   rolls nothing;
+; * otherwise **one roll** against the skill's hit, in `BA_S0`; if it comes
+;   up, one that targets its own side takes it away —`message_recovery`—
+;   if it is there, and one against enemies rolls **a second time**
+;   against its odds on the target —`ba_st_odds`— and gives it, with
+;   `AddState` —`message_actor` or `message_enemy`—.
+;
+; Each is a line of the skill's results, and a success. The dead one given
+; kills, as a troop page's does; taken away, nothing: no target of a skill
+; is fallen. A8 = 1 and Z clear if it gave death, after which `vExecute`
+; skips the attributes. `BA_S3` is the skill's `skill_affects`. Clobbers
+; `BA_T*`, X, Y and this file's scratch; keeps `BA_S*`.
+BA_RES_GIVEN = 8                ; see `BA_RES_*` in battle_skills.s
+BA_RES_TAKEN = 9
+BA_RES_ALREADY = 10
+.proc ba_st_skill
+.a8
+.i16
+    stz .loword(ba_st_died)
+    rep #$20
+.a16
+    lda BA_MSKILL
+    and #$00FF
+    asl a
+    tax
+    lda f:skill_st_at, x
+    sta .loword(ba_st_ptr)
+    sep #$20
+.a8
+    bne other
+    jmp done                    ; the usual: it gives nothing
+other:
+    ldx .loword(ba_st_ptr)
+    lda f:st_lists, x
+    bne one
+    jmp done
+one:
+    sta .loword(ba_st_id)
+    inx
+    stx .loword(ba_st_ptr)
+    ; Held?
+    cmp #ST_DEAD
+    bne a_place
+    lda BA_MTGT
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_ONE + BA_HP, x
+    sep #$20
+.a8
+    beq held
+    lda #0
+    bra seen
+held:
+    lda #1
+    bra seen
+a_place:
+    lda BA_MTGT
+    jsr ba_st_has
+seen:
+    sta .loword(ba_st_held)
+    lda BA_S3
+    and #$40
+    beq own_side
+    ; --- against enemies ---
+    lda .loword(ba_st_held)
+    beq rolls
+    ldy #BA_RES_ALREADY
+    jsr line
+    bra other
+rolls:
+    lda BA_S0
+    jsr ba_pct
+    beq other
+    jsr ba_st_odds
+    jsr ba_pct
+    beq other
+    lda .loword(ba_st_id)
+    cmp #ST_DEAD
+    beq kills
+    lda BA_MTGT
+    sta .loword(ba_st_c)
+    lda .loword(ba_st_id)
+    jsr ba_st_add
+    lda BA_MTGT
+    jsr ba_st_has
+    beq other                   ; the purge took it at once
+    ldy #BA_RES_GIVEN
+    jsr line
+    bra other
+kills:
+    ; `AddState(kDeathID)`: the HP and the modifiers at zero, as
+    ; `ba_st_change` does; the scene erases an enemy at zero HP.
+    lda BA_MTGT
+    jsr ba_x
+    rep #$20
+.a16
+    stz BA_ONE + BA_HP, x
+    stz BA_ONE + BA_MATK, x
+    stz BA_ONE + BA_MDEF, x
+    stz BA_ONE + BA_MSPI, x
+    stz BA_ONE + BA_MAGI, x
+    sep #$20
+.a8
+    lda BA_MTGT
+    jsr ba_st_params
+    ldy #BA_RES_GIVEN
+    jsr line
+    lda #1
+    sta .loword(ba_st_died)
+    jmp other
+    ; --- on its own side ---
+own_side:
+    lda BA_S0
+    jsr ba_pct
+    bne cures
+    jmp other
+cures:
+    lda .loword(ba_st_held)
+    bne has_it
+    jmp other
+has_it:
+    lda .loword(ba_st_id)
+    cmp #ST_DEAD
+    bne not_dead
+    jmp other
+not_dead:
+    lda BA_MTGT
+    sta .loword(ba_st_c)
+    lda .loword(ba_st_id)
+    jsr ba_st_remove
+    bne taken
+    jmp other
+taken:
+    ldy #BA_RES_TAKEN
+    jsr line
+    jmp other
+done:
+    lda .loword(ba_st_died)
+    rts
+
+; The line for `ba_st_id`, Y what.
+line:
+    rep #$20
+.a16
+    lda .loword(ba_st_id)
+    and #$00FF
+    jsr ba_res_add
+    sep #$20
+.a8
+    rts
+.endproc
+
+; `GetStateProbability` of `ba_st_id` on `BA_MTGT`, in A8: the rate of its
+; rank —`st_ranks`, an actor's row by its number and an enemy's by its `k`
+; after the actors'—, and on an actor what its armor leaves of it: the
+; lowest `item_st_pct` of the shield, armor, helmet and accessory that list
+; it. A condition no skill or weapon gives has no column and no odds.
+; Clobbers `BA_T*`, X and Y.
+.proc ba_st_odds
+.a8
+.i16
+    lda .loword(ba_st_id)
+    jsr ba_ax
+    lda f:st_used, x
+    cmp #$FF
+    bne has_column
+    lda #0
+    rts
+has_column:
+    sta .loword(ba_st_col)
+    lda #ST_USED_N
+    sta BA_T2
+    stz BA_T2 + 1
+    lda #100
+    sta .loword(ba_st_keep)
+    lda BA_MTGT
+    cmp #BA_PARTY_MAX
+    bcs an_enemy
+    jsr ba_x
+    lda BA_ONE + BA_NUMBER, x
+    rep #$20
+.a16
+    and #$00FF
+    sta BA_T1
+    jsr ba_mul                  ; the actor times ST_USED_N
+    sta BA_T0
+    lda BA_T1
+    jsr armor
+    bra row
+an_enemy:
+.a8
+    jsr ba_x
+    lda BA_ONE + BA_NUMBER, x   ; its place in the troop
+    jsr ba_member_x
+    lda f:troop_member, x       ; and its `k`
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #ACTORS_N
+    jsr ba_mul                  ; (ACTORS_N + k) times ST_USED_N
+    sta BA_T0
+row:
+    lda .loword(ba_st_col)
+    and #$00FF
+    clc
+    adc BA_T0
+    tax
+    lda f:st_ranks, x           ; the rank, and what is after it
+    and #$00FF
+    sta BA_T0
+    lda .loword(ba_st_col)
+    and #$00FF
+    sta BA_T1
+    asl a
+    asl a
+    clc
+    adc BA_T1                   ; the column times five: its rates
+    clc
+    adc BA_T0
+    tax
+    lda f:st_rate, x
+    and #$00FF                  ; the rate, 0 to 100
+    sep #$20
+.a8
+    sta BA_T2
+    lda .loword(ba_st_keep)
+    cmp #100
+    beq ready
+    ; `rate * keep / 100`, as easyrpg truncates it.
+    rep #$20
+.a16
+    and #$00FF
+    jsr ba_mul
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    sep #$20
+.a8
+    rts
+ready:
+    lda BA_T2
+    rts
+
+; A16 = the actor: its equipment's lowest `item_st_pct` for `ba_st_id`, in
+; `ba_st_keep`. Keeps `BA_T0` and `BA_T2`.
+.a16
+armor:
+    jsr ba_attr_equipment_row
+    tay
+    lda #5
+    sta BA_T1
+slot:
+    tyx
+    lda FAR_EQUIPMENT, x
+    jsr ba_attr_item_k
+    bcs next
+    stx .loword(ba_st_k)        ; its `k`
+    lda f:item_st_pct, x        ; the byte table: the high byte is not looked at
+    and #$0080
+    bne next                    ; a weapon gives, it does not resist
+    txa
+    asl a
+    tax
+    lda f:item_st_at, x
+    beq next
+    tax
+listed:
+    sep #$20
+.a8
+    lda f:st_lists, x
+    beq next_8
+    cmp .loword(ba_st_id)
+    beq it_lists
+    inx
+    bra listed
+it_lists:
+    ldx .loword(ba_st_k)
+    lda f:item_st_pct, x
+    cmp .loword(ba_st_keep)
+    bcs next_8
+    sta .loword(ba_st_keep)
+next_8:
+    rep #$20
+.a16
+next:
+    iny
+    iny
+    dec BA_T1
+    bne slot
+    rts
+.a8
 .endproc

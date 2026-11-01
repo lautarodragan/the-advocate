@@ -809,6 +809,10 @@ no_spi:
 .a8
     jsr ba_mod
 no_agi:
+    ; The conditions it gives or takes: see `ba_st_skill`. Giving death
+    ; skips the attributes, as `vExecute` does.
+    jsr ba_st_skill
+    bne returned
     ; And the attribute ranks it shifts: see battle_attributes.s.
     jsr ba_attr_shift
 returned:

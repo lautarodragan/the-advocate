@@ -265,6 +265,10 @@ result:
     beq missed                  ; goombario: pull-branch: what was pulled is what the line says
     dec a
     beq damaged
+    cmp #(BA_RES_GIVEN - 1)
+    bcc not_a_state
+    jmp a_state
+not_a_state:
     ; `<target> <points> <n><hp_recovery>` —`GetHpSpRecoveredMessage`— or
     ; `<target> <parameter> <n><parameter_increase>` and `_decrease`
     ; —`GetParameterChangeMessage`, with the number without its sign—. The
@@ -322,6 +326,51 @@ missed:
 .a16
     and #$00FF
     adc #BA_TXT_FAIL_A
+    tax
+    sep #$20
+.a8
+    jsr ba_put_text
+    jmp ba_flow
+a_state:
+    ; A condition, `<target><message>` as `PushWithSubject` puts it: given,
+    ; its `message_actor` or `message_enemy` by the target's side; taken,
+    ; its `message_recovery`; already held, its `message_already`. The
+    ; number is the condition. See `ba_st_skill` in battle_states.s.
+    pha
+    lda BA_MTGT
+    jsr ba_put_name
+    rep #$20
+.a16
+    lda BA_T0
+    and #$00FF
+    asl a
+    tax
+    sep #$20
+.a8
+    pla
+    cmp #(BA_RES_TAKEN - 1)
+    beq st_taken
+    cmp #(BA_RES_ALREADY - 1)
+    beq st_already
+    lda BA_MTGT
+    cmp #BA_PARTY_MAX
+    bcs st_on_enemy
+    rep #$20
+.a16
+    lda f:state_actor, x
+    bra st_text
+st_on_enemy:
+    rep #$20
+    lda f:state_enemy, x
+    bra st_text
+st_taken:
+    rep #$20
+    lda f:state_recovery, x
+    bra st_text
+st_already:
+    rep #$20
+    lda f:state_already, x
+st_text:
     tax
     sep #$20
 .a8
