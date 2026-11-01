@@ -10,22 +10,24 @@
 //! anywhere in the map— and then it is built: the four 8x8 cells of the
 //! layer that changes come from another block that already draws the new
 //! tile, those of the other layer from the source block, and the
-//! passability and terrain are recomputed with RM2k's rules. That is where
-//! the only real limit comes from: **the new tile has to be drawn in some
-//! cell of the map**, on its layer; if it is not, its 8x8 cells did not go
-//! into VRAM and there is nothing to draw it with.
+//! passability and terrain are recomputed with RM2k's rules. For that **the
+//! new tile has to be drawn in some cell**, on its layer, or its 8x8 cells
+//! are not in VRAM: a tile the map draws nowhere —a swap through a
+//! temporary tile, 95→1, 94→95, 1→94— is drawn in rows below the map that
+//! are converted with it and cut off afterwards (`Drawn::extended`, and
+//! [`unseen`], which says which).
 //!
 //! All the blocks are built **before** any page is compiled, and not as the
 //! commands show up: substitutions chain —turning a light on is 80→80A and
 //! off is 80A→80—, so the block one needs is created by another, and the
 //! order the pages are compiled in cannot decide what compiles.
 
-use crate::background::blocks::{Blocks, BLOCK_BYTES, MAX_BLOCKS};
+use crate::background::blocks::{tag, Blocks, BLOCK_BYTES, MAX_BLOCKS};
 use crate::fail::{Bad, Result};
 use ditto::schema::Chipset;
 use rm2k_rules::chipset::{terrain_of, LOWER, TILES_PER_LAYER, UPPER};
 use rm2k_rules::passability::{cell, ABOVE};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// A `TileSubstitution`: whether it is the upper layer's, and the old and
 /// new tile, numbered within the layer.
@@ -35,9 +37,10 @@ pub type Triple = (bool, i32, i32);
 /// draws the old tile.
 pub type Pairs = Vec<(u16, u16)>;
 
-/// What makes a block distinct: its sixteen bytes, its passability and its
-/// terrain.
-type Fingerprint = (Vec<u8>, u8, u8);
+/// What makes a block distinct: its sixteen bytes, its passability, its
+/// terrain and the tiles of it a substitution names —see
+/// `blocks::Map::apart`—.
+type Fingerprint = (Vec<u8>, u8, u8, (i32, i32));
 
 /// The map's blocks, growing with what the substitutions need.
 pub struct Substitutions<'a> {
@@ -60,6 +63,8 @@ pub struct Substitutions<'a> {
     /// autotiles that draw the same— have to keep sharing it after
     /// substituting, or a single block would have to go two ways.
     by_bytes: HashMap<Fingerprint, u16>,
+    /// The tiles the substitutions name: see `blocks::Map::apart`.
+    apart: BTreeSet<i32>,
 }
 
 impl<'a> Substitutions<'a> {
@@ -71,6 +76,7 @@ impl<'a> Substitutions<'a> {
         flags: &'a [u8],
         chipset: &'a Chipset,
         flattened: bool,
+        apart: BTreeSet<i32>,
     ) -> Self {
         let mut cells: [HashMap<i32, Vec<u8>>; 2] = [HashMap::new(), HashMap::new()];
         for &((low, high), block) in &blocks.combos {
@@ -87,10 +93,17 @@ impl<'a> Substitutions<'a> {
                 .entry(high)
                 .or_insert_with(|| half(blocks, block, 1));
         }
+        // Every cell of a block carries the same named tiles —that is how
+        // the blocks were made—, so any of its combinations says which.
+        let mut tags: HashMap<u16, (i32, i32)> = HashMap::new();
+        for &(combination, block) in &blocks.combos {
+            tags.entry(block).or_insert(tag(&apart, combination));
+        }
         let mut by_bytes = HashMap::new();
         for block in 0..blocks.passability.len() {
+            let tagged = tags.get(&(block as u16)).copied().unwrap_or((-1, -1));
             by_bytes
-                .entry(fingerprint(blocks, block))
+                .entry(fingerprint(blocks, block, tagged))
                 .or_insert(block as u16);
         }
         Substitutions {
@@ -102,6 +115,7 @@ impl<'a> Substitutions<'a> {
             chipset,
             cells,
             by_bytes,
+            apart,
         }
     }
 
@@ -168,6 +182,14 @@ impl<'a> Substitutions<'a> {
             }
             out.push((block, new_block));
         }
+        // And a block that goes cannot be drawn by a combination that stays:
+        // the console would swap it there too. `apart` keeps them from
+        // sharing one; this is what holds if it did not.
+        for (&combination, &block) in &self.combos {
+            if side(combination, layer) != old_id && seen.get(&block).is_some_and(|&n| n != block) {
+                return None;
+            }
+        }
         // The count operand is one byte.
         if out.len() > 0xFF {
             return None;
@@ -199,7 +221,12 @@ impl<'a> Substitutions<'a> {
                 "a tile with terrain {terrain} and the ROM's table carries one byte per block"
             ))
         })?;
-        let print = (bytes, cell(self.flags, low, high), terrain);
+        let print = (
+            bytes,
+            cell(self.flags, low, high),
+            terrain,
+            tag(&self.apart, combination),
+        );
         let number = match self.by_bytes.get(&print) {
             Some(&n) => n,
             None => {
@@ -236,13 +263,27 @@ fn half(blocks: &Blocks, block: u16, layer: usize) -> Vec<u8> {
     blocks.table[first..first + 8].to_vec()
 }
 
-fn fingerprint(blocks: &Blocks, block: usize) -> Fingerprint {
+fn fingerprint(blocks: &Blocks, block: usize, tagged: (i32, i32)) -> Fingerprint {
     let first = block * BLOCK_BYTES;
     (
         blocks.table[first..first + BLOCK_BYTES].to_vec(),
         blocks.passability[block],
         blocks.terrain[block],
+        tagged,
     )
+}
+
+/// The RM2k tile ids the substitutions `own` and `common` name, going out or
+/// coming in: what the map's blocks keep apart, see `blocks::Map::apart`.
+pub fn apart(own: &[Triple], common: &[Triple]) -> BTreeSet<i32> {
+    own.iter()
+        .chain(common)
+        .filter(|&&(_, old, new)| in_layer(old) && in_layer(new))
+        .flat_map(|&(upper, old, new)| {
+            let (a, b) = ids(upper, old, new);
+            [a, b]
+        })
+        .collect()
 }
 
 fn in_layer(tile: i32) -> bool {
@@ -273,8 +314,9 @@ fn with_side(combination: (i32, i32), layer: usize, tile: i32) -> (i32, i32) {
 
 /// The `(lower, upper)` pairs `triples` take the map's cells to, one after
 /// another as they chain, that the map does not draw itself, in order: what
-/// a map that draws both layers as one has to draw anyway —see
-/// `Drawn::extended`—, since it cannot build them out of halves.
+/// is drawn below the map —see `Drawn::extended`—, since a flattened map
+/// cannot build them out of halves and no map can build a tile it does not
+/// draw.
 pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32)> {
     let drawn: std::collections::BTreeSet<(i32, i32)> =
         lower.iter().copied().zip(upper.iter().copied()).collect();
@@ -306,6 +348,34 @@ pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32
     }
 }
 
+/// Of the `unseen` pairs, those that cannot be built out of halves of what
+/// the map draws —see `Substitutions::create`—: a lower tile no cell draws
+/// under an upper that leaves it alone, an upper tile no cell draws, or an
+/// upper tile baked into the background, which is drawn only together with
+/// its lower. Only these have to be drawn below a map that is not
+/// flattened.
+pub fn beyond_halves(
+    lower: &[i32],
+    upper: &[i32],
+    flags: &[u8],
+    unseen: &[(i32, i32)],
+) -> Vec<(i32, i32)> {
+    let lows: BTreeSet<i32> = lower
+        .iter()
+        .zip(upper)
+        .filter(|&(_, &u)| !bakes(flags, u, false))
+        .map(|(&l, _)| l)
+        .collect();
+    let highs: BTreeSet<i32> = upper.iter().copied().collect();
+    unseen
+        .iter()
+        .copied()
+        .filter(|&(l, u)| {
+            !lows.contains(&l) || (u != UPPER && !highs.contains(&u)) || bakes(flags, u, false)
+        })
+        .collect()
+}
+
 /// What a map answers of its substitutions: each one it can run —its own
 /// and its test pages', which are closed, then the common events' that are
 /// not among them, which are only translated— with its pairs, and the ones
@@ -326,7 +396,7 @@ pub fn substitute(
     common: &[Triple],
     flattened: bool,
 ) -> Result<Answer> {
-    let mut subs = Substitutions::new(id, blocks, flags, chipset, flattened);
+    let mut subs = Substitutions::new(id, blocks, flags, chipset, flattened, apart(own, common));
     let missing = subs.close(own)?;
     let mut asked: Vec<Triple> = own.to_vec();
     for t in common {
@@ -438,5 +508,37 @@ mod tests {
         assert!(answer.missing.is_empty());
         assert_eq!(answer.table[0], ((false, 1, 0), Some(vec![(1, 0), (3, 2)])));
         assert_eq!(answer.table[1], ((false, 0, 1), Some(vec![(0, 1), (2, 3)])));
+    }
+
+    /// A block drawn by a tile that goes and by one that stays —made by
+    /// hand here; `blocks::Map::apart` keeps the map's from it— cannot be
+    /// swapped: the console would swap it under both.
+    #[test]
+    fn a_block_shared_with_a_tile_that_stays_does_not_go() {
+        let flags = flags_with(&[UPPER + 2]);
+        let chipset = Chipset::default();
+        let mut b = blocks();
+        // Lower tile 5 draws the same as lower tile 0: block 0.
+        b.combos.push(((LOWER + 5, UPPER), 0));
+        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 5, 1)], &[], false).unwrap();
+        assert_eq!(answer.table, vec![((false, 5, 1), None)]);
+    }
+
+    /// Only what halves cannot build has to be drawn below the map: a lower
+    /// tile no cell draws, or an upper tile baked with its lower.
+    #[test]
+    fn beyond_halves_is_what_the_map_does_not_draw_or_bakes() {
+        let flags = flags_with(&[UPPER + 2]);
+        let lower = [LOWER, LOWER + 1, LOWER];
+        let upper = [UPPER, UPPER, UPPER + 2];
+        let unseen = [
+            (LOWER + 1, UPPER + 2), // both halves drawn
+            (LOWER + 9, UPPER),     // lower 9 drawn nowhere
+            (LOWER + 1, UPPER + 3), // upper 3 drawn nowhere, and baked
+        ];
+        assert_eq!(
+            beyond_halves(&lower, &upper, &flags, &unseen),
+            vec![(LOWER + 9, UPPER), (LOWER + 1, UPPER + 3)]
+        );
     }
 }

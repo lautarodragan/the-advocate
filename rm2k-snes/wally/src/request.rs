@@ -48,6 +48,16 @@ pub struct LayersRequest {
     /// [`crate::decor`]. Not from the request: the map's conversion picks
     /// them.
     pub decor: Vec<crate::decor::Decoration>,
+    /// The `(lower, upper)` tile pairs the map's `TileSubstitution`s will
+    /// need and the map does not draw: see `Drawn::extended`. Not from
+    /// the request: the map's conversion works them out.
+    pub extra: Vec<(i32, i32)>,
+    /// Whether some of `extra` cannot be built out of halves of what the
+    /// map draws —see `substitutions::beyond_halves`—: only then does a map
+    /// on a layer of its own other than flattened convert with them. Drawn
+    /// for nothing, they move the colours Adeleine merges and with them
+    /// what is seen.
+    pub extra_needed: bool,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -70,10 +80,6 @@ pub struct PanoramaBudget {
     /// The most background tiles a map without a panorama layer can get,
     /// in 64-byte units: what a panorama baked into the background has.
     pub baked: usize,
-    /// The `(lower, upper)` tile pairs the map's `TileSubstitution`s will
-    /// need and the map does not draw: see `Drawn::extended`. Not from
-    /// the request: the map's conversion works them out.
-    pub extra: Vec<(i32, i32)>,
     pub way: Option<crate::background::panorama::Way>,
     /// Whether a map whose panorama is the map itself may go painted: see
     /// `Way::Painted`. `painted` in the request, false if it is missing.
@@ -125,7 +131,6 @@ pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudge
         layouts,
         baked,
         way,
-        extra: Vec::new(),
         painted,
     }))
 }
@@ -252,6 +257,8 @@ impl LayersRequest {
                 Some(v) => Some(index(v, "`fuse_tiles`", whose)?),
             },
             decor: Vec::new(),
+            extra: Vec::new(),
+            extra_needed: false,
         })
     }
 }

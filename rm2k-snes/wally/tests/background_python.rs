@@ -531,6 +531,7 @@ fn the_blocks_are_stable() {
                 upper: &upper,
                 passability: &passability,
                 terrain: &terrain,
+                apart: &Default::default(),
             },
             tilemap,
             &done.above.tilemap,

@@ -185,6 +185,7 @@ fn layered(
     baked: &BTreeMap<usize, (usize, i32)>,
     decor: &[Decoration],
     fuse_tiles: Option<usize>,
+    extra: &Extra,
 ) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
@@ -195,9 +196,18 @@ fn layered(
         panorama,
         fuse_tiles,
         decor: decor.to_vec(),
+        extra: extra.rows.clone(),
+        extra_needed: extra.needed,
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
+}
+
+/// The rows a map is drawn with below it for its substitutions: see
+/// `Drawn::extended` and `LayersRequest::extra_needed`.
+struct Extra {
+    rows: Vec<(i32, i32)>,
+    needed: bool,
 }
 
 /// Whether baking left everybody else's colours where they were: the layer
@@ -269,6 +279,7 @@ fn bake_unless_split_moves(
     baked: Baked,
     decor: &[Decoration],
     fuse_tiles: Option<usize>,
+    extra: &Extra,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
     let with = layered(
@@ -279,6 +290,7 @@ fn bake_unless_split_moves(
         &baked,
         decor,
         fuse_tiles,
+        extra,
     )?;
     if same_split(&without.converted, &with.converted, false) {
         return Ok((with, baked));
@@ -1082,10 +1094,15 @@ fn convert_with(
     } else {
         Vec::new()
     };
-    let panorama = request.panorama.clone().map(|mut b| {
-        b.extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
-        b
-    });
+    let panorama = request.panorama.clone();
+    // A panorama map may go flattened, and then it needs every combination
+    // drawn; any other map, only those halves cannot build.
+    let unseen = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
+    let beyond = crate::substitutions::beyond_halves(&lower, &upper, &flags, &unseen);
+    let extra = Extra {
+        needed: !beyond.is_empty(),
+        rows: if panorama.is_some() { unseen } else { beyond },
+    };
     let without = layered(
         game,
         id,
@@ -1094,6 +1111,7 @@ fn convert_with(
         &BTreeMap::new(),
         &[],
         request.fuse_tiles,
+        &extra,
     )?;
     // The tiles first, as they always were. Then the decoration, all of it
     // if the split holds, and if not group by group —every CharSet is
@@ -1112,6 +1130,7 @@ fn convert_with(
             baked,
             &[],
             request.fuse_tiles,
+            &extra,
             &mut notes,
         )?;
         baked = kept;
@@ -1127,6 +1146,7 @@ fn convert_with(
             &BTreeMap::new(),
             &[],
             request.fuse_tiles,
+            &extra,
         )?;
         let attempt = |decor: &[Decoration], baked: &Baked| -> Result<Option<Layered>> {
             let with = layered(
@@ -1137,6 +1157,7 @@ fn convert_with(
                 baked,
                 decor,
                 request.fuse_tiles,
+                &extra,
             )?;
             Ok(same_split(&reference.converted, &with.converted, true).then_some(with))
         };
@@ -1414,6 +1435,7 @@ fn convert_with(
             &BTreeMap::new(),
             &kept_decor,
             request.fuse_tiles,
+            &extra,
         )?;
         if !baked.is_empty() {
             let (again, kept) = bake_unless_split_moves(
@@ -1425,6 +1447,7 @@ fn convert_with(
                 baked,
                 &kept_decor,
                 request.fuse_tiles,
+                &extra,
                 &mut notes,
             )?;
             layers = again;
@@ -1449,7 +1472,9 @@ fn convert_with(
              them to fit the {cap} the layouts leave: the ground is drawn worse, not walked differently"
         )));
     }
-    let (passability, mut blocks) = stage_layers::blocks(&layers.drawn, &mut layers.converted)?;
+    let apart = crate::substitutions::apart(&request.substitutions, &request.common_substitutions);
+    let (passability, mut blocks) =
+        stage_layers::blocks(&layers.drawn, &mut layers.converted, &apart)?;
     let substituted = substitute(
         id,
         &mut blocks,

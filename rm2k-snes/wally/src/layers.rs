@@ -12,6 +12,7 @@ use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
 use serde_json::{json, Value};
+use std::collections::BTreeSet;
 use std::path::Path;
 
 /// The file what the caller needs to know is written to.
@@ -46,10 +47,15 @@ pub struct Drawn {
     pub panorama: Option<Panorama>,
     /// The map with rows added below it that draw the `(lower, upper)`
     /// pairs a `TileSubstitution` will need and the map does not draw, if
-    /// there are any and the map has a panorama. A flattened map draws the
-    /// two layers into one, so a substitution can build no block out of
-    /// halves: the blocks it needs have to be drawn, and they are drawn
-    /// here, converted with the map and cut off after the blocks are made.
+    /// there are any. A flattened map draws the two layers into one, so a
+    /// substitution can build no block out of halves; and in any map a tile
+    /// no cell draws has no 8x8 cells in VRAM to build one with —Zounds'
+    /// spikes swap through a lower tile 1 the map never shows—. So the
+    /// blocks it needs are drawn here, converted with the map and cut off
+    /// after the blocks are made. A map with a panorama uses them
+    /// flattened, and in mode 3 or 1 only if halves are not enough
+    /// (`LayersRequest::extra_needed`); baked, hidden or black it converts
+    /// the map as it is.
     pub extended: Option<(Map, Layers)>,
     /// The cells a decorative event on the hero's layer closes, and the
     /// walls the caller left out —[`Game::walls`]—: the map's passability
@@ -381,8 +387,10 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
     });
     // The cells a `TileSubstitution` will need and the map does not draw,
     // in rows of their own below it: see `Drawn::extended`.
-    let extra: &[(i32, i32)] = request.panorama.as_ref().map_or(&[], |b| &b.extra);
-    let extended = if panorama.is_some() && !extra.is_empty() {
+    let extra = &request.extra;
+    let extended = if extra.is_empty() {
+        None
+    } else {
         let mut map = drawn.clone();
         let rows = extra.len().div_ceil(map.width);
         for k in 0..rows * map.width {
@@ -391,11 +399,18 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
             map.upper_layer.push(i64::from(u));
         }
         map.height += rows;
-        let mut layers = map.render_over_panorama(&atlas)?;
+        let mut layers = if panorama.is_some() {
+            map.render_over_panorama(&atlas)?
+        } else {
+            map.render(&atlas)?
+        };
         crate::decor::compose(&mut layers, &request.decor);
+        // Fused the same as the map, so that its cells are the map's: they
+        // are what the blocks are made of, see `blocks`.
+        if let Some(max) = request.fuse_tiles {
+            crate::background::fuse::fuse_lower(&mut layers, max);
+        }
         Some((map, layers))
-    } else {
-        None
     };
     Ok(Drawn {
         map: drawn,
@@ -501,8 +516,10 @@ pub fn draw_converted(game: &Game, request: &LayersRequest) -> Result<(Drawn, Co
 
 fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let (Some(p), Some(budget)) = (&drawn.panorama, &request.panorama) else {
+        // With the rows its substitutions need, if it has them: they are cut
+        // off again in `blocks`.
         return Ok(crate::background::convert_with(
-            &drawn.layers,
+            drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l),
             request.window_colors,
             None,
         )?);
@@ -537,12 +554,21 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 } else {
                     (Mode::Three, 3)
                 };
+                // With the rows the substitutions need: always flattened,
+                // which builds nothing out of halves, and in the other two
+                // only if halves are not enough —see `extra_needed`—.
+                // `blocks` cuts them off again.
                 let flat;
+                let rows = drawn
+                    .extended
+                    .as_ref()
+                    .filter(|_| way == Way::Flattened || request.extra_needed)
+                    .map_or(&drawn.layers, |(_, l)| l);
                 let layers = if way == Way::Flattened {
-                    flat = flattened(drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l));
+                    flat = flattened(rows);
                     &flat
                 } else {
-                    &drawn.layers
+                    rows
                 };
                 let with =
                     |extras: Vec<&picture::Picture>| -> std::result::Result<Converted, String> {
@@ -890,7 +916,13 @@ fn flattened(layers: &Layers) -> Layers {
 /// A map converted with the rows of [`Drawn::extended`] makes its blocks
 /// with them, so that they are in the table, and then loses them: its
 /// cells, its passability and its tilemaps are the map's.
-pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Blocks)> {
+/// `apart`: the tiles the map's substitutions name, see
+/// [`blocks::Map::apart`].
+pub fn blocks(
+    drawn: &Drawn,
+    converted: &mut Converted,
+    apart: &BTreeSet<i32>,
+) -> Result<(Vec<u8>, Blocks)> {
     let rows = drawn.map.height * 2;
     if converted.background.tilemap.len() > rows {
         let map = &drawn
@@ -898,7 +930,7 @@ pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Bloc
             .as_ref()
             .expect("a tilemap past the map comes from its extension")
             .0;
-        let (mut passability, mut made) = blocks_of(drawn, map, converted)?;
+        let (mut passability, mut made) = blocks_of(drawn, map, converted, apart)?;
         let cells = drawn.map.width * drawn.map.height;
         passability.truncate(cells);
         made.cells.truncate(cells);
@@ -907,10 +939,15 @@ pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Bloc
         converted.above.tilemap.truncate(rows);
         return Ok((passability, made));
     }
-    blocks_of(drawn, &drawn.map, converted)
+    blocks_of(drawn, &drawn.map, converted, apart)
 }
 
-fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>, Blocks)> {
+fn blocks_of(
+    drawn: &Drawn,
+    map: &Map,
+    converted: &Converted,
+    apart: &BTreeSet<i32>,
+) -> Result<(Vec<u8>, Blocks)> {
     let flags = passability_table(&map.passable_lower, &map.passable_upper);
     let lower: Vec<i32> = map.lower_layer.iter().map(|&t| t as i32).collect();
     let upper: Vec<i32> = map.upper_layer.iter().map(|&t| t as i32).collect();
@@ -934,6 +971,7 @@ fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>
             upper: &upper,
             passability: &passability,
             terrain: &terrain,
+            apart,
         },
         &converted.background.tilemap,
         &converted.above.tilemap,
@@ -1083,7 +1121,8 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
 /// into `out`.
 pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
     let (drawn, mut converted) = draw_converted(game, request)?;
-    let (passability, made) = blocks(&drawn, &mut converted)?;
+    // No substitutions here: nothing is kept apart.
+    let (passability, made) = blocks(&drawn, &mut converted, &BTreeSet::new())?;
     write(
         out,
         &converted,
