@@ -442,12 +442,15 @@ free:
 .proc bush_blend
 .a8
 .i16
+    ; The registers go long: this file's routines run with the data bank at
+    ; $7E, and `test_jumps_between_banks` holds the whole file to it.
     lda f:BUSH_SLOT
     bne mixes
     lda #$30                    ; color math off, as `ppu_reset` leaves it
-    sta CGWSEL
-    stz CGADSUB
-    stz TS
+    sta f:CGWSEL
+    lda #0
+    sta f:CGADSUB
+    sta f:TS
     rtl
 mixes:
     asl a
@@ -455,7 +458,7 @@ mixes:
     asl a
     asl a
     ora #128
-    sta CGADD                   ; the slot's first entry
+    sta f:CGADD                 ; the slot's first entry
     lda f:BUSH_FROM
     rep #$20
 .a16
@@ -473,22 +476,23 @@ mixes:
 flashing:
     adc #.loword(pal_buf)
 source:
-    sta A1T0L
+    sta f:A1T0L
     lda #32
-    sta DAS0L
+    sta f:DAS0L
     sep #$20
 .a8
-    stz A1B0                    ; both buffers live in bank 0
-    stz DMAP0
+    lda #0
+    sta f:A1B0                  ; both buffers live in bank 0
+    sta f:DMAP0
     lda #$22
-    sta BBAD0                   ; CGDATA
+    sta f:BBAD0                 ; CGDATA
     lda #$01
-    sta MDMAEN
+    sta f:MDMAEN
     lda #$02                    ; CGWSEL: add the subscreen, always
-    sta CGWSEL
+    sta f:CGWSEL
     lda #$50                    ; CGADSUB: add, halved, on the objects
-    sta CGADSUB
+    sta f:CGADSUB
     lda #$03                    ; TS: the map's two layers under them
-    sta TS
+    sta f:TS
     rtl
 .endproc
