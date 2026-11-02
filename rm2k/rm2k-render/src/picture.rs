@@ -301,14 +301,7 @@ fn read(path: &Path, key: bool) -> Result<Picture> {
 /// too.
 fn read_bmp(path: &Path, key: bool) -> Result<Picture> {
     let data = std::fs::read(path).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    bmp_from_bytes(&data, &path.display().to_string(), key)
-}
-
-/// [`read_bmp`] of the bytes of a BMP file, `name` saying whose they are
-/// in an error: for a BMP that is not a file of its own, like the ExFont
-/// inside RPG_RT's executable —see [`crate::exfont`]—.
-pub fn bmp_from_bytes(data: &[u8], name: &str, key: bool) -> Result<Picture> {
-    let bad = |what: String| Bad::answer(format!("{name}: {what}"));
+    let bad = |what: String| Bad::answer(format!("{}: {what}", path.display()));
     let short = || bad("cut short, not a BMP this can read".to_string());
     let u16_at = |at: usize| {
         data.get(at..at + 2)

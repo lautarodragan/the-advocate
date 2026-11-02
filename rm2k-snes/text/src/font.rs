@@ -287,20 +287,17 @@ impl Font {
         self
     }
 
-    /// [`Font::with_exfont`] with the icons in the file at `path`, the
-    /// game's ExFont —its `RPG_RT.exe`, or a sheet of its own: see
-    /// `rm2k_render::exfont::find`—, which is how the converter hands them
-    /// to the stages: the path, next to the font's name. `None`, or an
-    /// executable without an ExFont, is the font as it is.
+    /// [`Font::with_exfont`] with the icons of the sheet at `path`, a PNG or
+    /// a BMP —see `rm2k_render::exfont`—, which is how the converter hands
+    /// them to the stages: the path, next to the font's name. `None` is the
+    /// font as it is.
     pub fn with_exfont_of(self, path: Option<&std::path::Path>) -> Result<Font, String> {
         let Some(path) = path else {
             return Ok(self);
         };
-        match rm2k_render::exfont::ExFont::read(path) {
-            Ok(Some(icons)) => Ok(self.with_exfont(&icons.icons)),
-            Ok(None) => Ok(self),
-            Err(e) => Err(e.to_string()),
-        }
+        rm2k_render::exfont::ExFont::read(path)
+            .map(|icons| self.with_exfont(&icons.icons))
+            .map_err(|e| e.to_string())
     }
 
     /// Whether it draws the ExFont's icons: see [`Font::with_exfont`].

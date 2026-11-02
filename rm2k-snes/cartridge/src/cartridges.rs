@@ -680,6 +680,11 @@ impl Cartridges {
                 parts.push(self.project.directory().join(font));
             }
         }
+        // And its ExFont's sheet, which `[text] exfont` names the same way
+        // when it is not `false`.
+        if let Ok(sheet) = self.project.string(&["text", "exfont"]) {
+            parts.push(self.project.directory().join(sheet));
+        }
         Ok(parts)
     }
 

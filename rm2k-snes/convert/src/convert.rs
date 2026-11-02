@@ -1224,7 +1224,7 @@ pub fn run(options: Options) -> Result<()> {
     let mut items_all: BTreeSet<i32> = items_rom.iter().copied().collect();
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
-    let font = FontChoice::of(&settings, &game.game_dir)?;
+    let font = FontChoice::of(&settings)?;
     let menu_before: Value = compiled
         .get("commons")
         .and_then(|c| c.get("menu_before"))

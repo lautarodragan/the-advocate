@@ -13,7 +13,7 @@
 //! was not drops them, which is what [`crate::plain`] stands in for a half:
 //! nothing.
 //!
-//! The icons themselves are the game's, from its `RPG_RT.exe`: see
+//! The icons themselves come from a sheet the project names: see
 //! `rm2k_render::exfont`.
 
 /// Where the halves start: icon `i`'s left half is this plus `2 * i`, its
