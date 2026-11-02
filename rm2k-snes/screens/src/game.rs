@@ -161,9 +161,19 @@ impl Game {
     /// project file's `[text] font` says, and the converter passes it on;
     /// with `spacing` pixels more after every letter, its `[text]
     /// letter_spacing` —see `Font::with_spacing`—.
-    pub fn use_font(&mut self, spec: &str, spacing: i64) -> Result<()> {
+    ///
+    /// And with the icons of the game's ExFont, from its executable at
+    /// `exfont` —see `Font::with_exfont_of`—: the converter names it when
+    /// the game has one.
+    pub fn use_font(
+        &mut self,
+        spec: &str,
+        spacing: i64,
+        exfont: Option<&std::path::Path>,
+    ) -> Result<()> {
         self.font = Font::named(spec, self.font_id())
             .and_then(|f| f.with_spacing(spacing))
+            .and_then(|f| f.with_exfont_of(exfont))
             .map_err(Bad::answer)?;
         Ok(())
     }
@@ -268,11 +278,13 @@ impl Game {
         }
     }
 
-    /// Actor `number`'s name, or "" if there is no such actor.
+    /// Actor `number`'s name, or "" if there is no such actor. Without its
+    /// ExFont icons: a name is written by the menu's bank and in a message
+    /// box at run time, and neither draws them.
     pub fn actor_name(&self, number: i32) -> Result<String> {
         match self.actors.get(&number) {
             None => Ok(String::new()),
-            Some(a) => plain(&a.name),
+            Some(a) => Ok(rm2k_snes_text::exfont::without_icons(&plain(&a.name)?)),
         }
     }
 
@@ -295,18 +307,32 @@ impl Game {
     /// the text block, with a '?' for each letter the font lacks —`Texts`
     /// in the emission—, and not refused like the screens' own texts: they
     /// are the battle's, which carries them that way.
+    ///
+    /// Their icons are in the text as the battle carries it —see
+    /// `texts::screen_icons`—, or out of it when the font draws none: the
+    /// lines of a description are slices of that text, by its letters.
     pub fn skill_name(&self, number: i32) -> Result<String> {
         Ok(crate::texts::item_text(
-            &self.skill(number)?.name,
+            &self.carried_icons(&self.skill(number)?.name),
             usize::MAX,
         ))
     }
 
     pub fn skill_description(&self, number: i32) -> Result<String> {
         Ok(crate::texts::item_text(
-            &self.skill(number)?.description,
+            &self.carried_icons(&self.skill(number)?.description),
             usize::MAX,
         ))
+    }
+
+    /// `text` with its icons if the font draws them, and without them if it
+    /// does not —see `rm2k_snes_text::exfont`—.
+    fn carried_icons(&self, text: &str) -> String {
+        if self.font.has_exfont() {
+            text.to_string()
+        } else {
+            rm2k_snes_text::exfont::without_icons(text)
+        }
     }
 
     pub fn item(&self, number: i32) -> Result<&Item> {

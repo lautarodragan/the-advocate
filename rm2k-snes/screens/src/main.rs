@@ -200,10 +200,15 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
 
 /// The game, drawing with the font the request names: `font`, which is the
 /// project file's `[text] font` —`rm2k`, one the engine carries, or the
-/// path of a sheet—, spaced by its `letter_spacing`.
+/// path of a sheet—, spaced by its `letter_spacing`, and with the icons of
+/// the game's ExFont when the request names its executable, `exfont`.
 fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
     let mut game = args.game()?;
-    game.use_font(&json.text("font")?, json.number_or("letter_spacing", 0)?)?;
+    game.use_font(
+        &json.text("font")?,
+        json.number_or("letter_spacing", 0)?,
+        json.exfont()?.as_deref(),
+    )?;
     Ok(game)
 }
 
@@ -420,6 +425,7 @@ fn measure_of(json: &Json) -> Result<Measure> {
             .into_iter()
             .map(|a| a as u8)
             .collect();
+        let mut half = 0;
         for pair in json
             .data
             .get("letters")
@@ -437,18 +443,25 @@ fn measure_of(json: &Json) -> Result<Measure> {
                     "a window's `letters` are pairs of a letter and its advance: {pair}"
                 )));
             };
+            // An icon's half: they all move the line the same.
+            if rm2k_snes_text::exfont::is_half(letter) {
+                half = advance as u8;
+                continue;
+            }
             let at = (letter as u32).saturating_sub(32) as usize;
             if advances.len() <= at {
                 advances.resize(at + 1, 0);
             }
             advances[at] = advance as u8;
         }
-        return Ok(Measure::from_advances(advances, json.index_or("width", 0)?));
+        return Ok(Measure::from_advances(advances, json.index_or("width", 0)?).with_icons(half));
     }
     if json.data.get("font").is_some_and(|f| !f.is_null()) {
         let spacing = json.number_or("letter_spacing", 0)?;
+        let exfont = json.exfont()?;
         let font = Font::named(&json.text("font")?, rm2k_snes_text::font::MINCHO)
             .and_then(|f| f.with_spacing(spacing))
+            .and_then(|f| f.with_exfont_of(exfont.as_deref()))
             .map_err(Bad::answer)?;
         Ok(Measure::new(&font, json.index_or("width", 0)?))
     } else {

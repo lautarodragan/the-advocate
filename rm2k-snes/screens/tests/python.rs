@@ -168,6 +168,14 @@ fn everything_a_cartridge_carries() {
     // the Python dropped `\c[n]`. See `inks` in `message_window.rs`.
     window.remove("ink");
     window.remove("inks");
+    // Nor the text screens' advances and reach and the ExFont icons their
+    // tables carry, since 2026-11-02: this game has none, so the tables are
+    // what they were, and the advances and the reach are the console's 96
+    // and `TL_FIGURE`'s place, which the Python read from the window's.
+    let inks = answer["text_inks"].as_object_mut().unwrap();
+    assert_eq!(inks.remove("icons"), Some(Value::from(Vec::<Value>::new())));
+    inks.remove("advances");
+    inks.remove("reach");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()

@@ -647,8 +647,10 @@ pub fn slots_screen_with(
     let index = cells::index_of(&palette);
     let at = |color: &Color| palette.iter().position(|c| c == color).expect("seen") as u8;
     let rows: Vec<u8> = ink_rows.iter().map(at).collect();
+    // The same glyphs as the screens' tables: see `items::glyphs_after`.
+    let (_, after) = crate::items::glyphs_after(&game.font, &crate::texts::screen_icons(game))?;
     let prerender = message_window::font_prerender(
-        &message_window::font_bytes(&game.font)?,
+        &message_window::font_bytes_with(&game.font, &after)?,
         &rows,
         at(&ink_shadow),
     );

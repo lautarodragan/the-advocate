@@ -532,7 +532,7 @@ each:
     rep #$20
 .a16
     tax
-    lda f:font_advance, x
+    lda f:msg_font_advance, x
     and #$00FF
     sta f:GOLD_AT
     lda f:GOLD_X

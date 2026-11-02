@@ -80,7 +80,7 @@ CONTROL_SPEED       = $A0
 CONTROL_INSTANT_ON  = $C0
 CONTROL_INSTANT_OFF = $C1
 ; What `msg_letter` answers after a control: no letter, ask again. A letter
-; is below 128.
+; is below `MESSAGE_PAIR_FIRST`, and that is below the control bytes.
 MSG_CONTROLLED = $FF
 ; The text's twenty colours in `window_gold`, after the grey: for each the
 ; ink's word and the entries of the glyph's twelve rows with the ink and

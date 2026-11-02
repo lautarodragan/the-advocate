@@ -12,11 +12,16 @@
 //! accent off, a ligature as its two letters, an inverted mark as the mark.
 //! A character without an entry has no plain stand-in, and stays as it is:
 //! what to do with it is the caller's.
+//!
+//! **An ExFont icon's half stands in as nothing**: a screen whose font does
+//! not draw the game's icons drops them, and `$NPotion` reads `Potion` —see
+//! [`crate::exfont`]—.
 
 /// The plain ASCII that stands in for `c`, or `None` when `c` is already
 /// printable ASCII or has no stand-in.
 pub fn plain(c: char) -> Option<&'static str> {
     Some(match c {
+        c if crate::exfont::is_half(c) => "",
         'À' | 'Á' | 'Â' | 'Ã' | 'Ä' | 'Å' => "A",
         'Æ' => "AE",
         'Ç' => "C",
@@ -91,14 +96,21 @@ pub fn plain(c: char) -> Option<&'static str> {
 }
 
 /// `text` with every letter that has a stand-in replaced by it, and the
-/// letters replaced, in order and once each.
+/// letters replaced, in order and once each. Its ExFont codes are icons
+/// —see [`crate::exfont::with_icons`]—, and so dropped.
 pub fn plain_text(text: &str) -> (String, Vec<char>) {
     plain_text_but(text, |_| false)
 }
 
 /// [`plain_text`], but the letters `drawn` says yes to stay as they are:
-/// the ones the cartridge draws.
+/// the ones the cartridge draws, an icon's halves among them.
+///
+/// The codes become icons here, where every text the screens write goes
+/// through, so that no screen shows `$N`: the database's names and
+/// descriptions come raw, and a message box's lines with their icons
+/// already —see `refit::escape_tail`—, which finds no code left.
 pub fn plain_text_but(text: &str, drawn: impl Fn(char) -> bool) -> (String, Vec<char>) {
+    let text = crate::exfont::with_icons(text);
     let mut out = String::with_capacity(text.len());
     let mut replaced = Vec::new();
     for c in text.chars() {
@@ -120,7 +132,14 @@ pub fn plain_text_but(text: &str, drawn: impl Fn(char) -> bool) -> (String, Vec<
 pub fn plain_loss(letters: &[char]) -> String {
     let each: Vec<String> = letters
         .iter()
-        .map(|&c| format!("{c} as {}", plain(c).unwrap_or("?")))
+        .filter_map(|&c| match crate::exfont::half_of(c) {
+            Some((icon, 0)) => Some(format!(
+                "the icon ${} as nothing",
+                crate::exfont::letter_of_icon(icon)
+            )),
+            Some(_) => None,
+            None => Some(format!("{c} as {}", plain(c).unwrap_or("?"))),
+        })
         .collect();
     format!(
         "letters the box does not draw are shown plain: {}",

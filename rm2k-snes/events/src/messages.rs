@@ -6,6 +6,7 @@
 //! boxes are repeated often— is stored once: the content is the key.
 
 use crate::fail::{Bad, Result, Step, Stop};
+use rm2k_snes_text::exfont;
 use rm2k_snes_text::font::{CONSOLE_GLYPHS, LATIN_FIRST, LATIN_GLYPHS, WIDTH};
 use rm2k_snes_text::plain::plain_text_but;
 use rm2k_snes_text::refit::{
@@ -30,11 +31,17 @@ use std::collections::{BTreeMap, HashMap};
 /// in two bytes. It was 95 until the cursor's blank, on 2026-10-03.
 pub const PAIR_FIRST: u8 = 96;
 
-/// How many Latin-1 letters a cartridge's boxes can draw: the console's
-/// letters have to stay below 128, because the composer keeps the second
-/// letter of a pair waiting with bit 7 set —`FAR_MSG_SECOND`, in
-/// runtime/message_letter.s—. Past this, the least used are shown plain.
-pub const LETTERS_MAX: usize = 128 - PAIR_FIRST as usize;
+/// How many letters past the console's 96 a cartridge's boxes can draw
+/// —Latin-1's and the ExFont icons' halves—. Past this, the least used are
+/// shown plain, or dropped if they are an icon's.
+///
+/// Until 2026-11-02 it was 32: the console's letters had to stay below 128,
+/// because the composer kept the second letter of a pair waiting with bit 7
+/// set —`FAR_MSG_SECOND`, in runtime/message_letter.s—, and Zounds' boxes
+/// draw 18 Latin-1 letters and the halves of a dozen icons. It waits plus
+/// one now, and the cap is the pairs': each letter carried takes the value
+/// of one, and 64 leave [`PAIRS_MAX`] less 64 for the text.
+pub const LETTERS_MAX: usize = 64;
 
 /// The byte that stands for **a variable's value**, `\V[n]`: the next byte
 /// is the variable's slot, and the ROM's composer writes its digits there
@@ -118,17 +125,30 @@ pub fn name_mark(actor: u8) -> char {
     char::from_u32(NAME_MARK + actor as u32).unwrap()
 }
 
-/// Where Latin-1's `c` is in [`Window::latin`], if it is Latin-1.
-fn latin_slot(c: char) -> Option<usize> {
+/// How many letters past the console's 96 a window can draw: Latin-1's 96
+/// and the halves of the ExFont's 52 icons —see `rm2k_snes_text::exfont`—,
+/// in that order in [`Window::latin`].
+pub const LETTER_SLOTS: usize = LATIN_GLYPHS + exfont::HALVES;
+
+/// Where `c` is in [`Window::latin`], if it is a Latin-1 letter or a half
+/// of an icon.
+pub fn latin_slot(c: char) -> Option<usize> {
+    if let Some((icon, side)) = exfont::half_of(c) {
+        return Some(LATIN_GLYPHS + 2 * icon + side);
+    }
     (c as u32)
         .checked_sub(LATIN_FIRST)
         .map(|i| i as usize)
         .filter(|&i| i < LATIN_GLYPHS)
 }
 
-/// The Latin-1 character at `i` of [`Window::latin`].
+/// The letter at `i` of [`Window::latin`].
 fn latin_char(i: usize) -> Option<char> {
-    char::from_u32(LATIN_FIRST + i as u32).filter(|_| i < LATIN_GLYPHS)
+    if i >= LATIN_GLYPHS {
+        let half = i - LATIN_GLYPHS;
+        return (half < exfont::HALVES).then(|| exfont::halves(half / 2)[half % 2]);
+    }
+    char::from_u32(LATIN_FIRST + i as u32)
 }
 
 /// One unit of a line: a letter, as its index in the font, or a variable's
@@ -329,12 +349,13 @@ pub struct Window {
     pub width: usize,
     pub lines: usize,
     pub advances: [u8; CONSOLE_GLYPHS],
-    /// Each Latin-1 letter's advance, U+00A0 first; 0 for one the font does
+    /// Each Latin-1 letter's advance, U+00A0 first, and after them each
+    /// half of an icon's —see [`LETTER_SLOTS`]—; 0 for one the font does
     /// not draw.
-    pub latin: [u8; LATIN_GLYPHS],
-    /// Each Latin-1 letter's index in the console's font, U+00A0 first; 0
-    /// for one this window shows plain.
-    pub carried: [u8; LATIN_GLYPHS],
+    pub latin: [u8; LETTER_SLOTS],
+    /// The index of each of those in the console's font; 0 for one this
+    /// window shows plain, or drops if it is an icon's half.
+    pub carried: [u8; LETTER_SLOTS],
 }
 
 impl Window {
@@ -344,28 +365,39 @@ impl Window {
             width: columns * WIDTH,
             lines,
             advances: [WIDTH as u8; CONSOLE_GLYPHS],
-            latin: [0; LATIN_GLYPHS],
-            carried: [0; LATIN_GLYPHS],
+            latin: [0; LETTER_SLOTS],
+            carried: [0; LETTER_SLOTS],
         }
     }
 
     /// This window drawing `letters`, in that order, after the console's
     /// 96 glyphs; any other is shown plain. A letter the font does not draw
     /// is left out, and so is any past [`LETTERS_MAX`].
+    ///
+    /// **An icon's two halves go together**, the left one first: either
+    /// of them carries both, and when only one place is left, neither goes,
+    /// so no box draws half an icon.
     pub fn carrying(mut self, letters: &[char]) -> Window {
-        self.carried = [0; LATIN_GLYPHS];
+        self.carried = [0; LETTER_SLOTS];
         let mut next = CONSOLE_GLYPHS;
         for &c in letters {
-            match latin_slot(c) {
-                Some(i)
-                    if self.latin[i] > 0
-                        && self.carried[i] == 0
-                        && next < CONSOLE_GLYPHS + LETTERS_MAX =>
-                {
+            let wanted: Vec<char> = match exfont::half_of(c) {
+                Some((icon, _)) => exfont::halves(icon).to_vec(),
+                None => vec![c],
+            };
+            let slots: Option<Vec<usize>> = wanted.iter().map(|&w| latin_slot(w)).collect();
+            let Some(slots) = slots else {
+                continue;
+            };
+            if slots
+                .iter()
+                .all(|&i| self.latin[i] > 0 && self.carried[i] == 0)
+                && next + slots.len() <= CONSOLE_GLYPHS + LETTERS_MAX
+            {
+                for i in slots {
                     self.carried[i] = next as u8;
                     next += 1;
                 }
-                _ => {}
             }
         }
         self
@@ -375,23 +407,27 @@ impl Window {
     /// only gathers the texts compiles with, so that which of them the
     /// boxes use can be counted —see `Messages::letters_used`—. Their
     /// indices go past [`LETTERS_MAX`], and its bytes are never emitted.
+    /// With the icons' halves they go past a byte too: those past 255 all
+    /// take 255, which still says "carried" —0 is "shown plain"—, and
+    /// nothing reads them as a glyph.
     pub fn carrying_all(self) -> Window {
-        let all: Vec<char> = (0..LATIN_GLYPHS).filter_map(latin_char).collect();
+        let all: Vec<char> = (0..LETTER_SLOTS).filter_map(latin_char).collect();
         let mut w = self.carrying(&[]);
         let mut next = CONSOLE_GLYPHS;
         for c in all {
             let i = latin_slot(c).unwrap();
             if w.latin[i] > 0 {
-                w.carried[i] = next as u8;
+                w.carried[i] = next.min(255) as u8;
                 next += 1;
             }
         }
         w
     }
 
-    /// The Latin-1 letters it draws, in the order of their indices.
+    /// The letters it draws, in the order of their indices: Latin-1's and
+    /// the icons' halves.
     pub fn letters(&self) -> Vec<char> {
-        let mut out: Vec<(u8, char)> = (0..LATIN_GLYPHS)
+        let mut out: Vec<(u8, char)> = (0..LETTER_SLOTS)
             .filter(|&i| self.carried[i] > 0)
             .map(|i| (self.carried[i], latin_char(i).unwrap()))
             .collect();
@@ -449,7 +485,16 @@ impl Window {
                 0
             }
         }));
-        Measure::from_advances(advances, self.width)
+        // The measure has one advance for every half: the widest of the
+        // carried ones, which is all of them, six pixels —an icon that is
+        // dropped is measured as if it were drawn, and that only cuts a line
+        // sooner—.
+        let half = (LATIN_GLYPHS..LETTER_SLOTS)
+            .filter(|&i| self.carried[i] > 0)
+            .map(|i| self.latin[i])
+            .max()
+            .unwrap_or(0);
+        Measure::from_advances(advances, self.width).with_icons(half)
     }
 
     /// The longest start of `text` that fits in a line.
@@ -1026,6 +1071,17 @@ mod tests {
     /// The gathering pass draws every letter the font has, and counts the
     /// ones its boxes use, the most used first; the pairs are then chosen
     /// for the boxes as the cartridge writes them.
+    /// With every Latin-1 letter and every icon drawn, the gathering pass
+    /// still counts `$g`, whose left half's index is 256.
+    #[test]
+    fn the_gathering_pass_counts_past_a_byte() {
+        let mut w = WINDOW;
+        w.latin = [5; LETTER_SLOTS];
+        let mut m = Messages::measuring(1, w.carrying_all());
+        m.add(&s(&["$g"])).ok().unwrap();
+        assert_eq!(m.letters_used(), exfont::halves(32));
+    }
+
     #[test]
     fn the_gathering_pass_says_which_letters_the_boxes_use() {
         let mut m = Messages::measuring(1, latin_window().carrying_all());
@@ -1041,16 +1097,44 @@ mod tests {
         assert!(pairs.bytes().iter().step_by(2).all(|&l| l < PAIR_FIRST + 1));
     }
 
-    /// No more than [`LETTERS_MAX`]: the composer keeps a letter below 128.
+    /// No more than [`LETTERS_MAX`]: each one takes a pair's value.
     #[test]
-    fn no_more_letters_than_fit_below_128() {
+    fn no_more_letters_than_the_cap() {
         let mut w = WINDOW;
-        w.latin = [5; LATIN_GLYPHS];
+        w.latin = [5; LETTER_SLOTS];
         let all: Vec<char> = (0..LATIN_GLYPHS).filter_map(latin_char).collect();
         let w = w.carrying(&all);
         assert_eq!(w.letters().len(), LETTERS_MAX);
-        assert_eq!(w.pair_first(), 128);
+        assert_eq!(w.pair_first() as usize, PAIR_FIRST as usize + LETTERS_MAX);
         assert_eq!(w.letters()[0], '\u{a0}');
+    }
+
+    /// An icon is drawn as its two halves when the window carries them,
+    /// which it does together or not at all, and dropped when it does not:
+    /// Zounds' `\c[14]$JSonifal`.
+    #[test]
+    fn an_icon_goes_as_its_two_halves_or_not_at_all() {
+        let mut w = latin_window();
+        for half in exfont::halves(9).into_iter().chain(exfont::halves(13)) {
+            w.latin[latin_slot(half).unwrap()] = exfont::HALF_ADVANCE;
+        }
+        let [l, r] = exfont::halves(9);
+        let carrying = w.carrying(&[r, 'ñ']);
+        assert_eq!(carrying.letters(), [l, r, 'ñ']);
+        assert_eq!(carrying.measure().of(&format!("{l}{r}")), 12);
+        let mut m = Messages::new(1, carrying);
+        let at = m.add(&s(&["$JSon $N"])).ok().unwrap();
+        assert_eq!(m.data[at..], [1, 6, 96, 97, 51, 79, 78, 0]);
+        let n = exfont::halves(13)[0];
+        assert_eq!(m.take_plain(), [n, exfont::halves(13)[1]]);
+        // One place left: the icon does not go, and the letter after it does.
+        let mut letters: Vec<char> = (0..LETTERS_MAX - 1).filter_map(latin_char).collect();
+        letters.extend([l, 'ñ']);
+        let mut full = w;
+        full.latin[..LATIN_GLYPHS].fill(5);
+        let full = full.carrying(&letters);
+        assert!(!full.letters().contains(&l) && !full.letters().contains(&r));
+        assert_eq!(full.letters().len(), LETTERS_MAX);
     }
 
     /// A letter with no stand-in still stops the page, and leaves no letter

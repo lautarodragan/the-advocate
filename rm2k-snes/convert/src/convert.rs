@@ -1224,7 +1224,7 @@ pub fn run(options: Options) -> Result<()> {
     let mut items_all: BTreeSet<i32> = items_rom.iter().copied().collect();
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
-    let font = FontChoice::of(&settings)?;
+    let font = FontChoice::of(&settings, &game.game_dir)?;
     let menu_before: Value = compiled
         .get("commons")
         .and_then(|c| c.get("menu_before"))
@@ -1555,6 +1555,7 @@ pub fn run(options: Options) -> Result<()> {
             "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
             "item_name_width": layout["ITEM_NAME_WIDTH"],
             "font": font.spec, "letter_spacing": font.spacing,
+            "exfont": font.request()["exfont"],
         }),
         &["--data".into(), game.dump.clone().into_os_string()],
     )?;
