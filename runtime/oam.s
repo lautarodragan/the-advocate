@@ -76,6 +76,17 @@ walk:
     bra walk
 
 touches_npc:
+.ifdef posed_stills
+    ; Drawn into the background, not as an object: its cell follows the row.
+    ; See posed.s.
+    lda npc_buf + 7, x
+    and #$30
+    cmp #$30
+    bne an_object
+    jsl f:posed_row
+    bra hidden
+an_object:
+.endif
     lda npc_buf + 14, x
     beq hidden                  ; its active page draws nothing
     ; What `emit_object` was going to discard is discarded **here**, with the

@@ -75,6 +75,10 @@ pub struct Map {
     /// The events that are drawn, and who among them walks and who
     /// animates standing still.
     pub npcs: Vec<Npc>,
+    /// The still events drawn into the background, in the order their
+    /// rows number them. Missing, none.
+    #[serde(default)]
+    pub posed: Vec<Posed>,
     pub movable: Vec<i64>,
     pub animates_still: Vec<i64>,
     /// The still ones that animate in another one's slot, as `[event,
@@ -695,6 +699,27 @@ pub struct Npc {
     /// The passage bits its tile imposes on its cell, if it is drawn with
     /// one.
     pub tile_pass: Option<i64>,
+    /// Drawn into the background and not as an object: its number in
+    /// [`Map::posed`] and which of its characters it starts with. See
+    /// [`crate::posed`].
+    #[serde(default)]
+    pub posed: Option<[i64; 2]>,
+}
+
+/// A still event drawn into the background's cells, as Wally placed it:
+/// see `posed` in Wally.
+#[derive(Deserialize, Clone)]
+pub struct Posed {
+    pub event: i64,
+    /// Its cell.
+    pub x: i64,
+    pub y: i64,
+    /// The block of each `(character, pose)`, twelve per character.
+    pub blocks: Vec<u32>,
+    /// The block of its cell without it, and the key it starts with:
+    /// `character * 12 + pose`, or $FF hidden.
+    pub none: u32,
+    pub start: u32,
 }
 
 /// An event page, compiled.
@@ -750,6 +775,10 @@ pub struct Draws {
     pub key: Option<u32>,
     #[serde(default)]
     pub palette: u32,
+    /// Drawn into the background: its number among them and which of its
+    /// characters, instead of the block. See [`crate::posed`].
+    #[serde(default)]
+    pub posed: Option<[u32; 2]>,
     /// The pose it shows, and the passage its tile imposes on its cell.
     pub pose: u32,
     pub tile_pass: Option<u32>,

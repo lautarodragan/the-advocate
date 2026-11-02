@@ -62,6 +62,12 @@ pub struct LayersRequest {
     /// character can ever cover them: see [`crate::layers::below`]. Not
     /// from the request: the map's conversion works them out.
     pub below: Vec<usize>,
+    /// The poses of the still events drawn into the background, each in a
+    /// cell of its own below the map —see `Drawn::extended`—: the cell the
+    /// event stands on, whose tiles that cell repeats, and the pose's 24x32
+    /// drawing, painted over it. Not from the request: the map's
+    /// conversion picks them, see [`crate::posed`].
+    pub posed: Vec<(usize, rm2k_render::Picture)>,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -264,6 +270,7 @@ impl LayersRequest {
             extra: Vec::new(),
             extra_needed: false,
             below: Vec::new(),
+            posed: Vec::new(),
         })
     }
 }
@@ -594,6 +601,10 @@ impl crate::map::MapRequest {
                     },
                 }),
             },
+            posed: data
+                .get("posed_stills")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
         })
     }
 }

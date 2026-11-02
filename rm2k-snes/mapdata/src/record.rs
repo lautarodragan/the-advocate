@@ -232,6 +232,9 @@ pub struct NpcRow {
     pub leads: bool,
     pub visible: bool,
     pub tile_pass: Option<i64>,
+    /// Drawn into the background: its number among them and which of its
+    /// characters it starts with. See [`crate::posed`].
+    pub posed: Option<(i64, i64)>,
 }
 
 /// The drawn events ready for the console, already sorted the way RM2k draws
@@ -259,6 +262,28 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
     let mut rows = Vec::new();
     let shared = sprite.and_then(|s| s.shared.as_ref());
     for npc in order {
+        // Drawn into the background: no slot, no palette; the row says
+        // which and the console writes its cell. See [`crate::posed`].
+        if let Some([p, g]) = npc.posed {
+            rows.push(NpcRow {
+                x: npc.x * 16,
+                y: npc.y * 16,
+                tile: p as u32,
+                palette: 0,
+                layer: npc.layer,
+                event: npc.event,
+                dir: npc.pose / 3,
+                pose: npc.pose,
+                poses: None,
+                speed: npc.speed,
+                animates: false,
+                leads: false,
+                visible: npc.visible,
+                tile_pass: npc.tile_pass,
+                posed: Some((p, g)),
+            });
+            continue;
+        }
         let walks = movable.contains(&npc.event);
         // One that takes turns in a shared slot is drawn with its own
         // character's palette: the slot's is only the first one's.
@@ -357,6 +382,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
             leads: leaders.contains(&npc.event),
             visible: npc.visible,
             tile_pass: npc.tile_pass,
+            posed: None,
         });
     }
     if rows.len() > NPC_MAX {
@@ -386,13 +412,17 @@ pub fn npc_bytes(rows: &[NpcRow]) -> Vec<u8> {
         word(&mut out, sort_key(npc.layer, npc.y));
         out.push((npc.tile & 0xFF) as u8);
         // vhoopppN: the events marked "above" go at priority 2, the rest
-        // share 1 with the hero.
+        // share 1 with the hero; one drawn into the background, the
+        // priority no row's object has.
         let priority = if npc.layer == LAYER_ABOVE {
             OBJ_PRIORITY_ABOVE
         } else {
             OBJ_PRIORITY
         };
-        out.push((priority | ((npc.palette & 0x07) << 1) | ((npc.tile >> 8) & 0x01)) as u8);
+        out.push(match npc.posed {
+            Some((_, g)) => crate::posed::attributes(g as u8),
+            None => (priority | ((npc.palette & 0x07) << 1) | ((npc.tile >> 8) & 0x01)) as u8,
+        });
         // The event's index goes always: it is the last tie-breaker of the
         // drawing order.
         out.push(npc.event as u8);
@@ -2174,6 +2204,12 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     );
     let _ = write!(tables, "\n{}\n", pose_masks_table(maps));
     let _ = write!(tables, "\n{}\n", arrow_objs_table(maps)?);
+    // And the still events drawn into the background, only in a cartridge
+    // that has some: see `posed.s`, which assembles nothing without
+    // `posed_stills`.
+    if maps.iter().any(|m| !m.posed.is_empty()) {
+        let _ = write!(tables, "\n{}\n", crate::posed::posed_table(maps)?);
+    }
     // Only in a cartridge that shows some panorama: one that does not gets
     // the same `.inc` as before there were any. See `pano.s`.
     if maps.iter().any(|m| m.panorama.is_some()) {

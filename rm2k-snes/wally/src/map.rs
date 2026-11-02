@@ -126,6 +126,10 @@ pub struct MapRequest {
     /// drawn below —see [`crate::layers::below`]—; without it, as before,
     /// all of them above.
     pub reach: Option<crate::request::Reach>,
+    /// Whether the still events that change pose are drawn into the
+    /// background's cells, a block per pose: see [`crate::posed`]. A
+    /// project's choice, off unless it says so.
+    pub posed: bool,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -205,6 +209,7 @@ fn layered(
         extra: extra.rows.clone(),
         extra_needed: extra.needed,
         below: extra.below.clone(),
+        posed: extra.posed.clone(),
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
@@ -219,6 +224,9 @@ struct Extra {
     rows: Vec<(i32, i32)>,
     needed: bool,
     below: Vec<usize>,
+    /// The cells of the still events drawn into the background, one per
+    /// pose: see [`crate::posed::cells`].
+    posed: Vec<(usize, rm2k_render::Picture)>,
 }
 
 /// What drawing the tiles above the hero nobody can cover below costs the
@@ -272,13 +280,20 @@ fn same_split(without: &Converted, with: &Converted, decor: bool) -> bool {
     };
     // And the panorama's way: an event baked above the hero takes a map out
     // of mode 3, and flattened it would be drawn under him.
+    // By the reference's rows: a conversion that draws more cells below
+    // the map —the still events' poses, see [`crate::posed`]— is the same
+    // if the map's are. With rows alike, that is equality.
+    let starts = |long: Option<Vec<u8>>, short: Option<Vec<u8>>| match (long, short) {
+        (Some(l), Some(s)) => l.starts_with(&s),
+        (l, s) => l == s,
+    };
     without.way == with.way
         && a.tiles == b.tiles
         && a.cgram == b.cgram
-        && a.tilemap == b.tilemap
+        && b.tilemap.starts_with(&a.tilemap)
         && a.first == b.first
         && a.merges.len() == b.merges.len()
-        && picture(without) == picture(with)
+        && starts(picture(with), picture(without))
         && without.background.budget == with.background.budget
         && if decor {
             // The ground's colours, as 5-bit channels, are all still there.
@@ -343,6 +358,140 @@ fn bake_unless_split_moves(
         baked.len()
     )));
     Ok((without, BTreeMap::new()))
+}
+
+/// The still events that change pose drawn into the background: the ones
+/// [`crate::posed::select`] lets through whose poses cost the map nothing
+/// but background tiles it has room for —the layer above as it was, the
+/// background's colours merged no more than decoration may—, all of them
+/// or, if not, CharSet by CharSet, the most numerous first. What it keeps
+/// is in `extra` and `layers` when it returns, and the log says it.
+#[allow(clippy::too_many_arguments)]
+fn posed_events(
+    game: &Game,
+    request: &MapRequest,
+    drawer: &mut Drawer,
+    events: &[Event],
+    npcs: &[Npc],
+    baked: &Baked,
+    gone: &BTreeSet<usize>,
+    decor: &[Decoration],
+    extra: &mut Extra,
+    layers: &mut Layered,
+    notes: &mut Vec<Note>,
+) -> Result<Vec<crate::posed::Posed>> {
+    let id = request.map;
+    if !request.posed || layers.drawn.panorama.is_some() || !game.map_pictures.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut commands = game.common_commands()?;
+    commands.extend(request.test_commands.iter().cloned());
+    let taken: BTreeSet<usize> = baked.keys().chain(gone.iter()).copied().collect();
+    let dressed: BTreeSet<usize> = request
+        .pages
+        .iter()
+        .filter(|p| p.compiles)
+        .flat_map(|p| p.route_graphics.iter().map(|&(e, _)| e))
+        .collect();
+    let apart = crate::substitutions::apart(&request.substitutions, &request.common_substitutions);
+    let raw = game.map(id)?;
+    let width = raw.width as usize;
+    let lower: Vec<i32> = raw.lower_layer.iter().map(|&t| t as i32).collect();
+    let upper: Vec<i32> = raw.upper_layer.iter().map(|&t| t as i32).collect();
+    let chipset = game.chipset(raw.chipset_id)?;
+    let flags = passability_table(&chipset.passable_data_lower, &chipset.passable_data_upper);
+    let (wanted, not) = crate::posed::select(
+        drawer,
+        events,
+        npcs,
+        &crate::posed::Wants {
+            pages: &request.pages,
+            also_walk: &request.also_walk,
+            taken: &taken,
+            dressed: &dressed,
+            common: &commands,
+            apart: &apart,
+            width,
+            lower: &lower,
+            upper: &upper,
+            flags: &flags,
+        },
+    )?;
+    let room = request.layouts.iter().map(|l| l.0).max();
+    let mut kept: Vec<crate::posed::Posed> = Vec::new();
+    let try_with = |set: &[crate::posed::Posed], layers: &mut Layered| -> Result<bool> {
+        let trial = Extra {
+            posed: crate::posed::cells(set, width),
+            ..extra.clone()
+        };
+        let with = layered(
+            game,
+            id,
+            request.window_colors,
+            request.panorama.clone(),
+            baked,
+            decor,
+            request.fuse_tiles,
+            &trial,
+        )?;
+        let fits = room.is_none_or(|r| with.converted.background.tiles.len() / 64 <= r);
+        if fits && same_split(&layers.converted, &with.converted, true) {
+            *layers = with;
+            return Ok(true);
+        }
+        Ok(false)
+    };
+    if !wanted.is_empty() {
+        if try_with(&wanted, layers)? {
+            kept = wanted.clone();
+        } else {
+            let mut groups: BTreeMap<String, Vec<&crate::posed::Posed>> = BTreeMap::new();
+            for p in &wanted {
+                groups.entry(p.graphics[0].0.clone()).or_default().push(p);
+            }
+            let mut order: Vec<(String, Vec<&crate::posed::Posed>)> = groups.into_iter().collect();
+            order.sort_by_key(|(name, ps)| (std::cmp::Reverse(ps.len()), name.clone()));
+            for (_, group) in order {
+                let mut trial = kept.clone();
+                trial.extend(group.into_iter().cloned());
+                trial.sort_by_key(|p| p.event);
+                if try_with(&trial, layers)? {
+                    kept = trial;
+                }
+            }
+        }
+    }
+    extra.posed = crate::posed::cells(&kept, width);
+    let ids = |list: &mut dyn Iterator<Item = i32>| {
+        list.map(|i| i.to_string()).collect::<Vec<_>>().join(", ")
+    };
+    if !kept.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: {} still event(s) drawn into the background, a block per pose: {}",
+            kept.len(),
+            ids(&mut kept.iter().map(|p| p.id))
+        )));
+    }
+    let left: Vec<i32> = wanted
+        .iter()
+        .filter(|w| !kept.iter().any(|k| k.event == w.event))
+        .map(|w| w.id)
+        .collect();
+    if !left.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: {} still event(s) stay objects: drawn into the background they move its colours or its tiles past the layouts: {}",
+            left.len(),
+            ids(&mut left.iter().copied())
+        )));
+    }
+    for (why, who) in &not {
+        notes.push(note(format!(
+            "  map {id}: {} event(s) stay objects, {why}: {}",
+            who.len(),
+            ids(&mut who.iter().copied())
+        )));
+    }
+    Ok(kept)
 }
 
 /// The open cell nearest the centre of the map —open on all four sides and
@@ -474,6 +623,10 @@ pub struct Whole {
     pub dressed: Vec<i32>,
     /// The graphics drawn with someone else's palette.
     pub lent: BTreeSet<Key>,
+    /// The still events drawn into the background's cells, in the order
+    /// the console numbers them: the row, the graphic it starts with and
+    /// its table. See [`crate::posed`].
+    pub posed: Vec<(Npc, usize, crate::posed::Placed)>,
 }
 
 /// The final layers and their blocks.
@@ -1143,6 +1296,7 @@ fn convert_with(
     let unseen = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
     let beyond = crate::substitutions::beyond_halves(&lower, &upper, &flags, &unseen);
     let mut extra = Extra {
+        posed: Vec::new(),
         needed: !beyond.is_empty(),
         rows: if panorama.is_some() { unseen } else { beyond },
         below: match &request.reach {
@@ -1373,10 +1527,33 @@ fn convert_with(
             out.iter().map(|e| events[*e].id.to_string()).collect::<Vec<_>>().join(", ")
         )));
     }
+    // The still events that change pose, into the background's cells: see
+    // [`crate::posed`]. After the table is trimmed, since each keeps its
+    // row; and out of the characters from here on, which they are not.
+    let posed = posed_events(
+        game,
+        request,
+        &mut drawer,
+        &events,
+        &npcs0,
+        &baked,
+        &gone,
+        &kept_decor,
+        &mut extra,
+        &mut layers,
+        &mut notes,
+    )?;
+    let posed_set: BTreeSet<usize> = posed.iter().map(|p| p.event).collect();
+    let posed_npcs: Vec<Npc> = npcs0
+        .iter()
+        .filter(|n| posed_set.contains(&n.event))
+        .cloned()
+        .collect();
+    npcs0.retain(|n| !posed_set.contains(&n.event));
     let pages: Vec<ScannedPage> = request
         .pages
         .iter()
-        .filter(|p| !gone.contains(&p.event))
+        .filter(|p| !gone.contains(&p.event) && !posed_set.contains(&p.event))
         .cloned()
         .collect();
 
@@ -1581,6 +1758,25 @@ fn convert_with(
     let apart = crate::substitutions::apart(&request.substitutions, &request.common_substitutions);
     let (passability, mut blocks) =
         stage_layers::blocks(&layers.drawn, &mut layers.converted, &apart)?;
+    // Each one's blocks, from the cells below the map; and its cell of the
+    // grid starts with the pose its row starts with.
+    let map_width = raw.width as usize;
+    let first = layers
+        .drawn
+        .posed_at
+        .saturating_sub(map_width * raw.height as usize);
+    let posed_placed = if posed.is_empty() {
+        Vec::new()
+    } else {
+        crate::posed::placed(&posed, &blocks.extension[first..], |p| {
+            blocks.cells[p.y as usize * map_width + p.x as usize]
+        })
+    };
+    for p in &posed_placed {
+        if p.start != crate::posed::HIDDEN {
+            blocks.cells[p.y as usize * map_width + p.x as usize] = p.blocks[p.start as usize];
+        }
+    }
     let substituted = substitute(
         id,
         &mut blocks,
@@ -1615,6 +1811,18 @@ fn convert_with(
         substitutions: substituted,
         dressed: dressed_ids,
         lent: split.lent.iter().cloned().collect(),
+        posed: posed_npcs
+            .into_iter()
+            .zip(posed_placed)
+            .map(|(n, p)| {
+                let g = p
+                    .graphics
+                    .iter()
+                    .position(|k| *k == (n.charset.clone(), n.index))
+                    .unwrap_or(0);
+                (n, g, p)
+            })
+            .collect(),
     };
 
     for (event, tile) in &d.discarded {
@@ -2558,7 +2766,21 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         "decorative": done.decorative,
         "baked": done.baked.iter().map(|(e, (c, t))| json!([e, c, t])).collect::<Vec<_>>(),
         "notes": done.notes.iter().map(note_json).collect::<Vec<_>>(),
-        "npcs": done.npcs.iter().map(npc_json).collect::<Vec<_>>(),
+        "npcs": done
+            .npcs
+            .iter()
+            .map(npc_json)
+            .chain(done.posed.iter().enumerate().map(|(k, (n, g, _))| {
+                let mut row = npc_json(n);
+                row["posed"] = json!([k, g]);
+                row
+            }))
+            .collect::<Vec<_>>(),
+        "posed": done.posed.iter().map(|(_, _, p)| json!({
+            "event": p.event, "x": p.x, "y": p.y,
+            "graphics": p.graphics.iter().map(key_json).collect::<Vec<_>>(),
+            "blocks": p.blocks, "none": p.none, "start": p.start,
+        })).collect::<Vec<_>>(),
         "palette_cap": done.palette_cap,
         "start": [done.start.0, done.start.1],
         "sprite": objects,

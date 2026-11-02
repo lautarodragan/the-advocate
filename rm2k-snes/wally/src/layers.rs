@@ -68,6 +68,9 @@ pub struct Drawn {
     /// The cells whose tiles above the hero were drawn into the layer
     /// below: see [`lower_cells`].
     pub lowered: Vec<usize>,
+    /// Where in [`Drawn::extended`] the cells of `LayersRequest::posed`
+    /// start, one per pose in their order; 0 without them.
+    pub posed_at: usize,
 }
 
 /// The stretch of a panorama the console can show, and how it moves: what
@@ -394,7 +397,9 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
     // The cells a `TileSubstitution` will need and the map does not draw,
     // in rows of their own below it: see `Drawn::extended`.
     let extra = &request.extra;
-    let extended = if extra.is_empty() {
+    let posed = &request.posed;
+    let mut posed_at = 0;
+    let extended = if extra.is_empty() && posed.is_empty() {
         None
     } else {
         let mut map = drawn.clone();
@@ -405,13 +410,30 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
             map.upper_layer.push(i64::from(u));
         }
         map.height += rows;
+        // And a cell per pose of a still event drawn into the background,
+        // with the tiles of the cell it stands on: see [`crate::posed`].
+        posed_at = map.width * map.height;
+        let mut below = request.below.clone();
+        let posed_rows = posed.len().div_ceil(map.width);
+        for k in 0..posed_rows * map.width {
+            let (cell, _) = &posed[k.min(posed.len() - 1)];
+            map.lower_layer.push(drawn.lower_layer[*cell]);
+            map.upper_layer.push(drawn.upper_layer[*cell]);
+            // Lowered like the cell it copies, or its block would put back
+            // above what the map's cell draws below.
+            if request.below.contains(cell) {
+                below.push(posed_at + k);
+            }
+        }
+        map.height += posed_rows;
         let mut layers = if panorama.is_some() {
             map.render_over_panorama(&atlas)?
         } else {
             map.render(&atlas)?
         };
         crate::decor::compose(&mut layers, &request.decor);
-        lower_cells(&mut layers, map.width, &request.below);
+        crate::posed::compose(&mut layers, map.width, posed_at, posed);
+        lower_cells(&mut layers, map.width, &below);
         // Fused the same as the map, so that its cells are the map's: they
         // are what the blocks are made of, see `blocks`.
         if let Some(max) = request.fuse_tiles {
@@ -429,6 +451,7 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
         blocked,
         front,
         lowered,
+        posed_at,
     })
 }
 
@@ -1111,6 +1134,7 @@ pub fn blocks(
             .0;
         let (mut passability, mut made) = blocks_of(drawn, map, converted, apart)?;
         let cells = drawn.map.width * drawn.map.height;
+        made.extension = made.cells[cells..].to_vec();
         passability.truncate(cells);
         made.cells.truncate(cells);
         converted.background.tilemap.truncate(rows);

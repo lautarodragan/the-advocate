@@ -44,6 +44,9 @@ pub struct Blocks {
     /// to find the block a tile is swapped into, since the bytecode talks of
     /// tiles and the console of blocks.
     pub combos: Vec<((i32, i32), u16)>,
+    /// The block of each cell of the rows a map draws below itself and then
+    /// cuts off, in order: empty until the caller cuts them.
+    pub extension: Vec<u16>,
 }
 
 /// What of the map the blocks are made of.
@@ -135,6 +138,7 @@ pub fn blocks(map: &Map, background: &[Vec<u16>], above: &[Vec<u16>]) -> Result<
         passability,
         terrain,
         combos,
+        extension: Vec::new(),
     })
 }
 

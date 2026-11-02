@@ -435,6 +435,20 @@ none:
 .proc still_turn
 .a8
 .i16
+.ifdef posed_stills
+    ; One drawn into the background only changes pose: its cell follows it
+    ; in `posed_row`. See posed.s.
+    pha
+    lda npc_buf + 7, y
+    and #$30
+    cmp #$30
+    bne an_object
+    pla
+    sta npc_buf + 12, y
+    rtl
+an_object:
+    pla
+.endif
     sta f:CACHE_T_POSE          ; the new pose
     lda f:SHARE_N
     bmi cache

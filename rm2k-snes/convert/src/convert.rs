@@ -988,6 +988,23 @@ pub fn run(options: Options) -> Result<()> {
             {
                 continue;
             }
+            // Drawn into the background: the page carries its number among
+            // them and which of its characters, and the console writes its
+            // cell. See `posed` in Wally.
+            if let Some((p, graphics)) = m.posed.get(&page.event) {
+                let g = graphics
+                    .iter()
+                    .position(|(c, i)| *c == graphic.0 && *i == graphic.1)
+                    .ok_or_else(|| {
+                        Stop::new(format!(
+                            "map {}: {graphic:?} is not among event {}'s poses in the background",
+                            m.id, page.event
+                        ))
+                    })?;
+                page.draws = Some(json!({"block": null, "posed": [p, g], "pose": graphic.2,
+                                         "tile_pass": page.tile_pass}));
+                continue;
+            }
             let (mut block, mut palette) = (Value::Null, json!(0));
             // A map with a cache of slots: the page carries its still pose,
             // and the console finds it a slot. See `sprites::cache` in Wally.

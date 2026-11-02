@@ -260,6 +260,11 @@ pub struct Game {
     /// when the key is missing: it changes the map of any game that has
     /// them, and a game opts in.
     pub decorative: bool,
+    /// `[graphics] posed_events`: whether the still events that change pose
+    /// —a floor switch, a chest— are drawn into the background's cells, a
+    /// block per pose, instead of as objects: see `posed` in Wally. Off
+    /// when the key is missing, for the same reason.
+    pub posed: bool,
     /// `[graphics] map_pictures`: whether the `ShowPicture` pictures that
     /// are part of a map are drawn into it —see [`crate::map_pictures`]—.
     /// Off when the key is missing, for the same reason.
@@ -448,6 +453,10 @@ impl Game {
             decorative: match project.value(&["graphics", "decorative_events"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
+            },
+            posed: match project.value(&["graphics", "posed_events"]) {
+                Err(_) => false,
+                Ok(_) => project.boolean(&["graphics", "posed_events"])?,
             },
             map_pictures: match project.value(&["graphics", "map_pictures"]) {
                 Err(_) => false,

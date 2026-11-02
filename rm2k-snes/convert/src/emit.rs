@@ -121,6 +121,7 @@ pub fn map_record(m: &MapInfo, access: u8) -> Value {
         "wrap": [wrap_axes(m).0 .0, wrap_axes(m).0 .1],
         "sprite": m.objects,
         "npcs": m.npcs, "movable": m.movable,
+        "posed": m.posed_table,
         "animates_still": m.animates_still,
         "animates_with": m.animates_with,
         "events": m.map.events.iter().map(|e| json!([e.x, e.y])).collect::<Vec<_>>(),

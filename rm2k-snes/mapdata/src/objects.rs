@@ -87,6 +87,12 @@ pub const LAYER_ABOVE: i64 = 2;
 pub fn page_oam(draws: &Draws, layer: i64) -> [u8; 4] {
     let pose = (draws.pose | 0x80) as u8;
     let passage = draws.tile_pass.map_or(0xFF, |p| p as u8);
+    // Drawn into the background: its number among them in the tile byte,
+    // and in the attributes the priority nobody's object has and which of
+    // its characters. See [`crate::posed`].
+    if let Some([p, g]) = draws.posed {
+        return [p as u8, crate::posed::attributes(g as u8), pose, passage];
+    }
     // A map's cache of slots: the row carries the still pose, and the
     // console finds it a slot when it comes into view.
     let tile = match (draws.key, draws.block) {
@@ -139,6 +145,7 @@ mod tests {
         let draws = |block, tile_pass| Draws {
             block,
             key: None,
+            posed: None,
             palette: 3,
             pose: 7,
             tile_pass,
@@ -161,6 +168,7 @@ mod tests {
     fn in_a_cache_a_page_draws_its_still_pose_and_not_a_tile() {
         use super::*;
         let draws = Draws {
+            posed: None,
             block: None,
             key: Some(9),
             palette: 3,
@@ -168,5 +176,22 @@ mod tests {
             tile_pass: None,
         };
         assert_eq!(page_oam(&draws, LAYER_SAME), [9, 0x16, 0x87, 0xFF]);
+    }
+
+    /// Drawn into the background: its number among them in the tile byte,
+    /// the priority no row's object has and its character in the
+    /// attributes. See `crate::posed`.
+    #[test]
+    fn a_page_drawn_into_the_background_carries_its_number() {
+        use super::*;
+        let draws = Draws {
+            posed: Some([4, 2]),
+            block: None,
+            key: None,
+            palette: 3,
+            pose: 10,
+            tile_pass: None,
+        };
+        assert_eq!(page_oam(&draws, LAYER_SAME), [4, 0x34, 0x8A, 0xFF]);
     }
 }
