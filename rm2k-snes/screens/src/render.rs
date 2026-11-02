@@ -431,7 +431,8 @@ pub fn menu(
 }
 
 /// The actor choice: the party panel, and `item`, the medicine being used,
-/// with how many are left.
+/// with how many are left. A special item that casts a skill on the party
+/// has the bar over everyone, where `Scene_ActorTarget` puts it at -100.
 pub fn target(
     game: &Game,
     skin: &Skin,
@@ -443,7 +444,14 @@ pub fn target(
 ) -> Result<Picture> {
     let name = game.item_name(item)?;
     let lines = texts::name_in_lines(&game.font, &name, TARGET_NAME_WIDTH, 2);
-    let windows = borders::target_windows(game, skin, Some(chosen))?;
+    let on_everyone = texts::map_skill(game, game.item(item)?)
+        .is_some_and(|s| s.scope == ditto::schema::SkillScope::Party);
+    let cursor = if on_everyone {
+        borders::TargetCursor::All(party.members.len().min(MENU_PARTY_ROWS))
+    } else {
+        borders::TargetCursor::Row(chosen)
+    };
+    let windows = borders::target_windows_for(game, skin, TI_TERM_OWNED, Some(cursor))?;
     target_with(
         game,
         skin,
@@ -789,7 +797,7 @@ pub fn item_screen_text(
         }
         let item = game.item(listed[k])?;
         let row0 = ITEM_LIST_Y / CELL + 2 * row;
-        let variant = if texts::item_usable(item) {
+        let variant = if texts::item_usable(item, texts::map_skill(game, item)) {
             ITEM_WHITE
         } else {
             ITEM_GRAY

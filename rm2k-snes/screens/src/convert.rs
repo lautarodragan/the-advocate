@@ -563,10 +563,12 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
 
     // The items the actor choice opens for, whose names it writes: the
-    // medicines, and since 2026-10-04 the materials.
+    // medicines, since 2026-10-04 the materials, and since 2026-11-01 the
+    // special items that cast a skill on someone.
     let mut medicines = Vec::new();
     for &n in &request.items {
-        if texts::item_needs_actor(game.item(n)?) {
+        let item = game.item(n)?;
+        if texts::item_needs_actor(item, texts::map_skill(game, item)) {
             medicines.push((n, game.item_name(n)?));
         }
     }
@@ -864,8 +866,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         item_texts.push(json!({
             "number": n,
             "texts": lines,
-            "usable": texts::item_usable(item),
-            "needs_actor": texts::item_needs_actor(item),
+            "usable": texts::item_usable(item, texts::map_skill(&game, item)),
+            "needs_actor": texts::item_needs_actor(item, texts::map_skill(&game, item)),
         }));
     }
     let medicine_names: Vec<Value> = medicines

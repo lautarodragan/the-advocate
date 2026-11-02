@@ -450,24 +450,29 @@ fn with_the_command_tables_as_before(text: &str) -> String {
 
 /// The battle model's `item_skill`, which came on 2026-10-19 with the
 /// special items that cast their skill: the test game has none, so every
-/// item casts nothing, and [`without_item_skill`] takes the table out.
+/// item casts nothing, and [`without_item_skill`] takes the table out. The
+/// same with `item_map_skill`, which came on 2026-11-01 with the special
+/// items cast from the items screen.
 fn with_no_item_skills(model: &mut serde_json::Value) {
     let n = model["item_battle"].as_array().unwrap().len();
     model["item_skill"] = serde_json::json!(vec![0; n]);
+    model["item_map_skill"] = serde_json::json!(vec![0; n]);
 }
 
-/// The text without `item_skill`, a byte per item in its `.block`, all
-/// $FF: see [`with_no_item_skills`].
+/// The text without `item_skill` and `item_map_skill`, a byte per item in
+/// its `.block`, all $FF: see [`with_no_item_skills`].
 fn without_item_skill(text: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
-    let at = lines.iter().position(|l| *l == "item_skill:").unwrap();
-    assert!(lines[at - 1].starts_with(".block "));
-    let bytes = lines[at + 1].trim_start_matches("    .byte ");
-    assert!(
-        bytes.split(", ").all(|b| b == "255"),
-        "an item that casts a skill: {bytes}"
-    );
-    lines.drain(at - 1..at + 2);
+    for table in ["item_skill:", "item_map_skill:"] {
+        let at = lines.iter().position(|l| *l == table).unwrap();
+        assert!(lines[at - 1].starts_with(".block "));
+        let bytes = lines[at + 1].trim_start_matches("    .byte ");
+        assert!(
+            bytes.split(", ").all(|b| b == "255"),
+            "an item that casts a skill: {bytes}"
+        );
+        lines.drain(at - 1..at + 2);
+    }
     lines.join("\n")
 }
 

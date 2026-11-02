@@ -3870,13 +3870,36 @@ impl Rest<'_> {
             })
             .collect();
         bytes_asm(out, "terrain_bush", &decimal(bush), true);
+        // The skill a special item casts from the items screen, by its RM2k
+        // number, 0 for none: the battle stage's `item_map_skill`.
+        let map_skills: Vec<i64> = list_at(self.model, "item_map_skill")?
+            .iter()
+            .map(|v| v.as_i64().unwrap_or(0))
+            .collect();
+        if map_skills.len() != items.len() {
+            return Err(Bad::answer(
+                "the battle's `item_map_skill` and the items are not the same list",
+            ));
+        }
+        // A special item whose skill is a switch one goes down the switch
+        // items' path on the map —the screens stage gives it no actor
+        // choice—, so its switch is the skill's: `Scene_Item` turns on
+        // `skill->switch_id` and spends the item, as for a switch item.
+        let switch_of = |n: i64, h: i64| -> Result<i64> {
+            let own = item(n)?.switch_id.into();
+            Ok(match db.skills.get(&(h as i32)) {
+                Some(s) if s.r#type == ditto::schema::SkillType::Switch => s.switch_id.into(),
+                _ => own,
+            })
+        };
         words_asm(
             out,
             "item_switch",
             &decimal(
                 items
                     .iter()
-                    .map(|&n| item(n).map(|i| i.switch_id))
+                    .zip(&map_skills)
+                    .map(|(&n, &h)| switch_of(n, h))
                     .collect::<Result<Vec<_>>>()?,
             ),
             true,
@@ -3914,6 +3937,23 @@ impl Rest<'_> {
             ));
         }
         bytes_asm(out, "item_skill", &decimal(item_skill), true);
+        // And the one it casts from the items screen, the same way: see
+        // `item_cast_use` in item_skills.s.
+        let place_of = |h: i64| -> Result<i64> {
+            if h == 0 {
+                return Ok(0xFF);
+            }
+            Ok(rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
+                Bad::answer(format!(
+                    "an item casts skill {h} on the map, which the cartridge does not carry"
+                ))
+            })? as i64)
+        };
+        let item_map_skill = map_skills
+            .iter()
+            .map(|&h| place_of(h))
+            .collect::<Result<Vec<_>>>()?;
+        bytes_asm(out, "item_map_skill", &decimal(item_map_skill), true);
         words_asm(
             out,
             "ba_item_desc",

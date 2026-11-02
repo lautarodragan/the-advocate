@@ -286,6 +286,43 @@ out:
     lda #0                      ; it cannot pay: `GetSp() < CalculateSkillCost`
     rtl
 pays:
+    jsr sk_cast
+    lda f:MED_USED
+    beq done
+    rep #$20
+.a16
+    lda f:sk_used
+    and #$00FF
+    tax
+    lda f:skill_sp, x
+    and #$00FF
+    sta f:MED_P
+    lda f:sk_actor
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_SP, x
+    sec
+    sbc f:MED_P                 ; it was checked that it pays
+    sta f:FAR_LENGTH + FAR_SP, x
+    sep #$20
+.a8
+done:
+    ; Nothing of a material: the actor choice repaints the rows, not all.
+    lda #0
+    sta f:MED_FLAGS
+    lda f:MED_USED
+    rtl
+.endproc
+
+; The effect of skill `sk_used`, cast by actor `sk_actor`, on whom its
+; scope says —actor `MED_ACTOR`, the one chosen, for a skill on an ally—:
+; `sk_heal_one` on each, and `MED_USED` at 1 if it was of use to anyone.
+; Nothing is paid here: the skills screen pays SP, `sk_heal_use`, and a
+; special item pays itself, `item_cast_use`. Data bank at 0, as both run.
+.proc sk_cast
+.a8
+.i16
     ; The user's attack and spirit with its equipment, into combatant 0.
     lda #0
     jsr param
@@ -325,13 +362,12 @@ seeded:
 chosen:
     lda f:MED_ACTOR
 one_only:
-    jsr sk_heal_one
-    bra pay
+    jmp sk_heal_one             ; its `rts` is this one's
 party_wide:
     lda #0
 each:
     cmp party_n
-    bcs pay
+    bcs cast
     pha
     jsr ba_ax
     lda party, x
@@ -339,33 +375,8 @@ each:
     pla
     inc a
     bra each
-pay:
-    lda f:MED_USED
-    beq done
-    rep #$20
-.a16
-    lda f:sk_used
-    and #$00FF
-    tax
-    lda f:skill_sp, x
-    and #$00FF
-    sta f:MED_P
-    lda f:sk_actor
-    and #$00FF
-    asl a
-    tax
-    lda f:FAR_LENGTH + FAR_SP, x
-    sec
-    sbc f:MED_P                 ; it was checked that it pays
-    sta f:FAR_LENGTH + FAR_SP, x
-    sep #$20
-.a8
-done:
-    ; Nothing of a material: the actor choice repaints the rows, not all.
-    lda #0
-    sta f:MED_FLAGS
-    lda f:MED_USED
-    rtl
+cast:
+    rts
 
 ; Parameter A of `sk_actor` with its equipment, in A16's two bytes as A8
 ; and B: `eq_parameter` through the battle's bridge.
@@ -381,6 +392,12 @@ param:
     xba
     lda comp_dup
     rts
+.endproc
+
+; `sk_cast` from another bank, with `jsl`: for `item_cast_use`, in `FAR3`.
+.proc sk_cast_far
+    jsr sk_cast
+    rtl
 .endproc
 
 ; The heal's effect on actor A —`Game_Battler::UseSkill` outside battle—,

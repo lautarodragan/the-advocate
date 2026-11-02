@@ -149,6 +149,15 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         skills.extend(h);
         item_skill.push(h.unwrap_or(0));
     }
+    // And the ones it casts from the items screen —`item_skill_on_the_map`—,
+    // which the skills screen's effect runs: not the battle's, but its rows
+    // are the same `skill_*` tables.
+    let mut item_map_skill = Vec::new();
+    for &i in &items {
+        let h = rules::item_skill_on_the_map(db, db.item(i)?);
+        skills.extend(h);
+        item_map_skill.push(h.unwrap_or(0));
+    }
     let skills: Vec<i32> = skills.into_iter().collect();
     // The ones leveling up teaches past the starting level —`SetLevel`'s,
     // clamped to the actor's range—, whose whole name the victory says.
@@ -377,6 +386,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         "pair_levels": pair_levels,
         "item_battle": item_battle,
         "item_skill": item_skill,
+        "item_map_skill": item_map_skill,
         "troops": troop_list,
         "texts": {
             "victory": victory,

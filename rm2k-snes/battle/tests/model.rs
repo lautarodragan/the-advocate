@@ -185,7 +185,8 @@ fn every_battle_plays_as_the_pythons() {
 /// Nor did it know special items, which cast their skill since 2026-10-19,
 /// nor each actor's `commands`, since 2026-10-20, which in this 2000 game
 /// are the terms it answered and are checked against them before going:
-/// the game has none, so their `item_skill` is all zeros and is taken out,
+/// the game has none, so their `item_skill` —and `item_map_skill`, since
+/// 2026-11-01— is all zeros and is taken out,
 /// and `item_battle` and `skills` are what the Python answered.
 fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
     let mut v = model::model(db, request)?;
@@ -228,11 +229,13 @@ fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
         }
     }
     if let Some(all) = v.as_object_mut() {
-        let item_skill = all.remove("item_skill").unwrap_or_default();
-        assert!(
-            item_skill.as_array().unwrap().iter().all(|h| h == 0),
-            "{item_skill}"
-        );
+        for table in ["item_skill", "item_map_skill"] {
+            let item_skill = all.remove(table).unwrap_or_default();
+            assert!(
+                item_skill.as_array().unwrap().iter().all(|h| h == 0),
+                "{table}: {item_skill}"
+            );
+        }
     }
     Ok(v)
 }

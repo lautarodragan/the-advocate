@@ -136,10 +136,12 @@ medicine:
 .proc target_count
 .a8
 .i16
+    ; On the party every row's HP, which a skill changed —or a special item
+    ; that casts one—: see `target_scope`.
+    jsr target_party_hp
     lda f:sk_target_on
     beq item
-    ; A skill: its cost, and on the party every row's HP, which it changed.
-    jsr target_party_hp
+    ; A skill: its cost.
     lda f:sk_used
     rep #$20
 .a16
@@ -330,13 +332,17 @@ bar_ofs:
 ; `render` of `rm2k-snes-screens` with a `skill` is the reference.
 
 ; The skill's scope, in A: `skill_scope` of `sk_used`, or $FF for a
-; medicine. Clobbers X.
+; medicine. A special item that casts a skill —`item_map_skill`— has its
+; skill's, except on oneself, which goes as on an ally: RPG_RT leaves the
+; bar free for an item, `Scene_ActorTarget::Start`, and casts it on the one
+; chosen. Clobbers X.
 .proc target_scope
 .a8
 .i16
     lda f:sk_target_on
     beq medicine
     lda f:sk_used
+scope:
     rep #$20
 .a16
     and #$00FF
@@ -346,7 +352,15 @@ bar_ofs:
     lda f:skill_scope, x
     rts
 medicine:
-    lda #$FF
+    ldx item_sel
+    lda f:item_map_skill, x
+    cmp #$FF
+    beq none                    ; $FF, as it came
+    jsr scope
+    cmp #BA_SCOPE_ONE
+    bne none
+    lda #BA_SCOPE_ALLY
+none:
     rts
 .endproc
 
@@ -622,16 +636,24 @@ free:
     rtl
 .endproc
 
-; A in the actor choice: the medicine, or the skill. With actor A, and the
-; answer of the one it goes to: A8 at 1 if it was of use.
+; A in the actor choice: the medicine, the special item that casts a skill
+; —`item_cast_use`—, or the skill. With actor A, and the answer of the one
+; it goes to: A8 at 1 if it was of use.
 .proc target_use
 .a8
 .i16
     pha
     lda f:sk_target_on
     bne skill
+    ldx item_sel
+    lda f:item_map_skill, x
+    cmp #$FF
+    bne cast
     pla
     jml f:medicine_use
+cast:
+    pla
+    jml f:item_cast_use
 skill:
     pla
     jml f:sk_heal_use

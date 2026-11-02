@@ -4,7 +4,7 @@
 use crate::fail::Result;
 use crate::game::{Game, ITEM_MATERIAL, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
-use ditto::schema::{Actor, Item};
+use ditto::schema::{Actor, Item, Skill, SkillType};
 use rm2k_rules::actor as rules;
 use rm2k_snes_text::font::Font;
 
@@ -304,17 +304,32 @@ pub const NUMBER_GLYPHS: &str = " -/0123456789";
 /// map: `Game_Party::IsItemUsable` outside battle. The switch ones that can
 /// be used on the field, and the medicines and the materials, which open
 /// the actor choice. The materials since 2026-10-04: until then they went
-/// in gray because the runtime did not know how to use them.
-pub fn item_usable(item: &Item) -> bool {
+/// in gray because the runtime did not know how to use them. And since
+/// 2026-11-01 the special ones whose skill the map can cast, `casts`: see
+/// [`map_skill`].
+pub fn item_usable(item: &Item, casts: Option<&Skill>) -> bool {
     let kind = item.r#type.to_i32();
-    (kind == ITEM_SWITCH && item.occasion_field2) || item_needs_actor(item)
+    (kind == ITEM_SWITCH && item.occasion_field2) || casts.is_some() || item_needs_actor(item, casts)
 }
 
 /// Whether using it opens the actor choice: the medicines and the
-/// materials, which `Scene_Item` sends to `Scene_ActorTarget`.
-pub fn item_needs_actor(item: &Item) -> bool {
+/// materials, which `Scene_Item` sends to `Scene_ActorTarget`, and a special
+/// one that casts a skill other than a switch one —`casts`, see
+/// [`map_skill`]—: a switch skill turns its switch on, as a switch item does.
+pub fn item_needs_actor(item: &Item, casts: Option<&Skill>) -> bool {
     let kind = item.r#type.to_i32();
-    kind == ITEM_MEDICINE || kind == ITEM_MATERIAL
+    kind == ITEM_MEDICINE
+        || kind == ITEM_MATERIAL
+        || casts.is_some_and(|s| s.r#type != SkillType::Switch)
+}
+
+/// The skill a special item casts from the items screen, if the map can
+/// cast it: [`rm2k_rules::skill::item_casts_on_the_map`].
+pub fn map_skill<'a>(game: &'a Game, item: &Item) -> Option<&'a Skill> {
+    let skill = game.skills.get(&item.skill_id);
+    rm2k_rules::skill::item_casts_on_the_map(item, skill, &game.states)
+        .then_some(skill)
+        .flatten()
 }
 
 #[cfg(test)]
@@ -332,10 +347,10 @@ mod tests {
             ..Default::default()
         };
         for kind in [ItemType::Medicine, ItemType::Material] {
-            assert!(item_usable(&of(kind)) && item_needs_actor(&of(kind)));
+            assert!(item_usable(&of(kind), None) && item_needs_actor(&of(kind), None));
         }
         for kind in [ItemType::Book, ItemType::Weapon, ItemType::Special] {
-            assert!(!item_usable(&of(kind)) && !item_needs_actor(&of(kind)));
+            assert!(!item_usable(&of(kind), None) && !item_needs_actor(&of(kind), None));
         }
     }
 
