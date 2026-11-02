@@ -69,7 +69,7 @@ far_menu_shown: .res MENU_ROWS_PARTY
 .assert STATE_NAMES_N >= STATES_N, error, "the conditions' names do not cover every condition"
 .assert STATE_NAME_W >= MENU_STATE_COLS, error, "a condition's padded name is shorter than its cells: tl_strip would cut it by letters"
 
-; The condition actor A8 shows, A8 on return: 0 is none, "Normal". The dead
+; The condition actor A8 shows, A8 on return with Z: 0 is none, "Normal". The dead
 ; one at zero HP —it is not one of the places, see party_states.s—, and
 ; otherwise the one held of highest priority, the later on a tie —the
 ; places go in LDB order—: `GetSignificantState`. Any data bank; keeps it.
@@ -135,6 +135,7 @@ done:
     sep #$20
 .a8
     plb
+    cmp #0                      ; Z from the condition and not from the `plb`
     rtl
 .endproc
 .assert ACT_ST_BYTES = 8, error, "menu_state_of multiplies by eight"
