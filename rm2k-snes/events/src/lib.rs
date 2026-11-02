@@ -180,7 +180,7 @@ fn window(w: &Value, whose: &str) -> Result<Window> {
     for (a, g) in advances.iter_mut().zip(given) {
         *a = int(g, whose)? as u8;
     }
-    let mut latin = [0u8; rm2k_snes_text::font::LATIN_GLYPHS];
+    let mut latin = [0u8; messages::LETTER_SLOTS];
     for pair in w
         .get("letters")
         .and_then(Value::as_array)
@@ -188,7 +188,7 @@ fn window(w: &Value, whose: &str) -> Result<Window> {
         .flatten()
     {
         let bad = || {
-            Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter and its advance: {pair}"))
+            Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter or an icon's half and its advance: {pair}"))
         };
         let letter = pair
             .get(0)
@@ -200,18 +200,15 @@ fn window(w: &Value, whose: &str) -> Result<Window> {
             .and_then(Value::as_u64)
             .filter(|&a| a > 0 && a < 256)
             .ok_or_else(bad)?;
-        let slot = (letter as u32)
-            .checked_sub(rm2k_snes_text::font::LATIN_FIRST)
-            .filter(|&i| (i as usize) < latin.len())
-            .ok_or_else(bad)?;
-        latin[slot as usize] = advance as u8;
+        let slot = messages::latin_slot(letter).ok_or_else(bad)?;
+        latin[slot] = advance as u8;
     }
     Ok(Window {
         width: int(field(w, "width", whose)?, whose)? as usize,
         lines,
         advances,
         latin,
-        carried: [0; rm2k_snes_text::font::LATIN_GLYPHS],
+        carried: [0; messages::LETTER_SLOTS],
     })
 }
 

@@ -140,6 +140,14 @@
 //! byte of its last pointer: the offsets got an `M_WRAP` line, which
 //! `without_wrap_and_grid_narrow` takes away with `M_GRID_NARROW`'s. No map
 //! here loops, so their bytes did not move.
+//!
+//! On 2026-11-02 the text screens got their own advance and reach tables,
+//! `font_advance` and `font_reach`, with the ExFont icons' halves after
+//! `TL_FIGURE`'s place, and the window's became `msg_font_advance` and
+//! `msg_font_reach`. These requests carry no icons: without the screens'
+//! two tables —the window's first 96 and the figure's place, which
+//! `with_one_font_table_as_before` checks— and with the window's old names,
+//! the text is the old one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -1715,11 +1723,53 @@ fn without_attribute_shifts(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text with one advance table and one reach table, the window's, as
+/// before 2026-11-02: since then the text screens have theirs, with
+/// `TL_FIGURE`'s place and the ExFont icons' halves after the console's 96,
+/// and the window's are `msg_font_advance` and `msg_font_reach`. These
+/// requests carry no icons, so the screens' are the window's first 96 and
+/// the figure's place —checked here— and are dropped.
+fn with_one_font_table_as_before(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let bytes_of = |lines: &[String], at: usize| -> (usize, Vec<u8>) {
+        let size: usize = lines[at - 1].trim_start_matches(".block ").parse().unwrap();
+        let rows = size.div_ceil(16);
+        let bytes = lines[at + 1..at + 1 + rows]
+            .iter()
+            .flat_map(|l| {
+                l.trim_start_matches("    .byte ")
+                    .split(',')
+                    .map(|b| u8::from_str_radix(b.trim().trim_start_matches('$'), 16).unwrap())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        (rows, bytes)
+    };
+    for (screens, window) in [
+        ("font_advance:", "msg_font_advance:"),
+        ("font_reach:", "msg_font_reach:"),
+    ] {
+        let w = lines.iter().position(|l| l == window).unwrap();
+        let (_, window_bytes) = bytes_of(&lines, w);
+        let at = lines.iter().position(|l| l == screens).unwrap();
+        let (rows, screen_bytes) = bytes_of(&lines, at);
+        assert_eq!(screen_bytes.len(), 97, "{screens}");
+        assert_eq!(screen_bytes[..96], window_bytes[..96], "{screens}");
+        let end = at + 1 + rows;
+        let end = if lines[end].is_empty() { end + 1 } else { end };
+        lines.drain(at - 1..end);
+        let w = lines.iter().position(|l| l == window).unwrap();
+        lines[w] = screens.to_string();
+    }
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "bare"));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
-        &with_the_cursors_as_before(&emitted.text, "bare"),
+        &text,
     ))));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
@@ -1761,8 +1811,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "whole"));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
-        &with_the_cursors_as_before(&emitted.text, "whole"),
+        &text,
     ))));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(

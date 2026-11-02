@@ -487,6 +487,7 @@ dependencies = [
  "ditto",
  "png",
  "rm2k-project",
+ "rm2k-render",
  "rm2k-rules",
  "rm2k-snes-battle",
  "rm2k-snes-bytecode",

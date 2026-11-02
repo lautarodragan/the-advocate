@@ -71,6 +71,19 @@ impl Json {
         }
     }
 
+    /// `exfont`: the game's executable, whose ExFont the font draws —see
+    /// `Font::with_exfont_of`—; `None` when it is not there or is null, a
+    /// game without one.
+    pub fn exfont(&self) -> Result<Option<std::path::PathBuf>> {
+        match self.get("exfont") {
+            None | Some(Value::Null) => Ok(None),
+            Some(v) => v
+                .as_str()
+                .map(|s| Some(std::path::PathBuf::from(s)))
+                .ok_or_else(|| self.bad("exfont", v)),
+        }
+    }
+
     pub fn text(&self, name: &str) -> Result<String> {
         let v = self.field(name)?;
         v.as_str()

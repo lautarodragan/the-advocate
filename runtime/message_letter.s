@@ -19,11 +19,15 @@
 ; The next letter in A, 8 bits: the second one of a pair, if one was left
 ; waiting, or the next byte's, advancing `msg_ptr`. Clobbers Y.
 ;
-; The second letter waits in `FAR_MSG_SECOND` with bit 7 set, because the
-; letter 0 is the space and "nothing waiting" has to be zero. `message_tick`
-; clears it at the start of each line, and that is the only thing that makes
-; it safe: the WRAM does not boot at zero —bsnes fills it with garbage, and
-; the unused bytes around this one read $55 in the suite's core—.
+; The second letter waits in `FAR_MSG_SECOND` plus one, because the letter 0
+; is the space and "nothing waiting" has to be zero; a letter is below
+; `MESSAGE_PAIR_FIRST`, so plus one it never wraps. Until 2026-11-02 it
+; waited with bit 7 set, and that kept the letters below 128: a game's boxes
+; drew at most 32 past the console's 96, and Zounds' Latin-1 and ExFont
+; icons are more. `message_tick` clears it at the start of each line, and
+; that is the only thing that makes it safe: the WRAM does not boot at zero
+; —bsnes fills it with garbage, and the unused bytes around this one read
+; $55 in the suite's core—.
 .proc msg_letter
 .a8
 .i16
@@ -49,7 +53,7 @@ a_digit:
 no_digit:
     lda f:FAR_MSG_SECOND
     beq read_byte
-    and #$7F
+    dec a
     tay
     lda #0
     sta f:FAR_MSG_SECOND
@@ -91,7 +95,7 @@ same_bank:
     sep #$20
 .a8
     xba
-    ora #$80
+    inc a
     sta f:FAR_MSG_SECOND
     xba                         ; and the first one, to draw now
 letter:

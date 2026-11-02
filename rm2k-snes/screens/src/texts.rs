@@ -6,18 +6,25 @@ use crate::game::{Game, ITEM_MATERIAL, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
 use ditto::schema::{Actor, Item, Skill, SkillType, State};
 use rm2k_rules::actor as rules;
+use rm2k_snes_text::exfont;
 use rm2k_snes_text::font::Font;
 
 /// What the screen can write: the characters the font has, a letter it
 /// does not have as its plain ASCII stand-in —`Unamë` as `Uname`, see
 /// `rm2k_snes_text::plain`—, a '?' instead of the rest, and cut to `width`.
+///
+/// An ExFont icon stays, as its two halves —see `rm2k_snes_text::exfont`—:
+/// the screens' tables carry the ones the database uses —see
+/// [`screen_icons`]—, and the emission drops the rest. Each half counts as
+/// a letter of `width`, as its code's two characters did in RM2k.
 pub fn item_text(text: &str, width: usize) -> String {
-    rm2k_snes_text::plain::plain_text(text)
+    rm2k_snes_text::plain::plain_text_but(text, exfont::is_half)
         .0
         .chars()
         .map(|c| {
             let code = c as usize;
-            if (ITEM_FIRST_CHAR..ITEM_FIRST_CHAR + ITEM_CHARS).contains(&code) {
+            if (ITEM_FIRST_CHAR..ITEM_FIRST_CHAR + ITEM_CHARS).contains(&code) || exfont::is_half(c)
+            {
                 c
             } else {
                 '?'
@@ -25,6 +32,28 @@ pub fn item_text(text: &str, width: usize) -> String {
         })
         .take(width)
         .collect()
+}
+
+/// The ExFont icons the text screens draw: those of the database's items
+/// and skills —their names, their descriptions and what a skill says when
+/// it is used—, the texts the items, equipment, shop and battle screens
+/// write. They go after the console's glyphs in those screens' tables —see
+/// `items::text_inks`—, and an icon anywhere else on them is dropped. The
+/// menu's bank draws none: its names are the actors'.
+pub fn screen_icons(game: &Game) -> Vec<usize> {
+    let mut icons = std::collections::BTreeSet::new();
+    let mut add = |text: &str| icons.extend(exfont::icons_in(&exfont::with_icons(text)));
+    for item in game.items.values() {
+        add(&item.name);
+        add(&item.description);
+    }
+    for skill in game.skills.values() {
+        add(&skill.name);
+        add(&skill.description);
+        add(&skill.using_message1);
+        add(&skill.using_message2);
+    }
+    icons.into_iter().collect()
 }
 
 /// A condition's name as the party panel composes it where "Normal" is:
@@ -101,6 +130,8 @@ pub fn right(value: i64, width: usize) -> String {
 /// variable-width font a whole description fits in one line most of the
 /// time: RM2k's help window has one.
 pub fn split_description(font: &Font, text: &str) -> Vec<String> {
+    // Its icons are measured as what they are, two halves.
+    let text = &exfont::with_icons(text);
     let width = DESC_WIDTH_PX;
     let fit = |t: &str| -> String {
         let mut used = 0;
@@ -271,9 +302,10 @@ pub fn name_text(game: &Game, actor: i32, cols: usize) -> Result<String> {
 }
 
 /// A name as the actors' strips carry it: what the font has of it, cut and
-/// padded to `cols` letters.
+/// padded to `cols` letters. Without its icons: the menu's bank, which
+/// composes the strips, carries none.
 pub fn name_strip(name: &str, cols: usize) -> String {
-    ljust(&item_text(name, cols), cols)
+    ljust(&item_text(&exfont::without_icons(name), cols), cols)
 }
 
 /// The two digits of the level, right-aligned as RM2k says them. Without
@@ -349,7 +381,9 @@ pub const NUMBER_GLYPHS: &str = " -/0123456789";
 /// [`map_skill`].
 pub fn item_usable(item: &Item, casts: Option<&Skill>) -> bool {
     let kind = item.r#type.to_i32();
-    (kind == ITEM_SWITCH && item.occasion_field2) || casts.is_some() || item_needs_actor(item, casts)
+    (kind == ITEM_SWITCH && item.occasion_field2)
+        || casts.is_some()
+        || item_needs_actor(item, casts)
 }
 
 /// Whether using it opens the actor choice: the medicines and the
@@ -392,6 +426,30 @@ mod tests {
         for kind in [ItemType::Book, ItemType::Weapon, ItemType::Special] {
             assert!(!item_usable(&of(kind), None) && !item_needs_actor(&of(kind), None));
         }
+    }
+
+    /// An item named as Zounds names them: the screens keep the icon as its two halves,
+    /// which the tables carry after `TL_FIGURE`'s place when the font draws
+    /// the game's ExFont; an actor's name strip, which the menu's bank
+    /// writes, drops it; and a font without it carries none.
+    #[test]
+    fn an_icon_stays_on_the_screens_and_leaves_the_strips() {
+        let [l, r] = exfont::halves(13);
+        assert_eq!(item_text("$NTónico", 6), format!("{l}{r}Toni"));
+        assert_eq!(name_strip("$NUna", 4), "Una ");
+        let plain = Font::named("low-variable", rm2k_snes_text::font::MINCHO).unwrap();
+        assert_eq!(
+            crate::items::glyphs_after(&plain, &[13]).unwrap(),
+            (vec![], vec![' '])
+        );
+        let drawn = plain.with_exfont(&vec![[1u16; 12]; exfont::ICONS]);
+        let (icons, after) = crate::items::glyphs_after(&drawn, &[13, 14]).unwrap();
+        assert_eq!(icons, [13, 14]);
+        assert_eq!(after[1..3], [l, r]);
+        assert_eq!(after.len(), 5);
+        // Measured as what it is: twelve pixels.
+        let lines = split_description(&drawn, "+35$N - Líquido");
+        assert_eq!(lines[0], format!("+35{l}{r} - Liquido"));
     }
 
     #[test]

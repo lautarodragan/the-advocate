@@ -284,35 +284,54 @@ struct Texts {
     offsets: Vec<(usize, usize)>,
     first: usize,
     count: usize,
+    /// The ExFont icons the screens' tables carry, in their order: see
+    /// `Inks` in the screens stage.
+    icons: Vec<usize>,
 }
 
 /// A name or a term of the database with each letter the font lacks as its
 /// plain ASCII stand-in —an actor's `Unamë` as `Uname`, see
-/// `rm2k_snes_text::plain`—, where [`Texts::add`] would write a `?`.
+/// `rm2k_snes_text::plain`—, where [`Texts::add`] would write a `?`; and
+/// without its ExFont icons, which the menu's bank and a message box's
+/// names do not draw.
 fn plain(text: &str) -> String {
     rm2k_snes_text::plain::plain_text(text).0
 }
+
+/// The byte the text layer reads as the first half of the first icon the
+/// screens' tables carry: their glyph `ICON_GLYPH_FIRST` —past the console's
+/// 96 and `TL_FIGURE`— plus 32, since a letter is its byte less 32.
+const ICON_CODE_FIRST: usize = 32 + rm2k_snes_text::font::CONSOLE_GLYPHS + 1;
 
 impl Texts {
     /// What the text screens' font can write: the characters it has, a `?`
     /// for the others, cut to `width` —`item_text` in the screens stage—.
     /// What comes from the screens stage has its plain letters stood in
     /// already; what comes from the database goes through [`plain`] first.
+    ///
+    /// An ExFont icon —a code of the database's, or the halves the screens
+    /// stage left— goes as its two halves' bytes, the text layer's glyph
+    /// plus 32, if the screens' tables carry it, and is dropped if they do
+    /// not: see `ICON_GLYPH_FIRST` in the screens stage.
     fn add(&mut self, text: &str) -> i64 {
-        let fitted: String = text
+        let fitted: Vec<u8> = rm2k_snes_text::exfont::with_icons(text)
             .chars()
-            .map(|c| {
-                let n = c as usize;
-                if (self.first..self.first + self.count).contains(&n) {
-                    c
-                } else {
-                    '?'
+            .filter_map(|c| {
+                if let Some((icon, side)) = rm2k_snes_text::exfont::half_of(c) {
+                    let k = self.icons.iter().position(|&i| i == icon)?;
+                    return Some((ICON_CODE_FIRST + 2 * k + side) as u8);
                 }
+                let n = c as usize;
+                Some(if (self.first..self.first + self.count).contains(&n) {
+                    n as u8
+                } else {
+                    b'?'
+                })
             })
             .take(255)
             .collect();
         self.offsets.push((self.data.len(), fitted.len()));
-        self.data.extend_from_slice(fitted.as_bytes());
+        self.data.extend_from_slice(&fitted);
         self.offsets.len() as i64 - 1
     }
 }
@@ -919,8 +938,10 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
             .map(|n| n as u8)
             .collect())
     };
-    line(out, &block("font_advance", &small("advances")?));
-    line(out, &block("font_reach", &small("reach")?));
+    // The message window's, with the letters its boxes draw; the text
+    // screens' are `font_advance` and `font_reach`, further down.
+    line(out, &block("msg_font_advance", &small("advances")?));
+    line(out, &block("msg_font_reach", &small("reach")?));
 
     for (phase, data) in list_at(window, "prerender")?.iter().enumerate() {
         line(
@@ -2270,6 +2291,31 @@ impl Rest<'_> {
                 &block(&format!("scr_pre{phase}"), &crate::json::bytes(data)?),
             );
         }
+        // How far each of the screens' glyphs moves the line and paints:
+        // the console's, `TL_FIGURE`'s place and the icons' halves. A
+        // request from before 2026-11-02 carries none, and its screens draw
+        // the console's glyphs, which are the window's first 96.
+        let screen_font = |name: &str, figure: u8| -> Result<Vec<u8>> {
+            match inks.get(name) {
+                Some(v) => Ok(ints(v)?.into_iter().map(|n| n as u8).collect()),
+                None => {
+                    let mut out: Vec<u8> = ints_at(at(self.screens, "window")?, name)?
+                        .into_iter()
+                        .take(rm2k_snes_text::font::CONSOLE_GLYPHS)
+                        .map(|n| n as u8)
+                        .collect();
+                    out.push(figure);
+                    Ok(out)
+                }
+            }
+        };
+        let window_advances = ints_at(at(self.screens, "window")?, "advances")?;
+        let zero = window_advances
+            .get(('0' as usize) - 32)
+            .copied()
+            .unwrap_or(0) as u8;
+        line(out, &block("font_advance", &screen_font("advances", zero)?));
+        line(out, &block("font_reach", &screen_font("reach", 0)?));
         let item_palettes: Vec<Vec<Color>> = list_at(inks, "palettes")?
             .iter()
             .map(colors)
@@ -2619,6 +2665,10 @@ impl Rest<'_> {
             offsets: Vec::new(),
             first: t.n("ITEM_FIRST_CHAR") as usize,
             count: t.n("ITEM_CHARS") as usize,
+            icons: match at(screens, "text_inks")?.get("icons") {
+                Some(icons) => ints(icons)?.into_iter().map(|i| i as usize).collect(),
+                None => Vec::new(),
+            },
         };
         let textos = at(screens, "texts")?;
         for item in list_at(textos, "items")? {
@@ -3209,6 +3259,8 @@ impl Rest<'_> {
             .flat_map(|n| {
                 medicine_lines[n]
                     .chars()
+                    // The menu's bank draws no icon: see `name_in_lines`.
+                    .filter(|&c| !rm2k_snes_text::exfont::is_half(c))
                     .map(|c| if c.is_ascii() { c as u8 } else { b'?' })
             })
             .collect();
