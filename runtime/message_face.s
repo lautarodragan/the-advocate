@@ -315,6 +315,16 @@ right:
     bne has
     rtl
 has:
+    ; The choice's highlighted line first: the face goes over the bar, as
+    ; RM2k's `Window::Draw` puts the contents over the cursor.
+    lda pick_active
+    cmp #PICK_CHOICE
+    bne no_bar
+    lda msg_line
+    cmp pick_sel
+    bne no_bar
+    jsr bar_compose
+no_bar:
     jsr face_pointer            ; `temp` is the face
     ; The face row of the line's first cell row, 2L - MSG_FACE_ROW, signed:
     ; below zero the first row is above the face, and only the second may
@@ -342,6 +352,226 @@ done:
 .endif
     rtl
 .endproc
+
+; --- the choice's bar with a face ---------------------------------------------
+;
+; `Window_Message::UpdateCursorRect` takes the face's 72 pixels
+; —`MSG_FACE_TEXT_X`— off the bar, and with the face on the left starts it
+; that much further in, where the options' text starts. Until 2026-11-02
+; the bar was the one without a face and ran behind it: see
+; `tasks/a-choices-cursor-runs-behind-the-face.md` in the-advocate-work.
+;
+; The converter draws only the bar without a face, and the fullest
+; cartridges have no room for two more of each System's, 19 KB each: on
+; 2026-11-02 A Blurred Line's release and Vampires Dawn had no free bank
+; left —`just space`—. So the bar
+; with a face is **cut out of `window_bar_bare`**, the bar without a face
+; over nothing, and laid over the line's background through its own
+; transparency, which is what the converter's drawing over the window
+; does. The recipe, which `the_bar_with_a_face_is_the_bar_without_one_recut`
+; in rm2k-snes-screens checks against the bar drawn whole, over a System
+; of noise:
+;
+; * with the face on the right the bar is the same from x 2, and 72
+;   shorter, so its cells 0 to 18 are the whole bar's, its last, 20, is
+;   the whole bar's last, 29 —the right edge, at the same place in the
+;   cell—, and cell 19 is six pixels of the middle and two of the edge:
+;   the middle repeats every 16 pixels from the bar's start and 72 is four
+;   and a half of those, so the six are cell 27's and the two cell 28's;
+; * with it on the left the bar is the one on the right moved nine cells.
+BAR_FACE_SHIFT = MSG_FACE_TEXT_X / 8
+BAR_FACE_CELLS = WINDOW_TEXT_COLS - BAR_FACE_SHIFT
+.assert MSG_FACE_TEXT_X = 72 && WINDOW_TEXT_COLS = 30, error, "the bar with a face is cut for a face 72 wide and a text area of 30 cells"
+
+; A cartridge whose game names no face never draws one, and carries none
+; of this.
+.if ::MESSAGE_FACES > 0
+
+; From `msg_face_prime`, with the line primed with its background —
+; `msg_bar_source` asked for it—: the bar, into `text_buf`. It is some
+; 33,000 cycles by the count of its loops, about half a frame, and it runs
+; once a line is highlighted: when the choice opens and when the cursor
+; moves. A8 in and out; X and Y are used.
+.proc bar_compose
+.a8
+.i16
+    phb
+    win_bank window_bar_bare, WS_BAR_BARE
+    pha
+    plb                         ; reads go to the bar's bank: `a:`, below
+    rep #$20
+.a16
+    win_lo window_bar_bare, WS_BAR_BARE
+    pha                         ; the bar's first byte
+    lda #0
+    pha                         ; the first cell, 0 or `BAR_FACE_SHIFT`, in bytes
+    lda f:MSG_FACE_DRAW
+    and #$00FF
+    cmp #1
+    bne right
+    lda #(BAR_FACE_SHIFT * 32)
+    sta 1, s
+right:
+    ldx #0                      ; which of the line's two cell rows
+row:
+    phx                         ; the row, in bytes: 1,s; the first cell 3,s; the bar 5,s
+    ; Cells 0 to 18, the whole bar's.
+    lda 1, s
+    clc
+    adc 5, s
+    tay
+    lda 1, s
+    clc
+    adc 3, s
+    tax                         ; the row's first destination cell
+    lda #(BAR_FACE_CELLS - 2)
+    jsr bar_cells
+    ; Cell 19: cell 27's six pixels and cell 28's two.
+    lda 1, s
+    clc
+    adc 5, s
+    clc
+    adc #((BAR_FACE_CELLS - 2 + BAR_FACE_SHIFT - 1) * 32)
+    tay
+    jsr bar_mixed
+    ; Cell 20: the whole bar's last.
+    lda 1, s
+    clc
+    adc 5, s
+    clc
+    adc #((WINDOW_TEXT_COLS - 1) * 32)
+    tay
+    lda #1
+    jsr bar_cells
+    plx
+    txa
+    clc
+    adc #TEXT_BUF_ROW
+    tax
+    cpx #(TEXT_BUF_ROW * 2)
+    bcc row
+    pla
+    pla
+    sep #$20
+.a8
+    plb
+    rts
+.endproc
+
+; A cells of the bar, from Y in the data bank, laid over `text_buf` from X
+; through their transparency: where none of a pixel's four bits is set the
+; background stays. A16; X and Y come back past the cells.
+.proc bar_cells
+.a16
+.i16
+    pha                         ; cells left: 5,s
+    pha                         ; rows left: 3,s
+    pha                         ; the mask: 1,s
+cell:
+    lda #8
+    sta 3, s
+pixels:
+    ; The mask: a pixel is the bar's where any of its four bits is.
+    lda a:0, y
+    ora a:16, y
+    sta 1, s
+    xba
+    ora 1, s
+    eor #$FFFF
+    sta 1, s
+    lda f:text_buf, x
+    and 1, s
+    ora a:0, y
+    sta f:text_buf, x
+    lda f:text_buf + 16, x
+    and 1, s
+    ora a:16, y
+    sta f:text_buf + 16, x
+    iny
+    iny
+    inx
+    inx
+    lda 3, s
+    dec a
+    sta 3, s
+    bne pixels
+    tya
+    clc
+    adc #16
+    tay
+    txa
+    clc
+    adc #16
+    tax
+    lda 5, s
+    dec a
+    sta 5, s
+    bne cell
+    pla
+    pla
+    pla
+    rts
+.endproc
+
+; `bar_cells` for the one cell made of two: the six left pixels of the
+; cell at Y and the two right ones of the next. A16; X comes back past the
+; cell, Y is used.
+.proc bar_mixed
+.a16
+.i16
+    lda #8
+    pha                         ; rows left: 7,s
+    pha                         ; planes 0 and 1: 5,s
+    pha                         ; planes 2 and 3: 3,s
+    pha                         ; the mask: 1,s
+pixels:
+    lda a:0, y
+    and #$FCFC                  ; pixel 0 is a byte's top bit
+    sta 5, s
+    lda a:32, y
+    and #$0303
+    ora 5, s
+    sta 5, s
+    lda a:16, y
+    and #$FCFC
+    sta 3, s
+    lda a:48, y
+    and #$0303
+    ora 3, s
+    sta 3, s
+    ora 5, s
+    sta 1, s
+    xba
+    ora 1, s
+    eor #$FFFF
+    sta 1, s
+    lda f:text_buf, x
+    and 1, s
+    ora 5, s
+    sta f:text_buf, x
+    lda f:text_buf + 16, x
+    and 1, s
+    ora 3, s
+    sta f:text_buf + 16, x
+    iny
+    iny
+    inx
+    inx
+    lda 7, s
+    dec a
+    sta 7, s
+    bne pixels
+    txa
+    clc
+    adc #16
+    tax
+    pla
+    pla
+    pla
+    pla
+    rts
+.endproc
+.endif
 
 ; One row of the face —`MSG_FACE_STEP`, 0 to 5— into row X (0 or 1) of
 ; `text_buf`, from the face at `temp`. Keeps X.

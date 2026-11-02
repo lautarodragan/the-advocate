@@ -1130,4 +1130,67 @@ mod tests {
         assert_eq!(font_reach_with(&f, &['é']).len(), FONT_GLYPHS + 1);
         assert!(font_bytes_with(&Font::rm2k(font::MINCHO), &['é']).is_err());
     }
+
+    /// The choice's bar with a face is not drawn here: the cartridge
+    /// composes it out of `bar_bare`, the bar without a face over nothing
+    /// —see `bar_compose` in the runtime's message_face.s—, and this is the
+    /// recipe it follows, against the bar [`choice_bar`] gives drawn whole.
+    /// The System is noise, half its pixels transparent, so no drawing of
+    /// the cursor can make two cells alike by chance.
+    ///
+    /// With the face on the right the bar is the same from x 2 and 72
+    /// shorter: its cells 0 to 18 are the whole bar's; its last, 20, is the
+    /// whole bar's last, 29, the right edge at the same place in the cell;
+    /// and cell 19 carries six pixels of the middle and two of the edge.
+    /// The middle repeats every 16 pixels from the bar's start, and 72 is
+    /// four and a half of those, so those six are the whole bar's cell 27,
+    /// and the edge's two its cell 28. With the face on the left the bar
+    /// is the one on the right moved 72 pixels, nine cells, along.
+    #[test]
+    fn the_bar_with_a_face_is_the_bar_without_one_recut() {
+        let mut system = Picture::transparent(160, 80);
+        let mut seed: u32 = 0x2026_1102;
+        for px in system.rgba.chunks_mut(4) {
+            seed = seed.wrapping_mul(1_103_515_245).wrapping_add(12_345);
+            let [r, g, b, a] = seed.to_le_bytes();
+            px.copy_from_slice(&[r, g, b, if a & 1 == 0 { 0 } else { 255 }]);
+        }
+        let (x0, y0) = (
+            (WINDOW_TEXT_COL * CELL) as i64,
+            (WINDOW_TEXT_ROW * CELL) as i64,
+        );
+        let drawn = |side: FaceSide| {
+            let (x, w) = choice_bar(side);
+            let mut p = Picture::transparent(WINDOW_WIDTH, WINDOW_HEIGHT);
+            rm2k_render::system::cursor_over(&mut p, &system, x0 + x as i64, y0, w, WINDOW_LINE, 0);
+            p
+        };
+        let whole = drawn(FaceSide::None);
+        let at = |x: i64, y: i64| whole.get(x0 + x, y0 + y);
+        let none = [0u8; 4];
+        let right = |x: i64, y: i64| match (x / 8, x % 8) {
+            (0..=18, _) => at(x, y),
+            (19, 0..=5) => at(x + 64, y),
+            (19 | 20, _) => at(x + 72, y),
+            _ => none,
+        };
+        let left = |x: i64, y: i64| if x < 72 { none } else { right(x - 72, y) };
+        assert_eq!(MSG_FACE_TEXT_X, 72, "the recipe is for a face 72 wide");
+        assert_eq!(choice_bar(FaceSide::None), (2, 236));
+        for (side, recipe) in [
+            (FaceSide::Right, &right as &dyn Fn(i64, i64) -> [u8; 4]),
+            (FaceSide::Left, &left),
+        ] {
+            let p = drawn(side);
+            for y in 0..WINDOW_LINE as i64 {
+                for x in 0..MESSAGE_WIDTH as i64 {
+                    let want = p.get(x0 + x, y0 + y);
+                    let want = if want[3] == 0 { none } else { want };
+                    let got = recipe(x, y);
+                    let got = if got[3] == 0 { none } else { got };
+                    assert_eq!(got, want, "{side:?}: pixel ({x}, {y}) of the text area");
+                }
+            }
+        }
+    }
 }

@@ -571,6 +571,7 @@ more:
     cmp pick_sel
     bne no_bar
     jsl msg_bar_source          ; the source and the size, and A for DMAP0
+    bcs no_bar                  ; a face: the background, and the bar after
     bra go
 no_bar:
     lda f:MSG_PLACE

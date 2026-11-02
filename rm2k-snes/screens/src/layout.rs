@@ -865,6 +865,37 @@ pub const WINDOW_LINE: usize = 16;
 pub const CHOICE_INDENT: usize = 12;
 pub const CHOICE_BAR_X: usize = 2;
 pub const CHOICE_BAR_TRIM: usize = 4;
+
+/// Where the message window's face is, if it has one: the cartridge's
+/// `MSG_FACE_DRAW`, 0 to 2, which is this order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FaceSide {
+    None,
+    Left,
+    Right,
+}
+
+impl FaceSide {
+    pub const ALL: [FaceSide; 3] = [FaceSide::None, FaceSide::Left, FaceSide::Right];
+}
+
+/// The choice's bar in the text area, `(x, width)`:
+/// `Window_Message::UpdateCursorRect`. A face takes `MSG_FACE_TEXT_X` off
+/// its width, and with the face on the left the bar starts that much
+/// further in, past the face, where the options' text starts; with it on
+/// the right the bar stops short of it.
+pub const fn choice_bar(side: FaceSide) -> (usize, usize) {
+    let width = MESSAGE_WIDTH - CHOICE_BAR_TRIM;
+    match side {
+        FaceSide::None => (CHOICE_BAR_X, width),
+        FaceSide::Left => (CHOICE_BAR_X + MSG_FACE_TEXT_X, width - MSG_FACE_TEXT_X),
+        FaceSide::Right => (CHOICE_BAR_X, width - MSG_FACE_TEXT_X),
+    }
+}
+const _: () = assert!(
+    choice_bar(FaceSide::Right).0 + choice_bar(FaceSide::Right).1 <= MSG_FACE_RIGHT_X,
+    "with the face on the right the choice's bar has to stop before it"
+);
 /// The arrow of a message waiting for a key, in cells: on the bottom edge
 /// and centred, as easyrpg's `Window::Draw` puts it —`x + width / 2 - 8`,
 /// `y + height - 8`—. On a window 256 wide that falls on a cell's edge,
