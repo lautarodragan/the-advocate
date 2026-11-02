@@ -656,6 +656,48 @@ rotate_one:
     rts
 .endproc
 
+; The skills screen's status line, its state: for the actor in A8, the
+; condition it shows by reference to its name, in palette
+; `SK_STATE_PALETTE` —which `menu_state_ink` filled when the screen went
+; up—, or `normal_status` in white. With the text layer's pen where it
+; goes and its cap set: `sk_status`'s `place`. Any data bank. Clobbers A,
+; X and Y.
+.proc menu_state_write
+.a8
+.i16
+    jsl f:menu_state_of
+    bne conditioned
+    ldx #BA_TXT_NORMAL
+    jsl f:tl_text + FAST
+    rtl
+conditioned:
+    sta f:WRMPYA
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #STATE_NAME_W
+    sta f:WRMPYB
+    lda f:state_name_n, x
+    sta temp                    ; how many letters
+    lda #SK_STATE_PALETTE
+    sta temp + 1
+    rep #$20
+.a16
+    lda f:RDMPYL
+    clc
+    adc #.loword(state_names)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^state_names
+    sta msg_ptr + 2
+    jsl f:tl_text_at + FAST
+    rtl
+.endproc
+
 ; The skills screen's condition colour, `menu_state_of`'s ink for the actor
 ; in A8, into BG2's palette `SK_STATE_PALETTE`: the System colour's twelve
 ; rows and its shadow, the text screens' layout. With the screen off and the
