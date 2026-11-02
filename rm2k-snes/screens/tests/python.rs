@@ -183,8 +183,8 @@ fn everything_a_cartridge_carries() {
         .filter(|s| !s.as_str().unwrap().starts_with("  battle windows:"))
         .filter(|s| !s.as_str().unwrap().contains("skills screen:"))
         // Nor what the item screen's text asks of its pool, said since
-        // 2026-10-11.
-        .filter(|s| !s.as_str().unwrap().contains("item text: its list asks"))
+        // 2026-10-11, and since 2026-11-02 of the pool the runtime gives.
+        .filter(|s| !s.as_str().unwrap().contains("  item text: "))
         .filter(|s| !s.as_str().unwrap().contains("the shop's party"))
         .filter(|s| !s.as_str().unwrap().contains("the shop message"))
         .filter(|s| !s.as_str().unwrap().contains("the shop's term"))

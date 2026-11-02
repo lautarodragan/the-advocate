@@ -40,10 +40,25 @@ pub const SLOT_VRAM_WORDS: usize = 0x2000;
 
 /// The pairs of tiles the shop's text has: every one from the base up to
 /// the text tilemap, but pair 0, the blank one. It is the runtime's
-/// `TL_POOL_WHOLE`; the item and equipment screens have fewer, with their
-/// windows at the end of the bank, and the battle more, from word 0
-/// —`TL_POOL_BATTLE`, which the converter counts on its own—.
+/// `TL_POOL_WHOLE`; the item and equipment screens have fewer in the bank,
+/// with their windows at its end, and [`ITEM_MORE_PAIRS`] past it, and the
+/// battle more, from word 0 —`TL_POOL_BATTLE`, which the converter counts
+/// on its own—.
 pub const TEXT_POOL_PAIRS: usize = (ITEM_BORDER_MAP - SLOT_VRAM_WORDS) / 32 - 1;
+
+/// The pairs the text layer's tables have room for: the runtime's
+/// `TL_PAIRS`, pair 0 included.
+pub const TEXT_LAYER_PAIRS: usize = 448;
+/// Where the item and equipment screens' **other** pairs start: the map's
+/// tiles and sprites, which neither screen shows, from here up to the
+/// text layer's last pair —`items_pool` in `screen_bank.s`, since
+/// 2026-10-18—. So their text has these besides what their windows leave
+/// in the bank; until 2026-11-02 the converter counted only the bank's,
+/// and warned that ABL's busiest list did not fit when it did.
+pub const ITEM_MORE_VRAM: usize = 0x4000;
+/// How many those are. The cartridge checks it is what `items_pool` gives:
+/// the converter emits it as `ITEM_TEXT_MORE`.
+pub const ITEM_MORE_PAIRS: usize = TEXT_LAYER_PAIRS - (ITEM_MORE_VRAM - SLOT_VRAM_WORDS) / 32;
 
 impl Vram {
     fn within(&self, what: &str, first: usize, last: usize) -> Result<()> {

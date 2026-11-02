@@ -148,6 +148,12 @@
 //! two tables —the window's first 96 and the figure's place, which
 //! `with_one_font_table_as_before` checks— and with the window's old names,
 //! the text is the old one byte for byte.
+//!
+//! Also on 2026-11-02 the geometry got `ITEM_MORE_PAIRS`, the pairs of the
+//! map's the items screen's text takes past its bank, and the text an
+//! `ITEM_TEXT_MORE` line that the cartridge checks against `items_pool`:
+//! `without_item_text_more` takes the line away, and the text is the old
+//! one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -276,6 +282,14 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
+}
+
+/// The text without the `ITEM_TEXT_MORE` line, which came on 2026-11-02
+/// with the geometry's `ITEM_MORE_PAIRS`: both requests carry it, at 192.
+fn without_item_text_more(text: &str) -> String {
+    let line = "ITEM_TEXT_MORE    = 192\n";
+    assert_eq!(text.matches(line).count(), 1, "no ITEM_TEXT_MORE line");
+    text.replacen(line, "", 1)
 }
 
 /// The actor choice's SP line in the screens stage's answer, which came on
@@ -1784,6 +1798,7 @@ fn with_one_font_table_as_before(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "bare"));
+    let text = without_item_text_more(&text);
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
     ))));
@@ -1828,6 +1843,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "whole"));
+    let text = without_item_text_more(&text);
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
     ))));

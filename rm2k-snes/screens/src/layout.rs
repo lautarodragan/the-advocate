@@ -1205,6 +1205,10 @@ pub fn publish() -> Value {
         "TEXT_POOL_PAIRS".into(),
         json!(crate::checks::TEXT_POOL_PAIRS),
     );
+    m.insert(
+        "ITEM_MORE_PAIRS".into(),
+        json!(crate::checks::ITEM_MORE_PAIRS),
+    );
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));
     m.insert("TARGET_WINDOWS".into(), rects(&TARGET_WINDOWS));
     m.insert("EQ_WINDOWS".into(), rects(&EQ_WINDOWS));

@@ -3898,7 +3898,7 @@ impl Rest<'_> {
              ITEM_FIRST_CHAR = %d\nSCR_TEXT_X        = %d\nSCR_TEXT_Y        = %d\n\
              ITEM_BORDER_VRAM  = $%04X\nITEM_BORDER_TILES = %d\n\
              ITEM_BORDER_MAP   = $%04X\nITEM_BORDER_CGRAM = %d\nITEM_BORDER_COLORS = %d\nITEM_BORDER_ROWS  = %d\n\
-             ITEM_BORDER_LIST  = %d\n",
+             ITEM_BORDER_LIST  = %d\nITEM_TEXT_MORE    = %d\n",
             items.len(),
             t.n("ITEM_UP") * MENU_CGRAM as i64,
             t.n("ITEM_ROWS"),
@@ -3915,7 +3915,8 @@ impl Rest<'_> {
             t.n("ITEM_BORDER_CGRAM"),
             x.border_colors,
             ROWS,
-            t.n("ITEM_LIST_Y").div_euclid(cell)
+            t.n("ITEM_LIST_Y").div_euclid(cell),
+            t.n("ITEM_MORE_PAIRS")
         ));
         // The item tables go outside bank 0, read with `lda f:item_k, x`:
         // they grow with every item the maps bring. `item_k` is a word per
