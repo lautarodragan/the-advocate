@@ -7,8 +7,8 @@
 ; against 110 autostart ones.
 ;
 ; The rule comes from `Game_Player::CheckActionEvent`: the touch events in
-; front, the hero's cell and then the one in front. What is not here yet is
-; the loop of up to three counters.
+; front, the hero's cell and then the one in front, all three. What is not
+; here yet is the loop of up to three counters.
 
 ; Is there an event at (cell_x, cell_y)? Returns its index in A, or $FF. A
 ; twin's cell answers with the event whose row it shares: see
@@ -297,9 +297,8 @@ no:
 ; lost. The queue is the same as the autostart one, one behind the other,
 ; which is what RM2k does.
 ;
-; What is not modeled, on either side: an event that fires twice before
-; running comes in here twice and only once in RM2k, which flags it with a
-; bit.
+; An event that fires twice before running runs once, as in RM2k: the queue
+; is one bit per event, see `mark_waiting`.
 .proc try_touch
 .a8
 .i16
@@ -393,14 +392,22 @@ no:
     ;
     ; And before both, the touch pages of the one in front: RM2k's first
     ; `CheckEventTriggerThere` asks for touch and collision, and only then
-    ; come the action pages. Each cell here stops at the first one it
-    ; queues, and RM2k queues all three if there are three: an action event
-    ; under the hero and a touch one in front of him, both at once, is not
-    ; modeled.
+    ; come the action pages.
+    ;
+    ; **All three are looked at, whatever the one before queued**: RPG_RT ORs
+    ; them. Until 2026-11-02 each stopped at the first one it queued, and the
+    ; first rock of Zounds, on map 33, could not be mined from above: its top
+    ; half, events 17 and 18, is an action event with an empty page above the
+    ; hero, so standing on it queued that page and the bottom half in front,
+    ; on the hero's layer and with the mining page, was never looked at. See
+    ; `test_zounds_action_from_above.py` in the ports.
+    ;
+    ; Marking several is safe: it is one bit per event —`mark_waiting`—, and
+    ; `start_waiting` runs them one after the other by event number, which is
+    ; `Game_Map::Update`'s order and not this one. The order here only
+    ; decides whose turn toward the hero survives, since there is one at a
+    ; time: the last one marked —see `turn_toward_hero.s`—.
     jsr try_bump
-    beq own_cell
-    rts                         ; queued the touch one in front
-own_cell:
     lda #1
     sta own_action
     rep #$20
@@ -412,12 +419,14 @@ own_cell:
     sep #$20
 .a8
     jsr action_in_cell
-    beq look_ahead
-    rts                         ; queued the one under the hero
-look_ahead:
     stz own_action
     jsr front_cell
-    jmp action_in_cell
+    jsr action_in_cell
+    ; Whether any of the three queued: the caller only presses here with
+    ; nobody waiting —it looked at `waiting_n` first, in `events_tick`—, so
+    ; the count says it, without keeping three answers.
+    lda waiting_n
+    rts
 with_route:
     lda #0
     rts
