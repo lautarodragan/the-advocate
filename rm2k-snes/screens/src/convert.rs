@@ -955,6 +955,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 "row": menu.row,
                 "exp_term": menu.exp_term,
                 "sp_term": menu.sp_term,
+                "arrows": menu.arrows,
+                "arrow_colors": colors_json(&menu.arrow_colors),
             },
             "prerender": slots.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },

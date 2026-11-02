@@ -69,8 +69,14 @@ impl<'a> Painter<'a> {
 
     /// An 8x8 tile at any pixel, like a sprite, with the word's palette.
     fn sprite(&mut self, word: u16, x: i64, y: i64) {
+        let palette = self.palettes[((word >> 10) & 7) as usize].clone();
+        self.sprite_with(word, x, y, &palette);
+    }
+
+    /// The same with a palette of its own, one the bank's tiles do not
+    /// use: a sprite palette.
+    fn sprite_with(&mut self, word: u16, x: i64, y: i64, palette: &[Color]) {
         let cell = flipped(self.tiles[(word & 0x3FF) as usize], word);
-        let palette = &self.palettes[((word >> 10) & 7) as usize];
         for (dy, line) in cell.iter().enumerate() {
             for (dx, &value) in line.iter().enumerate() {
                 let (px, py) = (x + dx as i64, y + dy as i64);
@@ -199,23 +205,22 @@ impl Party {
     }
 }
 
-/// A row of the party panel: the fixed block, the face and the three
-/// strips that depend on the actor, and the current HP. It is what the
-/// cartridge's `menu_party_paint` does, in the same order, and that is why
-/// the menu and the actor choice share it.
+/// A row of the party panel from cell row `row0`: the fixed block, the
+/// face and the three strips that depend on the actor, and the current HP.
+/// It is what the cartridge's `menu_row_paint` does, in the same order, and
+/// that is why the menu and the actor choice share it.
 #[allow(clippy::too_many_arguments)]
 fn actor_row(
     p: &mut Painter,
     game: &Game,
     skin: &Skin,
     slots: &slots::Slots,
-    row: usize,
+    row0: usize,
     actor: i32,
     party: &Party,
     levels: bool,
 ) -> Result<()> {
     let menu = &slots.menu;
-    let row0 = row * MENU_ACTOR_ROWS;
     p.paste(&menu.row, row0, MENU_ACTOR_COL, MENU_ACTOR_COLS);
     if let Some(face) = slots.faces.get(&actor) {
         p.paste(face, row0, MENU_ACTOR_COL, FACE_CELLS);
@@ -265,10 +270,12 @@ fn actor_row(
 
 /// The pause menu. `slots` are the save slots, `chosen` the command with
 /// the cursor and `save_allowed` what `ChangeSaveAccess` left. With
-/// `choosing`, the party row the bar is on while choosing whom a command
-/// is for —`Scene_Menu::UpdateActorSelection`—; the command keeps its
-/// cursor. With `debug`, the debug screen's option on the row after End
-/// Game, as a cartridge with `[debug] debug_screen` draws it.
+/// `choosing`, the party member the bar is on while choosing whom a
+/// command is for —`Scene_Menu::UpdateActorSelection`—; the command keeps
+/// its cursor. `top` is the first member the panel shows: it shows
+/// `MENU_SHOWN`, and the arrow says if there are more. With `debug`, the
+/// debug screen's option on the row after End Game, as a cartridge with
+/// `[debug] debug_screen` draws it.
 #[allow(clippy::too_many_arguments)]
 pub fn menu(
     game: &Game,
@@ -279,6 +286,7 @@ pub fn menu(
     chosen: usize,
     save_allowed: bool,
     choosing: Option<usize>,
+    top: usize,
     debug: bool,
 ) -> Result<Picture> {
     let known = party.known();
@@ -293,7 +301,10 @@ pub fn menu(
     }
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
-    p.under(&borders::menu_bar(skin, choosing));
+    p.under(&borders::menu_bar(
+        skin,
+        choosing.and_then(|k| k.checked_sub(top)),
+    ));
     p.under(&borders::menu_cmd_bar(skin, Some(chosen)));
     for option in 0..MENU_OPTIONS {
         let done = MENU_DONE.contains(&option) && (option != MENU_SAVE || save_allowed);
@@ -326,16 +337,44 @@ pub fn menu(
         MENU_CURRENCY_COL,
         MENU_CURRENCY_COLS,
     );
-    let rows: Vec<(usize, i32)> = party
+    // The rows shown, from `top`: the cartridge paints every member's row
+    // once and uploads the three shown —see `menu_list.s`—.
+    let members: Vec<i32> = party
         .members
         .iter()
         .take(MENU_PARTY_ROWS)
         .copied()
+        .collect();
+    let rows: Vec<(usize, i32)> = members
+        .iter()
+        .copied()
+        .skip(top)
+        .take(MENU_SHOWN)
         .enumerate()
         .filter(|(_, a)| known.contains(a))
         .collect();
     for &(row, actor) in &rows {
-        actor_row(&mut p, game, skin, &bank, row, actor, party, true)?;
+        let row0 = row * MENU_LIST_ROWS;
+        actor_row(&mut p, game, skin, &bank, row0, actor, party, true)?;
+        // The SP, the fourth line, in cells: the term in the HP term's
+        // column and the number under the HP's cells.
+        p.paste(
+            &menu.sp_term,
+            row0 + MENU_SP_ROW,
+            MENU_SP_X / CELL,
+            MENU_SP_TERM_CELLS,
+        );
+        // The maximum is the level's, as the cartridge's `level_param`
+        // gives it; the current one, without a value, the starting level's
+        // maximum, like the HP: raising a level does not fill them.
+        let level = party.levels.get(&actor).copied();
+        let sp = party.sp.get(&actor).copied().unwrap_or_else(|| {
+            game.actors
+                .get(&actor)
+                .map_or(0, |a| texts::max_sp(a, None))
+        });
+        let text = texts::sp_text(game, actor, level, Some(sp));
+        paste_text(&mut p, menu, &text, row0 + MENU_SP_ROW, MENU_HP_COL)?;
     }
     // The experience goes on top of everything, like sprites over the
     // background: see `MENU_EXP_X`.
@@ -346,7 +385,7 @@ pub fn menu(
             party.levels.get(&actor).copied(),
             party.exps.get(&actor).copied(),
         );
-        let y = (row * MENU_ACTOR_ROWS * CELL + MENU_EXP_Y - GLYPH_DY) as i64;
+        let y = (row * MENU_LIST_ROWS * CELL + MENU_EXP_Y - GLYPH_DY) as i64;
         for (n, &word) in menu.exp_term.iter().enumerate() {
             p.sprite(
                 word,
@@ -366,6 +405,26 @@ pub fn menu(
                 .ok_or_else(|| Bad::answer(format!("the menu's bank has no {letter:?}")))?;
             p.sprite(glyph[0], x, y);
             p.sprite(glyph[1], x, y + CELL as i64);
+        }
+    }
+    // And the sign, under the third row: the down arrow if someone is
+    // below, the up one if someone is above —see `MENU_ARROW_Y`—.
+    let arrow = if top + MENU_SHOWN < members.len() {
+        Some(1)
+    } else if top > 0 {
+        Some(0)
+    } else {
+        None
+    };
+    if let Some(k) = arrow {
+        let half = ARROW_WIDTH / CELL;
+        for n in 0..half {
+            p.sprite_with(
+                menu.arrows[k * half + n],
+                (MENU_ARROW_X + n * CELL) as i64,
+                MENU_ARROW_Y as i64,
+                &menu.arrow_colors,
+            );
         }
     }
     Ok(p.picture())
@@ -443,7 +502,8 @@ fn target_with(
         .enumerate()
     {
         if known.contains(&actor) {
-            actor_row(&mut p, game, skin, &bank, row, actor, party, false)?;
+            let row0 = row * MENU_ACTOR_ROWS;
+            actor_row(&mut p, game, skin, &bank, row0, actor, party, false)?;
         }
     }
     // The SP, on top of everything like the menu's experience: see

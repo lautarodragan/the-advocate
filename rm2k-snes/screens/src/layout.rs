@@ -124,8 +124,8 @@ pub const GLYPH_DY: usize = 2;
 // RM2k's `Scene_Menu` at 256x224: the command column on the left, the gold at
 // the bottom left and the party on the right, **without the windows** —black
 // background, like the slot screen— and without what does not fit: the
-// actor's title and the SP, which only the actor choice shows (see
-// `MENU_SP_X`). It lives in the **same tile bank and the same
+// actor's title. The party shows **three rows at a time** and scrolls to the
+// fourth —see `MENU_SHOWN`—. It lives in the **same tile bank and the same
 // palette** as the slot screen: the faces are the same, and the save screen
 // is opened from the menu.
 pub const MENU_OPTIONS: usize = 5;
@@ -156,11 +156,42 @@ pub const MENU_GOLD_COL: usize = 3;
 pub const MENU_GOLD_DIGITS: usize = 6;
 pub const MENU_CURRENCY_COL: usize = MENU_GOLD_COL + MENU_GOLD_DIGITS;
 pub const MENU_CURRENCY_COLS: usize = 3;
-/// The party: a row of seven cells per actor, with the face on the left and
-/// the text beside it. Four rows are exactly 224 pixels.
+/// The party: a row per actor, with the face on the left and the text
+/// beside it. On the actor choice a row is **seven cells**, and four rows
+/// are exactly 224 pixels; the row's fixed block is that tall on both
+/// screens.
 pub const MENU_ACTOR_COL: usize = 12;
 pub const MENU_ACTOR_COLS: usize = COLS - MENU_ACTOR_COL;
 pub const MENU_ACTOR_ROWS: usize = 7;
+/// On the pause menu a row is **nine cells**: the name, the level, the HP
+/// and the SP in four lines of cells, and the experience in sprites under
+/// them —see `MENU_EXP_X`—. Four of those are 288 lines, so the menu
+/// **shows three** and scrolls a whole row when the bar goes past them,
+/// which RM2k does not need: its window shows the four. Three rows are
+/// 216 lines; the eight left under them take the sign that there is more,
+/// `MENU_ARROW_Y`. See the divergence `what-the-party-panel-does-not-model`
+/// in the book.
+///
+/// Measured on 2026-11-01, with four rows of seven: a fifth line of ink
+/// does not fit in the row —five lines need some 55 of its 56— nor in
+/// sprites —the experience took 120 of the 128—. And with three rows the
+/// SP do not fit in sprites either: 3 x (30 + 18) objects are 144.
+pub const MENU_LIST_ROWS: usize = 9;
+pub const MENU_SHOWN: usize = 3;
+/// The SP line of a menu row, in cells: the fourth line, two cells under
+/// the HP's. The term in the HP term's column and the number one letter per
+/// cell under the HP's —`"%3d"`, the slash and the maximum—.
+pub const MENU_SP_ROW: usize = 3 * LINE / CELL;
+/// The sign that the list goes on: the System's arrow —`Window::Draw`'s,
+/// 16x8—, the down one if someone is below the three rows shown and the
+/// up one if someone is above, **both in the eight lines under the third
+/// row**, centred on the panel: over the first row the up one would cover
+/// the name. In sprites, and still: RM2k's blinks every twenty frames, and
+/// a capture of it would depend on the frame.
+pub const MENU_ARROW_X: usize =
+    MENU_ACTOR_COL * CELL + MENU_ACTOR_COLS * CELL / 2 - ARROW_WIDTH / 2;
+pub const MENU_ARROW_Y: usize = MENU_SHOWN * MENU_LIST_ROWS * CELL;
+const _: () = assert!(MENU_ARROW_Y + ARROW_HEIGHT <= HEIGHT);
 pub const MENU_TEXT_X: usize = MENU_ACTOR_COL * CELL + FACE + 8;
 /// "Normal" goes 42 from the level, as in RM2k.
 pub const MENU_STATUS_DX: usize = 42;
@@ -188,27 +219,26 @@ pub const MENU_MAX_DIGITS: usize = 4;
 ///
 /// **It goes in sprites, not in the tilemap**, and it is the only line on
 /// this screen that is not on the grid: RM2k's two columns do not fit in 256
-/// pixels, and a fourth line of cells does not fit in the row. In sprites it
-/// goes twelve pixels below the HP, at the font's six pixels. The tiles are
-/// the bank's own glyphs.
+/// pixels, and a fifth line of cells does not fit in the row. In sprites it
+/// goes eleven pixels below the SP, at the font's six pixels, and its ink
+/// ends on the row's last line. The tiles are the bank's own glyphs.
 pub const MENU_EXP_X: usize = MENU_TEXT_X;
-pub const MENU_EXP_Y: usize = 2 + 2 * LINE + 11;
+pub const MENU_EXP_Y: usize = 2 + 3 * LINE + 11;
 pub const MENU_EXP_NUM_DX: usize = 12;
 pub const MENU_EXP_DIGITS: usize = 6;
 pub const MENU_EXP_LETTERS: usize = 2 * MENU_EXP_DIGITS + 1;
 /// The term, "Ex" in A Blurred Line: twelve pixels, two cells wide.
 pub const MENU_EXP_TERM_CELLS: usize = 2;
 /// The SP, `Window_ActorTarget`'s second column —`DrawActorSp`, under the
-/// HP—, **only on the actor choice**: there the row has no experience, so
-/// its fourth line is free, and the SP go where the menu has "Ex", in
-/// sprites too. On the pause menu a fifth line does not fit: its ink would
-/// need some 55 of the row's 56 lines and the experience already takes 120
-/// of the 128 sprites —see the task `sp-in-the-menu-and-the-item-target-
-/// picker`—. The term is `sp_short`, two cells like the experience's, and
-/// the number is the HP's —`"%3d"`, the slash and the maximum— one cell
-/// per letter, right under the HP's cells.
+/// HP—, on the actor choice: there the row has no experience, so its
+/// fourth line is free, and the SP go **in sprites** eleven pixels under
+/// the HP. The pause menu, whose rows are taller, puts them in cells
+/// —`MENU_SP_ROW`—, with the same term and the same columns. The term is
+/// `sp_short`, two cells like the experience's, and the number is the HP's
+/// —`"%3d"`, the slash and the maximum— one cell per letter, right under
+/// the HP's cells.
 pub const MENU_SP_X: usize = MENU_TEXT_X;
-pub const MENU_SP_Y: usize = MENU_EXP_Y;
+pub const MENU_SP_Y: usize = 2 + 2 * LINE + 11;
 pub const MENU_SP_TERM_CELLS: usize = 2;
 /// The current SP, the slash and the maximum: the HP's seven cells.
 pub const MENU_SP_LETTERS: usize = MENU_HP_DIGITS + MENU_MAX_DIGITS;
@@ -335,35 +365,39 @@ pub const TARGET_COUNT_COL: usize = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2;
 /// For a skill the count is its cost, and the term next to it the
 /// database's `sp_cost`, as `Window_TargetStatus` writes it.
 pub const TARGET_TERM_COST: &str = "sp_cost";
-/// The bar goes over the row's four lines of text —the SP's is the
-/// fourth, see `MENU_SP_X`—, as in RM2k, and not over the face: it is the
-/// pause menu's, `MENU_BAR`. Until 2026-11-01 it went over three lines,
-/// from y = 2 to a cell boundary, and its red started on the name's top
-/// row of ink: taro saw a pixel of the text left out.
-pub const TARGET_BAR: Rect = MENU_BAR;
-/// The bar on a party row: on the pause menu, where `Scene_Menu` chooses
-/// whom to equip over its own party panel —there are no windows under it,
-/// so it is drawn over nothing—, and on the actor choice. It covers the
-/// row's four lines with **a pixel of red over the text and two under
-/// it** —the cursor's edge is one dark pixel, so the red starts one in—:
-/// the name's ink starts at y = 3 and the fourth line, which is sprites
-/// below the cell grid, ends at y = 55 with its shadow. So the edges go at
-/// y = 1 and y = 58 —red from 2 to 57— and the bar reaches into the next
-/// row, which has no bar then, two lines above its text. Not higher: on
-/// the actor choice's first row y = 0 is the window's frame.
+/// The bar on a party row of the actor choice, over the row's four lines of
+/// text —the SP's is the fourth, see `MENU_SP_X`—, as in RM2k, and not over
+/// the face. It covers them with **a pixel of red over the text and two
+/// under it** —the cursor's edge is one dark pixel, so the red starts one
+/// in—: the name's ink starts at y = 3 and the fourth line, which is
+/// sprites below the cell grid, ends at y = 55 with its shadow. So the
+/// edges go at y = 1 and y = 58 —red from 2 to 57— and the bar reaches into
+/// the next row, which has no bar then, two lines above its text. Not
+/// higher: on the first row y = 0 is the window's frame.
 ///
 /// Measured against the captures on 2026-11-01: from y = 2 the red started
 /// on the name's top row of ink, which is the pixel taro saw left out. On
 /// 2026-09-30, at y = 2..53, the bottom of "Ex" was left over black.
-pub const MENU_BAR: Rect = (
+pub const TARGET_BAR: Rect = (
     MENU_TEXT_X - 4,
     1,
     WIDTH - MENU_TEXT_X,
     MENU_ACTOR_ROWS * CELL + 2,
 );
-/// How many cell rows a bar on a party row reaches: the row's and the one
-/// of the next row its bottom goes into.
-pub const BAR_CELL_ROWS: usize = (MENU_BAR.1 + MENU_BAR.3).div_ceil(CELL);
+/// How many cell rows a bar on a party row of the actor choice reaches:
+/// the row's and the one of the next row its bottom goes into.
+pub const BAR_CELL_ROWS: usize = (TARGET_BAR.1 + TARGET_BAR.3).div_ceil(CELL);
+/// The same bar on the pause menu, where `Scene_Menu` chooses whom to
+/// equip over its own party panel —there are no windows under it, so it is
+/// drawn over nothing—: its rows are nine cells, so it goes from y = 1 to
+/// y = 74, a line of red over the name and two under the experience, whose
+/// ink ends at y = 71.
+pub const MENU_BAR: Rect = (
+    TARGET_BAR.0,
+    TARGET_BAR.1,
+    TARGET_BAR.2,
+    MENU_LIST_ROWS * CELL + 2,
+);
 /// The command cursor on the pause menu, on the first command:
 /// `Window_Command`'s, four pixels left of the text and the window's width
 /// minus eight —the column's plus eight—, one command tall. Measured against
@@ -912,6 +946,11 @@ pub fn publish() -> Value {
         MENU_ACTOR_COL,
         MENU_ACTOR_COLS,
         MENU_ACTOR_ROWS,
+        MENU_LIST_ROWS,
+        MENU_SHOWN,
+        MENU_SP_ROW,
+        MENU_ARROW_X,
+        MENU_ARROW_Y,
         MENU_TEXT_X,
         MENU_STATUS_DX,
         MENU_PARTY_ROWS,

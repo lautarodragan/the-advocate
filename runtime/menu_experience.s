@@ -12,22 +12,25 @@
 ; --- experience in the menu -------------------------------------------------
 ;
 ; The third line of `Window_MenuStatus`: "Ex", the current experience and the
-; one the next level asks for, `"%6d/%6d"`. **It goes in sprites**, twelve
-; pixels below the HP and at the font's six-pixel pitch: in the cell grid
+; one the next level asks for, `"%6d/%6d"`. **It goes in sprites**, eleven
+; pixels below the SP and at the font's six-pixel pitch: in the cell grid
 ; there was no room. The why and the geometry are in `MENU_EXP_X`, in
-; `rm2k-snes-screens`, whose `render` is the reference.
+; `rm2k-snes-screens`, whose `render` is the reference. Only the rows the
+; menu shows have theirs —see `menu_list.s`—, and under them goes the arrow
+; that says there are more, in sprites too.
 ;
 ; Sprites read their tiles from `SLOT_VRAM`, so a glyph's tile in the bank
 ; is the same number, and their palette 1 is a copy of the text's: palette
-; 0, colors 128 to 143, is the menu bar's —see `menu_bar_upload`—. No other
-; screen turns sprites on —`slot_ppu_on` leaves only BG2—, so the
-; actor choice, which shares the panel, does not show it, which is what
-; `Window_ActorTarget` does. What this changes from the map —OBSEL and colors
-; 128 to 159— is restored by `menu_exp_close` on the way back.
+; 0, colors 128 to 143, is the menu bar's —see `menu_bar_upload`—, and
+; palette 2 is the arrows'. The actor choice, which shares the panel, shows
+; its SP in sprites instead —see below—, which is what `Window_ActorTarget`
+; does. What this changes from the map —OBSEL and colors 128 to 175— is
+; restored by `menu_exp_close` on the way back.
 ;
-; It runs with the screen off: the OAM is written straight through the port,
-; and nothing overwrites it while the menu is shown because `flush_video`
-; does not run.
+; It is built in `oam`, the map's OAM in RAM, and goes up whole with
+; `menu_sp_upload`: with the screen off when the menu opens, and in the
+; vblank where the list scrolls. Nothing else writes `oam` while the menu
+; is shown, because `build_oam` runs on the map.
 ;
 ; The scratch space is variables borrowed from the message composer, which
 ; does not exist with the menu open:
@@ -35,7 +38,7 @@
 ;   comp_phase       the top y of the row's sprites
 ;   comp_phase + 1   the y of the sprite being placed
 ;   comp_mask       its x
-;   comp_base       how many sprites have been placed
+;   comp_base       the OAM byte of the object being placed, 16 bits
 ;   comp_dup        the actor's level
 ;   comp_or01       the number being written, 24 bits
 ;   comp_and        the trial subtraction
@@ -47,7 +50,7 @@ MENU_EXP_HIDDEN = 224           ; a y below the last visible line
 MENU_EXP_SPRITES = 128
 
 .assert MENU_EXP_TEXT + MENU_EXP_LETTERS <= MENU_EXP_TEXT_END, error, "the experience line does not fit in its place"
-.assert MENU_ROWS_PARTY * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETTERS) <= MENU_EXP_SPRITES, error, "the party's experience does not fit in the sprites"
+.assert MENU_SHOWN * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETTERS) + 2 <= MENU_EXP_SPRITES, error, "the experience of the rows shown and the arrow do not fit in the sprites"
 
 ; From `menu_upload`, instead of `slot_ppu_on`: the sprites, and then
 ; it turns the screen on with them. With the screen off.
@@ -61,7 +64,7 @@ MENU_EXP_SPRITES = 128
     ; 8x8 sprites with the tiles from `SLOT_VRAM`.
     lda #(SLOT_VRAM / $2000)
     sta OBSEL
-    ; Sprite palette 1, the text's.
+    ; Sprite palette 1, the text's, and 2, the arrows'.
     lda #144
     sta CGADD
     rep #$20
@@ -79,46 +82,21 @@ MENU_EXP_SPRITES = 128
     sta BBAD0
     lda #$01
     sta MDMAEN
+    rep #$20
+.a16
+    lda #.loword(menu_arrow_cgram)
+    sta A1T0L
+    lda #(16 * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^menu_arrow_cgram
+    sta A1B0
+    lda #$01
+    sta MDMAEN                  ; CGADD went on to 160 by itself
 
-    stz OAMADDL
-    stz OAMADDL + 1
-    stz comp_base               ; no sprite yet
-    stz comp_char
-    lda #MENU_EXP_Y
-    sta comp_phase
-row:
-    lda comp_char
-    cmp party_n
-    bcs rows_lists
-    cmp #MENU_ROWS_PARTY
-    bcs rows_lists
-    jsr one_row
-    lda comp_phase
-    clc
-    adc #MENU_ACTOR_HEIGHT
-    sta comp_phase
-    inc comp_char
-    bra row
-rows_lists:
-    ; The leftover ones, below the screen, and the small table at zero: an
-    ; eight-bit x and the small size for all of them.
-    lda comp_base
-    cmp #MENU_EXP_SPRITES
-    bcs hidden_all_ready
-    stz OAMDATA
-    lda #MENU_EXP_HIDDEN
-    sta OAMDATA
-    stz OAMDATA
-    stz OAMDATA
-    inc comp_base
-    bra rows_lists
-hidden_all_ready:
-    ldx #(MENU_EXP_SPRITES / 4)
-table_small:
-    stz OAMDATA
-    dex
-    bne table_small
-
+    jsl f:menu_exp_build
+    jsl f:menu_sp_upload
     jsl f:ba_t_ppu              ; the screen, on with BG2 alone
     ; And BG1, with its own base, for the bar: empty until something is
     ; chosen. `slot_ppu_on` left BG2's base, which does not change.
@@ -126,6 +104,86 @@ table_small:
     sta BG12NBA
     lda #$13                    ; and the sprites on top
     sta TM
+    plb
+    rtl
+.endproc
+
+; The OAM of the rows the menu shows, from `far_menu_top`, into `oam`: each
+; one's experience line and, under the third, the arrow if there is someone
+; above or below —see `MENU_ARROW_Y`—. Every other object hidden and
+; small. In RAM, so with the screen on too: `menu_choose` builds it before
+; the vblank where it scrolls. With any data bank; clobbers A, X and Y.
+.proc menu_exp_build
+.a8
+.i16
+    phb
+    lda #0
+    pha
+    plb                         ; `oam` and the party, in bank 0
+    jsr menu_oam_hide
+    rep #$20
+.a16
+    stz comp_base               ; the first object
+    sep #$20
+.a8
+    lda f:far_menu_top
+    sta comp_char
+    lda #MENU_EXP_Y
+    sta comp_phase
+row:
+    lda comp_char
+    cmp party_n
+    bcs arrow
+    cmp #MENU_ROWS_PARTY
+    bcs arrow
+    sec
+    sbc f:far_menu_top
+    cmp #MENU_SHOWN
+    bcs arrow
+    jsr one_row
+    lda comp_phase
+    clc
+    adc #MENU_LIST_HEIGHT
+    sta comp_phase
+    inc comp_char
+    bra row
+arrow:
+    ; The sign: down if someone is below the rows shown —`comp_char` is
+    ; the first not shown, if there is one— and up if someone is above.
+    ldx #0                      ; the up one's two tiles
+    lda comp_char
+    cmp party_n
+    bcs no_below
+    cmp #MENU_ROWS_PARTY
+    bcs no_below
+    ldx #4                      ; the down one's
+    bra sign
+no_below:
+    lda f:far_menu_top
+    beq signed
+sign:
+    ldy comp_base
+    lda #MENU_ARROW_X
+    sta oam, y
+    clc
+    adc #8
+    sta oam + 4, y
+    lda #MENU_ARROW_Y
+    sta oam + 1, y
+    sta oam + 5, y
+    lda f:menu_arrow_cells, x
+    sta oam + 2, y
+    lda f:menu_arrow_cells + 1, x
+    and #$01                    ; bit 8 of the tile
+    ora #$34                    ; priority 3, sprite palette 2
+    sta oam + 3, y
+    lda f:menu_arrow_cells + 2, x
+    sta oam + 6, y
+    lda f:menu_arrow_cells + 3, x
+    and #$01
+    ora #$34
+    sta oam + 7, y
+signed:
     plb
     rtl
 
@@ -260,7 +318,7 @@ term_y:
     asl a
     tax
     lda f:menu_exp_finished, x
-    jsr put
+    jsr menu_obj_put
 .a8
     plx
     inx
@@ -291,7 +349,7 @@ letter:
     rep #$20
 .a16
     lda f:slot_glyph_cells, x
-    jsr put                     ; the top cell
+    jsr menu_obj_put            ; the top cell
 .a8
     lda comp_phase
     clc
@@ -300,7 +358,7 @@ letter:
     rep #$20
 .a16
     lda f:slot_glyph_cells + 2, x
-    jsr put                     ; and the bottom one
+    jsr menu_obj_put            ; and the bottom one
 .a8
     plx
 next:
@@ -311,27 +369,6 @@ next:
     inx
     cpx #MENU_EXP_LETTERS
     bcc letter
-    rts
-
-; One sprite: A16 the glyph's tilemap word —tile and palette—, at
-; `comp_mask`, `comp_phase + 1`. Returns with an 8-bit A, and touches neither
-; X nor Y.
-.a16
-put:
-    sep #$20
-.a8
-    pha                         ; the tile's low byte
-    lda comp_mask
-    sta OAMDATA
-    lda comp_phase + 1
-    sta OAMDATA
-    pla
-    sta OAMDATA
-    xba                         ; the word's high byte: bit 8 of the
-    and #$01                    ; tile, and the BG2 palette, which is 0
-    ora #$32                    ; priority 3, sprite palette 1
-    sta OAMDATA
-    inc comp_base
     rts
 
 ; `comp_or01`: a 24-bit number, less than a million. Writes its six digits
@@ -396,8 +433,8 @@ powers:
 
 ; When closing the menu, before `back_to_map`: what `menu_exp_paint`
 ; changed on the map and the map does not restore by itself. OBSEL, which
-; `back_to_map` does not touch, and the colors of sprite palettes 0 and 1
-; —the bar's and the experience's—, from
+; `back_to_map` does not touch, and the colors of sprite palettes 0 to 2
+; —the bar's, the experience's and the arrows'—, from
 ; `cgram_shadow`, which has the map's even if the tint or a picture changed
 ; them. It turns the screen off, which `back_to_map` turns off anyway.
 .proc menu_exp_close
@@ -418,7 +455,7 @@ powers:
 .a16
     lda #.loword(cgram_shadow + 2 * 128)
     sta A1T0L
-    lda #(32 * 2)
+    lda #(48 * 2)
     sta DAS0L
     sep #$20
 .a8
@@ -473,15 +510,11 @@ MENU_SP_ROW_OBJECTS = MENU_EXP_TERM_TILES + 2 * MENU_SP_LETTERS
 .assert MENU_ROWS_PARTY * MENU_SP_ROW_OBJECTS <= MENU_EXP_SPRITES, error, "the party's SP do not fit in the sprites"
 .assert MENU_EXP_TEXT + MENU_SP_LETTERS <= MENU_EXP_TEXT_END, error, "the SP line does not fit in its place"
 
-; Every object hidden and small, and each party row's SP line, into `oam`.
-; With any data bank; clobbers A, X and Y.
-.proc menu_sp_build
+; Every object of `oam` hidden and small. With the data bank at 0;
+; clobbers A and X.
+.proc menu_oam_hide
 .a8
 .i16
-    phb
-    lda #0
-    pha
-    plb                         ; `oam` and the party, in bank 0
     ldx #0
 hide:
     stz oam, x
@@ -501,65 +534,50 @@ small:
     inx
     cpx #32
     bcc small
-    stz comp_char
-row:
-    lda comp_char
-    cmp party_n
-    bcs ready
-    cmp #MENU_ROWS_PARTY
-    bcs ready
-    jsr one_row
-    inc comp_char
-    bra row
-ready:
-    plb
-    rtl
+    rts
+.endproc
 
-; Row `comp_char`'s line, if the cartridge knows its actor.
-one_row:
-    ; Its first object's byte: the row times eighteen objects of four.
-    rep #$20
+; One object at `comp_base`: A16 the glyph's tilemap word —tile and
+; palette—, at `comp_mask`, `comp_phase + 1`. Moves `comp_base` to the next
+; object. Returns with an 8-bit A, and touches neither X nor Y.
+.proc menu_obj_put
 .a16
-    lda comp_char
-    and #$00FF
-    asl a
-    asl a
-    asl a                       ; eight
-    sta comp_base
-    asl a
-    asl a
-    asl a                       ; sixty-four
-    clc
-    adc comp_base               ; seventy-two
-    sta comp_base
-    .assert MENU_SP_ROW_OBJECTS * 4 = 72, error, "the row's first object is not the row times 72"
+.i16
+    phx
+    pha                         ; the word
+    ldx comp_base
     sep #$20
 .a8
-    ; And its y: the row's, plus the line's.
-    lda comp_char
-    sta WRMPYA
-    lda #MENU_ACTOR_HEIGHT
-    sta WRMPYB                  ; eight cycles
-    nop
-    nop
-    nop
-    nop
-    lda RDMPYL
-    clc
-    adc #MENU_SP_Y
-    sta comp_phase
-    rep #$20
+    lda comp_mask
+    sta oam, x
+    lda 1, s                    ; the tile's low byte
+    sta oam + 2, x
+    lda 2, s                    ; the word's high byte: bit 8 of the
+    and #$01                    ; tile, and the BG2 palette, which is 0
+    ora #$32                    ; priority 3, sprite palette 1
+    sta oam + 3, x
+    lda comp_phase + 1
+    sta oam + 1, x
+    rep #$21
 .a16
-    lda comp_char
-    and #$00FF
-    tax
+    pla                         ; the word, which is not needed any more
+.a16
+    txa
+    adc #4
+    sta comp_base
     sep #$20
 .a8
-    lda party, x
-    cmp #MENU_ACTORS_N
-    bcc known
-    rts                         ; one this ROM does not know
-known:
+    plx
+    rts
+.endproc
+
+; Actor A's SP line, `"%3d/%-4d"`, into `MENU_EXP_TEXT`: the current SP
+; right-aligned in three places, the slash and the maximum for its level.
+; The actor choice draws it in sprites and the pause menu in cells. With
+; the data bank at 0; clobbers A, X and Y.
+.proc menu_sp_text
+.a8
+.i16
     pha                         ; the actor, until the text is done
 
     ; --- the text: the current SP in three places, right-aligned ---
@@ -636,11 +654,116 @@ no_tens:
     inx
 padding:
     cpx #MENU_SP_LETTERS
-    bcs sprites
+    bcs ready
     lda #' '
     sta f:MENU_EXP_TEXT, x
     inx
     bra padding
+ready:
+    rts
+
+; A16 —less than a thousand— into its three digits, 0 to 9, in `comp_dup`,
+; `+ 1` and `+ 2`: `three_digits` of level.s, which is in bank 1. Leaves
+; A at sixteen bits; clobbers X.
+.a16
+sp_digits:
+    ldx #0
+hundreds_count:
+    cmp #100
+    bcc hundreds_done
+    sbc #100                    ; C comes from the comparison
+    inx
+    bra hundreds_count
+hundreds_done:
+    stx comp_dup                ; and a zero in `comp_dup + 1`
+    ldx #0
+tens_count:
+    cmp #10
+    bcc tens_done
+    sbc #10
+    inx
+    bra tens_count
+tens_done:
+    stx comp_dup + 1            ; and a zero in `comp_dup + 2`
+    sep #$20
+.a8
+    sta comp_dup + 2
+    rep #$20
+.a16
+    rts
+.a8
+.endproc
+
+; Every object hidden and small, and each party row's SP line, into `oam`.
+; With any data bank; clobbers A, X and Y.
+.proc menu_sp_build
+.a8
+.i16
+    phb
+    lda #0
+    pha
+    plb                         ; `oam` and the party, in bank 0
+    jsr menu_oam_hide
+    stz comp_char
+row:
+    lda comp_char
+    cmp party_n
+    bcs ready
+    cmp #MENU_ROWS_PARTY
+    bcs ready
+    jsr one_row
+    inc comp_char
+    bra row
+ready:
+    plb
+    rtl
+
+; Row `comp_char`'s line, if the cartridge knows its actor.
+one_row:
+    ; Its first object's byte: the row times eighteen objects of four.
+    rep #$20
+.a16
+    lda comp_char
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; eight
+    sta comp_base
+    asl a
+    asl a
+    asl a                       ; sixty-four
+    clc
+    adc comp_base               ; seventy-two
+    sta comp_base
+    .assert MENU_SP_ROW_OBJECTS * 4 = 72, error, "the row's first object is not the row times 72"
+    sep #$20
+.a8
+    ; And its y: the row's, plus the line's.
+    lda comp_char
+    sta WRMPYA
+    lda #MENU_ACTOR_HEIGHT
+    sta WRMPYB                  ; eight cycles
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL
+    clc
+    adc #MENU_SP_Y
+    sta comp_phase
+    rep #$20
+.a16
+    lda comp_char
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda party, x
+    cmp #MENU_ACTORS_N
+    bcc known
+    rts                         ; one this ROM does not know
+known:
+    jsr menu_sp_text
 
 sprites:
     ; --- the term: four tiles, two on top and two below ---
@@ -668,7 +791,7 @@ term_y:
     asl a
     tax
     lda f:menu_sp_finished, x
-    jsr put
+    jsr menu_obj_put
 .a8
     iny
     cpy #MENU_EXP_TERM_TILES
@@ -714,7 +837,7 @@ visible:
 .a16
     tyx
     lda f:slot_glyph_cells, x
-    jsr put                     ; the top cell
+    jsr menu_obj_put            ; the top cell
 .a8
     lda comp_phase
     clc
@@ -724,7 +847,7 @@ visible:
 .a16
     tyx
     lda f:slot_glyph_cells + 2, x
-    jsr put                     ; and the bottom one
+    jsr menu_obj_put            ; and the bottom one
 .a8
 next:
     lda comp_mask
@@ -737,67 +860,6 @@ next:
     bcc letter
     rts
 
-; One object at `comp_base`: A16 the glyph's tilemap word —tile and
-; palette—, at `comp_mask`, `comp_phase + 1`. Moves `comp_base` to the next
-; object. Returns with an 8-bit A, and touches neither X nor Y.
-.a16
-put:
-    phx
-    pha                         ; the word
-    ldx comp_base
-    sep #$20
-.a8
-    lda comp_mask
-    sta oam, x
-    lda 1, s                    ; the tile's low byte
-    sta oam + 2, x
-    lda 2, s                    ; the word's high byte: bit 8 of the
-    and #$01                    ; tile, and the BG2 palette, which is 0
-    ora #$32                    ; priority 3, sprite palette 1
-    sta oam + 3, x
-    lda comp_phase + 1
-    sta oam + 1, x
-    rep #$21
-.a16
-    pla                         ; the word, which is not needed any more
-.a16
-    txa
-    adc #4
-    sta comp_base
-    sep #$20
-.a8
-    plx
-    rts
-
-; A16 —less than a thousand— into its three digits, 0 to 9, in `comp_dup`,
-; `+ 1` and `+ 2`: `three_digits` of level.s, which is in bank 1. Leaves
-; A at sixteen bits; clobbers X.
-.a16
-sp_digits:
-    ldx #0
-hundreds_count:
-    cmp #100
-    bcc hundreds_done
-    sbc #100                    ; C comes from the comparison
-    inx
-    bra hundreds_count
-hundreds_done:
-    stx comp_dup                ; and a zero in `comp_dup + 1`
-    ldx #0
-tens_count:
-    cmp #10
-    bcc tens_done
-    sbc #10
-    inx
-    bra tens_count
-tens_done:
-    stx comp_dup + 1            ; and a zero in `comp_dup + 2`
-    sep #$20
-.a8
-    sta comp_dup + 2
-    rep #$20
-.a16
-    rts
 .a8
 .endproc
 

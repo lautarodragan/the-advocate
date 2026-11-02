@@ -265,6 +265,7 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], cursor);
     with_the_sp_line(&mut value["screens"]);
+    with_the_menu_list(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
 }
 
@@ -291,6 +292,49 @@ fn without_sp_line(text: &str) -> String {
     let first = out.find("MENU_SP_X ").expect("no MENU_SP_X");
     let mut stop = first;
     for _ in 0..4 {
+        stop += out[stop..].find('\n').unwrap() + 1;
+    }
+    out.replace_range(first..stop, "");
+    out
+}
+
+/// The pause menu's scrolling list in the screens stage's answer, which
+/// came on 2026-11-01, after the requests were written: the arrows' words
+/// are the experience term's here, their colours one, and the geometry the
+/// stage's. [`without_menu_list`] takes it out of the text.
+fn with_the_menu_list(screens: &mut serde_json::Value) {
+    screens["slots"]["menu"]["arrows"] = screens["slots"]["menu"]["exp_term"].clone();
+    screens["slots"]["menu"]["arrow_colors"] = serde_json::json!([[0, 0, 0], [31, 0, 0]]);
+    let layout = &mut screens["layout"];
+    for (name, value) in [
+        ("MENU_LIST_ROWS", 9),
+        ("MENU_SHOWN", 3),
+        ("MENU_SP_ROW", 6),
+        ("MENU_ARROW_X", 168),
+        ("MENU_ARROW_Y", 216),
+    ] {
+        layout[name] = serde_json::json!(value);
+    }
+}
+
+/// The text without what [`with_the_menu_list`] adds: the arrows' two
+/// blocks and the list's eight numbers.
+fn without_menu_list(text: &str) -> String {
+    let at = text
+        .find("\nmenu_arrow_cells:\n")
+        .expect("no menu_arrow_cells");
+    let start = text[..at].rfind("\n.block ").expect("no .block before it");
+    let colors = text
+        .find("\nmenu_arrow_cgram:")
+        .expect("no menu_arrow_cgram");
+    let mut end = colors + 1;
+    for _ in 0..3 {
+        end += text[end..].find('\n').unwrap() + 1;
+    }
+    let mut out = format!("{}{}", &text[..start + 1], &text[end..]);
+    let first = out.find("MENU_LIST_ROWS ").expect("no MENU_LIST_ROWS");
+    let mut stop = first;
+    for _ in 0..8 {
         stop += out[stop..].find('\n').unwrap() + 1;
     }
     out.replace_range(first..stop, "");
@@ -1635,9 +1679,8 @@ fn without_attribute_shifts(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_sp_line(&without_debug_screen(&with_the_cursors_as_before(
-        &emitted.text,
-        "bare",
+    let text = without_menu_list(&without_sp_line(&without_debug_screen(
+        &with_the_cursors_as_before(&emitted.text, "bare"),
     )));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
@@ -1679,9 +1722,8 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_sp_line(&without_debug_screen(&with_the_cursors_as_before(
-        &emitted.text,
-        "whole",
+    let text = without_menu_list(&without_sp_line(&without_debug_screen(
+        &with_the_cursors_as_before(&emitted.text, "whole"),
     )));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
@@ -1774,6 +1816,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);
     with_the_sp_line(&mut value["screens"]);
+    with_the_menu_list(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -2017,6 +2060,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     with_the_shop_party(&mut value["screens"]);
     with_the_system_cursors(&mut value["screens"], 0);
     with_the_sp_line(&mut value["screens"]);
+    with_the_menu_list(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 
