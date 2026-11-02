@@ -1,4 +1,13 @@
 .segment "FAR"
+; **The whole file's code is in `FAR3`**, and `FAR` above is only what the
+; next file in main.s inherits. Both screens' routines are entered from
+; bank 0 with `jsl`, set their own data bank and read every table with a
+; long address, so in `FAR3` they cost not a cycle more. The experience
+; went there when 2026-11-01's branches, merged, overflowed bank 1 in A
+; Blurred Line's MSU test cartridge: it runs once as the menu opens and
+; closes, with the screen off, the coldest code that was left in bank 1.
+.pushseg
+.segment "FAR3"
 
 ; --- experience in the menu -------------------------------------------------
 ;
@@ -455,10 +464,9 @@ powers:
 ; bank 1 had some 150 bytes left in A Blurred Line's `release` and its MSU
 ; test cartridge overflowed. That is why it has its own `sp_digits` and
 ; not `three_digits`, and why it leaves with a `jml` to bank 1's
-; `target_ppu_with`.
+; `target_ppu_with`. The experience above went with it later, the same
+; day: see the top of the file.
 
-.pushseg
-.segment "FAR3"
 
 MENU_SP_ROW_OBJECTS = MENU_EXP_TERM_TILES + 2 * MENU_SP_LETTERS
 
