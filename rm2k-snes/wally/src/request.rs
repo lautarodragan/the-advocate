@@ -366,6 +366,16 @@ fn scanned_page(p: &Value, whose: &str) -> Result<crate::moves::ScannedPage> {
                 })
                 .collect::<Result<_>>()?,
         },
+        // Optional: a request from before 2026-11-02 does not carry it.
+        route_turns: match p.get("route_turns") {
+            None => Vec::new(),
+            Some(v) => v
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `route_turns` is not a list")))?
+                .iter()
+                .map(|v| index(v, "an event a route only turns", whose))
+                .collect::<Result<_>>()?,
+        },
         own_route: !field(p, "own_route", whose)?.is_null(),
         turns: flag("turns")?,
     })
@@ -432,8 +442,9 @@ impl crate::map::MapRequest {
     /// `pages` are the records the event compiler's scan answered for this
     /// map, as it wrote them: of each, only `event`, `page`, `trigger`,
     /// whether `code` is null, `route_targets`, `route_graphics` —which a
-    /// request from before 2026-10-19 lacks—, whether `own_route` is null
-    /// and `turns` are read.
+    /// request from before 2026-10-19 lacks—, `route_turns` —which one from
+    /// before 2026-11-02 lacks—, whether `own_route` is null and `turns`
+    /// are read.
     ///
     /// A `picture` is `{"name", "objects", "tiles", "cells": [[tile,
     /// [64 indices]], ...], "palettes"}`, the map's pictures already cut by

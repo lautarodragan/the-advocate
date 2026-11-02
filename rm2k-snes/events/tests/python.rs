@@ -204,6 +204,9 @@ fn without_route_targets(answer: &mut Value) {
             // And the graphics those routes give, which came on 2026-10-19:
             // see `a_route_graphic_is_its_event_and_index` in `pages.rs`.
             page.as_object_mut().unwrap().remove("route_graphics");
+            // And the events its routes only turn, which came on
+            // 2026-11-02: see `a_route_that_only_turns_is_told_apart`.
+            page.as_object_mut().unwrap().remove("route_turns");
             // And whether a parallel page is pure, which came on
             // 2026-10-17: see `commons::pure_page` and its tests.
             page.as_object_mut().unwrap().remove("pure");

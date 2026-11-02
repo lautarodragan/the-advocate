@@ -418,6 +418,71 @@ none:
     rtl
 .endproc
 
+; A still row that a route turned, to pose A, from `refresh_npc`: Y the row.
+; In a map with a cache it asks for the still pose that faces there instead
+; of its own. Wally keeps still the ones that routes only turn —`turners`
+; in its `moves`— and puts every pose of their characters among the
+; cache's still poses, which are sorted: a character's twelve go together,
+; so the new key is the old one moved by as much as the pose moves. The old
+; pose is read from the key's entry, `(k * 12 + pose) * 3`, and not from
+; +12, which a bank reloaded after a battle leaves at $FF. Zounds' map 96:
+; fifty-six floor switches that turn when pressed, two poses for all of
+; them instead of a slot each.
+;
+; Elsewhere no still row is sent a route that turns it —it walks in a slot
+; of its own—, and there is nothing to do. X is lost, as `refresh_npc`
+; allows.
+.proc still_turn
+.a8
+.i16
+    sta f:CACHE_T_POSE          ; the new pose
+    lda f:SHARE_N
+    bmi cache
+    rtl
+cache:
+    rep #$20
+.a16
+    lda npc_buf + 6, y          ; its still pose's key
+    and #$00FF
+    asl a
+    pha
+    lda f:CACHE_REC
+    tax
+    lda f:cache_data + 1, x     ; where the map's still poses start
+    clc
+    adc 1, s
+    tax
+    pla
+    lda f:cache_data, x         ; (k * 12 + pose) * 3
+character:
+    cmp #36
+    bcc in_character
+    sbc #36                     ; the carry is set
+    bra character
+in_character:
+    sep #$20
+.a8
+    ldx #$0000                  ; the old pose, three at a time
+thirds:
+    cmp #3
+    bcc counted
+    sbc #3                      ; the carry is set
+    inx
+    bra thirds
+counted:
+    txa
+    sta f:CACHE_T_KEY
+    lda npc_buf + 6, y
+    sec
+    sbc f:CACHE_T_KEY
+    clc
+    adc f:CACHE_T_POSE
+    sta npc_buf + 6, y
+    lda f:CACHE_T_POSE
+    sta npc_buf + 12, y
+    rtl
+.endproc
+
 ; X: the event in `CACHE_T_EV`, to index `CACHE_EV`. Keeps A.
 .proc cache_event_x
 .a8
@@ -479,3 +544,4 @@ none:
 .endproc
 
 .assert CACHE_EV + EV_MAX <= CACHE_N + $50 + EV_MAX, error, "the cache's events overflow its RAM"
+

@@ -10,7 +10,7 @@ use crate::route;
 use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
 use serde_json::{json, Value};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 
 /// How a `TileSubstitution` translates to the ROM's blocks, which the caller
@@ -566,6 +566,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "speed": page.move_speed,
                 "route_targets": code.as_deref().map(route_targets).unwrap_or_default(),
                 "route_graphics": code.as_deref().map(route_graphics).unwrap_or_default(),
+                "route_turns": code.as_deref().map(route_turns).unwrap_or_default(),
                 "code": code.map(|c| hex(&c)),
                 "own_route": route::own(page, ctx.indices),
                 "turns": turns(page),
@@ -844,6 +845,50 @@ fn route_graphics(code: &[u8]) -> Vec<[usize; 2]> {
     out
 }
 
+/// Whether a route command leaves an event on its cell and drawn with the
+/// same character: the faces and the turns, which change only its pose,
+/// and what changes no drawing —a wait, the facing lock, the speed and the
+/// frequency, a switch, a sound—. Liblcf's codes: 12 to 22 face and turn,
+/// 23 waits and 26 to 33 lock, speed, frequency and switch.
+fn in_place(command: i32) -> bool {
+    (ROUTE_FACE_UP..=ROUTE_WAIT).contains(&command)
+        || (ROUTE_LOCK_DIR..=ROUTE_SWITCH_OFF).contains(&command)
+        || command == ROUTE_SOUND
+}
+
+/// The events every route of a compiled page only turns, by index, sorted:
+/// a subset of [`route_targets`]. A route to one of them that does
+/// anything else —a step, a jump, a graphic, the animation— leaves it out.
+/// Wally reads it to keep a still event that a route only turns still in
+/// a map with a cache of slots, where its twins share its poses: Zounds'
+/// map 96, fifty-six floor switches that each turn themselves when pressed.
+fn route_turns(code: &[u8]) -> Vec<usize> {
+    let mut turned = BTreeSet::new();
+    let mut other = BTreeSet::new();
+    for at in instructions(code).filter(|&at| code[at] == OP_ROUTE && code[at + 1] != 0) {
+        let target = code[at + 1] as usize - 1;
+        let path = &code[at + 4..at + 4 + code[at + 3] as usize];
+        let mut only_turns = true;
+        let mut k = 0;
+        while k < path.len() {
+            let command = path[k] as i32;
+            only_turns &= in_place(command);
+            // The operands, as `route_graphics` skips them.
+            k += match command {
+                ROUTE_CHANGE_GRAPHIC => 2,
+                ROUTE_SOUND | ROUTE_SWITCH_ON | ROUTE_SWITCH_OFF => 3,
+                _ => 1,
+            };
+        }
+        if only_turns {
+            turned.insert(target);
+        } else {
+            other.insert(target);
+        }
+    }
+    turned.difference(&other).copied().collect()
+}
+
 /// A page condition's variable has a slot always: the sweep saw it. And
 /// not one of the two the record reserves —`$FF` is "none" and
 /// [`TIMER_SLOT`] the timer—: 174 slots are used today, so this is a wall
@@ -939,5 +984,21 @@ mod tests {
             OP_DONE,
         ];
         assert_eq!(route_graphics(&code), vec![[0, 0], [0, 2], [1, 3]]);
+    }
+
+    #[test]
+    fn a_route_that_only_turns_is_told_apart() {
+        // Event index 0 faces left after a sound whose low byte is a step
+        // up; index 1 faces left and also steps down in another route of
+        // the page; index 2 gets a graphic; the hero does not count.
+        let code = [
+            OP_ROUTE, 1, 8, 4, 35, 0, 0, 15, //
+            OP_ROUTE, 2, 8, 2, 15, 23, //
+            OP_ROUTE, 2, 8, 1, 2, //
+            OP_ROUTE, 3, 8, 2, 34, 0, //
+            OP_ROUTE, 0, 8, 1, 15, //
+            OP_DONE,
+        ];
+        assert_eq!(route_turns(&code), vec![0]);
     }
 }

@@ -14,9 +14,10 @@
 //! request as they came out of the compiler; what they draw is read here,
 //! from the map.
 
-use crate::events::{page_graphic, Event};
+use crate::events::{page_graphic, unbaked, Event};
 use crate::sprites::character::Key;
 use crate::sprites::npc::Npc;
+use crate::sprites::split::TILE_PREFIX;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A page as the event compiler's scan answered it, with what this stage
@@ -35,6 +36,9 @@ pub struct ScannedPage {
     /// The graphics those routes give events —command 34—, as `(event
     /// index, index in the map's route graphics)`.
     pub route_graphics: Vec<(usize, usize)>,
+    /// The ones of `route_targets` that every route of the page only turns:
+    /// no step, no jump, no graphic.
+    pub route_turns: Vec<usize>,
     /// Whether it walks a route of its own.
     pub own_route: bool,
     /// Whether it turns toward the hero when triggered.
@@ -95,6 +99,12 @@ pub struct Moves {
     /// is a (CharSet, index, pose), whatever the speed. What
     /// [`Animate::looks`] counts.
     pub looks: usize,
+    /// In a map with a cache of slots, the still ones that routes only
+    /// turn: they stay still —out of `movable`— and every pose of their
+    /// characters goes to the cache's still poses, so a turn only changes
+    /// which one the row asks for (`still_turn` in the runtime's
+    /// cache_slots.s). Its twins share them as any still one does.
+    pub turners: BTreeSet<usize>,
 }
 
 /// Who moves, from the compiler's `pages`, the map's `events` and the ones
@@ -113,13 +123,19 @@ pub fn moves(
     // The ones some compiled page sends a route to, and the ones that walk
     // on their own with some page's own route, which need the twelve poses
     // just the same.
-    let with_route: BTreeSet<usize> = pages
+    let mut with_route: BTreeSet<usize> = pages
         .iter()
         .filter(|p| p.compiles)
         .flat_map(|p| p.route_targets.iter().copied())
         .chain(pages.iter().filter(|p| p.own_route).map(|p| p.event))
         .filter(|e| drawn.contains(e))
         .collect();
+    let turners = if animate.cache {
+        turners(pages, events, npcs, &with_route, also_walk)
+    } else {
+        BTreeSet::new()
+    };
+    with_route.retain(|e| !turners.contains(e));
     // And the still ones with continuous animation —a save point—, which
     // do not walk but **change column all the same**. Without the twelve
     // poses their VRAM slot would carry a single one and there would be
@@ -243,7 +259,60 @@ pub fn moves(
         turning,
         still_not_animated,
         looks: ordered.len(),
+        turners,
     }
+}
+
+/// The still ones that routes only turn, in a map with a cache of slots:
+/// every compiled page that sends one a route only turns it —see
+/// `route_turns`—, it walks no route of its own nor a test page's, and
+/// every page of it draws a CharSet that stands —not a ChipSet tile, not
+/// nothing, not one that animates or spins—, so what a turn changes is the
+/// pose and nothing else. Zounds' map 96: fifty-six floor switches, each
+/// pressed by a `MoveEvent` that turns it, wanted a slot each from a cache
+/// of twenty-eight, and the ones drawn last never got one.
+///
+/// Elsewhere a still one shares a slot by pose with its twins, and a turn
+/// would turn them all: there it keeps walking in a slot of its own.
+fn turners(
+    pages: &[ScannedPage],
+    events: &[Event],
+    npcs: &[Npc],
+    with_route: &BTreeSet<usize>,
+    also_walk: &BTreeSet<usize>,
+) -> BTreeSet<usize> {
+    let mut out = BTreeSet::new();
+    for npc in npcs {
+        let e = npc.event;
+        if !with_route.contains(&e) || also_walk.contains(&e) {
+            continue;
+        }
+        if pages.iter().any(|p| p.event == e && p.own_route) {
+            continue;
+        }
+        let only_turned = pages
+            .iter()
+            .filter(|p| p.compiles && p.route_targets.contains(&e))
+            .all(|p| p.route_turns.contains(&e));
+        if !only_turned {
+            continue;
+        }
+        let stands = events.get(e).is_some_and(|event| {
+            event
+                .pages
+                .iter()
+                .all(|page| !matches!(page.animation, 1 | 3 | 5) && page.move_type == 0)
+        });
+        let drawn = !npc.graphics.is_empty()
+            && npc.graphics.iter().all(|g| {
+                g.as_ref()
+                    .is_some_and(|g| !unbaked(&g.0).starts_with(TILE_PREFIX))
+            });
+        if stands && drawn && !npc.animates {
+            out.insert(e);
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -324,6 +393,39 @@ mod tests {
             ..scanned(0, 3, false)
         };
         assert_eq!(who(&[own], &events).movable, [0].into());
+    }
+
+    #[test]
+    fn a_still_one_that_routes_only_turn_stays_still_in_a_cache() {
+        // Zounds' map 96: switches that a route turns to their pressed pose.
+        // Event 0 only turned, event 1 also stepped, event 2 turned but it
+        // is a ChipSet tile, event 3 turned but it animates.
+        let events = [
+            event(1, vec![page("Switch", 4)]),
+            event(2, vec![page("Switch", 4)]),
+            event(
+                3,
+                vec![Page {
+                    index: 5,
+                    ..page("", 4)
+                }],
+            ),
+            event(4, vec![page("Torch", 1)]),
+        ];
+        let turning = ScannedPage {
+            route_targets: vec![0, 1, 2, 3],
+            route_turns: vec![0, 2, 3],
+            ..scanned(0, 1, true)
+        };
+        let cache = Animate {
+            looks: None,
+            cache: true,
+        };
+        let moves = animating(std::slice::from_ref(&turning), &events, cache);
+        assert_eq!(moves.turners, [0].into());
+        assert_eq!(moves.movable, [1, 2, 3].into());
+        // Without a cache a turn would turn its twins too: it walks.
+        assert_eq!(who(&[turning], &events).movable, [0, 1, 2, 3].into());
     }
 
     #[test]

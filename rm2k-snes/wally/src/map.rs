@@ -21,7 +21,8 @@ use crate::sheets::Drawer;
 use crate::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
 use crate::sprites::cache::{peak, Wants, BLOCKS, CACHE_MAX, STILLS_MAX};
 use crate::sprites::character::{
-    block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES, OBJ_ROW,
+    block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES,
+    OBJ_ROW, SPRITE_POSES,
 };
 use crate::sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits,
@@ -1776,12 +1777,27 @@ fn convert_with(
             }
             out
         };
+        // What a still one can come to show: what its pages show and, for
+        // one that routes turn, every pose of those characters. The stills
+        // are sorted, so a character's twelve go together and a turn moves
+        // the row's key by as much as it moves the pose: see `still_turn`
+        // in the runtime's cache_slots.s.
+        let can_show = |npc: &Npc| -> BTreeSet<Graphic> {
+            let shown = shows(npc);
+            if !who.turners.contains(&npc.event) {
+                return shown;
+            }
+            shown
+                .iter()
+                .flat_map(|(c, i, _)| (0..SPRITE_POSES).map(move |p| (c.clone(), *i, p)))
+                .collect()
+        };
         let mut stills = BTreeSet::new();
         for npc in npcs
             .iter()
             .filter(|n| !who.movable.contains(&n.event) && !who.follows.contains_key(&n.event))
         {
-            stills.extend(shows(npc));
+            stills.extend(can_show(npc));
         }
         let stills: Vec<Graphic> = stills.into_iter().collect();
         if stills.len() > STILLS_MAX {
@@ -1814,6 +1830,10 @@ fn convert_with(
                 };
                 let want = match start {
                     Some(v) if shows(npc).len() == 1 => Wants::Still(v),
+                    // One that routes turn asks for the pose it shows, and
+                    // a page or a turn changes which: the pose it starts
+                    // with is what the count can know.
+                    Some(v) if who.turners.contains(&npc.event) => Wants::Still(v),
                     _ => Wants::Own(leader.unwrap_or(npc.event)),
                 };
                 events.push((npc.event, start));
