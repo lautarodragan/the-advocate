@@ -728,8 +728,8 @@ full:
 ; the saturation at 100, which is how the desert is, it is exact.
 ;
 ; In `pure` too because that is what a character's flash goes back to —see
-; `palette_with_flash`—: in `pure` alone, a character that flashes would
-; come out of the storm.
+; `palette_with_flash`—: in the working tables alone, a character that
+; flashes would come out of the storm.
 .proc sand_tint
 .a8
 .i16
