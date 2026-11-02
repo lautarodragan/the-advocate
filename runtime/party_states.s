@@ -362,6 +362,63 @@ found:
     rts
 .endproc
 
+; `act_st_cure` for `medicine_use`: the `state_set` of the item `k` in
+; `item_sel` on `MED_ACTOR`, and `MED_USED` at 1 if it removed any. Here and
+; not in `medicine.s` because bank 1 is tight. A8; keeps X and Y; any data
+; bank.
+.proc act_st_cure_item
+.a8
+.i16
+    phx
+    phy
+    rep #$20
+.a16
+    lda f:item_sel
+    asl a
+    tax
+    lda f:item_st_at, x
+    tax                         ; sixteen bits: Z for the whole word
+    sep #$20
+.a8
+    beq none                    ; it removes none
+    lda f:MED_ACTOR
+    jsl f:act_st_cure
+    beq none
+    sta f:MED_USED
+none:
+    ply
+    plx
+    rtl
+.endproc
+
+; The same for `sk_heal_one`: the `state_effects` of the skill `k` in
+; `sk_used`. Here and not in `skills_screen.s` because `FAR2` is tight.
+.proc act_st_cure_skill
+.a8
+.i16
+    phx
+    phy
+    rep #$20
+.a16
+    lda f:sk_used
+    and #$00FF
+    asl a
+    tax
+    lda f:skill_st_at, x
+    tax
+    sep #$20
+.a8
+    beq none
+    lda f:MED_ACTOR
+    jsl f:act_st_cure
+    beq none
+    sta f:MED_USED
+none:
+    ply
+    plx
+    rtl
+.endproc
+
 ; What a medicine or a skill on its own side removes outside battle: the
 ; `RemoveState` of each condition in `state_set` —`Game_Battler::UseItem`—
 ; or in `state_effects` —`UseSkill`—, A8 the actor and X where the list

@@ -464,25 +464,12 @@ standing8:
 .a16
 standing:
     ; The conditions it removes, after death and before the HP as in
-    ; `UseSkill`'s loop: `act_st_cure`, `was_used` if it held any.
-    phx
-    lda f:sk_used
-    and #$00FF
-    asl a
-    tax
-    lda f:skill_st_at, x
-    tax                         ; sixteen bits: Z for the whole word
+    ; `UseSkill`'s loop: `act_st_cure_skill`, in FAR3, which keeps X.
     sep #$20
 .a8
-    beq cured                   ; it removes none
-    lda .loword(MED_ACTOR)
-    jsl f:act_st_cure
-    beq cured
-    sta .loword(MED_USED)
-cured:
+    jsl f:act_st_cure_skill
     rep #$20
 .a16
-    plx
     lda .loword(MED_REVIVED)
     and #$00FF
     sta .loword(MED_REVIVED)    ; now the word `revived`

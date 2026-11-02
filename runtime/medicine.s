@@ -186,8 +186,9 @@ alive:
     beq heal_hp
     jmp no_serves               ; `ko_only` on one standing
 heal_hp:
-    ; The conditions it removes, before the HP as in `UseItem`'s loop.
-    jsr cure
+    ; The conditions it removes, before the HP as in `UseItem`'s loop:
+    ; `act_st_cure_item`, in FAR3, which keeps X.
+    jsl f:act_st_cure_item
     ; `if (hp_change > 0 && !HasFullHp()) ChangeHp(hp_change - revived)`.
     ; `ChangeHp` caps at the maximum with the `SetHp` inside it, and never
     ; goes below 1 because nothing subtracts here.
@@ -374,31 +375,6 @@ sp_fits:
     lda #1
     sta .loword(MED_USED)
     jmp consume
-
-; `RemoveState` of each condition in the item's `state_set` but the dead
-; one, on `MED_ACTOR`, and `MED_USED` if it held any: `act_st_cure`. Keeps
-; X; clobbers A and Y.
-cure:
-.a8
-    phx
-    jsr k_in_x
-    rep #$20
-.a16
-    txa
-    asl a
-    tax
-    lda f:item_st_at, x
-    tax                         ; sixteen bits: Z for the whole word
-    sep #$20
-.a8
-    beq cured                   ; it removes none
-    lda .loword(MED_ACTOR)
-    jsl f:act_st_cure
-    beq cured
-    sta .loword(MED_USED)
-cured:
-    plx
-    rts
 
 ; The item's `k`, from `item_sel` to X. Only X.
 k_in_x:
