@@ -201,9 +201,21 @@ cell:
 ; it is the first of the System's two cursor drawings, which RM2k
 ; alternates every ten frames. See `divergences/
 ; the-choice-bar-does-not-alternate-its-two-drawings.md` in the book.
+;
+; **With a face it comes back with the carry set**, and nothing else: the
+; line is primed with its background as any other, and `bar_compose`, in
+; message_face.s, puts the bar over it, shorter and past the face. Clear
+; otherwise.
 .proc msg_bar_source
 .a8
 .i16
+.if ::MESSAGE_FACES > 0
+    lda f:MSG_FACE_DRAW
+    beq no_face
+    sec
+    rtl
+no_face:
+.endif
     lda f:MSG_PLACE
     and #MSG_BARE
     beq framed
@@ -239,6 +251,7 @@ size:
     ldx #TEXT_BUF_BYTES
     stx DAS0L
     lda #$00
+    clc
     rtl
 bar_lines:
     .word 0, TEXT_BUF_BYTES, TEXT_BUF_BYTES * 2, TEXT_BUF_BYTES * 3
