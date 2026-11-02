@@ -32,7 +32,7 @@
 //! battle. What a page needs is the command, not the half of it.
 
 use crate::codes::*;
-use crate::compile::{judged_page, Ctx, Culprit, Indices, SoundSettings};
+use crate::compile::{self, judged_page, Ctx, Culprit, Indices, SoundSettings};
 use crate::fail::{Result, Stop};
 use crate::game::{Command, Game, TroopPage};
 use crate::landings::Landings;
@@ -245,6 +245,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                         None,
                         false,
                         &landings,
+                        compile::decision_key(page.trigger),
                     )
                 });
                 let mut skipped = Vec::new();
@@ -263,6 +264,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                             Some(&every_common),
                             false,
                             &landings,
+                            Some(false),
                         )
                     });
                     if !callee.compiles() {
@@ -300,6 +302,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                 Some(&every_common),
                 true,
                 &landings,
+                Some(false),
             )
         });
         out.push(Judged {
@@ -356,6 +359,7 @@ fn judge(
     commons: Option<&BTreeMap<i32, u8>>,
     shared_body: bool,
     landings: &Landings,
+    decision_key: Option<bool>,
 ) -> Judgement {
     let mut messages = Messages::new(1, window);
     let mut songs = Songs::default();
@@ -383,6 +387,7 @@ fn judge(
         face: None,
         landings: Some(landings),
         jump: None,
+        decision_key,
     };
     judged_page(&mut ctx, commands, map_events, 0, 0).map(|_| ())
 }
@@ -416,6 +421,7 @@ fn chase_troop_page(
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         found.trigger = troops::trigger(&ctx, page).is_none();
     }
@@ -457,6 +463,7 @@ fn chase_troop_page(
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         judged_page(&mut ctx, commands, None, 0, 0).map(|_| ())
     });

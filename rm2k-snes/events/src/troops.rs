@@ -557,6 +557,7 @@ impl TroopPages {
                         face: None,
                         landings: None,
                         jump: None,
+                        decision_key: None,
                     };
                     let mark = inner.losses.mark();
                     inner.losses.enter(Origin::Troop {
@@ -712,6 +713,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.turn = true;
@@ -875,6 +877,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.switch_a = true;

@@ -390,6 +390,7 @@ fn body_of(
         face: None,
         landings: s.landings,
         jump: None,
+        decision_key: Some(false),
     };
     ctx.losses.enter(Origin::Common(number));
     let code = compile_page(&mut ctx, commands, None, 0, 0);
@@ -705,6 +706,7 @@ pub fn parallel_commons(
                 // after its jump is dropped as before.
                 landings: None,
                 jump: None,
+                decision_key: Some(false),
             };
             ctx.losses.enter(Origin::Common(number));
             let code = compile_page(&mut ctx, &c.commands, None, 0, 0);

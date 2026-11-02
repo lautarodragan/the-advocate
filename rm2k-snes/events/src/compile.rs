@@ -90,6 +90,8 @@ const SWITCH_TOGGLE: i64 = 2;
 // runtime/variable_arithmetic.s—. The compiler only tells set apart and checks
 // the range; the ROM tells the rest apart, with its own constants.
 const VAR_SET: i64 = 0;
+const VAR_ADD: i64 = 1;
+const VAR_DIVIDE: i64 = 4;
 const VAR_MODULO: i64 = 5;
 // And where the operand comes from, with the RM2k number: a constant, another
 // variable, a random number between a and b, or "other", which here are the
@@ -193,6 +195,9 @@ const COND_GOLD: i64 = 3;
 const COND_ITEM: i64 = 4;
 pub const COND_ACTOR: i64 = 5;
 const COND_FACING: i64 = 6;
+/// Whether the page was started by the decision key: `CommandConditionalBranch`
+/// case 8. Answered when compiling: see [`decision_key`].
+const COND_DECISION_KEY: i64 = 8;
 const COND_ACTOR_IN_PARTY: i64 = 0;
 pub const COND_ACTOR_HP: i64 = 3;
 pub const COND_ACTOR_SKILL: i64 = 4;
@@ -668,6 +673,31 @@ pub struct Ctx<'a> {
     /// jump inherits it, and what it jumps to is its own. It is what a
     /// route's graphic is numbered against: see `compile_route`.
     pub jump: Option<Option<i32>>,
+    /// What `ConditionalBranch` 8, "started by the decision key", answers
+    /// in the commands being compiled, or None where it depends on how they
+    /// were started and the ROM cannot tell: see [`decision_key`]. Whoever
+    /// builds the context for a map's page sets it from the trigger; a
+    /// body pasted for a `CallEvent` answers no, whatever its caller does.
+    pub decision_key: Option<bool>,
+}
+
+/// What `ConditionalBranch` 8 answers on a map's page with `trigger`. RPG_RT
+/// answers it from how the page's frame was started —easyrpg's
+/// `triggered_by_decision_key`—, and for most triggers that is fixed: an
+/// action page only starts by the key (`CheckActionEvent`), and an automatic
+/// or parallel one never does. A touch or collision page starts either way,
+/// by the key in front of it or by walking into it, and the ROM does not
+/// keep which, so there it is None and the branch does not compile. A common
+/// event is always no, which its builders set: it runs as parallel,
+/// automatic or called, and a called frame is pushed with no key. A troop
+/// page is yes in RPG_RT —the battle pushes it as an action—, but its
+/// calls are pasted flat and would answer yes too, so it stays None.
+pub fn decision_key(trigger: i32) -> Option<bool> {
+    match trigger {
+        TRIGGER_ACTION => Some(true),
+        TRIGGER_AUTOSTART | TRIGGER_PARALLEL => Some(false),
+        _ => None,
+    }
 }
 
 impl Ctx<'_> {
@@ -800,6 +830,9 @@ fn bgm_fade_step(ms: i64) -> i64 {
 enum Open {
     End(usize),
     At(usize, usize),
+    /// A branch that is always taken and emits nothing: there is no jump
+    /// to patch, only its `else` to skip. See `COND_DECISION_KEY`.
+    Nowhere,
 }
 
 fn with_dest(piece: &[u8], dest: usize) -> Step<Vec<u8>> {
@@ -816,6 +849,7 @@ fn patch(pieces: &mut [Vec<u8>], open: Open, dest: usize) -> Step<()> {
             pieces[i][at] = w[0];
             pieces[i][at + 1] = w[1];
         }
+        Open::Nowhere => {}
     }
     Ok(())
 }
@@ -930,8 +964,8 @@ const BLOCK_ENDS: [i32; 6] = [
 /// after it comes the block's end, which does nothing in RM2k and nothing
 /// here. The game's jumps into blocks —the 13 of common event 39, into the
 /// `else` of a chain of branches— are all like that. Jumping **out** of a
-/// block is free: the ROM keeps no state for the ones that compile, and
-/// `Loop`, the one that might, does not compile.
+/// block is free: the ROM keeps no state for the ones that compile, not
+/// even a `Loop`'s, whose `EndLoop` is only a jump back to it.
 fn label_targets(commands: &[Command]) -> Step<HashMap<usize, Option<usize>>> {
     let mut first: HashMap<i32, usize> = HashMap::new();
     for (i, c) in commands.iter().enumerate() {
@@ -1018,8 +1052,9 @@ fn break_target(commands: &[Command], at: usize) -> Option<usize> {
 /// a key or a `MovePicture` that waits for its move, somewhere in its body. RPG_RT runs a loop that does not wait
 /// ten thousand commands a frame and goes on with the rest of the game; the
 /// ROM's interpreter has no such cap, and that loop would hang the console,
-/// so it does not compile. One that only waits on some of its branches
-/// does, and hangs only if it takes the others forever.
+/// so it does not compile unless it can end: see [`loop_ends`]. One that
+/// only waits on some of its branches does, and hangs only if it takes the
+/// others forever.
 fn loop_waits(commands: &[Command], start: usize) -> bool {
     let indent = commands[start].indent;
     commands[start + 1..]
@@ -1030,6 +1065,36 @@ fn loop_waits(commands: &[Command], start: usize) -> bool {
                 || (c.code == KEY_INPUT_PROC && c.p(1).is_some_and(|w| w != 0))
                 || (c.code == MOVE_PICTURE && c.p(15).is_some_and(|w| w != 0))
         })
+}
+
+/// Whether the loop that starts at `start` has a way out in its body: a
+/// `BreakLoop` that lands past its `EndLoop` —one inside an inner loop ends
+/// only that one, see [`break_target`]—, or a `JumpToLabel` to a label
+/// outside it. A loop like that compiles without
+/// waiting: it is Zounds' counting ones, which take items or add up levels
+/// a few dozen times and break, all in one frame, as RPG_RT does them. One
+/// that breaks only on a condition that is never met still hangs the
+/// console, as one that waits only on some of its branches already does,
+/// where RPG_RT would go on drawing at ten thousand commands a frame.
+fn loop_ends(commands: &[Command], start: usize) -> bool {
+    let indent = commands[start].indent;
+    let end = (start + 1..commands.len())
+        .find(|&k| commands[k].indent <= indent)
+        .unwrap_or(commands.len());
+    let label = |n: i32| {
+        commands
+            .iter()
+            .position(|c| c.code == LABEL && c.parameters.first().copied().unwrap_or(0) == n)
+    };
+    (start + 1..end).any(|k| {
+        let c = &commands[k];
+        match c.code {
+            BREAK_LOOP => break_target(commands, k).is_some_and(|t| t > end),
+            JUMP_TO_LABEL => label(c.parameters.first().copied().unwrap_or(0))
+                .is_some_and(|t| t < start || t > end),
+            _ => false,
+        }
+    })
 }
 
 /// A page's commands as bytes, or None if it cannot be done.
@@ -1523,6 +1588,23 @@ fn page(
                 pieces[out] = with_dest(&pieces[out], length)?;
             }
             piece = vec![];
+        } else if cmd.code == COND_BRANCH && cmd.p(0) == Some(COND_DECISION_KEY) {
+            // "Started by the decision key" is known when compiling —see
+            // [`decision_key`]—, so it costs the ROM nothing: a yes runs
+            // the branch above and skips the `else`, a no is a jump to the
+            // `else` or the `end`. Zounds' jail guards ask it on their
+            // parallel pages, where it is always no.
+            match ctx.decision_key {
+                None => return cannot(),
+                Some(true) => {
+                    stack.push(Open::Nowhere);
+                    piece = vec![];
+                }
+                Some(false) => {
+                    stack.push(Open::End(pieces.len()));
+                    piece = vec![OP_GOTO, 0, 0];
+                }
+            }
         } else if cmd.code == COND_BRANCH {
             // OP_IF: kind (byte), operand (word), polarity (byte),
             // destination (word): `ConditionalBranch` with a switch
@@ -1560,7 +1642,7 @@ fn page(
             piece = vec![];
         } else if cmd.code == LOOP {
             // `Loop` does nothing: it is where its `EndLoop` jumps back to.
-            if !loop_waits(commands, i) {
+            if !loop_waits(commands, i) && !loop_ends(commands, i) {
                 return cannot();
             }
             label_at.insert(i, length);
@@ -1974,7 +2056,10 @@ fn compile_call(
             page: p[2],
         }
     });
+    // A called frame carries no decision key: see [`decision_key`].
+    let key = ctx.decision_key.replace(false);
     let pasted = compile_page(ctx, &body, context, length, depth + 1);
+    ctx.decision_key = key;
     ctx.losses.leave();
     let pasted = pasted?;
     if pasted.is_none() {
@@ -2042,6 +2127,8 @@ fn shares<'a>(
     let (commons, shared_before) = (ctx.commons, ctx.shared);
     ctx.commons = Some(shared);
     ctx.shared = None;
+    // A common event's body answers no to the decision key, called or not.
+    let key = ctx.decision_key.replace(false);
     let with_map = compile_page(ctx, &commands, here, 0, 0);
     // And as the cartridge's is compiled: no map's events, graphics or
     // pictures, and no package, which is where an effect's sample per map
@@ -2058,6 +2145,7 @@ fn shares<'a>(
     ctx.pictures = pictures;
     ctx.commons = commons;
     ctx.shared = shared_before;
+    ctx.decision_key = key;
     if let (Some(m), Some(mark)) = (ctx.messages.as_deref_mut(), mark) {
         m.rewind(mark);
     }
@@ -5606,8 +5694,36 @@ pub fn compile_command(
             if !(VAR_SET..=VAR_MODULO).contains(&q(3)) {
                 return cannot();
             }
+            let mut operation = q(3);
             let operand_kind = q(4);
             let (mut a, mut b) = (q(5), q(6));
+            if operand_kind == VAR_CONSTANT
+                && matches!(operation, VAR_DIVIDE | VAR_MODULO)
+                && !(-0x8000..=0x7FFF).contains(&a)
+            {
+                // Dividing or taking the modulo by a constant past the word
+                // is exact for a word: RPG_RT's `/` and `%` are C's —easyrpg's
+                // `VarDiv` and `VarMod`—, which truncate toward zero and give
+                // the remainder the dividend's sign, so past 32768 the
+                // quotient is 0, a set, and the remainder the variable
+                // itself, an add of 0 that still refreshes the pages like
+                // the modulo did. 32768 itself is not past every word:
+                // -32768 % 32768 is 0, which the modulo by -32768 gives
+                // too, and -32768 / 32768 is -1, which no single operation
+                // says, so that one does not compile. Zounds splits its
+                // money in digits with `mod 100000` and `/ 100000`, which
+                // in RM2k's 32 bits mean something and here, with the
+                // variables saturated at the word, no longer do.
+                if a.abs() > 0x8000 {
+                    (operation, a) = if operation == VAR_DIVIDE {
+                        (VAR_SET, 0)
+                    } else {
+                        (VAR_ADD, 0)
+                    };
+                } else if operation == VAR_MODULO {
+                    a = -0x8000;
+                }
+            }
             if operand_kind == VAR_CONSTANT {
                 // Setting one past the word saturates at its edge: what does
                 // that, common event 45 of the game this was built for, sets
@@ -5618,9 +5734,9 @@ pub fn compile_command(
                 // multiplying, dividing or taking the modulo by one, which
                 // only the edges of the word would tell apart. The divergence
                 // is the book's `divergences/variables-saturate-at-16-bits.md`.
-                if q(3) == VAR_SET {
+                if operation == VAR_SET {
                     a = a.clamp(-0x8000, 0x7FFF);
-                    if a != q(5) {
+                    if a != q(5) && q(3) == VAR_SET {
                         ctx.lose(
                             cmd,
                             "variable-saturated",
@@ -5735,7 +5851,7 @@ pub fn compile_command(
             Ok(vec![
                 OP_VAR,
                 slot,
-                byte(q(3) | refresh)?,
+                byte(operation | refresh)?,
                 byte(operand_kind)?,
                 (a & 0xFF) as u8,
                 ((a >> 8) & 0xFF) as u8,
@@ -6818,6 +6934,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -7051,6 +7168,7 @@ mod tests {
                 face: None,
                 landings: None,
                 jump: None,
+                decision_key: None,
             };
             compile_page(&mut ctx, commands, None, 0, 0)
                 .unwrap()
@@ -7103,6 +7221,7 @@ mod tests {
                 face: None,
                 landings: None,
                 jump: None,
+                decision_key: None,
             };
             let code = compile_page(&mut ctx, commands, None, 0, 0)
                 .unwrap()
@@ -7249,6 +7368,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
     }
@@ -7360,6 +7480,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let me = MapEvents::new(map, None);
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
@@ -7403,6 +7524,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let map = crate::game::Map {
             id: 5,
@@ -7568,6 +7690,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let map = crate::game::Map {
             id: 5,
@@ -7607,6 +7730,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let map = watching(5, 123);
         let me = MapEvents::new(&map, None).for_event(1);
@@ -8258,6 +8382,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let me = MapEvents::new(&map, None);
         let code = compile_page(&mut ctx, &page, Some(me), 0, 0)
@@ -8437,6 +8562,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let page = [
             cmd(CHANGE_SYSTEM_BGM, &[0, 0, 70, 100, 50], "talisn"),
@@ -8491,6 +8617,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
@@ -8593,6 +8720,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let code = compile_page(&mut ctx, &[cmd(SHOW_INN, &[0, 0, 0], "")], None, 0, 0)
             .unwrap()
@@ -8848,6 +8976,7 @@ mod tests {
             face: None,
             landings: Some(&landings),
             jump: None,
+            decision_key: None,
         };
         let me = MapEvents::new(&grid, None);
         let code = compile_page(&mut ctx, &commands, Some(me.for_event(1)), 0, 0)
@@ -9331,6 +9460,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
             .unwrap()
@@ -9358,6 +9488,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         match judged_page(&mut ctx, commands, None, 0, 0) {
             Ok(_) => None,
@@ -9391,6 +9522,12 @@ mod tests {
 
     /// `commands` alone, with nothing around them: the bytes or None.
     fn bare(commands: &[Command]) -> Option<Vec<u8>> {
+        keyed(None, commands)
+    }
+
+    /// [`bare`], with what `ConditionalBranch` 8 answers: see
+    /// [`Ctx::decision_key`].
+    fn keyed(decision_key: Option<bool>, commands: &[Command]) -> Option<Vec<u8>> {
         let game = Game::default();
         let sound = SoundSettings::default();
         let indices = Indices::default();
@@ -9410,6 +9547,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -9475,6 +9613,90 @@ mod tests {
         assert_eq!(bare(&[Command::new(END_LOOP, 0, "", vec![])]), None);
     }
 
+    #[test]
+    fn a_loop_that_can_break_compiles_without_waiting() {
+        // Zounds' mining level, common event 51: a loop that counts and
+        // breaks when the count reaches 20, with no wait. It ends, so it
+        // compiles; the break lands past the EndLoop.
+        let on = |indent| Command::new(CONTROL_SWITCHES, indent, "", vec![0, 1, 1, 0]);
+        let breaking = [
+            Command::new(LOOP, 0, "", vec![]),
+            on(1),
+            Command::new(COND_BRANCH, 1, "", vec![0, 1, 0, 0, 0, 0]),
+            Command::new(BREAK_LOOP, 2, "", vec![]),
+            Command::new(COND_END, 1, "", vec![]),
+            Command::new(END_LOOP, 0, "", vec![]),
+        ];
+        assert!(bare(&breaking).is_some());
+        // A jump to a label past the loop ends it too.
+        let jumping = [
+            Command::new(LOOP, 0, "", vec![]),
+            on(1),
+            Command::new(JUMP_TO_LABEL, 1, "", vec![3]),
+            Command::new(END_LOOP, 0, "", vec![]),
+            Command::new(LABEL, 0, "", vec![3]),
+        ];
+        assert!(bare(&jumping).is_some());
+        // A label inside the loop is not a way out, and a break that belongs
+        // to an inner loop does not end the outer one.
+        let staying = [
+            Command::new(LOOP, 0, "", vec![]),
+            Command::new(LABEL, 1, "", vec![3]),
+            on(1),
+            Command::new(JUMP_TO_LABEL, 1, "", vec![3]),
+            Command::new(END_LOOP, 0, "", vec![]),
+        ];
+        assert_eq!(bare(&staying), None);
+        let inner = [
+            Command::new(LOOP, 0, "", vec![]),
+            Command::new(LOOP, 1, "", vec![]),
+            Command::new(BREAK_LOOP, 2, "", vec![]),
+            Command::new(END_LOOP, 1, "", vec![]),
+            on(1),
+            Command::new(END_LOOP, 0, "", vec![]),
+        ];
+        assert_eq!(bare(&inner), None);
+    }
+
+    #[test]
+    fn started_by_the_decision_key_is_answered_when_compiling() {
+        // Zounds' jail guards, a parallel page: `if started by the key
+        // { switch } else { switch }`. A no jumps to the else; a yes emits
+        // nothing and skips it; not knowing does not compile.
+        let on = |s: i32, indent| Command::new(CONTROL_SWITCHES, indent, "", vec![0, s, s, 0]);
+        let page = [
+            Command::new(COND_BRANCH, 0, "", vec![8, 0, 0, 0, 0, 1]),
+            on(1, 1),
+            Command::new(COND_ELSE, 0, "", vec![]),
+            on(2, 1),
+            Command::new(COND_END, 0, "", vec![]),
+        ];
+        let switch = |s| {
+            let code = bare(&[on(s, 0)]).unwrap();
+            code[..code.len() - 1].to_vec()
+        };
+        let (one, two) = (switch(1), switch(2));
+        let mut yes = one.clone();
+        yes.extend([OP_GOTO, (one.len() + 3 + two.len()) as u8, 0]);
+        yes.extend(&two);
+        yes.push(OP_DONE);
+        assert_eq!(keyed(Some(true), &page), Some(yes));
+        let mut no = vec![OP_GOTO, (3 + one.len() + 3) as u8, 0];
+        no.extend(&one);
+        no.extend([OP_GOTO, (3 + one.len() + 3 + two.len()) as u8, 0]);
+        no.extend(&two);
+        no.push(OP_DONE);
+        assert_eq!(keyed(Some(false), &page), Some(no));
+        assert_eq!(keyed(None, &page), None);
+        // The triggers: action yes, automatic and parallel no, touch and
+        // collision not known.
+        assert_eq!(decision_key(TRIGGER_ACTION), Some(true));
+        assert_eq!(decision_key(TRIGGER_PARALLEL), Some(false));
+        assert_eq!(decision_key(TRIGGER_AUTOSTART), Some(false));
+        assert_eq!(decision_key(TRIGGER_TOUCH_HERO), None);
+        assert_eq!(decision_key(TRIGGER_COLLISION), None);
+    }
+
     /// `commands` compiled for a map that carries `big` as a background
     /// layer, and nothing in its sprites.
     fn with_big(big: &[BigPicture], commands: &[Command]) -> Vec<u8> {
@@ -9505,6 +9727,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
             .unwrap()
@@ -9715,6 +9938,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let commands = [
             moving(20, (160, 120), 0, 0, 20, true),
@@ -10224,6 +10448,44 @@ mod tests {
         );
         // Bitwise or and the rest are Maniacs', not RM2k's.
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 6, 0, 1, 0], "")), None);
+    }
+
+    #[test]
+    fn dividing_by_a_constant_past_the_word_is_exact() {
+        // Zounds' common events 26, 62 and 63 split money into digits with
+        // `mod 100000`, `mod 1000000` and `/ 100000`. For a word, a modulo
+        // by a constant past it is the identity —an add of 0— and a
+        // quotient is 0 —a set—, whatever the signs: C's `%` and `/`, which
+        // RPG_RT and easyrpg's `VarMod` and `VarDiv` use.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 5, 0, 100_000, 0], "")),
+            Some(vec![OP_VAR, 5, 0x81, 0, 0, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 5, 0, -1_000_000, 0], "")),
+            Some(vec![OP_VAR, 5, 0x81, 0, 0, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 4, 0, 100_000, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 0, 0, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 4, 0, -0x8001, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 0, 0, 0, 0, 0, OP_DONE])
+        );
+        // 32768 itself: -32768 % 32768 is 0, so the modulo is by -32768,
+        // which gives the same remainder for every word; and -32768 / 32768
+        // is -1, which no single operation says, so it does not compile.
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 5, 0, 0x8000, 0], "")),
+            Some(vec![OP_VAR, 5, 0x85, 0, 0x00, 0x80, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 4, 0, 0x8000, 0], "")),
+            None
+        );
     }
 
     #[test]
@@ -10877,6 +11139,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let map = Map {
             id: 5,
@@ -11014,6 +11277,7 @@ mod tests {
                 face: None,
                 landings: None,
                 jump: None,
+                decision_key: None,
             };
             compile_page(&mut ctx, commands, Some(me), 0, 0)
                 .unwrap()
@@ -11073,6 +11337,7 @@ mod tests {
             face: None,
             landings: None,
             jump: None,
+            decision_key: None,
         };
         let me = MapEvents::new(map, None);
         let pages = crate::pages::map_pages(&mut ctx, map, &me).unwrap();
