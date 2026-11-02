@@ -31,6 +31,7 @@ test = [30]
 debug_map = true
 enemy_hp = true
 debug_screen = true
+phasing = true
 
 [cases]
 real_game = "nothing"
@@ -174,7 +175,8 @@ fn a_cartridge_of_one_map_passes_no_maps() {
             "6",
             "--no-title",
             "--enemy-hp",
-            "--debug-screen"
+            "--debug-screen",
+            "--phasing"
         ]
     );
 }
@@ -202,7 +204,8 @@ fn the_flags_come_out_in_the_usual_order() {
             "Hero",
             "0",
             "--enemy-hp",
-            "--debug-screen"
+            "--debug-screen",
+            "--phasing"
         ]
     );
     let small = c.get("test-small").unwrap();
@@ -215,7 +218,8 @@ fn the_flags_come_out_in_the_usual_order() {
             "1",
             "--no-title",
             "--enemy-hp",
-            "--debug-screen"
+            "--debug-screen",
+            "--phasing"
         ]
     );
     assert!(c.without_title("test-small").unwrap());

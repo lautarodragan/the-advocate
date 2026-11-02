@@ -42,6 +42,9 @@ enemy_hp = false
 # The pause menu's debug screen, RM2k's F9: off, so that one project of the
 # tools builds without it.
 debug_screen = false
+# Select walks the hero through walls and events, RPG_RT's test play's
+# Ctrl: off, like the debug screen.
+phasing = false
 
 [cases]
 real_game = "nothing"

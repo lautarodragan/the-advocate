@@ -882,6 +882,16 @@ outside:
 no_draw:                        ; here and not at the end: the bush's `jsl`
     rts                         ; left the end out of a branch's reach
 shown:
+.if ::DEBUG_PHASING
+    ; Walking through everything, he blinks: four ticks of every sixteen
+    ; not drawn, like `PlayerVisibility`. See phasing.s.
+    lda phasing
+    beq solid
+    lda ticks
+    and #$0C
+    beq no_draw
+solid:
+.endif
 
     ; The CharSet frame: steps 0 and 2 are the side ones, and steps 1 and 3
     ; are both the middle pose.

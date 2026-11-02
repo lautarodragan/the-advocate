@@ -1750,6 +1750,9 @@ pub fn run(options: Options) -> Result<()> {
     // The highest switch the game names, which the table holds: apart, because
     // the literal above is at `json!`'s recursion limit.
     request["switch_top"] = json!(indices.switch_top);
+    // And whether Select walks the hero through everything, for debugging:
+    // apart too, for the same limit.
+    request["phasing"] = json!(options.phasing);
     // And the common events' small pictures, by set: see
     // [`crate::common_pictures`]. Only when there are some.
     if !common_small.emit.is_empty() {
