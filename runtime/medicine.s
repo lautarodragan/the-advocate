@@ -28,9 +28,10 @@ FAR_GROWTH: .res EXP_K * GROWTH_BYTES
 ; **A fallen actor is an actor with zero HP**, and not as a shortcut:
 ; easyrpg's `IsDead` (`game_battler.h:995`) looks at the HP and not at the
 ; state, "RPG_RT compatibility requires checking the death state and not hp".
-; Outside battle this port keeps no states, so reviving one is the `SetHp(1)`
-; of `RemoveStates`, and the other states in `state_set` remove nothing:
-; `was_used` is only set if the actor had the state.
+; So reviving one is the `SetHp(1)` of `RemoveStates`. The other conditions
+; in `state_set` go with `act_st_cure`, since 2026-11-01, when the party
+; started holding them: `was_used` only if the actor held one, so an
+; Antidote on one who is not poisoned is not spent, as in RPG_RT.
 .proc medicine_use
 .a8
 .i16
@@ -185,6 +186,8 @@ alive:
     beq heal_hp
     jmp no_serves               ; `ko_only` on one standing
 heal_hp:
+    ; The conditions it removes, before the HP as in `UseItem`'s loop.
+    jsr cure
     ; `if (hp_change > 0 && !HasFullHp()) ChangeHp(hp_change - revived)`.
     ; `ChangeHp` caps at the maximum with the `SetHp` inside it, and never
     ; goes below 1 because nothing subtracts here.
@@ -371,6 +374,31 @@ sp_fits:
     lda #1
     sta .loword(MED_USED)
     jmp consume
+
+; `RemoveState` of each condition in the item's `state_set` but the dead
+; one, on `MED_ACTOR`, and `MED_USED` if it held any: `act_st_cure`. Keeps
+; X; clobbers A and Y.
+cure:
+.a8
+    phx
+    jsr k_in_x
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:item_st_at, x
+    tax                         ; sixteen bits: Z for the whole word
+    sep #$20
+.a8
+    beq cured                   ; it removes none
+    lda .loword(MED_ACTOR)
+    jsl f:act_st_cure
+    beq cured
+    sta .loword(MED_USED)
+cured:
+    plx
+    rts
 
 ; The item's `k`, from `item_sel` to X. Only X.
 k_in_x:

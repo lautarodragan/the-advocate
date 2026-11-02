@@ -495,6 +495,20 @@ no_page:
     ; `Scene_Battle_Rpg2k` pushes and pops one after another
     ; —`battle_action_results_index`—: see `ba_res_add` in battle_skills.s.
     ; The message's type is still the skill's or the item's.
+    ;
+    ; An item that recovered HP and SP still has its SP line to show first,
+    ; in the place of the HP one: `ProcessBattleActionParamEffects` writes
+    ; one result after the other, and the action is not over until the
+    ; last. The conditions it removed come after, from the queue: see
+    ; `ba_item_use`.
+    stz .loword(ba_res_show)
+    lda BA_MSP_NEXT
+    beq no_sp_line
+    stz BA_MSP_NEXT
+    lda #BA_MSG_ITEM_SP
+    sta BA_MTYPE
+    jmp ba_show
+no_sp_line:
     lda .loword(ba_res_i)
     cmp .loword(ba_res_n)
     bcs no_result
@@ -503,17 +517,6 @@ no_page:
     sta .loword(ba_res_show)
     jmp ba_show
 no_result:
-    stz .loword(ba_res_show)
-    ; An item that recovered HP and SP still has its SP line to show, in the
-    ; place of the HP one: `ProcessBattleActionParamEffects` writes one
-    ; result after the other, and the action is not over until the last.
-    lda BA_MSP_NEXT
-    beq no_sp_line
-    stz BA_MSP_NEXT
-    lda #BA_MSG_ITEM_SP
-    sta BA_MTYPE
-    jmp ba_show
-no_sp_line:
     ; A condition the hit released says so after it, in a message of its own:
     ; `ProcessBattleActionDamage` writes it below the damage. See
     ; `ba_st_by_damage`.

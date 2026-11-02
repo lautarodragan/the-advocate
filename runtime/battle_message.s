@@ -144,6 +144,13 @@ item:
     lda BA_MTYPE
     cmp #BA_MSG_ITEM_SP
     beq sp_line
+    ; A result of the queue —a special item's skill, or a condition a
+    ; medicine removed—: the HP and SP lines were already shown.
+    lda .loword(ba_res_show)
+    beq own_lines
+    jsr ba_mnext
+    jmp result
+own_lines:
     lda BA_MREVIVED
     bne revived
     lda BA_MHPLINE
@@ -154,12 +161,7 @@ item:
     sep #$20
 .a8
     bne sp_line
-    ; Nothing changed: the first line alone. Or it is a special item's, and
-    ; this message is one of its skill's results.
-    lda .loword(ba_res_show)
-    beq alone
-    jsr ba_mnext
-    jmp result
+    ; Nothing changed: the first line alone.
 alone:
     jmp ba_flow
 revived:

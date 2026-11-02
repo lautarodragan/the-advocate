@@ -306,21 +306,36 @@ pub fn revives(item: &Item) -> bool {
 
 /// Whether a medicine goes in the battle's list: `Game_Party::IsItemUsable`
 /// in battle —a medicine not marked "only outside battle"— cut down to the
-/// ones that heal HP or SP, and of the `ko_only` ones, the ones that
-/// revive. The ones left out only remove states, which the battle keeps
-/// only on enemies —see `Held` in `simulate`—.
+/// ones that heal HP or SP or remove a condition other than death; and of
+/// the `ko_only` ones, the ones that revive. RM2k lists the rest too: one
+/// that does nothing, and one that only revives with no HP, which here
+/// stays out as it always did.
 ///
 /// Until 2026-10-04 it was the ones that heal HP: it was written on
 /// 2026-09-12, when the SP were not state yet, and stayed when the skills
-/// made them so.
+/// made them so. The ones that only remove conditions came in on
+/// 2026-11-01, when the party started holding them.
 pub fn item_usable_in_battle(item: &Item) -> bool {
     item.r#type.to_i32() == ITEM_MEDICINE
         && !item.occasion_field1
         && (item.recover_hp != 0
             || item.recover_hp_rate != 0
             || item.recover_sp != 0
-            || item.recover_sp_rate != 0)
+            || item.recover_sp_rate != 0
+            || item.state_set.iter().skip(1).any(|&on| on))
         && (revives(item) || !item.ko_only)
+}
+
+/// Whether a medicine takes effect on its target, given whether it is
+/// standing: the two exits of `Item::vExecute` with no effect —a `ko_only`
+/// one on one standing— and `Game_Battler::UseItem`'s —one that does not
+/// revive on a fallen one—. The `actor_set` is [`item_usable_by`].
+pub fn medicine_applies(item: &Item, standing: bool) -> bool {
+    if standing {
+        !item.ko_only
+    } else {
+        revives(item)
+    }
 }
 
 /// The skill a special item casts in battle, if this battle offers it:

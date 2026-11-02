@@ -2192,12 +2192,28 @@ impl Battle {
                     // An item cannot miss and rolls nothing, and it goes to
                     // the one chosen even if it changed along the way.
                     let before = self.get(target).hp;
-                    let (hp, sp, up) = item_effect(db.item(item)?, self.get(target));
+                    let it = db.item(item)?;
+                    let t = self.get(target);
+                    let applies = (!t.is_actor || rules::item_usable_by(it, t.number))
+                        && rules::medicine_applies(it, t.alive());
+                    let (hp, sp, up) = item_effect(it, t);
                     if up {
                         self.get_mut(target).unshift();
                     }
                     self.get_mut(target).hp = hp;
                     self.get_mut(target).sp = sp;
+                    // The conditions it removes, after the HP and the SP,
+                    // which is `ProcessBattleActionStateEffects` after
+                    // `ProcessBattleActionParamEffects`: each one held
+                    // goes, with its `message_recovery`. The dead one is
+                    // the revival above.
+                    if applies {
+                        for id in states::of_skill(&it.state_set) {
+                            if id != DEATH_STATE && self.remove_state(target, id) {
+                                self.result(target, "healed", id);
+                            }
+                        }
+                    }
                     self.logged(who, target, true, false, before - hp);
                 }
                 (_, Target::One(mut target)) => {
@@ -2346,11 +2362,19 @@ mod tests {
         assert_eq!(item_effect(&oil, &actor(3, 50, 10)), (110, 70, false));
     }
 
-    /// One that only removes states is still left out: the battle keeps
-    /// none.
+    /// One that does nothing is left out, and one that only removes a
+    /// condition goes in since 2026-11-01, when the party started holding
+    /// them: an Antidote.
     #[test]
-    fn a_medicine_that_recovers_nothing_is_left_out() {
+    fn a_medicine_that_does_nothing_is_left_out() {
         assert!(!rules::item_usable_in_battle(&medicine(|_| {})));
+        assert!(rules::item_usable_in_battle(&medicine(|i| {
+            i.state_set = vec![false, false, true];
+        })));
+        assert!(!rules::item_usable_in_battle(&medicine(|i| {
+            i.state_set = vec![false, false, true];
+            i.ko_only = true;
+        })));
         assert!(!rules::item_usable_in_battle(&medicine(|i| {
             i.recover_sp = 10;
             i.occasion_field1 = true;
