@@ -416,7 +416,15 @@ bytecode! {
     /// Held for opcodes other branches are adding: they end the page until
     /// they land.
     OP_RESERVED_52 = 0x52 ();
-    OP_RESERVED_53 = 0x53 ();
+
+    /// `Transaction` and `NoTransaction`, an `OpenShop`'s branches: the page
+    /// goes to `destination` if the last shop closed with nothing bought or
+    /// sold, and on with the next opcode if something was —easyrpg's
+    /// `did_transaction`, which picks the sub-index the two branches look
+    /// at—. The compiler emits it where the `Transaction` is, with the
+    /// destination at the `NoTransaction`'s body. See `if_traded` in the
+    /// runtime's `shop.s`.
+    OP_IF_TRADED = 0x53 (destination: word);
 
     /// `ChangeHeroName`: the actor at `place` among the ones some
     /// `ChangeHeroName` of the game renames carries rename `name` of the

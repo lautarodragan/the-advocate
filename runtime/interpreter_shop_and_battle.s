@@ -78,6 +78,14 @@ op_shop_done:
 
 .endproc
 
+; `Transaction` and `NoTransaction`: where the page goes after a shop, by
+; whether it closed with a deal. The body is `if_traded`, in shop.s, which
+; reads the destination with Y in hand.
+.proc op_if_traded
+    jsl f:if_traded
+    jmp run_code::other
+.endproc
+
 ; `EnemyEncounter`: the troop and the three destinations, all sixteen bits.
 ; The battle is played in here and, on leaving, the map comes back —as with
 ; the shop— and the page continues at the destination the result picked.
