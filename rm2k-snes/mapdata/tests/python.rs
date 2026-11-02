@@ -1797,8 +1797,8 @@ fn with_one_font_table_as_before(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_item_text_more(&emitted.text);
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&text, "bare"));
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "bare"));
+    let text = without_item_text_more(&text);
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
     ))));
@@ -1842,8 +1842,8 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_item_text_more(&emitted.text);
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&text, "whole"));
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "whole"));
+    let text = without_item_text_more(&text);
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
     ))));
