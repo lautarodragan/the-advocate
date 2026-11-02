@@ -160,6 +160,10 @@ ITEM_MORE_FIRST = (ITEM_MORE_VRAM - SLOT_VRAM) / TL_PAIR_WORDS
 .assert ITEM_BORDER_MAP < ITEM_MORE_VRAM && SLOT_MAP < ITEM_MORE_VRAM, error, "the items screen's extra pairs reach its tilemaps"
 .assert ITEM_MORE_FIRST > ITEM_POOL_PAIRS && ITEM_MORE_FIRST < TL_PAIRS, error, "the items screen's extra pairs are not after its bank's"
 .assert SLOT_VRAM + TL_PAIRS * TL_PAIR_WORDS <= $6000 && (TL_PAIRS * 2) <= 1024, error, "the items screen's last pair is not a tile BG2 reaches"
+; The converter counts these when it says whether the busiest item list fits
+; —`ITEM_MORE_PAIRS` in `rm2k-snes-screens`—: until 2026-11-02 it counted only
+; the bank's, and said ABL's did not.
+.assert TL_PAIRS - ITEM_MORE_FIRST = ITEM_TEXT_MORE, error, "the converter counts other pairs past the items screen's bank than items_pool gives"
 .proc items_pool
 .a8
 .i16

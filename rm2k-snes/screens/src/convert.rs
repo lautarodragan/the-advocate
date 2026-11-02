@@ -3,7 +3,7 @@
 
 use crate::borders::{self, compact_shop, compact_target, Borders};
 use crate::cells::{Color, CELL};
-use crate::checks::{items_border_first, Vram, TEXT_POOL_PAIRS};
+use crate::checks::{items_border_first, Vram, ITEM_MORE_PAIRS, TEXT_POOL_PAIRS};
 use crate::end_game;
 use crate::fail::{Bad, Result};
 use crate::fit;
@@ -445,12 +445,11 @@ fn shop_pairs(game: &Game, skin: &crate::game::Skin, request: &Request) -> Resul
     Ok(most)
 }
 
-/// What the item screen's busiest list asks of the pool, as [`shop_pairs`]
-/// does for the shop: the widest names in every row, every count at 99, and
-/// the widest description over them. Its pool is what the item and
-/// equipment windows leave below them —see `items_border_first`—, so a
-/// System whose windows take many tiles leaves less.
-pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Result<usize> {
+/// The item screen's busiest list among `items`, as [`shop_pairs`] takes
+/// the shop's: the widest names in every row, every count at 99, and the
+/// widest description over them. The list, in the screen's order, and the
+/// row whose description shows.
+pub fn busiest_items(game: &Game, items: &[i32]) -> Result<(Vec<i32>, usize)> {
     let font = &game.font;
     let mut by_name: Vec<(usize, i32)> = Vec::new();
     let mut widest_description = (0, None);
@@ -477,11 +476,20 @@ pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Resul
         .1
         .and_then(|w| list.iter().position(|&n| n == w))
         .unwrap_or(0);
+    Ok((list, chosen))
+}
+
+/// What the item screen's busiest list —[`busiest_items`]— asks of the
+/// pool. Its pool is what the item and equipment windows leave below them
+/// —see `items_border_first`—, so a System whose windows take many tiles
+/// leaves less, and the [`ITEM_MORE_PAIRS`] past the bank.
+pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Result<usize> {
+    let (list, chosen) = busiest_items(game, items)?;
     let inventory = list.iter().map(|&n| (n, 99)).collect();
     Ok(
         render::item_screen_text(game, skin, &inventory, chosen, 0, Some(&list))?
             .0
-            .pairs(font),
+            .pairs(&game.font),
     )
 }
 
@@ -729,11 +737,26 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let items_border = borders::borders(&border_screens(), first, ITEM_BORDER_CGRAM, 256)?;
     request.vram.items_border(items_border.tiles.len(), 0)?;
     let asked = item_pairs(game, &fitted, &request.items)?;
-    let pool = first.saturating_sub(1);
+    let below = first.saturating_sub(1);
+    let pool = below + ITEM_MORE_PAIRS;
     let warning = if asked > pool { "WARNING, " } else { "" };
+    // Which list it is, so that whoever looks for it in the game can build
+    // it: ABL's suite does, in `test_menu_items_drawing.py`.
+    let (busiest, chosen) = busiest_items(game, &request.items)?;
+    let which = match busiest.get(chosen) {
+        Some(described) => format!(
+            ": items {}, at 99, with the description of {described}",
+            busiest
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        None => String::new(),
+    };
     let line = format!(
-        "  {warning}item text: its list asks for {asked} pairs of tiles at most, of the {pool} the item and \
-         equipment windows leave"
+        "  {warning}item text: its busiest list asks for {asked} pairs of tiles at most, of the {pool} the \
+         item and equipment screens have —{below} below their windows and {ITEM_MORE_PAIRS} of the map's—{which}"
     );
     if asked > pool {
         lose(&mut says, &mut losses, "text-pool-short", Some(line));

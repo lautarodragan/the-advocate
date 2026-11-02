@@ -22,7 +22,7 @@
 
 use crate::borders::{self, Screen as Layer};
 use crate::cells::{self, BLACK, COLS, ROWS};
-use crate::checks::SLOT_VRAM_WORDS;
+use crate::checks::{ITEM_MORE_PAIRS, SLOT_VRAM_WORDS};
 use crate::fail::Result;
 use crate::game::{Game, Skin};
 use crate::layout::*;
@@ -177,13 +177,14 @@ impl Bank {
 /// them; and then how many tiles they took, and how many they were left
 /// with.
 ///
-/// `text` is what else the bank has to hold: for the item and equipment
-/// screens, the pairs their text asks for —`convert::item_pairs`—, which
-/// go below the windows. Their windows are redrawn too when they fit the
-/// bank but leave the text without room: a System with a gradient left
-/// The Frozen World's item text 82 pairs of the 132 it asks for. If the
-/// text alone takes the whole bank there is nothing to give it: the windows
-/// fit the bank, and the converter says the text does not.
+/// `text` is the pairs the screen's text asks for: for the item and
+/// equipment screens, `convert::item_pairs`. What of it does not fit in
+/// their [`ITEM_MORE_PAIRS`], past the bank, goes below the windows. Their
+/// windows are redrawn too when they fit the bank but leave the text
+/// without room: a System with a gradient left The Frozen World's item text
+/// 82 pairs of the 132 it asked for, when the bank's were all it had. If
+/// the text alone takes the whole bank there is nothing to give it: the
+/// windows fit the bank, and the converter says the text does not.
 pub fn skin_for(
     game: &Game,
     skin: &Skin,
@@ -191,6 +192,12 @@ pub fn skin_for(
     text: usize,
 ) -> Result<(Skin, Option<(usize, usize)>)> {
     let whole = tiles_max(screen);
+    // Until 2026-11-02 all of it went to the bank, and Zounds' windows were
+    // redrawn with 16 tiles of their 25 for text that had room past it.
+    let text = match screen {
+        Screen::Items => text.saturating_sub(ITEM_MORE_PAIRS),
+        _ => text,
+    };
     let max = if text < whole { whole - text } else { whole };
     let bank = Bank::new(&cut_cells(&layers(game, skin, screen)?));
     if bank.tiles.len() <= max {

@@ -137,3 +137,27 @@ fn a_window_background_that_is_not_a_colour_is_refused() {
     assert!(game.use_window_background("102030").is_err());
     assert!(game.use_window_background("#10203").is_err());
 }
+
+/// The item and equipment windows give way only to the text that does not
+/// fit past their bank: the runtime gives those two screens
+/// `ITEM_MORE_PAIRS` of the map's besides —`items_pool`—, and until
+/// 2026-11-02 their windows were redrawn as if the bank were all the text
+/// had. Zounds' were, with 16 tiles of their 25.
+#[test]
+fn the_item_windows_give_way_only_to_text_past_the_more_pairs() {
+    use rm2k_snes_screens::checks::ITEM_MORE_PAIRS;
+    use rm2k_snes_screens::fit::{skin_for, Screen, ITEMS_TILES_MAX};
+    let game = game_with(&gradient_system(), "items");
+    let skin = game.skin().unwrap();
+    let fused = |text| skin_for(&game, &skin, Screen::Items, text).unwrap().1;
+    // With room for one tile, they say how many they take.
+    let (tiles, max) = fused(ITEM_MORE_PAIRS + ITEMS_TILES_MAX - 1).unwrap();
+    assert_eq!(max, 1);
+    assert!(tiles > 1 && tiles <= ITEMS_TILES_MAX);
+    assert_eq!(fused(ITEM_MORE_PAIRS), None);
+    assert_eq!(fused(ITEM_MORE_PAIRS + ITEMS_TILES_MAX - tiles), None);
+    assert_eq!(
+        fused(ITEM_MORE_PAIRS + ITEMS_TILES_MAX - tiles + 1),
+        Some((tiles, tiles - 1))
+    );
+}
