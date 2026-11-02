@@ -298,9 +298,21 @@ no_turn:
 no_adjust:
     clc
     adc temp                    ; the pose, 0 to 11
+    ; A still row has no bank of poses to upload from: one that routes only
+    ; turn, in a map with a cache, asks for another still pose instead. See
+    ; `still_turn`.
+    xba                         ; the pose waits in B
+    lda npc_buf + 9, y
+    cmp #NPC_STILL
+    beq still_row
+    xba
     jsr upload_npc_pose
 fit:
     jmp fit_npc                 ; and the row, to wherever it belongs now
+still_row:
+    xba
+    jsl f:still_turn + FAST
+    bra fit
 .endproc
 
 ; Puts row `npc_row` where it belongs now, with the table already sorted:
