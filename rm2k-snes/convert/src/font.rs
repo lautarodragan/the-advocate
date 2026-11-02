@@ -12,22 +12,28 @@
 //! because its absence has a meaning that is no other game's value, the
 //! font as its sheet draws it.
 //!
-//! And the game's ExFont, the icons a `$` and a letter draw, which are not
-//! the project's but the game's: they come from its `RPG_RT.exe`, or a
-//! sheet of its own —see `rm2k_render::exfont::find`—, and the stages are
-//! handed its path, `exfont`, next to the font's name. A game without one
-//! drops the codes. `[text] exfont`, **optional**, names the file in the
-//! game's directory for a game that runs with another executable —Zounds'
-//! icons are in its `RPG_RT_a.exe`—; or is `false`, and the cartridge
-//! carries no icon and drops every code, for one with no room for their
-//! glyphs —each half of an icon a box draws is 1,248 bytes of the window's
-//! tables—.
+//! And `[text] exfont`, **optional**: the ExFont, the icons a `$` and a
+//! letter draw, as the path of a sheet —a PNG or a BMP, see
+//! `rm2k_render::exfont`— relative to the project file, like a font's. The
+//! stages are handed its absolute path, `exfont`, next to the font's name.
+//! Without it, or with `false`, the cartridge carries no icon and drops
+//! every code. Absent and `false` mean the same today; `false` stays
+//! because it says on purpose that a game has no room for the glyphs —each
+//! half of an icon a box draws is 1,248 bytes of the window's tables—,
+//! which a default sheet of the engine's own, once there is one, would not
+//! change.
+//!
+//! It is never looked for in the game's directory, and a game's executable
+//! —where RPG_RT keeps its own— is not read: taro's, from 2026-11-02, so
+//! that no port depends on the `.exe` a game brings. A port that wants
+//! RPG_RT's icons commits the sheet extracted from it, next to its project
+//! file.
 
 use crate::fail::{Result, Stop};
 use crate::settings::Settings;
 use rm2k_snes_text::font::Font;
 use serde_json::{json, Value};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// The font, as the stages are told it, and its advances.
 #[derive(Debug, Clone)]
@@ -37,16 +43,17 @@ pub struct FontChoice {
     /// `[text] letter_spacing`, already in `font`; it goes to the stages
     /// that read the font themselves, next to `spec`.
     pub spacing: i64,
-    /// The game's executable, when it carries an ExFont: its icons are in
+    /// `[text] exfont`, the sheet's absolute path: its icons are in
     /// `font`, and the stages read them from here.
     pub exfont: Option<PathBuf>,
     pub font: Font,
 }
 
 impl FontChoice {
-    /// `[text] font`, resolved and read: a font that cannot be read stops
-    /// the conversion here, and not in the first stage that draws.
-    pub fn of(settings: &Settings, game_dir: &Path) -> Result<FontChoice> {
+    /// `[text] font` and `[text] exfont`, resolved and read: a font that
+    /// cannot be read stops the conversion here, and not in the first stage
+    /// that draws.
+    pub fn of(settings: &Settings) -> Result<FontChoice> {
         let given = settings.string(&["text", "font"])?;
         let spec = if given.to_ascii_lowercase().ends_with(".png") {
             rm2k_project::absolute(settings.project.directory().join(&given))
@@ -64,35 +71,29 @@ impl FontChoice {
         let font = font
             .with_spacing(spacing)
             .map_err(|e| Stop::new(format!("[text] letter_spacing: {e}")))?;
-        let (named, none) = match settings.project.value(&["text", "exfont"]) {
-            Err(_) => (None, false),
-            Ok(v) if v.as_bool() == Some(false) => (None, true),
-            Ok(v) => (
-                Some(
-                    v.as_str()
-                        .ok_or_else(|| {
-                            Stop::new(
-                                "[text] exfont is the name of a file in the game's directory, \
-                                 or false",
-                            )
-                        })?
-                        .to_string(),
-                ),
-                false,
-            ),
-        };
-        let file = rm2k_render::exfont::find(game_dir, named.as_deref()).filter(|_| !none);
-        if let (Some(name), Some(path)) = (&named, &file) {
-            if !path.is_file() {
-                return Err(Stop::new(format!(
-                    "[text] exfont: the game has no {name:?}"
-                )));
+        let exfont = match settings.project.value(&["text", "exfont"]) {
+            Err(_) => None,
+            Ok(v) if v.as_bool() == Some(false) => None,
+            Ok(v) => {
+                let given = v.as_str().ok_or_else(|| {
+                    Stop::new(
+                        "[text] exfont is the path of a sheet, a PNG or a BMP, relative to \
+                         the project file; or false",
+                    )
+                })?;
+                let path = rm2k_project::absolute(settings.project.directory().join(given));
+                if !path.is_file() {
+                    return Err(Stop::new(format!(
+                        "[text] exfont: there is no {}",
+                        path.display()
+                    )));
+                }
+                Some(path)
             }
-        }
+        };
         let font = font
-            .with_exfont_of(file.as_deref())
-            .map_err(|e| Stop::new(format!("the game's ExFont: {e}")))?;
-        let exfont = file.filter(|_| font.has_exfont());
+            .with_exfont_of(exfont.as_deref())
+            .map_err(|e| Stop::new(format!("[text] exfont: {e}")))?;
         Ok(FontChoice {
             spec,
             spacing,
@@ -102,11 +103,11 @@ impl FontChoice {
     }
 
     /// What a request names the font with: `font`, `letter_spacing` and,
-    /// when the game has one, `exfont`.
+    /// when the project names one, `exfont`.
     pub fn request(&self) -> Value {
         let mut out = json!({"font": self.spec, "letter_spacing": self.spacing});
-        if let Some(exe) = &self.exfont {
-            out["exfont"] = json!(exe.to_string_lossy());
+        if let Some(sheet) = &self.exfont {
+            out["exfont"] = json!(sheet.to_string_lossy());
         }
         out
     }
@@ -115,7 +116,7 @@ impl FontChoice {
     /// line, `lines` of them, the advances to measure a line with, and the
     /// Latin-1 letters the font draws with theirs —which of them the
     /// cartridge carries, the compiler decides—, and after them the halves
-    /// of the ExFont's icons, if the game has one.
+    /// of the ExFont's icons, if the project names one.
     pub fn window(&self, width: usize, lines: u32) -> Value {
         let mut letters: Vec<Value> = self
             .font

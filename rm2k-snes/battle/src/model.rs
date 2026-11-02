@@ -746,8 +746,8 @@ pub fn field_skill(db: &Db, request: &Value) -> Result<Value> {
 }
 
 /// The game's font, if the request names it —`font` and `letter_spacing`,
-/// as the screens stage takes them—, with the icons of the game's ExFont
-/// when it names its executable, `exfont`.
+/// as the screens stage takes them—, with the icons of the ExFont's sheet
+/// when it names one, `exfont`.
 fn font_of(request: &Value) -> Result<Option<Font>> {
     let Some(spec) = request.get("font") else {
         return Ok(None);

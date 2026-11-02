@@ -142,7 +142,7 @@ impl<'a> Compiler<'a> {
         // Every text box of the game the port rebuilds for the console's
         // window, with the boxes that go in its place. A line is measured in
         // pixels, with the font the project file names.
-        let font = FontChoice::of(settings, &game.game_dir)?;
+        let font = FontChoice::of(settings)?;
         let width = screens::message_width()?;
         let boxes = screens::boxes(game, &font, width, LINES)?;
         let window = font.window(width, LINES);

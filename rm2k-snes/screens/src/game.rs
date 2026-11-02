@@ -162,9 +162,9 @@ impl Game {
     /// with `spacing` pixels more after every letter, its `[text]
     /// letter_spacing` —see `Font::with_spacing`—.
     ///
-    /// And with the icons of the game's ExFont, from its executable at
-    /// `exfont` —see `Font::with_exfont_of`—: the converter names it when
-    /// the game has one.
+    /// And with the icons of the ExFont's sheet at `exfont` —see
+    /// `Font::with_exfont_of`—: the converter names it when the project
+    /// does, `[text] exfont`.
     pub fn use_font(
         &mut self,
         spec: &str,

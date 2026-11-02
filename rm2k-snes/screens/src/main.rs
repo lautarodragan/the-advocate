@@ -201,7 +201,7 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
 /// The game, drawing with the font the request names: `font`, which is the
 /// project file's `[text] font` —`rm2k`, one the engine carries, or the
 /// path of a sheet—, spaced by its `letter_spacing`, and with the icons of
-/// the game's ExFont when the request names its executable, `exfont`.
+/// the ExFont when the request names its sheet, `exfont`.
 fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
     let mut game = args.game()?;
     game.use_font(
