@@ -122,9 +122,7 @@ fn one_already_held_rolls_nothing() {
     b.add_state(&db, Who::Enemy(0), POISON).unwrap();
     b.use_skill(&db, Who::Actor(0), HITS, Who::Enemy(0))
         .unwrap();
-    let mut rng = Rng {
-        state: BATTLE_SEED,
-    };
+    let mut rng = Rng { state: BATTLE_SEED };
     rng.percent(0); // the critical, and nothing else
     assert_eq!(b.rng.state, rng.state);
     assert_eq!(lines(&b), [("already", POISON)]);
@@ -139,9 +137,7 @@ fn odds_of_zero_still_roll_both_and_give_nothing() {
     let mut b = battle(&db);
     b.use_skill(&db, Who::Actor(0), HITS, Who::Enemy(0))
         .unwrap();
-    let mut rng = Rng {
-        state: BATTLE_SEED,
-    };
+    let mut rng = Rng { state: BATTLE_SEED };
     rng.percent(0); // the critical
     rng.percent(100); // the skill's hit for the condition
     rng.percent(0); // and its odds on the enemy

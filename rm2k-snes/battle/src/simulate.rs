@@ -361,16 +361,8 @@ impl StateInfo {
                 s.affect_agility,
             ],
             reduce_hit_ratio: s.reduce_hit_ratio as i64,
-            hp_turn: TurnChange::of(
-                s.hp_change_type.to_i32(),
-                s.hp_change_val,
-                s.hp_change_max,
-            ),
-            sp_turn: TurnChange::of(
-                s.sp_change_type.to_i32(),
-                s.sp_change_val,
-                s.sp_change_max,
-            ),
+            hp_turn: TurnChange::of(s.hp_change_type.to_i32(), s.hp_change_val, s.hp_change_max),
+            sp_turn: TurnChange::of(s.sp_change_type.to_i32(), s.sp_change_val, s.sp_change_max),
         })
     }
 }
@@ -1518,8 +1510,11 @@ impl Battle {
         // order, changes the HP —never killing— and the SP. It rolls
         // nothing and says nothing of its own.
         let c = self.get_mut(who);
-        let changes: Vec<(TurnChange, TurnChange)> =
-            c.states.iter().map(|h| (h.info.hp_turn, h.info.sp_turn)).collect();
+        let changes: Vec<(TurnChange, TurnChange)> = c
+            .states
+            .iter()
+            .map(|h| (h.info.hp_turn, h.info.sp_turn))
+            .collect();
         for (hp, sp) in changes {
             let amount = hp.on(c.hp_max);
             c.change_hp(amount, false);
