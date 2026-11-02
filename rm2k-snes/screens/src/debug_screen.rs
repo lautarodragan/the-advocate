@@ -32,8 +32,8 @@ use crate::borders::Screen;
 use crate::cells::{self, Color, Counts, BLACK, CELL, COLS, ROWS, WIDTH};
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
-use crate::layout::{Rect, SCR_TEXT_X};
 use crate::items::ink_prerender;
+use crate::layout::{Rect, SCR_TEXT_X};
 use crate::message_window::{font_bytes_with, font_reach_with};
 use rm2k_snes_text::font::{self, Font};
 use serde_json::{json, Map, Value};
@@ -494,7 +494,8 @@ pub fn build(game: &Game, skin: &Skin, slots: &BTreeMap<i32, usize>) -> Result<B
         &game.variable_names,
         slots,
     )?;
-    let says = vec![format!(
+    let says =
+        vec![format!(
         "  debug screen: {} switches and {} variables ({} kept), {} B of names{}, windows in {} \
          tiles and {} palettes",
         game.switch_names.len(),
@@ -584,7 +585,15 @@ mod tests {
         let glyphs = Glyphs::of(&font, vec!['ä', 'ñ']).unwrap();
         assert_eq!(
             glyphs.encode("Señal ä"),
-            vec![b'S', b'e', LATIN_CODE as u8 + 1, b'a', b'l', b' ', LATIN_CODE as u8]
+            vec![
+                b'S',
+                b'e',
+                LATIN_CODE as u8 + 1,
+                b'a',
+                b'l',
+                b' ',
+                LATIN_CODE as u8
+            ]
         );
         let figure = font::CONSOLE_GLYPHS;
         assert_eq!(glyphs.advances.len(), figure + 3);

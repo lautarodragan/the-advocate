@@ -210,10 +210,22 @@ mod tests {
             r#type: kind,
             ..Default::default()
         };
-        assert!(item_casts_on_the_map(&of(ItemType::Special), Some(&heal), &[]));
-        assert!(!item_casts_on_the_map(&of(ItemType::Special), Some(&bomb), &[]));
+        assert!(item_casts_on_the_map(
+            &of(ItemType::Special),
+            Some(&heal),
+            &[]
+        ));
+        assert!(!item_casts_on_the_map(
+            &of(ItemType::Special),
+            Some(&bomb),
+            &[]
+        ));
         assert!(!item_casts_on_the_map(&of(ItemType::Special), None, &[]));
-        assert!(!item_casts_on_the_map(&of(ItemType::Medicine), Some(&heal), &[]));
+        assert!(!item_casts_on_the_map(
+            &of(ItemType::Medicine),
+            Some(&heal),
+            &[]
+        ));
     }
 
     fn skill(t: SkillType, scope: SkillScope) -> Skill {

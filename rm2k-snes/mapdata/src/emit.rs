@@ -3321,7 +3321,7 @@ impl Rest<'_> {
             t.n("MENU_ARROW_X"),
             t.n("MENU_ARROW_Y")
         ));
-        self.menu_states(out, &t, at(slots, "states")?)?;
+        self.menu_states(out, t, at(slots, "states")?)?;
         // Each actor's text, in ASCII: the name with trailing spaces, the
         // two digits of the level and max HP, in one row per actor.
         if (SLOT_TEXT_LEVEL as i64) < t.n("MENU_NAME_COLS")

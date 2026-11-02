@@ -362,8 +362,7 @@ pub fn item_skill_in_battle(db: &Db, item: &Item) -> Option<i32> {
 pub fn item_skill_on_the_map(db: &Db, item: &Item) -> Option<i32> {
     let states: Vec<_> = db.states.values().cloned().collect();
     let skill = db.skills.get(&item.skill_id);
-    rm2k_rules::skill::item_casts_on_the_map(item, skill, &states)
-        .then_some(item.skill_id)
+    rm2k_rules::skill::item_casts_on_the_map(item, skill, &states).then_some(item.skill_id)
 }
 
 /// Whether the item goes in the battle's list: a medicine

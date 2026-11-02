@@ -914,8 +914,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         item_texts.push(json!({
             "number": n,
             "texts": lines,
-            "usable": texts::item_usable(item, texts::map_skill(&game, item)),
-            "needs_actor": texts::item_needs_actor(item, texts::map_skill(&game, item)),
+            "usable": texts::item_usable(item, texts::map_skill(game, item)),
+            "needs_actor": texts::item_needs_actor(item, texts::map_skill(game, item)),
         }));
     }
     let medicine_names: Vec<Value> = medicines

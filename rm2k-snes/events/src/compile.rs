@@ -8473,7 +8473,9 @@ mod tests {
         // `OP_IF_TRADED` to the `NoTransaction`'s body, the `Transaction`'s
         // body, its jump to the end, the other body, and the end.
         let game = Game::default();
-        let code = compile_with(&game, &shop_page(true, true)).unwrap().unwrap();
+        let code = compile_with(&game, &shop_page(true, true))
+            .unwrap()
+            .unwrap();
         let (on7, on8, on9) = (switch_on_bytes(7), switch_on_bytes(8), switch_on_bytes(9));
         let no_deal = 8 + 3 + on7.len() + 3;
         let end = no_deal + on8.len();
@@ -8492,7 +8494,9 @@ mod tests {
     #[test]
     fn a_shop_with_only_the_bought_branch_skips_it_with_no_deal() {
         let game = Game::default();
-        let code = compile_with(&game, &shop_page(true, false)).unwrap().unwrap();
+        let code = compile_with(&game, &shop_page(true, false))
+            .unwrap()
+            .unwrap();
         let (on7, on9) = (switch_on_bytes(7), switch_on_bytes(9));
         let end = 8 + 3 + on7.len();
         let mut expected = SHOP_BYTES.to_vec();
@@ -8508,7 +8512,9 @@ mod tests {
     fn a_shop_with_only_the_did_not_buy_branch_skips_it_with_a_deal() {
         // A deal falls into the jump to the end; no deal jumps over it.
         let game = Game::default();
-        let code = compile_with(&game, &shop_page(false, true)).unwrap().unwrap();
+        let code = compile_with(&game, &shop_page(false, true))
+            .unwrap()
+            .unwrap();
         let (on8, on9) = (switch_on_bytes(8), switch_on_bytes(9));
         let body = 8 + 6;
         let end = body + on8.len();
