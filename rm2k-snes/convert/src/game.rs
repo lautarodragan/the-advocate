@@ -270,6 +270,12 @@ pub struct Game {
     /// `Way::Painted` in Wally. Off when the key is missing, for the same
     /// reason.
     pub painted_maps: bool,
+    /// `[graphics] unreachable_above_below`: whether the tiles above the
+    /// hero no character can ever cover are drawn below, in the background
+    /// —see `layers::below` in Wally and [`crate::reach`]—. Off when the key
+    /// is missing: it moves tiles from the 4-bit layer above to the 8-bit
+    /// background, and a cartridge that is full does not take the bytes.
+    pub unreachable_above_below: bool,
     /// The events each map leaves out because they do not fit in the
     /// console's RAM, by map and id: see [`crate::trim`] and
     /// [`Game::trim`]. They are taken out as the map is read.
@@ -450,6 +456,10 @@ impl Game {
             painted_maps: match project.value(&["graphics", "painted_maps"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "painted_maps"])?,
+            },
+            unreachable_above_below: match project.value(&["graphics", "unreachable_above_below"]) {
+                Err(_) => false,
+                Ok(_) => project.boolean(&["graphics", "unreachable_above_below"])?,
             },
             dropped: BTreeMap::new(),
             twins: BTreeMap::new(),

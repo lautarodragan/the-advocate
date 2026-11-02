@@ -121,6 +121,11 @@ pub struct MapRequest {
     /// parameters)`: only for what they name, so nobody that a test moves
     /// is taken for decoration. Only read if `decorative`.
     pub test_commands: Vec<(i32, Vec<i32>)>,
+    /// What the caller knows of where characters can be on the map: with
+    /// it, the tiles above the hero that no character can ever cover are
+    /// drawn below —see [`crate::layers::below`]—; without it, as before,
+    /// all of them above.
+    pub reach: Option<crate::request::Reach>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -199,16 +204,53 @@ fn layered(
         decor: decor.to_vec(),
         extra: extra.rows.clone(),
         extra_needed: extra.needed,
+        below: extra.below.clone(),
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
 }
 
-/// The rows a map is drawn with below it for its substitutions: see
-/// `Drawn::extended` and `LayersRequest::extra_needed`.
+/// How the map is drawn besides its two layers as the game has them: the
+/// rows below it for its substitutions —see `Drawn::extended` and
+/// `LayersRequest::extra_needed`—, and the cells whose tiles above the hero
+/// go below —`LayersRequest::below`—.
+#[derive(Clone)]
 struct Extra {
     rows: Vec<(i32, i32)>,
     needed: bool,
+    below: Vec<usize>,
+}
+
+/// What drawing the tiles above the hero nobody can cover below costs the
+/// map, against drawing them above, or `None` if nothing: another way for
+/// its panorama, colours the background or the layer above merge, cells of
+/// the background fused. They move from the 4-bit layer above to the 8-bit
+/// background, with their colours, and a background that was full loses
+/// colours elsewhere for them —on 2026-11-02, 36 of Vampires Dawn's maps,
+/// one of them 111 colours—, or gets tiles fused to fit its layout. That
+/// would be a map that looks worse everywhere so that a window without its
+/// background blacks out less of it: the layer above stays.
+fn lowering_costs(plain: &Layered, lowered: &Layered) -> Option<String> {
+    let (p, l) = (&plain.converted, &lowered.converted);
+    if p.way != l.way {
+        let name = |w: Option<crate::background::panorama::Way>| w.map_or("none", |w| w.name());
+        return Some(format!(
+            "its panorama would go {} and not {}",
+            name(l.way),
+            name(p.way)
+        ));
+    }
+    let more = |a: usize, b: usize| b.saturating_sub(a);
+    let colours = more(p.background.merges.len(), l.background.merges.len())
+        + more(p.above.merges.len(), l.above.merges.len());
+    if colours > 0 {
+        return Some(format!("{colours} colours more would be merged"));
+    }
+    let fused = more(plain.drawn.fused, lowered.drawn.fused);
+    if fused > 0 {
+        return Some(format!("{fused} background cells more would be fused"));
+    }
+    None
 }
 
 /// Whether baking left everybody else's colours where they were: the layer
@@ -1100,11 +1142,39 @@ fn convert_with(
     // drawn; any other map, only those halves cannot build.
     let unseen = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
     let beyond = crate::substitutions::beyond_halves(&lower, &upper, &flags, &unseen);
-    let extra = Extra {
+    let mut extra = Extra {
         needed: !beyond.is_empty(),
         rows: if panorama.is_some() { unseen } else { beyond },
+        below: match &request.reach {
+            Some(reach) => {
+                // Where the hero starts if the cartridge boots here, as
+                // `start` below picks it: the game's start, or the open cell
+                // nearest the centre —with or without the events that are
+                // not drawn, which may close theirs—.
+                let (start_map, start_x, start_y) = game.start()?;
+                let mut starts = vec![(start_x, start_y)];
+                if id != start_map {
+                    let (w, h) = (raw.width as usize, raw.height as usize);
+                    let mut pass =
+                        rm2k_rules::passability::map(&flags, &raw.lower_layer, &raw.upper_layer);
+                    for &(x, y) in game.walls.get(&id).map_or(&[][..], Vec::as_slice) {
+                        if x < w && y < h {
+                            pass[y * w + x] = 0;
+                        }
+                    }
+                    let drawn: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
+                    let all: HashSet<(i32, i32)> = events.iter().map(|e| (e.x, e.y)).collect();
+                    starts = vec![
+                        hero_start(&pass, w, h, &drawn),
+                        hero_start(&pass, w, h, &all),
+                    ];
+                }
+                crate::layers::below(game, &raw, &flags, reach, request, &starts)?
+            }
+            None => Vec::new(),
+        },
     };
-    let without = layered(
+    let mut without = layered(
         game,
         id,
         request.window_colors,
@@ -1113,7 +1183,42 @@ fn convert_with(
         &[],
         request.fuse_tiles,
         &extra,
-    )?;
+    );
+    // Lowered only if that loses nothing: see [`lowering_costs`].
+    if !extra.below.is_empty() {
+        let plain_extra = Extra {
+            below: Vec::new(),
+            ..extra.clone()
+        };
+        let plain = layered(
+            game,
+            id,
+            request.window_colors,
+            panorama.clone(),
+            &BTreeMap::new(),
+            &[],
+            request.fuse_tiles,
+            &plain_extra,
+        )?;
+        let costs = match &without {
+            Ok(lowered) => lowering_costs(&plain, lowered),
+            Err(e) => Some(e.to_string()),
+        };
+        match costs {
+            None => notes.push(note(format!(
+                "  map {id}: {} cells draw their tiles above the hero below: no character can cover them",
+                without.as_ref().map_or(0, |w| w.drawn.lowered.len())
+            ))),
+            Some(why) => {
+                notes.push(note(format!(
+                    "  map {id}: the tiles above the hero no character can cover stay above: below, {why}"
+                )));
+                without = Ok(plain);
+                extra = plain_extra;
+            }
+        }
+    }
+    let without = without?;
     // The tiles first, as they always were. Then the decoration, all of it
     // if the split holds, and if not group by group —every CharSet is
     // one—, the most numerous first, keeping what fits: each CharSet brings

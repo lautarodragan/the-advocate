@@ -65,6 +65,9 @@ pub struct Drawn {
     /// are drawn into a panorama fixed to the map: see
     /// [`crate::map_pictures`].
     pub front: Option<Vec<bool>>,
+    /// The cells whose tiles above the hero were drawn into the layer
+    /// below: see [`lower_cells`].
+    pub lowered: Vec<usize>,
 }
 
 /// The stretch of a panorama the console can show, and how it moves: what
@@ -367,6 +370,9 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
         &mut layers,
         into,
     )?;
+    // Last, over what was drawn into both, as RM2k stacks them: see
+    // [`lower_cells`].
+    let lowered = lower_cells(&mut layers, drawn.width, &request.below);
     // And the walls the caller left out of the map's events: the same, an
     // event on the hero's layer that is not in the table any more.
     let walls = game.walls.get(&id).map_or(&[][..], Vec::as_slice);
@@ -405,6 +411,7 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
             map.render(&atlas)?
         };
         crate::decor::compose(&mut layers, &request.decor);
+        lower_cells(&mut layers, map.width, &request.below);
         // Fused the same as the map, so that its cells are the map's: they
         // are what the blocks are made of, see `blocks`.
         if let Some(max) = request.fuse_tiles {
@@ -421,7 +428,179 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
         extended,
         blocked,
         front,
+        lowered,
     })
+}
+
+/// The cells of map `raw` whose tiles above the hero can go below: those
+/// no character can ever cover —`rm2k_rules::reach::covered`, with the
+/// common events and what `reach` adds—, but for a cell with a tile a
+/// substitution names, whose block is swapped by tile and has to be the
+/// same everywhere —see `blocks::Map::apart`—. `starts` are where the hero
+/// can start if the cartridge boots on the map.
+///
+/// What is drawn above the hero where nothing passes under it looks the
+/// same drawn below, and below it is in the background: the layer above
+/// keeps only what someone can walk behind. A window without a background
+/// takes that layer on its lines —the book's divergence "The window without
+/// a background does not cover the characters"—, and with less in it, less
+/// goes black there; Zounds' caves, whose ceilings are tiles above the hero
+/// over nothing, went black whole.
+pub fn below(
+    game: &Game,
+    raw: &ditto::schema::Map,
+    flags: &[u8],
+    reach: &crate::request::Reach,
+    request: &crate::map::MapRequest,
+    starts: &[(i32, i32)],
+) -> Result<Vec<usize>> {
+    // The conversion asks again for each mode it tries: the answer is the
+    // same, and on the biggest maps it takes seconds.
+    type Key = (
+        std::path::PathBuf,
+        i32,
+        crate::request::Reach,
+        Vec<(i32, i32)>,
+    );
+    static DONE: std::sync::Mutex<Vec<(Key, Vec<usize>)>> = std::sync::Mutex::new(Vec::new());
+    let key: Key = (
+        game.data.clone(),
+        request.map,
+        reach.clone(),
+        starts.to_vec(),
+    );
+    if let Some((_, cells)) = DONE
+        .lock()
+        .expect("not poisoned")
+        .iter()
+        .find(|(k, _)| *k == key)
+    {
+        return Ok(cells.clone());
+    }
+    let mut commands = game.common_commands()?;
+    commands.extend(reach.commands.iter().cloned());
+    let entries = reach.entries.as_ref().map(|e| {
+        let mut e = e.clone();
+        e.extend_from_slice(starts);
+        e
+    });
+    let sail = sail(game, raw, &reach.vehicles)?;
+    let covered = rm2k_rules::reach::covered(
+        request.map,
+        raw,
+        flags,
+        &commands,
+        rm2k_rules::reach::Outside {
+            entries: entries.as_deref(),
+            any_open: reach.any_open,
+            sail: &sail,
+        },
+    );
+    let apart = crate::substitutions::apart(&request.substitutions, &request.common_substitutions);
+    let cells: Vec<usize> = covered
+        .iter()
+        .enumerate()
+        .filter(|&(at, &c)| {
+            let l = i32::from(raw.lower_layer.get(at).copied().unwrap_or(0));
+            let u = i32::from(raw.upper_layer.get(at).copied().unwrap_or(10000));
+            !c && (rm2k_rules::passability::lower_above(flags, l)
+                || rm2k_rules::passability::upper_above(flags, u))
+                && !apart.contains(&l)
+                && !apart.contains(&u)
+        })
+        .map(|(at, _)| at)
+        .collect();
+    DONE.lock()
+        .expect("not poisoned")
+        .push((key, cells.clone()));
+    Ok(cells)
+}
+
+/// The cells of `raw` a boat or a ship of `vehicles` can carry the hero
+/// over: those whose terrain lets it through.
+fn sail(game: &Game, raw: &ditto::schema::Map, vehicles: &[String]) -> Result<Vec<bool>> {
+    let (boat, ship) = (
+        vehicles.iter().any(|v| v == "boat"),
+        vehicles.iter().any(|v| v == "ship"),
+    );
+    if !boat && !ship {
+        return Ok(Vec::new());
+    }
+    let chipset = game.chipset(raw.chipset_id)?;
+    let terrains = game.terrains()?;
+    Ok(raw
+        .lower_layer
+        .iter()
+        .map(|&l| {
+            let t = terrain_of(&chipset, i32::from(l));
+            terrains
+                .iter()
+                .find(|x| x.id == t)
+                .is_some_and(|x| (boat && x.boat_pass) || (ship && x.ship_pass))
+        })
+        .collect())
+}
+
+/// Draws what the layer above has on those of `cells` with nothing under it
+/// over the layer below —over each of its drawings— and leaves it empty
+/// there; the cells it drew. A cell's tiles stack as RM2k stacks them —its
+/// two tiles below the hero, then its two above—, so the map looks the
+/// same: only nothing can go between them any more.
+///
+/// **Only a cell where the layer below shows nothing through the tile
+/// above**: black, or the panorama's hole. There the background's new cell
+/// is the tile above alone, as many distinct ones as the layer above had,
+/// and the cell's block is still one per tile above. Over something drawn
+/// —a roof's edge over grass— every pair would be a cell of its own, and on
+/// 2026-11-02 that took A Blurred Line past its cartridge. It is also where
+/// it is seen: over nothing, the window without a background leaves the
+/// cell black; over grass, grass.
+fn lower_cells(layers: &mut Layers, width: usize, cells: &[usize]) -> Vec<usize> {
+    const T: usize = rm2k_rules::chipset::TILE as usize;
+    let stride = layers.upper.width;
+    let nothing = |px: &[u8]| px[3] == 0 || px[..3] == [0, 0, 0];
+    let mut done = Vec::new();
+    for &c in cells {
+        let (x0, y0) = (c % width * T, c / width * T);
+        let under_nothing = (y0..y0 + T).all(|y| {
+            (x0..x0 + T).all(|x| {
+                let at = (y * stride + x) * 4;
+                layers.upper.rgba.get(at + 3).is_none_or(|&a| a == 255)
+                    || std::iter::once(&layers.lower)
+                        .chain(layers.variants.iter().flat_map(|(_, d)| d.iter()))
+                        .all(|p| p.rgba.get(at..at + 4).is_none_or(nothing))
+            })
+        });
+        if !under_nothing {
+            continue;
+        }
+        done.push(c);
+        for y in y0..y0 + T {
+            for x in x0..x0 + T {
+                let at = (y * stride + x) * 4;
+                let Some(px) = layers.upper.rgba.get(at..at + 4) else {
+                    continue;
+                };
+                let px = [px[0], px[1], px[2], px[3]];
+                if px[3] == 0 {
+                    continue;
+                }
+                let below = std::iter::once(&mut layers.lower)
+                    .chain(layers.variants.iter_mut().flat_map(|(_, d)| d.iter_mut()));
+                for picture in below {
+                    let dst = &mut picture.rgba[at..at + 4];
+                    let a = u32::from(px[3]);
+                    for k in 0..3 {
+                        dst[k] =
+                            ((u32::from(px[k]) * a + u32::from(dst[k]) * (255 - a)) / 255) as u8;
+                    }
+                    dst[3] = (a + u32::from(dst[3]) * (255 - a) / 255) as u8;
+                }
+                layers.upper.rgba[at..at + 4].copy_from_slice(&[0, 0, 0, 0]);
+            }
+        }
+    }
+    done
 }
 
 /// The two layers converted, with the panorama if the map shows it, and
@@ -1130,4 +1309,69 @@ pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
         &passability,
         &made,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rm2k_render::picture::Picture;
+
+    /// What a screen shows of two layers, the one above over the one below.
+    fn seen(layers: &Layers) -> Vec<[u8; 4]> {
+        layers
+            .lower
+            .rgba
+            .chunks(4)
+            .zip(layers.upper.rgba.chunks(4))
+            .map(|(l, u)| {
+                if u[3] == 255 {
+                    [u[0], u[1], u[2], 255]
+                } else {
+                    [l[0], l[1], l[2], l[3]]
+                }
+            })
+            .collect()
+    }
+
+    /// A cell lowered shows the same, and its layer above is left empty;
+    /// the cell beside it is not touched, and each drawing of the layer
+    /// below gets the tile too.
+    #[test]
+    fn a_lowered_cell_looks_the_same_with_nothing_above() {
+        let mut upper = Picture::transparent(32, 16);
+        for at in [0usize, 17, 21] {
+            upper.rgba[at * 4..at * 4 + 4].copy_from_slice(&[0, 0, 255, 255]);
+        }
+        let mut layers = Layers {
+            lower: Picture::filled(32, 16, [0, 0, 0, 255]),
+            upper,
+            variants: vec![(
+                rm2k_render::Family::Water,
+                vec![Picture::transparent(32, 16)],
+            )],
+        };
+        let before = seen(&layers);
+        assert_eq!(lower_cells(&mut layers, 2, &[0]), [0]);
+        assert_eq!(seen(&layers), before);
+        // Cell 0's blue went below; cell 1's, at x 17 and 21, stayed above.
+        assert!(layers.upper.rgba[..16 * 4].iter().all(|&b| b == 0));
+        assert_eq!(&layers.upper.rgba[21 * 4..21 * 4 + 4], &[0, 0, 255, 255]);
+        assert_eq!(&layers.variants[0].1[0].rgba[..4], &[0, 0, 255, 255]);
+        assert_eq!(&layers.variants[0].1[0].rgba[4..8], &[0, 0, 0, 0]);
+    }
+
+    /// A cell whose tile above lets something drawn below show through
+    /// stays above: lowered, it would be a background cell of its own.
+    #[test]
+    fn a_cell_over_something_drawn_stays_above() {
+        let mut upper = Picture::transparent(16, 16);
+        upper.rgba[..4].copy_from_slice(&[0, 0, 255, 255]);
+        let mut layers = Layers {
+            lower: Picture::filled(16, 16, [0, 128, 0, 255]),
+            upper: upper.clone(),
+            variants: Vec::new(),
+        };
+        assert!(lower_cells(&mut layers, 1, &[0]).is_empty());
+        assert_eq!(layers.upper.rgba, upper.rgba);
+    }
 }

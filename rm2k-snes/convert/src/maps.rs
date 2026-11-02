@@ -222,6 +222,8 @@ pub struct Cartridge<'a> {
     /// The automatic common events copied into the maps: see
     /// [`crate::common_pages`].
     pub common_pages: crate::common_pages::CommonPages,
+    /// Where the hero can arrive on each map: see [`crate::reach`].
+    pub arrivals: crate::reach::Arrivals,
 }
 
 impl Cartridge<'_> {
@@ -545,6 +547,12 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // game always got.
     if game.painted_maps {
         request["panorama"]["painted"] = json!(true);
+    }
+    // Where characters can be, with what the map does not say: Wally draws
+    // below the tiles above the hero that none can ever cover. Only when
+    // the project asks, as the painted maps.
+    if game.unreachable_above_below {
+        request["reach"] = c.arrivals.json_of(map_id, &case_commands);
     }
     // Only on a map whose copies of common events show pictures of their
     // own: see `picture_own` in Wally.

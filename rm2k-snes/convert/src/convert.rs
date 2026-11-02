@@ -375,6 +375,17 @@ pub fn run(options: Options) -> Result<()> {
     // If some map sets rain, all of them carry the drops.
     let with_rain = scan::has_rain(every_refs.iter().copied(), &file_commands);
     let per_character = maps::maps_per_character(&every_refs);
+    let arrivals = if game.unreachable_above_below {
+        let arrivals = crate::reach::Arrivals::gather(&game, &every_refs, &case_pairs)?;
+        if let Some(why) = arrivals.anywhere() {
+            println!("  every tile above the hero stays above: {why}");
+        } else if let Some(why) = arrivals.any_open() {
+            println!("  the hero can be on any cell one can step on: {why}");
+        }
+        arrivals
+    } else {
+        crate::reach::Arrivals::default()
+    };
 
     let test_maps: BTreeSet<i32> = if cases.is_empty() {
         BTreeSet::from([order[start_index]])
@@ -477,6 +488,7 @@ pub fn run(options: Options) -> Result<()> {
         map_pictures,
         window_colors,
         common_pages: common_pages.clone(),
+        arrivals,
     };
     let mut animation_cache = Animations::new(&search_dirs, &game.dump);
     let mut prepared = Vec::new();

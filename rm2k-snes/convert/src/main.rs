@@ -34,6 +34,7 @@ mod options;
 mod pictures;
 mod pyjson;
 mod queries;
+mod reach;
 mod resources;
 mod scan;
 mod scene;
