@@ -56,6 +56,8 @@ act_st_r:     .res 2            ; and remainder,
 act_st_lo:    .res 2            ; the low word of the steps being divided,
 act_st_amt:   .res 2            ; and the amount of the change
 act_st_end:   .res 2            ; `act_st_drop`'s last place
+act_st_ptr:   .res 2            ; `act_st_cure`: where in `st_lists`,
+act_st_cured: .res 1            ; and whether it removed any
 .popseg
 
 ; Nobody holds anything, and the party has not taken a step: a new game.
@@ -333,8 +335,8 @@ last:
     rts
 .endproc
 
-; `State::Remove` of `act_st_id` from `act_st_actor`. With the data bank at
-; $7E. Clobbers A, X and Y.
+; `State::Remove` of `act_st_id` from `act_st_actor`: A8 = 1 and Z clear if
+; it held it. With the data bank at $7E. Clobbers A, X and Y.
 .proc act_st_remove
 .a8
 .i16
@@ -352,12 +354,107 @@ seek:
     dey
     bne seek
 none:
+    lda #0
     rts
 found:
-    phx
     jsr act_st_drop
-    plx
+    lda #1
     rts
+.endproc
+
+; `act_st_cure` for `medicine_use`: the `state_set` of the item `k` in
+; `item_sel` on `MED_ACTOR`, and `MED_USED` at 1 if it removed any. Here and
+; not in `medicine.s` because bank 1 is tight. A8; keeps X and Y; any data
+; bank.
+.proc act_st_cure_item
+.a8
+.i16
+    phx
+    phy
+    rep #$20
+.a16
+    lda f:item_sel
+    asl a
+    tax
+    lda f:item_st_at, x
+    tax                         ; sixteen bits: Z for the whole word
+    sep #$20
+.a8
+    beq none                    ; it removes none
+    lda f:MED_ACTOR
+    jsl f:act_st_cure
+    beq none
+    sta f:MED_USED
+none:
+    ply
+    plx
+    rtl
+.endproc
+
+; The same for `sk_heal_one`: the `state_effects` of the skill `k` in
+; `sk_used`. Here and not in `skills_screen.s` because `FAR2` is tight.
+.proc act_st_cure_skill
+.a8
+.i16
+    phx
+    phy
+    rep #$20
+.a16
+    lda f:sk_used
+    and #$00FF
+    asl a
+    tax
+    lda f:skill_st_at, x
+    tax
+    sep #$20
+.a8
+    beq none
+    lda f:MED_ACTOR
+    jsl f:act_st_cure
+    beq none
+    sta f:MED_USED
+none:
+    ply
+    plx
+    rtl
+.endproc
+
+; What a medicine or a skill on its own side removes outside battle: the
+; `RemoveState` of each condition in `state_set` —`Game_Battler::UseItem`—
+; or in `state_effects` —`UseSkill`—, A8 the actor and X where the list
+; starts in `st_lists` —`item_st_at`, `skill_st_at`—, not 0. The dead one
+; is skipped: its caller already raised the fallen, which is HP here. A8 =
+; 1 and Z clear if it held any, `was_used |= HasState`. Any data bank: it
+; sets $7E and gives it back. Clobbers X and Y.
+.proc act_st_cure
+.a8
+.i16
+    phb
+    pha
+    lda #$7E
+    pha
+    plb
+    pla
+    sta .loword(act_st_actor)
+    stz .loword(act_st_cured)
+each:
+    lda f:st_lists, x
+    beq done
+    inx
+    stx .loword(act_st_ptr)
+    cmp #ACT_ST_DEAD
+    beq next
+    sta .loword(act_st_id)
+    jsr act_st_remove
+    beq next
+    sta .loword(act_st_cured)
+next:
+    ldx .loword(act_st_ptr)
+    bra each
+done:
+    plb
+    lda f:act_st_cured          ; after the `plb`: the flags come from this
+    rtl
 .endproc
 
 ; `RemoveAllStates`, for `FullHeal` and the inn: actor A8 holds nothing.

@@ -259,8 +259,8 @@ out:
 ; —`eq_parameter`, as the battle reads them—, and the battle's randomness,
 ; seeded as a battle seeds it if nothing has drawn from it yet. So
 ; `field-skill` of `rm2k-snes-battle` gives the exact number, critical's
-; roll —always no— included. **Outside battle there are no states**: a
-; fallen actor is one at 0 HP, and curing any other state is of no use.
+; roll —always no— included. A fallen actor is one at 0 HP, and the other
+; conditions it cures go with `act_st_cure`, since 2026-11-01.
 .proc sk_heal_use
 .a8
 .i16
@@ -480,6 +480,13 @@ standing8:
     rep #$20
 .a16
 standing:
+    ; The conditions it removes, after death and before the HP as in
+    ; `UseSkill`'s loop: `act_st_cure_skill`, in FAR3, which keeps X.
+    sep #$20
+.a8
+    jsl f:act_st_cure_skill
+    rep #$20
+.a16
     lda .loword(MED_REVIVED)
     and #$00FF
     sta .loword(MED_REVIVED)    ; now the word `revived`
@@ -586,8 +593,8 @@ ready:
 
 ; Whether `sk_actor` can use skill `CM_T4` here: Z=0 if so —the map can use
 ; it, its SP reach and its weapons carry its physical attributes, see
-; `ba_weapons_allow`—. `Window_Skill::CheckEnable`, without states, which
-; this port does not keep outside battle. **It does not use the flag a
+; `ba_weapons_allow`—. `Window_Skill::CheckEnable`, without the
+; conditions that seal skills, which this port does not model. **It does not use the flag a
 ; `pl*` leaves**: the usual trap.
 .proc sk_usable
 .a8

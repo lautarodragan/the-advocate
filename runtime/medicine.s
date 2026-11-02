@@ -28,9 +28,10 @@ FAR_GROWTH: .res EXP_K * GROWTH_BYTES
 ; **A fallen actor is an actor with zero HP**, and not as a shortcut:
 ; easyrpg's `IsDead` (`game_battler.h:995`) looks at the HP and not at the
 ; state, "RPG_RT compatibility requires checking the death state and not hp".
-; Outside battle this port keeps no states, so reviving one is the `SetHp(1)`
-; of `RemoveStates`, and the other states in `state_set` remove nothing:
-; `was_used` is only set if the actor had the state.
+; So reviving one is the `SetHp(1)` of `RemoveStates`. The other conditions
+; in `state_set` go with `act_st_cure`, since 2026-11-01, when the party
+; started holding them: `was_used` only if the actor held one, so an
+; Antidote on one who is not poisoned is not spent, as in RPG_RT.
 .proc medicine_use
 .a8
 .i16
@@ -185,6 +186,9 @@ alive:
     beq heal_hp
     jmp no_serves               ; `ko_only` on one standing
 heal_hp:
+    ; The conditions it removes, before the HP as in `UseItem`'s loop:
+    ; `act_st_cure_item`, in FAR3, which keeps X.
+    jsl f:act_st_cure_item
     ; `if (hp_change > 0 && !HasFullHp()) ChangeHp(hp_change - revived)`.
     ; `ChangeHp` caps at the maximum with the `SetHp` inside it, and never
     ; goes below 1 because nothing subtracts here.

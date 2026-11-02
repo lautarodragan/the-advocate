@@ -437,6 +437,8 @@ if:
 .proc ba_item_use
 .a8
 .i16
+    stz .loword(ba_res_n)       ; the conditions it removes: see `cures`
+    stz .loword(ba_res_i)
     stz BA_MREVIVED
     stz BA_MHPLINE
     stz BA_MSP_NEXT
@@ -469,7 +471,7 @@ if:
     beq fallen
     lda BA_S2
     and #MED_KO_ONLY
-    bne nothing
+    bne none
     ldx BA_MITEM
     jsr ba_item_heal
 .a16
@@ -486,11 +488,14 @@ if:
     lda #1
     sta BA_MHPLINE
     bra sp
+none:
+.a8
+    rts                         ; it takes no effect: no condition goes either
 fallen:
 .a8
     lda BA_S2
     and #MED_RAISES
-    beq nothing
+    beq none
     ldx BA_MITEM
     jsr ba_item_heal            ; with zero HP, the cap is the whole maximum
 .a16
@@ -518,12 +523,49 @@ sp:
     lda BA_MSP
     sep #$20
 .a8
-    beq nothing
+    beq cures
     ; With an HP line or the revived one before it, the SP one waits for its
     ; own message.
     lda BA_MHPLINE
     ora BA_MREVIVED
     sta BA_MSP_NEXT
+cures:
+    ; The conditions in its `state_set` the target holds, each removed and
+    ; a result line —its `message_recovery`— in the skills' queue, which
+    ; `ba_execute` shows after the SP line: `ProcessBattleActionStateEffects`
+    ; after `ProcessBattleActionParamEffects`. The dead one is not in the
+    ; list: it is the revival above. See `item_st_at`.
+    rep #$20
+.a16
+    lda BA_MITEM
+    asl a
+    tax
+    lda f:item_st_at, x
+    sta .loword(ba_st_ptr)
+    sep #$20
+.a8
+    beq nothing
+each:
+    ldx .loword(ba_st_ptr)
+    lda f:st_lists, x
+    beq nothing
+    inx
+    stx .loword(ba_st_ptr)
+    sta .loword(ba_st_id)
+    lda BA_MTGT
+    sta .loword(ba_st_c)
+    lda .loword(ba_st_id)
+    jsr ba_st_remove
+    beq each
+    ldy #BA_RES_TAKEN
+    rep #$20
+.a16
+    lda .loword(ba_st_id)
+    and #$00FF
+    jsr ba_res_add
+    sep #$20
+.a8
+    bra each
 nothing:
 .a8
     rts

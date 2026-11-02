@@ -3619,7 +3619,8 @@ impl Rest<'_> {
     /// * `st_lists`: lists of conditions by number, each ended by a 0, the
     ///   first one empty. `skill_st_at` gives each skill the byte where its
     ///   `state_effects` start —0, none—, and `item_st_at` each item its
-    ///   `state_set`'s.
+    ///   `state_set`'s: what an equipment gives or guards from, and what a
+    ///   medicine removes.
     /// * `item_st_pct`: an armor's `100 - state_chance`, what it leaves of
     ///   the odds of what it lists; a weapon's `state_chance` with bit 7.
     /// * `st_used`: per condition, its column in the ranks —only the ones a
@@ -3672,8 +3673,15 @@ impl Rest<'_> {
             let kind = it.r#type.to_i32();
             let weapon = kind == rm2k_snes_battle::db::ITEM_WEAPON;
             let armor = (2..=5).contains(&kind);
+            // A medicine's are the ones it removes, without the dead one,
+            // which is `MED_RAISES`: see `act_st_cure` in party_states.s.
+            let medicine = kind == rm2k_snes_battle::db::ITEM_MEDICINE;
             let ids = if weapon || armor {
                 st::of_skill(&it.state_set)
+            } else if medicine {
+                let mut ids = st::of_skill(&it.state_set);
+                ids.retain(|&id| id != 1);
+                ids
             } else {
                 Vec::new()
             };
