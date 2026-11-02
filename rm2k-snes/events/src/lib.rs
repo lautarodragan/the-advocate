@@ -900,6 +900,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     face: None,
                     landings: Some(&*landings),
                     jump: None,
+                    decision_key: compile::decision_key(page.trigger),
                 };
                 if let Some(code) =
                     compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
@@ -930,6 +931,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             face: None,
             landings: Some(&*landings),
             jump: None,
+            decision_key: None,
         };
         let pages = map_pages(&mut ctx, &map, &me)?;
         // And the pictures the map can show, gathered apart: its pages' first
@@ -950,17 +952,20 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 .iter()
                 .filter(move |event| (Some(event.id) == copy) == copies)
                 .flat_map(|event| {
-                    event
-                        .pages
-                        .iter()
-                        .map(move |page| (event.id, &page.commands))
+                    event.pages.iter().map(move |page| {
+                        (
+                            event.id,
+                            compile::decision_key(page.trigger),
+                            &page.commands,
+                        )
+                    })
                 })
         };
         let cases = request
             .cases
             .iter()
             .filter(|(run_map, _)| *run_map == map.id)
-            .map(|(_, case)| (0, case));
+            .map(|(_, case)| (0, None, case));
         let mut own = None;
         let copies = pages_of(true).map(Some);
         for event in pages_of(false)
@@ -969,7 +974,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             .chain([None])
             .chain(copies)
         {
-            let Some((event, commands)) = event else {
+            let Some((event, key, commands)) = event else {
                 own = Some(pictures.table.len());
                 continue;
             };
@@ -995,6 +1000,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 face: None,
                 landings: Some(&*landings),
                 jump: None,
+                decision_key: key,
             };
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
             on_events.extend(graphics.on_events);
@@ -1050,6 +1056,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             face: None,
             landings: Some(&*landings),
             jump: None,
+            decision_key: Some(false),
         };
         let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
         if compiles.is_some() && !pictures.table.is_empty() {
@@ -1085,6 +1092,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             face: None,
             landings: Some(&*landings),
             jump: None,
+            decision_key: Some(false),
         };
         let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
         Ok(compiles.map(|_| pictures))
@@ -1300,6 +1308,7 @@ fn compile_pass(
                 face: None,
                 landings: Some(&*landings),
                 jump: None,
+                decision_key: None,
             };
             let pages = map_pages(&mut ctx, &map, &me);
             losses = ctx.losses;
@@ -1335,6 +1344,7 @@ fn compile_pass(
                 face: None,
                 landings: Some(&*landings),
                 jump: None,
+                decision_key: None,
             };
             let code = compile_page(
                 &mut ctx,
@@ -1379,6 +1389,7 @@ fn compile_pass(
                     face: None,
                     landings: Some(&*landings),
                     jump: None,
+                    decision_key: Some(false),
                 };
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
@@ -1468,6 +1479,7 @@ fn compile_pass(
         face: None,
         landings: None,
         jump: None,
+        decision_key: None,
     };
     let battle_audio = if troops.ids.is_empty() {
         None

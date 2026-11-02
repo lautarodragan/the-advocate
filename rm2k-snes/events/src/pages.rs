@@ -2,7 +2,9 @@
 //! to resolve them.
 
 use crate::codes::*;
-use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
+use crate::compile::{
+    compile_page, decision_key, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT,
+};
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Map, Page};
 use crate::losses::Origin;
@@ -515,8 +517,10 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                     ctx.shared = None;
                     me = me.pasting();
                 }
+                let key = std::mem::replace(&mut ctx.decision_key, decision_key(page.trigger));
                 let out = compile_page(ctx, &page.commands, Some(me), 0, 0);
                 ctx.shared = shared;
+                ctx.decision_key = key;
                 code = out?;
                 // **And the same with one that compiles to nothing**: all it
                 // had were calls that got skipped —see `compile_call`—. In
