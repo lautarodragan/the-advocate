@@ -340,6 +340,17 @@ pub fn item_skill_in_battle(db: &Db, item: &Item) -> Option<i32> {
     usable_in_battle(skill).then_some(skill.id)
 }
 
+/// The skill a special item casts from the items screen, if the map can
+/// cast it: [`rm2k_rules::skill::item_casts_on_the_map`], with this
+/// database's states. What the converter emits as `item_map_skill`; the
+/// screens stage greys the item by the same rule.
+pub fn item_skill_on_the_map(db: &Db, item: &Item) -> Option<i32> {
+    let states: Vec<_> = db.states.values().cloned().collect();
+    let skill = db.skills.get(&item.skill_id);
+    rm2k_rules::skill::item_casts_on_the_map(item, skill, &states)
+        .then_some(item.skill_id)
+}
+
 /// Whether the item goes in the battle's list: a medicine
 /// ([`item_usable_in_battle`]) or a special item whose skill the battle
 /// casts ([`item_skill_in_battle`]). What the converter emits as

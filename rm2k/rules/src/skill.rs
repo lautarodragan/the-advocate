@@ -44,6 +44,19 @@ pub fn usable_on_the_map(skill: &Skill, states: &[State]) -> bool {
     }
 }
 
+/// Whether a special item casts `skill` —the one its `skill_id` names, None
+/// if there is no such skill— from the items screen: `Game_Party::IsItemUsable`
+/// of a `Type_special` item outside battle, which asks `Algo::IsSkillUsable`
+/// of its skill, the same question as [`usable_on_the_map`]. A switch skill
+/// turns its switch on and closes the menu; any other opens the actor
+/// choice (`Scene_Item::Update`). RPG_RT also asks, for a normal skill
+/// only, for someone in the party standing, able to act and let use the
+/// item by its `actor_set`: that depends on the moment, and is asked when
+/// the item is used.
+pub fn item_casts_on_the_map(item: &Item, skill: Option<&Skill>, states: &[State]) -> bool {
+    item.r#type == ItemType::Special && skill.is_some_and(|s| usable_on_the_map(s, states))
+}
+
 /// Whether `skill` raises the fallen: it cures state 1, death. It is the
 /// first state of `Game_Battler::UseSkill`'s loop, the one that sets
 /// `revived`. RM2003's `reverse_state_effect`, which turns the cure into an
@@ -185,6 +198,22 @@ mod tests {
         assert!(!cures_death(&s));
         s.state_effects = vec![true];
         assert!(cures_death(&s));
+    }
+
+    #[test]
+    fn a_special_item_casts_what_the_map_can_use_and_nothing_else_does() {
+        let mut heal = skill(SkillType::Normal, SkillScope::Ally);
+        heal.affect_hp = true;
+        let mut bomb = skill(SkillType::Normal, SkillScope::Enemies);
+        bomb.affect_hp = true;
+        let of = |kind| Item {
+            r#type: kind,
+            ..Default::default()
+        };
+        assert!(item_casts_on_the_map(&of(ItemType::Special), Some(&heal), &[]));
+        assert!(!item_casts_on_the_map(&of(ItemType::Special), Some(&bomb), &[]));
+        assert!(!item_casts_on_the_map(&of(ItemType::Special), None, &[]));
+        assert!(!item_casts_on_the_map(&of(ItemType::Medicine), Some(&heal), &[]));
     }
 
     fn skill(t: SkillType, scope: SkillScope) -> Skill {
