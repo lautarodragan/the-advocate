@@ -18,7 +18,10 @@
 //! handed its path, `exfont`, next to the font's name. A game without one
 //! drops the codes. `[text] exfont`, **optional**, names the file in the
 //! game's directory for a game that runs with another executable —Zounds'
-//! icons are in its `RPG_RT_a.exe`—.
+//! icons are in its `RPG_RT_a.exe`—; or is `false`, and the cartridge
+//! carries no icon and drops every code, for one with no room for their
+//! glyphs —each half of an icon a box draws is 1,248 bytes of the window's
+//! tables—.
 
 use crate::fail::{Result, Stop};
 use crate::settings::Settings;
@@ -61,17 +64,24 @@ impl FontChoice {
         let font = font
             .with_spacing(spacing)
             .map_err(|e| Stop::new(format!("[text] letter_spacing: {e}")))?;
-        let named = match settings.project.value(&["text", "exfont"]) {
-            Err(_) => None,
-            Ok(v) => Some(
-                v.as_str()
-                    .ok_or_else(|| {
-                        Stop::new("[text] exfont is the name of a file in the game's directory")
-                    })?
-                    .to_string(),
+        let (named, none) = match settings.project.value(&["text", "exfont"]) {
+            Err(_) => (None, false),
+            Ok(v) if v.as_bool() == Some(false) => (None, true),
+            Ok(v) => (
+                Some(
+                    v.as_str()
+                        .ok_or_else(|| {
+                            Stop::new(
+                                "[text] exfont is the name of a file in the game's directory, \
+                                 or false",
+                            )
+                        })?
+                        .to_string(),
+                ),
+                false,
             ),
         };
-        let file = rm2k_render::exfont::find(game_dir, named.as_deref());
+        let file = rm2k_render::exfont::find(game_dir, named.as_deref()).filter(|_| !none);
         if let (Some(name), Some(path)) = (&named, &file) {
             if !path.is_file() {
                 return Err(Stop::new(format!(
