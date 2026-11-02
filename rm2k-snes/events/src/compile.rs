@@ -461,7 +461,7 @@ pub const ACCEPTED_UNDONE: [i32; 7] = [
 /// the jumps whose destination is not always known —`RecallToLocation` and
 /// `PlayMemorizedBGM`—, which are taken as not leaving. The effects too, but
 /// those show in `Songs::requested`, which also counts an animation's.
-const CUT_THE_EXIT: [i32; 21] = [
+const CUT_THE_EXIT: [i32; 24] = [
     COND_BRANCH,
     COND_ELSE,
     COND_END,
@@ -475,6 +475,9 @@ const CUT_THE_EXIT: [i32; 21] = [
     INN_STAY,
     INN_NO_STAY,
     INN_END,
+    SHOP_TRANSACTION,
+    SHOP_NO_TRANSACTION,
+    SHOP_END,
     RECALL_TO_LOCATION,
     PLAY_MEMORIZED_BGM,
     VICTORY_HANDLER,
@@ -837,6 +840,19 @@ struct Choice {
     exits: Vec<usize>,
 }
 
+/// An `OpenShop` with its branches, open until its `EndShop`: see
+/// `SHOP_TRANSACTION` in [`compile_page`].
+#[derive(Default)]
+struct Shop {
+    /// The piece whose destination is the next body's start, or the end:
+    /// the `Transaction`'s `OP_IF_TRADED`, until the `NoTransaction`.
+    open: Option<usize>,
+    transaction: bool,
+    no_transaction: bool,
+    /// The jumps to the end of the block, patched at the `EndShop`.
+    exits: Vec<usize>,
+}
+
 struct Battle {
     at: usize,
     troop: i64,
@@ -897,10 +913,11 @@ fn group_boxes(commands: &[Command]) -> Vec<(usize, Vec<String>)> {
 
 /// The commands that close a block: what follows a label for a jump into
 /// that block to be the same in RM2k and here. See [`label_targets`].
-const BLOCK_ENDS: [i32; 6] = [
+const BLOCK_ENDS: [i32; 7] = [
     COND_END,
     SHOW_CHOICE_END,
     END_BATTLE,
+    SHOP_END,
     INN_END,
     END_LOOP,
     BATTLE_COND_END,
@@ -1175,6 +1192,7 @@ fn page(
     let joined: BTreeSet<usize> = numbers.iter().map(|&(_, j)| j).collect();
     let mut choices: Vec<Choice> = Vec::new();
     let mut battles: Vec<Battle> = Vec::new();
+    let mut shops: Vec<Shop> = Vec::new();
     // The pending `PlayBGM`, what was noted and the jumps: see `follow_exit`.
     let mut exit = Exit::default();
     // The last thing the page put in each variable, if it was a constant:
@@ -1595,6 +1613,63 @@ fn page(
                     }
                 },
             };
+        } else if cmd.code == SHOP_TRANSACTION {
+            // An `OpenShop`'s branches, `Transaction`, `NoTransaction` and
+            // `EndShop`: a branch with `else`, whose condition is whether the
+            // shop that just closed had a deal. RPG_RT leaves that in the
+            // sub-index of the shop's indentation —easyrpg's
+            // `CommandOpenShop`, with `Scene_Shop`'s `did_transaction`— and
+            // the two branches run or skip their body by it, as a choice's
+            // options do. Here `Transaction` is an `OP_IF_TRADED` to the
+            // `NoTransaction`'s body, and the `NoTransaction` an `OP_GOTO` to
+            // the end, which the body above falls into.
+            //
+            // The block is opened by the `OpenShop` itself, when a branch
+            // follows it: its `parameters[2]` says the same, and easyrpg
+            // does not look at it either.
+            let Some(current) = shops.last_mut() else {
+                return cannot();
+            };
+            if current.transaction || current.no_transaction {
+                return cannot();
+            }
+            current.transaction = true;
+            current.open = Some(pieces.len());
+            piece = vec![OP_IF_TRADED, 0, 0];
+        } else if cmd.code == SHOP_NO_TRANSACTION {
+            let Some(current) = shops.last_mut() else {
+                return cannot();
+            };
+            if current.no_transaction {
+                return cannot();
+            }
+            current.no_transaction = true;
+            current.exits.push(pieces.len());
+            piece = match current.open.take() {
+                Some(open) => {
+                    patch(&mut pieces, Open::End(open), length + 3)?;
+                    vec![OP_GOTO, 0, 0]
+                }
+                // No `Transaction` above: a deal skips this body —the
+                // `OP_GOTO` to the end— and no deal jumps over that jump.
+                None => {
+                    let mut p = vec![OP_IF_TRADED];
+                    p.extend(usize_word(length + 6)?);
+                    p.extend([OP_GOTO, 0, 0]);
+                    p
+                }
+            };
+        } else if cmd.code == SHOP_END {
+            let Some(current) = shops.pop() else {
+                return cannot();
+            };
+            if let Some(open) = current.open {
+                patch(&mut pieces, Open::End(open), length)?;
+            }
+            for out in current.exits {
+                pieces[out] = with_dest(&pieces[out], length)?;
+            }
+            piece = vec![];
         } else if cmd.code == SHOW_INN {
             piece = compile_inn(ctx, cmd, length)?;
         } else if cmd.code == CONTROL_SWITCHES
@@ -1644,6 +1719,13 @@ fn page(
                 }
             }
             note_constant(cmd, &mut constants);
+            if cmd.code == OPEN_SHOP
+                && commands.get(i + 1).is_some_and(|c| {
+                    matches!(c.code, SHOP_TRANSACTION | SHOP_NO_TRANSACTION | SHOP_END)
+                })
+            {
+                shops.push(Shop::default());
+            }
             piece = p;
         }
         if ctx.songs.is_some() {
@@ -1654,7 +1736,7 @@ fn page(
         pieces.push(piece);
     }
     *at = None;
-    if !stack.is_empty() || !choices.is_empty() || !battles.is_empty() {
+    if !stack.is_empty() || !choices.is_empty() || !battles.is_empty() || !shops.is_empty() {
         return cannot();
     }
     // A `BreakLoop` with no `EndLoop` after it ends the frame: it lands past
@@ -3960,14 +4042,14 @@ pub fn compile_command(
             // sells, by item number. It is variable-length, like OP_CHOICE.
             // Like saving, the screen opens inside the interpreter and costs
             // no tick: the map does not run while it is shown. The "bought"
-            // and "did not buy" branches do not compile; none of the game's
+            // and "did not buy" branches —`parameters[2]`— are the
+            // commands that follow it, and `compile_page` builds them: see
+            // `SHOP_TRANSACTION` there. Since 2026-11-01, for Zounds'
+            // cafeteria; until then they did not compile, and none of ABL's
             // 43 shops uses them.
             //
             // OP_SHOP: type, set, how many (bytes), and two bytes per item
             if n < 4 {
-                return cannot();
-            }
-            if q(2) != 0 {
                 return cannot();
             }
             let sells: Vec<i64> = p[4..]
@@ -8224,6 +8306,180 @@ mod tests {
         assert!(victory < defeat && defeat < escape);
         // A `TerminateBattle` picks no handler and does not end the page.
         assert_eq!(abort, past);
+    }
+
+    /// The bytes of a switch on, as `compile_with` compiles it alone.
+    fn switch_on_bytes(switch: i32) -> Vec<u8> {
+        let game = Game::default();
+        let mut code = compile_with(&game, &[cmd(CONTROL_SWITCHES, &[0, switch, switch, 0], "")])
+            .unwrap()
+            .unwrap();
+        assert_eq!(code.pop(), Some(OP_DONE));
+        code
+    }
+
+    /// Zounds' cafeteria, map 21 event 7: a shop that buys, with a
+    /// `Transaction` body, an empty `NoTransaction` and a command after the
+    /// block, here with two items.
+    fn shop_page(transaction: bool, no_transaction: bool) -> Vec<Command> {
+        let mut page = vec![cmd(OPEN_SHOP, &[1, 0, 1, 0, 14, 16], "")];
+        if transaction {
+            page.push(Command::new(SHOP_TRANSACTION, 0, "", vec![]));
+            page.push(Command::new(CONTROL_SWITCHES, 1, "", vec![0, 7, 7, 0]));
+            page.push(Command::new(END, 1, "", vec![]));
+        }
+        if no_transaction {
+            page.push(Command::new(SHOP_NO_TRANSACTION, 0, "", vec![]));
+            page.push(Command::new(CONTROL_SWITCHES, 1, "", vec![0, 8, 8, 0]));
+            page.push(Command::new(END, 1, "", vec![]));
+        }
+        page.push(Command::new(SHOP_END, 0, "", vec![]));
+        page.push(cmd(CONTROL_SWITCHES, &[0, 9, 9, 0], ""));
+        page
+    }
+
+    const SHOP_BYTES: [u8; 8] = [OP_SHOP, 1, 0, 2, 14, 0, 16, 0];
+
+    fn w(at: usize) -> [u8; 2] {
+        (at as u16).to_le_bytes()
+    }
+
+    #[test]
+    fn a_shop_with_both_branches_goes_on_by_whether_it_had_a_deal() {
+        // `OP_IF_TRADED` to the `NoTransaction`'s body, the `Transaction`'s
+        // body, its jump to the end, the other body, and the end.
+        let game = Game::default();
+        let code = compile_with(&game, &shop_page(true, true)).unwrap().unwrap();
+        let (on7, on8, on9) = (switch_on_bytes(7), switch_on_bytes(8), switch_on_bytes(9));
+        let no_deal = 8 + 3 + on7.len() + 3;
+        let end = no_deal + on8.len();
+        let mut expected = SHOP_BYTES.to_vec();
+        expected.push(OP_IF_TRADED);
+        expected.extend(w(no_deal));
+        expected.extend(&on7);
+        expected.push(OP_GOTO);
+        expected.extend(w(end));
+        expected.extend(&on8);
+        expected.extend(&on9);
+        expected.push(OP_DONE);
+        assert_eq!(code, expected);
+    }
+
+    #[test]
+    fn a_shop_with_only_the_bought_branch_skips_it_with_no_deal() {
+        let game = Game::default();
+        let code = compile_with(&game, &shop_page(true, false)).unwrap().unwrap();
+        let (on7, on9) = (switch_on_bytes(7), switch_on_bytes(9));
+        let end = 8 + 3 + on7.len();
+        let mut expected = SHOP_BYTES.to_vec();
+        expected.push(OP_IF_TRADED);
+        expected.extend(w(end));
+        expected.extend(&on7);
+        expected.extend(&on9);
+        expected.push(OP_DONE);
+        assert_eq!(code, expected);
+    }
+
+    #[test]
+    fn a_shop_with_only_the_did_not_buy_branch_skips_it_with_a_deal() {
+        // A deal falls into the jump to the end; no deal jumps over it.
+        let game = Game::default();
+        let code = compile_with(&game, &shop_page(false, true)).unwrap().unwrap();
+        let (on8, on9) = (switch_on_bytes(8), switch_on_bytes(9));
+        let body = 8 + 6;
+        let end = body + on8.len();
+        let mut expected = SHOP_BYTES.to_vec();
+        expected.push(OP_IF_TRADED);
+        expected.extend(w(body));
+        expected.push(OP_GOTO);
+        expected.extend(w(end));
+        expected.extend(&on8);
+        expected.extend(&on9);
+        expected.push(OP_DONE);
+        assert_eq!(code, expected);
+    }
+
+    #[test]
+    fn a_shop_with_empty_branches_is_the_shop_alone() {
+        // What Zounds' cafeteria has below `NoTransaction`: nothing. The
+        // empty `Transaction` still jumps, to where the end already is.
+        let game = Game::default();
+        let page = [
+            cmd(OPEN_SHOP, &[1, 0, 1, 0, 14, 16], ""),
+            Command::new(SHOP_TRANSACTION, 0, "", vec![]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(SHOP_NO_TRANSACTION, 0, "", vec![]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(SHOP_END, 0, "", vec![]),
+        ];
+        let code = compile_with(&game, &page).unwrap().unwrap();
+        let mut expected = SHOP_BYTES.to_vec();
+        expected.push(OP_IF_TRADED);
+        expected.extend(w(14));
+        expected.push(OP_GOTO);
+        expected.extend(w(14));
+        expected.push(OP_DONE);
+        assert_eq!(code, expected);
+    }
+
+    #[test]
+    fn a_shop_without_branches_is_unchanged_and_stray_branches_do_not_compile() {
+        let game = Game::default();
+        let code = compile_with(&game, &[cmd(OPEN_SHOP, &[0, 2, 0, 0, 14], "")])
+            .unwrap()
+            .unwrap();
+        assert_eq!(code, [OP_SHOP, 0, 2, 1, 14, 0, OP_DONE]);
+        // A branch with no shop above, and a shop whose block never closes.
+        let stray = [
+            Command::new(SHOP_TRANSACTION, 0, "", vec![]),
+            Command::new(SHOP_END, 0, "", vec![]),
+        ];
+        assert_eq!(compile_with(&game, &stray).unwrap(), None);
+        let open = [
+            cmd(OPEN_SHOP, &[1, 0, 1, 0, 14], ""),
+            Command::new(SHOP_TRANSACTION, 0, "", vec![]),
+        ];
+        assert_eq!(compile_with(&game, &open).unwrap(), None);
+        // Two `Transaction`s in the same block.
+        let twice = [
+            cmd(OPEN_SHOP, &[1, 0, 1, 0, 14], ""),
+            Command::new(SHOP_TRANSACTION, 0, "", vec![]),
+            Command::new(SHOP_TRANSACTION, 0, "", vec![]),
+            Command::new(SHOP_END, 0, "", vec![]),
+        ];
+        assert_eq!(compile_with(&game, &twice).unwrap(), None);
+    }
+
+    #[test]
+    fn a_shop_inside_a_shops_branch_closes_its_own_block() {
+        // The inner `EndShop` closes the inner shop; the outer
+        // `NoTransaction` is the outer one's.
+        let game = Game::default();
+        let page = [
+            cmd(OPEN_SHOP, &[1, 0, 1, 0, 14], ""),
+            Command::new(SHOP_TRANSACTION, 0, "", vec![]),
+            Command::new(OPEN_SHOP, 1, "", vec![1, 0, 1, 0, 16]),
+            Command::new(SHOP_NO_TRANSACTION, 1, "", vec![]),
+            Command::new(END, 2, "", vec![]),
+            Command::new(SHOP_END, 1, "", vec![]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(SHOP_NO_TRANSACTION, 0, "", vec![]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(SHOP_END, 0, "", vec![]),
+        ];
+        let code = compile_with(&game, &page).unwrap().unwrap();
+        // Outer shop (6), its `OP_IF_TRADED` (3), the inner shop (6), the
+        // inner `NoTransaction` (6), the outer jump to the end (3).
+        let mut expected = vec![OP_SHOP, 1, 0, 1, 14, 0, OP_IF_TRADED];
+        expected.extend(w(24));
+        expected.extend([OP_SHOP, 1, 0, 1, 16, 0, OP_IF_TRADED]);
+        expected.extend(w(21));
+        expected.push(OP_GOTO);
+        expected.extend(w(21));
+        expected.push(OP_GOTO);
+        expected.extend(w(24));
+        expected.push(OP_DONE);
+        assert_eq!(code, expected);
     }
 
     #[test]

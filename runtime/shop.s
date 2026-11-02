@@ -42,6 +42,16 @@ TI_SELL = 4
 TI_COUNT_SALE = 5
 TI_SOLD = 6
 
+; Whether the last shop closed with something bought or sold: 0 or 1, cleared
+; by `shop_screen` and set by `ti_close_deal`. `Scene_Shop`'s
+; `did_transaction`, which RPG_RT leaves in the sub-index its `Transaction`
+; and `NoTransaction` look at. It does not travel in the save: a page cannot
+; be saved between the shop and its branches.
+.pushseg
+.segment "FARBSS"
+shop_traded: .res 1
+.popseg
+
 ; A: a place in the mode's list. Returns with X = its `k`. Only A and X.
 .proc ti_k_of
 .a8
@@ -908,10 +918,13 @@ ready:
 .endproc
 
 ; Buy or sell `ti_count` of the highlighted one: the gold and the inventory,
-; like `UpdateNumberInput`.
+; like `UpdateNumberInput`. And the shop has had a deal, which is what its
+; `Transaction` branch asks: `did_transaction`.
 .proc ti_close_deal
 .a8
 .i16
+    lda #1
+    sta f:shop_traded
     jsr ti_item
     jsr ti_price
     jsr ti_times_count
@@ -1344,6 +1357,8 @@ layer:
 .proc shop_screen
 .a8
 .i16
+    lda #0
+    sta f:shop_traded           ; no deal yet: see `if_traded`
     stz comp_phase + 1
     stz comp_base
     stz comp_base + 1
@@ -1636,3 +1651,28 @@ a_pressed:
     rts
 .endproc
 
+
+; `OP_IF_TRADED`, from `op_if_traded`, with Y on the destination: the page
+; goes there if the last shop closed with no deal, and on past it if it had
+; one —the `Transaction` branch runs and the `NoTransaction` one is
+; skipped—. In `FAR3`, which has room: it is reached only with a `jsl`.
+.pushseg
+.segment "FAR3"
+.proc if_traded
+.a8
+.i16
+    lda f:shop_traded
+    bne traded
+    rep #$20
+.a16
+    lda [code_ptr], y
+    tay
+    sep #$20
+.a8
+    rtl
+traded:
+    iny
+    iny
+    rtl
+.endproc
+.popseg

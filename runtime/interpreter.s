@@ -110,7 +110,6 @@ op_return = op_done
 op_reserved_3a = page_ends
 op_reserved_3c = page_ends
 op_reserved_52 = page_ends
-op_reserved_53 = page_ends
 
 ; OP_CALL and OP_CALL_PAGE: a shared common event body, or a page of this
 ; map, is entered. The work is in bank 1, `call_enter` and `call_page_enter`
