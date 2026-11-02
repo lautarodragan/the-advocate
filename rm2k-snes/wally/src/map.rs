@@ -362,8 +362,11 @@ fn bake_unless_split_moves(
 
 /// The still events that change pose drawn into the background: the ones
 /// [`crate::posed::select`] lets through whose poses cost the map nothing
-/// but background tiles it has room for —the layer above as it was, the
-/// background's colours merged no more than decoration may—, all of them
+/// but background tiles it has room for —the layer above as it was, and
+/// the background merging the very colours it merged: a decoration may cost
+/// the ground a little, but a switch that changes its colours when it
+/// moves into the background is not the same switch, and Zounds' ship
+/// capsule, map 17, came out a shade off—, all of them
 /// or, if not, CharSet by CharSet, the most numerous first. What it keeps
 /// is in `extra` and `layers` when it returns, and the log says it.
 #[allow(clippy::too_many_arguments)]
@@ -435,7 +438,23 @@ fn posed_events(
             &trial,
         )?;
         let fits = room.is_none_or(|r| with.converted.background.tiles.len() / 64 <= r);
-        if fits && same_split(&layers.converted, &with.converted, true) {
+        // And the same colours merged, not only as many: with as many, the
+        // poses' colours can push others of the ground out, and the ground
+        // comes out a shade off —Zounds' desert, map 34, on 2026-11-02—.
+        let victims = |c: &Converted| {
+            let mut v: Vec<_> = c
+                .background
+                .merges
+                .iter()
+                .map(|m| (m.victim, m.target))
+                .collect();
+            v.sort_unstable();
+            v
+        };
+        if fits
+            && same_split(&layers.converted, &with.converted, false)
+            && victims(&layers.converted) == victims(&with.converted)
+        {
             *layers = with;
             return Ok(true);
         }
