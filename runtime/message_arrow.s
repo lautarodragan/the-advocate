@@ -1,4 +1,8 @@
-.segment "FAR2"
+; In `FAR3`, the fourth code bank, since 2026-11-01: the arrow and the bar
+; are reached with `jsl` and read everything with `f:`, so they run from any
+; bank, and `FAR2` had no room left in Sunset over Imdahl for the medicines
+; that remove conditions in battle.
+.segment "FAR3"
 .a8
 .i16
 
