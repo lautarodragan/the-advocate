@@ -374,6 +374,31 @@ pub fn run(options: Options) -> Result<()> {
     );
     // If some map sets rain, all of them carry the drops.
     let with_rain = scan::has_rain(every_refs.iter().copied(), &file_commands);
+    // And the sandstorm's grains, where it can blow. A common event or a
+    // test page that starts one can run on any map: then all of them.
+    let sand_maps: Option<BTreeSet<i32>> = if !scan::has_sandstorm(
+        every_refs.iter().copied(),
+        &game.db.common_events,
+        &file_commands,
+    ) {
+        None
+    } else if scan::has_sandstorm([], &game.db.common_events, &file_commands) {
+        Some(order.iter().copied().collect())
+    } else {
+        Some(scan::sandstorm_reach(
+            &every_refs,
+            &scan_answer,
+            &game.db.common_events,
+        )?)
+    };
+    if let Some(maps) = &sand_maps {
+        println!(
+            "  the sandstorm's grains go in {} of the {} maps: {}",
+            maps.len(),
+            order.len(),
+            join(maps, " ")
+        );
+    }
     let per_character = maps::maps_per_character(&every_refs);
     let arrivals = if game.unreachable_above_below {
         let arrivals = crate::reach::Arrivals::gather(&game, &every_refs, &case_pairs)?;
@@ -465,6 +490,7 @@ pub fn run(options: Options) -> Result<()> {
         leaders: leaders.clone(),
         timer_maps: timer_maps.clone(),
         with_rain,
+        sand_maps,
         // How a map shows its panorama is Wally's to decide; the project
         // can only force it, by map, and does not have to say anything.
         panorama_ways: match settings.table(&["maps", "panorama_ways"]) {

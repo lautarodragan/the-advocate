@@ -82,6 +82,8 @@ pub const HEADER: &str = concat!(
     "RAIN_BORN     = %d\n",
     "RAIN_SEED = $%04X\n",
     "WEATHER_RAIN  = %d\n",
+    "; And the sandstorm's type: see sandstorm.s.\n",
+    "WEATHER_SAND  = %d\n",
     "; The inventory: one byte per item of the LDB and RM2k's cap. See\n",
     "; OP_ITEM in events.py.\n",
     "ITEMS_N       = %d\n",

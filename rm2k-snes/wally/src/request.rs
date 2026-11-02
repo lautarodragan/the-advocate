@@ -530,6 +530,10 @@ impl crate::map::MapRequest {
                 v => Some(PathBuf::from(text(v, "`timer`", whose)?)),
             },
             rain: flag("rain")?,
+            sand: match data.get("sand") {
+                None | Some(Value::Null) => None,
+                Some(_) => Some(flag("sand")?),
+            },
             picture,
             picture_own,
             battle_animation: flag("battle_animation")?,

@@ -18,6 +18,7 @@ pub const PARTY_REMOVE: i32 = 1;
 pub const PARTY_FIXED_ID: i32 = 0;
 /// `WeatherEffects`' rain, and `TimerOperation`'s stop.
 const WEATHER_RAIN: i32 = rm2k_snes_mapdata::engine::WEATHER_RAIN as i32;
+const WEATHER_SAND: i32 = rm2k_snes_mapdata::engine::WEATHER_SAND as i32;
 const TIMER_START: i32 = rm2k_snes_mapdata::engine::TIMER_START as i32;
 const TIMER_STOP: i32 = 2;
 /// `CallEvent`'s first parameter when it calls a common event.
@@ -73,6 +74,21 @@ pub fn has_rain<'a>(maps: impl IntoIterator<Item = &'a GameMap>, extra: &[Comman
     extra.iter().any(rains) || maps.into_iter().any(|m| m.all_commands().any(rains))
 }
 
+/// Whether some page of these maps, of the common events or of `extra`
+/// starts a sandstorm: then every map carries its grains, as with the
+/// rain, and the runtime assembles the sandstorm —see `sandstorm.s`—.
+pub fn has_sandstorm<'a>(
+    maps: impl IntoIterator<Item = &'a GameMap>,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    extra: &[Command],
+) -> bool {
+    let storms =
+        |c: &Command| c.code == WEATHER_EFFECTS && c.parameters.first() == Some(&WEATHER_SAND);
+    extra.iter().any(storms)
+        || common_events.values().flatten().any(storms)
+        || maps.into_iter().any(|m| m.all_commands().any(storms))
+}
+
 /// Whether some message box of the cartridge's maps, its common events or
 /// `extra` types a text colour other than 0, `\c[n]`: then the message
 /// window keeps an entry for the box's ink —see `inks` in
@@ -97,6 +113,106 @@ pub fn types_a_colour<'a>(
     extra.iter().any(coloured)
         || common_events.values().flatten().any(coloured)
         || maps.into_iter().any(|m| m.all_commands().any(coloured))
+}
+
+/// The commands of each page that compiles, by its map, with a `CallEvent`
+/// to a common event walked in place —eight deep at most—: what
+/// `timer_reach` and `sandstorm_reach` follow.
+fn walked_pages<'c>(
+    maps: &[&'c GameMap],
+    scan: &Value,
+    common_events: &'c BTreeMap<i32, Vec<Command>>,
+) -> Result<Vec<(i32, Vec<&'c Command>)>> {
+    fn walk<'c>(
+        commands: &'c [Command],
+        common_events: &'c BTreeMap<i32, Vec<Command>>,
+        depth: u32,
+        out: &mut Vec<&'c Command>,
+    ) {
+        for cmd in commands {
+            out.push(cmd);
+            let p = &cmd.parameters;
+            if cmd.code == CALL_EVENT && p.len() >= 2 && p[0] == CALL_COMMON && depth < 8 {
+                if let Some(body) = common_events.get(&p[1]) {
+                    walk(body, common_events, depth + 1, out);
+                }
+            }
+        }
+    }
+    let mut walked = Vec::new();
+    for map in maps {
+        let compiling = compiler::compiling_pages(scan, map.id)?;
+        for (e, event) in map.events.iter().enumerate() {
+            for (k, page) in event.pages.iter().enumerate() {
+                if compiling.contains(&(e as i64, k as i64)) {
+                    let mut out = Vec::new();
+                    walk(&page.commands, common_events, 0, &mut out);
+                    walked.push((map.id, out));
+                }
+            }
+        }
+    }
+    Ok(walked)
+}
+
+/// The maps of the ROM where a sandstorm can be blowing: the ones that
+/// carry its grains, which cost four colours of a sprite palette and four
+/// tiles. The overlay costs nothing per map and is drawn wherever the
+/// weather is a sandstorm; this is only where the grains go.
+///
+/// The weather is global in RM2k, like the timer, and it is walked like
+/// `timer_reach` walks the timer —in order, without the branches, a
+/// `Teleport` while it blows carrying it to its destination, a page of a
+/// reached map starting with it blowing— with one difference: **the map a
+/// page starts it on is reached only if the page does not leave it
+/// afterwards**. Zounds starts its Death Desert's storm in the jump out of
+/// map 34, with the screen erased, and counting 34 would carry the storm
+/// out of every exit of 34 into the rest of the game. A `WeatherEffects`
+/// of any other type stops it.
+///
+/// It can only fail by leaving a map without grains —a branch that does
+/// not jump, a page whose switches nobody knows here—, and there the
+/// overlay is still drawn.
+pub fn sandstorm_reach(
+    maps: &[&GameMap],
+    scan: &Value,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+) -> Result<BTreeSet<i32>> {
+    let in_rom: BTreeSet<i32> = maps.iter().map(|m| m.id).collect();
+    let walked = walked_pages(maps, scan, common_events)?;
+    let mut reach = BTreeSet::new();
+    let mut grew = true;
+    while grew {
+        grew = false;
+        for (map_id, commands) in &walked {
+            let mut here = *map_id;
+            let mut blowing = reach.contains(map_id);
+            let mut started_here = false;
+            let mut found = Vec::new();
+            for cmd in commands {
+                let p = &cmd.parameters;
+                if cmd.code == TELEPORT && !p.is_empty() {
+                    here = p[0];
+                    started_here = false;
+                    if blowing {
+                        found.push(here);
+                    }
+                } else if cmd.code == WEATHER_EFFECTS && !p.is_empty() {
+                    blowing = p[0] == WEATHER_SAND;
+                    started_here = blowing;
+                }
+            }
+            if started_here {
+                found.push(here);
+            }
+            for map in found {
+                if in_rom.contains(&map) && reach.insert(map) {
+                    grew = true;
+                }
+            }
+        }
+    }
+    Ok(reach)
 }
 
 /// The maps of the ROM where the timer can be running: the ones that carry
@@ -134,43 +250,7 @@ pub fn timer_reach(
     counters: &BTreeSet<i32>,
 ) -> Result<BTreeSet<i32>> {
     let in_rom: BTreeSet<i32> = maps.iter().map(|m| m.id).collect();
-    let mut pages: Vec<(i32, &[Command])> = Vec::new();
-    for map in maps {
-        let compiling = compiler::compiling_pages(scan, map.id)?;
-        for (e, event) in map.events.iter().enumerate() {
-            for (k, page) in event.pages.iter().enumerate() {
-                if compiling.contains(&(e as i64, k as i64)) {
-                    pages.push((map.id, &page.commands));
-                }
-            }
-        }
-    }
-
-    fn walk<'c>(
-        commands: &'c [Command],
-        common_events: &'c BTreeMap<i32, Vec<Command>>,
-        depth: u32,
-        out: &mut Vec<&'c Command>,
-    ) {
-        for cmd in commands {
-            out.push(cmd);
-            let p = &cmd.parameters;
-            if cmd.code == CALL_EVENT && p.len() >= 2 && p[0] == CALL_COMMON && depth < 8 {
-                if let Some(body) = common_events.get(&p[1]) {
-                    walk(body, common_events, depth + 1, out);
-                }
-            }
-        }
-    }
-    let walked: Vec<(i32, Vec<&Command>)> = pages
-        .iter()
-        .map(|(m, commands)| {
-            let mut out = Vec::new();
-            walk(commands, common_events, 0, &mut out);
-            (*m, out)
-        })
-        .collect();
-
+    let walked = walked_pages(maps, scan, common_events)?;
     let mut reach = BTreeSet::new();
     let mut counted = BTreeSet::new();
     let mut grew = true;
@@ -641,6 +721,50 @@ mod tests {
             possible_items([&one], &[1], &db, &[cmd(CHANGE_ITEMS, &[0, 0, 9, 0, 1])]),
             [3, 7, 9, 450]
         );
+    }
+
+    #[test]
+    fn a_sandstorm_reaches_where_it_is_carried_and_not_the_map_it_starts_on_and_leaves() {
+        // 1 starts it and jumps to 2, which goes on to 3; 3 stops it and
+        // jumps to 4; 5 starts it and stays.
+        let maps = [
+            map(
+                1,
+                vec![vec![
+                    cmd(WEATHER_EFFECTS, &[WEATHER_SAND, 2]),
+                    cmd(TELEPORT, &[2, 0, 0, 0]),
+                ]],
+            ),
+            map(2, vec![vec![cmd(TELEPORT, &[3, 0, 0, 0])]]),
+            map(
+                3,
+                vec![vec![
+                    cmd(WEATHER_EFFECTS, &[0, 1]),
+                    cmd(TELEPORT, &[4, 0, 0, 0]),
+                ]],
+            ),
+            map(4, vec![vec![cmd(TELEPORT, &[1, 0, 0, 0])]]),
+            map(5, vec![vec![cmd(WEATHER_EFFECTS, &[WEATHER_SAND, 0])]]),
+        ];
+        let refs: Vec<&GameMap> = maps.iter().collect();
+        let reach = sandstorm_reach(&refs, &everything_compiles(&refs), &BTreeMap::new()).unwrap();
+        assert_eq!(reach, BTreeSet::from([2, 3, 5]));
+    }
+
+    #[test]
+    fn a_sandstorm_is_swept_over_the_maps_the_common_events_and_the_test_pages() {
+        let none = BTreeMap::new();
+        let rain = map(1, vec![vec![cmd(WEATHER_EFFECTS, &[WEATHER_RAIN, 2])]]);
+        assert!(!has_sandstorm([&rain], &none, &[]));
+        let storm = map(2, vec![vec![cmd(WEATHER_EFFECTS, &[WEATHER_SAND, 2])]]);
+        assert!(has_sandstorm([&rain, &storm], &none, &[]));
+        let common = BTreeMap::from([(7, vec![cmd(WEATHER_EFFECTS, &[WEATHER_SAND, 0])])]);
+        assert!(has_sandstorm([&rain], &common, &[]));
+        assert!(has_sandstorm(
+            [&rain],
+            &none,
+            &[cmd(WEATHER_EFFECTS, &[WEATHER_SAND, 1])]
+        ));
     }
 
     #[test]

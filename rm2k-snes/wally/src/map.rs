@@ -25,8 +25,8 @@ use crate::sprites::character::{
     OBJ_ROW, SPRITE_POSES,
 };
 use crate::sprites::extras::{
-    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits,
-    timer_mask, Image, RAIN_COLORS,
+    first_place, map_animation, picture_of_image, rain_drops, sand_grains, timer_colors,
+    timer_digits, timer_mask, Image, RAIN_COLORS, RAIN_TILES, TIMER_GLYPHS,
 };
 use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc, NPC_MAX};
 use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
@@ -79,6 +79,10 @@ pub struct MapRequest {
     /// The System picture, if the cartridge carries the timer in this map.
     pub timer: Option<PathBuf>,
     pub rain: bool,
+    /// The sandstorm: `None` when the cartridge has none —missing or
+    /// null—, and otherwise whether this map carries its grains, which go
+    /// only where it can blow.
+    pub sand: Option<bool>,
     pub picture: Option<PictureAsked>,
     /// When `picture` carries the pictures of the common events the map
     /// runs a copy of —see the event compiler's `with_test_event`—, the
@@ -563,6 +567,10 @@ pub struct Objects {
     /// takes it —for one in a leaders' palette, empty otherwise—.
     pub route_gfx: Vec<(usize, usize, Vec<u16>)>,
     pub rain: (usize, usize),
+    /// The sandstorm's grains, `(first tile, palette, first entry)`: see
+    /// `sand_grains`. All zero when the map has no room for them, and
+    /// `None` when the cartridge does not carry them.
+    pub sand: Option<(usize, usize, usize)>,
     pub turn_block: Option<usize>,
     pub image: (usize, usize),
     pub animation: Option<(usize, usize, usize)>,
@@ -2323,6 +2331,7 @@ fn convert_with(
         palettes,
         timer_at,
         rain,
+        sand,
         image,
         animation,
         notes: extra_notes,
@@ -2493,6 +2502,7 @@ fn convert_with(
         banks,
         route_gfx,
         rain,
+        sand,
         turn_block,
         image,
         animation,
@@ -2511,6 +2521,7 @@ struct Extras {
     palettes: Vec<Vec<Color>>,
     timer_at: Option<(usize, usize)>,
     rain: (usize, usize),
+    sand: Option<(usize, usize, usize)>,
     image: (usize, usize),
     animation: Option<(usize, usize, usize)>,
     notes: Vec<Note>,
@@ -2598,13 +2609,46 @@ fn extras(
             ))),
         }
     }
+    // The sandstorm's grains, in the two rows of the strip before them if
+    // they leave room, and with a palette that does not take one the
+    // pictures or the battle animation's box will want.
+    let mut sand = request.sand.map(|_| (0, 0, 0));
+    let mut own_strip = None;
+    if request.sand == Some(true) {
+        let after = if rain.0 != 0 {
+            Some((rain.0, RAIN_TILES))
+        } else {
+            timer_at.filter(|t| t.0 != 0).map(|t| (t.0, TIMER_GLYPHS))
+        };
+        let above = request.picture.as_ref().map_or(0, |p| p.palettes)
+            + usize::from(request.battle_animation);
+        let cap = palette_cap.min(OBJ_PALETTES.saturating_sub(above));
+        match sand_grains(&mut tiles, &mut palettes, leader_owned, after, cap) {
+            Some(at) => {
+                if after.is_none_or(|(b, w)| at.0 != b + w) {
+                    own_strip = Some(at.0);
+                }
+                sand = Some(at);
+            }
+            None => notes.push(lost(
+                "sand-grains-not-drawn",
+                vec![],
+                format!(
+                    "  map {id}: WARNING, the sandstorm's grains have no palette with four free \
+                     entries but the leaders', and only its overlay is drawn here"
+                ),
+            )),
+        }
+    }
     // The pictures, with the palettes they share from the top. They yield to the
     // battle animation's box, which was there first: a map whose palettes
     // leave room for one of the two keeps the animation, and its pictures
     // are not drawn —the caller sees `image` at zero and compiles none—.
     let mut image = (0, 0);
     if let Some(asked) = &request.picture {
-        let previous = if rain.0 != 0 {
+        let previous = if let Some(base) = own_strip {
+            base
+        } else if rain.0 != 0 {
             rain.0
         } else {
             timer_at.map_or(0, |t| t.0)
@@ -2668,6 +2712,7 @@ fn extras(
         palettes,
         timer_at,
         rain,
+        sand,
         image,
         animation,
         notes,
@@ -2764,6 +2809,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                     .map(|(k, p, c)| if c.is_empty() { json!([k, p]) } else { json!([k, p, c]) })
                     .collect::<Vec<_>>(),
                 "rain": [o.rain.0, o.rain.1],
+                "sand": o.sand.map(|(b, p, e)| json!([b, p, e])),
                 "turn_block": o.turn_block,
                 "image": [o.image.0, o.image.1],
                 "animation": o.animation.map(|(c, b, p)| json!({"count": c, "base": b, "palette": p})),

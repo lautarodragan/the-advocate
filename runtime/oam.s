@@ -133,6 +133,9 @@ last:
     jsr place_hero
 close:
     jsr rain_oam                ; the drops, at the very end
+.ifdef sand_table
+    jsl f:sand_oam              ; and the sandstorm's grains after them
+.endif
     jsr flush_high
     rts
 .endproc

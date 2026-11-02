@@ -592,6 +592,9 @@ fits:
 .a8
 .i16
     jsr tint_tables
+.ifdef sand_table
+    jsl f:sand_tint             ; the sandstorm's overlay goes in the tables
+.endif
 
     ; The background, from where it starts: below it are the screen's
     ; backdrop color and the window's palette, which **are not tinted**. That
@@ -678,6 +681,9 @@ no_leader_pal:
     ;
     ; None of this touched CGRAM: the three palettes were left in
     ; `cgram_shadow` and `upload_tint` uploads them, in the vblank.
+.ifdef sand_table
+    jsl f:sand_colors           ; the sandstorm's grains, out of its overlay
+.endif
     rts
 .endproc
 

@@ -1664,6 +1664,14 @@ fn without_terrain_damage(text: &str) -> String {
     text.replacen(lines, "", 1)
 }
 
+/// The text without the sandstorm's type, which the header names since
+/// 2026-11-02, when the runtime started drawing it.
+fn without_weather_sand(text: &str) -> String {
+    let lines = "; And the sandstorm's type: see sandstorm.s.\nWEATHER_SAND  = 4\n";
+    assert!(text.contains(lines), "no sandstorm type as written");
+    text.replacen(lines, "", 1)
+}
+
 fn without_song_levels(text: &str) -> String {
     let lines = "BA_SONG_GAINS     = $8080\nBA_SONG_STEP      = $0100\n\
                  BA_SONG_FADE      = $0000\nBA_SONG_END_GAINS = $8080\n\
@@ -1790,7 +1798,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&text),
+                                            &without_terrain_damage(&without_weather_sand(&text)),
                                         )),
                                     )),
                                 )),
@@ -1834,7 +1842,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&text),
+                                            &without_terrain_damage(&without_weather_sand(&text)),
                                         )),
                                     )),
                                 )),
