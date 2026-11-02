@@ -301,6 +301,24 @@ letter:
     rts
 .endproc
 
+; The three above for code in another bank —the party panel, in
+; `menu_list.s`—: the same registers in and out, entered with `jsl` and the
+; data bank at 0.
+.proc slot_rect_upload_far
+    jsr slot_rect_upload
+    rtl
+.endproc
+
+.proc slot_text_of_far
+    jsr slot_text_of
+    rtl
+.endproc
+
+.proc slot_text_write_far
+    jsr slot_text_write
+    rtl
+.endproc
+
 ; The party of the save in the slot held in `slot`: the faces of the first
 ; SLOT_FACES_MAX, and the name of the first one. It is what
 ; `Window_SaveFile::Refresh` draws per file, minus the hit points, which this

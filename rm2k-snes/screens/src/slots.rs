@@ -37,8 +37,18 @@ pub struct MenuBlocks {
     pub row: Vec<u16>,
     /// The experience term, loose like a glyph: sprites draw it.
     pub exp_term: Vec<u16>,
-    /// The SP term, the same way: the actor choice draws it in sprites.
+    /// The SP term, the same way: the actor choice draws it in sprites,
+    /// and the pause menu in cells.
     pub sp_term: Vec<u16>,
+    /// The pause menu's sign that its party goes on, the System's two
+    /// arrows as four tiles —the up one's two, then the down one's—, which
+    /// the cartridge draws in sprites with `arrow_colors`: see
+    /// `MENU_ARROW_Y`. Their words say palette 0, which is not theirs: the
+    /// sprite carries its own.
+    pub arrows: Vec<u16>,
+    /// The arrows' colours, transparent first: sprite palette 2 on the
+    /// menu.
+    pub arrow_colors: Vec<Color>,
 }
 
 /// The slot screen and the menu, cut.
@@ -107,6 +117,59 @@ enum Kind {
     MenuRow,
     ExpTerm,
     SpTerm,
+}
+
+/// The System's two arrows, `Window::Draw`'s —the up one right above the
+/// down one—, drawn on a layer at the glyph cell, the up one on its row and
+/// the down one on the next, in **their own colours**: the System's, the
+/// fifteen most visible if there are more. With the palette, transparent
+/// first.
+fn arrow_layer(skin: &Skin) -> Result<(Picture, Vec<Color>)> {
+    let (down_x, down_y) = rm2k_rules::system::ARROW_DOWN;
+    let (x0, y0) = (down_x as i64, (down_y as usize - ARROW_HEIGHT) as i64);
+    let system = &skin.picture;
+    let mut order = Vec::new();
+    let mut counts: HashMap<Color, u64> = HashMap::new();
+    for y in 0..(2 * ARROW_HEIGHT) as i64 {
+        for x in 0..ARROW_WIDTH as i64 {
+            let p = system.get(x0 + x, y0 + y);
+            if p[3] != 0 {
+                let c = cells::rgb15(p);
+                *counts.entry(c).or_insert_with(|| {
+                    order.push(c);
+                    0
+                }) += 1;
+            }
+        }
+    }
+    let counted: Vec<(Color, u64)> = order.iter().map(|&c| (c, counts[&c])).collect();
+    let mapping: HashMap<Color, Color> = if counted.len() <= 15 {
+        counted.iter().map(|&(c, _)| (c, c)).collect()
+    } else {
+        let merged = adeleine::merge_least_visible(&counted, 15)?;
+        order.iter().copied().zip(merged.mapping).collect()
+    };
+    let mut palette = vec![BLACK];
+    for c in &order {
+        let c = mapping[c];
+        if !palette[1..].contains(&c) {
+            palette.push(c);
+        }
+    }
+    let mut image = cells::layer();
+    let wide = |c: u8| (c << 3) | (c >> 2);
+    for y in 0..2 * ARROW_HEIGHT {
+        for x in 0..ARROW_WIDTH {
+            let p = system.get(x0 + x as i64, y0 + y as i64);
+            if p[3] == 0 {
+                continue;
+            }
+            let c = mapping[&cells::rgb15(p)];
+            let at = ((GLYPH_ROW * CELL + y) * image.width + GLYPH_COL * CELL + x) * 4;
+            image.rgba[at..at + 4].copy_from_slice(&[wide(c[0]), wide(c[1]), wide(c[2]), 255]);
+        }
+    }
+    Ok((image, palette))
 }
 
 /// The level term, like `Window_SaveFile::Refresh`: `lvl_short` padded to
@@ -524,6 +587,22 @@ pub fn slots_screen_with(
     for (kind, image) in before {
         place(kind, image, &mut bank, &mut out)?;
     }
+    // The menu's arrows, ahead of the faces: only the menu shows them, and
+    // with any order nobody composes over what comes before the faces.
+    // Unflipped, because they go to the OAM like the glyphs.
+    let (arrows, arrow_colors) = arrow_layer(skin)?;
+    out.menu.arrows = cells::cell_block(
+        &arrows,
+        GLYPH_ROW,
+        2,
+        &mut bank,
+        &cells::index_of(&arrow_colors),
+        GLYPH_COL,
+        ARROW_WIDTH / CELL,
+        0,
+        false,
+    )?;
+    out.menu.arrow_colors = arrow_colors;
 
     // And the faces, each with its palette, put at the top left of the
     // first row to cut them into cells with the same function.

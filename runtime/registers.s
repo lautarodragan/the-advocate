@@ -97,6 +97,7 @@ VMAIN    = $2115        ; how the VRAM pointer advances after each write
 VMADDL   = $2116        ; VRAM address, in words
 VMDATAL  = $2118        ; and the data, one word at a time with VMAIN at $80
 VMDATAH  = $2119        ; its high byte alone: mode 7's tiles
+VMDATALREAD = $2139     ; and read back, a word at a time with VMAIN at $80
 CGADD    = $2121        ; CGRAM index
 CGDATA   = $2122        ; and the color, a byte at a time: low byte first
 TM       = $212C        ; which layers show on the main screen

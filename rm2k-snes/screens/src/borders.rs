@@ -180,7 +180,7 @@ pub fn menu_bar(skin: &Skin, cursor: Option<usize>) -> Picture {
             skin,
             &mut out,
             x,
-            k * MENU_ACTOR_ROWS * CELL + y,
+            k * MENU_LIST_ROWS * CELL + y,
             width,
             height,
         );

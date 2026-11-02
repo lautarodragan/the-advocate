@@ -219,6 +219,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "interpreter_cells.s"
 .include "far_npcs.s"
 .include "menu_experience.s"
+.include "menu_list.s"
 .include "end_game.s"
 .include "counter.s"
 .include "picture_far.s"

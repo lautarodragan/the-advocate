@@ -213,10 +213,12 @@ fn everything_a_cartridge_carries() {
     // 2026-11-01**, 80b161ce…6df4: the bank got the SP term, the actor
     // choice's bar its fourth line and a line of red above the name, so
     // its bars are eight cell rows; looked at in the actor choice's render
-    // below and in ABL's goldens.
+    // below and in ABL's goldens. **Until 2026-11-01** too, 5978d648…3e29:
+    // the bank got the menu's arrows, four tiles, and the answer their
+    // colours.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "5978d64893ade5093e9d047c9971497eff6dfeca1fe6cdb0a46fa1806afa3e29"
+        "f3be9562201e103235243e649e5e3b8d963b2ef8193e9799ff42930329c44aa7"
     );
     assert_eq!(
         answer["says"],
@@ -404,14 +406,19 @@ fn the_screens_as_the_console_shows_them() {
             2,
             false,
             None,
+            0,
             false,
         )
         .unwrap(),
-        "06cf2dc59dae4c259ec988b9ad36077794461b1b73506df09925c419288936b0",
+        "a453bf334d7dcd968c6a63d0a390ef96728cbfc46bb2fbebc3ed16ecd8368c03",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
     // the Python, which never had it. Since 2026-11-01 the bar starts a
     // line higher, with a line of red over the name (4a5b495d…f5f before).
+    // Since 2026-11-01 too, the menu's rows are nine cells, with the SP in
+    // cells under the HP and three rows shown: 06cf2dc5…36b0, 79468d33…7f7f
+    // and c252a58e…caac before, for these three. Looked at, and in ABL's
+    // goldens.
     check(
         "menu-choosing",
         render::menu(
@@ -423,10 +430,11 @@ fn the_screens_as_the_console_shows_them() {
             2,
             false,
             Some(1),
+            0,
             false,
         )
         .unwrap(),
-        "79468d33b7f8648d52398aa028c295c12f8e7ac761de864b9b9bfb03e33dcf7f",
+        "91d0b6dd1c6597687d5fb16f5e62801fdb9da990ac529396b8b8d7bdf1dc0381",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -438,8 +446,16 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu-state",
-        render::menu(&game, &skin, 4, &state, 999_999, 0, true, None, false).unwrap(),
-        "c252a58e29252d837e2c911f116fce4c6876f5ec53de1d9fce0181aed5cedaac",
+        render::menu(&game, &skin, 4, &state, 999_999, 0, true, None, 0, false).unwrap(),
+        "6e3fbc4bdaef77ad4c4a7523ca5908c5e9772457ca10a7e3caa9653743a04c24",
+    );
+    // The fourth member chosen: the panel scrolled a row, with the up
+    // arrow under it. Since 2026-11-01, when the menu's rows grew to fit
+    // the SP and it started showing three.
+    check(
+        "menu-state-scrolled",
+        render::menu(&game, &skin, 4, &state, 999_999, 0, true, Some(3), 1, false).unwrap(),
+        "a2f0c64e2d078e8a85f7838e525afe03d3f0973a62ea0d1c4fa002dbbcb932c9",
     );
     check(
         "target-item",

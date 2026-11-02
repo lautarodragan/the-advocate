@@ -426,7 +426,7 @@ other_option:
     sta temp + 2
     jsr slot_rect_upload
 
-    jsr menu_party_paint
+    jsl f:menu_list_paint       ; the party, three rows: see menu_list.s
     jsl f:menu_bar_upload       ; BG1, empty, for the cursor and the bar
     ; --- the cursor, the System's on BG1: see `system_cursors.s` ---
     lda #1
@@ -436,176 +436,6 @@ other_option:
     jsl f:menu_exp_paint        ; the experience, which goes in sprites, and turns on
     lda #1
     sta menu_open
-    rts
-.endproc
-
-; The party, one row per actor: the row's fixed block, the face, and on top
-; the name, the level, the current HP and the maximum. Shared by the menu and
-; the actor choice.
-;
-; **The block is a single one for the four rows and for every actor**: it
-; carries the level term, the status and the HP term, which depend on no one.
-; What does depend on the actor is written over it, and that is what keeps
-; the tile bank from growing with the number of actors: its name composed
-; —`tl_strip`— and its level and its maximum with glyphs, one per cell
-; —`slot_text_write`—.
-;
-; The row stays on the stack for the whole pass and each step pulls the cell
-; and the actor out of it again instead of saving them: the direct page is
-; full —`temp` and `temp + 2` are used by the two routines that write— and
-; each step runs once per row, with the PPU off.
-.proc menu_party_paint
-.a8
-.i16
-    lda #0
-other_member:
-    cmp party_n
-    bcs party_ready
-    cmp #MENU_ROWS_PARTY
-    bcc enters
-party_ready:
-    rts
-enters:
-    pha                         ; the row, until the end of the pass
-    jsr actor
-    cmp #MENU_ACTORS_N
-    bcc known
-    jmp next                    ; one this ROM does not know
-known:
-
-    ; --- the row's fixed block ---
-    pla
-    pha
-    jsr row_vram
-    lda #(MENU_ACTOR_COLS * 2)
-    sta temp
-    lda #MENU_ACTOR_ROWS
-    sta temp + 2
-    ldx #MENU_BLK_ROW
-    jsr slot_rect_upload
-
-    ; --- the face, in the row's top left corner ---
-    pla
-    pha
-    jsr row_vram
-    pla
-    pha
-    jsr actor
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:slot_face_block, x
-    cmp #$FF
-    beq no_face
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda #(MENU_FACE_CELLS * 2)
-    sta temp
-    lda #MENU_FACE_CELLS
-    sta temp + 2
-    jsr slot_rect_upload
-no_face:
-
-    ; --- the name ---
-    pla
-    pha
-    jsr row_vram
-    rep #$20
-.a16
-    tya
-    clc
-    adc #MENU_NAME_OFS
-    tay
-    sep #$20
-.a8
-    pla
-    pha
-    jsr actor
-    jsl f:actor_name_row_now    ; its row, or a rename's: actor_names.s
-    ldx #SLOT_TEXT_NAME
-    jsr slot_text_of
-    lda #MENU_NAME_COLS
-    jsl f:tl_strip + FAST       ; composed: see `tl_strip`
-
-    ; --- the level ---
-    pla
-    pha
-    jsr row_vram
-    rep #$20
-.a16
-    tya
-    clc
-    adc #MENU_LEVEL_OFS
-    tay
-    sep #$20
-.a8
-    pla
-    pha
-    jsr actor
-    jsl f:text_level            ; the current one: it goes up by fighting
-    lda #SLOT_LEVEL_DIGITS
-    jsr slot_text_write
-
-    ; --- the maximum, after the slash ---
-    pla
-    pha
-    jsr row_vram
-    rep #$20
-.a16
-    tya
-    clc
-    adc #MENU_MAX_OFS
-    tay
-    sep #$20
-.a8
-    pla
-    pha
-    jsr actor
-    jsl f:text_max              ; the one for its current level, like the level
-    lda #MENU_MAX_DIGITS
-    jsr slot_text_write
-
-    ; --- and the current HP, which are not cartridge text but state ---
-    pla
-    pha
-    sta temp + 2                ; the row
-    jsr actor
-    sta temp                    ; the actor
-    jsl f:menu_hp_write
-next:
-    pla
-    inc a
-    jmp other_member
-
-; The actor of the row given in A, and the cell where that row starts in the
-; tilemap. Both are asked again at each step; see the comment above.
-actor:
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda party, x
-    rts
-
-row_vram:
-    rep #$20
-.a16
-    and #$00FF
-    asl a                       ; two bytes per entry
-    tax
-    lda menu_row_vram, x
-    tay
-    sep #$20
-.a8
     rts
 .endproc
 
@@ -811,7 +641,7 @@ redraw:
 .if ::SLOT_MENU_TILES <> ::SLOT_TILES   ; `::`: inside a `.proc`, without it it is not constant
     jsl f:tl_strip_menu + FAST  ; the names over the slot screen's text
 .endif
-    jsr menu_party_paint
+    jsl f:menu_party_paint      ; the four rows: see menu_list.s
     jsl f:target_upload
     lda #1
     sta temp + 3

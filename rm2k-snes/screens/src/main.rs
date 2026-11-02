@@ -256,6 +256,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
                 n if n < 0 => None,
                 n => Some(n as usize),
             },
+            json.number_or("top", 0)? as usize,
             json.flag("debug", false)?,
         )?,
         // With `skill`, the choice for a skill: `all` puts the bar over the

@@ -3093,6 +3093,22 @@ impl Rest<'_> {
             )
             .join(", ")
         ));
+        // And the pause menu's arrows, which go in sprites in a palette of
+        // their own: see `MENU_ARROW_Y`.
+        let arrows = ints_at(menu, "arrows")?;
+        out.push_str(&format!(
+            ".block {}\nmenu_arrow_cells:\n    .word {}\n",
+            2 * arrows.len(),
+            hex4(
+                arrows
+                    .into_iter()
+                    .map(|c| i64::from(entry(c as u32, false, false, 0)))
+            )
+            .join(", ")
+        ));
+        let mut arrow_colors = colors(at(menu, "arrow_colors")?)?;
+        arrow_colors.resize(16, [0, 0, 0]);
+        line(out, &block("menu_arrow_cgram", &cgram_bytes(&arrow_colors)));
         // The actor choice: its windows on BG1, a single tilemap and the bar
         // only where it changes; and each medicine's name in two lines.
         let target = at(screens, "target")?;
@@ -3236,6 +3252,22 @@ impl Rest<'_> {
             t.n("MENU_HP_COL") * cell,
             t.n("MENU_SP_Y") - t.n("GLYPH_DY"),
             t.n("MENU_SP_LETTERS")
+        ));
+        // The pause menu's list: three rows of nine cells from the first
+        // row's cell, each actor painted there once; and the SP line in
+        // cells, counted from the row's first cell like the HP's.
+        out.push_str(&pyf!(
+            "MENU_LIST_ROWS    = %d\nMENU_SHOWN        = %d\nMENU_LIST_HEIGHT  = %d\n\
+             MENU_LIST_VRAM    = %d\nMENU_SP_TERM_OFS  = %d\nMENU_SP_NUM_OFS   = %d\n\
+             MENU_ARROW_X      = %d\nMENU_ARROW_Y      = %d\n",
+            t.n("MENU_LIST_ROWS"),
+            t.n("MENU_SHOWN"),
+            t.n("MENU_LIST_ROWS") * cell,
+            i64::from(SLOT_MAP) + t.n("MENU_ACTOR_COL"),
+            t.n("MENU_SP_ROW") * 32 + t.n("MENU_SP_X") / cell - t.n("MENU_ACTOR_COL"),
+            t.n("MENU_SP_ROW") * 32 + t.n("MENU_HP_COL") - t.n("MENU_ACTOR_COL"),
+            t.n("MENU_ARROW_X"),
+            t.n("MENU_ARROW_Y")
         ));
         // Each actor's text, in ASCII: the name with trailing spaces, the
         // two digits of the level and max HP, in one row per actor.
