@@ -129,6 +129,15 @@ fn command() -> clap::Command {
             ),
     )
     .arg(
+        Arg::new("phasing")
+            .long("phasing")
+            .action(ArgAction::SetTrue)
+            .help(
+                "Select turns on and off the hero walking through walls and events, which \
+         RPG_RT's test play does holding Ctrl: for debugging",
+            ),
+    )
+    .arg(
         Arg::new("no_speed_keys")
             .long("no-speed-keys")
             .action(ArgAction::SetTrue)
@@ -235,6 +244,7 @@ pub struct Options {
     pub msu_everything: bool,
     pub enemy_hp: bool,
     pub debug_screen: bool,
+    pub phasing: bool,
     pub no_speed_keys: bool,
     pub no_timer: bool,
     pub test_graphic: Option<Vec<(String, i32)>>,
@@ -322,6 +332,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         msu_everything: matches.get_flag("msu_everything"),
         enemy_hp: matches.get_flag("enemy_hp"),
         debug_screen: matches.get_flag("debug_screen"),
+        phasing: matches.get_flag("phasing"),
         no_speed_keys: matches.get_flag("no_speed_keys"),
         no_timer: matches.get_flag("no_timer"),
         test_graphic,

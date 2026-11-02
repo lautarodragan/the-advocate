@@ -121,6 +121,9 @@ PAD_UP    = $08
 ; And start, which nobody looked at until the title screen: the game is
 ; walked with the d-pad and talked with A.
 PAD_START = $10
+; And select, which RM2k has no key for: in a debug build it toggles walking
+; through everything. See `phasing.s`.
+PAD_SELECT = $20
 
 ; A lives in the other byte. The pad's sixteen bits are, from high to low,
 ; B Y select start up down left right A X L R and four of padding; JOY1H

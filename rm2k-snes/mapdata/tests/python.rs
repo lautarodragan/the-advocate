@@ -1335,6 +1335,14 @@ fn without_debug_screen(text: &str) -> String {
     text.replacen(section, "", 1)
 }
 
+/// The text without the phasing line, which came on 2026-11-02: a
+/// cartridge without it says only that it is off.
+fn without_phasing(text: &str) -> String {
+    let line = "; Whether Select walks the hero through everything: see `phasing.s`.\nDEBUG_PHASING = 0\n\n";
+    assert!(text.contains(line), "no phasing line");
+    text.replacen(line, "", 1)
+}
+
 fn without_custom_menus(text: &str) -> String {
     let start = text
         .find("\n; --- the custom menus: see custom_menu.s ---\n")
@@ -1777,7 +1785,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "bare"));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
-        &text,
+        &without_phasing(&text),
     ))));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
@@ -1821,7 +1829,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "whole"));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
-        &text,
+        &without_phasing(&text),
     ))));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(

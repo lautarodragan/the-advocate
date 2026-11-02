@@ -248,6 +248,10 @@ impl Cartridges {
         let with_enemy_hp = p.boolean(&["debug", "enemy_hp"])?;
         // And the debug screen in the pause menu, in every cartridge too.
         let with_debug_screen = p.boolean(&["debug", "debug_screen"])?;
+        // And Select walking the hero through everything, RPG_RT's test
+        // play's Ctrl: its own key and not the debug screen's, because every
+        // port has that one on and this changes how the hero walks.
+        let with_phasing = p.boolean(&["debug", "phasing"])?;
 
         // The tree comes from Ditto's reader, into the schema's types: this
         // crate keeps no model of the dump. A new map's node goes over the
@@ -288,7 +292,8 @@ impl Cartridges {
             .cloned()
             .collect();
         for name in names {
-            let c = cartridges.read_cartridge(&name, with_enemy_hp, with_debug_screen)?;
+            let c =
+                cartridges.read_cartridge(&name, with_enemy_hp, with_debug_screen, with_phasing)?;
             cartridges.cartridges.push(c);
         }
         if !cartridges
@@ -325,6 +330,7 @@ impl Cartridges {
         name: &str,
         with_enemy_hp: bool,
         with_debug_screen: bool,
+        with_phasing: bool,
     ) -> Result<Cartridge, String> {
         let p = &self.project;
         let key = |k: &'static str| ["cartridges", name, k];
@@ -386,6 +392,9 @@ impl Cartridges {
         }
         if with_debug_screen {
             flags.push("--debug-screen".to_string());
+        }
+        if with_phasing {
+            flags.push("--phasing".to_string());
         }
         Ok(Cartridge {
             name: name.to_string(),

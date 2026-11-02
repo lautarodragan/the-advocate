@@ -146,6 +146,9 @@ party_ready:
     stz route_anim_for
     stz crossing
     stz crossing + 1
+.if ::DEBUG_PHASING
+    stz phasing                 ; Select's walking through everything: see phasing.s
+.endif
     stz tint_pending
     ; And the message window. `msg_open` with garbage leaves the page
     ; blocked forever: `events_tick` believes there is a message on screen
@@ -481,6 +484,9 @@ loop:
 .if ::HERO_SPEED_KEYS
     jsl f:speed_keys            ; L and R, before the hero walks: not RM2k's
 .endif
+.if ::DEBUG_PHASING
+    jsl f:phasing_keys          ; and Select, in a debug build: see phasing.s
+.endif
     jsr move_hero               ; `game_player->Update()`
     jsr request_menu            ; B, at the end of the hero: see `request_menu`
     ; The timer goes **before** the interpreter, which is where
@@ -559,7 +565,11 @@ counted:
     jsr anim_tick               ; which ChipSet drawing is due on the next
                                 ; iteration, so the vblank only has to upload it
     jsr count_lost
+.if ::DEBUG_PHASING
+    jmp loop                    ; `phasing_keys`'s `jsl` put it out of a `bra`'s reach
+.else
     bra loop
+.endif
 .endproc
 
 ; How many vblanks went by since the previous iteration: one is normal, and

@@ -237,10 +237,12 @@ pub struct Emit {
     pub start: i64,
     /// Whether the hero goes above the upper layer, which only a test asks
     /// for; whether L and R change its speed; whether the battle draws the
-    /// enemies' HP.
+    /// enemies' HP; whether Select walks the hero through everything, for
+    /// debugging.
     pub hero_above: bool,
     pub speed_keys: bool,
     pub enemy_hp: bool,
+    pub phasing: bool,
     /// The party the game starts with.
     pub party: Vec<i64>,
     /// Who the cartridge is: its header title and its SRAM signature.

@@ -7955,6 +7955,7 @@
   ]
  ],
  "speed_keys": false,
+ "phasing": false,
  "start": 1,
  "text_padding": 2,
  "title": {
