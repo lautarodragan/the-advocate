@@ -58,6 +58,10 @@ pub struct LayersRequest {
     /// for nothing, they move the colours Adeleine merges and with them
     /// what is seen.
     pub extra_needed: bool,
+    /// The cells whose tiles above the hero are drawn below, because no
+    /// character can ever cover them: see [`crate::layers::below`]. Not
+    /// from the request: the map's conversion works them out.
+    pub below: Vec<usize>,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -259,6 +263,7 @@ impl LayersRequest {
             decor: Vec::new(),
             extra: Vec::new(),
             extra_needed: false,
+            below: Vec::new(),
         })
     }
 }
@@ -435,6 +440,13 @@ impl crate::map::MapRequest {
     /// request from before 2026-10-19 lacks—, whether `own_route` is null
     /// and `turns` are read.
     ///
+    /// `reach`, if it is there and not null, is what the cartridge knows of
+    /// where characters can be on the map —see [`Reach`]—, as
+    /// `{"entries": [[x, y], ...] or null, "any_open": false, "vehicles":
+    /// ["boat"], "commands": [[code, [parameters]], ...]}`. With it the
+    /// tiles above the hero no character can cover are drawn below; a
+    /// request without it, from before 2026-11-02, draws all of them above.
+    ///
     /// A `picture` is `{"name", "objects", "tiles", "cells": [[tile,
     /// [64 indices]], ...], "palettes"}`, the map's pictures already cut by
     /// whoever decided them, and how many sprite palettes they share —one if
@@ -535,29 +547,83 @@ impl crate::map::MapRequest {
                 .unwrap_or(false),
             test_commands: match data.get("test_commands") {
                 None | Some(Value::Null) => Vec::new(),
-                Some(v) => v
-                    .as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: `test_commands` is not a list")))?
-                    .iter()
-                    .map(|c| {
-                        let bad = || {
-                            Bad::answer(format!(
-                                "{whose}: a test command is {c}, not [code, [parameters]]"
-                            ))
-                        };
-                        let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
-                        let parameters = c[1]
+                Some(v) => commands(v, "test_commands", whose)?,
+            },
+            reach: match data.get("reach") {
+                None | Some(Value::Null) => None,
+                Some(r) => Some(Reach {
+                    entries: match field(r, "entries", whose)? {
+                        Value::Null => None,
+                        v => Some(
+                            v.as_array()
+                                .ok_or_else(|| Bad::answer(format!("{whose}: `entries` is {v}")))?
+                                .iter()
+                                .map(|c| {
+                                    let bad = || Bad::answer(format!("{whose}: an entry is {c}"));
+                                    let a =
+                                        c.as_array().filter(|a| a.len() == 2).ok_or_else(bad)?;
+                                    Ok((
+                                        small(&a[0], "an entry's x", whose)?,
+                                        small(&a[1], "an entry's y", whose)?,
+                                    ))
+                                })
+                                .collect::<Result<_>>()?,
+                        ),
+                    },
+                    commands: commands(field(r, "commands", whose)?, "reach's commands", whose)?,
+                    any_open: r.get("any_open").and_then(Value::as_bool).unwrap_or(false),
+                    vehicles: match r.get("vehicles") {
+                        None | Some(Value::Null) => Vec::new(),
+                        Some(v) => v
                             .as_array()
-                            .ok_or_else(bad)?
+                            .ok_or_else(|| Bad::answer(format!("{whose}: `vehicles` is {v}")))?
                             .iter()
-                            .map(|p| small(p, "a parameter", whose))
-                            .collect::<Result<_>>()?;
-                        Ok((small(&c[0], "a command's code", whose)?, parameters))
-                    })
-                    .collect::<Result<_>>()?,
+                            .map(|n| text(n, "a vehicle", whose))
+                            .collect::<Result<_>>()?,
+                    },
+                }),
             },
         })
     }
+}
+
+/// What the caller knows of where characters can be on a map that the map
+/// itself does not say, for `rm2k_rules::reach::covered`: where the hero
+/// can arrive from outside its pages —`None`: anywhere—, the commands it
+/// runs there besides its pages' and the common events', and the vehicles
+/// that can carry him over water.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Reach {
+    pub entries: Option<Vec<(i32, i32)>>,
+    pub commands: Vec<(i32, Vec<i32>)>,
+    /// The vehicles the hero can ride, by name: `boat`, `ship`.
+    pub vehicles: Vec<String>,
+    /// Whether he can also arrive on any cell one can step on: see
+    /// `rm2k_rules::reach::Outside::any_open`.
+    pub any_open: bool,
+}
+
+/// A list of commands, as `[code, [parameters]]`.
+fn commands(v: &Value, name: &str, whose: &str) -> Result<Vec<(i32, Vec<i32>)>> {
+    v.as_array()
+        .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not a list")))?
+        .iter()
+        .map(|c| {
+            let bad = || {
+                Bad::answer(format!(
+                    "{whose}: a command is {c}, not [code, [parameters]]"
+                ))
+            };
+            let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
+            let parameters = c[1]
+                .as_array()
+                .ok_or_else(bad)?
+                .iter()
+                .map(|p| small(p, "a parameter", whose))
+                .collect::<Result<_>>()?;
+            Ok((small(&c[0], "a command's code", whose)?, parameters))
+        })
+        .collect()
 }
 
 /// A `picture` of the request: see `MapRequest::from_json`. Null is none.

@@ -120,6 +120,11 @@ pub struct MapRequest {
     /// parameters)`: only for what they name, so nobody that a test moves
     /// is taken for decoration. Only read if `decorative`.
     pub test_commands: Vec<(i32, Vec<i32>)>,
+    /// What the caller knows of where characters can be on the map: with
+    /// it, the tiles above the hero that no character can ever cover are
+    /// drawn below —see [`crate::layers::below`]—; without it, as before,
+    /// all of them above.
+    pub reach: Option<crate::request::Reach>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -198,16 +203,20 @@ fn layered(
         decor: decor.to_vec(),
         extra: extra.rows.clone(),
         extra_needed: extra.needed,
+        below: extra.below.clone(),
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
 }
 
-/// The rows a map is drawn with below it for its substitutions: see
-/// `Drawn::extended` and `LayersRequest::extra_needed`.
+/// How the map is drawn besides its two layers as the game has them: the
+/// rows below it for its substitutions —see `Drawn::extended` and
+/// `LayersRequest::extra_needed`—, and the cells whose tiles above the hero
+/// go below —`LayersRequest::below`—.
 struct Extra {
     rows: Vec<(i32, i32)>,
     needed: bool,
+    below: Vec<usize>,
 }
 
 /// Whether baking left everybody else's colours where they were: the layer
@@ -1102,6 +1111,34 @@ fn convert_with(
     let extra = Extra {
         needed: !beyond.is_empty(),
         rows: if panorama.is_some() { unseen } else { beyond },
+        below: match &request.reach {
+            Some(reach) => {
+                // Where the hero starts if the cartridge boots here, as
+                // `start` below picks it: the game's start, or the open cell
+                // nearest the centre —with or without the events that are
+                // not drawn, which may close theirs—.
+                let (start_map, start_x, start_y) = game.start()?;
+                let mut starts = vec![(start_x, start_y)];
+                if id != start_map {
+                    let (w, h) = (raw.width as usize, raw.height as usize);
+                    let mut pass =
+                        rm2k_rules::passability::map(&flags, &raw.lower_layer, &raw.upper_layer);
+                    for &(x, y) in game.walls.get(&id).map_or(&[][..], Vec::as_slice) {
+                        if x < w && y < h {
+                            pass[y * w + x] = 0;
+                        }
+                    }
+                    let drawn: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
+                    let all: HashSet<(i32, i32)> = events.iter().map(|e| (e.x, e.y)).collect();
+                    starts = vec![
+                        hero_start(&pass, w, h, &drawn),
+                        hero_start(&pass, w, h, &all),
+                    ];
+                }
+                crate::layers::below(game, &raw, &flags, reach, request, &starts)?
+            }
+            None => Vec::new(),
+        },
     };
     let without = layered(
         game,
@@ -1113,6 +1150,12 @@ fn convert_with(
         request.fuse_tiles,
         &extra,
     )?;
+    if !without.drawn.lowered.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: {} cells draw their tiles above the hero below: no character can cover them",
+            without.drawn.lowered.len()
+        )));
+    }
     // The tiles first, as they always were. Then the decoration, all of it
     // if the split holds, and if not group by group —every CharSet is
     // one—, the most numerous first, keeping what fits: each CharSet brings

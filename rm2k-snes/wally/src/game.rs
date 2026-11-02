@@ -106,6 +106,12 @@ impl Game {
             .collect())
     }
 
+    /// The database's terrains.
+    pub fn terrains(&self) -> Result<Vec<ditto::schema::Terrain>> {
+        let dump = Dump::open(&self.data).map_err(answer)?;
+        dump.section("terrains").map_err(answer)
+    }
+
     /// Where a new game starts: `(map, x, y)`.
     pub fn start(&self) -> Result<(i32, i32, i32)> {
         let dump = Dump::open(&self.data).map_err(answer)?;
