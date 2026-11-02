@@ -115,6 +115,9 @@ off:
     stz WMDATA
     dex
     bne off
+.ifdef sand_table
+    jsl f:sand_set              ; and the sandstorm's: see sandstorm.s
+.endif
     rts
 .endproc
 

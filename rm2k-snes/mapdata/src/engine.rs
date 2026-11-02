@@ -43,6 +43,10 @@ pub const RAIN_DROPS: [u32; 3] = [15, 45, 75];
 pub const RAIN_LIFE: u32 = 12;
 pub const RAIN_SPAWN: u32 = 26;
 pub const RAIN_SEED: u32 = 0x1D2B;
+/// The sandstorm, `Game_Screen::Weather_Sandstorm`: its rules live in the
+/// runtime's `sandstorm.s`, which assembles only in a cartridge that
+/// carries it.
+pub const WEATHER_SAND: u32 = 4;
 /// One byte per item of the database and RM2k's cap. Measured against A
 /// Blurred Line: its database has 450 items, plus 0.
 pub const ITEMS_N: usize = 451;
@@ -210,6 +214,7 @@ pub fn numbers() -> Vec<(&'static str, serde_json::Value)> {
         KEY_VALUE_CANCEL,
         KEY_VALUE_DIR,
         WEATHER_RAIN,
+        WEATHER_SAND,
         RAIN_DROPS,
         RAIN_LIFE,
         RAIN_SPAWN,

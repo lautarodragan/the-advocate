@@ -525,6 +525,9 @@ no_jump_pending:
                                 ; frame where both run.
     jsr flash_tick              ; and one of the screen flash
     jsr rain_tick               ; and one of the rain
+.ifdef sand_table
+    jsl f:sand_tick             ; and one of the sandstorm: see sandstorm.s
+.endif
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; the column or row the camera uncovered

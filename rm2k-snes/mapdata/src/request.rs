@@ -639,6 +639,11 @@ pub struct Sprite {
     /// The raindrops, the turn slot's block, the `ShowPicture` picture and
     /// the battle animation's box: `[first tile, palette]`, 0 if none.
     pub rain: (i64, i64),
+    /// The sandstorm's grains, `[first tile, palette, first entry]`, all
+    /// zero on a map without room for them; missing or null when the
+    /// cartridge does not carry them. See `sand_grains` in Wally.
+    #[serde(default)]
+    pub sand: Option<(i64, i64, i64)>,
     pub turn_block: Option<u32>,
     pub image: (i64, i64),
     pub animation: Option<Animation>,

@@ -621,6 +621,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         RAIN_SPAWN.into(),
         RAIN_SEED.into(),
         WEATHER_RAIN.into(),
+        WEATHER_SAND.into(),
         ITEMS_N.into(),
         ITEM_MAX.into(),
         variables_n.into(),
@@ -5532,6 +5533,29 @@ fn timer_and_case(out: &mut String, r: &Emit) {
         2 * masks.len(),
         masks.join(", ")
     ));
+    // The sandstorm's grains, four bytes per map —first tile, palette and
+    // first entry—, only in a cartridge that carries them: the runtime
+    // assembles the sandstorm only if this table is there. See
+    // `sandstorm.s`.
+    if r.maps
+        .iter()
+        .any(|m| m.sprite.as_ref().is_some_and(|s| s.sand.is_some()))
+    {
+        let grains: Vec<String> = r
+            .maps
+            .iter()
+            .map(|m| {
+                let (base, palette, first) =
+                    m.sprite.as_ref().and_then(|s| s.sand).unwrap_or((0, 0, 0));
+                format!("${base:04X}, ${:04X}", palette | first << 8)
+            })
+            .collect();
+        out.push_str(&format!(
+            ".block {}\nsand_table:\n    .word {}\n",
+            4 * grains.len(),
+            grains.join(", ")
+        ));
+    }
     // And what each map forbids, one byte per map: `map_access_enter`
     // writes it over the permissions when the map is entered.
     let access: Vec<String> = r

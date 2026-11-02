@@ -415,9 +415,11 @@ pub const BATTLE_AUDIO_SE: [&str; 7] = [
     // used: easyrpg's `Item::GetStartSe`, which is the LDB's `item_se`.
     "item_se",
 ];
-/// `WeatherEffects`' rain, the one type the ROM draws —`WEATHER_RAIN` in
-/// runtime/rain.s—; past it come snow, fog and sandstorm.
+/// `WeatherEffects`' rain and sandstorm, the two types the ROM draws
+/// —`WEATHER_RAIN` in runtime/rain.s and `WEATHER_SAND` in
+/// runtime/sandstorm.s—; between them come snow and fog.
 const WEATHER_RAIN_TYPE: i64 = 1;
+const WEATHER_SAND_TYPE: i64 = 4;
 
 /// A name RM2k uses to say "nothing": neither the song nor the effect exist.
 const AUDIO_OFF: [&str; 2] = ["", "(OFF)"];
@@ -4092,18 +4094,23 @@ pub fn compile_command(
             //
             // **Since 2026-09-11 the rain is drawn**: see OP_WEATHER, which
             // carries the type and the power, and the rain's model next to
-            // `WEATHER_RAIN` in the converter's events.py. Snow, fog and
-            // sandstorm are still not drawn, and they turn the rain off.
+            // `WEATHER_RAIN` in the converter's events.py. Snow and fog are
+            // still not drawn, and they turn the rain off.
+            //
+            // **And since 2026-11-02 the sandstorm**, type 4: an overlay in
+            // the tint's tables and its grains as objects —see the runtime's
+            // `sandstorm.s`—, in a cartridge where some page asks for it.
+            // A map without room for the grains' colours says so when Wally
+            // converts it.
             //
             // OP_WEATHER: type, power
             if n < 2 {
                 return cannot();
             }
-            if q(0) > WEATHER_RAIN_TYPE {
+            if q(0) > WEATHER_RAIN_TYPE && q(0) != WEATHER_SAND_TYPE {
                 let what = match q(0) {
                     2 => "snow",
                     3 => "fog",
-                    4 => "sandstorm",
                     _ => "weather",
                 };
                 ctx.lose(

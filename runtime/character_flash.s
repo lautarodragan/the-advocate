@@ -248,6 +248,9 @@ ready:
 .a8
     sta tint_cgadd
     jsr build_palette
+.ifdef sand_table
+    jsl f:sand_flash            ; the sandstorm's grains do not flash
+.endif
 
     ; The built palette is stored aside and uploaded in the next vblank, not
     ; here. Writing CGRAM in the middle of the frame leaves the top half of

@@ -207,6 +207,9 @@ pub struct Cartridge<'a> {
     pub leaders: Vec<i32>,
     pub timer_maps: BTreeSet<i32>,
     pub with_rain: bool,
+    /// The maps that carry the sandstorm's grains —see
+    /// `scan::sandstorm_reach`—, or `None` if no page starts one.
+    pub sand_maps: Option<BTreeSet<i32>>,
     /// The maps whose way of showing their panorama the project forces:
     /// `[maps] panorama_ways`, which can be missing. Every other map's is
     /// Wally's to decide: see `Way` in its `background::panorama`.
@@ -519,6 +522,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         "timer": timer,
         "map_pictures": c.map_pictures.of(map_id).iter().map(|p| p.to_json()).collect::<Vec<_>>(),
         "rain": c.with_rain,
+        "sand": c.sand_maps.as_ref().map(|m| m.contains(&map_id)),
         "picture": pictures.as_ref().map(|p| p.asked.clone()),
         "battle_animation": shows_animation,
         "singles": singles,

@@ -96,13 +96,13 @@ struct LayersArgs {
     map.json        the baked events; what the conversion says, in order, \
                     with what stops it; the events drawn; the palettes, the \
                     slots, the leader candidates, the timer, the rain, the \
-                    picture, the animation box and the table of command 34; \
+                    sandstorm's grains, the picture, the animation box and the table of command 34; \
                     where the hero starts; and who walks, animates still and \
                     turns toward the hero\n\n\
     The request is a JSON with `map`, `map_files` and `chipset_files` as for \
     `layers`, and what the cartridge and the other domains decided: `names`, \
     `test_event`, `leaders`, `pages` —the event compiler's scan of the map—, \
-    `route_graphics`, `also_walk`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
+    `route_graphics`, `also_walk`, `timer`, `rain`, `sand` —optional—, `picture`, `battle_animation`, `singles`, \
     `palette_weight`, `dither`, `window_colors` as for `layers`, and the `TileSubstitution`s it can run —`substitutions`, \
     whose blocks are built, and `common_substitutions`, only translated—. See \
     `MapRequest::from_json`."

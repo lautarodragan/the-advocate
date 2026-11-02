@@ -25,6 +25,12 @@ pub const RAIN_COLORS: [Color; 3] = [[16, 16, 18], [11, 11, 13], [6, 6, 7]];
 /// The raindrops' tiles across: one per grey, each two tall.
 pub const RAIN_TILES: usize = 3;
 
+/// The sandstorm's four grain colours, at 15 bits: RM2k's yellow, orange,
+/// red and white (`CreateSandParticle`), each channel `>> 3`. The runtime
+/// writes them again over the tint, in this order, from the first entry
+/// —see `sand_grain_ofs` in `sandstorm.s`—, so they go together and new.
+pub const SAND_COLORS: [Color; 4] = [[31, 31, 4], [31, 22, 4], [31, 4, 4], [31, 31, 30]];
+
 /// The battle animation's box: one row of blocks, four 32x32 objects.
 pub const ANIMATION_TILES: usize = 64;
 
@@ -348,6 +354,61 @@ fn lend_to_rain(palettes: &mut [Vec<Color>], avoid: &BTreeSet<usize>) -> Option<
     let (_, number, grown) = best?;
     palettes[number] = grown;
     Some(number)
+}
+
+/// The sandstorm's grains: four tiles in a 2x2 square from the returned
+/// base —`base`, `base + 1`, `base + 16`, `base + 17`, one per colour—,
+/// each with its two pixels, 1x2, in the top-left corner; and their four
+/// colours **new and in a row** in one palette, so that the runtime can
+/// write them again with the tint alone, without the sandstorm's overlay
+/// and without touching a character's colour: `(base, palette, first
+/// CGRAM entry in it)`.
+///
+/// The square goes in the two rows of the strip before it —the timer's
+/// glyphs or the drops, `after` as its first tile and how many columns it
+/// takes— if they leave two columns, or in a strip of its own. The
+/// palette, the first —but the leaders', which the console overwrites—
+/// with four entries free, or a new one if `cap` lets it; the caller
+/// lowers `cap` by the palettes the pictures and the battle animation's
+/// box want, which come later and must not lose theirs. `None` without
+/// room: the overlay is drawn and the grains are not.
+pub fn sand_grains(
+    tiles: &mut Vec<u8>,
+    palettes: &mut Vec<Vec<Color>>,
+    leader_owned: &BTreeSet<usize>,
+    after: Option<(usize, usize)>,
+    cap: usize,
+) -> Option<(usize, usize, usize)> {
+    let room = palettes
+        .iter()
+        .enumerate()
+        .find(|(n, p)| !leader_owned.contains(n) && p.len() + SAND_COLORS.len() <= OBJ_COLORS)
+        .map(|(n, _)| n);
+    let which = match room {
+        Some(n) => n,
+        None if palettes.len() < cap => {
+            palettes.push(Vec::new());
+            palettes.len() - 1
+        }
+        None => return None,
+    };
+    let first = palettes[which].len() + 1;
+    palettes[which].extend(SAND_COLORS);
+    let base = match after {
+        Some((at, width)) if at % 16 + width + 2 <= 16 => at + width,
+        _ => strip_base(tiles.len() / 32, 2),
+    };
+    grow(tiles, base + 16 + 2);
+    for (hue, number) in [base, base + 1, base + 16, base + 17]
+        .into_iter()
+        .enumerate()
+    {
+        let mut cell = [[0u8; 8]; 8];
+        cell[0][0] = (first + hue) as u8;
+        cell[1][0] = (first + hue) as u8;
+        put(tiles, number, &cell);
+    }
+    Some((base, which, first))
 }
 
 /// The `ShowPicture` pictures of a map, already cut into tiles by whoever
@@ -675,5 +736,50 @@ mod tests {
         .unwrap();
         assert_eq!(base, 128);
         assert_eq!(tiles.len(), (base + 16 + TIMER_GLYPHS) * 32);
+    }
+
+    /// The grains' four colours go new and in a row into the first palette
+    /// with room that is not a leader's, their square after the timer's
+    /// glyphs in its two rows, and each tile has its two pixels in the
+    /// corner with its colour's entry.
+    #[test]
+    fn the_grains_go_new_and_in_a_row_after_the_timer() {
+        let mut p = palettes(12, 3);
+        p[1].truncate(8);
+        p[2].truncate(4);
+        let leaders = BTreeSet::from([1]);
+        let mut tiles = vec![0; 32 * (64 + 16 + TIMER_GLYPHS)];
+        let (base, which, first) = sand_grains(
+            &mut tiles,
+            &mut p,
+            &leaders,
+            Some((64, TIMER_GLYPHS)),
+            OBJ_PALETTES,
+        )
+        .unwrap();
+        assert_eq!((base, which, first), (64 + TIMER_GLYPHS, 2, 5));
+        assert_eq!(p[2][4..], SAND_COLORS);
+        for (hue, number) in [base, base + 1, base + 16, base + 17]
+            .into_iter()
+            .enumerate()
+        {
+            let mut cell = [[0u8; 8]; 8];
+            cell[0][0] = (first + hue) as u8;
+            cell[1][0] = (first + hue) as u8;
+            assert_eq!(tiles[number * 32..(number + 1) * 32], pack_tile(&cell, 4));
+        }
+    }
+
+    /// Without four free entries but in the leaders' palette, a new palette
+    /// if the cap lets it, and none if not: then the grains are not drawn.
+    #[test]
+    fn the_grains_take_a_new_palette_only_under_the_cap() {
+        let mut p = palettes(12, 2);
+        let mut tiles = Vec::new();
+        let at = sand_grains(&mut tiles, &mut p, &BTreeSet::new(), None, 3).unwrap();
+        assert_eq!((at.1, at.2), (2, 1));
+        let mut p = palettes(12, 2);
+        assert!(sand_grains(&mut tiles, &mut p, &BTreeSet::new(), None, 2).is_none());
+        assert_eq!(p.len(), 2);
     }
 }
