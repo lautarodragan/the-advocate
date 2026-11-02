@@ -7623,6 +7623,7 @@
   ]
  ],
  "speed_keys": true,
+ "phasing": false,
  "start": 1,
  "text_padding": 0,
  "title": null,

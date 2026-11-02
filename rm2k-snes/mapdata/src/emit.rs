@@ -835,6 +835,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         "; Whether L and R change the hero's speed: see `hero_speed_keys.s`.\nHERO_SPEED_KEYS = %d\n\n",
         r.speed_keys
     ));
+    out.push_str(&pyf!(
+        "; Whether Select walks the hero through everything: see `phasing.s`.\nDEBUG_PHASING = %d\n\n",
+        r.phasing
+    ));
     // The fade ramp, in bank 0: `fade_tick` reads it with `lda fade_ramp, x`.
     out.push_str(&pyf!(
         ".segment \"TABLES\"\n\

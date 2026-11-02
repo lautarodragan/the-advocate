@@ -198,6 +198,15 @@ skip:
 .proc encounter_step
 .a8
 .i16
+.if ::DEBUG_PHASING
+    ; Walking through everything, no encounters: RPG_RT's
+    ; `UpdateEncounterSteps` returns first thing while `DEBUG_THROUGH` is
+    ; held. See phasing.s.
+    lda f:phasing
+    beq not_phasing
+    rtl
+not_phasing:
+.endif
     phx
     phy
     phb

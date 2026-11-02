@@ -151,7 +151,19 @@ no_left:
     beq no_right
     lda #DIR_RIGHT
 walk:
+.if ::DEBUG_PHASING
+    ; Select's walking through everything is RPG_RT's test play's
+    ; `SetThrough` around the pad's `Move`, and only that one: a move route
+    ; walks with its own. See phasing.s.
+    pha
+    lda phasing
+    sta crossing
+    pla
     jsr try_toward
+    stz crossing
+.else
+    jsr try_toward
+.endif
 after_step:
     ; A step that really started —`step_left` says so— is an RM2k step:
     ; `IncSteps` and `UpdateEncounterSteps`, which there run after `Move()`
