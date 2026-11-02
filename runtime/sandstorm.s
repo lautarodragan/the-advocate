@@ -63,7 +63,7 @@
 ;
 ; All of it assembles only in a cartridge where some page asks for a
 ; sandstorm: the converter emits `sand_table` then, with each map's grains
-; —first tile, palette and first entry—, and the five doors in bank 0 go
+; —first tile, palette and first entry—, and the six doors in bank 0 go
 ; inside `.ifdef sand_table`. A cartridge without it is byte for byte what
 ; it was. The weather does not travel in the save, as with the rain.
 .ifdef sand_table
@@ -875,6 +875,55 @@ add:
     rtl
 .endproc
 .assert table_g = table_r + 32 && table_b = table_r + 64, error, "sand_tint indexes all three from table_r"
+
+; The grains' colours with the tint alone over the palette a character's
+; flash just built in `pal_buf`, if it is theirs: from `palette_with_flash`.
+; In RM2k a character's flash does not reach the weather, and the flash's
+; last frame rebuilds the palette from `pure`, which has the overlay: without
+; this, the grains that share a palette with Zounds' flashing stones would
+; stay pale after the first flash.
+.proc sand_flash
+.a8
+.i16
+    lda f:WEATHER_L
+    cmp #WEATHER_SAND
+    beq go
+    rtl
+go:
+    rep #$20
+.a16
+    lda map_ofs
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    tax
+    lda f:sand_table, x
+    beq none
+    lda f:sand_table + 2, x     ; the palette, and the first entry above it
+    and #$00FF
+    cmp flash_slot
+    bne none
+    lda f:sand_table + 3, x
+    and #$00FF
+    asl a
+    tay
+    ldx #0
+copy:
+    lda f:sand_tinted, x
+    sta pal_buf, y
+    iny
+    iny
+    inx
+    inx
+    cpx #8
+    bne copy
+none:
+    sep #$20
+.a8
+    rtl
+.endproc
 
 ; The grains' colours with the tint alone, over the ones `apply_tint` just
 ; covered with sand: from its end, before the vblank uploads the shadow.
