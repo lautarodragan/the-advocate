@@ -218,6 +218,9 @@ set:
 .ifdef wrap_maps
     jsl f:wrap_find             ; and whether it loops: see wrap.s
 .endif
+.ifdef posed_stills
+    jsl f:posed_find            ; and its events drawn into the background: posed.s
+.endif
     ; The grid, to WRAM, before anyone asks about a cell: it comes compressed.
     ; See `GRID`.
     jsl f:lz2_grid + FAST
@@ -411,6 +414,9 @@ tint_later:
     ; decompressed again in full, as when entering the map. Before
     ; `fill_window`, which reads it.
     jsl f:lz2_grid + FAST
+.ifdef posed_stills
+    jsl f:posed_sync            ; with the cells its events showed: posed.s
+.endif
     jsr fill_window
     jmp back_to_map
 .endproc

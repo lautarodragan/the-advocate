@@ -27,6 +27,7 @@ pub mod layers;
 pub mod map;
 pub mod map_pictures;
 pub mod moves;
+pub mod posed;
 pub mod request;
 pub mod sheets;
 pub mod sprites;

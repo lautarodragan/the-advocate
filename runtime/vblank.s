@@ -208,6 +208,9 @@ no_anim_pal:
     sta BG2VOFS
 
     jsr push_strips
+.ifdef posed_stills
+    jsl f:posed_drain           ; the cells of the events drawn into the map
+.endif
     jsl f:pano_vblank           ; the panorama's scroll and strips, if any
 big_up:
 

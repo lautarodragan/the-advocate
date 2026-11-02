@@ -442,6 +442,7 @@ mod tests {
                 ((LOWER + 1, UPPER), 1),
                 ((LOWER, UPPER + 2), 2),
             ],
+            extension: Vec::new(),
         }
     }
 

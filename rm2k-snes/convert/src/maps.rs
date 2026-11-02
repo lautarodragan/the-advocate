@@ -507,7 +507,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // What the test pages name, so a decorative event is never one a
         // test moves: only when the project asks for them.
         "decorative": game.decorative,
-        "test_commands": if game.decorative {
+        // And the still events that change pose, into the background: not
+        // on a map that loops, whose cells the console builds elsewhere —see
+        // `wrap.s`—.
+        "posed_stills": game.posed && map.scroll_type == 0,
+        "test_commands": if game.decorative || game.posed {
             case_commands.iter().map(|c| json!([c.code, c.parameters])).collect::<Vec<_>>()
         } else {
             Vec::new()
@@ -701,6 +705,12 @@ pub struct MapInfo {
     pub turning: BTreeSet<i64>,
     pub changing: BTreeSet<i64>,
     pub appearing: BTreeSet<i64>,
+    /// The still events drawn into the background, by event: their number
+    /// in the map's table of them and the characters they draw, in the
+    /// order a page's graphic is numbered. See `posed` in Wally.
+    pub posed: BTreeMap<i64, (usize, Vec<(String, i64)>)>,
+    /// What Wally answered of them, for the emission.
+    pub posed_table: Value,
     pub outside: HashMap<i64, HashSet<(String, i64)>>,
     pub shared: HashMap<i64, (Value, Value)>,
     pub pictures: Option<(Value, Vec<Value>, Vec<Value>)>,
@@ -1312,6 +1322,29 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         turning,
         changing,
         appearing,
+        posed: answer["posed"]
+            .as_array()
+            .map(|list| {
+                list.iter()
+                    .enumerate()
+                    .map(|(k, p)| {
+                        let graphics = p["graphics"]
+                            .as_array()
+                            .map(|a| {
+                                a.iter()
+                                    .map(|g| (g[0].as_str().unwrap_or("").to_string(), int(&g[1])))
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        (int(&p["event"]), (k, graphics))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        posed_table: answer
+            .get("posed")
+            .cloned()
+            .unwrap_or(Value::Array(Vec::new())),
         outside,
         shared,
         pictures,

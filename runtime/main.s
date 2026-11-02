@@ -249,6 +249,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "inn.s"
 .include "gold_window.s"
 .include "wrap.s"
+.include "posed.s"
 .include "debug_screen.s"
 .include "picture_common.s"
 .include "terrain_steps.s"
