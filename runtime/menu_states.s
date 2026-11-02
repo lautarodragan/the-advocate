@@ -723,16 +723,14 @@ conditioned:
     asl a
     adc f:st_try
     asl a
-    clc
-    adc #.loword(state_ink_cgram)
-    tax
+    tax                         ; from the table's start: its `.block` keeps it in one bank
     sep #$20
 .a8
     lda #(SK_STATE_PALETTE * 16 + 1)
     sta CGADD
     ldy #(2 * STATE_INK_BYTES)
 word:
-    lda f:state_ink_cgram & $FF0000, x
+    lda f:state_ink_cgram, x
     sta CGDATA
     inx
     dey
