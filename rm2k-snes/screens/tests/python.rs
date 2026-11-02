@@ -215,15 +215,18 @@ fn everything_a_cartridge_carries() {
     // its bars are eight cell rows; looked at in the actor choice's render
     // below and in ABL's goldens. **Until 2026-11-01** too, 5978d648…3e29:
     // the bank got the menu's arrows, four tiles, and the answer their
-    // colours.
+    // colours. **Until 2026-11-02**, f3be9562…4aa7: the answer got the
+    // party's conditions, `slots.states`, and the test game three of them,
+    // whose colours go in the bank's palette 1; looked at in the menu's
+    // render below, `menu-conditions`, and in ABL's golden.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "f3be9562201e103235243e649e5e3b8d963b2ef8193e9799ff42930329c44aa7"
+        "bababc7135bbedc859548cbf533bcac9934e035dafbf614a10ece63217b72119"
     );
     assert_eq!(
         answer["says"],
         serde_json::json!([
-            "  menu bank: 238 tiles of 448; the composed names ask for 62 of the 210 the menu leaves \
+            "  menu bank: 238 tiles of 448; the composed names ask for 80 of the 210 the menu leaves \
              and 80 of the 210 the slot screen does",
             "  WARNING, 1 actor names in the menu don't fit in 13 cells (104 px) and are cut: \
              \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
@@ -443,6 +446,7 @@ fn the_screens_as_the_console_shows_them() {
         sp: [(2, 3), (7, 1234)].into_iter().collect(),
         levels: [(2, 11), (4, 17)].into_iter().collect(),
         exps: [(2, 900), (4, 20000)].into_iter().collect(),
+        states: Default::default(),
     };
     check(
         "menu-state",
@@ -456,6 +460,29 @@ fn the_screens_as_the_console_shows_them() {
         "menu-state-scrolled",
         render::menu(&game, &skin, 4, &state, 999_999, 0, true, Some(3), 1, false).unwrap(),
         "a2f0c64e2d078e8a85f7838e525afe03d3f0973a62ea0d1c4fa002dbbcb932c9",
+    );
+    // The party's conditions where the rows say Normal, since 2026-11-02:
+    // the second member holds Poison and Blind and shows Blind, of higher
+    // priority; the third is at zero HP and shows the dead one, Down.
+    let mut conditioned = state.clone();
+    conditioned.states = [(7, vec![2, 3])].into_iter().collect();
+    conditioned.hp.insert(8, 0);
+    check(
+        "menu-conditions",
+        render::menu(
+            &game,
+            &skin,
+            4,
+            &conditioned,
+            999_999,
+            0,
+            true,
+            None,
+            0,
+            false,
+        )
+        .unwrap(),
+        "929af3e00e87995b68f25ed664c2705c7d2d0748f2a21180df1cfb76048f8b68",
     );
     check(
         "target-item",

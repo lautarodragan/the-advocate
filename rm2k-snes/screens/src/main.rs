@@ -380,6 +380,13 @@ fn do_render(args: &GameArgs) -> Result<()> {
                 level,
                 (json.number_or("hp", hp_max)?, hp_max),
                 (json.number_or("sp", sp_max)?, sp_max),
+                &match json.data.get("states") {
+                    Some(_) => json.numbers("states")?,
+                    None => Vec::new(),
+                }
+                .into_iter()
+                .map(|n| n as i32)
+                .collect::<Vec<_>>(),
                 chosen,
                 json.index_or("top", 0)?,
             )?

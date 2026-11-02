@@ -132,6 +132,33 @@ impl Json {
             .collect()
     }
 
+    /// `{"<id>": [n, ...]}`, lists of numbers by number: each actor's
+    /// conditions. Without it, empty.
+    pub fn lists_by_number(&self, name: &str) -> Result<BTreeMap<i32, Vec<i32>>> {
+        let v = match self.get(name) {
+            None => return Ok(BTreeMap::new()),
+            Some(v) => v,
+        };
+        v.as_object()
+            .ok_or_else(|| self.bad(name, v))?
+            .iter()
+            .map(|(k, list)| {
+                let key = k.parse::<i32>().map_err(|_| self.bad(name, v))?;
+                let numbers = list
+                    .as_array()
+                    .ok_or_else(|| self.bad(name, v))?
+                    .iter()
+                    .map(|n| {
+                        n.as_i64()
+                            .and_then(|n| i32::try_from(n).ok())
+                            .ok_or_else(|| self.bad(name, v))
+                    })
+                    .collect::<Result<_>>()?;
+                Ok((key, numbers))
+            })
+            .collect()
+    }
+
     /// `{"<id>": "<path>"}`, as paths in the order of their numbers.
     pub fn files(&self, name: &str) -> Result<Vec<PathBuf>> {
         let v = match self.get(name) {
@@ -310,7 +337,7 @@ impl Json {
     }
 
     /// The party a screen shows: `party`, and optionally `actors`, `hp`,
-    /// `sp`, `levels` and `exps`, by actor number.
+    /// `sp`, `levels`, `exps` and `states`, by actor number.
     pub fn party(&self) -> Result<Party> {
         Ok(Party {
             members: self.actors("party")?,
@@ -319,6 +346,7 @@ impl Json {
             sp: self.by_number("sp")?,
             levels: self.by_number("levels")?,
             exps: self.by_number("exps")?,
+            states: self.lists_by_number("states")?,
         })
     }
 

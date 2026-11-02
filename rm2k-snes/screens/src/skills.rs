@@ -19,8 +19,9 @@ use crate::custom_menu::{CM_BORDER_CGRAM, CM_BORDER_CGRAM_END};
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
 use crate::layout::*;
-use crate::render::Grid;
+use crate::render::{Grid, SYSTEM_INK};
 use crate::texts::{self, description_spans};
+use ditto::schema::State;
 use rm2k_render::picture::Picture;
 use serde_json::{json, Map, Value};
 
@@ -190,7 +191,8 @@ pub fn per_skill(game: &Game) -> Result<Value> {
 /// A page of the list as the text layer composes it: the description's
 /// lines of skill `under`, the status line, and up to `SK_ROWS` rows of
 /// `listed` from `top`. `grey` says per listed skill whether it goes in
-/// grey.
+/// grey. `state` is the condition the status line shows —`normal_status`
+/// without one—, in its System colour: BG2's palette `SK_STATE_PALETTE`.
 #[allow(clippy::too_many_arguments)]
 pub fn page_text(
     game: &Game,
@@ -198,6 +200,7 @@ pub fn page_text(
     level: i64,
     hp: (i64, i64),
     sp: (i64, i64),
+    state: Option<&State>,
     listed: &[i32],
     grey: &[bool],
     under: Option<i32>,
@@ -224,12 +227,20 @@ pub fn page_text(
     t.write(row, SK_NAME_COL, &name, ITEM_WHITE);
     t.write(row, SK_LEVEL_COL, &game.term("lvl_short")?, ITEM_RED);
     t.write_number(row, SK_LEVEL_NUM_COL, level, LEVEL_DIGITS, ITEM_WHITE);
-    t.write(
-        row,
-        SK_STATE_COL,
-        &texts::fit_cells(font, &game.term("normal_status")?, SK_STATE_WIDTH),
-        ITEM_WHITE,
-    );
+    match state {
+        None => t.write(
+            row,
+            SK_STATE_COL,
+            &texts::fit_cells(font, &game.term("normal_status")?, SK_STATE_WIDTH),
+            ITEM_WHITE,
+        ),
+        Some(st) => t.write(
+            row,
+            SK_STATE_COL,
+            &texts::fit_cells(font, &texts::state_text(font, &st.name), SK_STATE_WIDTH),
+            SYSTEM_INK + st.color.clamp(0, 19) as usize,
+        ),
+    }
     t.write(row, SK_HP_COL, &game.term("hp_short")?, ITEM_RED);
     t.write(row, SK_HP_NUM_COL, &capped_pair(hp), ITEM_WHITE);
     t.write(row, SK_SP_COL, &game.term("sp_short")?, ITEM_RED);
@@ -317,12 +328,22 @@ pub fn worst_page_pairs(game: &Game, actor: i32) -> Result<usize> {
         .collect();
     let widest = descs.iter().max().map(|d| d.1);
     let grey = vec![false; page.len()];
+    // The widest condition the status line can say, which may be wider
+    // than "Normal".
+    let state = game.states.iter().max_by_key(|st| {
+        game.font.width(&texts::fit_cells(
+            &game.font,
+            &texts::state_text(&game.font, &st.name),
+            SK_STATE_WIDTH,
+        ))
+    });
     let t = page_text(
         game,
         actor,
         99,
         (999, 999),
         (999, 999),
+        state,
         &page,
         &grey,
         widest,

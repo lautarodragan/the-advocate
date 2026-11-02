@@ -1,1 +1,5 @@
-[]
+[
+  {"id": 1, "name": "Down", "color": 5, "priority": 100},
+  {"id": 2, "name": "Poison", "color": 6, "priority": 50, "type": 1},
+  {"id": 3, "name": "Blind", "color": 10, "priority": 51}
+]

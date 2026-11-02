@@ -637,6 +637,8 @@ no:
     ldy #ITEMS_CGRAM_N
     lda #^item_cgram_uploads
     jsr cm_dma_cgram
+    lda f:sk_actor
+    jsl f:menu_state_ink        ; the condition's colour: see `sk_status`
     rep #$20
 .a16
     lda #(SK_BORDER_COLORS * 2)
@@ -1110,12 +1112,44 @@ at:
     ldy #SK_LEVEL_NUM_COL
     jsr number
 no_level:
-    ; The state: outside battle, always the normal one.
+    ; The state: the condition it shows, by reference to its name and in
+    ; its colour, which `sk_upload` put in palette `SK_STATE_PALETTE`; or
+    ; the normal one. See menu_states.s.
     lda #SK_STATE_WIDTH
     ldy #SK_STATE_COL
     jsr place
+    lda f:sk_actor
+    jsl f:menu_state_of
+    bne conditioned
     ldx #BA_TXT_NORMAL
     jsl f:tl_text + FAST
+    bra points_now
+conditioned:
+    sta f:WRMPYA
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #STATE_NAME_W
+    sta f:WRMPYB
+    lda f:state_name_n, x
+    sta temp                    ; how many letters
+    lda #SK_STATE_PALETTE
+    sta temp + 1
+    rep #$20
+.a16
+    lda f:RDMPYL
+    clc
+    adc #.loword(state_names)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^state_names
+    sta msg_ptr + 2
+    jsl f:tl_text_at + FAST
+points_now:
     ; The HP and the SP.
     lda #0
     jsr points

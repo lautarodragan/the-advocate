@@ -484,7 +484,7 @@ fn ink_colors(skin: &Skin, color: i32) -> Vec<Color> {
 
 /// The entry of `palette` —which starts at entry 1— nearest to `c`, by the
 /// distance between the fifteen-bit channels; the first of those that tie.
-fn nearest(palette: &[Color], c: Color) -> u8 {
+pub(crate) fn nearest(palette: &[Color], c: Color) -> u8 {
     let far = |p: &Color| -> u32 {
         (0..3)
             .map(|k| (p[k] as i32 - c[k] as i32).pow(2) as u32)
