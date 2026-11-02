@@ -691,10 +691,14 @@ check_a:
     beq wait                    ; it did not work: RM2k plays a sound and does nothing
     ; A material can change a maximum, which the panel composes when it is
     ; drawn: the whole screen again, on the same row, as `Scene_ActorTarget`
-    ; refreshes its whole window.
+    ; refreshes its whole window. And so does a use that changes the
+    ; condition a row shows —a revival, a cure—: see menu_states.s.
     lda f:MED_FLAGS
     and #MED_MATERIAL
+    bne whole
+    jsl f:menu_states_changed
     beq medicine
+whole:
     jmp redraw
 medicine:
     ; The SP, which a medicine changes on its target and a skill on its

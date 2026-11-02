@@ -10,7 +10,8 @@
 ;
 ; The party of `Scene_Menu` and `Scene_ActorTarget`: one row per actor, its
 ; fixed block, its face, its name composed —`tl_strip`— and its level, its
-; maximum and its current HP one letter per cell. The two screens share the
+; maximum and its current HP one letter per cell, and its condition over the
+; block's "Normal" —`menu_state_paint`, in menu_states.s—. The two screens share the
 ; row; they do not share the panel:
 ;
 ; * **the actor choice** shows the four rows, seven cells each, painted
@@ -64,6 +65,7 @@ MENU_ACTOR_BYTES = MENU_LIST_ROWS * MENU_LIST_BYTES
     lda #0
     pha
     plb
+    jsl f:menu_states_forget    ; the bank went up again
     lda #0
 member:
     cmp party_n
@@ -91,6 +93,7 @@ ready:
     lda #0
     pha
     plb
+    jsl f:menu_states_forget    ; the bank went up again
     lda #0
     sta f:far_menu_top          ; it opens at the top, as RM2k's
 member:
@@ -416,6 +419,13 @@ no_face:
     jsl f:text_level            ; the current one: it goes up by fighting
     lda #SLOT_LEVEL_DIGITS
     jsl f:slot_text_write_far
+
+    ; --- the condition, over the block's "Normal": menu_states.s ---
+    lda 1, s
+    jsr row_vram
+    lda 2, s
+    jsr actor                   ; and X, the member
+    jsl f:menu_state_paint
 
     ; --- the maximum, after the slash ---
     lda 1, s

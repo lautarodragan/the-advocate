@@ -85,6 +85,30 @@ fn glyphs_json(glyphs: &std::collections::BTreeMap<char, Vec<u16>>) -> Value {
     )
 }
 
+/// The conditions as the party panel and the skills screen show them —see
+/// [`slots::StateInks`]—, with each ink's colour as the skills screen
+/// uploads it: the System colour's twelve rows and its shadow, in the text
+/// screens' layout.
+fn states_json(skin: &crate::game::Skin, states: &slots::StateInks) -> Result<Value> {
+    let mut inks = Vec::new();
+    for ink in &states.inks {
+        let (rows, shadow) = crate::items::ink_colors(skin, ink.color)?;
+        let cgram: Vec<u16> = rows
+            .iter()
+            .chain([&shadow])
+            .map(|&c| crate::message_window::cgram_word(c))
+            .collect();
+        inks.push(json!({"palette": ink.palette, "rows": ink.rows, "cgram": cgram}));
+    }
+    Ok(json!({
+        "names": states.names,
+        "ink": states.ink,
+        "inks": inks,
+        "shadow": states.shadow,
+        "gray_shadow": states.gray_shadow,
+    }))
+}
+
 /// The pairs of tiles a strip takes: as many columns as its letters reach,
 /// from one pixel into its first cell. It is `tl_strip`'s count.
 fn strip_tiles(game: &Game, stored: &str, cells: usize) -> usize {
@@ -93,6 +117,17 @@ fn strip_tiles(game: &Game, stored: &str, cells: usize) -> usize {
     if text.is_empty() {
         0
     } else {
+        2 * width.div_ceil(crate::cells::CELL)
+    }
+}
+
+/// The tiles a condition's strip takes, moved a pixel right of a strip's
+/// start: `menu_state_paint`'s count.
+fn state_tiles(game: &Game, text: &str) -> usize {
+    if text.is_empty() {
+        0
+    } else {
+        let width = SCR_TEXT_X + MENU_STATE_SHIFT + game.font.width(text);
         2 * width.div_ceil(crate::cells::CELL)
     }
 }
@@ -124,7 +159,20 @@ fn strips_asked(
         leaders = leaders.max(strip_tiles(game, &stored, NAME_COLS));
     }
     names.sort_unstable_by(|a, b| b.cmp(a));
-    let party: usize = names.iter().take(MENU_PARTY_ROWS).sum();
+    // And the conditions, where the rows say Normal: a strip per distinct
+    // one shown, which the cartridge keeps while the screen is up —see
+    // `menu_state_paint`—, so the four longest. Only the ones the party
+    // can hold on the map: the dead one and the ones that outlive a battle
+    // —one a page gives on the map that finds no room shows nothing—.
+    let mut states: Vec<usize> = game
+        .states
+        .iter()
+        .filter(|st| st.id == 1 || (st.r#type.to_i32() == 1 && st.auto_release_prob == 0))
+        .map(|st| state_tiles(game, &texts::state_text(&game.font, &st.name)))
+        .collect();
+    states.sort_unstable_by(|a, b| b.cmp(a));
+    let party: usize = names.iter().take(MENU_PARTY_ROWS).sum::<usize>()
+        + states.iter().take(MENU_PARTY_ROWS).sum::<usize>();
     let medicine = medicines
         .iter()
         .map(|(_, name)| {
@@ -961,6 +1009,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 "arrow_colors": colors_json(&menu.arrow_colors),
             },
             "prerender": slots.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
+            "states": states_json(&skin, &slots.states)?,
         },
         "text_inks": {
             "palettes": inks.palettes,

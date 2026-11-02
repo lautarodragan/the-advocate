@@ -16,6 +16,7 @@ use crate::layout::*;
 use crate::message_window;
 use crate::texts::{ljust, NUMBER_GLYPHS};
 use adeleine::luma_distance;
+use ditto::schema::State;
 use rm2k_render::picture::Picture;
 use rm2k_snes_text::font;
 use std::collections::{BTreeMap, HashMap};
@@ -80,6 +81,165 @@ pub struct Slots {
     /// After the whole bank, up to its tilemap, unless it went
     /// [`Order::Apart`]: then over the menu's own text.
     pub slot_names: (usize, usize),
+    /// The party's conditions where the rows say "Normal": see
+    /// [`StateInks`].
+    pub states: StateInks,
+}
+
+/// What the party panel needs to show a condition where its rows say
+/// "Normal", as `DrawActorState`: its name and its colour.
+///
+/// **The colour goes in palette 1**, the disabled commands', which in every
+/// game of the nine has five entries free or more; palette 0 is full in
+/// some and the faces take the rest. A condition's name is composed in
+/// white like any strip —`tl_strip`—, and the cartridge then gives each
+/// glyph row the entry its ink says and the shadow palette 1's shadow, and
+/// writes the cells with palette 1. RM2k draws the System colour's
+/// gradient, some eight shades: here each colour gets **one entry**, the
+/// mean of its rows weighted by how many of the font's pixels each has, as
+/// the message window's ink —see `message_window::inks`—, and each row goes
+/// to that entry or to the palette's nearest, whichever is nearer. When the
+/// free entries run out, a colour gets none and its rows go to the nearest
+/// ones; they are handed out first to the dead one, then to the ones that
+/// outlive a battle —the only ones the party holds on the map unless a page
+/// gives one— and then by number. A condition in System colour 0 keeps
+/// palette 0 and its white.
+#[derive(Debug, Clone, Default)]
+pub struct StateInks {
+    /// By LDB number from 0: each condition's name as the panel composes it
+    /// —[`crate::texts::state_text`]—, empty for a number nobody has.
+    pub names: Vec<String>,
+    /// By LDB number from 0: its ink, an index into `inks`.
+    pub ink: Vec<usize>,
+    pub inks: Vec<StateInk>,
+    /// The shadow's entry in palette 0, which the composed white has, and
+    /// in palette 1, which the coloured one takes.
+    pub shadow: u8,
+    pub gray_shadow: u8,
+}
+
+/// One colour of the conditions: see [`StateInks`].
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct StateInk {
+    /// The System colour.
+    pub color: i32,
+    /// The palette the cells go in: 1, or 0 for colour 0.
+    pub palette: u16,
+    /// Each glyph row's entry in that palette.
+    pub rows: Vec<u8>,
+}
+
+/// The conditions' inks for the slot bank whose palette 0 has the white
+/// `rows` and `shadow` at those entries, adding what they need to
+/// `gray`, palette 1: see [`StateInks`].
+fn state_inks(
+    game: &Game,
+    skin: &Skin,
+    rows: &[u8],
+    shadow: u8,
+    gray: &mut Vec<Color>,
+) -> Result<StateInks> {
+    let font = &game.font;
+    let n = game.states.iter().map(|s| s.id).max().unwrap_or(0).max(0) as usize + 1;
+    let mut names = vec![String::new(); n];
+    for st in &game.states {
+        if st.id >= 1 {
+            names[st.id as usize] = crate::texts::state_text(font, &st.name);
+        }
+    }
+    let (_, shadow_color) = ink_colors(skin, 0)?;
+    if !gray.contains(&shadow_color) {
+        if gray.len() >= 16 {
+            return Err(Bad::answer(
+                "the disabled commands' palette has no room for the shadow the conditions' names take",
+            ));
+        }
+        gray.push(shadow_color);
+    }
+    let gray_shadow = gray
+        .iter()
+        .rposition(|c| *c == shadow_color)
+        .expect("pushed") as u8;
+    // The order the entries are handed out in.
+    let holdable = |st: &State| st.r#type.to_i32() == 1 && st.auto_release_prob == 0;
+    let mut order: Vec<&State> = game.states.iter().filter(|s| s.id >= 1).collect();
+    order.sort_by_key(|s| (s.id != 1, !holdable(s), s.id));
+    let mut colors: Vec<i32> = Vec::new();
+    for st in &order {
+        if !names[st.id as usize].is_empty() && !colors.contains(&st.color) {
+            colors.push(st.color);
+        }
+    }
+    // How many of the font's pixels each row has, over its printable ASCII.
+    let mut weight = [0u32; font::HEIGHT];
+    for ch in (33u8..127).map(char::from) {
+        for (_, py) in font.pixels(ch) {
+            if py < font::HEIGHT {
+                weight[py] += 1;
+            }
+        }
+    }
+    let total: u32 = weight.iter().sum::<u32>().max(1);
+    let mut inks = Vec::new();
+    for &color in &colors {
+        if color == 0 {
+            inks.push(StateInk {
+                color,
+                palette: 0,
+                rows: rows.to_vec(),
+            });
+            continue;
+        }
+        let (ink_rows, _) = ink_colors(skin, color)?;
+        let mean: Color = std::array::from_fn(|k| {
+            let sum: u32 = ink_rows
+                .iter()
+                .zip(weight)
+                .map(|(c, w)| c[k] as u32 * w)
+                .sum();
+            ((sum + total / 2) / total) as u8
+        });
+        if !gray.contains(&mean) && gray.len() < 16 {
+            gray.push(mean);
+        }
+        let targets = ink_rows
+            .iter()
+            .map(|c| message_window::nearest(&gray[1..], *c))
+            .collect();
+        inks.push(StateInk {
+            color,
+            palette: 1,
+            rows: targets,
+        });
+    }
+    // A cartridge's tables need one, even with nothing to show.
+    if inks.is_empty() {
+        inks.push(StateInk {
+            color: 0,
+            palette: 0,
+            rows: rows.to_vec(),
+        });
+    }
+    let mut ink = vec![0; n];
+    for st in &game.states {
+        if st.id >= 1 {
+            if let Some(k) = colors.iter().position(|&c| c == st.color) {
+                ink[st.id as usize] = k;
+            }
+        }
+    }
+    if rows.contains(&shadow) {
+        return Err(Bad::answer(
+            "a row of the white ink is the shadow's entry: the conditions' names cannot be recoloured",
+        ));
+    }
+    Ok(StateInks {
+        names,
+        ink,
+        inks,
+        shadow,
+        gray_shadow,
+    })
 }
 
 /// The order the bank gathers its tiles in. The slot screen and the menu
@@ -496,6 +656,9 @@ pub fn slots_screen_with(
     let mut gray_palette = vec![BLACK];
     gray_palette.extend(seen_gray.by_use());
     let gray_index = cells::index_of(&gray_palette);
+    // The conditions' colours after the gray's own, which the disabled
+    // commands' tiles do not index.
+    let states = state_inks(game, skin, &rows, at(&ink_shadow), &mut gray_palette)?;
 
     let mut bank = Bank::default();
     let mut out = Slots {
@@ -655,5 +818,6 @@ pub fn slots_screen_with(
     out.tiles = bank.tiles;
     out.palettes = palettes;
     out.prerender = prerender;
+    out.states = states;
     Ok(out)
 }

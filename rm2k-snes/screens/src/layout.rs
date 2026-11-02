@@ -195,6 +195,25 @@ const _: () = assert!(MENU_ARROW_Y + ARROW_HEIGHT <= HEIGHT);
 pub const MENU_TEXT_X: usize = MENU_ACTOR_COL * CELL + FACE + 8;
 /// "Normal" goes 42 from the level, as in RM2k.
 pub const MENU_STATUS_DX: usize = 42;
+/// A condition goes where "Normal" is, in its colour —`DrawActorState`—:
+/// composed over the row's cells from `MENU_STATE_COL` to the row's end, on
+/// the level's line, **one pixel right of where a strip starts**, because
+/// "Normal" is baked two pixels into its cell and a strip starts one in:
+/// the cartridge moves the composed stage a pixel —see `menu_state_paint`
+/// in the runtime—. The name is cut at `MENU_STATE_PX`, the pixels left to
+/// the screen's edge.
+pub const MENU_STATE_COL: usize = (MENU_TEXT_X + MENU_STATUS_DX) / CELL;
+pub const MENU_STATE_COLS: usize = COLS - MENU_STATE_COL;
+pub const MENU_STATE_SHIFT: usize = 1;
+pub const MENU_STATE_PX: usize = MENU_STATE_COLS * CELL - SCR_TEXT_X - MENU_STATE_SHIFT;
+const _: () = assert!(
+    (MENU_TEXT_X + MENU_STATUS_DX) % CELL == SCR_TEXT_X + MENU_STATE_SHIFT,
+    "a condition is composed one pixel right of a strip, where Normal is"
+);
+/// The skills screen's condition goes in BG2's palette 4, with its colour
+/// uploaded when the screen is drawn: the text screens use 0 to 3 and the
+/// windows start past the eighth —`CM_BORDER_CGRAM`—.
+pub const SK_STATE_PALETTE: usize = 4;
 pub const MENU_PARTY_ROWS: usize = 4;
 /// The current HP: three digits **one cell each**, for the same reason as
 /// the gold. They go on the third line of the actor's row, where the gold
@@ -984,6 +1003,11 @@ pub fn publish() -> Value {
         MENU_ARROW_Y,
         MENU_TEXT_X,
         MENU_STATUS_DX,
+        MENU_STATE_COL,
+        MENU_STATE_COLS,
+        MENU_STATE_SHIFT,
+        MENU_STATE_PX,
+        SK_STATE_PALETTE,
         MENU_PARTY_ROWS,
         MENU_HP_DIGITS,
         MENU_HP_COL,

@@ -3269,6 +3269,7 @@ impl Rest<'_> {
             t.n("MENU_ARROW_X"),
             t.n("MENU_ARROW_Y")
         ));
+        self.menu_states(out, &t, at(slots, "states")?)?;
         // Each actor's text, in ASCII: the name with trailing spaces, the
         // two digits of the level and max HP, in one row per actor.
         if (SLOT_TEXT_LEVEL as i64) < t.n("MENU_NAME_COLS")
@@ -3427,6 +3428,75 @@ struct ItemTexts<'a> {
     actions: &'a Value,
     border_tiles: usize,
     border_colors: usize,
+}
+
+impl Rest<'_> {
+    /// The party's conditions where the menu's rows and the skills screen
+    /// say "Normal" —`menu_state_paint` and `sk_status`—, from the screens
+    /// stage's `states`: by LDB number from 0, each name in ASCII padded to
+    /// `STATE_NAME_W` letters —at least the cells it may take, so that
+    /// `tl_strip` reads as many letters as fit— and its length, and its
+    /// ink; per ink, the palette entry of each glyph row, the cells'
+    /// palette and the colour the skills screen uploads.
+    fn menu_states(&self, out: &mut String, t: &Geometry, states: &Value) -> Result<()> {
+        let names: Vec<String> = list_at(states, "names")?
+            .iter()
+            .map(|n| text(n).map(str::to_string))
+            .collect::<Result<_>>()?;
+        let cols = t.n("MENU_STATE_COLS") as usize;
+        let width = names
+            .iter()
+            .map(|n| n.chars().count())
+            .max()
+            .unwrap_or(0)
+            .max(cols);
+        if width > 255 {
+            return Err(Bad::answer("a condition's name does not fit in a byte"));
+        }
+        let mut padded: Vec<u8> = Vec::new();
+        for name in &names {
+            padded.extend(format!("{name:<width$}").bytes());
+        }
+        let inks = list_at(states, "inks")?;
+        let mut rows = Vec::new();
+        let mut attr = Vec::new();
+        let mut cgram = Vec::new();
+        let shadow = int_at(states, "shadow")?;
+        let gray_shadow = int_at(states, "gray_shadow")?;
+        for ink in inks {
+            let palette = int_at(ink, "palette")?;
+            rows.extend(ints_at(ink, "rows")?);
+            // And the shadow's entry in the ink's palette.
+            rows.push(if palette == 0 { shadow } else { gray_shadow });
+            attr.push(palette << 10);
+            cgram.extend(ints_at(ink, "cgram")?);
+        }
+        out.push_str(&format!(
+            "; The party's conditions, where the rows say Normal.\n\
+             MENU_STATE_OFS    = {}\nMENU_STATE_COLS   = {cols}\nSLOT_SHADOW       = {}\n\
+             SLOT_GRAY_SHADOW  = {}\nSTATE_NAMES_N     = {}\nSTATE_NAME_W      = {width}\n\
+             STATE_INKS_N      = {}\nSK_STATE_PALETTE  = {}\n",
+            t.n("MENU_LEVEL_ROW") * 32 + t.n("MENU_STATE_COL") - t.n("MENU_ACTOR_COL"),
+            int_at(states, "shadow")?,
+            int_at(states, "gray_shadow")?,
+            names.len(),
+            inks.len(),
+            t.n("SK_STATE_PALETTE"),
+        ));
+        bytes_asm(out, "state_names", &decimal(padded.iter()), true);
+        bytes_asm(
+            out,
+            "state_name_n",
+            &decimal(names.iter().map(|n| n.chars().count())),
+            true,
+        );
+        bytes_asm(out, "state_ink", &decimal(ints_at(states, "ink")?), true);
+        bytes_asm(out, "state_ink_rows", &decimal(rows), true);
+        words_asm(out, "state_ink_attr", &hex4(attr), true);
+        words_asm(out, "state_ink_cgram", &hex4(cgram), true);
+        out.push_str("; The end of the party's conditions.\n");
+        Ok(())
+    }
 }
 
 impl Rest<'_> {

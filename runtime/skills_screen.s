@@ -661,6 +661,8 @@ no:
     ldy #ITEMS_CGRAM_N
     lda #^item_cgram_uploads
     jsr cm_dma_cgram
+    lda f:sk_actor
+    jsl f:menu_state_ink        ; the condition's colour: see `sk_status`
     rep #$20
 .a16
     lda #(SK_BORDER_COLORS * 2)
@@ -1134,12 +1136,13 @@ at:
     ldy #SK_LEVEL_NUM_COL
     jsr number
 no_level:
-    ; The state: outside battle, always the normal one.
+    ; The state: the condition it shows, or the normal one. See
+    ; menu_states.s, where it went to leave room in this bank.
     lda #SK_STATE_WIDTH
     ldy #SK_STATE_COL
     jsr place
-    ldx #BA_TXT_NORMAL
-    jsl f:tl_text + FAST
+    lda f:sk_actor
+    jsl f:menu_state_write
     ; The HP and the SP.
     lda #0
     jsr points

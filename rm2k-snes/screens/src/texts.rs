@@ -4,7 +4,7 @@
 use crate::fail::Result;
 use crate::game::{Game, ITEM_MATERIAL, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
-use ditto::schema::{Actor, Item, Skill, SkillType};
+use ditto::schema::{Actor, Item, Skill, SkillType, State};
 use rm2k_rules::actor as rules;
 use rm2k_snes_text::font::Font;
 
@@ -25,6 +25,46 @@ pub fn item_text(text: &str, width: usize) -> String {
         })
         .take(width)
         .collect()
+}
+
+/// A condition's name as the party panel composes it where "Normal" is:
+/// what the font has of it, cut at the pixels left to the screen's edge
+/// —`MENU_STATE_PX`—, without its trailing spaces.
+pub fn state_text(font: &Font, name: &str) -> String {
+    let mut width = 0;
+    let fitted: String = item_text(name, usize::MAX)
+        .chars()
+        .take_while(|&c| {
+            width += font.advance(c);
+            width <= MENU_STATE_PX
+        })
+        .collect();
+    fitted.trim_end_matches(' ').to_string()
+}
+
+/// The condition `DrawActorState` shows for an actor holding `held` with
+/// `hp` HP: `GetSignificantState`. The dead one if it holds it —here, at
+/// zero HP: the dead one is not one of the places, see `party_states.s`—;
+/// otherwise the one of highest priority, the later on a tie, even at
+/// priority 0. None is `normal_status`.
+pub fn shown_state<'a>(game: &'a Game, held: &[i32], hp: i64) -> Option<&'a State> {
+    let of = |id: i32| game.states.iter().find(|s| s.id == id);
+    if hp <= 0 {
+        if let Some(dead) = of(1) {
+            return Some(dead);
+        }
+    }
+    let mut ids: Vec<i32> = held.to_vec();
+    ids.sort_unstable();
+    let mut shown: Option<&State> = None;
+    for id in ids {
+        if let Some(st) = of(id) {
+            if shown.is_none_or(|s| st.priority >= s.priority) {
+                shown = Some(st);
+            }
+        }
+    }
+    shown
 }
 
 /// As much of `text` as fits in `cells` cells: the letters whose advances

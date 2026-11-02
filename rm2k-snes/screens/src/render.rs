@@ -141,6 +141,46 @@ fn compose_text(
     p.layer(&layer);
 }
 
+/// A condition's name where a party row says "Normal", from cell row `row`:
+/// composed in white like a strip, a pixel right of one, and each glyph row
+/// put in its ink's entry —the shadow stays the shadow—, as the cartridge's
+/// `menu_state_paint` does. See [`slots::StateInks`].
+fn state_row(
+    p: &mut Painter,
+    game: &Game,
+    skin: &Skin,
+    slots: &slots::Slots,
+    state: &ditto::schema::State,
+    row: usize,
+) {
+    let inks = &slots.states;
+    let text = &inks.names[state.id as usize];
+    if text.is_empty() {
+        return;
+    }
+    let ink = &inks.inks[inks.ink[state.id as usize]];
+    let x0 = MENU_STATE_COL * CELL + GLYPH_DX + MENU_STATE_SHIFT;
+    let y0 = row * CELL + GLYPH_DY;
+    let mut layer = cells::layer();
+    skin.draw_line(&mut layer, x0 as i64, y0 as i64, text, 0, &game.font);
+    let shadow = slots.palettes[0][inks.shadow as usize];
+    let palette = &slots.palettes[ink.palette as usize];
+    for (i, px) in layer.rgba.chunks_exact_mut(4).enumerate() {
+        if px[3] == 0 {
+            continue;
+        }
+        let c = cells::rgb15([px[0], px[1], px[2], px[3]]);
+        let k = (i / layer.width).saturating_sub(y0);
+        if c != shadow {
+            if let Some(&entry) = ink.rows.get(k) {
+                let to = palette[entry as usize];
+                px[..3].copy_from_slice(&[to[0] << 3, to[1] << 3, to[2] << 3]);
+            }
+        }
+    }
+    p.layer(&layer);
+}
+
 /// A text written one letter per cell with the menu bank's glyphs, as the
 /// cartridge writes numbers.
 fn paste_text(
@@ -176,6 +216,8 @@ pub struct Party {
     /// Each actor's level and experience; without them, the starting ones.
     pub levels: BTreeMap<i32, i64>,
     pub exps: BTreeMap<i32, i64>,
+    /// The conditions each actor holds, by LDB number; without them, none.
+    pub states: BTreeMap<i32, Vec<i32>>,
 }
 
 /// A tile as a tilemap word draws it: bit 14 mirrors it across x and bit
@@ -221,7 +263,24 @@ fn actor_row(
     levels: bool,
 ) -> Result<()> {
     let menu = &slots.menu;
-    p.paste(&menu.row, row0, MENU_ACTOR_COL, MENU_ACTOR_COLS);
+    let hp = match party.hp.get(&actor) {
+        Some(&hp) => hp,
+        None => texts::max_hp(&game.actors[&actor], None),
+    };
+    let held = party.states.get(&actor).map_or(&[][..], Vec::as_slice);
+    let state = texts::shown_state(game, held, hp);
+    // A condition takes Normal's cells, which the cartridge blanks: see
+    // `state_row`.
+    let state_rows = row0 + MENU_LEVEL_ROW..row0 + MENU_LEVEL_ROW + 2;
+    for (i, &word) in menu.row.iter().enumerate() {
+        let (r, c) = (
+            row0 + i / MENU_ACTOR_COLS,
+            MENU_ACTOR_COL + i % MENU_ACTOR_COLS,
+        );
+        if state.is_none() || !(state_rows.contains(&r) && c >= MENU_STATE_COL) {
+            p.paste(&[word], r, c, 1);
+        }
+    }
     if let Some(face) = slots.faces.get(&actor) {
         p.paste(face, row0, MENU_ACTOR_COL, FACE_CELLS);
     }
@@ -247,6 +306,9 @@ fn actor_row(
         row0 + MENU_LEVEL_ROW,
         MENU_LEVEL_COL,
     )?;
+    if let Some(state) = state {
+        state_row(p, game, skin, slots, state, row0 + MENU_LEVEL_ROW);
+    }
     paste_text(
         p,
         menu,
@@ -254,10 +316,6 @@ fn actor_row(
         row0 + MENU_HP_ROW,
         MENU_MAX_COL,
     )?;
-    let hp = match party.hp.get(&actor) {
-        Some(&hp) => hp,
-        None => texts::max_hp(&game.actors[&actor], None),
-    };
     let digits = texts::digits_of(hp, MENU_HP_DIGITS as u32);
     paste_text(
         p,
@@ -651,6 +709,10 @@ pub fn slot_screen(
     Ok(p.picture())
 }
 
+/// A [`Grid`] run's colour from here up is System colour `variant -
+/// SYSTEM_INK`, in a palette of its own: the skills screen's condition.
+pub const SYSTEM_INK: usize = 100;
+
 /// A text screen —items, equipment, shop— as the cartridge's text layer
 /// composes it: each write a run of letters of the game's font from where
 /// it starts, in a colour, on a line of two cell rows. See `text_layer.s` in
@@ -734,7 +796,11 @@ impl Grid {
                 *x as i64,
                 (row * CELL + SCR_TEXT_Y) as i64,
                 text,
-                ITEM_COLORS[*variant],
+                if *variant >= SYSTEM_INK {
+                    (*variant - SYSTEM_INK) as i32
+                } else {
+                    ITEM_COLORS[*variant]
+                },
                 &game.font,
             );
         }
@@ -1263,6 +1329,7 @@ pub fn skill_screen(
     level: i64,
     hp: (i64, i64),
     sp: (i64, i64),
+    states: &[i32],
     chosen: usize,
     top: usize,
 ) -> Result<Picture> {
@@ -1289,6 +1356,7 @@ pub fn skill_screen(
         level,
         hp,
         sp,
+        texts::shown_state(game, states, hp.0),
         skills,
         &grey,
         skills.get(chosen).copied(),

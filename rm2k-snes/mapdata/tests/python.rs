@@ -266,6 +266,7 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     with_the_system_cursors(&mut value["screens"], cursor);
     with_the_sp_line(&mut value["screens"]);
     with_the_menu_list(&mut value["screens"]);
+    with_the_menu_states(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
 }
 
@@ -339,6 +340,39 @@ fn without_menu_list(text: &str) -> String {
     }
     out.replace_range(first..stop, "");
     out
+}
+
+/// The party's conditions on the menus in the screens stage's answer,
+/// which came on 2026-11-01, after the requests were written: two made-up
+/// conditions, one ink, and the geometry the stage's.
+/// [`without_menu_states`] takes them out of the text.
+fn with_the_menu_states(screens: &mut serde_json::Value) {
+    screens["slots"]["states"] = serde_json::json!({
+        "names": ["", "Dead", "Poison"],
+        "ink": [0, 0, 0],
+        "inks": [{"palette": 1, "rows": vec![1; 12], "cgram": vec![0; 13]}],
+        "shadow": 1,
+        "gray_shadow": 1,
+    });
+    let layout = &mut screens["layout"];
+    for (name, value) in [
+        ("MENU_STATE_COL", 24),
+        ("MENU_STATE_COLS", 8),
+        ("SK_STATE_PALETTE", 4),
+    ] {
+        layout[name] = serde_json::json!(value);
+    }
+}
+
+/// The text without what [`with_the_menu_states`] adds: everything between
+/// its two comments.
+fn without_menu_states(text: &str) -> String {
+    let start = text
+        .find("; The party's conditions, where the rows say Normal.\n")
+        .expect("no conditions");
+    let tail = "; The end of the party's conditions.\n";
+    let end = text.find(tail).expect("no end of the conditions") + tail.len();
+    format!("{}{}", &text[..start], &text[end..])
 }
 
 /// The System's cursors in the screens stage's answer, which came on
@@ -1684,9 +1718,9 @@ fn without_attribute_shifts(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_menu_list(&without_sp_line(&without_debug_screen(
+    let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &with_the_cursors_as_before(&emitted.text, "bare"),
-    )));
+    ))));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
@@ -1727,9 +1761,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_menu_list(&without_sp_line(&without_debug_screen(
+    let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &with_the_cursors_as_before(&emitted.text, "whole"),
-    )));
+    ))));
     let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(
         &without_map_access(&without_attributes(&without_shop_party(&without_faces(
             &without_attribute_shifts(&without_item_skill(&without_skill_in_battle(
@@ -1822,6 +1856,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
     with_the_system_cursors(&mut value["screens"], 0);
     with_the_sp_line(&mut value["screens"]);
     with_the_menu_list(&mut value["screens"]);
+    with_the_menu_states(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -2066,6 +2101,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     with_the_system_cursors(&mut value["screens"], 0);
     with_the_sp_line(&mut value["screens"]);
     with_the_menu_list(&mut value["screens"]);
+    with_the_menu_states(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 
