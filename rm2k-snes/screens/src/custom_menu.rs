@@ -329,6 +329,9 @@ impl Reader<'_> {
 /// cartridge writes, and the actor's name, which goes in now —the
 /// cartridge carries no way of renaming an actor—.
 fn pieces(game: &Game, text: &str) -> Result<Vec<Piece>> {
+    // A menu's text is written from its own block, which carries no
+    // ExFont icon: a code is dropped, as on any screen that cannot draw it.
+    let text: &str = &rm2k_snes_text::exfont::without_icons(text);
     let mut out = Vec::new();
     let mut letters = String::new();
     let mut rest = text;

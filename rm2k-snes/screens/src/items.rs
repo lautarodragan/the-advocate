@@ -31,11 +31,24 @@ pub const INK_SHADOW: u8 = INK_ROW_FIRST + font::HEIGHT as u8;
 /// The screens' colours: a palette per colour —`ITEM_WHITE` and the
 /// others, which are also the tilemap's palette number—, and the font
 /// precomposed for their layout, one table per phase.
+///
+/// The font is the console's 96 glyphs, then a blank where the text
+/// layer's `TL_FIGURE` goes —a letter it draws as a digit's blank, and not
+/// from these tables—, then the two halves of each icon in `icons`, in that
+/// order: glyph 97 + 2k and 98 + 2k are icon `icons[k]`'s. `advances` and
+/// `reach` say how far each of those moves the line and paints.
 #[derive(Debug, Clone)]
 pub struct Inks {
     pub palettes: Vec<Vec<Color>>,
     pub prerender: Vec<Vec<u8>>,
+    pub advances: Vec<u8>,
+    pub reach: Vec<u8>,
+    pub icons: Vec<usize>,
 }
+
+/// The glyph the text layer draws the first half of the first icon with:
+/// past the console's 96 and `TL_FIGURE`'s place. See [`Inks`].
+pub const ICON_GLYPH_FIRST: usize = font::CONSOLE_GLYPHS + 1;
 
 /// The colour of each of the glyph's rows in System colour `color`, and the
 /// shadow's. Each row is a single colour —the gradient is vertical—, which
@@ -59,7 +72,40 @@ pub fn ink_colors(skin: &Skin, color: i32) -> Result<(Vec<Color>, Color)> {
     Ok((rows, rgb15(ink.shadow_at(0, 0))))
 }
 
-pub fn text_inks(skin: &Skin, font: &Font) -> Result<Inks> {
+/// The icons the text layer's tables carry, of `icons` —see
+/// `texts::screen_icons`—, and the glyphs they carry after the console's
+/// 96: `TL_FIGURE`'s place, a blank, and each icon's two halves; none
+/// without icons, not even the blank, which nothing reads from the tables.
+/// A font without the game's ExFont carries no icon. The screens' tables
+/// and the menu's bank's carry the same, so a letter is the same glyph in
+/// both: a skill's name is written by reference from one text in the
+/// battle's list and on the actor choice.
+pub fn glyphs_after(font: &Font, icons: &[usize]) -> Result<(Vec<usize>, Vec<char>)> {
+    let icons: Vec<usize> = if font.has_exfont() {
+        icons.to_vec()
+    } else {
+        Vec::new()
+    };
+    if ICON_GLYPH_FIRST + 2 * icons.len() + font::FIRST as usize > 256 {
+        return Err(Bad::answer(format!(
+            "the text screens draw {} icons, and a byte names {}",
+            icons.len(),
+            (256 - font::FIRST as usize - ICON_GLYPH_FIRST) / 2
+        )));
+    }
+    if icons.is_empty() {
+        return Ok((icons, Vec::new()));
+    }
+    let mut after = vec![' '];
+    after.extend(
+        icons
+            .iter()
+            .flat_map(|&i| rm2k_snes_text::exfont::halves(i)),
+    );
+    Ok((icons, after))
+}
+
+pub fn text_inks(skin: &Skin, font: &Font, icons: &[usize]) -> Result<Inks> {
     let mut palettes = Vec::new();
     for variant in [ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED] {
         let (rows, shadow) = ink_colors(skin, ITEM_COLORS[variant])?;
@@ -69,10 +115,22 @@ pub fn text_inks(skin: &Skin, font: &Font) -> Result<Inks> {
         palette.resize(16, BLACK);
         palettes.push(palette);
     }
-    let bytes = message_window::font_bytes(font)?;
+    let (icons, after) = glyphs_after(font, icons)?;
+    // The advances and the reach go past the console's 96 always, with
+    // `TL_FIGURE`'s place: the text layer reads them for it.
+    let halves = after.get(1..).unwrap_or(&[]);
+    let mut advances = font.console_advances();
+    advances.push(font.advance('0') as u8);
+    advances.extend(halves.iter().map(|&c| font.advance(c) as u8));
+    let mut measured = vec![' '];
+    measured.extend(halves);
+    let bytes = message_window::font_bytes_with(font, &after)?;
     Ok(Inks {
         palettes,
         prerender: ink_prerender(&bytes),
+        advances,
+        reach: message_window::font_reach_with(font, &measured),
+        icons,
     })
 }
 

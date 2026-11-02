@@ -353,7 +353,7 @@ pub fn with_wait_escapes(line: &str) -> String {
             None => out.push(c),
         }
     }
-    out
+    crate::exfont::with_codes(&out)
 }
 
 /// The colour and the speed a box is left at after `lines`, starting from
@@ -415,6 +415,19 @@ fn with_wait_marks(line: &str, dropped: &mut Vec<String>) -> (String, bool) {
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
+        // An ExFont icon, as its two halves: a `$` an escape took, `\$`,
+        // never gets here.
+        if let ('$', Some(icon)) = (
+            c,
+            chars
+                .get(i + 1)
+                .copied()
+                .and_then(crate::exfont::icon_of_letter),
+        ) {
+            out.extend(crate::exfont::halves(icon));
+            i += 2;
+            continue;
+        }
         if c != ESCAPE {
             out.push(c);
             i += 1;
@@ -533,6 +546,9 @@ fn argument_end(chars: &[char], open: usize) -> usize {
 #[derive(Debug, Clone)]
 pub struct Measure {
     advances: Vec<u8>,
+    /// What a half of an ExFont icon moves the line: 0 when the font does
+    /// not draw them, and the compiler drops them.
+    half: u8,
     /// The pixels a line may take.
     pub width: usize,
     /// What one letter of the costs is, in pixels.
@@ -542,7 +558,19 @@ pub struct Measure {
 impl Measure {
     /// Lines of `width` pixels in `font`, its Latin-1 letters included.
     pub fn new(font: &Font, width: usize) -> Measure {
-        Measure::from_advances(font.measure_advances(), width)
+        let m = Measure::from_advances(font.measure_advances(), width);
+        if font.has_exfont() {
+            m.with_icons(crate::exfont::HALF_ADVANCE)
+        } else {
+            m
+        }
+    }
+
+    /// This measure with the ExFont's icons drawn, each half moving the
+    /// line `half` —see [`crate::exfont`]—.
+    pub fn with_icons(mut self, half: u8) -> Measure {
+        self.half = half;
+        self
     }
 
     /// Lines of `width` pixels in a font whose glyphs, from the space on,
@@ -556,6 +584,7 @@ impl Measure {
             .max(1) as usize;
         Measure {
             advances,
+            half: 0,
             width,
             letter,
         }
@@ -590,6 +619,9 @@ impl Measure {
     pub fn advance(&self, c: char) -> usize {
         if is_control(c) {
             return 0; // a wait, a colour, a speed: they draw nothing
+        }
+        if crate::exfont::is_half(c) {
+            return self.half as usize;
         }
         if c as u32 >= crate::font::LATIN_FIRST {
             if let Some(&a) = self
@@ -1216,5 +1248,36 @@ mod tests {
     fn a_box_that_fits_is_left_alone() {
         let lines = s(&["                  < Wave >"]);
         assert_eq!(refit(&lines, 39, 4), vec![lines]);
+    }
+
+    /// A `$` and a letter is an icon in a box too, as its two halves; the
+    /// `$` of `\$`, the gold window, is not; and the reflow writes the icon
+    /// back as its code. Measured, an icon is twelve pixels with a font
+    /// that draws it and nothing with one that drops it.
+    #[test]
+    fn an_icon_in_a_box_is_its_two_halves() {
+        let [l, r] = crate::exfont::halves(9);
+        let t = escape_tail(&s(&["Got \\c[14]$JOre\\c[0]", "\\$$J"])).unwrap();
+        assert_eq!(
+            t.lines[0],
+            format!(
+                "Got {}{l}{r}Ore{}",
+                control_mark(Control::Colour(14)),
+                control_mark(Control::Colour(0))
+            )
+        );
+        assert_eq!(t.lines[1], format!("{l}{r}"));
+        assert_eq!(t.dropped, ["\\$"]);
+        assert_eq!(with_wait_escapes(&t.lines[0]), "Got \\c[14]$JOre\\c[0]");
+        let plain = Measure::columns(39);
+        assert_eq!(plain.of(&format!("{l}{r}")), 0);
+        let drawn = Measure::columns(39).with_icons(crate::exfont::HALF_ADVANCE);
+        assert_eq!(drawn.of(&format!("{l}{r}")), 12);
+        let long = vec![format!("{} $J", "word ".repeat(7).trim_end())];
+        let refitted = refit_measured(&long, &drawn, 4);
+        assert!(
+            refitted.concat().iter().any(|line| line.contains("$J")),
+            "{refitted:?}"
+        );
     }
 }

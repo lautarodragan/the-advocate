@@ -190,17 +190,8 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
     let game_font = font_of(request)?;
     let (cut, pairs_asked) = match request.get("font") {
         None => (Vec::new(), Value::Null),
-        Some(spec) => {
-            let spec = spec
-                .as_str()
-                .ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
-            let spacing = request
-                .get("letter_spacing")
-                .and_then(Value::as_i64)
-                .unwrap_or(0);
-            let font = Font::named(spec, rm2k_snes_text::font::MINCHO)
-                .and_then(|f| f.with_spacing(spacing))
-                .map_err(Bad::answer)?;
+        Some(_) => {
+            let font = game_font.clone().expect("`font_of` read the font");
             let mut usable = Vec::new();
             for (&i, &battle) in items.iter().zip(&item_battle) {
                 if battle {
@@ -755,7 +746,8 @@ pub fn field_skill(db: &Db, request: &Value) -> Result<Value> {
 }
 
 /// The game's font, if the request names it —`font` and `letter_spacing`,
-/// as the screens stage takes them—.
+/// as the screens stage takes them—, with the icons of the game's ExFont
+/// when it names its executable, `exfont`.
 fn font_of(request: &Value) -> Result<Option<Font>> {
     let Some(spec) = request.get("font") else {
         return Ok(None);
@@ -767,8 +759,13 @@ fn font_of(request: &Value) -> Result<Option<Font>> {
         .get("letter_spacing")
         .and_then(Value::as_i64)
         .unwrap_or(0);
+    let exfont = request
+        .get("exfont")
+        .and_then(Value::as_str)
+        .map(std::path::Path::new);
     Font::named(spec, rm2k_snes_text::font::MINCHO)
         .and_then(|f| f.with_spacing(spacing))
+        .and_then(|f| f.with_exfont_of(exfont))
         .map(Some)
         .map_err(Bad::answer)
 }

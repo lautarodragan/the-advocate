@@ -702,7 +702,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         TARGET_CGRAM + TARGET_COLORS_MAX,
     )?;
     request.vram.target(target.tiles.len())?;
-    let inks = items::text_inks(&skin, &game.font)?;
+    let inks = items::text_inks(&skin, &game.font, &texts::screen_icons(game))?;
     // The item and equipment windows share tiles and colours, and go at the
     // end of the bank: the text has what is below them. Counted first, then
     // numbered from where they land.
@@ -920,7 +920,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
     let medicine_names: Vec<Value> = medicines
         .iter()
-        .map(|(n, name)| json!({"number": n, "lines": texts::name_in_lines(&game.font, name, TARGET_NAME_WIDTH, 2)}))
+        // The actor choice writes them with the menu's bank, which carries
+        // no icon.
+        .map(|(n, name)| json!({"number": n, "lines": texts::name_in_lines(&game.font, &rm2k_snes_text::exfont::without_icons(name), TARGET_NAME_WIDTH, 2)}))
         .collect();
     let params: Vec<String> = ["attack", "defense", "spirit", "agility"]
         .iter()
@@ -1014,6 +1016,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         "text_inks": {
             "palettes": inks.palettes,
             "prerender": inks.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
+            "advances": inks.advances,
+            "reach": inks.reach,
+            "icons": inks.icons,
         },
         "battle_windows": battle_windows,
         "skills_screen": skills_windows,

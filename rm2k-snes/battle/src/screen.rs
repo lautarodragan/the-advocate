@@ -269,14 +269,16 @@ pub fn check_party_line(font: &rm2k_snes_text::font::Font, hp: &str, sp: &str) -
 /// What the text screens' font can write: the characters it has, a letter
 /// it lacks as its plain ASCII stand-in —see `rm2k_snes_text::plain`—, a
 /// '?' instead of the others, and cut to `width`. It is the screens' rule,
-/// over the font's range.
+/// over the font's range; and like the screens' it keeps an ExFont icon as
+/// its two halves —see `rm2k_snes_text::exfont`—.
 pub fn item_text(text: &str, width: usize) -> String {
     let first = font::FIRST as usize;
-    rm2k_snes_text::plain::plain_text(text)
+    let half = rm2k_snes_text::exfont::is_half;
+    rm2k_snes_text::plain::plain_text_but(text, half)
         .0
         .chars()
         .map(|c| {
-            if (first..first + font::GLYPHS).contains(&(c as usize)) {
+            if (first..first + font::GLYPHS).contains(&(c as usize)) || half(c) {
                 c
             } else {
                 '?'

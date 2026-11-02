@@ -483,7 +483,7 @@ other:
     ; `compose_char` writes into `text_buf` with an offset that comes from
     ; x, and past the edge that lands **outside** the buffer, on top of the
     ; window's HDMA, the OAM image and `vq_n`. See the comment on
-    ; `compose_char`, further down. `font_reach` is how far each letter
+    ; `compose_char`, further down. `msg_font_reach` is how far each letter
     ; paints, its shadow included; a space paints nothing and always goes.
     ;
     ; And the check goes here even though the converter never emits a
@@ -496,7 +496,7 @@ other:
     rep #$20
 .a16
     ldx comp_char
-    lda f:font_reach, x
+    lda f:msg_font_reach, x
     and #$00FF
     clc
     adc comp_col
@@ -513,7 +513,7 @@ no_draw:
     rep #$20
 .a16
     ldx comp_char
-    lda f:font_advance, x
+    lda f:msg_font_advance, x
     and #$00FF
     clc
     adc msg_x

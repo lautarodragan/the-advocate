@@ -13,6 +13,8 @@ clap = "4"
 ditto = { path = "../../rm2k/ditto" }
 png = "0.17"
 rm2k-project = { path = "../project" }
+# Where a game's ExFont is: its `RPG_RT.exe`.
+rm2k-render = { path = "../../rm2k/rm2k-render" }
 rm2k-rules = { path = "../../rm2k/rules" }
 # The opcodes and their sizes, to walk a compiled page.
 rm2k-snes-bytecode = { path = "../bytecode" }

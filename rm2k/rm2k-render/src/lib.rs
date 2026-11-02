@@ -12,7 +12,8 @@
 //!
 //! **What the screens are drawn with** ([`face`], [`system`],
 //! [`show_picture`]): an actor's face, a window and its cursor from the
-//! System, and the picture of a `ShowPicture`.
+//! System, and the picture of a `ShowPicture`; and the 52 icons of RPG_RT's
+//! ExFont, which a `$` and a letter draw in a text ([`exfont`]).
 //!
 //! **What a battle is drawn with**: a battle animation's cells, placed as
 //! RM2k places them ([`battle_animation`]), and a battle's backdrop and its
@@ -25,6 +26,7 @@ pub mod battle;
 pub mod battle_animation;
 pub mod charset;
 pub mod chipset;
+pub mod exfont;
 pub mod face;
 pub mod fail;
 pub mod layers;

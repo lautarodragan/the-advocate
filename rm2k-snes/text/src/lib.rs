@@ -12,6 +12,8 @@
 //!   tail.
 //! * [`plain`]: the letters RM2k's font has and the console's does not, as
 //!   the plain ASCII that stands in for them.
+//! * [`exfont`]: RPG_RT's icons, a `$` and a letter, as the two halves a
+//!   font draws them with.
 //!
 //! It knows nothing about menus, nor about which screen a line lands on:
 //! whoever draws a screen decides that.
@@ -21,6 +23,7 @@
 //! gave for the same input: they need no game.
 
 pub mod cells;
+pub mod exfont;
 pub mod font;
 // Generated from easyrpg-player's headers, one glyph per line with its
 // character beside it: rustfmt would break each row in three.

@@ -19,6 +19,7 @@
 //! is drawn as a space; the text that reaches the cartridge has already
 //! stood a plain ASCII letter in for it —see [`crate::plain`]—.
 
+use crate::exfont;
 use crate::glyphs;
 
 /// RM2k's glyph: six pixels wide, twelve tall.
@@ -165,11 +166,12 @@ impl Font {
                  shadow on the next one, since each letter's air is where its shadow falls"
             ));
         }
-        let widest = (0..self.advance.len())
-            .max_by_key(|&i| self.advance[i])
-            .unwrap_or(0);
+        // The icons' halves are not letters: they keep RM2k's six pixels,
+        // so an icon stays twelve wide —see `crate::exfont`—.
+        let letters = self.advance.len().min(GLYPHS + LATIN_GLYPHS);
+        let widest = (0..letters).max_by_key(|&i| self.advance[i]).unwrap_or(0);
         // An empty Latin-1 cell stays empty: no advance, not drawn.
-        let undrawn: Vec<usize> = (GLYPHS..self.advance.len())
+        let undrawn: Vec<usize> = (GLYPHS..letters)
             .filter(|&g| self.advance[g] == 0)
             .collect();
         let spaced = self.advance[widest] as usize + pixels as usize;
@@ -180,7 +182,7 @@ impl Font {
                 glyph_char(widest)
             ));
         }
-        for a in &mut self.advance {
+        for a in &mut self.advance[..letters] {
             *a += pixels as u8;
         }
         for g in undrawn {
@@ -264,6 +266,48 @@ impl Font {
         Ok(Font { rows, advance })
     }
 
+    /// This font drawing the game's ExFont icons too, `icons` as
+    /// `rm2k_render::exfont::ExFont` reads them: each icon as its two halves
+    /// —see [`crate::exfont`]—, after the Latin-1 cells, which a sheet
+    /// without them gets empty.
+    pub fn with_exfont(mut self, icons: &[[u16; HEIGHT]]) -> Font {
+        assert_eq!(icons.len(), exfont::ICONS, "an ExFont has 52 icons");
+        self.rows.truncate(GLYPHS + LATIN_GLYPHS);
+        self.advance.truncate(GLYPHS + LATIN_GLYPHS);
+        self.rows.resize(GLYPHS + LATIN_GLYPHS, [0; HEIGHT]);
+        self.advance.resize(GLYPHS + LATIN_GLYPHS, 0);
+        let half = exfont::HALF_ADVANCE as usize;
+        for icon in icons {
+            for side in 0..2 {
+                self.rows
+                    .push(icon.map(|row| (row >> (side * half)) & ((1 << half) - 1)));
+                self.advance.push(exfont::HALF_ADVANCE);
+            }
+        }
+        self
+    }
+
+    /// [`Font::with_exfont`] with the icons in the file at `path`, the
+    /// game's ExFont —its `RPG_RT.exe`, or a sheet of its own: see
+    /// `rm2k_render::exfont::find`—, which is how the converter hands them
+    /// to the stages: the path, next to the font's name. `None`, or an
+    /// executable without an ExFont, is the font as it is.
+    pub fn with_exfont_of(self, path: Option<&std::path::Path>) -> Result<Font, String> {
+        let Some(path) = path else {
+            return Ok(self);
+        };
+        match rm2k_render::exfont::ExFont::read(path) {
+            Ok(Some(icons)) => Ok(self.with_exfont(&icons.icons)),
+            Ok(None) => Ok(self),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    /// Whether it draws the ExFont's icons: see [`Font::with_exfont`].
+    pub fn has_exfont(&self) -> bool {
+        self.rows.len() > GLYPHS + LATIN_GLYPHS
+    }
+
     /// The twelve rows of `ch`'s glyph, or the space's if the font lacks it.
     pub fn rows(&self, ch: char) -> &[u16; HEIGHT] {
         &self.rows[self.index(ch)]
@@ -273,6 +317,10 @@ impl Font {
     pub fn advance(&self, ch: char) -> usize {
         if ch == CURSOR_BLANK {
             return self.advance('>');
+        }
+        // An icon's half the font does not draw is dropped: it takes nothing.
+        if exfont::is_half(ch) && !self.has_exfont() {
+            return 0;
         }
         if ch == FIGURE_BLANK {
             return self.advance('0');
@@ -332,7 +380,10 @@ impl Font {
 
     /// Whether every letter moves the line the same: RM2k's.
     pub fn is_fixed(&self) -> bool {
-        self.advance.iter().all(|a| *a == self.advance[0])
+        // An empty cell —a Latin-1 one the sheet does not draw— does not
+        // count, nor do the icons' halves, which are not letters.
+        let letters = &self.advance[..self.advance.len().min(GLYPHS + LATIN_GLYPHS)];
+        letters.iter().all(|a| *a == letters[0] || *a == 0)
     }
 
     /// The advance of each of the 95 glyphs of ASCII, in order.
@@ -358,6 +409,9 @@ impl Font {
         if (FIRST..FIRST + GLYPHS as u32).contains(&code) {
             return true;
         }
+        if exfont::is_half(ch) {
+            return self.has_exfont();
+        }
         let latin = (LATIN_FIRST..LATIN_FIRST + LATIN_GLYPHS as u32).contains(&code);
         latin
             && self
@@ -371,7 +425,7 @@ impl Font {
     /// space and a hyphen stand in for —see [`crate::plain`]—. Empty for a
     /// font without them, RM2k's included.
     pub fn latin_letters(&self) -> Vec<(char, u8)> {
-        (GLYPHS..self.advance.len())
+        (GLYPHS..self.advance.len().min(GLYPHS + LATIN_GLYPHS))
             .map(|g| (glyph_char(g), self.advance[g]))
             .filter(|&(c, _)| self.draws(c) && !matches!(c, '\u{a0}' | '\u{ad}'))
             .collect()
@@ -415,6 +469,8 @@ impl Font {
         let code = ch as u32;
         if (FIRST..FIRST + GLYPHS as u32).contains(&code) {
             (code - FIRST) as usize
+        } else if exfont::is_half(ch) && self.has_exfont() {
+            GLYPHS + LATIN_GLYPHS + (code - exfont::HALF_FIRST) as usize
         } else if self.draws(ch) {
             GLYPHS + (code - LATIN_FIRST) as usize
         } else {
@@ -586,5 +642,32 @@ mod tests {
     fn a_name_that_is_neither_is_a_path() {
         let e = Font::named("/nowhere/at/all.png", MINCHO).unwrap_err();
         assert!(e.contains("low-variable"), "{e}");
+    }
+
+    /// An icon is drawn as its two halves, six columns each, and letter
+    /// spacing widens the letters but not them; a font without the ExFont
+    /// does not draw them.
+    #[test]
+    fn an_icon_is_two_halves_of_six_columns() {
+        let mut icons = vec![[0u16; HEIGHT]; exfont::ICONS];
+        icons[13][0] = 0b1000_0010_0001; // columns 0, 5 and 11
+        let [left, right] = exfont::halves(13);
+        let font = Font::named("low-variable", MINCHO).unwrap();
+        assert!(!font.draws(left));
+        let font = font.with_exfont(&icons).with_spacing(1).unwrap();
+        assert!(font.draws(left) && font.draws(right));
+        assert_eq!(font.rows(left)[0], 0b10_0001);
+        assert_eq!(font.rows(right)[0], 0b10_0000);
+        assert_eq!(font.advance(left) + font.advance(right), 12);
+        assert_eq!(font.reach(right), 7, "its ink and its shadow");
+        assert!(font.ink_width() <= INK_MAX);
+        assert_eq!(
+            font.advance('a'),
+            Font::named("low-variable", MINCHO).unwrap().advance('a') + 1
+        );
+        assert!(!font
+            .latin_letters()
+            .iter()
+            .any(|(c, _)| exfont::is_half(*c)));
     }
 }
