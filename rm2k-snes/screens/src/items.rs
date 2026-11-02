@@ -74,11 +74,12 @@ pub fn ink_colors(skin: &Skin, color: i32) -> Result<(Vec<Color>, Color)> {
 
 /// The icons the text layer's tables carry, of `icons` —see
 /// `texts::screen_icons`—, and the glyphs they carry after the console's
-/// 96: `TL_FIGURE`'s place, a blank, and each icon's two halves. A font
-/// without the game's ExFont carries no icon. The screens' tables and the
-/// menu's bank's carry the same, so a letter is the same glyph in both: a
-/// skill's name is written by reference from one text in the battle's list
-/// and on the actor choice.
+/// 96: `TL_FIGURE`'s place, a blank, and each icon's two halves; none
+/// without icons, not even the blank, which nothing reads from the tables.
+/// A font without the game's ExFont carries no icon. The screens' tables
+/// and the menu's bank's carry the same, so a letter is the same glyph in
+/// both: a skill's name is written by reference from one text in the
+/// battle's list and on the actor choice.
 pub fn glyphs_after(font: &Font, icons: &[usize]) -> Result<(Vec<usize>, Vec<char>)> {
     let icons: Vec<usize> = if font.has_exfont() {
         icons.to_vec()
@@ -91,6 +92,9 @@ pub fn glyphs_after(font: &Font, icons: &[usize]) -> Result<(Vec<usize>, Vec<cha
             icons.len(),
             (256 - font::FIRST as usize - ICON_GLYPH_FIRST) / 2
         )));
+    }
+    if icons.is_empty() {
+        return Ok((icons, Vec::new()));
     }
     let mut after = vec![' '];
     after.extend(
@@ -112,15 +116,20 @@ pub fn text_inks(skin: &Skin, font: &Font, icons: &[usize]) -> Result<Inks> {
         palettes.push(palette);
     }
     let (icons, after) = glyphs_after(font, icons)?;
+    // The advances and the reach go past the console's 96 always, with
+    // `TL_FIGURE`'s place: the text layer reads them for it.
+    let halves = after.get(1..).unwrap_or(&[]);
     let mut advances = font.console_advances();
     advances.push(font.advance('0') as u8);
-    advances.extend(after[1..].iter().map(|&c| font.advance(c) as u8));
+    advances.extend(halves.iter().map(|&c| font.advance(c) as u8));
+    let mut measured = vec![' '];
+    measured.extend(halves);
     let bytes = message_window::font_bytes_with(font, &after)?;
     Ok(Inks {
         palettes,
         prerender: ink_prerender(&bytes),
         advances,
-        reach: message_window::font_reach_with(font, &after),
+        reach: message_window::font_reach_with(font, &measured),
         icons,
     })
 }

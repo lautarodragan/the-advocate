@@ -440,7 +440,7 @@ mod tests {
         let plain = Font::named("low-variable", rm2k_snes_text::font::MINCHO).unwrap();
         assert_eq!(
             crate::items::glyphs_after(&plain, &[13]).unwrap(),
-            (vec![], vec![' '])
+            (vec![], vec![])
         );
         let drawn = plain.with_exfont(&vec![[1u16; 12]; exfont::ICONS]);
         let (icons, after) = crate::items::glyphs_after(&drawn, &[13, 14]).unwrap();
