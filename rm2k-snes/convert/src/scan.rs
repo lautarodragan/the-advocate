@@ -89,6 +89,24 @@ pub fn has_sandstorm<'a>(
         || maps.into_iter().any(|m| m.all_commands().any(storms))
 }
 
+/// Whether some `Teleport` of these maps, of the common events or of `extra`
+/// asks for a facing —RPG Maker 2003's fourth parameter—: then the runtime
+/// assembles `OP_TELEPORT_FACING`, which without it ends the page. The
+/// question is the compiler's own, so the two cannot disagree: see
+/// `teleport_facing` in rm2k-snes-events. Over every page, whether it
+/// compiles or not: one more than needed only costs the runtime its bytes.
+pub fn teleports_with_a_facing<'a>(
+    maps: impl IntoIterator<Item = &'a GameMap>,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    extra: &[Command],
+) -> bool {
+    use rm2k_snes_events::compile::teleport_facing;
+    let faces = |c: &Command| c.code == TELEPORT && teleport_facing(&c.parameters).is_some();
+    extra.iter().any(faces)
+        || common_events.values().flatten().any(faces)
+        || maps.into_iter().any(|m| m.all_commands().any(faces))
+}
+
 /// Whether some message box of the cartridge's maps, its common events or
 /// `extra` types a text colour other than 0, `\c[n]`: then the message
 /// window keeps an entry for the box's ink —see `inks` in

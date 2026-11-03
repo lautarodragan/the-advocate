@@ -881,6 +881,16 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         "; Whether Select walks the hero through everything: see `phasing.s`.\nDEBUG_PHASING = %d\n\n",
         r.phasing
     ));
+    // Only in a cartridge where some `Teleport` asks for a facing: one where
+    // none does —every RM2k game's— gets the same `.inc` as before there was
+    // one, and its runtime only the opcode's entry in the dispatch. See
+    // `op_teleport_facing` in interpreter_teleport.s.
+    if r.teleport_facing {
+        out.push_str(
+            "; Some Teleport asks for a facing: see `op_teleport_facing`.\n\
+             TELEPORT_FACING = 1\n\n",
+        );
+    }
     // The fade ramp, in bank 0: `fade_tick` reads it with `lda fade_ramp, x`.
     out.push_str(&pyf!(
         ".segment \"TABLES\"\n\

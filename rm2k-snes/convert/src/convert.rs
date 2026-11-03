@@ -23,7 +23,9 @@ use crate::settings::Settings;
 use crate::stage;
 use crate::text::{hex, repr, unhex};
 use rm2k_project::Project;
-use rm2k_snes_bytecode::events::{INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT};
+use rm2k_snes_bytecode::events::{
+    INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
+};
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
 use rm2k_snes_mapdata::{engine, record, vram};
 
@@ -1120,10 +1122,12 @@ pub fn run(options: Options) -> Result<()> {
             let mut teleported = false;
             let mut hero: Option<(String, i64)> = None;
             for i in bytecode::walk(code)? {
-                if code[i] == OP_TELEPORT {
+                if code[i] == OP_TELEPORT || code[i] == OP_TELEPORT_FACING {
+                    // The facing's byte goes before the map.
+                    let map = i + 1 + usize::from(code[i] == OP_TELEPORT_FACING);
                     teleported = true;
-                    at = bytecode::at(code, i + 1) as usize
-                        | (bytecode::at(code, i + 2) as usize) << 8;
+                    at = bytecode::at(code, map) as usize
+                        | (bytecode::at(code, map + 1) as usize) << 8;
                 } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
                     let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
                     let mut k = 0;
@@ -1753,6 +1757,13 @@ pub fn run(options: Options) -> Result<()> {
     // And whether Select walks the hero through everything, for debugging:
     // apart too, for the same limit.
     request["phasing"] = json!(options.phasing);
+    // And whether some `Teleport` asks for a facing, which the runtime
+    // assembles only then: see `scan::teleports_with_a_facing`.
+    request["teleport_facing"] = json!(scan::teleports_with_a_facing(
+        every_refs.iter().copied(),
+        &game.db.common_events,
+        &file_commands,
+    ));
     // And the common events' small pictures, by set: see
     // [`crate::common_pictures`]. Only when there are some.
     if !common_small.emit.is_empty() {

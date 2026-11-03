@@ -243,6 +243,11 @@ pub struct Emit {
     pub speed_keys: bool,
     pub enemy_hp: bool,
     pub phasing: bool,
+    /// Whether some `Teleport` of the cartridge asks for a facing, RPG Maker
+    /// 2003's: then the runtime assembles `OP_TELEPORT_FACING`. Absent in a
+    /// request from before 2026-11-03: none.
+    #[serde(default)]
+    pub teleport_facing: bool,
     /// The party the game starts with.
     pub party: Vec<i64>,
     /// Who the cartridge is: its header title and its SRAM signature.

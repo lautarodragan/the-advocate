@@ -265,6 +265,23 @@ const TRANSITION_CUT: u8 = 2;
 /// `EraseScreen` and `ShowScreen` with -1: whatever the teleport's is when
 /// the command runs. See their arm.
 const TRANSITION_TELEPORTS: u8 = 0xFF;
+
+/// The facing a `Teleport` leaves the hero with, as the runtime counts it
+/// —0 up, 1 right, 2 down, 3 left—, or `None` to keep his. It is RPG Maker
+/// 2003's fourth parameter, 1 to 4 in that order and 0 to keep it:
+/// `Game_Interpreter_Map::CommandTeleport`'s "RPG2k3 feature",
+/// `parameters[3] - 1`. An RM2k `Teleport` has three parameters. Any other
+/// number is not one the editor writes, and is taken as keeping it.
+///
+/// The converter asks the same of the whole cartridge to decide whether the
+/// runtime assembles `OP_TELEPORT_FACING`, which without it ends the page:
+/// both have to answer from here.
+pub fn teleport_facing(parameters: &[i32]) -> Option<u8> {
+    match parameters.get(3) {
+        Some(&p @ 1..=4) => Some(p as u8 - 1),
+        _ => None,
+    }
+}
 // ShowBattleAnimation: the kinds of entry of its timeline. See
 // `compile_animation`.
 const ANIM_SOUND: u8 = 0;
@@ -5504,7 +5521,10 @@ pub fn compile_command(
             if let Some(songs) = ctx.songs.as_deref_mut() {
                 songs.dest(dest);
             }
-            let mut out = vec![OP_TELEPORT];
+            let mut out = match teleport_facing(&cmd.parameters) {
+                Some(direction) => vec![OP_TELEPORT_FACING, direction],
+                None => vec![OP_TELEPORT],
+            };
             out.extend(usize_word(dest)?);
             out.extend(word(q(1))?);
             out.extend(word(q(2))?);
@@ -7840,6 +7860,32 @@ mod tests {
         // Before it, and as an event's own, it is no longer nothing: see the
         // next test.
         assert_ne!(as_the_only_event(&[erase, jump]), None);
+    }
+
+    #[test]
+    fn a_teleport_s_facing_goes_in_its_own_opcode_and_keeping_it_in_the_old_one() {
+        // RPG Maker 2003's fourth parameter, 1 to 4 up, right, down, left:
+        // the runtime's 0 to 3, before the map. Zounds' debug door to Delmar
+        // asks for up.
+        for (rm2k, direction) in [(1, 0), (2, 1), (3, 2), (4, 3)] {
+            let jump = cmd(TELEPORT, &[183, 4, 37, rm2k], "");
+            assert_eq!(
+                on_a_map(&[jump]).unwrap(),
+                [OP_TELEPORT_FACING, direction, 1, 0, 4, 0, 37, 0, OP_DONE],
+                "facing {rm2k}"
+            );
+        }
+        // 0 keeps it, and so does an RM2k `Teleport`, which has no fourth: the
+        // same bytes as before there was a facing, so an RM2k game's
+        // cartridge does not change. A number the editor does not write is
+        // taken as keeping it, as in `teleport_facing`.
+        for parameters in [&[183, 4, 37, 0][..], &[183, 4, 37], &[183, 4, 37, 5]] {
+            assert_eq!(
+                on_a_map(&[cmd(TELEPORT, parameters, "")]).unwrap(),
+                [OP_TELEPORT, 1, 0, 4, 0, 37, 0, OP_DONE],
+                "{parameters:?}"
+            );
+        }
     }
 
     #[test]
