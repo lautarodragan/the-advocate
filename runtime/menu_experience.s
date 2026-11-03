@@ -22,10 +22,8 @@
 ; Sprites read their tiles from `SLOT_VRAM`, so a glyph's tile in the bank
 ; is the same number, and their palette 1 is a copy of the text's: palette
 ; 0, colors 128 to 143, is the menu bar's —see `menu_bar_upload`—, and
-; palette 2 is the arrows'. The actor choice, which shares the panel, shows
-; its SP in sprites instead —see below—, which is what `Window_ActorTarget`
-; does. What this changes from the map —OBSEL and colors 128 to 175— is
-; restored by `menu_exp_close` on the way back.
+; palette 2 is the arrows'. What this changes from the map —OBSEL and
+; colors 128 to 175— is restored by `menu_exp_close` on the way back.
 ;
 ; It is built in `oam`, the map's OAM in RAM, and goes up whole with
 ; `menu_sp_upload`: with the screen off when the menu opens, and in the
@@ -469,45 +467,21 @@ powers:
     rtl
 .endproc
 
-; --- the SP on the actor choice -----------------------------------------------
+; --- the SP line's text ---------------------------------------------------------
 ;
-; `Window_ActorTarget`'s SP, under the HP: the term and `"%3d"`, the slash and
-; the maximum, like the HP's line. **In sprites**, where the menu has the
-; experience —the actor choice has none, so the row's fourth line is free—,
-; and the number one letter per HP cell, so each digit sits under the HP's.
-; The why and the geometry are in `MENU_SP_X`, in `rm2k-snes-screens`, whose
-; `render` of the actor choice is the reference.
-;
-; It is built in `oam`, the map's OAM in RAM, which nobody else writes while
-; a screen is open —`build_oam` runs on the map—, and goes up whole with
-; `menu_sp_upload`: with the screen off when the choice opens, and in the
-; vblank after a use changes someone's SP —the medicine's target, the
-; skill's user—. Each row has its own objects, eighteen from the row's
-; times eighteen, and a space is a hidden object: a row is rewritten without
-; touching the others. The colours and OBSEL are the experience's —palette
-; 1, the tiles from `SLOT_VRAM`—, and `menu_exp_close` restores them when
-; the menu closes.
-;
-; Its scratch is the experience's: the message composer's variables and
-; `MENU_EXP_TEXT`, which do not exist with a screen open.
-;   comp_char       the party row
-;   comp_phase      the top y of the row's sprites
-;   comp_phase + 1  the y of the sprite being placed
-;   comp_mask       the x of the sprite being placed
-;   comp_base       the OAM byte of the object being placed, 16 bits
-;   comp_col        the letter being placed
+; The SP line of both screens —the pause menu's fourth line and the actor
+; choice's beside the HP—, in cells: see `menu_sp_cells` in menu_list.s,
+; which writes it. What lives here is its text, made like the experience's
+; into `MENU_EXP_TEXT`, which does not exist with a screen open. Until
+; 2026-11-02 the actor choice drew it in sprites, and that code lived here
+; too.
 ;
 ; **In `FAR3`**, entered from bank 0 with `jsl` and calling nothing near:
 ; bank 1 had some 150 bytes left in A Blurred Line's `release` and its MSU
 ; test cartridge overflowed. That is why it has its own `sp_digits` and
-; not `three_digits`, and why it leaves with a `jml` to bank 1's
-; `target_ppu_with`. The experience above went with it later, the same
+; not `three_digits`. The experience above went with it later, the same
 ; day: see the top of the file.
 
-
-MENU_SP_ROW_OBJECTS = MENU_EXP_TERM_TILES + 2 * MENU_SP_LETTERS
-
-.assert MENU_ROWS_PARTY * MENU_SP_ROW_OBJECTS <= MENU_EXP_SPRITES, error, "the party's SP do not fit in the sprites"
 .assert MENU_EXP_TEXT + MENU_SP_LETTERS <= MENU_EXP_TEXT_END, error, "the SP line does not fit in its place"
 
 ; Every object of `oam` hidden and small. With the data bank at 0;
@@ -573,8 +547,8 @@ small:
 
 ; Actor A's SP line, `"%3d/%-4d"`, into `MENU_EXP_TEXT`: the current SP
 ; right-aligned in three places, the slash and the maximum for its level.
-; The actor choice draws it in sprites and the pause menu in cells. With
-; the data bank at 0; clobbers A, X and Y.
+; Both screens write it in cells —`menu_sp_slot`—. With the data bank at
+; 0; clobbers A, X and Y.
 .proc menu_sp_text
 .a8
 .i16
@@ -694,232 +668,6 @@ tens_done:
 .a8
 .endproc
 
-; Every object hidden and small, and each party row's SP line, into `oam`.
-; With any data bank; clobbers A, X and Y.
-.proc menu_sp_build
-.a8
-.i16
-    phb
-    lda #0
-    pha
-    plb                         ; `oam` and the party, in bank 0
-    jsr menu_oam_hide
-    stz comp_char
-row:
-    lda comp_char
-    cmp party_n
-    bcs ready
-    cmp #MENU_ROWS_PARTY
-    bcs ready
-    jsr one_row
-    inc comp_char
-    bra row
-ready:
-    plb
-    rtl
-
-; Row `comp_char`'s line, if the cartridge knows its actor.
-one_row:
-    ; Its first object's byte: the row times eighteen objects of four.
-    rep #$20
-.a16
-    lda comp_char
-    and #$00FF
-    asl a
-    asl a
-    asl a                       ; eight
-    sta comp_base
-    asl a
-    asl a
-    asl a                       ; sixty-four
-    clc
-    adc comp_base               ; seventy-two
-    sta comp_base
-    .assert MENU_SP_ROW_OBJECTS * 4 = 72, error, "the row's first object is not the row times 72"
-    sep #$20
-.a8
-    ; And its y: the row's, plus the line's.
-    lda comp_char
-    sta WRMPYA
-    lda #MENU_ACTOR_HEIGHT
-    sta WRMPYB                  ; eight cycles
-    nop
-    nop
-    nop
-    nop
-    lda RDMPYL
-    clc
-    adc #MENU_SP_Y
-    sta comp_phase
-    rep #$20
-.a16
-    lda comp_char
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda party, x
-    cmp #MENU_ACTORS_N
-    bcc known
-    rts                         ; one this ROM does not know
-known:
-    jsr menu_sp_text
-
-sprites:
-    ; --- the term: four tiles, two on top and two below ---
-    ldy #0
-term:
-    lda #MENU_SP_X
-    cpy #1
-    beq term_right
-    cpy #3
-    bne term_x
-term_right:
-    lda #(MENU_SP_X + 8)
-term_x:
-    sta comp_mask
-    lda comp_phase
-    cpy #2
-    bcc term_y
-    clc
-    adc #8
-term_y:
-    sta comp_phase + 1
-    rep #$20
-.a16
-    tya
-    asl a
-    tax
-    lda f:menu_sp_finished, x
-    jsr menu_obj_put
-.a8
-    iny
-    cpy #MENU_EXP_TERM_TILES
-    bcc term
-
-    ; --- the seven letters, one per HP cell; a space stays hidden ---
-    lda #MENU_SP_NUM_X
-    sta comp_mask
-    stz comp_col
-letter:
-    lda comp_col
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:MENU_EXP_TEXT, x
-    cmp #' '
-    bne visible
-    rep #$21                    ; and the carry at zero
-.a16
-    lda comp_base
-    adc #8                      ; its two objects, still hidden
-    sta comp_base
-    sep #$20
-.a8
-    bra next
-visible:
-    rep #$20
-.a16
-    and #$00FF
-    sec
-    sbc #ITEM_FIRST_CHAR
-    asl a
-    asl a                       ; two words per letter
-    tay
-    sep #$20
-.a8
-    lda comp_phase
-    sta comp_phase + 1
-    rep #$20
-.a16
-    tyx
-    lda f:slot_glyph_cells, x
-    jsr menu_obj_put            ; the top cell
-.a8
-    lda comp_phase
-    clc
-    adc #8
-    sta comp_phase + 1
-    rep #$20
-.a16
-    tyx
-    lda f:slot_glyph_cells + 2, x
-    jsr menu_obj_put            ; and the bottom one
-.a8
-next:
-    lda comp_mask
-    clc
-    adc #8
-    sta comp_mask
-    inc comp_col
-    lda comp_col
-    cmp #MENU_SP_LETTERS
-    bcc letter
-    rts
-
-.a8
-.endproc
-
-; When the actor choice is drawn, with the screen off: the SP lines, the
-; experience's object base and palette —see `menu_exp_paint`—, and the OAM
-; up. `target_ppu_on` turns the sprites on with the rest.
-.proc menu_sp_paint
-.a8
-.i16
-    jsl f:menu_sp_build
-    phb
-    lda #0
-    pha
-    plb                         ; the registers, in bank 0
-    lda #(SLOT_VRAM / $2000)
-    sta OBSEL
-    lda #144                    ; sprite palette 1, the text's
-    sta CGADD
-    rep #$20
-.a16
-    lda #.loword(slot_cgram)
-    sta A1T0L
-    lda #(16 * 2)
-    sta DAS0L
-    sep #$20
-.a8
-    lda #^slot_cgram
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    plb
-    jsl f:menu_sp_upload
-    lda #$13                    ; BG1, BG2 and the sprites
-    jml f:target_ppu_with       ; in bank 1: its `rtl` is this one's
-.endproc
-
-; After a use, with the screen on: the lines built again, and up at the
-; start of the next vblank, where it returns —with the rest of that vblank
-; for the HP—. It is `wait_vblank` without the text layer, which this
-; screen does not have on.
-.proc menu_sp_refresh
-.a8
-.i16
-    jsl f:menu_sp_build
-    phb
-    lda #0
-    pha
-    plb
-out:
-    lda HVBJOY
-    bmi out
-in:
-    lda HVBJOY
-    bpl in
-    plb
-    bra menu_sp_upload          ; its `rtl` is this one's
-.endproc
 
 ; `oam` up to the OAM, whole: in the vblank or with the screen off. It is
 ; `push_oam`, which is bank 0's and is entered with `jsr`.

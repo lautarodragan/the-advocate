@@ -14,8 +14,8 @@
 ; block's "Normal" —`menu_state_paint`, in menu_states.s—. The two screens share the
 ; row; they do not share the panel:
 ;
-; * **the actor choice** shows the four rows, seven cells each, painted
-;   where they are seen —`menu_party_paint`—, with its SP in sprites;
+; * **the actor choice** shows the four rows, six cells each, painted
+;   where they are seen —`menu_party_paint`—, with its SP beside the HP;
 ; * **the pause menu** shows three rows of nine cells, with the SP as a
 ;   fourth line of cells and the experience in sprites under it, and
 ;   scrolls a whole row when the bar goes past them —`menu_list_paint`,
@@ -75,6 +75,14 @@ member:
     pha
     tax                         ; on its own row
     jsr menu_row_paint
+    rep #$20
+.a16
+    lda 1, s
+    and #$00FF
+    tax                         ; on its own row
+    sep #$20
+.a8
+    jsr target_sp_cells         ; and its SP beside the HP, A the member
     pla
     inc a
     bra member
@@ -104,7 +112,7 @@ member:
     pha
     jsr clear                   ; what the previous one left
     lda 1, s
-    ldx #0                      ; on the first row
+    ldx #MENU_ROWS_PARTY        ; on the first row: see `menu_row_vram`
     jsr menu_row_paint
     lda 1, s
     jsr menu_sp_cells
@@ -481,14 +489,180 @@ row_vram:
     rts
 .endproc
 
-; The pause menu's fourth line for member A, on the first row: the SP term
-; and `"%3d/%d"` one letter per cell, under the HP's —`MENU_SP_ROW`—. The
-; text is the actor choice's, `menu_sp_text`; the term's words get the
-; priority bit the bank's blocks carry, so BG1's bar stays under them. With
-; the screen off and the data bank at 0.
+; --- the SP line, in cells ----------------------------------------------------
+;
+; `"%3d/%d"` after the SP term, one letter per cell like the HP's, on both
+; screens: the pause menu's fourth line, under the HP —`MENU_SP_ROW`—, and
+; the actor choice's beside the HP, on its third line —`TARGET_SP_COL`—.
+; The term's words get the priority bit the bank's blocks carry, so BG1's
+; bar stays under them. Until 2026-11-02 the actor choice drew its line in
+; sprites, eleven pixels under the HP, because its rows had no room for a
+; fourth line of cells; the full width gave it room beside the HP.
+;
+; Each line's tilemap words are made first into a slot of `SP_WORDS`, one
+; per party row —the seven upper cells and then the seven lower ones—, and
+; go up from there with a DMA per cell row: after a use the actor choice
+; makes every row's outside the vblank and uploads them in it, which is
+; eight short DMAs. `SP_WORDS` is the start of `oam`, the map's OAM in RAM,
+; which no screen with the menu's bank shows while this runs: the actor
+; choice has no sprites since its SP left them, and the pause menu builds
+; its experience there after painting its rows —`menu_exp_paint`—.
+SP_SLOT_BYTES = 2 * 2 * MENU_SP_LETTERS
+SP_WORDS = oam
+.assert MENU_ROWS_PARTY * SP_SLOT_BYTES <= 512, error, "the SP lines do not fit in the OAM's table"
+
+; The pause menu's fourth line for member A, on the first row. With the
+; screen off and the data bank at 0.
 .proc menu_sp_cells
 .a8
 .i16
+    ldx #0                      ; the first slot
+    jsr menu_sp_slot
+    bcs unknown
+    ldy #(MENU_LIST_VRAM + MENU_SP_TERM_OFS)
+    jsr menu_sp_term
+    ldx #0
+    ldy #(MENU_LIST_VRAM + MENU_SP_NUM_OFS)
+    .assert MENU_SP_NUM_OFS = MENU_SP_TERM_OFS + MENU_SP_TERM_CELLS, error, "the number does not follow the term"
+    jmp menu_sp_letters         ; its `rts` is this one's
+unknown:
+    rts
+.endproc
+
+; The actor choice's line for member A on its party row, which is also
+; its slot, in X. With the screen off and the data bank at 0.
+.proc target_sp_cells
+.a8
+.i16
+    phx                         ; the row
+    jsr menu_sp_slot
+    bcs unknown
+    rep #$20
+.a16
+    lda 1, s
+    and #$00FF
+    asl a
+    tax
+    lda menu_row_vram, x
+    clc
+    adc #TARGET_SP_TERM_OFS
+    tay
+    sep #$20
+.a8
+    jsr menu_sp_term            ; it keeps Y
+    rep #$21                    ; and the carry at zero
+.a16
+    tya
+    adc #MENU_SP_TERM_CELLS
+    tay
+    sep #$20
+.a8
+    plx
+    jmp menu_sp_letters         ; its `rts` is this one's
+unknown:
+    plx
+    rts
+.endproc
+
+; After a use on the actor choice, with the screen on: every row's line
+; made again, and uploaded at the start of the next vblank, where it
+; returns —with the rest of that vblank for the HP and the count—. The
+; medicine changed its target's SP and the skill its user's, and one cast
+; on the party, everyone's. Entered with `jsl`, with any data bank.
+.proc target_sp_refresh
+.a8
+.i16
+    phb
+    lda #0
+    pha
+    plb
+    lda party_n
+    cmp #MENU_ROWS_PARTY
+    bcc fewer
+    lda #MENU_ROWS_PARTY
+fewer:
+    pha                         ; 2, s: how many rows
+    lda #0
+    pha                         ; 1, s: the row
+make:
+    lda 1, s
+    cmp 2, s
+    bcs made
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda 1, s
+    jsr menu_sp_slot            ; an unknown actor's slot is blank
+    lda 1, s
+    inc a
+    sta 1, s
+    bra make
+made:
+    lda #0
+    sta 1, s
+out:
+    lda HVBJOY
+    bmi out
+in:
+    lda HVBJOY
+    bpl in
+upload:
+    lda 1, s
+    cmp 2, s
+    bcs done
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda menu_row_vram, x
+    clc
+    adc #(TARGET_SP_TERM_OFS + MENU_SP_TERM_CELLS)
+    tay
+    lda 1, s
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    jsr menu_sp_letters
+    lda 1, s
+    inc a
+    sta 1, s
+    bra upload
+done:
+    pla
+    pla
+    plb
+    rtl
+.endproc
+
+; Member A's line into slot X of `SP_WORDS`: with the carry at 1, and the
+; slot blank, if the cartridge does not know its actor. With the data bank
+; at 0; clobbers A, X, Y and `temp`.
+.proc menu_sp_slot
+.a8
+.i16
+    pha                         ; the member
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a
+    phx
+    sec
+    sbc 1, s                    ; seven
+    asl a
+    asl a                       ; and four bytes per letter: 28
+    .assert SP_SLOT_BYTES = 28, error, "a slot is not the row times 28"
+    plx
+    pha                         ; 1, s: where the slot starts; 3, s: the member
+    sep #$20
+.a8
+    lda 3, s
     rep #$20
 .a16
     and #$00FF
@@ -498,22 +672,80 @@ row_vram:
     lda party, x
     cmp #MENU_ACTORS_N
     bcc known
-    rts                         ; one this ROM does not know
+    ldx #(MENU_SP_LETTERS - 1)  ; one this ROM does not know: blank
+    lda #' '
+blank:
+    sta f:MENU_EXP_TEXT, x
+    dex
+    bpl blank
+    jsr words
+    sec
+    bra out
 known:
     jsr menu_sp_text            ; into MENU_EXP_TEXT
+    jsr words
+    clc
+out:
+    pla                         ; `pla` leaves the carry as it is
+    pla
+    pla
+    rts
+
+; MENU_EXP_TEXT's letters as the tilemap words of their cells, into the
+; slot that starts at 3, s: the upper cell of each, and then the lower.
+words:
+    ldy #0
+letter:
+    rep #$20
+.a16
+    tyx
+    lda f:MENU_EXP_TEXT, x
+    and #$00FF
+    sec
+    sbc #ITEM_FIRST_CHAR
+    asl a
+    asl a                       ; two words per letter
+    tax
+    lda f:slot_glyph_cells, x
+    pha
+    lda f:slot_glyph_cells + 2, x
+    pha
+    tya
+    asl a
+    clc
+    adc 7, s                    ; the slot, past the two words and the return
+    tax
+    pla
+    sta SP_WORDS + 2 * MENU_SP_LETTERS, x   ; the lower cell
+    pla
+    sta SP_WORDS, x                         ; the upper one
+    sep #$20
+.a8
+    iny
+    cpy #MENU_SP_LETTERS
+    bcc letter
+    rts
+.endproc
+
+; The SP term, its two cells on top and two below, from cell Y. Keeps X and
+; Y. With the screen off or in the vblank.
+.proc menu_sp_term
+.a8
+.i16
     lda #$80
     sta VMAIN
     rep #$20
 .a16
-    lda #(MENU_LIST_VRAM + MENU_SP_TERM_OFS)
-    sta VMADDL
+    sty VMADDL
     lda f:menu_sp_finished
     ora #$2000
     sta VMDATAL
     lda f:menu_sp_finished + 2
     ora #$2000
     sta VMDATAL
-    lda #(MENU_LIST_VRAM + MENU_SP_TERM_OFS + 32)
+    tya
+    clc
+    adc #32
     sta VMADDL
     lda f:menu_sp_finished + 4
     ora #$2000
@@ -521,44 +753,60 @@ known:
     lda f:menu_sp_finished + 6
     ora #$2000
     sta VMDATAL
-    ; The letters: their upper cells, which follow each other, and then
-    ; the lower ones.
-    lda #(MENU_LIST_VRAM + MENU_SP_NUM_OFS)
-    sta VMADDL
-    lda #0
-    jsr letters
-    lda #(MENU_LIST_VRAM + MENU_SP_NUM_OFS + 32)
-    sta VMADDL
-    lda #2
-    jsr letters
+    .assert MENU_SP_TERM_CELLS = 2, error, "the SP term is not two cells wide"
     sep #$20
 .a8
     rts
+.endproc
 
-; A16: 0 for the upper cells, 2 for the lower ones.
-.a16
-letters:
-    sta temp
-    ldx #0
-letter:
-    phx
-    lda f:MENU_EXP_TEXT, x
-    and #$00FF
-    sec
-    sbc #ITEM_FIRST_CHAR
-    asl a
-    asl a                       ; two words per letter
-    clc
-    adc temp
-    tax
-    lda f:slot_glyph_cells, x
-    sta VMDATAL
-    plx
-    inx
-    cpx #MENU_SP_LETTERS
-    bcc letter
-    rts
+; Slot X's words up from cell Y: the upper cells, and the lower ones a cell
+; row down, a DMA each. With the screen off or in the vblank; with the data
+; bank at 0; clobbers A and X.
+.proc menu_sp_letters
 .a8
+.i16
+    lda #$80
+    sta VMAIN
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #^SP_WORDS
+    sta A1B0
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a
+    phx
+    sec
+    sbc 1, s
+    asl a
+    asl a                       ; the slot times 28
+    plx
+    clc
+    adc #.loword(SP_WORDS)
+    sta A1T0L
+    sty VMADDL
+    ldx #(2 * MENU_SP_LETTERS)
+    stx DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN                  ; A1T0L goes on to the lower cells
+    rep #$20
+.a16
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    stx DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rts
 .endproc
 
 ; --- the bar on the pause menu -----------------------------------------------

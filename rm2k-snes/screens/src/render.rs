@@ -141,10 +141,11 @@ fn compose_text(
     p.layer(&layer);
 }
 
-/// A condition's name where a party row says "Normal", from cell row `row`:
-/// composed in white like a strip, a pixel right of one, and each glyph row
-/// put in its ink's entry —the shadow stays the shadow—, as the cartridge's
-/// `menu_state_paint` does. See [`slots::StateInks`].
+/// A condition's name where a party row says "Normal", from cell row `row`
+/// of a row whose block starts at column `col0`: composed in white like a
+/// strip, a pixel right of one, and each glyph row put in its ink's entry
+/// —the shadow stays the shadow—, as the cartridge's `menu_state_paint`
+/// does. See [`slots::StateInks`].
 fn state_row(
     p: &mut Painter,
     game: &Game,
@@ -152,6 +153,7 @@ fn state_row(
     slots: &slots::Slots,
     state: &ditto::schema::State,
     row: usize,
+    col0: usize,
 ) {
     let inks = &slots.states;
     let text = &inks.names[state.id as usize];
@@ -159,7 +161,7 @@ fn state_row(
         return;
     }
     let ink = &inks.inks[inks.ink[state.id as usize]];
-    let x0 = MENU_STATE_COL * CELL + GLYPH_DX + MENU_STATE_SHIFT;
+    let x0 = (MENU_STATE_COL - MENU_ACTOR_COL + col0) * CELL + GLYPH_DX + MENU_STATE_SHIFT;
     let y0 = row * CELL + GLYPH_DY;
     let mut layer = cells::layer();
     skin.draw_line(&mut layer, x0 as i64, y0 as i64, text, 0, &game.font);
@@ -247,10 +249,13 @@ impl Party {
     }
 }
 
-/// A row of the party panel from cell row `row0`: the fixed block, the
-/// face and the three strips that depend on the actor, and the current HP.
-/// It is what the cartridge's `menu_row_paint` does, in the same order, and
-/// that is why the menu and the actor choice share it.
+/// A row of the party panel from cell row `row0`, its block from column
+/// `col0`: the fixed block, the face and the three strips that depend on
+/// the actor, and the current HP. It is what the cartridge's
+/// `menu_row_paint` does, in the same order, and that is why the menu and
+/// the actor choice share it: the menu's block starts at `MENU_ACTOR_COL`,
+/// the actor choice's at `TARGET_ACTOR_COL`, and everything in it moves
+/// with it.
 #[allow(clippy::too_many_arguments)]
 fn actor_row(
     p: &mut Painter,
@@ -258,11 +263,13 @@ fn actor_row(
     skin: &Skin,
     slots: &slots::Slots,
     row0: usize,
+    col0: usize,
     actor: i32,
     party: &Party,
     levels: bool,
 ) -> Result<()> {
     let menu = &slots.menu;
+    let at = |col: usize| col - MENU_ACTOR_COL + col0;
     let hp = match party.hp.get(&actor) {
         Some(&hp) => hp,
         None => texts::max_hp(&game.actors[&actor], None),
@@ -273,16 +280,13 @@ fn actor_row(
     // `state_row`.
     let state_rows = row0 + MENU_LEVEL_ROW..row0 + MENU_LEVEL_ROW + 2;
     for (i, &word) in menu.row.iter().enumerate() {
-        let (r, c) = (
-            row0 + i / MENU_ACTOR_COLS,
-            MENU_ACTOR_COL + i % MENU_ACTOR_COLS,
-        );
-        if state.is_none() || !(state_rows.contains(&r) && c >= MENU_STATE_COL) {
+        let (r, c) = (row0 + i / MENU_ACTOR_COLS, col0 + i % MENU_ACTOR_COLS);
+        if state.is_none() || !(state_rows.contains(&r) && c >= at(MENU_STATE_COL)) {
             p.paste(&[word], r, c, 1);
         }
     }
     if let Some(face) = slots.faces.get(&actor) {
-        p.paste(face, row0, MENU_ACTOR_COL, FACE_CELLS);
+        p.paste(face, row0, col0, FACE_CELLS);
     }
     let name = texts::name_text(game, actor, MENU_NAME_COLS)?;
     compose_text(
@@ -292,7 +296,7 @@ fn actor_row(
         &name,
         MENU_NAME_COLS,
         row0 + MENU_NAME_ROW,
-        MENU_NAME_COL,
+        at(MENU_NAME_COL),
     );
     let level = if levels {
         party.levels.get(&actor).copied()
@@ -304,17 +308,17 @@ fn actor_row(
         menu,
         &texts::level_text(game, actor, level),
         row0 + MENU_LEVEL_ROW,
-        MENU_LEVEL_COL,
+        at(MENU_LEVEL_COL),
     )?;
     if let Some(state) = state {
-        state_row(p, game, skin, slots, state, row0 + MENU_LEVEL_ROW);
+        state_row(p, game, skin, slots, state, row0 + MENU_LEVEL_ROW, col0);
     }
     paste_text(
         p,
         menu,
         &texts::max_text(game, actor, level),
         row0 + MENU_HP_ROW,
-        MENU_MAX_COL,
+        at(MENU_MAX_COL),
     )?;
     let digits = texts::digits_of(hp, MENU_HP_DIGITS as u32);
     paste_text(
@@ -322,7 +326,7 @@ fn actor_row(
         menu,
         &digits,
         row0 + MENU_HP_ROW,
-        MENU_HP_COL + MENU_HP_DIGITS - digits.len(),
+        at(MENU_HP_COL) + MENU_HP_DIGITS - digits.len(),
     )
 }
 
@@ -413,7 +417,17 @@ pub fn menu(
         .collect();
     for &(row, actor) in &rows {
         let row0 = row * MENU_LIST_ROWS;
-        actor_row(&mut p, game, skin, &bank, row0, actor, party, true)?;
+        actor_row(
+            &mut p,
+            game,
+            skin,
+            &bank,
+            row0,
+            MENU_ACTOR_COL,
+            actor,
+            party,
+            true,
+        )?;
         // The SP, the fourth line, in cells: the term in the HP term's
         // column and the number under the HP's cells.
         p.paste(
@@ -500,8 +514,7 @@ pub fn target(
     item: i32,
     amount: i64,
 ) -> Result<Picture> {
-    let name = game.item_name(item)?;
-    let lines = texts::name_in_lines(&game.font, &name, TARGET_NAME_WIDTH, 2);
+    let name = texts::target_name(game, item)?;
     let on_everyone = texts::map_skill(game, game.item(item)?)
         .is_some_and(|s| s.scope == ditto::schema::SkillScope::Party);
     let cursor = if on_everyone {
@@ -510,15 +523,7 @@ pub fn target(
         borders::TargetCursor::Row(chosen)
     };
     let windows = borders::target_windows_for(game, skin, TI_TERM_OWNED, Some(cursor))?;
-    target_with(
-        game,
-        skin,
-        slots,
-        party,
-        windows,
-        [&lines[0], &lines[1]],
-        amount,
-    )
+    target_with(game, skin, slots, party, windows, &name, amount)
 }
 
 /// The actor choice for `skill`, used from the skills screen: its name, its
@@ -533,18 +538,10 @@ pub fn target_skill(
     cursor: borders::TargetCursor,
     skill: i32,
 ) -> Result<Picture> {
-    let (_, lines) = crate::skills::name_lines(game, skill)?;
+    let name = crate::skills::target_name(game, skill)?;
     let windows = borders::target_windows_for(game, skin, TARGET_TERM_COST, Some(cursor))?;
     let cost = game.skill(skill)?.sp_cost as i64;
-    target_with(
-        game,
-        skin,
-        slots,
-        party,
-        windows,
-        [&lines[0], &lines[1]],
-        cost,
-    )
+    target_with(game, skin, slots, party, windows, &name, cost)
 }
 
 fn target_with(
@@ -553,7 +550,7 @@ fn target_with(
     slots: usize,
     party: &Party,
     windows: Picture,
-    name: [&str; 2],
+    name: &str,
     count: i64,
 ) -> Result<Picture> {
     let known = party.known();
@@ -568,35 +565,30 @@ fn target_with(
         .enumerate()
     {
         if known.contains(&actor) {
-            let row0 = row * MENU_ACTOR_ROWS;
-            actor_row(&mut p, game, skin, &bank, row0, actor, party, false)?;
+            let row0 = TARGET_PARTY_ROW + row * TARGET_ROW_CELLS;
+            actor_row(
+                &mut p,
+                game,
+                skin,
+                &bank,
+                row0,
+                TARGET_ACTOR_COL,
+                actor,
+                party,
+                false,
+            )?;
+            sp_cells(&mut p, game, &bank.menu, row0, actor, party)?;
         }
     }
-    // The SP, on top of everything like the menu's experience: see
-    // `MENU_SP_X`.
-    for (row, actor) in party
-        .members
-        .iter()
-        .take(MENU_PARTY_ROWS)
-        .copied()
-        .enumerate()
-    {
-        if known.contains(&actor) {
-            sp_line(&mut p, game, &bank.menu, row, actor, party)?;
-        }
-    }
-    for (n, line) in name.iter().enumerate() {
-        let line = texts::ljust(line, TARGET_NAME_WIDTH);
-        compose_text(
-            &mut p,
-            game,
-            skin,
-            &line,
-            TARGET_NAME_WIDTH,
-            TARGET_NAME_ROW + 2 * n,
-            TARGET_NAME_COL,
-        );
-    }
+    compose_text(
+        &mut p,
+        game,
+        skin,
+        &texts::ljust(name, TARGET_NAME_WIDTH),
+        TARGET_NAME_WIDTH,
+        TARGET_NAME_ROW,
+        TARGET_NAME_COL,
+    );
     paste_text(
         &mut p,
         &bank.menu,
@@ -607,40 +599,31 @@ fn target_with(
     Ok(p.picture())
 }
 
-/// The actor choice's fourth line on party row `row`: the SP term and the
-/// number in sprites, the number in the HP's cells and a sprite per letter
-/// —top and bottom—, which is what `menu_sp_build` puts in the OAM. A space
-/// gets no sprite.
-fn sp_line(
+/// The actor choice's SP on the party row from cell row `row0`, on the
+/// HP's line from `TARGET_SP_COL`: the term, and the number one letter per
+/// cell, as the cartridge's `menu_sp_put` writes them.
+fn sp_cells(
     p: &mut Painter,
     game: &Game,
     menu: &slots::MenuBlocks,
-    row: usize,
+    row0: usize,
     actor: i32,
     party: &Party,
 ) -> Result<()> {
-    let y = (row * MENU_ACTOR_ROWS * CELL + MENU_SP_Y - GLYPH_DY) as i64;
-    for (n, &word) in menu.sp_term.iter().enumerate() {
-        p.sprite(
-            word,
-            (MENU_SP_X + (n % MENU_SP_TERM_CELLS) * CELL) as i64,
-            y + ((n / MENU_SP_TERM_CELLS) * CELL) as i64,
-        );
-    }
+    p.paste(
+        &menu.sp_term,
+        row0 + MENU_HP_ROW,
+        TARGET_SP_COL,
+        MENU_SP_TERM_CELLS,
+    );
     let text = texts::sp_text(game, actor, None, party.sp.get(&actor).copied());
-    for (n, letter) in text.chars().enumerate() {
-        if letter == ' ' {
-            continue;
-        }
-        let glyph = menu
-            .glyphs
-            .get(&letter)
-            .ok_or_else(|| Bad::answer(format!("the menu's bank has no {letter:?}")))?;
-        let x = ((MENU_HP_COL + n) * CELL) as i64;
-        p.sprite(glyph[0], x, y);
-        p.sprite(glyph[1], x, y + CELL as i64);
-    }
-    Ok(())
+    paste_text(
+        p,
+        menu,
+        &text,
+        row0 + MENU_HP_ROW,
+        TARGET_SP_COL + MENU_SP_TERM_CELLS,
+    )
 }
 
 /// The slot screen: `full` says which slots have a save, `chosen` where

@@ -89,13 +89,20 @@ fn a_gradient_behind_the_frame_fits_every_bank() {
         .iter()
         .map(|s| s.as_str().unwrap())
         .collect();
-    for what in ["the message window's frame", "the actor choice's windows"] {
-        assert!(
-            says.iter()
-                .any(|s| s.contains("WARNING") && s.contains(what)),
-            "{what} should have been fused: {says:#?}"
-        );
-    }
+    assert!(
+        says.iter()
+            .any(|s| s.contains("WARNING") && s.contains("the message window's frame")),
+        "the message window's frame should have been fused: {says:#?}"
+    );
+    // The actor choice's were fused too until 2026-11-02, when its windows
+    // became the item's line alone, 32 lines: its cells fit the bank as
+    // they are.
+    assert!(
+        !says
+            .iter()
+            .any(|s| s.contains("the actor choice's windows")),
+        "the actor choice's window should fit without fusing: {says:#?}"
+    );
     // The frame and the arrow, before the text area's 240.
     assert!(answer["window"]["base"].as_u64().unwrap() <= 16);
     // And the same System gives the same cartridge.

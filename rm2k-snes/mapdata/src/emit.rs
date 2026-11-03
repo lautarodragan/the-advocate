@@ -298,6 +298,48 @@ fn plain(text: &str) -> String {
     rm2k_snes_text::plain::plain_text(text).0
 }
 
+/// A name on the actor choice's line on top, as the screens stage stored
+/// it —`target_text`, its letters already the console's and its ExFont
+/// icons as halves—: its bytes, `width` of them. A half goes as the text
+/// layer's byte for it, as [`Texts::add`] writes it: the menu's bank,
+/// where the line is composed, carries the same glyphs as the screens'
+/// tables —`icons`, their order—. One whose icon they do not carry is
+/// dropped, and the name padded again. Anything else is the stage's
+/// mistake, said here rather than drawn as another letter.
+fn target_name_bytes(name: &str, width: usize, icons: &[usize]) -> Result<Vec<u8>> {
+    let bad = || {
+        Bad::answer(format!(
+            "the actor choice's name {name:?} is not {width} letters of the console's"
+        ))
+    };
+    if name.chars().count() != width {
+        return Err(bad());
+    }
+    let mut out = Vec::with_capacity(width);
+    for c in name.chars() {
+        if let Some((icon, side)) = rm2k_snes_text::exfont::half_of(c) {
+            if let Some(k) = icons.iter().position(|&i| i == icon) {
+                out.push((ICON_CODE_FIRST + 2 * k + side) as u8);
+            }
+        } else if c == ' ' || c.is_ascii_graphic() {
+            out.push(c as u8);
+        } else {
+            return Err(bad());
+        }
+    }
+    out.resize(width, b' ');
+    Ok(out)
+}
+
+/// The ExFont icons the screens' tables carry, in their order: see `Inks`
+/// in the screens stage.
+fn screen_icons(screens: &Value) -> Result<Vec<usize>> {
+    Ok(match at(screens, "text_inks")?.get("icons") {
+        Some(icons) => ints(icons)?.into_iter().map(|i| i as usize).collect(),
+        None => Vec::new(),
+    })
+}
+
 /// The byte the text layer reads as the first half of the first icon the
 /// screens' tables carry: their glyph `ICON_GLYPH_FIRST` —past the console's
 /// 96 and `TL_FIGURE`— plus 32, since a letter is its byte less 32.
@@ -3060,11 +3102,21 @@ impl Rest<'_> {
             )
             .join(", ")
         ));
+        // Where a party row's first cell goes: the actor choice's four
+        // rows, and after them, at `MENU_ROWS_PARTY`, the pause menu's
+        // first row, where it paints each member's to keep it —see
+        // `menu_list_paint`—.
         out.push_str(&format!(
             "menu_row_vram:\n     .word {}\n",
             decimal(
                 (0..t.n("MENU_PARTY_ROWS"))
-                    .map(|r| vram_cell(r * t.n("MENU_ACTOR_ROWS"), t.n("MENU_ACTOR_COL")))
+                    .map(|r| {
+                        vram_cell(
+                            t.n("TARGET_PARTY_ROW") + r * t.n("TARGET_ROW_CELLS"),
+                            t.n("TARGET_ACTOR_COL"),
+                        )
+                    })
+                    .chain([vram_cell(0, t.n("MENU_ACTOR_COL"))])
             )
             .join(", ")
         ));
@@ -3228,19 +3280,22 @@ impl Rest<'_> {
             all_at[2],
             all_at[3]
         ));
-        let mut medicine_lines: HashMap<i64, String> = HashMap::new();
+        // Each medicine's name on the line on top, `TARGET_NAME_WIDTH`
+        // letters, as the screens stage stored it: `target_text` there.
+        let width = t.n("TARGET_NAME_WIDTH") as usize;
+        let icons = screen_icons(screens)?;
+        let mut medicine_names: HashMap<i64, Vec<u8>> = HashMap::new();
         for m in list_at(textos, "medicines")? {
-            let lines: Vec<String> = list_at(m, "lines")?
-                .iter()
-                .map(|l| Ok(text(l)?.to_string()))
-                .collect::<Result<_>>()?;
-            medicine_lines.insert(int_at(m, "number")?, lines.concat());
+            medicine_names.insert(
+                int_at(m, "number")?,
+                target_name_bytes(text_at(m, "name")?, width, &icons)?,
+            );
         }
         let medicines: Vec<i64> = r
             .items
             .iter()
             .copied()
-            .filter(|n| medicine_lines.contains_key(n))
+            .filter(|n| medicine_names.contains_key(n))
             .collect();
         if medicines.len() > 255 {
             return Err(Bad::answer(format!(
@@ -3259,22 +3314,20 @@ impl Rest<'_> {
             })
             .collect();
         line(out, &block("target_name", &target_name));
-        let names: Vec<u8> = medicines
+        let mut names: Vec<u8> = medicines
             .iter()
-            .flat_map(|n| {
-                medicine_lines[n]
-                    .chars()
-                    // The menu's bank draws no icon: see `name_in_lines`.
-                    .filter(|&c| !rm2k_snes_text::exfont::is_half(c))
-                    .map(|c| if c.is_ascii() { c as u8 } else { b'?' })
-            })
+            .flat_map(|n| medicine_names[n].iter().copied())
             .collect();
+        if names.is_empty() {
+            names.push(b' '); // a label over nothing would be no `.block`
+        }
         line(out, &block("target_names", &names));
         out.push_str(&pyf!(
             "TARGET_VRAM       = $%04X\nTARGET_MAP        = $%04X\nTARGET_TILES      = %d\n\
              TARGET_CGRAM      = %d\nTARGET_COLORS     = %d\nTARGET_NAME_WIDTH = %d\n\
              TARGET_NAME_VRAM = %d\nTARGET_COUNT_VRAM = %d\nTARGET_BAR_ROW0 = %d\n\
-             TARGET_BAR_ROWS = %d\nTARGET_BAR_COL0 = %d\nTARGET_BAR_COLS = %d\n",
+             TARGET_BAR_ROWS = %d\nTARGET_BAR_COL0 = %d\nTARGET_BAR_COLS = %d\n\
+             TARGET_ROW_CELLS = %d\n",
             t.n("TARGET_VRAM"),
             t.n("TARGET_MAP"),
             obj_tiles.len(),
@@ -3286,29 +3339,28 @@ impl Rest<'_> {
             int_at(target, "row0")?,
             int_at(target, "rows")?,
             int_at(target, "col0")?,
-            int_at(target, "cols")?
+            int_at(target, "cols")?,
+            t.n("TARGET_ROW_CELLS")
         ));
         out.push_str(&pyf!(
             "MENU_EXP_X        = %d\nMENU_EXP_NUM_X    = %d\nMENU_EXP_Y        = %d\nMENU_EXP_STEP     = %d\n\
-             MENU_EXP_DIGITS   = %d\nMENU_EXP_LETTERS  = %d\nMENU_ACTOR_HEIGHT = %d\n",
+             MENU_EXP_DIGITS   = %d\nMENU_EXP_LETTERS  = %d\n",
             t.n("MENU_EXP_X"),
             t.n("MENU_EXP_X") + t.n("MENU_EXP_NUM_DX") - t.n("GLYPH_DX"),
             t.n("MENU_EXP_Y") - t.n("GLYPH_DY"),
             t.n("FONT_WIDTH"),
             t.n("MENU_EXP_DIGITS"),
-            t.n("MENU_EXP_LETTERS"),
-            t.n("MENU_ACTOR_ROWS") * cell
+            t.n("MENU_EXP_LETTERS")
         ));
-        // The actor choice's SP: the term at the experience's x, and the
-        // number in the HP's cells, so a letter's sprite goes where its
-        // cell would be.
+        // The SP line, in cells on both screens: its letters, and on the
+        // actor choice where its term goes, counted from a row's first
+        // cell like the HP's —on the HP's line, see `TARGET_SP_COL`—. The
+        // number follows the term: see `menu_sp_put`.
         out.push_str(&pyf!(
-            "MENU_SP_X         = %d\nMENU_SP_NUM_X     = %d\nMENU_SP_Y         = %d\n\
-             MENU_SP_LETTERS   = %d\n",
-            t.n("MENU_SP_X"),
-            t.n("MENU_HP_COL") * cell,
-            t.n("MENU_SP_Y") - t.n("GLYPH_DY"),
-            t.n("MENU_SP_LETTERS")
+            "MENU_SP_LETTERS   = %d\nMENU_SP_TERM_CELLS = %d\nTARGET_SP_TERM_OFS = %d\n",
+            t.n("MENU_SP_LETTERS"),
+            t.n("MENU_SP_TERM_CELLS"),
+            t.n("MENU_HP_ROW") * 32 + t.n("TARGET_SP_COL") - t.n("TARGET_ACTOR_COL")
         ));
         // The pause menu's list: three rows of nine cells from the first
         // row's cell, each actor painted there once; and the SP line in
@@ -4569,7 +4621,14 @@ impl Rest<'_> {
         let of = |h: i64| at(on_map, &h.to_string());
         let mut lines: [Vec<i64>; 3] = Default::default();
         let mut field = Vec::new();
-        let mut name_cut = Vec::new();
+        // And the name the actor choice writes on its line on top, for the
+        // ones the map can use: `TARGET_NAME_WIDTH` letters each, in
+        // `skill_target_names`, and per skill where its name is there —$FF
+        // for the others—. Its own copy, as a medicine's: see
+        // `target_name` in the screens stage's `skills.rs`.
+        let icons = screen_icons(self.screens)?;
+        let mut target_index = Vec::new();
+        let mut target_names: Vec<u8> = Vec::new();
         for &h in rom_skills {
             let l = ints(at(of(h)?, "lines")?)?;
             for (k, v) in lines.iter_mut().enumerate() {
@@ -4581,13 +4640,33 @@ impl Rest<'_> {
                 |name: &str| -> Result<bool> { Ok(at(of(h)?, name)?.as_bool().unwrap_or(false)) };
             let on_map = flag("field")?;
             field.push(i64::from(on_map) | i64::from(on_map && flag("revives")?) << 1);
-            name_cut.push(int_at(of(h)?, "name_cut")?);
+            if on_map {
+                let width = self.t.n("TARGET_NAME_WIDTH") as usize;
+                let k = target_names.len() / width;
+                if k >= 0xFF {
+                    return Err(Bad::answer(
+                        "the skills the map can use don't fit in `skill_target_name`",
+                    ));
+                }
+                target_index.push(k as i64);
+                target_names.extend(target_name_bytes(
+                    text_at(of(h)?, "target_name")?,
+                    width,
+                    &icons,
+                )?);
+            } else {
+                target_index.push(0xFF);
+            }
         }
         bytes_asm(out, "skill_line1_n", &decimal(lines[0].iter()), true);
         bytes_asm(out, "skill_line2_at", &decimal(lines[1].iter()), true);
         bytes_asm(out, "skill_line2_n", &decimal(lines[2].iter()), true);
         bytes_asm(out, "skill_on_map", &decimal(field), true);
-        bytes_asm(out, "skill_name_cut", &decimal(name_cut), true);
+        bytes_asm(out, "skill_target_name", &decimal(target_index), true);
+        if target_names.is_empty() {
+            target_names.push(b' '); // a label over nothing would be no `.block`
+        }
+        line(out, &block("skill_target_names", &target_names));
         self.states(out, &x, n_actors)?;
         // The parallel common events, in the order of their numbers, which
         // is the order RM2k runs them in: see `compar_tick` in

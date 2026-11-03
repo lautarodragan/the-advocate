@@ -157,12 +157,14 @@ pub const MENU_GOLD_DIGITS: usize = 6;
 pub const MENU_CURRENCY_COL: usize = MENU_GOLD_COL + MENU_GOLD_DIGITS;
 pub const MENU_CURRENCY_COLS: usize = 3;
 /// The party: a row per actor, with the face on the left and the text
-/// beside it. On the actor choice a row is **seven cells**, and four rows
-/// are exactly 224 pixels; the row's fixed block is that tall on both
-/// screens.
+/// beside it. The row's fixed block —the face, and the name, the level and
+/// the HP in three lines of two cells— is **six cells**, a face's height,
+/// on both screens: the pause menu writes its SP under it, and the actor
+/// choice beside the HP —see `TARGET_SP_COL`—. It was seven until
+/// 2026-11-02, when the actor choice's rows were seven cells.
 pub const MENU_ACTOR_COL: usize = 12;
 pub const MENU_ACTOR_COLS: usize = COLS - MENU_ACTOR_COL;
-pub const MENU_ACTOR_ROWS: usize = 7;
+pub const MENU_ACTOR_ROWS: usize = FACE_CELLS;
 /// On the pause menu a row is **nine cells**: the name, the level, the HP
 /// and the SP in four lines of cells, and the experience in sprites under
 /// them —see `MENU_EXP_X`—. Four of those are 288 lines, so the menu
@@ -248,17 +250,16 @@ pub const MENU_EXP_DIGITS: usize = 6;
 pub const MENU_EXP_LETTERS: usize = 2 * MENU_EXP_DIGITS + 1;
 /// The term, "Ex" in A Blurred Line: twelve pixels, two cells wide.
 pub const MENU_EXP_TERM_CELLS: usize = 2;
-/// The SP, `Window_ActorTarget`'s second column —`DrawActorSp`, under the
-/// HP—, on the actor choice: there the row has no experience, so its
-/// fourth line is free, and the SP go **in sprites** eleven pixels under
-/// the HP. The pause menu, whose rows are taller, puts them in cells
-/// —`MENU_SP_ROW`—, with the same term and the same columns. The term is
-/// `sp_short`, two cells like the experience's, and the number is the HP's
-/// —`"%3d"`, the slash and the maximum— one cell per letter, right under
-/// the HP's cells.
+/// The SP on the pause menu, in cells —`MENU_SP_ROW`—: the term is
+/// `sp_short`, two cells like the experience's, in the HP term's column,
+/// and the number is the HP's —`"%3d"`, the slash and the maximum— one cell
+/// per letter, right under the HP's cells. The actor choice writes the same
+/// line beside the HP: `TARGET_SP_COL`.
 pub const MENU_SP_X: usize = MENU_TEXT_X;
-pub const MENU_SP_Y: usize = 2 + 2 * LINE + 11;
 pub const MENU_SP_TERM_CELLS: usize = 2;
+// The number goes right after the term, on both screens: the cartridge
+// writes them from the term's cell —see `menu_sp_put`—.
+const _: () = assert!(MENU_SP_X / CELL + MENU_SP_TERM_CELLS == MENU_HP_COL);
 /// The current SP, the slash and the maximum: the HP's seven cells.
 pub const MENU_SP_LETTERS: usize = MENU_HP_DIGITS + MENU_MAX_DIGITS;
 
@@ -354,67 +355,112 @@ pub type Rect = (usize, usize, usize, usize);
 
 // --- the actor choice --------------------------------------------------------
 //
-// `Scene_ActorTarget`: the menu's party panel, three System windows on BG1
-// and the red bar over the marked row. The left column reaches x = 104: the
-// faces are 48 wide but what shows of them starts twelve pixels in, so the
-// party window can start left of the menu row without covering them. At 104
-// eleven 8-pixel letters fit, and the medicine's name goes on two lines.
+// `Scene_ActorTarget` at 256 wide: **the item's line on top and the party
+// below, the whole width**. RM2k puts the item's name and its count in two
+// windows on the left, 136 pixels, and the party in a window of 184 beside
+// them, with each face's 48 and its text in two columns; at 256 the two
+// sides do not fit: until 2026-11-02 the left column was 104 pixels, a
+// name of more than eleven letters went on two lines, and a face that
+// fills its 48 —Zounds'— was drawn over the windows' frames. It is taro's
+// layout, from that day, for every game: every one of the nine ports has
+// faces, and one layout is one screen to draw and to test. See the
+// divergence `the-actor-choice-layout` in the book.
 //
-// "Owned Items" is **baked into BG1**, in red and at the font's six pixels:
-// at eight its letters fill the window and leave no room for the quantity,
-// and the red has no free palette on BG2. The quantity goes with the glyphs.
+// * **The item's line**: one System window, 32 pixels —RM2k's help
+//   window's—, with the name on the left, composed in the menu's bank like
+//   the actors' names, and the term and the count on the right, as
+//   `Window_TargetStatus` writes them. The term —"Owned Items", or the
+//   skill's `sp_cost`— is **baked into BG1**, in red at the font's six
+//   pixels: the red has no free palette on BG2. The count goes with the
+//   glyphs, one per cell.
+// * **The party**: four rows of 48 pixels, a face's height, from y = 32 to
+//   the screen's last line, **without a window**, like the pause menu's
+//   panel: four rows and a window's two frames are 208 lines, and with the
+//   item's line 240 —RM2k's height, not the console's—. Each row is
+//   `Window_ActorTarget`'s: the face, and three lines of text beside it
+//   —the name; the level and the condition; the HP, and the SP beside them,
+//   where RM2k puts them under the HP—. It is the menu's block, six cells,
+//   moved to the left edge.
 //
-// It is only for medicines: whom to equip is chosen on the pause menu, with
-// `MENU_BAR`.
-pub const TARGET_LEFT: usize = 104;
-pub const TARGET_NAME_HEIGHT: usize = 48;
-pub const TARGET_COUNT_HEIGHT: usize = 32;
-pub const TARGET_PARTY: Rect = (TARGET_LEFT, 0, WIDTH - TARGET_LEFT, HEIGHT);
-pub const TARGET_WINDOWS: [Rect; 3] = [
-    (0, 0, TARGET_LEFT, TARGET_NAME_HEIGHT),
-    (0, TARGET_NAME_HEIGHT, TARGET_LEFT, TARGET_COUNT_HEIGHT),
-    TARGET_PARTY,
-];
+// It is only for medicines and healing skills: whom to equip is chosen on
+// the pause menu, with `MENU_BAR`.
+pub const TARGET_HEADER_HEIGHT: usize = 32;
+pub const TARGET_WINDOWS: [Rect; 1] = [(0, 0, WIDTH, TARGET_HEADER_HEIGHT)];
+/// The item's line: y = 8, its two cells inside the window's frame.
+pub const TARGET_HEADER_ROW: usize = 1;
 pub const TARGET_NAME_COL: usize = 1;
-/// y = 8, and the second line at y = 24.
-pub const TARGET_NAME_ROW: usize = 1;
-pub const TARGET_NAME_WIDTH: usize = (TARGET_LEFT - 8) / CELL - TARGET_NAME_COL;
-pub const TARGET_COUNT_ROW: usize = (TARGET_NAME_HEIGHT + 8) / CELL;
-pub const TARGET_COUNT_COL: usize = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2;
+pub const TARGET_NAME_ROW: usize = TARGET_HEADER_ROW;
+/// The name's letters and cells at most, what the cartridge stores of it
+/// and hands `tl_strip`. What shows of it is what fits before the term
+/// —see `texts::target_text`—: the converter cuts it there, by pixels, so
+/// a name is never cut by its letters while it has room. Measured on
+/// 2026-11-02: sixteen letters cut ABL's "Strength Potion-ATK", 113 pixels,
+/// and twenty-two Zounds' "Tostado de Jamón y Queso", 128 pixels with its
+/// icon's two halves, both with room for them. Thirty are the window's
+/// cells past the name's column, so the strip never leaves the line.
+pub const TARGET_NAME_WIDTH: usize = COLS - 2;
+/// The count: two digits, the window's last cells before its frame.
+pub const TARGET_COUNT_COL: usize = COLS - 4;
+pub const TARGET_COUNT_ROW: usize = TARGET_HEADER_ROW;
+/// The term ends this far left of the count, and the name this far left of
+/// the term: the term is right-aligned to the count, so a longer one leaves
+/// the name less room.
+pub const TARGET_TERM_GAP: usize = 4;
 /// For a skill the count is its cost, and the term next to it the
 /// database's `sp_cost`, as `Window_TargetStatus` writes it.
 pub const TARGET_TERM_COST: &str = "sp_cost";
-/// The bar on a party row of the actor choice, over the row's four lines of
-/// text —the SP's is the fourth, see `MENU_SP_X`—, as in RM2k, and not over
-/// the face. It covers them with **a pixel of red over the text and two
-/// under it** —the cursor's edge is one dark pixel, so the red starts one
-/// in—: the name's ink starts at y = 3 and the fourth line, which is
-/// sprites below the cell grid, ends at y = 55 with its shadow. So the
-/// edges go at y = 1 and y = 58 —red from 2 to 57— and the bar reaches into
-/// the next row, which has no bar then, two lines above its text. Not
-/// higher: on the first row y = 0 is the window's frame.
+/// The party: the cell row of its first row, how many cells a row is, and
+/// the column of the menu's block —the face's left edge, eight pixels in,
+/// like the item's line—.
+pub const TARGET_PARTY_ROW: usize = TARGET_HEADER_HEIGHT / CELL;
+pub const TARGET_ROW_CELLS: usize = MENU_ACTOR_ROWS;
+pub const TARGET_ACTOR_COL: usize = 1;
+const _: () = assert!(
+    (TARGET_PARTY_ROW + MENU_PARTY_ROWS * TARGET_ROW_CELLS) * CELL == HEIGHT,
+    "the actor choice's four rows end on the screen's last line"
+);
+/// Where the text of a row starts: the face's 48 and eight more, as in
+/// `Window_ActorTarget` —`48 + 8`—.
+pub const TARGET_TEXT_X: usize = TARGET_ACTOR_COL * CELL + FACE + 8;
+/// The SP: the term two cells past the HP's maximum, on the HP's line, and
+/// the number right after it, one cell per letter, like the HP's. RM2k
+/// draws them under the HP, on the condition's line; here the condition
+/// shares the level's, as on the pause menu.
+pub const TARGET_SP_COL: usize =
+    TARGET_ACTOR_COL + MENU_MAX_COL - MENU_ACTOR_COL + MENU_MAX_DIGITS + 2;
+const _: () = assert!(
+    TARGET_SP_COL + MENU_SP_TERM_CELLS + MENU_SP_LETTERS < COLS,
+    "the actor choice's SP line goes past the screen"
+);
+/// The bar on a party row, `Window_ActorTarget`'s: from four pixels left of
+/// the text —`48 + 4`, past the face, which it does not cover— to as far
+/// from the right edge as the face is from the left. Over the row's three
+/// lines with **a pixel of red over the text and two under it** —the
+/// cursor's edge is one dark pixel, so the red starts one in—: the name's
+/// ink starts at y = 3 of the row and the HP's ends at y = 44 with its
+/// shadow, so the edges go at y = 1 and y = 47, inside the row's 48.
 ///
 /// Measured against the captures on 2026-11-01: from y = 2 the red started
-/// on the name's top row of ink, which is the pixel taro saw left out. On
-/// 2026-09-30, at y = 2..53, the bottom of "Ex" was left over black.
+/// on the name's top row of ink, which is the pixel taro saw left out.
 pub const TARGET_BAR: Rect = (
+    TARGET_TEXT_X - 4,
+    1,
+    WIDTH - TARGET_ACTOR_COL * CELL - (TARGET_TEXT_X - 4),
+    TARGET_ROW_CELLS * CELL - 1,
+);
+/// How many cell rows a bar on a party row of the actor choice reaches:
+/// the row's own.
+pub const BAR_CELL_ROWS: usize = (TARGET_BAR.1 + TARGET_BAR.3).div_ceil(CELL);
+const _: () = assert!(BAR_CELL_ROWS == TARGET_ROW_CELLS);
+/// The bar on the pause menu, where `Scene_Menu` chooses whom to equip
+/// over its own party panel —there are no windows under it, so it is drawn
+/// over nothing—: four pixels left of the text to the screen's edge, and
+/// its rows are nine cells, so it goes from y = 1 to y = 74, a line of red
+/// over the name and two under the experience, whose ink ends at y = 71.
+pub const MENU_BAR: Rect = (
     MENU_TEXT_X - 4,
     1,
     WIDTH - MENU_TEXT_X,
-    MENU_ACTOR_ROWS * CELL + 2,
-);
-/// How many cell rows a bar on a party row of the actor choice reaches:
-/// the row's and the one of the next row its bottom goes into.
-pub const BAR_CELL_ROWS: usize = (TARGET_BAR.1 + TARGET_BAR.3).div_ceil(CELL);
-/// The same bar on the pause menu, where `Scene_Menu` chooses whom to
-/// equip over its own party panel —there are no windows under it, so it is
-/// drawn over nothing—: its rows are nine cells, so it goes from y = 1 to
-/// y = 74, a line of red over the name and two under the experience, whose
-/// ink ends at y = 71.
-pub const MENU_BAR: Rect = (
-    TARGET_BAR.0,
-    TARGET_BAR.1,
-    TARGET_BAR.2,
     MENU_LIST_ROWS * CELL + 2,
 );
 /// The command cursor on the pause menu, on the first command:
@@ -1027,7 +1073,6 @@ pub fn publish() -> Value {
         MENU_EXP_LETTERS,
         MENU_EXP_TERM_CELLS,
         MENU_SP_X,
-        MENU_SP_Y,
         MENU_SP_TERM_CELLS,
         MENU_SP_LETTERS,
         ITEM_DESC_Y,
@@ -1058,9 +1103,13 @@ pub fn publish() -> Value {
         ITEM_BAR_X,
         ITEM_BAR_WIDTH,
         MENU_CGRAM,
-        TARGET_LEFT,
-        TARGET_NAME_HEIGHT,
-        TARGET_COUNT_HEIGHT,
+        TARGET_HEADER_HEIGHT,
+        TARGET_HEADER_ROW,
+        TARGET_PARTY_ROW,
+        TARGET_ROW_CELLS,
+        TARGET_ACTOR_COL,
+        TARGET_TEXT_X,
+        TARGET_SP_COL,
         TARGET_NAME_COL,
         TARGET_NAME_ROW,
         TARGET_NAME_WIDTH,

@@ -2,12 +2,15 @@
 
 ; --- the actor choice windows ------------------------------------------------
 ;
-; `Scene_ActorTarget` with the System windows on BG1, like items and
-; equipment: on the left the medicine's name and "Owned Items" with the count,
-; on the right the party, and the red bar over the selected row. The screen is
-; still `target_screen`, in bank 0, with the menu's bank on BG2; this is
-; what it adds, outside bank 0. The geometry and the why are in
-; `TARGET_WINDOWS` of `rm2k-snes-screens`, whose `render` is the reference.
+; `Scene_ActorTarget` with the System window on BG1, like items and
+; equipment: on top the medicine's name and "Owned Items" with the count, in
+; one line, below it the party the whole width, and the red bar over the
+; selected row. The screen is still `target_screen`, in bank 0, with the
+; menu's bank on BG2; this is what it adds, outside bank 0. The geometry and
+; the why are in `TARGET_WINDOWS` of `rm2k-snes-screens`, whose `render` is
+; the reference. Until 2026-11-02 the name and the count were two windows on
+; the left and the party a window on the right, which at 256 wide did not
+; fit.
 ;
 ; BG1 has **its own base**, `TARGET_VRAM`, behind the menu's tilemap: there
 ; is no room left in BG2's, because the menu's bank reaches almost up to its
@@ -23,8 +26,8 @@
 ; at 0: the registers are addressed absolute.
 
 ; The windows, and the medicine's name and count. With the screen off,
-; after `slot_bank_upload`. The name goes in two lines, each composed in
-; the menu's bank like the actors' names; the count, one digit per cell.
+; after `slot_bank_upload`. The name is composed in the menu's bank like
+; the actors' names; the count, one digit per cell.
 .proc target_upload
 .a8
 .i16
@@ -85,49 +88,54 @@
     beq medicine
     jmp target_skill_upload
 medicine:
-    ; The two lines of the name: `target_names` has
-    ; 2 * TARGET_NAME_WIDTH letters per medicine, and `target_name`
-    ; says which one belongs to `k`.
+    ; The name, on the line on top: `target_names` has TARGET_NAME_WIDTH
+    ; letters per medicine, and `target_name` says which one belongs to
+    ; `k`. Composed —see `tl_strip`— like the actors' names.
     rep #$20
 .a16
     ldx item_sel
     lda f:target_name, x
-    and #$00FF
-    sta temp
-    asl a
-    asl a
-    clc
-    adc temp                    ; k * 5
-    asl a
-    asl a
-    clc
-    adc temp                    ; k * 21
-    clc
-    adc temp                    ; k * 22
-    .assert TARGET_NAME_WIDTH = 11, error, "the name is indexed by k * 22"
-    ; Each line composed —see `tl_strip`—, from where it starts in the table.
-    clc
+    jsr target_name_ofs
     adc #.loword(target_names)
     sta msg_ptr
     sep #$20
 .a8
     lda #^target_names
     sta msg_ptr + 2
+    jsr target_name_strip
+    jmp target_count
+.endproc
+
+; A16: the name `k` in A's low byte, its offset in a table of names of
+; TARGET_NAME_WIDTH letters, with the multiplier. Leaves the carry at zero,
+; for the `adc` of the table's start. With the data bank at 0.
+.a16
+.proc target_name_ofs
+    sep #$20
+.a8
+    sta WRMPYA
+    lda #TARGET_NAME_WIDTH
+    sta WRMPYB                  ; starts it: the product takes eight cycles
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    clc
+    rts
+.endproc
+.a8
+
+; The name at `msg_ptr` composed on the line on top. With the screen off.
+.proc target_name_strip
+.a8
+.i16
     lda #TARGET_NAME_WIDTH
     ldy #TARGET_NAME_VRAM
     jsl f:tl_strip + FAST
-    rep #$20
-.a16
-    lda msg_ptr
-    clc
-    adc #TARGET_NAME_WIDTH
-    sta msg_ptr
-    sep #$20
-.a8
-    lda #TARGET_NAME_WIDTH
-    ldy #(TARGET_NAME_VRAM + 64)
-    jsl f:tl_strip + FAST
-    jmp target_count
+    rts
 .endproc
 
 ; How many are left of the medicine in `item_sel`, in two digits —the tens
@@ -314,7 +322,7 @@ row:
     rtl
 
 FIRST = TARGET_MAP + TARGET_BAR_ROW0 * 32 + TARGET_BAR_COL0
-ROW = MENU_ACTOR_ROWS * 32
+ROW = TARGET_ROW_CELLS * 32
 row_vram:
     .word FIRST, FIRST + ROW, FIRST + 2 * ROW, FIRST + 3 * ROW
 bar_ofs:
@@ -365,8 +373,8 @@ none:
 .endproc
 
 ; `target_upload` for a skill, with the screen off: the cost's term over
-; "Owned Items" —its rows of the tilemap—, the name in two lines and, for a
-; skill on oneself, the bar on the user's row. Then its cost.
+; "Owned Items" —its rows of the tilemap—, the name on the line on top and,
+; for a skill on oneself, the bar on the user's row. Then its cost.
 .proc target_skill_upload
 .a8
 .i16
@@ -404,94 +412,28 @@ row:
 .a16
     dex
     bne row
-    ; The name: its text in the text block, and how many of its letters go
-    ; on the first line —`skill_name_cut`, `name_lines` of the screens
-    ; stage—; the second from the next letter that is not a space. Each
-    ; line padded to `TARGET_NAME_WIDTH` in the battle's message buffer,
-    ; which nobody uses on the map, so `tl_strip` composes it as it
-    ; composes a medicine's.
+    ; The name, like a medicine's: its own copy in `skill_target_names`,
+    ; which `skill_target_name` finds. Until 2026-11-02 it was the battle's
+    ; text, cut in two lines here. A skill the map cannot use has none, and
+    ; never opens this screen.
     lda f:sk_used
     and #$00FF
-    pha
-    asl a
     tax
-    lda f:skill_txt, x
-    tax
+    lda f:skill_target_name, x
+    and #$00FF
+    cmp #$00FF
+    beq unnamed
+    jsr target_name_ofs
+    adc #.loword(skill_target_names)
+    sta msg_ptr
     sep #$20
 .a8
-    lda f:item_txt_lo, x
-    sta msg_ptr
-    lda f:item_txt_hi, x
-    sta msg_ptr + 1
-    lda f:item_txt_bk, x
+    lda #^skill_target_names
     sta msg_ptr + 2
-    lda f:item_txt_n, x
-    sta temp + 2                ; its letters
-    plx
-    lda f:skill_name_cut, x
-    sta temp + 3                ; the first line's
-    .assert 2 * TARGET_NAME_WIDTH <= BA_MBUF_MAX, error, "the skill's name does not fit in the message buffer"
-    ldx #(2 * TARGET_NAME_WIDTH - 1)
-    lda #' '
-blank:
-    sta f:BAT_LENGTH + BA_MBUF, x
-    dex
-    bpl blank
-    ldy #0
-first:
-    tya
-    cmp temp + 3
-    bcs first_done
-    lda [msg_ptr], y
-    tyx
-    sta f:BAT_LENGTH + BA_MBUF, x
-    iny
-    bra first
-first_done:
-    tya
-    cmp temp + 2
-    bcs second_done
-    lda [msg_ptr], y
-    cmp #' '
-    bne second
-    iny
-    bra first_done
-second:
-    ldx #TARGET_NAME_WIDTH
-next:
-    tya
-    cmp temp + 2
-    bcs second_done
-    cpx #(2 * TARGET_NAME_WIDTH)
-    bcs second_done
-    lda [msg_ptr], y
-    sta f:BAT_LENGTH + BA_MBUF, x
-    iny
-    inx
-    bra next
-second_done:
-    rep #$20
-.a16
-    lda #.loword(BAT_LENGTH + BA_MBUF)
-    sta msg_ptr
+    jsr target_name_strip
+unnamed:
     sep #$20
 .a8
-    lda #^(BAT_LENGTH + BA_MBUF)
-    sta msg_ptr + 2
-    lda #TARGET_NAME_WIDTH
-    ldy #TARGET_NAME_VRAM
-    jsl f:tl_strip + FAST
-    rep #$20
-.a16
-    lda msg_ptr
-    clc
-    adc #TARGET_NAME_WIDTH
-    sta msg_ptr
-    sep #$20
-.a8
-    lda #TARGET_NAME_WIDTH
-    ldy #(TARGET_NAME_VRAM + 64)
-    jsl f:tl_strip + FAST
     ; On oneself, the bar on the user's row and nowhere else.
     jsr target_scope
     cmp #BA_SCOPE_ONE
@@ -660,20 +602,11 @@ skill:
 .endproc
 
 ; BG2 with the party and BG1 with the windows, each with its own base, and the
-; screen on. It is `slot_ppu_on` plus BG1.
+; screen on. It is `slot_ppu_on` plus BG1. From 2026-11-01 to 2026-11-02 the
+; actor choice turned its SP's sprites on too, through a `target_ppu_with`.
 .proc target_ppu_on
 .a8
 .i16
-    lda #$03                    ; BG1 and BG2
-    bra target_ppu_with
-.endproc
-
-; The same with the layers in A, for TM: the actor choice turns its SP's
-; sprites on too —see `menu_sp_paint`—.
-.proc target_ppu_with
-.a8
-.i16
-    pha                         ; the layers, for TM
     jsl f:pano_mode3            ; the screens draw in mode 3
     lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
@@ -690,7 +623,7 @@ skill:
     sta BG2VOFS
     sta BG1VOFS
     sta BG1VOFS
-    pla
+    lda #$03                    ; BG1 and BG2
     sta TM
     lda #$0F
     sta INIDISP
