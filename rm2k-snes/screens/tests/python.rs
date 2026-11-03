@@ -226,22 +226,25 @@ fn everything_a_cartridge_carries() {
     // colours. **Until 2026-11-02**, f3be9562…4aa7: the answer got the
     // party's conditions, `slots.states`, and the test game three of them,
     // whose colours go in the bank's palette 1; looked at in the menu's
-    // render below, `menu-conditions`, and in ABL's golden.
+    // render below, `menu-conditions`, and in ABL's golden. **Until
+    // 2026-11-02**, bababc71…2119: the actor choice put the item's line on
+    // top and the party below the whole width, so its windows' tiles and
+    // maps moved, the medicines' names went in one line, `name`, and the
+    // menu's row block is six cells; looked at in the actor choice's render
+    // below, `target-item`.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "bababc7135bbedc859548cbf533bcac9934e035dafbf614a10ece63217b72119"
+        "efd05000d343eb771b8ffa22b8b7454132357653c374fcc0892fae8e9ed3b22a"
     );
     assert_eq!(
         answer["says"],
         serde_json::json!([
-            "  menu bank: 238 tiles of 448; the composed names ask for 80 of the 210 the menu leaves \
+            "  menu bank: 238 tiles of 448; the composed names ask for 90 of the 210 the menu leaves \
              and 80 of the 210 the slot screen does",
             "  WARNING, 1 actor names in the menu don't fit in 13 cells (104 px) and are cut: \
              \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
             "  WARNING, 1 leader names in the slot screen don't fit in 13 cells (104 px) and are cut: \
              \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
-            "  WARNING, 1 medicine names in the actor choice don't fit in two lines of 11 cells and \
-             are cut: \"Hi-Potion Deluxe Extra\" 132 px, shows \"Hi-Potion / Deluxe\"",
             "  shop text: its lists ask for 127 pairs of tiles at most, of the 191 of the pool",
             "  faces without a palette of their own, drawn with another's: Gus"
         ])
@@ -492,10 +495,14 @@ fn the_screens_as_the_console_shows_them() {
         .unwrap(),
         "929af3e00e87995b68f25ed664c2705c7d2d0748f2a21180df1cfb76048f8b68",
     );
+    // Since 2026-11-02 the item's line goes on top and the party below it
+    // the whole width, with the SP beside the HP, and "Hi-Potion Deluxe
+    // Extra", 132 pixels, fits whole before "Owned": b29e43c5…c14a before.
+    // Looked at, and in ABL's goldens and Zounds'.
     check(
         "target-item",
         render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
-        "b29e43c5e2f793add03289a4e510ebdd1635b5c0ed5e1765df86fcc34b5bc14a",
+        "a2260a8a138e57acc44364d11ee8fbda652cd665f23afbfd20bff0cf23d56fb6",
     );
     check(
         "items",

@@ -154,6 +154,14 @@
 //! `ITEM_TEXT_MORE` line that the cartridge checks against `items_pool`:
 //! `without_item_text_more` takes the line away, and the text is the old
 //! one byte for byte.
+//!
+//! And on 2026-11-02 the actor choice put the item's line on top and the
+//! party below it the whole width: a medicine's name went in one line, a
+//! skill's got its own copy instead of `skill_name_cut`, the SP left the
+//! sprites, and `menu_row_vram` got the pause menu's row after the four.
+//! With the party where it was and each name the old two lines joined
+//! —`with_the_actor_choice_on_top`—, and `without_actor_choice_on_top`,
+//! the text is the old one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -281,6 +289,7 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     with_the_sp_line(&mut value["screens"]);
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
+    with_the_actor_choice_on_top(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
 }
 
@@ -305,20 +314,86 @@ fn with_the_sp_line(screens: &mut serde_json::Value) {
 }
 
 /// The text without what [`with_the_sp_line`] adds: the term's words and
-/// the line's four numbers.
+/// the line's three numbers —four until 2026-11-02, when the actor choice's
+/// SP left the sprites for cells: see [`with_the_actor_choice_on_top`]—.
 fn without_sp_line(text: &str) -> String {
     let label = "\nmenu_sp_finished:\n";
     let at = text.find(label).expect("no menu_sp_finished");
     let start = text[..at].rfind("\n.block ").expect("no .block before it");
     let end = at + label.len() + text[at + label.len()..].find('\n').unwrap() + 1;
     let mut out = format!("{}{}", &text[..start + 1], &text[end..]);
-    let first = out.find("MENU_SP_X ").expect("no MENU_SP_X");
+    let first = out.find("MENU_SP_LETTERS ").expect("no MENU_SP_LETTERS");
     let mut stop = first;
-    for _ in 0..4 {
+    for _ in 0..3 {
         stop += out[stop..].find('\n').unwrap() + 1;
     }
     out.replace_range(first..stop, "");
     out
+}
+
+/// The actor choice with the item's line on top and the party below the
+/// whole width, which came on 2026-11-02, after the requests were written:
+/// its geometry puts the party's rows where they were —from the top, at
+/// the menu's column, seven cells apart— and each medicine's name is its
+/// two old lines in one, as the emission joined them, with what was not
+/// ASCII as the `?` it wrote; the name's width is theirs.
+/// [`without_actor_choice_on_top`] gives the old text back.
+fn with_the_actor_choice_on_top(screens: &mut serde_json::Value) {
+    let mut width = None;
+    for m in screens["texts"]["medicines"].as_array_mut().unwrap() {
+        let name: String = m["lines"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|l| l.as_str().unwrap().chars().collect::<Vec<_>>())
+            .map(|c| if c.is_ascii() { c } else { '?' })
+            .collect();
+        let n = name.chars().count();
+        assert!(width.is_none_or(|w| w == n), "the medicines' names differ");
+        width = Some(n);
+        m["name"] = name.into();
+    }
+    let width = width.expect("no medicines");
+    for skill in screens["skills"].as_object_mut().unwrap().values_mut() {
+        skill["target_name"] = " ".repeat(width).into();
+    }
+    let layout = &mut screens["layout"];
+    layout["TARGET_NAME_WIDTH"] = width.into();
+    layout["TARGET_PARTY_ROW"] = 0.into();
+    layout["TARGET_ROW_CELLS"] = layout["MENU_ACTOR_ROWS"].clone();
+    layout["TARGET_ACTOR_COL"] = layout["MENU_ACTOR_COL"].clone();
+    layout["TARGET_SP_COL"] = 19.into();
+    layout["MENU_SP_TERM_CELLS"] = 2.into();
+}
+
+/// The text as before [`with_the_actor_choice_on_top`]: the name's old
+/// width, 11, without `TARGET_ROW_CELLS`, `menu_row_vram` without the pause
+/// menu's row after the four —see `menu_list_paint`—, and
+/// `MENU_ACTOR_HEIGHT` back, the actor choice's row in lines, which its SP
+/// in sprites read. The SP's own lines go with [`without_sp_line`], and the
+/// skills' names with [`without_skills_screen`].
+fn without_actor_choice_on_top(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("TARGET_NAME_WIDTH = "))
+        .expect("no TARGET_NAME_WIDTH");
+    lines[at] = "TARGET_NAME_WIDTH = 11".to_string();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("TARGET_ROW_CELLS = "))
+        .expect("no TARGET_ROW_CELLS");
+    let cells: i64 = lines[at]["TARGET_ROW_CELLS = ".len()..].parse().unwrap();
+    lines.remove(at);
+    let at = lines.iter().position(|l| l == "menu_row_vram:").unwrap();
+    let (keep, _) = lines[at + 1].rsplit_once(", ").unwrap();
+    lines[at + 1] = keep.to_string();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("MENU_EXP_LETTERS  = "))
+        .expect("no MENU_EXP_LETTERS");
+    lines.insert(at + 1, format!("MENU_ACTOR_HEIGHT = {}", cells * 8));
+    lines.join("\n")
 }
 
 /// The pause menu's scrolling list in the screens stage's answer, which
@@ -828,15 +903,15 @@ fn without_shop_party(text: &str) -> String {
 /// tilemap and bars of zeros, each skill of the battle's test game with
 /// its description in one line of five letters, the odd ones usable on the
 /// map—, and taken out of the text by [`without_skills_screen`]. And the
-/// actor choice for a skill, which came on 2026-10-13: the name cut at its
-/// fourth letter, nothing that raises, one cell of term and a bar of one
+/// actor choice for a skill, which came on 2026-10-13: nothing that raises
+/// —its name is [`with_the_actor_choice_on_top`]'s—, one cell of term and a bar of one
 /// row for each party size.
 fn with_the_skills_screen(screens: &mut serde_json::Value) {
     let mut skills = serde_json::Map::new();
     for id in 1..=200 {
         skills.insert(
             id.to_string(),
-            serde_json::json!({"lines": [5, 6, 0], "field": id % 2 == 1, "revives": false, "name_cut": 4}),
+            serde_json::json!({"lines": [5, 6, 0], "field": id % 2 == 1, "revives": false}),
         );
     }
     screens["skills"] = skills.into();
@@ -955,12 +1030,23 @@ fn without_skills_screen(text: &str) -> String {
         "skill_line2_at:",
         "skill_line2_n:",
         "skill_on_map:",
-        "skill_name_cut:",
+        "skill_target_name:",
     ] {
         let at = lines.iter().position(|l| *l == label).unwrap();
         assert_eq!(lines[at + 1].split(',').count(), carried, "{label}");
         lines.drain(at - 1..=at + 1);
     }
+    // And the names of the ones the map can use, which came on 2026-11-02
+    // where `skill_name_cut` was: a `.block` of `.byte` lines.
+    let at = lines
+        .iter()
+        .position(|l| *l == "skill_target_names:")
+        .unwrap();
+    let mut end = at + 1;
+    while lines[end].starts_with("    .byte ") {
+        end += 1;
+    }
+    lines.drain(at - 1..end);
     let at = lines
         .iter()
         .position(|l| l.starts_with("SK_TXT_LEVEL = "))
@@ -1798,7 +1884,7 @@ fn with_one_font_table_as_before(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "bare"));
-    let text = without_item_text_more(&text);
+    let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
     ))));
@@ -1843,7 +1929,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "whole"));
-    let text = without_item_text_more(&text);
+    let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
     ))));
@@ -1940,6 +2026,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
     with_the_sp_line(&mut value["screens"]);
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
+    with_the_actor_choice_on_top(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -2185,6 +2272,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     with_the_sp_line(&mut value["screens"]);
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
+    with_the_actor_choice_on_top(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 

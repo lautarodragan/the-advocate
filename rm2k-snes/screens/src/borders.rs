@@ -133,15 +133,33 @@ pub enum TargetCursor {
     All(usize),
 }
 
-/// The actor choice's windows: the two on the left with "Owned Items";
-/// with `cursor`, the bar on that party row.
+/// The actor choice's windows: the item's line with "Owned Items"; with
+/// `cursor`, the bar on that party row.
 pub fn target_windows(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result<Picture> {
     target_windows_for(game, skin, TI_TERM_OWNED, cursor.map(TargetCursor::Row))
 }
 
-/// The actor choice's windows with the term `term` in the lower left one
-/// —"Owned Items" for a medicine, the cost's for a skill
-/// (`Window_TargetStatus`)— and the bar where `cursor` says.
+/// Where the actor choice draws the term `term`, right-aligned to the
+/// count —"Owned Items" for a medicine, the cost's for a skill
+/// (`Window_TargetStatus`)—: its x, and the pixels it takes.
+pub fn target_term_x(game: &Game, term: &str) -> Result<(usize, usize)> {
+    let width = game.font.width(&game.term(term)?);
+    let right = TARGET_COUNT_COL * CELL - TARGET_TERM_GAP;
+    Ok((right.saturating_sub(width), width))
+}
+
+/// The pixels the name on the actor choice's line has before the term
+/// `term`, from where a strip starts —`GLYPH_DX` into its first cell— to
+/// `TARGET_TERM_GAP` before the term; and never more than its cells.
+pub fn target_name_room(game: &Game, term: &str) -> Result<usize> {
+    let (x, _) = target_term_x(game, term)?;
+    let start = TARGET_NAME_COL * CELL + GLYPH_DX;
+    Ok(x.saturating_sub(TARGET_TERM_GAP + start)
+        .min(TARGET_NAME_WIDTH * CELL))
+}
+
+/// The actor choice's windows with the term `term` on the item's line,
+/// right-aligned to the count, and the bar where `cursor` says.
 pub fn target_windows_for(
     game: &Game,
     skin: &Skin,
@@ -149,20 +167,22 @@ pub fn target_windows_for(
     cursor: Option<TargetCursor>,
 ) -> Result<Picture> {
     let mut out = windows(skin, &TARGET_WINDOWS);
+    let (x, _) = target_term_x(game, term)?;
     skin.draw_line(
         &mut out,
-        (TARGET_NAME_COL * CELL + GLYPH_DX) as i64,
+        x as i64,
         (TARGET_COUNT_ROW * CELL + GLYPH_DY) as i64,
         &game.term(term)?,
         1,
         &game.font,
     );
     let (x, y, width, height) = TARGET_BAR;
-    let row = MENU_ACTOR_ROWS * CELL;
+    let row = TARGET_ROW_CELLS * CELL;
+    let top = TARGET_PARTY_ROW * CELL + y;
     match cursor {
-        Some(TargetCursor::Row(k)) => bar(skin, &mut out, x, k * row + y, width, height),
+        Some(TargetCursor::Row(k)) => bar(skin, &mut out, x, top + k * row, width, height),
         Some(TargetCursor::All(n)) if n > 0 => {
-            bar(skin, &mut out, x, y, width, (n - 1) * row + height)
+            bar(skin, &mut out, x, top, width, (n - 1) * row + height)
         }
         _ => {}
     }
@@ -261,8 +281,8 @@ pub fn slot_bar_layer(game: &Game, skin: &Skin) -> Result<Screen> {
     })
 }
 
-/// The actor choice, with the bar on each party row, from the first cell
-/// row of the actor's row and into the next one's first: see `MENU_BAR`.
+/// The actor choice, with the bar on each party row, over the row's cell
+/// rows: see `TARGET_BAR`.
 pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
     Ok(Screen {
         background: target_windows(game, skin, None)?,
@@ -270,7 +290,7 @@ pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
             .map(|k| {
                 Ok((
                     target_windows(game, skin, Some(k))?,
-                    k * MENU_ACTOR_ROWS,
+                    TARGET_PARTY_ROW + k * TARGET_ROW_CELLS,
                     BAR_CELL_ROWS,
                 ))
             })
@@ -289,7 +309,7 @@ pub fn target_skill_layer(game: &Game, skin: &Skin) -> Result<Screen> {
             .map(|n| {
                 let picture =
                     target_windows_for(game, skin, TARGET_TERM_COST, Some(TargetCursor::All(n)))?;
-                Ok((picture, 0, MENU_PARTY_ROWS * MENU_ACTOR_ROWS))
+                Ok((picture, 0, ROWS))
             })
             .collect::<Result<_>>()?,
     })
@@ -419,6 +439,8 @@ pub struct CompactTarget {
     /// differs between each party row with the bar and without it, the same
     /// for the four rows.
     pub bars: Vec<Vec<u16>>,
+    /// The rectangle on the first party row, its `row0` counted on the
+    /// screen; the next rows' are `TARGET_ROW_CELLS` further down each.
     pub row0: usize,
     pub rows: usize,
     pub col0: usize,
@@ -445,10 +467,7 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
     let (with_map, bars_with) = &maps[0];
     let mut distinct = std::collections::BTreeSet::new();
     for (k, bar) in bars_with.iter().enumerate() {
-        // The last row's bar reaches past the screen's last cell row: the
-        // tilemap has those rows, nobody sees them, and nothing there is a
-        // difference.
-        let first = k * MENU_ACTOR_ROWS * COLS;
+        let first = (TARGET_PARTY_ROW + k * TARGET_ROW_CELLS) * COLS;
         let base = &with_map[first..(first + BAR_CELL_ROWS * COLS).min(with_map.len())];
         for (i, (a, b)) in base.iter().zip(bar).enumerate() {
             if a != b {
@@ -477,7 +496,8 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
     Ok(CompactTarget {
         map: with_map.clone(),
         bars,
-        row0,
+        // Counted on the screen: the first party row's.
+        row0: TARGET_PARTY_ROW + row0,
         rows,
         col0,
         cols,
@@ -557,8 +577,8 @@ fn differing(a: &[u16], b: &[u16]) -> Option<(usize, usize, usize, usize)> {
 /// The actor choice for a skill as the cartridge stores it: `item` is the
 /// medicine's screen in `borders`' maps, `skill` the one of
 /// [`target_skill_layer`], whose bars take the whole tilemap. If the term
-/// reaches the party's window, it is an error: the bars of one row are
-/// copied from the medicine's tilemap.
+/// reaches the party's rows, it is an error: the bars of one row are copied
+/// from the medicine's tilemap.
 pub fn compact_target_skill(
     item: &(Vec<u16>, Vec<Vec<u16>>),
     skill: &(Vec<u16>, Vec<Vec<u16>>),
@@ -566,9 +586,9 @@ pub fn compact_target_skill(
     let (item_map, _) = item;
     let (skill_map, alls) = skill;
     let term_at = differing(item_map, skill_map).unwrap_or((TARGET_COUNT_ROW, 1, 0, 1));
-    if term_at.2 + term_at.3 > TARGET_LEFT / CELL {
+    if term_at.0 + term_at.1 > TARGET_PARTY_ROW {
         return Err(Bad::answer(
-            "the actor choice's cost term reaches the party's window",
+            "the actor choice's cost term reaches the party's rows",
         ));
     }
     let (r0, rows, c0, cols) = term_at;

@@ -173,14 +173,20 @@ fn strips_asked(
     states.sort_unstable_by(|a, b| b.cmp(a));
     let party: usize = names.iter().take(MENU_PARTY_ROWS).sum::<usize>()
         + states.iter().take(MENU_PARTY_ROWS).sum::<usize>();
-    let medicine = medicines
+    // The actor choice's line on top: a medicine's name, or a skill's the
+    // map can use —the skills screen opens it too—.
+    let mut on_top: Vec<String> = medicines
         .iter()
-        .map(|(_, name)| {
-            texts::name_in_lines(&game.font, name, TARGET_NAME_WIDTH, 2)
-                .iter()
-                .map(|line| strip_tiles(game, line, TARGET_NAME_WIDTH))
-                .sum::<usize>()
-        })
+        .map(|&(n, _)| texts::target_name(game, n))
+        .collect::<Result<_>>()?;
+    for (&id, skill) in &game.skills {
+        if rm2k_rules::skill::usable_on_the_map(skill, &game.states) {
+            on_top.push(crate::skills::target_name(game, id)?);
+        }
+    }
+    let medicine = on_top
+        .iter()
+        .map(|stored| strip_tiles(game, stored, TARGET_NAME_WIDTH))
         .max()
         .unwrap_or(0);
     Ok((party, medicine, request.slots * leaders))
@@ -346,27 +352,21 @@ fn names_in_cells(
             &cut,
         ));
     }
-    let cut: Vec<(String, String)> = medicines
-        .iter()
-        .filter_map(|(_, name)| {
-            let lines = texts::name_in_lines(font, name, TARGET_NAME_WIDTH, 2);
-            let shown: Vec<&str> = lines
-                .iter()
-                .map(|l| l.trim_end())
-                .filter(|l| !l.is_empty())
-                .collect();
-            let shown = shown.join(" / ");
-            // A word may go on in the next line: what counts is that every
-            // letter shows.
-            let letters = |t: &str| t.chars().filter(|c| !c.is_whitespace()).collect::<String>();
-            (letters(&lines.concat()) != letters(&item_text(name, usize::MAX)))
-                .then(|| (name.clone(), shown))
-        })
-        .collect();
+    // The actor choice's line on top: a name has the room before the term,
+    // right-aligned to the count.
+    let mut cut = Vec::new();
+    for (n, name) in medicines {
+        let shown = texts::strip_text(font, &texts::target_name(game, *n)?, TARGET_NAME_WIDTH);
+        let whole = item_text(name, usize::MAX);
+        if shown != whole.trim_end() {
+            cut.push((whole, shown));
+        }
+    }
+    let room = crate::borders::target_name_room(game, TI_TERM_OWNED)?;
     says.extend(cut_names(
         font,
         "medicine names in the actor choice",
-        &format!("two lines of {TARGET_NAME_WIDTH} cells"),
+        &format!("the {room} px before {:?}", game.term(TI_TERM_OWNED)?),
         &cut,
     ));
     let mut cut = Vec::new();
@@ -943,10 +943,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
     let medicine_names: Vec<Value> = medicines
         .iter()
-        // The actor choice writes them with the menu's bank, which carries
-        // no icon.
-        .map(|(n, name)| json!({"number": n, "lines": texts::name_in_lines(&game.font, &rm2k_snes_text::exfont::without_icons(name), TARGET_NAME_WIDTH, 2)}))
-        .collect();
+        // On the actor choice's line on top: see `texts::target_text`.
+        .map(|&(n, _)| Ok(json!({"number": n, "name": texts::target_name(game, n)?})))
+        .collect::<Result<_>>()?;
     let params: Vec<String> = ["attack", "defense", "spirit", "agility"]
         .iter()
         .map(|t| Ok(game.term(t)?.chars().take(EQ_PARAM_VALUE - 1).collect()))

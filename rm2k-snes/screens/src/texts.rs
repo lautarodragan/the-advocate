@@ -34,6 +34,36 @@ pub fn item_text(text: &str, width: usize) -> String {
         .collect()
 }
 
+/// A name as the actor choice stores it for its line on top: [`item_text`],
+/// its ExFont icons included —the menu's bank, where it is composed,
+/// carries the screens' glyphs—, cut where it reaches `room` pixels —the
+/// term's, see `borders::target_name_room`— and padded to
+/// `TARGET_NAME_WIDTH` letters. The cartridge composes it whole,
+/// `tl_strip`: it fits in that many cells.
+///
+/// Until 2026-11-02 the emission turned every letter that was not ASCII
+/// into a `?`, without the plain stand-ins, and dropped the icons: Zounds'
+/// "Poción Verde" showed "Poci?n" here and its icon and "Pocion" in the
+/// item list.
+pub fn target_text(font: &Font, name: &str, room: usize) -> String {
+    let mut width = 0;
+    let shown: String = item_text(name, TARGET_NAME_WIDTH)
+        .chars()
+        .take_while(|&c| {
+            width += font.advance(c);
+            width <= room
+        })
+        .collect();
+    ljust(&shown, TARGET_NAME_WIDTH)
+}
+
+/// Item `item`'s name on the actor choice, before "Owned Items":
+/// [`target_text`].
+pub fn target_name(game: &Game, item: i32) -> Result<String> {
+    let room = crate::borders::target_name_room(game, TI_TERM_OWNED)?;
+    Ok(target_text(&game.font, &game.item_name(item)?, room))
+}
+
 /// The ExFont icons the text screens draw: those of the database's items
 /// and skills —their names, their descriptions and what a skill says when
 /// it is used—, the texts the items, equipment, shop and battle screens
@@ -217,48 +247,6 @@ pub fn description_spans(font: &Font, text: &str) -> [(usize, usize); ITEM_DESC_
         start = next;
     }
     out
-}
-
-/// A name split into `rows` lines of `width` cells, by words; a word that
-/// does not fit is cut where it reaches. A line fits if it is no wider than
-/// its cells' pixels and has no more letters than cells —the cartridge keeps
-/// `width` letters per line—. Padded with spaces to `width` letters: the
-/// cartridge drops the padding when it composes the line.
-pub fn name_in_lines(font: &Font, name: &str, width: usize, rows: usize) -> Vec<String> {
-    let fits = |text: &str| text.chars().count() <= width && font.width(text) <= 8 * width;
-    let mut out = Vec::new();
-    let mut line = String::new();
-    for word in name.split_whitespace() {
-        let mut word: String = word.to_string();
-        while !fits(&word) {
-            if !line.is_empty() {
-                out.push(std::mem::take(&mut line));
-            }
-            let mut cut = String::new();
-            for c in word.chars() {
-                cut.push(c);
-                if !fits(&cut) {
-                    cut.pop();
-                    break;
-                }
-            }
-            word = word.chars().skip(cut.chars().count()).collect();
-            out.push(cut);
-        }
-        if line.is_empty() {
-            line = word;
-        } else if fits(&format!("{line} {word}")) {
-            line = format!("{line} {word}");
-        } else {
-            out.push(std::mem::replace(&mut line, word));
-        }
-    }
-    if !line.is_empty() {
-        out.push(line);
-    }
-    out.resize(out.len().max(rows), String::new());
-    out.truncate(rows);
-    out.iter().map(|r| ljust(r, width)).collect()
 }
 
 /// What the cartridge composes of a text that may take `cells` cells: the
@@ -471,18 +459,18 @@ mod tests {
     }
 
     #[test]
-    fn a_long_word_is_cut_where_it_reaches() {
-        // RM2k's font, six pixels a letter: 11 cells are 88 pixels, and 14
-        // letters would fit in them, but a line keeps 11.
+    fn the_actor_choice_stands_in_for_what_the_font_lacks() {
+        // Zounds' Green Potion: its `ó` as the item list writes it, not a
+        // `?`; padded to the name's letters, which the cartridge keeps.
         let font = Font::rm2k(rm2k_snes_text::font::MINCHO);
-        assert_eq!(
-            name_in_lines(&font, "Sandwich-HP", 11, 2),
-            vec!["Sandwich-HP".to_string(), " ".repeat(11)]
-        );
-        assert_eq!(
-            name_in_lines(&font, "Supercalifragilistic", 11, 2),
-            vec!["Supercalifr".to_string(), "agilistic  ".to_string()]
-        );
+        let stored = target_text(&font, "Poción Verde", 128);
+        assert_eq!(stored.trim_end(), "Pocion Verde");
+        assert_eq!(stored.chars().count(), TARGET_NAME_WIDTH);
+        // RM2k's twenty letters, whole while they have room —six pixels a
+        // letter here—, and cut by pixels where they do not.
+        let long = "Supercalifragilistic";
+        assert_eq!(target_text(&font, long, 120).trim_end(), long);
+        assert_eq!(target_text(&font, long, 60).trim_end(), "Supercalif");
     }
 
     #[test]
