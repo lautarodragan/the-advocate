@@ -9,6 +9,14 @@
 ; with `jmp run_code::other` or ends the frame with `rts`.
 
 .proc op_teleport
+.ifdef TELEPORT_FACING
+    ; A `Teleport` that keeps the facing writes so, and does not leave the
+    ; byte as it finds it: a jump replaces the one pending in the frame,
+    ; facing and all, which is `ReserveTeleport`'s.
+    lda #0
+facing:
+    sta jump_facing
+.endif
     rep #$20
 .a16
     lda [code_ptr], y           ; the map, as a word since the format has
@@ -53,6 +61,57 @@ ends_the_frame:
     sty ev_cur
     rts
 .endproc
+
+.ifdef TELEPORT_FACING
+; RPG Maker 2003's `Teleport` with a facing: the direction, plus one, to
+; `jump_facing` —zero there is keeping it—, and the rest is `op_teleport`'s,
+; with Y already on the map. It is not turned here but on the black frame the
+; hero is placed in: see `teleport_face`.
+.proc op_teleport_facing
+    lda [code_ptr], y
+    iny
+    inc a
+    jmp op_teleport::facing
+.endproc
+
+.pushseg
+.segment "BSS"
+; The facing the pending jump leaves the hero with, plus one, or zero to keep
+; his: `jump_map`'s, which has no room left in the direct page for it.
+jump_facing: .res 1
+.popseg
+
+.pushseg
+.segment "FAR"
+; The facing a `Teleport` asked for, on the black frame the hero is placed
+; in, from `load_requested`: after the erase, as `Game_Player::
+; PerformTeleport` does, so the turn does not show on the map being left.
+; Its `SetDirection`, which is `hero_heading`, always; its `UpdateFacing`,
+; which is `hero_dir`, not over `hero_lock` —the same as a jump's turn in
+; oam.s—.
+.proc teleport_face
+.a8
+.i16
+    lda jump_facing
+    beq keep
+    stz jump_facing
+    dec a
+    sta hero_heading
+    lda hero_lock
+    bne keep
+    lda hero_heading
+    sta hero_dir
+keep:
+    rtl
+.endproc
+.popseg
+.else
+; Without a `Teleport` that asks for a facing in the cartridge —every RM2k
+; game's— the compiler never emits it, and it ends the page like a number
+; that is not an opcode: the cartridge only pays for its entry in the
+; dispatch.
+op_teleport_facing = page_ends
+.endif
 
 
 ; `MemorizeLocation` and `RecallToLocation`: like `op_heal`, only the entry

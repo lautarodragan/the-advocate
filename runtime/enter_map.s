@@ -890,6 +890,9 @@ on:
     jsl f:bgm_level_here
     jsr music_start
 made:
+.ifdef TELEPORT_FACING
+    jsl f:teleport_face         ; and where the jump asked him to face
+.endif
     stz fade_kind
     ; And OAM, which otherwise keeps the one of the map that was left. The
     ; loop does not rebuild it while the fade lasts —`build_oam` is one of the

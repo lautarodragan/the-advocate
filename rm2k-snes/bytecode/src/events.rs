@@ -441,6 +441,17 @@ bytecode! {
     /// face is a face of its own: the converter emits it flipped. See
     /// `face_change` in the runtime's `message_face.s`.
     OP_FACE = 0x55 (face: word, right: byte);
+
+    /// RPG Maker 2003's `Teleport` with a facing, its fourth parameter: the
+    /// same jump as `OP_TELEPORT`, and the hero faces `direction` —0 up, 1
+    /// right, 2 down, 3 left— from the black frame the map changes in, as
+    /// `Game_Player::PerformTeleport` does after the erase. A `Teleport` that
+    /// keeps the facing is `OP_TELEPORT`: an RM2k game never asks for this,
+    /// and a cartridge where no `Teleport` does assembles none of it —the
+    /// opcode ends the page there, and only its entry in the dispatch is
+    /// left—. See `op_teleport_facing` in the runtime's
+    /// `interpreter_teleport.s`.
+    OP_TELEPORT_FACING = 0x56 (direction: byte, map: word, x: word, y: word);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and

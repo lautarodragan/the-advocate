@@ -115,6 +115,9 @@ found:
     sta jump_y
     sep #$20
 .a8
+.ifdef TELEPORT_FACING
+    stz jump_facing             ; it keeps the facing: `ReserveTeleport`'s -1
+.endif
     sec
     rtl
 

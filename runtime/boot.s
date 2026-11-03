@@ -82,6 +82,9 @@ erase_switches:
     sta tint_b
     sta tint_s
     stz jump_has
+.ifdef TELEPORT_FACING
+    stz jump_facing             ; RAM starts with garbage, and it would turn him
+.endif
     lda #$FF                    ; no song remembered, like a new
     sta f:REMEMBERED_SONG       ; game: see `op_memorized_bgm`
     stz anim_pend               ; RAM starts with garbage and this triggers DMAs
