@@ -55,8 +55,15 @@ pub struct Text {
 
 impl Text {
     /// From the screens' answer: the window's `color`, `shadow` and `cgram`.
+    /// `None` in a cartridge whose boxes type colours: a colour's glyph rows
+    /// take other entries of the window's —its ink, its nearest—, which the
+    /// layer's palettes would not hold, so its windows keep the old look and
+    /// nothing is baked for them.
     pub fn of(screens: &serde_json::Value) -> Option<Text> {
         let window = screens.get("window")?;
+        if window.get("ink").and_then(serde_json::Value::as_i64).unwrap_or(0) > 0 {
+            return None;
+        }
         let cgram: Vec<u16> = window
             .get("cgram")?
             .as_array()?
