@@ -111,7 +111,7 @@ pub enum Baked {
     /// No room for copies: `merged` colours of the layer were merged into
     /// their nearest to leave the text's entries to the text, in the
     /// layer's own palettes.
-    Merged { merged: usize },
+    Merged { merged: usize, far: u32 },
 }
 
 /// Every map of a cartridge that shows some message without its
@@ -133,10 +133,10 @@ pub fn bake_all(request: &mut Emit) -> Vec<String> {
                  layer above give way to the text's inside the cells with letters",
                 map.id
             )),
-            Ok(Some(Baked::Merged { merged })) => notes.push(format!(
+            Ok(Some(Baked::Merged { merged, far })) => notes.push(format!(
                 "  map {}: for a message without its background, the layer above merges {merged} \
-                 colour(s) to leave the text's entries to the text: its palettes have no room \
-                 for them and the map none for copies",
+                 colour(s), {far} apart at most, to leave the text's entries to the text: its \
+                 palettes have no room for them and the map none for copies",
                 map.id
             )),
             Ok(_) => {}
@@ -232,10 +232,28 @@ pub fn bake(map: &mut Map, text: &Text, reserved: usize) -> Result<Option<Baked>
         first >= 2 * palettes && background_end <= (first - palettes) * COLORS_PER_PALETTE;
     let in_place = fits || !copies;
     let mut merged = 0;
+    let mut farthest = 0;
     if !fits && !copies {
-        for p in 0..palettes {
-            merged += merge_down(map, &palette_of, p, &weight[p], room);
+        let plans: Vec<(Vec<usize>, usize, u32)> = (0..palettes)
+            .map(|p| merge_plan(map, &palette_of, p, &weight[p], room))
+            .collect();
+        let far = plans.iter().map(|plan| plan.2).max().unwrap_or(0);
+        if far > MERGE_FAR {
+            return Err(format!(
+                "its layer has no room for the text's {} colours, the map none for copies, and \
+                 merging would take colours {far} apart, past {MERGE_FAR}",
+                text.entries.len()
+            ));
         }
+        for (p, (to, n, _)) in plans.iter().enumerate() {
+            merged += n;
+            for (t, tile) in map.above_tiles.chunks_exact_mut(TILE_BYTES).enumerate() {
+                if palette_of[t] == Some(p) {
+                    remap(tile, to);
+                }
+            }
+        }
+        farthest = far;
     }
     let mut gave = 0;
     for p in 0..palettes {
@@ -266,7 +284,7 @@ pub fn bake(map: &mut Map, text: &Text, reserved: usize) -> Result<Option<Baked>
     }
     if in_place {
         map.layer_text = IN_PLACE;
-        Ok(Some(if fits { Baked::InPlace } else { Baked::Merged { merged } }))
+        Ok(Some(if fits { Baked::InPlace } else { Baked::Merged { merged, far: farthest } }))
     } else {
         map.layer_text = palettes as u8;
         Ok(Some(Baked::Copies { gave }))
@@ -299,22 +317,33 @@ fn palette_words(map: &Map, p: usize) -> Vec<u16> {
         .collect()
 }
 
+/// How far apart two colours the layer merges may be at most, as
+/// [`distance`] measures them: some two steps of 31 on two channels, or one
+/// on each. A map whose merges would go further keeps the old look instead
+/// —see [`bake`]—. Measured on A Blurred Line on 2026-11-14: of the 37 maps
+/// with no room for the text nor for copies, 11 merge within it —map 6's
+/// fence, greys 14 apart at most, among them— and the farthest of the
+/// others would have merged colours 174 apart.
+pub const MERGE_FAR: u32 = 14;
+
 /// Palette `p` of the layer down to `room` colours: the least visible one
 /// —its weight times how far it is from its nearest— into its nearest, one
-/// at a time, in the pixels of the tiles drawn with it. Returns how many.
-fn merge_down(
-    map: &mut Map,
+/// at a time. Returns where each entry goes, how many merge, and how far
+/// apart the farthest two that merge are; nothing is changed yet.
+fn merge_plan(
+    map: &Map,
     palette_of: &[Option<usize>],
     p: usize,
     weight: &[u64; COLORS_PER_PALETTE],
     room: usize,
-) -> usize {
+) -> (Vec<usize>, usize, u32) {
     let words = palette_words(map, p);
     let used = used(map, palette_of, p);
     let mut weight = *weight;
     let mut live: Vec<usize> = (1..COLORS_PER_PALETTE).filter(|&k| used[k]).collect();
     let mut to: Vec<usize> = (0..COLORS_PER_PALETTE).collect();
     let mut merged = 0;
+    let mut far = 0;
     while live.len() > room {
         let nearest = |k: usize, live: &[usize]| {
             live.iter()
@@ -336,19 +365,13 @@ fn merge_down(
                 *t = into;
             }
         }
+        far = far.max(distance(words[gone], words[into]));
         weight[into] += weight[gone];
         weight[gone] = 0;
         live.retain(|&k| k != gone);
         merged += 1;
     }
-    if merged > 0 {
-        for (t, tile) in map.above_tiles.chunks_exact_mut(TILE_BYTES).enumerate() {
-            if palette_of[t] == Some(p) {
-                remap(tile, &to);
-            }
-        }
-    }
-    merged
+    (to, merged, far)
 }
 
 /// Where each entry of a palette goes: off the text's slots if there is

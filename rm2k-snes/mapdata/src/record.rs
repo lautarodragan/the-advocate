@@ -1299,7 +1299,7 @@ fn arrow_notes(maps: &[Map]) -> Result<Vec<String>> {
         if let Err(why) = arrow_room(map)? {
             notes.push(format!(
                 "  map {}: the message arrow stays in the window's cells, and a window without its \
-                 background keeps the layer above off its bottom row: {why}",
+                 background that does not carry the layer above keeps it off its bottom row: {why}",
                 map.id
             ));
         }

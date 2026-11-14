@@ -213,7 +213,8 @@ fn what_it_says_is_what_the_python_said() {
             // A made-up map whose pictures take four palettes from the top
             // and its battle animation's box the sixth from the bottom.
             "  map 8: the message arrow stays in the window's cells, and a window without its \
-             background keeps the layer above off its bottom row: its 8 sprite palettes are taken: \
+             background that does not carry the layer above keeps it off its bottom row: its 8 \
+             sprite palettes are taken: \
              up to 5 by the characters and the battle animation's box, and the top 4 by the pictures"
         ]
     );
