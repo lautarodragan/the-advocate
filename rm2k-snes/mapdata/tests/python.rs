@@ -194,7 +194,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "20e390800ee76ba822286a03ea4f55123e754cce30d97a1e0131b18745dec4bb"
     );
     assert_eq!(
-        sha(&without_arrow_objs(&without_pose_masks(&written.tables))),
+        sha(&without_arrow_objs(&without_pose_masks(&without_layer_texts(&written.tables)))),
         "c0cc2585dfd0de58f4e76cb7b6421853fa72f31a6c9fa2e7d307310bf9b38a55"
     );
 }
@@ -213,7 +213,8 @@ fn what_it_says_is_what_the_python_said() {
             // A made-up map whose pictures take four palettes from the top
             // and its battle animation's box the sixth from the bottom.
             "  map 8: the message arrow stays in the window's cells, and a window without its \
-             background keeps the layer above off its bottom row: its 8 sprite palettes are taken: \
+             background that does not carry the layer above keeps it off its bottom row: its 8 \
+             sprite palettes are taken: \
              up to 5 by the characters and the battle animation's box, and the top 4 by the pictures"
         ]
     );
@@ -736,9 +737,11 @@ fn with_the_shop_party(screens: &mut serde_json::Value) {
 /// cells, checked here to be the made-up ones of
 /// [`with_the_system_cursors`].
 fn with_the_cursors_as_before(text: &str, name: &str) -> String {
-    let with_cursor = rm2k_snes_mapdata::emit::emit(&emit_request_with(name, 1), &db())
-        .unwrap()
-        .text;
+    let with_cursor = without_layer_texts(
+        &rm2k_snes_mapdata::emit::emit(&emit_request_with(name, 1), &db())
+            .unwrap()
+            .text,
+    );
     let request: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(here().join(format!("tests/emit-{name}.json"))).unwrap(),
     )
@@ -1323,6 +1326,29 @@ fn without_common_pictures(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The `layer_texts` table and `LAYER_TEXT_ENTRIES`, since 2026-11-14: a
+/// message without its background over the layer above —see `layer_text`—.
+/// None of these requests shows one, so every map's byte is 0 and nothing
+/// else of the text changes.
+fn without_layer_texts(text: &str) -> String {
+    let mut text = text.to_string();
+    let head = "\n;\n.segment \"RODATA\"\n; How many palettes under the layer above's";
+    let at = text.find(head).expect("the layer_texts table");
+    let lines: Vec<&str> = text[at + 1..].split('\n').collect();
+    assert_eq!(lines[4], "layer_texts:");
+    let bytes: Vec<&str> = lines[5].trim_start_matches("    .byte ").split(", ").collect();
+    assert_eq!(lines[3], format!(".block {}", bytes.len()));
+    assert!(bytes.iter().all(|b| *b == "0"), "{}", lines[5]);
+    let end = lines[..6].iter().map(|l| l.len() + 1).sum::<usize>();
+    text = format!("{}{}", &text[..at], &text[at + 1 + end..]);
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    if let Some(at) = lines.iter().position(|l| l.starts_with("LAYER_TEXT_ENTRIES = $")) {
+        assert_eq!(lines[at + 1], "");
+        lines.drain(at..at + 2);
+    }
+    lines.join("\n")
+}
+
 fn without_arrow_objs(text: &str) -> String {
     let mut text = text.to_string();
     let head = "\n.segment \"RODATA\"\n; Where a window without its background draws its arrow";
@@ -1883,7 +1909,7 @@ fn with_one_font_table_as_before(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "bare"));
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted.text), "bare"));
     let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
@@ -1928,7 +1954,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&emitted.text, "whole"));
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted.text), "whole"));
     let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),

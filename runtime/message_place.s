@@ -481,6 +481,9 @@ draws:
     ora f:line_band, x
     sta f:MSG_ROWS
 done:
+.ifdef layer_text_on
+    jsl f:msg_layer_line        ; and whether it carries the layer above
+.endif
     plx
     rtl
 .endproc

@@ -192,6 +192,9 @@ cell:
 .endif
     sep #$20
 .a8
+.ifdef layer_text_on
+    jsl f:msg_layer_arrow       ; off, over the layer above: message_layer.s
+.endif
     rtl
 .endproc
 

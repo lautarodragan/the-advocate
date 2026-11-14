@@ -131,6 +131,14 @@ with_plane:
 .a8
     lda #0
     sta f:MSG_FACE_SHOWN
+.ifdef layer_text_on
+    sta f:LAYER_USED            ; nor the layer above: see message_layer.s
+    sta f:LAYER_STEP            ; and no line waits for it: the WRAM does not
+    sta f:LAYER_ON              ; boot at zero
+    sta f:LAYER_OWED
+    sta f:LAYER_PRE
+    sta f:LAYER_DIRTY
+.endif
     lda #$01
     sta DMAP0
     lda #$18
@@ -745,6 +753,9 @@ LINE_LATEST = 261 - 12 - 1 - 2
     ; cells in the window's tilemap and the HDMA table of its palette, if it
     ; has one. See message_face.s.
     jsl f:msg_face_vblank
+.ifdef layer_text_on
+    jsl f:msg_layer_ahead       ; and the next line's layer above, ahead
+.endif
     rtl
 late:
     sep #$20

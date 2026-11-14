@@ -239,6 +239,13 @@ typing:
 no_key:
     lda f:MSG_WAIT
     beq done
+.ifdef layer_text_on
+    ; A frame the layer above held the box is paid back here: see
+    ; `msg_layer_owed`.
+    jsl f:msg_layer_owed
+    bcs no_key
+    lda f:MSG_WAIT
+.endif
     dec a
     sta f:MSG_WAIT
 stopped:
@@ -340,6 +347,13 @@ done:
 .a8
 .i16
     phx
+.ifdef layer_text_on
+    ; Nothing while the line's layer above is being read, and the frame is
+    ; owed to the box: see message_layer.s.
+    jsl f:msg_layer_wait
+    bcc again
+    jmp stop
+.endif
 again:
     lda f:MSG_BUDGET
     beq stop
@@ -350,6 +364,23 @@ again:
     bne stop
     lda f:MSG_WAIT
     beq go
+.ifdef layer_text_on
+    jsl f:msg_layer_owed        ; or a frame the layer above held it
+    bcc not_owed
+    ; And the composer's count of passes, which this keeps in X and pulls
+    ; at the end, a frame's more as well: see `msg_layer_owed`.
+    rep #$20
+.a16
+    lda 1, s
+    clc
+    adc #MSG_CHARS
+    sta 1, s
+    sep #$20
+.a8
+    bra again
+not_owed:
+    lda f:MSG_WAIT
+.endif
     dec a                       ; RPG_RT's loop: the wait counts this frame
     sta f:MSG_WAIT
     bra stop
@@ -755,6 +786,12 @@ late:
     sep #$20
 .a8
 no_typed:
+.ifdef layer_text_on
+    ; The layer above on the window's lines, which may hold the tables
+    ; back: see message_layer.s.
+    jsl f:msg_layer_vblank
+    bcs done
+.endif
     lda f:MSG_PLACE
     and #MSG_BARE
     beq done
@@ -887,6 +924,9 @@ some:
 .proc ink_dirty
 .a16
 .i16
+.ifdef layer_text_on
+    jsl f:msg_layer_ink         ; and the cells it inked: message_layer.s
+.endif
     lda comp_base
     lsr a
     lsr a

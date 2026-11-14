@@ -1764,6 +1764,14 @@ pub fn run(options: Options) -> Result<()> {
         &game.db.common_events,
         &file_commands,
     ));
+    // And whether some `MessageOptions` takes the window's background away,
+    // which bakes the maps' layers above for it: see
+    // `scan::transparent_messages`.
+    request["transparent_messages"] = json!(scan::transparent_messages(
+        every_refs.iter().copied(),
+        &game.db.common_events,
+        &file_commands,
+    ));
     // And the common events' small pictures, by set: see
     // [`crate::common_pictures`]. Only when there are some.
     if !common_small.emit.is_empty() {

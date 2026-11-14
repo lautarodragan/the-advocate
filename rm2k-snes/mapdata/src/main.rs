@@ -306,6 +306,7 @@ fn do_emit(args: &EmitArgs) -> Result<()> {
         }
     }
     let mut notes: Vec<String> = cut.into_iter().map(|(_, note)| note).collect();
+    notes.extend(rm2k_snes_mapdata::layer_text::bake_all(&mut request));
     let db = rm2k_snes_battle::db::Db::from_dump(&args.data, true)
         .map_err(|b| Bad::answer(b.message().to_string()))?;
     let emitted = rm2k_snes_mapdata::emit::emit(&request, &db)?;

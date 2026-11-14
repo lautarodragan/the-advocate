@@ -107,6 +107,22 @@ pub fn teleports_with_a_facing<'a>(
         || maps.into_iter().any(|m| m.all_commands().any(faces))
 }
 
+/// Whether some `MessageOptions` of these maps, of the common events or of
+/// `extra` takes the window's background away —its first parameter at
+/// 1—: then the emission bakes every map with a layer above for a message
+/// over it, see `layer_text` in rm2k-snes-mapdata. Over every page,
+/// whether it compiles or not, as the others here.
+pub fn transparent_messages<'a>(
+    maps: impl IntoIterator<Item = &'a GameMap>,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    extra: &[Command],
+) -> bool {
+    let bare = |c: &Command| c.code == MESSAGE_OPTIONS && c.parameters.first() == Some(&1);
+    extra.iter().any(bare)
+        || common_events.values().flatten().any(bare)
+        || maps.into_iter().any(|m| m.all_commands().any(bare))
+}
+
 /// Whether some message box of the cartridge's maps, its common events or
 /// `extra` types a text colour other than 0, `\c[n]`: then the message
 /// window keeps an entry for the box's ink —see `inks` in

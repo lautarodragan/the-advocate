@@ -236,6 +236,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "message_arrow.s"
 .include "message_pace.s"
 .include "message_face.s"
+.include "message_layer.s"
 .include "custom_menu.s"
 .include "skills_screen.s"
 .include "pano.s"

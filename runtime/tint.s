@@ -684,6 +684,11 @@ no_leader_pal:
 .ifdef sand_table
     jsl f:sand_colors           ; the sandstorm's grains, out of its overlay
 .endif
+.ifdef layer_text_on
+    ; And the text's copies of the layer's palettes, with the window's
+    ; colours untinted: see message_layer.s.
+    jsl f:layer_text_tint
+.endif
     rts
 .endproc
 
@@ -797,6 +802,9 @@ no_backdrop:
 .a8
     lda #128
     jsr dma_shadow
+.ifdef layer_text_on
+    jsl f:layer_text_upload     ; and the text's copies: message_layer.s
+.endif
     jmp upload_timer_pal
 .endproc
 ; A DMA of `tint_count` colors from `shadow_origin` to CGRAM entry A.
