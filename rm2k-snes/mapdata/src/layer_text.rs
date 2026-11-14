@@ -239,9 +239,14 @@ pub fn bake(map: &mut Map, text: &Text, reserved: usize) -> Result<Option<Baked>
             .collect();
         let far = plans.iter().map(|plan| plan.2).max().unwrap_or(0);
         if far > MERGE_FAR {
+            let how = if far == u32::MAX {
+                "would take some colour's tint away".to_string()
+            } else {
+                format!("would take colours {far} apart, past {MERGE_FAR}")
+            };
             return Err(format!(
                 "its layer has no room for the text's {} colours, the map none for copies, and \
-                 merging would take colours {far} apart, past {MERGE_FAR}",
+                 merging {how}",
                 text.entries.len()
             ));
         }
@@ -321,9 +326,12 @@ fn palette_words(map: &Map, p: usize) -> Vec<u16> {
 /// [`distance`] measures them: some two steps of 31 on two channels, or one
 /// on each. A map whose merges would go further keeps the old look instead
 /// —see [`bake`]—. Measured on A Blurred Line on 2026-11-14: of the 37 maps
-/// with no room for the text nor for copies, 11 merge within it —map 6's
+/// with no room for the text nor for copies, 4 merge within it —map 6's
 /// fence, greys 14 apart at most, among them— and the farthest of the
-/// others would have merged colours 174 apart.
+/// others would have merged colours 174 apart. And a merge that changes a
+/// colour's tint —the spread of its channels— by more than a step is far
+/// however near it is: map 32's ship would have lost its dull reds into its
+/// browns merging colours 6 apart.
 pub const MERGE_FAR: u32 = 14;
 
 /// Palette `p` of the layer down to `room` colours: the least visible one
@@ -365,7 +373,15 @@ fn merge_plan(
                 *t = into;
             }
         }
-        far = far.max(distance(words[gone], words[into]));
+        // A merge that takes a colour's tint away —a dull red into a brown,
+        // as map 32's ship would have— counts as far, however near: see
+        // `MERGE_FAR`.
+        let tint = |w: u16| {
+            let c = [w & 31, (w >> 5) & 31, (w >> 10) & 31];
+            c.iter().max().unwrap() - c.iter().min().unwrap()
+        };
+        let dulls = tint(words[gone]).abs_diff(tint(words[into])) > 1;
+        far = far.max(if dulls { u32::MAX } else { distance(words[gone], words[into]) });
         weight[into] += weight[gone];
         weight[gone] = 0;
         live.retain(|&k| k != gone);
