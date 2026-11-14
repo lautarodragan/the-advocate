@@ -22,6 +22,7 @@ const PROGRAM: u8 = 0xC0;
 const BEND_STATUS: u8 = 0xE0;
 const META: u8 = 0xFF;
 const TEMPO: u8 = 0x51;
+const END_OF_TRACK: u8 = 0x2F;
 /// The standard's channel 10, counting from zero.
 pub const DRUM_CHANNEL: u8 = 9;
 
@@ -115,7 +116,49 @@ pub struct Midi {
     /// The first program of each channel.
     pub programs: BTreeMap<u8, u8>,
     pub controls: Vec<Control>,
+    /// Where RPG_RT's loop goes: see [`Bounds`].
+    pub bounds: Bounds,
 }
+
+/// What RPG_RT's loop needs from the file, in ticks, as easyrpg-player
+/// reads it (`midisequencer.cpp`): the song ends at the **file's last
+/// event** —the end-of-track of its longest track, not its last note—,
+/// goes back to the last CC111 of any channel or to the start if there is
+/// none, and the first time starts at the first [`Mark`]. See
+/// [`Midi::rm2k_loop`].
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Bounds {
+    pub end: i64,
+    /// The last CC111, which is the one RPG_RT keeps.
+    pub loop_tick: Option<i64>,
+    /// The first [`Mark`] in the order the sequencer reads them: by tick,
+    /// and with a tie, the earlier track.
+    pub first: Option<(i64, Mark)>,
+}
+
+/// What decides where the first pass starts: see [`Midi::rm2k_loop`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Mark {
+    /// A note-on, also with velocity 0.
+    Note,
+    /// A CC111.
+    Loop,
+    /// A SysEx that starts with `F0`; the `F7` ones easyrpg drops.
+    SysEx,
+}
+
+/// RPG_RT's loop in seconds: see [`Midi::rm2k_loop`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Loop {
+    /// Where the first pass starts.
+    pub start: f64,
+    /// Where it goes back to on reaching `end`.
+    pub to: f64,
+    pub end: f64,
+}
+
+/// The loop control: a CC111, on any channel.
+const LOOP_CONTROLLER: u8 = 111;
 
 fn varlen(data: &[u8], mut pos: usize) -> Result<(i64, usize)> {
     let mut value: i64 = 0;
@@ -154,8 +197,17 @@ fn track(
     tempos: &mut Vec<(i64, i64)>,
     programs: &mut BTreeMap<u8, u8>,
     raw: &mut Vec<Raw>,
+    bounds: &mut Bounds,
 ) -> Result<()> {
     let mut time: i64 = 0;
+    let mut end_of_track = None;
+    // Only the track's first mark: it is the earliest of this track, and a
+    // later track only wins with an earlier tick.
+    let mark = |time: i64, kind: Mark, bounds: &mut Bounds| {
+        if bounds.first.is_none_or(|(t, _)| time < t) {
+            bounds.first = Some((time, kind));
+        }
+    };
     let mut status: u8 = 0;
     // (channel, pitch) -> index in `notes` of the note sounding there.
     let mut sounding: Vec<((u8, u8), usize)> = Vec::new();
@@ -184,13 +236,22 @@ fn track(
                 let us = bytes.iter().fold(0i64, |v, &b| v << 8 | b as i64);
                 tempos.push((time, us));
             }
+            if meta == END_OF_TRACK && end_of_track.is_none() {
+                end_of_track = Some(time);
+            }
             pos += length as usize;
         } else if status == 0xF0 || status == 0xF7 {
+            if status == 0xF0 {
+                mark(time, Mark::SysEx, bounds);
+            }
             let (length, p) = varlen(data, pos)?;
             pos = p + length as usize;
         } else if kind == NOTE_ON || kind == NOTE_OFF {
             let (pitch, velocity) = (at(data, pos)?, at(data, pos + 1)?);
             pos += 2;
+            if kind == NOTE_ON {
+                mark(time, Mark::Note, bounds);
+            }
             let key = (channel, pitch);
             let here = sounding.iter().position(|(k, _)| *k == key);
             if kind == NOTE_ON && velocity != 0 {
@@ -213,6 +274,10 @@ fn track(
             pos += 1; // channel aftertouch
         } else if kind == CONTROL {
             let number = at(data, pos)?;
+            if number == LOOP_CONTROLLER {
+                mark(time, Mark::Loop, bounds);
+                bounds.loop_tick = Some(bounds.loop_tick.map_or(time, |t| t.max(time)));
+            }
             if RAW_CONTROLLERS.contains(&number) {
                 raw.push((time, channel, number as u16, at(data, pos + 1)? as i64));
             }
@@ -229,6 +294,7 @@ fn track(
     for (_, i) in sounding {
         notes[i].end = time;
     }
+    bounds.end = bounds.end.max(end_of_track.unwrap_or(time));
     Ok(())
 }
 
@@ -373,6 +439,7 @@ pub fn parse(data: &[u8], name: &str) -> Result<Midi> {
 
     let (mut notes, mut tempos, mut programs, mut raw) =
         (Vec::new(), Vec::new(), BTreeMap::new(), Vec::new());
+    let mut bounds = Bounds::default();
     let mut pos = 8 + header;
     for _ in 0..tracks {
         if data.get(pos..pos + 4) != Some(b"MTrk") {
@@ -387,6 +454,7 @@ pub fn parse(data: &[u8], name: &str) -> Result<Midi> {
             &mut tempos,
             &mut programs,
             &mut raw,
+            &mut bounds,
         )
         .map_err(|e| Bad::usage(format!("{name}: {e}")))?;
         pos += 8 + length;
@@ -403,7 +471,34 @@ pub fn parse(data: &[u8], name: &str) -> Result<Midi> {
         division: division as i64,
         programs,
         controls,
+        bounds,
     })
+}
+
+impl Midi {
+    /// Where RPG_RT starts, loops and ends this song, in seconds, as
+    /// easyrpg-player measured it (`get_start_skipping_silence` in
+    /// `midisequencer.cpp`, `audio_decoder_midi.cpp`).
+    ///
+    /// The first pass skips the silence before the first note, but
+    /// "rewinds a little": a quarter note's microseconds over 2.1, which
+    /// easyrpg found by experiment. A CC111 before the first note starts
+    /// there, rewound the same; a SysEx before it starts at 0. On reaching
+    /// the end it goes back to the CC111 **without** rewinding, or to 0.
+    pub fn rm2k_loop(&self) -> Loop {
+        let clock = Clock::new(&self.tempos, self.division);
+        let start = match self.bounds.first {
+            Some((tick, Mark::Note | Mark::Loop)) => {
+                (clock.seconds(tick) - clock.tempo(tick) as f64 / 2.1 / 1e6).max(0.0)
+            }
+            Some((_, Mark::SysEx)) | None => 0.0,
+        };
+        Loop {
+            start,
+            to: self.bounds.loop_tick.map_or(0.0, |t| clock.seconds(t)),
+            end: clock.seconds(self.bounds.end),
+        }
+    }
 }
 
 /// Reads a MIDI file.
@@ -435,17 +530,27 @@ impl Clock {
         Clock { marks, division }
     }
 
-    pub fn frame(&self, tick: i64) -> i64 {
-        let &(base_tick, base_second, us) = self
+    fn mark(&self, tick: i64) -> (i64, f64, i64) {
+        *self
             .marks
             .iter()
             .rev()
             .find(|m| m.0 <= tick)
-            .unwrap_or(&self.marks[0]);
-        num::round(
-            (base_second + (tick - base_tick) as f64 / self.division as f64 * us as f64 / 1e6)
-                * TICKS_PER_SECOND as f64,
-        )
+            .unwrap_or(&self.marks[0])
+    }
+
+    pub fn seconds(&self, tick: i64) -> f64 {
+        let (base_tick, base_second, us) = self.mark(tick);
+        base_second + (tick - base_tick) as f64 / self.division as f64 * us as f64 / 1e6
+    }
+
+    /// Microseconds per quarter note at `tick`.
+    pub fn tempo(&self, tick: i64) -> i64 {
+        self.mark(tick).2
+    }
+
+    pub fn frame(&self, tick: i64) -> i64 {
+        num::round(self.seconds(tick) * TICKS_PER_SECOND as f64)
     }
 }
 
@@ -578,6 +683,78 @@ mod tests {
         let clock = Clock::new(&[(0, 500000), (96, 250000)], 96);
         assert_eq!(clock.frame(96), 30);
         assert_eq!(clock.frame(192), 45);
+    }
+
+    /// `hzstream`'s shape: no CC111, the first note a hair after 0 and the
+    /// end-of-track after the last note. RPG_RT ends at the end-of-track
+    /// and loops to 0; the rewind of a quarter over 2.1 takes the start
+    /// back to 0.
+    #[test]
+    fn the_loop_ends_at_the_end_of_track_not_at_the_last_note() {
+        let data = midi(&[
+            (3, &[0x90, 60, 100]),
+            (93, &[0x80, 60, 0]),
+            (0, &[0xFF, 0x2F, 0x00]),
+        ]);
+        let m = parse(&data, "t.mid").unwrap();
+        assert_eq!(
+            m.bounds,
+            Bounds {
+                end: 96,
+                loop_tick: None,
+                first: Some((3, Mark::Note))
+            }
+        );
+        let l = m.rm2k_loop();
+        assert_eq!((l.start, l.to, l.end), (0.0, 0.0, 0.5));
+
+        // Two quarters of silence after the last note: they are part of the
+        // song, and the end-of-track says so.
+        let data = midi(&[
+            (0, &[0x90, 60, 100]),
+            (96, &[0x80, 60, 0]),
+            (192, &[0xFF, 0x2F, 0x00]),
+        ]);
+        assert_eq!(parse(&data, "t.mid").unwrap().rm2k_loop().end, 1.5);
+    }
+
+    /// Two quarters of silence before the first note: the first pass skips
+    /// them but for 500000 / 2.1 microseconds.
+    #[test]
+    fn the_first_pass_skips_the_silence_but_rewinds_a_little() {
+        let data = midi(&[(192, &[0x90, 60, 100]), (96, &[0x80, 60, 0])]);
+        let l = parse(&data, "t.mid").unwrap().rm2k_loop();
+        assert_eq!(l.start, 1.0 - 500000.0 / 2.1 / 1e6);
+        assert_eq!((l.to, l.end), (0.0, 1.5));
+    }
+
+    /// A SysEx before the first note: RPG_RT does not skip anything.
+    #[test]
+    fn a_sysex_before_the_first_note_starts_at_zero() {
+        let data = midi(&[
+            (96, &[0xF0, 0x05, 0x7E, 0x7F, 0x09, 0x01, 0xF7]),
+            (96, &[0x90, 60, 100]),
+            (96, &[0x80, 60, 0]),
+        ]);
+        let m = parse(&data, "t.mid").unwrap();
+        assert_eq!(m.bounds.first, Some((96, Mark::SysEx)));
+        assert_eq!(m.rm2k_loop().start, 0.0);
+    }
+
+    /// CC111 on any channel is the loop point, and with two, the last one.
+    /// It goes back there without the rewind.
+    #[test]
+    fn the_last_cc111_is_the_loop_point() {
+        let data = midi(&[
+            (96, &[0x90, 60, 100]),
+            (96, &[0xB3, 111, 0]),
+            (0, &[0x80, 60, 0]),
+            (96, &[0xB0, 111, 0]),
+            (96, &[0x90, 62, 100]),
+            (96, &[0x80, 62, 0]),
+        ]);
+        let l = parse(&data, "t.mid").unwrap().rm2k_loop();
+        assert_eq!((l.to, l.end), (1.5, 2.5));
     }
 
     #[test]
