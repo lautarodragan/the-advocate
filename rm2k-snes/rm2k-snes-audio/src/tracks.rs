@@ -38,11 +38,18 @@
 //! `NO_CACHE=1` they are all redone, which is how one checks that they come
 //! out the same.
 //!
-//! Until 2026-09-29 this was a Python program, and the tracks come out
+//! **A MIDI's track loops like RPG_RT**: see [`rm2k_cut`]. Until
+//! 2026-11-14 it was the whole render with the loop point at 0, so every
+//! loop carried the two seconds of silence fluidsynth leaves after the end
+//! —a bar of `hzstream`, in A Blurred Line—. The tracks from an audio file
+//! still loop at 0: they bring no loop mark to read.
+//!
+//! Until 2026-09-29 this was a Python program, and the tracks came out
 //! byte for byte the same: see [`track`].
 
 use crate::fail::{Bad, Result};
 use crate::game::Game;
+use crate::midi;
 use rm2k_project::cache;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -275,6 +282,52 @@ pub fn track(samples: &[i16], loop_point: u32, peak: f64) -> (Vec<u8>, f64) {
     (out, scale)
 }
 
+/// The frames of a MIDI rendered from its tick 0, cut to loop like RPG_RT:
+/// returns the samples —channels interleaved— and the loop point in frames.
+///
+/// The first pass starts at `start` and the track ends at `end`, which is
+/// the end of the MIDI's track and not of fluidsynth's render: fluidsynth
+/// goes on two seconds after it, with the tail of the last notes and then
+/// silence. From `end` the MSU-1 goes back to the loop point, which is `to`
+/// counted from `start`. **The tail is cut there**: what still sounds at
+/// `end` stops at once. RPG_RT keeps it sounding over the start of the next
+/// pass, because its synthesizer is not reset; baking that is the next step
+/// of the task `music-loop-like-rm2k`.
+///
+/// `to` before `start` is a song without CC111 whose first pass skips the
+/// silence before its first note: RPG_RT plays that silence on every pass
+/// but the first. The track can only start at 0, so that silence goes **at
+/// the end**, after `end`, and the loop point is 0: the same sequence, and
+/// in it goes what fluidsynth rendered there, the tail of the last notes.
+/// Past the render, zeros.
+pub fn rm2k_cut(samples: &[i16], start: usize, to: usize, end: usize) -> (Vec<i16>, u32) {
+    let frames = samples.len() / 2;
+    let start = start.min(frames);
+    // A MIDI that ends before it starts —no notes, or only an end-of-track
+    // at 0— keeps the whole render, as before.
+    if end <= start {
+        return (samples.to_vec(), 0);
+    }
+    let silence = start.saturating_sub(to);
+    let mut out = Vec::with_capacity((end - start + silence) * 2);
+    for frame in start..end + silence {
+        match samples.get(frame * 2..frame * 2 + 2) {
+            Some(pair) => out.extend_from_slice(pair),
+            None => out.extend_from_slice(&[0, 0]),
+        }
+    }
+    let loop_point = to.saturating_sub(start);
+    // A CC111 at or past the end loops onto the end: RPG_RT keeps the song
+    // there, silent. Here, the last frame.
+    let loop_point = loop_point.min((end - start).saturating_sub(1));
+    (out, loop_point as u32)
+}
+
+/// Seconds to frames at 44.1 kHz.
+fn frames_at(seconds: f64) -> usize {
+    (seconds * 44100.0).round().max(0.0) as usize
+}
+
 /// Where the tracks' audio comes from, and what they are compared against.
 pub struct Tracks {
     pub game: Game,
@@ -442,7 +495,24 @@ impl Tracks {
             (None, None) => unreachable!(),
         }
         let (samples, frames) = read_wav(&tmp_wav)?;
-        let (bytes, scale) = track(&samples, 0, PEAK);
+        let (samples, loop_point) = match &midi {
+            Some(m) => {
+                let cut = midi::read(m)?.rm2k_loop();
+                rm2k_cut(
+                    &samples,
+                    frames_at(cut.start),
+                    frames_at(cut.to),
+                    frames_at(cut.end),
+                )
+            }
+            None => (samples, 0),
+        };
+        let frames = if midi.is_some() {
+            samples.len() / 2
+        } else {
+            frames
+        };
+        let (bytes, scale) = track(&samples, loop_point, PEAK);
         // Written alongside and renamed, instead of overwriting the `.pcm`
         // in place: truncating it would change the content for whoever has
         // it open —an emulator playing it— or linked under another name.
@@ -456,8 +526,13 @@ impl Tracks {
         let from = audio
             .map(|a| format!("  (from {})", a.display()))
             .unwrap_or_default();
+        let looped = if loop_point != 0 {
+            format!(", loop at {:.2} s", loop_point as f64 / 44100.0)
+        } else {
+            String::new()
+        };
         Ok(Outcome::Made(format!(
-            "track {number}: {name:<22} {:6.1} s, {} MB, normalized x{scale:.2} -> {}{from}",
+            "track {number}: {name:<22} {:6.1} s{looped}, {} MB, normalized x{scale:.2} -> {}{from}",
             frames as f64 / 44100.0,
             bytes.len() >> 20,
             out_path.display()
@@ -698,6 +773,41 @@ mod tests {
     fn minus_32768_is_the_loudest_sample() {
         let (_, scale) = track(&[-32768, 1000], 0, PEAK);
         assert_eq!(scale, 0.97 * 32767.0 / 32768.0);
+    }
+
+    /// Frames numbered 1, 2, 3…, both channels the same.
+    fn render(frames: i16) -> Vec<i16> {
+        (1..=frames).flat_map(|f| [f, f]).collect()
+    }
+
+    fn frames(samples: &[i16]) -> Vec<i16> {
+        samples.iter().step_by(2).copied().collect()
+    }
+
+    /// `hzstream`: the render goes on after the end of the track —here
+    /// frames 7 and 8, fluidsynth's two seconds— and the track does not.
+    #[test]
+    fn a_track_ends_at_the_end_of_the_midi_not_of_the_render() {
+        let (out, loop_point) = rm2k_cut(&render(8), 0, 0, 6);
+        assert_eq!(frames(&out), [1, 2, 3, 4, 5, 6]);
+        assert_eq!(loop_point, 0);
+    }
+
+    #[test]
+    fn the_loop_point_is_the_cc111_counted_from_the_start() {
+        let (out, loop_point) = rm2k_cut(&render(8), 2, 4, 6);
+        assert_eq!(frames(&out), [3, 4, 5, 6]);
+        assert_eq!(loop_point, 2);
+    }
+
+    /// The skipped silence goes to the end, with what the render has
+    /// there and zeros past it: the second pass hears it, the first does
+    /// not.
+    #[test]
+    fn the_skipped_silence_is_heard_after_the_end() {
+        let (out, loop_point) = rm2k_cut(&render(7), 2, 0, 6);
+        assert_eq!(frames(&out), [3, 4, 5, 6, 7, 0]);
+        assert_eq!(loop_point, 0);
     }
 
     #[test]
