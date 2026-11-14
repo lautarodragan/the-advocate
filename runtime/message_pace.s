@@ -239,6 +239,13 @@ typing:
 no_key:
     lda f:MSG_WAIT
     beq done
+.ifdef layer_text_on
+    ; A frame the layer above held the box is paid back here: see
+    ; `msg_layer_owed`.
+    jsl f:msg_layer_owed
+    bcs no_key
+    lda f:MSG_WAIT
+.endif
     dec a
     sta f:MSG_WAIT
 stopped:
@@ -341,10 +348,11 @@ done:
 .i16
     phx
 .ifdef layer_text_on
-    ; Nothing while the line's layer above is being read: see
-    ; message_layer.s.
+    ; Nothing while the line's layer above is being read, and the frame is
+    ; owed to the box: see message_layer.s.
     jsl f:msg_layer_wait
-    bcs stop
+    bcc again
+    jmp stop
 .endif
 again:
     lda f:MSG_BUDGET
@@ -356,6 +364,23 @@ again:
     bne stop
     lda f:MSG_WAIT
     beq go
+.ifdef layer_text_on
+    jsl f:msg_layer_owed        ; or a frame the layer above held it
+    bcc not_owed
+    ; And the composer's count of passes, which this keeps in X and pulls
+    ; at the end, a frame's more as well: see `msg_layer_owed`.
+    rep #$20
+.a16
+    lda 1, s
+    clc
+    adc #MSG_CHARS
+    sta 1, s
+    sep #$20
+.a8
+    bra again
+not_owed:
+    lda f:MSG_WAIT
+.endif
     dec a                       ; RPG_RT's loop: the wait counts this frame
     sta f:MSG_WAIT
     bra stop

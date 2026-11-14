@@ -54,9 +54,16 @@
 ; `msg_bands`—: it takes the layer's entries with the line's, and the
 ; arrow's two cells give them back when it blinks off —`msg_layer_arrow`—.
 ;
-; Meanwhile the composer waits —`msg_layer_wait`— and the HDMA keeps the
-; line's band the map's —`msg_layer_vblank`—, so the band never shows the
-; window's plane before it carries the layer.
+; Step 1 is done ahead when it can be: in the vblank the line before goes
+; up —`msg_layer_ahead`—, so a line starts at step 2 and waits one frame,
+; not two. Meanwhile the composer waits —`msg_layer_wait`— and the HDMA
+; keeps the line's band the map's —`msg_layer_vblank`—, so the band never
+; shows the window's plane before it carries the layer. **And the frames it
+; waits are owed to the box** —`LAYER_OWED`—: the waits of RPG_RT's pace
+; after them pay them back, a frame's letters at a time, so the box ends on
+; the frame it would have without the layer. The scenes press A on that
+; pace: on A Blurred Line's memory, 34 boxes over maps 5 and 6, every box is
+; up on the same tick as without the layer (measured, 2026-11-14).
 ;
 ; The cost, measured on A Blurred Line's maps 5 and 6 when it was written
 ; (2026-11-14): see the task `a-transparent-message-keeps-the-layer-above`
@@ -82,6 +89,9 @@ LAYER_MAPCOL: .res 2            ; and its first column
 LAYER_TILE0:  .res 2            ; the window's entry for the line's first text cell
 LAYER_BG2:    .res 2            ; BG2's tile base, in words
 LAYER_T:      .res 2            ; scratch
+LAYER_OWED:   .res 1            ; frames the box was held, to pay back
+LAYER_PRE:    .res 1            ; the line whose rows were read ahead, plus one
+LAYER_PRECAM: .res 2            ; and the camera they were read under
 LAYER_INK:    .res WINDOW_TEXT_COLS ; per text column: bits 0 and 1 inked, top
                                 ; and bottom; 2 and 3 its tile was read
 LAYER_ROWS:   .res TEXT_WINDOW_COLS * 2 * 2 ; the line's two rows of the plane
@@ -113,6 +123,10 @@ LAYER_LATEST = 261 - 1 - 2
     sta f:LAYER_ON
     lda f:msg_line
     sta f:LAYER_NEXT
+    bne owing
+    lda #0
+    sta f:LAYER_OWED            ; a box's first line: the last box owes nothing
+owing:
 .if ::TEXT_INK_ENTRY = 0
     lda f:MSG_TYPE
     cmp #TYPE_TYPING
@@ -177,7 +191,9 @@ done:
     plp
     rtl
 
-; What the steps need, from the camera and the window as they are now.
+; What the steps need, from the camera and the window as they are now. A
+; line whose rows the vblank read ahead, under this same camera —see
+; `msg_layer_ahead`—, starts at step 2.
 setup:
     lda #1
     sta f:LAYER_ON
@@ -188,6 +204,47 @@ clear:
     sta f:LAYER_INK, x
     dex
     bpl clear
+    jsl f:layer_place
+    lda f:LAYER_NEXT
+    inc a
+    cmp f:LAYER_PRE
+    bne not_ahead
+    jsr layer_camera
+.a16
+    cmp f:LAYER_PRECAM
+    bne not_ahead_16
+    sep #$20
+.a8
+    lda #2
+    sta f:LAYER_STEP
+not_ahead:
+.a8
+    lda #0
+    sta f:LAYER_PRE
+    rts
+not_ahead_16:
+    sep #$20
+.a8
+    bra not_ahead
+.endproc
+
+; The camera as one word, to tell whether it moved. A16 out.
+layer_camera:
+.a8
+    rep #$20
+.a16
+    lda scroll_y
+    inc a
+    xba
+    eor f:screen_x
+    rts
+
+; The places of line `LAYER_NEXT`: its first text cell's entry, the layer's
+; tilemap rows under its two rows and under the window's bottom row, and the
+; column under the screen's left edge. A8; keeps nothing.
+.proc layer_place
+.a8
+.i16
     ; The window's entry for the line's first text cell: its tile —the
     ; window's base, the text's, the line's sixty— with the layer above's
     ; priority, which is what the converter's cells carry.
@@ -208,7 +265,7 @@ clear:
     clc
     adc #WINDOW_TEXT_BASE
     sta f:LAYER_T
-    lda f:msg_line
+    lda f:LAYER_NEXT
     and #$00FF
     sta f:LAYER_TILE0
     asl a
@@ -241,7 +298,7 @@ clear:
     clc
     adc #WINDOW_TEXT_ROW
     sta f:LAYER_T
-    lda f:msg_line
+    lda f:LAYER_NEXT
     and #$00FF
     asl a
     clc
@@ -287,7 +344,71 @@ clear:
     sta f:LAYER_MAPCOL
     sep #$20
 .a8
-    rts
+    rtl
+.endproc
+
+; From `upload_line`, in the vblank its line went up: the next line's rows
+; of the layer read now, ahead of it, so that it does not wait for a vblank
+; of its own when it starts —`setup`—. Only in a window that would carry
+; the layer and with nothing of the previous line left to go up; the line
+; checks the rest when it starts. Keeps X and Y.
+.proc msg_layer_ahead
+.a8
+.i16
+.if ::TEXT_INK_ENTRY = 0
+    php
+    phx
+    phy
+    sep #$20
+.a8
+    lda f:LAYER_STEP
+    beq free
+    cmp #4
+    bne done
+free:
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq done
+    rep #$20
+.a16
+    lda map_current
+    tax
+    sep #$20
+.a8
+    lda f:layer_texts, x
+    beq done
+    ldx map_ofs
+    lda f:map_table + M_VRAM_WINDOW_MAP + 1, x
+    cmp f:MSG_SC
+    bne done
+    ; The rows the last line's letters changed go up first: its tiles just
+    ; did.
+    lda f:LAYER_DIRTY
+    beq clean
+    jsl f:layer_rows_up
+    lda #0
+    sta f:LAYER_DIRTY
+clean:
+    lda f:msg_line
+    and #WINDOW_TEXT_LINES - 1
+    sta f:LAYER_NEXT
+    inc a
+    sta f:LAYER_PRE
+    jsl f:layer_place
+    jsl f:layer_read
+    rep #$20
+.a16
+    lda scroll_y
+    inc a
+    xba
+    eor f:screen_x
+    sta f:LAYER_PRECAM
+done:
+    ply
+    plx
+    plp
+.endif
+    rtl
 .endproc
 
 ; From `msg_next`, before each letter: the carry set while the line's layer
@@ -301,6 +422,19 @@ clear:
     beq ready
     cmp #2
     beq cells
+held:
+    ; A frame that would have typed —its budget whole, no wait— is owed.
+    lda f:MSG_TYPE
+    cmp #TYPE_TYPING
+    bne not_owed
+    lda f:MSG_BUDGET
+    cmp #MSG_CHARS
+    bne not_owed
+    lda f:LAYER_OWED
+    inc a
+    beq not_owed                ; it does not wrap
+    sta f:LAYER_OWED
+not_owed:
     sec
     rtl
 ready:
@@ -340,8 +474,10 @@ column:
     sta f:LAYER_STEP
     ply
     plx
-    sec
-    rtl
+    ; and held: the tiles are read in the next vblank. Letters could go
+    ; into the cells with no tile to read meanwhile, but a frame cut in the
+    ; middle is not one the pace can pay back whole.
+    bra held
 
 ; Row A (0 or 1) of column Y, whose word in `LAYER_ROWS` is at X. A16.
 one:
@@ -387,6 +523,34 @@ flipped:
     rts
 .endproc
 
+
+; From the box's pace —`msg_pace_tick` and `msg_next`—, on a frame its
+; wait would pass with nothing typed: the carry set if that frame is one
+; the layer held the box —`LAYER_OWED`— and is paid back instead, with the
+; wait one frame shorter and a frame's letters more in this one's budget. So the frames a line waits for its layer come out
+; of the waits after it, and the box ends on the frame it would have: the
+; pace is RPG_RT's, and the scenes press A on it. Keeps X and Y.
+.proc msg_layer_owed
+.a8
+.i16
+    lda f:LAYER_OWED
+    beq none
+    dec a
+    sta f:LAYER_OWED
+    lda f:MSG_WAIT
+    dec a
+    sta f:MSG_WAIT
+    ; And the letters that frame would have typed: a frame's budget more.
+    lda f:MSG_BUDGET
+    clc
+    adc #MSG_CHARS
+    sta f:MSG_BUDGET
+    sec
+    rtl
+none:
+    clc
+    rtl
+.endproc
 
 ; The cells the letter just composed inked, from `ink_dirty` with
 ; `comp_glyph` and `comp_base` as `compose_char` left them: each one newly
@@ -622,6 +786,16 @@ hold:
     rtl
 
 read:
+    jsl f:layer_read
+    lda #0
+    sta f:LAYER_PRE             ; `LAYER_ROWS` is this line's now
+    lda #2
+    sta f:LAYER_STEP
+    sec
+    rtl
+
+; Step 1's reading, also `msg_layer_ahead`'s. A8.
+read_rows:
     jsr vaddr_next
     lda #$80
     sta f:VMAIN
@@ -646,10 +820,7 @@ read:
     jsr read_row
     sep #$20
 .a8
-    lda #2
-    sta f:LAYER_STEP
-    sec
-    rtl
+    rts
 
 fetch:
     lda f:LAYER_FETCH
@@ -904,6 +1075,14 @@ line_bit:
     lda f:line_band, x
     rts
 
+; Long doors to the two above.
+read_rows_l:
+    jsr read_rows
+    rtl
+rows_up_l:
+    jsr rows_up
+    rtl
+
 ; `LAYER_ROWS` to the window's plane at `LAYER_VADDR`. A8.
 rows_up:
 .a8
@@ -1072,6 +1251,11 @@ cell:
 done:
     rtl
 .endproc
+
+; `msg_layer_vblank`'s reading of the rows of `LAYER_NEXT` and its upload of
+; `LAYER_ROWS`, for `msg_layer_ahead`. A8.
+layer_read = msg_layer_vblank::read_rows_l
+layer_rows_up = msg_layer_vblank::rows_up_l
 
 ; The text's copies of the layer's palettes, in `cgram_shadow`, from what
 ; `apply_tint` just left there: the layer's colours tinted, and at the
