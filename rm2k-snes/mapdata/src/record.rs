@@ -1330,6 +1330,30 @@ pub fn arrow_objs_table(maps: &[Map]) -> Result<String> {
     .join("\n"))
 }
 
+/// [`Map::layer_text`] for every map, a byte each in the order of
+/// `map_table`: `layer_texts`. Here and not in the record, which is full.
+pub fn layer_texts_table(maps: &[Map]) -> String {
+    let bytes: Vec<String> = maps.iter().map(|m| m.layer_text.to_string()).collect();
+    // The runtime assembles `message_layer.s` only in a cartridge with some.
+    let on = if maps.iter().any(|m| m.layer_text > 0) {
+        "layer_text_on = 1"
+    } else {
+        ";"
+    };
+    [
+        on.to_string(),
+        ".segment \"RODATA\"".to_string(),
+        "; How many palettes under the layer above's hold the text's copies, per map: see `layer_text` in rm2k-snes-mapdata.".into(),
+        format!(".block {}", maps.len().max(1)),
+        "layer_texts:".into(),
+        format!(
+            "    .byte {}",
+            if bytes.is_empty() { "0".to_string() } else { bytes.join(", ") }
+        ),
+    ]
+    .join("\n")
+}
+
 /// Each block's mask, from the sprite bank's tiles as they are uploaded:
 /// a tile beyond the bank holds whatever VRAM had.
 fn block_masks(tiles: &[u8]) -> Vec<u16> {
@@ -2204,6 +2228,7 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     );
     let _ = write!(tables, "\n{}\n", pose_masks_table(maps));
     let _ = write!(tables, "\n{}\n", arrow_objs_table(maps)?);
+    let _ = write!(tables, "\n{}\n", layer_texts_table(maps));
     // And the still events drawn into the background, only in a cartridge
     // that has some: see `posed.s`, which assembles nothing without
     // `posed_stills`.

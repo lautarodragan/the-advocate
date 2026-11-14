@@ -131,6 +131,9 @@ with_plane:
 .a8
     lda #0
     sta f:MSG_FACE_SHOWN
+.ifdef layer_text_on
+    sta f:LAYER_USED            ; nor the layer above: see message_layer.s
+.endif
     lda #$01
     sta DMAP0
     lda #$18

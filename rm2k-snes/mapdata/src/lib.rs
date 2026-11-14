@@ -23,6 +23,7 @@ pub mod engine;
 pub mod fail;
 pub mod hex;
 pub mod json;
+pub mod layer_text;
 pub mod materials;
 pub mod objects;
 pub mod panorama;

@@ -5581,6 +5581,11 @@ impl Rest<'_> {
             .map(|c| c as u8)
             .collect();
         line(out, &unplaced("font_color", &colors));
+        // And the entries the text takes, which a cell with letters over
+        // the layer above finds in the text's copy of the layer's palette:
+        // see `layer_text`.
+        let mask = crate::layer_text::Text::of(self.screens).map_or(0, |t| t.mask());
+        out.push_str(&format!("LAYER_TEXT_ENTRIES = ${mask:04X}\n\n"));
         // A game can start with the party empty, as RM2k allows: the label
         // stays, with no bytes —`.byte` with nothing after it does not
         // assemble—, and `boot` copies none.

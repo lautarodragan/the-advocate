@@ -340,6 +340,12 @@ done:
 .a8
 .i16
     phx
+.ifdef layer_text_on
+    ; Nothing while the line's layer above is being read: see
+    ; message_layer.s.
+    jsl f:msg_layer_wait
+    bcs stop
+.endif
 again:
     lda f:MSG_BUDGET
     beq stop
@@ -755,6 +761,12 @@ late:
     sep #$20
 .a8
 no_typed:
+.ifdef layer_text_on
+    ; The layer above on the window's lines, which may hold the tables
+    ; back: see message_layer.s.
+    jsl f:msg_layer_vblank
+    bcs done
+.endif
     lda f:MSG_PLACE
     and #MSG_BARE
     beq done
@@ -887,6 +899,9 @@ some:
 .proc ink_dirty
 .a16
 .i16
+.ifdef layer_text_on
+    jsl f:msg_layer_ink         ; and the cells it inked: message_layer.s
+.endif
     lda comp_base
     lsr a
     lsr a

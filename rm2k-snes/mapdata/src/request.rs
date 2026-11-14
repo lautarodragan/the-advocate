@@ -114,6 +114,12 @@ pub struct Map {
     /// runtime/enter_map.s. Missing, nothing.
     #[serde(default)]
     pub access: u8,
+    /// How many BG palettes under the layer above's hold the text's copies
+    /// of them, for a message without its background over the layer: 0
+    /// none. It is not in the request: [`crate::layer_text::bake_all`]
+    /// decides it.
+    #[serde(default)]
+    pub layer_text: u8,
 }
 
 fn eight() -> usize {
@@ -248,6 +254,11 @@ pub struct Emit {
     /// request from before 2026-11-03: none.
     #[serde(default)]
     pub teleport_facing: bool,
+    /// Whether some `MessageOptions` of the cartridge takes the window's
+    /// background away: then every map with a layer above is baked for it
+    /// —see [`crate::layer_text`]—. Absent, none.
+    #[serde(default)]
+    pub transparent_messages: bool,
     /// The party the game starts with.
     pub party: Vec<i64>,
     /// Who the cartridge is: its header title and its SRAM signature.
