@@ -300,13 +300,31 @@ pub fn track(samples: &[i16], loop_point: u32, peak: f64) -> (Vec<u8>, f64) {
 /// the end**, after `end`, and the loop point is 0: the same sequence, and
 /// in it goes what fluidsynth rendered there, the tail of the last notes.
 /// Past the render, zeros.
-pub fn rm2k_cut(samples: &[i16], start: usize, to: usize, end: usize) -> (Vec<i16>, u32) {
+///
+/// **A render shorter than `end` is an error**, and the caller keeps the
+/// whole render looping at 0: fluidsynth always goes on past the
+/// end-of-track, so it is a file fluidsynth refused or read otherwise, and
+/// `end` cannot be trusted. That also bounds what is allocated by what was
+/// rendered: on 2026-11-14 a Vampires Dawn MIDI gave an end 2^32 ticks
+/// away and the cut asked for eight terabytes.
+pub fn rm2k_cut(
+    samples: &[i16],
+    start: usize,
+    to: usize,
+    end: usize,
+) -> std::result::Result<(Vec<i16>, u32), String> {
     let frames = samples.len() / 2;
-    let start = start.min(frames);
+    if end > frames {
+        return Err(format!(
+            "the MIDI ends at {:.1} s and fluidsynth rendered {:.1} s",
+            end as f64 / 44100.0,
+            frames as f64 / 44100.0
+        ));
+    }
     // A MIDI that ends before it starts —no notes, or only an end-of-track
     // at 0— keeps the whole render, as before.
     if end <= start {
-        return (samples.to_vec(), 0);
+        return Ok((samples.to_vec(), 0));
     }
     let silence = start.saturating_sub(to);
     let mut out = Vec::with_capacity((end - start + silence) * 2);
@@ -320,7 +338,7 @@ pub fn rm2k_cut(samples: &[i16], start: usize, to: usize, end: usize) -> (Vec<i1
     // A CC111 at or past the end loops onto the end: RPG_RT keeps the song
     // there, silent. Here, the last frame.
     let loop_point = loop_point.min((end - start).saturating_sub(1));
-    (out, loop_point as u32)
+    Ok((out, loop_point as u32))
 }
 
 /// Seconds to frames at 44.1 kHz.
@@ -489,22 +507,60 @@ impl Tracks {
             }
         }
         let tmp_wav = PathBuf::from(format!("{}.wav", out_path.display()));
+        // What did not go as it should, and was worked around: it goes in
+        // the track's line, so that it is seen.
+        let mut warnings = Vec::new();
+        let mut cut = None;
         match (&audio, &midi) {
             (Some(a), _) => decode(a, &tmp_wav)?,
-            (None, Some(m)) => render(m, &tmp_wav, &self.soundfont, self.gain)?,
+            (None, Some(m)) => {
+                let data = std::fs::read(m).map_err(|e| io(m, e))?;
+                let mut source = m.clone();
+                let tmp_mid = PathBuf::from(format!("{}.mid", out_path.display()));
+                match midi::parse(&data, &m.display().to_string()) {
+                    Err(e) => warnings.push(format!("{e}: the whole render, looping at 0")),
+                    Ok(parsed) => {
+                        match midi::for_fluidsynth(&data, &parsed) {
+                            Ok(None) => {}
+                            Ok(Some(fixed)) => {
+                                std::fs::write(&tmp_mid, fixed).map_err(|e| io(&tmp_mid, e))?;
+                                source = tmp_mid.clone();
+                                warnings.push(format!(
+                                    "{}: a delta of more than four bytes before an end-of-track, \
+                                     written as 0 for fluidsynth",
+                                    m.display()
+                                ));
+                            }
+                            Err(why) => warnings.push(format!(
+                                "{}: {why}; fluidsynth refuses the file",
+                                m.display()
+                            )),
+                        }
+                        cut = Some(parsed.rm2k_loop());
+                    }
+                }
+                let rendered = render(&source, &tmp_wav, &self.soundfont, self.gain);
+                if source == tmp_mid {
+                    let _ = std::fs::remove_file(&tmp_mid);
+                }
+                rendered?;
+            }
             (None, None) => unreachable!(),
         }
         let (samples, frames) = read_wav(&tmp_wav)?;
-        let (samples, loop_point) = match &midi {
-            Some(m) => {
-                let cut = midi::read(m)?.rm2k_loop();
-                rm2k_cut(
-                    &samples,
-                    frames_at(cut.start),
-                    frames_at(cut.to),
-                    frames_at(cut.end),
-                )
-            }
+        let (samples, loop_point) = match cut {
+            Some(cut) => match rm2k_cut(
+                &samples,
+                frames_at(cut.start),
+                frames_at(cut.to),
+                frames_at(cut.end),
+            ) {
+                Ok(done) => done,
+                Err(why) => {
+                    warnings.push(format!("{why}: the whole render, looping at 0"));
+                    (samples, 0)
+                }
+            },
             None => (samples, 0),
         };
         let frames = if midi.is_some() {
@@ -531,8 +587,12 @@ impl Tracks {
         } else {
             String::new()
         };
+        let warned: String = warnings
+            .iter()
+            .map(|w| format!("\n  warning: {w}"))
+            .collect();
         Ok(Outcome::Made(format!(
-            "track {number}: {name:<22} {:6.1} s{looped}, {} MB, normalized x{scale:.2} -> {}{from}",
+            "track {number}: {name:<22} {:6.1} s{looped}, {} MB, normalized x{scale:.2} -> {}{from}{warned}",
             frames as f64 / 44100.0,
             bytes.len() >> 20,
             out_path.display()
@@ -788,14 +848,14 @@ mod tests {
     /// frames 7 and 8, fluidsynth's two seconds— and the track does not.
     #[test]
     fn a_track_ends_at_the_end_of_the_midi_not_of_the_render() {
-        let (out, loop_point) = rm2k_cut(&render(8), 0, 0, 6);
+        let (out, loop_point) = rm2k_cut(&render(8), 0, 0, 6).unwrap();
         assert_eq!(frames(&out), [1, 2, 3, 4, 5, 6]);
         assert_eq!(loop_point, 0);
     }
 
     #[test]
     fn the_loop_point_is_the_cc111_counted_from_the_start() {
-        let (out, loop_point) = rm2k_cut(&render(8), 2, 4, 6);
+        let (out, loop_point) = rm2k_cut(&render(8), 2, 4, 6).unwrap();
         assert_eq!(frames(&out), [3, 4, 5, 6]);
         assert_eq!(loop_point, 2);
     }
@@ -805,9 +865,18 @@ mod tests {
     /// not.
     #[test]
     fn the_skipped_silence_is_heard_after_the_end() {
-        let (out, loop_point) = rm2k_cut(&render(7), 2, 0, 6);
+        let (out, loop_point) = rm2k_cut(&render(7), 2, 0, 6).unwrap();
         assert_eq!(frames(&out), [3, 4, 5, 6, 7, 0]);
         assert_eq!(loop_point, 0);
+    }
+
+    /// A MIDI that says it ends past what fluidsynth rendered is not cut:
+    /// the end is not to be trusted, and nothing is allocated for it.
+    #[test]
+    fn an_end_past_the_render_is_refused() {
+        assert!(rm2k_cut(&render(8), 0, 0, 9).is_err());
+        assert!(rm2k_cut(&render(8), 0, 0, usize::MAX / 2).is_err());
+        assert!(rm2k_cut(&render(8), 0, 0, 8).is_ok());
     }
 
     #[test]
