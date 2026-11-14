@@ -133,6 +133,8 @@ with_plane:
     sta f:MSG_FACE_SHOWN
 .ifdef layer_text_on
     sta f:LAYER_USED            ; nor the layer above: see message_layer.s
+    sta f:LAYER_STEP            ; and no line waits for it: the WRAM does not
+    sta f:LAYER_ON              ; boot at zero
 .endif
     lda #$01
     sta DMAP0
