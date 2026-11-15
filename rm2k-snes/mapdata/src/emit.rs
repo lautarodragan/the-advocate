@@ -891,6 +891,15 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
              TELEPORT_FACING = 1\n\n",
         );
     }
+    // Only in a test cartridge that asks for it: the probe costs cycles in
+    // every vblank, so the ROM that gets played does not carry it. See
+    // `vblank_probe` in vblank.s.
+    if r.vblank_probe {
+        out.push_str(
+            "; The vblank's last line, to RAM, for a test: see `vblank_probe`.\n\
+             VBLANK_PROBE = 1\n\n",
+        );
+    }
     // The fade ramp, in bank 0: `fade_tick` reads it with `lda fade_ramp, x`.
     out.push_str(&pyf!(
         ".segment \"TABLES\"\n\

@@ -1757,6 +1757,8 @@ pub fn run(options: Options) -> Result<()> {
     // And whether Select walks the hero through everything, for debugging:
     // apart too, for the same limit.
     request["phasing"] = json!(options.phasing);
+    // And whether the ROM leaves the vblank's last line in RAM, for a test.
+    request["vblank_probe"] = json!(options.vblank_probe);
     // And whether some `Teleport` asks for a facing, which the runtime
     // assembles only then: see `scan::teleports_with_a_facing`.
     request["teleport_facing"] = json!(scan::teleports_with_a_facing(

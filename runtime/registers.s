@@ -230,3 +230,20 @@ TMW      = $212E        ; which main-screen layers it applies to
 ; B, so pointing WMADD at where you want to write and sending to $2180 copies
 ; ROM -> RAM at the same speed as any other DMA.
 WMDATA   = $2180
+
+; In a test cartridge built with `--vblank-probe`, after each of the
+; message window's writes to VRAM, CGRAM or the HDMA's tables in the
+; vblank: the latest line one ended on, for a test —see `vblank_wrote` in
+; vblank.s—. In any other cartridge, nothing. Keeps everything.
+.macro VBLANK_WROTE
+.ifdef VBLANK_PROBE
+    php
+    .byte $C2, $30              ; `rep #$30`, which ca65 would otherwise
+    pha                         ; believe for what follows the macro
+    phx
+    jsl f:vblank_wrote
+    plx
+    pla
+    plp
+.endif
+.endmacro

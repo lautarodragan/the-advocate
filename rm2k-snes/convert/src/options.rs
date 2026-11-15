@@ -138,6 +138,15 @@ fn command() -> clap::Command {
             ),
     )
     .arg(
+        Arg::new("vblank_probe")
+            .long("vblank-probe")
+            .action(ArgAction::SetTrue)
+            .help(
+                "the ROM leaves in RAM the line on which each vblank's work ended, for a \
+                 test to say whether it ran past the vblank: for testing",
+            ),
+    )
+    .arg(
         Arg::new("no_speed_keys")
             .long("no-speed-keys")
             .action(ArgAction::SetTrue)
@@ -245,6 +254,7 @@ pub struct Options {
     pub enemy_hp: bool,
     pub debug_screen: bool,
     pub phasing: bool,
+    pub vblank_probe: bool,
     pub no_speed_keys: bool,
     pub no_timer: bool,
     pub test_graphic: Option<Vec<(String, i32)>>,
@@ -333,6 +343,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         enemy_hp: matches.get_flag("enemy_hp"),
         debug_screen: matches.get_flag("debug_screen"),
         phasing: matches.get_flag("phasing"),
+        vblank_probe: matches.get_flag("vblank_probe"),
         no_speed_keys: matches.get_flag("no_speed_keys"),
         no_timer: matches.get_flag("no_timer"),
         test_graphic,

@@ -403,6 +403,7 @@ clean:
     xba
     eor f:screen_x
     sta f:LAYER_PRECAM
+    VBLANK_WROTE
 done:
     ply
     plx

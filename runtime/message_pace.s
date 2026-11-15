@@ -781,6 +781,7 @@ no_ink:
     sep #$20
 .a8
     jsr typed_up
+    VBLANK_WROTE
     bra no_typed
 late:
     sep #$20
@@ -790,6 +791,7 @@ no_typed:
     ; The layer above on the window's lines, which may hold the tables
     ; back: see message_layer.s.
     jsl f:msg_layer_vblank
+    VBLANK_WROTE
     bcs done
 .endif
     lda f:MSG_PLACE
@@ -800,6 +802,7 @@ no_typed:
     beq done
     sta f:MSG_ROWS_SEEN
     jsl f:msg_hdma_build
+    VBLANK_WROTE
 done:
     ply
     plx
