@@ -226,6 +226,7 @@ big_up:
     lda msg_upload
     beq no_upload
     jsl f:upload_line           ; and the face's step, if the line still fits
+    VBLANK_WROTE 8
 .if ::WINDOW_SYSTEMS > 1
     bra no_swap
 no_upload:
@@ -250,10 +251,11 @@ no_upload:
     lda msg_upload              ; its last line did not fit: next vblank
     bne no_finished
     ; Only while the vblank lasts: what follows builds the tables the HDMA
-    ; reads while it draws, and a window without its background writes its
-    ; arrow's colours into CGRAM, which past the vblank land on whatever
-    ; entry the PPU is reading. If this vblank ran out the window appears
-    ; on the next one. See the battle animation's frame, above.
+    ; reads while it draws. If this vblank ran out the window appears on
+    ; the next one. See the battle animation's frame, above. A window
+    ; without its background used to write its arrow's colours to CGRAM
+    ; from here, on whatever line the vblank was on: they go up from
+    ; `msg_arrow` now, when they fit.
     bit HVBJOY
     bpl no_finished
     ; `msg_state` to 0, or to 1 for a box whose lines were blanked and is
@@ -353,8 +355,67 @@ on:
     jsl f:fade_mosaic           ; the teleport's, if it asks for it
     lda brightness
     sta INIDISP
+.ifdef VBLANK_PROBE
+    jsl f:vblank_probe          ; only in a test cartridge: see below
+.a16
+    sta f:VBLANK_END_LINE
+    sep #$20
+.a8
+.endif
     rts
 .endproc
+
+.ifdef VBLANK_PROBE
+; Where `flush_video` ended, in a test cartridge that asks for it —its
+; converter's `--vblank-probe`—: the line the PPU was on, 225 to 261
+; inside the vblank and 0 to 224 past its end, on the screen's lines. And
+; the latest line one of the message window's writes to VRAM, CGRAM or the
+; HDMA's tables ended on —`VBLANK_WROTE`, in registers.s—, with the
+; screen's lines counted past 261 (262 and on) so that the latest is the
+; largest; a test clears it before each frame. The ROM that gets played
+; does not carry this: it costs every vblank a few lines of code. See
+; `VBLANK_WRITES_END`.
+.pushseg
+.segment "FARBSS"
+VBLANK_END_LINE: .res 2
+VBLANK_WRITES_LINE: .res 2
+.popseg
+.pushseg
+.segment "FAR3"
+.proc vblank_probe
+.a8
+.i16
+    lda f:STAT78                ; resets the counters' flip-flop
+    lda f:SLHV                  ; latches them
+    lda f:OPVCT
+    xba
+    lda f:OPVCT
+    and #$01                    ; the ninth bit; the rest is open bus
+    xba
+    rep #$20
+.a16
+    rtl                         ; A16 out: the line
+.endproc
+
+.proc vblank_wrote
+.a16
+.i16
+    sep #$20
+.a8
+    jsl vblank_probe
+.a16
+    cmp #LINES + 1
+    bcs in_vblank
+    adc #262                    ; the carry is clear
+in_vblank:
+    cmp f:VBLANK_WRITES_LINE
+    bcc earlier
+    sta f:VBLANK_WRITES_LINE
+earlier:
+    rtl
+.endproc
+.popseg
+.endif
 
 ; Uploads Y bytes from RAM address X to VRAM, which has already been pointed.
 .proc dma_a_vram

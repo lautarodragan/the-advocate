@@ -413,6 +413,9 @@ msg_start_at = msg_start::at_pointer
 working:
     lda msg_upload
     beq no_upload
+.ifdef layer_text_on
+    jsl f:msg_layer_upload_held ; owed, without the window's background
+.endif
     rts                         ; the previous line has not been uploaded yet
 no_upload:
     lda msg_primed
@@ -685,6 +688,13 @@ go:
 ; one more, and the vblank's last line is 261. Two of margin for what goes
 ; after it in the same vblank: `msg_arrow`'s cells.
 LINE_LATEST = 261 - 12 - 1 - 2
+; And in a window without its background, which does more after it in the
+; same vblank —the layer above's question and its rows read ahead, the
+; tables with the arrow's colours—: fifteen lines with the code around the
+; DMA (measured on A Blurred Line's memory in snes9x, 2026-11-15), before
+; `VBLANK_WRITES_END`. A framed window keeps the line it always had, and
+; its pace.
+LINE_LATEST_BARE = VBLANK_WRITES_END - 15
 
 .proc upload_line
 .a8
@@ -702,6 +712,16 @@ LINE_LATEST = 261 - 12 - 1 - 2
     bcs late
     cmp #LINES + 1              ; on the screen's lines: the vblank is over
     bcc late
+    pha
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq framed
+    pla
+    cmp #LINE_LATEST_BARE + 1
+    bcs late
+    pha
+framed:
+    pla
     sep #$20
 .a8
     stz msg_upload

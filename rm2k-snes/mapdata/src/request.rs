@@ -249,6 +249,11 @@ pub struct Emit {
     pub speed_keys: bool,
     pub enemy_hp: bool,
     pub phasing: bool,
+    /// Whether the ROM leaves in RAM the line on which each vblank's work
+    /// ended —`vblank_probe` in vblank.s—, which only a test cartridge
+    /// asks for. Absent, no.
+    #[serde(default)]
+    pub vblank_probe: bool,
     /// Whether some `Teleport` of the cartridge asks for a facing, RPG Maker
     /// 2003's: then the runtime assembles `OP_TELEPORT_FACING`. Absent in a
     /// request from before 2026-11-03: none.
