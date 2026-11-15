@@ -234,16 +234,23 @@ WMDATA   = $2180
 ; In a test cartridge built with `--vblank-probe`, after each of the
 ; message window's writes to VRAM, CGRAM or the HDMA's tables in the
 ; vblank: the latest line one ended on, for a test —see `vblank_wrote` in
-; vblank.s—. In any other cartridge, nothing. Keeps everything.
-.macro VBLANK_WROTE
+; vblank.s—. In any other cartridge, nothing. Keeps everything; `asz` is
+; the caller's A width, 8 or 16, which the `plp` gives back to the CPU and
+; this to the assembler (X is always 16 where it is used).
+.macro VBLANK_WROTE asz
 .ifdef VBLANK_PROBE
     php
-    .byte $C2, $30              ; `rep #$30`, which ca65 would otherwise
-    pha                         ; believe for what follows the macro
+    rep #$30
+.a16
+.i16
+    pha
     phx
     jsl f:vblank_wrote
     plx
     pla
     plp
+  .if asz = 8
+.a8
+  .endif
 .endif
 .endmacro

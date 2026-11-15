@@ -226,7 +226,7 @@ big_up:
     lda msg_upload
     beq no_upload
     jsl f:upload_line           ; and the face's step, if the line still fits
-    VBLANK_WROTE
+    VBLANK_WROTE 8
 .if ::WINDOW_SYSTEMS > 1
     bra no_swap
 no_upload:

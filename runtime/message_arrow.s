@@ -78,7 +78,7 @@ ARROW_LATEST = VBLANK_WRITES_END - 1
     rtl
 load:
     jsr arrow_obj_load
-    VBLANK_WROTE
+    VBLANK_WROTE 8
     lda #0
     sta f:ARROW_PENDING
 loaded:
@@ -230,7 +230,7 @@ cell:
 .ifdef layer_text_on
     jsl f:msg_layer_arrow       ; off, over the layer above: message_layer.s
 .endif
-    VBLANK_WROTE
+    VBLANK_WROTE 8
     rtl
 .endproc
 

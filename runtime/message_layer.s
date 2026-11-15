@@ -413,7 +413,7 @@ clean:
     xba
     eor f:screen_x
     sta f:LAYER_PRECAM
-    VBLANK_WROTE
+    VBLANK_WROTE 16
 done:
     ply
     plx

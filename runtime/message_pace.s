@@ -838,7 +838,7 @@ no_ink:
     sep #$20
 .a8
     jsr typed_up
-    VBLANK_WROTE
+    VBLANK_WROTE 8
     bra no_typed
 late:
     sep #$20
@@ -856,8 +856,15 @@ no_typed:
 .a8
     bcs done
     jsl f:msg_layer_vblank
-    VBLANK_WROTE                ; keeps the carry: `plp`
+  .ifdef VBLANK_PROBE
+    bcc layer_free              ; the probe, on both ways, without a `plp`
+    VBLANK_WROTE 8              ; between the call and its carry's branch
+    jmp done
+layer_free:
+    VBLANK_WROTE 8
+  .else
     bcs done
+  .endif
 .endif
     lda f:MSG_PLACE
     and #MSG_BARE
@@ -876,7 +883,7 @@ no_typed:
     lda f:MSG_ROWS
     sta f:MSG_ROWS_SEEN
     jsl f:msg_hdma_build
-    VBLANK_WROTE
+    VBLANK_WROTE 8
 done:
     ply
     plx
