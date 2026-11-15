@@ -1544,6 +1544,21 @@ TEXT_WINDOW_ROWS = 10
 WINDOW_LINE = WINDOW_ROW * 8            ; and in scanlines: 144
 LINES = 224
 
+; The last line on which the message window's writes to VRAM and CGRAM in
+; the vblank may end —each step's `*_LATEST` is this minus what it takes—.
+; Not the vblank's last, 261: after them `flush_video` still turns the
+; HDMA on, writes the brightness and walks its code to the end, and on
+; the console all of it has to land before line 0 —a VRAM write with the
+; PPU drawing is lost, a CGRAM one goes to the entry the PPU is reading—.
+; Measured on A Blurred Line's memory in snes9x (2026-11-15), the window's
+; heaviest frames end `flush_video` within 5 lines of the last line their
+; writes may end on; the other 3 are margin for what no emulator here
+; runs —an FX Pak's in-game hooks run their own code in our NMI— and for
+; the console's DMA being a little slower than the emulators'. The steps
+; that ask `vblank_line` see a late start and wait; what comes after them
+; does not ask. See `vblank_line`.
+VBLANK_WRITES_END = 261 - 5 - 3
+
 ; The 64x32 tilemap is two 32-wide screens side by side, and the second one
 ; does not live 32 words further on but 1024.
 VIEW_COLS_TILEMAP = 32

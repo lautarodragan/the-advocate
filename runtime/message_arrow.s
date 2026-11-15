@@ -33,6 +33,11 @@ ARROW_FRAMES = 20
 ARROW_WAY  = WINDOW_ARROW_CELLS * 2
 ARROW_BASE = ARROW_WAY * 4
 
+; The last line on which the arrow's cells may go up —two words, or its
+; objects' flag—, or its objects' tiles and colours, 94 bytes. See
+; `VBLANK_WRITES_END`.
+ARROW_LATEST = VBLANK_WRITES_END - 1
+
 ; One frame of the arrow, from `flush_video`, in the vblank, with the window
 ; on screen. It decides whether the arrow is up and, **only when that
 ; changed** —`MSG_ARROW_UP`—, writes the cells it should have, on or off, on
@@ -58,6 +63,25 @@ ARROW_BASE = ARROW_WAY * 4
 .i16
     ; What the box typed goes up first, and its ink: see message_pace.s.
     jsl f:msg_pace_vblank
+    ; The arrow's objects, if the window that appeared asked for them, and
+    ; only where they fit before `VBLANK_WRITES_END`: past it their colours
+    ; would land on whatever CGRAM entry the PPU is reading —the map's,
+    ; until the next map—. Until they are up the arrow waits too.
+    lda f:ARROW_PENDING
+    beq loaded
+    jsl f:vblank_line
+.a16
+    cmp #ARROW_LATEST + 1
+    sep #$20
+.a8
+    bcc load
+    rtl
+load:
+    jsr arrow_obj_load
+    VBLANK_WROTE
+    lda #0
+    sta f:ARROW_PENDING
+loaded:
     ; A box being typed: up while a `\!` waits for its key, which is RM2k's
     ; `SetPause(true)`, and quiet while it types or a timed wait runs —
     ; `msg_state` is not 0 until it is done—.
@@ -95,6 +119,17 @@ up:
     bne changed
     rtl                         ; the cells already say so
 changed:
+    ; Its cells are written below: late, the next vblank does it.
+    pha
+    jsl f:vblank_line
+.a16
+    cmp #ARROW_LATEST + 1
+    sep #$20
+.a8
+    pla                         ; `pla` keeps the carry
+    bcc fits
+    rtl
+fits:
     sta f:MSG_ARROW_UP
     ; Drawn as objects, `arrow_oam` reads that and there are no cells to
     ; write: see the end of this file.
@@ -294,9 +329,9 @@ bar_lines:
 ; Whether this window draws its arrow as objects: the map's word in
 ; `MSG_ARROW_OBJ`, or 0 for the cells —a window with its background, a map
 ; without room, or a big picture up, which has the window's tilemap
-; elsewhere and its tiles over the sprite bank—; and if so, its tiles and
-; its colours to their places. From `msg_hdma_build`, in the vblank in which
-; the window appears or with the screen off.
+; elsewhere and its tiles over the sprite bank—; and if so, that its tiles
+; and its colours go to their places. From `msg_hdma_build`, in the vblank
+; in which the window appears or with the screen off.
 .proc arrow_obj_choose
 .a8
 .i16
@@ -306,6 +341,7 @@ bar_lines:
     sta f:MSG_ARROW_OBJ
     sep #$20
 .a8
+    sta f:ARROW_PENDING
     lda f:MSG_PLACE
     and #MSG_BARE
     beq cells
@@ -325,7 +361,11 @@ bar_lines:
     sep #$20                    ; `sep` does not touch Z
 .a8
     beq cells
-    jsr arrow_obj_load
+    ; Not here: this runs in the vblank the window appears in, and on every
+    ; line typed, whatever line the vblank is on; the 94 bytes, 30 of
+    ; them to CGRAM, go up from `msg_arrow` when they fit.
+    lda #1
+    sta f:ARROW_PENDING
 cells:
     jsr gold_choose             ; and the inn's gold window: see gold_window.s
     rts
@@ -491,4 +531,7 @@ done:
 .pushseg
 .segment "FARBSS"
 MSG_ARROW_OBJ: .res 2
+; 1 while the arrow's tiles and colours wait for a vblank with room: see
+; `msg_arrow`.
+ARROW_PENDING: .res 1
 .popseg

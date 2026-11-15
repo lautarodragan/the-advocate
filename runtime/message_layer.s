@@ -106,8 +106,8 @@ LAYER_MAPBOT: .res 2            ; the layer's tilemap row under that one
 .i16
 
 ; The last line on which a tile is read: a DMA of 32 bytes and its setup
-; take less than a line. Two of margin, as `upload_line`'s.
-LAYER_LATEST = 261 - 1 - 2
+; take less than a line, before `VBLANK_WRITES_END`.
+LAYER_LATEST = VBLANK_WRITES_END - 1
 
 ; The start of each line, from `msg_line_rows` with its length read: whether
 ; it carries the layer, and the first step if so. Keeps X and Y.
@@ -381,6 +381,16 @@ free:
     lda f:map_table + M_VRAM_WINDOW_MAP + 1, x
     cmp f:MSG_SC
     bne done
+    ; Only if it fits after the line's 1920 bytes: late, the line reads its
+    ; rows in a vblank of its own, step 1. A VRAM read with the PPU
+    ; drawing gives the console's garbage —tiles of the map where letters
+    ; go—, which no emulator here gives.
+    jsl f:vblank_line
+.a16
+    cmp #LAYER_ROWS_LATEST + 1
+    sep #$20
+.a8
+    bcs done
     ; The rows the last line's letters changed go up first: its tiles just
     ; did.
     lda f:LAYER_DIRTY
@@ -524,6 +534,31 @@ flipped:
     rts
 .endproc
 
+
+; From `message_tick`, on a frame the composer waits for its last line to
+; go up: in a window without its background that line waits for an
+; earlier line of the vblank than a framed one's —`LINE_LATEST_BARE`—, so
+; the frame it costs is owed as the layer's are, and the pace pays it
+; back. A framed window keeps its pace as it was. Keeps X and Y.
+.proc msg_layer_upload_held
+.a8
+.i16
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq done
+    lda f:MSG_TYPE
+    cmp #TYPE_TYPING
+    bne done
+    lda f:MSG_BUDGET
+    cmp #MSG_CHARS
+    bne done
+    lda f:LAYER_OWED
+    inc a
+    beq done                    ; it does not wrap
+    sta f:LAYER_OWED
+done:
+    rtl
+.endproc
 
 ; From the box's pace —`msg_pace_tick` and `msg_next`—, on a frame its
 ; wait would pass with nothing typed: the carry set if that frame is one
@@ -847,6 +882,18 @@ cell:
     bcc more
     jmp all
 more:
+    ; The clock every eight cells, not only before a tile: walking the
+    ; sixty cells without one takes some ten lines on its own, and that
+    ; ran `flush_video` past the vblank's end (measured on the memory,
+    ; 2026-11-15). Eight cells are about a line.
+    bit #7
+    bne walk
+    jsr clock
+    bcc walk_on
+    jmp later
+walk_on:
+    lda f:LAYER_FETCH
+walk:
     ; Its column and row.
     ldy #0
     cmp #WINDOW_TEXT_COLS

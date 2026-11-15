@@ -251,10 +251,11 @@ no_upload:
     lda msg_upload              ; its last line did not fit: next vblank
     bne no_finished
     ; Only while the vblank lasts: what follows builds the tables the HDMA
-    ; reads while it draws, and a window without its background writes its
-    ; arrow's colours into CGRAM, which past the vblank land on whatever
-    ; entry the PPU is reading. If this vblank ran out the window appears
-    ; on the next one. See the battle animation's frame, above.
+    ; reads while it draws. If this vblank ran out the window appears on
+    ; the next one. See the battle animation's frame, above. A window
+    ; without its background used to write its arrow's colours to CGRAM
+    ; from here, on whatever line the vblank was on: they go up from
+    ; `msg_arrow` now, when they fit.
     bit HVBJOY
     bpl no_finished
     ; `msg_state` to 0, or to 1 for a box whose lines were blanked and is

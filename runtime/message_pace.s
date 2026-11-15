@@ -734,18 +734,75 @@ done:
     rts
 .endproc
 
+; The line the PPU is on, for a vblank's work to ask whether it still fits:
+; A16 out, the line, or $FFFF on the screen's lines —the vblank is over,
+; and nothing that writes VRAM or CGRAM may start—. Each caller compares it
+; with its own last line, `VBLANK_WRITES_END` minus what its work
+; takes. Keeps X and Y; enters A8 and leaves A16.
+;
+; **What does not fit waits for the next vblank, always.** On the console
+; a VRAM write with the PPU drawing is lost, a VRAM read gives garbage and
+; a CGRAM write lands on the entry the PPU is reading; none of the
+; emulators it was tried on shows it —snes9x, bsnes, Mesen, Mednafen—. On
+; 2026-11-15 taro saw A Blurred Line's memory on an FX Pak with map 5's
+; palettes broken until the map changed and halves of letters missing,
+; and every emulator drew it right: the window's steps after a line's
+; 1920 bytes —the layer above read ahead, the tables and the arrow's
+; colours in `arrow_obj_load`— asked only whether the vblank had ended,
+; not whether they still fit in it, and ran into the screen's first lines:
+; `HVBJOY` says yes on line 261, and what starts there ends outside it.
+.proc vblank_line
+.a8
+.i16
+    lda f:STAT78                ; resets the counters' flip-flop
+    lda f:SLHV                  ; latches them
+    lda f:OPVCT
+    xba
+    lda f:OPVCT
+    and #$01                    ; the ninth bit; the rest is open bus
+    xba
+    rep #$20
+.a16
+    cmp #LINES + 1
+    bcs in_vblank
+    lda #$FFFF                  ; on the screen's lines: the vblank is over
+in_vblank:
+    rtl
+.endproc
+
+; The last line on which `msg_hdma_build` may start again for a line
+; typed: it builds the tables the HDMA reads from the top of the frame.
+; Measured on A Blurred Line's memory (2026-11-15, snes9x), with the
+; arrow's tiles and colours it then uploaded too: within 3 lines of where
+; it starts. Late, the line's band shows a frame later.
+HDMA_BUILD_LATEST = VBLANK_WRITES_END - 3
+
+.ifdef layer_text_on
+; The last line on which the layer above's steps that are not a tile's
+; may start —`msg_layer_vblank`—: the most they write in one vblank is the
+; rows the last letters changed (128 bytes) and then the next step's rows
+; (192 bytes up, or 192 read and the code around them): some 320 bytes,
+; two lines at eight master cycles a byte and 1364 to a line, and the
+; code's. Measured on the memory (2026-11-15, snes9x): the read ahead,
+; the longest, within 5 lines.
+LAYER_ROWS_LATEST = VBLANK_WRITES_END - 5
+.endif
+
 ; From `msg_arrow`, every vblank with the window up: the ink's word to
 ; CGRAM, what was typed since the last one to VRAM, and the HDMA tables
 ; again if the lines a window without its background draws on changed —a
 ; line typed, or the arrow of a `\!`—. Only while the vblank lasts: what
-; does not fit waits for the next one.
+; does not fit waits for the next one —each step asks `vblank_line` before
+; it starts—.
 .proc msg_pace_vblank
 .a8
 .i16
     phx
     phy
     lda f:HVBJOY
-    bpl done
+    bmi in_vblank
+    jmp done
+in_vblank:
 .if ::TEXT_INK_ENTRY > 0
     lda f:MSG_INK_SET
     beq no_ink
@@ -789,9 +846,17 @@ late:
 no_typed:
 .ifdef layer_text_on
     ; The layer above on the window's lines, which may hold the tables
-    ; back: see message_layer.s.
+    ; back: see message_layer.s. Late, all of it waits —its steps and the
+    ; tables after them—: the frame is owed if it held a line, see
+    ; `msg_layer_wait`.
+    jsl f:vblank_line
+.a16
+    cmp #LAYER_ROWS_LATEST + 1
+    sep #$20
+.a8
+    bcs done
     jsl f:msg_layer_vblank
-    VBLANK_WROTE
+    VBLANK_WROTE                ; keeps the carry: `plp`
     bcs done
 .endif
     lda f:MSG_PLACE
@@ -800,6 +865,15 @@ no_typed:
     lda f:MSG_ROWS
     cmp f:MSG_ROWS_SEEN
     beq done
+    ; And the tables only if they fit, or `MSG_ROWS_SEEN` stays behind and
+    ; the next vblank builds them.
+    jsl f:vblank_line
+.a16
+    cmp #HDMA_BUILD_LATEST + 1
+    sep #$20
+.a8
+    bcs done
+    lda f:MSG_ROWS
     sta f:MSG_ROWS_SEEN
     jsl f:msg_hdma_build
     VBLANK_WROTE
@@ -812,7 +886,7 @@ done:
 ; The last line on which `typed_up` may start: the five letters a frame
 ; types touch some eight cells, 512 bytes in its two DMAs —three lines at
 ; eight master cycles a byte, 1364 to a line—, one more for setting them
-; up, and the vblank's last line is 261. Late, the cells wait.
+; up, before `VBLANK_WRITES_END`. Late, the cells wait.
 TYPED_LATEST = 261 - 3 - 1
 
 ; The cells of the line being typed that its letters touched since the
