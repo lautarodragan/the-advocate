@@ -17,7 +17,9 @@ and too much. They are the book's examples of the lossy optimizations,
 next to RM2k's drawing of the same. And a fourth, the clearing, with no
 events at all, and two big ones: the plain, 200x200, and the vast, too big
 for the console, which leaves it out. And the ring, which loops on both
-axes, with two walkers that go round it. And a common event that shows a box with escapes the console
+axes, with two walkers that go round it. And the terrace, a slab of grass
+in a night sky that scrolls on its own, where three walkers go round
+under a transparent box in the middle of the screen. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
 which it draws or shows plain. And a case that puts six small pictures
@@ -39,12 +41,14 @@ Sword, for the cases that read an actor's stats.
       RPG_RT.ini        the game's title, for RPG Maker and EasyRPG
     ChipSet/, CharSet/, FaceSet/, System/
                         the pictures, from EasyRPG's RTP
+    Picture/, Panorama/ the pictures that are ours, drawn by scripts
     AUTHORS.md          whose each picture is, its license and its link;
                         `tests/test_test_game_assets.py`, at the root,
                         fails if a picture has no line there
     LICENSE-CC-BY-4.0.txt
                         the license most of them are under
-    advocate.toml       its cartridge, like a port's
+    advocate.toml       its cartridges, like a port's: `release`, and
+                        `test-vblank` with the vblank's probe
     cases/              the test pages the cartridge carries, one JSON
                         each, like a port's; a test chooses one with
                         `Session(core, case=...)`
@@ -123,6 +127,13 @@ steps are how to build them by hand.
                         where it changes bank; and the vast, 330x200,
                         which fits no way and is left out, so its Teleport
                         is the box
+    test_terrace.py     a transparent box in the middle over the terrace's
+                        scrolling panorama, with walkers under its lines:
+                        on which vblank line each line goes up, on the
+                        `test-vblank` cartridge's probe; that nothing
+                        reaches the screen while it is drawn, on bsnes's
+                        accurate PPU with the display-access audit
+                        (`AUDIT_CORE`); and what it looks like
     test_linter.py      Goombario over the cartridge: the runtime falls in
                         none of the traps it knows, but for the lines
                         annotated as right

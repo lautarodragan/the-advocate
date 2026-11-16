@@ -2,7 +2,7 @@
 
 **A copy, unchanged but for this paragraph**, of A Blurred Line's
 `tests/harness/emulator/retro.py`, in the ports' repo, at its commit
-`2d6aacc`. It lived in this repository until 2026-10-02 and left with that
+`ebe3367`. It lived in this repository until 2026-10-02 and left with that
 game's tests; the test game needs it back, and until the harness's generic
 part comes back here as one package —phase 2 of the test game's research,
 in the book— there are two. A fix to one goes to the other. The comments
@@ -114,6 +114,40 @@ def fifteen_bits(image):
 # RETRO_DEVICE_JOYPAD, in the order libretro numbers them.
 BUTTONS = {"b": 0, "y": 1, "select": 2, "start": 3, "up": 4, "down": 5,
            "left": 6, "right": 7, "a": 8, "x": 9, "l": 10, "r": 11}
+
+
+class DisplayAccess(tuple):
+    """What the PPU refused on one frame: how many VRAM writes it dropped,
+    VRAM reads it gave 0 for, CGRAM writes it put on the entry being drawn
+    and OAM writes on the sprite being evaluated, and the line and dot of
+    the last of them. `frame` is the console's, counted in video frames."""
+    __slots__ = ()
+    FIELDS = ("frame", "vram_writes", "vram_reads", "cgram_writes",
+              "oam_writes", "line", "dot")
+
+    def __new__(cls, *values):
+        return tuple.__new__(cls, values)
+
+    def __getattr__(self, name):
+        return self[self.FIELDS.index(name)]
+
+    def __repr__(self):
+        return ("frame %s: %d VRAM writes, %d VRAM reads, %d CGRAM, %d OAM; "
+                "the last on line %d, dot %d" % self)
+
+
+class DisplayAudit(ctypes.Structure):
+    """The counters `bsnes-display-audit.patch` keeps in the core, in its
+    order: see `DisplayAccessAudit` there."""
+    _fields_ = [(name, ctypes.c_uint32) for name in DisplayAccess.FIELDS[1:]]
+
+    def any(self):
+        return bool(self.vram_writes or self.vram_reads or self.cgram_writes
+                    or self.oam_writes)
+
+    def seen(self, frame):
+        return DisplayAccess(frame, *(getattr(self, name)
+                                      for name, _ in self._fields_))
 
 
 class SystemInfo(ctypes.Structure):
@@ -250,6 +284,23 @@ class Console:
         if not loaded:
             raise SystemExit("the core could not load %s" % rom)
 
+        # The display-access audit, if the core has one: see
+        # `watch_the_display`. It is zeroed here because it lives in the
+        # `.so`, and ctypes keeps one loaded for the whole process: without
+        # this, a console would inherit the previous one's counts.
+        # A core that does not know the id answers null, or a size that is
+        # not the audit's.
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORY_DISPLAY_AUDIT)
+        size = self.lib.retro_get_memory_size(self.MEMORY_DISPLAY_AUDIT)
+        self._audit = (DisplayAudit.from_address(base)
+                       if base and size == ctypes.sizeof(DisplayAudit) else None)
+        if self._audit is not None:
+            ctypes.memset(base, 0, ctypes.sizeof(DisplayAudit))
+        self._watching = False
+        self.display_accesses = []
+
     def _on_env(self, cmd, data):
         if cmd == ENV_SET_VARIABLES and data:
             arr = ctypes.cast(data, ctypes.POINTER(Variable))
@@ -311,8 +362,40 @@ class Console:
         self.held = {BUTTONS[n] for n in names}
 
     def run(self, frames=1):
+        if not self._watching:
+            for _ in range(frames):
+                self.lib.retro_run()
+            return
+        audit = self._audit
         for _ in range(frames):
+            ctypes.memset(ctypes.addressof(audit), 0, ctypes.sizeof(audit))
             self.lib.retro_run()
+            if audit.any():
+                self.display_accesses.append(audit.seen(self.frame_count))
+
+    # A custom id, not libretro's: the counters of
+    # `bsnes-display-audit.patch`, next to this file.
+    MEMORY_DISPLAY_AUDIT = 0x8000
+
+    def watch_the_display(self):
+        """From here on, every frame on which the PPU lost or misplaced a
+        VRAM, CGRAM or OAM access because the screen was being drawn goes
+        to `display_accesses`, one `DisplayAccess` per frame. What happened
+        between loading the ROM and this call goes in as a single one, with
+        `frame` None.
+
+        It is what the console does and no golden sees until the screen
+        breaks: see `tests/rpgmaker/test_display_accesses.py`. Only bsnes
+        with the audit counts it —`just audit-core`— and only with its
+        accurate PPU, `bsnes_ppu_fast` at `OFF`: the fast one does not
+        count. Without the audit, this raises.
+        """
+        if self._audit is None:
+            raise RuntimeError("this core has no display-access audit: "
+                               "`just audit-core` builds the one that does")
+        if self._audit.any():
+            self.display_accesses.append(self._audit.seen(None))
+        self._watching = True
 
     def sample_rate(self):
         """At how many samples per second the core delivers the audio.
