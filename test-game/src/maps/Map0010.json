@@ -1,0 +1,44 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "parallax_flag": true,
+  "parallax_name": "Stars",
+  "events": [
+    {
+      "id": 1,
+      "name": "Dawn",
+      "x": 0,
+      "y": 0,
+      "pages": [
+        {
+          "id": 1,
+          "trigger": "parallel",
+          "event_commands": [
+            {
+              "code": "Wait",
+              "parameters": [
+                5
+              ]
+            },
+            {
+              "code": "ChangePBG",
+              "string": "Dawn",
+              "parameters": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "code": "EraseEvent"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
