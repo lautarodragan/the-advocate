@@ -543,6 +543,7 @@ end_line:
     ; purpose: the buffer still holds what has to be uploaded.
     lda #1
     sta msg_upload
+    stz msg_waited              ; a new line: it has not waited yet
     stz msg_primed
     inc msg_line
     lda msg_line
@@ -694,6 +695,15 @@ LINE_LATEST = 261 - 12 - 1 - 2
 ; DMA (measured on A Blurred Line's memory in snes9x, 2026-11-15), before
 ; `VBLANK_WRITES_END`. A framed window keeps the line it always had, and
 ; its pace.
+;
+; **Only on its first try.** A line that missed a vblank —`msg_waited`—
+; takes the framed window's `LINE_LATEST` on the next, and that vblank
+; uploads no pose nor ChipSet step before it (see `flush_video`): what it
+; writes after the 1920 bytes asks the clock and waits on its own, so the
+; earlier line only kept the box's pace. Without this second chance, on
+; The Frozen World's map 6 a pose a frame kept every vblank past line 238
+; and the box never opened (2026-11-16); with it, the lines that waited
+; went up on the next vblank between lines 237 and 242.
 LINE_LATEST_BARE = VBLANK_WRITES_END - 15
 
 .proc upload_line
@@ -716,15 +726,28 @@ LINE_LATEST_BARE = VBLANK_WRITES_END - 15
     lda f:MSG_PLACE
     and #MSG_BARE
     beq framed
+    lda msg_waited
+    and #$00FF
+    bne framed                  ; it already waited: a framed window's line
     pla
     cmp #LINE_LATEST_BARE + 1
     bcs late
     pha
 framed:
     pla
+    bra fits
+late:
+    sep #$20
+.a8
+    lda #1
+    sta msg_waited              ; the next vblank makes room: see `flush_video`
+    rtl
+.a16
+fits:
     sep #$20
 .a8
     stz msg_upload
+    stz msg_waited
     lda #$80
     sta VMAIN
     ldx map_ofs
@@ -776,10 +799,6 @@ framed:
 .ifdef layer_text_on
     jsl f:msg_layer_ahead       ; and the next line's layer above, ahead
 .endif
-    rtl
-late:
-    sep #$20
-.a8
     rtl
 .endproc
 .popseg

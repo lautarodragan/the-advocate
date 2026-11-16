@@ -56,6 +56,22 @@ no_tint:
     beq no_line
     lda #1
     sta vq_cap
+    ; **And none, if that line already missed a vblank**: nor the ChipSet
+    ; animation's step, which waits with `anim_pend` set. The line looks at
+    ; the clock and waits when it is late —see `upload_line`—, and while it
+    ; waits the poses get one a vblank, so the characters that animate
+    ; queue faster than that drains: the queue stays full, and its one pose
+    ; —up to 1024 bytes with the slot's zeroing— is in every vblank before
+    ; the line. On The Frozen World's map 6, after EV0005's tint to black,
+    ; seven flames kept it full and the line saw line 245 on every frame,
+    ; past a bare window's `LINE_LATEST_BARE`: the box never opened and the
+    ; screen stayed black (taro, 2026-11-16). A pose a frame late is the
+    ; price; a line that never goes up was a hung game.
+    lda msg_waited
+    and msg_upload              ; a System's window does not wait like this
+    beq no_line
+    stz vq_cap
+    bra line_first
 no_line:
     ; And a map strip waiting —the row or column the camera uncovered— too:
     ; `push_strips` runs after the poses and until 2026-09-10 it did not
@@ -81,6 +97,7 @@ no_strip:
     ; poses. It is subtracted from the budget instead of setting it, so it adds
     ; to whatever the tint or a window line already took.
     jsr anim_flush
+line_first:
     ; And the 2 KB of the battle animation's frame, if the tick asked for a
     ; new one. It is the most expensive thing uploaded in a vblank —four poses
     ; of the five— and it happens once every two frames. It goes **before**
