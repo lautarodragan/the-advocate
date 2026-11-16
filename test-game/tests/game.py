@@ -42,6 +42,19 @@ SNAPSHOTS = os.path.join(TESTS, "snapshots")
 SNES9X = os.environ.get("SNES9X_CORE", "/usr/lib/libretro/snes9x_libretro.so")
 BSNES = os.environ.get("BSNES_CORE", "/usr/lib/libretro/bsnes_libretro.so")
 
+# And bsnes with the display-access audit, a third core: the same bsnes
+# with `emulator/bsnes-display-audit.patch` on top of the WRAM one —a copy
+# of A Blurred Line's, whose `just audit-core` builds it in the ports, as
+# the CI workflow does here—. With its accurate PPU it counts every VRAM,
+# CGRAM and OAM access the console would lose because the screen was being
+# drawn: see `retro.Console.watch_the_display`. Where it is belongs to the
+# machine; this is where that recipe installs it by default.
+AUDIT = os.environ.get("AUDIT_CORE",
+                       "/usr/local/lib/libretro/bsnes_audit_libretro.so")
+# Its accurate PPU: the core's default is the fast one, which does not
+# count.
+ACCURATE = {"bsnes_ppu_fast": "OFF"}
+
 # The cartridge the tests run: the one the tools demand of every project.
 RELEASE = "release"
 
@@ -78,7 +91,7 @@ def _builder(*args):
 
 
 class Cartridge:
-    """The `release` cartridge, built: the ROM, its symbols and its maps."""
+    """A cartridge, built: the ROM, its symbols and its maps."""
 
     def __init__(self, data):
         self.rom = data["rom"]
@@ -110,13 +123,13 @@ def listing():
 
 
 @functools.lru_cache(maxsize=None)
-def cartridge():
-    """The built `release`. **It does not build**: a stale cartridge is a
-    red, because a test that ran against an old ROM says nothing. `just
-    test` builds it before."""
+def cartridge(name=RELEASE):
+    """The built `release`, or the cartridge `name` of `advocate.toml`.
+    **It does not build**: a stale cartridge is a red, because a test that
+    ran against an old ROM says nothing. `just test` builds them before."""
     data = next((c for c in listing()["cartridges"]
-                 if c["name"] == RELEASE), None)
-    assert data, "the project does not declare a cartridge %r" % RELEASE
+                 if c["name"] == name), None)
+    assert data, "the project does not declare a cartridge %r" % name
     assert not data["stale"], ("the cartridge is stale (%s): build it with "
                                "`just cartridges` in test-game/" % data["stale"])
     return Cartridge(data)
@@ -125,12 +138,14 @@ def cartridge():
 class Session:
     """The cartridge running on a core, with the boot already past and, with
     `case`, that test page chosen: one of `cases/`, by its name. Without one
-    it is page 0, `[cases] real_game`: the game as it boots."""
+    it is page 0, `[cases] real_game`: the game as it boots. `on` is
+    another cartridge than `release`, and `options` the core's, as
+    `retro.Console` takes them."""
 
-    def __init__(self, core, case=None):
-        self.cartridge = cartridge()
+    def __init__(self, core, case=None, on=RELEASE, options=None):
+        self.cartridge = cartridge(on)
         self.core = core
-        self.console = retro.Console(self.cartridge.rom, core)
+        self.console = retro.Console(self.cartridge.rom, core, options)
         self.console.run(self.symbol("BOOT_FRAMES"))
         if case is not None:
             self.choose_case(case)
@@ -165,6 +180,11 @@ class Session:
         assert case in self.cartridge.cases, (
             "the cartridge does not carry the case %r: is it in cases/?"
             % case)
+        # A cartridge with a single case has no variable to choose it with:
+        # that one is the page that asks for nothing, and runs on its own
+        # —see `--case` in `rm2k-snes-convert`—.
+        if self.cartridge.cases == [case]:
+            return
         # The cartridge says which: 1023, or the first above it the game
         # does not name —see `test_switch` in rm2k-snes-events—.
         switch = self.symbol("TEST_SWITCH")

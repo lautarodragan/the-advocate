@@ -1,0 +1,147 @@
+From a2a0203ece0ed6e91a61474ad323f9f7a6425569 Mon Sep 17 00:00:00 2001
+From: taro <taro@taro.codes>
+Date: Sun, 15 Nov 2026 05:00:53 -0300
+Subject: [PATCH] ppu: count what the accurate PPU refuses because the display
+ is on
+
+The accurate PPU drops VRAM writes, returns 0 for VRAM reads and puts
+CGRAM and OAM writes on the entry being drawn when the display is on,
+like the console. This counts each kind, with the line and dot of the
+last one, and the libretro core exposes the counts as memory id 0x8000,
+which the frontend zeroes when it wants a new count. It changes no
+emulation: the fast PPU, the default, does not count.
+---
+ bsnes/sfc/ppu/io.cpp               | 31 +++++++++++++++++++++++++++---
+ bsnes/sfc/ppu/ppu.cpp              |  1 +
+ bsnes/sfc/ppu/ppu.hpp              | 12 ++++++++++++
+ bsnes/target-libretro/libretro.cpp |  5 +++++
+ 4 files changed, 46 insertions(+), 3 deletions(-)
+
+diff --git a/bsnes/sfc/ppu/io.cpp b/bsnes/sfc/ppu/io.cpp
+index 745b333..dad0fd8 100644
+--- a/bsnes/sfc/ppu/io.cpp
++++ b/bsnes/sfc/ppu/io.cpp
+@@ -37,7 +37,12 @@ auto PPU::readVRAM() -> uint16 {
+ }
+ 
+ auto PPU::writeVRAM(bool byte, uint8 data) -> void {
+-  if(!io.displayDisable && vcounter() < vdisp()) return;
++  if(!io.displayDisable && vcounter() < vdisp()) {
++    displayAccessAudit.vramWrites++;
++    displayAccessAudit.lastLine = vcounter();
++    displayAccessAudit.lastDot = hcounter();
++    return;
++  }
+   auto address = addressVRAM();
+   if(byte == 0) vram[address] = vram[address] & 0xff00 | data << 0;
+   if(byte == 1) vram[address] = vram[address] & 0x00ff | data << 8;
+@@ -49,7 +54,12 @@ auto PPU::readOAM(uint10 addr) -> uint8 {
+ }
+ 
+ auto PPU::writeOAM(uint10 addr, uint8 data) -> void {
+-  if(!io.displayDisable && vcounter() < vdisp()) addr = latch.oamAddress;
++  if(!io.displayDisable && vcounter() < vdisp()) {
++    addr = latch.oamAddress;
++    displayAccessAudit.oamWrites++;
++    displayAccessAudit.lastLine = vcounter();
++    displayAccessAudit.lastDot = hcounter();
++  }
+   obj.oam.write(addr, data);
+ }
+ 
+@@ -65,7 +75,12 @@ auto PPU::writeCGRAM(uint8 addr, uint15 data) -> void {
+   if(!io.displayDisable
+   && vcounter() > 0 && vcounter() < vdisp()
+   && hcounter() >= 88 && hcounter() < 1096
+-  ) addr = latch.cgramAddress;
++  ) {
++    addr = latch.cgramAddress;
++    displayAccessAudit.cgramWrites++;
++    displayAccessAudit.lastLine = vcounter();
++    displayAccessAudit.lastDot = hcounter();
++  }
+   screen.cgram[addr] = data;
+ }
+ 
+@@ -117,6 +132,11 @@ auto PPU::readIO(uint addr, uint8 data) -> uint8 {
+   case 0x2139: {
+     ppu1.mdr = latch.vram >> 0;
+     if(io.vramIncrementMode == 0) {
++      if(!io.displayDisable && vcounter() < vdisp()) {
++        displayAccessAudit.vramReads++;
++    displayAccessAudit.lastLine = vcounter();
++    displayAccessAudit.lastDot = hcounter();
++      }
+       latch.vram = readVRAM();
+       io.vramAddress += io.vramIncrementSize;
+     }
+@@ -127,6 +147,11 @@ auto PPU::readIO(uint addr, uint8 data) -> uint8 {
+   case 0x213a: {
+     ppu1.mdr = latch.vram >> 8;
+     if(io.vramIncrementMode == 1) {
++      if(!io.displayDisable && vcounter() < vdisp()) {
++        displayAccessAudit.vramReads++;
++    displayAccessAudit.lastLine = vcounter();
++    displayAccessAudit.lastDot = hcounter();
++      }
+       latch.vram = readVRAM();
+       io.vramAddress += io.vramIncrementSize;
+     }
+diff --git a/bsnes/sfc/ppu/ppu.cpp b/bsnes/sfc/ppu/ppu.cpp
+index ba003bb..cff2275 100644
+--- a/bsnes/sfc/ppu/ppu.cpp
++++ b/bsnes/sfc/ppu/ppu.cpp
+@@ -3,6 +3,7 @@
+ namespace SuperFamicom {
+ 
+ PPU ppu;
++DisplayAccessAudit displayAccessAudit;
+ #include "main.cpp"
+ #include "io.cpp"
+ #include "mosaic.cpp"
+diff --git a/bsnes/sfc/ppu/ppu.hpp b/bsnes/sfc/ppu/ppu.hpp
+index 353acf2..4ac6cf2 100644
+--- a/bsnes/sfc/ppu/ppu.hpp
++++ b/bsnes/sfc/ppu/ppu.hpp
+@@ -177,3 +177,15 @@ private:
+ };
+ 
+ extern PPU ppu;
++
++// What the accurate PPU did not take where it was told because the display
++// was on; the libretro core exposes it and the host zeroes it.
++struct DisplayAccessAudit {
++  uint32_t vramWrites;   // $2118/$2119 dropped
++  uint32_t vramReads;    // $2139/$213A prefetches that gave 0
++  uint32_t cgramWrites;  // $2122 put on the entry being drawn
++  uint32_t oamWrites;    // $2104 put on the sprite being evaluated
++  uint32_t lastLine;     // vcounter of the last one of them
++  uint32_t lastDot;      // hcounter of the last one of them
++};
++extern DisplayAccessAudit displayAccessAudit;
+diff --git a/bsnes/target-libretro/libretro.cpp b/bsnes/target-libretro/libretro.cpp
+index d78103d..3ccb781 100644
+--- a/bsnes/target-libretro/libretro.cpp
++++ b/bsnes/target-libretro/libretro.cpp
+@@ -1046,6 +1046,9 @@ unsigned retro_get_region()
+ // frontend features silently unavailable.
+ void *retro_get_memory_data(unsigned id)
+ {
++	// A custom id: the accurate PPU's audit, see DisplayAccessAudit.
++	if (id == 0x8000)
++		return &SuperFamicom::displayAccessAudit;
+ 	if (id == RETRO_MEMORY_SYSTEM_RAM)
+ 		return SuperFamicom::cpu.wram;
+ 	return nullptr;
+@@ -1053,6 +1056,8 @@ void *retro_get_memory_data(unsigned id)
+ 
+ size_t retro_get_memory_size(unsigned id)
+ {
++	if (id == 0x8000)
++		return sizeof(SuperFamicom::displayAccessAudit);
+ 	if (id == RETRO_MEMORY_SYSTEM_RAM)
+ 		return sizeof(SuperFamicom::cpu.wram);
+ 	return 0;
+-- 
+2.55.0
+

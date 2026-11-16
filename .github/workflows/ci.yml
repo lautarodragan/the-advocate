@@ -153,7 +153,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/cores
-          key: cores-${{ runner.os }}-${{ env.SNES9X_COMMIT }}-${{ env.BSNES_COMMIT }}-${{ hashFiles('test-game/tests/emulator/bsnes-wram.patch') }}
+          key: cores-${{ runner.os }}-${{ env.SNES9X_COMMIT }}-${{ env.BSNES_COMMIT }}-${{ hashFiles('test-game/tests/emulator/*.patch') }}
 
       - name: Build the libretro cores
         if: steps.cores.outputs.cache-hit != 'true'
@@ -171,12 +171,18 @@ jobs:
           git -C bsnes apply "$GITHUB_WORKSPACE/test-game/tests/emulator/bsnes-wram.patch"
           make -C bsnes -j"$(nproc)"
           cp bsnes/bsnes_libretro.so ~/cores/
+          # And bsnes with the display-access audit too, a core of its own:
+          # `test_terrace.py` counts what its accurate PPU refuses.
+          git -C bsnes apply "$GITHUB_WORKSPACE/test-game/tests/emulator/bsnes-display-audit.patch"
+          make -C bsnes -j"$(nproc)"
+          cp bsnes/bsnes_libretro.so ~/cores/bsnes_audit_libretro.so
 
       - name: The cores, for the tests
         run: |
           echo "SNES9X_CORE=$HOME/cores/snes9x_libretro.so" >> "$GITHUB_ENV"
           echo "BSNES_CORE=$HOME/cores/bsnes_libretro.so" >> "$GITHUB_ENV"
-          ls -l "$HOME/cores/snes9x_libretro.so" "$HOME/cores/bsnes_libretro.so"
+          echo "AUDIT_CORE=$HOME/cores/bsnes_audit_libretro.so" >> "$GITHUB_ENV"
+          ls -l "$HOME/cores/snes9x_libretro.so" "$HOME/cores/bsnes_libretro.so" "$HOME/cores/bsnes_audit_libretro.so"
 
       # Into a root of their own on the PATH, as a game consumes them. The
       # runtime the cartridge is assembled from is the one of the checkout
