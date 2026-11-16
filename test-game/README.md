@@ -19,7 +19,8 @@ events at all, and two big ones: the plain, 200x200, and the vast, too big
 for the console, which leaves it out. And the ring, which loops on both
 axes, with two walkers that go round it. And the terrace, a slab of grass
 in a night sky that scrolls on its own, where three walkers go round
-under a transparent box in the middle of the screen. And a common event that shows a box with escapes the console
+under a transparent box in the middle of the screen, and then in the
+rain, which an event starts when talked to. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
 which it draws or shows plain. And a case that puts six small pictures
