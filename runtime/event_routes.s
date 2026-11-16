@@ -566,8 +566,8 @@ off_crosses:
     bra save_flags
 anim:
     cmp #40
-    bcs by_type                 ; 40 and 41 never get here: from 49 on, a
-                                ; page that walks by a movement type
+    bcs transp_or_type          ; 40 and 41, and from 49 on a page that walks
+                                ; by a movement type
     ; 38 stops the animation and 39 resumes it.
     cmp #38
     bne follow_anim
@@ -631,6 +631,14 @@ minus_freq:
 save_18:
     sta route_ev + 18, x
     bra follow
+
+; 40 raises the event's transparency and 41 lowers it: see `ev_transparency`.
+; Neither costs a frame.
+transp_or_type:
+    cmp #42
+    bcs by_type
+    jsl f:ev_transparency + FAST
+    jmp other_command
 
 ; A page that walks by a movement type: `walk_choose` decides the step, with
 ; the direction toward the hero at hand for the two that look at him, and it
@@ -709,8 +717,9 @@ with_graphic:
     lda #$FF
     sta npc_buf + 12, y         ; the pose in VRAM is no longer its own
     jsr still_touched           ; nor its column, if it animates standing still
-    lda #1
-    sta npc_buf + 14, y         ; and it is visible, in case it was hidden
+    lda npc_buf + 14, y         ; and it is visible, in case it was hidden,
+    ora #$01                    ; as transparent as it was: `SetSpriteGraphic`
+    sta npc_buf + 14, y         ; does not touch the level
 ready_gfx:
     jmp other_command
 

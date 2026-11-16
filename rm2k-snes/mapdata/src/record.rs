@@ -231,6 +231,8 @@ pub struct NpcRow {
     /// Whether others animate in its slot: it uploads its pose even hidden.
     pub leads: bool,
     pub visible: bool,
+    /// Whether the page it is seen with at load is translucent.
+    pub translucent: bool,
     pub tile_pass: Option<i64>,
     /// Drawn into the background: its number among them and which of its
     /// characters it starts with. See [`crate::posed`].
@@ -279,6 +281,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
                 animates: false,
                 leads: false,
                 visible: npc.visible,
+                translucent: npc.translucent,
                 tile_pass: npc.tile_pass,
                 posed: Some((p, g)),
             });
@@ -381,6 +384,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
             animates: still.contains(&npc.event) || twin.is_some(),
             leads: leaders.contains(&npc.event),
             visible: npc.visible,
+            translucent: npc.translucent,
             tile_pass: npc.tile_pass,
             posed: None,
         });
@@ -438,8 +442,14 @@ pub fn npc_bytes(rows: &[NpcRow]) -> Vec<u8> {
             (npc.speed | if npc.animates { 0x80 } else { 0 } | if npc.leads { 0x40 } else { 0 })
                 as u8,
         );
-        // +14: whether it is drawn; +15: the passage bits its tile imposes.
-        out.push(u8::from(npc.visible));
+        // +14: 0 if it is not drawn, else one plus twice its transparency,
+        // which starts at 3 on a translucent page —see `ev_transparency` in
+        // runtime/far_npcs.s—; +15: the passage bits its tile imposes.
+        out.push(match (npc.visible, npc.translucent) {
+            (false, _) => 0,
+            (true, false) => 1,
+            (true, true) => 1 + 2 * 3,
+        });
         out.push(npc.tile_pass.map_or(0xFF, |t| t as u8));
     }
     out

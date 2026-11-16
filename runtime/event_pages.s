@@ -91,8 +91,8 @@
     lda [page_ptr], y           ; +21 the attributes with palette and priority,
     sta pg_attr
     iny
-    lda [page_ptr], y           ; +22 the pose, with bit 7 if there is a graphic,
-    sta pg_pose
+    lda [page_ptr], y           ; +22 the pose, with bit 7 if there is a graphic
+    sta pg_pose                 ;     and bit 6 if the page is translucent,
     iny
     lda [page_ptr], y           ; +23 and its tile's passability bits, or $FF
     sta pg_pass
@@ -1418,8 +1418,21 @@ walks:
     jsr walker_graphic
     ply
 no_touch_tile:
+    ; Drawn, at the page's transparency: 0, or 3 if it is translucent —bit 6
+    ; of its pose—, which is +14's 1 or 7: see `ev_transparency`. The same
+    ; page again, after a battle, keeps the level a route left.
+    lda f:applied_again
+    beq level
+    lda npc_buf + 14, y
+    bne level_kept
+level:
     lda #1
+    bit pg_pose
+    bvc opaque
+    lda #(1 + 2 * 3)
+opaque:
     sta npc_buf + 14, y
+level_kept:
     lda pg_pass
     sta npc_buf + 15, y
     cmp #$FF

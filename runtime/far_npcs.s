@@ -397,3 +397,71 @@ ready:
 spin_frames:
     .byte 24, 16, 12, 8, 6, 4
 .assert NPC_MAX < 255, error, "slot_npc stores the row plus one in a byte"
+
+; --- the transparency a route raises and lowers -----------------------------
+;
+; A route's 40 raises its character's transparency by one and 41 lowers it,
+; from 0 to 7: `Game_Character::UpdateMoveRoute`, which clamps it and does not
+; touch the stop counter, so the next command runs on this same frame. What
+; the console draws of it is all or nothing —see `TRANSP_HIDDEN`—. ABL's map
+; 2 screen is four events that five 40s each fade into the panorama when Core
+; gets in, and five 41s bring them back.
+;
+; An event keeps its level in its row's +14, which is 0 when its page draws
+; nothing and otherwise one plus twice the level: whoever only asks whether
+; the row draws —the hero's passability, `posed_row`, the battle animation—
+; still reads nonzero, and `build_oam` tells the level apart with a `dec` and
+; a `cmp`. A row that draws nothing has no level to keep: in RM2k it would
+; outlive a route's change of graphic, and here it starts at 0 again. A new
+; page sets it to the page's —3 if it is translucent, else 0—: that is
+; `page_graphic`, for the events whose graphic follows the page; one whose
+; graphic does not keeps its level across pages, where RM2k sets it again.
+;
+; Slot X's event, A the command, 40 or 41. Keeps X; A and Y are lost.
+.proc ev_transparency
+.a8
+.i16
+    pha
+    jsl f:slot_npc + FAST
+    pla
+    cpy #$FFFF
+    beq ready                   ; an event without a graphic has no row
+    lsr a                       ; C: 41, it lowers
+    lda npc_buf + 14, y         ; `lda` leaves C alone
+    beq ready                   ; its page draws nothing: no level to keep
+    bcs lower
+    cmp #(1 + 2 * 7)
+    bcs ready                   ; 7 is the most
+    adc #2                      ; C is clear
+    bra store
+lower:
+    cmp #(1 + 2 * 1)
+    bcc ready                   ; 0 is the least
+    sbc #2                      ; C is set
+store:
+    sta npc_buf + 14, y
+ready:
+    rtl
+.endproc
+
+; The same on the hero, whose level is `hero_transp` as it is. A the command,
+; 40 or 41.
+.proc hero_transparency
+.a8
+.i16
+    lsr a                       ; C: 41, it lowers
+    lda hero_transp
+    bcs lower
+    cmp #7
+    bcs ready                   ; 7 is the most
+    inc a
+    bra store
+lower:
+    cmp #1
+    bcc ready                   ; 0 is the least
+    dec a
+store:
+    sta hero_transp
+ready:
+    rtl
+.endproc

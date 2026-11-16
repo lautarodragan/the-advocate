@@ -87,8 +87,13 @@ touches_npc:
     bra hidden
 an_object:
 .endif
+    ; +14 is 0 if its active page draws nothing, and else one plus twice
+    ; its transparency: 1, 3, 5 and 7 are drawn, and from 9 on —level 4, a
+    ; route faded it past half— it is hidden. See `ev_transparency`.
     lda npc_buf + 14, x
-    beq hidden                  ; its active page draws nothing
+    dec a                       ; 0 goes to $FF, hidden too
+    cmp #(TRANSP_HIDDEN * 2)
+    bcs hidden
     ; What `emit_object` was going to discard is discarded **here**, with the
     ; same comparison and before building the rest of the row. It discards the
     ; same as before, object by object, so the OAM comes out identical; what
@@ -878,7 +883,10 @@ outside:
 .i16
     inc hero_drawn
     lda hero_hidden             ; `PlayerVisibility`: counted as placed, not drawn
-    beq shown
+    bne no_draw
+    lda hero_transp             ; and so is a hero a route faded past half
+    cmp #TRANSP_HIDDEN
+    bcc shown
 no_draw:                        ; here and not at the end: the bush's `jsl`
     rts                         ; left the end out of a branch's reach
 shown:

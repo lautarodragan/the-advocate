@@ -239,6 +239,8 @@ save_table:
     .word hero_heading, 1
     ; And whether he is drawn: `PlayerVisibility` lasts until the next one.
     .word hero_hidden, 1
+    ; And how transparent a route left him: see `hero_transparency`.
+    .word hero_transp, 1
     ; And the variables, from far RAM. VARIABLES_N is at least 1 —the
     ; converter guarantees it— because a zero length would end the table here.
     .word FAR_VARIABLES, VARIABLES_N * 2

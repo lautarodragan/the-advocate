@@ -81,11 +81,13 @@ pub const LAYER_ABOVE: i64 = 2;
 /// the event's row when that page becomes the active one.
 ///
 /// The pose goes with bit 7, which is "this page draws something", and
-/// the passage is $FF when its graphic is not a tile. One that only
+/// bit 6, "the page is translucent" —its transparency starts at 3, see
+/// `page_graphic` in runtime/event_pages.s—; the passage is $FF when its
+/// graphic is not a tile. One that only
 /// appears carries no tile or attributes: its own row points at its slot
 /// of twelve poses, and the console does not touch them.
 pub fn page_oam(draws: &Draws, layer: i64) -> [u8; 4] {
-    let pose = (draws.pose | 0x80) as u8;
+    let pose = (draws.pose | 0x80 | if draws.translucent { 0x40 } else { 0 }) as u8;
     let passage = draws.tile_pass.map_or(0xFF, |p| p as u8);
     // Drawn into the background: its number among them in the tile byte,
     // and in the attributes the priority nobody's object has and which of
@@ -149,6 +151,7 @@ mod tests {
             palette: 3,
             pose: 7,
             tile_pass,
+            translucent: false,
         };
         assert_eq!(
             page_oam(&draws(Some(17), None), LAYER_SAME),
@@ -174,6 +177,7 @@ mod tests {
             palette: 3,
             pose: 7,
             tile_pass: None,
+            translucent: false,
         };
         assert_eq!(page_oam(&draws, LAYER_SAME), [9, 0x16, 0x87, 0xFF]);
     }
@@ -191,7 +195,25 @@ mod tests {
             palette: 3,
             pose: 10,
             tile_pass: None,
+            translucent: false,
         };
         assert_eq!(page_oam(&draws, LAYER_SAME), [4, 0x34, 0x8A, 0xFF]);
+    }
+
+    /// A translucent page's pose carries bit 6: the console starts the
+    /// event's transparency at 3 with it. See `page_graphic`.
+    #[test]
+    fn a_translucent_page_says_so_in_its_pose() {
+        use super::*;
+        let draws = Draws {
+            posed: None,
+            block: Some(17),
+            key: None,
+            palette: 3,
+            pose: 7,
+            tile_pass: None,
+            translucent: true,
+        };
+        assert_eq!(page_oam(&draws, LAYER_SAME), [0x04, 0x17, 0xC7, 0xFF]);
     }
 }

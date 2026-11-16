@@ -184,6 +184,7 @@ fn events(which: &str) -> Vec<Event> {
                         animation,
                         move_type: 0,
                         own_route: false,
+                        translucent: false,
                         conditions: conditions
                             .into_iter()
                             .map(|c| match c {
