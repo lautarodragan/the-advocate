@@ -729,9 +729,14 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let wc = request.window_colors;
     let attempt = |way: Way| -> std::result::Result<Converted, String> {
         let done = match way {
-            Way::Hidden | Way::Black => {
-                crate::background::convert_with(&on_black(&drawn.layers), wc, None)
-            }
+            // Hidden, the map is drawn as one without a panorama, with the
+            // rows of its extension: they are cut off again in `blocks`.
+            Way::Hidden => crate::background::convert_with(
+                &on_black(drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l)),
+                wc,
+                None,
+            ),
+            Way::Black => crate::background::convert_with(&on_black(&drawn.layers), wc, None),
             Way::Painted => {
                 // The layer above's tiles the layout leaves: the roofs' edges.
                 let above = budget.of_mode(4).map(|l| l.above).max().unwrap_or(1);
