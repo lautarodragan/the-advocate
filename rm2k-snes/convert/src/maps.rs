@@ -513,8 +513,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // And the still events that change pose, into the background: not
         // on a map that loops, whose cells the console builds elsewhere —see
         // `wrap.s`—.
-        "posed_stills": game.posed && map.scroll_type == 0,
-        "test_commands": if game.decorative || game.posed {
+        "posed_stills": game.posed.on(map_id) && map.scroll_type == 0,
+        "test_commands": if game.decorative || game.posed.on(map_id) {
             case_commands.iter().map(|c| json!([c.code, c.parameters])).collect::<Vec<_>>()
         } else {
             Vec::new()

@@ -388,7 +388,14 @@ fn posed_events(
     notes: &mut Vec<Note>,
 ) -> Result<Vec<crate::posed::Posed>> {
     let id = request.map;
-    if !request.posed || layers.drawn.panorama.is_some() || !game.map_pictures.is_empty() {
+    // A panorama the map covers everywhere is never seen, and the map is
+    // drawn as one without it: see `Way::Hidden`. Any other gets its cells
+    // from elsewhere —a layer of its own, or baked into the background—.
+    let hidden = layers.converted.way == Some(crate::background::panorama::Way::Hidden);
+    if !request.posed
+        || (layers.drawn.panorama.is_some() && !hidden)
+        || !game.map_pictures.is_empty()
+    {
         return Ok(Vec::new());
     }
     let mut commands = game.common_commands()?;
@@ -456,6 +463,7 @@ fn posed_events(
             v
         };
         if fits
+            && with.converted.way == layers.converted.way
             && same_split(&layers.converted, &with.converted, false)
             && victims(&layers.converted) == victims(&with.converted)
         {

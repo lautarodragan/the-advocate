@@ -1,6 +1,6 @@
 """A transparent box in the middle of the screen over a panorama that
 scrolls on its own: the terrace, map 9, with characters walking under the
-letters.
+letters; and then the same in the rain.
 
 It keeps a stress case of A Blurred Line's: its map 1 —a flattened map in
 mode 3, whose panorama scrolls on its own— with the message of `EV0002`
@@ -21,6 +21,15 @@ page they would not, as in RM2k— shows four boxes, transparent and in
 the middle: four lines, four, three and one. The sky is left where the
 lines start and in a hole in the slab, so the letters go over it.
 
+**Then the rain**, since A Blurred Line's map 1 has it on while its boxes
+are up —weak there, `EV0001` sets it before `EV0002` talks—: the hero
+turns to the event at their right, `Rain`, and talks to it; it sets the
+rain strong —`RAIN_DROPS_2` drops, two objects each, after every
+character in the OAM: see `runtime/rain.s`— and turns switch 1500 on,
+whose parallel page of the same event shows four boxes more, the same
+shape, and turns it off. The rain stays. Everything below is asked over
+both halves of the scene.
+
 **What it asks**:
 
 * on the `test-vblank` cartridge, built with `--vblank-probe`, every call
@@ -36,7 +45,8 @@ lines start and in a hole in the slab, so the letters go over it.
   VRAM, CGRAM or OAM access lands while the screen is drawn, over the
   whole scene. Without that core it skips, saying how to get it;
 * and what it looks like: the first box whole, and the third, with a
-  walker on its lines.
+  walker on its lines; and the same two in the rain, with drops over the
+  letters.
 
 **Measured** when it was written, on 2026-11-16: 34 calls on snes9x,
 bsnes and the audit core; 22 read line 235 or 236 and went up on their
@@ -48,15 +58,26 @@ misses by one or two and no ceiling. And with the probe's `VBLANK_STALL`
 at 251 —the vblank full before the window's work— the first test goes
 red, the ceiling firing on every line.
 
+**In the rain**, measured on 2026-11-16 too: 29 calls on snes9x and
+bsnes; 27 read line 235 and went up on their first try, margin 3; one read
+240, missed it, and went up on the next vblank at 236 or 237, margin 10 or
+9. No forced blank; the window's writes ended at worst on line 257, one
+later than dry; 0 display accesses. The rain costs the window nothing it
+can see: its drops are moved and put in the OAM outside the vblank, and
+the OAM's upload is the same 544 bytes with them or without.
+
 **What the goldens show that RM2k does not**: on the box's lines the
 panorama is black, since in mode 3 it is BG2, which the window takes on
 its lines —the known divergence "The window without a background does not
-cover the characters", in the book—; and the walkers go over the letters,
-the same divergence. The striped columns at the screen's edges that A
-Blurred Line's map 1 showed —the draft
+cover the characters", in the book—; and the walkers and the rain's
+drops go over the letters, the same divergence: they are objects, which
+in mode 3 go in front of BG2, and in RM2k the window is above the weather
+too. The striped columns at the screen's edges that A Blurred Line's map
+1 showed —the draft
 `a-transparent-window-over-a-flattened-panorama-shows-striped-edges`— do
-not show here: so they come from something that map has and this one does
-not, which the draft says.
+not show here, dry or in the rain: and they are not the rain's, since
+that map shows them the same with its rain taken out. The draft says
+what is left.
 
 What it does not cover: the console's timing and an FX Pak's hooks, only
 the emulators'; a map with the layer above for the text, which a
@@ -70,7 +91,7 @@ import pytest
 from game import ACCURATE, AUDIT, MESSAGE_SHOWN, Session, golden
 
 TERRACE = 9
-BOXES = 4
+BOXES = 4                   # dry, and as many again in the rain
 PROBE = "test-vblank"
 
 VBLANK_LAST = 261           # NTSC's last line
@@ -79,11 +100,10 @@ MARGIN = 3                  # `VBLANK_WRITES_END`'s, in runtime/far_ram.s
 ON_THE_SCREEN = 0xFFFF
 
 
-def play(sess, at_each_box=lambda k: None):
-    """From the case to the end of its boxes: each one waited for whole on
-    screen, given a few ticks, `at_each_box(k)` and an A."""
-    sess.until("on the terrace", lambda: sess.map_() == TERRACE, 600)
-    for k in range(BOXES):
+def boxes(sess, first, count, at_each_box):
+    """`count` boxes, from the `first`-th of the scene: each one waited
+    for whole on screen, given a few ticks, `at_each_box(k)` and an A."""
+    for k in range(first, first + count):
         sess.until("box %d whole on screen" % k,
                    lambda: sess.byte("msg_open")
                    and sess.byte("msg_state") == MESSAGE_SHOWN
@@ -93,7 +113,32 @@ def play(sess, at_each_box=lambda k: None):
             sess.advance()
         at_each_box(k)
         sess.press("a")
-    sess.until("the case over", sess.has_control, 600)
+    sess.until("the boxes over", sess.has_control, 600)
+
+
+def raining(sess):
+    """The weather's type, `WEATHER_RAIN`, and how many drops are alive:
+    `far_weather` and `far_rain` in runtime/rain.s."""
+    kind = sess.byte("far_weather")
+    room = sess.symbol("RAIN_DROPS_MAX")
+    drops = sess.console.ram(sess._ram("far_rain"), 3 * room)
+    return kind == sess.symbol("WEATHER_RAIN"), sum(
+        1 for d in range(room) if drops[3 * d + 2])
+
+
+def play(sess, at_each_box=lambda k: None):
+    """From the case to the end of the scene: its four boxes, then a talk
+    with the rain's event, at the hero's right, and its four boxes in the
+    rain. `at_each_box(k)` sees the boxes as 0 to 7."""
+    sess.until("on the terrace", lambda: sess.map_() == TERRACE, 600)
+    boxes(sess, 0, BOXES, at_each_box)
+    assert not raining(sess)[0], "it rains before the rain's event"
+    sess.walk_until_blocked("right")
+    sess.press("a")
+    sess.until("raining", lambda: raining(sess)[0], 60)
+    boxes(sess, BOXES, BOXES, at_each_box)
+    on, alive = raining(sess)
+    assert on and alive, "the rain stopped, or has no drops: %d" % alive
 
 
 def test_each_line_goes_up_inside_the_vblank(core):
@@ -119,7 +164,8 @@ def test_each_line_goes_up_inside_the_vblank(core):
                 continue
             seen = sess.word("VBLANK_UPLOAD_LINE")
             if seen:
-                calls.append((seen, waited, sess.byte("msg_waited")))
+                calls.append((seen, waited, sess.byte("msg_waited"),
+                              raining(sess)[0]))
             wrote = sess.word("VBLANK_WRITES_LINE")
             if wrote > VBLANK_LAST - MARGIN:
                 late.append(wrote)
@@ -129,14 +175,17 @@ def test_each_line_goes_up_inside_the_vblank(core):
 
     def table():
         return "; ".join(
-            "line %s, %s try, %s" % (
+            "%sline %s, %s try, %s" % (
+                "in the rain, " if wet else "",
                 "past the vblank" if seen == ON_THE_SCREEN else seen,
                 "second" if before else "first",
                 "missed" if after else "margin %d"
                 % ((latest if before else bare) - seen))
-            for seen, before, after in calls)
+            for seen, before, after, wet in calls)
 
     assert calls, "no line went up: is the probe on?"
+    assert any(wet for *_, wet in calls), (
+        "no line went up in the rain: the rain's boxes were not measured")
     assert (sess.word("VBLANK_FORCED_N") - forced) & 0xFFFF == 0, (
         "the ceiling put the screen in forced blank: a line waited %d "
         "vblanks. The calls: %s" % (sess.symbol("WAIT_CEILING"), table()))
@@ -166,5 +215,6 @@ def test_nothing_reaches_the_screen_while_it_is_drawn():
 
 def test_what_it_looks_like(core):
     sess = Session(core, case="terrace")
-    shots = {0: "terrace-first-box", 2: "terrace-three-lines"}
+    shots = {0: "terrace-first-box", 2: "terrace-three-lines",
+             4: "terrace-rain-first-box", 6: "terrace-rain-three-lines"}
     play(sess, lambda k: k in shots and golden(shots[k], sess.image(), core))
