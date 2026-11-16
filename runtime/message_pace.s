@@ -754,6 +754,8 @@ done:
 .proc vblank_line
 .a8
 .i16
+    lda f:vb_forced
+    bne forced
     lda f:STAT78                ; resets the counters' flip-flop
     lda f:SLHV                  ; latches them
     lda f:OPVCT
@@ -767,6 +769,12 @@ done:
     bcs in_vblank
     lda #$FFFF                  ; on the screen's lines: the vblank is over
 in_vblank:
+    rtl
+forced:
+    ; The screen in forced blank —`flush_video` past `WAIT_CEILING`—: VRAM
+    ; and CGRAM take the writes wherever the beam is, so all of them fit.
+    rep #$20
+    lda #LINES + 1
     rtl
 .endproc
 
@@ -799,6 +807,8 @@ LAYER_ROWS_LATEST = VBLANK_WRITES_END - 5
 .i16
     phx
     phy
+    lda f:vb_forced             ; in forced blank all of it fits, also
+    bne in_vblank               ; past the vblank: see `WAIT_CEILING`
     lda f:HVBJOY
     bmi in_vblank
     jmp done
@@ -822,19 +832,10 @@ no_ink:
     ; nothing from there on, and the tail of the cells would be a hole until
     ; the line goes up whole. Late, `MSG_TYPED` and the cells stay for the
     ; next vblank. It is `upload_line`'s test, with this one's size.
-    lda f:STAT78                ; resets the counters' flip-flop
-    lda f:SLHV                  ; latches them
-    lda f:OPVCT
-    xba
-    lda f:OPVCT
-    and #$01                    ; the ninth bit; the rest is open bus
-    xba
-    rep #$20
+    jsl f:vblank_line
 .a16
     cmp #TYPED_LATEST + 1
     bcs late
-    cmp #LINES + 1              ; on the screen's lines: the vblank is over
-    bcc late
     sep #$20
 .a8
     jsr typed_up
@@ -849,22 +850,10 @@ no_typed:
     ; back: see message_layer.s. Late, all of it waits —its steps and the
     ; tables after them—: the frame is owed if it held a line, see
     ; `msg_layer_wait`.
-    jsl f:vblank_line
-.a16
-    cmp #LAYER_ROWS_LATEST + 1
-    sep #$20
-.a8
-    bcs done
-    jsl f:msg_layer_vblank
-  .ifdef VBLANK_PROBE
-    bcc layer_free              ; the probe, on both ways, without a `plp`
-    VBLANK_WROTE 8              ; between the call and its carry's branch
+    jsl f:msg_layer_steps
+    bcc layer_free
     jmp done
 layer_free:
-    VBLANK_WROTE 8
-  .else
-    bcs done
-  .endif
 .endif
     lda f:MSG_PLACE
     and #MSG_BARE
@@ -873,7 +862,14 @@ layer_free:
     cmp f:MSG_ROWS_SEEN
     beq done
     ; And the tables only if they fit, or `MSG_ROWS_SEEN` stays behind and
-    ; the next vblank builds them.
+    ; the next vblank builds them. **Not past the vblank in forced blank**:
+    ; they are RAM, which the forced blank does not make any safer, and the
+    ; HDMA reads them while the frame is drawn.
+    lda f:vb_forced
+    beq clocked
+    lda f:HVBJOY
+    bpl done
+clocked:
     jsl f:vblank_line
 .a16
     cmp #HDMA_BUILD_LATEST + 1

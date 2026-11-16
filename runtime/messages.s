@@ -704,24 +704,25 @@ LINE_LATEST = 261 - 12 - 1 - 2
 ; The Frozen World's map 6 a pose a frame kept every vblank past line 238
 ; and the box never opened (2026-11-16); with it, the lines that waited
 ; went up on the next vblank between lines 237 and 242.
+;
+; **And not forever**: from `WAIT_CEILING` vblanks missed on, `flush_video`
+; puts the screen in forced blank for the window's writes, `vblank_line`
+; answers the vblank's first line, and the line goes up wherever the beam
+; is. See vblank.s.
 LINE_LATEST_BARE = VBLANK_WRITES_END - 15
 
 .proc upload_line
 .a8
 .i16
-    lda f:STAT78                ; resets the counters' flip-flop: `tl_line`
-    lda f:SLHV                  ; latches them
-    lda f:OPVCT
-    xba
-    lda f:OPVCT
-    and #$01                    ; the ninth bit; the rest is open bus
-    xba
-    rep #$20
+    ; The line the PPU is on, $FFFF on the screen's —the vblank is over—,
+    ; and the vblank's first in forced blank: see `WAIT_CEILING`.
+    jsl f:vblank_line
 .a16
+.ifdef VBLANK_PROBE
+    sta f:VBLANK_UPLOAD_LINE
+.endif
     cmp #LINE_LATEST + 1
     bcs late
-    cmp #LINES + 1              ; on the screen's lines: the vblank is over
-    bcc late
     pha
     lda f:MSG_PLACE
     and #MSG_BARE
@@ -739,8 +740,10 @@ framed:
 late:
     sep #$20
 .a8
-    lda #1
-    sta msg_waited              ; the next vblank makes room: see `flush_video`
+    inc msg_waited              ; the next vblank makes room: see `flush_video`
+    bne counted
+    dec msg_waited              ; it does not wrap
+counted:
     rtl
 .a16
 fits:

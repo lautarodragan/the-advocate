@@ -97,6 +97,9 @@ LAYER_INK:    .res WINDOW_TEXT_COLS ; per text column: bits 0 and 1 inked, top
 LAYER_ROWS:   .res TEXT_WINDOW_COLS * 2 * 2 ; the line's two rows of the plane
 LAYER_BOTTOM: .res TEXT_WINDOW_COLS * 2     ; and the window's bottom row
 LAYER_MAPBOT: .res 2            ; the layer's tilemap row under that one
+LAYER_LATE:   .res 1            ; vblanks in a row a step held the box and
+                                ; went nowhere: see `msg_layer_steps`
+LAYER_WAS:    .res 2            ; `LAYER_STEP` and `LAYER_FETCH` before them
 .popseg
 .assert LAYER_BOTTOM = LAYER_ROWS + TEXT_WINDOW_COLS * 2 * 2, error, "the bottom row is read as a third row of `LAYER_ROWS`"
 
@@ -121,6 +124,7 @@ LAYER_LATEST = VBLANK_WRITES_END - 1
 .a8
     lda #0
     sta f:LAYER_ON
+    sta f:LAYER_LATE
     lda f:msg_line
     sta f:LAYER_NEXT
     bne owing
@@ -419,6 +423,62 @@ done:
     plx
     plp
 .endif
+    rtl
+.endproc
+
+; From `msg_pace_vblank`, in the vblank: the layer's steps if they still
+; fit —`LAYER_ROWS_LATEST`—, with the carry as `msg_layer_vblank` leaves
+; it, and set when late. **And the vblanks a step of the vblank's held the
+; box and went nowhere**, in a row —`LAYER_LATE`—: steps 1, 3 and 5 hold
+; the composer —`msg_layer_wait`— until they are done, and a vblank whose
+; work before them always ends past their last line would hold it
+; forever, as a line of the box would (`upload_line`). From `WAIT_CEILING`
+; on, `flush_video` puts the screen in forced blank for the window's
+; writes, and the clocks say they fit. Keeps X and Y.
+.proc msg_layer_steps
+.a8
+.i16
+    lda f:LAYER_STEP
+    sta f:LAYER_WAS
+    lda f:LAYER_FETCH
+    sta f:LAYER_WAS + 1
+    jsl f:vblank_line
+.a16
+    cmp #LAYER_ROWS_LATEST + 1
+    sep #$20
+.a8
+    bcs late
+    jsl f:msg_layer_vblank
+    VBLANK_WROTE 8              ; keeps the carry
+    php
+    bra count
+late:
+    php                         ; the carry set: what follows waits too
+count:
+    lda f:LAYER_STEP
+    cmp f:LAYER_WAS
+    bne moved
+    lda f:LAYER_FETCH
+    cmp f:LAYER_WAS + 1
+    bne moved
+    lda f:LAYER_STEP
+    cmp #1
+    beq held
+    cmp #3
+    beq held
+    cmp #5
+    bne moved
+held:
+    lda f:LAYER_LATE
+    inc a
+    beq counted                 ; it does not wrap
+    sta f:LAYER_LATE
+    bra counted
+moved:
+    lda #0
+    sta f:LAYER_LATE
+counted:
+    plp
     rtl
 .endproc
 
@@ -1235,9 +1295,12 @@ prefetched:
     rts
 
 ; The carry set if the vblank is too far along for one more tile: as
-; `upload_line`'s, with its own last line. A8.
+; `upload_line`'s, with its own last line; clear in forced blank, see
+; `WAIT_CEILING`. A8.
 clock:
 .a8
+    lda f:vb_forced
+    bne fits
     lda f:STAT78                ; resets the counters' flip-flop
     lda f:SLHV                  ; latches them
     lda f:OPVCT
@@ -1251,6 +1314,7 @@ clock:
     bcs late
     cmp #LINES + 1              ; on the screen's lines: the vblank is over
     bcc late
+fits:
     sep #$20
 .a8
     clc
