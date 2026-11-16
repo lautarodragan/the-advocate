@@ -25,6 +25,47 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+/// On which maps the still events that change pose go into the background:
+/// see [`Game::posed`]. `posed_events = true` is every map, and a list of
+/// ids only those. A list too because each map that takes them spends
+/// background tiles where it saves sprite ones, and a cartridge with no
+/// bank left —A Blurred Line's— can pay for some maps and not for all.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum Posed {
+    #[default]
+    Nowhere,
+    Everywhere,
+    Only(BTreeSet<i32>),
+}
+
+impl Posed {
+    const KEY: [&'static str; 2] = ["graphics", "posed_events"];
+
+    pub fn read(project: &Project) -> Result<Posed> {
+        let Ok(value) = project.value(&Self::KEY) else {
+            return Ok(Posed::Nowhere);
+        };
+        if value.is_array() {
+            let maps = project.ints(&Self::KEY)?;
+            return Ok(Posed::Only(maps.into_iter().map(|m| m as i32).collect()));
+        }
+        Ok(if project.boolean(&Self::KEY)? {
+            Posed::Everywhere
+        } else {
+            Posed::Nowhere
+        })
+    }
+
+    /// Whether map `id` takes them.
+    pub fn on(&self, id: i32) -> bool {
+        match self {
+            Posed::Nowhere => false,
+            Posed::Everywhere => true,
+            Posed::Only(maps) => maps.contains(&id),
+        }
+    }
+}
+
 /// One line of a page's script: code, indent, a string and integers,
 /// whatever the code is.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -260,11 +301,11 @@ pub struct Game {
     /// when the key is missing: it changes the map of any game that has
     /// them, and a game opts in.
     pub decorative: bool,
-    /// `[graphics] posed_events`: whether the still events that change pose
-    /// —a floor switch, a chest— are drawn into the background's cells, a
-    /// block per pose, instead of as objects: see `posed` in Wally. Off
-    /// when the key is missing, for the same reason.
-    pub posed: bool,
+    /// `[graphics] posed_events`: on which maps the still events that
+    /// change pose —a floor switch, a chest— are drawn into the background's
+    /// cells, a block per pose, instead of as objects: see `posed` in Wally.
+    /// Off when the key is missing, for the same reason.
+    pub posed: Posed,
     /// `[graphics] map_pictures`: whether the `ShowPicture` pictures that
     /// are part of a map are drawn into it —see [`crate::map_pictures`]—.
     /// Off when the key is missing, for the same reason.
@@ -454,10 +495,7 @@ impl Game {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
             },
-            posed: match project.value(&["graphics", "posed_events"]) {
-                Err(_) => false,
-                Ok(_) => project.boolean(&["graphics", "posed_events"])?,
-            },
+            posed: Posed::read(project)?,
             map_pictures: match project.value(&["graphics", "map_pictures"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "map_pictures"])?,
@@ -868,4 +906,24 @@ fn database(dump: &Dump, forks: &Forks) -> Result<Database> {
     db.title_name = system.title_name.clone();
     db.gameover_name = system.gameover_name.clone();
     Ok(db)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn posed(text: &str) -> Result<Posed> {
+        Posed::read(&Project::from_text(Path::new("/nowhere"), text).unwrap())
+    }
+
+    #[test]
+    fn posed_events_is_every_map_a_list_of_them_or_none() {
+        assert_eq!(posed("").unwrap(), Posed::Nowhere);
+        assert_eq!(posed("[graphics]\nposed_events = false").unwrap(), Posed::Nowhere);
+        assert!(posed("[graphics]\nposed_events = true").unwrap().on(96));
+        let some = posed("[graphics]\nposed_events = [8, 11]").unwrap();
+        assert!(some.on(8) && some.on(11));
+        assert!(!some.on(9));
+        assert!(posed("[graphics]\nposed_events = 8").is_err());
+    }
 }

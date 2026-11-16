@@ -723,3 +723,68 @@ fn a_tile_the_map_does_not_draw_is_drawn_below_it_for_a_substitution() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// A Blurred Line's Lashe City, map 8: its panorama is never seen —the map
+/// covers it everywhere, so it goes hidden and the map is drawn as one
+/// without it—, and its still events go into the background as on a map
+/// with no panorama: the panorama is no reason to keep them objects.
+#[test]
+fn a_still_event_goes_into_the_background_of_a_map_that_hides_its_panorama() {
+    let dir = scratch("posed-hidden-panorama");
+    let (dump, pictures) = game(&dir);
+    // A CharSet whose poses stay inside their 16x16 cell.
+    let small = picture_of(288, 256, |x, y| {
+        let (px, py) = (x % 24, y % 32);
+        if (4..20).contains(&px) && (16..32).contains(&py) {
+            [200, (x * 3 % 256) as u8, 40, 255]
+        } else {
+            [0, 0, 0, 0]
+        }
+    });
+    write(&pictures.join("CharSet/Small.png"), &small);
+    write(
+        &pictures.join("Panorama/pano.png"),
+        &picture_of(320, 240, |_, _| [10, 200, 10, 255]),
+    );
+    let path = dump.join("maps/Map0007.json");
+    let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    map["parallax_flag"] = json!(true);
+    map["parallax_name"] = json!("pano");
+    map["events"] = json!([{"id": 6, "x": 2, "y": 2, "pages": [page("Small", 0, 0, 0)]}]);
+    std::fs::write(&path, map.to_string()).unwrap();
+    // The common events, which the choice reads for what moves "this event".
+    std::fs::write(dump.join("db/commonevents.json"), "[]").unwrap();
+    let body = json!({
+        "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+        "test_event": false, "leaders": [1],
+        "pages": [], "route_graphics": [], "also_walk": [],
+        "timer": null, "rain": false, "picture": null,
+        "battle_animation": false, "singles": [], "palette_weight": {},
+        "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+        "layouts": [], "window_colors": 13, "posed_stills": true,
+        "panorama": {"layouts": [[3, 256, 384, 1, 576]], "baked_tiles": 544},
+    });
+    let request = dir.join("request.json");
+    std::fs::write(&request, body.to_string()).unwrap();
+    let out = dir.join("out");
+    let done = run(&dump, &pictures, &request, &out);
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let notes = notes_of(&out);
+    let layers: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
+    assert_eq!(layers["panorama_way"], json!("hidden"), "{notes:?}");
+    assert!(
+        notes.contains(
+            &"  map 7: 1 still event(s) drawn into the background, a block per pose: 6".to_string()
+        ),
+        "{notes:?}"
+    );
+    // And the map is the map: the pose's row is not in its cells.
+    assert_eq!(layers["blocks"]["cells"].as_array().unwrap().len(), 24);
+    assert_eq!(layers["background"]["tilemap"].as_array().unwrap().len(), 8);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
