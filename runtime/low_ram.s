@@ -486,6 +486,21 @@ hero_heading: .res 1
 ; drawing goes —he keeps his cell, blocks and triggers, as RM2k's `Game_Player`
 ; does with `SetSpriteHidden`—. It outlives maps and goes in the save.
 hero_hidden: .res 1
+; The hero's transparency, 0 to 7, which a route's 40 and 41 raise and lower:
+; he is drawn while it is under 4, as the events —see `ev_transparency`—. It
+; outlives maps and goes in the save, as RM2k's `Game_Player`'s; RM2k sets it
+; back to the leader's sprite's when the party's graphic is set up again, and
+; no actor of the eight games is transparent, so here it only starts at 0.
+hero_transp: .res 1
+; The transparency from which a character is not drawn. RM2k's opacity is
+; `(8 - level) * 32 - 1` —255, 223, 191, 159, 127, 95, 63, 31— and never
+; zero. The console draws the character while it is half opaque or more and
+; hides it from there: an object half mixed with the map is colour math, which
+; was tried for translucent events and left out —"Colour math for translucent
+; events" in `optimizations/tried-and-left-out.md` in the book—. A translucent
+; page starts at 3, which is still drawn —its graphic is baked against its
+; cell, see `decorate_translucent` in the converter—, and one 40 hides it.
+TRANSP_HIDDEN = 4
 ; `ruta_salto_dx` and `ruta_salto_dy` lived here and nobody read them; their
 ; extra byte is what pays for the sixteen-bit `fade_map`.
 ; On while a step of a move route that goes through walls is being tried.

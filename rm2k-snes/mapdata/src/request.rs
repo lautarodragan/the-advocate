@@ -724,6 +724,10 @@ pub struct Npc {
     pub layer: i64,
     pub speed: i64,
     pub visible: bool,
+    /// Whether the page it is seen with at load is translucent: its
+    /// transparency starts at 3.
+    #[serde(default)]
+    pub translucent: bool,
     /// The passage bits its tile imposes on its cell, if it is drawn with
     /// one.
     pub tile_pass: Option<i64>,
@@ -810,6 +814,9 @@ pub struct Draws {
     /// The pose it shows, and the passage its tile imposes on its cell.
     pub pose: u32,
     pub tile_pass: Option<u32>,
+    /// Whether the page is translucent: its transparency starts at 3.
+    #[serde(default)]
+    pub translucent: bool,
 }
 
 /// The route a page walks by itself.

@@ -1005,4 +1005,19 @@ mod tests {
         ];
         assert_eq!(route_turns(&code), vec![0]);
     }
+
+    #[test]
+    fn a_route_that_fades_an_event_does_not_only_turn_it() {
+        // ABL's map 2 screens: five 40s and nothing else. An event that
+        // fades is not one Wally may draw into the background —it would
+        // stay there at any transparency—, and `route_turns` is what tells
+        // it so: a 40 or a 41 is not turning in place.
+        let code = [
+            OP_ROUTE, 1, 8, 5, 40, 40, 40, 40, 40, //
+            OP_ROUTE, 2, 8, 2, 15, 41, //
+            OP_DONE,
+        ];
+        assert_eq!(route_turns(&code), Vec::<usize>::new());
+        assert_eq!(route_targets(&code), vec![0, 1]);
+    }
 }

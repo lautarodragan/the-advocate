@@ -64,6 +64,8 @@ pub struct Page {
     pub pattern: i32,
     pub layer: i32,
     pub animation_type: i32,
+    /// Whether the page is translucent, as the dump has it.
+    pub translucent: bool,
     pub commands: Vec<Command>,
 }
 
@@ -732,6 +734,7 @@ impl Game {
                                 pattern: p.character_pattern.to_i32(),
                                 layer: p.layer.to_i32(),
                                 animation_type: p.animation_type.to_i32(),
+                                translucent: p.translucent,
                                 commands: commands(&p.event_commands),
                             }
                         })

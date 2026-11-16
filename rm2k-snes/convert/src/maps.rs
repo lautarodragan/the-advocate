@@ -641,6 +641,10 @@ pub struct PageRecord {
     /// `AnimType_fixed_graphic`: it shows its page's column always, even
     /// when a move route turns it or walks it. See `animate_ev_route`.
     pub fixed_graphic: bool,
+    /// Whether the page is translucent: an event's transparency starts at 3
+    /// on it, and a route's 40 and 41 count from there. See
+    /// `ev_transparency` in runtime/far_npcs.s.
+    pub translucent: bool,
     /// A test page: it does not come from the game.
     pub test: bool,
     /// A parallel page that runs only when what it reads changes: see
@@ -1414,6 +1418,7 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
             turns: r["turns"].as_bool().unwrap_or(false),
             fixed_direction: matches!(page.animation_type, 2..=4),
             fixed_graphic: page.animation_type == 4,
+            translucent: page.translucent,
             test: false,
             pure: r["pure"].as_bool().unwrap_or(false),
             offset: 0,

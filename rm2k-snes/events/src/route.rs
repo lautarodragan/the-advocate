@@ -258,7 +258,7 @@ const DIR_DOWN: i32 = 2;
 
 /// The command a page that walks by a movement type gets as its whole own
 /// route: this plus its `move_type`, 49 to 53. It is not RM2k's —its route
-/// commands end at 41, and 40 and 41 never reach the ROM— but the ROM's:
+/// commands end at 41— but the ROM's:
 /// `walk_by_type` in `event_routes.s` does there what
 /// `Game_Event::UpdateSelfMovement` does for that type —`MoveTypeRandom`,
 /// `MoveTypeCycle`, `MoveTypeTowardsOrAwayPlayer`—, one decision each time
@@ -271,8 +271,10 @@ pub const ROUTE_BY_TYPE: i32 = 48;
 /// None if it has none or it cannot be done.
 ///
 /// The same commands as in a MoveEvent go, with the transparency dropped
-/// and also the sound, which in a MoveEvent does play: here there is nowhere
-/// to put its operand —see `ROUTE_SOUND` in `compile_route`—. The diagonals
+/// —no own route of the eight games has a 40 or a 41, measured on
+/// 2026-11-16; in a MoveEvent they go, see `compile_route`— and also the
+/// sound, which in a MoveEvent does play: here there is nowhere to put its
+/// operand —see `ROUTE_SOUND` in `compile_route`—. The diagonals
 /// go in: an own route is always an event's, which is what the ROM walks
 /// them on. What is left out: moving toward or away from the hero, changing
 /// the graphic —none uses it—; and turning in place

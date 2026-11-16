@@ -6607,19 +6607,27 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             continue;
         }
         if ROUTE_TRANSPARENCY.contains(&command) {
-            // Raising and lowering the transparency by an eighth. They are
-            // accepted and dropped, like the sound: the SNES does not fade a
-            // sprite in steps without color math, and the game's eight routes
-            // that use it —map 2's four screens, which fade while Manta
-            // hacks— are a decorative fade inside a 78-command scene that did
-            // not compile without this. They cost no frames: in
-            // `UpdateMoveRoute` they go through the branch that does not touch
-            // the stop counter.
+            // Raising and lowering the transparency by an eighth, on an event
+            // or on the hero. The ROM keeps the level, 0 to 7, as RM2k does,
+            // and shows it all or nothing: the character is drawn while its
+            // opacity is half or more —levels 0 to 3— and hidden from 4 on.
+            // See `ev_transparency` in runtime/far_npcs.s. They cost no
+            // frames: in `UpdateMoveRoute` they go through the branch that
+            // does not touch the stop counter.
+            //
+            // From 2026-09-29 to 2026-11-16 they were dropped, and ABL's map 2
+            // computer screen —four events that five 40s each fade into the
+            // panorama when Core gets in— stayed dark. Inside a jump RM2k
+            // does not run them, like the sound.
+            if in_jump {
+                continue;
+            }
             ctx.lose(
                 cmd,
-                "route-transparency-dropped",
-                "the route's step of transparency is not done",
+                "route-transparency-all-or-nothing",
+                "the route's steps of transparency show the character or hide it, with nothing in between",
             );
+            path.push(command as i64);
             continue;
         }
         // Turning, waiting and moving. The `move_*`s came in on 2026-09-03,
@@ -6749,8 +6757,8 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         return cannot();
     }
     if path.is_empty() {
-        // A route left without commands —only sound or transparency, like
-        // those of map 2's screens— is not emitted: in RM2k
+        // A route left without commands —only a sound that does not play,
+        // or what a jump drops— is not emitted: in RM2k
         // `UpdateMoveRoute` consumes it whole on the same frame and considers
         // it finished, so it neither costs frames nor leaves anything to wait
         // for in `ProceedWithMovement`.
@@ -8038,6 +8046,36 @@ mod tests {
         // A switch past the game's table leaves the page out, as
         // `ControlSwitches` does.
         assert_eq!(route(1, &[32, 136, 77]), None);
+    }
+
+    #[test]
+    fn a_route_raises_and_lowers_the_transparency() {
+        // ABL's map 2: five 40s fade each screen into the panorama, and five
+        // 41s bring it back. On the hero too. Inside a jump RM2k does not
+        // run them, so they are dropped there.
+        let map = watching(5, 1);
+        let route = |who: i32, commands: &[i32]| {
+            let mut p = vec![who, 8, 0, 0];
+            p.extend(commands);
+            on_this_map(
+                &Game::default(),
+                &Indices::default(),
+                &map,
+                &[cmd(MOVE_EVENT, &p, "")],
+            )
+        };
+        assert_eq!(
+            route(1, &[40, 40, 40, 40, 40]).unwrap(),
+            [OP_ROUTE, 1, 8, 5, 40, 40, 40, 40, 40, OP_DONE]
+        );
+        assert_eq!(
+            route(10001, &[41, 2]).unwrap(),
+            [OP_ROUTE, 0, 8, 2, 41, 2, OP_DONE]
+        );
+        assert_eq!(
+            route(1, &[24, 40, 2, 25]).unwrap(),
+            [OP_ROUTE, 1, 8, 3, 24, 2, 25, OP_DONE]
+        );
     }
 
     #[test]
