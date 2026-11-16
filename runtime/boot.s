@@ -162,6 +162,7 @@ party_ready:
     stz pick_active
     stz msg_state
     stz msg_upload
+    stz msg_waited
     stz tl_on                   ; no screen has written text yet
     ; The two that say who opened the message. With garbage, `pair_ev` would
     ; make the foreground record any owner at all and `one_parallel` would skip
