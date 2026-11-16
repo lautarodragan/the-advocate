@@ -128,8 +128,12 @@ msg_col:     .res 1     ; which character it is on
 msg_length:  .res 1     ; how many the line has
 msg_primed:  .res 1     ; whether the buffer already has the line's background
 msg_upload:  .res 1     ; whether there is a line ready to upload to VRAM
-msg_waited:  .res 1     ; whether that line already missed a vblank: the
-                        ; next one gives it the room, see `upload_line`
+msg_waited:  .res 1     ; how many vblanks that line missed: the next
+                        ; one gives it the room, and from `WAIT_CEILING`
+                        ; on it goes up under forced blank, see `upload_line`
+vb_forced:   .res 1     ; 1 while `flush_video` has the screen in forced
+                        ; blank for the window's writes: `vblank_line`
+                        ; says they fit. See `WAIT_CEILING` in vblank.s
 tl_on:       .res 1     ; whether a screen's text layer was ever opened:
                         ; `wait_vblank` lets it typeset only then, since its
                         ; RAM starts with garbage. See `text_layer.s`
