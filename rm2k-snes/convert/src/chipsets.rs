@@ -7,13 +7,16 @@
 //! PNG, leaving the result in `patches-manual/ChipSet/` of the project's
 //! build, which goes first in the resource search: `wally` finds it there.
 //!
-//! The recipe has five operations. Two copy from inside the ChipSet itself
+//! The recipe has six operations. Two copy from inside the ChipSet itself
 //! —`lower_blocks` and `upper_tiles`—, two **bring pixels from outside**
 //! —`from_charset` puts a CharSet pose into two upper tiles, so an NPC
 //! that only stands there becomes map; `from_image` puts in a PNG that
-//! is neither, scaled and cut into 16x16 cells—, and `prune` **erases what
-//! the map does not use**: a fork's ChipSet is private to its map, and
-//! what is gained is **palette indices**, which the PNG has 256 of.
+//! is neither, scaled and cut into 16x16 cells—, `recolor` paints upper
+//! tiles in other colours, so a tile keeps its drawing and changes what it
+//! means —a splash of the art that has to read as someone's blood—, and
+//! `prune` **erases what the map does not use**: a fork's ChipSet is
+//! private to its map, and what is gained is **palette indices**, which the
+//! PNG has 256 of.
 //!
 //! Both PNGs are indexed and **their indices do not mean the same thing**,
 //! so what comes from outside is copied by colour: a colour that is not
@@ -284,6 +287,65 @@ fn int(v: &Value) -> i64 {
     v.as_i64().unwrap_or(0)
 }
 
+/// Paints upper tiles in other colours: each entry names its tiles and the
+/// `[from, to]` pairs. Only the pixels of those tiles change, **by colour
+/// and not by index** —the index a tile draws with is shared with every
+/// other tile of the ChipSet that uses that colour—, and the new colour
+/// takes an index of its own, rounded to 15 bits like `from_image`. A
+/// `from` none of the tiles draws stops the build: it is a recipe that
+/// went stale, and it would do nothing without a word.
+fn recolor_tiles(
+    image: &mut Indexed,
+    palette: &mut Palette,
+    items: &[Value],
+    number: i64,
+) -> Result<()> {
+    let rgb = |c: &Value| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8];
+    for item in items {
+        let tiles: Vec<i64> = item["upper"]
+            .as_array()
+            .map(|a| a.iter().map(int).collect())
+            .unwrap_or_default();
+        let pairs: Vec<([u8; 3], [u8; 3])> = item["colors"]
+            .as_array()
+            .map(|a| a.iter().map(|p| (rgb(&p[0]), to_15_bits(rgb(&p[1])))).collect())
+            .unwrap_or_default();
+        // The tiles' pixels and their colours are read before painting
+        // anything, so a `to` that is another pair's `from` is not painted
+        // twice.
+        let mut cells = Vec::new();
+        for &upper in &tiles {
+            let (x0, y0) = corner(common_box(144 + upper as i32));
+            for y in y0..y0 + TILE as usize {
+                for x in x0..x0 + TILE as usize {
+                    let index = image.get(x, y);
+                    if index != 0 {
+                        cells.push((y * image.width + x, palette.colors[index as usize]));
+                    }
+                }
+            }
+        }
+        for (from, to) in pairs {
+            let at: Vec<usize> = cells
+                .iter()
+                .filter(|(_, c)| *c == from)
+                .map(|(at, _)| *at)
+                .collect();
+            if at.is_empty() {
+                crate::stop!(
+                    "ChipSet {number} recolors {from:?} in upper tile(s) {tiles:?}, which do not \
+                     draw it: the recipe no longer matches the art"
+                );
+            }
+            let index = palette.index(to)?;
+            for at in at {
+                image.pixels[at] = index;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Builds the PNG of a ChipSet the project adds and returns its path.
 /// `find(folder, name)` finds the originals, and `map_of` reads the map a
 /// pruning looks at —the forked one—.
@@ -344,10 +406,15 @@ fn build(
         .and_then(Value::as_array)
         .filter(|a| !a.is_empty())
         .cloned();
-    // The two operations that bring pixels from outside share **a single**
-    // palette.
-    let mut palette =
-        (from_charset.is_some() || from_image.is_some()).then(|| Palette::new(&image));
+    // The two operations that bring pixels from outside, and `recolor`,
+    // share **a single** palette.
+    let recolor = recipe
+        .get("recolor")
+        .and_then(Value::as_array)
+        .filter(|a| !a.is_empty())
+        .cloned();
+    let mut palette = (from_charset.is_some() || from_image.is_some() || recolor.is_some())
+        .then(|| Palette::new(&image));
     if let Some(items) = &from_charset {
         let palette = palette.as_mut().unwrap();
         for item in items {
@@ -451,6 +518,9 @@ fn build(
             }
             image.paste(&tile, corner(common_box(144 + slot as i32)));
         }
+    }
+    if let Some(items) = &recolor {
+        recolor_tiles(&mut image, palette.as_mut().unwrap(), items, number)?;
     }
     if let Some(palette) = palette {
         image.palette = palette.colors;
@@ -644,6 +714,47 @@ mod tests {
             "it did not compose over the base"
         );
         assert_eq!(color(7, 12, 12).1, [7, 7, 7], "composing erased the base");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_recolor_paints_its_tiles_by_colour_and_only_them() {
+        // Upper slots 5 and 6 draw with the same index, the way a ChipSet's
+        // tiles share their palette: painting the index would repaint 6
+        // too. And a pair whose `from` the tile does not draw is a recipe
+        // that went stale, which stops instead of doing nothing.
+        let dir = std::env::temp_dir().join(format!("convert-recolor-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut base = indexed(480, 256, 0, &[[0, 0, 0], [203, 85, 85], [60, 30, 20]]);
+        base.paste(&indexed(16, 16, 1, &[]), corner(common_box(144 + 5)));
+        base.paste(&indexed(8, 16, 2, &[]), corner(common_box(144 + 5)));
+        base.paste(&indexed(16, 16, 1, &[]), corner(common_box(144 + 6)));
+        base.write(&dir.join("base.png")).unwrap();
+        let chip = dir.join("base.png");
+        let find = move |_: &str, _: &str| Some(chip.clone());
+        let recipe = |colors: Value| {
+            json!({
+                "chipset": {"id": 999, "chipset_name": "out"},
+                "image": {"base": "base", "recolor": [{"upper": [5], "colors": colors}]},
+            })
+        };
+        let data = recipe(json!([[[203, 85, 85], [250, 50, 20]], [[60, 30, 20], [100, 20, 10]]]));
+        let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
+        let built = Indexed::read(&out).unwrap();
+        let color = |slot: i32, x: usize| {
+            let (cx, cy) = corner(common_box(144 + slot));
+            built.palette[built.get(cx + x, cy + 3) as usize]
+        };
+        assert_eq!(color(5, 12), [248, 48, 16], "the tile was not repainted at 15 bits");
+        assert_eq!(color(5, 2), [96, 16, 8], "the second pair was not painted");
+        assert_eq!(color(6, 12), [203, 85, 85], "the tile beside it changed too");
+        let stale = recipe(json!([[[1, 2, 3], [250, 50, 20]]]));
+        let refusal = build(&stale, &dir.join("build"), &find, &|_| unreachable!())
+            .err()
+            .unwrap()
+            .message;
+        assert!(refusal.contains("no longer matches"), "{refusal}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
