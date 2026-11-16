@@ -36,6 +36,21 @@ flags = ["--no-title"]
 cases = "all"
 excluded_cases = []
 
+# The terrace, map 9, with `--vblank-probe`: the ROM leaves in RAM on which
+# vblank line each of the message window's lines went up, how late its
+# writes ended and whether the screen went into forced blank, which
+# `tests/test_terrace.py` reads. A cartridge apart because the ROM that gets
+# played does not carry the probe —it costs every vblank a few lines—; the
+# clearing, map 4, is only somewhere to start.
+[cartridges.test-vblank]
+start_map = 4
+party = []
+maps = [4, 9]
+test_graphics = []
+flags = ["--no-title", "--vblank-probe"]
+cases = ["terrace"]
+excluded_cases = []
+
 [debug]
 debug_map = false
 enemy_hp = false
