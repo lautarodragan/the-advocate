@@ -1,7 +1,7 @@
 # The test game's assets, and whose they are
 
-Every picture in this folder but the `Picture/` ones, which are this
-project's own, comes from **EasyRPG's RTP**, the free
+Every picture in this folder but the `Picture/` and `Panorama/` ones,
+which are this project's own, comes from **EasyRPG's RTP**, the free
 replacement for RPG Maker 2000's run-time package:
 <https://github.com/EasyRPG/RTP>, taken at commit `993d88c`
 (2025-04-05). Its materials are licensed under the [Creative Commons
@@ -24,6 +24,7 @@ this file: the RTP's `COPYING`, unchanged.
 | `Picture/Digit3.png` | 2026 | this project | CC0 | none | ours: an 8x10 digit in three colours, drawn by a script for `tests/test_pictures.py` |
 | `Picture/Panel.png` | 2026 | this project | CC0 | none | ours: a 64x48 panel, a frame and twelve blues, drawn by a script for `tests/test_pictures.py` |
 | `Picture/Bar.png` | 2026 | this project | CC0 | none | ours: a 320x16 bar in two greens, drawn by a script for `tests/test_pictures.py` |
+| `Panorama/Stars.png` | 2026 | this project | CC0 | none | ours: a 320x240 night sky that loops on x —bands of blue, stars, a moon and hills—, 11 colours, drawn by a script for `tests/test_terrace.py` |
 
 **The files are not changed; the cartridge does change them.** What the
 console cannot show —more colours in the message window than its palette

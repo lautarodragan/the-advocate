@@ -1,0 +1,467 @@
+{
+  "chipset_id": 1,
+  "width": 30,
+  "height": 15,
+  "parallax_flag": true,
+  "parallax_name": "Stars",
+  "parallax_loop_x": true,
+  "parallax_auto_loop_x": true,
+  "parallax_sx": 3,
+  "events": [
+    {
+      "id": 1,
+      "name": "Boxes",
+      "x": 0,
+      "y": 0,
+      "pages": [
+        {
+          "id": 1,
+          "trigger": "parallel",
+          "event_commands": [
+            {
+              "code": "MessageOptions",
+              "parameters": [
+                1,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "code": "ShowMessage",
+              "string": "No window, in the middle:"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "letters over a sky that"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "moves on its own, and three"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "walkers crossing the lines."
+            },
+            {
+              "code": "ShowMessage",
+              "string": "Four lines again, each one"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "going up while the stars"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "go by and the walkers step"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "under the two trees."
+            },
+            {
+              "code": "ShowMessage",
+              "string": "Three lines this time,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "short ones,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "and one more box."
+            },
+            {
+              "code": "ShowMessage",
+              "string": "The last one, of one line."
+            },
+            {
+              "code": "EraseEvent"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Around",
+      "x": 10,
+      "y": 4,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 0,
+          "move_type": "custom",
+          "move_frequency": 6,
+          "layer": "same",
+          "move_route": {
+            "move_commands": [
+              {
+                "command_id": "walk_everywhere_on"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Hole",
+      "x": 12,
+      "y": 5,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 2,
+          "move_type": "custom",
+          "move_frequency": 6,
+          "layer": "same",
+          "move_route": {
+            "move_commands": [
+              {
+                "command_id": "walk_everywhere_on"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_right"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_left"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Across",
+      "x": 18,
+      "y": 4,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 5,
+          "move_type": "custom",
+          "move_frequency": 6,
+          "layer": "same",
+          "move_route": {
+            "move_commands": [
+              {
+                "command_id": "walk_everywhere_on"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_down"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              },
+              {
+                "command_id": "move_up"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Rain",
+      "x": 11,
+      "y": 12,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 3,
+          "move_type": "stationary",
+          "layer": "same",
+          "event_commands": [
+            {
+              "code": "WeatherEffects",
+              "parameters": [
+                1,
+                2
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1500,
+                1500,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1500
+          },
+          "character_name": "People1",
+          "character_index": 3,
+          "move_type": "stationary",
+          "layer": "same",
+          "trigger": "parallel",
+          "event_commands": [
+            {
+              "code": "MessageOptions",
+              "parameters": [
+                1,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "code": "ShowMessage",
+              "string": "The same boxes, in the rain:"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "letters over the sky, the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "stars going by, the walkers,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "and drops falling on it all."
+            },
+            {
+              "code": "ShowMessage",
+              "string": "Four lines again, while the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "drops are drawn as objects"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "after every character, at"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "the end of the sprite table."
+            },
+            {
+              "code": "ShowMessage",
+              "string": "Three lines this time,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "short ones,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "and one more box."
+            },
+            {
+              "code": "ShowMessage",
+              "string": "The last one, in the rain."
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1500,
+                1500,
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
