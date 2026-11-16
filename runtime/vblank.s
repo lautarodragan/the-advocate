@@ -67,8 +67,9 @@ no_tint:
     ; past a bare window's `LINE_LATEST_BARE`: the box never opened and the
     ; screen stayed black (taro, 2026-11-16). A pose a frame late is the
     ; price; a line that never goes up was a hung game.
+    lda msg_upload              ; a System's window does not wait like this
+    beq no_line
     lda msg_waited
-    and msg_upload              ; a System's window does not wait like this
     beq no_line
     stz vq_cap
     bra line_first
@@ -230,6 +231,34 @@ no_anim_pal:
 .endif
     jsl f:pano_vblank           ; the panorama's scroll and strips, if any
 big_up:
+.ifdef VBLANK_PROBE
+    jsl f:vblank_stall          ; only in a test cartridge: see below
+.endif
+    ; **The ceiling**: a window's write that found no room for
+    ; `WAIT_CEILING` vblanks in a row goes up under forced blank. See there.
+    lda msg_upload
+    beq no_line_ceiling
+    lda msg_waited
+    cmp #WAIT_CEILING
+    bcs ceiling
+no_line_ceiling:
+.ifdef layer_text_on
+    lda msg_open
+    beq no_ceiling
+    lda f:LAYER_LATE
+    cmp #WAIT_CEILING
+    bcc no_ceiling
+.else
+    bra no_ceiling
+.endif
+ceiling:
+    lda #$80
+    sta INIDISP
+    sta vb_forced
+.ifdef VBLANK_PROBE
+    jsl f:vblank_forced_from
+.endif
+no_ceiling:
 
     ; And the message window's HDMA: on while there is one on screen, off when
     ; not. That is **all** it costs to open and close it; its own tilemap is
@@ -289,6 +318,7 @@ no_finished:
     lda msg_open
     beq no_window
     jsl msg_arrow               ; the arrow of a message waiting for a key
+    jsr ceiling_off             ; the window's writes are done
     ; The camera, which every stretch of the map points at; the window's
     ; own scroll does not move, and `msg_hdma_build` wrote it.
     rep #$20
@@ -369,6 +399,7 @@ not_traded:
     ; exception is a load's forced blank, which `fade_tick` writes by hand:
     ; there the screen is already black and the change does not show.
 on:
+    jsr ceiling_off             ; a window without `msg_arrow`'s writes
     jsl f:fade_mosaic           ; the teleport's, if it asks for it
     lda brightness
     sta INIDISP
@@ -379,6 +410,54 @@ on:
     sep #$20
 .a8
 .endif
+    rts
+.endproc
+
+; How many vblanks in a row a window's write may find no room before it
+; goes up under forced blank: a line of a box —`msg_waited`, see
+; `upload_line`— or a step of the layer above that holds the box
+; —`LAYER_LATE`, see `msg_layer_steps`—. From there on `flush_video` sets
+; INIDISP's bit 7 before the window's writes and gives `brightness` back
+; after them —`ceiling_off`—, and `vblank_line` says they all fit: VRAM and
+; CGRAM take a write in forced blank wherever the beam is. **The price is
+; black lines on that one frame**, as many as the writes run past the
+; vblank's last line, and none when they still end inside it. Measured
+; on A Blurred Line's memory with its vblank filled up to line 251 by a
+; test cartridge's probe (`VBLANK_STALL`, 2026-11-16): the blank ended on
+; the screen's lines 1 to 24 —a line's 1920 bytes alone, some 4; with the
+; layer above's tiles read in the same vblank, 16 to 24—. No scene of the
+; game was seen to reach it.
+;
+; Without it, a cost present before the window on every vblank —the tint,
+; the flash, the strips, the panorama, a painted map's slots— would hold a
+; box forever, and with it the game: it happened with the poses on The
+; Frozen World's map 6 (2026-11-16), which the second chance fixed
+; —`flush_video` gives a line that missed one vblank the next one's room—,
+; but nothing bounded what is left before it.
+;
+; **Two**: the first miss is the normal one, a vblank too full this frame;
+; the second comes after the second chance cleared everything that can
+; wait, so what is left is a cost of every frame and waiting a third does
+; not change it. And while a line waits past its first miss the poses and
+; the ChipSet's steps do not go up —the characters stand still—, which is
+; worse than a few black lines once.
+WAIT_CEILING = 2
+
+; The forced blank of `WAIT_CEILING`, off: the master brightness back, on
+; whatever line the window's writes ended. The same `brightness` the end
+; of `flush_video` writes, so it does not split the frame.
+.proc ceiling_off
+.a8
+.i16
+    lda vb_forced
+    beq done
+    stz vb_forced
+    lda brightness
+    sta INIDISP
+.ifdef VBLANK_PROBE
+    jsl f:vblank_forced_to
+.endif
+done:
     rts
 .endproc
 
@@ -396,6 +475,17 @@ on:
 .segment "FARBSS"
 VBLANK_END_LINE: .res 2
 VBLANK_WRITES_LINE: .res 2
+; And, for a test of `WAIT_CEILING`: the line `upload_line` read on its
+; last call —`vblank_line`'s, $FFFF on the screen's lines—; the vblanks
+; that went into forced blank, and on which lines its last one started and
+; ended, counted as `VBLANK_WRITES_LINE`'s; and a line the test writes,
+; up to which `flush_video` waits before the window's work, to fill the
+; vblank as a heavy map would. 0: it does not wait.
+VBLANK_UPLOAD_LINE: .res 2
+VBLANK_FORCED_N: .res 2
+VBLANK_FORCED_FROM: .res 2
+VBLANK_FORCED_TO: .res 2
+VBLANK_STALL: .res 2
 .popseg
 .pushseg
 .segment "FAR3"
@@ -429,6 +519,66 @@ in_vblank:
     bcc earlier
     sta f:VBLANK_WRITES_LINE
 earlier:
+    rtl
+.endproc
+
+; The line, as `vblank_wrote` counts it. A8 in, A16 out.
+.proc probe_counted
+.a8
+.i16
+    jsl vblank_probe
+.a16
+    cmp #LINES + 1
+    bcs in_vblank
+    adc #262                    ; the carry is clear
+in_vblank:
+    rtl
+.endproc
+
+.proc vblank_forced_from
+.a8
+.i16
+    php
+    jsl probe_counted
+.a16
+    sta f:VBLANK_FORCED_FROM
+    lda f:VBLANK_FORCED_N
+    inc a
+    sta f:VBLANK_FORCED_N
+    plp
+    rtl
+.endproc
+
+.proc vblank_forced_to
+.a8
+.i16
+    php
+    jsl probe_counted
+.a16
+    sta f:VBLANK_FORCED_TO
+    plp
+    rtl
+.endproc
+
+.proc vblank_stall
+.a8
+.i16
+    php
+    rep #$20
+.a16
+    lda f:VBLANK_STALL
+    beq done
+spin:
+    sep #$20
+.a8
+    jsl vblank_probe
+.a16
+    cmp #LINES + 1
+    bcc done                    ; on the screen's lines: the vblank is over
+    cmp f:VBLANK_STALL
+    bcc spin
+done:
+    plp
     rtl
 .endproc
 .popseg
