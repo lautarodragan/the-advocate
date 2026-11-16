@@ -1110,6 +1110,7 @@ mod tests {
             pattern: 1,
             layer: 0,
             animation_type: 0,
+            translucent: false,
             commands,
         };
         let black = c(TINT_SCREEN, "", &[0, 0, 0, 100, 50, 1]);
@@ -1196,6 +1197,7 @@ mod tests {
             pattern: 1,
             layer: 0,
             animation_type: 0,
+            translucent: false,
             commands,
         };
         let map = |commands: Vec<Command>| GameMap {

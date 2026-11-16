@@ -173,6 +173,7 @@ impl CommonPages {
                 pattern: 1,
                 layer: 0,
                 animation_type: 0,
+                translucent: false,
                 commands: game.db.common_events[n].clone(),
             })
             .collect();

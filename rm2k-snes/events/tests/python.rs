@@ -128,6 +128,12 @@
 //! accumulated rate, a word, and not as the step, a byte, since a
 //! terrain's `encounter_rate` counts. With the operand back to bytes
 //! —`ceil(threshold / 100)` and a `$FF`— the answer was the one before.
+//!
+//! On 2026-11-16 the hashes of both `maps` moved, on purpose: a forced
+//! route's 40 and 41, raising and lowering the transparency, go into the
+//! route —map 1's event 1 has a 40 between a turn and a step—, where until
+//! then they were dropped. With the `path.push` of their arm in
+//! `compile_route` taken out, the answer was the one before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};

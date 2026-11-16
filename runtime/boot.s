@@ -237,6 +237,7 @@ party_ready:
     sta hero_heading
     stz hero_lock               ; and free to turn: RAM starts with garbage
     stz hero_hidden             ; and seen, for the same reason
+    stz hero_transp             ; and opaque
 
     ; The timer starts off and at zero. It goes here and not in `enter_map`
     ; because in RM2k it lives in `Game_Party`: it survives maps, which is

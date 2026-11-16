@@ -39,6 +39,8 @@ pub struct Page {
     pub animation: i32,
     pub move_type: i32,
     pub own_route: bool,
+    /// Whether it is translucent: the event's transparency starts at 3.
+    pub translucent: bool,
     /// The conditions it asks for, by name.
     pub conditions: Vec<&'static str>,
     /// The commands, as `(code, parameters)`.
@@ -112,6 +114,7 @@ pub fn events(
                     animation: p.animation_type.to_i32(),
                     move_type: p.move_type.to_i32(),
                     own_route: !p.move_route.move_commands.is_empty(),
+                    translucent: p.translucent,
                     conditions: conditions(p),
                     commands: p
                         .event_commands
@@ -250,6 +253,7 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
             speed: page.speed,
             animates: matches!(page.animation, 1 | 3),
             visible,
+            translucent: visible && page.translucent,
             changes,
             graphics,
             layers: event.pages.iter().map(|p| p.layer).collect(),
@@ -311,6 +315,7 @@ pub fn dressed_by_routes(
             speed: page.speed,
             animates: matches!(page.animation, 1 | 3),
             visible: false,
+            translucent: false,
             changes: supported,
             graphics: vec![None; event.pages.len()],
             layers: event.pages.iter().map(|p| p.layer).collect(),
@@ -365,6 +370,7 @@ mod tests {
             animation: 0,
             move_type: 0,
             own_route: false,
+            translucent: false,
             conditions,
             commands: Vec::new(),
         }

@@ -62,6 +62,7 @@ fn page(name: &str) -> Page {
         animation: 0,
         move_type: 0,
         own_route: false,
+        translucent: false,
         conditions: Vec::new(),
         commands: Vec::new(),
     }
