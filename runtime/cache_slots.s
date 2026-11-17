@@ -46,8 +46,9 @@
 ; A row that gets a slot is not drawn in the frame that queues its pose but
 ; in the next, with the pose up, like shared_poses.s; and the first frame of
 ; a map goes through `build_oam_settled`, which uploads with the screen off
-; until nobody is missing. The one facing the hero is drawn from the turn
-; slot and does not ask: see `turn_fire`.
+; until nobody is missing. A still one facing the hero is drawn from the
+; turn slot and does not ask; one that walks turns in its own: see
+; `turn_fire`.
 ;
 ; Whether the map has a cache is bit 7 of `SHARE_N`, so that `place_npc`
 ; looks at a single byte for both: no map has both, because the cache is
