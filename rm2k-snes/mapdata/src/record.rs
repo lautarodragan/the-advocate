@@ -2933,6 +2933,7 @@ mod tests {
             events,
             stills: vec![("Folk".into(), 0, 7, 2, 3), ("Folk".into(), 0, 4, 0, 3)],
             slots: vec![5, 6],
+            turners: vec![],
         });
         let table = cache_table(&maps).unwrap();
         let mut starts = vec!["0"; maps.len()];
