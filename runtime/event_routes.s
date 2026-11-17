@@ -243,7 +243,6 @@ down:
 .proc move_events
 .a8
 .i16
-    stz routes_moved
     ldx #$0000
 other:
     lda route_ev, x
@@ -269,8 +268,6 @@ no_moved:
     phx
     jsr refresh_npc
     plx
-    lda #1
-    sta routes_moved
 next:
     rep #$20
 .a16
