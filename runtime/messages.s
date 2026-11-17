@@ -579,8 +579,10 @@ more:
     lda pick_active
     cmp #PICK_CHOICE
     bne no_bar
-    lda msg_line
-    cmp pick_sel
+    lda pick_sel
+    clc
+    adc pick_first              ; under a question, past its lines
+    cmp msg_line
     bne no_bar
     jsl msg_bar_source          ; the source and the size, and A for DMAP0
     bcs no_bar                  ; a face: the background, and the bar after
