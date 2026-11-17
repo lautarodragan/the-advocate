@@ -116,13 +116,18 @@ not_switch_hero:
     cmp #38
     bcc cross                   ; 36 and 37
     cmp #40
-    bcs other_command
+    bcs transp_hero
     ; 38 stops the animation and 39 resumes it, so the subtraction goes the
     ; other way around.
     sec
     sbc #38
     eor #$01
     sta route_anim_for
+    jmp other_command
+transp_hero:
+    ; 40 raises his transparency and 41 lowers it, without costing a frame:
+    ; see `hero_transparency`. Nothing past 41 reaches the hero's route.
+    jsl f:hero_transparency + FAST
     jmp other_command
 cross:
     ; 36 turns it on and 37 off, so the low bit inverted is the value.

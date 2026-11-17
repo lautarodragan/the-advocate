@@ -1,0 +1,34 @@
+# The lookout's two tile layers, sketched like the meadow's —see
+# `Map0001.toml`—. The map is `Map0010.json`: a slab of grass in the night
+# sky, `Stars`, which does not move, and a parallel page that swaps it for
+# `Dawn` with `ChangePBG` half a second after arriving.
+# `tests/test_panorama_swap.py` says what is tested.
+#
+# The sky is the transparent lower tile, as on the terrace; nothing is drawn
+# above the hero, so the panorama goes on BG2 in mode 3 and is not
+# flattened.
+
+grid = '''
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~......~~~~~~~
+~~~~~~~......~~~~~~~
+~~~~~~~......~~~~~~~
+~~~~~~~......~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+'''
+
+[legend]
+# The sky: the transparent lower tile, so the panorama shows.
+"~" = { lower = 5143 }
+# The floor: terrain autotile 0, the light grass, in its plain middle
+# pattern.
+"." = { lower = 4000 }

@@ -33,6 +33,9 @@ pub struct Npc {
     pub animates: bool,
     /// Whether it is seen when the map loads.
     pub visible: bool,
+    /// Whether the page it is seen with when the map loads is translucent:
+    /// its transparency starts at 3. See `ev_transparency` in the runtime.
+    pub translucent: bool,
     /// Whether its graphic follows the active page.
     pub changes: bool,
     /// Each page's graphic, `None` for one that draws nothing.
@@ -215,6 +218,7 @@ mod tests {
             speed: 3,
             animates: false,
             visible,
+            translucent: false,
             changes: true,
             graphics,
             layers: vec![1, 1],

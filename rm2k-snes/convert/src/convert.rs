@@ -1030,7 +1030,8 @@ pub fn run(options: Options) -> Result<()> {
                         ))
                     })?;
                 page.draws = Some(json!({"block": null, "posed": [p, g], "pose": graphic.2,
-                                         "tile_pass": page.tile_pass}));
+                                         "tile_pass": page.tile_pass,
+                                         "translucent": page.translucent}));
                 continue;
             }
             let (mut block, mut palette) = (Value::Null, json!(0));
@@ -1042,7 +1043,8 @@ pub fn run(options: Options) -> Result<()> {
                 })?;
                 page.draws = Some(
                     json!({"block": null, "key": key, "palette": p, "pose": graphic.2,
-                                         "tile_pass": page.tile_pass}),
+                                         "tile_pass": page.tile_pass,
+                                         "translucent": page.translucent}),
                 );
                 continue;
             }
@@ -1062,7 +1064,8 @@ pub fn run(options: Options) -> Result<()> {
                 palette = p;
             }
             page.draws = Some(
-                json!({"block": block, "palette": palette, "pose": graphic.2, "tile_pass": page.tile_pass}),
+                json!({"block": block, "palette": palette, "pose": graphic.2, "tile_pass": page.tile_pass,
+                       "translucent": page.translucent}),
             );
         }
         m.evcode = code;
@@ -2072,6 +2075,7 @@ fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecor
         turns: false,
         fixed_direction: false,
         fixed_graphic: false,
+        translucent: false,
         test: true,
         pure: false,
         offset: 0,

@@ -28,7 +28,7 @@
 //!   +24 word   the stretch in 8x8 cells
 //!   +26 word
 //!   +28 long   its tilemap, a word per cell, rows of columns
-//!   +32 long   its tiles
+//!   +32 long   its tiles, an LZ2 stream: see `pano_load`
 //!   +36 word   bytes of the first stretch of tiles, and its VRAM word;
 //!   +38 word
 //!   +40 word   and of the second, 0 if there is none
@@ -57,10 +57,19 @@
 //! single record, with nothing past +54, as it always had.
 
 use crate::asm::{block, msu_block, pointer};
+use crate::compress;
 use crate::fail::{Bad, Result};
 use crate::request::Map;
 use crate::vram;
+use std::collections::HashMap;
 use std::fmt::Write;
+
+/// The most a picture's tiles may take decompressed: what `LZ2_BUFFER`
+/// has below the ChipSet animation's drawings, which live while the map is
+/// up and a `ChangePBG` must not step on —see `pano_image` and the `.assert`
+/// in `pano.s`—. The layouts already keep them under it: 576 4-bit tiles,
+/// 18,432 bytes, is the most any gives.
+pub const LZ2_CAP_PANORAMA: usize = 0x6000;
 
 /// A record's size.
 pub const PANO_STRIDE: usize = 64;
@@ -140,16 +149,20 @@ impl Picture<'_> {
 
 /// The table, and each panorama's tiles and tilemap.
 ///
-/// With `msu`, the tiles go marked as pieces that may travel in the `.msu`:
-/// `pano_load` uploads them whole, with the screen off, through `msu_dma0`.
+/// The tiles go as an LZ2 stream, which `pano_load` decompresses into
+/// `LZ2_BUFFER` and uploads with the screen off —on every load, and on a
+/// `ChangePBG` that swaps the picture—. With `msu` they go marked as
+/// pieces that may travel in the `.msu`, which `lz2_decompress` reads too.
 /// Not the tilemap, which the streaming reads row by row while the map is
-/// played.
+/// played, so it stays raw.
 pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
     let mut out = vec![
         "; The panoramas: see `panorama.rs` in rm2k-snes-mapdata and `pano.s`.".to_string(),
         format!("PANO_STRIDE = {PANO_STRIDE}"),
     ];
+    out.push(format!("LZ2_CAP_PANORAMA = ${LZ2_CAP_PANORAMA:04X}"));
     let mut records = Vec::new();
+    let streams = tile_streams(maps)?;
     let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> =
         std::collections::HashMap::new();
     for (number, map) in maps.iter().enumerate() {
@@ -208,6 +221,15 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
         let swaps = pictures.len() > 1;
         for (k, pic) in pictures.iter().enumerate() {
             let count = (pic.tiles.len() / bytes_per_tile) as u32;
+            if pic.tiles.len() > LZ2_CAP_PANORAMA {
+                return Err(Bad::answer(format!(
+                    "map {}: its panorama {} has {} bytes of tiles and {LZ2_CAP_PANORAMA} fit in \
+                     `LZ2_BUFFER`: see `pano_load`",
+                    map.id,
+                    pic.name,
+                    pic.tiles.len()
+                )));
+            }
             if count > pieces.count() {
                 return Err(Bad::answer(format!(
                     "map {}: its panorama {} has {count} tiles and the layout leaves it {}",
@@ -279,7 +301,13 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
                 } else {
                     format!("pano_{kind}_{number}_{k}")
                 };
-                out.push(msu_block(&label, &bytes, msu && kind == "tiles"));
+                // The tiles go compressed; the key stays the raw bytes.
+                let data = if kind == "tiles" {
+                    &streams[&bytes]
+                } else {
+                    &bytes
+                };
+                out.push(msu_block(&label, data, msu && kind == "tiles"));
                 emitted.insert((kind.to_string(), bytes), label.clone());
                 label
             };
@@ -346,6 +374,35 @@ pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
     }
     out.push("    .word $FFFF".into());
     Ok(out.join("\n"))
+}
+
+/// The pictures' tiles a map shows, the ones [`panorama_table`] emits, each
+/// distinct one compressed once: `{raw: its stream}`.
+fn tile_streams(maps: &[Map]) -> Result<HashMap<Vec<u8>, Vec<u8>>> {
+    let mut raw: Vec<&[u8]> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut nones = Vec::new();
+    for map in maps {
+        let Some(p) = &map.panorama else { continue };
+        if p.mode == 4 {
+            continue;
+        }
+        if p.none_first {
+            nones.push(Picture::none(p.mode, if p.mode == 3 { 32 } else { 16 }).tiles);
+        }
+        for tiles in std::iter::once(&p.tiles).chain(p.images.iter().map(|i| &i.tiles)) {
+            if seen.insert(tiles.as_slice()) {
+                raw.push(tiles);
+            }
+        }
+    }
+    for tiles in &nones {
+        if seen.insert(tiles.as_slice()) {
+            raw.push(tiles);
+        }
+    }
+    let streams = compress::compress_many(&raw)?;
+    Ok(raw.into_iter().map(<[u8]>::to_vec).zip(streams).collect())
 }
 
 /// A painted map's record.
@@ -554,6 +611,41 @@ mod tests {
             first.contains("    .byte 0, 0, 0\n    .byte 0\n    .word 0\n    .byte 3\n"),
             "{first}"
         );
+    }
+
+    /// The bytes of the block `label` in the `.inc`.
+    fn block_bytes(out: &str, label: &str) -> Vec<u8> {
+        let at = out
+            .find(&format!("\n{label}:\n"))
+            .unwrap_or_else(|| panic!("{out}"));
+        out[at + label.len() + 3..]
+            .lines()
+            .take_while(|l| l.starts_with("    .byte $"))
+            .flat_map(|l| l.trim_start_matches("    .byte ").split(','))
+            .map(|b| u8::from_str_radix(&b[1..], 16).unwrap())
+            .collect()
+    }
+
+    /// The tiles travel as an LZ2 stream that gives back the picture's
+    /// bytes, with the cap the runtime checks; the tilemap stays raw.
+    #[test]
+    fn the_tiles_go_compressed() {
+        let out = panorama_table(&[with_panorama(&["other"], true)], false).unwrap();
+        assert!(out.contains("LZ2_CAP_PANORAMA = $6000"), "{out}");
+        for (label, colour) in [("pano_tiles_0_1", 1u8), ("pano_tiles_0_2", 2)] {
+            let stream = block_bytes(&out, label);
+            assert!(stream.len() < 64, "{label} is {} bytes", stream.len());
+            assert_eq!(
+                lz2::decompress(&stream).unwrap(),
+                vec![colour; 64],
+                "{label}"
+            );
+        }
+        assert_eq!(
+            lz2::decompress(&block_bytes(&out, "pano_tiles_0")).unwrap(),
+            vec![0; 32]
+        );
+        assert_eq!(block_bytes(&out, "pano_map_0_1").len(), 4);
     }
 
     #[test]
