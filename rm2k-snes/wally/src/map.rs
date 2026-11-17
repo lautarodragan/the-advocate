@@ -21,14 +21,14 @@ use crate::sheets::Drawer;
 use crate::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
 use crate::sprites::cache::{peak, Wants, BLOCKS, CACHE_MAX, STILLS_MAX};
 use crate::sprites::character::{
-    block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES,
-    OBJ_ROW, SPRITE_POSES,
+    all_poses, block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE,
+    OBJ_PALETTES, OBJ_ROW, SPRITE_POSES,
 };
 use crate::sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, sand_grains, timer_colors,
     timer_digits, timer_mask, Image, RAIN_COLORS, RAIN_TILES, TIMER_GLYPHS,
 };
-use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc, NPC_MAX};
+use crate::sprites::npc::{map_poses, pin_walkers, pose_facings, Graphic, Npc, NPC_MAX};
 use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
 use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
 use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
@@ -603,6 +603,9 @@ pub struct Objects {
     /// another graphic: see `page_graphic` in the runtime.
     pub animated_palettes: Vec<usize>,
     pub banks: Vec<(Key, Vec<u8>)>,
+    /// Which of each bank's twelve poses this map can show, in the same
+    /// order: see `cartridge_poses`.
+    pub shows: Vec<BTreeSet<i32>>,
     /// Each graphic of command 34: its entry in the pose table or $FF, its
     /// palette, and the colours the console uploads into it when the hero
     /// takes it —for one in a leaders' palette, empty otherwise—.
@@ -1694,6 +1697,19 @@ fn convert_with(
         &request.route_graphics,
         &who.animates_still,
     );
+    // The palettes keep counting the twelve poses of what turns toward the
+    // hero, although the cartridge carries four: counted over four, the
+    // colours come out a little different, and the character's bank stops
+    // being the one of the maps where it walks. On ABL that was twelve
+    // banks more —7 KB of the 67 the four facings save— and characters
+    // quantized differently from what the goldens froze.
+    let mut quantized = poses.clone();
+    for pair in turning.values().flatten() {
+        quantized
+            .entry(pair.clone())
+            .or_default()
+            .extend(all_poses());
+    }
 
     let sheets = drawer.sheets().clone();
     let ask = |cap: usize| Ask {
@@ -1704,7 +1720,7 @@ fn convert_with(
         hero_graphics: &request.hero_graphics,
         timer_colors: &timer,
         only_here: &request.singles,
-        poses: &poses,
+        poses: &quantized,
         weights: &request.weights,
     };
     // All eight palettes, or seven in a map that shows battle animations:
@@ -2144,6 +2160,7 @@ fn convert_with(
     // The cache's still poses —every graphic a still event can show—, with
     // their characters' twelve poses in the cartridge, which is where the
     // console uploads them from; and how many slots can be wanted at once.
+    let mut turned: BTreeMap<Key, BTreeSet<i32>> = BTreeMap::new();
     let cache_asked = if mode == Mode::Cache {
         let shows = |npc: &Npc| -> BTreeSet<Graphic> {
             let mut out = BTreeSet::from([(npc.charset.clone(), npc.index, npc.pose)]);
@@ -2179,6 +2196,18 @@ fn convert_with(
             .filter(|n| !who.movable.contains(&n.event) && !who.follows.contains_key(&n.event))
         {
             stills.extend(can_show(npc));
+            // Of those twelve the cartridge carries the four facings of the
+            // columns it can turn with: its pages' and the middle one, which
+            // is where a route slot starts —`route_for_event`—, unless its
+            // page fixes the graphic. The rest of the cache's keys are never
+            // asked for.
+            if who.turners.contains(&npc.event) {
+                for (c, i, pose) in shows(npc) {
+                    let facings = turned.entry((c, i)).or_default();
+                    facings.extend(pose_facings(pose));
+                    facings.extend(pose_facings(1));
+                }
+            }
         }
         let stills: Vec<Graphic> = stills.into_iter().collect();
         if stills.len() > STILLS_MAX {
@@ -2285,6 +2314,7 @@ fn convert_with(
         return Ok(done);
     }
     let banks = pose_bank(&sheets, &animated, &bank.colors).map_err(|b| Bad::answer(b.0))?;
+    let shows = cartridge_poses(&animated, &poses, &turned, &shared_poses);
     let animated_index: HashMap<Key, usize> = animated
         .iter()
         .enumerate()
@@ -2541,6 +2571,7 @@ fn convert_with(
         animated,
         animated_palettes,
         banks,
+        shows,
         route_gfx,
         rain,
         sand,
@@ -2771,6 +2802,39 @@ fn grow_blocks(tiles: &mut Vec<u8>, blocks: usize) {
     }
 }
 
+/// Which of its twelve poses the cartridge carries of each character of the
+/// pose table, in its order: what [`map_poses`] says it can show, the
+/// facings a cache's turners can turn to —`turned`— and the poses the
+/// shared slots name. A character nobody accounts for keeps all twelve.
+///
+/// mapdata joins them over the maps, emits only those and points the rest
+/// of the twelve pointers at one it emitted: see `poses` there, which also
+/// checks that every pose a row can ask for is among them.
+fn cartridge_poses(
+    animated: &[Key],
+    poses: &BTreeMap<Key, BTreeSet<i32>>,
+    turned: &BTreeMap<Key, BTreeSet<i32>>,
+    shared: &[Graphic],
+) -> Vec<BTreeSet<i32>> {
+    animated
+        .iter()
+        .map(|key| {
+            let Some(own) = poses.get(key) else {
+                return all_poses();
+            };
+            let mut out = own.clone();
+            out.extend(turned.get(key).into_iter().flatten());
+            out.extend(
+                shared
+                    .iter()
+                    .filter(|g| (&g.0, g.1) == (&key.0, key.1))
+                    .map(|g| g.2),
+            );
+            out
+        })
+        .collect()
+}
+
 fn drawer_missing(sheets: &crate::sprites::character::Sheets, name: &str) -> bool {
     !matches!(sheets.get(name), Some(Some(_)))
 }
@@ -2833,7 +2897,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
             for (k, (key, data)) in o.banks.iter().enumerate() {
                 let name = format!("poses-{k}.bin");
                 file(&name, data)?;
-                banks.push(json!([key.0, key.1, name]));
+                banks.push(json!([key.0, key.1, name, o.shows[k]]));
             }
             json!({
                 "tiles": SPRITE_TILES,
@@ -2865,6 +2929,9 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                     "events": c.events.iter().map(|(e, v, pal)| json!([e, v, pal])).collect::<Vec<_>>(),
                     "stills": c.stills.iter().map(|((cs, i, p), k, pal)| json!([cs, i, p, k, pal])).collect::<Vec<_>>(),
                     "slots": c.slots,
+                    // The still ones routes only turn: the cartridge carries
+                    // only the facings of their columns, and mapdata checks it.
+                    "turners": done.moves.turners,
                 })),
             })
         }
@@ -2916,6 +2983,25 @@ mod tests {
 
     fn keys(names: &[(&str, i32)]) -> BTreeSet<Key> {
         names.iter().map(|(n, i)| ((*n).to_string(), *i)).collect()
+    }
+
+    #[test]
+    fn the_cartridge_carries_what_shows_turns_and_takes_turns() {
+        let key = |n: &str| (n.to_string(), 0);
+        let animated = [key("Switch"), key("Lamp"), key("Hero")];
+        // The switch shows its pose and a route turns it in the cache; the
+        // lamp takes turns in a shared slot with two poses; nobody accounts
+        // for the hero's.
+        let poses = BTreeMap::from([
+            (key("Switch"), BTreeSet::from([6])),
+            (key("Lamp"), BTreeSet::from([1])),
+        ]);
+        let turned = BTreeMap::from([(key("Switch"), BTreeSet::from([0, 3, 6, 9, 1, 4, 7, 10]))]);
+        let shared = [("Lamp".to_string(), 0, 2)];
+        let shows = cartridge_poses(&animated, &poses, &turned, &shared);
+        assert_eq!(shows[0], BTreeSet::from([0, 1, 3, 4, 6, 7, 9, 10]));
+        assert_eq!(shows[1], BTreeSet::from([1, 2]));
+        assert_eq!(shows[2], all_poses());
     }
 
     // The Book of Three's lava tunnels, map 46: with Eilonwy and Gurgi the

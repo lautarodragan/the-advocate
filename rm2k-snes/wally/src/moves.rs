@@ -147,9 +147,9 @@ pub fn moves(
         .collect();
     // And the ones that turn toward the hero when it talks to them: the
     // events with some action or touch page that compiled and turns, with
-    // the graphics of **all** their pages that turn. The twelve poses of
-    // each go to the cartridge, which is where the console takes the one
-    // facing the hero from.
+    // the graphics of **all** their pages that turn. The four facings of
+    // each go to the cartridge —see `map_poses`—, which is where the
+    // console takes the one facing the hero from.
     let mut turning: BTreeMap<usize, BTreeSet<Key>> = BTreeMap::new();
     for p in pages {
         if p.compiles

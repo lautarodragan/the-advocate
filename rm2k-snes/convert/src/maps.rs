@@ -1230,7 +1230,9 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let mut banks = Vec::new();
     for bank in s["banks"].as_array().cloned().unwrap_or_default() {
         let data = file(&written, bank[2].as_str().unwrap_or(""))?;
-        banks.push(json!([bank[0], bank[1], crate::text::hex(data)]));
+        // And which of its poses the map can show: mapdata emits only
+        // those, joined over the maps.
+        banks.push(json!([bank[0], bank[1], crate::text::hex(data), bank[3]]));
     }
     objects["banks"] = Value::Array(banks);
     let mut changing = BTreeSet::new();

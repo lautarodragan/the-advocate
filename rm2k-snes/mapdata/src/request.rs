@@ -653,8 +653,9 @@ pub struct Sprite {
     /// gives the row this entry and this palette: see `page_table`.
     #[serde(default)]
     pub animated_palettes: Vec<i64>,
-    /// Each one's twelve poses, as this map quantized them.
-    pub banks: Vec<(String, i64, String)>,
+    /// Each one's twelve poses, as this map quantized them, and which of
+    /// them it can show.
+    pub banks: Vec<Bank>,
     /// The graphics command 34 changes to: `[pose table entry or $FF,
     /// palette]`, and a third element for one drawn in the leaders'
     /// palette with colours of its own: those, as CGRAM words.
@@ -680,6 +681,43 @@ pub struct Sprite {
     pub cache: Option<Cache>,
 }
 
+/// A character's twelve poses, `[CharSet, index, the poses in hex, which
+/// of them the map can show]`. Without the fourth, or null, all twelve.
+#[derive(Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum Bank {
+    Shows(String, i64, String, Option<Vec<i64>>),
+    All(String, i64, String),
+}
+
+impl Bank {
+    pub fn charset(&self) -> &str {
+        match self {
+            Bank::Shows(c, ..) | Bank::All(c, ..) => c,
+        }
+    }
+
+    pub fn index(&self) -> i64 {
+        match self {
+            Bank::Shows(_, i, ..) | Bank::All(_, i, _) => *i,
+        }
+    }
+
+    pub fn hex(&self) -> &str {
+        match self {
+            Bank::Shows(_, _, h, _) | Bank::All(_, _, h) => h,
+        }
+    }
+
+    /// Which of the twelve poses the map can show.
+    pub fn shows(&self) -> std::collections::BTreeSet<usize> {
+        match self {
+            Bank::Shows(_, _, _, Some(p)) => p.iter().map(|&p| p as usize).collect(),
+            _ => (0..12).collect(),
+        }
+    }
+}
+
 /// The cache of slots, as `wally` answered it.
 #[derive(Deserialize)]
 pub struct Cache {
@@ -691,6 +729,10 @@ pub struct Cache {
     pub stills: Vec<(String, i64, i64, usize, u32)>,
     /// Each slot's block in the sprite bank.
     pub slots: Vec<u32>,
+    /// The still ones routes only turn, which `still_turn` moves from one
+    /// still pose to another: see `turners` in Wally. Missing, none.
+    #[serde(default)]
+    pub turners: Vec<i64>,
 }
 
 /// The slots still events take turns in, as `wally` answered them.

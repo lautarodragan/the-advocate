@@ -75,17 +75,32 @@ pub fn pose_row(pose: i32) -> BTreeSet<i32> {
     (pose / 3 * 3..pose / 3 * 3 + 3).collect()
 }
 
+/// The four facings of `pose`'s column: all a still event that only turns
+/// can show. A turn changes the direction and keeps the frame —EasyRPG's
+/// `SetDirection`—, and the console builds the turned pose the same way:
+/// `TURN_DIR` and the column of the previous one in `turn_toward_hero.s`,
+/// the direction and the slot's column in `refresh_npc`.
+pub fn pose_facings(pose: i32) -> BTreeSet<i32> {
+    (0..4).map(|d| d * 3 + pose % 3).collect()
+}
+
 /// Which poses each character can end up showing in this map.
 ///
 /// These take all twelve: the leader candidates, because the hero walks;
-/// the events in `movable` that walk; the graphics of the events in
-/// `turning`, which can end up facing any way; and the graphics routes
-/// change to, which keep walking after the change. One that animates
-/// standing still keeps the three frames of its row. The rest keep the pose
-/// their page declares, and each page's if the graphic follows them.
+/// the events in `movable` that walk; and the graphics routes change to,
+/// which keep walking after the change. The graphics of a still event in
+/// `turning` take the four facings of their pages' columns —see
+/// [`pose_facings`]—, and those of one in `movable` that turns, all twelve.
+/// One that animates standing still keeps the three frames of its row. The
+/// rest keep the pose their page declares, and each page's if the graphic
+/// follows them.
 ///
 /// The same character can be a still one and a walking one at once: the
 /// union accumulates, which makes the answer independent of the order.
+///
+/// It is also what the cartridge carries of each character —see
+/// `cartridge_poses` in `map`—: a pose left out here is one the console
+/// never uploads, and the emission checks it against the tables.
 pub fn map_poses(
     leaders: &[Key],
     npcs: &[Npc],
@@ -101,9 +116,30 @@ pub fn map_poses(
     for key in leaders {
         add(key.clone(), all_poses());
     }
-    for pairs in turning.values() {
+    for (event, pairs) in turning {
+        let npc = npcs.iter().find(|n| n.event == *event);
         for pair in pairs {
-            add(pair.clone(), all_poses());
+            let which = match npc {
+                // One that walks or animates in place shows every column
+                // in every direction.
+                Some(npc) if !movable.contains(event) => {
+                    let columns: BTreeSet<i32> = npc
+                        .graphics
+                        .iter()
+                        .flatten()
+                        .chain([&(npc.charset.clone(), npc.index, npc.pose)])
+                        .filter(|g| (&g.0, g.1) == (&pair.0, pair.1))
+                        .map(|g| g.2)
+                        .collect();
+                    if columns.is_empty() {
+                        all_poses()
+                    } else {
+                        columns.into_iter().flat_map(pose_facings).collect()
+                    }
+                }
+                _ => all_poses(),
+            };
+            add(pair.clone(), which);
         }
     }
     for pair in route_graphics {
@@ -258,6 +294,26 @@ mod tests {
         let mut empty = vec![walker(vec![g(7), None], false)];
         assert!(pin_walkers(&mut empty, &BTreeSet::from([3]), blank_seven).is_empty());
         assert_eq!(empty[0].index, 7);
+    }
+
+    #[test]
+    fn one_that_only_turns_carries_the_four_facings_of_its_columns() {
+        // Dooms 2's map 1: a scenario you talk to, facing down in the
+        // middle column, with a page at the left one.
+        let g = |pose| Some(("clown".to_string(), 0, pose));
+        let mut npc = walker(vec![g(7), g(6)], true);
+        npc.changes = false;
+        let key = ("clown".to_string(), 0);
+        let turning = BTreeMap::from([(3, BTreeSet::from([key.clone()]))]);
+        let none = BTreeSet::new();
+        let poses = map_poses(&[], &[npc.clone()], &none, &turning, &[], &none);
+        assert_eq!(poses[&key], BTreeSet::from([0, 1, 3, 4, 6, 7, 9, 10]));
+        // One that walks or animates in place shows every column.
+        let walks = BTreeSet::from([3]);
+        let poses = map_poses(&[], &[npc.clone()], &walks, &turning, &[], &none);
+        assert_eq!(poses[&key], all_poses());
+        let poses = map_poses(&[], &[npc], &walks, &turning, &[], &walks);
+        assert_eq!(poses[&key], all_poses());
     }
 
     #[test]
