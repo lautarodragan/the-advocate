@@ -299,6 +299,9 @@ party_ready:
 .if ::DEBUG_PHASING
     stz phasing                 ; Select's walking through everything: see phasing.s
 .endif
+.if ::DEBUG_SCREEN
+    jsl f:dbg_off_boot            ; nothing forced off: see debug_switches.s
+.endif
     stz tint_pending
     ; And the message window. `msg_open` with garbage leaves the page
     ; blocked forever: `events_tick` believes there is a message on screen

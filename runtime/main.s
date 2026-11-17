@@ -256,6 +256,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "wrap.s"
 .include "posed.s"
 .include "debug_screen.s"
+.include "debug_switches.s"
 .include "picture_common.s"
 .include "terrain_steps.s"
 .include "party_states.s"
