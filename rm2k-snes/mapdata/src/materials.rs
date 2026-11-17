@@ -59,6 +59,23 @@ pub const LZ2_CAP_CODE: usize = 0x4E00;
 /// in one bank, and the decompressor does not have to know how to cross.
 pub const HALF_GRID: usize = 0x8000;
 
+/// The top of that half, which no map's grid and nothing behind it reach,
+/// on any map: a region of the runtime with named tenants, `GRID_TOP` in its
+/// `far_ram.s`, which `.assert`s each one's size against these. They live
+/// less than a map —a battle composes its scene over them— and were in far
+/// RAM until 2026-11-16, when A Blurred Line's ran out of it: see the task
+/// `event-page-records-compressed-behind-the-grid`.
+///
+/// The inn's gold window's two middle rows of tiles, with the number:
+/// `GOLD_BUF` in `gold_window.s`, eleven tiles of 32 bytes, twice.
+pub const GRID_TOP_GOLD: usize = 11 * 32 * 2;
+/// The runs of tilemap words of the events drawn into the background and
+/// their scratch: `POSED_REG` and `POSED_T` in `posed.s`.
+pub const GRID_TOP_POSED: usize = 732;
+pub const GRID_TOP_BYTES: usize = GRID_TOP_GOLD + GRID_TOP_POSED;
+/// What of $7F's upper half a map's grid and what lives behind it can take.
+pub const BEHIND_ROOM: usize = HALF_GRID - GRID_TOP_BYTES;
+
 /// How many streams of background tiles `lz2_backdrop` reads. A background
 /// that fits in one buffer goes in one.
 pub const BACKDROP_STREAMS_MAX: usize = 2;
@@ -96,14 +113,15 @@ pub const NARROW_BLOCKS: usize = 0x100;
 /// and `cell_mask`: see `GRID` in its `far_ram.s`.
 ///
 /// The limits, then: a wide grid holds 32,768 cells less half of what lives
-/// behind it, and a narrow one 65,536 less all of it —with the 34 bytes of
-/// Zounds' map 30, 32,751 cells (180x180) and 65,502 (255x255)—. The
+/// behind it and of `GRID_TOP`, and a narrow one 65,536 less all of it
+/// —with the 34 bytes of Zounds' map 30, 32,033 cells (178x178) and 64,066
+/// (253x253)—. The
 /// bytecode does not count: one that does not fit stays in the cartridge
 /// —see `code_in_rom` in record.rs—.
 pub fn cell_bytes(cells: usize, blocks: usize, ram: usize) -> Option<usize> {
     let fits = |bytes: usize| {
         let grid = cells * bytes;
-        grid <= GRID_ROOM && grid_high_used(grid) + ram <= HALF_GRID
+        grid <= GRID_ROOM && grid_high_used(grid) + ram <= BEHIND_ROOM
     };
     if blocks <= NARROW_BLOCKS && fits(1) {
         Some(1)
@@ -176,11 +194,12 @@ pub fn check_map(map_id: i64, blocks: &RawBlocks) -> Result<()> {
     }
     let used = grid_high_used(of("map_cells").len());
     let ram = of("map_ram").len() + of("map_code").len() + of("map_pages").len();
-    if used + ram > HALF_GRID {
+    if used + ram > BEHIND_ROOM {
         return Err(Bad::answer(format!(
             "map {map_id}: what lives behind its grid is {ram} bytes and the grid leaves {} of \
-             the upper half of bank $7F: see `lz2_grid` in runtime/decompress.s",
-            HALF_GRID - used
+             the upper half of bank $7F, whose top {GRID_TOP_BYTES} are `GRID_TOP`'s: see \
+             `lz2_grid` in runtime/decompress.s and `GRID_TOP` in runtime/far_ram.s",
+            BEHIND_ROOM.saturating_sub(used)
         )));
     }
     Ok(())
@@ -645,12 +664,13 @@ mod tests {
         assert_eq!(cell_bytes(40_000, 257, 257 * 17), None);
         // A small map with many blocks goes wide.
         assert_eq!(cell_bytes(20 * 15, 300, 300 * 17), Some(2));
-        // The edges, with 34 bytes behind: 65,502 cells narrow, and wide
-        // half of what is left once those 34 are out.
-        assert_eq!(cell_bytes(65_502, 2, 34), Some(1));
-        assert_eq!(cell_bytes(65_503, 2, 34), None);
-        assert_eq!(cell_bytes(32_751, 300, 34), Some(2));
-        assert_eq!(cell_bytes(32_752, 300, 34), None);
+        // The edges, with 34 bytes behind and `GRID_TOP` kept: 64,066 cells
+        // narrow, and wide half of what is left once those 34 are out.
+        assert_eq!(cell_bytes(65_536 - GRID_TOP_BYTES - 34, 2, 34), Some(1));
+        assert_eq!(cell_bytes(64_066, 2, 34), Some(1));
+        assert_eq!(cell_bytes(64_067, 2, 34), None);
+        assert_eq!(cell_bytes(32_033, 300, 34), Some(2));
+        assert_eq!(cell_bytes(32_034, 300, 34), None);
         assert_eq!(narrow(&[5, 0, 7, 0, 255, 0]), [5, 7, 255]);
     }
 
@@ -662,14 +682,17 @@ mod tests {
                 .map(|(k, n)| (k.to_string(), vec![0; n]))
                 .collect()
         };
-        // A grid of 40,000 bytes takes 7,232 of $7F's half.
-        check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 100)).unwrap();
+        // A grid of 40,000 bytes takes 7,232 of $7F's half, and its top is
+        // `GRID_TOP`'s.
+        let room = 0x8000 - 7_232 - GRID_TOP_BYTES;
+        check_map(52, &blocks(40_000, room - 100, 100)).unwrap();
         assert_eq!(
-            check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 101))
+            check_map(52, &blocks(40_000, room - 100, 101))
                 .unwrap_err()
                 .message(),
-            "map 52: what lives behind its grid is 25537 bytes and the grid leaves 25536 of \
-             the upper half of bank $7F: see `lz2_grid` in runtime/decompress.s"
+            "map 52: what lives behind its grid is 24101 bytes and the grid leaves 24100 of \
+             the upper half of bank $7F, whose top 1436 are `GRID_TOP`'s: see `lz2_grid` in \
+             runtime/decompress.s and `GRID_TOP` in runtime/far_ram.s"
         );
     }
 

@@ -173,6 +173,11 @@
 //! one their stream. That the stream carries the same lines is checked in
 //! record.rs, and what the console decompresses, in ABL's
 //! `test_decompressed_load.py`.
+//!
+//! The same day the top of $7F's upper half became `GRID_TOP`'s, a region
+//! nothing behind the grid reaches, and the caps got the sizes of its two
+//! tenants: `without_grid_top` takes their four lines away, and with it the
+//! text is the one above byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -200,7 +205,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&with_whole_poses_as_before(&without_hero_colors(
-            &with_the_turn_as_before(&written.maps)
+            &with_the_turn_as_before(&without_grid_top(&written.maps))
         ))),
         "41dcddb2bba3c23d41d630c0c4811e4b85ba9bd27742a11190941c54658045b7"
     );
@@ -1837,6 +1842,21 @@ fn without_grid_narrow(text: &str) -> String {
 /// The text without the record's `M_WRAP` line, which came on 2026-10-19
 /// with the maps that loop —see `record::wrap_offset`—, nor the
 /// `M_GRID_NARROW` one: they are next to each other.
+/// The text without the sizes of `GRID_TOP`'s tenants, which came with the
+/// caps on 2026-11-16: see the top of this file.
+fn without_grid_top(text: &str) -> String {
+    let lines = format!(
+        "; The top of $7F's upper half, which nothing behind the grid reaches:\n\
+         ; `GRID_TOP` in far_ram.s, and `GRID_TOP_BYTES` in materials.rs\n\
+         GRID_TOP_GOLD = {}\n\
+         GRID_TOP_POSED = {}\n",
+        rm2k_snes_mapdata::materials::GRID_TOP_GOLD,
+        rm2k_snes_mapdata::materials::GRID_TOP_POSED
+    );
+    assert!(text.contains(&lines));
+    text.replacen(&lines, "", 1)
+}
+
 fn without_wrap_and_grid_narrow(text: &str) -> String {
     let line = format!("\nM_WRAP         = {}", record::wrap_offset());
     assert!(text.contains(&line));
@@ -1945,7 +1965,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&text)),
+                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&text))),
                                         )),
                                     )),
                                 )),
@@ -1990,7 +2010,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&text)),
+                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&text))),
                                         )),
                                     )),
                                 )),

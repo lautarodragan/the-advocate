@@ -51,9 +51,24 @@ POSED_N:    .res 2              ; how many it has; 0 a map without any
 ; The key each one's cell shows now —character * 12 + pose, or $FF without
 ; it—: what the grid holds, which `posed_row` compares the row against.
 POSED_LAST: .res POSED_MAX
-POSED_REG:  .res 2 * PR_SIZE    ; the top rows' region, then the bottom rows'
-POSED_T:    .res 16             ; scratch
 .popseg
+; **The runs and their scratch are a tenant of `GRID_TOP`**, the top of
+; bank $7F's upper half, which nothing behind any map's grid reaches —see
+; far_ram.s—. They lived in `FARBSS` until 2026-11-16, and A Blurred Line's
+; release had 12 bytes of far RAM left. They live less than a frame
+; —`build_oam` fills them and the vblank sends them up—, so it does not
+; matter that a battle composes its scene over them: `posed_sync` empties
+; them on the way back, before the map runs again, and `posed_find` on
+; every map with such events.
+;
+; With the data bank at `^POSED_REG`, which `posed_row` sets for
+; `posed_queue` and what it calls, **absolute addressing reaches $7F**:
+; what they read of bank $7E goes with `f:`, and of bank 0's RAM, through
+; the direct page.
+POSED_REG   = GRID_TOP + GRID_TOP_GOLD  ; the top rows' region, then the bottom rows'
+POSED_T     = POSED_REG + 2 * PR_SIZE   ; scratch, 16 bytes
+.assert 2 * PR_SIZE + 16 = GRID_TOP_POSED, error, "the runs do not measure what GRID_TOP keeps for them: GRID_TOP_POSED in materials.rs"
+.assert ^POSED_REG = ^(POSED_T + 15), error, "the runs and their scratch have to share a bank: posed_row reaches them with the data bank"
 POSED_KEY   = POSED_T + 0       ; byte: the key the row asks for
 POSED_P     = POSED_T + 1       ; byte: which one
 POSED_BLOCK = POSED_T + 2       ; word: the block
@@ -85,7 +100,6 @@ PS_START = 11
 .a16
     lda #0
     sta f:POSED_N
-    jsr posed_empty
     ldx #0
 other:
     lda f:posed_table, x
@@ -109,6 +123,11 @@ found:
     sta temp + 2
     lda [temp]
     sta f:POSED_N
+    ; Its runs empty, for a map that has some: on any other they are not
+    ; looked at.
+    rep #$20
+.a16
+    jsr posed_empty
     ; Each one's key as the grid starts it.
     rep #$20
 .a16
@@ -362,7 +381,7 @@ left_screen:
     clc
     adc .loword(POSED_A)
     clc
-    adc .loword(FAR_VRAM_MAP)
+    adc f:FAR_VRAM_MAP          ; in $7E, and the data bank is $7F's
     sta .loword(POSED_A)
     ; Where it is in the window.
     lda .loword(POSED_X)
@@ -558,6 +577,8 @@ place:
     phb
     rep #$30
 .a16
+    lda f:POSED_N
+    beq done                    ; a map without any, whose runs are stale
     lda f:POSED_REG + PR_N
     ora f:POSED_REG + PR_SIZE + PR_N
     beq done
@@ -628,6 +649,8 @@ none:
     php
     rep #$30
 .a16
+    lda f:POSED_N
+    beq done                    ; a map without any, whose runs are stale
     jsr posed_empty
     ldx #0
 other:

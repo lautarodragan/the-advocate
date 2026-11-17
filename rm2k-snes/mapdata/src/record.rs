@@ -10,7 +10,7 @@ use crate::asm::{block, pointer};
 use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
 use crate::materials::{
-    grid_high_used, map_ram, Materials, COMPRESSED_KINDS, HALF_GRID, LZ2_CAP_CODE,
+    grid_high_used, map_ram, Materials, BEHIND_ROOM, COMPRESSED_KINDS, LZ2_CAP_CODE,
 };
 use crate::objects::{
     block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
@@ -639,9 +639,12 @@ pub fn rom_code_chunks(map: &Map) -> Result<Vec<(usize, &[u8])>> {
 /// Why not every map: see the task `map-streams-that-dont-fit-in-wram.md`,
 /// where it was measured —in short, the ROM it costs uncompressed against a
 /// few frames of decompression when loading—.
+///
+/// "What the grid leaves" stops short of the half's top, which is
+/// `GRID_TOP`'s on every map: see [`BEHIND_ROOM`].
 pub fn code_in_rom(map: &Map) -> bool {
     let behind = grid_high_used(map.grid().len()) + map.blocks.len() + map.block_pass.len();
-    map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > HALF_GRID
+    map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > BEHIND_ROOM
 }
 
 /// Where the pointers into what lives behind the grid land: WRAM addresses,
@@ -691,7 +694,7 @@ fn code_offset(map: &Map) -> usize {
 pub fn pages_in_wram(map: &Map) -> bool {
     !map.pages.is_empty()
         && !code_in_rom(map)
-        && code_offset(map) + map.evcode.len() + PAGE_BYTES * map.pages.len() <= HALF_GRID
+        && code_offset(map) + map.evcode.len() + PAGE_BYTES * map.pages.len() <= BEHIND_ROOM
 }
 
 /// Where a map's page table lands in WRAM when [`pages_in_wram`], as an
@@ -2282,11 +2285,17 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
          LZ2_CAP_BACKDROP = ${:04X}\n\
          LZ2_CAP_ABOVE_Y_SPRITES = ${:04X}\n\
          LZ2_CAP_ANIM = ${:04X}\n\
-         LZ2_CAP_GRID = ${:05X}\n\n",
+         LZ2_CAP_GRID = ${:05X}\n\
+         ; The top of $7F's upper half, which nothing behind the grid reaches:\n\
+         ; `GRID_TOP` in far_ram.s, and `GRID_TOP_BYTES` in materials.rs\n\
+         GRID_TOP_GOLD = {}\n\
+         GRID_TOP_POSED = {}\n\n",
         crate::materials::LZ2_CAP_BACKDROP,
         crate::materials::LZ2_CAP_ABOVE_AND_SPRITES,
         crate::materials::LZ2_CAP_ANIM,
-        crate::materials::LZ2_CAP_GRID
+        crate::materials::LZ2_CAP_GRID,
+        crate::materials::GRID_TOP_GOLD,
+        crate::materials::GRID_TOP_POSED
     );
     let mut materials = Materials::new(true, compressed);
     materials.msu = msu;
@@ -2636,7 +2645,7 @@ mod tests {
         );
         // One that does not fit in what the grid leaves stays in the
         // cartridge, and so does one whose bytecode stayed there.
-        let room = HALF_GRID - code_offset(&maps[0]) - 100;
+        let room = BEHIND_ROOM - code_offset(&maps[0]) - 100;
         maps[0].pages = test_pages((room / PAGE_BYTES) as i64 + 1);
         assert!(!pages_in_wram(&maps[0]));
         assert!(raw_blocks(&maps[0]).unwrap()["map_pages"].is_empty());
@@ -2648,6 +2657,43 @@ mod tests {
         maps[0].pages = test_pages(3);
         maps[0].evcode = vec![1; LZ2_CAP_CODE + 1];
         assert!(code_in_rom(&maps[0]) && !pages_in_wram(&maps[0]));
+    }
+
+    #[test]
+    fn nothing_behind_the_grid_reaches_the_top_of_7f() {
+        use crate::materials::GRID_TOP_BYTES;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut maps = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps;
+        maps.truncate(1);
+        maps[0].evcode = vec![1; 100];
+        // A table that ends right where `GRID_TOP` starts fits; a page more
+        // stays in the cartridge.
+        let room = BEHIND_ROOM - code_offset(&maps[0]) - 100;
+        assert_eq!(BEHIND_ROOM + GRID_TOP_BYTES, crate::materials::HALF_GRID);
+        maps[0].pages = test_pages((room / PAGE_BYTES) as i64);
+        assert!(pages_in_wram(&maps[0]));
+        maps[0].pages = test_pages((room / PAGE_BYTES) as i64 + 1);
+        assert!(!pages_in_wram(&maps[0]));
+        // A bytecode that would reach it stays in the cartridge too: the
+        // block table's passability grown until the bytecode ends one byte
+        // past the room.
+        maps[0].pages = test_pages(1);
+        let pass = maps[0].block_pass.len();
+        maps[0].block_pass = vec![0; pass + room];
+        assert!(!code_in_rom(&maps[0]));
+        maps[0].block_pass.push(0);
+        assert!(code_in_rom(&maps[0]) && !pages_in_wram(&maps[0]));
+        maps[0].block_pass.truncate(pass);
+        // What does not move out and does not fit is refused, saying why.
+        let mut raw = raw_blocks(&maps[0]).unwrap();
+        raw.insert("map_ram".into(), vec![0; BEHIND_ROOM + 1]);
+        raw.insert("map_code".into(), Vec::new());
+        let error = crate::materials::check_map(1, &raw)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("GRID_TOP"), "{error}");
     }
 
     #[test]
