@@ -187,6 +187,10 @@ still:
     sta flash_slot
     sep #$20
 .a8
+    ; Without saturation, in bank 1 and without the tables: see
+    ; `flash_direct`. With carry at 1 it is done.
+    jsl f:flash_direct + FAST
+    bcs ready
     jsr palette_with_flash
 ready:
     rts
@@ -198,6 +202,21 @@ ready:
 .a8
 .i16
     stx flash_slot_ofs          ; `flash_channel_table` uses X for the table
+    lda flash_ev + 1, x
+    sta flash_dest
+    ldy #0                      ; the red of `pure` and of the working ones
+    jsr flash_channel_table
+    ldx flash_slot_ofs
+    lda flash_ev + 2, x
+    sta flash_dest
+    ldy #32                     ; the green
+    jsr flash_channel_table
+    ldx flash_slot_ofs
+    lda flash_ev + 3, x
+    sta flash_dest
+    ldy #64                     ; the blue
+    jsr flash_channel_table
+
     ; The character's palette: sixteen two-byte colors, and in CGRAM the upper
     ; half starts at color 128.
     rep #$20
@@ -232,30 +251,6 @@ ready:
     sep #$20
 .a8
     sta tint_cgadd
-    ; Without saturation, which is almost always, the colors are blended one
-    ; by one in bank 1 and the tables are not touched: see `flash_direct`.
-    lda tint_s
-    cmp #TINT_NEUTRAL
-    bne with_tables
-    jsl f:flash_direct + FAST
-    rts
-with_tables:
-    ldx flash_slot_ofs
-    lda flash_ev + 1, x
-    sta flash_dest
-    ldy #0                      ; the red of `pure` and of the working ones
-    jsr flash_channel_table
-    ldx flash_slot_ofs
-    lda flash_ev + 2, x
-    sta flash_dest
-    ldy #32                     ; the green
-    jsr flash_channel_table
-    ldx flash_slot_ofs
-    lda flash_ev + 3, x
-    sta flash_dest
-    ldy #64                     ; the blue
-    jsr flash_channel_table
-
     jsr build_palette
 .ifdef sand_table
     jsl f:sand_flash            ; the sandstorm's grains do not flash
@@ -438,7 +433,6 @@ each:
 .endproc
 .assert table_g = table_r + 32 && table_b = table_r + 64, error, "flash_channel_table indexes all three from table_r"
 
-
 ; --- the flash without the tables, in bank 1 ----------------------------------
 ;
 ; `palette_with_flash` without saturation, which is the case of every flash
@@ -455,9 +449,13 @@ each:
 ;
 ; In bank 1 because bank 0 has no room; the low RAM and the registers with
 ; absolute addressing, as `sand_flash` does, because the data bank is the
-; main loop's. Enters with the palette already pointed —`tint_ptr`,
-; `tint_cgadd`— and leaves it in `FAR_FLASH_PAL`, waiting for the vblank,
-; which is the rest of `palette_with_flash`.
+; main loop's. Enters from `paint_flash` with X on the flash slot and
+; `flash_slot`, `flash_alpha` set; with saturation it returns with carry at
+; 0 and touches nothing, and `palette_with_flash` does it with the tables.
+; Otherwise it does all of `palette_with_flash` —points the palette, builds
+; it, leaves it in `FAR_FLASH_PAL` waiting for the vblank— and returns with
+; carry at 1. The decision is in here and not in bank 0 for the bytes: the
+; tightest test cartridge had 18 left.
 .pushseg
 .segment "FAR"
 
@@ -508,6 +506,47 @@ each:
 .proc flash_direct
 .a8
 .i16
+    lda tint_s
+    cmp #TINT_NEUTRAL
+    beq neutral
+    clc                         ; with saturation: the tables, in bank 0
+    rtl
+neutral:
+    stx flash_slot_ofs
+    ; The character's palette, pointed as `palette_with_flash` does: sixteen
+    ; colors, and in CGRAM the upper half starts at color 128.
+    rep #$20
+.a16
+    lda flash_slot
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; thirty-two bytes per palette
+    sta temp
+    ldx map_ofs
+    lda f:map_table + M_PTR_SPRITE_CGRAM, x
+    clc
+    adc temp
+    sta tint_ptr
+    sep #$20
+.a8
+    lda f:map_table + M_PTR_SPRITE_CGRAM + 2, x
+    sta tint_ptr + 2
+    rep #$20
+.a16
+    lda #16
+    sta tint_count
+    lda flash_slot
+    asl a
+    asl a
+    asl a
+    asl a                       ; sixteen colors per palette
+    clc
+    adc #128
+    sep #$20
+.a8
+    sta tint_cgadd
     ; dest * a for each channel, once: `sat_r`, `sat_g` and `sat_b` are
     ; `build_palette`'s, which does not run on this path.
     ldx flash_slot_ofs
@@ -617,6 +656,7 @@ copy:
     ldx flash_slot_ofs
     lda tint_cgadd
     sta flash_ev + 7, x         ; and it is left waiting for the vblank
+    sec
     rtl
 .endproc
 .popseg
