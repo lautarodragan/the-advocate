@@ -609,6 +609,17 @@ impl crate::map::MapRequest {
                 .get("posed_stills")
                 .and_then(Value::as_bool)
                 .unwrap_or(false),
+            baked_events_nudge: match data.get("baked_events_nudge") {
+                None | Some(Value::Null) => 0,
+                Some(v) => v
+                    .as_i64()
+                    .filter(|n| (0..=i32::MAX as i64).contains(n))
+                    .ok_or_else(|| {
+                        Bad::answer(format!(
+                            "{whose}: `baked_events_nudge` is {v}, not a number of pixels"
+                        ))
+                    })? as i32,
+            },
         })
     }
 }

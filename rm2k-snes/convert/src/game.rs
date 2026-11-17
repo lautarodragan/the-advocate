@@ -26,7 +26,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// On which maps the still events that change pose go into the background:
-/// see [`Game::posed`]. `posed_events = true` is every map, and a list of
+/// see [`Game::posed`]. `baked_events = true` is every map, and a list of
 /// ids only those. A list too because each map that takes them spends
 /// background tiles where it saves sprite ones, and a cartridge with no
 /// bank left —A Blurred Line's— can pay for some maps and not for all.
@@ -39,9 +39,15 @@ pub enum Posed {
 }
 
 impl Posed {
-    const KEY: [&'static str; 2] = ["graphics", "posed_events"];
+    const KEY: [&'static str; 2] = ["graphics", "baked_events"];
 
     pub fn read(project: &Project) -> Result<Posed> {
+        // Its name until 2026-11-16: refused with the new one rather than
+        // ignored, since a game that still says it would lose its events'
+        // poses from the background without a word.
+        if project.value(&["graphics", "posed_events"]).is_ok() {
+            crate::stop!("[graphics] posed_events is called baked_events since 2026-11-16");
+        }
         let Ok(value) = project.value(&Self::KEY) else {
             return Ok(Posed::Nowhere);
         };
@@ -63,6 +69,25 @@ impl Posed {
             Posed::Everywhere => true,
             Posed::Only(maps) => maps.contains(&id),
         }
+    }
+}
+
+/// `[graphics] baked_events_nudge` when the project does not say: see
+/// [`Game::nudge`]. On by default, taro's; 2 because it is where a drawing
+/// that is only misaligned stops: on A Blurred Line, on 2026-11-16, 1 lets
+/// 7 events in, 2 lets 41 —its 33 chests, a pixel right and two up—, 3
+/// none more, and 4 a missile drawn on purpose above its cell, which is
+/// not a misaligned drawing but one that floats.
+pub const DEFAULT_NUDGE: i64 = 2;
+const _: () = assert!(DEFAULT_NUDGE > 0, "taro's: on by default");
+
+/// `[graphics] baked_events_nudge`, or [`DEFAULT_NUDGE`]. Up to 16: a
+/// pose's frame reaches 16 pixels above its cell and 4 to each side, so a
+/// larger one would allow nothing more.
+fn nudge(project: &Project) -> Result<i32> {
+    match project.int_or(&["graphics", "baked_events_nudge"], DEFAULT_NUDGE)? {
+        n @ 0..=16 => Ok(n as i32),
+        n => crate::stop!("[graphics] baked_events_nudge is {n}: a number of pixels, 0 to 16"),
     }
 }
 
@@ -303,11 +328,16 @@ pub struct Game {
     /// when the key is missing: it changes the map of any game that has
     /// them, and a game opts in.
     pub decorative: bool,
-    /// `[graphics] posed_events`: on which maps the still events that
+    /// `[graphics] baked_events`: on which maps the still events that
     /// change pose —a floor switch, a chest— are drawn into the background's
     /// cells, a block per pose, instead of as objects: see `posed` in Wally.
     /// Off when the key is missing, for the same reason.
     pub posed: Posed,
+    /// `[graphics] baked_events_nudge`: how many pixels, in x and in y, the
+    /// poses of one of those may be moved to fit its 16x16 cell when they
+    /// are drawn a little past it —see `posed::shift_into_the_cell` in
+    /// Wally—. [`DEFAULT_NUDGE`] when the key is missing; 0 turns it off.
+    pub nudge: i32,
     /// `[graphics] map_pictures`: whether the `ShowPicture` pictures that
     /// are part of a map are drawn into it —see [`crate::map_pictures`]—.
     /// Off when the key is missing, for the same reason.
@@ -498,6 +528,7 @@ impl Game {
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
             },
             posed: Posed::read(project)?,
+            nudge: nudge(project)?,
             map_pictures: match project.value(&["graphics", "map_pictures"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "map_pictures"])?,
@@ -920,13 +951,31 @@ mod tests {
     }
 
     #[test]
-    fn posed_events_is_every_map_a_list_of_them_or_none() {
+    fn baked_events_is_every_map_a_list_of_them_or_none() {
         assert_eq!(posed("").unwrap(), Posed::Nowhere);
-        assert_eq!(posed("[graphics]\nposed_events = false").unwrap(), Posed::Nowhere);
-        assert!(posed("[graphics]\nposed_events = true").unwrap().on(96));
-        let some = posed("[graphics]\nposed_events = [8, 11]").unwrap();
+        assert_eq!(
+            posed("[graphics]\nbaked_events = false").unwrap(),
+            Posed::Nowhere
+        );
+        assert!(posed("[graphics]\nbaked_events = true").unwrap().on(96));
+        let some = posed("[graphics]\nbaked_events = [8, 11]").unwrap();
         assert!(some.on(8) && some.on(11));
         assert!(!some.on(9));
-        assert!(posed("[graphics]\nposed_events = 8").is_err());
+        assert!(posed("[graphics]\nbaked_events = 8").is_err());
+        // The old name is refused, not ignored.
+        assert!(posed("[graphics]\nposed_events = true").is_err());
+    }
+
+    /// On by default; 0 turns it off; a negative number, or more than the
+    /// frame has room for, is refused.
+    #[test]
+    fn baked_events_nudge_is_on_unless_the_project_turns_it_off() {
+        let read = |text: &str| nudge(&Project::from_text(Path::new("/nowhere"), text).unwrap());
+        assert_eq!(read("").unwrap(), DEFAULT_NUDGE as i32);
+        assert_eq!(read("[graphics]\nbaked_events_nudge = 0").unwrap(), 0);
+        assert_eq!(read("[graphics]\nbaked_events_nudge = 3").unwrap(), 3);
+        assert!(read("[graphics]\nbaked_events_nudge = -1").is_err());
+        assert!(read("[graphics]\nbaked_events_nudge = 17").is_err());
+        assert!(read("[graphics]\nbaked_events_nudge = true").is_err());
     }
 }
