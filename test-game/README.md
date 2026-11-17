@@ -20,7 +20,8 @@ for the console, which leaves it out. And the ring, which loops on both
 axes, with two walkers that go round it. And the terrace, a slab of grass
 in a night sky that scrolls on its own, where three walkers go round
 under a transparent box in the middle of the screen, and then in the
-rain, which an event starts when talked to. And a common event that shows a box with escapes the console
+rain, which an event starts when talked to. And the lookout, whose
+night sky a parallel page swaps for a dawn. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
 map's ChipSet, which it drops too, and one with letters outside ASCII,
 which it draws or shows plain. And a case that puts six small pictures
@@ -135,6 +136,11 @@ steps are how to build them by hand.
                         reaches the screen while it is drawn, on bsnes's
                         accurate PPU with the display-access audit
                         (`AUDIT_CORE`); and what it looks like
+    test_panorama_swap.py
+                        the lookout's `ChangePBG` from its night sky to a
+                        dawn while a page carried from another map waits:
+                        the picture before and after, and that the carried
+                        bytecode comes through the swap byte for byte
     test_linter.py      Goombario over the cartridge: the runtime falls in
                         none of the traps it knows, but for the lines
                         annotated as right
