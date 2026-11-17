@@ -377,11 +377,6 @@ trigger_sought: .res 2
 npc_row: .res 2
 npc_px:   .res 2
 npc_py:   .res 2
-; What `refresh_npc` copies from the slot before using X for something else.
-; Whether any move route slot did something this frame. It is what decides
-; whether the NPC table has to be sorted again, which otherwise costs every
-; frame.
-routes_moved: .res 1
 ; The two rows being compared or swapped.
 cmp_a:    .res 2
 cmp_b:    .res 2
