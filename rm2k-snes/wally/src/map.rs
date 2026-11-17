@@ -21,8 +21,8 @@ use crate::sheets::Drawer;
 use crate::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
 use crate::sprites::cache::{peak, Wants, BLOCKS, CACHE_MAX, STILLS_MAX};
 use crate::sprites::character::{
-    block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES,
-    OBJ_ROW, SPRITE_POSES,
+    all_poses, block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE,
+    OBJ_PALETTES, OBJ_ROW, SPRITE_POSES,
 };
 use crate::sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, sand_grains, timer_colors,
@@ -1697,6 +1697,19 @@ fn convert_with(
         &request.route_graphics,
         &who.animates_still,
     );
+    // The palettes keep counting the twelve poses of what turns toward the
+    // hero, although the cartridge carries four: counted over four, the
+    // colours come out a little different, and the character's bank stops
+    // being the one of the maps where it walks. On ABL that was twelve
+    // banks more —7 KB of the 67 the four facings save— and characters
+    // quantized differently from what the goldens froze.
+    let mut quantized = poses.clone();
+    for pair in turning.values().flatten() {
+        quantized
+            .entry(pair.clone())
+            .or_default()
+            .extend(all_poses());
+    }
 
     let sheets = drawer.sheets().clone();
     let ask = |cap: usize| Ask {
@@ -1707,7 +1720,7 @@ fn convert_with(
         hero_graphics: &request.hero_graphics,
         timer_colors: &timer,
         only_here: &request.singles,
-        poses: &poses,
+        poses: &quantized,
         weights: &request.weights,
     };
     // All eight palettes, or seven in a map that shows battle animations:
@@ -2807,7 +2820,7 @@ fn cartridge_poses(
         .iter()
         .map(|key| {
             let Some(own) = poses.get(key) else {
-                return crate::sprites::character::all_poses();
+                return all_poses();
             };
             let mut out = own.clone();
             out.extend(turned.get(key).into_iter().flatten());
@@ -2985,7 +2998,7 @@ mod tests {
         let shows = cartridge_poses(&animated, &poses, &turned, &shared);
         assert_eq!(shows[0], BTreeSet::from([0, 1, 3, 4, 6, 7, 9, 10]));
         assert_eq!(shows[1], BTreeSet::from([1, 2]));
-        assert_eq!(shows[2], crate::sprites::character::all_poses());
+        assert_eq!(shows[2], all_poses());
     }
 
     // The Book of Three's lava tunnels, map 46: with Eilonwy and Gurgi the
