@@ -48,8 +48,10 @@
 ; menu closes.
 ;
 ; The geometry and the data are `rm2k-snes-screens`'s `debug_screen.rs`,
-; which says how `dbg_data` is laid out. It lives in `FAR3`, entered with
-; `jsl` from `cm_from_menu` with the pause menu's data bank, 0.
+; which says how a page of names is laid out —`pages`—, and the data
+; travels only in the `.msu`: see "What comes from the `.msu`" below. It
+; lives in `FAR3`, entered with `jsl` from `cm_from_menu` with the pause
+; menu's data bank, 0.
 
 .if ::DEBUG_SCREEN
 .pushseg
@@ -124,6 +126,73 @@ DBG_VRAM     = dbg_ram + 30     ; and where in the VRAM, a word
 DBG_ON       = dbg_ram + 32     ; nonzero: a bar goes on, zero: off
 DBG_SROW     = dbg_ram + 33     ; the screen row being written
 
+; --- what comes from the `.msu` -------------------------------------------------
+;
+; **The screen's bulk travels only in the `.msu`**, since 2026-11-16: its
+; font, its names and its windows are `.msu_only` pieces, which the packing
+; sends to the `.msu`'s region in any cartridge —see `msu_only_block` in
+; rm2k-snes-mapdata and `pack_with_msu` in rm2k-snes-cartridge—, and their
+; labels here are bank `MSU_SPILL_BANK` and their unit. It is taro's: they
+; test with the `.msu`, and the screen is not needed to enjoy the game. So
+; **without the MSU-1, or with another build's `.msu`, the pause menu does
+; not offer it**: `dbg_available`, each time the menu is drawn.
+;
+; While it is open it lives in `LZ2_BUFFER`, after the wide stage and up to
+; `ANIM_DRAWINGS_END`: `back_to_map` rebuilds all of that when the pause
+; menu closes, and the menu never opens over a big picture —see
+; `request_menu`—. `.define`s and not symbols, like `TL_STAGE_HI`: it is
+; the load buffer, not a new tenant of the WRAM's upper half.
+;
+;   DBG_VARS        what the screen keeps while it is open and nobody else:
+;                   far RAM has no room left in A Blurred Line
+;   DBG_FRAME_RAM   the windows' tilemap and the bars, `dbg_frame`, loaded
+;                   when it opens: what `dbg_view` and `rows` upload
+;   DBG_PAGE_RAM0   the names of a page, `dbg_pageN`, loaded when the page
+;   DBG_PAGE_RAM1   changes, each into the buffer the screen does not show:
+;                   the text layer keeps a name written by reference as its
+;                   address, so the page on screen must not change under it
+;                   —and a flip waits for the text to be shown, `DBG_FLIP`—
+;   DBG_CINDEX      the font's cache, `dbg_glyph`: a word per letter and
+;   DBG_COWNER      phase, its slot's address or 0; a word per slot, the
+;   DBG_CSLOTS      entry it holds or $FFFF; and the slots, a letter's
+;                   phase each, `FONT_PRE_CHAR` bytes, taken in turn
+;
+; The windows' tiles and colours, `dbg_border`, pass through the slots
+; before the cache starts. Each `.define` starts with a unary `+`: with its
+; body in parentheses right after the name, `ca65` takes them for a macro's
+; parameters.
+.define DBG_VARS +(TL_STAGE_HI + TL_STAGE_HI_BYTES)
+.define DBG_PAGE_AT +(DBG_VARS + 0)  ; the loaded page's names, a word of bank $7F
+.define DBG_FLIP +(DBG_VARS + 2)     ; a page flip waiting for the text: 0
+                                     ; none, PAD_LEFT or PAD_RIGHT
+.define DBG_RD_LEN +(DBG_VARS + 4)   ; `dbg_read`: how many bytes
+.define DBG_KEY +(DBG_VARS + 6)      ; `dbg_glyph`: the letter's entry in the
+                                     ; index,
+.define DBG_CSLOT +(DBG_VARS + 8)    ; the cache's next slot, times two,
+.define DBG_CADDR +(DBG_VARS + 10)   ; and its address in bank $7F,
+.define DBG_GOFS +(DBG_VARS + 12)    ; and the letter's offset in its phase's
+                                     ; piece
+DBG_VARS_BYTES = 14
+.define DBG_FRAME_RAM +(DBG_VARS + DBG_VARS_BYTES)
+.define DBG_PAGE_RAM0 +(DBG_FRAME_RAM + DBG_FRAME_BYTES)
+.define DBG_PAGE_RAM1 +(DBG_PAGE_RAM0 + DBG_PAGE_MAX)
+.define DBG_CINDEX +(DBG_PAGE_RAM1 + DBG_PAGE_MAX)
+.define DBG_COWNER +(DBG_CINDEX + 16 * DBG_GLYPHS)
+.define DBG_SLOTS +((ANIM_DRAWINGS_END - DBG_COWNER) / (FONT_PRE_CHAR + 2))
+.define DBG_CSLOTS +(DBG_COWNER + 2 * DBG_SLOTS)
+.assert DBG_CSLOTS + DBG_SLOTS * FONT_PRE_CHAR <= ANIM_DRAWINGS_END, error, "the debug screen's cache goes past LZ2_BUFFER"
+.assert DBG_SLOTS >= 32, error, "the debug screen's font cache has fewer than 32 letters"
+.assert DBG_CSLOTS + DBG_BORDER_TILES * 16 + DBG_BORDER_COLORS * 2 <= ANIM_DRAWINGS_END, error, "the debug screen's windows do not fit where its cache goes"
+.assert ^DBG_FRAME_RAM = $7F && ^ANIM_DRAWINGS_END = $7F, error, "the debug screen's WRAM is not bank $7F: see dbg_read"
+.assert DBG_PAGE_MAX > 0 && DBG_FRAME_BYTES > 0, error, "a DMA of 0 bytes is 64 KB"
+.assert FONT_PRE_CHAR .mod 2 = 0, error, "dbg_glyph blanks a letter a word at a time"
+; And for the tests, which compare the cache with the `.msu`: where it is,
+; as sixteen-bit numbers of bank $7F.
+DBG_VARS_AT   = .loword(DBG_VARS)
+DBG_CINDEX_AT = .loword(DBG_CINDEX)
+DBG_CSLOTS_AT = .loword(DBG_CSLOTS)
+DBG_SLOTS_N   = DBG_SLOTS
+
 ; From `cm_from_menu`: the screen, until B leaves it from the ranges.
 .proc debug_screen
 .a8
@@ -148,8 +217,10 @@ seen:
     lda #0
     sta f:DBG_LEVEL
     sta f:DBG_ROW
+    sta f:DBG_FLIP
     lda f:JOY1L
     sta f:DBG_LR
+    jsr frame_load
     jsr page_set
     jsr dbg_upload
     jsr dbg_view
@@ -197,6 +268,7 @@ ranges_no_b:
     sta f:DBG_LEVEL
     lda #0
     sta f:DBG_ROW
+    sta f:DBG_FLIP              ; a flip that waited is forgotten
     jmp changed
 ranges_no_a:
     lda title_edges
@@ -222,7 +294,21 @@ range_moved:
 ranges_no_vertical:
     lda title_edges
     and #(PAD_LEFT | PAD_RIGHT)
+    bne flip
+    lda f:DBG_FLIP              ; one that waited for the text
     beq to_wait
+flip:
+    ; The page's names go into the buffer the screen does not show, and
+    ; until the screen shows what it was given, the other one may still be
+    ; on it: the flip waits —see `DBG_PAGE_RAM1`—.
+    sta f:DBG_FLIP
+    jsr shown
+    bcc to_wait
+    lda f:DBG_FLIP
+    pha
+    lda #0
+    sta f:DBG_FLIP
+    pla
     and #PAD_RIGHT
     beq page_left
     lda f:DBG_PAGE
@@ -420,6 +506,106 @@ counted:
     dec a
     sta f:DBG_RANGE
 ready:
+    jmp page_load
+.endproc
+
+; The page's names, `dbg_pageN`, from the `.msu` into the buffer the screen
+; does not show, which becomes `DBG_PAGE_AT`. If the `.msu` does not answer
+; in time, zeros: no names, and no variable kept.
+.proc page_load
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:DBG_PAGE_AT
+    cmp #.loword(DBG_PAGE_RAM0)
+    beq second
+    lda #.loword(DBG_PAGE_RAM0)
+    bra chosen
+second:
+    lda #.loword(DBG_PAGE_RAM1)
+chosen:
+    sta f:DBG_PAGE_AT
+    lda f:DBG_PAGE
+    and #$00FF
+    asl a
+    tax
+    lda #DBG_PAGE_MAX
+    sta f:DBG_RD_LEN
+    lda f:dbg_pages, x
+    pha
+    lda f:DBG_PAGE_AT
+    tay
+    plx                         ; its unit
+    lda #0
+    jsr dbg_read
+.a8
+    bcc ready
+    rep #$20
+.a16
+    lda f:DBG_PAGE_AT
+    tax
+    ldy #DBG_PAGE_MAX
+    sep #$20
+.a8
+    lda #0
+zero:
+    sta f:$7F0000, x
+    inx
+    dey
+    bne zero
+ready:
+    rts
+.endproc
+
+; The windows' tilemap and its bars, `dbg_frame`, from the `.msu` into
+; `DBG_FRAME_RAM`; zeros if it does not answer in time, which is no window.
+.proc frame_load
+.a8
+.i16
+    rep #$20
+.a16
+    lda #DBG_FRAME_BYTES
+    sta f:DBG_RD_LEN
+    ldx #.loword(dbg_frame)
+    ldy #.loword(DBG_FRAME_RAM)
+    lda #0
+    jsr dbg_read
+.a8
+    bcc ready
+    ldx #.loword(DBG_FRAME_RAM)
+    ldy #DBG_FRAME_BYTES
+    lda #0
+zero:
+    sta f:$7F0000, x
+    inx
+    dey
+    bne zero
+ready:
+    rts
+.endproc
+
+; Whether the text layer shows all it was given —`tl_pace`'s question—:
+; carry set if it does. Clobbers A.
+.proc shown
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:$7E0000 + TL_UP_N
+    ora f:$7E0000 + TL_MAP_DIRTY
+    bne no
+    lda f:$7E0000 + TL_IDLE_DONE
+    beq no
+    sep #$20
+.a8
+    sec
+    rts
+.a16
+no:
+    sep #$20
+.a8
+    clc
     rts
 .endproc
 
@@ -543,20 +729,24 @@ ready:
 .endproc
 
 ; Where the cartridge keeps variable A16, its slot times two, in X; carry
-; clear if it does not keep it. Clobbers A.
+; clear if it does not keep it. Only a variable of the loaded page: its
+; table is `DBG_PAGE_AT`'s, the slot plus two and 0 none. Clobbers A.
 .proc variable_slot
 .a16
 .i16
-    dec a
+    sec
+    sbc f:DBG_BASE
+    dec a                       ; its place in the page
     asl a
     asl a                       ; four bytes each
     clc
-    adc #(DBG_VAR_TABLE + 2)
+    adc f:DBG_PAGE_AT
     tax
-    lda f:dbg_data, x
-    tax
-    cmp #$FFFF
+    lda f:$7F0002, x
     beq none
+    dec a
+    dec a
+    tax
     sec
     rts
 none:
@@ -685,22 +875,22 @@ counted:
     rts
 .endproc
 
-; The string at offset X of `dbg_data`, by reference, at `pick_table`.
+; The string at X of bank $7F —a page's, see `page_load`—, by reference, at
+; `pick_table`.
 .proc string_at
 .a8
 .i16
-    lda f:dbg_data, x
+    lda f:$7F0000, x
     beq none
     sta temp                    ; how many letters
     rep #$20
 .a16
     txa
-    clc
-    adc #.loword(dbg_data + 1)
+    inc a
     sta msg_ptr
     sep #$20
 .a8
-    lda #^dbg_data
+    lda #^DBG_PAGE_RAM0
     sta msg_ptr + 2
     lda #1
     sta f:$7E0000 + TL_BY_REF
@@ -857,31 +1047,45 @@ row_shown:
 .a8
     lda #':'
     jsr letter
-    ; The name: switch k's word, or variable k's first one.
-    lda f:DBG_KIND
+    ; The name: the page's k-th switch's word, or its k-th variable's first
+    ; one, an offset in the page's block —see `pages` in
+    ; rm2k-snes-screens—, 0 none.
     rep #$20
 .a16
-    bne variable_name           ; `rep` leaves Z alone
     lda 1, s
-    dec a
+    sec
+    sbc f:DBG_BASE
+    dec a                       ; its place in the page
     asl a
-    clc
-    adc #4
-    bra name
-variable_name:
-    lda 1, s
-    dec a
-    asl a
-    asl a
-    clc
-    adc #DBG_VAR_TABLE
-name:
-    tax
-    lda f:dbg_data, x
     tax
     sep #$20
 .a8
-    beq no_name
+    lda f:DBG_KIND
+    rep #$20
+.a16
+    beq name                    ; `rep` leaves Z alone
+    txa
+    asl a                       ; a variable's is two words
+    tax
+name:
+    txa
+    clc
+    adc f:DBG_PAGE_AT
+    tax
+    lda f:$7F0000, x
+    beq no_name_16
+    clc
+    adc f:DBG_PAGE_AT
+    tax                         ; the string, in bank $7F
+    sep #$20
+.a8
+    bra named
+.a16
+no_name_16:
+    sep #$20
+.a8
+    bra no_name
+named:
     lda f:DBG_SROW
     ldy #DBG_NAME_COL
     phx
@@ -1039,26 +1243,41 @@ done:
     ldy #DBG_INKS
     lda #^items_cgram
     jsr dma_cgram
+    ; The windows' tiles and colours, `dbg_border`, through where the font's
+    ; cache goes: it starts afterwards. If the `.msu` does not answer in
+    ; time, the windows go without them.
+    rep #$20
+.a16
+    lda #(DBG_BORDER_TILES * 16 + DBG_BORDER_COLORS * 2)
+    sta f:DBG_RD_LEN
+    ldx #.loword(dbg_border)
+    ldy #.loword(DBG_CSLOTS)
+    lda #0
+    jsr dbg_read
+.a8
+    bcs no_windows
     rep #$20
 .a16
     lda #(DBG_BORDER_COLORS * 2)
     sta f:DBG_LEN
-    ldx #.loword(dbg_border_cgram)
+    ldx #.loword(DBG_CSLOTS + DBG_BORDER_TILES * 16)
     sep #$20
 .a8
     ldy #DBG_CGRAM
-    lda #^dbg_border_cgram
+    lda #^DBG_CSLOTS
     jsr dma_cgram
     rep #$20
 .a16
     lda #(DBG_BORDER_TILES * 16)
     sta f:DBG_LEN
-    ldx #.loword(dbg_border_tiles)
+    ldx #.loword(DBG_CSLOTS)
     sep #$20
 .a8
     ldy #DBG_TILES_VRAM
-    lda #^dbg_border_tiles
+    lda #^DBG_CSLOTS
     jsr dma_vram
+no_windows:
+    jsr cache_clear
     ; Mode 5: BG1 at 4bpp, the text, and BG2 at 2bpp, the windows, both
     ; with cells 16 pixels wide.
     lda #$05
@@ -1145,11 +1364,11 @@ dbg_hdma:
 .a16
     lda #(32 * 28 * 2)
     sta f:DBG_LEN
-    ldx #.loword(dbg_layout)
+    ldx #.loword(DBG_FRAME_RAM)
     sep #$20
 .a8
     ldy #DBG_WIN_MAP
-    lda #^dbg_layout
+    lda #^DBG_FRAME_RAM
     jsr dma_vram
     lda #$FF
     sta f:DBG_BAR_R
@@ -1263,11 +1482,11 @@ columns:
     lda f:DBG_VRAM
     asl a
     clc
-    adc #.loword(dbg_layout)
+    adc #.loword(DBG_FRAME_RAM)
     sta f:DBG_SRC
     sep #$20
 .a8
-    lda #^dbg_layout
+    lda #^DBG_FRAME_RAM
     bra source
 .a16
 bar:
@@ -1287,11 +1506,11 @@ first_window:
     clc
     adc f:DBG_SRC
     clc
-    adc #.loword(dbg_bars)
+    adc #.loword(DBG_FRAME_RAM + DBG_BARS_AT)
     sta f:DBG_SRC
     sep #$20
 .a8
-    lda #^dbg_bars
+    lda #^DBG_FRAME_RAM
 source:
     sta f:DBG_SRC_BK
     jsr row
@@ -1323,6 +1542,282 @@ row:
 .endproc
 
 .assert DBG_BAR_BYTES = 128, error, "a bar is 128 bytes: see `rows`"
+.assert DBG_BARS_AT = 32 * 28 * 2, error, "dbg_frame is the windows' tilemap and then the bars"
+
+; --- the `.msu` ------------------------------------------------------------------
+
+; Whether the pause menu offers the screen: carry set if there is an MSU-1,
+; its `.msu` is this build's —`msu_data_valid`— and so is the region its
+; pieces are in —its signature against `msu_spill_signature`, as
+; `msu_required` asks at the boot of a game that needs the MSU-1—. Two
+; seeks, each time the pause menu is drawn: nothing without an MSU-1, and
+; in Mednafen, where a seek takes one or two frames, that many more on
+; opening it. From `menu_rows_build`, with `jsl`. Clobbers A and X.
+.proc dbg_available
+.a8
+.i16
+    lda f:MSU_HAS
+    beq no
+    jsl f:msu_data_valid_l
+    jsr port_moved
+    cmp #1
+    bne no
+    rep #$20
+.a16
+    lda #0
+    tax                         ; unit 0: the region's signature
+    jsr dbg_seek
+.a8
+    bcs no
+    ldx #0
+compares:
+    lda f:MSU_DATA
+    cmp f:msu_spill_signature, x
+    bne no
+    inx
+    cpx #8
+    bcc compares
+    sec
+    rtl
+no:
+    clc
+    rtl
+.endproc
+
+; The `.msu`'s sound effects remember where they left the port, so as not to
+; seek twice —see `se_msu_upload`—, and the screen moves it. Keeps A.
+.proc port_moved
+.a8
+.i16
+    pha
+    lda #$FF
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
+    pla
+    rts
+.endproc
+
+; Seeks the `.msu` to byte A16 of the piece at unit X of the region
+; —`MSU_SPILL_AT` plus the unit, times 256, plus A— and waits for the port.
+; Returns with A8, the carry set if the wait ran out: unlike
+; `msu_spill_seek`'s, it has the cap `msu_data_seek` has, because what is
+; read here can go without. Clobbers X. It keeps nothing in RAM: the pause
+; menu asks with it too, and the screen's is not its own then.
+.proc dbg_seek
+.a16
+.i16
+    pha
+    sep #$20
+.a8
+    jsr port_moved
+    sta f:MSU_SEEK              ; byte 0: the offset's low one
+    rep #$20
+.a16
+    pla
+    xba
+    and #$00FF                  ; the offset's high byte, in units
+    phx
+    clc
+    adc 1, s                    ; and the unit
+    plx                         ; the pulls keep the carry
+    tax
+    lda #0
+    rol a
+    pha                         ; that sum's carry
+    txa
+    clc
+    adc #.loword(MSU_SPILL_AT)
+    sta f:MSU_SEEK + 1          ; bytes 1 and 2
+    pla
+    adc #^MSU_SPILL_AT          ; with this one's carry
+    sep #$20
+.a8
+    sta f:MSU_SEEK + 3          ; the one that seeks, last
+    ldx #0
+wait:
+    lda f:MSU_STATE
+    bpl ready                   ; bit 7: still seeking
+    inx
+    cpx #MSU_WAIT
+    bcc wait
+    sec
+    rts
+ready:
+    clc
+    rts
+.endproc
+
+; `DBG_RD_LEN` bytes from byte A16 of the piece at unit X, into
+; bank $7F from Y, by DMA from the port through the WRAM's: channel 0, with
+; the source fixed. Returns with A8, the carry set if the seek ran out, and
+; then nothing was read. Clobbers X.
+.proc dbg_read
+.a16
+.i16
+    phy
+    jsr dbg_seek
+.a8
+    ply
+    bcs out
+    rep #$20
+.a16
+    tya
+    sta f:WMADDL
+    lda f:DBG_RD_LEN
+    sta f:DAS0L
+    lda #MSU_DATA
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #1                      ; bit 16 of the 17: bank $7F
+    sta f:WMADDH
+    lda #0
+    sta f:A1B0
+    lda #$08                    ; to the B bus, one register, the source fixed
+    sta f:DMAP0
+    lda #<WMDATA
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    clc
+out:
+    rts
+.endproc
+
+; The font's cache, empty: no letter in the index, no slot held, and the
+; first slot next. When the screen opens: the map was in that WRAM.
+.proc cache_clear
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #0
+    lda #0
+index:
+    sta f:DBG_CINDEX, x
+    inx
+    inx
+    cpx #(16 * DBG_GLYPHS)
+    bcc index
+    ldx #0
+    lda #$FFFF
+owner:
+    sta f:DBG_COWNER, x
+    inx
+    inx
+    cpx #(2 * DBG_SLOTS)
+    bcc owner
+    lda #0
+    sta f:DBG_CSLOT
+    lda #.loword(DBG_CSLOTS)
+    sta f:DBG_CADDR
+    sep #$20
+.a8
+    rts
+.endproc
+
+; The letter the text layer's wide mode composes, `TL_C` at phase `TL_X`'s
+; low three bits, into `comp_glyph`: where `tl_glyph_hi` reads it. From
+; the cache, or into it from the `.msu` —a seek and `FONT_PRE_CHAR` bytes;
+; the next slot in turn, whoever held it forgets it—. If the `.msu` does
+; not answer in time the letter is blank, all rows "nothing", and the next
+; time it is asked for again. The multiplier holds `TL_C` times
+; `FONT_PRE_CHAR`: the letter's offset in its phase's piece. A16, data bank
+; $7E, from `tl_glyph_hi`. Clobbers X and Y.
+.proc dbg_glyph
+.a16
+.i16
+    lda f:RDMPYL
+    sta f:DBG_GOFS
+    lda TL_X
+    and #$0007
+    sta f:DBG_KEY
+    lda TL_C
+    asl a
+    asl a
+    asl a
+    ora f:DBG_KEY
+    asl a                       ; a word per letter and phase
+    sta f:DBG_KEY
+    tax
+    lda f:DBG_CINDEX, x
+    beq miss
+    sta comp_glyph
+    jmp bank
+miss:
+    lda f:DBG_CSLOT
+    tax
+    lda f:DBG_COWNER, x
+    cmp #$FFFF
+    beq free
+    tax
+    lda #0
+    sta f:DBG_CINDEX, x         ; its letter is no longer in the cache
+    lda f:DBG_CSLOT
+    tax
+free:
+    lda f:DBG_KEY
+    sta f:DBG_COWNER, x
+    and #$000E                  ; the phase, times two
+    tax
+    lda #FONT_PRE_CHAR
+    sta f:DBG_RD_LEN
+    lda f:DBG_CADDR
+    tay
+    lda f:tl_hi_pre_lo, x       ; its piece's unit
+    tax
+    lda f:DBG_GOFS
+    jsr dbg_read
+    rep #$20
+.a16
+    bcs blank
+    lda f:DBG_KEY
+    tax
+    lda f:DBG_CADDR
+    sta f:DBG_CINDEX, x
+    bra taken
+blank:
+    lda f:DBG_CSLOT
+    tax
+    lda #$FFFF
+    sta f:DBG_COWNER, x         ; nobody's: the index does not point here
+    lda f:DBG_CADDR
+    tax
+    ldy #(FONT_PRE_CHAR / 2)
+    lda #$FFFF
+nothing:
+    sta f:$7F0000, x
+    inx
+    inx
+    dey
+    bne nothing
+taken:
+    lda f:DBG_CADDR
+    sta comp_glyph
+    clc
+    adc #FONT_PRE_CHAR
+    tay
+    lda f:DBG_CSLOT
+    inc a
+    inc a
+    cmp #(2 * DBG_SLOTS)
+    bcc next
+    lda #0
+    ldy #.loword(DBG_CSLOTS)
+next:
+    sta f:DBG_CSLOT
+    tya
+    sta f:DBG_CADDR
+bank:
+    sep #$20
+.a8
+    lda #^DBG_CSLOTS
+    sta comp_glyph + 2
+    rep #$20
+.a16
+    rtl
+.endproc
 .popseg
 .a8
 .i16

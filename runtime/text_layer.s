@@ -3551,16 +3551,16 @@ decided:
 
 ; The 512-wide mode's font: the debug screen's, `hires-wide` —its tables
 ; are `rm2k-snes-screens`'s `debug_screen.rs`—. A cartridge without the
-; screen has nothing that asks for the mode, and they are the game's.
+; screen has nothing that asks for the mode, and they are the game's. The
+; screen's precomposed glyphs travel only in the `.msu`, so what is here is
+; each phase's unit there, and `dbg_glyph` reads a letter through its cache.
 .if ::DEBUG_SCREEN
 TL_HI_ADVANCE = dbg_font_advance
 TL_HI_REACH   = dbg_font_reach
 tl_hi_pre_lo:
     .word .loword(dbg_pre0), .loword(dbg_pre1), .loword(dbg_pre2), .loword(dbg_pre3)
     .word .loword(dbg_pre4), .loword(dbg_pre5), .loword(dbg_pre6), .loword(dbg_pre7)
-tl_hi_pre_bk:
-    .byte ^dbg_pre0, 0, ^dbg_pre1, 0, ^dbg_pre2, 0, ^dbg_pre3, 0
-    .byte ^dbg_pre4, 0, ^dbg_pre5, 0, ^dbg_pre6, 0, ^dbg_pre7, 0
+.assert ^dbg_pre0 = MSU_SPILL_BANK, error, "the debug screen's font is read from the .msu: see dbg_glyph"
 .else
 TL_HI_ADVANCE = font_advance
 TL_HI_REACH   = font_reach
@@ -3803,6 +3803,11 @@ empty:
     clc
     adc #.loword(TL_STAGE_HI)
     sta TL_BASE
+.if ::DEBUG_SCREEN
+    jsl f:dbg_glyph             ; from the `.msu`, through its cache
+    sep #$20
+.a8
+.else
     lda TL_X
     and #$0007
     asl a
@@ -3815,6 +3820,7 @@ empty:
 .a8
     lda f:tl_hi_pre_bk, x
     sta comp_glyph + 2
+.endif
     ldx TL_BASE                 ; before the data bank is the stage's
     phb
     lda #^TL_STAGE_HI

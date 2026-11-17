@@ -192,7 +192,8 @@ pub struct Built {
     /// them all.
     pub switches: usize,
     pub variables: usize,
-    pub blob: Vec<u8>,
+    /// The names, a block per page: see [`pages`].
+    pub pages: Vec<Vec<u8>>,
     /// The windows' tiles, colours and tilemaps.
     pub borders: Wide,
     pub says: Vec<String>,
@@ -386,66 +387,80 @@ fn fitted(font: &Font, name: &str, px: usize) -> String {
         .to_string()
 }
 
-/// The data block, as `debug_screen.s` reads it with `lda f:dbg_data, x`:
+/// How many switches or variables a page has: ten ranges of ten.
+pub const PAGE: usize = DBG_ROWS * DBG_ROWS;
+
+/// The names, **a block per page** of [`PAGE`], as `debug_screen.s` loads
+/// one into WRAM from the `.msu` when the page changes and reads it there:
 ///
-///   +0 word  how many switches the database has, n
-///   +2 word  how many variables, m
-///   +4       n words: switch k's name, by offset, 0 none
-///            m pairs of words: variable k's name, and its slot times two,
-///            $FFFF if the cartridge does not keep it
+///   switches   +0  PAGE words: the page's k-th switch's name, by offset
+///                  in the block, 0 none
+///   variables  +0  PAGE pairs of words: the page's k-th variable's name,
+///                  and its slot times two plus two, 0 if the cartridge
+///                  does not keep it
 ///   strings: a length byte and the letters
 ///
-/// The switch's bit needs no table: it is its number. A variable is kept
-/// only if a page of the cartridge names it —see `VARIABLES_N` in the
-/// runtime—, and one that is not shows no value.
-fn blob(
+/// The switches' pages first, then the variables'. A block all zeros —what
+/// the screen keeps when the `.msu` does not answer in time— says no names
+/// and no variable kept: that is why the slot goes plus two. The switch's
+/// bit needs no table: it is its number. A variable is kept only if a page
+/// of the cartridge names it —see `VARIABLES_N` in the runtime—, and one
+/// that is not shows no value.
+fn pages(
     font: &Font,
     glyphs: &Glyphs,
     geometry: &Geometry,
     switches: &[String],
     variables: &[String],
     slots: &BTreeMap<i32, usize>,
-) -> Result<Vec<u8>> {
-    let mut out: Vec<u8> = Vec::new();
-    let word = |out: &mut Vec<u8>, w: u16| out.extend(w.to_le_bytes());
-    word(&mut out, switches.len() as u16);
-    word(&mut out, variables.len() as u16);
-    let table = out.len();
-    out.resize(table + 2 * switches.len() + 4 * variables.len(), 0);
-    let mut strings: BTreeMap<String, u16> = BTreeMap::new();
-    let mut string = |out: &mut Vec<u8>, text: String| -> Result<u16> {
-        if text.is_empty() {
-            return Ok(0);
+) -> Result<Vec<Vec<u8>>> {
+    let page = |names: &[(String, Option<u16>)], pair: bool| -> Result<Vec<u8>> {
+        let stride = if pair { 4 } else { 2 };
+        let mut out = vec![0u8; stride * PAGE];
+        let mut strings: BTreeMap<&str, u16> = BTreeMap::new();
+        for (k, (name, slot)) in names.iter().enumerate() {
+            let at = if name.is_empty() {
+                0
+            } else if let Some(&at) = strings.get(name.as_str()) {
+                at
+            } else {
+                let at = u16::try_from(out.len())
+                    .map_err(|_| Bad::answer("a debug screen page's names do not fit in a bank"))?;
+                let bytes = glyphs.encode(name);
+                out.push(bytes.len() as u8);
+                out.extend(bytes);
+                strings.insert(name, at);
+                at
+            };
+            out[stride * k..stride * k + 2].copy_from_slice(&at.to_le_bytes());
+            if pair {
+                let slot = slot.map_or(0, |s| s + 2);
+                out[stride * k + 2..stride * k + 4].copy_from_slice(&slot.to_le_bytes());
+            }
         }
-        if let Some(&at) = strings.get(&text) {
-            return Ok(at);
-        }
-        let at = u16::try_from(out.len())
-            .map_err(|_| Bad::answer("the debug screen's names do not fit in a bank"))?;
-        let bytes = glyphs.encode(&text);
-        out.push(bytes.len() as u8);
-        out.extend(bytes);
-        strings.insert(text, at);
-        Ok(at)
+        Ok(out)
     };
-    for (k, name) in switches.iter().enumerate() {
-        let at = string(&mut out, fitted(font, name, geometry.switch_name_px))?;
-        out[table + 2 * k..table + 2 * k + 2].copy_from_slice(&at.to_le_bytes());
+    let mut out = Vec::new();
+    for chunk in switches.chunks(PAGE) {
+        let names: Vec<(String, Option<u16>)> = chunk
+            .iter()
+            .map(|n| (fitted(font, n, geometry.switch_name_px), None))
+            .collect();
+        out.push(page(&names, false)?);
     }
-    let vars = table + 2 * switches.len();
-    for (k, name) in variables.iter().enumerate() {
-        let at = string(&mut out, fitted(font, name, geometry.variable_name_px))?;
-        let slot = slots
-            .get(&(k as i32 + 1))
-            .map_or(0xFFFF, |s| (2 * s) as u16);
-        out[vars + 4 * k..vars + 4 * k + 2].copy_from_slice(&at.to_le_bytes());
-        out[vars + 4 * k + 2..vars + 4 * k + 4].copy_from_slice(&slot.to_le_bytes());
-    }
-    if out.len() > 0x10000 {
-        return Err(Bad::answer(format!(
-            "the debug screen's data takes {} bytes and has to fit in a bank",
-            out.len()
-        )));
+    for (p, chunk) in variables.chunks(PAGE).enumerate() {
+        let names: Vec<(String, Option<u16>)> = chunk
+            .iter()
+            .enumerate()
+            .map(|(k, n)| {
+                let number = (p * PAGE + k + 1) as i32;
+                (
+                    fitted(font, n, geometry.variable_name_px),
+                    slots.get(&number).map(|s| (2 * s) as u16),
+                )
+            })
+            .collect();
+        out.push(page(&names, true)?);
     }
     Ok(out)
 }
@@ -486,7 +501,7 @@ pub fn build(game: &Game, skin: &Skin, slots: &BTreeMap<i32, usize>) -> Result<B
     letters.sort_unstable();
     letters.dedup();
     let glyphs = Glyphs::of(&font, letters)?;
-    let blob = blob(
+    let pages = pages(
         &font,
         &glyphs,
         &geometry,
@@ -501,7 +516,7 @@ pub fn build(game: &Game, skin: &Skin, slots: &BTreeMap<i32, usize>) -> Result<B
         game.switch_names.len(),
         game.variable_names.len(),
         slots.keys().filter(|&&v| v >= 1 && v as usize <= game.variable_names.len()).count(),
-        blob.len(),
+        pages.iter().map(Vec::len).sum::<usize>(),
         if glyphs.letters.is_empty() {
             String::new()
         } else {
@@ -515,7 +530,7 @@ pub fn build(game: &Game, skin: &Skin, slots: &BTreeMap<i32, usize>) -> Result<B
         glyphs,
         switches: game.switch_names.len(),
         variables: game.variable_names.len(),
-        blob,
+        pages,
         borders,
         says,
     })
@@ -532,8 +547,12 @@ pub fn publish(b: &Built) -> Value {
         ("DBG_VARIABLES", b.variables),
         ("DBG_SWITCH_PAGES", pages(b.switches)),
         ("DBG_PAGES", pages(b.switches) + pages(b.variables)),
-        // Where the variables' table starts in the block: see [`blob`].
-        ("DBG_VAR_TABLE", 4 + 2 * b.switches),
+        // The longest page's block: what the screen loads into WRAM, see
+        // [`pages`].
+        (
+            "DBG_PAGE_MAX",
+            b.pages.iter().map(Vec::len).max().unwrap_or(0),
+        ),
         ("DBG_ROWS", DBG_ROWS),
         ("DBG_ROW0", DBG_ROW0),
         ("DBG_CGRAM", DBG_CGRAM),
@@ -554,7 +573,7 @@ pub fn to_json(b: &Built) -> Value {
     let (layout, bars) = &b.borders.maps;
     json!({
         "label": LABEL,
-        "blob": b.blob.iter().map(|x| format!("{x:02x}")).collect::<String>(),
+        "pages": b.pages.iter().map(|p| crate::convert::hex(p)).collect::<Vec<_>>(),
         "layout": layout,
         "bars": bars,
         "tiles": crate::convert::tiles_json(&b.borders.tiles),

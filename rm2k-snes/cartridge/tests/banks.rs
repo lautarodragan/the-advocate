@@ -607,3 +607,67 @@ fn a_cartridge_that_needs_the_msu_and_has_none_says_so() {
         .unwrap();
     assert!(error.contains(".msu"), "{error}");
 }
+
+// --- what goes only in the `.msu` -------------------------------------------
+
+/// A piece that goes to the `.msu` always: `n` bytes of `value`.
+fn only(label: &str, n: usize, value: u8) -> String {
+    may_go(label, n, value).replacen(".msu\n", ".msu_only\n", 1)
+}
+
+#[test]
+fn what_goes_only_in_the_msu_goes_without_msu_required() {
+    // A cartridge that does not need the MSU-1: the `.msu_only` piece goes
+    // and the `.msu` one stays, however much room there is.
+    let text = rodata() + &only("font", 300, 7) + &may_go("stays", 10, 2);
+    let (out, packing, region) = with_msu(&text, &[whole(0xC2)], 512).unwrap();
+    assert_eq!((packing.spilled, packing.spilled_bytes), (1, 300));
+    assert!(out.contains("font = $3D0001"), "{out}");
+    assert!(out.contains("stays:") && !out.contains("font:"), "{out}");
+    assert!(out.contains("msu_spill_signature:") && out.contains("MSU_SPILL_AT"));
+    assert!(!out
+        .lines()
+        .any(|l| l.trim() == ".msu_only" || l.trim() == ".msu"));
+    let region = region.unwrap();
+    assert!(region[256..256 + 300].iter().all(|&b| b == 7));
+}
+
+#[test]
+fn what_goes_only_in_the_msu_goes_before_the_halving_picks() {
+    // With the MSU-1 required, the forced piece goes and the rest fits: no
+    // `.msu` piece has to follow it.
+    let text = "MSU_REQUIRED = 1\n".to_string()
+        + &rodata()
+        + &only("font", 20000, 1)
+        + &may_go("big", 15000, 2)
+        + &may_go("small", 1000, 3);
+    let half = [Slot {
+        bank: 0xC1,
+        start: 0,
+        size: HALF,
+    }];
+    let (out, packing, _) = with_msu(&text, &half, 512).unwrap();
+    assert_eq!((packing.spilled, packing.spilled_bytes), (1, 20000));
+    assert!(
+        out.contains("font = $3D0001") && out.contains("big:"),
+        "{out}"
+    );
+}
+
+#[test]
+fn what_goes_only_in_the_msu_and_has_no_msu_says_so() {
+    let text = rodata() + &only("font", 4, 1);
+    let names = vec!["part.inc".to_string()];
+    let error = banks::pack_with_msu(&names, &[&text], &[whole(0xC2)], None)
+        .err()
+        .unwrap();
+    assert!(error.contains(".msu_only"), "{error}");
+}
+
+#[test]
+fn without_anything_for_the_msu_there_is_no_region() {
+    let text = rodata() + ".block 4\nx:\n" + &bytes(4);
+    let (out, packing, region) = with_msu(&text, &[whole(0xC2)], 512).unwrap();
+    assert_eq!((packing.spilled, region.is_none()), (0, true));
+    assert!(!out.contains("MSU_SPILL_AT"), "{out}");
+}
