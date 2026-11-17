@@ -1,8 +1,10 @@
-# What can be checked without a ported game: the Rust workspace —formatted,
-# through clippy, and without a compiler warning— and its tests, the Python tests of this tree, and the test game —made, built with
-# the installed tools, run in snes9x and in bsnes against its goldens, and
-# its cartridge through Goombario—. The ports' suite is still the real net
-# for the runtime: this does not replace it.
+# What can be checked with this repository alone, without the ports: the
+# Rust workspace —formatted, through clippy, and without a compiler
+# warning— and its tests, the Python tests of this tree, and the test game,
+# which is ours and lives here —made, built with the installed tools, run in
+# snes9x and in bsnes against its goldens, and its cartridge through
+# Goombario—. The ports' suite, A Blurred Line's above all, is still the
+# real net for the runtime: this does not replace it.
 #
 # Every third-party action is pinned by its commit, with the tag beside it.
 
