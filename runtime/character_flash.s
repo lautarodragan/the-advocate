@@ -187,6 +187,10 @@ still:
     sta flash_slot
     sep #$20
 .a8
+    ; Without saturation, in `FAR3` and without the tables: see
+    ; `flash_direct`. With carry at 1 it is done.
+    jsl f:flash_direct
+    bcs ready
     jsr palette_with_flash
 ready:
     rts
@@ -429,3 +433,231 @@ each:
 .endproc
 .assert table_g = table_r + 32 && table_b = table_r + 64, error, "flash_channel_table indexes all three from table_r"
 
+; --- the flash without the tables, in FAR3 -----------------------------------
+;
+; `palette_with_flash` without saturation, which is the case of every flash
+; in A Blurred Line. It gives exactly what the tables give —each channel is
+; `pure[(dest * a + c * (255 - a)) / 255]`, the quotient floored, which is
+; what `flash_channel_table` leaves in entry c and `build_palette` looks up—
+; but only for the sixteen colors' 48 channels, with the console's
+; multiplier and divider, and the working tables are neither built nor
+; restored. The tables did the 96 entries of the three channels, then the
+; palette through them, then put the tint-only ones back: ~40 of the frame's
+; 262 lines per flash and per frame, and a battle animation on an event
+; flashes it ten frames, three times —"Hit A", on the lamps of map 11—. See
+; tasks/abl-lazer-teeth-s-rock-lags.md.
+;
+; In `FAR3` because bank 0 has no room and bank 1 had too little in ABL's
+; MSU test cartridge; the low RAM and the registers with absolute
+; addressing, as `sand_flash` does, because the data bank is the main
+; loop's. Enters from `paint_flash` with X on the flash slot and
+; `flash_slot`, `flash_alpha` set; with saturation it returns with carry at
+; 0 and touches nothing, and `palette_with_flash` does it with the tables.
+; Otherwise it does all of `palette_with_flash` —points the palette, builds
+; it, leaves it in `FAR_FLASH_PAL` waiting for the vblank— and returns with
+; carry at 1. The decision is in here and not in bank 0 for the bytes: the
+; tightest test cartridge had 18 left.
+.pushseg
+.segment "FAR3"
+
+; One channel of the color in `temp`, already shifted down and masked in A
+; (sixteen bits): blended toward the flash, looked up in `pure` at `table`,
+; and put into `temp + 2` shifted left by `up`.
+.macro FLASH_CHANNEL dest_times_a, table, up
+    sep #$20
+.a8
+    sta WRMPYB                  ; c * (255 - a): eight cycles
+    rep #$20
+.a16
+    lda dest_times_a
+    clc
+    adc RDMPYL
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #255
+    sta WRDIVB                  ; over 255: sixteen cycles
+    rep #$20
+.a16
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL                  ; at most 31: the high byte is zero
+    tax
+    lda pure + table, x
+    and #$001F
+.if up = 5
+    xba
+    lsr a
+    lsr a
+    lsr a
+.elseif up = 10
+    xba
+    asl a
+    asl a
+.endif
+    ora temp + 2
+    sta temp + 2
+.endmacro
+
+.proc flash_direct
+.a8
+.i16
+    lda tint_s
+    cmp #TINT_NEUTRAL
+    beq neutral
+    clc                         ; with saturation: the tables, in bank 0
+    rtl
+neutral:
+    stx flash_slot_ofs
+    ; The character's palette, pointed as `palette_with_flash` does: sixteen
+    ; colors, and in CGRAM the upper half starts at color 128.
+    rep #$20
+.a16
+    lda flash_slot
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; thirty-two bytes per palette
+    sta temp
+    ldx map_ofs
+    lda f:map_table + M_PTR_SPRITE_CGRAM, x
+    clc
+    adc temp
+    sta tint_ptr
+    sep #$20
+.a8
+    lda f:map_table + M_PTR_SPRITE_CGRAM + 2, x
+    sta tint_ptr + 2
+    rep #$20
+.a16
+    lda #16
+    sta tint_count
+    lda flash_slot
+    asl a
+    asl a
+    asl a
+    asl a                       ; sixteen colors per palette
+    clc
+    adc #128
+    sep #$20
+.a8
+    sta tint_cgadd
+    ; dest * a for each channel, once: `sat_r`, `sat_g` and `sat_b` are
+    ; `build_palette`'s, which does not run on this path.
+    ldx flash_slot_ofs
+    lda flash_ev + 1, x
+    sta WRMPYA
+    lda flash_alpha
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta sat_r
+    sep #$20
+.a8
+    lda flash_ev + 2, x
+    sta WRMPYA
+    lda flash_alpha
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta sat_g
+    sep #$20
+.a8
+    lda flash_ev + 3, x
+    sta WRMPYA
+    lda flash_alpha
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta sat_b
+    sep #$20
+.a8
+    ; And 255 - a, which stays in the multiplier for the 48 channels: the
+    ; divider does not touch it.
+    lda #255
+    sec
+    sbc flash_alpha
+    sta WRMPYA
+    rep #$20
+.a16
+    ldy #$0000
+each:
+    lda [tint_ptr], y
+    sta temp                    ; the original color
+    stz temp + 2
+    and #$001F
+    FLASH_CHANNEL sat_r, 0, 0
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F
+    FLASH_CHANNEL sat_g, 32, 5
+    lda temp
+    xba
+    lsr a
+    lsr a
+    and #$001F
+    FLASH_CHANNEL sat_b, 64, 10
+    lda temp + 2
+    sta pal_buf, y
+    iny
+    iny
+    cpy #32
+    beq built
+    jmp each
+built:
+    sep #$20
+.a8
+.ifdef sand_table
+    jsl f:sand_flash            ; the sandstorm's grains do not flash
+.endif
+    ; To its place in FAR_FLASH_PAL, as `palette_with_flash` does.
+    rep #$20
+.a16
+    lda flash_slot_ofs
+    asl a
+    asl a                       ; from eight bytes per slot to thirty-two
+    tax
+    ldy #$0000
+copy:
+    lda pal_buf, y
+    sta f:FAR_FLASH_PAL, x
+    inx
+    inx
+    iny
+    iny
+    cpy #32
+    bne copy
+    sep #$20
+.a8
+    ldx flash_slot_ofs
+    lda tint_cgadd
+    sta flash_ev + 7, x         ; and it is left waiting for the vblank
+    sec
+    rtl
+.endproc
+.popseg
