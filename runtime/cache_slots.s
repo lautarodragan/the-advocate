@@ -148,8 +148,14 @@ keep:
     txy                         ; Y: the row, until the upload
     lda npc_buf + 8, y          ; its event
     sta f:CACHE_T_EV
-    ; The one facing the hero is in the turn slot, which its row points at.
+    ; The one facing the hero is in the turn slot, which its row points at,
+    ; if it is a still one: one that walks or animates turns in its own
+    ; slot —`turn_apply`—, and its row's tile is nobody's. Taking it drew
+    ; Arden as the hero on map 38: tile 0 is his.
     cmp f:TURN_EV
+    bne asks
+    lda npc_buf + 9, y
+    cmp #NPC_STILL
     bne asks
     lda npc_buf + 6, y
     sta obj_tile
