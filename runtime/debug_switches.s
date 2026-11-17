@@ -40,7 +40,7 @@
 ; **What it costs**: nothing per frame. The forced state is the game's own
 ; off state, so the main loop does not ask; the three hooks run only when a
 ; page asks for a tint, a timer or a weather, and each is a `jsl` —four
-; bytes— in bank 0. The rest lives in `FAR2`, and only with the debug screen
+; bytes— in bank 0. The rest lives in `FAR2` and `FAR3`, and only with the debug screen
 ; —`[debug] debug_screen`—: without it this file assembles nothing.
 
 .if ::DEBUG_SCREEN
@@ -64,8 +64,11 @@ DBG_KEPT_TINT    = dbg_kept + 0
 DBG_KEPT_TIMER   = dbg_kept + 4
 DBG_KEPT_WEATHER = dbg_kept + 5
 
-; In `FAR2`, not in `FAR3` with the screen: Zounds' `FAR3` had no room for
-; it. So what the screen and `save_game` call here is a `jsl`.
+; **Split between two banks, and tight**: what the commands and `save_game`
+; call is in `FAR2`, and what only the screen calls is in `FAR3`, next to it.
+; Neither bank had room for all of it in every game: Sunset over Imdahl's
+; `FAR2` and Zounds' `FAR3` are the fullest —measure them with `just space`
+; before adding here—.
 .pushseg
 .segment "FAR2"
 .a8
@@ -73,8 +76,6 @@ DBG_KEPT_WEATHER = dbg_kept + 5
 
 ; From `boot_init`: none forced off. Clobbers A.
 .proc dbg_off_boot
-.a8
-.i16
     lda #0
     sta f:dbg_off
     rtl
@@ -83,14 +84,12 @@ DBG_KEPT_WEATHER = dbg_kept + 5
 ; --- the hooks in the commands ------------------------------------------------
 
 ; `op_tint` just wrote the tint: if it is forced off, what was written is the
-; game's, and the screen stays neutral. Keeps X and Y.
+; game's, and the screen stays neutral. Keeps Y.
 .proc dbg_tint_given
-.a8
-.i16
     lda f:dbg_off
-    and #DBG_OFF_TINT
-    beq done
-    jsr tint_off
+    lsr a                       ; DBG_OFF_TINT, into the carry
+    bcc done
+    jsl f:dbg_tint_off
 done:
     rtl
 .endproc
@@ -98,18 +97,16 @@ done:
 ; `op_timer` starts the timer, with A whether it shows: if the timer is
 ; forced off, that is the game's, and A comes back 0. Keeps X and Y.
 .proc dbg_timer_given
-.a8
-.i16
     pha
     lda f:dbg_off
     and #DBG_OFF_TIMER
-    bne forced
-    pla
-    rtl
-forced:
+    beq not_forced
     pla
     sta f:DBG_KEPT_TIMER
     lda #0
+    rtl
+not_forced:
+    pla
     rtl
 .endproc
 
@@ -117,8 +114,6 @@ forced:
 ; strength—: if it is forced off, that is the game's, and it asks for none.
 ; Keeps X and Y.
 .proc dbg_weather_given
-.a8
-.i16
     lda f:dbg_off
     and #DBG_OFF_WEATHER
     beq done
@@ -132,140 +127,110 @@ done:
     rtl
 .endproc
 
-; --- what forcing off and giving back do ----------------------------------------
+; --- forcing off and giving back the tint and the timer -------------------------
 
-; The tint to `dbg_kept`, and the screen neutral.
-.proc tint_off
-.a8
-.i16
-    lda tint_r
-    sta f:DBG_KEPT_TINT
-    lda tint_g
-    sta f:DBG_KEPT_TINT + 1
-    lda tint_b
-    sta f:DBG_KEPT_TINT + 2
+; The tint to `dbg_kept`, and the screen neutral. `tint_r`, `tint_g` and
+; `tint_b` are three bytes in a row of the direct page. Keeps Y.
+.proc dbg_tint_off
+    phx
+    ldx #2
+each:
+    lda tint_r, x
+    sta f:DBG_KEPT_TINT, x
+    lda #TINT_NEUTRAL
+    sta tint_r, x
+    dex
+    bpl each
     lda f:tint_s
     sta f:DBG_KEPT_TINT + 3
     lda #TINT_NEUTRAL
-    sta tint_r
-    sta tint_g
-    sta tint_b
     sta f:tint_s
-    rts
+    plx
+    rtl
 .endproc
+.assert tint_g = tint_r + 1 && tint_b = tint_r + 2, error, "dbg_tint_off takes tint_r, tint_g and tint_b as three bytes in a row"
 
-; And back from `dbg_kept`.
-.proc tint_back
-.a8
-.i16
-    lda f:DBG_KEPT_TINT
-    sta tint_r
-    lda f:DBG_KEPT_TINT + 1
-    sta tint_g
-    lda f:DBG_KEPT_TINT + 2
-    sta tint_b
+; And back from `dbg_kept`. Clobbers X.
+.proc dbg_tint_back
+    ldx #2
+each:
+    lda f:DBG_KEPT_TINT, x
+    sta tint_r, x
+    dex
+    bpl each
     lda f:DBG_KEPT_TINT + 3
     sta f:tint_s
-    rts
+    rtl
 .endproc
 
 ; Whether the timer shows, to `dbg_kept`, and hidden.
-.proc timer_off
-.a8
-.i16
+.proc dbg_timer_off
     lda f:timer_visible
     sta f:DBG_KEPT_TIMER
     lda #0
     sta f:timer_visible
-    rts
+    rtl
 .endproc
 
 ; And back: only if it still runs. A timer that stopped meanwhile —its end,
 ; or a `StopTimer`— hides as RM2k hides it, and no hook had to see that: a
 ; timer that does not run never shows —see `timer_tick` and `op_timer`—.
-.proc timer_back
-.a8
-.i16
+.proc dbg_timer_back
     lda f:timer_active
     beq hidden
     lda f:DBG_KEPT_TIMER
 hidden:
     sta f:timer_visible
-    rts
-.endproc
-
-; The weather to `dbg_kept`, and none.
-.proc weather_off
-.a8
-.i16
-    lda f:WEATHER_L
-    sta f:DBG_KEPT_WEATHER
-    lda f:WEATHER_L + 1
-    sta f:DBG_KEPT_WEATHER + 1
-    stz temp
-    stz temp + 1
-    CALL0 weather_set
-    rts
-.endproc
-
-; And back: `weather_set` starts it again, its drops off and its randomness
-; at its seed, as a `WeatherEffects` that changes it does.
-.proc weather_back
-.a8
-.i16
-    lda f:DBG_KEPT_WEATHER
-    sta temp
-    lda f:DBG_KEPT_WEATHER + 1
-    sta temp + 1
-    CALL0 weather_set
-    rts
+    rtl
 .endproc
 
 ; --- the save ------------------------------------------------------------------
 
 ; Around `save_game`'s copy: what is forced off goes back to the game's for
 ; the copy —`dbg_unforce`— and off again after it —`dbg_force`—. The
-; weather is not saved, so it is not touched. Clobbers A.
+; weather is not saved, so it is not touched. Clobbers A and X.
 .proc dbg_unforce
-.a8
-.i16
     lda f:dbg_off
-    and #DBG_OFF_TINT
-    beq tint_done
-    jsr tint_back
+    lsr a                       ; DBG_OFF_TINT
+    bcc tint_done
+    jsl f:dbg_tint_back
 tint_done:
     lda f:dbg_off
     and #DBG_OFF_TIMER
     beq done
-    jsr timer_back
+    jsl f:dbg_timer_back
 done:
     rtl
 .endproc
 
 .proc dbg_force
-.a8
-.i16
     lda f:dbg_off
-    and #DBG_OFF_TINT
-    beq tint_done
-    jsr tint_off
+    lsr a                       ; DBG_OFF_TINT
+    bcc tint_done
+    jsl f:dbg_tint_off
 tint_done:
     lda f:dbg_off
     and #DBG_OFF_TIMER
     beq done
-    jsr timer_off
+    jsl f:dbg_timer_off
 done:
     rtl
 .endproc
+.assert DBG_OFF_TINT = 1, error, "the hooks find the tint's switch with an lsr"
 
-; --- the page -----------------------------------------------------------------
+.popseg
+
+; --- the page, next to the screen ----------------------------------------------
+
+.pushseg
+.segment "FAR3"
+.a8
+.i16
 
 ; Row A of the page, forced off if it was not and given back if it was. The
 ; map takes it when the pause menu closes: `back_to_map` applies the tint
 ; and its palettes, the timer's included, and the objects are built again.
 .proc dbg_off_flip
-.a8
-.i16
     rep #$20
 .a16
     and #$00FF
@@ -279,37 +244,46 @@ done:
     sta f:dbg_off
     and temp
     beq back                    ; it was off, and goes back
-    txa
-    beq tint_now_off
-    cmp #1
+    cpx #1
+    bcc tint_now_off
     beq timer_now_off
-    jsr weather_off
-    rtl
+    ; The weather to `dbg_kept`, and none.
+    lda f:WEATHER_L
+    sta f:DBG_KEPT_WEATHER
+    lda f:WEATHER_L + 1
+    sta f:DBG_KEPT_WEATHER + 1
+    stz temp
+    stz temp + 1
+    bra weather_now
 tint_now_off:
-    jsr tint_off
-    rtl
+    jsl f:dbg_tint_off
+    rts
 timer_now_off:
-    jsr timer_off
-    rtl
+    jsl f:dbg_timer_off
+    rts
 back:
-    txa
-    beq tint_now_back
-    cmp #1
+    cpx #1
+    bcc tint_now_back
     beq timer_now_back
-    jsr weather_back
-    rtl
+    ; And back: `weather_set` starts it again, its drops off and its
+    ; randomness at its seed, as a `WeatherEffects` that changes it does.
+    lda f:DBG_KEPT_WEATHER
+    sta temp
+    lda f:DBG_KEPT_WEATHER + 1
+    sta temp + 1
+weather_now:
+    CALL0 weather_set
+    rts
 tint_now_back:
-    jsr tint_back
-    rtl
+    jsl f:dbg_tint_back
+    rts
 timer_now_back:
-    jsr timer_back
-    rtl
+    jsl f:dbg_timer_back
+    rts
 .endproc
 
 ; Carry set if row A is forced off. Clobbers A and X.
 .proc dbg_off_is
-.a8
-.i16
     rep #$20
 .a16
     and #$00FF
@@ -319,14 +293,12 @@ timer_now_back:
     lda f:dbg_off_bits, x
     and f:dbg_off
     cmp #1                      ; a bit at all: carry set
-    rtl
+    rts
 .endproc
 
 ; Row A's name, a length and its letters: X its offset in `dbg_off_names`.
 ; Clobbers A.
 .proc dbg_off_name
-.a8
-.i16
     rep #$20
 .a16
     and #$00FF
@@ -340,7 +312,7 @@ timer_now_back:
     tax
     sep #$20
 .a8
-    rtl
+    rts
 .endproc
 
 dbg_off_bits:
