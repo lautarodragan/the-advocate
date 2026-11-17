@@ -13,7 +13,9 @@
 ; right —ten rows of `0001: Name` and `[ON]` or `[OFF]`, or a variable's
 ; value right-aligned—. In the ranges up and down go round the page's ten,
 ; left and right flip pages of ten ranges, round, and after the switches'
-; pages come the variables'; A goes into the list, on its first row, and B
+; pages come the variables', and after them one that is not RPG_RT's: the
+; switches of the state the game keeps across maps —the tint, the timer and
+; the weather—, see debug_switches.s; A goes into the list, on its first row, and B
 ; leaves. In the list up and down go round its rows, A turns a switch on or
 ; off, and B goes back to the ranges. The ranges' cursor stays on while the
 ; list has its own, as in RPG_RT.
@@ -107,7 +109,7 @@ DBG_PAGE     = dbg_ram + 2      ; the page of ten ranges
 DBG_RANGE    = dbg_ram + 3      ; the range, in the page
 DBG_ROW      = dbg_ram + 4      ; the row, in the list
 DBG_LEVEL    = dbg_ram + 5      ; 0 the ranges, 1 the list
-DBG_KIND     = dbg_ram + 6      ; 0 the page is switches, 1 variables
+DBG_KIND     = dbg_ram + 6      ; what the page is: see below
 DBG_RANGES   = dbg_ram + 7      ; how many ranges the page has
 DBG_COUNT    = dbg_ram + 8      ; how many rows the range has
 DBG_BAR_R    = dbg_ram + 9      ; the ranges' bar on screen, $FF none
@@ -125,6 +127,13 @@ DBG_SRC_BK   = dbg_ram + 28
 DBG_VRAM     = dbg_ram + 30     ; and where in the VRAM, a word
 DBG_ON       = dbg_ram + 32     ; nonzero: a bar goes on, zero: off
 DBG_SROW     = dbg_ram + 33     ; the screen row being written
+; What a page is, `DBG_KIND`: the game's switches, its variables, or the
+; switches of the state the game keeps across maps —the last page, after the
+; variables': see debug_switches.s—.
+DBG_KIND_SWITCHES  = 0
+DBG_KIND_VARIABLES = 1
+DBG_KIND_OFF     = 2
+DBG_ALL_PAGES = DBG_PAGES + 1
 
 ; --- what comes from the `.msu` -------------------------------------------------
 ;
@@ -313,14 +322,14 @@ flip:
     beq page_left
     lda f:DBG_PAGE
     inc a
-    cmp #DBG_PAGES
+    cmp #DBG_ALL_PAGES
     bcc page_moved
     lda #0
     bra page_moved
 page_left:
     lda f:DBG_PAGE
     bne page_above
-    lda #DBG_PAGES
+    lda #DBG_ALL_PAGES
 page_above:
     dec a
 page_moved:
@@ -360,8 +369,9 @@ row_moved:
     bra changed
 list_no_vertical:
     lda f:DBG_KIND
-    bne variable
-    ; A switch: A turns it on or off.
+    cmp #DBG_KIND_VARIABLES
+    beq variable
+    ; A switch, the game's or the state's: A turns it on or off.
     lda pad_a
     beq to_wait
     lda pad_a_prev
@@ -443,11 +453,31 @@ changed:
 .a8
 .i16
     lda f:DBG_PAGE
-    cmp #DBG_PAGES
+    cmp #DBG_ALL_PAGES
     bcc in_range
     lda #0                      ; the garbage of a first opening
     sta f:DBG_PAGE
 in_range:
+    cmp #DBG_PAGES
+    bne the_game_s
+    ; The last one, the state's: a range of `DBG_OFF_ROWS`, from 1, and no
+    ; names to load —they are in the ROM—.
+    lda #DBG_KIND_OFF
+    sta f:DBG_KIND
+    lda #1
+    sta f:DBG_RANGES
+    lda #0
+    sta f:DBG_RANGE
+    rep #$20
+.a16
+    lda #0
+    sta f:DBG_BASE
+    lda #DBG_OFF_ROWS
+    sta f:DBG_N
+    sep #$20
+.a8
+    rts
+the_game_s:
     ldx #0
     cmp #DBG_SWITCH_PAGES
     bcc switches
@@ -697,10 +727,17 @@ none:
 .endproc
 
 ; The switch under the list's cursor, on if it was off and off if it was on;
-; and the pages' refresh.
+; and the pages' refresh. On the last page, the state's switch: see
+; debug_switches.s.
 .proc switch_flip
 .a8
 .i16
+    lda f:DBG_KIND
+    cmp #DBG_KIND_OFF
+    bne the_game_s
+    lda f:DBG_ROW
+    jmp dbg_off_flip
+the_game_s:
     jsr cursor_number
 .a16
     jsr switch_bit
@@ -986,7 +1023,12 @@ range_shown:
     jsr at
     lda f:DBG_KIND
     beq switch_kind
+    cmp #DBG_KIND_OFF
+    beq state_kind
     lda #'V'
+    bra kind
+state_kind:
+    lda #'D'
     bra kind
 switch_kind:
     lda #'S'
@@ -1047,6 +1089,11 @@ row_shown:
 .a8
     lda #':'
     jsr letter
+    lda f:DBG_KIND
+    cmp #DBG_KIND_OFF
+    bne the_game_s_name
+    jmp state_row
+the_game_s_name:
     ; The name: the page's k-th switch's word, or its k-th variable's first
     ; one, an offset in the page's block —see `pages` in
     ; rm2k-snes-screens—, 0 none.
@@ -1111,6 +1158,7 @@ no_name:
 in_table:
     and f:switches, x
     beq off
+on:
     lda #'['
     jsr letter
     lda #'O'
@@ -1165,6 +1213,39 @@ next:
     jmp row
 done:
     rts
+
+state_row:
+    ; A switch of the state's: its name from the ROM, copied, and `[ON]`
+    ; while the game has its way —see debug_switches.s—.
+    lda f:DBG_SROW
+    ldy #DBG_NAME_COL
+    jsr at
+    lda 3, s                    ; the row, under the number
+    jsr dbg_off_name
+    lda f:dbg_off_names, x
+    sta f:DBG_T1                ; how many letters
+name_letter:
+    inx
+    lda f:dbg_off_names, x
+    jsr letter
+    lda f:DBG_T1
+    dec a
+    sta f:DBG_T1
+    bne name_letter
+    lda f:DBG_SROW
+    ldy #DBG_ONOFF_COL
+    jsr at
+    rep #$20
+.a16
+    pla                         ; the number
+    sep #$20
+.a8
+    lda 1, s                    ; and the row
+    jsr dbg_off_is
+    bcs state_off_row
+    jmp on
+state_off_row:
+    jmp off
 .endproc
 
 ; --- the VRAM ---------------------------------------------------------------

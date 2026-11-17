@@ -105,6 +105,9 @@
     lda [code_ptr], y
     sta temp + 1
     iny
+.if ::DEBUG_SCREEN
+    jsl f:dbg_weather_given   ; unless the debug screen forced it off
+.endif
     phy
     jsr weather_set
     ply

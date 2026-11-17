@@ -107,6 +107,9 @@ pan_no_wait:
     lda [code_ptr], y
     sta tint_s
     iny
+.if ::DEBUG_SCREEN
+    jsl f:dbg_tint_given      ; unless the debug screen forced it off
+.endif
     ; The tint is not applied here: it is requested, and `flush_video` does it
     ; in the next vblank. `apply_tint` uploads three palettes to CGRAM by
     ; DMA, and with the PPU drawing those writes are lost. While the

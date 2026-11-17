@@ -62,6 +62,9 @@ no_sets_var:
     lda [code_ptr], y           ; whether it shows
     dey
     dey
+.if ::DEBUG_SCREEN
+    jsl f:dbg_timer_given     ; unless the debug screen forced it off
+.endif
     cmp timer_visible
     beq timer_end               ; it already showed, or already didn't:
                                 ; nothing to repaint
