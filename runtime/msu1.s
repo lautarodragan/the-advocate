@@ -22,6 +22,8 @@ MSU_SIGNATURE = $2002
 MSU_TRACK   = $2004
 MSU_VOLUME = $2006
 MSU_CONTROL = $2007
+MSU_AUDIO_PLAYING = $10         ; `MSU_STATE`'s bit 4
+MSU_AUDIO_REPEATING = $20       ; and its bit 5, the repeat flag in force
 .pushseg
 .segment "FARBSS"
 MSU_HAS: .res $2           ; whether the signature is there
@@ -289,6 +291,202 @@ other:
     rts
 ready:
     clc
+    rts
+.endproc
+
+; --- a save reaches the FX Pak's card ------------------------------------------
+;
+; With a `.msu` the FX Pak writes the SRAM to its card only while no MSU-1
+; track plays: at a data seek —`prepare_data` in sd2snes's `src/msu1.c`
+; calls `msu_savecheck(1)`, which checksums the SRAM and writes the `.srm`
+; if it changed, **before** it clears the data busy bit—, at a track change,
+; once a second while idle, or on a reset. Turning the console off writes
+; nothing. So a game saved while its song played from a track was lost at
+; power-off, on the console (taro, 2026-11-17). The fix belongs in the
+; firmware, but the game has to work with the one cards have: this stays.
+;
+; This makes that moment happen right after a save, and only with an MSU-1:
+; if a track plays, it is paused —`$2007` without the play bit; the
+; firmware's `dac_pause` keeps the position and play resumes it from there,
+; as bsnes and snes9x do—, and once the MSU-1 says it no longer plays, which
+; is when the firmware has marked the audio idle, a seek to 0 waits for the
+; data busy bit, which the firmware clears after writing. Then the track
+; plays again with the repeat flag it had. Without a track playing, the seek
+; alone.
+;
+; **The wait for the play bit is what makes it work**: when a control write
+; and a seek are both pending, the firmware's loop looks at the seek first,
+; and with the track still marked busy `prepare_data` does not save.
+;
+; What the pause costs on the FX Pak, by the rule measured with the SRAM
+; test ROM (`tasks/the-sram-as-slow-wram.md` in the-advocate-work): about 1.5
+; ms per KB to checksum and 2.6 ms per KB more to write it when it changed,
+; so the 32 KB the header declares are about 130 ms after a save, inside the
+; first cap. A cut that long in the middle of a song is heard (taro: "it
+; will be very noticeable, but we can disguise it"), so **the track fades
+; out before it and back in after it**, `MSU_FLUSH_RAMP` frames each way,
+; and what is heard is a dip in the music under the sound effect of picking
+; the slot, which the SPC700 goes on playing. Emulators answer the seek at
+; once, so there the dip is the two ramps alone.
+;
+; The volume it ramps from and back to is `MSU_BASE`, which is what the
+; track plays at with no fade running. With a fade running —`bgm_fade` not
+; zero— that fade owns the volume, and the pause goes without ramps.
+;
+; The seek moves the data port, which is fine: nothing reads it as a stream
+; across a save —the backgrounds, the sound effects and the LZ2 of the
+; `.msu` seek before each read—. With interrupts off from the pause to the
+; play: `irq_music` writes `$2007` when a fade ends, and a play written by
+; this after that would bring back a song the fade had stopped. Reached with
+; `jsl`, from `save_game`; it waits for frames itself, from bank 1, so it
+; does not use `wait_vblank`. Clobbers X and Y.
+MSU_FLUSH_WAITS = 4             ; times MSU_WAIT's twenty-one frames, ~1.4 s
+MSU_FLUSH_RAMP = 8              ; frames down and frames up, ~133 ms each
+.assert MSU_FLUSH_RAMP = 8, error, "the ramp divides by eight with shifts"
+
+.proc msu_save_flush
+.a8
+.i16
+    lda f:MSU_HAS
+    bne has
+    rtl
+has:
+    lda f:MSU_STATE
+    and #MSU_AUDIO_PLAYING
+    beq pause                   ; nothing plays: the seek alone, no ramps
+    lda f:bgm_fade
+    bne pause
+    jsr msu_flush_ramp_down
+pause:
+    php
+    sei
+    ldy #$0000                  ; the control to give back; 0: none played
+    lda f:MSU_STATE
+    and #MSU_AUDIO_PLAYING
+    beq seek
+    lda f:MSU_STATE
+    and #MSU_AUDIO_REPEATING
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; bit 5 to bit 1, `$2007`'s repeat
+    sta f:MSU_CONTROL           ; paused, with its repeat flag
+    ora #$01
+    tay                         ; and the same, playing
+    ldx #$0000
+pausing:
+    lda f:MSU_STATE
+    and #MSU_AUDIO_PLAYING
+    beq seek
+    inx
+    cpx #MSU_WAIT
+    bcc pausing
+seek:
+    phy
+    rep #$20
+.a16
+    lda #$0000
+    tay
+    jsr msu_data_seek
+.a8
+    bcc written
+    ldy #MSU_FLUSH_WAITS - 1    ; the first cap ran out: a long write
+longer:
+    ldx #$0000
+busy:
+    lda f:MSU_STATE
+    bpl written                 ; bit 7: still writing, or seeking
+    inx
+    cpx #MSU_WAIT
+    bcc busy
+    dey
+    bne longer
+written:
+    ply
+    tya
+    beq silent                  ; nothing was playing
+    sta f:MSU_CONTROL
+    plp
+    lda f:bgm_fade
+    bne done                    ; a fade owns the volume: it did not go down
+    jsr msu_flush_ramp_up
+done:
+    rtl
+silent:
+    plp
+    rtl
+.endproc
+
+; The two ramps: `MSU_BASE` times k/8 into the volume, one step per frame,
+; k from 7 down to 0 or from 1 up to 8. The sum goes in X, 16 bits: 255
+; times 8 fits.
+.proc msu_flush_ramp_down
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:MSU_BASE
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    tax                         ; eight eighths
+    ldy #MSU_FLUSH_RAMP
+step:
+    txa
+    sec
+    sbc f:MSU_BASE              ; the high byte is zero: see far_ram.s
+    tax
+    jsr msu_flush_put
+    dey
+    bne step
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc msu_flush_ramp_up
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #$0000
+    ldy #MSU_FLUSH_RAMP
+step:
+    txa
+    clc
+    adc f:MSU_BASE
+    tax
+    jsr msu_flush_put
+    dey
+    bne step
+    sep #$20
+.a8
+    rts
+.endproc
+
+; X over eight into the volume, at the next vblank. Comes and goes with
+; 16-bit A, and keeps X and Y.
+.proc msu_flush_put
+.a16
+.i16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    sep #$20
+.a8
+    pha
+out:
+    lda f:HVBJOY
+    bmi out                     ; the rest of this vblank, if in one
+in:
+    lda f:HVBJOY
+    bpl in                      ; and the next one
+    pla
+    sta f:MSU_VOLUME
+    rep #$20
+.a16
     rts
 .endproc
 
