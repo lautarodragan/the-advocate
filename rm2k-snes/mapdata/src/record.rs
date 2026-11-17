@@ -2240,10 +2240,11 @@ pub fn stand_in(pose: usize, shows: &BTreeSet<usize>) -> usize {
 ///   —`TURN_DIR` and the column in `turn_toward_hero.s`—;
 /// * a shared slot's poses, each one;
 /// * a cache's still poses its events start with or a page brings and, for
-///   a character the cache names all twelve poses of —one that routes only
-///   turn: see `turners` in Wally—, the four facings of the middle column
-///   and of each of those: a route slot starts in the middle column unless
-///   the page fixes it —`route_for_event`, `fixed_graphic_into_slot`—.
+///   one of its `turners` —the still ones routes only turn—, the four
+///   facings of the middle column and of each of those: a route slot starts
+///   in the middle column unless the page fixes it —`route_for_event`,
+///   `fixed_graphic_into_slot`—. Who the turners are is Wally's to say: the
+///   tables do not show which events a route reaches.
 pub fn requested(map: &Map, rows: &[NpcRow]) -> Result<BTreeMap<usize, BTreeSet<usize>>> {
     let mut out: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
     let Some(sprite) = map.sprite.as_ref() else {
@@ -2321,23 +2322,25 @@ pub fn requested(map: &Map, rows: &[NpcRow]) -> Result<BTreeMap<usize, BTreeSet<
         }
     }
     if let Some(cache) = &sprite.cache {
-        let mut named: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
-        for (_, _, pose, k, _) in &cache.stills {
-            named.entry(*k).or_default().insert(*pose as usize);
-        }
-        let mut started: Vec<u32> = cache.events.iter().filter_map(|e| e.1).collect();
-        started.extend(
-            map.pages
-                .iter()
-                .filter_map(|p| p.draws.as_ref().and_then(|d| d.key)),
-        );
-        for key in started {
+        let turners: BTreeSet<i64> = cache.turners.iter().copied().collect();
+        let mut started: Vec<(i64, u32)> = cache
+            .events
+            .iter()
+            .filter_map(|e| e.1.map(|key| (e.0, key)))
+            .collect();
+        started.extend(map.pages.iter().filter_map(|p| {
+            p.draws
+                .as_ref()
+                .and_then(|d| d.key)
+                .map(|key| (p.event, key))
+        }));
+        for (event, key) in started {
             let Some((_, _, pose, k, _)) = cache.stills.get(key as usize) else {
                 continue;
             };
             let pose = *pose as usize;
             add(*k, BTreeSet::from([pose]));
-            if named.get(k).is_some_and(|n| n.len() == SPRITE_POSES) {
+            if turners.contains(&event) {
                 let mut turned = facings(pose);
                 turned.extend(facings(1));
                 add(*k, turned);

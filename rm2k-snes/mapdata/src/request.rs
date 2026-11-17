@@ -729,6 +729,10 @@ pub struct Cache {
     pub stills: Vec<(String, i64, i64, usize, u32)>,
     /// Each slot's block in the sprite bank.
     pub slots: Vec<u32>,
+    /// The still ones routes only turn, which `still_turn` moves from one
+    /// still pose to another: see `turners` in Wally. Missing, none.
+    #[serde(default)]
+    pub turners: Vec<i64>,
 }
 
 /// The slots still events take turns in, as `wally` answered them.

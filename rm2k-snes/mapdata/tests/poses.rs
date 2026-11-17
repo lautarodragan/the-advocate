@@ -1,8 +1,8 @@
 //! The cartridge carries of each character only the poses some map can
 //! show, and the build stops when a row could ask for one it left out.
 
-use rm2k_snes_mapdata::record::{self, poses, stand_in, NpcRow};
-use rm2k_snes_mapdata::request::{self, Bank, Map, Maps};
+use rm2k_snes_mapdata::record::{self, poses, requested, stand_in, NpcRow};
+use rm2k_snes_mapdata::request::{self, Bank, Cache, Map, Maps};
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -111,4 +111,28 @@ fn a_stand_in_faces_the_same_way() {
     let two = BTreeSet::from([3, 7]);
     assert_eq!(stand_in(0, &two), 3);
     assert_eq!(stand_in(1, &BTreeSet::from([5])), 5);
+}
+
+#[test]
+fn in_a_cache_only_the_turners_need_their_facings() {
+    // El Dorado's map 12: pressure plates a route turns, and arrowheads of
+    // the same character that never turn, in other columns. Here map 7's
+    // People1:1, entry 1, as two still ones of a cache: event 2 a turner
+    // facing right in the middle column, event 3 facing down on the left.
+    let mut map = maps().remove(0);
+    map.movable.clear();
+    map.turning.clear();
+    let sprite = map.sprite.as_mut().unwrap();
+    sprite.route_gfx.clear();
+    sprite.cache = Some(Cache {
+        events: vec![(2, Some(0), 0), (3, Some(1), 0)],
+        stills: vec![
+            ("People1".into(), 1, 4, 1, 0),
+            ("People1".into(), 1, 6, 1, 0),
+        ],
+        slots: vec![],
+        turners: vec![2],
+    });
+    let asked = requested(&map, &[]).unwrap();
+    assert_eq!(asked[&1], BTreeSet::from([1, 4, 6, 7, 10]));
 }

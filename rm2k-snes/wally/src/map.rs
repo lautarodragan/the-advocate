@@ -2929,6 +2929,9 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                     "events": c.events.iter().map(|(e, v, pal)| json!([e, v, pal])).collect::<Vec<_>>(),
                     "stills": c.stills.iter().map(|((cs, i, p), k, pal)| json!([cs, i, p, k, pal])).collect::<Vec<_>>(),
                     "slots": c.slots,
+                    // The still ones routes only turn: the cartridge carries
+                    // only the facings of their columns, and mapdata checks it.
+                    "turners": done.moves.turners,
                 })),
             })
         }
