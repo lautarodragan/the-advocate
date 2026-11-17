@@ -452,6 +452,17 @@ bytecode! {
     /// left—. See `op_teleport_facing` in the runtime's
     /// `interpreter_teleport.s`.
     OP_TELEPORT_FACING = 0x56 (direction: byte, map: word, x: word, y: word);
+
+    /// A `ShowMessage` and the `ShowChoice` after it in one box, as RPG_RT
+    /// does when the options fit under the message's lines: the question's
+    /// box is typed, and when it is done the options go on the lines below
+    /// its `lines`, the cursor on them at once, with no A in between. The
+    /// rest is `OP_CHOICE`'s as is. See `op_ask` in the runtime's
+    /// `interpreter_message.s`.
+    OP_ASK = 0x57 (
+        question: word, lines: byte, length: count byte, on_cancel: byte,
+    )
+        repeated options (window: word, destination: word);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and

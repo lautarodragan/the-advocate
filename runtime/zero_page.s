@@ -30,6 +30,10 @@ pad_a_prev: .res 1      ; how it was last frame, to see the edge
 pick_active: .res 1
 PICK_CHOICE = 1
 PICK_NUMBER = 2
+; A choice whose options go under a message's lines, while those lines are
+; typed: `OP_ASK`, see interpreter_message.s. It turns into `PICK_CHOICE`
+; when the options go up.
+PICK_ASKING = 3
 pick_n:      .res 1     ; how many options
 pick_sel:    .res 1     ; which one is highlighted, from zero
 pick_cancel: .res 1     ; which option the B button picks, plus one; 0 is "cannot

@@ -313,3 +313,157 @@ nothing:
     lda #0
     rtl
 .endproc
+
+; --- `OP_ASK`: a choice's options under a message ---------------------------
+;
+; RPG_RT types a `ShowChoice` into the message before it when its options fit
+; under the message's lines —`CommandShowMessage`, `4 - pm.NumLines()`—: the
+; options are lines of the same box, typed after the question's, and the
+; cursor goes on them when the whole box is typed, with no A in between. Here
+; the question's box is typed as any message, with `pick_active` at
+; `PICK_ASKING`, which keeps the arrow down and the page held; when it is done
+; the options are composed under it as a choice's box is, from line
+; `pick_first` on: the same trick as the digits of an `InputNumber` above,
+; which the composer takes as a box whose first lines are already up.
+;
+; What the question's own escapes do at its end is RPG_RT's too: a `\|` waits
+; before the options go up —their text comes after it—, a `\!` waits for its
+; key, and a `\^` does nothing, as `OnFinishPage` starts the choice before it
+; looks at `kill_page`.
+
+.pushseg
+.segment "FARBSS"
+ASK_BOX: .res 2                 ; the question's box, for `op_choice`
+.popseg
+
+; `op_ask`, opening: Y on its operands. A parallel waits for someone else's
+; window, as `op_message` does —carry set, and `ev_cur` back on the
+; opcode—; otherwise the question's box and lines are taken and Y is left
+; on the choice's table, carry clear.
+.proc ask_open
+.a8
+.i16
+    lda pair_ev
+    cmp #$FF
+    beq open                    ; foreground
+    lda f:msg_open
+    ora f:msg_state
+    ora pick_active
+    beq open
+    dey                         ; the cursor goes back to this same opcode
+    sty ev_cur
+    sec
+    rtl
+open:
+    lda pair_ev
+    sta f:msg_owner             ; $FF if the foreground opens it
+    lda #0
+    sta f:msg_open
+    rep #$20
+.a16
+    lda [code_ptr], y
+    sta f:ASK_BOX
+    sep #$20
+.a8
+    iny
+    iny
+    lda [code_ptr], y
+    sta f:pick_first
+    iny
+    clc
+    rtl
+.endproc
+
+; `op_choice`'s table, from bank 0 with Y on it: how many options and what
+; cancel picks, and the entries' start. With `pick_first` at zero it is a
+; choice in a box of its own, `PICK_CHOICE`, and the caller opens its box
+; —carry clear—; under a question it is `PICK_ASKING`, and the caller opens
+; the question's box, which comes back in A16 with the carry set.
+.proc choice_table
+.a8
+.i16
+    lda [code_ptr], y           ; how many options
+    sta pick_n
+    iny
+    lda [code_ptr], y           ; which option cancel picks, plus one
+    ; Or $FF: cancel picks past the options, which in RM2k runs none
+    ; —`CANCEL_PAST` in the event compiler—. The table carries one more entry,
+    ; the last, that jumps to the end of the choice: the cursor does not
+    ; reach it, and cancel picks it.
+    cmp #$FF
+    bne cancel_ready
+    dec pick_n
+    lda pick_n
+    inc a
+cancel_ready:
+    sta pick_cancel
+    iny
+    sty pick_table
+    stz pick_sel                ; `Window_Selectable` starts with the index at
+                                ; zero, and the first option is highlighted
+    lda f:pick_first
+    bne asks
+    lda #PICK_CHOICE
+    sta pick_active
+    clc
+    rtl
+asks:
+    ; The question first; the options go under it when it is done: see
+    ; `ask_tick`.
+    lda #PICK_ASKING
+    sta pick_active
+    rep #$20
+.a16
+    lda f:ASK_BOX
+    sec
+    rtl
+.endproc
+.a8
+
+; One frame of a question being typed, from `choice_tick` once its box is
+; up and typed: carry set when the options go up now —`pick_active` is
+; already `PICK_CHOICE`, and the caller composes them—. While a line is
+; still being composed, or a `\|` at the box's end is still waiting, carry
+; clear.
+.proc ask_tick
+.a8
+.i16
+    lda f:msg_state
+    bne waits
+    rep #$20
+.a16
+    lda f:FAR_MSG_PAUSE
+    beq ready
+    dec a
+    sta f:FAR_MSG_PAUSE
+    sep #$20
+.a8
+waits:
+    clc
+    rtl
+ready:
+.a16
+    sep #$20
+.a8
+    lda #PICK_CHOICE
+    sta pick_active
+    sec
+    rtl
+.endproc
+
+; After `pick_open` asked the composer for the options' box: under a
+; question, its lines go from `pick_first` on, and the question's above are
+; left as they are. A choice in a box of its own has `pick_first` at zero, and
+; nothing changes.
+.proc ask_lines
+.a8
+.i16
+    lda f:pick_first
+    beq alone
+    sta f:msg_line
+    clc
+    adc f:msg_lines
+    sta f:msg_lines
+alone:
+    rtl
+.endproc

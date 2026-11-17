@@ -85,31 +85,31 @@ window:                         ; `op_number` comes in here: see there
 ; here: what is saved is where the table is, which is where both come from,
 ; the box that is drawn and the destination.
 .proc op_choice
-    lda [code_ptr], y           ; how many options
-    sta pick_n
-    iny
-    lda [code_ptr], y           ; which option cancel picks, plus one
-    ; Or $FF: cancel picks past the options, which in RM2k runs none
-    ; —`CANCEL_PAST` in the event compiler—. The table carries one more entry,
-    ; the last, that jumps to the end of the choice: the cursor does not
-    ; reach it, and cancel picks it.
-    cmp #$FF
-    bne cancel_ready
-    dec pick_n
-    lda pick_n
-    inc a
-cancel_ready:
-    sta pick_cancel
-    iny
-    sty pick_table
-    stz pick_sel                ; `Window_Selectable` starts with the index at
-                                ; zero, and the first option is highlighted
-    lda #PICK_CHOICE
-    sta pick_active
-    jsr pick_open
+    stz pick_first              ; the options from the window's first line
+table:                          ; `op_ask` comes in here, with its question
+    jsl f:choice_table          ; C set: a question, its box in A16
+    bcs asks
+    jmp pick_open
+asks:
+.a16
+    jsr msg_start               ; the question, typed as any message
+    sep #$20
+.a8
     rts
+.endproc
 
-
+; A `ShowMessage` and the `ShowChoice` after it, in one box: RPG_RT's
+; `CommandShowMessage` takes the choice into the message when its options
+; fit under its lines, and they are typed after them, the cursor on them at
+; once and no A in between —see `questions` in the event compiler—. The
+; question's box is opened as `op_message` opens a box, with a parallel
+; waiting for someone else's window; the rest is `op_choice`'s table, with
+; `pick_first` at the question's lines. Opening is `ask_open`'s, in far code
+; with the rest of it: number_input.s.
+.proc op_ask
+    jsl f:ask_open              ; C set: a parallel waits, `ev_cur` back here
+    bcc op_choice::table
+    rts
 .endproc
 
 
