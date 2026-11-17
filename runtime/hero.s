@@ -100,7 +100,7 @@ no_encounter:
     bpl menu_no_requested       ; bit 7 is the request
     and #$7F
     jsr access_write
-    jsr menu_screen
+    jsl f:menu_screen
     rts
 menu_no_requested:
     ; And a message on screen rules over the pad, just like the forced move

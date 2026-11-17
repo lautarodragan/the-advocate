@@ -251,6 +251,10 @@ ready:
     rts
 .endproc
 
+; The menu's screens, from here to the end of the file: cold, and out of
+; bank 0. `menu_screen` is entered with `jsl`.
+.segment "FAR3"
+
 ; Does row A's option do anything? Returns with A = 1 and Z=0 if so.
 ; Clobbers X.
 .proc menu_enabled
@@ -273,7 +277,7 @@ ready:
     cpx #MENU_SAVE
     bcc needs_party
     bne ready
-    jsr access_read
+    CALL0 access_read
     and #ACCESS_NO_SAVE
     eor #ACCESS_NO_SAVE         ; 1 if allowed
 ready:
@@ -445,8 +449,9 @@ other_option:
 .a8
 .i16
     phb
-    phk
-    plb
+    pea $8080                   ; the data bank, to bank 0's fast mirror:
+    plb                         ; `phk` would give this bank, where there
+    plb                         ; are no registers and no RAM
     sep #$20
     rep #$10
     stz title_sel               ; RM2k opens with the cursor on the first
@@ -455,8 +460,8 @@ other_option:
 build:
     jsr menu_upload
 wait:
-    jsr wait_vblank
-    jsr read_pad
+    CALL0 wait_vblank
+    CALL0 read_pad
     lda pad
     eor pad_prev
     and pad
@@ -560,11 +565,11 @@ save:
     ; back to the menu with the cursor on "Save", like `Scene_Save` when it
     ; returns to `Scene_Menu`.
     lda #1
-    jsr slots_screen
+    jsl f:slots_screen
     cmp #$FF
     beq save_ready
-    jsr set_slot
-    jsr save_game
+    sta slot
+    jsl f:save_game
 save_ready:
 back_to_row:
     lda f:CM_MENU_ROW
@@ -592,10 +597,10 @@ close:
     jsl f:cm_dirty_take
     beq clean
     jsl f:big_back_far + FAST
-    rts
+    rtl
 clean:
-    jsr back_to_map
-    rts
+    CALL0 back_to_map
+    rtl
 
 ; The cursor to the option given in A: erased from where it was and painted
 ; there.
@@ -649,8 +654,8 @@ redraw:
     jsl f:target_bar
     jsl f:target_ppu_on         ; the screen on
 wait:
-    jsr wait_vblank
-    jsr read_pad
+    CALL0 wait_vblank
+    CALL0 read_pad
     lda pad
     eor pad_prev
     and pad
@@ -737,4 +742,10 @@ move:
     jsl f:target_bar
     rts
 .endproc
+
+; The actor choice for a heal, from the skills screen —`sk_heal`—, which
+; runs with the data bank at 0 like the menu: nothing to restore.
+ba_t_target:
+    jsr target_screen
+    rtl
 

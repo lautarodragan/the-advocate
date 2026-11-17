@@ -1,4 +1,4 @@
-.segment "CODE"
+.segment "FAR3"
 
 ; --- the title screen --------------------------------------------------------
 ;
@@ -33,7 +33,7 @@
     lda #<TITLE_TILES
     ora #>TITLE_TILES
     bne has
-    rts
+    rtl
 has:
     ; It opens on the first option, save or not: the 2000 and the 2015
     ; RPG_RT do, measured under Wine. easyrpg opens on `load_game` when there
@@ -57,7 +57,7 @@ has:
     cmp #$FF
     beq mute
     jsl f:bgm_level_title
-    jsr music_start
+    CALL0 music_start
 mute:
     jmp title_loop
 .endproc
@@ -199,8 +199,8 @@ title_saved: .res 1
 .a8
 .i16
 wait:
-    jsr wait_vblank
-    jsr read_pad
+    CALL0 wait_vblank
+    CALL0 read_pad
 
     lda pad
     eor pad_prev
@@ -255,7 +255,7 @@ picks:
     ; move it—, and since that screen overwrote VRAM and CGRAM the title has
     ; to be uploaded again in full.
     lda #0
-    jsr slots_screen
+    jsl f:slots_screen
     cmp #$FF
     bne the_chosen
     lda #1
@@ -270,10 +270,10 @@ exit_game:
     jsl f:ending_fade
     stp
 the_chosen:
-    jsr set_slot
-    jsr load_game
+    sta slot
+    jsl f:load_game
     beq leave                   ; the slot was empty or the checksum does not match
-    jsr save_entry
+    jsl f:save_entry
     rep #$20
 .a16
     lda map_current             ; the index goes in sixteen bits
@@ -307,7 +307,7 @@ title_load_map:
     lda #$80
     sta INIDISP
     stz TM                      ; and without the menu on top while everything is rebuilt
-    jsr ppu_init                ; the PPU registers, as the reset left them
+    CALL0 ppu_init                ; the PPU registers, as the reset left them
     ; **The title song is silenced before loading the map**, and not after
     ; with `music_boot`: `package_load` leaves in place the samples of the
     ; song it says is playing, and here that one is not playing. With a save
@@ -325,20 +325,20 @@ title_load_map:
     sta music_off
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_music               ; as below: without touching the sound effect voices
+    CALL0 dsp_music               ; as below: without touching the sound effect voices
     plp
     rep #$20
 .a16
     lda 2, s                    ; the map index, behind music_off
-    jsr enter_map
+    CALL0 enter_map
     sep #$20
 .a8
     pla                         ; the save's music_off
     plx                         ; the index, no longer needed
     pha
-    jsr clear_oam
-    jsr build_oam_settled
-    jsr flush_video
+    CALL0 clear_oam
+    CALL0 build_oam_settled
+    CALL0 flush_video
     pla
     sta music_off
 
@@ -347,7 +347,7 @@ title_load_map:
     ; corridor of the opening. `music_boot` is exactly what a ROM without a
     ; title screen does at boot —the starting map's song, or silence if it has
     ; none—, so both keep sounding the same.
-    jsr music_boot
+    CALL0 music_boot
     lda music_off
     beq ready_music
     ; `SONG_BOOT` at $FF means the map starts silent and a `PlayBGM` turns
@@ -362,11 +362,11 @@ title_load_map:
     sei                         ; the SPC700 serves one at a time: see `irq_music`
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_music
+    CALL0 dsp_music
     plp
 ready_music:
     lda #$0F
     sta INIDISP
-    rts
+    rtl
 .endproc
 

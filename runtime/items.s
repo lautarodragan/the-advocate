@@ -1,4 +1,4 @@
-.segment "CODE"
+.segment "FAR3"
 
 ; --- the items screen -----------------------------------------------------------
 ;
@@ -141,7 +141,7 @@ ready:
 .i16
     lda #255
     sta comp_dup + 3            ; `scr_text` without a cap
-    jsr scr_clear
+    jsl f:tl_clear + FAST       ; `scr_clear`
     lda pick_n
     beq ready
     ; --- the description: texts 3k + 1 and 3k + 2, in white ---
@@ -162,7 +162,7 @@ ready:
 .a8
     stz temp + 1
     phx
-    jsr scr_text
+    jsl f:tl_text + FAST        ; `scr_text`
     plx
     inx
     rep #$20
@@ -171,7 +171,7 @@ ready:
     sta pick_table
     sep #$20
 .a8
-    jsr scr_text
+    jsl f:tl_text + FAST        ; `scr_text`
     ; --- the visible rows ---
     lda #0
 row:
@@ -234,7 +234,7 @@ ready:
     phy
     sep #$20
 .a8
-    jsr scr_text
+    jsl f:tl_text + FAST        ; `scr_text`
     ; --- the colon and the quantity, in two digits ---
     rep #$20
 .a16
@@ -245,7 +245,7 @@ ready:
     sep #$20
 .a8
     lda #$3A                    ; ':'
-    jsr scr_glyph
+    jsl f:tl_letter + FAST      ; `scr_glyph`
     plx                         ; the `k`
     jsr item_count
     cmp #100
@@ -256,7 +256,8 @@ fits:
     stz comp_dup + 1
     lda #2
     sta comp_dup + 2
-    jmp scr_number
+    jsl f:tl_number + FAST      ; `scr_number`
+    rts
 .endproc
 
 ; The cursor on its row, if the list has any.
@@ -287,7 +288,7 @@ none:
     stz TM
     jsl f:items_screen_upload
     jsr items_compose
-    jsr scr_upload
+    CALL0 scr_upload
     jsr items_bar_on
     jsl f:items_ppu_on
     rts
@@ -306,9 +307,9 @@ none:
     lda #1
     sta menu_open
 wait:
-    jsr wait_vblank
-    jsr read_pad                ; the pad before the DMA: see the equipment screen
-    jsr scr_upload
+    CALL0 wait_vblank
+    CALL0 read_pad                ; the pad before the DMA: see the equipment screen
+    CALL0 scr_upload
     lda pad
     eor pad_prev
     and pad
@@ -401,7 +402,7 @@ from_switch:
     sep #$20
 .a8
     lda #1
-    jsr set_switch
+    CALL0 set_switch
     lda #1
     rts
 
@@ -435,3 +436,24 @@ moved:
     jsr items_bar_on
     jmp items_compose
 .endproc
+
+; The inventory's list and building it, for the shop and the equipment, which
+; live in other banks: `ti_sell_list` and `eq_from_list` call them.
+; From the battle, whose data bank is $7E, as the bridges in
+; battle_bridges.s: it sets bank 0's and puts the caller's back.
+ba_t_list:
+    phb
+    pea $8080                   ; the data bank, to bank 0's fast mirror:
+    plb                         ; `phk` would give this bank, where there
+    plb                         ; are no registers and no RAM
+    jsr item_from_list
+    plb
+    rtl
+ba_t_build:
+    phb
+    pea $8080                   ; the data bank, to bank 0's fast mirror:
+    plb                         ; `phk` would give this bank, where there
+    plb                         ; are no registers and no RAM
+    jsr items_build_list
+    plb
+    rtl

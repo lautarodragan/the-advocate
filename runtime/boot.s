@@ -316,11 +316,10 @@ party_ready:
     lda #<TITLE_TILES
     ora #>TITLE_TILES
     bne fresh
-    lda #0                      ; no menu to choose, always the first
-    jsr set_slot
-    jsr load_game
+    stz slot                    ; no menu to choose, always the first
+    jsl f:load_game
     beq fresh
-    jsr save_entry
+    jsl f:save_entry
     rep #$20
 .a16
     lda map_current             ; the index goes in sixteen bits
@@ -451,7 +450,7 @@ wait_boot:
     ; without a title reaches the loop on exactly the usual frame, and the 96
     ; cases of the suite —which count frames from the reset— never learn that
     ; this exists.
-    jsr title_screen
+    jsl f:title_screen
 
 loop:
     jsr wait_vblank

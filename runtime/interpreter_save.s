@@ -34,17 +34,7 @@
 ; Today it goes in every ROM.
 .proc op_save
     phy
-    lda #1                      ; save mode
-    jsr slots_screen
-    cmp #$FF
-    beq cancelled
-    jsr set_slot
-    jsr save_game
-cancelled:
-    ; The cursor's colours went in the sprites' palette 0, as on the pause
-    ; menu, which puts them back the same way: see `menu_bar_upload`.
-    jsl f:menu_exp_close
-    jsl f:screen_unerase        ; the map comes back even if an event erased it
+    jsl f:save_menu             ; in save_game.s
     jsr back_to_map
     ply
     jmp run_code::other

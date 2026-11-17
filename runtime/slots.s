@@ -1,4 +1,4 @@
-.segment "CODE"
+.segment "FAR3"
 
 ; --- the slot screen -------------------------------------------------------
 ;
@@ -28,7 +28,7 @@
 .proc slot_full
 .a8
 .i16
-    jsr set_slot
+    sta slot
     jsr slot_bank
     phb
     pha
@@ -484,8 +484,9 @@ member_actor:
     ; bank, so with the bank shifted the screen was drawn black with garbage
     ; on top.
     phb
-    phk
-    plb
+    pea $8080                   ; the data bank, to bank 0's fast mirror:
+    plb                         ; `phk` would give this bank, where there
+    plb                         ; are no registers and no RAM
     ; And the register sizes, explicit. From the title it is reached with
     ; 8-bit A and 16-bit X/Y; **from the interpreter there is no such
     ; promise**, and an `lda #$80` taken as sixteen bits eats the next byte
@@ -554,8 +555,8 @@ paint_all:
     sta menu_open
 
 wait:
-    jsr wait_vblank
-    jsr read_pad
+    CALL0 wait_vblank
+    CALL0 read_pad
 
     lda pad
     eor pad_prev
@@ -598,7 +599,7 @@ no_down:
     beq check_a
     jsr close
     lda #$FF                    ; cancel
-    rts                         ; goombario: stack: `close` pulled the two bytes
+    rtl                         ; goombario: stack: `close` pulled the two bytes
 check_a:
     lda pad_a
     beq wait
@@ -606,7 +607,7 @@ check_a:
     bne wait                    ; it was already held: not an edge
     jsr close
     lda title_sel
-    rts                         ; goombario: stack: `close` pulled the two bytes
+    rtl                         ; goombario: stack: `close` pulled the two bytes
 
 ; What the two exits have in common: `slot` as it was, the data bank as it
 ; was, the marker down. And `nmi_seen` up to date, so that `count_lost`
@@ -751,4 +752,16 @@ move_cursor:
     sta INIDISP
     rts
 .endproc
+
+; `slot_ppu_on` for the battle and the menu's experience, with `jsl`.
+; From the battle, whose data bank is $7E, as the bridges in
+; battle_bridges.s: it sets bank 0's and puts the caller's back.
+ba_t_ppu:
+    phb
+    pea $8080                   ; the data bank, to bank 0's fast mirror:
+    plb                         ; `phk` would give this bank, where there
+    plb                         ; are no registers and no RAM
+    jsr slot_ppu_on
+    plb
+    rtl
 
