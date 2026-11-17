@@ -8,15 +8,16 @@ use std::collections::{BTreeMap, HashMap};
 /// What the console decompresses when it loads a map, per block class: see
 /// `lz2_decompress` in the runtime's `decompress.s`.
 ///
-/// `map_ram` and `map_code` are what of the map the CPU reads while it is
-/// played, and live in WRAM right behind the grid: the block table and its
-/// passability, one after the other —see [`map_ram`]—, and then the event
-/// bytecode. The first travel as a third stream after the grid's two; the
-/// bytecode, in a block of its own —two maps with the same grid and
+/// `map_ram`, `map_code` and `map_pages` are what of the map the CPU reads
+/// while it is played, and live in WRAM right behind the grid: the block
+/// table and its passability, one after the other —see [`map_ram`]—, then
+/// the event bytecode, and then the event page table. The first travel as a
+/// third stream after the grid's two; the bytecode and the pages, in a
+/// block of their own, two streams —two maps with the same grid and
 /// different events share the grid that way, and the console sometimes
 /// decompresses the bytecode alone: see `code_carry_after` in the
-/// runtime's `decompress.s`—. `lz2_grid` decompresses the four.
-pub const COMPRESSED_KINDS: [&str; 7] = [
+/// runtime's `decompress.s`—. `lz2_grid` decompresses the five.
+pub const COMPRESSED_KINDS: [&str; 8] = [
     "map_tiles",
     "above_tiles",
     "sprite_tiles",
@@ -24,6 +25,7 @@ pub const COMPRESSED_KINDS: [&str; 7] = [
     "map_cells",
     "map_ram",
     "map_code",
+    "map_pages",
 ];
 
 // The largest each decompressed stream can be, by where it lands in WRAM:
@@ -158,7 +160,7 @@ pub fn caps_per_stream(kind: &str) -> (usize, usize) {
         "map_cells" => (HALF_GRID, 2),
         // Their real cap is what the grid leaves of the upper half of bank
         // $7F: see [`check_map`].
-        "map_ram" => (HALF_GRID, 1),
+        "map_ram" | "map_pages" => (HALF_GRID, 1),
         "map_code" => (LZ2_CAP_CODE, 1),
         _ => panic!("{kind} is not compressed"),
     }
@@ -173,7 +175,7 @@ pub fn check_map(map_id: i64, blocks: &RawBlocks) -> Result<()> {
         check_streams(map_id, kind, of(kind))?;
     }
     let used = grid_high_used(of("map_cells").len());
-    let ram = of("map_ram").len() + of("map_code").len();
+    let ram = of("map_ram").len() + of("map_code").len() + of("map_pages").len();
     if used + ram > HALF_GRID {
         return Err(Bad::answer(format!(
             "map {map_id}: what lives behind its grid is {ram} bytes and the grid leaves {} of \

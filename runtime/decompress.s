@@ -686,8 +686,9 @@ stream:
 ; have nothing more than its $FF.
 ;
 ; And what of the map the CPU reads while it is played —the block table and
-; its passability, in a third stream right after those two, and then the
-; event bytecode, in a stream that `map_code` names—, which goes **right
+; its passability, in a third stream right after those two, then the event
+; bytecode, in a stream that `map_code` names, and then the event page table,
+; in a second stream of that same block—, which goes **right
 ; where the grid ended**, in $7F's half. It is that Y the decompressor
 ; leaves, so this does not compute the addresses: the converter does, and
 ; puts them in the record's `M_PTR_MAP_BLOCKS` and `M_PTR_BLOCK_PASS`, in the
@@ -738,6 +739,15 @@ stream:
     lda f:map_code + 2, x
     plx
     ply
+    pha                         ; the block's bank, for its second stream
+    jsl f:lz2_decompress + FAST         ; X on the second, Y where the bytecode ended
+    ; And the map's event page table, the second stream of the same block,
+    ; right behind the bytecode: the record's `M_PTR_PAGES` points there. A
+    ; map whose table stays in the cartridge has an empty stream here —see
+    ; `pages_in_wram` in `rm2k-snes-mapdata`—. `code_carry_after`
+    ; decompresses only the first stream, which is all it carries: the page
+    ; table of the map being left is not read on the new one.
+    pla
     jsl f:lz2_decompress + FAST
     rtl
 .endproc
