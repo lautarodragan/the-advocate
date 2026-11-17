@@ -71,6 +71,9 @@ pub struct Posed {
     pub poses: Vec<(usize, i32, Picture)>,
     /// What its row starts showing, or `None` if it starts hidden.
     pub start: Option<(usize, i32)>,
+    /// How many pixels its poses were moved, `(x, y)`, to fit its cell:
+    /// see [`shift_into_the_cell`]. `(0, 0)` for one that already fits.
+    pub shift: (i32, i32),
 }
 
 /// What of the map the choice reads besides its events and rows.
@@ -91,18 +94,80 @@ pub struct Wants<'a> {
     pub upper: &'a [i32],
     /// The ChipSet's passability, per tile id.
     pub flags: &'a [u8],
+    /// `baked_events_nudge`: how many pixels, in x and in y, a pose drawn past
+    /// its cell may be moved to fit it. 0 takes only the ones that fit.
+    pub nudge: i32,
 }
 
 /// Whether every pixel a pose draws is inside the 16x16 of its cell.
 pub fn inside_the_cell(frame: &Picture) -> bool {
-    let (left, top) = (-OFFSET_X as usize, -OFFSET_Y as usize);
-    let tile = TILE as usize;
-    (0..frame.height).all(|y| {
-        (0..frame.width).all(|x| {
-            let inside = (left..left + tile).contains(&x) && (top..top + tile).contains(&y);
-            inside || frame.rgba[(y * frame.width + x) * 4 + 3] == 0
-        })
-    })
+    shift_into_the_cell(&[frame], 0) == Some((0, 0))
+}
+
+/// The shift, `(x, y)` in pixels, that puts every pixel `frames` draw
+/// inside the 16x16 of their cell, the same for all of them and the
+/// smallest on each axis; `None` if it would have to be more than `max`
+/// pixels on either.
+///
+/// One shift for all the poses because they are one event: if each moved
+/// on its own, a chest would jump a pixel as it opens. A Blurred Line's
+/// chests, `BLObjs` character 2, draw 1 px right and 2 px up of their
+/// cell: nothing is cropped, the whole drawing moves.
+pub fn shift_into_the_cell(frames: &[&Picture], max: i32) -> Option<(i32, i32)> {
+    let (mut x0, mut y0, mut x1, mut y1) = (i64::MAX, i64::MAX, i64::MIN, i64::MIN);
+    for frame in frames {
+        for y in 0..frame.height {
+            for x in 0..frame.width {
+                if frame.rgba[(y * frame.width + x) * 4 + 3] != 0 {
+                    (x0, y0) = (x0.min(x as i64), y0.min(y as i64));
+                    (x1, y1) = (x1.max(x as i64), y1.max(y as i64));
+                }
+            }
+        }
+    }
+    if x0 > x1 {
+        return Some((0, 0));
+    }
+    let tile = TILE as i64;
+    // On one axis: the cell is `[start, start + 16)` of the frame, and the
+    // drawing `[low, high]`.
+    let axis = |start: i64, low: i64, high: i64| -> Option<i32> {
+        let (least, most) = (start - low, start + tile - 1 - high);
+        if least > most {
+            return None;
+        }
+        let d = 0.clamp(least, most);
+        (d.abs() <= max as i64).then_some(d as i32)
+    };
+    Some((
+        axis(-OFFSET_X as i64, x0, x1)?,
+        axis(-OFFSET_Y as i64, y0, y1)?,
+    ))
+}
+
+/// `frame` moved `(dx, dy)` pixels inside its own size; what would fall
+/// out of it is lost, which [`shift_into_the_cell`] never lets happen.
+pub fn shifted(frame: &Picture, (dx, dy): (i32, i32)) -> Picture {
+    if (dx, dy) == (0, 0) {
+        return frame.clone();
+    }
+    let mut rgba = vec![0u8; frame.rgba.len()];
+    for y in 0..frame.height as i64 {
+        for x in 0..frame.width as i64 {
+            let (tx, ty) = (x + dx as i64, y + dy as i64);
+            if tx < 0 || ty < 0 || tx >= frame.width as i64 || ty >= frame.height as i64 {
+                continue;
+            }
+            let from = (y as usize * frame.width + x as usize) * 4;
+            let to = (ty as usize * frame.width + tx as usize) * 4;
+            rgba[to..to + 4].copy_from_slice(&frame.rgba[from..from + 4]);
+        }
+    }
+    Picture {
+        width: frame.width,
+        height: frame.height,
+        rgba,
+    }
 }
 
 /// The events of the map named by a command that moves or flashes them,
@@ -273,10 +338,17 @@ fn why_not(
             POSE_WIDTH as usize,
             POSE_HEIGHT as usize,
         );
-        if !inside_the_cell(&frame) {
+        if shift_into_the_cell(&[&frame], wants.nudge).is_none() {
             return Ok(Err("a pose is drawn past its cell"));
         }
         poses.push((g, pose, frame));
+    }
+    let frames: Vec<&Picture> = poses.iter().map(|(_, _, f)| f).collect();
+    let Some(shift) = shift_into_the_cell(&frames, wants.nudge) else {
+        return Ok(Err("its poses would need different shifts to fit its cell"));
+    };
+    for (_, _, frame) in poses.iter_mut() {
+        *frame = shifted(frame, shift);
     }
     let start = npc.visible.then(|| {
         let key = (npc.charset.clone(), npc.index);
@@ -291,6 +363,7 @@ fn why_not(
         graphics,
         poses,
         start,
+        shift,
     }))
 }
 
@@ -423,6 +496,49 @@ mod tests {
         assert!(!inside_the_cell(&frame(&[(10, 15)])));
     }
 
+    /// A Blurred Line's chest, 1 px right and 2 px up of its cell: with 2
+    /// pixels allowed it moves back, the smallest shift on each axis; with
+    /// 1 it does not fit, and one that fits is not moved.
+    #[test]
+    fn a_pose_past_its_cell_is_moved_back_by_the_least_it_needs() {
+        let chest = frame(&[(5, 14), (20, 28)]);
+        assert_eq!(shift_into_the_cell(&[&chest], 2), Some((-1, 2)));
+        assert_eq!(shift_into_the_cell(&[&chest], 3), Some((-1, 2)));
+        assert_eq!(shift_into_the_cell(&[&chest], 1), None);
+        let inside = frame(&[(4, 16), (19, 31)]);
+        assert_eq!(shift_into_the_cell(&[&inside], 3), Some((0, 0)));
+        assert_eq!(shift_into_the_cell(&[&frame(&[])], 0), Some((0, 0)));
+        // Wider than the cell: no shift fits it, however many pixels.
+        assert_eq!(
+            shift_into_the_cell(&[&frame(&[(3, 20), (19, 20)])], 8),
+            None
+        );
+        // And the drawing moves whole: nothing is lost.
+        let moved = shifted(&chest, (-1, 2));
+        assert!(inside_the_cell(&moved));
+        let opaque = |p: &Picture| p.rgba.chunks(4).filter(|c| c[3] != 0).count();
+        assert_eq!(opaque(&moved), 2);
+        assert_eq!(moved.rgba[(16 * 24 + 4) * 4 + 3], 255);
+    }
+
+    /// The poses of one event share one shift: two that need different
+    /// ones fit together if one shift puts both inside, and not if their
+    /// drawings together are taller than the cell.
+    #[test]
+    fn the_poses_of_one_event_share_their_shift() {
+        let up = frame(&[(8, 14), (8, 29)]);
+        let down = frame(&[(8, 18), (8, 29)]);
+        assert_eq!(shift_into_the_cell(&[&up], 2), Some((0, 2)));
+        assert_eq!(shift_into_the_cell(&[&down], 2), Some((0, 0)));
+        assert_eq!(shift_into_the_cell(&[&up, &down], 2), Some((0, 2)));
+        let low = frame(&[(8, 17), (8, 31)]);
+        let high = frame(&[(8, 14)]);
+        assert_eq!(shift_into_the_cell(&[&high], 2), Some((0, 2)));
+        assert_eq!(shift_into_the_cell(&[&low], 2), Some((0, 0)));
+        // Together they are 18 pixels tall: no shift fits them.
+        assert_eq!(shift_into_the_cell(&[&high, &low], 2), None);
+    }
+
     /// Twelve blocks per character, the poses it never shows filled with
     /// its first; the cell without it; and the key it starts with.
     #[test]
@@ -435,6 +551,7 @@ mod tests {
             graphics: vec![("object2".into(), 4)],
             poses: vec![(0, 7, frame(&[])), (0, 10, frame(&[]))],
             start: Some((0, 7)),
+            shift: (0, 0),
         };
         let placed = placed(&[posed], &[5, 6], |p| (p.x * 10 + p.y) as u16);
         let p = &placed[0];
@@ -457,6 +574,7 @@ mod tests {
             graphics: vec![("a".into(), 0), ("b".into(), 1)],
             poses: vec![(1, 4, frame(&[]))],
             start: None,
+            shift: (0, 0),
         };
         let placed = placed(&[posed], &[9], |_| 2);
         assert_eq!(placed[0].start, HIDDEN);

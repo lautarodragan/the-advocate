@@ -788,3 +788,77 @@ fn a_still_event_goes_into_the_background_of_a_map_that_hides_its_panorama() {
     assert_eq!(layers["background"]["tilemap"].as_array().unwrap().len(), 8);
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// `baked_events_nudge`: a still event whose poses are drawn a pixel right
+/// and two up of its cell —A Blurred Line's chests, `BLObjs` character 2—
+/// goes into the background moved back into its cell when the request
+/// allows two pixels, and the log says by how much; with one, or with the
+/// request not saying, it stays an object, and says why.
+#[test]
+fn a_still_event_drawn_a_little_past_its_cell_goes_in_shifted() {
+    let convert = |offset: Option<i32>| -> Vec<String> {
+        let dir = scratch(&format!("posed-offset-{offset:?}"));
+        let (dump, pictures) = game(&dir);
+        // Each pose a 16x16 square from (5, 14) of its 24x32 frame.
+        let off = picture_of(288, 256, |x, y| {
+            let (px, py) = (x % 24, y % 32);
+            if (5..21).contains(&px) && (14..30).contains(&py) {
+                [200, (x * 3 % 256) as u8, 40, 255]
+            } else {
+                [0, 0, 0, 0]
+            }
+        });
+        write(&pictures.join("CharSet/Off.png"), &off);
+        let path = dump.join("maps/Map0007.json");
+        let mut map: Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        map["events"] = json!([{"id": 6, "x": 2, "y": 2, "pages": [page("Off", 0, 0, 0)]}]);
+        std::fs::write(&path, map.to_string()).unwrap();
+        std::fs::write(dump.join("db/commonevents.json"), "[]").unwrap();
+        let mut body = json!({
+            "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+            "test_event": false, "leaders": [1],
+            "pages": [], "route_graphics": [], "also_walk": [],
+            "timer": null, "rain": false, "picture": null,
+            "battle_animation": false, "singles": [], "palette_weight": {},
+            "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+            "layouts": [], "window_colors": 13, "posed_stills": true,
+        });
+        if let Some(n) = offset {
+            body["baked_events_nudge"] = json!(n);
+        }
+        let request = dir.join("request.json");
+        std::fs::write(&request, body.to_string()).unwrap();
+        let out = dir.join("out");
+        let done = run(&dump, &pictures, &request, &out);
+        assert!(
+            done.status.success(),
+            "{}",
+            String::from_utf8_lossy(&done.stderr)
+        );
+        let notes = notes_of(&out);
+        std::fs::remove_dir_all(&dir).unwrap();
+        notes
+    };
+    let shifted = convert(Some(2));
+    assert!(
+        shifted.contains(
+            &"  map 7: 1 still event(s) drawn into the background, a block per pose: 6".to_string()
+        ),
+        "{shifted:?}"
+    );
+    assert!(
+        shifted.contains(
+            &"  map 7: 1 of them shifted into their cell, in pixels: 6 by (-1, +2)".to_string()
+        ),
+        "{shifted:?}"
+    );
+    for strict in [convert(Some(1)), convert(None)] {
+        assert!(
+            strict.contains(
+                &"  map 7: 1 event(s) stay objects, a pose is drawn past its cell: 6".to_string()
+            ),
+            "{strict:?}"
+        );
+    }
+}

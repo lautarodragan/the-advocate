@@ -134,6 +134,11 @@ pub struct MapRequest {
     /// background's cells, a block per pose: see [`crate::posed`]. A
     /// project's choice, off unless it says so.
     pub posed: bool,
+    /// `baked_events_nudge`: how many pixels, in x and in y, the poses of one
+    /// of those may be moved to fit its cell —see
+    /// [`crate::posed::shift_into_the_cell`]—. 0 when the request does not
+    /// say: only the ones that already fit.
+    pub baked_events_nudge: i32,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -429,6 +434,7 @@ fn posed_events(
             lower: &lower,
             upper: &upper,
             flags: &flags,
+            nudge: request.baked_events_nudge,
         },
     )?;
     let room = request.layouts.iter().map(|l| l.0).max();
@@ -501,6 +507,21 @@ fn posed_events(
             "  map {id}: {} still event(s) drawn into the background, a block per pose: {}",
             kept.len(),
             ids(&mut kept.iter().map(|p| p.id))
+        )));
+    }
+    // Drawn a few pixels off from where RM2k draws them: the log says
+    // which and by how much, x right and y down, since the same graphic
+    // that stays an object elsewhere is drawn where RM2k draws it.
+    let moved: Vec<String> = kept
+        .iter()
+        .filter(|p| p.shift != (0, 0))
+        .map(|p| format!("{} by ({:+}, {:+})", p.id, p.shift.0, p.shift.1))
+        .collect();
+    if !moved.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: {} of them shifted into their cell, in pixels: {}",
+            moved.len(),
+            moved.join(", ")
         )));
     }
     let left: Vec<i32> = wanted
