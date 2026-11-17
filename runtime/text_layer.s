@@ -2475,15 +2475,15 @@ same_bank:
     lsr a
     lsr a
     lsr a
-    cmp TL_T0
-    php
+    sta TL_T1                   ; and the one it starts in
     jsr tl_slot
     sta TL_BASE
     ; A letter that does not reach the next column brings nothing for it
     ; —its rows come with $FFFF—, and its second base is its own, which
     ; `tl_glyph_paint` skips.
     sta TL_BASE2
-    plp
+    lda TL_T1
+    cmp TL_T0
     beq one
     lda TL_T0
     jsr tl_slot
