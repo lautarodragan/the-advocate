@@ -45,6 +45,10 @@
 .pushseg
 .segment "FARBSS"
 PANO_ON: .res $EA            ; 0, or the mode the map shows its panorama in
+; Nonzero while `pano_live` has `pano_fill` build the ring into
+; `LZ2_BUFFER` instead of uploading it row by row. A word: `pano_fill`
+; reads it with A at sixteen bits.
+PANO_LIVE: .res 2
 .popseg
 PANO_WAS1  = PANO_ON + $01            ; whether the PPU is in mode 1 because of one
 PANO_ENT   = PANO_ON + $02            ; the map's record, an offset into pano_table
@@ -405,20 +409,8 @@ on:
     pea $0000
     plb
     plb
-    rep #$20
-.a16
-    lda f:PANO_ENT
-    tax
-    lda f:pano_table + PT_TILES, x
-    pha
-    sep #$20
-.a8
-    lda #^LZ2_BUFFER
-    sta f:LZ2_BANK
-    lda f:pano_table + PT_TILES + 2, x
-    plx
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_decompress + FAST
+    jsl f:pano_unpack
     rep #$20
 .a16
     lda f:PANO_ENT
@@ -1078,6 +1070,13 @@ row:
     sec
     sbc 1, s
     jsr pano_row
+    ; Into `LZ2_BUFFER` instead, for `pano_live`, which uploads it in the
+    ; vblanks with the screen on.
+    lda f:PANO_LIVE
+    beq upload
+    jsl f:pano_row_keep
+    bra kept
+upload:
     ; Uploaded now: the screen is off.
     sep #$20
 .a8
@@ -1094,6 +1093,7 @@ row:
     pha
     plb
     plb
+kept:
     lda #0
     sta f:PANO_ROWV
     ply
@@ -1280,6 +1280,8 @@ done:
     sta f:PANO_WAS1
     sta f:PANO_KEEP
     sta f:PANO_HDMA
+    sta f:PANO_LIVE
+    sta f:PANO_LIVE + 1
 .ifdef paint_table
     sta f:PAINT_ON              ; and a painted map's: see painted.s
 .endif
@@ -1287,10 +1289,10 @@ done:
 .endproc
 
 ; `OP_PANORAMA`'s picture, in A, from `pano_change`: if it is another of the
-; map's records —see `panorama.rs` in rm2k-snes-mapdata—, it is swapped in,
-; with the screen off: its tiles over the ones there are, its colours, the
-; backdrop in mode 1, and the whole ring of its tilemap. The screen comes
-; back on in the next vblank, from `brightness`, as after a big picture.
+; map's records —see `panorama.rs` in rm2k-snes-mapdata—, it is swapped in:
+; its tiles over the ones there are, its colours, the backdrop in mode 1,
+; and the whole ring of its tilemap. With the screen black it goes up in
+; forced blank; with the screen on, the screen stays on —see `pano_live`—.
 ; `PANO_KEEP_IMAGE`, the one shown, or one the map does not have, leave
 ; everything as it is: `Spriteset_Map::ParallaxUpdated` loads a picture only
 ; when the name changes. What it scrolled on its own stays, inside the new
@@ -1348,10 +1350,19 @@ wrapped:
     bcc axis
     plp
 .a8
+    ; With the screen black already —the fade's black ticks— all of it at
+    ; once in forced blank, which does not show. With the screen on, in
+    ; the vblanks: see `pano_live`.
+    lda f:brightness
+    bne live
     lda #$80
     sta f:INIDISP               ; what follows writes VRAM by DMA
     jsl pano_load
     jsl pano_fill
+    bra uploaded
+live:
+    jsl pano_live
+uploaded:
     ; `pano_load` went through `LZ2_BUFFER`, which on the map holds the
     ; battle animation's last frame and the bytecode carried from another
     ; map —which may be the page running this `ChangePBG`: `code_ptr`
@@ -1363,6 +1374,328 @@ wrapped:
     lda #1
     sta tint_pending            ; its colours, tinted: see `pano_palette`
 same:
+    rtl
+.endproc
+
+; The tiles of the record at `PANO_ENT`, from their LZ2 stream into
+; `LZ2_BUFFER`'s bank at Y: RAM only, so it may run with the screen on.
+; From `pano_load` and `pano_live`, with the data bank at 0. I16; keeps
+; the width of A.
+.proc pano_unpack
+.a8
+.i16
+    php
+    rep #$20
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_TILES, x
+    pha
+    sep #$20
+.a8
+    lda #^LZ2_BUFFER
+    sta f:LZ2_BANK
+    lda f:pano_table + PT_TILES + 2, x
+    plx
+    jsl f:lz2_decompress + FAST
+    plp
+    rtl
+.endproc
+
+; A `ChangePBG` to another picture **with the screen on**: what `pano_load`
+; and `pano_fill` do in forced blank, with the screen showing the frame it
+; showed. Until 2026-11-17 it went up in forced blank wherever it fell, on
+; the belief that the maps that swap do it behind the fade of entering
+; them; but RM2k runs an autostart page only once the fade-in is over
+; —`Scene_Map::FinishPendingTeleport3` in EasyRPG—, and Zounds' map 31,
+; whose autostart picks the panorama by the time of day, went black for
+; ten frames after its fade-in: see
+; `tasks/zounds-a-black-flash-after-the-fade-in.md` in the tasks
+; repository. RM2k swaps it from one frame to the next.
+;
+; The console cannot: the new picture goes in the same VRAM tiles as the
+; one shown —there is no room for both, see "A `ChangePBG` to another
+; picture" in the book's VRAM page— and a picture's tiles and ring are up
+; to 28 KB, where a vblank takes about 6. So the work that is RAM only
+; —the LZ2 of the tiles, the ring's 32 rows— is done with the screen on,
+; and the DMAs go a piece at a time in the vblanks, with the panorama's
+; layer off the main screen meanwhile: what shows through it is the
+; backdrop. Measured on map 31: four vblanks with the layer off, and the
+; main loop held some thirteen frames, as long as the black was, with the
+; screen showing the frame before —the characters stand still—. The
+; message window is BG2 in mode 3 too, so a box open on those frames goes
+; off with it. A8, I16.
+LIVE_PIECE = 512                ; bytes a DMA: three lines
+LIVE_RING  = $1000              ; the ring's two screens of 32x32
+; Tiles up to this many leave room for the ring before them in the buffer.
+LIVE_BOTH  = ANIM_DRAWINGS - LZ2_BUFFER - LIVE_RING + 1
+.proc pano_live
+.a8
+.i16
+    php
+    phb
+    pea $0000
+    plb
+    plb
+    rep #$30
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_BYTES1, x
+    clc
+    adc f:pano_table + PT_BYTES2, x
+    cmp #LIVE_BOTH
+    bcs apart
+    ; Both fit in the buffer, the ring first and the tiles after it: all of
+    ; the CPU's work with the layer still on, and off only for the DMAs.
+    jsr live_ring
+    ldy #.loword(LZ2_BUFFER) + LIVE_RING
+    jsl pano_unpack
+    jsr live_off
+    ldx #.loword(LZ2_BUFFER) + LIVE_RING
+    jsr live_tiles
+    jsr live_ring_up
+    bra on
+apart:
+    ; A picture of more than `LIVE_BOTH` bytes: the ring goes where its
+    ; tiles were, once they are up.
+    ldy #.loword(LZ2_BUFFER)
+    jsl pano_unpack
+    jsr live_off
+    ldx #.loword(LZ2_BUFFER)
+    jsr live_tiles
+    jsr live_ring
+    jsr live_ring_up
+on:
+    ; Its colours, the backdrop in mode 1, and the layer back on, in the
+    ; same vblank.
+    sep #$20
+.a8
+    jsr live_wait
+    rep #$20
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_BACKDROP, x
+    cmp #$FFFF
+    beq no_backdrop
+    sep #$20
+.a8
+    stz CGADD
+    sta CGDATA
+    xba
+    sta CGDATA
+no_backdrop:
+    sep #$20
+.a8
+    jsl pano_colors
+    lda f:PANO_ON
+    cmp #1
+    bne mode3_on
+    lda #$17
+    bra layer_on
+mode3_on:
+    lda #$13
+layer_on:
+    sta TM
+    plb
+    plp
+    rtl
+.endproc
+
+; The ring, into `LZ2_BUFFER`'s first `LIVE_RING` bytes: `pano_fill` with
+; `PANO_LIVE` set. A16, I16 and the data bank at 0, and so it returns.
+.proc live_ring
+.a16
+.i16
+    lda #1
+    sta f:PANO_LIVE
+    sep #$20
+.a8
+    jsl pano_fill
+    rep #$30
+.a16
+    lda #0
+    sta f:PANO_LIVE
+    rts
+.endproc
+
+; The ring up from `LZ2_BUFFER`, to its two screens. A16, I16.
+.proc live_ring_up
+.a16
+.i16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_VRAM_MAP, x
+    ldx #.loword(LZ2_BUFFER)
+    ldy #LIVE_RING
+    jsr live_dma
+    rep #$30
+.a16
+    rts
+.endproc
+
+; The panorama's layer off the main screen, in a vblank, before what it
+; shows starts to change. A16, I16, and so it returns.
+.proc live_off
+.a16
+.i16
+    sep #$20
+.a8
+    jsr live_wait
+    lda f:PANO_ON
+    cmp #1
+    bne mode3
+    lda #$13                    ; mode 1: BG1, BG2 and the sprites, no BG3
+    bra off
+mode3:
+    lda #$11                    ; mode 3: BG1 and the sprites, no BG2
+off:
+    sta TM
+    rep #$30
+    rts
+.endproc
+
+; The tiles up from `LZ2_BUFFER` at X, in their one or two stretches.
+; A16, I16, and so it returns.
+.proc live_tiles
+.a16
+.i16
+    txy                         ; the source, meanwhile
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_BYTES2, x
+    pha
+    lda f:pano_table + PT_VRAM2, x
+    pha
+    lda f:pano_table + PT_BYTES1, x
+    pha
+    lda f:pano_table + PT_VRAM1, x
+    tyx
+    ply                         ; the first stretch's bytes
+    jsr live_dma                ; X past what it took
+    rep #$30
+    pla                         ; the second stretch's VRAM word
+    ply                         ; and its bytes
+    cpy #0                      ; none: a DMA of zero bytes would take 64 KB
+    beq none
+    jsr live_dma
+    rep #$30
+none:
+    rts
+.endproc
+
+; Y bytes from `LZ2_BUFFER` + X to VRAM word A, `LIVE_PIECE` at a time, each
+; one started only where `live_wait` says it ends inside the vblank. A16,
+; I16 and the data bank at 0; returns A8, with X past what it took.
+.proc live_dma
+.a16
+.i16
+    sta VMADDL
+    stx A1T0L
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    lda #^LZ2_BUFFER
+    sta A1B0
+    lda #$01
+    sta DMAP0                   ; two registers, word by word
+    lda #$18
+    sta BBAD0
+piece:
+    jsr live_wait
+    rep #$20
+.a16
+    cpy #LIVE_PIECE
+    bcc last
+    lda #LIVE_PIECE
+    bra go
+last:
+    tya
+go:
+    sta DAS0L
+    pha
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    tya
+    sec
+    sbc 1, s
+    tay
+    pla
+    sep #$20
+.a8
+    cpy #0
+    bne piece
+    rep #$20
+.a16
+    lda A1T0L                   ; where the channel stopped
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Returns inside a vblank, before line 256: a `LIVE_PIECE` started there
+; ends before the vblank does, at line 261 on NTSC. The lines go up to 311
+; on PAL, where this just leaves some unused. A8, data bank 0; keeps X and
+; Y.
+.proc live_wait
+.a8
+.i16
+again:
+    lda HVBJOY
+    bpl outside                 ; not in the vblank: wait for the next
+    lda STAT78                  ; resets the counters' flip-flop
+    lda SLHV
+    lda OPVCT
+    lda OPVCT                   ; bit 8 of the line
+    and #$01
+    bne late
+    rts
+late:
+    lda HVBJOY
+    bmi late                    ; this one is too far gone
+outside:
+    lda HVBJOY
+    bpl outside
+    bra again
+.endproc
+
+; One row `pano_row` built, from `PANO_STRIP_ROW` into `LZ2_BUFFER` where
+; its VRAM goes, counted from the ring's first word: its first screen's
+; half there and its second's $800 bytes further, as `pano_row_dma` would
+; upload them. From `pano_fill`, A16 and I16 and the data bank at $7E;
+; clobbers A, X and Y, and keeps the bank.
+.proc pano_row_keep
+.a16
+.i16
+    phb
+    lda f:PANO_ENT
+    tax
+    lda f:PANO_ROWV
+    sec
+    sbc f:pano_table + PT_VRAM_MAP, x
+    asl a                       ; words to bytes
+    pha
+    clc
+    adc #.loword(LZ2_BUFFER)
+    tay
+    ldx #.loword(PANO_STRIP_ROW)
+    lda #63
+    mvn #^PANO_STRIP_ROW, #^LZ2_BUFFER
+    pla
+    clc
+    adc #.loword(LZ2_BUFFER) + $800
+    tay
+    ldx #.loword(PANO_STRIP_ROW) + 64
+    lda #63
+    mvn #^PANO_STRIP_ROW, #^LZ2_BUFFER
+    plb
     rtl
 .endproc
 
