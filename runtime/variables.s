@@ -392,6 +392,14 @@ less:
 
 
 
+.pushseg
+.segment "BSS"
+; The window's line the options start on: 0 for a choice in a box of its
+; own, the question's lines for `OP_ASK`'s. The bar goes under line
+; `pick_first + pick_sel`, and a greyed option is line minus it.
+pick_first: .res 1
+.popseg
+
 ; Composes the window for the highlighted option. The box comes from the
 ; table, at `pick_table + pick_sel * 4`; the destination is two bytes further
 ; on and `choice_tick` reads it.
@@ -419,6 +427,7 @@ less:
     jsr msg_start               ; which expects it in A and in 16-bit mode
     sep #$20
 .a8
+    jsl f:ask_lines             ; under a question, below its lines
     rts
 .endproc
 
@@ -451,6 +460,13 @@ open:
     cmp #0                      ; its answer, and not whatever `rtl` left
     rts
 a_choice:
+    cmp #PICK_ASKING
+    bne choosing
+    jsl f:ask_tick              ; C set: the question is done, the options go up
+    bcc nothing
+    jsr pick_open
+    bra nothing
+choosing:
     lda pad
     eor pad_prev
     and pad                     ; what was pressed **on this frame**

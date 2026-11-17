@@ -276,6 +276,8 @@ no:
     cmp #PICK_CHOICE
     bne coloured
     lda f:msg_line
+    sec
+    sbc f:pick_first            ; the option: under a question, past its lines
     jsr greyed
     bcc coloured
     ; The grey's rows where the colour's go: an option has no colour.

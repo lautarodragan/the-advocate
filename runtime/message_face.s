@@ -369,8 +369,10 @@ has:
     lda pick_active
     cmp #PICK_CHOICE
     bne no_bar
-    lda msg_line
-    cmp pick_sel
+    lda pick_sel
+    clc
+    adc f:pick_first            ; under a question, past its lines
+    cmp msg_line
     bne no_bar
     jsr bar_compose
 no_bar:

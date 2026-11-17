@@ -134,6 +134,13 @@
 //! route —map 1's event 1 has a 40 between a turn and a step—, where until
 //! then they were dropped. With the `path.push` of their arm in
 //! `compile_route` taken out, the answer was the one before.
+//!
+//! On 2026-11-17 the hashes of both `maps` moved, on purpose: a
+//! `ShowMessage` followed by a `ShowChoice` whose options fit under its
+//! lines compiles to one `OP_ASK`, and a paid inn's greeting and its choice
+//! too, as RPG_RT puts them in one box. With `questions` answering none and
+//! the inn's `OP_MESSAGE` and `OP_CHOICE` put back, the answer was the one
+//! before.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};
