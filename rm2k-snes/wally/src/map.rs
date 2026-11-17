@@ -478,23 +478,35 @@ fn posed_events(
         }
         Ok(false)
     };
-    if !wanted.is_empty() {
-        if try_with(&wanted, layers)? {
-            kept = wanted.clone();
-        } else {
-            let mut groups: BTreeMap<String, Vec<&crate::posed::Posed>> = BTreeMap::new();
-            for p in &wanted {
-                groups.entry(p.graphics[0].0.clone()).or_default().push(p);
-            }
-            let mut order: Vec<(String, Vec<&crate::posed::Posed>)> = groups.into_iter().collect();
-            order.sort_by_key(|(name, ps)| (std::cmp::Reverse(ps.len()), name.clone()));
-            for (_, group) in order {
-                let mut trial = kept.clone();
-                trial.extend(group.into_iter().cloned());
-                trial.sort_by_key(|p| p.event);
-                if try_with(&trial, layers)? {
-                    kept = trial;
-                }
+    // The ones that fit their cell as they are first, as if there were no
+    // nudge, and then the shifted ones on top: room taken by a shifted one
+    // never leaves out one that went in without the nudge —on Zounds' map
+    // 156, on 2026-11-16, three events shifted in took the place of three
+    // events that fit as they are—.
+    let (exact, moved): (Vec<_>, Vec<_>) = wanted.iter().cloned().partition(|p| p.shift == (0, 0));
+    for tier in [exact, moved] {
+        if tier.is_empty() {
+            continue;
+        }
+        let mut all = kept.clone();
+        all.extend(tier.iter().cloned());
+        all.sort_by_key(|p| p.event);
+        if try_with(&all, layers)? {
+            kept = all;
+            continue;
+        }
+        let mut groups: BTreeMap<String, Vec<&crate::posed::Posed>> = BTreeMap::new();
+        for p in &tier {
+            groups.entry(p.graphics[0].0.clone()).or_default().push(p);
+        }
+        let mut order: Vec<(String, Vec<&crate::posed::Posed>)> = groups.into_iter().collect();
+        order.sort_by_key(|(name, ps)| (std::cmp::Reverse(ps.len()), name.clone()));
+        for (_, group) in order {
+            let mut trial = kept.clone();
+            trial.extend(group.into_iter().cloned());
+            trial.sort_by_key(|p| p.event);
+            if try_with(&trial, layers)? {
+                kept = trial;
             }
         }
     }

@@ -862,3 +862,91 @@ fn a_still_event_drawn_a_little_past_its_cell_goes_in_shifted() {
         );
     }
 }
+
+/// Converts map 7 with `events` drawn by two CharSets —`Fits`, whose poses
+/// fit their cell, and `Off`, drawn a pixel right and two up of it— with
+/// still events into the background and a nudge of 2, and the background's
+/// tiles capped by `room`. The notes, and how many tiles the background
+/// took.
+fn baked_with(name: &str, events: Value, room: Option<usize>) -> (Vec<String>, u64) {
+    let dir = scratch(name);
+    let (dump, pictures) = game(&dir);
+    let sheet = |x0: usize, y0: usize, tint: u8| {
+        picture_of(288, 256, move |x, y| {
+            let (px, py) = (x % 24, y % 32);
+            if (x0..x0 + 16).contains(&px) && (y0..y0 + 16).contains(&py) {
+                // A drawing of its own in every 8x8 tile of the cell.
+                [
+                    tint,
+                    ((px * 13 + py * 7) % 4 * 60) as u8,
+                    ((px + py) % 2 * 90) as u8,
+                    255,
+                ]
+            } else {
+                [0, 0, 0, 0]
+            }
+        })
+    };
+    write(&pictures.join("CharSet/Fits.png"), &sheet(4, 16, 240));
+    write(&pictures.join("CharSet/Off.png"), &sheet(5, 14, 16));
+    let path = dump.join("maps/Map0007.json");
+    let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    map["events"] = events;
+    std::fs::write(&path, map.to_string()).unwrap();
+    std::fs::write(dump.join("db/commonevents.json"), "[]").unwrap();
+    let layouts = room.map_or(json!([]), |r| json!([[r, 512, 512]]));
+    let body = json!({
+        "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+        "test_event": false, "leaders": [1],
+        "pages": [], "route_graphics": [], "also_walk": [],
+        "timer": null, "rain": false, "picture": null,
+        "battle_animation": false, "singles": [], "palette_weight": {},
+        "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+        "layouts": layouts, "window_colors": 13, "posed_stills": true,
+        "baked_events_nudge": 2,
+    });
+    let request = dir.join("request.json");
+    std::fs::write(&request, body.to_string()).unwrap();
+    let out = dir.join("out");
+    let done = run(&dump, &pictures, &request, &out);
+    assert!(
+        done.status.success(),
+        "{}",
+        String::from_utf8_lossy(&done.stderr)
+    );
+    let notes = notes_of(&out);
+    let layers: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
+    std::fs::remove_dir_all(&dir).unwrap();
+    (notes, layers["background"]["tiles"].as_u64().unwrap())
+}
+
+/// With room for only some of them, the events that fit their cell as
+/// they are go in before the shifted ones, even if the shifted ones are
+/// more: the nudge never leaves out an event that went in without it.
+#[test]
+fn a_shifted_event_never_takes_the_place_of_one_that_fits_as_it_is() {
+    let fits = json!({"id": 2, "x": 1, "y": 1, "pages": [page("Fits", 0, 0, 0)]});
+    let off = |id: i32, x: i32| json!({"id": id, "x": x, "y": 2, "pages": [page("Off", 0, 0, 0)]});
+    // Each alone, to know the room each takes.
+    let (_, with_fits) = baked_with("tiers-fits", json!([fits.clone()]), None);
+    let (_, with_off) = baked_with("tiers-off", json!([off(3, 3), off(4, 4)]), None);
+    let room = with_fits.max(with_off) as usize;
+    let (notes, _) = baked_with(
+        "tiers-both",
+        json!([fits, off(3, 3), off(4, 4)]),
+        Some(room),
+    );
+    assert!(
+        notes.contains(
+            &"  map 7: 1 still event(s) drawn into the background, a block per pose: 2".to_string()
+        ),
+        "room {room}: {notes:?}"
+    );
+    assert!(
+        notes.contains(
+            &"  map 7: 2 still event(s) stay objects: drawn into the background they move its colours or its tiles past the layouts: 3, 4".to_string()
+        ),
+        "room {room}: {notes:?}"
+    );
+}
