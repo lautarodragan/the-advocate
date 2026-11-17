@@ -67,8 +67,15 @@ GOLD_Y:     .res 1              ; scratch: a pixel row, or a count
 GREY_C:     .res 1              ; a greyed row's colour,
 GREY_FLIP:  .res 1              ; the planes its grey flips,
 GREY_SET:   .res 1              ; and the pixels of its glyph in a cell
-GOLD_BUF:   .res GOLD_ROW_BYTES * 2 ; rows 1 and 2, with the number
 .popseg
+; Rows 1 and 2, with the number: a tenant of `GRID_TOP`, the top of bank
+; $7F's upper half —see far_ram.s—, since 2026-11-16; it was in `FARBSS`,
+; and A Blurred Line's ran out. It lives from a box's opening to its rows
+; going up, with the map on screen and no battle in between, so the battle
+; composing its scene over it does not matter: the next box composes it
+; again. Everything reaches it with `f:`, and `gold_to_wram::high` fills it.
+GOLD_BUF = GRID_TOP
+.assert GOLD_ROW_BYTES * 2 = GRID_TOP_GOLD, error, "the gold window's rows do not measure what GRID_TOP keeps for them: GRID_TOP_GOLD in materials.rs"
 
 ; Where each part of `window_gold` starts: the tiles, the palette, the ink.
 GOLD_CGRAM_AT = GOLD_TILES * 32
@@ -138,10 +145,27 @@ done:
 
 ; Y bytes of `window_gold`, from its offset A16, to far RAM at X —bank $7E—,
 ; by DMA through WRAM's port on bus B, as `prime_line` copies ROM to RAM.
-; Comes back in A16.
+; `gold_to_wram::high` the same to bank $7F, which is `GOLD_BUF`'s. Comes
+; back in A16.
 .proc gold_to_wram
 .a16
 .i16
+    pha
+    sep #$20
+.a8
+    lda #0                      ; $7E: FARBSS is `$7E2000-$7E7FFF`
+    bra bank
+high:
+.a16
+    pha
+    sep #$20
+.a8
+    lda #^GOLD_BUF & 1          ; $7F: GRID_TOP
+bank:
+    sta WMADDH
+    rep #$20
+.a16
+    pla
     clc
     adc f:GOLD_SRC
     sta A1T0L
@@ -149,7 +173,6 @@ done:
     sty DAS0L
     sep #$20
 .a8
-    stz WMADDH                  ; $7E: FARBSS is `$7E2000-$7E7FFF`
     lda f:GOLD_SRC + 2
     sta A1B0
     stz DMAP0                   ; one register, byte by byte
@@ -446,7 +469,7 @@ done:
     lda #GOLD_ROW_BYTES
     ldx #.loword(GOLD_BUF)
     ldy #(GOLD_ROW_BYTES * 2)
-    jsr gold_to_wram
+    jsr gold_to_wram::high
     sep #$20
 .a8
     ; The digits: 24 bits divided by ten a byte at a time, as the shop's.

@@ -162,6 +162,22 @@
 //! With the party where it was and each name the old two lines joined
 //! —`with_the_actor_choice_on_top`—, and `without_actor_choice_on_top`,
 //! the text is the old one byte for byte.
+//!
+//! On 2026-11-16 a map's event page table left the cartridge for WRAM,
+//! behind its bytecode, as a second LZ2 stream of the bytecode's block
+//! —`pages_in_wram` in record.rs—: the first map's `pages_0` block became
+//! that stream, the record's `pages` pointer says `GRID_HIGH +` an offset,
+//! the report got a `map_pages` line and the first map's decompression
+//! frames grew. Four hashes and the two line counts moved with it; there is
+//! no transform back, because the old text is the table's lines and the new
+//! one their stream. That the stream carries the same lines is checked in
+//! record.rs, and what the console decompresses, in ABL's
+//! `test_decompressed_load.py`.
+//!
+//! The same day the top of $7F's upper half became `GRID_TOP`'s, a region
+//! nothing behind the grid reaches, and the caps got the sizes of its two
+//! tenants: `without_grid_top` takes their four lines away, and with it the
+//! text is the one above byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -189,13 +205,13 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&with_whole_poses_as_before(&without_hero_colors(
-            &with_the_turn_as_before(&written.maps)
+            &with_the_turn_as_before(&without_grid_top(&written.maps))
         ))),
-        "20e390800ee76ba822286a03ea4f55123e754cce30d97a1e0131b18745dec4bb"
+        "41dcddb2bba3c23d41d630c0c4811e4b85ba9bd27742a11190941c54658045b7"
     );
     assert_eq!(
         sha(&without_arrow_objs(&without_pose_masks(&without_layer_texts(&written.tables)))),
-        "c0cc2585dfd0de58f4e76cb7b6421853fa72f31a6c9fa2e7d307310bf9b38a55"
+        "1480f2054c9226f9bc616abd24a469498b5792a4f7805e70b413d2f474fa874c"
     );
 }
 
@@ -228,13 +244,14 @@ fn what_it_says_is_what_the_python_said() {
             "  map_cells         0.5 KB in LZ2, was    0.8",
             "  map_ram           0.1 KB in LZ2, was    0.1",
             "  map_code          0.0 KB in LZ2, was    0.0",
-            "                    1.6 KB in LZ2, was    2.1: 0.6 KB less",
+            "  map_pages         0.1 KB in LZ2, was    0.1",
+            "                    1.7 KB in LZ2, was    2.2: 0.6 KB less",
             "  map_tiles       1 shared block(s),    0.2 KB",
             "  map_cgram       1 shared block(s),    0.0 KB",
             "                  2                 0.2 KB in total"
         ]
     );
-    assert_eq!(written.frames, [0.3885415444442582, 0.256625152952614]);
+    assert_eq!(written.frames, [0.42809969996144753, 0.256625152952614]);
 }
 
 #[test]
@@ -1825,6 +1842,21 @@ fn without_grid_narrow(text: &str) -> String {
 /// The text without the record's `M_WRAP` line, which came on 2026-10-19
 /// with the maps that loop —see `record::wrap_offset`—, nor the
 /// `M_GRID_NARROW` one: they are next to each other.
+/// The text without the sizes of `GRID_TOP`'s tenants, which came with the
+/// caps on 2026-11-16: see the top of this file.
+fn without_grid_top(text: &str) -> String {
+    let lines = format!(
+        "; The top of $7F's upper half, which nothing behind the grid reaches:\n\
+         ; `GRID_TOP` in far_ram.s, and `GRID_TOP_BYTES` in materials.rs\n\
+         GRID_TOP_GOLD = {}\n\
+         GRID_TOP_POSED = {}\n",
+        rm2k_snes_mapdata::materials::GRID_TOP_GOLD,
+        rm2k_snes_mapdata::materials::GRID_TOP_POSED
+    );
+    assert!(text.contains(&lines));
+    text.replacen(&lines, "", 1)
+}
+
 fn without_wrap_and_grid_narrow(text: &str) -> String {
     let line = format!("\nM_WRAP         = {}", record::wrap_offset());
     assert!(text.contains(&line));
@@ -1933,7 +1965,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&text)),
+                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&text))),
                                         )),
                                     )),
                                 )),
@@ -1944,10 +1976,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
             )))),
         ))),
     )));
-    assert_eq!(text.lines().count(), 3766);
+    assert_eq!(text.lines().count(), 3717);
     assert_eq!(
         sha(&text),
-        "797dcc5caeacad9f97b9d8345fb7de8b68d4185c568b043113f77db16668703f"
+        "693575136badd32ec62c3f39553b7de3b4f0cf2fe221ee2422ee16472bc36019"
     );
 }
 
@@ -1978,7 +2010,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&text)),
+                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&text))),
                                         )),
                                     )),
                                 )),
@@ -1989,10 +2021,10 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
             )))),
         ))),
     )));
-    assert_eq!(text.lines().count(), 3885);
+    assert_eq!(text.lines().count(), 3836);
     assert_eq!(
         sha(&text),
-        "274162971159b72a82a386c13bcd1c41e19e1efdd33bf3585f27e13cbeefe384"
+        "1cdb995629bf2bf88142e32ccc32414a05502b058294c7cee2aef2b060322781"
     );
 }
 

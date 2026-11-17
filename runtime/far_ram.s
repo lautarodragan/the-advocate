@@ -1506,6 +1506,30 @@ GRID        = $7E8000
 GRID_END    = $7F0000
 GRID_HIGH = $7F8000
 
+; --- the top of $7F's upper half: `GRID_TOP` -----------------------------------
+;
+; **A region written by hand, with named tenants**: the last bytes of the
+; half behind the grid, which no map's grid and nothing behind it reach, on
+; any map —the converter keeps them out: `BEHIND_ROOM` in rm2k-snes-mapdata's
+; `materials.rs`, which refuses a map that does not fit and sends a
+; bytecode or a page table that would reach here to the cartridge—. Its
+; size is the converter's, `GRID_TOP_GOLD` plus `GRID_TOP_POSED` in the
+; `.inc`, and each tenant `.assert`s its own against its part.
+;
+; What may live here is what lives less than a map and is not needed after a
+; battle, because the battle composes its scene over the whole half
+; (`SCN_SCENE`) and nothing puts it back: each tenant rebuilds itself. They
+; came on 2026-11-16, from `FARBSS`, which A Blurred Line had used up:
+;
+;   GOLD_BUF     the inn's gold window's middle rows: see gold_window.s
+;   POSED_REG    the runs of the events drawn into the background, and
+;   POSED_T      their scratch: see posed.s
+;
+; A new tenant is a new part in `materials.rs`, here, and in the book's
+; internals/wram.md; `test_wram_reservations.py` names each one.
+GRID_TOP_BYTES = GRID_TOP_GOLD + GRID_TOP_POSED
+GRID_TOP    = GRID_HIGH + $8000 - GRID_TOP_BYTES
+
 ; On which frame startup ends, counted from reset. Startup —loading the map,
 ; uploading the driver to the SPC700 and the map's audio package— takes as
 ; long as it takes, and that changed with every code or data change: one more

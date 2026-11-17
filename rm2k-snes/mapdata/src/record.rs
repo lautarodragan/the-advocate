@@ -10,7 +10,7 @@ use crate::asm::{block, pointer};
 use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
 use crate::materials::{
-    grid_high_used, map_ram, Materials, COMPRESSED_KINDS, HALF_GRID, LZ2_CAP_CODE,
+    grid_high_used, map_ram, Materials, BEHIND_ROOM, COMPRESSED_KINDS, LZ2_CAP_CODE,
 };
 use crate::objects::{
     block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
@@ -542,7 +542,7 @@ pub fn anim_bytes(map: &Map) -> Vec<u8> {
 }
 
 /// What the console decompresses of a map, by class.
-pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
+pub fn raw_blocks(map: &Map) -> Result<crate::materials::RawBlocks> {
     let mut raw = crate::materials::RawBlocks::new();
     raw.insert("map_tiles".into(), map.tiles.clone());
     raw.insert("above_tiles".into(), map.above_tiles.clone());
@@ -563,7 +563,15 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
         map.evcode.clone()
     };
     raw.insert("map_code".into(), code);
-    raw
+    // And its page table behind the bytecode, or nothing if it stays in the
+    // cartridge: see [`pages_in_wram`].
+    let pages = if pages_in_wram(map) {
+        page_bytes(map, 0)?
+    } else {
+        Vec::new()
+    };
+    raw.insert("map_pages".into(), pages);
+    Ok(raw)
 }
 
 /// The largest block of a map's bytecode in the cartridge: one bank,
@@ -631,9 +639,12 @@ pub fn rom_code_chunks(map: &Map) -> Result<Vec<(usize, &[u8])>> {
 /// Why not every map: see the task `map-streams-that-dont-fit-in-wram.md`,
 /// where it was measured —in short, the ROM it costs uncompressed against a
 /// few frames of decompression when loading—.
+///
+/// "What the grid leaves" stops short of the half's top, which is
+/// `GRID_TOP`'s on every map: see [`BEHIND_ROOM`].
 pub fn code_in_rom(map: &Map) -> bool {
     let behind = grid_high_used(map.grid().len()) + map.blocks.len() + map.block_pass.len();
-    map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > HALF_GRID
+    map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > BEHIND_ROOM
 }
 
 /// Where the pointers into what lives behind the grid land: WRAM addresses,
@@ -652,6 +663,64 @@ pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 3] {
         ("block_pass", format!("GRID_HIGH + ${pass:04X}")),
         ("evcode", format!("GRID_HIGH + ${code:04X}")),
     ]
+}
+
+/// The grid's second half in WRAM, as a number: see `GRID_HIGH` in the
+/// runtime's `far_ram.s`. `test_decompressed_load.py` checks that what is
+/// built with it lands where the runtime says.
+const GRID_HIGH: usize = 0x7F8000;
+
+/// Where a map's bytecode starts behind its grid, as an offset from
+/// `GRID_HIGH`: the same as `evcode` in [`map_ram_pointers`].
+fn code_offset(map: &Map) -> usize {
+    grid_high_used(map.grid().len()) + map.blocks.len() + map.block_pass.len()
+}
+
+/// Whether a map's page table goes to WRAM, right behind its bytecode, in
+/// an LZ2 stream joined to the bytecode's —see `lz2_grid` in the runtime's
+/// `decompress.s`—, instead of staying in the cartridge raw. The console
+/// reads it with `[page_ptr], y` wherever the record's `pages` points, so
+/// nothing else has to know.
+///
+/// Only a map whose bytecode is in WRAM too: the table's code pointers have
+/// to be numbers to be compressed, and those of a map whose bytecode stayed
+/// in the cartridge are labels the linker sets —see [`code_in_rom`]—. And
+/// only if it fits in what the grid, the block table and the bytecode leave
+/// of bank $7F's upper half; a map with no pages keeps its one-byte block.
+///
+/// Until 2026-11-16 every table stayed in the cartridge: 193 KB raw in A
+/// Blurred Line's `release`, about 68 KB in LZ2. See the task
+/// `event-page-records-compressed-behind-the-grid.md`.
+pub fn pages_in_wram(map: &Map) -> bool {
+    !map.pages.is_empty()
+        && !code_in_rom(map)
+        && code_offset(map) + map.evcode.len() + PAGE_BYTES * map.pages.len() <= BEHIND_ROOM
+}
+
+/// Where a map's page table lands in WRAM when [`pages_in_wram`], as an
+/// offset from `GRID_HIGH`: right where its bytecode ends, which is where
+/// the decompressor leaves off.
+fn pages_offset(map: &Map) -> usize {
+    code_offset(map) + map.evcode.len()
+}
+
+/// The bytes of a map's page table with its code pointers resolved into
+/// WRAM, for [`pages_in_wram`]: the same lines [`page_table_with`] writes
+/// for the cartridge, assembled here, so both places carry one layout.
+pub fn page_bytes(map: &Map, number: usize) -> Result<Vec<u8>> {
+    let code = GRID_HIGH + code_offset(map);
+    let text = page_table_with(&PageMap::of(map), number, &|offset| {
+        format!("${:06X}", code + offset)
+    });
+    let bytes = crate::asm::numeric_bytes(&text).map_err(|operand| {
+        Bad::answer(format!(
+            "map {}: the page table carries `{operand}`, which is not a number, and it goes to \
+             WRAM compressed",
+            map.id
+        ))
+    })?;
+    debug_assert_eq!(bytes.len(), PAGE_BYTES * map.pages.len());
+    Ok(bytes)
 }
 
 /// The values of a map's record, by field.
@@ -1892,10 +1961,21 @@ pub fn map_data(
     labels.insert("map_cells", label);
     // And the bytecode, which lands behind them, in a block of its own:
     // `map_code_table` names it. Joined to the others, two maps with the
-    // same grid and different events would not share the grid.
+    // same grid and different events would not share the grid. Its page
+    // table goes in a second stream of that block, which lands behind the
+    // bytecode —see [`pages_in_wram`]—: the console sometimes decompresses
+    // the bytecode alone, which stops at the end of its own stream —see
+    // `code_carry_after`—.
     let in_rom = code_in_rom(map);
     let stream: &[u8] = if in_rom { &[] } else { &map.evcode };
-    let (label, text) = materials.store_compressed("map_code", stream);
+    let in_wram = pages_in_wram(map);
+    let pages = if in_wram {
+        page_bytes(map, number)?
+    } else {
+        Vec::new()
+    };
+    let (label, text) =
+        materials.store_compressed_joined(&[("map_code", stream), ("map_pages", &pages)]);
     if !text.is_empty() {
         out.push(text);
     }
@@ -1916,6 +1996,11 @@ pub fn map_data(
             chunks.push((start, label));
         }
         labels.insert("evcode", chunks[0].1.clone());
+    }
+    if in_wram {
+        // Nothing in the cartridge: the record points behind the bytecode.
+        labels.insert("pages", format!("GRID_HIGH + ${:04X}", pages_offset(map)));
+        return Ok((out.join("\n"), labels));
     }
     if in_rom {
         let dest = |offset: usize| {
@@ -2181,7 +2266,8 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         check_counts(map)?;
     }
     let rows: Vec<Vec<NpcRow>> = maps.iter().map(npc_table).collect::<Result<_>>()?;
-    let raw: Vec<crate::materials::RawBlocks> = maps.iter().map(raw_blocks).collect();
+    let raw: Vec<crate::materials::RawBlocks> =
+        maps.iter().map(raw_blocks).collect::<Result<_>>()?;
     let refs: Vec<(i64, &crate::materials::RawBlocks)> =
         maps.iter().zip(&raw).map(|(m, r)| (m.id, r)).collect();
     let compressed = crate::materials::compress_blocks(&refs)?;
@@ -2199,17 +2285,32 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
          LZ2_CAP_BACKDROP = ${:04X}\n\
          LZ2_CAP_ABOVE_Y_SPRITES = ${:04X}\n\
          LZ2_CAP_ANIM = ${:04X}\n\
-         LZ2_CAP_GRID = ${:05X}\n\n",
+         LZ2_CAP_GRID = ${:05X}\n\
+         ; The top of $7F's upper half, which nothing behind the grid reaches:\n\
+         ; `GRID_TOP` in far_ram.s, and `GRID_TOP_BYTES` in materials.rs\n\
+         GRID_TOP_GOLD = {}\n\
+         GRID_TOP_POSED = {}\n\n",
         crate::materials::LZ2_CAP_BACKDROP,
         crate::materials::LZ2_CAP_ABOVE_AND_SPRITES,
         crate::materials::LZ2_CAP_ANIM,
-        crate::materials::LZ2_CAP_GRID
+        crate::materials::LZ2_CAP_GRID,
+        crate::materials::GRID_TOP_GOLD,
+        crate::materials::GRID_TOP_POSED
     );
     let mut materials = Materials::new(true, compressed);
     materials.msu = msu;
     let mut labels = Vec::new();
     for (number, map) in maps.iter().enumerate() {
-        // The console's tests read the table order from this line.
+        // The console's tests read the table order from this line. In a
+        // cartridge whose streams may go to the `.msu`, it goes behind a
+        // `.segment` line: the packing carries a comment inside the piece
+        // before it, and the one before is the map's last stream —since
+        // 2026-11-16 the bytecode's and page table's block—, which leaves
+        // the text when it goes to the `.msu`. After a `.segment` it stays
+        // in the text on its own: see `pack_with_msu` in rm2k-snes-cartridge.
+        if msu {
+            text.push_str(".segment \"RODATA\"\n");
+        }
         let _ = writeln!(
             text,
             "; --- {number}: map {} {} ---",
@@ -2471,7 +2572,7 @@ mod tests {
         assert!(!code_in_rom(&maps[0]));
         assert!(code_in_rom(&maps[1]));
         // The second decompresses nothing behind its grid.
-        assert!(raw_blocks(&maps[1])["map_code"].is_empty());
+        assert!(raw_blocks(&maps[1]).unwrap()["map_code"].is_empty());
         let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
         // Its bytecode goes whole in one bank, and its `map_code` entry says
         // 0 bytes behind the grid, so that `carry_one` never matches it.
@@ -2509,6 +2610,90 @@ mod tests {
         maps[1].pages[1].offset = 5;
         let error = super::maps(&maps).err().unwrap().to_string();
         assert!(error.contains("in a bank"), "{error}");
+    }
+
+    #[test]
+    fn the_page_table_goes_behind_the_bytecode_when_it_fits() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut maps = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps;
+        maps.truncate(1);
+        maps[0].evcode = vec![1; 100];
+        maps[0].pages = test_pages(3);
+        assert!(pages_in_wram(&maps[0]));
+        // The bytes are the cartridge's lines, with the code pointers
+        // resolved behind the grid: the second page's code, 4 bytes in.
+        let bytes = page_bytes(&maps[0], 0).unwrap();
+        assert_eq!(bytes.len(), 3 * PAGE_BYTES);
+        let code = GRID_HIGH + code_offset(&maps[0]) + 4;
+        assert_eq!(
+            bytes[PAGE_BYTES + 8..PAGE_BYTES + 11],
+            code.to_le_bytes()[..3]
+        );
+        // They go to WRAM, and the record points behind the bytecode.
+        let raw = raw_blocks(&maps[0]).unwrap();
+        assert_eq!(raw["map_pages"], bytes);
+        let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
+        assert!(
+            !written.contains("pages_0:"),
+            "the table is still in the cartridge"
+        );
+        assert!(
+            written.contains(&format!("GRID_HIGH + ${:04X}", code_offset(&maps[0]) + 100)),
+            "the record does not point behind the bytecode"
+        );
+        // One that does not fit in what the grid leaves stays in the
+        // cartridge, and so does one whose bytecode stayed there.
+        let room = BEHIND_ROOM - code_offset(&maps[0]) - 100;
+        maps[0].pages = test_pages((room / PAGE_BYTES) as i64 + 1);
+        assert!(!pages_in_wram(&maps[0]));
+        assert!(raw_blocks(&maps[0]).unwrap()["map_pages"].is_empty());
+        let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
+        assert!(
+            written.contains("pages_0:"),
+            "it did not stay in the cartridge"
+        );
+        maps[0].pages = test_pages(3);
+        maps[0].evcode = vec![1; LZ2_CAP_CODE + 1];
+        assert!(code_in_rom(&maps[0]) && !pages_in_wram(&maps[0]));
+    }
+
+    #[test]
+    fn nothing_behind_the_grid_reaches_the_top_of_7f() {
+        use crate::materials::GRID_TOP_BYTES;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut maps = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps;
+        maps.truncate(1);
+        maps[0].evcode = vec![1; 100];
+        // A table that ends right where `GRID_TOP` starts fits; a page more
+        // stays in the cartridge.
+        let room = BEHIND_ROOM - code_offset(&maps[0]) - 100;
+        assert_eq!(BEHIND_ROOM + GRID_TOP_BYTES, crate::materials::HALF_GRID);
+        maps[0].pages = test_pages((room / PAGE_BYTES) as i64);
+        assert!(pages_in_wram(&maps[0]));
+        maps[0].pages = test_pages((room / PAGE_BYTES) as i64 + 1);
+        assert!(!pages_in_wram(&maps[0]));
+        // A bytecode that would reach it stays in the cartridge too: the
+        // block table's passability grown until the bytecode ends one byte
+        // past the room.
+        maps[0].pages = test_pages(1);
+        let pass = maps[0].block_pass.len();
+        maps[0].block_pass = vec![0; pass + room];
+        assert!(!code_in_rom(&maps[0]));
+        maps[0].block_pass.push(0);
+        assert!(code_in_rom(&maps[0]) && !pages_in_wram(&maps[0]));
+        maps[0].block_pass.truncate(pass);
+        // What does not move out and does not fit is refused, saying why.
+        let mut raw = raw_blocks(&maps[0]).unwrap();
+        raw.insert("map_ram".into(), vec![0; BEHIND_ROOM + 1]);
+        raw.insert("map_code".into(), Vec::new());
+        let error = crate::materials::check_map(1, &raw)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("GRID_TOP"), "{error}");
     }
 
     #[test]

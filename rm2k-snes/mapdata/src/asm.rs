@@ -83,9 +83,77 @@ pub fn pointer(dest: &str) -> String {
     format!("<({dest}), >({dest}), ^({dest})")
 }
 
+/// The bytes of a table this crate wrote as `.byte` and `.word` lines, when
+/// every operand is a number: decimal, `$hex`, or `<(n)`, `>(n)` and `^(n)`
+/// of one. Labels, `.block` lines and comments are skipped. It is for a
+/// table that is written once and goes either to the cartridge as text or,
+/// with its pointers already resolved, compressed into WRAM —the page
+/// table: see `page_bytes` in record.rs—, so both come out of the same
+/// lines. The error is the first operand it cannot read: a symbol, which
+/// only the linker can resolve, or a number out of range.
+pub fn numeric_bytes(text: &str) -> std::result::Result<Vec<u8>, String> {
+    fn number(s: &str) -> Option<i64> {
+        match s.strip_prefix('$') {
+            Some(hex) => i64::from_str_radix(hex, 16).ok(),
+            None => s.parse().ok(),
+        }
+    }
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let code = line.split(';').next().unwrap_or("").trim();
+        let (width, operands) = if let Some(rest) = code.strip_prefix(".byte") {
+            (1, rest)
+        } else if let Some(rest) = code.strip_prefix(".word") {
+            (2, rest)
+        } else {
+            continue;
+        };
+        for operand in operands.split(',') {
+            let operand = operand.trim();
+            let inner = |prefix: &str| {
+                operand
+                    .strip_prefix(prefix)
+                    .and_then(|r| r.strip_prefix('('))
+                    .and_then(|r| r.strip_suffix(')'))
+                    .and_then(number)
+            };
+            let value = if let Some(n) = inner("<") {
+                n & 0xFF
+            } else if let Some(n) = inner(">") {
+                (n >> 8) & 0xFF
+            } else if let Some(n) = inner("^") {
+                (n >> 16) & 0xFF
+            } else {
+                number(operand).ok_or_else(|| operand.to_string())?
+            };
+            let top = if width == 1 { 0xFF } else { 0xFFFF };
+            if !(0..=top).contains(&value) {
+                return Err(operand.to_string());
+            }
+            out.extend_from_slice(&(value as u16).to_le_bytes()[..width]);
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn numeric_lines_assemble_and_a_symbol_is_refused() {
+        let text = ".block 7\nt:\n    .word 300 ; a word\n    .byte $7F, 2\n    .byte \
+                    <($7F8123), >($7F8123), ^($7F8123)";
+        assert_eq!(
+            numeric_bytes(text),
+            Ok(vec![0x2C, 0x01, 0x7F, 2, 0x23, 0x81, 0x7F])
+        );
+        assert_eq!(
+            numeric_bytes("    .byte <(code + 3)"),
+            Err("<(code + 3)".to_string())
+        );
+        assert_eq!(numeric_bytes("    .byte 256"), Err("256".to_string()));
+    }
 
     #[test]
     fn a_block_is_declared_and_cut_every_sixteen_bytes() {
