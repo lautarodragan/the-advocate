@@ -229,7 +229,20 @@ TL_QBASE     = TL_WIN_KEY + 34
 TL_POOL      = TL_WIN_KEY + 36  ; which one is in: 0 the upper half's, 1
 TL_OTHER     = TL_WIN_KEY + 38  ; the other one's free, waiting, base, top
                                 ; and first quad, five words
-TL_END       = TL_OTHER + 10
+; The stage as a ring of `TL_COLS` slots of a column each —see
+; `tl_glyph_ring`—: the oldest slot not uploaded yet, and how many are
+; taken from it, the row being typeset's included. A row takes a slot per
+; column it inks, in the order it inks them; `TL_UP_N` of them, from the
+; oldest, belong to rows already typeset and go up in the next vblanks,
+; their pairs at `TL_UPLOAD` + 2 * slot. Not in the 512-wide mode.
+TL_RING_T    = TL_OTHER + 10
+TL_RING_N    = TL_OTHER + 12
+TL_BASE2     = TL_OTHER + 14    ; the stage byte of a letter's second column
+TL_SLOT      = TL_OTHER + 16    ; per column: its slot + 1 in this row, 0 none
+; How many pairs go up in a vblank: `TL_PAIRS_PER_VBLANK`, unless the
+; screen's own uploads leave room for more —the equipment's—.
+TL_PAIR_CAP  = TL_SLOT + TL_COLS
+TL_END       = TL_PAIR_CAP + 2
 ; A run's colour byte with this bit says it goes by reference: three bytes
 ; of address after its count, and no letters.
 TL_REF_BIT   = $80
@@ -373,6 +386,10 @@ records:
     stz TL_PEND_N
     stz TL_UP_N
     stz TL_UP_I
+    stz TL_RING_T
+    stz TL_RING_N
+    lda #TL_PAIRS_PER_VBLANK
+    sta TL_PAIR_CAP
     stz TL_RUN
     stz TL_SCAN
     stz TL_IDLE_DONE
@@ -1137,21 +1154,20 @@ pairs:
     rts
 .a16
 some:
-    ; Up to `TL_PAIRS_PER_VBLANK` from where the last vblank left off; with
-    ; the screen off, all of them.
+    ; Up to `TL_PAIR_CAP`, from the ring's oldest slot; with the screen
+    ; off, all of them. Each frees its slot.
     lda TL_SETTLE
-    beq capped
+    bne all
     lda TL_UP_N
-    bra stop
-capped:
-    lda TL_UP_I
-    clc
-    adc #TL_PAIRS_PER_VBLANK
-    cmp TL_UP_N
-    bcc stop
+    cmp TL_PAIR_CAP
+    bcc all_left
+    lda TL_PAIR_CAP
+    bra how_many
+all:
+all_left:
     lda TL_UP_N
-stop:
-    sta TL_T2                   ; where this one stops
+how_many:
+    sta TL_T2
     sep #$20
 .a8
     lda #$80
@@ -1164,12 +1180,12 @@ stop:
     sta f:A1B0
     rep #$20
 .a16
-    lda TL_UP_I
-    asl a
+slot:
+    lda TL_RING_T
     asl a
     tax
-pair:
-    lda TL_UPLOAD + 2, x        ; the pair
+    lda TL_UPLOAD, x            ; the pair; 0 if the column got none
+    beq next
     asl a
     asl a
     asl a
@@ -1178,7 +1194,7 @@ pair:
     clc
     adc TL_VRAM
     sta f:VMADDL
-    lda TL_UPLOAD, x            ; the column
+    lda TL_RING_T
     xba
     lsr a
     lsr a                       ; 64 bytes each
@@ -1193,21 +1209,15 @@ pair:
     sta f:MDMAEN
     rep #$20
 .a16
-    inx
-    inx
-    inx
-    inx
-    txa
-    lsr a
-    lsr a
-    cmp TL_T2
-    bcc pair
-    sta TL_UP_I
-    cmp TL_UP_N
-    bcc more                    ; the rest, next vblank
-    stz TL_UP_N
-    stz TL_UP_I
-more:
+next:
+    lda TL_RING_T
+    inc a
+    and #(TL_COLS - 1)
+    sta TL_RING_T
+    dec TL_RING_N
+    dec TL_UP_N
+    dec TL_T2
+    bne slot
     sep #$20
 .a8
     rts
@@ -1510,8 +1520,14 @@ late:
     jsr tl_not_new
     jsr tl_recycle
 not_switched:
+    ; In the 512-wide mode a row waits until the last one's quads went up:
+    ; its stage is one row. The other one's is a ring, and a row starts
+    ; while the last ones' tiles wait for the vblank —see `tl_glyph_ring`—.
+    lda TL_HIRES
+    beq no_wait
     lda TL_UP_N
     bne busy
+no_wait:
     lda TL_T_ROW
     cmp #$FFFF
     bne going
@@ -2209,31 +2225,15 @@ copy:
     jsl f:tl_stage_clear_hi
     bra used_none
 low:
-    ; The stage, cleared through the WRAM port: a DMA from a fixed zero.
-    lda #TL_STAGE
-    sta f:WMADDL
-    sep #$20
-.a8
-    lda #0                      ; bit 16 of the 17: 0 is bank $7E
-    sta f:WMADDH
-    lda #$08                    ; one register, the source does not move
-    sta f:DMAP0
-    lda #<WMDATA
-    sta f:BBAD0
-    lda #^tl_zero
-    sta f:A1B0
-    rep #$20
-.a16
-    lda #.loword(tl_zero)
-    sta f:A1T0L
-    lda #TL_STAGE_BYTES
-    sta f:DAS0L
-    sep #$20
-.a8
-    lda #$01
-    sta f:MDMAEN
-    rep #$20
-.a16
+    ; No column of the ring yet: each one takes a slot, cleared, when a
+    ; letter inks it —`tl_glyph_ring`—.
+    ldx #0
+no_slot:
+    stz TL_SLOT, x
+    inx
+    inx
+    cpx #TL_COLS
+    bcc no_slot
 used_none:
     ldx #0
 used:
@@ -2244,7 +2244,7 @@ used:
     bcc used
     rts
 .endproc
-.assert TL_STAGE >= $2000 && TL_STAGE + TL_STAGE_BYTES <= $10000, error, "tl_begin clears the stage through WMADD, in bank $7E"
+.assert TL_STAGE >= $2000 && TL_STAGE + TL_STAGE_BYTES <= $10000, error, "tl_stage_clear clears the stage through WMADD, in bank $7E"
 
 ; Composes the row's letters while the frame allows. Returns with carry set
 ; if the row got to its end. A16.
@@ -2300,8 +2300,22 @@ by_ref:
     bra loop
 letter:
     lda TL_LEFT
-    bne go                      ; with the screen off, no limit
+    bne room                    ; with the screen off, no limit
     jsr tl_late
+    bcc room
+    clc
+    rts
+room:
+    ; A letter takes two slots of the ring at most. If fewer are free and
+    ; some wait for the vblank, the rest of the row goes after it; if none
+    ; wait, every slot is this row's, and its columns left are no more than
+    ; the free ones.
+    lda TL_HIRES
+    bne go
+    lda TL_UP_N
+    beq go
+    lda TL_RING_N
+    cmp #(TL_COLS - 1)
     bcc go
     clc
     rts
@@ -2337,7 +2351,7 @@ normal:
     adc TL_X
     cmp TL_CLIP
     bcs advance                 ; it would paint past the screen: cut
-    jsr tl_glyph
+    jsr tl_glyph_ring
 advance:
     ldx TL_C
     lda f:font_advance, x
@@ -2389,47 +2403,174 @@ same_bank:
     rts
 .endproc
 
-; Row K of a glyph, at byte OFS of its column of the stage —rows 2 to 7 of
-; the top tile, then 0 to 6 of the bottom one, as `tl_row_ofs` says—: in
-; each of its two columns, what is kept and what is set in planes 0-1 and
-; 2-3, from the glyph's data at 12 * K. A column it does not touch is $FFFF.
-.macro tl_glyph_row K, OFS
-    lda TL_BASE
-    clc
-    adc #OFS
-    tax
-    ldy #(K * 12)
+; Row K of a glyph in one of its two columns —D 0 the first, 6 the second—,
+; at byte OFS of the column of the stage X points to —rows 2 to 7 of the top
+; tile, then 0 to 6 of the bottom one, as `tl_row_ofs` says—: what is kept
+; and what is set in planes 0-1 and 2-3, from the glyph's data at 12 * K +
+; D. A column it does not touch is $FFFF. A column at a time and not a row
+; at a time since 2026-11-17, when the two columns stopped being side by
+; side in the stage —see `tl_glyph_ring`—: X is loaded once per column and
+; not once per row.
+.macro tl_glyph_cell K, OFS, D
+    ldy #(K * 12 + D)
     lda [comp_glyph], y
     cmp #$FFFF
     beq :+
     sta TL_KEEP
-    ldy #(K * 12 + 2)
-    lda a:0, x
+    ldy #(K * 12 + D + 2)
+    lda a:OFS, x
     and TL_KEEP
     ora [comp_glyph], y
-    sta a:0, x
-    ldy #(K * 12 + 4)
-    lda a:16, x
+    sta a:OFS, x
+    ldy #(K * 12 + D + 4)
+    lda a:OFS + 16, x
     and TL_KEEP
     ora [comp_glyph], y
-    sta a:16, x
-:   ldy #(K * 12 + 6)
-    lda [comp_glyph], y
-    cmp #$FFFF
-    beq :+
-    sta TL_KEEP
-    ldy #(K * 12 + 8)
-    lda a:64, x
-    and TL_KEEP
-    ora [comp_glyph], y
-    sta a:64, x
-    ldy #(K * 12 + 10)
-    lda a:80, x
-    and TL_KEEP
-    ora [comp_glyph], y
-    sta a:80, x
+    sta a:OFS + 16, x
 :
 .endmacro
+
+.macro tl_glyph_column D
+    tl_glyph_cell 0, 4, D
+    tl_glyph_cell 1, 6, D
+    tl_glyph_cell 2, 8, D
+    tl_glyph_cell 3, 10, D
+    tl_glyph_cell 4, 12, D
+    tl_glyph_cell 5, 14, D
+    tl_glyph_cell 6, 32, D
+    tl_glyph_cell 7, 34, D
+    tl_glyph_cell 8, 36, D
+    tl_glyph_cell 9, 38, D
+    tl_glyph_cell 10, 40, D
+    tl_glyph_cell 11, 42, D
+    tl_glyph_cell 12, 44, D
+.endmacro
+
+; Letter `TL_C` at x `TL_X` into the stage as a ring, the rows' way: each
+; column it inks takes the ring's next slot the first time a letter of the
+; row inks it —`tl_slot`—, and the letter is painted there. Until
+; 2026-11-17 a row was composed on the stage at its columns' places, so the
+; next row could not start until the vblank took its tiles: a row per frame
+; at most, however short. A screen that changed eleven rows —the equipment's,
+; going back from its list— took fourteen frames to show them, and four of
+; those rows were four letters. See the task
+; `abl-the-equip-screen-s-cursor-runs-ahead-of-its-lists`. A16.
+.proc tl_glyph_ring
+.a16
+.i16
+    jsr tl_glyph_multiply
+    ; The columns it inks: the one it starts in, and the one its reach ends
+    ; in, which is the same or the next.
+    ldx TL_C
+    lda f:font_reach, x
+    and #$00FF
+    dec a
+    clc
+    adc TL_X
+    lsr a
+    lsr a
+    lsr a
+    sta TL_T0
+    lda TL_X
+    lsr a
+    lsr a
+    lsr a
+    cmp TL_T0
+    php
+    jsr tl_slot
+    sta TL_BASE
+    ; A letter that does not reach the next column brings nothing for it
+    ; —its rows come with $FFFF—, and its second base is its own, which
+    ; `tl_glyph_paint` skips.
+    sta TL_BASE2
+    plp
+    beq one
+    lda TL_T0
+    jsr tl_slot
+    sta TL_BASE2
+one:
+    jmp tl_glyph_paint
+.endproc
+
+; Column A16 of the row being typeset, inked in the run's colour: its slot of
+; the ring, taken and cleared if it had none, as its stage byte in A16. The
+; caller made sure one is free —see `tl_letters`—. A16.
+.proc tl_slot
+.a16
+.i16
+    tax
+    sep #$20
+.a8
+    lda TL_VAR
+    inc a
+    sta TL_USED, x
+    lda TL_SLOT, x
+    bne taken
+    lda TL_RING_T
+    clc
+    adc TL_RING_N
+    and #(TL_COLS - 1)
+    inc a
+    sta TL_SLOT, x
+    rep #$20
+.a16
+    inc TL_RING_N
+    and #$00FF
+    dec a
+    asl a
+    tax
+    stz TL_UPLOAD, x            ; no pair until the row is done
+    txa
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 64 bytes a slot
+    clc
+    adc #TL_STAGE
+    pha
+    tax
+    ldy #16
+clear:
+    stz a:0, x
+    stz a:2, x
+    inx
+    inx
+    inx
+    inx
+    dey
+    bne clear
+    pla
+    rts
+.a8
+taken:
+    rep #$20
+.a16
+    and #$00FF
+    dec a
+    xba
+    lsr a
+    lsr a                       ; 64 bytes a slot
+    clc
+    adc #TL_STAGE
+    rts
+.endproc
+
+; The letter's place in its phase's table starts multiplying: `RDMPYL`
+; has it some instructions later.
+.proc tl_glyph_multiply
+.a16
+.i16
+    sep #$20
+.a8
+    lda TL_C
+    sta f:WRMPYA
+    lda #FONT_PRE_CHAR
+    sta f:WRMPYB                ; starts: what follows gives it the cycles
+    rep #$20
+.a16
+    rts
+.endproc
 
 ; Letter `TL_C` at x `TL_X` into the stage, from its already composed data:
 ; `scr_pre0` to `scr_pre7`, one table per phase, built by `font_prerender`
@@ -2444,14 +2585,7 @@ same_bank:
 .proc tl_glyph
 .a16
 .i16
-    sep #$20
-.a8
-    lda TL_C
-    sta f:WRMPYA
-    lda #FONT_PRE_CHAR
-    sta f:WRMPYB                ; starts: what follows gives it the cycles
-    rep #$20
-.a16
+    jsr tl_glyph_multiply
     ; The columns it inks: the one it starts in, and the one its reach ends
     ; in, which is the same or the next.
     ldx TL_C
@@ -2490,6 +2624,14 @@ same_bank:
     clc
     adc #TL_STAGE
     sta TL_BASE
+    clc
+    adc #64
+    sta TL_BASE2                ; the next column, right after it
+.endproc
+; Paints letter `TL_C` at `TL_BASE` and `TL_BASE2`: what both entries end in.
+.proc tl_glyph_paint
+.a16
+.i16
     ; Its data: its phase's table, plus the letter times FONT_PRE_CHAR.
     lda TL_X
     and #$0007
@@ -2507,21 +2649,18 @@ same_bank:
     sta comp_glyph + 2
     rep #$20
 .a16
-    ; The thirteen rows, unrolled: each one's place in the column is a
-    ; constant, and so is where its data starts.
-    tl_glyph_row 0, 4
-    tl_glyph_row 1, 6
-    tl_glyph_row 2, 8
-    tl_glyph_row 3, 10
-    tl_glyph_row 4, 12
-    tl_glyph_row 5, 14
-    tl_glyph_row 6, 32
-    tl_glyph_row 7, 34
-    tl_glyph_row 8, 36
-    tl_glyph_row 9, 38
-    tl_glyph_row 10, 40
-    tl_glyph_row 11, 42
-    tl_glyph_row 12, 44
+    ; The thirteen rows of each column, unrolled: each one's place in the
+    ; column is a constant, and so is where its data starts. The second
+    ; column only if it is not the first —`tl_glyph_ring` says so of a
+    ; letter that stays in one—.
+    ldx TL_BASE
+    tl_glyph_column 0
+    ldx TL_BASE2
+    cpx TL_BASE
+    bne two
+    rts
+two:
+    tl_glyph_column 6
     rts
 .endproc
 .assert FONT_PRE_ROWS = 13, error, "tl_row_ofs has a place for each of the thirteen rows"
@@ -2554,10 +2693,10 @@ scr_pre_bk:
     sta TL_REL_FROM
     lda TL_T_ROW
     jsr tl_release_cols         ; leaves its first cell in TL_T2, tilemap TL_T3
-    stz TL_UP_N
-    stz TL_UP_I
     lda TL_HIRES
     beq low
+    stz TL_UP_N
+    stz TL_UP_I
     jsl f:tl_finish_hi          ; quads, from the row's pool
     rts
 low:
@@ -2609,20 +2748,20 @@ column:
     sta TL_MAP, x
     inc a
     sta TL_MAP + 64, x
-    ; And the upload: column and pair.
-    lda TL_UP_N
-    asl a
+    ; And the upload: the pair, at its column's slot of the ring.
+    lda TL_SLOT, y
+    and #$00FF
+    dec a
     asl a
     tax
-    tya
-    sta TL_UPLOAD, x
     lda TL_C
-    sta TL_UPLOAD + 2, x
-    inc TL_UP_N
+    sta TL_UPLOAD, x
 empty:
     iny
     cpy #TL_COLS
     bcc column
+    lda TL_RING_N
+    sta TL_UP_N                 ; every slot taken is a typeset row's now
     lda #1
     sta TL_MAP_DIRTY
     lda #$FFFF
@@ -3740,7 +3879,8 @@ empty:
 .endproc
 .assert ^TL_STAGE_HI = $7E || ^TL_STAGE_HI = $7F, error, "the wide stage is cleared through WMADD"
 
-; `tl_glyph_row`, for the wide stage: X is the stage byte of the glyph's first
+; Row K of a glyph, both columns, for the wide stage —`tl_glyph_cell` is
+; the other one's—: X is the stage byte of the glyph's first
 ; column of eight, and the data bank the stage's, so the layer's own words go
 ; long.
 .macro tl_glyph_row_hi K, OFS
