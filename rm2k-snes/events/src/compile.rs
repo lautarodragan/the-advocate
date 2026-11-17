@@ -891,6 +891,10 @@ struct Choice {
     cancel_body: Option<usize>,
     seen: usize,
     exits: Vec<usize>,
+    /// The question's box and its lines, when the options go under a
+    /// message's in its window: `OP_ASK` and not `OP_CHOICE`. See
+    /// [`questions`].
+    question: Option<(usize, usize)>,
 }
 
 /// An `OpenShop` with its branches, open until its `EndShop`: see
@@ -1274,6 +1278,10 @@ fn page(
     let numbers = number_inputs(commands);
     let input_after: HashMap<usize, usize> = numbers.iter().copied().collect();
     let joined: BTreeSet<usize> = numbers.iter().map(|&(_, j)| j).collect();
+    // Each `ShowMessage` a `ShowChoice` follows in its window, and the
+    // question's box once it is compiled, by the choice: see [`questions`].
+    let asks = questions(commands, &options_of);
+    let mut asked: HashMap<usize, (usize, usize)> = HashMap::new();
     let mut choices: Vec<Choice> = Vec::new();
     let mut battles: Vec<Battle> = Vec::new();
     let mut shops: Vec<Shop> = Vec::new();
@@ -1561,9 +1569,12 @@ fn page(
                 cancel_body: None,
                 seen: 0,
                 exits: vec![],
+                question: asked.remove(&i),
             });
-            // The table's room, filled in at the `ShowChoiceEnd`.
-            piece = vec![0; 3 + 4 * (options.len() + past as usize)];
+            // The table's room, filled in at the `ShowChoiceEnd`: three more
+            // bytes for the question's box and lines.
+            let asks = choices.last().unwrap().question.is_some();
+            piece = vec![0; 3 + 3 * asks as usize + 4 * (options.len() + past as usize)];
         } else if cmd.code == SHOW_CHOICE_OPTION {
             let Some(current) = choices.last_mut() else {
                 return cannot();
@@ -1605,7 +1616,18 @@ fn page(
                 return cannot();
             }
             let entries = current.n + current.past as usize;
-            let mut table = vec![OP_CHOICE, byte(entries as i64)?, byte(current.cancel)?];
+            // OP_ASK is OP_CHOICE with the question in front: its box (word)
+            // and how many lines it has (byte), under which the options go.
+            let mut table = match current.question {
+                None => vec![OP_CHOICE],
+                Some((at, lines)) => {
+                    let mut t = vec![OP_ASK];
+                    t.extend(usize_word(at)?);
+                    t.push(byte(lines as i64)?);
+                    t
+                }
+            };
+            table.extend([byte(entries as i64)?, byte(current.cancel)?]);
             for (frame, dest) in current.frames.iter().zip(&current.destinations) {
                 table.extend(usize_word(*frame)?);
                 table.extend(usize_word(dest.unwrap())?);
@@ -1786,6 +1808,21 @@ fn page(
             return cannot();
         } else if cmd.code == CALL_EVENT {
             piece = compile_call(ctx, cmd, length, depth, map_events.as_ref())?;
+        } else if let Some(&j) = asks.get(&i) {
+            // The question: its boxes but the last, as `OP_MESSAGE`s, and the
+            // last one to the choice, if its options still fit under it.
+            let mut frames = message_frames(ctx, cmd, &extra)?;
+            let (at, lines) = *frames.last().unwrap();
+            if lines + options_of[&j].len() <= CHOICE_MAX as usize {
+                asked.insert(j, (at, lines));
+                frames.pop();
+            }
+            let mut p = Vec::new();
+            for (at, _) in frames {
+                p.push(OP_MESSAGE);
+                p.extend(usize_word(at)?);
+            }
+            piece = p;
         } else if let Some(&j) = input_after.get(&i) {
             piece = compile_number(ctx, cmd, &extra, &commands[j])?;
         } else {
@@ -2323,8 +2360,8 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 ///                  opens with its boxes, and "Yes" is greyed
 ///  2  OP_IF        gold >= price, and if not, to 11
 ///  9  OP_INN 4     "Yes" is not greyed: the price is paid for
-/// 11  OP_MESSAGE   the greeting, two lines
-/// 14  OP_CHOICE    "Yes" and "No"; cancel is "No"
+/// 11  OP_ASK       the greeting, two lines, and under it "Yes" and "No";
+///                  cancel is "No"
 /// 25  OP_IF        gold >= price, and if not, to the end
 /// 32  OP_GOLD      it is charged
 /// 37  the staging, with the heal
@@ -2345,10 +2382,9 @@ fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u
 /// the choice stays: a parallel page that spends the gold while the choice
 /// is open makes it "No", where RM2k would charge what there is.
 ///
-/// What is still not RM2k's: the greeting is its own box and the choice
-/// another, as with every `ShowMessage` before a `ShowChoice` here, so the
-/// greeting waits for a key and the gold window closes between them for as
-/// long as the choice takes to compose.
+/// Until 2026-11-17 the greeting was its own box and the choice another,
+/// so the greeting waited for a key and the gold window closed between
+/// them; since then they are one, `OP_ASK`.
 ///
 /// Its three debts were paid on 2026-10-19: the staging —until then the
 /// inn healed on the spot—, the gold window and the greyed "Yes".
@@ -2393,12 +2429,14 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     out.extend(word(price)?);
     out.push(0);
     out.extend(usize_word(length + 11)?);
-    out.extend([OP_INN, INN_AFFORDED, OP_MESSAGE]);
+    // The greeting and its choice in one box, two lines and two options, as
+    // RPG_RT's `PushChoice` after `PushLine`: see [`questions`].
+    out.extend([OP_INN, INN_AFFORDED, OP_ASK]);
     out.extend(usize_word(at)?);
     // Cancel is the second option: there the default `choice_cancel_type` is
     // 5 and `inn_stay` is `choice_result == 0`, that is cancelling is not
     // staying.
-    out.extend([OP_CHOICE, 2, 2]);
+    out.extend([2, 2, 2]);
     out.extend(usize_word(frames[0])?);
     out.extend(usize_word(length + 25)?);
     out.extend(usize_word(frames[1])?);
@@ -2556,6 +2594,36 @@ fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
             commands[*i].code == SHOW_MESSAGE
                 && commands[w[1].0].code == INPUT_NUMBER
                 && 1 + extra.len() < 4
+        })
+        .map(|w| (w[0].0, w[1].0))
+        .collect()
+}
+
+/// Where a `ShowMessage` is followed by a `ShowChoice` whose options go in
+/// its window, as (the message's position, the `ShowChoice`'s).
+///
+/// It is `CommandShowMessage` again, the case before the number's: a
+/// `ShowChoice` right after the message's lines goes into the same box if
+/// its options fit in the lines the message leaves —`s_choices.size() <=
+/// 4 - pm.NumLines()`—, with no option in the editor: RPG_RT types the
+/// options under the question and the player chooses at once, with no A
+/// in between. One that does not fit is a box of its own, as it was here
+/// for every choice until 2026-11-17.
+///
+/// The lines counted are the console's —the box as the project's table
+/// rebuilt it—, which are RPG_RT's unless a translation made it longer:
+/// then the choice may stay a box of its own where RPG_RT joins it. And a
+/// face that narrows the box past the window is looked at when compiling,
+/// in the frame that goes last: see `OP_ASK` in the page's loop.
+fn questions(commands: &[Command], options_of: &HashMap<usize, Vec<(i64, String)>>) -> HashMap<usize, usize> {
+    group_boxes(commands)
+        .windows(2)
+        .filter(|w| {
+            let (i, extra) = &w[0];
+            let j = w[1].0;
+            commands[*i].code == SHOW_MESSAGE
+                && commands[j].code == SHOW_CHOICE
+                && options_of.get(&j).is_some_and(|o| !o.is_empty() && o.len() + 1 + extra.len() <= CHOICE_MAX as usize)
         })
         .map(|w| (w[0].0, w[1].0))
         .collect()
@@ -6399,49 +6467,60 @@ pub fn compile_command(
             // `bloque()` emits it with `.block`, which keeps it whole in one
             // bank. If some day it does not fit, what has to grow is the
             // pointer, not the operand.
-            let faced = ctx.box_faced();
-            let Some(messages) = ctx.messages.as_deref_mut() else {
-                // This ROM carries no window: nowhere to put it.
-                return cannot();
-            };
-            let mut lines = vec![cmd.string.clone()];
-            lines.extend_from_slice(extra);
-            // `Messages::add_waiting` removes the escape tail, since every
-            // box goes through it, and keeps the waits in the middle, the
-            // colours, the speeds and the instant text; any other escape it
-            // drops, and the loss is noted right after —see
-            // `escape_tail`—, except `\V[n]` and `\N[n]`, which come off here.
-            let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
-            // A box with a face has `FACE_TEXT_X` fewer pixels a line: it is
-            // reflowed again for them, here and not in the project's boxes
-            // table, which knows nothing of the page's face. A box that no
-            // longer fits in one window is two: one `OP_MESSAGE` each, one
-            // key press each, as a box the table splits. The marks of a
-            // name or a variable measure as a space here, about a digit.
-            if faced {
-                let window = messages.window;
-                let narrow = Window {
-                    width: window.width.saturating_sub(FACE_TEXT_X),
-                    ..window
-                }
-                .measure();
-                let mut out = Vec::new();
-                for frame in refit_measured(&lines, &narrow, window.lines) {
-                    let at = messages.add_waiting(&frame)?;
-                    out.push(OP_MESSAGE);
-                    out.extend(usize_word(at)?);
-                }
-                ctx.lose_dropped(cmd);
-                return Ok(out);
+            let mut out = Vec::new();
+            for (at, _) in message_frames(ctx, cmd, extra)? {
+                out.push(OP_MESSAGE);
+                out.extend(usize_word(at)?);
             }
-            let at = messages.add_waiting(&lines)?;
-            ctx.lose_dropped(cmd);
-            let mut out = vec![OP_MESSAGE];
-            out.extend(usize_word(at)?);
             Ok(out)
         }
         _ => cannot(),
     }
+}
+
+/// The boxes a `ShowMessage` and its `ShowMessage_2`s are stored as, in
+/// order, each as (its offset in the text block, how many lines it has):
+/// one, or more when a face narrows the window and the lines no longer
+/// fit. `OP_MESSAGE` opens each; `OP_ASK` opens the last one with the
+/// choice that follows under it —see [`questions`]—.
+fn message_frames(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<(usize, usize)>> {
+    let faced = ctx.box_faced();
+    let Some(messages) = ctx.messages.as_deref_mut() else {
+        // This ROM carries no window: nowhere to put it.
+        return cannot();
+    };
+    let mut lines = vec![cmd.string.clone()];
+    lines.extend_from_slice(extra);
+    // `Messages::add_waiting` removes the escape tail, since every
+    // box goes through it, and keeps the waits in the middle, the
+    // colours, the speeds and the instant text; any other escape it
+    // drops, and the loss is noted right after —see
+    // `escape_tail`—, except `\V[n]` and `\N[n]`, which come off here.
+    let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
+    // A box with a face has `FACE_TEXT_X` fewer pixels a line: it is
+    // reflowed again for them, here and not in the project's boxes
+    // table, which knows nothing of the page's face. A box that no
+    // longer fits in one window is two: one `OP_MESSAGE` each, one
+    // key press each, as a box the table splits. The marks of a
+    // name or a variable measure as a space here, about a digit.
+    let mut out = Vec::new();
+    if faced {
+        let window = messages.window;
+        let narrow = Window {
+            width: window.width.saturating_sub(FACE_TEXT_X),
+            ..window
+        }
+        .measure();
+        for frame in refit_measured(&lines, &narrow, window.lines) {
+            let at = messages.add_waiting(&frame)?;
+            out.push((at, frame.len().min(window.lines)));
+        }
+    } else {
+        let at = messages.add_waiting(&lines)?;
+        out.push((at, lines.len().min(messages.window.lines)));
+    }
+    ctx.lose_dropped(cmd);
+    Ok(out)
 }
 
 /// A `Teleport` to a map the cartridge does not carry, as a message box
@@ -8110,6 +8189,101 @@ mod tests {
         assert_eq!(ask(77), None);
     }
 
+    /// A box of these lines and then a choice of `options` options.
+    fn question_of(lines: &[&str], options: usize) -> Vec<Command> {
+        let mut out = Vec::new();
+        for (k, text) in lines.iter().enumerate() {
+            let code = if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 };
+            out.push(cmd(code, &[], text));
+        }
+        out.push(cmd(SHOW_CHOICE, &[0], "options"));
+        for n in 0..options {
+            out.push(Command::new(SHOW_CHOICE_OPTION, 0, &format!("Option {n}"), vec![n as i32]));
+            out.push(Command::new(END, 1, "", vec![]));
+        }
+        out.push(cmd(SHOW_CHOICE_END, &[], ""));
+        out
+    }
+
+    fn question(lines: usize, options: usize) -> Vec<Command> {
+        let texts: Vec<String> = (0..lines).map(|k| format!("Line {k}")).collect();
+        let texts: Vec<&str> = texts.iter().map(String::as_str).collect();
+        question_of(&texts, options)
+    }
+
+    #[test]
+    fn a_choice_that_fits_goes_under_its_message() {
+        // RPG_RT's `4 - pm.NumLines()`: up to four lines in all, one box.
+        for (lines, options) in [(1, 3), (2, 2), (3, 1), (1, 2)] {
+            let code = on_a_map(&question(lines, options)).unwrap();
+            assert_eq!(code[0], OP_ASK, "{lines} lines and {options} options");
+            assert_eq!(&code[3..6], [lines as u8, options as u8, 0]);
+            assert_eq!(instruction_size(&code, 0), 6 + 4 * options);
+            assert!(!instructions(&code).any(|k| code[k] == OP_MESSAGE));
+        }
+        // One that does not fit is a box of its own, after the message's.
+        for (lines, options) in [(2, 3), (3, 2), (4, 1), (1, 4)] {
+            let code = on_a_map(&question(lines, options)).unwrap();
+            assert_eq!(code[0], OP_MESSAGE, "{lines} lines and {options} options");
+            assert_eq!(&code[3..6], [OP_CHOICE, options as u8, 0]);
+        }
+        // And a choice with something between it and the message is too.
+        let mut apart = question(1, 2);
+        apart.insert(1, cmd(WAIT, &[1], ""));
+        let code = on_a_map(&apart).unwrap();
+        assert_eq!(code[0], OP_MESSAGE);
+        assert!(!instructions(&code).any(|k| code[k] == OP_ASK));
+    }
+
+    #[test]
+    fn a_question_a_face_makes_too_long_is_its_own_box() {
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let faces = Indices {
+            faces: vec![("Jack".into(), 0, false)],
+            ..Default::default()
+        };
+        let compiled = |commands: &[Command]| -> Vec<u8> {
+            let sound = SoundSettings::default();
+            let mut messages = Messages::new(1, Window::columns(39, 4));
+            let mut ctx = Ctx {
+                game: &game,
+                indices: &faces,
+                sound: &sound,
+                map_index: &|_| None,
+                messages: Some(&mut messages),
+                songs: None,
+                graphics: None,
+                pictures: None,
+                troops: None,
+                commons: None,
+                shared: None,
+                losses: Losses::default(),
+                face: None,
+                landings: None,
+                jump: None,
+                decision_key: None,
+            };
+            compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+        };
+        let long = "a".repeat(30); // one line whole, two with a face
+        // One line, two with the face, and two options: four, one box.
+        let code = compiled(&question_of(&[&long], 2));
+        assert_eq!(code[0], OP_ASK);
+        assert_eq!(code[3], 2, "the options go under the face's two lines");
+        // Two lines, four with the face: RPG_RT joins them, the console's
+        // box has no room left, and the choice is a box of its own.
+        let code = compiled(&question_of(&[&long, &long], 2));
+        assert_eq!(code[0], OP_MESSAGE);
+        assert!(instructions(&code).any(|k| code[k] == OP_CHOICE));
+        assert!(!instructions(&code).any(|k| code[k] == OP_ASK));
+        // Three lines, two boxes with the face —four and two—: the second
+        // has room for one option.
+        let code = compiled(&question_of(&[&long, &long, &long], 1));
+        let ops: Vec<u8> = instructions(&code).map(|k| code[k]).collect();
+        assert_eq!(&ops[..2], [OP_MESSAGE, OP_ASK]);
+    }
+
     #[test]
     fn cancelling_past_the_options_runs_none() {
         // Two options and `cancel_type` 4: three entries, the cancel byte
@@ -9148,9 +9322,9 @@ mod tests {
         // The gold window and "Yes" greyed, and not greyed if the price is
         // paid for: past the `OP_INN 4` when it is not.
         expected.extend([OP_INN, 3, OP_IF, COND_GOLD as u8, 5, 0, 0, 14, 0]);
-        expected.extend([OP_INN, 4, OP_MESSAGE]);
+        expected.extend([OP_INN, 4, OP_ASK]);
         expected.extend(w(greeting));
-        expected.extend([OP_CHOICE, 2, 2]); // cancelling is "No"
+        expected.extend([2, 2, 2]); // two lines; cancelling is "No"
         expected.extend(w(yes));
         expected.extend([28, 0]); // "Yes" goes to the branch
         expected.extend(w(no));

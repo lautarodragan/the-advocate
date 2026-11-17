@@ -222,6 +222,13 @@ picks:
     stz pick_active
     lda #0
     sta f:msg_open              ; and with that `flush_video` turns HDMA off
+    ; And the composer, if the options' lines are still going up —an A as
+    ; soon as they start under a question, or right after the cursor moved—:
+    ; left running, it finishes the box and `flush_video` opens the window
+    ; of a choice already picked, over the page that goes on. The same as
+    ; the `\^` in `events_tick`.
+    sta f:msg_state
+    sta f:msg_upload
     ; And the inn's gold window and grey go with the choice.
     sta f:GOLD_ON
     sta f:CHOICE_OFF
@@ -276,6 +283,8 @@ no:
     cmp #PICK_CHOICE
     bne coloured
     lda f:msg_line
+    sec
+    sbc f:pick_first            ; the option: under a question, past its lines
     jsr greyed
     bcc coloured
     ; The grey's rows where the colour's go: an option has no colour.
