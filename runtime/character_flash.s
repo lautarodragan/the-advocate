@@ -435,28 +435,44 @@ each:
 
 ; --- the flash without the tables, in FAR3 -----------------------------------
 ;
-; `palette_with_flash` without saturation, which is the case of every flash
-; in A Blurred Line. It gives exactly what the tables give —each channel is
-; `pure[(dest * a + c * (255 - a)) / 255]`, the quotient floored, which is
-; what `flash_channel_table` leaves in entry c and `build_palette` looks up—
-; but only for the sixteen colors' 48 channels, with the console's
-; multiplier and divider, and the working tables are neither built nor
-; restored. The tables did the 96 entries of the three channels, then the
-; palette through them, then put the tint-only ones back: ~40 of the frame's
-; 262 lines per flash and per frame, and a battle animation on an event
-; flashes it ten frames, three times —"Hit A", on the lamps of map 11—. See
-; tasks/abl-lazer-teeth-s-rock-lags.md.
+; `palette_with_flash` without the tables. It gives exactly what the tables
+; give —each channel is `pure[(dest * a + c * (255 - a)) / 255]`, the
+; quotient floored, which is what `flash_channel_table` leaves in entry c
+; and `build_palette` looks up—, but only for the sixteen colors' 48
+; channels, with the console's multiplier and divider, and the working
+; tables are neither built nor restored. The tables did the 96 entries of
+; the three channels, then the palette through them, then put the tint-only
+; ones back: ~40 of the frame's 262 lines per flash and per frame, and a
+; battle animation on an event flashes it ten frames, three times —"Hit
+; A", on the lamps of map 11—. See tasks/abl-lazer-teeth-s-rock-lags.md.
+;
+; **With saturation too.** `build_palette` saturates the raw color before
+; looking it up in the tables, so here c is the saturated channel: the
+; sixteen colors saturated once, kept per flash slot in `FAR_FLASH_SAT`, and
+; read instead of the ROM's. Saturating is the expensive part —three
+; products and a division per channel, ~90 lines for a palette— and with
+; the tables it ran on every frame of the flash: 124 lines, and the tick
+; overran the frame for the whole of "Hit A". It is not rare: the opening
+; leaves the screen at saturation 40 (maps 4 and 7, `TintScreen` 100, 100,
+; 100, 40) and the tint survives the doors, so taro's game reached map 11
+; like that and lost ~33 frames per stone where the harness, with a neutral
+; tint, lost 2-7.
 ;
 ; In `FAR3` because bank 0 has no room and bank 1 had too little in ABL's
 ; MSU test cartridge; the low RAM and the registers with absolute
 ; addressing, as `sand_flash` does, because the data bank is the main
 ; loop's. Enters from `paint_flash` with X on the flash slot and
-; `flash_slot`, `flash_alpha` set; with saturation it returns with carry at
-; 0 and touches nothing, and `palette_with_flash` does it with the tables.
-; Otherwise it does all of `palette_with_flash` —points the palette, builds
-; it, leaves it in `FAR_FLASH_PAL` waiting for the vblank— and returns with
-; carry at 1. The decision is in here and not in bank 0 for the bytes: the
-; tightest test cartridge had 18 left.
+; `flash_slot`, `flash_alpha` set; does all of `palette_with_flash` —points
+; the palette, builds it, leaves it in `FAR_FLASH_PAL` waiting for the
+; vblank— and returns with carry at 1.
+.pushseg
+.segment "FARBSS"
+; The saturated colors of each slot's palette, and what they were saturated
+; from: `tint_s` and the palette's three-byte address, which is ROM. Equal
+; key, same colors: a tint that changes the saturation mid-flash is seen.
+FAR_FLASH_SAT: .res FLASH_MAX * 32
+FAR_FLASH_SAT_KEY: .res FLASH_MAX * 4
+.popseg
 .pushseg
 .segment "FAR3"
 
@@ -507,12 +523,6 @@ each:
 .proc flash_direct
 .a8
 .i16
-    lda tint_s
-    cmp #TINT_NEUTRAL
-    beq neutral
-    clc                         ; with saturation: the tables, in bank 0
-    rtl
-neutral:
     stx flash_slot_ofs
     ; The character's palette, pointed as `palette_with_flash` does: sixteen
     ; colors, and in CGRAM the upper half starts at color 128.
@@ -548,6 +558,11 @@ neutral:
     sep #$20
 .a8
     sta tint_cgadd
+    lda tint_s
+    cmp #TINT_NEUTRAL
+    beq unsaturated
+    jsr saturated_colors        ; `tint_ptr` to them
+unsaturated:
     ; dest * a for each channel, once: `sat_r`, `sat_g` and `sat_b` are
     ; `build_palette`'s, which does not run on this path.
     ldx flash_slot_ofs
@@ -659,5 +674,131 @@ copy:
     sta flash_ev + 7, x         ; and it is left waiting for the vblank
     sec
     rtl
+.endproc
+
+; The sixteen colors at `tint_ptr` saturated as `build_palette` does it,
+; and `tint_ptr` pointed at them: from any slot's cache that holds them, and
+; if none does, saturated into this slot's. Any slot's and not only its own
+; because a "Hit A" flashes the same palette three times and each flash may
+; take another slot: with only its own, each one saturated again, ~125 lines.
+.proc saturated_colors
+.a8
+.i16
+    ldx #(FLASH_MAX - 1) * 4
+look:
+    lda tint_s
+    cmp f:FAR_FLASH_SAT_KEY, x
+    bne other
+    lda tint_ptr
+    cmp f:FAR_FLASH_SAT_KEY + 1, x
+    bne other
+    lda tint_ptr + 1
+    cmp f:FAR_FLASH_SAT_KEY + 2, x
+    bne other
+    lda tint_ptr + 2
+    cmp f:FAR_FLASH_SAT_KEY + 3, x
+    bne other
+    jmp found
+other:
+    dex
+    dex
+    dex
+    dex
+    bpl look
+    rep #$20
+.a16
+    lda flash_slot_ofs
+    lsr a                       ; from eight bytes per slot to four
+    tax
+    sep #$20
+.a8
+    lda tint_s
+    sta f:FAR_FLASH_SAT_KEY, x
+    lda tint_ptr
+    sta f:FAR_FLASH_SAT_KEY + 1, x
+    lda tint_ptr + 1
+    sta f:FAR_FLASH_SAT_KEY + 2, x
+    lda tint_ptr + 2
+    sta f:FAR_FLASH_SAT_KEY + 3, x
+    rep #$20
+.a16
+    lda flash_slot_ofs
+    asl a
+    asl a                       ; from eight bytes per slot to thirty-two
+    tax
+    ldy #$0000
+each:
+    ; The channels as `build_palette` leaves them for `saturate_color`.
+    lda [tint_ptr], y
+    sta temp
+    and #$001F
+    sta sat_r
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F
+    sta sat_g
+    lda temp
+    xba
+    lsr a
+    lsr a
+    and #$001F
+    sta sat_b
+    sep #$20
+.a8
+    phx
+    phy
+    CALL0 saturate_color        ; at most 31 each, the high bytes at zero
+    ply
+    plx
+    rep #$20
+.a16
+    lda sat_g
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    ora sat_r
+    sta temp
+    lda sat_b
+    xba
+    asl a
+    asl a                       ; to bits 10 to 14
+    ora temp
+    sta f:FAR_FLASH_SAT, x
+    inx
+    inx
+    iny
+    iny
+    cpy #32
+    bne each
+    sep #$20
+.a8
+    rep #$20
+.a16
+    lda flash_slot_ofs
+    lsr a                       ; back to the key's offset
+    tax
+    sep #$20
+.a8
+found:
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a                       ; from four bytes per key to thirty-two
+    clc
+    adc #.loword(FAR_FLASH_SAT)
+    sta tint_ptr
+    sep #$20
+.a8
+    lda #^FAR_FLASH_SAT
+    sta tint_ptr + 2
+    rts
 .endproc
 .popseg
