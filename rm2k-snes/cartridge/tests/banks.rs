@@ -648,7 +648,10 @@ fn what_goes_only_in_the_msu_goes_before_the_halving_picks() {
     }];
     let (out, packing, _) = with_msu(&text, &half, 512).unwrap();
     assert_eq!((packing.spilled, packing.spilled_bytes), (1, 20000));
-    assert!(out.contains("font = $3D0001") && out.contains("big:"), "{out}");
+    assert!(
+        out.contains("font = $3D0001") && out.contains("big:"),
+        "{out}"
+    );
 }
 
 #[test]

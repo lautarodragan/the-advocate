@@ -134,7 +134,9 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
     let mut glyphs = None;
     for (phase, data) in phases.iter().enumerate() {
         let data = bytes(data)?;
-        if data.len() % FONT_PRE_CHAR != 0 || glyphs.is_some_and(|g| g != data.len() / FONT_PRE_CHAR) {
+        if data.len() % FONT_PRE_CHAR != 0
+            || glyphs.is_some_and(|g| g != data.len() / FONT_PRE_CHAR)
+        {
             return Err(Bad::answer(format!(
                 "the debug screen's phase {phase} is {} bytes, not a letter's {FONT_PRE_CHAR} \
                  times as many letters as the others",

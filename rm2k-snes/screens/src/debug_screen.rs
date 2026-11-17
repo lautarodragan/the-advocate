@@ -549,7 +549,10 @@ pub fn publish(b: &Built) -> Value {
         ("DBG_PAGES", pages(b.switches) + pages(b.variables)),
         // The longest page's block: what the screen loads into WRAM, see
         // [`pages`].
-        ("DBG_PAGE_MAX", b.pages.iter().map(Vec::len).max().unwrap_or(0)),
+        (
+            "DBG_PAGE_MAX",
+            b.pages.iter().map(Vec::len).max().unwrap_or(0),
+        ),
         ("DBG_ROWS", DBG_ROWS),
         ("DBG_ROW0", DBG_ROW0),
         ("DBG_CGRAM", DBG_CGRAM),

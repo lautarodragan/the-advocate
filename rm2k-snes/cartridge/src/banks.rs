@@ -710,11 +710,8 @@ pub fn pack_with_msu(
             .collect();
         candidates.sort_by_key(|&k| (std::cmp::Reverse(pieces[k].fit_size()), pieces[k].order));
         let without = |count: usize| -> Vec<&Piece> {
-            let out: std::collections::HashSet<usize> = candidates[..count]
-                .iter()
-                .chain(&only)
-                .copied()
-                .collect();
+            let out: std::collections::HashSet<usize> =
+                candidates[..count].iter().chain(&only).copied().collect();
             pieces.iter().filter(|p| !out.contains(&p.order)).collect()
         };
         let count = if everything {
