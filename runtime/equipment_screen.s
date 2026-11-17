@@ -905,6 +905,7 @@ empty:
 .pushseg
 .segment "BSS"
 eq_bar_row: .res 1
+eq_bar_drawn: .res 1            ; and where it is on screen, $FF nowhere yet
 .popseg
 
 ; The bar to the cursor's place.
@@ -926,15 +927,23 @@ set:
     rts
 .endproc
 
-; The BG1 windows under the bar, and the bar: in each frame's vblank, behind
-; the text. The rows of the bottom window are uploaded without the cursor
-; —`EQ_BORDER_TEXT_N` rows of cells— and on top the cursor's two with the bar,
-; from `eq_border_bars`, at `eq_bar_row`. Without remembering where it was:
-; each frame restores everything, so the bar cannot end up painted in two
-; places. It is 768 bytes, some five vblank lines on top of the text's ten.
+; The BG1 windows under the bar, and the bar: in the vblank, behind the
+; text, when `eq_bar_row` is not where it is drawn. The rows of the bottom
+; window are uploaded without the cursor —`EQ_BORDER_TEXT_N` rows of cells—
+; and on top the cursor's two with the bar, from `eq_border_bars`. Without
+; remembering what it covered: it restores everything, so the bar cannot end
+; up painted in two places. It is 768 bytes, some five vblank lines; until
+; 2026-11-17 they went every frame, and now the frames they do not go in
+; carry more of the text's tiles —see `equipment_screen`—.
 .proc eq_bar
 .a8
 .i16
+    lda eq_bar_row
+    cmp eq_bar_drawn
+    bne draw
+    rts
+draw:
+    sta eq_bar_drawn
     lda #$80
     sta VMAIN
     rep #$20
@@ -1003,8 +1012,24 @@ row:
     stz HDMAEN
     stz TM
     jsl f:eq_screen_upload
+    ; The bar goes up only in the vblank it moves in, which is one the text's
+    ; tilemap goes up in or one with nothing of the text, never one with its
+    ; tiles —`tl_settled`—: those can take its 768 bytes, twelve pairs. Eight
+    ; of them, so that a vblank with tiles stays under one that had sixteen
+    ; and the bar, which was measured to fit; a row goes up in one more often.
+    ; Measured on 2026-11-17 with a line counter put in the loop for a while:
+    ; the loop's uploads end by line 254 of the 261, in every transition of
+    ; `test_menu_equipment_frames_drawing.py`.
+    rep #$20
+.a16
+    lda #(TL_PAIRS_PER_VBLANK + 8)
+    sta f:$7E0000 + TL_PAIR_CAP
+    sep #$20
+.a8
     jsr eq_compose
     jsl f:ba_t_upload           ; with the screen off, all of it
+    lda #$FF
+    sta eq_bar_drawn
     jsr eq_bar_follow
     jsr eq_bar
     jsl f:items_ppu_on          ; BG2 and BG1, the windows
