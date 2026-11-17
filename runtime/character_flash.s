@@ -187,9 +187,9 @@ still:
     sta flash_slot
     sep #$20
 .a8
-    ; Without saturation, in bank 1 and without the tables: see
+    ; Without saturation, in `FAR3` and without the tables: see
     ; `flash_direct`. With carry at 1 it is done.
-    jsl f:flash_direct + FAST
+    jsl f:flash_direct
     bcs ready
     jsr palette_with_flash
 ready:
@@ -433,7 +433,7 @@ each:
 .endproc
 .assert table_g = table_r + 32 && table_b = table_r + 64, error, "flash_channel_table indexes all three from table_r"
 
-; --- the flash without the tables, in bank 1 ----------------------------------
+; --- the flash without the tables, in FAR3 -----------------------------------
 ;
 ; `palette_with_flash` without saturation, which is the case of every flash
 ; in A Blurred Line. It gives exactly what the tables give —each channel is
@@ -447,9 +447,10 @@ each:
 ; flashes it ten frames, three times —"Hit A", on the lamps of map 11—. See
 ; tasks/abl-lazer-teeth-s-rock-lags.md.
 ;
-; In bank 1 because bank 0 has no room; the low RAM and the registers with
-; absolute addressing, as `sand_flash` does, because the data bank is the
-; main loop's. Enters from `paint_flash` with X on the flash slot and
+; In `FAR3` because bank 0 has no room and bank 1 had too little in ABL's
+; MSU test cartridge; the low RAM and the registers with absolute
+; addressing, as `sand_flash` does, because the data bank is the main
+; loop's. Enters from `paint_flash` with X on the flash slot and
 ; `flash_slot`, `flash_alpha` set; with saturation it returns with carry at
 ; 0 and touches nothing, and `palette_with_flash` does it with the tables.
 ; Otherwise it does all of `palette_with_flash` —points the palette, builds
@@ -457,7 +458,7 @@ each:
 ; carry at 1. The decision is in here and not in bank 0 for the bytes: the
 ; tightest test cartridge had 18 left.
 .pushseg
-.segment "FAR"
+.segment "FAR3"
 
 ; One channel of the color in `temp`, already shifted down and masked in A
 ; (sixteen bits): blended toward the flash, looked up in `pure` at `table`,
