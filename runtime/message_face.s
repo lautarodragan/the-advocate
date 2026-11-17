@@ -39,6 +39,9 @@
 ; whose game names no face carries `MESSAGE_FACES = 0` and an empty pointer
 ; table: the code assembles the same, and `MSG_FACE` stays at none.
 
+; A side's cells in the tilemap, both planes: see `face_cells_fill`.
+FACE_CELLS_BYTES = 2 * 6 * 6 * 2
+
 .pushseg
 .segment "FARBSS"
 ; The face RM2k's `Game_System` would hold: its place in `message_face_ptr`,
@@ -51,7 +54,15 @@ MSG_FACE_RIGHT: .res 1
 ; the face's fifteen colours, then the map's fifteen back. The tables that
 ; point here are in ROM, one per window position: see `face_table`.
 MSG_FACE_DATA: .res 2 * 15 * 4
+; The cells `face_cells` writes in the vblank, composed before it by
+; `face_cells_fill`: the side that was, back to palette 0, and the side
+; that is, in palette 1. Six rows of six words per plane, both planes.
+FACE_CLEAR_BUF: .res FACE_CELLS_BYTES
+FACE_SET_BUF:   .res FACE_CELLS_BYTES
 .popseg
+.assert FACE_SET_BUF = FACE_CLEAR_BUF + FACE_CELLS_BYTES, lderror, "the face's two cell buffers go one after the other"
+.assert ^FACE_CLEAR_BUF = ^(FACE_SET_BUF + FACE_CELLS_BYTES - 1), lderror, "the face's cell buffers do not cross a bank: one DMA bank byte"
+
 .pushseg
 .segment "BSS"
 ; What the box being composed draws, decided when it opens: 0 none, 1 a face
@@ -76,6 +87,7 @@ MSG_CELLS_PTR: .res 3
 ; row being copied or the colour entry being written.
 MSG_FACE_BITS: .res 2
 MSG_FACE_CELL: .res 2
+MSG_FACE_DST:  .res 2           ; where in the cells' buffer
 MSG_FACE_STEP: .res 1
 .popseg
 
@@ -211,6 +223,43 @@ none:
     lda #0
 store:
     sta f:MSG_FACE_DRAW
+.if ::MESSAGE_FACES > 0
+    ; The cells the vblank will write, composed now, out of it: see
+    ; `face_cells`. Keeps X and Y.
+    phx
+    phy
+    ; The side that was, if another or none is coming...
+    lda f:MSG_FACE_SHOWN
+    beq no_clear
+    cmp f:MSG_FACE_DRAW
+    beq no_clear
+    rep #$20
+.a16
+    lda #0
+    sta f:MSG_FACE_BITS
+    sep #$20
+.a8
+    ldy #0                      ; FACE_CLEAR_BUF
+    lda f:MSG_FACE_SHOWN
+    jsr face_cells_fill
+no_clear:
+    ; ...and the side that is, always: a map's window stamped again between
+    ; now and the vblank says no face is up, and the cells are written then.
+    lda f:MSG_FACE_DRAW
+    beq no_set
+    rep #$20
+.a16
+    lda #FACE_PALETTE_BIT
+    sta f:MSG_FACE_BITS
+    sep #$20
+.a8
+    ldy #FACE_CELLS_BYTES       ; FACE_SET_BUF
+    lda f:MSG_FACE_DRAW
+    jsr face_cells_fill
+no_set:
+    ply
+    plx
+.endif
     rtl
 .endproc
 
@@ -636,7 +685,10 @@ first_row:
 ; three are done before it shows. **One side per vblank on purpose**: the
 ; line's 1920-byte DMA is already in it, and the 72 words of both sides on
 ; top of it ran past the vblank's end on the meadow, where the second side
-; was lost and the face came out in the text's colours (2026-10-15).
+; was lost and the face came out in the text's colours (2026-10-15). And
+; one side alone still did, when the line went up late: since 2026-11-17
+; the words are composed before the vblank and go up by DMA, a line or two
+; —see `face_cells_fill`—.
 .proc msg_face_vblank
 .a8
 .i16
@@ -672,14 +724,7 @@ clear_old:
     beq cleared
     cmp f:MSG_FACE_DRAW
     beq cleared
-    pha
-    rep #$20
-.a16
-    lda #0
-    sta f:MSG_FACE_BITS
-    sep #$20
-.a8
-    pla
+    ldy #0                      ; FACE_CLEAR_BUF
     jsr face_cells
     lda #0
     sta f:MSG_FACE_SHOWN
@@ -693,14 +738,7 @@ set_new:
     beq set
     cmp f:MSG_FACE_SHOWN
     beq set
-    pha
-    rep #$20
-.a16
-    lda #FACE_PALETTE_BIT
-    sta f:MSG_FACE_BITS
-    sep #$20
-.a8
-    pla
+    ldy #FACE_CELLS_BYTES       ; FACE_SET_BUF
     jsr face_cells
     lda f:MSG_FACE_DRAW
     sta f:MSG_FACE_SHOWN
@@ -710,13 +748,27 @@ set:
     rtl
 .endproc
 
-; The 36 cells of side A —1 left, 2 right— in the window's tilemap, both
-; planes, written again from the ROM's cells with `MSG_FACE_BITS` in: six
-; rows of six words each, the second plane `TEXT_WINDOW_ROWS` rows below.
-; With the screen off or in the vblank, like any VRAM write.
-.proc face_cells
+; The 36 cells of side A —1 left, 2 right— of the window's tilemap, both
+; planes, from the ROM's cells with `MSG_FACE_BITS` in, into the buffers
+; at Y —0 the clearing one, `FACE_CELLS_BYTES` the setting one—: six rows
+; of six words each, the second plane's after the first's. Out of the
+; vblank, when a box opens —`msg_face_begin`—: it is some twenty lines of
+; CPU, which in the vblank, after a line's 1920-byte DMA, ran past its end. snes9x takes a write that late and Mesen and the
+; console do not: the last cells of a face's side kept palette 1, a brown
+; L at the window's lower right on Zounds' ship (2026-11-17, see
+; `tasks/a-message-and-the-choice-after-it-share-a-box-in-rm2k.md` in the
+; tasks repository).
+.proc face_cells_fill
 .a8
 .i16
+    pha                         ; the side
+    rep #$20
+.a16
+    tya
+    sta f:MSG_FACE_DST
+    sep #$20
+.a8
+    pla
     jsr face_column
     rep #$20
 .a16
@@ -730,18 +782,10 @@ set:
 .a8
     lda f:MSG_CELLS_PTR + 2
     sta temp + 2
-    lda #$80
-    sta VMAIN                   ; a word at a time
     ldx #0                      ; the row, 0 to 11 across both planes
 row:
     rep #$20
 .a16
-    lda f:MSG_SC
-    and #$00FF
-    xba                         ; the tilemap's word address: its high byte
-    clc
-    adc f:MSG_FACE_CELL
-    sta VMADDL
     lda f:MSG_FACE_CELL
     asl a
     tay                         ; the cell's bytes in the ROM's cells
@@ -755,7 +799,17 @@ cell:
     lda [temp], y
     and #.loword(~(FACE_PALETTE_BIT * 7))
     ora f:MSG_FACE_BITS
-    sta VMDATAL
+    phx
+    pha
+    lda f:MSG_FACE_DST
+    tax
+    pla
+    sta f:FACE_CLEAR_BUF, x
+    inx
+    inx
+    txa
+    sta f:MSG_FACE_DST
+    plx
     iny
     iny
     sep #$20
@@ -764,8 +818,18 @@ cell:
     dec a
     sta f:MSG_FACE_STEP
     bne cell
-    ; The next row: 32 words on, or over to the second plane after the
-    ; sixth.
+    jsr face_next_row
+    inx
+    cpx #12
+    bcc row
+    rts
+.endproc
+
+; The face's cell `MSG_FACE_CELL` to the next row's: 32 words on, or over to
+; the second plane after the sixth, with X the row just done.
+.proc face_next_row
+.a8
+.i16
     rep #$20
 .a16
     lda f:MSG_FACE_CELL
@@ -778,6 +842,64 @@ same_plane:
     sta f:MSG_FACE_CELL
     sep #$20
 .a8
+    rts
+.endproc
+
+; In the vblank: the 36 cells of side A, both planes, from the buffer at Y
+; —as `face_cells_fill`'s— where it left them. Twelve DMAs of six words, a line or two.
+.proc face_cells
+.a8
+.i16
+    pha                         ; the side
+    rep #$20
+.a16
+    tya
+    sta f:MSG_FACE_DST
+    sep #$20
+.a8
+    pla
+    jsr face_column
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #FACE_CELL0
+    sta f:MSG_FACE_CELL
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN                   ; a word at a time
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #^FACE_CLEAR_BUF
+    sta A1B0
+    ldx #0
+row:
+    rep #$20
+.a16
+    lda f:MSG_SC
+    and #$00FF
+    xba                         ; the tilemap's word address: its high byte
+    clc
+    adc f:MSG_FACE_CELL
+    sta VMADDL
+    lda f:MSG_FACE_DST
+    clc
+    adc #.loword(FACE_CLEAR_BUF)
+    sta A1T0L
+    lda f:MSG_FACE_DST
+    clc
+    adc #12
+    sta f:MSG_FACE_DST
+    lda #12
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    jsr face_next_row
     inx
     cpx #12
     bcc row
