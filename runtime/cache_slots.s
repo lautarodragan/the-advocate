@@ -46,8 +46,9 @@
 ; A row that gets a slot is not drawn in the frame that queues its pose but
 ; in the next, with the pose up, like shared_poses.s; and the first frame of
 ; a map goes through `build_oam_settled`, which uploads with the screen off
-; until nobody is missing. The one facing the hero is drawn from the turn
-; slot and does not ask: see `turn_fire`.
+; until nobody is missing. A still one facing the hero is drawn from the
+; turn slot and does not ask; one that walks turns in its own: see
+; `turn_fire`.
 ;
 ; Whether the map has a cache is bit 7 of `SHARE_N`, so that `place_npc`
 ; looks at a single byte for both: no map has both, because the cache is
@@ -148,8 +149,14 @@ keep:
     txy                         ; Y: the row, until the upload
     lda npc_buf + 8, y          ; its event
     sta f:CACHE_T_EV
-    ; The one facing the hero is in the turn slot, which its row points at.
+    ; The one facing the hero is in the turn slot, which its row points at,
+    ; if it is a still one: one that walks or animates turns in its own
+    ; slot —`turn_apply`—, and its row's tile is nobody's. Taking it drew
+    ; Arden as the hero on map 38: tile 0 is his.
     cmp f:TURN_EV
+    bne asks
+    lda npc_buf + 9, y
+    cmp #NPC_STILL
     bne asks
     lda npc_buf + 6, y
     sta obj_tile
