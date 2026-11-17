@@ -223,7 +223,7 @@ sum:
     ; SPC700 stream on seeing it at zero. It is caught by
     ; `test_the_saved_game_comes_back_with_its_song`.
 .if ::DEBUG_SCREEN
-    jsr dbg_unforce           ; the game's tint and timer, not the debug
+    jsl f:dbg_unforce          ; the game's tint and timer, not the debug
 .endif                          ; screen's: see debug_switches.s
     php
     sei
@@ -239,7 +239,7 @@ copy:
     sta music_off
     plp
 .if ::DEBUG_SCREEN
-    jsr dbg_force
+    jsl f:dbg_force
 .endif
     ; What was copied has to be what `SAVE_BYTES` says. Otherwise the sum
     ; would look at another stretch and the slot would stay invalid forever

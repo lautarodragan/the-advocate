@@ -40,7 +40,7 @@
 ; **What it costs**: nothing per frame. The forced state is the game's own
 ; off state, so the main loop does not ask; the three hooks run only when a
 ; page asks for a tint, a timer or a weather, and each is a `jsl` —four
-; bytes— in bank 0. The rest lives in `FAR3`, and only with the debug screen
+; bytes— in bank 0. The rest lives in `FAR2`, and only with the debug screen
 ; —`[debug] debug_screen`—: without it this file assembles nothing.
 
 .if ::DEBUG_SCREEN
@@ -64,8 +64,10 @@ DBG_KEPT_TINT    = dbg_kept + 0
 DBG_KEPT_TIMER   = dbg_kept + 4
 DBG_KEPT_WEATHER = dbg_kept + 5
 
+; In `FAR2`, not in `FAR3` with the screen: Zounds' `FAR3` had no room for
+; it. So what the screen and `save_game` call here is a `jsl`.
 .pushseg
-.segment "FAR3"
+.segment "FAR2"
 .a8
 .i16
 
@@ -237,7 +239,7 @@ tint_done:
     beq done
     jsr timer_back
 done:
-    rts
+    rtl
 .endproc
 
 .proc dbg_force
@@ -253,7 +255,7 @@ tint_done:
     beq done
     jsr timer_off
 done:
-    rts
+    rtl
 .endproc
 
 ; --- the page -----------------------------------------------------------------
@@ -281,21 +283,27 @@ done:
     beq tint_now_off
     cmp #1
     beq timer_now_off
-    jmp weather_off
+    jsr weather_off
+    rtl
 tint_now_off:
-    jmp tint_off
+    jsr tint_off
+    rtl
 timer_now_off:
-    jmp timer_off
+    jsr timer_off
+    rtl
 back:
     txa
     beq tint_now_back
     cmp #1
     beq timer_now_back
-    jmp weather_back
+    jsr weather_back
+    rtl
 tint_now_back:
-    jmp tint_back
+    jsr tint_back
+    rtl
 timer_now_back:
-    jmp timer_back
+    jsr timer_back
+    rtl
 .endproc
 
 ; Carry set if row A is forced off. Clobbers A and X.
@@ -311,7 +319,7 @@ timer_now_back:
     lda f:dbg_off_bits, x
     and f:dbg_off
     cmp #1                      ; a bit at all: carry set
-    rts
+    rtl
 .endproc
 
 ; Row A's name, a length and its letters: X its offset in `dbg_off_names`.
@@ -332,7 +340,7 @@ timer_now_back:
     tax
     sep #$20
 .a8
-    rts
+    rtl
 .endproc
 
 dbg_off_bits:

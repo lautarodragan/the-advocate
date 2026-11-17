@@ -736,7 +736,8 @@ none:
     cmp #DBG_KIND_OFF
     bne the_game_s
     lda f:DBG_ROW
-    jmp dbg_off_flip
+    jsl f:dbg_off_flip
+    rts
 the_game_s:
     jsr cursor_number
 .a16
@@ -1221,7 +1222,7 @@ state_row:
     ldy #DBG_NAME_COL
     jsr at
     lda 3, s                    ; the row, under the number
-    jsr dbg_off_name
+    jsl f:dbg_off_name
     lda f:dbg_off_names, x
     sta f:DBG_T1                ; how many letters
 name_letter:
@@ -1241,7 +1242,7 @@ name_letter:
     sep #$20
 .a8
     lda 1, s                    ; and the row
-    jsr dbg_off_is
+    jsl f:dbg_off_is
     bcs state_off_row
     jmp on
 state_off_row:
