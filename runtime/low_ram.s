@@ -352,11 +352,9 @@ FLASH_STRIDE = 8
 FLASH_FREE = $FF
 flash_ev:  .res FLASH_MAX * FLASH_STRIDE
 ; What `palette_with_flash` needs while it builds the tables.
-flash_dest: .res 1
 flash_alpha: .res 1
 flash_slot: .res 2
 flash_slot_ofs: .res 2
-flash_partial: .res 2
 
 ; The cell being queried, for `cell_ptr` and `cell_allowed`. It goes here
 ; and not in the direct page because it is read with absolute addressing,
@@ -668,7 +666,6 @@ table_b:  .res 32
 ; in a single array —red at 0, green at 32 and blue at 64— so they can be
 ; indexed with an offset; the caller says which.
 pure:     .res 96
-pure_ofs: .res 2
 
 ; And the tinted palette is built here before uploading it. You cannot tint in
 ; CGRAM by reading it and writing it back: a second tint would compound with
