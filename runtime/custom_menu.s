@@ -196,13 +196,19 @@ hidden:
     jsr put
     lda #MENU_END
     jsr put
-    ; The debug screen's, the last command and the last row, always shown:
-    ; see debug_screen.s. Last so that no other row moves —the tests walk
-    ; to Save and End Game by rows—, and a cartridge without it assembles
-    ; none of this.
+    ; The debug screen's, the last command and the last row: see
+    ; debug_screen.s. Last so that no other row moves —the tests walk to
+    ; Save and End Game by rows—, and a cartridge without it assembles none
+    ; of this. Only with the MSU-1 and this build's `.msu`, where the
+    ; screen's font and names are: `dbg_available`.
 .if ::DEBUG_SCREEN
+    phy
+    jsl f:dbg_available
+    ply
+    bcc no_debug
     lda #(MENU_OPTIONS + CM_MENUS)
     jsr put
+no_debug:
 .endif
     tya
     sta f:CM_ROWS

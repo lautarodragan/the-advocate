@@ -310,6 +310,8 @@ struct Piece {
     align: usize,
     /// Whether its emitter marked it with `.msu`: see [`pack_with_msu`].
     msu: bool,
+    /// Whether it marked it with `.msu_only`: it goes to the `.msu` always.
+    only: bool,
 }
 
 impl Piece {
@@ -322,6 +324,7 @@ impl Piece {
             size: 0,
             align: 1,
             msu: false,
+            only: false,
         }
     }
 
@@ -488,6 +491,14 @@ fn constant(directive: &str) -> Option<(&str, &str)> {
 /// the assembler. Where the files do not say `MSU_REQUIRED`, the mark is
 /// ignored and the piece is packed like any other.
 ///
+/// **A piece marked `.msu_only` goes always**, in any cartridge, whether
+/// it needs the MSU-1 or not: what its emitter says is that the ROM reads
+/// it only when it found the MSU-1 and this build's `.msu`, and does
+/// without it otherwise —the debug screen's font and names, see
+/// `debug_screen.s` in the runtime—. Then the region exists in a
+/// cartridge that does not say `MSU_REQUIRED`, with only those pieces, and
+/// the other marks are still ignored there.
+///
 /// **Which ones go**: the fewest that make the rest fit, taking the largest
 /// first. The candidates are sorted from the largest to the smallest, and
 /// the count is the smallest for which the packing succeeds, found by
@@ -521,8 +532,9 @@ pub fn pack_with_msu(
         // Indices into `pieces` and `labels`.
         let mut piece: Option<usize> = None;
         let mut current_label: Option<usize> = None;
-        // A `.msu` waiting for its `.block`.
+        // A `.msu` or a `.msu_only` waiting for its `.block`.
         let mut msu_next = false;
+        let mut only_next = false;
         for line in split_lines(text) {
             let directive = code(line);
             match constant(directive) {
@@ -531,14 +543,19 @@ pub fn pack_with_msu(
                 Some((SPILL_AT, _)) => packed_before = true,
                 _ => {}
             }
-            if msu_next && !directive.is_empty() && !directive.starts_with(".block ") {
+            if (msu_next || only_next) && !directive.is_empty() && !directive.starts_with(".block ")
+            {
                 return Err(format!(
-                    "{name}: a `.msu` that is not right before a `.block`: {:?}",
+                    "{name}: a `.msu` or `.msu_only` that is not right before a `.block`: {:?}",
                     line.trim()
                 ));
             }
             if directive == ".msu" && current.as_deref() == Some(SEGMENT) {
                 msu_next = true;
+                continue;
+            }
+            if directive == ".msu_only" && current.as_deref() == Some(SEGMENT) {
+                only_next = true;
                 continue;
             }
             if directive.starts_with(".segment") {
@@ -568,6 +585,7 @@ pub fn pack_with_msu(
                 }
                 pieces[piece.unwrap()].asks = covers;
                 pieces[piece.unwrap()].msu = std::mem::take(&mut msu_next);
+                pieces[piece.unwrap()].only = std::mem::take(&mut only_next);
                 continue;
             }
             if directive == ".crossbank" {
@@ -624,7 +642,10 @@ pub fn pack_with_msu(
             .iter()
             .filter(|l| {
                 let d = code(l);
-                d.starts_with(".block") || d.starts_with(".crossbank") || d == ".msu"
+                d.starts_with(".block")
+                    || d.starts_with(".crossbank")
+                    || d == ".msu"
+                    || d == ".msu_only"
             })
             .collect();
         if let Some(first) = leaked.first() {
@@ -653,11 +674,20 @@ pub fn pack_with_msu(
     let mut spill = None;
     let mut spilled_bytes = 0;
     let mut gone: Vec<usize> = Vec::new();
-    if required && !packed_before {
+    let only: Vec<usize> = (0..pieces.len()).filter(|&k| pieces[k].only).collect();
+    if (required || !only.is_empty()) && !packed_before {
         let start = msu_start.ok_or_else(|| {
-            "the cartridge needs the MSU-1 (MSU_REQUIRED) and there is no .msu with data \
-             next to the ROM to put what does not fit in"
-                .to_string()
+            if required {
+                "the cartridge needs the MSU-1 (MSU_REQUIRED) and there is no .msu with data \
+                 next to the ROM to put what does not fit in"
+                    .to_string()
+            } else {
+                format!(
+                    "{} piece(s) go only in the .msu (`.msu_only`) and there is no .msu with \
+                     data next to the ROM to put them in",
+                    only.len()
+                )
+            }
         })?;
         if start % crate::msu::UNIT != 0 {
             return Err(format!(
@@ -673,11 +703,18 @@ pub fn pack_with_msu(
         piece.lines = signature_lines(&[0; crate::msu::SIGNATURE]);
         pieces.push(piece);
 
-        let mut candidates: Vec<usize> = (0..pieces.len()).filter(|&k| pieces[k].msu).collect();
+        // What `.msu` marks is a candidate only where the cartridge needs
+        // the MSU-1; what `.msu_only` marks goes whatever the count.
+        let mut candidates: Vec<usize> = (0..pieces.len())
+            .filter(|&k| required && pieces[k].msu && !pieces[k].only)
+            .collect();
         candidates.sort_by_key(|&k| (std::cmp::Reverse(pieces[k].fit_size()), pieces[k].order));
         let without = |count: usize| -> Vec<&Piece> {
-            let out: std::collections::HashSet<usize> =
-                candidates[..count].iter().copied().collect();
+            let out: std::collections::HashSet<usize> = candidates[..count]
+                .iter()
+                .chain(&only)
+                .copied()
+                .collect();
             pieces.iter().filter(|p| !out.contains(&p.order)).collect()
         };
         let count = if everything {
@@ -702,7 +739,7 @@ pub fn pack_with_msu(
             }
             fits
         };
-        gone = candidates[..count].to_vec();
+        gone = candidates[..count].iter().chain(&only).copied().collect();
         gone.sort();
 
         let mut datas = Vec::new();

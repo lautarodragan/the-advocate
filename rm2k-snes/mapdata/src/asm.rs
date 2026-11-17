@@ -36,6 +36,16 @@ pub fn msu_block(label: &str, data: &[u8], msu: bool) -> String {
     }
 }
 
+/// [`block`] for a piece that travels **only** in the `.msu`, in any
+/// cartridge: the packing sends it there always, and its label becomes bank
+/// `MSU_SPILL_BANK` and its unit —see `pack_with_msu` in
+/// `rm2k-snes-cartridge`—. Only for what the ROM reads after it checked
+/// that the MSU-1 and this build's `.msu` are there, and goes without
+/// otherwise: the debug screen's.
+pub fn msu_only_block(label: &str, data: &[u8]) -> String {
+    format!(".msu_only\n{}", block(label, data))
+}
+
 /// [`block`] aligned to `align` bytes instead of declared whole.
 pub fn aligned(label: &str, data: &[u8], align: usize) -> String {
     placed(label, data, Some(format!(".align {align}")))
