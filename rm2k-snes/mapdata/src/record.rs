@@ -2062,11 +2062,19 @@ pub fn check_counts(map: &Map) -> Result<()> {
     Ok(())
 }
 
-/// The twelve poses of each character that changes pose, **once per
-/// quantization** and not once per cartridge: two maps that draw the same
-/// character with the same palette share its bank, and one that quantized it
-/// differently carries its own. And each pose once, even if several banks
-/// repeat it: the pose tables point to it.
+/// The poses of each character that changes pose, **once per quantization**
+/// and not once per cartridge: two maps that draw the same character with
+/// the same palette share its bank, and one that quantized it differently
+/// carries its own. And each pose once, even if several banks repeat it:
+/// the pose tables point to it.
+///
+/// **Only the poses some map can show** —Wally's `shows`, joined over the
+/// maps that share the bank—: a still event that only turns shows four of
+/// its twelve. The entry keeps its twelve pointers, so the console's table
+/// does not change; the ones of a pose nobody shows point at one that is
+/// there —see [`stand_in`]—. Before emitting, [`requested`] reads from the
+/// map's tables every pose the console can ask for, and one that is not
+/// there stops the build: it would show another one.
 pub struct Poses {
     /// The section of the `.inc`.
     pub text: String,
@@ -2076,16 +2084,18 @@ pub struct Poses {
     pub notes: Vec<String>,
 }
 
-pub fn poses(maps: &[Map]) -> Result<Poses> {
+pub fn poses(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<Poses> {
     let mut global: Vec<((String, i64), Vec<u8>)> = Vec::new();
     let mut banks: Vec<Vec<u8>> = Vec::new();
+    let mut shown: Vec<BTreeSet<usize>> = Vec::new();
     let mut index_per_map: Vec<Vec<((String, i64), usize)>> = Vec::new();
     let mut notes = Vec::new();
     for map in maps {
         let mut own = Vec::new();
-        for (charset, index, hex) in map.sprite.as_ref().map_or(&[][..], |s| s.banks.as_slice()) {
-            let data = crate::hex::decode(hex)?;
-            let pair = (charset.clone(), *index);
+        for bank in map.sprite.as_ref().map_or(&[][..], |s| s.banks.as_slice()) {
+            let data = crate::hex::decode(bank.hex())?;
+            let (charset, index) = (bank.charset(), bank.index());
+            let pair = (charset.to_string(), index);
             let found = global.iter().position(|(p, d)| *p == pair && *d == data);
             let g = match found {
                 Some(g) => g,
@@ -2099,21 +2109,48 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
                     }
                     global.push((pair.clone(), data.clone()));
                     banks.push(data);
+                    shown.push(BTreeSet::new());
                     banks.len() - 1
                 }
             };
+            shown[g].extend(bank.shows());
             own.push((pair, g));
         }
         index_per_map.push(own);
+    }
+    for ((map, own), rows) in maps.iter().zip(&index_per_map).zip(rows) {
+        for (k, asked) in requested(map, rows)? {
+            let Some((pair, g)) = own.get(k) else {
+                return Err(Bad::answer(format!(
+                    "map {}: a row asks for entry {k} of the pose table and it has {}",
+                    map.id,
+                    own.len()
+                )));
+            };
+            let missing: Vec<usize> = asked.difference(&shown[*g]).copied().collect();
+            if !missing.is_empty() {
+                return Err(Bad::answer(format!(
+                    "map {}: {}:{} can show poses {missing:?} and its pose bank carries {:?}: see \
+                     `map_poses` in Wally",
+                    map.id, pair.0, pair.1, shown[*g]
+                )));
+            }
+        }
     }
     let mut text =
         String::from("; --- the poses of the characters that change pose, for the whole ROM ---\n");
     let mut label_of: HashMap<Vec<u8>, String> = HashMap::new();
     let mut bank_poses: Vec<Vec<String>> = Vec::new();
     let mut drawn = 0;
-    for data in &banks {
-        let mut theirs = Vec::new();
+    let mut left_out = 0;
+    for (data, shows) in banks.iter().zip(&shown) {
+        let mut theirs: Vec<Option<String>> = Vec::new();
         for pose in 0..SPRITE_POSES {
+            if !shows.contains(&pose) {
+                theirs.push(None);
+                left_out += 1;
+                continue;
+            }
             let bytes = data
                 [(pose * POSE_BYTES).min(data.len())..((pose + 1) * POSE_BYTES).min(data.len())]
                 .to_vec();
@@ -2128,16 +2165,26 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
                     l
                 }
             };
-            theirs.push(label);
+            theirs.push(Some(label));
         }
+        let theirs = (0..SPRITE_POSES)
+            .map(|pose| theirs[stand_in(pose, shows)].clone().unwrap_or_default())
+            .collect();
         bank_poses.push(theirs);
     }
     text.push('\n');
     let total = SPRITE_POSES * banks.len();
+    if left_out > 0 {
+        notes.push(format!(
+            "  poses: {left_out} of {total} never shown and left out, {:.1} KB less",
+            left_out as f64 * POSE_BYTES as f64 / 1024.0
+        ));
+    }
     notes.push(format!(
-        "  poses: {} distinct out of {total}, {:.1} KB less",
+        "  poses: {} distinct out of {}, {:.1} KB less",
         label_of.len(),
-        (total - label_of.len()) as f64 * POSE_BYTES as f64 / 1024.0
+        total - left_out,
+        (total - left_out - label_of.len()) as f64 * POSE_BYTES as f64 / 1024.0
     ));
     // And what leaving out their empty tiles saves, the masks paid.
     let tiles = label_of.len() * POSE_TILES;
@@ -2159,6 +2206,145 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
         per_map,
         notes,
     })
+}
+
+/// Which pose a pointer of `pose` aims at when no map shows it: itself if
+/// some map does, else one that is there in the same direction, else in the
+/// same column, else the first. Nobody asks for it —[`requested`] checks
+/// it—, so this only decides what the mistake would look like: the
+/// character facing the right way in another frame.
+pub fn stand_in(pose: usize, shows: &BTreeSet<usize>) -> usize {
+    if shows.contains(&pose) || shows.is_empty() {
+        return pose;
+    }
+    let row = pose / 3 * 3..pose / 3 * 3 + 3;
+    shows
+        .iter()
+        .copied()
+        .find(|p| row.contains(p))
+        .or_else(|| shows.iter().copied().find(|p| p % 3 == pose % 3))
+        .unwrap_or_else(|| *shows.iter().next().unwrap())
+}
+
+/// Every pose of each entry of the map's pose table the console can ask
+/// for, read from the tables it emits and not from Wally's reasons:
+///
+/// * a leader candidate's and a graphic of command 34's, all twelve: the
+///   hero walks, and so does an event that takes one;
+/// * a row that carries an entry: all twelve if it walks, the three of its
+///   pose's row if it animates standing still —`animate_still`—, all twelve
+///   if it animates and turns toward the hero;
+/// * a page's +30 entry —see `page_table`—: an event that walks takes the
+///   page's twelve —`walker_graphic`—, or its row if it animates; a still
+///   one that turns toward the hero, the four facings of the page's column
+///   —`TURN_DIR` and the column in `turn_toward_hero.s`—;
+/// * a shared slot's poses, each one;
+/// * a cache's still poses its events start with or a page brings and, for
+///   a character the cache names all twelve poses of —one that routes only
+///   turn: see `turners` in Wally—, the four facings of the middle column
+///   and of each of those: a route slot starts in the middle column unless
+///   the page fixes it —`route_for_event`, `fixed_graphic_into_slot`—.
+pub fn requested(map: &Map, rows: &[NpcRow]) -> Result<BTreeMap<usize, BTreeSet<usize>>> {
+    let mut out: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
+    let Some(sprite) = map.sprite.as_ref() else {
+        return Ok(out);
+    };
+    let all = || (0..SPRITE_POSES).collect::<BTreeSet<usize>>();
+    let row = |pose: usize| (pose / 3 * 3..pose / 3 * 3 + 3).collect::<BTreeSet<usize>>();
+    let facings = |pose: usize| {
+        (0..4)
+            .map(|d| d * 3 + pose % 3)
+            .collect::<BTreeSet<usize>>()
+    };
+    let mut add = |k: usize, poses: BTreeSet<usize>| out.entry(k).or_default().extend(poses);
+    let entry = |charset: &str, index: i64| {
+        sprite
+            .animated
+            .iter()
+            .position(|(c, i)| c == charset && *i == index)
+    };
+    for (_, _, k, _) in &sprite.actors {
+        if let Some(k) = k {
+            add(*k, all());
+        }
+    }
+    for g in &sprite.route_gfx {
+        if g.entry() != 0xFF {
+            add(g.entry() as usize, all());
+        }
+    }
+    let turning: BTreeSet<i64> = map.turning.iter().copied().collect();
+    let turns = |event: i64| {
+        turning.contains(&event) && map.pages.iter().any(|p| p.event == event && p.turns)
+    };
+    let animates: BTreeMap<i64, bool> = rows.iter().map(|r| (r.event, r.animates)).collect();
+    for r in rows {
+        if let Some(k) = r.poses {
+            let pose = r.pose as usize;
+            add(
+                k,
+                if !r.animates || turns(r.event) {
+                    all()
+                } else {
+                    row(pose)
+                },
+            );
+        }
+    }
+    let movable: BTreeSet<i64> = map.movable.iter().copied().collect();
+    for page in &map.pages {
+        let Some((charset, index, pose)) = &page.graphic else {
+            continue;
+        };
+        let page_turns = page.turns && turning.contains(&page.event);
+        if !(page_turns || movable.contains(&page.event)) {
+            continue;
+        }
+        let Some(k) = entry(charset, *index) else {
+            continue;
+        };
+        let pose = *pose as usize;
+        let poses = if movable.contains(&page.event) {
+            if animates.get(&page.event) == Some(&true) && !turns(page.event) {
+                row(pose)
+            } else {
+                all()
+            }
+        } else {
+            facings(pose)
+        };
+        add(k, poses);
+    }
+    if let Some(shared) = &sprite.shared {
+        for &(k, pose) in &shared.poses {
+            add(k, BTreeSet::from([pose]));
+        }
+    }
+    if let Some(cache) = &sprite.cache {
+        let mut named: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
+        for (_, _, pose, k, _) in &cache.stills {
+            named.entry(*k).or_default().insert(*pose as usize);
+        }
+        let mut started: Vec<u32> = cache.events.iter().filter_map(|e| e.1).collect();
+        started.extend(
+            map.pages
+                .iter()
+                .filter_map(|p| p.draws.as_ref().and_then(|d| d.key)),
+        );
+        for key in started {
+            let Some((_, _, pose, k, _)) = cache.stills.get(key as usize) else {
+                continue;
+            };
+            let pose = *pose as usize;
+            add(*k, BTreeSet::from([pose]));
+            if named.get(k).is_some_and(|n| n.len() == SPRITE_POSES) {
+                let mut turned = facings(pose);
+                turned.extend(facings(1));
+                add(*k, turned);
+            }
+        }
+    }
+    Ok(out)
 }
 
 /// The colours of the graphics only the hero shows, which go in the
@@ -2275,7 +2461,7 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         .iter()
         .map(|r| crate::materials::decompress_frames(r, &compressed))
         .collect();
-    let poses = poses(maps)?;
+    let poses = poses(maps, &rows)?;
     let hero_colors = HeroColors::of(maps)?;
     let mut text = poses.text;
     text.push_str(&hero_colors.asm());
