@@ -1,4 +1,4 @@
-.segment "CODE"
+.segment "FAR3"
 
 ; --- saving and loading the game -------------------------------------------
 ;
@@ -91,15 +91,6 @@ SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 2 * SYS_
 SAVE_PARTY      = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
                                           ; index is sixteen bits
 SAVE_PARTY_N = SAVE_PARTY + 4
-
-; Sets the slot `save_game` and `load_game` will work with. A brings the
-; slot number.
-.proc set_slot
-.a8
-.i16
-    sta slot
-    rts
-.endproc
 
 ; The slot's bank of the SRAM window in A8, and in X its offset inside that
 ; bank, which is zero: see `SRAM_STRIDE`. The callers index with X as they
@@ -254,7 +245,7 @@ copy:
     sep #$20
 .a8
     beq square
-    jmp enter_panic
+    jml enter_panic + FAST
 square:
     ; The magic and the sum are what say the slot is valid. The data bank moves
     ; to the SRAM: it is the only way to address it without a pointer on the
@@ -293,7 +284,7 @@ square:
     ; track plays: without this, a game saved with its song on a track was
     ; lost when the console was turned off. See `msu_save_flush`.
     jsl f:msu_save_flush
-    rts
+    rtl
 .endproc
 
 ; If the SRAM has a saved game, loads it and returns A nonzero. It runs at
@@ -325,13 +316,13 @@ square:
     ; map's back: see `pano_find`.
     lda #$01
     sta f:PANO_KEEP
-    rts
+    rtl
 none:
     plb
     lda #$FF
     sta slot                    ; the sentinel: no saved game loaded
     lda #$00
-    rts
+    rtl
 .endproc
 
 ; Whether the slot holds a saved game **of this format**: the magic, the length
@@ -401,5 +392,25 @@ no:
     sta entry_y
     sep #$20
 .a8
-    rts
+    rtl
+.endproc
+
+; `OpenSaveMenu`, for `op_save` in bank 0: the slot screen in save mode and,
+; if a slot is picked, the save to it. Then the cursor's colours and an
+; erased map come back; `op_save` puts the map back.
+.proc save_menu
+.a8
+.i16
+    lda #1                      ; save mode
+    jsl f:slots_screen
+    cmp #$FF
+    beq cancelled
+    sta slot
+    jsl f:save_game
+cancelled:
+    ; The cursor's colours went in the sprites' palette 0, as on the pause
+    ; menu, which puts them back the same way: see `menu_bar_upload`.
+    jsl f:menu_exp_close
+    jsl f:screen_unerase        ; the map comes back even if an event erased it
+    rtl
 .endproc

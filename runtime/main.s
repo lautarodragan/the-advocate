@@ -67,10 +67,14 @@
 ; **A subsystem goes whole in one bank**: inside, its routines call each
 ; other with `jsr`, which does not change the program bank. Across banks it
 ; is `jsl` and `rtl`, and a routine that is also called with `jsr` from its
-; own bank gets an entry `_l` —`jsr` it and `rtl`—, like `dsp_pair_l`. A
-; `jmp (table, x)` reads its table from the program bank, and an `lda table,
-; x` from the data bank, which is 0 —`$7E` in the battle—: a table in
-; another bank goes with `f:`. **The assembler checks none of this**: a `jsr`
+; own bank gets an entry `_l` —`jsr` it and `rtl`—, like `dsp_pair_l`. The
+; other way round, cold code in another bank calls a bank 0 routine that ends
+; in `rts` with `CALL0` —see registers.s—: eleven bytes of its own bank and
+; none of bank 0's. That is how the screens and `boot_init` left bank 0 on
+; 2026-11-17. A `jmp (table, x)` reads its table from the program bank, and
+; an `lda table, x` from the data bank, which is 0 —`$7E` in the battle—: a
+; table in another bank goes with `f:`, and a `phk`/`plb` there points the
+; data bank at ROM with no registers or RAM. **The assembler checks none of this**: a `jsr`
 ; to a routine in another bank assembles and links, and lands at the same
 ; address in the caller's bank. Since 2026-10-02 a test does, over each
 ; built cartridge: abl/tests/tooling/test_jumps_between_banks.py in the-advocate-ports

@@ -375,11 +375,7 @@ remains:
 .endproc
 
 .ifdef wrap_maps
-; Where a bank 0 routine that wrap.s calls comes back to it —see `CALL0`—,
-; and where wrap.s returns from the bank 0 routine that called it —see
-; `RTS0`—.
-wrap_rtl:
-    rtl
+; Where wrap.s returns from the bank 0 routine that called it —see `RTS0`—.
 wrap_rts:
     rts
 .endif

@@ -87,24 +87,12 @@ ba_t_bank:
     jsl f:battle_bank_upload
     plb
     rtl
-ba_t_ppu:
-    phb
-    phk
-    plb
-    jsr slot_ppu_on
-    plb
-    rtl
 ba_t_param:
     phb
     phk
     plb
     jsl f:eq_parameter
     plb
-    rtl
-; The actor choice for a heal, from the skills screen —`sk_heal`—, which
-; runs with the data bank at 0 like the menu: nothing to restore.
-ba_t_target:
-    jsr target_screen
     rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
 ; into `sound_table`, $FFFF none— and the song, with A8.
@@ -176,24 +164,6 @@ ba_t_saturate:
     phk
     plb
     jsr saturate_color
-    plb
-    rtl
-
-; And the two for the shop and the equipment, which also live outside: the
-; inventory item list and building it. `ti_sell_list` and `eq_from_list` call
-; them.
-ba_t_list:
-    phb
-    phk
-    plb
-    jsr item_from_list
-    plb
-    rtl
-ba_t_build:
-    phb
-    phk
-    plb
-    jsr items_build_list
     plb
     rtl
 

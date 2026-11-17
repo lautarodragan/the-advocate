@@ -81,18 +81,8 @@ WRAP_PX:    .res 2              ; the 16x16 cell `wrap_ptr` points at
 WRAP_PY:    .res 2
 .popseg
 
-; A routine of bank 0 that ends in `rts`, called from here: its `rts` goes
-; to `wrap_rtl`, in bank 0, and that `rtl` comes back here. A, X and Y and
-; the widths in and out as the routine takes and leaves them.
-.macro CALL0 routine
-.local back
-    phk
-    per back - 1
-    pea .loword(wrap_rtl - 1)
-    jml routine + FAST
-back:
-.endmacro
-
+; A routine of bank 0 is called from here with `CALL0`: see registers.s.
+;
 ; The other way round: a hook that comes here with `jsl` from the top of a
 ; bank 0 routine, and has done the whole of it, returns from that routine
 ; and not to it —its `jsl`'s three bytes off the stack, and the `rts` that
