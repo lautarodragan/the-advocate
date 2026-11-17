@@ -894,13 +894,44 @@ empty:
     rts
 .endproc
 
+; Where the bar is drawn: the row of `eq_border_bars`, the five slots' and
+; then the list rows'. **It is not the cursor**: it follows the cursor only
+; when the screen shows what the cursor's place wrote —`eq_bar_follow`, from
+; the loop—, because the text arrives some frames after the cursor —see
+; `text_layer.s`— and the bar went in the first vblank: choosing a slot, it
+; stood on the first row of the list while the slots were still up, as if
+; another slot had been chosen, for seven frames; going back, twelve. See
+; the task `abl-the-equip-screen-s-cursor-runs-ahead-of-its-lists`.
+.pushseg
+.segment "BSS"
+eq_bar_row: .res 1
+.popseg
+
+; The bar to the cursor's place.
+.proc eq_bar_follow
+.a8
+.i16
+    lda comp_col + 1
+    beq in_slots
+    lda comp_phase
+    sec
+    sbc comp_phase + 1
+    clc
+    adc #SLOTS_EQUIPMENT        ; the list's, after the slots'
+    bra set
+in_slots:
+    lda comp_col
+set:
+    sta eq_bar_row
+    rts
+.endproc
+
 ; The BG1 windows under the bar, and the bar: in each frame's vblank, behind
 ; the text. The rows of the bottom window are uploaded without the cursor
 ; —`EQ_BORDER_TEXT_N` rows of cells— and on top the cursor's two with the bar,
-; from `eq_border_bars`: first those of the five slots and then those of the
-; list rows. Without remembering where it was: each frame restores everything,
-; so the bar cannot end up painted in two places. It is 768 bytes, some five
-; vblank lines on top of the text's ten.
+; from `eq_border_bars`, at `eq_bar_row`. Without remembering where it was:
+; each frame restores everything, so the bar cannot end up painted in two
+; places. It is 768 bytes, some five vblank lines on top of the text's ten.
 .proc eq_bar
 .a8
 .i16
@@ -924,17 +955,14 @@ empty:
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; Which one: the slot, or the visible list row.
-    lda comp_col + 1
-    beq in_slots
-    lda comp_phase
-    sec
-    sbc comp_phase + 1
-    ldx #(SLOTS_EQUIPMENT * 128) ; the list's, after the slots'
-    bra row
-in_slots:
-    lda comp_col
+    ; Which one: a slot, or a visible list row, which is drawn on the
+    ; slot's.
+    lda eq_bar_row
     ldx #0
+    cmp #SLOTS_EQUIPMENT
+    bcc row
+    sbc #SLOTS_EQUIPMENT        ; the `cmp` left carry set
+    ldx #(SLOTS_EQUIPMENT * 128) ; the list's, after the slots'
 row:
     rep #$20
 .a16
@@ -976,7 +1004,8 @@ row:
     stz TM
     jsl f:eq_screen_upload
     jsr eq_compose
-    jsl f:ba_t_upload
+    jsl f:ba_t_upload           ; with the screen off, all of it
+    jsr eq_bar_follow
     jsr eq_bar
     jsl f:items_ppu_on          ; BG2 and BG1, the windows
 wait:
@@ -989,7 +1018,13 @@ wait:
     jsl f:ba_t_pad
     ; The bar before the text: the text's tilemap is the longest DMA of
     ; the frame, and what goes after it can fall out of the vblank —see
-    ; the shop's loop—.
+    ; the shop's loop—. It goes where the cursor is in the same vblank the
+    ; text's tilemap goes up, or once the text has nothing left to change;
+    ; not before.
+    jsl f:tl_settled + FAST
+    bcc bar_stays
+    jsr eq_bar_follow
+bar_stays:
     jsr eq_bar
     jsl f:ba_t_upload
     lda pad

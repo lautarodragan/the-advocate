@@ -1241,6 +1241,36 @@ not_now:
     rtl
 .endproc
 
+; In the vblank, before `scr_upload`: carry set if, once it is done, the
+; screen shows everything its rows say —nothing left to typeset nor to go
+; up, and the tilemap goes up in this one if it changed—. For a screen whose
+; own uploads have to change with its text, which arrives some frames after
+; the cursor: the equipment's bar. The same question `tl_map` asks, without
+; the pool that ran out, which switches with rows still to typeset. A8.
+.proc tl_settled
+.a8
+.i16
+    tl_enter
+    rep #$20
+.a16
+    lda TL_UP_N
+    bne not_yet
+    lda TL_IDLE_DONE
+    beq not_yet
+    sep #$20
+.a8
+    plb
+    sec
+    rtl
+.a16
+not_yet:
+    sep #$20
+.a8
+    plb
+    clc
+    rtl
+.endproc
+
 ; The tilemap up, and what was waiting for it, free. A8, data bank $7E.
 .proc tl_switch
 .a8
