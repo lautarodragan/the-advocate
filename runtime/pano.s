@@ -118,6 +118,7 @@ PANO_KEEP_IMAGE = $FF
 ; one here, and every map comes out without a panorama.
 .ifndef pano_table
 PANO_STRIDE = 64
+LZ2_CAP_PANORAMA = 0
 pano_table:
     .word $FFFF
 .endif
@@ -381,8 +382,17 @@ done:
 
 ; The panorama's tiles to VRAM, and in mode 1 the backdrop's colour: from
 ; `load_above`, with the screen off, which is what every load and every
-; return from a screen goes through. In mode 3 its palettes came as the layer
-; above's; in mode 1, inside the background's.
+; return from a screen goes through; and from `pano_image`, for a
+; `ChangePBG` that swaps the picture. In mode 3 its palettes came as the
+; layer above's; in mode 1, inside the background's.
+;
+; The tiles travel as an LZ2 stream —since 2026-11-16; until then they
+; were raw, a DMA from the ROM— and are decompressed into `LZ2_BUFFER`,
+; from where the two stretches go up by DMA. `load_above` already uses
+; that buffer, and its callers rebuild what lives there afterwards;
+; `pano_image` does it itself. The stream may be in the `.msu`:
+; `lz2_decompress` reads it there.
+.assert LZ2_BUFFER + LZ2_CAP_PANORAMA <= ANIM_DRAWINGS, error, "a panorama's tiles would overwrite the ChipSet animation's drawings"
 .proc pano_load
 .a8
 .i16
@@ -399,32 +409,44 @@ on:
 .a16
     lda f:PANO_ENT
     tax
+    lda f:pano_table + PT_TILES, x
+    pha
+    sep #$20
+.a8
+    lda #^LZ2_BUFFER
+    sta f:LZ2_BANK
+    lda f:pano_table + PT_TILES + 2, x
+    plx
+    ldy #.loword(LZ2_BUFFER)
+    jsl f:lz2_decompress + FAST
+    rep #$20
+.a16
+    lda f:PANO_ENT
+    tax
     sep #$20
 .a8
     lda #$80
     sta VMAIN
-    rep #$20
-.a16
-    lda f:pano_table + PT_VRAM1, x
-    sta VMADDL
-    lda f:pano_table + PT_TILES, x
-    sta A1T0L
-    lda f:pano_table + PT_BYTES1, x
-    sta DAS0L
-    sep #$20
-.a8
-    lda f:pano_table + PT_TILES + 2, x
+    lda #^LZ2_BUFFER
     sta A1B0
     lda #$01
     sta DMAP0                   ; two registers, word by word
     lda #$18
     sta BBAD0
-.ifdef MSU_REQUIRED
-    jsl f:msu_dma0_l            ; the tiles may be in the `.msu`
-.endif
+    rep #$20
+.a16
+    lda f:pano_table + PT_VRAM1, x
+    sta VMADDL
+    lda #.loword(LZ2_BUFFER)
+    sta A1T0L
+    lda f:pano_table + PT_BYTES1, x
+    sta DAS0L
+    sep #$20
+.a8
     lda #$01
     sta MDMAEN
     ; The second stretch, if there is one: a DMA of zero bytes moves 65536.
+    ; The channel's address is already past the first.
     rep #$20
 .a16
     lda f:pano_table + PT_BYTES2, x
@@ -432,24 +454,7 @@ on:
     sta DAS0L
     lda f:pano_table + PT_VRAM2, x
     sta VMADDL
-    lda f:pano_table + PT_TILES, x
-    clc
-    adc f:pano_table + PT_BYTES1, x
-    sta A1T0L
     sep #$20
-.ifdef MSU_REQUIRED
-    ; From the `.msu`, the second stretch is right behind the first, where
-    ; the port was left; `msu_dma0` put the bank at zero.
-.a8
-    lda f:pano_table + PT_TILES + 2, x
-    cmp #MSU_SPILL_BANK
-    bne second_in_rom
-    sta A1B0
-    ldy #$FFFF
-    sty A1T0L
-    jsl f:msu_dma0_l
-second_in_rom:
-.endif
 .a8
     lda #$01
     sta MDMAEN
@@ -1347,6 +1352,14 @@ wrapped:
     sta f:INIDISP               ; what follows writes VRAM by DMA
     jsl pano_load
     jsl pano_fill
+    ; `pano_load` went through `LZ2_BUFFER`, which on the map holds the
+    ; battle animation's last frame and the bytecode carried from another
+    ; map —which may be the page running this `ChangePBG`: `code_ptr`
+    ; points into it, and it comes back byte for byte from its stream—.
+    ; Both are rebuilt as `back_to_map` does. The ChipSet animation's
+    ; drawings are above what a panorama takes: see `LZ2_CAP_PANORAMA`.
+    jsl f:anim_buf_clear
+    jsl f:code_carry_after + FAST
     lda #1
     sta tint_pending            ; its colours, tinted: see `pano_palette`
 same:

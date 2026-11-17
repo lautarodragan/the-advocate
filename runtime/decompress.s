@@ -334,8 +334,9 @@ wait:
 ; itself. From a block in the ROM it touches nothing. The caller sets the
 ; rest —DMAP0 before this, which ORs into it— and starts the DMA.
 ;
-; Only for what is uploaded whole and in order, and with the screen off: the
-; panorama's tiles (`pano_load`) and a big picture's (`big_dma_vram`). Each
+; Only for what is uploaded whole and in order, and with the screen off: a
+; big picture's tiles (`big_dma_vram`). The panorama's went this way too
+; until 2026-11-16, when they became an LZ2 stream. Each
 ; block that may go is marked so by its emitter: see `msu_block` in
 ; rm2k-snes-mapdata.
 .proc msu_dma0
@@ -373,13 +374,6 @@ sought:
     plx
 in_rom:
     rts
-.endproc
-
-; `msu_dma0` for `pano_load`, which lives in `FAR2`.
-.proc msu_dma0_l
-.a8
-    jsr msu_dma0
-    rtl
 .endproc
 
 ; `LZ2_BODY` reading the stream from `MSU_DATA`. Same frame, same exit; X is
