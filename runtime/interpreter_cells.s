@@ -159,7 +159,7 @@ ready:
 ; and since what follows is the `OP_DONE`, nothing else.
 ;
 ; It stops, without having touched anything of that one, at the first one that:
-;   * does not start with `OP_CELL_TEST`;
+;   * does not start with `OP_CELL_TEST` —a chain of them is run whole—;
 ;   * has the state of another page, a wait, or the page half run;
 ;   * moves —has a move route slot—: its step is taken by `one_parallel`;
 ; and before starting if there is a message or a choice on screen, because
@@ -220,9 +220,20 @@ other:
     lda f:FAR_LENGTH + FAR_PAIR_STATE + PAIR_SLOT, x
     bne no                      ; it moves
     ldy #1
+chain:
     jsr cell_test_near
     lda [code_ptr], y
+    beq ended
+    ; Another `OP_CELL_TEST` right after, run here too: it is how the
+    ; compiler fuses two writes of the page's own cell in front of the test
+    ; —the lights of map 11, `cell_own_piece` in the event compiler—, whose
+    ; comparisons always hold. Without this they took the whole interpreter
+    ; every frame.
+    cmp #OP_CELL_TEST
     bne continues               ; did not end at its `OP_DONE`
+    iny
+    bra chain
+ended:
     inc pair_i
     bra other
 continues:
