@@ -727,8 +727,8 @@ full:
 ; in the tables, is not applied to the sand's colour or the grains': with
 ; the saturation at 100, which is how the desert is, it is exact.
 ;
-; In `pure` too because that is what a character's flash goes back to —see
-; `palette_with_flash`—: in the working tables alone, a character that
+; In `pure` too because that is where a character's flash looks the tint up
+; —see `flash_direct`—: in the working tables alone, a character that
 ; flashes would come out of the storm.
 .proc sand_tint
 .a8
@@ -877,7 +877,7 @@ add:
 .assert table_g = table_r + 32 && table_b = table_r + 64, error, "sand_tint indexes all three from table_r"
 
 ; The grains' colours with the tint alone over the palette a character's
-; flash just built in `pal_buf`, if it is theirs: from `palette_with_flash`.
+; flash just built in `pal_buf`, if it is theirs: from `flash_direct`.
 ; In RM2k a character's flash does not reach the weather, and the flash's
 ; last frame rebuilds the palette from `pure`, which has the overlay: without
 ; this, the grains that share a palette with Zounds' flashing stones would
