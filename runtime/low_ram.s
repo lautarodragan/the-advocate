@@ -351,7 +351,7 @@ route_ev_cap: .res 1
 FLASH_STRIDE = 8
 FLASH_FREE = $FF
 flash_ev:  .res FLASH_MAX * FLASH_STRIDE
-; What `palette_with_flash` needs while it builds the tables.
+; What `flash_direct` needs while it builds the palette.
 flash_alpha: .res 1
 flash_slot: .res 2
 flash_slot_ofs: .res 2

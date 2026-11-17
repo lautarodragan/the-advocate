@@ -6,11 +6,10 @@
 ; frames. Here the drawing is a CGRAM palette, so flashing is uploading that
 ; palette blended, and turning it off is uploading it again as it was.
 ;
-; The blend is done **before** the color reaches CGRAM, with the same channel
-; tables as the screen tint: they are built with the tint and the flash
-; together, the character's palette is uploaded, and they are built again as
-; they were. That way the palette's path is a single one and there are no two
-; places that can differ.
+; The blend is done **before** the color reaches CGRAM, and the blended
+; channel is looked up in `pure`, the screen tint's own tables: that way the
+; tint of a flashing character is the same computation as everyone else's
+; and there are no two places that can differ. See `flash_direct`.
 
 ; The flash palettes, in far RAM: one per flash slot, thirty-two bytes each,
 ; and the vblank uploads all the ones left pending. It has to be one per
@@ -195,12 +194,11 @@ ready:
 
 ; The tint's three channel tables, without flash, and their copy in `pure`.
 ;
-; The copy exists because of the frame budget. `palette_with_flash` runs on
-; every frame while a flash lasts and it used to end by rebuilding these
-; three tables —ninety-six products and ninety-six divisions—; now
-; `restore_tables` copies ninety-six bytes. And on the way
-; `flash_channel_table` saves the tint computation per entry: it looks it up
-; here.
+; The copy exists because of the frame budget: what blends on top of the
+; working tables —the pictures, the battle's tone— puts the tint-only ones
+; back by copying ninety-six bytes and not rebuilding them, ninety-six
+; products and ninety-six divisions. And a character's flash looks the tint
+; up here, in `flash_direct`.
 .proc tint_tables
 .a8
 .i16
@@ -234,38 +232,53 @@ copy:
     rts
 .endproc
 
-; --- the flash without the tables, in FAR3 -----------------------------------
+; --- a character's flash, in FAR3 --------------------------------------------
 ;
-; `palette_with_flash` without the tables. It gives exactly what the tables
-; give —each channel is `pure[(dest * a + c * (255 - a)) / 255]`, the
-; quotient floored, which is what `flash_channel_table` leaves in entry c
-; and `build_palette` looks up—, but only for the sixteen colors' 48
-; channels, with the console's multiplier and divider, and the working
-; tables are neither built nor restored. The tables did the 96 entries of
-; the three channels, then the palette through them, then put the tint-only
-; ones back: ~40 of the frame's 262 lines per flash and per frame, and a
-; battle animation on an event flashes it ten frames, three times —"Hit
-; A", on the lamps of map 11—. See tasks/abl-lazer-teeth-s-rock-lags.md.
+; Each channel of the character's sixteen colors is blended toward the
+; flash and looked up in the tint: `pure[(dest * a + c * (255 - a)) / 255]`,
+; the quotient floored, with the console's multiplier and divider. Until
+; 2026-11-17 this was done with tables —`palette_with_flash` built the 96
+; entries of the three channels blended, ran the palette through them as
+; `build_palette` and put the tint-only ones back—, and this path gave the
+; same thing only for the 48 channels it needs: ~32 of the frame's 262 lines
+; per flash and per frame against ~40, and a battle animation on an event
+; flashes it ten frames, three times —"Hit A", on the lamps of map 11—. See
+; tasks/abl-lazer-teeth-s-rock-lags.md.
 ;
-; **With saturation too.** `build_palette` saturates the raw color before
-; looking it up in the tables, so here c is the saturated channel: the
-; sixteen colors saturated once, kept per flash slot in `FAR_FLASH_SAT`, and
-; read instead of the ROM's. Saturating is the expensive part —three
-; products and a division per channel, ~90 lines for a palette— and with
-; the tables it ran on every frame of the flash: 124 lines, and the tick
-; overran the frame for the whole of "Hit A". It is not rare: the opening
-; leaves the screen at saturation 40 (maps 4 and 7, `TintScreen` 100, 100,
-; 100, 40) and the tint survives the doors, so taro's game reached map 11
-; like that and lost ~33 frames per stone where the harness, with a neutral
-; tint, lost 2-7.
+; The blend is easyrpg's put into five bits: `dest * a + channel * (255 -
+; a)` over 255, with `a` the level times eight —`Flash::MakeColor` and the
+; `PIXMAN_OP_OVER` of `BlendBlit`—. That the space is five bits and not
+; eight is what makes the result not RM2k's but the one the same
+; computation gives with five bits. It is a declared debt, and one of those
+; that cannot be measured with a comparison: it needs an EasyRPG capture
+; taken during a flash. The destination and the channel are five bits —the
+; converter lets nothing else through, neither in the events nor in the
+; battle animations—, so the blend does not overflow.
+;
+; **And it goes before the tint, not after.** easyrpg does it the other way
+; round —`ToneBlit` and then `BlendBlit`— but there the tone belongs to the
+; sprite and here the tint belongs to the whole screen. With a neutral tint
+; it makes no difference; with a tint, the ROM does `tint(flash(c))` and
+; RM2k `flash(tone(c))`. Another declared debt of the same kind, and the
+; only place it shows is in a page that tints and flashes at the same time.
+;
+; **Saturation goes before the blend**, as in `build_palette`, because it
+; needs the three channels together: c is the saturated channel. Saturating
+; is the expensive part —three products and a division per channel, ~125
+; lines for a palette—, so the sixteen colors are saturated once and kept
+; in `FAR_FLASH_SAT`. With the tables it ran on every frame of the flash:
+; 124 lines, and the tick overran the frame for the whole of "Hit A". It is
+; not rare: the opening leaves the screen at saturation 40 (maps 4 and 7,
+; `TintScreen` 100, 100, 100, 40) and the tint survives the doors, so
+; taro's game reached map 11 like that and lost ~33 frames per stone where
+; the harness, with a neutral tint, lost 2-7.
 ;
 ; In `FAR3` because bank 0 has no room and bank 1 had too little in ABL's
 ; MSU test cartridge; the low RAM and the registers with absolute
 ; addressing, as `sand_flash` does, because the data bank is the main
 ; loop's. Enters from `paint_flash` with X on the flash slot and
-; `flash_slot`, `flash_alpha` set; does all of `palette_with_flash` —points
-; the palette, builds it, leaves it in `FAR_FLASH_PAL` waiting for the
-; vblank— and returns with carry at 1.
+; `flash_slot`, `flash_alpha` set; points the palette, builds it in
+; `pal_buf` and leaves it in `FAR_FLASH_PAL` waiting for the vblank.
 .pushseg
 .segment "FARBSS"
 ; The saturated colors of each slot's palette, and what they were saturated
@@ -325,7 +338,7 @@ FAR_FLASH_SAT_KEY: .res FLASH_MAX * 4
 .a8
 .i16
     stx flash_slot_ofs
-    ; The character's palette, pointed as `palette_with_flash` does: sixteen
+    ; The character's palette, in the map's sprite palettes: sixteen
     ; colors, and in CGRAM the upper half starts at color 128.
     rep #$20
 .a16
@@ -451,7 +464,7 @@ built:
 .ifdef sand_table
     jsl f:sand_flash            ; the sandstorm's grains do not flash
 .endif
-    ; To its place in FAR_FLASH_PAL, as `palette_with_flash` does.
+    ; To its place in FAR_FLASH_PAL, its slot's: see there.
     rep #$20
 .a16
     lda flash_slot_ofs
