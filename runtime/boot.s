@@ -587,6 +587,11 @@ counted:
 .endif
 .endproc
 
+; Where a bank 0 routine called from another bank with `CALL0` returns with
+; its `rts`, to go back there: see registers.s.
+call0_rtl:
+    rtl
+
 ; How many vblanks went by since the previous iteration: one is normal, and
 ; each extra one is a frame the ROM lost, because the iteration took longer
 ; than a frame and `wait_vblank` had to wait for the next. It is checked here,

@@ -27,6 +27,25 @@ MEMSEL   = $420D        ; bit 0: the ROM from bank $80 onwards, fast
 ; is still a mirror. For the generated data it is not, and nothing adds
 ; `FAST` to a data address: its bank is already the one it is read from.
 FAST     = $800000
+
+; A routine of bank 0 that ends in `rts`, called from code in another bank:
+; its `rts` goes to `call0_rtl`, in bank 0, and that `rtl` comes back after
+; the macro. A, X, Y, the flags and the widths go in and come out as the
+; routine takes and leaves them, so a `jsr` becomes this and nothing else
+; changes: it is what lets cold code leave bank 0 without an `_l` entry
+; per routine it calls there —those are bank 0 bytes, and this costs bank 0
+; one—. It costs the caller's bank eleven bytes against `jsr`'s three, and
+; about twenty cycles more: for what runs every frame, an `_l` entry.
+; What it cannot call: a routine that reads its own return address off the
+; stack, which here finds `call0_rtl`'s.
+.macro CALL0 routine
+.local back
+    phk
+    per back - 1
+    pea .loword(call0_rtl - 1)
+    jml routine + FAST
+back:
+.endmacro
 STAT78   = $213F        ; bit 4: 0 = NTSC console, 1 = PAL
 HDMAEN   = $420C        ; per-scanline DMA channels
 APUIO0   = $2140        ; the four ports to the SPC700
