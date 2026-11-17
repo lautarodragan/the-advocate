@@ -1273,6 +1273,13 @@ fn page(
         }
     }
     let mut cell_piece: HashMap<usize, usize> = HashMap::new();
+    // And the two writes some of those have in front —see
+    // `cell_own_writes`—, by command: 0 the first, 1 the second.
+    let mut cell_own: HashMap<usize, usize> = HashMap::new();
+    for i in cell_own_writes(commands) {
+        cell_own.insert(i, 0);
+        cell_own.insert(i + 1, 1);
+    }
     // Each `ShowMessage` an `InputNumber` follows, with the `InputNumber`:
     // they go in one window. See [`compile_number`].
     let numbers = number_inputs(commands);
@@ -1312,6 +1319,22 @@ fn page(
         }
         let requested = ctx.songs.as_ref().map_or(0, |s| s.requested);
         let mut role = cell_role.get(&i).copied();
+        let mut own_piece = None;
+        if cell_own.get(&i) == Some(&0) {
+            // The two writes in front of a fused cell test: see
+            // `cell_own_piece`. Loose if they cannot be fused, as the four.
+            let lost = ctx.losses.mark();
+            let writes = [
+                compile_command(ctx, &commands[i], &[], map_events.as_ref())?,
+                compile_command(ctx, &commands[i + 1], &[], map_events.as_ref())?,
+            ];
+            own_piece = cell_own_piece(&writes, length)?;
+            if own_piece.is_none() {
+                ctx.losses.rewind(lost);
+                cell_own.remove(&i);
+                cell_own.remove(&(i + 1));
+            }
+        }
         if let Some((0, _)) = role {
             // It is built here and not before because the refresh depends on
             // `map_events`, which changes after a `Teleport`.
@@ -1342,7 +1365,14 @@ fn page(
             }
         }
         let piece: Vec<u8>;
-        if let Some((n, first)) = role {
+        if let Some(&n) = cell_own.get(&i) {
+            piece = if n == 0 {
+                own_piece.take().expect("built above")
+            } else {
+                vec![]
+            };
+            note_constant(cmd, &mut constants);
+        } else if let Some((n, first)) = role {
             piece = if n == 0 { faded.clone() } else { vec![] };
             if n < 2 {
                 note_constant(cmd, &mut constants);
@@ -2859,6 +2889,17 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
     Ok(out)
 }
 
+/// A `ControlVars` that puts one coordinate of a character's cell in one
+/// variable.
+fn sets_a_cell(c: &Command) -> bool {
+    let p = &c.parameters;
+    c.code == CONTROL_VARS
+        && p.len() >= 7
+        && p[0] == 0
+        && p[3] as i64 == VAR_SET
+        && p[4] as i64 == VAR_CHARACTER
+}
+
 /// Where each "is it on the cell?" pattern starts: two `ControlVars` that
 /// put the x and the y of the same character in two variables, and two
 /// nested `ConditionalBranch`es —the second is the first thing inside the
@@ -2874,14 +2915,7 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
 /// Only the shape is looked at here; whether the operands compile is said
 /// by `cell_test_piece`, which is the one that emits.
 fn fadable_cells(commands: &[Command]) -> Vec<usize> {
-    let set_cell = |c: &Command| {
-        let p = &c.parameters;
-        c.code == CONTROL_VARS
-            && p.len() >= 7
-            && p[0] == 0
-            && p[3] as i64 == VAR_SET
-            && p[4] as i64 == VAR_CHARACTER
-    };
+    let set_cell = sets_a_cell;
     let equal_to_variable = |c: &Command| {
         let p = &c.parameters;
         c.code == COND_BRANCH
@@ -2915,6 +2949,68 @@ fn fadable_cells(commands: &[Command]) -> Vec<usize> {
         }
     }
     starts
+}
+
+/// Where two more `ControlVars` that copy one character's cell go right in
+/// front of an "is it on the cell?" pattern, at its indent: the lights of the
+/// Lazer Teeth's HQ —map 11— and some forty more parallel pages in A Blurred
+/// Line write the page's own cell first, then the stone's, and compare. The
+/// fused `OP_CELL_TEST` only takes the last four; these two would be loose
+/// `OP_VAR`s in front, and a parallel page that does not **start** with
+/// `OP_CELL_TEST` misses the shortcut of `parallel_cell` and pays the whole
+/// interpreter every frame: on map 11 that was ~65 of the frame's 262 lines.
+/// See [`cell_own_piece`].
+fn cell_own_writes(commands: &[Command]) -> Vec<usize> {
+    let starts = fadable_cells(commands);
+    let taken: BTreeSet<usize> = starts.iter().flat_map(|&s| s..s + 4).collect();
+    starts
+        .iter()
+        .filter(|&&s| s >= 2)
+        .map(|&s| s - 2)
+        .filter(|&i| {
+            let (a, b, c) = (&commands[i], &commands[i + 1], &commands[i + 2]);
+            !taken.contains(&i)
+                && !taken.contains(&(i + 1))
+                && sets_a_cell(a)
+                && sets_a_cell(b)
+                && a.parameters[5] == b.parameters[5]
+                && a.indent == c.indent
+                && b.indent == c.indent
+        })
+        .collect()
+}
+
+/// The two writes of [`cell_own_writes`] as an `OP_CELL_TEST` of their own
+/// whose two comparisons hold by construction —each compares the first
+/// variable written with itself—, so it writes and goes on to the next
+/// instruction, which is the pattern's fused one; or None if they cannot be
+/// fused. It is not a new opcode on purpose: `parallel_cell` runs a chain of
+/// `OP_CELL_TEST` back to back, and the interpreter does the same thing it
+/// would with the two `OP_VAR`. The destinations, which are never taken,
+/// point at that next instruction. `at` is where the piece goes in the page.
+fn cell_own_piece(writes: &[Vec<u8>; 2], at: usize) -> Step<Option<Vec<u8>>> {
+    let Some(&slot) = writes[0].get(1) else {
+        return Ok(None);
+    };
+    // The first variable written, against itself: what `cell_test_piece`
+    // reads of a loose `OP_IF_VAR` —its slot, compared with a variable, for
+    // equality, with the same slot on the right—.
+    let itself = vec![
+        OP_IF_VAR,
+        slot,
+        VAR_VARIABLE as u8,
+        CMP_EQUAL as u8,
+        slot,
+        0,
+    ];
+    let Some(mut piece) = cell_test_piece(writes, &[itself.clone(), itself])? else {
+        return Ok(None);
+    };
+    let next = usize_word(at + piece.len())?;
+    for dest in [CELL_DEST_A, CELL_DEST_B] {
+        piece[dest..dest + 2].copy_from_slice(&next);
+    }
+    Ok(Some(piece))
 }
 
 /// `OP_CELL_TEST` with both destinations blank, built from what the four
@@ -9627,6 +9723,51 @@ mod tests {
         assert_eq!(word_at(&code, CELL_DEST_B), otherwise);
         assert_eq!(word_at(&code, goto + 1), end);
         assert_eq!(word_at(&code, CELL_DEST_A), end);
+    }
+
+    #[test]
+    fn the_own_cell_in_front_goes_in_a_cell_test_of_its_own() {
+        // The lights of map 11: the page's own cell into two variables, then
+        // the four of the cell. The two in front come out as an
+        // `OP_CELL_TEST` whose comparisons are its first variable against
+        // itself, with both destinations on the next instruction, so the
+        // page starts with the chain `parallel_cell` runs whole.
+        let at =
+            |code: i32, p: &[i64]| Command::new(code, 0, "", p.iter().map(|&v| v as i32).collect());
+        let mut commands = vec![
+            at(
+                CONTROL_VARS,
+                &[0, 34, 34, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_X],
+            ),
+            at(
+                CONTROL_VARS,
+                &[0, 35, 35, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_Y],
+            ),
+        ];
+        commands.extend(on_the_cell(&[
+            SWITCH_172,
+            (COND_END, 1, &[]),
+            (COND_END, 0, &[]),
+        ]));
+        let code = on_the_cell_compiled(&commands);
+        assert_eq!(
+            opcodes_of(&code),
+            [OP_CELL_TEST, OP_CELL_TEST, OP_SWITCH, OP_DONE]
+        );
+        let refresh = CELL_REFRESH as usize;
+        let next = size_of(OP_CELL_TEST);
+        assert_eq!(word_at(&code, 2) & !refresh, 3 * 2);
+        assert_eq!(word_at(&code, 4) & !refresh, (4 * 2) | CELL_Y as usize);
+        assert_eq!((word_at(&code, 6), word_at(&code, 8)), (3 * 2, 3 * 2));
+        assert_eq!((word_at(&code, 12), word_at(&code, 14)), (3 * 2, 3 * 2));
+        assert_eq!(
+            (word_at(&code, CELL_DEST_A), word_at(&code, CELL_DEST_B)),
+            (next, next)
+        );
+        // And the second is the same as without the two in front.
+        let end = code.len() - 1;
+        assert_eq!(word_at(&code, next + CELL_DEST_A), end);
+        assert_eq!(word_at(&code, next + CELL_DEST_B), end);
     }
 
     #[test]

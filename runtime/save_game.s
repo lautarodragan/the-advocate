@@ -289,6 +289,10 @@ square:
     lda #.strat(SRAM_MAGIC_TEXT, 3)
     sta SRAM_MAGIC + 3, x
     plb
+    ; With a `.msu` the FX Pak writes the SRAM to its card only while no
+    ; track plays: without this, a game saved with its song on a track was
+    ; lost when the console was turned off. See `msu_save_flush`.
+    jsl f:msu_save_flush
     rts
 .endproc
 

@@ -43,7 +43,6 @@ INN_LONGEST = 10 * 60
 ; MSU-1's `$2007`: playing, without the repeat bit. With it off the track
 ; ends by itself, and `MSU_STATE` says so.
 MSU_PLAY_ONCE = $01
-MSU_AUDIO_PLAYING = $10
 
 ; `OP_INN`, from `op_inn` with Y on the phase; it leaves Y after it. It
 ; returns three ways: V set if the page ends the frame here (phase 1), carry
