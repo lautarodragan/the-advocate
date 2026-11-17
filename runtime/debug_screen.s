@@ -48,8 +48,10 @@
 ; menu closes.
 ;
 ; The geometry and the data are `rm2k-snes-screens`'s `debug_screen.rs`,
-; which says how `dbg_data` is laid out. It lives in `FAR3`, entered with
-; `jsl` from `cm_from_menu` with the pause menu's data bank, 0.
+; which says how a page of names is laid out —`pages`—, and the data
+; travels only in the `.msu`: see "What comes from the `.msu`" below. It
+; lives in `FAR3`, entered with `jsl` from `cm_from_menu` with the pause
+; menu's data bank, 0.
 
 .if ::DEBUG_SCREEN
 .pushseg
