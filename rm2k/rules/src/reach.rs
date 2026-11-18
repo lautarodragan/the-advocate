@@ -408,25 +408,23 @@ impl Walker<'_> {
     }
 
     /// The cells a character walking on its own reaches from `cells`: any
-    /// open neighbour, the diagonals too, again and again.
+    /// open neighbour up, down, left or right, again and again. Not the
+    /// diagonals: RM2k 2000 walks the hero by the player's hand, and an
+    /// event by its movement type, in four directions
+    /// (`Game_Player::UpdateNextMovementAction`, `Game_Event::MoveTypeRandom`
+    /// and the others); only a route steps diagonally.
     ///
     /// Not from the cells of `held`: one that it reaches is no longer held.
-    fn spread(&self, cells: &mut BTreeSet<usize>, held: &mut BTreeSet<usize>, passed: &mut Passed) {
+    fn spread(&self, cells: &mut BTreeSet<usize>, held: &mut BTreeSet<usize>) {
         let mut todo: Vec<usize> = cells.difference(held).copied().collect();
         while let Some(at) = todo.pop() {
             let (x, y) = self.grid.xy(at);
-            for &(dx, dy) in &STEPS {
+            for &(dx, dy) in &STEPS[..4] {
                 let Some(to) = self.grid.at(x + dx, y + dy) else {
                     continue;
                 };
-                if self.open[to] {
-                    if dx != 0 && dy != 0 {
-                        passed.over.extend(self.grid.at(x + dx, y));
-                        passed.over.extend(self.grid.at(x, y + dy));
-                    }
-                    if cells.insert(to) | held.remove(&to) {
-                        todo.push(to);
-                    }
+                if self.open[to] && (cells.insert(to) | held.remove(&to)) {
+                    todo.push(to);
                 }
             }
         }
@@ -984,12 +982,12 @@ pub fn standing(
             break;
         }
         let before = shape(&places);
-        for (w, p) in places.iter_mut() {
+        for p in places.values_mut() {
             if p.walks && !p.anywhere {
                 if p.through {
                     p.anywhere = true;
                 } else {
-                    walker.spread(&mut p.cells, &mut p.held, passed.entry(*w).or_default());
+                    walker.spread(&mut p.cells, &mut p.held);
                 }
             }
         }
@@ -1584,8 +1582,7 @@ mod tests {
         };
         assert_eq!(hero(&m), [12, 17].into());
         m.events[0].pages[0].character_name = String::new();
-        // Stepping there diagonally from (2, 3), he passes over (3, 3).
-        assert_eq!(hero(&m), [12, 13, 17, 18].into());
+        assert_eq!(hero(&m), [12, 13, 17].into());
     }
 
     /// A route that is not skippable waits at a step it cannot take, and
@@ -1658,6 +1655,27 @@ mod tests {
         let off = vec![(CONTROL_SWITCHES, vec![0, 7, 7, SWITCH_OFF_OP])];
         // (The scene's own cell, a tile, is one he can step on.)
         assert_eq!(top(&off), [2, 3, 4, 5].into());
+    }
+
+    /// The hero walks in four directions: a floor he could only step onto
+    /// diagonally he never reaches by himself.
+    #[test]
+    fn the_hero_does_not_walk_diagonally() {
+        let (m, flags) = map(&[
+            "###", //
+            "#.#", //
+            "##.", //
+        ]);
+        let outside = Outside {
+            entries: Some(&[(1, 1)]),
+            ..Default::default()
+        };
+        let all = standing(1, &m, &flags, &[], outside).expect("nobody anywhere");
+        let hero = all
+            .iter()
+            .find(|s| s.who == Stander::Hero)
+            .expect("the hero");
+        assert_eq!(hero.cells, [4].into());
     }
 
     #[test]
