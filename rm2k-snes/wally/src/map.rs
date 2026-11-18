@@ -371,6 +371,36 @@ pub const GROUND_LOST_MAX: u64 = 4 * 16 * 16;
 /// The events baked into the map: by event, its cell and its tile id.
 type Baked = BTreeMap<usize, (usize, i32)>;
 
+/// The scanned pages [`moves`] reads to know who walks. A decoration's go:
+/// it is no event any more and its pages do not run. A still one drawn into
+/// the background —`posed`— keeps its row and its pages run, so **the routes
+/// they send others stay**: only its own walking and turning stop counting,
+/// since it is no character. Dropping its pages whole left ABL's Dessen, on
+/// map 17, without the route `RunFactoryScene` —ChipSet tile 33, baked—
+/// walks him with: a still row, which a route moves without turning or
+/// stepping.
+fn pages_that_move(
+    pages: &[ScannedPage],
+    gone: &BTreeSet<usize>,
+    posed: &BTreeSet<usize>,
+) -> Vec<ScannedPage> {
+    pages
+        .iter()
+        .filter(|p| !gone.contains(&p.event))
+        .map(|p| {
+            if posed.contains(&p.event) {
+                ScannedPage {
+                    own_route: false,
+                    turns: false,
+                    ..p.clone()
+                }
+            } else {
+                p.clone()
+            }
+        })
+        .collect()
+}
+
 /// Bakes `baked` unless it moves the split: the layers and what was baked.
 fn bake_unless_split_moves(
     game: &Game,
@@ -1768,12 +1798,7 @@ fn convert_with(
         .cloned()
         .collect();
     npcs0.retain(|n| !posed_set.contains(&n.event));
-    let pages: Vec<ScannedPage> = request
-        .pages
-        .iter()
-        .filter(|p| !gone.contains(&p.event) && !posed_set.contains(&p.event))
-        .cloned()
-        .collect();
+    let pages = pages_that_move(&request.pages, &gone, &posed_set);
 
     // The characters.
     let actors = game.actors()?;
@@ -3130,6 +3155,92 @@ mod tests {
 
     fn keys(names: &[(&str, i32)]) -> BTreeSet<Key> {
         names.iter().map(|(n, i)| ((*n).to_string(), *i)).collect()
+    }
+
+    #[test]
+    fn a_baked_event_still_sends_others_walking() {
+        use crate::events::{collect_npcs, Event, Page};
+        // ABL's map 17: Dessen (0), who turns toward the hero, and the
+        // scene that walks him (1), drawn into the background; and a
+        // decoration (2) whose page would send him too.
+        let page = |name: &str| Page {
+            name: name.into(),
+            index: 0,
+            pose: 1,
+            layer: 1,
+            speed: 3,
+            animation: 0,
+            move_type: 0,
+            own_route: false,
+            translucent: false,
+            conditions: Vec::new(),
+            commands: Vec::new(),
+        };
+        let events = [
+            Event {
+                id: 28,
+                x: 0,
+                y: 0,
+                pages: vec![page("Worker")],
+            },
+            Event {
+                id: 45,
+                x: 1,
+                y: 0,
+                pages: vec![page("")],
+            },
+            Event {
+                id: 46,
+                x: 2,
+                y: 0,
+                pages: vec![page("")],
+            },
+        ];
+        let scanned = |event, trigger, route_targets: Vec<usize>, turns| ScannedPage {
+            event,
+            page: 0,
+            trigger,
+            compiles: true,
+            route_targets,
+            turns,
+            ..Default::default()
+        };
+        let request = [
+            scanned(0, 0, vec![], true),
+            ScannedPage {
+                own_route: true,
+                ..scanned(1, 3, vec![0], true)
+            },
+            scanned(2, 3, vec![0], false),
+        ];
+        let gone = BTreeSet::from([2]);
+        let posed = BTreeSet::from([1]);
+        let pages = pages_that_move(&request, &gone, &posed);
+        assert_eq!(pages.len(), 2, "the decoration's page goes");
+        assert_eq!(pages[1].route_targets, [0], "the baked one's route stays");
+        assert!(
+            !pages[1].turns && !pages[1].own_route,
+            "its own moves do not"
+        );
+        // Only Dessen is drawn as a character: the scene is in the
+        // background.
+        let npcs: Vec<_> = collect_npcs(&events, "tiles", &[0; 10200])
+            .into_iter()
+            .filter(|n| n.event == 0)
+            .collect();
+        let who = moves(
+            &pages,
+            &events,
+            &npcs,
+            "tiles",
+            &BTreeSet::new(),
+            Animate::ALL,
+        );
+        assert_eq!(who.movable, [0].into(), "Dessen walks in a slot of his own");
+        assert!(
+            !who.turning.contains_key(&1),
+            "the baked one turns toward nobody"
+        );
     }
 
     #[test]
