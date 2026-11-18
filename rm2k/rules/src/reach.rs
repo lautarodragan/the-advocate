@@ -260,8 +260,18 @@ impl Walker<'_> {
         }
     }
 
-    /// One state after one command.
-    fn step(&self, s: State, code: i32, passed: &mut Passed, out: &mut Vec<State>) {
+    /// One state after one command. A step that a route that is not
+    /// skippable cannot take leaves the state in `stuck`: RM2k waits on it
+    /// forever, and the rest of the route never runs.
+    fn step(
+        &self,
+        s: State,
+        code: i32,
+        skippable: bool,
+        passed: &mut Passed,
+        out: &mut Vec<State>,
+        stuck: &mut Vec<State>,
+    ) {
         let (x, y) = self.grid.xy(s.at);
         match code {
             THROUGH_ON => out.push(State { through: true, ..s }),
@@ -289,16 +299,25 @@ impl Walker<'_> {
                         continue;
                     }
                     // A step can always fail —an event in the way— and
-                    // leave it where it was.
-                    if !s.through {
+                    // leave it where it was, if the route skips it. One
+                    // that does not waits until the event is gone, and
+                    // steps: it never goes on from here without stepping.
+                    // A direction picked while walking is taken as
+                    // skippable: the one it picks may be closed.
+                    let skips = skippable || dirs.len() > 1;
+                    if !s.through && skips {
                         out.push(s);
                     }
                     let Some(to) = self.grid.at(x + dx, y + dy) else {
-                        if s.through {
+                        if s.through || !skips {
                             out.push(s);
                         }
                         continue;
                     };
+                    if !s.through && !skips && !self.open[to] {
+                        stuck.push(s);
+                        continue;
+                    }
                     if s.through || self.open[to] {
                         if dx != 0 && dy != 0 {
                             passed.over.extend(self.grid.at(x + dx, y));
@@ -361,9 +380,12 @@ impl Walker<'_> {
                     code
                 };
                 let mut next = Vec::new();
+                let mut stuck = Vec::new();
                 for &s in &current {
-                    self.step(s, code, passed, &mut next);
+                    self.step(s, code, route.skippable, passed, &mut next, &mut stuck);
                 }
+                stood.extend(stuck.iter().map(|s| s.at));
+                ends.extend(stuck);
                 next.sort_by_key(|s| (s.at, s.through, s.jump));
                 next.dedup();
                 stood.extend(next.iter().map(|s| s.at));
@@ -413,6 +435,8 @@ struct Route {
     who: Who,
     codes: Vec<i32>,
     repeat: bool,
+    /// Whether a step it cannot take is skipped: if not, it waits there.
+    skippable: bool,
 }
 
 impl Route {
@@ -676,6 +700,7 @@ pub fn standing(
                             who: w,
                             codes: decode_route(p),
                             repeat: get(2).is_some_and(|r| r != 0),
+                            skippable: get(3) != Some(0),
                         });
                         moves.push(Move::Route(routes.len() - 1));
                     }
@@ -728,6 +753,7 @@ pub fn standing(
                         .map(|c| c.command_id.to_i32())
                         .collect(),
                     repeat: page.move_route.repeat,
+                    skippable: page.move_route.skippable,
                 });
                 runs.push(Run {
                     this: Some(event.id),
@@ -1484,6 +1510,32 @@ mod tests {
         m.events[0].pages[0].character_name = String::new();
         // Stepping there diagonally from (2, 3), he passes over (3, 3).
         assert_eq!(hero(&m), [12, 13, 17, 18].into());
+    }
+
+    /// A route that is not skippable waits at a step it cannot take, and
+    /// what comes after never runs: the hero never walks through the wall.
+    /// One that is skippable skips it, and goes on.
+    #[test]
+    fn a_route_that_cannot_skip_a_step_waits_there() {
+        let (m, flags) = map(&[
+            "#####", //
+            "#.#.#", //
+            "#####", //
+        ]);
+        // Right, into the wall; through on; right again.
+        let route = |skippable: i32| vec![HERO, 8, 0, skippable, 1, THROUGH_ON, 1];
+        let outside = Outside {
+            entries: Some(&[(1, 1)]),
+            ..Default::default()
+        };
+        let waits =
+            standing(1, &m, &flags, &[(MOVE_EVENT, route(0))], outside).expect("nobody anywhere");
+        let hero = waits
+            .iter()
+            .find(|s| s.who == Stander::Hero)
+            .expect("the hero");
+        assert_eq!(hero.cells, [6].into());
+        assert!(standing(1, &m, &flags, &[(MOVE_EVENT, route(1))], outside).is_none());
     }
 
     #[test]
