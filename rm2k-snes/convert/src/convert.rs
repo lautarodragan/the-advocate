@@ -405,7 +405,19 @@ pub fn run(options: Options) -> Result<()> {
     // Where the hero arrives is asked for the tiles above him nobody can
     // cover, and for the still events drawn past their cells: see `reach`.
     let arrivals = if game.unreachable_above_below || game.posed != crate::game::Posed::Nowhere {
-        let arrivals = crate::reach::Arrivals::gather(&game, &every_refs, &case_pairs)?;
+        // Over the whole game's maps, not only the cartridge's: what a map
+        // decides from it —its still events drawn past their cells, its
+        // tiles above lowered— is then the same in every cartridge that
+        // carries it, and a test cartridge tests what the playable ROM
+        // draws. The versioned patches are checked on all of them.
+        let others: Vec<GameMap> = game
+            .dump_map_ids()?
+            .into_iter()
+            .filter(|id| !order.contains(id))
+            .map(|id| game.map(id))
+            .collect::<Result<_>>()?;
+        let whole: Vec<&GameMap> = every_refs.iter().copied().chain(others.iter()).collect();
+        let arrivals = crate::reach::Arrivals::gather(&game, &whole, &case_pairs)?;
         if let Some(why) = arrivals.anywhere() {
             println!("  the hero can be anywhere on every map: {why}");
         } else if let Some((why, on)) = arrivals.any_open() {
