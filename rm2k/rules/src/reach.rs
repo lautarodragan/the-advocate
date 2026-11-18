@@ -24,6 +24,16 @@
 //! walls on for a character that then walks on its own —the hero walks
 //! through walls after it, `Game_Player`'s `move_route_through`—.
 //!
+//! Except where a page holds the hero: one that is not a parallel process
+//! keeps the player's hand off him while it runs, and if it takes him off
+//! the map before it can end —a `Teleport` to another map outside every
+//! branch, with nothing between that can end the list or jump—, where its
+//! routes leave him he is only while it runs. His routes walk from there,
+//! through walls if they left him so; he does not walk from there on his
+//! own, and no other page that holds him starts there. A cutscene that
+//! seats the hero through a row of seats and walks him out of the door
+//! left him, without this, walking through walls anywhere.
+//!
 //! It errs toward covering: a move the engine would refuse because an event
 //! is in the way, or a direction the passability closes, is taken as
 //! possible —a cell is "open" if any of its sides lets one in—, every page
@@ -142,12 +152,34 @@ fn who(target: i32, this: Option<i32>) -> Option<Who> {
     }
 }
 
+/// What the walk looks at to know whether a character can be anywhere new.
+type Shape = (usize, usize, bool, bool, bool);
+
+impl Places {
+    fn shape(&self) -> Shape {
+        (
+            self.cells.len(),
+            self.held.len(),
+            self.through,
+            self.held_through,
+            self.anywhere,
+        )
+    }
+}
+
 /// Where one character can be.
 #[derive(Clone, Debug, Default)]
 struct Places {
     cells: BTreeSet<usize>,
+    /// Those of `cells` the hero is on only while a page holds him, one
+    /// that takes him off the map before it lets go —see
+    /// [`Move::Leave`]—: routes start from them, he never walks from them.
+    held: BTreeSet<usize>,
     /// Whether a route may have left it walking through walls.
     through: bool,
+    /// The same, only while a page holds him: the routes of any list walk
+    /// through walls from his cells, he never walks through them.
+    held_through: bool,
     anywhere: bool,
     /// Whether it walks on its own: the hero, by the player's hand.
     walks: bool,
@@ -351,8 +383,10 @@ impl Walker<'_> {
 
     /// The cells a character walking on its own reaches from `cells`: any
     /// open neighbour, the diagonals too, again and again.
-    fn spread(&self, cells: &mut BTreeSet<usize>, passed: &mut Passed) {
-        let mut todo: Vec<usize> = cells.iter().copied().collect();
+    ///
+    /// Not from the cells of `held`: one that it reaches is no longer held.
+    fn spread(&self, cells: &mut BTreeSet<usize>, held: &mut BTreeSet<usize>, passed: &mut Passed) {
+        let mut todo: Vec<usize> = cells.difference(held).copied().collect();
         while let Some(at) = todo.pop() {
             let (x, y) = self.grid.xy(at);
             for &(dx, dy) in &STEPS {
@@ -364,7 +398,7 @@ impl Walker<'_> {
                         passed.over.extend(self.grid.at(x + dx, y));
                         passed.over.extend(self.grid.at(x, y + dy));
                     }
-                    if cells.insert(to) {
+                    if cells.insert(to) | held.remove(&to) {
                         todo.push(to);
                     }
                 }
@@ -444,6 +478,12 @@ enum Move {
     /// which may run anything, or a loop or a label, which may run what
     /// came before again.
     Lose,
+    /// A `Teleport` to another map. `top`, as in `Place`.
+    Leave {
+        top: bool,
+    },
+    /// An `EndEventProcessing`, which may end the list here.
+    Stop,
 }
 
 /// A list of commands that runs from start to end: a page, or every
@@ -454,11 +494,29 @@ struct Run {
     /// Whether it only starts with the hero beside its event: a page that
     /// starts by the action key or by a touch, which nothing calls.
     beside: bool,
+    /// Whether the player cannot move the hero while it runs: a page that
+    /// is not a parallel process —`Game_Interpreter`'s foreground—.
+    holds: bool,
     moves: Vec<Move>,
+}
+
+impl Run {
+    /// Whether, after its move `mi`, the list takes the hero off the map
+    /// before it can end and let the player move him: a `Teleport` to
+    /// another map outside every branch, with no `EndEventProcessing` nor
+    /// anything that can jump —a call, a loop, a label— between.
+    fn leaves_after(&self, mi: usize) -> bool {
+        self.holds
+            && self.moves[mi + 1..]
+                .iter()
+                .find(|m| matches!(m, Move::Leave { top: true } | Move::Lose | Move::Stop))
+                .is_some_and(|m| matches!(m, Move::Leave { .. }))
+    }
 }
 
 /// The event commands this reads besides the ones that move.
 const CALL_EVENT: i32 = 12330;
+const END_EVENT_PROCESSING: i32 = 12310;
 const LOOP: i32 = 12210;
 const LABEL: i32 = 12110;
 /// `CallEvent`'s first parameter for a map event's page, by number and by
@@ -468,6 +526,9 @@ const CALL_BY_VARIABLES: i32 = 2;
 /// The triggers that start a page with the hero beside it: the action key,
 /// the hero's touch and the event's.
 const BESIDE_TRIGGERS: std::ops::RangeInclusive<i32> = 0..=2;
+/// The trigger of a page that runs alongside the player: a parallel
+/// process.
+const PARALLEL: i32 = 4;
 
 /// Where the hero can arrive on a map from outside its pages, which only
 /// the whole game knows.
@@ -574,6 +635,7 @@ pub fn standing(
     let mut subs: Vec<(bool, i32, i32)> = Vec::new();
     let mut read = |this: Option<i32>,
                     beside: bool,
+                    holds: bool,
                     list: &mut dyn Iterator<Item = (i32, &[i32], bool)>,
                     routes: &mut Vec<Route>,
                     runs: &mut Vec<Run>,
@@ -583,7 +645,9 @@ pub fn standing(
             let get = |k: usize| p.get(k).copied();
             let target = |k: usize| get(k).and_then(|t| who(t, this));
             match code {
-                TELEPORT if get(0) == Some(id) => {
+                TELEPORT if get(0) != Some(id) => moves.push(Move::Leave { top }),
+                END_EVENT_PROCESSING => moves.push(Move::Stop),
+                TELEPORT => {
                     if let (Some(x), Some(y)) = (get(1), get(2)) {
                         moves.push(Move::Place {
                             who: Who::Hero,
@@ -640,10 +704,14 @@ pub fn standing(
                 }
             }
         }
-        if !moves.is_empty() {
+        if moves
+            .iter()
+            .any(|m| !matches!(m, Move::Leave { .. } | Move::Stop))
+        {
             runs.push(Run {
                 this,
                 beside,
+                holds,
                 moves,
             });
         }
@@ -664,6 +732,7 @@ pub fn standing(
                 runs.push(Run {
                     this: Some(event.id),
                     beside: false,
+                    holds: false,
                     moves: vec![Move::Route(routes.len() - 1)],
                 });
             }
@@ -677,6 +746,7 @@ pub fn standing(
             read(
                 Some(event.id),
                 beside,
+                page.trigger.to_i32() != PARALLEL,
                 &mut list,
                 &mut routes,
                 &mut runs,
@@ -685,7 +755,15 @@ pub fn standing(
         }
     }
     let mut list = commands.iter().map(|(code, p)| (*code, &p[..], false));
-    read(None, false, &mut list, &mut routes, &mut runs, &mut places);
+    read(
+        None,
+        false,
+        false,
+        &mut list,
+        &mut routes,
+        &mut runs,
+        &mut places,
+    );
 
     // The tiles each cell can show, through every substitution that can run
     // here, and with them where one can step or land.
@@ -731,13 +809,13 @@ pub fn standing(
 
     let walker = Walker { grid, open: &open };
     let mut passed: BTreeMap<Who, Passed> = BTreeMap::new();
-    let states = |p: &Places, cells: &BTreeSet<usize>| -> Vec<State> {
+    let states = |cells: &BTreeSet<usize>, through: bool| -> Vec<State> {
         cells
             .iter()
             .flat_map(|&at| {
                 [false, true]
                     .into_iter()
-                    .filter(|&t| !t || p.through)
+                    .filter(move |&t| !t || through)
                     .map(move |t| State {
                         at,
                         through: t,
@@ -759,14 +837,11 @@ pub fn standing(
         }
         out
     };
-    let shape = |places: &BTreeMap<Who, Places>| -> Vec<(usize, bool, bool)> {
-        places
-            .values()
-            .map(|p| (p.cells.len(), p.through, p.anywhere))
-            .collect()
+    let shape = |places: &BTreeMap<Who, Places>| -> Vec<Shape> {
+        places.values().map(Places::shape).collect()
     };
     // What each list reads: the hero, its event and whoever it moves.
-    let signature = |places: &BTreeMap<Who, Places>, run: &Run| -> Vec<(usize, bool, bool)> {
+    let signature = |places: &BTreeMap<Who, Places>, run: &Run| -> Vec<Shape> {
         let mut who: BTreeSet<Who> = [Who::Hero].into();
         who.extend(run.this.map(Who::Event));
         for m in &run.moves {
@@ -784,18 +859,18 @@ pub fn standing(
                     who.insert(*w);
                 }
                 Move::Trade(a, b) => who.extend([*a, *b]),
-                Move::Lose => {}
+                Move::Lose | Move::Leave { .. } | Move::Stop => {}
             }
         }
         who.iter()
             .map(|w| {
-                places.get(w).map_or((0, false, false), |p| {
-                    (p.cells.len(), p.through, p.anywhere)
-                })
+                places
+                    .get(w)
+                    .map_or((0, 0, false, false, false), Places::shape)
             })
             .collect()
     };
-    let mut last: Vec<Option<Vec<(usize, bool, bool)>>> = vec![None; runs.len()];
+    let mut last: Vec<Option<Vec<Shape>>> = vec![None; runs.len()];
     let mut seen: HashMap<(usize, usize, Who), (HashSet<State>, BTreeSet<usize>)> = HashMap::new();
     loop {
         // Anyone anywhere covers everything: nothing else can change that.
@@ -808,7 +883,7 @@ pub fn standing(
                 if p.through {
                     p.anywhere = true;
                 } else {
-                    walker.spread(&mut p.cells, passed.entry(*w).or_default());
+                    walker.spread(&mut p.cells, &mut p.held, passed.entry(*w).or_default());
                 }
             }
         }
@@ -827,21 +902,27 @@ pub fn standing(
             if let Some(this) = run.this.map(Who::Event).filter(|_| run.beside) {
                 let e = &places[&this];
                 let hero = &places[&Who::Hero];
+                // Not where another page holds him: it runs only after
+                // that one is done, and that one takes him away.
+                let free: BTreeSet<usize> = hero.cells.difference(&hero.held).copied().collect();
                 if !e.anywhere && !hero.anywhere {
                     // Only on the cells where the hero can be beside it.
                     let there: BTreeSet<usize> = e
                         .cells
                         .iter()
                         .copied()
-                        .filter(|&c| beside(&[c].into()).iter().any(|b| hero.cells.contains(b)))
+                        .filter(|&c| beside(&[c].into()).iter().any(|b| free.contains(b)))
                         .collect();
                     let b = beside(&there);
-                    now.insert(Who::Hero, hero.cells.intersection(&b).copied().collect());
+                    now.insert(Who::Hero, free.intersection(&b).copied().collect());
                     now.insert(this, there);
                 }
             }
             let mut moved: BTreeSet<Who> = BTreeSet::new();
             let mut lost = false;
+            // Whether a route of this list left the hero walking through
+            // walls while it holds him.
+            let mut held_through = false;
             for (mi, m) in run.moves.iter().enumerate() {
                 match m {
                     Move::Route(r) => {
@@ -851,16 +932,32 @@ pub fn standing(
                         };
                         for w in whom {
                             moved.insert(w);
+                            // Where it leaves the hero, if the list takes
+                            // him off the map before the player has him
+                            // again, he is only held: see `Places::held`.
+                            let leaves = w == Who::Hero && run.leaves_after(mi);
                             let place = places.entry(w).or_default();
                             if place.anywhere {
                                 continue;
                             }
-                            let here = now.entry(w).or_insert_with(|| place.cells.clone());
+                            // A page that holds the hero starts where no
+                            // other holds him; a parallel one runs while
+                            // they do.
+                            let here = now.entry(w).or_insert_with(|| {
+                                if run.holds {
+                                    place.cells.difference(&place.held).copied().collect()
+                                } else {
+                                    place.cells.clone()
+                                }
+                            });
+                            let through = place.through
+                                || (w == Who::Hero
+                                    && (held_through || (place.held_through && !run.holds)));
                             // Each state walked once: what it gave is
                             // already where it goes, and kept for the rest
                             // of the list.
                             let done = seen.entry((ri, mi, w)).or_default();
-                            let fresh: Vec<State> = states(place, here)
+                            let fresh: Vec<State> = states(here, through)
                                 .into_iter()
                                 .filter(|s| done.0.insert(*s))
                                 .collect();
@@ -871,8 +968,17 @@ pub fn standing(
                             };
                             done.1.extend(stood);
                             for s in ends {
-                                place.cells.insert(s.at);
-                                place.through |= s.through;
+                                if leaves {
+                                    if place.cells.insert(s.at) {
+                                        place.held.insert(s.at);
+                                    }
+                                    place.held_through |= s.through;
+                                    held_through |= s.through;
+                                } else {
+                                    place.cells.insert(s.at);
+                                    place.held.remove(&s.at);
+                                    place.through |= s.through;
+                                }
                             }
                             here.extend(done.1.iter().copied());
                         }
@@ -916,6 +1022,7 @@ pub fn standing(
                         now.clear();
                         lost = true;
                     }
+                    Move::Leave { .. } | Move::Stop => {}
                 }
             }
         }
@@ -1247,6 +1354,64 @@ mod tests {
             },
         );
         assert_eq!(drawn(&m, &out)[0], "xxx..");
+    }
+
+    /// A cutscene walks the hero through a wall into a closed room and
+    /// takes him off the map: his route covers its cells, and he walks
+    /// neither on from them nor through walls afterwards. Without the
+    /// teleport, or in a parallel process the player walks alongside, he
+    /// can be left walking through walls, which is anywhere.
+    #[test]
+    fn a_cutscene_that_takes_the_hero_away_leaves_him_nowhere() {
+        let (mut m, flags) = map(&[
+            "#######", //
+            "#.#...#", //
+            "#######", //
+        ]);
+        // Through on, right twice; and away.
+        let route = vec![HERO, 8, 0, 0, THROUGH_ON, 1, 1];
+        let scene = |trigger: i32, away: bool| {
+            let mut commands = vec![(MOVE_EVENT, route.clone())];
+            if away {
+                commands.push((TELEPORT, vec![2, 0, 0, 0]));
+            }
+            let mut e = event(1, 6, 1, 0, commands);
+            e.pages[0].trigger = ditto::schema::EventPageTrigger::from_i32(trigger);
+            e
+        };
+        let outside = Outside {
+            entries: Some(&[(1, 1)]),
+            ..Default::default()
+        };
+        const AUTOSTART: i32 = 3;
+        m.events = vec![scene(AUTOSTART, true)];
+        assert_eq!(
+            drawn(&m, &covered(1, &m, &flags, &[], outside)),
+            ["xxxxxxx", "xxxxxxx", "......."]
+        );
+        let hero = standing(1, &m, &flags, &[], outside)
+            .expect("nobody anywhere")
+            .into_iter()
+            .find(|s| s.who == Stander::Hero)
+            .expect("the hero");
+        assert_eq!(hero.cells, [8, 9, 10].into());
+        // The same route with no teleport, or in a parallel process.
+        m.events = vec![scene(AUTOSTART, false)];
+        assert!(standing(1, &m, &flags, &[], outside).is_none());
+        m.events = vec![scene(PARALLEL, true)];
+        assert!(standing(1, &m, &flags, &[], outside).is_none());
+        // Nor if the list may end before the teleport.
+        let mut e = scene(AUTOSTART, true);
+        e.pages[0].event_commands.insert(
+            1,
+            EventCommand {
+                code: EventCommandCode::from_i32(END_EVENT_PROCESSING),
+                indent: 1,
+                ..Default::default()
+            },
+        );
+        m.events = vec![e];
+        assert!(standing(1, &m, &flags, &[], outside).is_none());
     }
 
     #[test]
