@@ -370,12 +370,14 @@ impl Walker<'_> {
     }
 
     /// Every state a route can leave from those of `from`, and every cell
-    /// it stands on along the way, if only for a moment.
-    fn walk(&self, from: &[State], route: &Route, passed: &mut Passed) -> (Vec<State>, Vec<usize>) {
+    /// it stands on along the way, if only for a moment; and those of them
+    /// it stands on walking through walls.
+    fn walk(&self, from: &[State], route: &Route, passed: &mut Passed) -> Walked {
         let mut seen: HashSet<State> = from.iter().copied().collect();
         let mut current: Vec<State> = from.to_vec();
         let mut ends: HashSet<State> = HashSet::new();
         let mut stood: BTreeSet<usize> = from.iter().map(|s| s.at).collect();
+        let mut phased: BTreeSet<usize> = from.iter().filter(|s| s.through).map(|s| s.at).collect();
         loop {
             for &code in &route.codes {
                 let code = if route.who == Who::Hero {
@@ -389,20 +391,27 @@ impl Walker<'_> {
                     self.step(s, code, route.skippable, passed, &mut next, &mut stuck);
                 }
                 stood.extend(stuck.iter().map(|s| s.at));
+                phased.extend(stuck.iter().filter(|s| s.through).map(|s| s.at));
                 ends.extend(stuck);
                 next.sort_by_key(|s| (s.at, s.through, s.jump));
                 next.dedup();
                 stood.extend(next.iter().map(|s| s.at));
+                phased.extend(next.iter().filter(|s| s.through).map(|s| s.at));
                 current = next;
             }
             // A route that ends in the air lands.
             let landed: Vec<State> = current.iter().flat_map(|&s| self.land(s, passed)).collect();
             stood.extend(landed.iter().map(|s| s.at));
+            phased.extend(landed.iter().filter(|s| s.through).map(|s| s.at));
             let fresh: Vec<State> = landed.into_iter().filter(|s| ends.insert(*s)).collect();
             current = fresh.into_iter().filter(|s| seen.insert(*s)).collect();
             if !route.repeat || current.is_empty() {
                 passed.over.extend(stood.iter().copied());
-                return (ends.into_iter().collect(), stood.into_iter().collect());
+                return Walked {
+                    ends: ends.into_iter().collect(),
+                    stood,
+                    phased,
+                };
             }
         }
     }
@@ -429,6 +438,13 @@ impl Walker<'_> {
             }
         }
     }
+}
+
+/// What a route walked: see [`Walker::walk`].
+struct Walked {
+    ends: Vec<State>,
+    stood: BTreeSet<usize>,
+    phased: BTreeSet<usize>,
 }
 
 /// A route that can run on the map, and whom it moves.
@@ -911,10 +927,11 @@ pub fn standing(
 
     let walker = Walker { grid, open: &open };
     let mut passed: BTreeMap<Who, Passed> = BTreeMap::new();
-    let states = |cells: &BTreeSet<usize>, through: bool| -> Vec<State> {
+    let states = |cells: &BTreeSet<usize>, through: &dyn Fn(usize) -> bool| -> Vec<State> {
         cells
             .iter()
             .flat_map(|&at| {
+                let through = through(at);
                 [false, true]
                     .into_iter()
                     .filter(move |&t| !t || through)
@@ -975,7 +992,10 @@ pub fn standing(
     // Where the hero is as he arrives, before he takes a step.
     let arrival: BTreeSet<usize> = places[&Who::Hero].cells.clone();
     let mut last: Vec<Option<Vec<Shape>>> = vec![None; runs.len()];
-    let mut seen: HashMap<(usize, usize, Who), (HashSet<State>, BTreeSet<usize>)> = HashMap::new();
+    // By list, move and character: the states walked, the cells stood on,
+    // and those stood on walking through walls while a page holds the hero.
+    type Seen = (HashSet<State>, BTreeSet<usize>, BTreeSet<usize>);
+    let mut seen: HashMap<(usize, usize, Who), Seen> = HashMap::new();
     loop {
         // Anyone anywhere covers everything: nothing else can change that.
         if places.values().any(|p| p.anywhere) {
@@ -1024,9 +1044,9 @@ pub fn standing(
             }
             let mut moved: BTreeSet<Who> = BTreeSet::new();
             let mut lost = false;
-            // Whether a route of this list left the hero walking through
+            // Where a route of this list left the hero walking through
             // walls while it holds him.
-            let mut held_through = false;
+            let mut held_through: BTreeSet<usize> = BTreeSet::new();
             for (mi, m) in run.moves.iter().enumerate() {
                 match m {
                     Move::Route(r) => {
@@ -1069,9 +1089,11 @@ pub fn standing(
                                 BTreeSet::new()
                             };
                             let free: BTreeSet<usize> = here.difference(&held).copied().collect();
-                            let through = place.through || (w == Who::Hero && held_through);
-                            let mut starts = states(&free, through);
-                            let from_held = states(&held, through || place.held_through);
+                            let hero = w == Who::Hero;
+                            let through =
+                                |c: usize| place.through || (hero && held_through.contains(&c));
+                            let mut starts = states(&free, &through);
+                            let from_held = states(&held, &|c| through(c) || place.held_through);
                             let held_from = starts.len();
                             starts.extend(from_held);
                             // Each state walked once: what it gave is
@@ -1085,19 +1107,29 @@ pub fn standing(
                                 }
                             }
                             for (k, fresh) in groups.into_iter().enumerate() {
-                                let (ends, stood) = if fresh.is_empty() || routes[*r].still() {
-                                    (fresh.clone(), fresh.iter().map(|s| s.at).collect())
+                                let walked = if fresh.is_empty() || routes[*r].still() {
+                                    Walked {
+                                        ends: fresh.clone(),
+                                        stood: fresh.iter().map(|s| s.at).collect(),
+                                        phased: fresh
+                                            .iter()
+                                            .filter(|s| s.through)
+                                            .map(|s| s.at)
+                                            .collect(),
+                                    }
                                 } else {
                                     walker.walk(&fresh, &routes[*r], passed.entry(w).or_default())
                                 };
-                                done.1.extend(stood);
-                                for s in ends {
+                                done.1.extend(walked.stood);
+                                if leaves {
+                                    done.2.extend(walked.phased);
+                                }
+                                for s in walked.ends {
                                     if leaves || k == 1 {
                                         if place.cells.insert(s.at) {
                                             place.held.insert(s.at);
                                         }
                                         place.held_through |= s.through;
-                                        held_through |= s.through && leaves;
                                     } else {
                                         place.cells.insert(s.at);
                                         place.held.remove(&s.at);
@@ -1106,6 +1138,9 @@ pub fn standing(
                                 }
                             }
                             here.extend(done.1.iter().copied());
+                            if hero {
+                                held_through.extend(done.2.iter().copied());
+                            }
                         }
                     }
                     Move::Place { who, at, top } => {
@@ -1676,6 +1711,44 @@ mod tests {
             .find(|s| s.who == Stander::Hero)
             .expect("the hero");
         assert_eq!(hero.cells, [4].into());
+    }
+
+    /// A scene's later route walks through walls only from where an
+    /// earlier one left the hero walking through them: arrived on (3, 1)
+    /// he steps right and phases, and goes up through the wall; arrived on
+    /// (1, 1) the step into the wall never comes, and he does not.
+    #[test]
+    fn a_scene_walks_through_walls_only_from_where_it_phased() {
+        let (mut m, flags) = map(&[
+            "#######", //
+            "#.#...#", //
+            "#######", //
+        ]);
+        const AUTOSTART: i32 = 3;
+        let mut scene = event(
+            1,
+            5,
+            2,
+            0,
+            vec![
+                (MOVE_EVENT, vec![HERO, 8, 0, 0, 1, THROUGH_ON]),
+                (MOVE_EVENT, vec![HERO, 8, 0, 0, 0]),
+                (TELEPORT, vec![2, 0, 0, 0]),
+            ],
+        );
+        scene.pages[0].trigger = ditto::schema::EventPageTrigger::from_i32(AUTOSTART);
+        m.events = vec![scene];
+        let outside = Outside {
+            entries: Some(&[(1, 1), (3, 1)]),
+            ..Default::default()
+        };
+        let all = standing(1, &m, &flags, &[], outside).expect("nobody anywhere");
+        let hero = all
+            .iter()
+            .find(|s| s.who == Stander::Hero)
+            .expect("the hero");
+        let top: BTreeSet<usize> = hero.cells.iter().copied().filter(|&c| c < 7).collect();
+        assert_eq!(top, [4].into());
     }
 
     #[test]
