@@ -202,14 +202,24 @@ with_end:
     ; can land: `Game_Character::Jump` turns and only then calls `MakeWay`,
     ; so a jump that cannot land still leaves the hero facing where it
     ; wanted to go. RM2k then retries the jump, which here is skipped —see
-    ; `step_route`—; the turn is the part of it that shows. In place nothing
-    ; changes: RM2k only sets the facing when the jump moves, and not over a
-    ; `lock_facing`, which on the hero is `hero_lock`; its `SetDirection`,
-    ; which is `hero_heading`, it does over the lock too.
-    ; See `test_blocked_jump.py`.
+    ; `step_route`—; the turn is the part of it that shows. RM2k only sets
+    ; the facing when the jump moves, and not over a `lock_facing`, which on
+    ; the hero is `hero_lock`; its `SetDirection`, which is `hero_heading`,
+    ; it does over the lock too. See `test_blocked_jump.py`.
     lda jump_dx
     ora jump_dy
-    beq no_turn
+    bne moves
+    ; **In place it does not ask whether it can land**: `Jump` calls
+    ; `MakeWay` only `if (dx != 0 || dy != 0)`, so a hop on the spot happens
+    ; on any cell, and `can_fall` wants the cell passable from all four
+    ; sides. Until 2026-11-18 it asked anyway, and whoever stood on a cell
+    ; with no passage —the Hover-Tram's robbed passengers, map 13— hopped in
+    ; RM2k and not here. The direction is still set, from `dy >= 0`: down.
+    ; See `test_jump_in_place.py`.
+    lda #DIR_DOWN
+    sta hero_heading
+    bra in_place
+moves:
     jsr jump_direction
     sta hero_heading
     lda hero_lock
@@ -262,6 +272,7 @@ se_can:
     sep #$20
 .a8
     jsr init_hero_ptr
+in_place:
     ; The first decrement goes in the same frame that builds the jump, as in
     ; `Game_Character::Update`, which after `UpdateNextMovementAction` already
     ; sees it jumping and calls `UpdateMovement`. JUMP_STEP is 256 and does
@@ -582,11 +593,11 @@ with_end:
     ; are skippable in RM2k —none of them the hero's—.
     ; `Jump` does not touch a locked facing —`lock_facing` or the page's
     ; animation type—, and until 2026-09-30 the ROM turned it anyway, also on
-    ; the jumps that land. In place nothing changes.
-    ; See `test_blocked_jump.py`.
+    ; the jumps that land. See `test_blocked_jump.py`.
     lda jump_dx
     ora jump_dy
-    beq no_turn
+    beq in_place                ; `Jump` turns and asks only if it moves:
+                                ; see `build_hero_jump`
     lda route_ev + 18, x
     and #$88                    ; nor one that spins, which turns on its own
     bne no_turn
@@ -625,6 +636,7 @@ se_can:
     phx
     jsr move_cell_to_event
     plx
+in_place:
     lda jump_dx
     sta route_ev + 14, x
     lda jump_dy
