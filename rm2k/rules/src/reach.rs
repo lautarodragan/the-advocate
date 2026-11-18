@@ -950,34 +950,50 @@ pub fn standing(
                                     place.cells.clone()
                                 }
                             });
-                            let through = place.through
-                                || (w == Who::Hero
-                                    && (held_through || (place.held_through && !run.holds)));
+                            // Where another page holds the hero, a parallel
+                            // one walks him on as that one left him, and
+                            // leaves him held: that one still takes him
+                            // away. Anywhere else, this list decides.
+                            let held: BTreeSet<usize> = if w == Who::Hero && !run.holds {
+                                here.intersection(&place.held).copied().collect()
+                            } else {
+                                BTreeSet::new()
+                            };
+                            let free: BTreeSet<usize> = here.difference(&held).copied().collect();
+                            let through = place.through || (w == Who::Hero && held_through);
+                            let mut starts = states(&free, through);
+                            let from_held = states(&held, through || place.held_through);
+                            let held_from = starts.len();
+                            starts.extend(from_held);
                             // Each state walked once: what it gave is
                             // already where it goes, and kept for the rest
                             // of the list.
                             let done = seen.entry((ri, mi, w)).or_default();
-                            let fresh: Vec<State> = states(here, through)
-                                .into_iter()
-                                .filter(|s| done.0.insert(*s))
-                                .collect();
-                            let (ends, stood) = if fresh.is_empty() || routes[*r].still() {
-                                (fresh.clone(), fresh.iter().map(|s| s.at).collect())
-                            } else {
-                                walker.walk(&fresh, &routes[*r], passed.entry(w).or_default())
-                            };
-                            done.1.extend(stood);
-                            for s in ends {
-                                if leaves {
-                                    if place.cells.insert(s.at) {
-                                        place.held.insert(s.at);
-                                    }
-                                    place.held_through |= s.through;
-                                    held_through |= s.through;
+                            let mut groups = [Vec::new(), Vec::new()];
+                            for (k, s) in starts.into_iter().enumerate() {
+                                if done.0.insert(s) {
+                                    groups[usize::from(k >= held_from)].push(s);
+                                }
+                            }
+                            for (k, fresh) in groups.into_iter().enumerate() {
+                                let (ends, stood) = if fresh.is_empty() || routes[*r].still() {
+                                    (fresh.clone(), fresh.iter().map(|s| s.at).collect())
                                 } else {
-                                    place.cells.insert(s.at);
-                                    place.held.remove(&s.at);
-                                    place.through |= s.through;
+                                    walker.walk(&fresh, &routes[*r], passed.entry(w).or_default())
+                                };
+                                done.1.extend(stood);
+                                for s in ends {
+                                    if leaves || k == 1 {
+                                        if place.cells.insert(s.at) {
+                                            place.held.insert(s.at);
+                                        }
+                                        place.held_through |= s.through;
+                                        held_through |= s.through && leaves;
+                                    } else {
+                                        place.cells.insert(s.at);
+                                        place.held.remove(&s.at);
+                                        place.through |= s.through;
+                                    }
                                 }
                             }
                             here.extend(done.1.iter().copied());
@@ -1042,12 +1058,19 @@ pub fn standing(
             Who::AnyEvent => Stander::AnyEvent,
         };
         let walked = passed.remove(&w).unwrap_or_default();
+        let phases = p.through
+            || p.held_through
+            || routes.iter().any(|r| {
+                r.codes.contains(&THROUGH_ON)
+                    && (r.who == w || (r.who == Who::AnyEvent && w != Who::Hero))
+            });
         let mut stands = p.cells;
         stands.extend(walked.over);
         out.push(Standing {
             who,
             cells: stands,
             risen: walked.risen,
+            phases,
         });
     }
     Some(out)
@@ -1072,6 +1095,9 @@ pub struct Standing {
     pub who: Stander,
     pub cells: BTreeSet<usize>,
     pub risen: BTreeSet<usize>,
+    /// Whether it may walk through walls and other characters somewhere on
+    /// the map: a route turns it on.
+    pub phases: bool,
 }
 
 /// The cells of map `id` a character's sprite can cover: see the module and
@@ -1395,6 +1421,10 @@ mod tests {
             .find(|s| s.who == Stander::Hero)
             .expect("the hero");
         assert_eq!(hero.cells, [8, 9, 10].into());
+        // A common event that turns him, which may run while the scene
+        // holds him, walks him on as the scene left him: still held.
+        let turn = vec![(MOVE_EVENT, vec![HERO, 8, 0, 0, 13])];
+        assert!(standing(1, &m, &flags, &turn, outside).is_some());
         // The same route with no teleport, or in a parallel process.
         m.events = vec![scene(AUTOSTART, false)];
         assert!(standing(1, &m, &flags, &[], outside).is_none());
