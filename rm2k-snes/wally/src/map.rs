@@ -339,8 +339,8 @@ fn same_split(without: &Converted, with: &Converted, decor: bool) -> bool {
 
 /// Whether the colours of `with` are those of `without` but for where the
 /// background ends and the layer above starts in colour memory: the layer
-/// above with the same tiles and the same cells, merging no more, and the
-/// background merging no more.
+/// above with the same tiles and the same cells, merging no more, the
+/// background merging no more, and the panorama keeping its colours.
 ///
 /// A Blurred Line's Hover-Tram, map 13, leaves its background 35 entries
 /// of colour memory and the layer above the rest; its seated people bring
@@ -354,6 +354,11 @@ fn only_the_split_moved(without: &Converted, with: &Converted) -> bool {
         && b.tilemap.starts_with(&a.tilemap)
         && a.merges.len() == b.merges.len()
         && without.background.merges.len() == with.background.merges.len()
+        // The panorama shares the colour memory in mode 3: one that keeps
+        // fewer colours for them is drawn worse. On the Hover-Tram it went
+        // from 46 kept to 32, the first time this was let through.
+        && without.panorama.as_ref().map(|p| (p.kept, p.tiles.len()))
+            == with.panorama.as_ref().map(|p| (p.kept, p.tiles.len()))
 }
 
 /// The most pixels of the ground's own colours that painting decoration into
