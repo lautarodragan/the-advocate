@@ -797,10 +797,19 @@ pub fn standing(
     if outside.any_open {
         hero.cells.extend((0..cells).filter(|&c| open[c]));
     }
-    // An event stands on its cells: a tile it is drawn with may be a bridge,
-    // and a page can put it on a wall.
+    // An event drawn with a tile opens its cells: the tile may be a bridge.
+    // Not one drawn with a CharSet, which RM2k does not walk on: it steps
+    // off a wall a page puts it on —a step looks only where it goes— but
+    // nobody steps onto one, and the people seated on a row of closed
+    // seats did not let the hero sit among them.
+    let tiled: BTreeSet<i32> = map
+        .events
+        .iter()
+        .filter(|e| e.pages.iter().any(|p| p.character_name.is_empty()))
+        .map(|e| e.id)
+        .collect();
     for (w, p) in &places {
-        if matches!(w, Who::Event(_)) {
+        if matches!(w, Who::Event(id) if tiled.contains(id)) {
             for &c in &p.cells {
                 open[c] = true;
             }
@@ -1442,6 +1451,39 @@ mod tests {
         );
         m.events = vec![e];
         assert!(standing(1, &m, &flags, &[], outside).is_none());
+    }
+
+    /// A person drawn with a CharSet seated on a closed cell beside the
+    /// hero's room does not open it: nobody steps onto it, and the hero's
+    /// sprite never covers the row above it. One drawn with a tile does,
+    /// as a bridge.
+    #[test]
+    fn only_an_event_drawn_with_a_tile_opens_its_cell() {
+        let (mut m, flags) = map(&[
+            "#####", //
+            "#####", //
+            "##.##", //
+            "##.##", //
+        ]);
+        let mut seated = event(1, 3, 2, 0, vec![]);
+        seated.pages[0].character_name = "People".to_string();
+        m.events = vec![seated];
+        let outside = Outside {
+            entries: Some(&[(2, 3)]),
+            ..Default::default()
+        };
+        let hero = |m: &Map| {
+            standing(1, m, &flags, &[], outside)
+                .expect("nobody anywhere")
+                .into_iter()
+                .find(|s| s.who == Stander::Hero)
+                .expect("the hero")
+                .cells
+        };
+        assert_eq!(hero(&m), [12, 17].into());
+        m.events[0].pages[0].character_name = String::new();
+        // Stepping there diagonally from (2, 3), he passes over (3, 3).
+        assert_eq!(hero(&m), [12, 13, 17, 18].into());
     }
 
     #[test]
