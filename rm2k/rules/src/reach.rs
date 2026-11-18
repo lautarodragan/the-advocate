@@ -34,6 +34,10 @@
 //! seats the hero through a row of seats and walks him out of the door
 //! left him, without this, walking through walls anywhere.
 //!
+//! And such a page that starts only as he arrives —an autostart page that
+//! asks for nothing, under pages that ask only for switches nothing on
+//! the map turns off— starts where he arrives, not wherever he can walk.
+//!
 //! It errs toward covering: a move the engine would refuse because an event
 //! is in the way, or a direction the passability closes, is taken as
 //! possible —a cell is "open" if any of its sides lets one in—, every page
@@ -521,6 +525,9 @@ struct Run {
     /// Whether the player cannot move the hero while it runs: a page that
     /// is not a parallel process —`Game_Interpreter`'s foreground—.
     holds: bool,
+    /// Whether it starts only as the hero arrives on the map: an autostart
+    /// page nothing can turn on while he is there. See `on_arrival`.
+    on_arrival: bool,
     moves: Vec<Move>,
 }
 
@@ -530,8 +537,12 @@ impl Run {
     /// another map outside every branch, with no `EndEventProcessing` nor
     /// anything that can jump —a call, a loop, a label— between.
     fn leaves_after(&self, mi: usize) -> bool {
+        self.leaves_from(mi + 1)
+    }
+
+    fn leaves_from(&self, start: usize) -> bool {
         self.holds
-            && self.moves[mi + 1..]
+            && self.moves[start..]
                 .iter()
                 .find(|m| matches!(m, Move::Leave { top: true } | Move::Lose | Move::Stop))
                 .is_some_and(|m| matches!(m, Move::Leave { .. }))
@@ -553,6 +564,11 @@ const BESIDE_TRIGGERS: std::ops::RangeInclusive<i32> = 0..=2;
 /// The trigger of a page that runs alongside the player: a parallel
 /// process.
 const PARALLEL: i32 = 4;
+const AUTOSTART: i32 = 3;
+/// `ControlSwitches`, and its operations that may turn a switch off.
+const CONTROL_SWITCHES: i32 = 10110;
+const SWITCH_OFF_OP: i32 = 1;
+const SWITCH_TOGGLE_OP: i32 = 2;
 
 /// Where the hero can arrive on a map from outside its pages, which only
 /// the whole game knows.
@@ -660,6 +676,7 @@ pub fn standing(
     let mut read = |this: Option<i32>,
                     beside: bool,
                     holds: bool,
+                    on_arrival: bool,
                     list: &mut dyn Iterator<Item = (i32, &[i32], bool)>,
                     routes: &mut Vec<Route>,
                     runs: &mut Vec<Run>,
@@ -737,12 +754,61 @@ pub fn standing(
                 this,
                 beside,
                 holds,
+                on_arrival,
                 moves,
             });
         }
     };
+    // The switches a command that can run here may turn off: by number,
+    // or any if one picks them by a variable.
+    let mut off: BTreeSet<i32> = BTreeSet::new();
+    let mut any_off = false;
+    let every = map
+        .events
+        .iter()
+        .flat_map(|e| e.pages.iter())
+        .flat_map(|p| {
+            p.event_commands
+                .iter()
+                .map(|c| (c.code.to_i32(), &c.parameters[..]))
+        })
+        .chain(commands.iter().map(|(code, p)| (*code, &p[..])));
+    for (code, p) in every {
+        if code != CONTROL_SWITCHES
+            || !matches!(p.get(3), Some(&(SWITCH_OFF_OP | SWITCH_TOGGLE_OP)))
+        {
+            continue;
+        }
+        match (p.first(), p.get(1), p.get(2)) {
+            (Some(&0), Some(&a), _) => {
+                off.insert(a);
+            }
+            (Some(&1), Some(&a), Some(&b)) => off.extend(a..=b.max(a)),
+            _ => any_off = true,
+        }
+    }
+    // Whether page `k` of `event`, an autostart page that asks for
+    // nothing, starts only as the hero arrives: no page above it can go
+    // off while he is on the map —each asks only for switches nothing here
+    // turns off—, so if it does not start then, it never does; and nothing
+    // calls it. `Game_Map`'s refresh picks the highest page that holds.
+    let on_arrival = |event: &ditto::schema::Event, k: usize| -> bool {
+        let page = &event.pages[k];
+        let quiet = |c: &ditto::schema::EventPageCondition| {
+            let f = &c.flags;
+            !(f.variable || f.item || f.actor || f.timer || f.timer2)
+                && !(f.switch_a && (any_off || off.contains(&c.switch_a_id)))
+                && !(f.switch_b && (any_off || off.contains(&c.switch_b_id)))
+        };
+        let f = &page.condition.flags;
+        page.trigger.to_i32() == AUTOSTART
+            && !(f.switch_a || f.switch_b || f.variable || f.item || f.actor || f.timer || f.timer2)
+            && !by_variables
+            && !called.contains(&event.id)
+            && event.pages[k + 1..].iter().all(|p| quiet(&p.condition))
+    };
     for event in &map.events {
-        for page in &event.pages {
+        for (k, page) in event.pages.iter().enumerate() {
             if page.move_type.to_i32() == MOVE_CUSTOM {
                 routes.push(Route {
                     who: Who::Event(event.id),
@@ -759,6 +825,7 @@ pub fn standing(
                     this: Some(event.id),
                     beside: false,
                     holds: false,
+                    on_arrival: false,
                     moves: vec![Move::Route(routes.len() - 1)],
                 });
             }
@@ -773,6 +840,7 @@ pub fn standing(
                 Some(event.id),
                 beside,
                 page.trigger.to_i32() != PARALLEL,
+                on_arrival(event, k),
                 &mut list,
                 &mut routes,
                 &mut runs,
@@ -783,6 +851,7 @@ pub fn standing(
     let mut list = commands.iter().map(|(code, p)| (*code, &p[..], false));
     read(
         None,
+        false,
         false,
         false,
         &mut list,
@@ -905,6 +974,8 @@ pub fn standing(
             })
             .collect()
     };
+    // Where the hero is as he arrives, before he takes a step.
+    let arrival: BTreeSet<usize> = places[&Who::Hero].cells.clone();
     let mut last: Vec<Option<Vec<Shape>>> = vec![None; runs.len()];
     let mut seen: HashMap<(usize, usize, Who), (HashSet<State>, BTreeSet<usize>)> = HashMap::new();
     loop {
@@ -978,8 +1049,13 @@ pub fn standing(
                             // A page that holds the hero starts where no
                             // other holds him; a parallel one runs while
                             // they do.
+                            // One that starts only as he arrives and takes
+                            // him away before it ends starts where he
+                            // arrives: see `Run::on_arrival`.
                             let here = now.entry(w).or_insert_with(|| {
-                                if run.holds {
+                                if w == Who::Hero && run.on_arrival && run.leaves_from(0) {
+                                    arrival.clone()
+                                } else if run.holds {
                                     place.cells.difference(&place.held).copied().collect()
                                 } else {
                                     place.cells.clone()
@@ -1536,6 +1612,52 @@ mod tests {
             .expect("the hero");
         assert_eq!(hero.cells, [6].into());
         assert!(standing(1, &m, &flags, &[(MOVE_EVENT, route(1))], outside).is_none());
+    }
+
+    /// An autostart scene that asks for nothing starts as the hero
+    /// arrives, where he arrives: it walks him one cell on and through the
+    /// wall above, and away. Not if a page above it can go off while he
+    /// walks the corridor: then it can start wherever he is.
+    #[test]
+    fn a_scene_on_arrival_starts_where_the_hero_arrives() {
+        let (mut m, flags) = map(&[
+            "######", //
+            "#....#", //
+            "######", //
+        ]);
+        let route = vec![HERO, 8, 0, 0, 1, THROUGH_ON, 0];
+        const AUTOSTART: i32 = 3;
+        let mut scene = event(
+            1,
+            5,
+            1,
+            0,
+            vec![(MOVE_EVENT, route), (TELEPORT, vec![2, 0, 0, 0])],
+        );
+        scene.pages[0].trigger = ditto::schema::EventPageTrigger::from_i32(AUTOSTART);
+        // Page 2, once switch 7 is on: nothing.
+        let mut after = EventPage::default();
+        after.condition.flags.switch_a = true;
+        after.condition.switch_a_id = 7;
+        scene.pages.push(after);
+        m.events = vec![scene];
+        let outside = Outside {
+            entries: Some(&[(1, 1)]),
+            ..Default::default()
+        };
+        let top = |commands: &[(i32, Vec<i32>)]| -> BTreeSet<usize> {
+            let all = standing(1, &m, &flags, commands, outside).expect("nobody anywhere");
+            let hero = all
+                .into_iter()
+                .find(|s| s.who == Stander::Hero)
+                .expect("the hero");
+            hero.cells.into_iter().filter(|&c| c < 6).collect()
+        };
+        assert_eq!(top(&[]), [2].into());
+        // A common event that turns switch 7 off.
+        let off = vec![(CONTROL_SWITCHES, vec![0, 7, 7, SWITCH_OFF_OP])];
+        // (The scene's own cell, a tile, is one he can step on.)
+        assert_eq!(top(&off), [2, 3, 4, 5].into());
     }
 
     #[test]
