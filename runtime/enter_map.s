@@ -29,6 +29,9 @@
 .a8
     jsr turn_clear              ; the rows are going to be different
     jsr battle_anim_clear       ; and the battle animation does not carry on
+.if ::DEBUG_SCREEN
+    jsl f:dbg_counts_zero + FAST ; the PPU's counts are this map's: see debug_switches.s
+.endif
     rep #$20
 .a16
     stz sub_n                   ; and the tile substitutions are lost when

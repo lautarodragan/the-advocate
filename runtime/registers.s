@@ -126,6 +126,7 @@ CGWSEL   = $2130        ; where color math applies and against which color
 CGADSUB  = $2131        ; add or subtract, and on which layers
 COLDATA  = $2132        ; the fixed color: three channel bits and the intensity
 OBSEL    = $2101        ; sprite size and where their tiles live
+STAT77   = $213E        ; the PPU's objects: bit 7 time over, bit 6 range over
 OAMADDL  = $2102        ; index into OAM, in words
 OAMDATA  = $2104        ; the next OAM byte, which advances by itself
 OBJSEL_TM = $212C
