@@ -406,8 +406,14 @@ pub fn run(options: Options) -> Result<()> {
         let arrivals = crate::reach::Arrivals::gather(&game, &every_refs, &case_pairs)?;
         if let Some(why) = arrivals.anywhere() {
             println!("  every tile above the hero stays above: {why}");
-        } else if let Some(why) = arrivals.any_open() {
-            println!("  the hero can be on any cell one can step on: {why}");
+        } else if let Some((why, on)) = arrivals.any_open() {
+            match on {
+                None => println!("  the hero can be on any cell one can step on: {why}"),
+                Some(maps) => println!(
+                    "  the hero can be on any cell one can step on of maps {}: {why}",
+                    join(maps.iter().copied().collect::<Vec<_>>(), " ")
+                ),
+            }
         }
         arrivals
     } else {
