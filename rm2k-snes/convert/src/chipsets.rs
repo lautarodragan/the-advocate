@@ -9,7 +9,7 @@
 //!
 //! The recipe has six operations. Two copy from inside the ChipSet itself
 //! —`lower_blocks` and `upper_tiles`—, two **bring pixels from outside**
-//! —`from_charset` puts a CharSet pose into two upper tiles, so an NPC
+//! —`from_charset` puts a CharSet pose into upper tiles, so an NPC
 //! that only stands there becomes map; `from_image` puts in a PNG that
 //! is neither, scaled and cut into 16x16 cells—, `recolor` paints upper
 //! tiles in other colours, so a tile keeps its drawing and changes what it
@@ -434,22 +434,50 @@ fn build(
             let pose = source.crop((x, y, x + 24, y + 32));
             // The sprite is drawn at `(x*16 - 4, y*16 - 16)`, so its
             // columns 4 to 19 land on the cell and its upper half on the
-            // cell above.
-            let column = (-rm2k_rules::charset::OFFSET_X) as usize;
-            for (half, slot) in [("head", &item["head"]), ("body", &item["body"])] {
-                let top = if half == "head" { 0 } else { 16 };
-                let mut tile = Indexed::blank(16, 16);
-                for row in top..top + 16 {
-                    for x in column..column + 16 {
-                        let index = pose.get(x, row);
-                        tile.pixels[(row - top) * 16 + (x - column)] = if index == 0 {
-                            0
-                        } else {
-                            palette.index(source.palette[index as usize])?
-                        };
+            // cell above: `head` and `body`. A pose that draws in its side
+            // columns, or over a tile the map draws below characters, names
+            // `cells` instead: `[dx, dy, slot]` is the cell `dx, dy` away
+            // from the event's —the head is `[0, -1]`, the body `[0, 0]`, the
+            // side columns fall on `dx` -1 and 1—, and a fourth number is the
+            // slot the background comes from, composed **under** the pose. It
+            // is read when the cell is written, so a slot an item above
+            // wrote is already there: that is how two people share a cell.
+            let cells: Vec<(i64, i64, i64, Option<i64>)> = match item.get("cells") {
+                Some(list) => list
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|c| (int(&c[0]), int(&c[1]), int(&c[2]), c.get(3).map(int)))
+                    .collect(),
+                None => vec![
+                    (0, -1, int(&item["head"]), None),
+                    (0, 0, int(&item["body"]), None),
+                ],
+            };
+            let (left, top) = (
+                rm2k_rules::charset::OFFSET_X as i64,
+                rm2k_rules::charset::OFFSET_Y as i64,
+            );
+            for (dx, dy, slot, under) in cells {
+                let mut tile = match under {
+                    Some(under) => image.crop(common_box(144 + under as i32)),
+                    None => Indexed::blank(16, 16),
+                };
+                for ty in 0..16i64 {
+                    for tx in 0..16i64 {
+                        let (px, py) = (dx * 16 + tx - left, dy * 16 + ty - top);
+                        if !(0..24).contains(&px) || !(0..32).contains(&py) {
+                            continue;
+                        }
+                        let index = pose.get(px as usize, py as usize);
+                        if index != 0 {
+                            tile.pixels[(ty * 16 + tx) as usize] =
+                                palette.index(source.palette[index as usize])?;
+                        }
                     }
                 }
-                image.paste(&tile, corner(common_box(144 + int(slot) as i32)));
+                image.paste(&tile, corner(common_box(144 + slot as i32)));
             }
         }
     }
@@ -719,6 +747,72 @@ mod tests {
     }
 
     #[test]
+    fn a_pose_goes_into_the_cells_it_names_over_their_background() {
+        // A person seated under a seat back drawn below characters: the head
+        // composes over the seat back's slot, and the column the pose draws
+        // past its cell's right side goes into the next cell, where nothing
+        // else is. `head` and `body` alone would lose both.
+        let dir = std::env::temp_dir().join(format!("convert-cells-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut base = indexed(480, 256, 0, &[[0, 0, 0], [7, 7, 7]]);
+        base.paste(&indexed(16, 16, 1, &[]), corner(common_box(144 + 5)));
+        base.write(&dir.join("base.png")).unwrap();
+        // Character 0, pattern 1, facing down: its frame at (24, 64). The
+        // head paints frame row 0 from column 4; the body, frame column 20
+        // —past the cell— on row 20.
+        let mut sheet = indexed(288, 256, 0, &[[0, 0, 0], [200, 16, 16], [16, 200, 16]]);
+        sheet.paste(&indexed(1, 1, 1, &[]), (24 + 4, 64));
+        sheet.paste(&indexed(1, 1, 2, &[]), (24 + 20, 64 + 20));
+        sheet.write(&dir.join("sheet.png")).unwrap();
+        let data = json!({
+            "chipset": {"id": 999, "chipset_name": "out"},
+            "image": {
+                "base": "base",
+                "from_charset": [{
+                    "charset": "sheet", "character": 0, "pattern": 1, "direction": 2,
+                    "cells": [[0, -1, 6, 5], [0, 0, 7], [1, 0, 8]],
+                }],
+            },
+        });
+        let (chip, sheet) = (dir.join("base.png"), dir.join("sheet.png"));
+        let find = move |folder: &str, _name: &str| {
+            Some(if folder == "ChipSet" {
+                chip.clone()
+            } else {
+                sheet.clone()
+            })
+        };
+        let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
+        let built = Indexed::read(&out).unwrap();
+        let color = |slot: i32, x: usize, y: usize| {
+            let (cx, cy) = corner(common_box(144 + slot));
+            built.palette[built.get(cx + x, cy + y) as usize]
+        };
+        assert_eq!(
+            color(6, 0, 0),
+            [200, 16, 16],
+            "the head did not land on its cell"
+        );
+        assert_eq!(
+            color(6, 5, 5),
+            [7, 7, 7],
+            "the head did not compose over the seat back"
+        );
+        assert_eq!(
+            color(8, 0, 4),
+            [16, 200, 16],
+            "the column past the cell was lost"
+        );
+        let (cx, cy) = corner(common_box(144 + 7));
+        assert!(
+            (0..16).all(|y| (0..16).all(|x| built.get(cx + x, cy + y) == 0)),
+            "the body's cell painted what falls beside it"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn a_recolor_paints_its_tiles_by_colour_and_only_them() {
         // Upper slots 5 and 6 draw with the same index, the way a ChipSet's
         // tiles share their palette: painting the index would repaint 6
@@ -740,16 +834,27 @@ mod tests {
                 "image": {"base": "base", "recolor": [{"upper": [5], "colors": colors}]},
             })
         };
-        let data = recipe(json!([[[203, 85, 85], [250, 50, 20]], [[60, 30, 20], [100, 20, 10]]]));
+        let data = recipe(json!([
+            [[203, 85, 85], [250, 50, 20]],
+            [[60, 30, 20], [100, 20, 10]]
+        ]));
         let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
         let built = Indexed::read(&out).unwrap();
         let color = |slot: i32, x: usize| {
             let (cx, cy) = corner(common_box(144 + slot));
             built.palette[built.get(cx + x, cy + 3) as usize]
         };
-        assert_eq!(color(5, 12), [248, 48, 16], "the tile was not repainted at 15 bits");
+        assert_eq!(
+            color(5, 12),
+            [248, 48, 16],
+            "the tile was not repainted at 15 bits"
+        );
         assert_eq!(color(5, 2), [96, 16, 8], "the second pair was not painted");
-        assert_eq!(color(6, 12), [203, 85, 85], "the tile beside it changed too");
+        assert_eq!(
+            color(6, 12),
+            [203, 85, 85],
+            "the tile beside it changed too"
+        );
         let stale = recipe(json!([[[1, 2, 3], [250, 50, 20]]]));
         let refusal = build(&stale, &dir.join("build"), &find, &|_| unreachable!())
             .err()
