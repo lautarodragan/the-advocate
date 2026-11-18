@@ -427,6 +427,13 @@ timer_now_back:
     rts
 .endproc
 
+.popseg
+
+; The page's tables, read with long addresses, in bank 1 and not next to
+; the code that reads them: `FAR3` is Zounds' fullest bank, and they are
+; data the screen reaches from anywhere.
+.pushseg
+.segment "FAR"
 dbg_off_bits:
     .byte DBG_OFF_TINT, DBG_OFF_TIMER, DBG_OFF_WEATHER
 .assert * - dbg_off_bits = DBG_OFF_ROWS, error, "a switch of the state without its bit"
