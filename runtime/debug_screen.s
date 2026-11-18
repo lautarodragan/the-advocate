@@ -460,8 +460,8 @@ changed:
 in_range:
     cmp #DBG_PAGES
     bne the_game_s
-    ; The last one, the state's: a range of `DBG_OFF_ROWS`, from 1, and no
-    ; names to load —they are in the ROM—.
+    ; The last one, the state's: a range of `DBG_STATE_ROWS`, from 1, and
+    ; no names to load —they are in the ROM—.
     lda #DBG_KIND_OFF
     sta f:DBG_KIND
     lda #1
@@ -472,7 +472,7 @@ in_range:
 .a16
     lda #0
     sta f:DBG_BASE
-    lda #DBG_OFF_ROWS
+    lda #DBG_STATE_ROWS
     sta f:DBG_N
     sep #$20
 .a8
@@ -1232,6 +1232,9 @@ name_letter:
     dec a
     sta f:DBG_T1
     bne name_letter
+    lda 3, s
+    cmp #DBG_OFF_ROWS
+    bcs a_count
     lda f:DBG_SROW
     ldy #DBG_ONOFF_COL
     jsr at
@@ -1246,6 +1249,24 @@ name_letter:
     jmp on
 state_off_row:
     jmp off
+a_count:
+    ; One of the PPU's counts, right-aligned like a variable's value.
+    lda f:DBG_SROW
+    ldy #DBG_VALUE_COL
+    jsr at
+    rep #$20
+.a16
+    pla                         ; the number
+    sep #$20
+.a8
+    lda 1, s                    ; and the row
+    sec
+    jsr dbg_count_at
+.a16
+    lda f:dbg_range_over, x
+    jsr number_right
+.a8
+    jmp next
 .endproc
 
 ; --- the VRAM ---------------------------------------------------------------
