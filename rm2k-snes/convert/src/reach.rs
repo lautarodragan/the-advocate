@@ -39,6 +39,10 @@ const TARGET_ADD: i32 = 0;
 /// variable's value: any of them.
 const VARIABLE_INDIRECT: i32 = 2;
 const VARIABLE_RANGE: i32 = 1;
+/// `ControlVariables`' operation that sets, and its operand that is a
+/// number.
+const VARIABLE_SET: i32 = 0;
+const OPERAND_NUMBER: i32 = 0;
 /// The vehicles, as `SetVehicleLocation` numbers them.
 const VEHICLES: [&str; 3] = ["boat", "ship", "airship"];
 
@@ -51,6 +55,9 @@ pub struct Arrivals {
     anywhere: Option<String>,
     /// Why he can be on any cell one can step on, if he can.
     any_open: Option<String>,
+    /// On which maps, if only on some: the recalls whose map is a variable
+    /// only ever set to a number go only to those maps.
+    any_open_on: Option<BTreeSet<i32>>,
     /// The vehicles he can ride.
     vehicles: BTreeSet<&'static str>,
 }
@@ -85,8 +92,11 @@ impl Arrivals {
             .flat_map(|m| m.all_commands())
             .chain(game.db.common_events.values().flatten())
             .chain(cases.iter().flat_map(|(_, c)| c));
-        let mut recalled: BTreeSet<i32> = BTreeSet::new();
+        let mut recalls: BTreeSet<(i32, i32, i32)> = BTreeSet::new();
         let mut written: BTreeSet<i32> = BTreeSet::new();
+        // The numbers each variable is set to, `None` if something else
+        // writes it too.
+        let mut numbers: BTreeMap<i32, Option<BTreeSet<i32>>> = BTreeMap::new();
         let mut any_written = false;
         for c in commands {
             let p = &c.parameters;
@@ -105,29 +115,67 @@ impl Arrivals {
                         "a vehicle is put somewhere by variables".to_string()
                     });
                 }
-                (RECALL_TO_LOCATION, ..) => recalled.extend(p.iter().take(3)),
+                (RECALL_TO_LOCATION, Some(m), Some(x), Some(y), _) => {
+                    recalls.insert((m, x, y));
+                }
                 (CONTROL_VARS, Some(VARIABLE_INDIRECT), ..) => any_written = true,
                 (CONTROL_VARS, Some(mode), Some(first), Some(last), _) => {
                     let last = if mode == VARIABLE_RANGE { last } else { first };
                     written.extend(first..=last.max(first));
+                    // `Set` to a number: operation 0, operand 0, the number.
+                    let number = match (get(3), get(4), get(5)) {
+                        (Some(VARIABLE_SET), Some(OPERAND_NUMBER), Some(n)) => Some(n),
+                        _ => None,
+                    };
+                    for v in first..=last.max(first) {
+                        let entry = numbers.entry(v).or_insert_with(|| Some(BTreeSet::new()));
+                        match (entry.as_mut(), number) {
+                            (Some(set), Some(n)) => {
+                                set.insert(n);
+                            }
+                            _ => *entry = None,
+                        }
+                    }
                 }
                 (INPUT_NUMBER, _, Some(v), ..) => {
                     written.insert(v);
+                    numbers.insert(v, None);
                 }
                 (STORE_TERRAIN_ID | STORE_EVENT_ID, _, _, _, Some(v)) => {
                     written.insert(v);
+                    numbers.insert(v, None);
                 }
                 (KEY_INPUT_PROC, Some(v), ..) => {
                     written.insert(v);
+                    numbers.insert(v, None);
+                }
+                (MEMORIZE_LOCATION, ..) => {
+                    for &v in p.iter().take(3) {
+                        numbers.insert(v, None);
+                    }
                 }
                 _ => {}
             }
         }
-        if !recalled.is_empty() && (any_written || recalled.iter().any(|v| written.contains(v))) {
+        // A recall whose variables something else than `MemorizeLocation`
+        // writes can put him on any cell one can step on: of any map, or,
+        // if its map's variable is only ever set to numbers, of those.
+        let mut on: Option<BTreeSet<i32>> = Some(BTreeSet::new());
+        for &(m, x, y) in &recalls {
+            if !any_written && ![m, x, y].iter().any(|v| written.contains(v)) {
+                continue;
+            }
             out.any_open.get_or_insert_with(|| {
                 "a RecallToLocation's variables are written by something else than MemorizeLocation"
                     .to_string()
             });
+            match (on.as_mut(), numbers.get(&m)) {
+                (Some(maps), Some(Some(set))) if !any_written => maps.extend(set),
+                _ => on = None,
+            }
+        }
+        if out.any_open.is_some() {
+            out.any_open_on = on;
         }
         if out.vehicles.contains("airship") {
             out.anywhere
@@ -153,9 +201,12 @@ impl Arrivals {
         self.anywhere.as_deref()
     }
 
-    /// Why the hero can be on any cell one can step on, if he can.
-    pub fn any_open(&self) -> Option<&str> {
-        self.any_open.as_deref()
+    /// Why the hero can be on any cell one can step on, if he can, and on
+    /// which maps if not on all.
+    pub fn any_open(&self) -> Option<(&str, Option<&BTreeSet<i32>>)> {
+        self.any_open
+            .as_deref()
+            .map(|why| (why, self.any_open_on.as_ref()))
     }
 
     /// Map `id`'s `reach` for Wally: where the hero arrives —null if he can
@@ -167,7 +218,8 @@ impl Arrivals {
                 Some(_) => Value::Null,
                 None => json!(self.cells.get(&id).into_iter().flatten().map(|&(x, y)| json!([x, y])).collect::<Vec<_>>()),
             },
-            "any_open": self.any_open.is_some(),
+            "any_open": self.any_open.is_some()
+                && self.any_open_on.as_ref().is_none_or(|maps| maps.contains(&id)),
             "vehicles": self.vehicles.iter().collect::<Vec<_>>(),
             "commands": commands.iter().map(|c| json!([c.code, c.parameters])).collect::<Vec<_>>(),
         })

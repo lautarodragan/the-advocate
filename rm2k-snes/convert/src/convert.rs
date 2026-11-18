@@ -402,12 +402,32 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let per_character = maps::maps_per_character(&every_refs);
-    let arrivals = if game.unreachable_above_below {
-        let arrivals = crate::reach::Arrivals::gather(&game, &every_refs, &case_pairs)?;
+    // Where the hero arrives is asked for the tiles above him nobody can
+    // cover, and for the still events drawn past their cells: see `reach`.
+    let arrivals = if game.unreachable_above_below || game.posed != crate::game::Posed::Nowhere {
+        // Over the whole game's maps, not only the cartridge's: what a map
+        // decides from it —its still events drawn past their cells, its
+        // tiles above lowered— is then the same in every cartridge that
+        // carries it, and a test cartridge tests what the playable ROM
+        // draws. The versioned patches are checked on all of them.
+        let others: Vec<GameMap> = game
+            .dump_map_ids()?
+            .into_iter()
+            .filter(|id| !order.contains(id))
+            .map(|id| game.map(id))
+            .collect::<Result<_>>()?;
+        let whole: Vec<&GameMap> = every_refs.iter().copied().chain(others.iter()).collect();
+        let arrivals = crate::reach::Arrivals::gather(&game, &whole, &case_pairs)?;
         if let Some(why) = arrivals.anywhere() {
-            println!("  every tile above the hero stays above: {why}");
-        } else if let Some(why) = arrivals.any_open() {
-            println!("  the hero can be on any cell one can step on: {why}");
+            println!("  the hero can be anywhere on every map: {why}");
+        } else if let Some((why, on)) = arrivals.any_open() {
+            match on {
+                None => println!("  the hero can be on any cell one can step on: {why}"),
+                Some(maps) => println!(
+                    "  the hero can be on any cell one can step on of maps {}: {why}",
+                    join(maps.iter().copied().collect::<Vec<_>>(), " ")
+                ),
+            }
         }
         arrivals
     } else {

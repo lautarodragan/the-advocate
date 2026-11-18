@@ -361,6 +361,7 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
         drawn.render(&atlas)?
     };
     crate::decor::compose(&mut layers, &request.decor);
+    crate::posed::compose_spills(&mut layers, drawn.width, &request.spills);
     // Above everything, as RM2k draws pictures. Not into a picture a
     // `ChangePBG` names in a map without a panorama of its own: there they
     // are drawn into the map, as they were before those were carried.
@@ -432,6 +433,7 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
             map.render(&atlas)?
         };
         crate::decor::compose(&mut layers, &request.decor);
+        crate::posed::compose_spills(&mut layers, map.width, &request.spills);
         crate::posed::compose(&mut layers, map.width, posed_at, posed);
         lower_cells(&mut layers, map.width, &below);
         // Fused the same as the map, so that its cells are the map's: they
@@ -537,6 +539,62 @@ pub fn below(
         .expect("not poisoned")
         .push((key, cells.clone()));
     Ok(cells)
+}
+
+/// Where each character's feet can be on map `raw` —see
+/// `rm2k_rules::reach::standing`—, from what the caller knows: the same as
+/// [`below`] reads. `None` if someone can be anywhere.
+pub fn standing(
+    game: &Game,
+    raw: &ditto::schema::Map,
+    flags: &[u8],
+    reach: &crate::request::Reach,
+    request: &crate::map::MapRequest,
+    starts: &[(i32, i32)],
+) -> Result<Option<Vec<rm2k_rules::reach::Standing>>> {
+    type Key = (
+        std::path::PathBuf,
+        i32,
+        crate::request::Reach,
+        Vec<(i32, i32)>,
+    );
+    type Done = Option<Vec<rm2k_rules::reach::Standing>>;
+    static DONE: std::sync::Mutex<Vec<(Key, Done)>> = std::sync::Mutex::new(Vec::new());
+    let key: Key = (
+        game.data.clone(),
+        request.map,
+        reach.clone(),
+        starts.to_vec(),
+    );
+    if let Some((_, done)) = DONE
+        .lock()
+        .expect("not poisoned")
+        .iter()
+        .find(|(k, _)| *k == key)
+    {
+        return Ok(done.clone());
+    }
+    let mut commands = game.common_commands()?;
+    commands.extend(reach.commands.iter().cloned());
+    let entries = reach.entries.as_ref().map(|e| {
+        let mut e = e.clone();
+        e.extend_from_slice(starts);
+        e
+    });
+    let sail = sail(game, raw, &reach.vehicles)?;
+    let done = rm2k_rules::reach::standing(
+        request.map,
+        raw,
+        flags,
+        &commands,
+        rm2k_rules::reach::Outside {
+            entries: entries.as_deref(),
+            any_open: reach.any_open,
+            sail: &sail,
+        },
+    );
+    DONE.lock().expect("not poisoned").push((key, done.clone()));
+    Ok(done)
 }
 
 /// The cells of `raw` a boat or a ship of `vehicles` can carry the hero
@@ -763,13 +821,16 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 };
                 // With the rows the substitutions need: always flattened,
                 // which builds nothing out of halves, and in the other two
-                // only if halves are not enough —see `extra_needed`—.
-                // `blocks` cuts them off again.
+                // only if halves are not enough —see `extra_needed`—, or if
+                // there are still events' poses in them —see
+                // `crate::posed`—. `blocks` cuts them off again.
                 let flat;
                 let rows = drawn
                     .extended
                     .as_ref()
-                    .filter(|_| way == Way::Flattened || request.extra_needed)
+                    .filter(|_| {
+                        way == Way::Flattened || request.extra_needed || !request.posed.is_empty()
+                    })
                     .map_or(&drawn.layers, |(_, l)| l);
                 let layers = if way == Way::Flattened {
                     flat = flattened(rows);

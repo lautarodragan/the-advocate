@@ -66,8 +66,12 @@ pub struct LayersRequest {
     /// cell of its own below the map —see `Drawn::extended`—: the cell the
     /// event stands on, whose tiles that cell repeats, and the pose's 24x32
     /// drawing, painted over it. Not from the request: the map's
-    /// conversion picks them, see [`crate::posed`].
-    pub posed: Vec<(usize, rm2k_render::Picture)>,
+    /// conversion picks them, see [`crate::posed`]. With what the others
+    /// draw past their cells onto it, in order: see [`crate::posed::cells`].
+    pub posed: Vec<crate::posed::Cell>,
+    /// What those draw past their cells, painted into the map over the
+    /// decorations, back to front: see [`crate::posed::spills`].
+    pub spills: Vec<(usize, rm2k_render::Picture)>,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -271,6 +275,7 @@ impl LayersRequest {
             extra_needed: false,
             below: Vec::new(),
             posed: Vec::new(),
+            spills: Vec::new(),
         })
     }
 }
@@ -605,6 +610,16 @@ impl crate::map::MapRequest {
                     },
                 }),
             },
+            // One from before 2026-11-18 did not say: as if it did.
+            boots_here: data
+                .get("boots_here")
+                .and_then(Value::as_bool)
+                .unwrap_or(true),
+            // A request from before 2026-11-18 sent `reach` only to lower.
+            lowers: data
+                .get("reach_lowers")
+                .and_then(Value::as_bool)
+                .unwrap_or(true),
             posed: data
                 .get("posed_stills")
                 .and_then(Value::as_bool)
