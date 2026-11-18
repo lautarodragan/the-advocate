@@ -300,7 +300,7 @@ party_ready:
     stz phasing                 ; Select's walking through everything: see phasing.s
 .endif
 .if ::DEBUG_SCREEN
-    jsl f:dbg_off_boot            ; nothing forced off: see debug_switches.s
+    jsl f:dbg_off_boot + FAST     ; nothing forced off: see debug_switches.s
 .endif
     stz tint_pending
     ; And the message window. `msg_open` with garbage leaves the page
@@ -780,6 +780,13 @@ wait_off:
     plb
     inc boot_frames
     lda RDNMI
+.if ::DEBUG_SCREEN
+    lda STAT77                  ; the frame just drawn: see debug_switches.s
+    and #$C0
+    beq no_over
+    jsl f:dbg_over_count + FAST
+no_over:
+.endif
     plb
     pla
     rti
