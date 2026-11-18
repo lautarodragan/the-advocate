@@ -559,9 +559,13 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     }
     // Where characters can be, with what the map does not say: Wally draws
     // below the tiles above the hero that none can ever cover. Only when
-    // the project asks, as the painted maps.
-    if game.unreachable_above_below {
+    // the project asks, as the painted maps. And where the still events go
+    // into the background, for those drawn past their cells, without the
+    // lowering if the project does not ask for it.
+    if game.unreachable_above_below || game.posed.on(map_id) {
         request["reach"] = c.arrivals.json_of(map_id, &case_commands);
+        request["reach_lowers"] = json!(game.unreachable_above_below);
+        request["boots_here"] = json!(map_id == c.order[c.start_index]);
     }
     // Only on a map whose copies of common events show pictures of their
     // own: see `picture_own` in Wally.

@@ -402,10 +402,12 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let per_character = maps::maps_per_character(&every_refs);
-    let arrivals = if game.unreachable_above_below {
+    // Where the hero arrives is asked for the tiles above him nobody can
+    // cover, and for the still events drawn past their cells: see `reach`.
+    let arrivals = if game.unreachable_above_below || game.posed != crate::game::Posed::Nowhere {
         let arrivals = crate::reach::Arrivals::gather(&game, &every_refs, &case_pairs)?;
         if let Some(why) = arrivals.anywhere() {
-            println!("  every tile above the hero stays above: {why}");
+            println!("  the hero can be anywhere on every map: {why}");
         } else if let Some((why, on)) = arrivals.any_open() {
             match on {
                 None => println!("  the hero can be on any cell one can step on: {why}"),

@@ -127,9 +127,17 @@ pub struct MapRequest {
     pub test_commands: Vec<(i32, Vec<i32>)>,
     /// What the caller knows of where characters can be on the map: with
     /// it, the tiles above the hero that no character can ever cover are
-    /// drawn below —see [`crate::layers::below`]—; without it, as before,
-    /// all of them above.
+    /// drawn below —see [`crate::layers::below`]—, if `lowers`; without it,
+    /// as before, all of them above. The still events drawn into the
+    /// background read it too: see [`crate::posed::spill`].
     pub reach: Option<crate::request::Reach>,
+    /// Whether `reach` lowers the tiles above the hero nobody can cover, or
+    /// is only there for the still events.
+    pub lowers: bool,
+    /// Whether the cartridge boots on this map, and so the hero can start
+    /// where the ROM puts him then. Only the still events drawn past their
+    /// cells read it; the lowering takes him there on every map.
+    pub boots_here: bool,
     /// Whether the still events that change pose are drawn into the
     /// background's cells, a block per pose: see [`crate::posed`]. A
     /// project's choice, off unless it says so.
@@ -219,6 +227,7 @@ fn layered(
         extra_needed: extra.needed,
         below: extra.below.clone(),
         posed: extra.posed.clone(),
+        spills: extra.spills.clone(),
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
@@ -235,7 +244,9 @@ struct Extra {
     below: Vec<usize>,
     /// The cells of the still events drawn into the background, one per
     /// pose: see [`crate::posed::cells`].
-    posed: Vec<(usize, rm2k_render::Picture)>,
+    posed: Vec<crate::posed::Cell>,
+    /// And what they draw past their cells: see [`crate::posed::spills`].
+    spills: Vec<(usize, rm2k_render::Picture)>,
 }
 
 /// What drawing the tiles above the hero nobody can cover below costs the
@@ -326,6 +337,25 @@ fn same_split(without: &Converted, with: &Converted, decor: bool) -> bool {
         }
 }
 
+/// Whether the colours of `with` are those of `without` but for where the
+/// background ends and the layer above starts in colour memory: the layer
+/// above with the same tiles and the same cells, merging no more, and the
+/// background merging no more.
+///
+/// A Blurred Line's Hover-Tram, map 13, leaves its background 35 entries
+/// of colour memory and the layer above the rest; its seated people bring
+/// 48 colours, and the layer above fits in fewer palettes. What
+/// [`same_split`] guards for —a switch drawn a shade off, a layer above
+/// that merges for it— is still guarded.
+fn only_the_split_moved(without: &Converted, with: &Converted) -> bool {
+    let (a, b) = (&without.above, &with.above);
+    without.way == with.way
+        && a.tiles == b.tiles
+        && b.tilemap.starts_with(&a.tilemap)
+        && a.merges.len() == b.merges.len()
+        && without.background.merges.len() == with.background.merges.len()
+}
+
 /// The most pixels of the ground's own colours that painting decoration into
 /// the background may merge into others, and still go: four RM2k cells, the
 /// same "little" as [`crate::layers::ABOVE_LOST_MAX`]. Measured on Vampires
@@ -391,15 +421,22 @@ fn posed_events(
     extra: &mut Extra,
     layers: &mut Layered,
     notes: &mut Vec<Note>,
+    starts: &[(i32, i32)],
 ) -> Result<Vec<crate::posed::Posed>> {
     let id = request.map;
     // A panorama the map covers everywhere is never seen, and the map is
     // drawn as one without it: see `Way::Hidden`. Any other gets its cells
     // from elsewhere —a layer of its own, or baked into the background—.
-    let hidden = layers.converted.way == Some(crate::background::panorama::Way::Hidden);
+    // Over one that shows, only on a layer of its own beside an 8-bit
+    // background —the ways that draw the map with the rows of its
+    // extension, which hold the poses—, and only cells it never shows
+    // through: see below.
+    use crate::background::panorama::Way;
+    let way = layers.converted.way;
+    let seen = layers.drawn.panorama.is_some() && way != Some(Way::Hidden);
     if !request.posed
-        || (layers.drawn.panorama.is_some() && !hidden)
         || !game.map_pictures.is_empty()
+        || (seen && !matches!(way, Some(Way::Mode3 | Way::Flattened)))
     {
         return Ok(Vec::new());
     }
@@ -419,7 +456,14 @@ fn posed_events(
     let upper: Vec<i32> = raw.upper_layer.iter().map(|&t| t as i32).collect();
     let chipset = game.chipset(raw.chipset_id)?;
     let flags = passability_table(&chipset.passable_data_lower, &chipset.passable_data_upper);
-    let (wanted, not) = crate::posed::select(
+    // Where everyone can stand, for the ones drawn past their cells: only
+    // if the cartridge says where the hero arrives from.
+    let starts = if request.boots_here { starts } else { &[] };
+    let standing = match &request.reach {
+        Some(reach) => crate::layers::standing(game, &raw, &flags, reach, request, starts)?,
+        None => None,
+    };
+    let (mut wanted, mut not) = crate::posed::select(
         drawer,
         events,
         npcs,
@@ -435,16 +479,52 @@ fn posed_events(
             upper: &upper,
             flags: &flags,
             nudge: request.baked_events_nudge,
+            standing: standing.as_deref(),
+            height: raw.height as usize,
         },
     )?;
+    // Over a panorama that shows, the cells it writes have to hide it
+    // whole, in every drawing: a cell of the background with the panorama
+    // in it is drawn once, and the panorama moves.
+    if seen {
+        let opaque = |at: usize| -> bool {
+            let stride = layers.drawn.layers.lower.width;
+            let tile = rm2k_rules::chipset::TILE as usize;
+            let (x0, y0) = (at % width * tile, at / width * tile);
+            std::iter::once(&layers.drawn.layers.lower)
+                .chain(
+                    layers
+                        .drawn
+                        .layers
+                        .variants
+                        .iter()
+                        .flat_map(|(_, d)| d.iter()),
+                )
+                .all(|p| {
+                    (y0..y0 + tile).all(|y| {
+                        (x0..x0 + tile).all(|x| p.rgba.get((y * stride + x) * 4 + 3) == Some(&255))
+                    })
+                })
+        };
+        wanted.retain(|p| {
+            let ok = crate::posed::written(p, width).into_iter().all(opaque);
+            if !ok {
+                not.entry("the panorama shows through a cell it is drawn on")
+                    .or_default()
+                    .push(p.id);
+            }
+            ok
+        });
+    }
     let room = request.layouts.iter().map(|l| l.0).max();
     let mut kept: Vec<crate::posed::Posed> = Vec::new();
-    let try_with = |set: &[crate::posed::Posed], layers: &mut Layered| -> Result<bool> {
+    let build = |set: &[crate::posed::Posed]| -> Result<Layered> {
         let trial = Extra {
             posed: crate::posed::cells(set, width),
+            spills: crate::posed::spills(set, width),
             ..extra.clone()
         };
-        let with = layered(
+        layered(
             game,
             id,
             request.window_colors,
@@ -453,7 +533,10 @@ fn posed_events(
             decor,
             request.fuse_tiles,
             &trial,
-        )?;
+        )
+    };
+    let try_with = |set: &[crate::posed::Posed], layers: &mut Layered| -> Result<bool> {
+        let with = build(set)?;
         let fits = room.is_none_or(|r| with.converted.background.tiles.len() / 64 <= r);
         // And the same colours merged, not only as many: with as many, the
         // poses' colours can push others of the ground out, and the ground
@@ -468,9 +551,16 @@ fn posed_events(
             v.sort_unstable();
             v
         };
+        // The ones drawn past their cells bring a person's colours where a
+        // switch brings a few: the background may take more of the colour
+        // memory, and the layer above fewer palettes, if neither merges
+        // anything more for it.
+        let spills = set.iter().any(|p| p.spill.is_some());
+        let split = same_split(&layers.converted, &with.converted, false)
+            || (spills && only_the_split_moved(&layers.converted, &with.converted));
         if fits
             && with.converted.way == layers.converted.way
-            && same_split(&layers.converted, &with.converted, false)
+            && split
             && victims(&layers.converted) == victims(&with.converted)
         {
             *layers = with;
@@ -483,8 +573,15 @@ fn posed_events(
     // never leaves out one that went in without the nudge —on Zounds' map
     // 156, on 2026-11-16, three events shifted in took the place of three
     // events that fit as they are—.
-    let (exact, moved): (Vec<_>, Vec<_>) = wanted.iter().cloned().partition(|p| p.shift == (0, 0));
-    for tier in [exact, moved] {
+    // And last the ones drawn past their cells, which cost the cells around
+    // them too.
+    let (spilled, rest): (Vec<_>, Vec<_>) = wanted.iter().cloned().partition(|p| p.spill.is_some());
+    let (exact, moved): (Vec<_>, Vec<_>) = rest.into_iter().partition(|p| p.shift == (0, 0));
+    let mut before_spills = None;
+    for tier in [exact, moved, spilled] {
+        if tier.iter().any(|p| p.spill.is_some()) {
+            before_spills = Some(kept.clone());
+        }
         if tier.is_empty() {
             continue;
         }
@@ -510,7 +607,39 @@ fn posed_events(
             }
         }
     }
+    // One drawn past its cell over a still event that stays an object
+    // would be drawn under it: out, and again, until none is.
+    let mut unsure: Vec<i32> = Vec::new();
+    loop {
+        let set: BTreeSet<usize> = kept.iter().map(|p| p.event).collect();
+        let bad: Vec<usize> = kept
+            .iter()
+            .filter(|p| !p.relies.is_subset(&set))
+            .map(|p| p.event)
+            .collect();
+        if bad.is_empty() {
+            break;
+        }
+        unsure.extend(kept.iter().filter(|p| bad.contains(&p.event)).map(|p| p.id));
+        kept.retain(|p| !bad.contains(&p.event));
+        if !try_with(&kept, layers)? {
+            // Fewer of them may still move the colours: then none of them,
+            // drawn again as they went in before them.
+            kept = before_spills.clone().unwrap_or_default();
+            unsure.extend(wanted.iter().filter(|p| p.spill.is_some()).map(|p| p.id));
+            *layers = build(&kept)?;
+            break;
+        }
+    }
+    if !unsure.is_empty() {
+        unsure.sort_unstable();
+        unsure.dedup();
+        not.entry("it is drawn past its cell over a still event that stays an object")
+            .or_default()
+            .extend(unsure);
+    }
     extra.posed = crate::posed::cells(&kept, width);
+    extra.spills = crate::posed::spills(&kept, width);
     let ids = |list: &mut dyn Iterator<Item = i32>| {
         list.map(|i| i.to_string()).collect::<Vec<_>>().join(", ")
     };
@@ -536,9 +665,22 @@ fn posed_events(
             moved.join(", ")
         )));
     }
+    let spilling: Vec<i32> = kept
+        .iter()
+        .filter(|p| p.spill.is_some())
+        .map(|p| p.id)
+        .collect();
+    if !spilling.is_empty() {
+        notes.push(note(format!(
+            "  map {id}: {} of them drawn past their cells, where nobody can be behind them: {}",
+            spilling.len(),
+            ids(&mut spilling.iter().copied())
+        )));
+    }
     let left: Vec<i32> = wanted
         .iter()
         .filter(|w| !kept.iter().any(|k| k.event == w.event))
+        .filter(|w| !not.values().flatten().any(|&i| i == w.id))
         .map(|w| w.id)
         .collect();
     if !left.is_empty() {
@@ -1366,37 +1508,36 @@ fn convert_with(
     // drawn; any other map, only those halves cannot build.
     let unseen = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
     let beyond = crate::substitutions::beyond_halves(&lower, &upper, &flags, &unseen);
+    // Where the hero starts if the cartridge boots here, as `start` below
+    // picks it: the game's start, or the open cell nearest the centre —with
+    // or without the events that are not drawn, which may close theirs—.
+    let (start_map, start_x, start_y) = game.start()?;
+    let mut starts = vec![(start_x, start_y)];
+    if id != start_map {
+        let (w, h) = (raw.width as usize, raw.height as usize);
+        let mut pass = rm2k_rules::passability::map(&flags, &raw.lower_layer, &raw.upper_layer);
+        for &(x, y) in game.walls.get(&id).map_or(&[][..], Vec::as_slice) {
+            if x < w && y < h {
+                pass[y * w + x] = 0;
+            }
+        }
+        let drawn: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
+        let all: HashSet<(i32, i32)> = events.iter().map(|e| (e.x, e.y)).collect();
+        starts = vec![
+            hero_start(&pass, w, h, &drawn),
+            hero_start(&pass, w, h, &all),
+        ];
+    }
     let mut extra = Extra {
         posed: Vec::new(),
+        spills: Vec::new(),
         needed: !beyond.is_empty(),
         rows: if panorama.is_some() { unseen } else { beyond },
         below: match &request.reach {
-            Some(reach) => {
-                // Where the hero starts if the cartridge boots here, as
-                // `start` below picks it: the game's start, or the open cell
-                // nearest the centre —with or without the events that are
-                // not drawn, which may close theirs—.
-                let (start_map, start_x, start_y) = game.start()?;
-                let mut starts = vec![(start_x, start_y)];
-                if id != start_map {
-                    let (w, h) = (raw.width as usize, raw.height as usize);
-                    let mut pass =
-                        rm2k_rules::passability::map(&flags, &raw.lower_layer, &raw.upper_layer);
-                    for &(x, y) in game.walls.get(&id).map_or(&[][..], Vec::as_slice) {
-                        if x < w && y < h {
-                            pass[y * w + x] = 0;
-                        }
-                    }
-                    let drawn: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
-                    let all: HashSet<(i32, i32)> = events.iter().map(|e| (e.x, e.y)).collect();
-                    starts = vec![
-                        hero_start(&pass, w, h, &drawn),
-                        hero_start(&pass, w, h, &all),
-                    ];
-                }
+            Some(reach) if request.lowers => {
                 crate::layers::below(game, &raw, &flags, reach, request, &starts)?
             }
-            None => Vec::new(),
+            _ => Vec::new(),
         },
     };
     let mut without = layered(
@@ -1613,6 +1754,7 @@ fn convert_with(
         &mut extra,
         &mut layers,
         &mut notes,
+        &starts,
     )?;
     let posed_set: BTreeSet<usize> = posed.iter().map(|p| p.event).collect();
     let posed_npcs: Vec<Npc> = npcs0
