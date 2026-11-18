@@ -163,6 +163,16 @@ struct Grid {
 }
 
 impl Grid {
+    fn of(map: &Map) -> Grid {
+        let scroll = map.scroll_type;
+        Grid {
+            width: map.width.max(1),
+            height: map.height.max(1),
+            loop_x: matches!(scroll, MapScrollType::Horizontal | MapScrollType::Both),
+            loop_y: matches!(scroll, MapScrollType::Vertical | MapScrollType::Both),
+        }
+    }
+
     /// The cell at (x, y), wrapped on an axis that loops; `None` off a
     /// map's edge that does not.
     fn at(&self, x: i32, y: i32) -> Option<usize> {
@@ -477,7 +487,8 @@ pub struct Outside<'a> {
     pub sail: &'a [bool],
 }
 
-/// The cells of map `id` a character's sprite can cover: see the module.
+/// Where each character's feet can ever be on map `id`, or `None` if
+/// someone can be anywhere: see the module.
 ///
 /// `flags` is the ChipSet's passability by tile id
 /// —[`crate::chipset::passability_table`]—. `commands` are the ones that
@@ -491,20 +502,14 @@ pub struct Outside<'a> {
 /// That is what keeps a door that walks the hero through a wall from
 /// walking him through every wall: the page runs again only with him beside
 /// the door again.
-pub fn covered(
+pub fn standing(
     id: i32,
     map: &Map,
     flags: &[u8],
     commands: &[(i32, Vec<i32>)],
     outside: Outside,
-) -> Vec<bool> {
-    let scroll = map.scroll_type;
-    let grid = Grid {
-        width: map.width.max(1),
-        height: map.height.max(1),
-        loop_x: matches!(scroll, MapScrollType::Horizontal | MapScrollType::Both),
-        loop_y: matches!(scroll, MapScrollType::Vertical | MapScrollType::Both),
-    };
+) -> Option<Vec<Standing>> {
+    let grid = Grid::of(map);
     let cells = (grid.width * grid.height) as usize;
 
     let mut places: BTreeMap<Who, Places> = BTreeMap::new();
@@ -725,7 +730,7 @@ pub fn covered(
     }
 
     let walker = Walker { grid, open: &open };
-    let mut passed = Passed::default();
+    let mut passed: BTreeMap<Who, Passed> = BTreeMap::new();
     let states = |p: &Places, cells: &BTreeSet<usize>| -> Vec<State> {
         cells
             .iter()
@@ -798,12 +803,12 @@ pub fn covered(
             break;
         }
         let before = shape(&places);
-        for p in places.values_mut() {
+        for (w, p) in places.iter_mut() {
             if p.walks && !p.anywhere {
                 if p.through {
                     p.anywhere = true;
                 } else {
-                    walker.spread(&mut p.cells, &mut passed);
+                    walker.spread(&mut p.cells, passed.entry(*w).or_default());
                 }
             }
         }
@@ -862,7 +867,7 @@ pub fn covered(
                             let (ends, stood) = if fresh.is_empty() || routes[*r].still() {
                                 (fresh.clone(), fresh.iter().map(|s| s.at).collect())
                             } else {
-                                walker.walk(&fresh, &routes[*r], &mut passed)
+                                walker.walk(&fresh, &routes[*r], passed.entry(w).or_default())
                             };
                             done.1.extend(stood);
                             for s in ends {
@@ -920,8 +925,62 @@ pub fn covered(
     }
 
     if places.values().any(|p| p.anywhere) {
-        return vec![true; cells];
+        return None;
     }
+    let mut out = Vec::new();
+    for (w, p) in places {
+        let who = match w {
+            Who::Hero => Stander::Hero,
+            Who::Event(id) => Stander::Event(id),
+            Who::AnyEvent => Stander::AnyEvent,
+        };
+        let walked = passed.remove(&w).unwrap_or_default();
+        let mut stands = p.cells;
+        stands.extend(walked.over);
+        out.push(Standing {
+            who,
+            cells: stands,
+            risen: walked.risen,
+        });
+    }
+    Some(out)
+}
+
+/// Whose feet a [`Standing`] is about.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Stander {
+    Hero,
+    /// An event of the map, by its id: a command can name one the map does
+    /// not have, and then it is nowhere.
+    Event(i32),
+    /// Whichever event a common event's "this event" is.
+    AnyEvent,
+}
+
+/// Where one character's feet can ever be on the map: the cells it stands
+/// on, walks through or passes over between the two of a diagonal step;
+/// and those it rises from in a jump, 16 px over its cell.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Standing {
+    pub who: Stander,
+    pub cells: BTreeSet<usize>,
+    pub risen: BTreeSet<usize>,
+}
+
+/// The cells of map `id` a character's sprite can cover: see the module and
+/// [`standing`], whose arguments these are.
+pub fn covered(
+    id: i32,
+    map: &Map,
+    flags: &[u8],
+    commands: &[(i32, Vec<i32>)],
+    outside: Outside,
+) -> Vec<bool> {
+    let grid = Grid::of(map);
+    let cells = (grid.width * grid.height) as usize;
+    let Some(standing) = standing(id, map, flags, commands, outside) else {
+        return vec![true; cells];
+    };
     let mut out = vec![false; cells];
     let mut cover = |at: usize, rise: bool| {
         let (x, y) = grid.xy(at);
@@ -934,16 +993,13 @@ pub fn covered(
             }
         }
     };
-    for p in places.values() {
-        for &c in &p.cells {
+    for s in &standing {
+        for &c in &s.cells {
             cover(c, false);
         }
-    }
-    for &c in &passed.over {
-        cover(c, false);
-    }
-    for &c in &passed.risen {
-        cover(c, true);
+        for &c in &s.risen {
+            cover(c, true);
+        }
     }
     out
 }
