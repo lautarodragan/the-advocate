@@ -1515,7 +1515,7 @@ GRID:      .res $8000
 GRID_END    = GRID + $8000
 .pushseg
 .segment "GRIDHI": far
-GRID_HIGH: .res $8000
+GRID_HIGH:                      ; its `.res`, in far_ram_game.s: up to GRID_TOP
 .popseg
 
 ; --- the top of $7F's upper half: `GRID_TOP` -----------------------------------
@@ -1540,7 +1540,10 @@ GRID_HIGH: .res $8000
 ; A new tenant is a new part in `materials.rs`, here, and in the book's
 ; internals/wram.md; `test_wram_reservations.py` names each one.
 GRID_TOP_BYTES = GRID_TOP_GOLD + GRID_TOP_POSED
-GRID_TOP    = GRID_HIGH + $8000 - GRID_TOP_BYTES
+.pushseg
+.segment "GRIDTOP": far
+GRID_TOP:                       ; each tenant's `.res`, in its file
+.popseg
 
 ; On which frame startup ends, counted from reset. Startup —loading the map,
 ; uploading the driver to the SPC700 and the map's audio package— takes as

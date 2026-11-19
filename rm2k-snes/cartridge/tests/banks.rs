@@ -440,6 +440,11 @@ fn the_memory_map_puts_each_bank_in_place() {
         "the grid's two halves are the upper halves of the WRAM banks"
     );
     assert!(text.contains("GRID:     load = GRIDLO, type = bss;"));
+    let behind = text.find("GRIDHI:   load = GRIDHI").unwrap();
+    assert!(
+        text.find("GRIDTOP:  load = GRIDHI").unwrap() > behind,
+        "GRID_TOP goes after the grid in its area: ld65 places them in this order"
+    );
     assert!(text.contains("FAR:      load = BANK01"));
     assert!(text.contains("BANKC0: start = $C00000, size = $8000, fill = yes;"));
     assert!(text.contains("FAR2:     load = BANKC0"));

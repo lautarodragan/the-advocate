@@ -204,7 +204,8 @@ pub const FAR_POOL_SIZE: usize = 0x6000;
 /// `.cfg`, `GRIDLO` and `GRIDHI`, with the `GRID` and `GRIDHI` segments,
 /// where the runtime declares the grid's two halves; behind the grid, in
 /// `GRIDHI`, go the block table, the bytecode and the page table, which the
-/// converter lays out.
+/// converter lays out, and at the end of the area the `GRIDTOP` segment,
+/// `GRID_TOP` in the runtime, which no map reaches.
 ///
 /// **They are fixed because the converter writes them as numbers**, into
 /// data it compresses before anything is linked —the drawn-in events' cells,
@@ -1176,6 +1177,9 @@ pub fn cfg() -> String {
         "SWITCHES: load = FARRAM, type = bss;".to_string(),
         "GRID:     load = GRIDLO, type = bss;".to_string(),
         "GRIDHI:   load = GRIDHI, type = bss;".to_string(),
+        // The top of `$7F`'s half, behind whatever the grid leaves: the
+        // runtime sizes `GRIDHI` so that this lands at the end.
+        "GRIDTOP:  load = GRIDHI, type = bss;".to_string(),
         "CODE:    load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),

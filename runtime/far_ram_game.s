@@ -45,4 +45,9 @@ route_gfx_colors: .res ROUTE_GFX_MAX
 ; compresses —the drawn-in events' cells, the page tables' code pointers—,
 ; before the link: `GRID_AT` and `GRID_HIGH_AT` are those numbers, and the
 ; linker's `GRIDLO` and `GRIDHI` areas have to be them. See far_ram.s.
+.pushseg
+.segment "GRIDHI"
+    .res $8000 - GRID_TOP_BYTES
+.popseg
+.assert GRID_TOP = GRID_HIGH + $8000 - GRID_TOP_BYTES, error, "GRID_TOP is not the top of $7F's half: its tenants do not add up to GRID_TOP_BYTES"
 .assert GRID = GRID_AT && GRID_HIGH = GRID_HIGH_AT, error, "the converter wrote the grid's addresses and the linker placed it elsewhere: GRID_AT in rm2k-snes-mapdata's materials.rs, GRID_START in rm2k-snes-cartridge's banks.rs"
