@@ -1085,22 +1085,22 @@ PIC_BIG     = $80
 ; and the two tables of the wave go in the part that the ChipSet's
 ; animation uses on the map, which is not drawn meanwhile. The map reloads
 ; both when the picture goes.
-BIG_PAL     = $7F6000            ; BIG_PALETTES * 32 bytes
-BIG_WAVE_A  = $7F6100            ; BIG_WAVE_BYTES each
-BIG_WAVE_B  = $7F6300
+BIG_PAL     = ANIM_DRAWINGS + $000   ; BIG_PALETTES * 32 bytes
+BIG_WAVE_A  = ANIM_DRAWINGS + $100   ; BIG_WAVE_BYTES each
+BIG_WAVE_B  = ANIM_DRAWINGS + $300
 ; And the zoom's, for a picture with a mode 7 texture: see
 ; big_picture_zoom.s. `big_load` writes all of them before the first vblank
 ; reads them.
-BIG_M7_SHOW  = $7F6500           ; what the vblank shows: BIG_M7_STILL, _ZOOM, _GONE, and BIG_M7_SPENT
-BIG_M7_PIECE = $7F6501           ; the piece of VRAM that goes up next
-BIG_M7_DONE  = $7F6502           ; word: its bytes already up
-BIG_MAG      = $7F6504           ; its size now, in percent of the one shown
-BIG_MAG_FROM = $7F6505           ; and where the ramp's size starts and ends
-BIG_MAG_TO   = $7F6506
-BIG_M7_A     = $7F6507           ; word: the matrix's A and D, 8.8; BIG_M7_HIDDEN if too small
-BIG_M7_DIVISOR = $7F6509         ; word: `big_m7_matrix`'s
-BIG_M7_SIZE  = $7F650B           ; word: the piece's bytes
-BIG_M7_END   = $7F650D
+BIG_M7_SHOW  = ANIM_DRAWINGS + $500  ; what the vblank shows: BIG_M7_STILL, _ZOOM, _GONE, and BIG_M7_SPENT
+BIG_M7_PIECE = BIG_M7_SHOW + $01     ; the piece of VRAM that goes up next
+BIG_M7_DONE  = BIG_M7_SHOW + $02     ; word: its bytes already up
+BIG_MAG      = BIG_M7_SHOW + $04     ; its size now, in percent of the one shown
+BIG_MAG_FROM = BIG_M7_SHOW + $05     ; and where the ramp's size starts and ends
+BIG_MAG_TO   = BIG_M7_SHOW + $06
+BIG_M7_A     = BIG_M7_SHOW + $07     ; word: the matrix's A and D, 8.8; BIG_M7_HIDDEN if too small
+BIG_M7_DIVISOR = BIG_M7_SHOW + $09   ; word: `big_m7_matrix`'s
+BIG_M7_SIZE  = BIG_M7_SHOW + $0B     ; word: the piece's bytes
+BIG_M7_END   = BIG_M7_SHOW + $0D
 
 ; --- the slots still events take turns in ---------------------------------------
 ;
@@ -1354,10 +1354,16 @@ CARRY_MAP: .res 2
 ROUTE_CARRY: .res $100
 .popseg
 .assert ROUTE_CARRY + 256 <= GRID, error, "the carried move route would go into the grid"
+;
+; `LZ2_BUFFER` and `ANIM_DRAWINGS` are the `LOADBUF` area of the `.cfg`, the
+; lower half of $7F, and the linker places them.
+.pushseg
+.segment "LOADBUF": far
+LZ2_BUFFER:    .res $6000
+ANIM_DRAWINGS: .res $2000
+.popseg
+ANIM_DRAWINGS_END = ANIM_DRAWINGS + $2000
 CODE_CARRY     = LZ2_BUFFER + $1100
-LZ2_BUFFER     = $7F0000
-ANIM_DRAWINGS  = $7F6000
-ANIM_DRAWINGS_END = $7F8000
 
 ; --- sound effects with MSU-1 ------------------------------------------------
 ;

@@ -216,6 +216,14 @@ pub const FAR_POOL_SIZE: usize = 0x6000;
 pub const GRID_START: usize = 0x7E8000;
 pub const GRID_HIGH_START: usize = 0x7F8000;
 
+/// Between the grid's two halves, the lower half of `$7F`: the `LOADBUF`
+/// area and segment, where the runtime decompresses a map's streams before
+/// they go up to VRAM —`LZ2_BUFFER`— and keeps the ChipSet animation's
+/// drawings —`ANIM_DRAWINGS`—. It is here because that is what the grid
+/// leaves: a [`HALF`], which the battle, the screens and a big picture
+/// borrow while the map is not drawn.
+pub const LOAD_BUFFER_START: usize = 0x7F0000;
+
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
@@ -1167,6 +1175,9 @@ pub fn cfg() -> String {
         ),
         format!("GRIDLO: start = ${GRID_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"),
         format!(
+            "LOADBUF: start = ${LOAD_BUFFER_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"
+        ),
+        format!(
             "GRIDHI: start = ${GRID_HIGH_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"
         ),
     ];
@@ -1176,6 +1187,7 @@ pub fn cfg() -> String {
         "FARBSS:   load = FARRAM, type = bss;".to_string(),
         "SWITCHES: load = FARRAM, type = bss;".to_string(),
         "GRID:     load = GRIDLO, type = bss;".to_string(),
+        "LOADBUF:  load = LOADBUF, type = bss;".to_string(),
         "GRIDHI:   load = GRIDHI, type = bss;".to_string(),
         // The top of `$7F`'s half, behind whatever the grid leaves: the
         // runtime sizes `GRIDHI` so that this lands at the end.

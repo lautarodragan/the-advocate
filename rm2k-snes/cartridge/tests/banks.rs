@@ -439,6 +439,10 @@ fn the_memory_map_puts_each_bank_in_place() {
             && text.contains("GRIDHI: start = $7F8000, size = $8000, type = rw, file = \"\";"),
         "the grid's two halves are the upper halves of the WRAM banks"
     );
+    assert!(
+        text.contains("LOADBUF: start = $7F0000, size = $8000, type = rw, file = \"\";"),
+        "the load buffer is what the grid leaves of $7F"
+    );
     assert!(text.contains("GRID:     load = GRIDLO, type = bss;"));
     let behind = text.find("GRIDHI:   load = GRIDHI").unwrap();
     assert!(
