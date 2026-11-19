@@ -68,6 +68,10 @@ fn main() -> ExitCode {
             "data_banks": banks::slots().len(),
             "stack": banks::STACK,
             "far_pool": {"start": banks::FAR_POOL_START, "size": banks::FAR_POOL_SIZE},
+            "wram": banks::WRAM_AREAS
+                .iter()
+                .map(|a| json!({"area": a.name, "start": a.start, "size": a.size, "segments": a.segments}))
+                .collect::<Vec<_>>(),
         });
         println!("{map}");
         return ExitCode::SUCCESS;

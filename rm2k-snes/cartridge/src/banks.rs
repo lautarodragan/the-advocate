@@ -224,6 +224,50 @@ pub const GRID_HIGH_START: usize = 0x7F8000;
 /// borrow while the map is not drawn.
 pub const LOAD_BUFFER_START: usize = 0x7F0000;
 
+/// An area of the WRAM outside bank 0 that the linker places the runtime's
+/// RAM in, with its segments in the order `ld65` lays them out in it.
+pub struct WramArea {
+    pub name: &'static str,
+    pub start: usize,
+    pub size: usize,
+    pub segments: &'static [&'static str],
+}
+
+/// The WRAM past bank 0's, whole: what [`cfg`] declares and what
+/// `rm2k-snes-assemble --memory-map` tells the tests, which check that
+/// every symbol in one of these falls inside what its segments hold.
+/// **Nothing of the runtime is at an address written by hand**: each of
+/// these is a segment, and what goes over another's —the battle's scene
+/// over the grid, a big picture over the drawings— is named after it.
+pub const WRAM_AREAS: &[WramArea] = &[
+    WramArea {
+        name: "FARRAM",
+        start: FAR_POOL_START,
+        size: FAR_POOL_SIZE,
+        segments: &["FARBSS", "SWITCHES"],
+    },
+    WramArea {
+        name: "GRIDLO",
+        start: GRID_START,
+        size: HALF,
+        segments: &["GRID"],
+    },
+    WramArea {
+        name: "LOADBUF",
+        start: LOAD_BUFFER_START,
+        size: HALF,
+        segments: &["LOADBUF"],
+    },
+    // `GRIDTOP` goes after the grid: the runtime sizes `GRIDHI` so that it
+    // lands at the end of the half.
+    WramArea {
+        name: "GRIDHI",
+        start: GRID_HIGH_START,
+        size: HALF,
+        segments: &["GRIDHI", "GRIDTOP"],
+    },
+];
+
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
@@ -1176,28 +1220,27 @@ pub fn cfg() -> String {
             "STACK: start = ${:04X}, size = ${STACK:04X}, type = rw, file = \"\", define = yes;",
             0x2000 - STACK
         ),
-        format!(
-            "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\";"
-        ),
-        format!("GRIDLO: start = ${GRID_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"),
-        format!(
-            "LOADBUF: start = ${LOAD_BUFFER_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"
-        ),
-        format!(
-            "GRIDHI: start = ${GRID_HIGH_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"
-        ),
     ];
+    memory.extend(WRAM_AREAS.iter().map(|a| {
+        format!(
+            "{}: start = ${:06X}, size = ${:04X}, type = rw, file = \"\";",
+            a.name, a.start, a.size
+        )
+    }));
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
         "BSS:      load = RAM,  type = bss;".to_string(),
-        "FARBSS:   load = FARRAM, type = bss;".to_string(),
-        "SWITCHES: load = FARRAM, type = bss;".to_string(),
-        "GRID:     load = GRIDLO, type = bss;".to_string(),
-        "LOADBUF:  load = LOADBUF, type = bss;".to_string(),
-        "GRIDHI:   load = GRIDHI, type = bss;".to_string(),
-        // The top of `$7F`'s half, behind whatever the grid leaves: the
-        // runtime sizes `GRIDHI` so that this lands at the end.
-        "GRIDTOP:  load = GRIDHI, type = bss;".to_string(),
+    ];
+    for area in WRAM_AREAS {
+        for segment in area.segments {
+            segments.push(format!(
+                "{:<9} load = {}, type = bss;",
+                format!("{segment}:"),
+                area.name
+            ));
+        }
+    }
+    segments.extend([
         "CODE:    load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),
@@ -1209,7 +1252,7 @@ pub fn cfg() -> String {
         ),
         format!("FAR2:     load = {}, type = ro;", segment_of(FAR2.bank)),
         format!("FAR3:     load = {}, type = ro;", segment_of(FAR3.bank)),
-    ];
+    ]);
     let data = slots();
     let area = |name: String, start: usize, size: usize| {
         format!("{name}: start = ${start:06X}, size = ${size:X}, fill = yes;")
