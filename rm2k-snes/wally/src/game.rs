@@ -60,6 +60,16 @@ impl Game {
         Ok(map)
     }
 
+    /// Map `id` with every event, the ones the RAM's trim leaves out too:
+    /// only for what is painted of those, see [`crate::pieces`].
+    pub fn map_untrimmed(&self, id: i32) -> Result<Map> {
+        match self.map_files.get(&id) {
+            Some(path) => read_map(path),
+            None => Dump::open(&self.data).and_then(|d| d.map(id as u32)),
+        }
+        .map_err(answer)
+    }
+
     /// ChipSet `id` of the database, or one the project adds.
     pub fn chipset(&self, id: i32) -> Result<Chipset> {
         let dump = Dump::open(&self.data).map_err(answer)?;
@@ -102,6 +112,24 @@ impl Game {
                 c.event_commands
                     .iter()
                     .map(|e| (e.code.to_i32(), e.parameters.clone()))
+            })
+            .collect())
+    }
+
+    /// The common events' commands, by id: what a `CallEvent` reaches.
+    pub fn common_events(&self) -> Result<crate::pieces::Commons> {
+        let dump = Dump::open(&self.data).map_err(answer)?;
+        let common: Vec<ditto::schema::CommonEvent> =
+            dump.section("commonevents").map_err(answer)?;
+        Ok(common
+            .iter()
+            .map(|c| {
+                let commands = c
+                    .event_commands
+                    .iter()
+                    .map(|e| (e.code.to_i32(), e.parameters.clone()))
+                    .collect();
+                (c.id, commands)
             })
             .collect())
     }

@@ -352,6 +352,14 @@ pub struct Game {
     /// `Way::Painted` in Wally. Off when the key is missing, for the same
     /// reason.
     pub painted_maps: bool,
+    /// `[graphics] painted_events`: on which maps the still events that
+    /// always show one look are painted into a panorama fixed to the map,
+    /// with the ChipSet's layers, and the map goes painted —see `pieces` in
+    /// Wally—; and the ones the RAM leaves out are those first, see
+    /// [`crate::trim::Loss::Painted`]. Off when the key is missing, for the
+    /// same reason; a list because each painted map carries every 8x8 cell
+    /// of itself, and the cartridge pays for them.
+    pub painted_events: OnMaps,
     /// `[graphics] unreachable_above_below`: whether the tiles above the
     /// hero no character can ever cover are drawn below, in the background
     /// —see `layers::below` in Wally and [`crate::reach`]—. Off when the key
@@ -541,6 +549,7 @@ impl Game {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "painted_maps"])?,
             },
+            painted_events: OnMaps::read(project, &["graphics", "painted_events"])?,
             unreachable_above_below: match project.value(&["graphics", "unreachable_above_below"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "unreachable_above_below"])?,
@@ -592,7 +601,8 @@ impl Game {
                 .filter(|e| !twin_ids.contains(&e.id))
                 .cloned()
                 .collect();
-            let mut out = crate::trim::left_out(&rest, &named, cap);
+            let painting = self.painted_events.on(id);
+            let mut out = crate::trim::left_out_painting(&rest, &named, cap, painting);
             // An exit left out would do nothing, and nothing would say why:
             // taro walked into the six of Zounds' map 47 and stood there.
             // So if any is, one more event goes, and the lowest exit left
@@ -600,7 +610,7 @@ impl Game {
             // as twins, so every one of their cells says it.
             let mut boxed = None;
             if out.iter().any(|&(_, l)| l == crate::trim::Loss::Exit) {
-                out = crate::trim::left_out(&rest, &named, cap - 1);
+                out = crate::trim::left_out_painting(&rest, &named, cap - 1, painting);
                 boxed = out
                     .iter()
                     .find(|&&(_, l)| l == crate::trim::Loss::Exit)
@@ -668,10 +678,16 @@ impl Game {
                         .iter()
                         .find(|r| r.id == e)
                         .map_or((0, 0), |r| (r.x, r.y));
+                    let blocks = raw
+                        .events
+                        .iter()
+                        .find(|r| r.id == e)
+                        .is_some_and(crate::trim::still_wall);
                     if matches!(
                         loss,
                         crate::trim::Loss::StillWall | crate::trim::Loss::LooksAndStillWall
-                    ) {
+                    ) || (loss == crate::trim::Loss::Painted && blocks)
+                    {
                         self.walls.entry(id).or_default().push(at);
                     }
                     if matches!(

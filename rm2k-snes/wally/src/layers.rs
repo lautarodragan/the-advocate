@@ -362,18 +362,46 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
     };
     crate::decor::compose(&mut layers, &request.decor);
     crate::posed::compose_spills(&mut layers, drawn.width, &request.spills);
+    // The still pieces and the ChipSet's layers, into the panorama: the map
+    // is one picture from here on. The caller asks it only of a map whose
+    // panorama is fixed to it. The upper layer goes in front of the hero
+    // but where no character can ever be under it: `below`.
+    let size = (drawn.width * 16, drawn.height * 16);
+    let pieces_front = match (&request.pieces, panorama.as_mut()) {
+        (Some(pieces), Some(p)) if !p.none_first && crate::map_pictures::fixed_to_map(p, size) => {
+            let mut whole = p.whole.crop(0, 0, size.0, size.1);
+            let never_covered: BTreeSet<usize> = request.below.iter().copied().collect();
+            let front =
+                crate::pieces::fold(&mut whole, &mut layers, pieces, drawn.width, &never_covered);
+            // Back into the panorama, keeping what lies past the map.
+            for y in 0..size.1.min(p.whole.height) {
+                for x in 0..size.0.min(p.whole.width) {
+                    let k = (y * p.whole.width + x) * 4;
+                    let w = (y * size.0 + x) * 4;
+                    p.whole.rgba[k..k + 4].copy_from_slice(&whole.rgba[w..w + 4]);
+                }
+            }
+            p.picture = p.whole.crop(0, 0, p.picture.width, p.picture.height);
+            front
+        }
+        _ => None,
+    };
     // Above everything, as RM2k draws pictures. Not into a picture a
     // `ChangePBG` names in a map without a panorama of its own: there they
     // are drawn into the map, as they were before those were carried.
     let into = panorama.as_mut().filter(|p| !p.none_first);
-    let front = crate::map_pictures::compose(
-        game,
-        id,
-        &game.map_pictures,
-        (drawn.width * 16, drawn.height * 16),
-        &mut layers,
-        into,
-    )?;
+    let front =
+        crate::map_pictures::compose(game, id, &game.map_pictures, size, &mut layers, into)?;
+    // In front of the hero, what either puts there.
+    let front = match (front, pieces_front) {
+        (Some(mut a), Some(b)) => {
+            for (x, y) in a.iter_mut().zip(b) {
+                *x |= y;
+            }
+            Some(a)
+        }
+        (a, b) => a.or(b),
+    };
     // Last, over what was drawn into both, as RM2k stacks them: see
     // [`lower_cells`].
     let lowered = lower_cells(&mut layers, drawn.width, &request.below);
@@ -385,6 +413,15 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
         .iter()
         .filter(|d| d.blocks())
         .map(|d| d.y as usize * drawn.width + d.x as usize)
+        // And the pieces that are no events any more, the same way.
+        .chain(
+            request
+                .pieces
+                .iter()
+                .flatten()
+                .filter(|p| p.gone && p.blocks())
+                .map(|p| p.y as usize * drawn.width + p.x as usize),
+        )
         .chain(
             walls
                 .iter()

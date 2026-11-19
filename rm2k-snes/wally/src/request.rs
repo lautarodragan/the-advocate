@@ -72,6 +72,12 @@ pub struct LayersRequest {
     /// What those draw past their cells, painted into the map over the
     /// decorations, back to front: see [`crate::posed::spills`].
     pub spills: Vec<(usize, rm2k_render::Picture)>,
+    /// The still pieces painted into the map's panorama, with the ChipSet's
+    /// layers folded in under and over them: see [`crate::pieces`]. Not from
+    /// the request: the map's conversion picks them, and only for a map the
+    /// project asks it of, whose panorama is fixed to it. `None` for every
+    /// other map; an empty list still folds the layers.
+    pub pieces: Option<Vec<crate::pieces::Piece>>,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -276,6 +282,7 @@ impl LayersRequest {
             below: Vec::new(),
             posed: Vec::new(),
             spills: Vec::new(),
+            pieces: None,
         })
     }
 }
@@ -622,6 +629,10 @@ impl crate::map::MapRequest {
                 .unwrap_or(true),
             posed: data
                 .get("posed_stills")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            painted_events: data
+                .get("painted_events")
                 .and_then(Value::as_bool)
                 .unwrap_or(false),
             baked_events_nudge: match data.get("baked_events_nudge") {

@@ -554,15 +554,27 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     });
     // Only when the project asks: a request without the key is the one a
     // game always got.
-    if game.painted_maps {
+    // A map whose still pieces are painted into it is one picture, and goes
+    // painted even if the project does not ask it of the others; and what
+    // the test pages name stays an object.
+    let painting = game.painted_events.on(map_id);
+    if game.painted_maps || painting {
         request["panorama"]["painted"] = json!(true);
+    }
+    if painting {
+        request["painted_events"] = json!(true);
+        request["test_commands"] = case_commands
+            .iter()
+            .map(|c| json!([c.code, c.parameters]))
+            .collect();
     }
     // Where characters can be, with what the map does not say: Wally draws
     // below the tiles above the hero that none can ever cover. Only when
     // the project asks, as the painted maps. And where the still events go
     // into the background, for those drawn past their cells, without the
-    // lowering if the project does not ask for it.
-    if game.unreachable_above_below || game.posed.on(map_id) {
+    // lowering if the project does not ask for it; and the pieces painted,
+    // for what goes in front of the hero.
+    if game.unreachable_above_below || game.posed.on(map_id) || painting {
         request["reach"] = c.arrivals.json_of(map_id, &case_commands);
         request["reach_lowers"] = json!(game.unreachable_above_below);
         request["boots_here"] = json!(map_id == c.order[c.start_index]);
@@ -666,6 +678,9 @@ pub struct MapInfo {
     /// The events Wally painted into the background: they are no events,
     /// so they have no page in the table. Their indices, not their ids.
     pub decorative: BTreeSet<i64>,
+    /// The events the RAM's trim left out that Wally painted into the map,
+    /// by RM2k id: they lose nothing. See [`crate::trim::Loss::Painted`].
+    pub painted_trimmed: BTreeSet<i64>,
     pub name: String,
     pub map: GameMap,
     pub route_graphics: Vec<(String, i64)>,
@@ -1366,6 +1381,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         big_pictures,
         big_table: Vec::new(),
         decorative: answer["decorative"]
+            .as_array()
+            .map(|a| a.iter().map(int).collect())
+            .unwrap_or_default(),
+        painted_trimmed: answer["painted_trimmed"]
             .as_array()
             .map(|a| a.iter().map(int).collect())
             .unwrap_or_default(),

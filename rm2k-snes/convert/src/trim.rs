@@ -57,6 +57,12 @@ pub enum Loss {
     /// A wall and nothing else that never stops being one —[`still_wall`]—:
     /// its cell goes closed in the map's passability, so nothing is lost.
     StillWall,
+    /// Only its looks, on a map whose still pieces are painted into it —see
+    /// [`painted_piece`]—: a piece that always shows one look, which the
+    /// painting draws without its row. Its wall, if it is on the hero's
+    /// layer, goes to the map's passability. What is lost is nothing, if
+    /// the map goes painted; Wally says which it painted.
+    Painted,
     /// Only its looks: a drawing, walking or not, that does not block.
     Looks,
     /// A drawing and a wall that never stops being one: the drawing is
@@ -84,6 +90,10 @@ impl Loss {
         match self {
             Loss::Nothing => "nothing",
             Loss::StillWall => "nothing: a still wall, closed in the map's passability",
+            Loss::Painted => {
+                "only their looks, which are painted into the map: their wall stays, \
+                 closed in the map's passability"
+            }
             Loss::Looks => "only their looks",
             Loss::LooksAndStillWall => {
                 "only their looks: their wall stays, closed in the map's passability"
@@ -262,13 +272,61 @@ pub fn twins(events: &[schema::Event], named: &BTreeSet<i32>) -> Vec<(i32, i32)>
     out
 }
 
+/// Whether `e`, which only loses its looks —[`Loss::Looks`] or
+/// [`Loss::LooksAndStillWall`]—, is a still piece Wally paints into its map
+/// when the project asks for that: every page draws the same CharSet pose
+/// on the same layer, none moves or animates it in place, and the first
+/// asks for nothing. The same as `pieces::select` in Wally asks of an
+/// event the RAM leaves out, which has no pages to scan: what moves it
+/// —naming it— already makes it lose more than its looks.
+pub fn painted_piece(e: &schema::Event) -> bool {
+    let Some(first) = e.pages.first() else {
+        return false;
+    };
+    let f = &first.condition.flags;
+    let look = |p: &schema::EventPage| {
+        (
+            p.character_name.clone(),
+            p.character_index,
+            p.character_direction.to_i32(),
+            p.character_pattern.to_i32(),
+            p.translucent,
+            p.layer.to_i32(),
+        )
+    };
+    !first.character_name.is_empty()
+        && !(f.switch_a || f.switch_b || f.variable || f.item || f.actor || f.timer || f.timer2)
+        && e.pages.iter().all(|p| {
+            look(p) == look(first)
+                && p.move_type.to_i32() == 0
+                && p.move_route.move_commands.is_empty()
+                && !matches!(p.animation_type.to_i32(), 1 | 3 | 5)
+        })
+}
+
 /// The events left out so that `cap` remain, as `(id, what is lost)`, by
 /// id. None if they fit.
+#[cfg(test)]
 pub fn left_out(events: &[schema::Event], named: &BTreeSet<i32>, cap: usize) -> Vec<(i32, Loss)> {
+    left_out_painting(events, named, cap, false)
+}
+
+/// The same, on a map whose still pieces are painted into it if `painting`:
+/// those go first, after what loses nothing —see [`Loss::Painted`]—.
+pub fn left_out_painting(
+    events: &[schema::Event],
+    named: &BTreeSet<i32>,
+    cap: usize,
+    painting: bool,
+) -> Vec<(i32, Loss)> {
     if events.len() <= cap {
         return Vec::new();
     }
-    let mut order: Vec<(Loss, i32)> = events.iter().map(|e| (loss(e, named), e.id)).collect();
+    let loss = |e: &schema::Event| match loss(e, named) {
+        Loss::Looks | Loss::LooksAndStillWall if painting && painted_piece(e) => Loss::Painted,
+        l => l,
+    };
+    let mut order: Vec<(Loss, i32)> = events.iter().map(|e| (loss(e), e.id)).collect();
     order.sort_by_key(|&(l, id)| (l, std::cmp::Reverse(id)));
     let mut out: Vec<(i32, Loss)> = order[..events.len() - cap]
         .iter()
@@ -479,6 +537,36 @@ mod tests {
         assert_eq!(
             left_out(&events, &named, 1),
             [(1, Loss::Pages), (2, Loss::Pages)]
+        );
+    }
+
+    #[test]
+    fn on_a_painted_map_the_still_pieces_go_first() {
+        // 1 a still piece, 2 one that walks, 3 a piece on the hero's layer,
+        // 4 one whose second page shows another look: all four only lose
+        // their looks, and the highest id would go first.
+        let mut walks = event(2, &[], "Town", 0);
+        walks.pages[0].move_type = serde_json::from_value(json!(1)).unwrap();
+        let mut changes = event(4, &[], "Town", 0);
+        let mut other = changes.pages[0].clone();
+        other.character_index = 1;
+        changes.pages.push(other);
+        let events = vec![
+            event(1, &[], "Town", 0),
+            walks,
+            event(3, &[], "Town", LAYER_SAME),
+            changes,
+        ];
+        let named = BTreeSet::new();
+        assert!(painted_piece(&events[0]) && painted_piece(&events[2]));
+        assert!(!painted_piece(&events[1]) && !painted_piece(&events[3]));
+        assert_eq!(
+            left_out_painting(&events, &named, 2, false),
+            [(2, Loss::Looks), (4, Loss::Looks)]
+        );
+        assert_eq!(
+            left_out_painting(&events, &named, 2, true),
+            [(1, Loss::Painted), (3, Loss::Painted)]
         );
     }
 
