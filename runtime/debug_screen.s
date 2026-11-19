@@ -182,6 +182,8 @@ DBG_ALL_PAGES = DBG_PAGES + 1
 .define DBG_GOFS +(DBG_VARS + 12)    ; and the letter's offset in its phase's
                                      ; piece
 DBG_VARS_BYTES = 14
+; The bank all of it is in, with X an address in it: see `dbg_read`.
+.define DBG_BANK +(^DBG_VARS << 16)
 .define DBG_FRAME_RAM +(DBG_VARS + DBG_VARS_BYTES)
 .define DBG_PAGE_RAM0 +(DBG_FRAME_RAM + DBG_FRAME_BYTES)
 .define DBG_PAGE_RAM1 +(DBG_PAGE_RAM0 + DBG_PAGE_MAX)
@@ -580,7 +582,7 @@ chosen:
 .a8
     lda #0
 zero:
-    sta f:$7F0000, x
+    sta f:DBG_BANK, x
     inx
     dey
     bne zero
@@ -607,7 +609,7 @@ ready:
     ldy #DBG_FRAME_BYTES
     lda #0
 zero:
-    sta f:$7F0000, x
+    sta f:DBG_BANK, x
     inx
     dey
     bne zero
@@ -779,7 +781,7 @@ ready:
     clc
     adc f:DBG_PAGE_AT
     tax
-    lda f:$7F0002, x
+    lda f:DBG_BANK + 2, x
     beq none
     dec a
     dec a
@@ -917,7 +919,7 @@ counted:
 .proc string_at
 .a8
 .i16
-    lda f:$7F0000, x
+    lda f:DBG_BANK, x
     beq none
     sta temp                    ; how many letters
     rep #$20
@@ -1119,7 +1121,7 @@ name:
     clc
     adc f:DBG_PAGE_AT
     tax
-    lda f:$7F0000, x
+    lda f:DBG_BANK, x
     beq no_name_16
     clc
     adc f:DBG_PAGE_AT
@@ -1772,7 +1774,7 @@ ready:
     sta f:A1T0L
     sep #$20
 .a8
-    lda #1                      ; bit 16 of the 17: bank $7F
+    lda #^DBG_VARS & 1          ; bit 16 of the 17: bank $7F
     sta f:WMADDH
     lda #0
     sta f:A1B0
@@ -1889,7 +1891,7 @@ blank:
     ldy #(FONT_PRE_CHAR / 2)
     lda #$FFFF
 nothing:
-    sta f:$7F0000, x
+    sta f:DBG_BANK, x
     inx
     inx
     dey

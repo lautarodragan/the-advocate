@@ -974,9 +974,9 @@ done:
 .a8
 .i16
     jsr scn_colors
-    lda #0
+    lda #>SCN_CLEAN
     jsr scn_fill
-    lda #$80
+    lda #>SCN_SCENE
     jsr scn_fill
     lda SCN_MSU
     bne ready
@@ -1092,6 +1092,7 @@ from_rom:
 ; zeros: A is the middle byte of its address, 0 the clean one and $80 the
 ; composed one. Through the WRAM window, which is the only way to copy from
 ; ROM to RAM by DMA; the bank is $7F, so WMADDH is 1.
+.assert .loword(SCN_CLEAN) = 0 && .loword(SCN_SCENE) = $8000 && ^SCN_CLEAN = ^SCN_SCENE, error, "scn_fill tells the two buffers apart by their middle byte"
 .proc scn_fill
 .a8
 .i16
@@ -1100,7 +1101,7 @@ from_rom:
     lda #0
     sta SCN_T0
     sta f:WMADDL
-    lda #1
+    lda #^SCN_CLEAN & 1
     sta f:WMADDH
     lda #$80                    ; WMDATA
     sta f:BBAD0
