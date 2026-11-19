@@ -2482,7 +2482,10 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
          ; Where the grid is in WRAM, as this wrote it into what it compressed:\n\
          ; far_ram.s asserts it is where the linker put `GRID` and `GRID_HIGH`\n\
          GRID_AT = ${:06X}\n\
-         GRID_HIGH_AT = ${:06X}\n\n",
+         GRID_HIGH_AT = ${:06X}\n\
+         ; What of the grid's first half a painted map's grid may take: `PAINT_Q`\n\
+         ; in painted.s goes right after it\n\
+         PAINT_ROOM = ${:04X}\n\n",
         crate::materials::LZ2_CAP_BACKDROP,
         crate::materials::LZ2_CAP_ABOVE_AND_SPRITES,
         crate::materials::LZ2_CAP_ANIM,
@@ -2490,7 +2493,8 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         crate::materials::GRID_TOP_GOLD,
         crate::materials::GRID_TOP_POSED,
         crate::materials::GRID_AT,
-        crate::materials::GRID_HIGH_AT
+        crate::materials::GRID_HIGH_AT,
+        crate::materials::PAINT_ROOM
     );
     let mut materials = Materials::new(true, compressed);
     materials.msu = msu;

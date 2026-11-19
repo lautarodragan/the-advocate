@@ -178,8 +178,9 @@
 //! nothing behind the grid reaches, and the caps got the sizes of its two
 //! tenants: `without_grid_top` takes their four lines away, and with it the
 //! text is the one above byte for byte. And on 2026-11-19 the grid's two
-//! addresses, which the runtime checks against the linker's: four more
-//! lines, which it takes away too.
+//! addresses, which the runtime checks against the linker's, and the room
+//! a painted map's grid has before its queue: seven more lines, which it
+//! takes away too.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -1856,11 +1857,15 @@ fn without_grid_top(text: &str) -> String {
          ; Where the grid is in WRAM, as this wrote it into what it compressed:\n\
          ; far_ram.s asserts it is where the linker put `GRID` and `GRID_HIGH`\n\
          GRID_AT = ${:06X}\n\
-         GRID_HIGH_AT = ${:06X}\n",
+         GRID_HIGH_AT = ${:06X}\n\
+         ; What of the grid's first half a painted map's grid may take: `PAINT_Q`\n\
+         ; in painted.s goes right after it\n\
+         PAINT_ROOM = ${:04X}\n",
         rm2k_snes_mapdata::materials::GRID_TOP_GOLD,
         rm2k_snes_mapdata::materials::GRID_TOP_POSED,
         rm2k_snes_mapdata::materials::GRID_AT,
-        rm2k_snes_mapdata::materials::GRID_HIGH_AT
+        rm2k_snes_mapdata::materials::GRID_HIGH_AT,
+        rm2k_snes_mapdata::materials::PAINT_ROOM
     );
     assert!(text.contains(&lines));
     text.replacen(&lines, "", 1)

@@ -64,6 +64,10 @@ pub const LZ2_CAP_CODE: usize = 0x4E00;
 /// `banks.rs`.
 pub const GRID_AT: usize = 0x7E8000;
 pub const GRID_HIGH_AT: usize = 0x7F8000;
+/// What of the grid's first half a painted map may take, its grid and what
+/// lives behind it: the runtime keeps the queue of its DMAs right after,
+/// `PAINT_Q` in `painted.s`, which the `.inc` places with this.
+pub const PAINT_ROOM: usize = 0x7E00;
 
 /// The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—,
 /// so it is compressed in two streams of up to 32 KB: each one lands whole

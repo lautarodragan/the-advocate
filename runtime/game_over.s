@@ -49,7 +49,8 @@ GO_SETINI = $2133
 ; grid: Game Over is followed by the boot, and the title screen by
 ; `enter_map`, and both decompress it again. `test_wram_reservations.py`
 ; lets it through.
-SCREEN_BUFFER = $7F0000
+SCREEN_BUFFER = LZ2_BUFFER
+.assert LZ2_BUFFER + $8000 = GRID_HIGH && .loword(LZ2_BUFFER) = 0, error, "a full screen's 64 KB are not the whole of $7F"
 ; The screen's tilemap, in VRAM words. The tiles go from $0000 and the
 ; heaviest image is 896 8bpp tiles, that is, up to $7000: they never get above
 ; that. The title puts its menu in the middle: see the `.assert` in

@@ -82,8 +82,9 @@ SCN_DP_BYTES = 48
 ; goes up to $7E7FFF— and no `WMADDH` is written with anything but zero. The
 ; clean one is what lets an enemy be erased without reading anything from
 ; the cartridge again: see `scene_tick`.
-SCN_CLEAN    = $7F0000
-SCN_SCENE    = $7F8000
+SCN_CLEAN    = LZ2_BUFFER       ; the whole of LOADBUF, drawings included
+SCN_SCENE    = GRID_HIGH        ; the whole of GRIDHI, GRID_TOP included
+.assert SCN_CLEAN + $8000 = GRID_HIGH && SCN_SCENE + $8000 = GRID_TOP + GRID_TOP_BYTES, error, "the battle's clean background and scene are not the two halves of $7F"
 ; How many scene bytes are uploaded per vblank when an enemy is erased. The
 ; NTSC vblank allows about six kilobytes of DMA and `scr_upload` already
 ; takes the text's 1,792 in the same vblank; two more leave some margin.
