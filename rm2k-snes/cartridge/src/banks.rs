@@ -1170,6 +1170,12 @@ pub fn cfg() -> String {
             "RAM:  start = $0100, size = ${:04X}, type = rw, file = \"\";",
             0x1F00 - STACK
         ),
+        // The stack, right above: nothing is placed in it, and the reset
+        // points S at its top with the `__STACK_*__` that `define` exports.
+        format!(
+            "STACK: start = ${:04X}, size = ${STACK:04X}, type = rw, file = \"\", define = yes;",
+            0x2000 - STACK
+        ),
         format!(
             "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\";"
         ),

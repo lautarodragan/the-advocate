@@ -444,6 +444,15 @@ fn the_memory_map_puts_each_bank_in_place() {
         "the load buffer is what the grid leaves of $7F"
     );
     assert!(text.contains("GRID:     load = GRIDLO, type = bss;"));
+    let stack = format!(
+        "STACK: start = ${:04X}, size = ${:04X}, type = rw, file = \"\", define = yes;",
+        0x2000 - banks::STACK,
+        banks::STACK
+    );
+    assert!(
+        text.contains(&stack),
+        "the stack is the top of bank 0's RAM, and the reset asks the linker where"
+    );
     let behind = text.find("GRIDHI:   load = GRIDHI").unwrap();
     assert!(
         text.find("GRIDTOP:  load = GRIDHI").unwrap() > behind,
