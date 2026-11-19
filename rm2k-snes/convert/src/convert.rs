@@ -404,7 +404,7 @@ pub fn run(options: Options) -> Result<()> {
     let per_character = maps::maps_per_character(&every_refs);
     // Where the hero arrives is asked for the tiles above him nobody can
     // cover, and for the still events drawn past their cells: see `reach`.
-    let arrivals = if game.unreachable_above_below || game.posed != crate::game::Posed::Nowhere {
+    let arrivals = if game.unreachable_above_below || game.posed != crate::game::OnMaps::Nowhere {
         // Over the whole game's maps, not only the cartridge's: what a map
         // decides from it —its still events drawn past their cells, its
         // tiles above lowered— is then the same in every cartridge that

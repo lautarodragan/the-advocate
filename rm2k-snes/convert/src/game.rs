@@ -25,51 +25,55 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-/// On which maps the still events that change pose go into the background:
-/// see [`Game::posed`]. `baked_events = true` is every map, and a list of
-/// ids only those. A list too because each map that takes them spends
-/// background tiles where it saves sprite ones, and a cartridge with no
-/// bank left —A Blurred Line's— can pay for some maps and not for all.
+/// On which maps a knob of the project is on: `true` is every map, a list
+/// of ids only those, and `false` or no key none. A list because each map
+/// that takes one of those spends something —background tiles, banks of
+/// the cartridge— where it saves another, and a cartridge with no bank left
+/// —A Blurred Line's— can pay for some maps and not for all.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub enum Posed {
+pub enum OnMaps {
     #[default]
     Nowhere,
     Everywhere,
     Only(BTreeSet<i32>),
 }
 
-impl Posed {
-    const KEY: [&'static str; 2] = ["graphics", "baked_events"];
-
-    pub fn read(project: &Project) -> Result<Posed> {
-        // Its name until 2026-11-16: refused with the new one rather than
-        // ignored, since a game that still says it would lose its events'
-        // poses from the background without a word.
-        if project.value(&["graphics", "posed_events"]).is_ok() {
-            crate::stop!("[graphics] posed_events is called baked_events since 2026-11-16");
-        }
-        let Ok(value) = project.value(&Self::KEY) else {
-            return Ok(Posed::Nowhere);
+impl OnMaps {
+    pub fn read(project: &Project, key: &[&str]) -> Result<OnMaps> {
+        let Ok(value) = project.value(key) else {
+            return Ok(OnMaps::Nowhere);
         };
         if value.is_array() {
-            let maps = project.ints(&Self::KEY)?;
-            return Ok(Posed::Only(maps.into_iter().map(|m| m as i32).collect()));
+            let maps = project.ints(key)?;
+            return Ok(OnMaps::Only(maps.into_iter().map(|m| m as i32).collect()));
         }
-        Ok(if project.boolean(&Self::KEY)? {
-            Posed::Everywhere
+        Ok(if project.boolean(key)? {
+            OnMaps::Everywhere
         } else {
-            Posed::Nowhere
+            OnMaps::Nowhere
         })
     }
 
-    /// Whether map `id` takes them.
+    /// Whether map `id` takes it.
     pub fn on(&self, id: i32) -> bool {
         match self {
-            Posed::Nowhere => false,
-            Posed::Everywhere => true,
-            Posed::Only(maps) => maps.contains(&id),
+            OnMaps::Nowhere => false,
+            OnMaps::Everywhere => true,
+            OnMaps::Only(maps) => maps.contains(&id),
         }
     }
+}
+
+/// `[graphics] baked_events`: on which maps the still events that change
+/// pose go into the background, see [`Game::posed`].
+fn baked_events(project: &Project) -> Result<OnMaps> {
+    // Its name until 2026-11-16: refused with the new one rather than
+    // ignored, since a game that still says it would lose its events'
+    // poses from the background without a word.
+    if project.value(&["graphics", "posed_events"]).is_ok() {
+        crate::stop!("[graphics] posed_events is called baked_events since 2026-11-16");
+    }
+    OnMaps::read(project, &["graphics", "baked_events"])
 }
 
 /// `[graphics] baked_events_nudge` when the project does not say: see
@@ -332,7 +336,7 @@ pub struct Game {
     /// change pose —a floor switch, a chest— are drawn into the background's
     /// cells, a block per pose, instead of as objects: see `posed` in Wally.
     /// Off when the key is missing, for the same reason.
-    pub posed: Posed,
+    pub posed: OnMaps,
     /// `[graphics] baked_events_nudge`: how many pixels, in x and in y, the
     /// poses of one of those may be moved to fit its 16x16 cell when they
     /// are drawn a little past it —see `posed::shift_into_the_cell` in
@@ -527,7 +531,7 @@ impl Game {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
             },
-            posed: Posed::read(project)?,
+            posed: baked_events(project)?,
             nudge: nudge(project)?,
             map_pictures: match project.value(&["graphics", "map_pictures"]) {
                 Err(_) => false,
@@ -946,16 +950,16 @@ fn database(dump: &Dump, forks: &Forks) -> Result<Database> {
 mod tests {
     use super::*;
 
-    fn posed(text: &str) -> Result<Posed> {
-        Posed::read(&Project::from_text(Path::new("/nowhere"), text).unwrap())
+    fn posed(text: &str) -> Result<OnMaps> {
+        baked_events(&Project::from_text(Path::new("/nowhere"), text).unwrap())
     }
 
     #[test]
     fn baked_events_is_every_map_a_list_of_them_or_none() {
-        assert_eq!(posed("").unwrap(), Posed::Nowhere);
+        assert_eq!(posed("").unwrap(), OnMaps::Nowhere);
         assert_eq!(
             posed("[graphics]\nbaked_events = false").unwrap(),
-            Posed::Nowhere
+            OnMaps::Nowhere
         );
         assert!(posed("[graphics]\nbaked_events = true").unwrap().on(96));
         let some = posed("[graphics]\nbaked_events = [8, 11]").unwrap();
