@@ -198,6 +198,23 @@ pub const STACK: usize = 128;
 pub const FAR_POOL_START: usize = 0x7E2000;
 pub const FAR_POOL_SIZE: usize = 0x6000;
 
+/// The map's grid: the upper halves of `$7E` and `$7F`, a [`HALF`] each,
+/// which is the shape of two LoROM banks in a row —the runtime's `ptr_more`
+/// walks from one to the other by carrying into the bank—. Two areas of the
+/// `.cfg`, `GRIDLO` and `GRIDHI`, with the `GRID` and `GRIDHI` segments,
+/// where the runtime declares the grid's two halves; behind the grid, in
+/// `GRIDHI`, go the block table, the bytecode and the page table, which the
+/// converter lays out.
+///
+/// **They are fixed because the converter writes them as numbers**, into
+/// data it compresses before anything is linked —the drawn-in events' cells,
+/// the page tables' code pointers—: its own copies are `GRID_AT` and
+/// `GRID_HIGH_AT` in rm2k-snes-mapdata's `materials.rs`, which it writes in
+/// the cartridge's `.inc`, and the runtime `.assert`s at link time that they
+/// are these.
+pub const GRID_START: usize = 0x7E8000;
+pub const GRID_HIGH_START: usize = 0x7F8000;
+
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
@@ -1147,12 +1164,18 @@ pub fn cfg() -> String {
         format!(
             "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\";"
         ),
+        format!("GRIDLO: start = ${GRID_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"),
+        format!(
+            "GRIDHI: start = ${GRID_HIGH_START:06X}, size = ${HALF:04X}, type = rw, file = \"\";"
+        ),
     ];
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
         "BSS:      load = RAM,  type = bss;".to_string(),
         "FARBSS:   load = FARRAM, type = bss;".to_string(),
         "SWITCHES: load = FARRAM, type = bss;".to_string(),
+        "GRID:     load = GRIDLO, type = bss;".to_string(),
+        "GRIDHI:   load = GRIDHI, type = bss;".to_string(),
         "CODE:    load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),

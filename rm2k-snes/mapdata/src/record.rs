@@ -665,10 +665,10 @@ pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 3] {
     ]
 }
 
-/// The grid's second half in WRAM, as a number: see `GRID_HIGH` in the
-/// runtime's `far_ram.s`. `test_decompressed_load.py` checks that what is
-/// built with it lands where the runtime says.
-const GRID_HIGH: usize = 0x7F8000;
+/// The grid's second half in WRAM, as a number: see
+/// [`crate::materials::GRID_HIGH_AT`]. `test_decompressed_load.py` checks
+/// that what is built with it lands where the runtime says.
+const GRID_HIGH: usize = crate::materials::GRID_HIGH_AT;
 
 /// Where a map's bytecode starts behind its grid, as an offset from
 /// `GRID_HIGH`: the same as `evcode` in [`map_ram_pointers`].
@@ -2478,13 +2478,19 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
          ; The top of $7F's upper half, which nothing behind the grid reaches:\n\
          ; `GRID_TOP` in far_ram.s, and `GRID_TOP_BYTES` in materials.rs\n\
          GRID_TOP_GOLD = {}\n\
-         GRID_TOP_POSED = {}\n\n",
+         GRID_TOP_POSED = {}\n\
+         ; Where the grid is in WRAM, as this wrote it into what it compressed:\n\
+         ; far_ram.s asserts it is where the linker put `GRID` and `GRID_HIGH`\n\
+         GRID_AT = ${:06X}\n\
+         GRID_HIGH_AT = ${:06X}\n\n",
         crate::materials::LZ2_CAP_BACKDROP,
         crate::materials::LZ2_CAP_ABOVE_AND_SPRITES,
         crate::materials::LZ2_CAP_ANIM,
         crate::materials::LZ2_CAP_GRID,
         crate::materials::GRID_TOP_GOLD,
-        crate::materials::GRID_TOP_POSED
+        crate::materials::GRID_TOP_POSED,
+        crate::materials::GRID_AT,
+        crate::materials::GRID_HIGH_AT
     );
     let mut materials = Materials::new(true, compressed);
     materials.msu = msu;

@@ -434,6 +434,12 @@ fn the_memory_map_puts_each_bank_in_place() {
     assert!(text.contains("BANKC2: start = $C20000, size = $10000, fill = yes;"));
     assert!(text.contains("BANK7D: start = $7D8000, size = $8000, fill = yes;"));
     assert!(!text.contains("BANK7E"), "banks $7E and $7F are the WRAM");
+    assert!(
+        text.contains("GRIDLO: start = $7E8000, size = $8000, type = rw, file = \"\";")
+            && text.contains("GRIDHI: start = $7F8000, size = $8000, type = rw, file = \"\";"),
+        "the grid's two halves are the upper halves of the WRAM banks"
+    );
+    assert!(text.contains("GRID:     load = GRIDLO, type = bss;"));
     assert!(text.contains("FAR:      load = BANK01"));
     assert!(text.contains("BANKC0: start = $C00000, size = $8000, fill = yes;"));
     assert!(text.contains("FAR2:     load = BANKC0"));

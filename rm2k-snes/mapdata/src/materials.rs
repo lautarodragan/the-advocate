@@ -54,6 +54,17 @@ pub const LZ2_CAP_GRID: usize = 0x10000;
 /// [`check_streams`] only sees an empty stream.
 pub const LZ2_CAP_CODE: usize = 0x4E00;
 
+/// Where the grid lives in WRAM: the upper half of `$7E`, and past 32 KB
+/// that of `$7F`, where what lives behind it follows. The converter writes
+/// these as numbers into what it compresses —the drawn-in events' cells,
+/// the page tables' code pointers—, before anything is linked, so the `.inc`
+/// carries them and the runtime `.assert`s at link time that they are where
+/// the linker put `GRID` and `GRID_HIGH`: the `GRIDLO` and `GRIDHI` areas of
+/// the `.cfg`, `GRID_START` and `GRID_HIGH_START` in rm2k-snes-cartridge's
+/// `banks.rs`.
+pub const GRID_AT: usize = 0x7E8000;
+pub const GRID_HIGH_AT: usize = 0x7F8000;
+
 /// The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—,
 /// so it is compressed in two streams of up to 32 KB: each one lands whole
 /// in one bank, and the decompressor does not have to know how to cross.

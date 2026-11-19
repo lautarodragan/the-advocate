@@ -1502,9 +1502,21 @@ GO_FRAMES = GO_LOSES + $04             ; how many frames each fade level lasts
 ;
 ; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
 ; `back_from_battle` decompresses the whole grid again.
-GRID        = $7E8000
-GRID_END    = $7F0000
-GRID_HIGH = $7F8000
+;
+; Both halves are areas of the `.cfg`, `GRIDLO` and `GRIDHI` —`GRID_START`
+; and `GRID_HIGH_START` in rm2k-snes/cartridge/src/banks.rs—, and the
+; linker places them: they are fixed because the converter writes them as
+; numbers into what it compresses, and `far_ram_game.s` checks that its
+; numbers, `GRID_AT` and `GRID_HIGH_AT` in the `.inc`, are these.
+.pushseg
+.segment "GRID": far
+GRID:      .res $8000
+.popseg
+GRID_END    = GRID + $8000
+.pushseg
+.segment "GRIDHI": far
+GRID_HIGH: .res $8000
+.popseg
 
 ; --- the top of $7F's upper half: `GRID_TOP` -----------------------------------
 ;
