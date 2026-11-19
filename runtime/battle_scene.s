@@ -77,11 +77,13 @@ SCN_DP_SAVE = SCN_ORIGIN + $80
 SCN_DP_BYTES = 48
 .assert SCN_DP_SAVE + SCN_DP_BYTES <= SCN_ORIGIN + $80 + 48, error, "the scene's state overflows its block"
 
-; The clean background and the composed scene, 32 KB each, in WRAM bank
-; $7F, which nobody used: everything else in the ROM lives in $7E —far RAM
-; goes up to $7E7FFF— and no `WMADDH` is written with anything but zero. The
-; clean one is what lets an enemy be erased without reading anything from
-; the cartridge again: see `scene_tick`.
+; The clean background and the composed scene, 32 KB each: the two halves
+; of WRAM bank $7F, which the map lends while the battle lasts —the load
+; buffer and the drawings, and the grid past 32 KB with what lives behind
+; it—, and which `back_from_battle` and `back_to_map` fill again. They are
+; named after the regions they borrow, which the linker places. The clean
+; one is what lets an enemy be erased without reading anything from the
+; cartridge again: see `scene_tick`.
 SCN_CLEAN    = LZ2_BUFFER       ; the whole of LOADBUF, drawings included
 SCN_SCENE    = GRID_HIGH        ; the whole of GRIDHI, GRID_TOP included
 .assert SCN_CLEAN + $8000 = GRID_HIGH && SCN_SCENE + $8000 = GRID_TOP + GRID_TOP_BYTES, error, "the battle's clean background and scene are not the two halves of $7F"

@@ -39,6 +39,19 @@
 ; constants, `.loword` of the label, because the code that reads them runs
 ; with the data bank at `$7E` or points the WMADD window at them: the label
 ; is lowercase and the constant uppercase, `far_battle` and `FAR_BATTLE`.
+;
+; **And the rest of the WRAM past bank 0's is the linker's too**, since
+; 2026-11-19: the grid's two halves, the load buffer and the drawings, and
+; `GRID_TOP` are segments of areas of the `.cfg` —`WRAM_AREAS` in
+; rm2k-snes/cartridge/src/banks.rs—, declared below like `FARBSS`, and so is
+; the stack. The grid's halves are fixed because the converter writes them
+; as numbers; the `.cfg` holds those numbers, and `far_ram_game.s` checks
+; that the converter's are the same. What borrows a region for a while —the
+; battle's scene, a full screen's image, a big picture's palette— is named
+; after it, an offset with an `.assert` of how far it goes, not a second
+; copy of its address. The one long number left in the runtime is the far
+; bank, `FAR_LENGTH`, which is not a place; `test_wram_reservations.py`,
+; in A Blurred Line's suite, looks for any other.
 ; **A block that is walked as a range is one `.res` with offsets**, or
 ; several in a row with an `.assert` that they are adjacent: the linker
 ; places them in the order of the text, and nothing else promises it.
@@ -166,7 +179,12 @@ ACCESS_REQUESTED   = $80
 FAR_HP = .loword(far_hp)
 
 ; Far RAM with the bank in front, for the few who read it from outside with
-; `lda f:`: it is the same as `BAT_LENGTH`, which kept a battle name.
+; `lda f:`: it is the same as `BAT_LENGTH`, which kept a battle name. **It is
+; a bank, not a place**: $7E is where bank 0's RAM shows again, which the
+; code that runs with the data bank there counts on, so `FARBSS` has to be
+; in it, and far_ram_game.s asserts it is. The same $7E is written as
+; `$7E0000 +` before a sixteen-bit name, `lda #$7E` before a `plb` and the
+; zero in `WMADDH`.
 FAR_LENGTH = $7E0000
 
 ; And the SP, which are state for the same reason as the HP since skills can
@@ -1194,11 +1212,11 @@ ANIMB_BUF: .res $800
 ;
 ;   LZ2_TRAMPOLINE_LIT  the literal's `mvn` trampoline, four bytes built with each
 ;            call's banks, and the output bank, in far RAM
-;   $7F0000  the load buffer: each tile block is decompressed here and
+;   LZ2_BUFFER  the load buffer: each tile block is decompressed here and
 ;            uploaded to VRAM with the same DMA as before. It is valid only
 ;            while loading; the battle scene uses all of bank $7F —see
 ;            `SCN_CLEAN`—, and nothing here has to outlive it
-;   $7F6000  the drawings of the map's ChipSet animation, which `anim_upload`
+;   ANIM_DRAWINGS  the drawings of the map's ChipSet animation, which `anim_upload`
 ;            uploads every time the clock changes: **they live as long as
 ;            one is on the map**, and that is why they go above the buffer
 ;            and are decompressed after the background tiles and before the
@@ -1513,7 +1531,8 @@ GO_FRAMES = GO_LOSES + $04             ; how many frames each fade level lasts
 ; and `GRID_HIGH_START` in rm2k-snes/cartridge/src/banks.rs—, and the
 ; linker places them: they are fixed because the converter writes them as
 ; numbers into what it compresses, and `far_ram_game.s` checks that its
-; numbers, `GRID_AT` and `GRID_HIGH_AT` in the `.inc`, are these.
+; numbers, `GRID_AT` and `GRID_HIGH_AT` in the `.inc`, are these. Until
+; 2026-11-19 they were those numbers, written here.
 .pushseg
 .segment "GRID": far
 GRID:      .res $8000
@@ -1526,13 +1545,17 @@ GRID_HIGH:                      ; its `.res`, in far_ram_game.s: up to GRID_TOP
 
 ; --- the top of $7F's upper half: `GRID_TOP` -----------------------------------
 ;
-; **A region written by hand, with named tenants**: the last bytes of the
-; half behind the grid, which no map's grid and nothing behind it reach, on
-; any map —the converter keeps them out: `BEHIND_ROOM` in rm2k-snes-mapdata's
-; `materials.rs`, which refuses a map that does not fit and sends a
-; bytecode or a page table that would reach here to the cartridge—. Its
-; size is the converter's, `GRID_TOP_GOLD` plus `GRID_TOP_POSED` in the
-; `.inc`, and each tenant `.assert`s its own against its part.
+; **A segment with named tenants**, `GRIDTOP`, after `GRIDHI` in the same
+; area: the last bytes of the half behind the grid, which no map's grid and
+; nothing behind it reach, on any map —the converter keeps them out:
+; `BEHIND_ROOM` in rm2k-snes-mapdata's `materials.rs`, which refuses a map
+; that does not fit and sends a bytecode or a page table that would reach
+; here to the cartridge—. Its size is the converter's, `GRID_TOP_GOLD` plus
+; `GRID_TOP_POSED` in the `.inc`: each tenant's `.res` is its part, and
+; `.assert`s it against it, and `GRIDHI` takes the rest of the half, which
+; is what puts this at the top —far_ram_game.s asserts it is—. Until
+; 2026-11-19 it was `GRID_HIGH + $8000` minus its size, and its tenants
+; offsets of it.
 ;
 ; What may live here is what lives less than a map and is not needed after a
 ; battle, because the battle composes its scene over the whole half
@@ -1543,8 +1566,9 @@ GRID_HIGH:                      ; its `.res`, in far_ram_game.s: up to GRID_TOP
 ;   POSED_REG    the runs of the events drawn into the background, and
 ;   POSED_T      their scratch: see posed.s
 ;
-; A new tenant is a new part in `materials.rs`, here, and in the book's
-; internals/wram.md; `test_wram_reservations.py` names each one.
+; A new tenant is a `.res` in `GRIDTOP` in its file, a new part in
+; `materials.rs`, a line here and in the book's internals/wram.md;
+; `test_wram_reservations.py` names each one.
 GRID_TOP_BYTES = GRID_TOP_GOLD + GRID_TOP_POSED
 .pushseg
 .segment "GRIDTOP": far
