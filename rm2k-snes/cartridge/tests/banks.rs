@@ -434,6 +434,30 @@ fn the_memory_map_puts_each_bank_in_place() {
     assert!(text.contains("BANKC2: start = $C20000, size = $10000, fill = yes;"));
     assert!(text.contains("BANK7D: start = $7D8000, size = $8000, fill = yes;"));
     assert!(!text.contains("BANK7E"), "banks $7E and $7F are the WRAM");
+    assert!(
+        text.contains("GRIDLO: start = $7E8000, size = $8000, type = rw, file = \"\";")
+            && text.contains("GRIDHI: start = $7F8000, size = $8000, type = rw, file = \"\";"),
+        "the grid's two halves are the upper halves of the WRAM banks"
+    );
+    assert!(
+        text.contains("LOADBUF: start = $7F0000, size = $8000, type = rw, file = \"\";"),
+        "the load buffer is what the grid leaves of $7F"
+    );
+    assert!(text.contains("GRID:     load = GRIDLO, type = bss;"));
+    let stack = format!(
+        "STACK: start = ${:04X}, size = ${:04X}, type = rw, file = \"\", define = yes;",
+        0x2000 - banks::STACK,
+        banks::STACK
+    );
+    assert!(
+        text.contains(&stack),
+        "the stack is the top of bank 0's RAM, and the reset asks the linker where"
+    );
+    let behind = text.find("GRIDHI:   load = GRIDHI").unwrap();
+    assert!(
+        text.find("GRIDTOP:  load = GRIDHI").unwrap() > behind,
+        "GRID_TOP goes after the grid in its area: ld65 places them in this order"
+    );
     assert!(text.contains("FAR:      load = BANK01"));
     assert!(text.contains("BANKC0: start = $C00000, size = $8000, fill = yes;"));
     assert!(text.contains("FAR2:     load = BANKC0"));

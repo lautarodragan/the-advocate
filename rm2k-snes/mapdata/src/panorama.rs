@@ -458,12 +458,12 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
                 p.tiles.len()
             )));
         }
-        // The runtime keeps its queue at the end of the grid's bank, $7EFE00:
-        // the grid and what lives behind it have to end before. See
+        // The runtime keeps its queue at the end of the grid's bank: the
+        // grid and what lives behind it have to end before. See
         // `PAINT_Q` in `painted.s`.
         let in_wram =
             map.grid().len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
-        if in_wram > 0x7E00 {
+        if in_wram > crate::materials::PAINT_ROOM {
             return Err(Bad::answer(format!(
                 "map {}: it is painted and its grid takes {in_wram} bytes of WRAM, past the painted maps' queue",
                 map.id

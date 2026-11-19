@@ -74,7 +74,10 @@ GREY_SET:   .res 1              ; and the pixels of its glyph in a cell
 ; going up, with the map on screen and no battle in between, so the battle
 ; composing its scene over it does not matter: the next box composes it
 ; again. Everything reaches it with `f:`, and `gold_to_wram::high` fills it.
-GOLD_BUF = GRID_TOP
+.pushseg
+.segment "GRIDTOP"
+GOLD_BUF: .res GOLD_ROW_BYTES * 2
+.popseg
 .assert GOLD_ROW_BYTES * 2 = GRID_TOP_GOLD, error, "the gold window's rows do not measure what GRID_TOP keeps for them: GRID_TOP_GOLD in materials.rs"
 
 ; Where each part of `window_gold` starts: the tiles, the palette, the ink.

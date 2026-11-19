@@ -198,6 +198,76 @@ pub const STACK: usize = 128;
 pub const FAR_POOL_START: usize = 0x7E2000;
 pub const FAR_POOL_SIZE: usize = 0x6000;
 
+/// The map's grid: the upper halves of `$7E` and `$7F`, a [`HALF`] each,
+/// which is the shape of two LoROM banks in a row —the runtime's `ptr_more`
+/// walks from one to the other by carrying into the bank—. Two areas of the
+/// `.cfg`, `GRIDLO` and `GRIDHI`, with the `GRID` and `GRIDHI` segments,
+/// where the runtime declares the grid's two halves; behind the grid, in
+/// `GRIDHI`, go the block table, the bytecode and the page table, which the
+/// converter lays out, and at the end of the area the `GRIDTOP` segment,
+/// `GRID_TOP` in the runtime, which no map reaches.
+///
+/// **They are fixed because the converter writes them as numbers**, into
+/// data it compresses before anything is linked —the drawn-in events' cells,
+/// the page tables' code pointers—: its own copies are `GRID_AT` and
+/// `GRID_HIGH_AT` in rm2k-snes-mapdata's `materials.rs`, which it writes in
+/// the cartridge's `.inc`, and the runtime `.assert`s at link time that they
+/// are these.
+pub const GRID_START: usize = 0x7E8000;
+pub const GRID_HIGH_START: usize = 0x7F8000;
+
+/// Between the grid's two halves, the lower half of `$7F`: the `LOADBUF`
+/// area and segment, where the runtime decompresses a map's streams before
+/// they go up to VRAM —`LZ2_BUFFER`— and keeps the ChipSet animation's
+/// drawings —`ANIM_DRAWINGS`—. It is here because that is what the grid
+/// leaves: a [`HALF`], which the battle, the screens and a big picture
+/// borrow while the map is not drawn.
+pub const LOAD_BUFFER_START: usize = 0x7F0000;
+
+/// An area of the WRAM outside bank 0 that the linker places the runtime's
+/// RAM in, with its segments in the order `ld65` lays them out in it.
+pub struct WramArea {
+    pub name: &'static str,
+    pub start: usize,
+    pub size: usize,
+    pub segments: &'static [&'static str],
+}
+
+/// The WRAM past bank 0's, whole: what [`cfg`] declares and what
+/// `rm2k-snes-assemble --memory-map` tells the tests, which check that
+/// every symbol in one of these falls inside what its segments hold.
+/// **Nothing of the runtime is at an address written by hand**: each of
+/// these is a segment, and what goes over another's —the battle's scene
+/// over the grid, a big picture over the drawings— is named after it.
+pub const WRAM_AREAS: &[WramArea] = &[
+    WramArea {
+        name: "FARRAM",
+        start: FAR_POOL_START,
+        size: FAR_POOL_SIZE,
+        segments: &["FARBSS", "SWITCHES"],
+    },
+    WramArea {
+        name: "GRIDLO",
+        start: GRID_START,
+        size: HALF,
+        segments: &["GRID"],
+    },
+    WramArea {
+        name: "LOADBUF",
+        start: LOAD_BUFFER_START,
+        size: HALF,
+        segments: &["LOADBUF"],
+    },
+    // `GRIDTOP` goes after the grid: the runtime sizes `GRIDHI` so that it
+    // lands at the end of the half.
+    WramArea {
+        name: "GRIDHI",
+        start: GRID_HIGH_START,
+        size: HALF,
+        segments: &["GRIDHI", "GRIDTOP"],
+    },
+];
+
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
@@ -1144,15 +1214,33 @@ pub fn cfg() -> String {
             "RAM:  start = $0100, size = ${:04X}, type = rw, file = \"\";",
             0x1F00 - STACK
         ),
+        // The stack, right above: nothing is placed in it, and the reset
+        // points S at its top with the `__STACK_*__` that `define` exports.
         format!(
-            "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\";"
+            "STACK: start = ${:04X}, size = ${STACK:04X}, type = rw, file = \"\", define = yes;",
+            0x2000 - STACK
         ),
     ];
+    memory.extend(WRAM_AREAS.iter().map(|a| {
+        format!(
+            "{}: start = ${:06X}, size = ${:04X}, type = rw, file = \"\";",
+            a.name, a.start, a.size
+        )
+    }));
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
         "BSS:      load = RAM,  type = bss;".to_string(),
-        "FARBSS:   load = FARRAM, type = bss;".to_string(),
-        "SWITCHES: load = FARRAM, type = bss;".to_string(),
+    ];
+    for area in WRAM_AREAS {
+        for segment in area.segments {
+            segments.push(format!(
+                "{:<9} load = {}, type = bss;",
+                format!("{segment}:"),
+                area.name
+            ));
+        }
+    }
+    segments.extend([
         "CODE:    load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),
@@ -1164,7 +1252,7 @@ pub fn cfg() -> String {
         ),
         format!("FAR2:     load = {}, type = ro;", segment_of(FAR2.bank)),
         format!("FAR3:     load = {}, type = ro;", segment_of(FAR3.bank)),
-    ];
+    ]);
     let data = slots();
     let area = |name: String, start: usize, size: usize| {
         format!("{name}: start = ${start:06X}, size = ${size:X}, fill = yes;")

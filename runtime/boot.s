@@ -1,6 +1,9 @@
 .segment "CODE"
 
 ; --- boot -------------------------------------------------------------------
+; The stack: the `STACK` area of the `.cfg`, the top of bank 0's RAM, whose
+; size is `STACK` in rm2k-snes/cartridge/src/banks.rs. The linker says where.
+.import __STACK_START__, __STACK_SIZE__
 .proc reset
     sei
     clc
@@ -10,7 +13,7 @@ fast:
     rep #$30                    ; 16-bit A, X and Y
 .a16
 .i16
-    ldx #$1FFF
+    ldx #__STACK_START__ + __STACK_SIZE__ - 1
     txs
     ; The data bank, set to the code's. On a real reset the 65816 leaves it at
     ; zero and everything below would work the same, but since 2026-09-13 we

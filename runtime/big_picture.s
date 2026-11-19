@@ -81,6 +81,10 @@ BIG_WAVE_BYTES  = 2 * (1 + 2 * BIG_WAVE_LINES) + 1
 .assert BIG_PAL + BIG_PALETTES * 32 <= BIG_WAVE_A, error, "the big picture's palette steps on its wave"
 .assert BIG_WAVE_A + BIG_WAVE_BYTES <= BIG_WAVE_B, error, "the two wave tables overlap"
 .assert BIG_WAVE_B + BIG_WAVE_BYTES <= ANIM_DRAWINGS_END, error, "the wave table goes past LZ2_BUFFER"
+; The bank the two tables are in, with X their address in it: see
+; `big_wave_table`. A `.define`, like the debug screen's: it is not a
+; tenant of the half, only its bank.
+.define BIG_WAVE_BANK +(^BIG_WAVE_A << 16)
 
 ; An entry of `big_table`: see `big_pictures_section` in rm2k-snes-mapdata.
 BE_TILES  = 0                   ; long: the tiles, raw
@@ -715,13 +719,13 @@ write_a:
     stz temp + 1                ; and the console's lines until one more
     ldy #$0000                  ; the line
     lda #$80 | BIG_WAVE_LINES
-    sta f:$7F0000, x            ; the first stretch's count
+    sta f:BIG_WAVE_BANK, x      ; the first stretch's count
     inx
 line:
     cpy #BIG_WAVE_LINES
     bne same_stretch
     lda #$80 | BIG_WAVE_LINES
-    sta f:$7F0000, x            ; and the second's
+    sta f:BIG_WAVE_BANK, x      ; and the second's
     inx
 same_stretch:
     lda temp
@@ -776,7 +780,7 @@ left:
     lda RDMPYL + 1
     and #$00FF
 put:
-    sta f:$7F0000, x
+    sta f:BIG_WAVE_BANK, x
     sep #$20
 .a8
     inx
@@ -785,7 +789,7 @@ put:
     cpy #2 * BIG_WAVE_LINES
     bne line
     lda #0
-    sta f:$7F0000, x            ; end of the table
+    sta f:BIG_WAVE_BANK, x      ; end of the table
     ; Ready: the next vblank points the channel at it.
     lda f:BIG_FLAGS
     eor #BIG_B

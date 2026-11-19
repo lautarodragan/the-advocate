@@ -39,6 +39,19 @@
 ; constants, `.loword` of the label, because the code that reads them runs
 ; with the data bank at `$7E` or points the WMADD window at them: the label
 ; is lowercase and the constant uppercase, `far_battle` and `FAR_BATTLE`.
+;
+; **And the rest of the WRAM past bank 0's is the linker's too**, since
+; 2026-11-19: the grid's two halves, the load buffer and the drawings, and
+; `GRID_TOP` are segments of areas of the `.cfg` —`WRAM_AREAS` in
+; rm2k-snes/cartridge/src/banks.rs—, declared below like `FARBSS`, and so is
+; the stack. The grid's halves are fixed because the converter writes them
+; as numbers; the `.cfg` holds those numbers, and `far_ram_game.s` checks
+; that the converter's are the same. What borrows a region for a while —the
+; battle's scene, a full screen's image, a big picture's palette— is named
+; after it, an offset with an `.assert` of how far it goes, not a second
+; copy of its address. The one long number left in the runtime is the far
+; bank, `FAR_LENGTH`, which is not a place; `test_wram_reservations.py`,
+; in A Blurred Line's suite, looks for any other.
 ; **A block that is walked as a range is one `.res` with offsets**, or
 ; several in a row with an `.assert` that they are adjacent: the linker
 ; places them in the order of the text, and nothing else promises it.
@@ -166,7 +179,12 @@ ACCESS_REQUESTED   = $80
 FAR_HP = .loword(far_hp)
 
 ; Far RAM with the bank in front, for the few who read it from outside with
-; `lda f:`: it is the same as `BAT_LENGTH`, which kept a battle name.
+; `lda f:`: it is the same as `BAT_LENGTH`, which kept a battle name. **It is
+; a bank, not a place**: $7E is where bank 0's RAM shows again, which the
+; code that runs with the data bank there counts on, so `FARBSS` has to be
+; in it, and far_ram_game.s asserts it is. The same $7E is written as
+; `$7E0000 +` before a sixteen-bit name, `lda #$7E` before a `plb` and the
+; zero in `WMADDH`.
 FAR_LENGTH = $7E0000
 
 ; And the SP, which are state for the same reason as the HP since skills can
@@ -1085,22 +1103,22 @@ PIC_BIG     = $80
 ; and the two tables of the wave go in the part that the ChipSet's
 ; animation uses on the map, which is not drawn meanwhile. The map reloads
 ; both when the picture goes.
-BIG_PAL     = $7F6000            ; BIG_PALETTES * 32 bytes
-BIG_WAVE_A  = $7F6100            ; BIG_WAVE_BYTES each
-BIG_WAVE_B  = $7F6300
+BIG_PAL     = ANIM_DRAWINGS + $000   ; BIG_PALETTES * 32 bytes
+BIG_WAVE_A  = ANIM_DRAWINGS + $100   ; BIG_WAVE_BYTES each
+BIG_WAVE_B  = ANIM_DRAWINGS + $300
 ; And the zoom's, for a picture with a mode 7 texture: see
 ; big_picture_zoom.s. `big_load` writes all of them before the first vblank
 ; reads them.
-BIG_M7_SHOW  = $7F6500           ; what the vblank shows: BIG_M7_STILL, _ZOOM, _GONE, and BIG_M7_SPENT
-BIG_M7_PIECE = $7F6501           ; the piece of VRAM that goes up next
-BIG_M7_DONE  = $7F6502           ; word: its bytes already up
-BIG_MAG      = $7F6504           ; its size now, in percent of the one shown
-BIG_MAG_FROM = $7F6505           ; and where the ramp's size starts and ends
-BIG_MAG_TO   = $7F6506
-BIG_M7_A     = $7F6507           ; word: the matrix's A and D, 8.8; BIG_M7_HIDDEN if too small
-BIG_M7_DIVISOR = $7F6509         ; word: `big_m7_matrix`'s
-BIG_M7_SIZE  = $7F650B           ; word: the piece's bytes
-BIG_M7_END   = $7F650D
+BIG_M7_SHOW  = ANIM_DRAWINGS + $500  ; what the vblank shows: BIG_M7_STILL, _ZOOM, _GONE, and BIG_M7_SPENT
+BIG_M7_PIECE = BIG_M7_SHOW + $01     ; the piece of VRAM that goes up next
+BIG_M7_DONE  = BIG_M7_SHOW + $02     ; word: its bytes already up
+BIG_MAG      = BIG_M7_SHOW + $04     ; its size now, in percent of the one shown
+BIG_MAG_FROM = BIG_M7_SHOW + $05     ; and where the ramp's size starts and ends
+BIG_MAG_TO   = BIG_M7_SHOW + $06
+BIG_M7_A     = BIG_M7_SHOW + $07     ; word: the matrix's A and D, 8.8; BIG_M7_HIDDEN if too small
+BIG_M7_DIVISOR = BIG_M7_SHOW + $09   ; word: `big_m7_matrix`'s
+BIG_M7_SIZE  = BIG_M7_SHOW + $0B     ; word: the piece's bytes
+BIG_M7_END   = BIG_M7_SHOW + $0D
 
 ; --- the slots still events take turns in ---------------------------------------
 ;
@@ -1194,11 +1212,11 @@ ANIMB_BUF: .res $800
 ;
 ;   LZ2_TRAMPOLINE_LIT  the literal's `mvn` trampoline, four bytes built with each
 ;            call's banks, and the output bank, in far RAM
-;   $7F0000  the load buffer: each tile block is decompressed here and
+;   LZ2_BUFFER  the load buffer: each tile block is decompressed here and
 ;            uploaded to VRAM with the same DMA as before. It is valid only
 ;            while loading; the battle scene uses all of bank $7F —see
 ;            `SCN_CLEAN`—, and nothing here has to outlive it
-;   $7F6000  the drawings of the map's ChipSet animation, which `anim_upload`
+;   ANIM_DRAWINGS  the drawings of the map's ChipSet animation, which `anim_upload`
 ;            uploads every time the clock changes: **they live as long as
 ;            one is on the map**, and that is why they go above the buffer
 ;            and are decompressed after the background tiles and before the
@@ -1354,10 +1372,16 @@ CARRY_MAP: .res 2
 ROUTE_CARRY: .res $100
 .popseg
 .assert ROUTE_CARRY + 256 <= GRID, error, "the carried move route would go into the grid"
+;
+; `LZ2_BUFFER` and `ANIM_DRAWINGS` are the `LOADBUF` area of the `.cfg`, the
+; lower half of $7F, and the linker places them.
+.pushseg
+.segment "LOADBUF": far
+LZ2_BUFFER:    .res $6000
+ANIM_DRAWINGS: .res $2000
+.popseg
+ANIM_DRAWINGS_END = ANIM_DRAWINGS + $2000
 CODE_CARRY     = LZ2_BUFFER + $1100
-LZ2_BUFFER     = $7F0000
-ANIM_DRAWINGS  = $7F6000
-ANIM_DRAWINGS_END = $7F8000
 
 ; --- sound effects with MSU-1 ------------------------------------------------
 ;
@@ -1502,19 +1526,36 @@ GO_FRAMES = GO_LOSES + $04             ; how many frames each fade level lasts
 ;
 ; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
 ; `back_from_battle` decompresses the whole grid again.
-GRID        = $7E8000
-GRID_END    = $7F0000
-GRID_HIGH = $7F8000
+;
+; Both halves are areas of the `.cfg`, `GRIDLO` and `GRIDHI` —`GRID_START`
+; and `GRID_HIGH_START` in rm2k-snes/cartridge/src/banks.rs—, and the
+; linker places them: they are fixed because the converter writes them as
+; numbers into what it compresses, and `far_ram_game.s` checks that its
+; numbers, `GRID_AT` and `GRID_HIGH_AT` in the `.inc`, are these. Until
+; 2026-11-19 they were those numbers, written here.
+.pushseg
+.segment "GRID": far
+GRID:      .res $8000
+.popseg
+GRID_END    = GRID + $8000
+.pushseg
+.segment "GRIDHI": far
+GRID_HIGH:                      ; its `.res`, in far_ram_game.s: up to GRID_TOP
+.popseg
 
 ; --- the top of $7F's upper half: `GRID_TOP` -----------------------------------
 ;
-; **A region written by hand, with named tenants**: the last bytes of the
-; half behind the grid, which no map's grid and nothing behind it reach, on
-; any map —the converter keeps them out: `BEHIND_ROOM` in rm2k-snes-mapdata's
-; `materials.rs`, which refuses a map that does not fit and sends a
-; bytecode or a page table that would reach here to the cartridge—. Its
-; size is the converter's, `GRID_TOP_GOLD` plus `GRID_TOP_POSED` in the
-; `.inc`, and each tenant `.assert`s its own against its part.
+; **A segment with named tenants**, `GRIDTOP`, after `GRIDHI` in the same
+; area: the last bytes of the half behind the grid, which no map's grid and
+; nothing behind it reach, on any map —the converter keeps them out:
+; `BEHIND_ROOM` in rm2k-snes-mapdata's `materials.rs`, which refuses a map
+; that does not fit and sends a bytecode or a page table that would reach
+; here to the cartridge—. Its size is the converter's, `GRID_TOP_GOLD` plus
+; `GRID_TOP_POSED` in the `.inc`: each tenant's `.res` is its part, and
+; `.assert`s it against it, and `GRIDHI` takes the rest of the half, which
+; is what puts this at the top —far_ram_game.s asserts it is—. Until
+; 2026-11-19 it was `GRID_HIGH + $8000` minus its size, and its tenants
+; offsets of it.
 ;
 ; What may live here is what lives less than a map and is not needed after a
 ; battle, because the battle composes its scene over the whole half
@@ -1525,10 +1566,14 @@ GRID_HIGH = $7F8000
 ;   POSED_REG    the runs of the events drawn into the background, and
 ;   POSED_T      their scratch: see posed.s
 ;
-; A new tenant is a new part in `materials.rs`, here, and in the book's
-; internals/wram.md; `test_wram_reservations.py` names each one.
+; A new tenant is a `.res` in `GRIDTOP` in its file, a new part in
+; `materials.rs`, a line here and in the book's internals/wram.md;
+; `test_wram_reservations.py` names each one.
 GRID_TOP_BYTES = GRID_TOP_GOLD + GRID_TOP_POSED
-GRID_TOP    = GRID_HIGH + $8000 - GRID_TOP_BYTES
+.pushseg
+.segment "GRIDTOP": far
+GRID_TOP:                       ; each tenant's `.res`, in its file
+.popseg
 
 ; On which frame startup ends, counted from reset. Startup —loading the map,
 ; uploading the driver to the SPC700 and the map's audio package— takes as

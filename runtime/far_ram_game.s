@@ -39,3 +39,16 @@ route_gfx_colors: .res ROUTE_GFX_MAX
 .assert far_variables = far_msg_options + 5, error, "clear_variables walks a block that is not contiguous"
 .assert far_item_usage = far_items + ITEMS_N, error, "clear_variables clears the uses with the inventory"
 .assert ACTORS_N <= 256, error, "an actor number is a byte: the actors' tables are indexed by it"
+
+; --- the grid, where the converter put it ---------------------------------------
+; The converter writes the grid's addresses as numbers into what it
+; compresses —the drawn-in events' cells, the page tables' code pointers—,
+; before the link: `GRID_AT` and `GRID_HIGH_AT` are those numbers, and the
+; linker's `GRIDLO` and `GRIDHI` areas have to be them. See far_ram.s.
+.pushseg
+.segment "GRIDHI"
+    .res $8000 - GRID_TOP_BYTES
+.popseg
+.assert GRID_TOP = GRID_HIGH + $8000 - GRID_TOP_BYTES, error, "GRID_TOP is not the top of $7F's half: its tenants do not add up to GRID_TOP_BYTES"
+.assert (far_variables & $FF0000) = FAR_LENGTH, error, "far RAM is not in the bank FAR_LENGTH says: the code that runs with the data bank at $7E counts on it"
+.assert GRID = GRID_AT && GRID_HIGH = GRID_HIGH_AT, error, "the converter wrote the grid's addresses and the linker placed it elsewhere: GRID_AT in rm2k-snes-mapdata's materials.rs, GRID_START in rm2k-snes-cartridge's banks.rs"

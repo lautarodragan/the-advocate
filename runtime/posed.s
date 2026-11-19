@@ -65,8 +65,11 @@ POSED_LAST: .res POSED_MAX
 ; `posed_queue` and what it calls, **absolute addressing reaches $7F**:
 ; what they read of bank $7E goes with `f:`, and of bank 0's RAM, through
 ; the direct page.
-POSED_REG   = GRID_TOP + GRID_TOP_GOLD  ; the top rows' region, then the bottom rows'
-POSED_T     = POSED_REG + 2 * PR_SIZE   ; scratch, 16 bytes
+.pushseg
+.segment "GRIDTOP"
+POSED_REG:  .res 2 * PR_SIZE    ; the top rows' region, then the bottom rows'
+POSED_T:    .res 16             ; scratch
+.popseg
 .assert 2 * PR_SIZE + 16 = GRID_TOP_POSED, error, "the runs do not measure what GRID_TOP keeps for them: GRID_TOP_POSED in materials.rs"
 .assert ^POSED_REG = ^(POSED_T + 15), error, "the runs and their scratch have to share a bank: posed_row reaches them with the data bank"
 POSED_KEY   = POSED_T + 0       ; byte: the key the row asks for

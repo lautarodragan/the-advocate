@@ -19,10 +19,10 @@ pub fn attributes(graphic: u8) -> u8 {
     0x30 | ((graphic & 0x07) << 1)
 }
 
-/// The grid's place in WRAM: see `GRID` in the runtime's `far_ram.s`. Its
-/// second 32 KB are the upper half of bank $7F.
-const GRID: u32 = 0x7E8000;
-const GRID_HIGH: u32 = 0x7F8000;
+/// The grid's place in WRAM: its second 32 KB are the upper half of bank
+/// $7F. See [`crate::materials::GRID_AT`].
+const GRID: u32 = crate::materials::GRID_AT as u32;
+const GRID_HIGH: u32 = crate::materials::GRID_HIGH_AT as u32;
 
 /// How many a map can have: the row's tile byte numbers them, and the
 /// console's table of what each one shows has this many bytes.

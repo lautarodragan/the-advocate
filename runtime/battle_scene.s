@@ -77,13 +77,16 @@ SCN_DP_SAVE = SCN_ORIGIN + $80
 SCN_DP_BYTES = 48
 .assert SCN_DP_SAVE + SCN_DP_BYTES <= SCN_ORIGIN + $80 + 48, error, "the scene's state overflows its block"
 
-; The clean background and the composed scene, 32 KB each, in WRAM bank
-; $7F, which nobody used: everything else in the ROM lives in $7E —far RAM
-; goes up to $7E7FFF— and no `WMADDH` is written with anything but zero. The
-; clean one is what lets an enemy be erased without reading anything from
-; the cartridge again: see `scene_tick`.
-SCN_CLEAN    = $7F0000
-SCN_SCENE    = $7F8000
+; The clean background and the composed scene, 32 KB each: the two halves
+; of WRAM bank $7F, which the map lends while the battle lasts —the load
+; buffer and the drawings, and the grid past 32 KB with what lives behind
+; it—, and which `back_from_battle` and `back_to_map` fill again. They are
+; named after the regions they borrow, which the linker places. The clean
+; one is what lets an enemy be erased without reading anything from the
+; cartridge again: see `scene_tick`.
+SCN_CLEAN    = LZ2_BUFFER       ; the whole of LOADBUF, drawings included
+SCN_SCENE    = GRID_HIGH        ; the whole of GRIDHI, GRID_TOP included
+.assert SCN_CLEAN + $8000 = GRID_HIGH && SCN_SCENE + $8000 = GRID_TOP + GRID_TOP_BYTES, error, "the battle's clean background and scene are not the two halves of $7F"
 ; How many scene bytes are uploaded per vblank when an enemy is erased. The
 ; NTSC vblank allows about six kilobytes of DMA and `scr_upload` already
 ; takes the text's 1,792 in the same vblank; two more leave some margin.
@@ -973,9 +976,9 @@ done:
 .a8
 .i16
     jsr scn_colors
-    lda #0
+    lda #>SCN_CLEAN
     jsr scn_fill
-    lda #$80
+    lda #>SCN_SCENE
     jsr scn_fill
     lda SCN_MSU
     bne ready
@@ -1091,6 +1094,7 @@ from_rom:
 ; zeros: A is the middle byte of its address, 0 the clean one and $80 the
 ; composed one. Through the WRAM window, which is the only way to copy from
 ; ROM to RAM by DMA; the bank is $7F, so WMADDH is 1.
+.assert .loword(SCN_CLEAN) = 0 && .loword(SCN_SCENE) = $8000 && ^SCN_CLEAN = ^SCN_SCENE, error, "scn_fill tells the two buffers apart by their middle byte"
 .proc scn_fill
 .a8
 .i16
@@ -1099,7 +1103,7 @@ from_rom:
     lda #0
     sta SCN_T0
     sta f:WMADDL
-    lda #1
+    lda #^SCN_CLEAN & 1
     sta f:WMADDH
     lda #$80                    ; WMDATA
     sta f:BBAD0

@@ -69,12 +69,13 @@ PAINT_END2  = PAINT_JOB + $07
 ; crosses one every four at the walk's two pixels a frame.
 PAINT_STEP  = 11
 ; And the queue, at the end of the grid's bank: the grid of a painted map is
-; a few kilobytes —the converter checks it does not reach here— and the
-; queue lasts from one tick to the next vblank. Eight bytes an entry: the
-; VRAM word, the source's low word and bank, a spare byte and the length.
-PAINT_Q     = $7EFE00
+; a few kilobytes —the converter checks it does not pass `PAINT_ROOM`, its
+; number in the `.inc`— and the queue lasts from one tick to the next
+; vblank. Eight bytes an entry: the VRAM word, the source's low word and
+; bank, a spare byte and the length.
+PAINT_Q     = GRID + PAINT_ROOM
 PAINT_Q_MAX = 40
-.assert PAINT_Q + PAINT_Q_MAX * 8 <= $7F0000, error, "the painted maps' queue goes past the grid's bank"
+.assert PAINT_Q + PAINT_Q_MAX * 8 <= GRID_END, error, "the painted maps' queue goes past the grid's bank"
 
 ; The fields of a `paint_table` record: see `panorama.rs` in
 ; rm2k-snes-mapdata.
