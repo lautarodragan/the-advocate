@@ -250,6 +250,19 @@ pub fn run(options: Options) -> Result<()> {
             .filter_map(|c| c["common_event"].as_i64())
             .map(|n| n as i32),
     );
+    // And the ones the project names, `[events] commons_not_copied`: a copy
+    // is the common's whole bytecode in every map's, and a long one can
+    // push the maps' past what decompresses into WRAM —`code_in_rom` in
+    // rm2k-snes-mapdata—, which then stays in the cartridge uncompressed.
+    // Without the key, none.
+    if project.value(&["events", "commons_not_copied"]).is_ok() {
+        not_copied.extend(
+            project
+                .ints(&["events", "commons_not_copied"])?
+                .into_iter()
+                .map(|n| n as i32),
+        );
+    }
     let common_pages = crate::common_pages::CommonPages::decide(
         &game,
         &not_copied,
