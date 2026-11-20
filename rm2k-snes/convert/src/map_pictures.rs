@@ -36,13 +36,20 @@
 //!   lands;
 //! * **how it settles**: the `MovePicture`s that follow it in its page, if
 //!   they leave it where it is and at its size, give the tone and the
-//!   transparency it stays at.
+//!   transparency it stays at;
+//! * **whether it stays**: one its own page erases further on, from the
+//!   show's branch or one further out, was part of a scene and not of the
+//!   map. It is
+//!   not drawn into it, and its commands are accepted without being done, as
+//!   before: the scene loses it while it plays. Desert Nightmare's warehouse,
+//!   map 21, opens on a piece of wall shown over its door and erased when the
+//!   scene ends; drawn into the map, it stayed in front of the hero for good.
 
 use crate::fail::{Result, Stop};
 use crate::game::{Command, GameMap};
 use rm2k_snes_events::codes::{
-    COND_BRANCH, COND_ELSE, DEFEAT_HANDLER, ESCAPE_HANDLER, MOVE_PICTURE, SHOW_CHOICE,
-    SHOW_CHOICE_OPTION, SHOW_PICTURE, TELEPORT, VICTORY_HANDLER,
+    COND_BRANCH, COND_ELSE, DEFEAT_HANDLER, ERASE_PICTURE, ESCAPE_HANDLER, MOVE_PICTURE,
+    SHOW_CHOICE, SHOW_CHOICE_OPTION, SHOW_PICTURE, TELEPORT, VICTORY_HANDLER,
 };
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -217,6 +224,10 @@ struct Shown {
     screen: (i32, i32),
     moves_place: bool,
     moves_size: bool,
+    /// The branch its `ShowPicture` is in —see `walk`—, and whether its page
+    /// erases it further on, in that branch or one further out.
+    branch: Vec<usize>,
+    erased: bool,
 }
 
 /// RM2k's camera on `map` with the hero at cell `(x, y)`.
@@ -274,8 +285,16 @@ fn walk(
     // pictures 2 and 3 before its own, which took the spring ones out of
     // map 13 and left them big pictures over it, on 2026-10-16.
     let mut branched: HashMap<i32, (i32, Option<(i32, i32)>)> = HashMap::new();
-    for c in commands {
+    // Which branch a command is in: per indent outside its own, the last
+    // command seen at that indent —the condition, the choice's option, the
+    // else, the loop that opened it—. An erase reaches a show only from its
+    // branch or one further out: one whose branch starts with the erase's.
+    let mut heads: Vec<usize> = Vec::new();
+    for (i, c) in commands.iter().enumerate() {
         let p = &c.parameters;
+        let indent = usize::try_from(c.indent).unwrap_or(0);
+        heads.truncate(indent);
+        heads.resize(indent, usize::MAX);
         match c.code {
             SHOW_CHOICE | COND_BRANCH => {
                 branched.insert(c.indent, (seen, cam));
@@ -319,7 +338,16 @@ fn walk(
                     screen: (p[2], p[3]),
                     moves_place: false,
                     moves_size: false,
+                    branch: heads.clone(),
+                    erased: false,
                 });
+            }
+            ERASE_PICTURE if !p.is_empty() => {
+                if let Some(&k) = last.get(&p[0]) {
+                    if out[k].branch.starts_with(&heads) {
+                        out[k].erased = true;
+                    }
+                }
             }
             MOVE_PICTURE if p.len() >= 12 => {
                 if let Some(&k) = last.get(&p[0]) {
@@ -337,6 +365,7 @@ fn walk(
             }
             _ => {}
         }
+        heads.push(i);
     }
 }
 
@@ -356,6 +385,7 @@ fn placed(
     if fits_objects || s.transparency >= 100 {
         return Err(None);
     }
+
     if s.by_variable {
         return hidden("its place is by a variable");
     }
@@ -434,6 +464,9 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
         };
         let entry = all_in.entry((s.from, lower)).or_insert(true);
         *entry &= place.is_some();
+        // Part of a scene: its commands are accepted without being done, and
+        // the map does not keep it. See the module.
+        let place = place.filter(|_| !s.erased);
         if let Some((path, (corner, repeat))) = place {
             per.entry((s.seen, s.number)).or_default().push(OnMap {
                 number: s.number,
@@ -502,6 +535,8 @@ mod tests {
             screen: (160, 120),
             moves_place,
             moves_size: false,
+            branch: Vec::new(),
+            erased: false,
         }
     }
 
@@ -584,6 +619,52 @@ mod tests {
             .map(|s| (s.name.as_str(), s.seen, s.moves_place))
             .collect();
         assert_eq!(seen, [("Spring", 13, false), ("Before", 15, true)]);
+    }
+
+    /// A scene's picture, which its page erases when the scene ends, is not
+    /// part of the map; one a branch erases stays in the others, and so does
+    /// one another branch erases. Desert Nightmare's warehouse, map 21, and
+    /// a number lock like the shrine's on map 161, shrunk.
+    #[test]
+    fn a_picture_its_page_erases_is_a_scenes() {
+        let show_at = |indent: i32, number: i32, name: &str| {
+            c(
+                SHOW_PICTURE,
+                indent,
+                name,
+                &[number, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+            )
+        };
+        let show = |number: i32, name: &str| show_at(0, number, name);
+        let page = [
+            show(2, "Wall"),
+            show(3, "Light"),
+            c(COND_BRANCH, 0, "", &[0, 1, 0, 0, 0, 0]),
+            c(ERASE_PICTURE, 1, "", &[3]),
+            c(ERASE_PICTURE, 0, "", &[2]),
+            // A digit a branch shows, which the next branch erases to show
+            // its own: in each, the one shown stays.
+            c(COND_BRANCH, 0, "", &[1, 1, 0, 0, 0, 0]),
+            show_at(1, 4, "Zero"),
+            c(COND_BRANCH, 0, "", &[1, 1, 0, 1, 0, 0]),
+            c(ERASE_PICTURE, 1, "", &[4]),
+            show_at(1, 4, "One"),
+            c(COND_ELSE, 0, "", &[]),
+            c(ERASE_PICTURE, 1, "", &[4]),
+        ];
+        let sizes = HashMap::from([(21, (20, 15))]);
+        let mut out = Vec::new();
+        walk(21, (8, (0, 0)), &page, &sizes, &mut out);
+        let erased: Vec<_> = out.iter().map(|s| (s.name.as_str(), s.erased)).collect();
+        assert_eq!(
+            erased,
+            [
+                ("Wall", true),
+                ("Light", false),
+                ("Zero", false),
+                ("One", false)
+            ]
+        );
     }
 
     #[test]

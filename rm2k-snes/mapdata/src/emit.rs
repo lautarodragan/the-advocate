@@ -17,7 +17,7 @@ use crate::fail::{Bad, Result};
 use crate::json::{
     at, bytes_at, colors, int, int_at, ints, ints_at, list, list_at, text, text_at, tiles,
 };
-use crate::objects::{LAYER_SAME, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE};
+use crate::objects::{LAYER_ABOVE, LAYER_SAME, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE};
 use crate::pyf;
 use crate::pyfmt::{format, Arg};
 use crate::record::{
@@ -737,6 +737,9 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             OBJ_PRIORITY
         })
         .into(),
+        LAYER_ABOVE.into(),
+        OBJ_PRIORITY.into(),
+        OBJ_PRIORITY_ABOVE.into(),
         cgram_reserved(r.window_colors).into(),
         (WINDOW_PALETTE as usize * COLORS_PER_PALETTE).into(),
         (bytes_at(window, "tiles")?.len() / 32).into(),
