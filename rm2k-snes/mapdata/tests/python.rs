@@ -2073,7 +2073,9 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&without_npc_priorities(&text)))),
+                                            &without_terrain_damage(&without_weather_sand(
+                                                &without_grid_top(&without_npc_priorities(&text)),
+                                            )),
                                         )),
                                     )),
                                 )),
@@ -2119,7 +2121,9 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&without_npc_priorities(&text)))),
+                                            &without_terrain_damage(&without_weather_sand(
+                                                &without_grid_top(&without_npc_priorities(&text)),
+                                            )),
                                         )),
                                     )),
                                 )),

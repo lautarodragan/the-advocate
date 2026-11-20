@@ -658,7 +658,12 @@ mod tests {
         let erased: Vec<_> = out.iter().map(|s| (s.name.as_str(), s.erased)).collect();
         assert_eq!(
             erased,
-            [("Wall", true), ("Light", false), ("Zero", false), ("One", false)]
+            [
+                ("Wall", true),
+                ("Light", false),
+                ("Zero", false),
+                ("One", false)
+            ]
         );
     }
 
