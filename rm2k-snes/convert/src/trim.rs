@@ -248,7 +248,7 @@ fn can_be_twin(e: &schema::Event, named: &BTreeSet<i32>) -> bool {
 /// The twins: events whose pages are the same as another's —every field
 /// but the cell—, as `(twin, the one with the lowest id)`, by id. The
 /// console keeps only the first, and each twin is a cell in a table behind
-/// the map's positions that `event_in_cell` and `hero_blocked` look at
+/// the map's positions that `action_in_cell` and `hero_blocked` look at
 /// after the rows: the action button or a step on that cell runs the first
 /// one's page, which is the same page, and the hero's step into it is
 /// refused if that page is on his layer. Its id is not in the cartridge any more, but nobody
