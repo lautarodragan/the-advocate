@@ -159,9 +159,14 @@ pub fn map_poses(
         add(key, own);
         if npc.changes {
             for (name, index, pose) in npc.graphics.iter().flatten() {
-                // One that walks and changes graphic loses the change, but
-                // its page's graphic still asks for a palette.
-                let which = if still {
+                // Its page's graphic gets a pose bank of its own too (see
+                // `animated` in `map.rs`). On a row that also turns toward
+                // the hero, every facing: the emission asks them of every
+                // page of an event that turns, even of one that does not
+                // —Vampires Dawn's map 376, whose monster turns on one page
+                // and, as another character, stands with its direction
+                // fixed on the next two—.
+                let which = if still && !turning.contains_key(&npc.event) {
                     pose_row(*pose)
                 } else if walks {
                     all_poses()

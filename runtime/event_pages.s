@@ -1417,6 +1417,23 @@ walks:
     phy
     jsr walker_graphic
     ply
+    ; And the priority of the page's layer, which a still row takes with its
+    ; attributes from `pg_attr` and a walking one, which keeps its own, did
+    ; not: Jake, on Desert Nightmare's map 19, is above the hero on the
+    ; pages where he leans over the pool table and on the hero's layer on
+    ; the one where he stands by it, and stayed in front of the table's
+    ; edge, which the ChipSet's layer above draws over him.
+    lda pg_layer
+    cmp #LAYER_ABOVE            ; C: above the hero
+    lda npc_buf + 7, y
+    and #$CF                    ; vhoopppN without its priority
+    bcs above
+    ora #NPC_PRIORITY
+    bra priority_set
+above:
+    ora #NPC_PRIORITY_ABOVE
+priority_set:
+    sta npc_buf + 7, y
 no_touch_tile:
     ; Drawn, at the page's transparency: 0, or 3 if it is translucent —bit 6
     ; of its pose—, which is +14's 1 or 7: see `ev_transparency`. The same

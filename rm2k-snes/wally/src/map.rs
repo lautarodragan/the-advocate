@@ -2341,6 +2341,24 @@ fn convert_with(
             }
         }
     }
+    // And every other graphic the pages of an event that walks or animates
+    // draw: its row carries one graphic's twelve poses, and a page's graphic
+    // with no pose bank of its own is drawn out of the row's —the page's pose
+    // of another character—. Desert Nightmare's map items spin on the pages
+    // that wait to be taken and stand still on the one after: on maps 16 and
+    // 24 that one came out as a white cell of the spinning one's CharSet.
+    // Last, so that the banks of the maps without one keep their numbers.
+    for npc in npcs.iter().filter(|n| who.movable.contains(&n.event)) {
+        for key in npc.keys() {
+            let opaque = sheets
+                .get(&key.0)
+                .and_then(Option::as_ref)
+                .is_some_and(|s| !sprite_colors(s, key.1, None).is_empty());
+            if opaque && split.palette_of.contains(&key) && !animated.contains(&key) {
+                animated.push(key);
+            }
+        }
+    }
     for (key, shows) in request.route_graphics.iter().zip(&visible) {
         let opaque = sheets
             .get(&key.0)
