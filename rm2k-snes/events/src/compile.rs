@@ -6668,14 +6668,13 @@ fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8
         Directive::Show(w) => {
             // A test page's window is not in the game's registry, which is
             // the game's pages': it borrows a window of the game, and its
-            // lines fit that window's.
+            // lines fit that window's. One whose id the game does not have
+            // does not compile, and its page with it: that is also what a
+            // scan over the dump without the project's forked common
+            // events —the harness's, for the variables' slots— finds.
             let (Some(slot), Some((first, cells))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
             else {
-                return Err(Stop::Fatal(Bad::answer(format!(
-                    "`@window {}`: no window of the game has that id, and a test page's \
-                     window borrows one of the game's",
-                    w.id
-                ))));
+                return cannot();
             };
             if w.lines.len() > cells.len()
                 || w.lines.iter().zip(&cells).any(|(l, &c)| crate::windows::line_cells(l, &window) > c)

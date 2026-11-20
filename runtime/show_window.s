@@ -166,6 +166,12 @@ SW_TABLES_LATEST = VBLANK_WRITES_END - 3
     rts
 .endproc
 
+; What runs in the vblank, and the doors from elsewhere, go in FAR2, bank
+; $C0; the composer and the screen's composition in FAR3, bank $C1: with
+; Desert Nightmare's painted maps in FAR3 the whole file did not fit one
+; bank (2026-11-20, 1,043 bytes over). Each half calls the other with `jsl`.
+.segment "FAR2"
+
 ; On reset and every map change, from `pic_clear`: no window, as RM2k erases
 ; the pictures there. Keeps X and Y.
 .proc sw_clear
@@ -213,11 +219,13 @@ each:
     sta f:SW_UPLOAD
     sta f:SW_READ
     sta f:SW_PUT
-    jsr sw_all_dirty
+    jsl f:sw_all_dirty_l
     plx
     plp
     rtl
 .endproc
+
+.segment "FAR3"
 
 ; Every window up, to be composed again, and the screen; and the ink and the
 ; background tile, which a box or a load wrote over. A8; keeps nothing.
@@ -250,6 +258,31 @@ each:
     rts
 .endproc
 
+; `sw_all_dirty`, from FAR2.
+sw_all_dirty_l:
+    jsr sw_all_dirty
+    rtl
+
+.segment "FAR2"
+
+; `sw_rec_of`, for FAR2's: X to slot A's record. A8 in and out.
+sw_rec_of2:
+.a8
+    sta f:WRMPYA
+    lda #SW_REC
+    sta f:WRMPYB                ; starts: eight cycles
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda f:RDMPYL
+    tax
+    sep #$20
+.a8
+    rts
+
 ; `OP_WINDOW`, from `op_window`: the operands at `[code_ptr], y`, Y past
 ; them. The window's record, and its text and the screen to be drawn —unless
 ; it is up already as it asks: Desert Nightmare's menu shows its options
@@ -261,7 +294,7 @@ each:
     lda [code_ptr], y           ; the slot
     iny
     phy
-    jsr sw_rec_of
+    jsr sw_rec_of2
     ply
     lda f:SW_RECS + R_UP, x
     eor #1
@@ -370,7 +403,7 @@ done:
     lda [code_ptr], y
     iny
     phy
-    jsr sw_rec_of
+    jsr sw_rec_of2
     ply
     lda f:SW_RECS + R_UP, x
     beq done
@@ -382,6 +415,8 @@ done:
 done:
     rtl
 .endproc
+
+.segment "FAR3"
 
 ; One frame of the windows, from the main loop after the message's: a box
 ; opening takes them off the screen; with none, a few letters of a window
@@ -491,6 +526,8 @@ none_up:
     rtl
 .endproc
 
+.segment "FAR2"
+
 ; `SW_SC` from `MSG_SC`, BG2SC's byte: the window's tilemap where the map
 ; has it, or where a big picture moved it —over one, the windows go over the
 ; picture, and the layer above they copy is the one it emptied—. A8.
@@ -505,6 +542,8 @@ sw_tilemap:
     sep #$20
 .a8
     rts
+
+.segment "FAR3"
 
 ; The camera as one word, to tell whether it moved: `message_layer.s`'s. A16
 ; out.
@@ -1231,6 +1270,8 @@ sw_colour_zero:
 .a8
     lda #0
     jmp colour
+
+.segment "FAR2"
 
 ; In the vblank, from `flush_video` when no message is up: what the windows
 ; left to go up, if it fits, and their HDMA. The carry set when they are on
