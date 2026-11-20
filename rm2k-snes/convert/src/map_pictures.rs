@@ -459,11 +459,12 @@ fn placed(
 /// picture's `with_map` (see `pictures_of` in rm2k-snes-events).
 ///
 /// Only when it can be done whole: every show of the number on the map one
-/// of the drawings, all opaque —a small picture is drawn so— and at the
-/// same size and tone, each drawing with something of its own —an empty part would leave the
-/// one before it up— and none with a hole where the common part is not
-/// one, which a picture over the map cannot open. Otherwise the one shown
-/// most is drawn, as before.
+/// of the drawings —none of them a scene's, which its own page erases: that
+/// rule wins—, all opaque —a small picture is drawn so— and at the same
+/// size and tone, each drawing with something of its own —an empty part
+/// would leave the one before it up— and none with a hole where the common
+/// part is not one, which a picture over the map cannot open. Otherwise the
+/// one shown most is drawn, as before.
 pub struct Parts {
     /// The common part, drawn into the map.
     pub common: OnMap,
@@ -664,14 +665,18 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapP
             },
             _ => None,
         };
-        if place.is_none() {
-            unplaced.insert((s.seen, s.number));
-        }
         let entry = all_in.entry((s.from, lower)).or_insert(true);
         *entry &= place.is_some();
         // Part of a scene: its commands are accepted without being done, and
         // the map does not keep it. See the module.
         let place = place.filter(|_| !s.erased);
+        // After the scene's rule, not before: a number one of whose shows is
+        // a scene's is not split into parts —see `Parts`—, since that show
+        // would be accepted without being done while the other drawings'
+        // parts stayed up as sprites. The scene's rule wins.
+        if place.is_none() {
+            unplaced.insert((s.seen, s.number));
+        }
         if let Some((path, (corner, repeat))) = place {
             if s.from != s.seen {
                 crossed.insert((s.seen, s.number));
@@ -970,6 +975,85 @@ mod tests {
         let faint: Vec<OnMap> = (0..3).map(|k| menu(&dir, k, 30)).collect();
         let refs: Vec<&OnMap> = faint.iter().collect();
         assert!(Parts::of(1, 1, &refs, &dir).unwrap().is_none());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// The two rules over one number: three drawings of a menu are split
+    /// into parts on the map that keeps them, and not on one whose page
+    /// erases the number at its end: the scene's rule wins over the number,
+    /// whose shows stay accepted without being done.
+    #[test]
+    fn a_scene_s_drawings_are_not_split_into_parts() {
+        use crate::game::{Event, Page};
+        let dir = std::env::temp_dir().join(format!("convert-parts-scene-{}", std::process::id()));
+        let pictures = dir.join("Picture");
+        std::fs::create_dir_all(&pictures).unwrap();
+        let (w, h) = (320usize, 240usize);
+        for lit in 0..3 {
+            let mut pixels = vec![[0u8; 4]; w * h];
+            for y in 0..30 {
+                for x in 0..100 {
+                    let on = y / 10 == lit;
+                    pixels[y * w + x] = if on { [250, 200, 0, 255] } else { [90, 40, 0, 255] };
+                }
+            }
+            let path = pictures.join(format!("Menu_{lit}.png"));
+            assert!(write_indexed(&path, w, h, &pixels).unwrap());
+        }
+        let show = |lit: i32| {
+            c(
+                SHOW_PICTURE,
+                0,
+                &format!("Menu_{lit}"),
+                &[1, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+            )
+        };
+        let map = |id: i32, mut commands: Vec<Command>, erase: bool| {
+            if erase {
+                commands.push(c(ERASE_PICTURE, 0, "", &[1]));
+            }
+            GameMap {
+                id,
+                chipset_id: 1,
+                width: 20,
+                height: 15,
+                scroll_type: 0,
+                events: vec![Event {
+                    id: 1,
+                    x: 0,
+                    y: 0,
+                    pages: vec![Page {
+                        id: 1,
+                        character_name: String::new(),
+                        dump_name: String::new(),
+                        character_index: 0,
+                        direction: 2,
+                        pattern: 1,
+                        layer: 0,
+                        animation_type: 0,
+                        translucent: false,
+                        commands,
+                    }],
+                }],
+                lower_layer: Vec::new(),
+                upper_layer: Vec::new(),
+                twins: Vec::new(),
+            }
+        };
+        let menu = map(1, (0..3).map(show).collect(), false);
+        let scene = map(2, (0..3).map(show).collect(), true);
+        let out = dir.join("out");
+        let decided = decide(&[&menu, &scene], &dir, &out).unwrap();
+        assert!(decided.part(1, "Menu_1").is_some());
+        assert_eq!(decided.of(1).len(), 1);
+        assert!(decided.of(1)[0].derived);
+        // Only the last show is the one the erase reaches —a picture shown
+        // again under its number is not taken as erased, see `walk`—, so the
+        // other two stay as before the parts: the one shown first is drawn.
+        assert!(decided.part(2, "Menu_1").is_none());
+        assert_eq!(decided.of(2).len(), 1);
+        assert!(!decided.of(2)[0].derived);
+        assert!(decided.done(2, "Menu_2"));
         std::fs::remove_dir_all(&dir).ok();
     }
 }
