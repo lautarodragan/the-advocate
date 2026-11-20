@@ -275,7 +275,7 @@ pub fn bake(map: &mut Map, text: &Text, reserved: usize) -> Result<Option<Baked>
                 remap(tile, &to);
             }
         }
-        let mut moved = vec![0u16; COLORS_PER_PALETTE];
+        let mut moved = [0u16; COLORS_PER_PALETTE];
         for k in 0..COLORS_PER_PALETTE {
             moved[to[k]] = words[k];
         }
