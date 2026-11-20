@@ -404,7 +404,10 @@ pub fn run(options: Options) -> Result<()> {
     let per_character = maps::maps_per_character(&every_refs);
     // Where the hero arrives is asked for the tiles above him nobody can
     // cover, and for the still events drawn past their cells: see `reach`.
-    let arrivals = if game.unreachable_above_below || game.posed != crate::game::Posed::Nowhere {
+    let arrivals = if game.unreachable_above_below
+        || game.posed != crate::game::OnMaps::Nowhere
+        || game.painted_events != crate::game::OnMaps::Nowhere
+    {
         // Over the whole game's maps, not only the cartridge's: what a map
         // decides from it —its still events drawn past their cells, its
         // tiles above lowered— is then the same in every cartridge that
@@ -758,6 +761,19 @@ pub fn run(options: Options) -> Result<()> {
         &encounters["troops"],
     )?;
     degradations.add_compiler_answer(&compiled);
+    // The events the RAM left out that Wally painted into their map lose
+    // nothing: see `Loss::Painted` in [`crate::trim`].
+    let painted: BTreeSet<(i64, i64)> = infos
+        .iter()
+        .flat_map(|m| m.painted_trimmed.iter().map(move |&e| (m.id as i64, e)))
+        .collect();
+    degradations.forget(|l| {
+        l["kind"] == "event-left-out"
+            && match (l["map"].as_i64(), l["event"].as_i64()) {
+                (Some(m), Some(e)) => painted.contains(&(m, e)),
+                _ => false,
+            }
+    });
     // The pictures drawn into their map were shown by the conversion, not
     // lost: the compiler is not given them, so it says they are not shown.
     degradations.forget(|l| {

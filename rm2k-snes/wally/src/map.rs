@@ -142,6 +142,11 @@ pub struct MapRequest {
     /// background's cells, a block per pose: see [`crate::posed`]. A
     /// project's choice, off unless it says so.
     pub posed: bool,
+    /// Whether the still pieces are painted into the map's panorama, with
+    /// its ChipSet's layers, so the map is one picture: see
+    /// [`crate::pieces`]. A project's choice, map by map, off unless it says
+    /// so.
+    pub painted_events: bool,
     /// `baked_events_nudge`: how many pixels, in x and in y, the poses of one
     /// of those may be moved to fit its cell —see
     /// [`crate::posed::shift_into_the_cell`]—. 0 when the request does not
@@ -228,6 +233,7 @@ fn layered(
         below: extra.below.clone(),
         posed: extra.posed.clone(),
         spills: extra.spills.clone(),
+        pieces: extra.pieces.clone(),
     };
     let (drawn, converted) = stage_layers::draw_converted(game, &request)?;
     Ok(Layered { drawn, converted })
@@ -247,6 +253,9 @@ struct Extra {
     posed: Vec<crate::posed::Cell>,
     /// And what they draw past their cells: see [`crate::posed::spills`].
     spills: Vec<(usize, rm2k_render::Picture)>,
+    /// The still pieces painted into the panorama, with the ChipSet's layers
+    /// folded in: see [`crate::pieces`].
+    pieces: Option<Vec<crate::pieces::Piece>>,
 }
 
 /// What drawing the tiles above the hero nobody can cover below costs the
@@ -432,6 +441,126 @@ fn bake_unless_split_moves(
         baked.len()
     )));
     Ok((without, BTreeMap::new()))
+}
+
+/// The still pieces painted into map `request.map`'s panorama —see
+/// [`crate::pieces`]—, the ones the RAM's trim left out of the map among
+/// them; `None` if the map cannot be one picture: a panorama that is not
+/// fixed to it, ChipSet tiles that animate, or rows of cells its
+/// substitutions need (`rows`), which a painting has no room for.
+#[allow(clippy::too_many_arguments)]
+fn painted_pieces(
+    game: &Game,
+    request: &MapRequest,
+    drawer: &mut Drawer,
+    events: &[Event],
+    npcs: &[Npc],
+    baked: &Baked,
+    rows: &[(i32, i32)],
+    starts: &[(i32, i32)],
+    notes: &mut Vec<Note>,
+) -> Result<Option<Vec<crate::pieces::Piece>>> {
+    let id = request.map;
+    let raw = game.map(id)?;
+    let size = (raw.width as usize, raw.height as usize);
+    // Only drawn, to see what the map is made of.
+    let drawn = stage_layers::draw(
+        game,
+        &LayersRequest {
+            map: id,
+            window_colors: request.window_colors,
+            panorama: request.panorama.clone(),
+            ..LayersRequest::default()
+        },
+    )?;
+    let why_not = match &drawn.panorama {
+        None => Some("it shows no panorama of its own"),
+        Some(p) if p.none_first => Some("it shows no panorama of its own"),
+        Some(p) if !crate::map_pictures::fixed_to_map(p, (size.0 * 16, size.1 * 16)) => {
+            Some("its panorama moves against it")
+        }
+        Some(_) if !drawn.layers.variants.is_empty() => Some("ChipSet tiles animate on it"),
+        Some(_) if !rows.is_empty() => Some("its substitutions need cells it does not draw"),
+        Some(_) => None,
+    };
+    if let Some(why) = why_not {
+        notes.push(note(format!(
+            "  map {id}: the still pieces are not painted into it: {why}"
+        )));
+        return Ok(None);
+    }
+    let chipset = game.chipset(raw.chipset_id)?;
+    let flags = passability_table(&chipset.passable_data_lower, &chipset.passable_data_upper);
+    let starts = if request.boots_here { starts } else { &[] };
+    let standing = match &request.reach {
+        Some(reach) => crate::layers::standing(game, &raw, &flags, reach, request, starts)?,
+        None => None,
+    };
+    let commons = game.common_events()?;
+    let common = game.common_commands()?;
+    let named = decor::named(events, &common, &request.test_commands);
+    let wants = crate::pieces::Wants {
+        pages: &request.pages,
+        named: &named,
+        also_walk: &request.also_walk,
+        commons: &commons,
+        standing: standing.as_deref(),
+        size,
+    };
+    let candidates: Vec<Npc> = npcs
+        .iter()
+        .filter(|n| !baked.contains_key(&n.event))
+        .cloned()
+        .collect();
+    let (mut pieces, not) = crate::pieces::select(drawer, events, &candidates, &wants, false)?;
+    let reasons = |not: &BTreeMap<&str, Vec<i32>>| {
+        not.iter()
+            .map(|(why, ids)| format!("{} {why}", ids.len()))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    notes.push(note(format!(
+        "  map {id}: {} still piece(s) painted into it, {} of them with pixels in front of the hero; \
+         {} drawn event(s) stay objects{}{}",
+        pieces.len(),
+        pieces.iter().filter(|p| p.front.iter().any(|&f| f)).count(),
+        npcs.len() - pieces.len(),
+        if not.is_empty() { "" } else { ": " },
+        reasons(&not)
+    )));
+    // And the ones the RAM's trim left out, which only lose their looks:
+    // read from the whole map, with no pages of their own to scan.
+    if let Some(dropped) = game.dropped.get(&id).filter(|d| !d.is_empty()) {
+        let whole = game.map_untrimmed(id)?;
+        let all = crate::events::events(&whole.events, &request.names, request.test_event);
+        let left: Vec<Npc> = collect_npcs(&all, &chipset.chipset_name, &flags)
+            .into_iter()
+            .filter(|n| dropped.contains(&all[n.event].id))
+            .collect();
+        let named_all = decor::named(&all, &common, &request.test_commands);
+        // Their indices are the whole map's: nothing the request says by
+        // index is about them.
+        let nobody = BTreeSet::new();
+        let only_pages = crate::pieces::Wants {
+            pages: &[],
+            named: &named_all,
+            also_walk: &nobody,
+            ..wants
+        };
+        let (more, not_more) = crate::pieces::select(drawer, &all, &left, &only_pages, true)?;
+        if !left.is_empty() {
+            notes.push(note(format!(
+                "  map {id}: {} of the {} drawn event(s) the console's RAM leaves out painted into it{}{}",
+                more.len(),
+                left.len(),
+                if not_more.is_empty() { "" } else { "; not: " },
+                reasons(&not_more)
+            )));
+        }
+        pieces.extend(more);
+        pieces.sort_by_key(|p| (p.layer, p.y, p.x, p.id));
+    }
+    Ok(Some(pieces))
 }
 
 /// The still events that change pose drawn into the background: the ones
@@ -869,6 +998,9 @@ pub struct Whole {
     /// The events that got a row only because a route dresses them, by
     /// RM2k id: see `dressed_by_routes`.
     pub dressed: Vec<i32>,
+    /// The events the RAM's trim left out that are painted into the map, by
+    /// RM2k id: they lose nothing. See [`crate::pieces`].
+    pub painted_trimmed: Vec<i32>,
     /// The graphics drawn with someone else's palette.
     pub lent: BTreeSet<Key>,
     /// The still events drawn into the background's cells, in the order
@@ -1563,11 +1695,44 @@ fn convert_with(
             hero_start(&pass, w, h, &all),
         ];
     }
+    let rows = if panorama.is_some() {
+        unseen
+    } else {
+        beyond.clone()
+    };
+    // The still pieces, into the panorama, if the project asks for them
+    // here and the map can be one picture: see [`crate::pieces`]. They are
+    // the decorations' and more, so those are not asked for.
+    let pieces = if request.painted_events {
+        painted_pieces(
+            game,
+            request,
+            &mut drawer,
+            &events,
+            &npcs0,
+            &baked,
+            &rows,
+            &starts,
+            &mut notes,
+        )?
+    } else {
+        None
+    };
+    let wanted_decor = if pieces.is_some() {
+        Vec::new()
+    } else {
+        wanted_decor
+    };
+    if let Some(pieces) = &pieces {
+        let painted: BTreeSet<usize> = pieces.iter().filter_map(|p| p.event).collect();
+        npcs0.retain(|n| !painted.contains(&n.event));
+    }
     let mut extra = Extra {
         posed: Vec::new(),
         spills: Vec::new(),
+        pieces,
         needed: !beyond.is_empty(),
-        rows: if panorama.is_some() { unseen } else { beyond },
+        rows,
         below: match &request.reach {
             Some(reach) if request.lowers => {
                 crate::layers::below(game, &raw, &flags, reach, request, &starts)?
@@ -1725,7 +1890,19 @@ fn convert_with(
     // no walking or turning of their own for the page scan to count. The
     // cells still count as taken for where the hero starts.
     let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
-    let gone: BTreeSet<usize> = kept_decor.iter().map(|d| d.event).collect();
+    // And the pieces that are nothing but their looks, the same.
+    let gone: BTreeSet<usize> = kept_decor
+        .iter()
+        .map(|d| d.event)
+        .chain(
+            extra
+                .pieces
+                .iter()
+                .flatten()
+                .filter(|p| p.gone)
+                .filter_map(|p| p.event),
+        )
+        .collect();
     npcs0.retain(|n| !gone.contains(&n.event));
     // And the events a route dresses whose pages draw nothing: a hidden row
     // each, with the graphics that draw something —one that dresses an
@@ -2066,6 +2243,13 @@ fn convert_with(
         own_pictures: false,
         substitutions: substituted,
         dressed: dressed_ids,
+        painted_trimmed: extra
+            .pieces
+            .iter()
+            .flatten()
+            .filter(|p| p.event.is_none())
+            .map(|p| p.id)
+            .collect(),
         lent: split.lent.iter().cloned().collect(),
         posed: posed_npcs
             .into_iter()
@@ -3110,6 +3294,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
     };
     let mut answer = json!({
         "decorative": done.decorative,
+        "painted_trimmed": done.painted_trimmed,
         "baked": done.baked.iter().map(|(e, (c, t))| json!([e, c, t])).collect::<Vec<_>>(),
         "notes": done.notes.iter().map(note_json).collect::<Vec<_>>(),
         "npcs": done
