@@ -9,8 +9,8 @@
 
 use crate::codes::*;
 use crate::compile::{
-    Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_SWITCH, COND_VARIABLE, SWITCH_TABLE_MAX,
-    VAR_VARIABLE,
+    sixteen_bits_hold, Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_SWITCH, COND_VARIABLE,
+    SWITCH_TABLE_MAX, VAR_SLOT_MAX, VAR_VARIABLE,
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game, Map};
@@ -250,6 +250,99 @@ pub fn variables(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> BTreeMap<i
         .enumerate()
         .map(|(slot, v)| (v, slot))
         .collect()
+}
+
+/// The variables that have to hold more than sixteen bits, each with a
+/// second slot for its high word: `OP_NUMBER` writes the number whole into
+/// the two, and `OP_IF_WIDE` compares them as one signed 32-bit number.
+///
+/// RPG_RT's variables go to 9,999,999 and the ROM's are sixteen bits, which
+/// is enough for every game but in a few places: Desert Nightmare's safes
+/// ask for 71456 and 136264 after an `InputNumber` (maps 28 and 156). Making
+/// every variable 32 bits would double their RAM and the save and touch
+/// every opcode that reads or writes one, for two of them; so a variable is
+/// wide only when
+///
+/// * a `ConditionalBranch` compares it with a constant sixteen bits do not
+///   hold —see [`sixteen_bits_hold`]—, and
+/// * nothing in the game does anything with it but `InputNumber` and
+///   `ConditionalBranch`es against a constant: no `ControlVars`, no text,
+///   no page condition, no troop page, nothing `extra` names.
+///
+/// One that fails the second stays sixteen bits, and its branch past them
+/// does not compile, as before: the other opcodes would read only its low
+/// word. A Blurred Line's common 45 sets six variables to 999999 and
+/// compares them with others, and they stay so.
+///
+/// The high words' slots go **after every other slot**, so a variable's
+/// slot is the same as without them.
+pub fn wide(
+    game: &Game,
+    maps: &[Map],
+    test_commands: &[Command],
+    extra: &BTreeSet<i32>,
+    slots: &BTreeMap<i32, usize>,
+) -> BTreeMap<i32, usize> {
+    let mut wanted = BTreeSet::new();
+    let mut other: BTreeSet<i32> = extra.clone();
+    let mut look = |commands: &[Command]| {
+        for cmd in commands {
+            let p = &cmd.parameters;
+            let against_constant = cmd.code == COND_BRANCH
+                && p.len() >= 5
+                && p[0] as i64 == COND_VARIABLE
+                && p[2] == 0;
+            if against_constant && !sixteen_bits_hold(p[4] as i64, p[3] as i64) {
+                wanted.insert(p[1]);
+            }
+            if against_constant || (cmd.code == INPUT_NUMBER && p.len() >= 2) {
+                continue;
+            }
+            other.extend(command_variables(std::slice::from_ref(cmd)));
+        }
+    };
+    for map in maps {
+        for event in &map.events {
+            for page in &event.pages {
+                look(&page.commands);
+            }
+        }
+    }
+    for c in game.common_events.values() {
+        look(&c.commands);
+    }
+    look(test_commands);
+    for map in maps {
+        for event in &map.events {
+            for page in &event.pages {
+                if let Some((v, _, _)) = page.condition.variable {
+                    other.insert(v);
+                }
+            }
+        }
+    }
+    // The battle does not know `OP_IF_WIDE`: a variable a troop page names
+    // stays narrow.
+    for pages in game.troops.values() {
+        for page in pages {
+            if page.condition.flags.variable {
+                other.insert(page.condition.variable_id);
+            }
+        }
+    }
+    for commands in troop_page_commands(game) {
+        other.extend(command_variables(&commands));
+    }
+    let mut next = slots.values().map(|s| s + 1).max().unwrap_or(0);
+    let mut out = BTreeMap::new();
+    for v in wanted {
+        if other.contains(&v) || !slots.contains_key(&v) || next > VAR_SLOT_MAX {
+            continue;
+        }
+        out.insert(v, next);
+        next += 1;
+    }
+    out
 }
 
 /// Each (actor, skill) pair the game can look at, with its bit: the ones
@@ -592,6 +685,7 @@ pub fn build(
 ) -> Result<Indices> {
     Ok(Indices {
         variables: variables(game, maps, extra_variables),
+        wide: BTreeMap::new(),
         skills: skills(game, maps, extra_pairs)?,
         hero_names: hero_names(game, maps),
         renames: renames(game, maps),
@@ -627,6 +721,57 @@ mod tests {
         );
         let slots = variables(&game, &[], &BTreeSet::from([100]));
         assert_eq!(slots, BTreeMap::from([(70, 0), (100, 1), (134, 2)]));
+    }
+
+    /// Desert Nightmare's two safes: a number into a variable and a branch
+    /// that asks for more than sixteen bits. The variable is wide, and its
+    /// high word takes the slot after every other; one that something
+    /// else touches —a `ControlVars`, a `\V`, a page condition, `extra`—
+    /// stays narrow, and so does one whose constants all fit.
+    #[test]
+    fn a_variable_is_wide_when_only_a_number_and_branches_touch_it() {
+        let number = |v: i32| Command::new(INPUT_NUMBER, 0, "", vec![5, v]);
+        let asks = |v: i32, value: i32| {
+            Command::new(
+                COND_BRANCH,
+                0,
+                "",
+                vec![COND_VARIABLE as i32, v, 0, value, 0, 1],
+            )
+        };
+        let page = vec![
+            number(207),
+            asks(207, 71456),
+            number(274),
+            asks(274, 136264),
+            // A small constant on a wide one does not make it narrow.
+            Command::new(
+                COND_BRANCH,
+                0,
+                "",
+                vec![COND_VARIABLE as i32, 274, 0, 3, 2, 1],
+            ),
+            number(143),
+            asks(143, 35421),
+            number(5),
+            asks(5, 99999),
+            control_var(5),
+            number(6),
+            asks(6, 99999),
+            Command::new(SHOW_MESSAGE, 0, "\\V[6]", vec![]),
+            number(7),
+            asks(7, 99999),
+            number(8),
+            asks(8, 99999),
+        ];
+        let mut map = on_a_map(vec![switches_page(None, page)]);
+        map.events[0].pages[0].condition.variable = Some((7, 1, 0));
+        let game = Game::default();
+        let maps = [map];
+        let slots = variables(&game, &maps, &BTreeSet::new());
+        assert_eq!(slots.len(), 7);
+        let wide = wide(&game, &maps, &[], &BTreeSet::from([8]), &slots);
+        assert_eq!(wide, BTreeMap::from([(207, 7), (274, 8)]));
     }
 
     fn switches_page(switch_a: Option<i32>, commands: Vec<Command>) -> crate::game::Page {

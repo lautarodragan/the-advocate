@@ -317,6 +317,15 @@ if_var_continues:
 
 .endproc
 
+; `OP_IF_WIDE`: `ConditionalBranch` on a wide variable against a constant.
+; The comparison is `wide_compare`'s, in number_input.s with the rest of the
+; wide variables; the jump is `OP_IF_VAR`'s.
+.proc op_if_wide
+    jsl f:wide_compare          ; C set: it holds; Y on the destination
+    bcc op_if_var::if_var_no
+    jmp op_if_var::if_var_continues
+.endproc
+
 ; `ConditionalBranch` case 5 with two operands: "has at least this many HP"
 ; —sub 3—, "knows this skill" —sub 4—, "has this item equipped" —sub 5— and
 ; "holds this condition" —sub 6—.

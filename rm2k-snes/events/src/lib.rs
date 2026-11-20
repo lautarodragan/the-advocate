@@ -751,6 +751,11 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
             .variables
             .iter()
             .map(|(v, s)| json!([v, s]))
+            // The high words of the wide variables, as the variable's
+            // number negated: the caller counts the slots by this list
+            // —`VARIABLES_N`— and looks a variable up by its number, which
+            // is never negative. See `indices::wide`.
+            .chain(indices.wide.iter().map(|(v, s)| json!([-v, s])))
             .collect::<Vec<_>>()),
     );
     out.insert(
@@ -810,6 +815,13 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
         &extra_pairs,
         &extra_switches,
     )?;
+    indices.wide = indices::wide(
+        game,
+        &every,
+        &request.test_commands,
+        &request.extra_variables,
+        &indices.variables,
+    );
     if let Some(wanted) = request.test_switch {
         let switch = indices::test_switch(game, &every, &extra_switches, wanted)?;
         indices.switch_top = indices.switch_top.max(switch);
