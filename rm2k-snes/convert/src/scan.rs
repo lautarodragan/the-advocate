@@ -135,8 +135,11 @@ pub fn types_a_colour<'a>(
     extra: &[Command],
 ) -> bool {
     use rm2k_snes_text::refit::{control_of, escape_tail, Control};
+    // A comment's lines too: a `ShowWindow`'s text is composed with the
+    // boxes' ink —see rm2k-snes-events' `windows`—, and a comment that is
+    // not one only costs the window an entry.
     let coloured = |c: &Command| {
-        matches!(c.code, SHOW_MESSAGE | SHOW_MESSAGE_2)
+        matches!(c.code, SHOW_MESSAGE | SHOW_MESSAGE_2 | COMMENT_2)
             && escape_tail(std::slice::from_ref(&c.string)).is_ok_and(|t| {
                 t.lines
                     .iter()
@@ -147,6 +150,34 @@ pub fn types_a_colour<'a>(
     extra.iter().any(coloured)
         || common_events.values().flatten().any(coloured)
         || maps.into_iter().any(|m| m.all_commands().any(coloured))
+}
+
+/// How many window ids the `ShowWindow`s of these maps, of the common
+/// events and of `extra` name —RPG Maker 2000 PLUS's, a comment that starts
+/// with `@window`, see rm2k-snes-events' `windows`—: the slots the runtime
+/// keeps, and none assembles `show_window.s`. Over every page, whether it
+/// compiles or not, as the others here; a directive written wrong is the
+/// compiler's to stop on.
+pub fn window_slots<'a>(
+    maps: impl IntoIterator<Item = &'a GameMap>,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    extra: &[Command],
+) -> usize {
+    use rm2k_snes_events::windows::{directive, Directive};
+    let mut ids = BTreeSet::new();
+    let mut note = |c: &Command| {
+        if c.code == COMMENT {
+            if let Ok(Some(Directive::Show(w))) = directive(&c.string, &[]) {
+                ids.insert(w.id);
+            }
+        }
+    };
+    extra.iter().for_each(&mut note);
+    common_events.values().flatten().for_each(&mut note);
+    for m in maps {
+        m.all_commands().for_each(&mut note);
+    }
+    ids.len()
 }
 
 /// The commands of each page that compiles, by its map, with a `CallEvent`

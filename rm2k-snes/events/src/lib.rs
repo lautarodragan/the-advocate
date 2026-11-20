@@ -33,6 +33,7 @@ pub mod pages;
 pub mod registry;
 pub mod route;
 pub mod troops;
+pub mod windows;
 
 pub use fail::{Bad, Result};
 pub use game::Game;

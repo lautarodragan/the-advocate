@@ -259,6 +259,10 @@ pub struct Game {
     /// way Ditto tells them apart—. The one command whose parameters are
     /// laid out by engine is `KeyInputProc`: see its arm in `compile.rs`.
     pub is_2003: bool,
+    /// The game's `ShowWindow`s, each id's slot and tiles: see
+    /// [`crate::windows`]. Built the first time a page asks, over every
+    /// page of the game.
+    pub windows: std::sync::OnceLock<crate::windows::Registry>,
 }
 
 #[derive(Debug, Clone)]
@@ -529,7 +533,31 @@ impl Game {
             two_weapons,
             database_switches,
             is_2003: system.ldb_id == 2003,
+            windows: std::sync::OnceLock::new(),
         })
+    }
+
+    /// The game's windows, measured with `window`'s font: every `@window`
+    /// of its common events and its maps. See [`crate::windows::Registry`].
+    pub fn windows(&self, window: &crate::messages::Window) -> Result<&crate::windows::Registry> {
+        if let Some(r) = self.windows.get() {
+            return Ok(r);
+        }
+        let mut pages: Vec<Vec<Command>> = self
+            .common_events
+            .values()
+            .map(|c| c.commands.clone())
+            .collect();
+        for &id in &self.map_ids {
+            let map = self.map(id)?;
+            for e in map.events {
+                for p in e.pages {
+                    pages.push(p.commands);
+                }
+            }
+        }
+        let r = crate::windows::Registry::new(pages.iter().map(|p| p.as_slice()), window)?;
+        Ok(self.windows.get_or_init(|| r))
     }
 
     /// Every System a `ChangeSystemGraphics` of the game names, once each,

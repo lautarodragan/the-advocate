@@ -891,6 +891,16 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
              TELEPORT_FACING = 1\n\n",
         );
     }
+    // Only in a cartridge with some `ShowWindow`, RPG Maker 2000 PLUS's: one
+    // without gets the same `.inc` as before there was one, and its runtime
+    // only the two opcodes' entries in the dispatch. See show_window.s.
+    if r.window_slots > 0 {
+        out.push_str(&pyf!(
+            "; The game's ShowWindows: a slot per window id. See show_window.s.\n\
+             SHOW_WINDOW_SLOTS = %d\n\n",
+            r.window_slots
+        ));
+    }
     // Only in a test cartridge that asks for it: the probe costs cycles in
     // every vblank, so the ROM that gets played does not carry it. See
     // `vblank_probe` in vblank.s.
