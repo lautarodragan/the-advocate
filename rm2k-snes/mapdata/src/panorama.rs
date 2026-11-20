@@ -406,11 +406,31 @@ fn tile_streams(maps: &[Map]) -> Result<HashMap<Vec<u8>, Vec<u8>>> {
 }
 
 /// A painted map's record.
-pub const PAINT_STRIDE: usize = 16;
+pub const PAINT_STRIDE: usize = 18;
+
+/// The cells a piece of the painted cells holds: 32 KB, the most a `.block`
+/// may be, so that a piece never crosses a bank and a cell's number says
+/// where it is with a shift: its piece is the map's first plus
+/// `number >> 10`.
+pub const PAINT_PIECE_CELLS: usize = 1024;
+
+/// A painted map's 8x8 cell, 32 bytes at 4 bits.
+const CELL_BYTES: usize = 32;
 
 /// The painted maps —see `Way::Painted` in Wally and `painted.s`—: one
-/// record per map, and each one's cells. Not emitted in a cartridge without
-/// any: the runtime assembles none of its code then.
+/// record per map, each one's cells by number, and the cells themselves.
+/// Not emitted in a cartridge without any: the runtime assembles none of
+/// its code then.
+///
+/// **Each distinct cell of a map is in the cartridge once**, in pieces of
+/// `PAINT_PIECE_CELLS`, and the map carries a word per cell: its number.
+/// Most of a painting that a game builds out of tiles repeats —the sand,
+/// the walls—: on 2026-11-20 Desert Nightmare's 93 painted maps had 126,756
+/// cells and 43,935 distinct within their map. **Not across maps**: that
+/// would have saved 2,366 more there, and Sunset Over Imdahl's paintings,
+/// drawn pictures, have 90,746 distinct cells across its 60 maps, more than
+/// a word numbers; each map's are at most 4,800. Flipped cells are not
+/// looked for either: a cell that is another one flipped was 0.6% of them.
 ///
 /// ```text
 ///   +0  word   the map's index in `map_table`; $FFFF ends the table
@@ -419,19 +439,26 @@ pub const PAINT_STRIDE: usize = 16;
 ///   +6  long   each cell's tilemap entry without its tile number —the
 ///              palette and the priority, `(entry >> 8) & $FC`—, a byte
 ///              per cell, column by column
-///   +9  long   where each column's tiles start, three bytes per column:
-///              the column's cells top to bottom, 32 bytes each, never
-///              across a bank
+///   +9  long   where each column's cell numbers start, three bytes per
+///              column: the column's cells top to bottom, a word each,
+///              never across a bank
 ///   +12 word   the VRAM word of slot 0
 ///   +14 word   the tilemap entry of the blank tile
+///   +16 word   its first piece's offset in `paint_pieces`
 /// ```
+///
+/// And `paint_pieces`, four bytes a piece: where it starts, and a spare
+/// byte, so that a number's high byte with its low two bits off, plus the
+/// map's first, is the offset of its piece.
 pub fn paint_table(maps: &[Map]) -> Result<String> {
     let mut out = vec![
         "; The painted maps: see `panorama.rs` in rm2k-snes-mapdata and `painted.s`.".to_string(),
         format!("PAINT_STRIDE = {PAINT_STRIDE}"),
         format!("PAINT_COLUMNS = {}", vram::PAINTED_COLUMNS),
         format!("PAINT_ROWS = {}", vram::PAINTED_ROWS),
+        format!("PAINT_PIECE_CELLS = {PAINT_PIECE_CELLS}"),
     ];
+    let mut pieces_table = Vec::new();
     let mut records = Vec::new();
     for (number, map) in maps.iter().enumerate() {
         let Some(p) = map.panorama.as_ref().filter(|p| p.mode == 4) else {
@@ -446,9 +473,9 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
         })?;
         let rows = p.tilemap.len();
         let cols = p.tilemap.first().map_or(0, Vec::len);
-        let column_bytes = rows * 32;
+        let column_bytes = rows * 2;
         if rows == 0
-            || p.tiles.len() != cols * column_bytes
+            || p.tiles.len() != cols * rows * CELL_BYTES
             || rows * cols > 0x10000
             || column_bytes > 0x8000
         {
@@ -458,9 +485,9 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
                 p.tiles.len()
             )));
         }
-        // The runtime keeps its queue at the end of the grid's bank: the
-        // grid and what lives behind it have to end before. See
-        // `PAINT_Q` in `painted.s`.
+        // The runtime keeps its queue and the cells it gathers at the end
+        // of the grid's bank: the grid and what lives behind it have to end
+        // before. See `PAINT_Q` in `painted.s`.
         let in_wram =
             map.grid().len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
         if in_wram > crate::materials::PAINT_ROOM {
@@ -477,12 +504,39 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
         }
         let attrs_label = format!("paint_attrs_{number}");
         out.push(block(&attrs_label, &attrs));
-        // The tiles in pieces of whole columns that fit in half a bank: the
-        // packing places a `.block` whole, and a column never crosses.
+        // Each cell's number, column by column, a cell not seen before on
+        // the map taking the next one: a stretch of it seen for the first
+        // time is a run of its pieces. A map has at most 65,536 cells, so
+        // a word numbers them.
+        let mut numbers: HashMap<&[u8], u16> = HashMap::new();
+        let mut cells: Vec<&[u8]> = Vec::new();
+        let mut index = Vec::with_capacity(rows * cols * 2);
+        for cell in p.tiles.chunks(CELL_BYTES) {
+            let next = cells.len() as u16;
+            let n = *numbers.entry(cell).or_insert_with(|| {
+                cells.push(cell);
+                next
+            });
+            index.extend_from_slice(&n.to_le_bytes());
+        }
+        let first_piece = pieces_table.len() * 4;
+        for (k, piece) in cells.chunks(PAINT_PIECE_CELLS).enumerate() {
+            let label = format!("paint_tiles_{number}_{k}");
+            out.push(block(&label, &piece.concat()));
+            pieces_table.push(format!("    .byte {}, 0", pointer(&label)));
+        }
+        if pieces_table.len() * 4 > 0x10000 {
+            return Err(Bad::answer(format!(
+                "map {}: the painted maps' pieces pass what a word's offset reaches",
+                map.id
+            )));
+        }
+        // The numbers in pieces of whole columns that fit in half a bank:
+        // the packing places a `.block` whole, and a column never crosses.
         let per_piece = (0x8000 / column_bytes).max(1);
         let mut columns = Vec::with_capacity(cols);
-        for (k, piece) in p.tiles.chunks(per_piece * column_bytes).enumerate() {
-            let label = format!("paint_tiles_{number}_{k}");
+        for (k, piece) in index.chunks(per_piece * column_bytes).enumerate() {
+            let label = format!("paint_cells_{number}_{k}");
             out.push(block(&label, piece));
             for c in 0..piece.len() / column_bytes {
                 columns.push(pointer(&format!("{label} + {}", c * column_bytes)));
@@ -509,8 +563,12 @@ pub fn paint_table(maps: &[Map]) -> Result<String> {
             pieces.tiles[0].base,
             vram::PAINTED_BLANK
         );
+        let _ = writeln!(r, "    .word {first_piece}");
         records.push(r);
     }
+    out.push(format!(".block {}", 4 * pieces_table.len()));
+    out.push("paint_pieces:".into());
+    out.extend(pieces_table);
     out.push(format!(".block {}", PAINT_STRIDE * records.len() + 2));
     out.push("paint_table:".into());
     for r in records {
@@ -653,5 +711,88 @@ mod tests {
         assert_eq!(lcm(512, 640), 2560);
         assert_eq!(lcm(256, 320), 1280);
         assert_eq!(lcm(256, 240), 3840);
+    }
+
+    /// A map painted with `columns`, each a column of cells top to bottom,
+    /// a cell being the byte it is filled with.
+    fn painted(columns: &[&[u8]]) -> Map {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut map = crate::request::read::<crate::request::Maps>(&path)
+            .unwrap()
+            .maps
+            .remove(0);
+        map.layout = vram::LAYOUT_PAINTED.name.to_string();
+        let rows = columns[0].len();
+        let tiles: Vec<u8> = columns
+            .iter()
+            .flat_map(|c| c.iter().flat_map(|&b| [b; 32]))
+            .collect();
+        let tilemap: Vec<Vec<u16>> = (0..rows)
+            .map(|y| {
+                (0..columns.len())
+                    .map(|x| (x * rows + y) as u16 | 0x2400)
+                    .collect()
+            })
+            .collect();
+        let pano = serde_json::json!({
+            "name": "painting", "mode": 4,
+            "size": [columns.len() * 8, rows * 8], "stretch": [columns.len() * 8, rows * 8],
+            "loop": [false, false], "auto": [0, 0],
+            "tiles": crate::hex::encode(&tiles), "tilemap": tilemap, "backdrop": null,
+        });
+        map.panorama = Some(serde_json::from_value(pano).unwrap());
+        map
+    }
+
+    /// The `.byte` and `.word` lines under `label`, up to the next block.
+    fn under(text: &str, label: &str) -> Vec<u8> {
+        let start = text.find(&format!("\n{label}:\n")).expect(label) + label.len() + 3;
+        let end = text[start..]
+            .find(".block")
+            .map_or(text.len(), |e| start + e);
+        crate::asm::numeric_bytes(&text[start..end]).unwrap()
+    }
+
+    /// Each distinct cell of a map goes once, and the map carries each of
+    /// its cells' number column by column, and where its pieces start: what
+    /// `paint_stage` and `paint_source_of` in `painted.s` read back.
+    #[test]
+    fn a_painted_cell_is_in_the_cartridge_once_a_map() {
+        let maps = [
+            painted(&[&[1, 2], &[1, 3], &[2, 2]]),
+            painted(&[&[3, 4], &[1, 1], &[4, 3]]),
+        ];
+        let text = paint_table(&maps).unwrap();
+        let words = |label: &str| -> Vec<u16> {
+            under(&text, label)
+                .chunks(2)
+                .map(|w| u16::from_le_bytes([w[0], w[1]]))
+                .collect()
+        };
+        assert_eq!(words("paint_cells_0_0"), [0, 1, 0, 2, 1, 1]);
+        assert_eq!(words("paint_cells_1_0"), [0, 1, 2, 2, 1, 0]);
+        for (label, fills) in [
+            ("paint_tiles_0_0", [1u8, 2, 3]),
+            ("paint_tiles_1_0", [3, 4, 1]),
+        ] {
+            let cells = under(&text, label);
+            assert_eq!(cells.len(), 3 * 32, "{label}");
+            for (n, fill) in fills.iter().enumerate() {
+                assert_eq!(cells[n * 32..n * 32 + 32], [*fill; 32], "{label}, cell {n}");
+            }
+        }
+        assert!(text.contains(
+            "paint_pieces:\n    .byte <(paint_tiles_0_0), >(paint_tiles_0_0), ^(paint_tiles_0_0), 0\n    \
+             .byte <(paint_tiles_1_0), >(paint_tiles_1_0), ^(paint_tiles_1_0), 0\n"
+        ));
+        // Each record ends in its first piece's offset in `paint_pieces`.
+        let records = text.split("paint_table:").nth(1).unwrap();
+        let firsts: Vec<&str> = records
+            .lines()
+            .filter(|l| l.starts_with("    .word") && !l.contains(','))
+            .collect();
+        assert_eq!(firsts, ["    .word 0", "    .word 4", "    .word $FFFF"]);
+        // The attributes stay a byte a cell: palette 1, from `$2400`.
+        assert_eq!(under(&text, "paint_attrs_0"), [0x24; 6]);
     }
 }
