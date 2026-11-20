@@ -8,13 +8,17 @@
 //! `.include` pastes the files —not of the code's flow—, so it is read here
 //! by going through the text the same way.
 //!
-//! What is not followed: `.if`/`.else` (both branches are read, as if they
-//! were one after the other), and width changes inside a macro's body, which
-//! are skipped where it is defined and not applied where it is expanded. The
+//! An `.if`'s branches each start from the widths before it, as `ca65`
+//! skips the branch it does not assemble, directives and all; after its
+//! `.endif` the widths are the branch the debug file shows code assembled
+//! from, or, if that cannot be told —no branch has code, or the widths
+//! agree—, the last branch's. What is not followed: width changes inside a
+//! macro's body, which are skipped where it is defined and not applied
+//! where it is expanded. The
 //! debug file lets the immediates check how far this can be trusted: see
 //! `Program::width_disagreements`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::dbg::DebugInfo;
@@ -133,6 +137,34 @@ struct Reader<'a> {
     depth: usize,
     /// Each macro's body, by name in lower case.
     macros: HashMap<String, Vec<String>>,
+    /// The lines the debug file shows code or data assembled from, by
+    /// (file id, line number): which branch of an `.if` was taken.
+    assembled: HashSet<(usize, u32)>,
+}
+
+/// An `.if` being read: the widths before it, and each branch's at its end
+/// with whether it was assembled.
+struct Conditional {
+    start: Widths,
+    ends: Vec<(Widths, bool)>,
+    taken: bool,
+}
+
+impl Conditional {
+    /// The widths after its `.endif`, given the last branch's.
+    fn after(mut self, last: Widths) -> Widths {
+        self.ends.push((last, self.taken));
+        // Without an `.else`, not assembling the branch leaves the widths
+        // as they were.
+        if self.ends.len() == 1 {
+            self.ends.push((self.start, false));
+        }
+        let taken: Vec<Widths> = self.ends.iter().filter(|e| e.1).map(|e| e.0).collect();
+        match taken.as_slice() {
+            [one] => *one,
+            _ => last,
+        }
+    }
 }
 
 impl Reader<'_> {
@@ -211,8 +243,14 @@ impl Reader<'_> {
         let mut defining: Option<(String, Vec<String>)> = None;
         let mut body_widths = Widths::default();
         let mut nesting = 0usize;
+        let mut conditionals: Vec<Conditional> = Vec::new();
         for (i, raw) in text.lines().enumerate() {
             self.out.at.insert((id, i as u32 + 1), self.widths);
+            if self.assembled.contains(&(id, i as u32 + 1)) {
+                for c in conditionals.iter_mut() {
+                    c.taken = true;
+                }
+            }
             let code = strip_labels(strip_comment(raw)).trim().to_string();
             let lower = code.to_ascii_lowercase();
             let first = lower.split_whitespace().next().unwrap_or("");
@@ -246,6 +284,28 @@ impl Reader<'_> {
                 self.apply(&code, 1);
                 body_widths = std::mem::replace(&mut self.widths, outside);
                 body.push(code);
+                continue;
+            }
+            if first.starts_with(".if") {
+                conditionals.push(Conditional {
+                    start: self.widths,
+                    ends: Vec::new(),
+                    taken: false,
+                });
+                continue;
+            }
+            if first == ".else" || first == ".elseif" {
+                if let Some(c) = conditionals.last_mut() {
+                    c.ends.push((self.widths, c.taken));
+                    c.taken = false;
+                    self.widths = c.start;
+                }
+                continue;
+            }
+            if first == ".endif" {
+                if let Some(c) = conditionals.pop() {
+                    self.widths = c.after(self.widths);
+                }
                 continue;
             }
             if first == ".include" {
@@ -299,6 +359,12 @@ pub fn declared(info: &DebugInfo, root: &Path) -> Declared {
         },
         depth: 0,
         macros: HashMap::new(),
+        assembled: info
+            .lines
+            .values()
+            .filter(|l| !l.in_macro && !l.spans.is_empty())
+            .map(|l| (l.file, l.line))
+            .collect(),
     };
     for &main in &info.main_files {
         reader.widths = Widths::default();

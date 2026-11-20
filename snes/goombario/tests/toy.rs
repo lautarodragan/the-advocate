@@ -368,6 +368,45 @@ fn widths_inside_a_macro_follow_its_body() {
     assert!(r.is_empty(), "{:?}", r);
 }
 
+/// `ca65` assembles one branch of an `.if` and skips the other whole, its
+/// width directives too: the branch not taken does not change the widths
+/// of the one taken, nor of what follows. The test game's `tl_glyph_hi`,
+/// without the debug screen, read the taken `.else` under the skipped
+/// branch's `.a8` (2026-11-20).
+#[test]
+fn widths_follow_the_branch_of_an_if_that_is_assembled() {
+    let Some(r) = lint(
+        "if-else",
+        r#"
+SKIPPED = 0
+TAKEN = 1
+.proc main
+    rep #$20
+.a16
+.if ::SKIPPED
+    sep #$20
+.a8
+.else
+    lda #$1234
+    and #$0007
+.endif
+    sta $10
+.if ::TAKEN
+    sep #$20
+.a8
+.else
+    nop
+.endif
+    lda #1
+    stp
+.endproc
+"#,
+    ) else {
+        return;
+    };
+    assert!(r.is_empty(), "{:?}", r);
+}
+
 /// Two pulls and a branch on each: `one`'s on the line, `two`'s with the
 /// annotation above it. `ANNOTATION_ONE` and `ANNOTATION_TWO` are replaced
 /// by each test.
