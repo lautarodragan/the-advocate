@@ -10,61 +10,155 @@
 ; front, the hero's cell and then the one in front, all three. What is not
 ; here yet is the loop of up to three counters.
 
-; Is there an event at (cell_x, cell_y)? Returns its index in A, or $FF. A
-; twin's cell answers with the event whose row it shares: see
-; `twin_in_cell`.
-.proc event_in_cell
+; Every event on (cell_x, cell_y) whose active page has `trigger_sought`,
+; seen from the side `own_action` says, gets queued: `queue_by_action`
+; decides each one. Returns A nonzero, with Z, if any was.
+;
+; **Every one, not the first**: it is `Game_Player::CheckEventTriggerThere`
+; and `CheckEventTriggerHere`, which walk the whole list of the map's events
+; and schedule each one standing on the cell whose page matches. Until
+; 2026-11-20 this returned the first row on the cell and asked only that
+; one, and Desert Nightmare stopped on day 1 twice: on map 12 the box, pushed
+; onto the ladder to map 13 and left on an empty action page below, hid the
+; ladder's touch page; on map 2 the dog, invisible on the middle of the
+; gate, hid the teleport's twin under it. See `test_two_events_on_a_cell.py`
+; in the test game and tasks/a-second-event-on-a-cell-is-never-asked.md.
+;
+; Marking several is safe for the same reason as in `try_action`: one bit per
+; event, run by event number. The rows go **back to front**, so the
+; lowest-numbered one is marked last and its turn toward the hero is the one
+; that survives —RM2k turns each, here there is one turn at a time—; and it
+; is also the cheaper way: see below. The twins come after the rows.
+;
+; **What it costs.** It runs on every bump —each frame the pad holds the hero
+; against something—, on every step that ends and three times for the
+; button. The walk is one compare per row, against `cell_x` held in A, in
+; sixteen bits and back to front: under half of what the old walk paid per
+; row. So the whole walk costs less than the old one did to find nothing,
+; which is what a step onto an empty cell and a bump against a wall always
+; paid, and those are most calls; what costs more than before is a bump into
+; an event early in the table, which the old walk found at once. Measured in
+; the task.
+.proc action_in_cell
 .a8
 .i16
-    ldy #$0000
-    ldx #$0000
-seek:
-    cpx ev_total
-    beq none
+    lda #0
+    sta f:cell_queued
     rep #$20
 .a16
-    lda ev_pos_buf, y
-    cmp cell_x
-    bne next
-    lda ev_pos_buf + 2, y
-    cmp cell_y
-    bne next
-    sep #$20
-.a8
-    txa                         ; the index fits in a byte: EV_MAX is 128
-    rts
+    lda ev_total
+    asl a
+    asl a                       ; times EV_STRIDE
+.assert EV_STRIDE = 4, error, "the arithmetic above multiplies by four by hand"
+    tay
+    lda cell_x                  ; held in A for the whole walk: one compare a row
+    bra next
+other:
+    cmp ev_pos_buf, y
+    beq same_x
 next:
-.a16                            ; reached in sixteen bits, from the `bne` above
+    dey
+    dey
+    dey
+    dey                         ; EV_STRIDE
+    bpl other
+    ; And the twins on the cell: a map whose events fit has none, and its
+    ; count is one word.
+    jsr twin_table
+    beq done
+    tax
+    iny
+    iny
+look:
+    lda [npc_ptr], y            ; +0 x
+    cmp cell_x
+    bne twin_next
+    iny
+    iny
+    lda [npc_ptr], y            ; +2 y
+    dey
+    dey
+    cmp cell_y
+    bne twin_next
+    phy
+    phx
+    iny
+    iny
+    iny
+    iny
+    lda [npc_ptr], y            ; +4 the event whose row it shares
+    jsr queue_one
+    jsr twin_table              ; `npc_ptr` again: the page it queued may
+    plx                         ; have borrowed it
+    ply
+twin_next:
     tya
     clc
-    adc #EV_STRIDE
+    adc #TWIN_STRIDE
     tay
+    dex
+    bne look
+done:
     sep #$20
 .a8
-    inx
-    bra seek
-none:
-    ; falls through: no row is on that cell, but a twin may be
+    lda f:cell_queued
+    rts
+.a16
+same_x:
+    lda ev_pos_buf + 2, y
+    cmp cell_y
+    bne not_here
+    phy
+    tya
+    lsr a
+    lsr a                       ; the index: EV_MAX is 128
+    jsr queue_one
+    ply
+not_here:
+    lda cell_x                  ; back in A for the walk
+    bra next
 .endproc
 
-; The twin on (cell_x, cell_y), if there is one: the index of the event
-; whose row it shares in A, or $FF.
+.pushseg
+.segment "FARBSS"
+; Whether `action_in_cell` queued any of the events on its cell.
+cell_queued: .res 1
+.popseg
+
+; `queue_by_action` for the event in A, noted in `cell_queued`. Enters and
+; leaves in sixteen bits. Clobbers X and Y.
+.proc queue_one
+.a16
+.i16
+    sta ev_sought
+    sep #$20
+.a8
+    jsr queue_by_action
+    ora f:cell_queued
+    sta f:cell_queued
+    rep #$20
+.a16
+    rts
+.endproc
+
+; `npc_ptr` at the map's positions and Y past its rows, at the word with how
+; many twins it has, which it leaves in A with Z. In and out in sixteen bits;
+; clobbers X.
 ;
 ; A twin is an event the converter left without a row because its map has
 ; more than `EV_MAX` and its pages are the same as another's: invisible and
 ; still, so the only things it does are fire those pages from its own cell
 ; and, on the hero's layer, stop him —see `hero_blocked_rest`—. Its cell lives in ROM, behind the map's
 ; positions —a word with how many, then TWIN_STRIDE bytes each: x, y and
-; the event—; see `ev_pos_bytes` in `rm2k-snes-mapdata`. It is looked at
-; only after the rows, and a map whose events fit has none: its word is 0.
+; the event whose row it shares—; see `ev_pos_bytes` in `rm2k-snes-mapdata`.
+; It is looked at only after the rows, and a map whose events fit has none:
+; its word is 0.
 ;
 ; `npc_ptr` is borrowed: it only lives while the load copies a table.
-.proc twin_in_cell
-.a8
+.proc twin_table
+.a16
 .i16
     ldx map_ofs
-    rep #$20
-.a16
     lda f:map_table + M_PTR_EV_POS, x
     sta npc_ptr
     sep #$20
@@ -79,6 +173,18 @@ none:
 .assert EV_STRIDE = 4, error, "the arithmetic above multiplies by four by hand"
     tay
     lda [npc_ptr], y            ; how many twins
+    rts
+.endproc
+
+; The first twin on (cell_x, cell_y), if there is one: the index of the event
+; whose row it shares in A, or $FF. For the step into it, which only asks
+; whether it blocks: see `twin_at_dest`.
+.proc twin_in_cell
+.a8
+.i16
+    rep #$20
+.a16
+    jsr twin_table
     beq none
     tax
     iny
@@ -255,26 +361,6 @@ no_layer:
     jsr turn_fire               ; and it turns toward the hero, if it turns
     lda #1
     rts
-no:
-    lda #0
-    rts
-.endproc
-
-; The cell given in (cell_x, cell_y): if there is an event and its active
-; page is fired by the button, it gets queued. Returns A nonzero if it queued.
-.proc action_in_cell
-.a8
-.i16
-    jsr event_in_cell
-    cmp #$FF
-    beq no
-    rep #$20
-.a16
-    and #$00FF
-    sta ev_sought
-    sep #$20
-.a8
-    jmp queue_by_action
 no:
     lda #0
     rts

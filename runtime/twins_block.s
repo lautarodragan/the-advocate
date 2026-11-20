@@ -3,7 +3,7 @@
 ; --- the twins on the hero's layer -------------------------------------------
 ;
 ; The rest of `hero_blocked`: whether the twin on (dest_x, dest_y) stops the
-; hero. A twin —see `twin_in_cell`— is an event the converter left without a
+; hero. A twin —see `twin_table`— is an event the converter left without a
 ; row; until 2026-10-17 none was on the hero's layer, and no step asked
 ; about them. Then Zounds' grids of invisible signs became twins: a sign
 ; stops the hero if the active page of the event whose row it shares is on

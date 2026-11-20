@@ -112,12 +112,20 @@ const ITEM_COUNT_EQUIPPED: i64 = 1;
 // from memory, which is the house rule.
 //
 // Of the 829 times the game uses it, **827 ask for x or y** and the other two
-// for the screen x and y; nobody asks for the map id, the facing or the event
-// id. So the ROM does 1, 2, 4 and 5, and the rest does not compile:
+// for the screen x and y. So the ROM does 0, 1, 2, 4 and 5, and the rest does
+// not compile:
 //
-// * **0** in RM2k returns 0 for an event —an RPG_RT defect easyrpg copies—, so
-//   doing it would be copying a defect nobody uses;
-// * **3** returns 8, 6, 2 or 4 —the numeric keypad— and not 0..3.
+// * **3** returns 8, 6, 2 or 4 —the numeric keypad— and not 0..3, and none of
+//   the nine games asks for it (2026-11-20);
+// * **6** is the Maniac patch's, not RM2k's: RPG_RT 2000 answers 0.
+//
+// **0**, the map id, is the RM2k id and not the cartridge's index, as
+// `MemorizeLocation` writes it: the ROM reads it from `map_rm2k`. RPG_RT
+// answers it only for the hero: **for an event it is always 0** —an RPG_RT
+// defect easyrpg copies for 2000—, so an event's compiles to that constant.
+// It was left out until 2026-11-20, when Desert Nightmare's item use
+// —common event 20, every puzzle of the game— turned out to ask for the
+// hero's.
 //
 // **4** and **5** are pixels of **RM2k's** 320x240 screen and not of the
 // console's: the ROM works out where RM2k's display would be, the same one
@@ -139,6 +147,7 @@ const ACTOR_STAT_ACCESSORY: i64 = 14;
 const VAR_OTHER: i64 = 7;
 const OTHER_GOLD: i64 = 0;
 const OTHER_TIMER: i64 = 1;
+const CHARACTER_MAP: i64 = 0;
 const CHARACTER_X: i64 = 1;
 const CHARACTER_Y: i64 = 2;
 const CHARACTER_SCREEN_X: i64 = 4;
@@ -6159,9 +6168,27 @@ pub fn compile_command(
                 // coordinate.
                 if !matches!(
                     b,
-                    CHARACTER_X | CHARACTER_Y | CHARACTER_SCREEN_X | CHARACTER_SCREEN_Y
+                    CHARACTER_MAP
+                        | CHARACTER_X
+                        | CHARACTER_Y
+                        | CHARACTER_SCREEN_X
+                        | CHARACTER_SCREEN_Y
                 ) {
                     return cannot();
+                }
+                if b == CHARACTER_MAP && a != ROUTE_HERO {
+                    // An event's map is RPG_RT 2000's 0, whichever event:
+                    // see VAR_CHARACTER. The ROM is spared the class.
+                    return Ok(vec![
+                        OP_VAR,
+                        slot,
+                        byte(operation | refresh)?,
+                        VAR_CONSTANT as u8,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ]);
                 }
                 // Not checked as a byte: it goes as a word.
                 a = if a == ROUTE_HERO {
@@ -11163,13 +11190,36 @@ mod tests {
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 5], "")),
             Some(vec![OP_VAR, 5, 0x80, 6, 0, 0, 5, 0, OP_DONE])
         );
-        // The facing and the map id still do not compile.
+        // The facing still does not compile.
         assert_eq!(
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 3], "")),
             None
         );
+    }
+
+    #[test]
+    fn the_heros_map_is_class_six_and_an_events_is_zero() {
+        // Desert Nightmare's common event 20, the use of any item, starts
+        // with `[0, 19, 19, 0, 6, 10001, 0]`: the hero's map id, which the
+        // ROM reads from `map_rm2k`. An event's, this one's or any other,
+        // is RPG_RT 2000's 0, a constant: see VAR_CHARACTER.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
         assert_eq!(
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 6, 0, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10005, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 0, 0, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 6, 3, 0], "")),
+            Some(vec![OP_VAR, 5, 0x81, 0, 0, 0, 0, 0, OP_DONE])
+        );
+        // The Maniac patch's event id is not RM2k's.
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 6], "")),
             None
         );
     }
