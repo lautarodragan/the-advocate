@@ -504,6 +504,12 @@ bytecode! {
 
     /// Window `slot` down, and the layer above back where it was.
     OP_WINDOW_ERASE = 0x5A (slot: byte);
+
+    /// The windows of the slots under `slots` are covered by a big picture
+    /// —up, but not drawn— until the next `OP_WINDOW_COVER`; 0 uncovers
+    /// them. After a big picture's show or erase: see `window_cover` in the
+    /// events compiler.
+    OP_WINDOW_COVER = 0x5B (slots: byte);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and
