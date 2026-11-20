@@ -134,6 +134,9 @@ no_jump_pending:
 .endif
     jsr message_tick            ; and a few characters of the message being
                                 ; composed, if there is one
+.ifdef SHOW_WINDOW_SLOTS
+    jsl f:sw_tick               ; or of a window's: see show_window.s
+.endif
     jsr build_oam               ; and the next one is built, now outside vblank
     bra counted
 frozen:
@@ -156,8 +159,9 @@ counted:
     jsr anim_tick               ; which ChipSet drawing is due on the next
                                 ; iteration, so the vblank only has to upload it
     jsr count_lost
-.if ::DEBUG_PHASING
-    jmp loop                    ; `phasing_keys`'s `jsl` put it out of a `bra`'s reach
+.if ::DEBUG_PHASING || .defined(SHOW_WINDOW_SLOTS)
+    jmp loop                    ; `phasing_keys`'s `jsl`, or `sw_tick`'s, put it
+                                ; out of a `bra`'s reach
 .else
     bra loop
 .endif

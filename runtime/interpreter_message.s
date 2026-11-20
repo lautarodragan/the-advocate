@@ -176,9 +176,22 @@ open:
     jmp run_code::other
 .endproc
 
-; `OP_WINDOW` and `OP_WINDOW_ERASE`, RPG Maker 2000 PLUS's `ShowWindow`: a
-; game without one never gets them from the compiler, and they end the page
-; like a number that is not an opcode: it pays only for their entries in the
-; dispatch.
+; `OP_WINDOW` and `OP_WINDOW_ERASE`, RPG Maker 2000 PLUS's `ShowWindow`:
+; only the entries are here; the bodies are `sw_show` and `sw_erase`, in
+; show_window.s, which read the operands with Y in hand. A game without one
+; never gets them from the compiler, and they end the page like a number
+; that is not an opcode: it pays only for their entries in the dispatch.
+.ifdef SHOW_WINDOW_SLOTS
+.proc op_window
+    jsl f:sw_show
+    jmp run_code::other
+.endproc
+
+.proc op_window_erase
+    jsl f:sw_erase
+    jmp run_code::other
+.endproc
+.else
 op_window = page_ends
 op_window_erase = page_ends
+.endif

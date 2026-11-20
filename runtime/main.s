@@ -264,4 +264,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "menu_states.s"
 .include "sandstorm.s"
 .include "phasing.s"
+.include "show_window.s"
 .include "header.s"

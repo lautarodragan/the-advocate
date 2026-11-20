@@ -6666,8 +6666,25 @@ fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8
             None => Ok(vec![]),
         },
         Directive::Show(w) => {
-            let slot = registry.slot(w.id).expect("the registry has every window of the game");
-            let (first, cells) = registry.windows[&w.id].clone();
+            // A test page's window is not in the game's registry, which is
+            // the game's pages': it borrows a window of the game, and its
+            // lines fit that window's.
+            let (Some(slot), Some((first, cells))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
+            else {
+                return Err(Stop::Fatal(Bad::answer(format!(
+                    "`@window {}`: no window of the game has that id, and a test page's \
+                     window borrows one of the game's",
+                    w.id
+                ))));
+            };
+            if w.lines.len() > cells.len()
+                || w.lines.iter().zip(&cells).any(|(l, &c)| crate::windows::line_cells(l, &window) > c)
+            {
+                return Err(Stop::Fatal(Bad::answer(format!(
+                    "`@window {}`: its text is wider or longer than the game's window {} has room for",
+                    w.id, w.id
+                ))));
+            }
             let lines = with_variables(&with_names(&w.lines, ctx.indices), ctx.indices)?;
             let messages = ctx.messages.as_deref_mut().expect("asked above");
             let mut out = vec![
