@@ -231,10 +231,15 @@ fn everything_a_cartridge_carries() {
     // top and the party below the whole width, so its windows' tiles and
     // maps moved, the medicines' names went in one line, `name`, and the
     // menu's row block is six cells; looked at in the actor choice's render
-    // below, `target-item`.
+    // below, `target-item`. **Until 2026-11-20**, efd05000…b22a: the font
+    // went once, colour-free, as `font`, and each writer's colours as its
+    // `font_ink`, instead of three coloured `prerender`s —the window's, the
+    // bank's and `text_inks`'—; and the text screens' inks' shadow went from
+    // entry 13 to 15, which moves their palettes and the custom menus' and
+    // not a pixel: ABL's suite and goldens, unmoved, look at it.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "efd05000d343eb771b8ffa22b8b7454132357653c374fcc0892fae8e9ed3b22a"
+        "2538839d448361932d99837bc434995a4862d6fd47bc350a26c622bdbea85dd5"
     );
     assert_eq!(
         answer["says"],

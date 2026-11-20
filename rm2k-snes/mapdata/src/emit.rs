@@ -915,7 +915,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     out.push_str(&per_map.maps);
 
     let mut notes = per_map.notes.clone();
-    window_section(&mut out, r, &windows, &t)?;
+    window_section(&mut out, r, &windows, &t, screens)?;
     picture_section(&mut out, r, &mut notes)?;
     big_pictures_section(&mut out, r)?;
     animations_section(&mut out, r)?;
@@ -952,7 +952,52 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     })
 }
 
-fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -> Result<()> {
+/// The cartridge's one font, colour-free, a table per phase, and the
+/// colours each of its three writers puts in it —the message window, the
+/// text screens and the slot bank—, as constants: the runtime's
+/// `font_ink.inc` composes a letter with them as immediates. And where the
+/// boxes' letters start in it. Until 2026-11-20 each writer had its own
+/// table, already coloured: `font_pre`, `scr_pre` and `slot_pre`.
+fn font_section(out: &mut String, window: &Value, screens: &Value) -> Result<()> {
+    let font = at(screens, "font")?;
+    for (phase, data) in list_at(font, "prerender")?.iter().enumerate() {
+        line(
+            out,
+            &block(&format!("font_pre{phase}"), &crate::json::bytes(data)?),
+        );
+    }
+    out.push_str(&format!(
+        "; The console's glyphs, and where a box's letter k is: glyph\n\
+         ; FONT_LETTERS_AT + k of the font, past the screens' own.\n\
+         FONT_CONSOLE_GLYPHS = {}\n\
+         FONT_LETTERS_AT = {}\n",
+        rm2k_snes_text::font::CONSOLE_GLYPHS,
+        int_at(font, "letters_at")?
+    ));
+    for (prefix, ink) in [
+        ("MSG", at(window, "font_ink")?),
+        ("SCR", at(at(screens, "text_inks")?, "font_ink")?),
+        ("SLOT", at(at(screens, "slots")?, "font_ink")?),
+    ] {
+        for (k, c) in ints_at(ink, "rows")?.iter().enumerate() {
+            out.push_str(&format!("{prefix}_INK_{k} = {c}\n"));
+        }
+        out.push_str(&format!(
+            "{prefix}_INK_SHADOW = {}\n",
+            int_at(ink, "shadow")?
+        ));
+    }
+    out.push('\n');
+    Ok(())
+}
+
+fn window_section(
+    out: &mut String,
+    r: &Emit,
+    windows: &[Value],
+    t: &Geometry,
+    screens: &Value,
+) -> Result<()> {
     // The window is a single one for the whole cartridge, in palette 0. That
     // the background does not step on it comes from the split —it starts at
     // `reserved`— but it is checked anyway: no single map's comparison
@@ -1009,12 +1054,7 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
     line(out, &block("msg_font_advance", &small("advances")?));
     line(out, &block("msg_font_reach", &small("reach")?));
 
-    for (phase, data) in list_at(window, "prerender")?.iter().enumerate() {
-        line(
-            out,
-            &block(&format!("font_pre{phase}"), &crate::json::bytes(data)?),
-        );
-    }
+    font_section(out, window, screens)?;
     line(out, &block("messages", &r.messages));
     // How big it is and how big it can be, for `rm2k-snes-space`: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
@@ -2287,14 +2327,6 @@ impl Rest<'_> {
             out,
             &block("slot_tiles", &packed(&tiles(at(slots, "tiles")?)?, 4)),
         );
-        // The font precomposed for the bank's text palette, a table per
-        // phase: the names are composed with it —`tl_strip`—.
-        for (phase, data) in list_at(slots, "prerender")?.iter().enumerate() {
-            line(
-                out,
-                &block(&format!("slot_pre{phase}"), &crate::json::bytes(data)?),
-            );
-        }
         // Each cell block with its own label, named by a pointer table. The
         // bank of the slots and the menu goes with the priority bit set: the
         // actor choice turns on BG1, which at priority 0 would cover BG2.
@@ -2347,16 +2379,10 @@ impl Rest<'_> {
         slot_blocks.push("menu_row".into());
 
         // The text screens' inks: a palette per colour, all with the same
-        // layout, and the font precomposed for it, a table per phase —see
-        // `text_layer.s`—. Until 2026-10-03 this was a font bank, each
-        // letter in two cells.
+        // layout —the font's colours for it are `SCR_INK_*`, with the
+        // window's—. Until 2026-10-03 this was a font bank, each letter in
+        // two cells.
         let inks = at(screens, "text_inks")?;
-        for (phase, data) in list_at(inks, "prerender")?.iter().enumerate() {
-            line(
-                out,
-                &block(&format!("scr_pre{phase}"), &crate::json::bytes(data)?),
-            );
-        }
         // How far each of the screens' glyphs moves the line and paints:
         // the console's, `TL_FIGURE`'s place and the icons' halves. A
         // request from before 2026-11-02 carries none, and its screens draw

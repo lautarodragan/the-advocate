@@ -41,7 +41,7 @@
 ;   bytecode cursor—, the caller saves it with `phy`, since it is the only one
 ;   that knows it is needed.
 ;
-; **Where new code goes.** There are four code banks, each 32 KB, and
+; **Where new code goes.** There are five code banks, each 32 KB, and
 ; `just space` says how much each has left:
 ;
 ; * `CODE`, bank 0, run from its fast mirror at `$80`: what runs every frame,
@@ -61,8 +61,14 @@
 ;   `jsl` without `+ FAST`. It opened on 2026-10-15, when the shop's party
 ;   and the actors' renames overflowed bank 1 in ABL's MSU test cartridge
 ;   and `FAR2` had a few hundred bytes left in Sunset over Imdahl, which
-;   fills it with its painted maps. **New cold code goes here first**: it is
-;   nearly empty, and the other two are close to full in some cartridge.
+;   fills it with its painted maps.
+; * `FAR4`, the low half of `$FF` —`FAR4` in banks.rs—: the same again. It
+;   opened on 2026-11-20 for the font's composers —`compose_char_far`,
+;   `tl_paint_scr`, `tl_paint_slot`: unrolled, a routine per writer, see
+;   font_ink.s—, when bank 1 had 117 bytes left in Vampires Dawn, `FAR2` 70
+;   in Desert Nightmare and `FAR3` 90 in Zounds. **New cold code goes here
+;   first**: it is nearly empty, and the others are close to full in some
+;   cartridge.
 ;
 ; **A subsystem goes whole in one bank**: inside, its routines call each
 ; other with `jsr`, which does not change the program bank. Across banks it
@@ -81,8 +87,8 @@
 ; reads the `.dbg` and flags every absolute `jsr`/`jmp`, jump table and
 ; absolute data access that lands somewhere other than the symbol it names.
 ; It assumes the data bank per file —its `BANCO_DE_DATOS`—, so code that
-; runs with another one is listed there. A `jsl` to `FAR2` or `FAR3` with
-; `+ FAST` does not need it: `ld65` refuses it with a range error.
+; runs with another one is listed there. A `jsl` to `FAR2`, `FAR3` or `FAR4`
+; with `+ FAST` does not need it: `ld65` refuses it with a range error.
 ;
 ; What stays written here is what is not a subsystem: where the generated
 ; `.inc` files come in —the two bytecodes and the cartridge's data—. A new
@@ -126,6 +132,9 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 ; piece of the window uses, so it goes before all of them. With a single
 ; System it assembles nothing.
 .include "window_system.s"
+; And the font's colour, whose macros the composers use: it assembles
+; nothing either.
+.include "font_ink.s"
 
 .include "zero_page.s"
 .include "boot.s"
