@@ -1889,7 +1889,7 @@ blank:
     lda f:DBG_CADDR
     tax
     ldy #(FONT_PRE_CHAR / 2)
-    lda #$FFFF
+    lda #0                      ; a cell that inks nothing: see font_ink.s
 nothing:
     sta f:DBG_BANK, x
     inx

@@ -1377,10 +1377,7 @@ pub fn build(game: &Game, skin: &Skin, menus: Vec<Menu>, ctx: &Context) -> Resul
     let mut inks = Vec::new();
     for color in w.inks.extra() {
         let (rows, shadow) = ink_colors(skin, color)?;
-        let mut palette = vec![BLACK];
-        palette.extend(rows);
-        palette.push(shadow);
-        palette.resize(16, BLACK);
+        let palette = crate::items::ink_palette(&rows, shadow);
         debug_assert_eq!(palette[INK_ROW_FIRST as usize], palette[1]);
         inks.push(palette);
     }

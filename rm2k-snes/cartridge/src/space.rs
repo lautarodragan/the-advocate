@@ -18,6 +18,8 @@
 //!   minus what `FAR2` takes. It has no `.align` to close it, nor needs one:
 //!   nothing comes after it in its area.
 //! * **Bank `$C1`**: the fourth, [`banks::FAR3`], the same way.
+//! * **Bank `$FF`**: the fifth, [`banks::FAR4`], the same way, in its own
+//!   area, [`banks::FAR4_AREA`].
 //! * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take; and
 //!   the same for **far RAM**, the `FARRAM` area minus `FARBSS` and
 //!   `SWITCHES`, the two segments it holds: see [`banks::FAR_POOL_START`].
@@ -49,6 +51,7 @@ pub struct Measure {
     pub bank1: i64,
     pub bank_far2: i64,
     pub bank_far3: i64,
+    pub bank_far4: i64,
     pub bss: i64,
     pub zeropage: i64,
     pub far: i64,
@@ -178,6 +181,7 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         bank1: far_padding(&dbg_text, &runtime.join("header.s"))?,
         bank_far2: area(&segment_of(banks::FAR2.bank))? - used_of("FAR2"),
         bank_far3: area(&segment_of(banks::FAR3.bank))? - used_of("FAR3"),
+        bank_far4: area(banks::FAR4_AREA)? - used_of("FAR4"),
         bss: area("RAM")? - used_of("BSS"),
         zeropage: area("ZP")? - used_of("ZEROPAGE"),
         far: area("FARRAM")? - used_of("FARBSS") - used_of("SWITCHES"),
@@ -219,6 +223,7 @@ pub fn show(title: &str, m: &Measure) -> String {
     out += &format!("  bank 1           {}\n", b(m.bank1));
     out += &format!("  bank $C0         {}\n", b(m.bank_far2));
     out += &format!("  bank $C1         {}\n", b(m.bank_far3));
+    out += &format!("  bank $FF         {}\n", b(m.bank_far4));
     out += &format!("  BSS              {}\n", b(m.bss));
     out += &format!("  ZEROPAGE         {}\n", b(m.zeropage));
     out += &format!("  far RAM          {}\n", b(m.far));
@@ -258,6 +263,8 @@ mod tests {
         assert_eq!(areas["BANKC2"], 0x10000);
         assert_eq!(areas["BANKC0"], 0x8000, "the third code bank");
         assert_eq!(areas["BANKC1"], 0x8000, "the fourth code bank");
+        assert_eq!(areas[banks::FAR4_AREA], 0x8000, "the fifth code bank");
+        assert_eq!(areas["BANKFF"], 0x8000, "the fifth code bank's data half");
         assert_eq!(areas["BANK70"], 0x8000);
         assert!(!areas.contains_key("BANK7E"));
     }

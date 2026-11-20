@@ -32,9 +32,8 @@ use crate::borders::Screen;
 use crate::cells::{self, Color, Counts, BLACK, CELL, COLS, ROWS, WIDTH};
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
-use crate::items::ink_prerender;
 use crate::layout::{Rect, SCR_TEXT_X};
-use crate::message_window::{font_bytes_with, font_reach_with};
+use crate::message_window::{font_bytes_with, font_prerender, font_reach_with};
 use rm2k_snes_text::font::{self, Font};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, HashMap};
@@ -141,7 +140,8 @@ pub struct Glyphs {
     pub letters: Vec<char>,
     pub advances: Vec<u8>,
     pub reach: Vec<u8>,
-    /// A table per phase: see `font_prerender`.
+    /// A table per phase: see `font_prerender`. Painted with the screens'
+    /// ink, `items::screens_ink`.
     pub prerender: Vec<Vec<u8>>,
 }
 
@@ -167,7 +167,7 @@ impl Glyphs {
         Ok(Glyphs {
             advances,
             reach: font_reach_with(font, &all),
-            prerender: ink_prerender(&font_bytes_with(font, &all)?),
+            prerender: font_prerender(&font_bytes_with(font, &all)?),
             letters,
         })
     }

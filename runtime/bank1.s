@@ -175,9 +175,10 @@ diag_vert:
 diag_horiz:
     .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
 
-; Where the composed glyphs of each phase start, indexed by twice the phase
-; —0 to 14—: that is why the banks go with a padding byte between them. See
-; `compose_char`. They are read **once per glyph**, not per row. Eight phases
+; Where the font's glyphs of each phase start, indexed by twice the phase
+; —0 to 14—: that is why the banks go with a padding byte between them. One
+; table for every writer since 2026-11-20 —see font_ink.s—: `compose_char`,
+; `gold_glyph`, `tl_glyph_paint` and the wide stage's without its own font. They are read **once per glyph**, not per row. Eight phases
 ; since the font has variable width: a letter starts at any column of a cell.
 font_pre_lo:
     .word .loword(font_pre0), .loword(font_pre1)

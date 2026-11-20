@@ -700,8 +700,10 @@ conditioned:
 
 ; The skills screen's condition colour, `menu_state_of`'s ink for the actor
 ; in A8, into BG2's palette `SK_STATE_PALETTE`: the System colour's twelve
-; rows and its shadow, the text screens' layout. With the screen off and the
-; data bank at 0, from `sk_upload`. Clobbers A, X and Y.
+; rows and its shadow, the text screens' layout —the rows from entry 1, the
+; shadow at `SCR_INK_SHADOW`, 15 since 2026-11-20: see `ink_palette` in
+; `rm2k-snes-screens`—. With the screen off and the data bank at 0, from
+; `sk_upload`. Clobbers A, X and Y.
 .proc menu_state_ink
 .a8
 .i16
@@ -728,12 +730,18 @@ conditioned:
 .a8
     lda #(SK_STATE_PALETTE * 16 + 1)
     sta CGADD
-    ldy #(2 * STATE_INK_BYTES)
+    ldy #(2 * (STATE_INK_BYTES - 1))
 word:
     lda f:state_ink_cgram, x
     sta CGDATA
     inx
     dey
     bne word
+    lda #(SK_STATE_PALETTE * 16 + SCR_INK_SHADOW)
+    sta CGADD
+    lda f:state_ink_cgram, x
+    sta CGDATA
+    lda f:state_ink_cgram + 1, x
+    sta CGDATA
     rtl
 .endproc

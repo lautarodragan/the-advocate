@@ -7,10 +7,13 @@
 //! colours, which the cartridge wrote two tilemap words per letter. The text
 //! is composed now —see `text_layer.s` in the runtime—, from tables like the
 //! message window's: each glyph already shifted to each of the eight columns
-//! of a cell and already painted, so drawing it is reading, masking and
-//! writing. **The palettes share a layout** so that one table paints every
-//! colour: entry 1 + k is the colour of the glyph's row k, and entry 13 the
-//! shadow's. Which colour a cell shows is its palette in the tilemap.
+//! of a cell, so drawing it is reading, masking and writing, with the
+//! colours put in as it goes —since 2026-11-20 the table is the message
+//! window's too, colour-free: see `message_window::font_prerender`—. **The
+//! palettes share a layout** so that one set of colours paints every ink:
+//! entry 1 + k is the colour of the glyph's row k, and entry 15 the
+//! shadow's —13 until 2026-11-20, see [`INK_SHADOW`]—. Which colour a cell
+//! shows is its palette in the tilemap.
 //!
 //! It was measured: painting a letter from the font's own bits, with the
 //! colour applied as it goes, took the item screen nine frames to change a
@@ -24,23 +27,41 @@ use crate::message_window;
 use rm2k_snes_text::font::{self, Font};
 use rm2k_snes_text::line::Ink;
 
-/// The palette index of the glyph's row k: 1 + k. And the shadow's.
+/// The palette index of the glyph's row k: 1 + k. And the shadow's: the
+/// last, 15, and not the next, 13, since 2026-11-20. It is speed: the
+/// cartridge puts the colour in as it composes a letter —`font_ink.s` in
+/// the runtime— and an entry with all four bits set makes the shadow the
+/// cheapest kind of mask on every pair of planes; 13, `%1101`, made the
+/// text screens a frame late in the equipment screen. Entries 13 and 14
+/// stay black.
 pub const INK_ROW_FIRST: u8 = 1;
-pub const INK_SHADOW: u8 = INK_ROW_FIRST + font::HEIGHT as u8;
+pub const INK_SHADOW: u8 = 15;
+
+/// A text screen ink's sixteen colours, in that layout: black, the glyph's
+/// rows, black up to the shadow, the shadow.
+pub fn ink_palette(rows: &[Color], shadow: Color) -> Vec<Color> {
+    let mut palette = vec![BLACK];
+    palette.extend(rows);
+    palette.resize(INK_SHADOW as usize, BLACK);
+    palette.push(shadow);
+    debug_assert_eq!(palette.len(), 16);
+    palette
+}
 
 /// The screens' colours: a palette per colour —`ITEM_WHITE` and the
-/// others, which are also the tilemap's palette number—, and the font
-/// precomposed for their layout, one table per phase.
+/// others, which are also the tilemap's palette number—, all with the same
+/// layout, [`screens_ink`].
 ///
-/// The font is the console's 96 glyphs, then a blank where the text
-/// layer's `TL_FIGURE` goes —a letter it draws as a digit's blank, and not
-/// from these tables—, then the two halves of each icon in `icons`, in that
-/// order: glyph 97 + 2k and 98 + 2k are icon `icons[k]`'s. `advances` and
-/// `reach` say how far each of those moves the line and paints.
+/// The font they draw is the console's 96 glyphs, then a blank where the
+/// text layer's `TL_FIGURE` goes —a letter it draws as a digit's blank,
+/// and not from the font's tables—, then the two halves of each icon in
+/// `icons`, in that order: glyph 97 + 2k and 98 + 2k are icon `icons[k]`'s.
+/// `advances` and `reach` say how far each of those moves the line and
+/// paints. Their glyphs are the first of the cartridge's one font table
+/// —see `convert::font_glyphs`—.
 #[derive(Debug, Clone)]
 pub struct Inks {
     pub palettes: Vec<Vec<Color>>,
-    pub prerender: Vec<Vec<u8>>,
     pub advances: Vec<u8>,
     pub reach: Vec<u8>,
     pub icons: Vec<usize>,
@@ -109,11 +130,7 @@ pub fn text_inks(skin: &Skin, font: &Font, icons: &[usize]) -> Result<Inks> {
     let mut palettes = Vec::new();
     for variant in [ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED] {
         let (rows, shadow) = ink_colors(skin, ITEM_COLORS[variant])?;
-        let mut palette = vec![BLACK];
-        palette.extend(rows);
-        palette.push(shadow);
-        palette.resize(16, BLACK);
-        palettes.push(palette);
+        palettes.push(ink_palette(&rows, shadow));
     }
     let (icons, after) = glyphs_after(font, icons)?;
     // The advances and the reach go past the console's 96 always, with
@@ -124,20 +141,20 @@ pub fn text_inks(skin: &Skin, font: &Font, icons: &[usize]) -> Result<Inks> {
     advances.extend(halves.iter().map(|&c| font.advance(c) as u8));
     let mut measured = vec![' '];
     measured.extend(halves);
-    let bytes = message_window::font_bytes_with(font, &after)?;
     Ok(Inks {
         palettes,
-        prerender: ink_prerender(&bytes),
         advances,
         reach: message_window::font_reach_with(font, &measured),
         icons,
     })
 }
 
-/// Glyphs —`font_bytes`'s rows— precomposed for the inks' shared layout, a
-/// table per phase: the text screens' and the debug screen's, which has a
-/// font of its own.
-pub fn ink_prerender(bytes: &[u8]) -> Vec<Vec<u8>> {
-    let rows: Vec<u8> = (0..font::HEIGHT as u8).map(|k| INK_ROW_FIRST + k).collect();
-    message_window::font_prerender(bytes, &rows, INK_SHADOW)
+/// The inks' shared layout: row k of the glyph is entry 1 + k of each
+/// palette, the shadow 15 —[`ink_palette`]—. The text screens' and the debug screen's, which
+/// has a font of its own.
+pub fn screens_ink() -> message_window::FontInk {
+    message_window::FontInk {
+        rows: (0..font::HEIGHT as u8).map(|k| INK_ROW_FIRST + k).collect(),
+        shadow: INK_SHADOW,
+    }
 }

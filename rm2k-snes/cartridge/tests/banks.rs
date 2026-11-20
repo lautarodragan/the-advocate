@@ -199,7 +199,8 @@ fn the_fast_banks_go_first() {
     }
     let (out, _) = one(&text);
     let (before, after) = split_at(&out, ".segment \"BANK42\"");
-    assert!(before.contains(".segment \"BANKFF\"") && !after.contains("BANKC"));
+    // The last whole fast bank is `$FE`: `$FF`'s low half is `FAR4`.
+    assert!(before.contains(".segment \"BANKFE\"") && !after.contains("BANKC"));
     assert!(after.contains(&format!("b{fast}:")));
 }
 
