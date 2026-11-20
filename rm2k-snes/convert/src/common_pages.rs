@@ -211,6 +211,9 @@ impl CommonPages {
                 layer: 0,
                 animation_type: 0,
                 translucent: false,
+                // Its own trigger is the common event's; copied into the
+                // map, it runs as it did: no one reads it here.
+                trigger: 0,
                 commands: game.db.common_events[n].clone(),
             })
             .collect();

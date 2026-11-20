@@ -130,10 +130,12 @@ pub struct MapPictures {
     /// pictures: shown over black, with the map hidden. For the
     /// degradations.
     pub hidden: Vec<Hidden>,
-    /// By the map and the name, lowercase, the file a variant's
-    /// `ShowPicture` shows instead of its own: what it has that the others
-    /// do not. See [`Parts`].
-    pub parts: BTreeMap<(i32, String), PathBuf>,
+    /// By the map, the number and the name, lowercase, the file a
+    /// drawing's `ShowPicture` shows instead of its own: what it has that
+    /// the others do not. See [`Parts`]. By the number too: Desert
+    /// Nightmare's shrine (161) shows the same ten digits under four
+    /// numbers, one per wheel, each at its own place.
+    pub parts: BTreeMap<(i32, i32, String), PathBuf>,
 }
 
 /// A translucent `ShowPicture` that is not part of its map and does not
@@ -150,11 +152,12 @@ pub struct Hidden {
 }
 
 impl MapPictures {
-    /// The file `name` is shown from on `map`, if it is one of several
-    /// drawings under one number: see [`Parts`].
-    pub fn part(&self, map: i32, name: &str) -> Option<&Path> {
+    /// The file `name` is shown from under `number` on `map`, if it is one
+    /// of several drawings under that number: see [`Parts`]. Such a show is
+    /// done, though its name is [`done`](Self::done) under another number.
+    pub fn part(&self, map: i32, number: i32, name: &str) -> Option<&Path> {
         self.parts
-            .get(&(map, name.to_lowercase()))
+            .get(&(map, number, name.to_lowercase()))
             .map(PathBuf::as_path)
     }
 
@@ -248,6 +251,9 @@ struct Shown {
     /// erases it further on, in that branch or one further out.
     branch: Vec<usize>,
     erased: bool,
+    /// Whether its page runs when the player asks —the action key, a
+    /// touch— and not on its own: see [`Parts`].
+    on_demand: bool,
 }
 
 /// RM2k's camera on `map` with the hero at cell `(x, y)`.
@@ -273,6 +279,7 @@ fn shown(maps: &[&GameMap]) -> Vec<Shown> {
     for map in maps {
         for event in &map.events {
             for page in &event.pages {
+                let from = out.len();
                 walk(
                     map.id,
                     (event.id, (event.x, event.y)),
@@ -280,6 +287,11 @@ fn shown(maps: &[&GameMap]) -> Vec<Shown> {
                     &sizes,
                     &mut out,
                 );
+                // Autostart and parallel run on their own; the rest, when
+                // the player asks.
+                for s in &mut out[from..] {
+                    s.on_demand = page.trigger < 3;
+                }
             }
         }
     }
@@ -360,6 +372,7 @@ fn walk(
                     moves_size: false,
                     branch: heads.clone(),
                     erased: false,
+                    on_demand: false,
                 });
             }
             ERASE_PICTURE if !p.is_empty() => {
@@ -451,9 +464,13 @@ fn placed(
 /// the arrows swap; drawn into the map as one, the arrows changed nothing
 /// on the screen.
 ///
-/// So what they have in common —each pixel as most of them have it— is
-/// drawn into the map, and each `ShowPicture` shows, as a small picture,
-/// only what its drawing has that the common part does not: its lit box.
+/// So what they have in common —the pixels where every one of them is the
+/// same— is drawn into the map, and each `ShowPicture` shows, as a small
+/// picture, its drawing where they are not all the same: the three boxes,
+/// one of them lit. Not "as most of them have it", which was the first
+/// version: on the shrine's ten digits (Desert Nightmare's map 161) the
+/// majority of each pixel drew a digit of none of them into the map, a
+/// "3" behind every wheel.
 /// That part goes with the map, where the common one is, and not with the
 /// screen —which the console scales—: the compiler is told so by the
 /// picture's `with_map` (see `pictures_of` in rm2k-snes-events).
@@ -461,10 +478,14 @@ fn placed(
 /// Only when it can be done whole: every show of the number on the map one
 /// of the drawings —none of them a scene's, which its own page erases: that
 /// rule wins—, all opaque —a small picture is drawn so— and at the same
-/// size and tone, each drawing with something of its own —an empty part
-/// would leave the one before it up— and none with a hole where the common
-/// part is not one, which a picture over the map cannot open. Otherwise the
-/// one shown most is drawn, as before.
+/// size and tone; and **every show from a page that runs on its own**,
+/// autostart or parallel, as the menu's. A page the player starts shows a
+/// screen on demand: Desert Nightmare's safe (115) and shrine (161) are
+/// such, a lock's symbols shown when the lock is looked at and erased by
+/// another page when it closes; split, their common part stayed in the
+/// room for good, and the safe's parts did not fit the map's VRAM, so its
+/// symbols were never seen. Otherwise the one shown most is drawn, as
+/// before.
 pub struct Parts {
     /// The common part, drawn into the map.
     pub common: OnMap,
@@ -515,32 +536,23 @@ impl Parts {
                 [p[0], p[1], p[2], 255]
             }
         };
-        // Each pixel as most drawings have it; of equals, the first's.
-        let mut common = vec![[0u8; 4]; w * h];
-        for (i, c) in common.iter_mut().enumerate() {
-            let mut best = (0, pixel(&arts[0], i));
-            for a in &arts {
-                let p = pixel(a, i);
-                let votes = arts.iter().filter(|b| pixel(b, i) == p).count();
-                if votes > best.0 {
-                    best = (votes, p);
-                }
-            }
-            *c = best.1;
-        }
+        // Each pixel where every drawing is the same is the common part's;
+        // the rest is every drawing's own, and each part covers the same
+        // pixels, so showing one hides the one before it.
+        let same: Vec<bool> = (0..w * h)
+            .map(|i| arts.iter().all(|a| pixel(a, i) == pixel(&arts[0], i)))
+            .collect();
+        let common: Vec<[u8; 4]> = (0..w * h)
+            .map(|i| if same[i] { pixel(&arts[0], i) } else { [0; 4] })
+            .collect();
         let mut own = Vec::new();
         let mut files = Vec::new();
         for a in &arts {
-            let mut part = vec![[0u8; 4]; w * h];
-            for (i, p) in part.iter_mut().enumerate() {
-                let mine = pixel(a, i);
-                if mine != common[i] {
-                    if mine[3] == 0 {
-                        return Ok(None);
-                    }
-                    *p = mine;
-                }
-            }
+            let part: Vec<[u8; 4]> = (0..w * h)
+                .map(|i| if same[i] { [0; 4] } else { pixel(a, i) })
+                .collect();
+            // One transparent wherever the others differ shows nothing:
+            // the one before it would stay up.
             if part.iter().all(|p| p[3] == 0) {
                 return Ok(None);
             }
@@ -634,6 +646,8 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapP
     // after a `Teleport`: those are not split into parts, since the part
     // is given to the pages of the map it is seen on.
     let mut crossed: BTreeSet<(i32, i32)> = BTreeSet::new();
+    // And those some page shows when the player asks: see `Parts`.
+    let mut on_demand: BTreeSet<(i32, i32)> = BTreeSet::new();
     // And those with a show that is not part of the map: the drawings that
     // are, are not all the number shows there.
     let mut unplaced: BTreeSet<(i32, i32)> = BTreeSet::new();
@@ -681,6 +695,9 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapP
             if s.from != s.seen {
                 crossed.insert((s.seen, s.number));
             }
+            if s.on_demand {
+                on_demand.insert((s.seen, s.number));
+            }
             per.entry((s.seen, s.number)).or_default().push(OnMap {
                 number: s.number,
                 name: s.name.clone(),
@@ -714,14 +731,17 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapP
             .max_by(|a, b| a.0.cmp(&b.0).then(std::cmp::Ordering::Greater))
             .map(|(_, o)| (*o).clone());
         let drawings: Vec<&OnMap> = counts.iter().map(|(_, o)| *o).collect();
-        if !crossed.contains(&(map, number)) && !unplaced.contains(&(map, number)) {
+        if !crossed.contains(&(map, number))
+            && !unplaced.contains(&(map, number))
+            && !on_demand.contains(&(map, number))
+        {
             if let Some(parts) = Parts::of(map, number, &drawings, out_dir)? {
                 out.per_map.entry(map).or_default().push(parts.common);
                 out.parts.extend(
                     parts
                         .own
                         .into_iter()
-                        .map(|(name, path)| ((map, name), path)),
+                        .map(|(name, path)| ((map, number, name), path)),
                 );
                 continue;
             }
@@ -731,7 +751,7 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapP
         }
     }
     for ((from, name), all) in all_in {
-        if all && !out.parts.contains_key(&(from, name.clone())) {
+        if all {
             out.done_from.entry(from).or_default().insert(name);
         }
     }
@@ -764,6 +784,7 @@ mod tests {
             moves_size: false,
             branch: Vec::new(),
             erased: false,
+            on_demand: false,
         }
     }
 
@@ -913,7 +934,9 @@ mod tests {
         let (w, h) = (4usize, 3usize);
         let mut pixels = vec![[0u8; 4]; w * h];
         for y in 0..h {
-            for x in 1..w {
+            // Column 0 is transparent, column 1 the frame, the same in all.
+            pixels[y * w + 1] = [60, 20, 0, 255];
+            for x in 2..w {
                 pixels[y * w + x] = if y == lit {
                     [250, 200, 0, 255]
                 } else {
@@ -953,13 +976,14 @@ mod tests {
         let parts = Parts::of(1, 1, &refs, &dir)
             .unwrap()
             .expect("the menu splits");
-        let unlit = [90, 40, 0, 255];
+        // The common part is the frame alone: every row differs somewhere
+        // among the three. Each part is the three rows, its own lit.
         let common = read(&parts.common.path);
         for (i, p) in common.iter().enumerate() {
-            if i % 4 == 0 {
-                assert_eq!(p[3], 0, "common, pixel {i}");
+            if i % 4 == 1 {
+                assert_eq!(*p, [60, 20, 0, 255], "common, pixel {i}");
             } else {
-                assert_eq!(*p, unlit, "common, pixel {i}");
+                assert_eq!(p[3], 0, "common, pixel {i}");
             }
         }
         assert!(parts.common.derived);
@@ -967,8 +991,11 @@ mod tests {
             assert_eq!(*name, format!("menu_{k}"));
             let own = read(path);
             for (i, p) in own.iter().enumerate() {
-                let lit = i / 4 == k && i % 4 != 0;
-                assert_eq!(p[3] != 0, lit, "part {k}, pixel {i}");
+                match i % 4 {
+                    0 | 1 => assert_eq!(p[3], 0, "part {k}, pixel {i}"),
+                    _ if i / 4 == k => assert_eq!(*p, [250, 200, 0, 255], "part {k}, pixel {i}"),
+                    _ => assert_eq!(*p, [90, 40, 0, 255], "part {k}, pixel {i}"),
+                }
             }
         }
         // Seen through, a small picture would be drawn opaque: not split.
@@ -980,8 +1007,9 @@ mod tests {
 
     /// The two rules over one number: three drawings of a menu are split
     /// into parts on the map that keeps them, and not on one whose page
-    /// erases the number at its end: the scene's rule wins over the number,
-    /// whose shows stay accepted without being done.
+    /// erases the number at its end —the scene's rule wins over the number,
+    /// whose shows stay accepted without being done—, nor on one whose page
+    /// the player starts.
     #[test]
     fn a_scene_s_drawings_are_not_split_into_parts() {
         use crate::game::{Event, Page};
@@ -994,7 +1022,11 @@ mod tests {
             for y in 0..30 {
                 for x in 0..100 {
                     let on = y / 10 == lit;
-                    pixels[y * w + x] = if on { [250, 200, 0, 255] } else { [90, 40, 0, 255] };
+                    pixels[y * w + x] = if on {
+                        [250, 200, 0, 255]
+                    } else {
+                        [90, 40, 0, 255]
+                    };
                 }
             }
             let path = pictures.join(format!("Menu_{lit}.png"));
@@ -1008,7 +1040,7 @@ mod tests {
                 &[1, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0],
             )
         };
-        let map = |id: i32, mut commands: Vec<Command>, erase: bool| {
+        let map = |id: i32, mut commands: Vec<Command>, erase: bool, trigger: i32| {
             if erase {
                 commands.push(c(ERASE_PICTURE, 0, "", &[1]));
             }
@@ -1032,6 +1064,7 @@ mod tests {
                         layer: 0,
                         animation_type: 0,
                         translucent: false,
+                        trigger,
                         commands,
                     }],
                 }],
@@ -1040,20 +1073,27 @@ mod tests {
                 twins: Vec::new(),
             }
         };
-        let menu = map(1, (0..3).map(show).collect(), false);
-        let scene = map(2, (0..3).map(show).collect(), true);
+        // Autostart, as Desert Nightmare's map 1; and the same from a page
+        // the action key starts, as its locks.
+        let menu = map(1, (0..3).map(show).collect(), false, 3);
+        let scene = map(2, (0..3).map(show).collect(), true, 3);
+        let lock = map(3, (0..3).map(show).collect(), false, 0);
         let out = dir.join("out");
-        let decided = decide(&[&menu, &scene], &dir, &out).unwrap();
-        assert!(decided.part(1, "Menu_1").is_some());
+        let decided = decide(&[&menu, &scene, &lock], &dir, &out).unwrap();
+        assert!(decided.part(1, 1, "Menu_1").is_some());
         assert_eq!(decided.of(1).len(), 1);
         assert!(decided.of(1)[0].derived);
         // Only the last show is the one the erase reaches —a picture shown
         // again under its number is not taken as erased, see `walk`—, so the
         // other two stay as before the parts: the one shown first is drawn.
-        assert!(decided.part(2, "Menu_1").is_none());
+        assert!(decided.part(2, 1, "Menu_1").is_none());
         assert_eq!(decided.of(2).len(), 1);
         assert!(!decided.of(2)[0].derived);
         assert!(decided.done(2, "Menu_2"));
+        // On demand: not split, the one shown first drawn, as before.
+        assert!(decided.part(3, 1, "Menu_1").is_none());
+        assert_eq!(decided.of(3).len(), 1);
+        assert!(!decided.of(3)[0].derived);
         std::fs::remove_dir_all(&dir).ok();
     }
 }

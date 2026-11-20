@@ -511,9 +511,9 @@ pub fn run(options: Options) -> Result<()> {
                 .collect();
             println!("  map {map}: drawn into the map: {}", names.join(", "));
         }
-        for ((map, name), path) in &decided.parts {
+        for ((map, number, name), path) in &decided.parts {
             println!(
-                "  map {map}: the picture '{name}' shows only what it has of its own: {}",
+                "  map {map}: the picture '{name}' under {number} shows only what it has of its own: {}",
                 path.display()
             );
         }

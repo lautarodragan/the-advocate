@@ -136,6 +136,9 @@ pub struct Page {
     pub animation_type: i32,
     /// Whether the page is translucent, as the dump has it.
     pub translucent: bool,
+    /// RM2k's trigger: 0 the action key, 1 the hero's touch, 2 the event's,
+    /// 3 autostart, 4 parallel.
+    pub trigger: i32,
     pub commands: Vec<Command>,
 }
 
@@ -824,6 +827,7 @@ impl Game {
                                 layer: p.layer.to_i32(),
                                 animation_type: p.animation_type.to_i32(),
                                 translucent: p.translucent,
+                                trigger: p.trigger.to_i32(),
                                 commands: commands(&p.event_commands),
                             }
                         })

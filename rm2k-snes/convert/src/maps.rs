@@ -407,25 +407,30 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .filter(|&n| (n as usize) < keys.len())
         .map(|n| keys[..n as usize].to_vec());
     // The ones that are part of a map are drawn into it, and their commands
-    // are accepted without being done.
-    keys.retain(|k| {
-        !c.map_pictures
-            .done(map_id, k["name"].as_str().unwrap_or(""))
-    });
-    if let Some(own) = own_keys.as_mut() {
-        own.retain(|k| {
-            !c.map_pictures
+    // are accepted without being done; but a drawing's part, which is
+    // shown —see [`crate::map_pictures::Parts`]—: its name can be drawn in
+    // under another number.
+    let part = |k: &Value| {
+        c.map_pictures.part(
+            map_id,
+            k["number"].as_i64().unwrap_or(-1) as i32,
+            k["name"].as_str().unwrap_or(""),
+        )
+    };
+    let kept = |k: &Value| {
+        part(k).is_some()
+            || !c
+                .map_pictures
                 .done(map_id, k["name"].as_str().unwrap_or(""))
-        });
+    };
+    keys.retain(kept);
+    if let Some(own) = own_keys.as_mut() {
+        own.retain(kept);
     }
-    // And the ones that are one of several drawings under a number show
-    // only what is their own, from the file the rule wrote, with the map:
-    // see [`crate::map_pictures::Parts`].
+    // And the parts show only what is their own, from the file the rule
+    // wrote, with the map.
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
-        if let Some(path) = c
-            .map_pictures
-            .part(map_id, k["name"].as_str().unwrap_or(""))
-        {
+        if let Some(path) = part(k) {
             k["path"] = json!(path.display().to_string());
             k["with_map"] = json!(true);
         }
