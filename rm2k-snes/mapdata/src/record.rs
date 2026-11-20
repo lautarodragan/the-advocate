@@ -643,8 +643,12 @@ pub fn rom_code_chunks(map: &Map) -> Result<Vec<(usize, &[u8])>> {
 /// "What the grid leaves" stops short of the half's top, which is
 /// `GRID_TOP`'s on every map: see [`BEHIND_ROOM`].
 pub fn code_in_rom(map: &Map) -> bool {
-    let behind = grid_high_used(map.grid().len()) + map.blocks.len() + map.block_pass.len();
-    map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > BEHIND_ROOM
+    !crate::materials::code_behind_grid(
+        map.cells.len() / 2,
+        map.blocks.len() / crate::materials::BLOCK_BYTES,
+        map.blocks.len() + map.block_pass.len(),
+        map.evcode.len(),
+    )
 }
 
 /// Where the pointers into what lives behind the grid land: WRAM addresses,
