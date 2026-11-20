@@ -3591,7 +3591,7 @@ pub fn compile_picture(
         } else {
             (p[2] as i64, p[3] as i64)
         };
-        if key.map_fixed {
+        if key.map_fixed || pictures.with_map.contains(&image) {
             mode |= PICTURE_MAP_FIXED;
         }
         let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
@@ -10377,6 +10377,17 @@ mod tests {
         indices: &Indices,
         commands: &[Command],
     ) -> Vec<u8> {
+        with_pictures_on(table, &[], indices, commands)
+    }
+
+    /// The same, with the pictures of `with_map` going with the map: see
+    /// `Pictures::with_map`.
+    fn with_pictures_on(
+        table: &[(PictureKey, u8)],
+        with_map: &[u8],
+        indices: &Indices,
+        commands: &[Command],
+    ) -> Vec<u8> {
         let game = Game::default();
         let sound = SoundSettings::default();
         let mut pictures = Pictures {
@@ -10386,6 +10397,7 @@ mod tests {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: with_map.to_vec(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -10653,6 +10665,7 @@ mod tests {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -10939,6 +10952,21 @@ mod tests {
                 OP_DONE
             ]
         );
+    }
+
+    /// Desert Nightmare's start menu: each option's lit box is the part of
+    /// a drawing whose rest is in the map, so it goes with the map though
+    /// its `ShowPicture` says the screen —see `map_pictures` in
+    /// rm2k-snes-convert—.
+    #[test]
+    fn a_part_of_a_drawing_in_the_map_goes_with_the_map() {
+        let lit = picture(1, "Introauswahl_2", 0, (160, 120), false, 100, 0);
+        let table = [(picture_key(&lit).unwrap(), 0)];
+        let alone = with_pictures(&table, &Indices::default(), std::slice::from_ref(&lit));
+        let part = with_pictures_on(&table, &[0], &Indices::default(), &[lit]);
+        assert_eq!(alone[3], 0);
+        assert_eq!(part[3], PICTURE_MAP_FIXED);
+        assert_eq!((&alone[..3], &alone[4..]), (&part[..3], &part[4..]));
     }
 
     #[test]

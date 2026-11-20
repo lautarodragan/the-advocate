@@ -86,11 +86,15 @@ pub struct OnMap {
     /// Whether it goes with the screen on a map that scrolls: a mist, which
     /// is repeated over the whole map so that it is wherever the camera goes.
     pub repeat: bool,
+    /// Whether `path` is a file of this conversion's and not the game's:
+    /// the part several drawings have in common —see [`Parts`]—. Wally is
+    /// then given the file and not the name.
+    pub derived: bool,
 }
 
 impl OnMap {
     pub fn to_json(&self) -> Value {
-        json!({
+        let mut out = json!({
             "number": self.number,
             "name": self.name,
             "corner": [self.corner.0, self.corner.1],
@@ -98,7 +102,11 @@ impl OnMap {
             "tone": self.tone,
             "transparent_color": self.transparent_color,
             "repeat": self.repeat,
-        })
+        });
+        if self.derived {
+            out["path"] = json!(self.path.display().to_string());
+        }
+        out
     }
 }
 
@@ -115,6 +123,10 @@ pub struct MapPictures {
     /// pictures: shown over black, with the map hidden. For the
     /// degradations.
     pub hidden: Vec<Hidden>,
+    /// By the map and the name, lowercase, the file a variant's
+    /// `ShowPicture` shows instead of its own: what it has that the others
+    /// do not. See [`Parts`].
+    pub parts: BTreeMap<(i32, String), PathBuf>,
 }
 
 /// A translucent `ShowPicture` that is not part of its map and does not
@@ -131,6 +143,14 @@ pub struct Hidden {
 }
 
 impl MapPictures {
+    /// The file `name` is shown from on `map`, if it is one of several
+    /// drawings under one number: see [`Parts`].
+    pub fn part(&self, map: i32, name: &str) -> Option<&Path> {
+        self.parts
+            .get(&(map, name.to_lowercase()))
+            .map(PathBuf::as_path)
+    }
+
     pub fn of(&self, map: i32) -> &[OnMap] {
         self.per_map.get(&map).map_or(&[], Vec::as_slice)
     }
@@ -394,8 +414,183 @@ fn placed(
     Ok(((cx - half.0, cy - half.1), true))
 }
 
+/// **Several drawings under one number of a map, at one place**: a menu
+/// drawn whole once per option, each with its option lit. Desert
+/// Nightmare's start menu, on map 1, is three 320x240 pictures under number
+/// 1 —"With Intro", "No Intro" and "Quit", each with its own box lit— that
+/// the arrows swap; drawn into the map as one, the arrows changed nothing
+/// on the screen.
+///
+/// So what they have in common —each pixel as most of them have it— is
+/// drawn into the map, and each `ShowPicture` shows, as a small picture,
+/// only what its drawing has that the common part does not: its lit box.
+/// That part goes with the map, where the common one is, and not with the
+/// screen —which the console scales—: the compiler is told so by the
+/// picture's `with_map` (see `pictures_of` in rm2k-snes-events).
+///
+/// Only when it can be done whole: every show of the number on the map one
+/// of the drawings, all opaque —a small picture is drawn so— and at the
+/// same size and tone, each drawing with something of its own —an empty part would leave the
+/// one before it up— and none with a hole where the common part is not
+/// one, which a picture over the map cannot open. Otherwise the one shown
+/// most is drawn, as before.
+pub struct Parts {
+    /// The common part, drawn into the map.
+    pub common: OnMap,
+    /// Each drawing's own, by its name in lowercase.
+    pub own: Vec<(String, PathBuf)>,
+}
+
+impl Parts {
+    pub fn of(map: i32, number: i32, drawings: &[&OnMap], out_dir: &Path) -> Result<Option<Parts>> {
+        let first = drawings[0];
+        let names: BTreeSet<String> = drawings.iter().map(|d| d.name.to_lowercase()).collect();
+        if names.len() < 2
+            || names.len() != drawings.len()
+            || first.transparency != 0
+            || drawings.iter().any(|d| {
+                d.corner != first.corner
+                    || d.transparency != first.transparency
+                    || d.tone != first.tone
+                    || d.transparent_color != first.transparent_color
+                    || d.repeat
+            })
+        {
+            return Ok(None);
+        }
+        let mut arts = Vec::new();
+        for d in drawings {
+            let read = if d.transparent_color {
+                rm2k_render::picture::read_rm2k(&d.path)
+            } else {
+                rm2k_render::picture::read_unkeyed(&d.path)
+            };
+            let art = read.map_err(|e| Stop::new(format!("{}: {e}", d.path.display())))?;
+            // Only whole pixels: one half seen through has no index.
+            if art.rgba.chunks_exact(4).any(|p| p[3] != 0 && p[3] != 255) {
+                return Ok(None);
+            }
+            arts.push(art);
+        }
+        let (w, h) = (arts[0].width, arts[0].height);
+        if arts.iter().any(|a| (a.width, a.height) != (w, h)) {
+            return Ok(None);
+        }
+        let pixel = |a: &rm2k_render::Picture, i: usize| -> [u8; 4] {
+            let p = &a.rgba[i * 4..i * 4 + 4];
+            if p[3] == 0 {
+                [0; 4]
+            } else {
+                [p[0], p[1], p[2], 255]
+            }
+        };
+        // Each pixel as most drawings have it; of equals, the first's.
+        let mut common = vec![[0u8; 4]; w * h];
+        for (i, c) in common.iter_mut().enumerate() {
+            let mut best = (0, pixel(&arts[0], i));
+            for a in &arts {
+                let p = pixel(a, i);
+                let votes = arts.iter().filter(|b| pixel(b, i) == p).count();
+                if votes > best.0 {
+                    best = (votes, p);
+                }
+            }
+            *c = best.1;
+        }
+        let mut own = Vec::new();
+        let mut files = Vec::new();
+        for a in &arts {
+            let mut part = vec![[0u8; 4]; w * h];
+            for (i, p) in part.iter_mut().enumerate() {
+                let mine = pixel(a, i);
+                if mine != common[i] {
+                    if mine[3] == 0 {
+                        return Ok(None);
+                    }
+                    *p = mine;
+                }
+            }
+            if part.iter().all(|p| p[3] == 0) {
+                return Ok(None);
+            }
+            files.push(part);
+        }
+        let dir = out_dir.join("map-pictures");
+        std::fs::create_dir_all(&dir).map_err(|e| crate::fail::io(&dir, e))?;
+        let common_path = dir.join(format!("map{map:04}-{number}.png"));
+        if !write_indexed(&common_path, w, h, &common)? {
+            return Ok(None);
+        }
+        for (k, (d, part)) in drawings.iter().zip(&files).enumerate() {
+            let path = dir.join(format!("map{map:04}-{number}-{k}.png"));
+            if !write_indexed(&path, w, h, part)? {
+                return Ok(None);
+            }
+            own.push((d.name.to_lowercase(), path));
+        }
+        let joined: Vec<&str> = drawings.iter().map(|d| d.name.as_str()).collect();
+        Ok(Some(Parts {
+            common: OnMap {
+                name: format!("what {} have in common", joined.join(", ")),
+                path: common_path,
+                transparent_color: true,
+                derived: true,
+                ..first.clone()
+            },
+            own,
+        }))
+    }
+}
+
+/// `pixels` as an indexed PNG with index 0 its transparent colour, as RM2k
+/// reads a picture; false if they have more than 255 colours.
+fn write_indexed(path: &Path, w: usize, h: usize, pixels: &[[u8; 4]]) -> Result<bool> {
+    let mut colours: Vec<[u8; 3]> = Vec::new();
+    let mut index: HashMap<[u8; 3], u8> = HashMap::new();
+    let mut data = Vec::with_capacity(w * h);
+    for p in pixels {
+        if p[3] == 0 {
+            data.push(0);
+            continue;
+        }
+        let rgb = [p[0], p[1], p[2]];
+        let k = match index.get(&rgb) {
+            Some(&k) => k,
+            None => {
+                if colours.len() == 255 {
+                    return Ok(false);
+                }
+                colours.push(rgb);
+                let k = colours.len() as u8;
+                index.insert(rgb, k);
+                k
+            }
+        };
+        data.push(k);
+    }
+    // Index 0 is a colour none of the others is, so nothing reads it as
+    // one of them.
+    let mut key = [255u8, 0, 255];
+    while colours.contains(&key) {
+        key[1] = key[1].wrapping_add(1);
+    }
+    let mut palette: Vec<u8> = key.to_vec();
+    palette.extend(colours.iter().flatten());
+    let file = std::fs::File::create(path).map_err(|e| crate::fail::io(path, e))?;
+    let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), w as u32, h as u32);
+    encoder.set_color(png::ColorType::Indexed);
+    encoder.set_depth(png::BitDepth::Eight);
+    encoder.set_palette(palette);
+    let stop = |e: png::EncodingError| Stop::new(format!("{}: {e}", path.display()));
+    let mut writer = encoder.write_header().map_err(stop)?;
+    writer.write_image_data(&data).map_err(stop)?;
+    Ok(true)
+}
+
 /// The rule, over the cartridge's maps: see the module.
-pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
+/// `out` is where the parts of the drawings that share a number are
+/// written: see [`Parts`].
+pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapPictures> {
     let sizes: HashMap<i32, (i32, i32)> =
         maps.iter().map(|m| (m.id, (m.width, m.height))).collect();
     let mut files: HashMap<String, Option<(PathBuf, File)>> = HashMap::new();
@@ -404,6 +599,13 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
     // part of its map.
     let mut all_in: BTreeMap<(i32, String), bool> = BTreeMap::new();
     let mut hidden = Vec::new();
+    // The (map, number)s some of whose shows come from another map's page,
+    // after a `Teleport`: those are not split into parts, since the part
+    // is given to the pages of the map it is seen on.
+    let mut crossed: BTreeSet<(i32, i32)> = BTreeSet::new();
+    // And those with a show that is not part of the map: the drawings that
+    // are, are not all the number shows there.
+    let mut unplaced: BTreeSet<(i32, i32)> = BTreeSet::new();
     for s in shown(maps) {
         let lower = s.name.to_lowercase();
         if !files.contains_key(&lower) {
@@ -432,9 +634,15 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
             },
             _ => None,
         };
+        if place.is_none() {
+            unplaced.insert((s.seen, s.number));
+        }
         let entry = all_in.entry((s.from, lower)).or_insert(true);
         *entry &= place.is_some();
         if let Some((path, (corner, repeat))) = place {
+            if s.from != s.seen {
+                crossed.insert((s.seen, s.number));
+            }
             per.entry((s.seen, s.number)).or_default().push(OnMap {
                 number: s.number,
                 name: s.name.clone(),
@@ -444,11 +652,12 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
                 tone: s.tone,
                 transparent_color: s.transparent_color,
                 repeat,
+                derived: false,
             });
         }
     }
     let mut out = MapPictures::default();
-    for ((map, _number), shows) in per {
+    for ((map, number), shows) in per {
         // Under one number a map can show several: a door with its ceiling
         // and another with a second one. The one shown most stays, and of
         // equals the first: the map has one drawing.
@@ -466,12 +675,25 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path) -> Result<MapPictures> {
             .iter()
             .max_by(|a, b| a.0.cmp(&b.0).then(std::cmp::Ordering::Greater))
             .map(|(_, o)| (*o).clone());
+        let drawings: Vec<&OnMap> = counts.iter().map(|(_, o)| *o).collect();
+        if !crossed.contains(&(map, number)) && !unplaced.contains(&(map, number)) {
+            if let Some(parts) = Parts::of(map, number, &drawings, out_dir)? {
+                out.per_map.entry(map).or_default().push(parts.common);
+                out.parts.extend(
+                    parts
+                        .own
+                        .into_iter()
+                        .map(|(name, path)| ((map, name), path)),
+                );
+                continue;
+            }
+        }
         if let Some(best) = best {
             out.per_map.entry(map).or_default().push(best);
         }
     }
     for ((from, name), all) in all_in {
-        if all {
+        if all && !out.parts.contains_key(&(from, name.clone())) {
             out.done_from.entry(from).or_default().insert(name);
         }
     }
@@ -596,5 +818,77 @@ mod tests {
         let mut invisible = shown(true, false);
         invisible.transparency = 100;
         assert_eq!(placed(&invisible, &SCREEN_SIZED, SCROLLS), Err(None));
+    }
+
+    /// A menu of three options drawn whole three times, each with its own
+    /// lit: Desert Nightmare's start menu on map 1, shrunk to 4x3 —a
+    /// transparent column, then an option per row—.
+    fn menu(dir: &Path, lit: usize, transparency: i32) -> OnMap {
+        let (w, h) = (4usize, 3usize);
+        let mut pixels = vec![[0u8; 4]; w * h];
+        for y in 0..h {
+            for x in 1..w {
+                pixels[y * w + x] = if y == lit {
+                    [250, 200, 0, 255]
+                } else {
+                    [90, 40, 0, 255]
+                };
+            }
+        }
+        let path = dir.join(format!("menu-{lit}.png"));
+        assert!(write_indexed(&path, w, h, &pixels).unwrap());
+        OnMap {
+            number: 1,
+            name: format!("Menu_{lit}"),
+            path,
+            corner: (0, 0),
+            transparency,
+            tone: [100; 4],
+            transparent_color: true,
+            repeat: false,
+            derived: false,
+        }
+    }
+
+    fn read(path: &Path) -> Vec<[u8; 4]> {
+        let art = rm2k_render::picture::read_rm2k(path).unwrap();
+        art.rgba
+            .chunks_exact(4)
+            .map(|p| [p[0], p[1], p[2], p[3]])
+            .collect()
+    }
+
+    #[test]
+    fn drawings_under_one_number_are_drawn_in_common_and_each_shows_its_own() {
+        let dir = std::env::temp_dir().join(format!("convert-parts-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let drawings: Vec<OnMap> = (0..3).map(|k| menu(&dir, k, 0)).collect();
+        let refs: Vec<&OnMap> = drawings.iter().collect();
+        let parts = Parts::of(1, 1, &refs, &dir)
+            .unwrap()
+            .expect("the menu splits");
+        let unlit = [90, 40, 0, 255];
+        let common = read(&parts.common.path);
+        for (i, p) in common.iter().enumerate() {
+            if i % 4 == 0 {
+                assert_eq!(p[3], 0, "common, pixel {i}");
+            } else {
+                assert_eq!(*p, unlit, "common, pixel {i}");
+            }
+        }
+        assert!(parts.common.derived);
+        for (k, (name, path)) in parts.own.iter().enumerate() {
+            assert_eq!(*name, format!("menu_{k}"));
+            let own = read(path);
+            for (i, p) in own.iter().enumerate() {
+                let lit = i / 4 == k && i % 4 != 0;
+                assert_eq!(p[3] != 0, lit, "part {k}, pixel {i}");
+            }
+        }
+        // Seen through, a small picture would be drawn opaque: not split.
+        let faint: Vec<OnMap> = (0..3).map(|k| menu(&dir, k, 30)).collect();
+        let refs: Vec<&OnMap> = faint.iter().collect();
+        assert!(Parts::of(1, 1, &refs, &dir).unwrap().is_none());
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

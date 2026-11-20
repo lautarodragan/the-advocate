@@ -418,6 +418,18 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
                 .done(map_id, k["name"].as_str().unwrap_or(""))
         });
     }
+    // And the ones that are one of several drawings under a number show
+    // only what is their own, from the file the rule wrote, with the map:
+    // see [`crate::map_pictures::Parts`].
+    for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
+        if let Some(path) = c
+            .map_pictures
+            .part(map_id, k["name"].as_str().unwrap_or(""))
+        {
+            k["path"] = json!(path.display().to_string());
+            k["with_map"] = json!(true);
+        }
+    }
     // And the numbers the map tones, which do not share a palette.
     let tinted: Vec<i64> = scanned
         .get("tinted")
