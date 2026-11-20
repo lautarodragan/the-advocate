@@ -62,7 +62,13 @@
 ; Everything is reached with `jsl`; the hooks are `op_window` and
 ; `op_window_erase` in interpreter_message.s, `sw_tick` in the main loop,
 ; `sw_vblank` in `flush_video` when no message is up, `sw_lost` in
-; `load_window` and `sw_clear` in `pic_clear`.
+; `stamp_window_at` —a map's load, a big picture, a System— and `sw_clear`
+; in `pic_clear`.
+;
+; **Its far RAM is mostly `SW_MAP`**, the screen's 28 rows of 32 entries:
+; on Desert Nightmare it left 159 bytes of the segment (2026-11-20). A
+; span is never wider than the screen, so it could hold only the span's
+; rows, if a game needs the room.
 
 .ifdef SHOW_WINDOW_SLOTS
 
