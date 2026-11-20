@@ -231,7 +231,7 @@ character_var:
     ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
     ; hero, the event index plus one, the same byte as OP_ROUTE— and `b` says
     ; which one: CHARACTER_X or CHARACTER_Y, or CHARACTER_SCREEN_X or
-    ; CHARACTER_SCREEN_Y.
+    ; CHARACTER_SCREEN_Y, or 0, the hero's map.
     ;
     ; The cell read is the **live** one: `tile_x`/`tile_y` for the hero and
     ; `ev_pos_buf` for an event, which is where a forced move route, a
@@ -254,6 +254,7 @@ character_var:
     iny
     iny
     lda [code_ptr], y           ; b: which coordinate
+    beq var_character_map       ; 0, the map: only the hero's comes here
     ; RM2k's 4 and 5, the place on its screen, are worked out in the far bank:
     ; see `character_screen`.
     cmp #CHARACTER_SCREEN_X
@@ -292,6 +293,18 @@ var_character_hero_x:
     rep #$20
 .a16
     lda tile_x
+    bra var_character_ready
+.a8
+var_character_map:
+    ; The hero's map, by its RM2k id and not the cartridge's index, as
+    ; `remembered_place` writes it. An event's is RPG_RT's constant 0, which
+    ; the compiler emits as such: see VAR_CHARACTER there.
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    tax
+    lda f:map_rm2k, x
 var_character_ready:
     sta temp + 2
     sep #$20
