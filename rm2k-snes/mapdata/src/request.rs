@@ -264,6 +264,11 @@ pub struct Emit {
     /// —see [`crate::layer_text`]—. Absent, none.
     #[serde(default)]
     pub transparent_messages: bool,
+    /// How many window ids the cartridge's `ShowWindow`s name —RPG Maker
+    /// 2000 PLUS's—: the slots the runtime keeps, and with none it
+    /// assembles nothing of them. Absent, none.
+    #[serde(default)]
+    pub window_slots: usize,
     /// The party the game starts with.
     pub party: Vec<i64>,
     /// Who the cartridge is: its header title and its SRAM signature.

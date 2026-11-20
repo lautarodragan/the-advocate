@@ -145,6 +145,10 @@ with_plane:
     sta BBAD0
     lda #$01
     sta MDMAEN
+.ifdef SHOW_WINDOW_SLOTS
+    jsl f:sw_lost               ; and the windows up, drawn again over it: a
+                                ; map, a big picture, a System. show_window.s
+.endif
     rts
 .endproc
 

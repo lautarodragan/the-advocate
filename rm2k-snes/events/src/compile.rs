@@ -970,6 +970,13 @@ fn group_boxes(commands: &[Command]) -> Vec<(usize, Vec<String>)> {
                 j += 1;
             }
         }
+        // A comment with its lines: a `ShowWindow`'s text —see
+        // [`crate::windows`]—; any other comment compiles to nothing anyway.
+        if commands[i].code == COMMENT {
+            while j < commands.len() && commands[j].code == COMMENT_2 {
+                j += 1;
+            }
+        }
         out.push((
             i,
             commands[i + 1..j]
@@ -1297,6 +1304,12 @@ fn page(
     // Each `ShowMessage` an `InputNumber` follows, with the `InputNumber`:
     // they go in one window. See [`compile_number`].
     let numbers = number_inputs(commands);
+    // The `ShowPicture`s a `ShowWindow` stands in for: the window is shown
+    // by its comment, and the picture is RPG_RT's. See [`crate::windows`].
+    let by_window: BTreeSet<usize> = crate::windows::replaced_pictures(commands)
+        .map_err(Stop::Fatal)?
+        .into_iter()
+        .collect();
     let input_after: HashMap<usize, usize> = numbers.iter().copied().collect();
     let joined: BTreeSet<usize> = numbers.iter().map(|&(_, j)| j).collect();
     // Each `ShowMessage` a `ShowChoice` follows in its window, and the
@@ -1329,6 +1342,10 @@ fn page(
         }
         if joined.contains(&i) {
             // Its window is the message's, already emitted.
+            continue;
+        }
+        if by_window.contains(&i) {
+            // A picture a window stands in for: the window is up already.
             continue;
         }
         let requested = ctx.songs.as_ref().map_or(0, |s| s.requested);
@@ -4229,6 +4246,28 @@ pub fn compile_command(
     extra: &[String],
     map_events: Option<&MapEvents>,
 ) -> Step<Vec<u8>> {
+    // An `ErasePicture` of a picture a `ShowWindow` stands in for takes the
+    // window down too —see [`crate::windows`]—; the scan that gathers the
+    // pictures a map shows emits nothing, so it asks for nothing.
+    if cmd.code == ERASE_PICTURE && !ctx.pictures.as_deref().is_some_and(|p| p.gathering) {
+        if let Some(window) = ctx.messages.as_deref().map(|m| m.window) {
+            if let Some(slot) = crate::windows::erased_window(cmd, ctx.game.windows(&window)?) {
+                let mut out = command(ctx, cmd, extra, map_events)?;
+                out.extend([OP_WINDOW_ERASE, slot]);
+                return Ok(out);
+            }
+        }
+    }
+    command(ctx, cmd, extra, map_events)
+}
+
+/// [`compile_command`], but for the window an `ErasePicture` takes down.
+fn command(
+    ctx: &mut Ctx,
+    cmd: &Command,
+    extra: &[String],
+    map_events: Option<&MapEvents>,
+) -> Step<Vec<u8>> {
     let p = &cmd.parameters;
     let n = p.len();
     let q = |i: usize| -> i64 { p[i] as i64 };
@@ -5674,7 +5713,11 @@ pub fn compile_command(
         // that. It is not debt: in RM2k it does nothing either. Map 64's
         // farewell asked for it, whose only command that did not compile was
         // the "LYS" note the author left after the `Teleport` to the world.
-        COMMENT | COMMENT_2 => Ok(vec![]),
+        //
+        // Except RPG Maker 2000 PLUS's `ShowWindow`, a comment that starts
+        // with `@window`: see [`crate::windows`] and [`compile_window`].
+        COMMENT => compile_window(ctx, cmd, extra),
+        COMMENT_2 => Ok(vec![]),
         // `EraseEvent` **after the page jumped to another map** does
         // nothing: the jump put 0 in the event id of every frame of the
         // interpreter's stack —`Game_Interpreter_Map::OnMapChange`— and
@@ -6655,6 +6698,70 @@ pub fn compile_command(
             Ok(out)
         }
         _ => cannot(),
+    }
+}
+
+/// A `Comment`: nothing, unless it is a `ShowWindow` —see
+/// [`crate::windows`]—, which is `OP_WINDOW` or `OP_WINDOW_ERASE`. Each line
+/// of a window's text is a box of the text block of its own, so a window
+/// has as many lines as its height holds and not a message's four, and a
+/// line repeated across windows is stored once.
+fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8>> {
+    use crate::windows::{of_command, Directive};
+    let Some(directive) = of_command(cmd, extra)? else {
+        return Ok(vec![]);
+    };
+    let Some(window) = ctx.messages.as_deref().map(|m| m.window) else {
+        // This ROM carries no window: nowhere to draw it.
+        return cannot();
+    };
+    let registry = ctx.game.windows(&window)?;
+    match directive {
+        Directive::Erase(id) => match registry.slot(id) {
+            Some(slot) => Ok(vec![OP_WINDOW_ERASE, slot]),
+            // No window of the game has that id: there is none to take down.
+            None => Ok(vec![]),
+        },
+        Directive::Show(w) => {
+            // A test page's window is not in the game's registry, which is
+            // the game's pages': it borrows a window of the game, and its
+            // lines fit that window's. One whose id the game does not have
+            // does not compile, and its page with it: that is also what a
+            // scan over the dump without the project's forked common
+            // events —the harness's, for the variables' slots— finds.
+            let (Some(slot), Some((first, cells))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
+            else {
+                return cannot();
+            };
+            if w.lines.len() > cells.len()
+                || w.lines.iter().zip(&cells).any(|(l, &c)| crate::windows::line_cells(l, &window) > c)
+            {
+                return Err(Stop::Fatal(Bad::answer(format!(
+                    "`@window {}`: its text is wider or longer than the game's window {} has room for",
+                    w.id, w.id
+                ))));
+            }
+            let lines = with_variables(&with_names(&w.lines, ctx.indices), ctx.indices)?;
+            let messages = ctx.messages.as_deref_mut().expect("asked above");
+            let mut out = vec![
+                OP_WINDOW,
+                slot,
+                (w.x / 8) as u8,
+                (w.y / 8) as u8,
+                (w.w / 8) as u8,
+                (w.h / 8) as u8,
+                w.style as u8,
+                first as u8,
+                lines.len() as u8,
+            ];
+            for (k, line) in lines.iter().enumerate() {
+                let at = messages.add_waiting(std::slice::from_ref(line))?;
+                out.extend(usize_word(at)?);
+                out.push(cells[k] as u8);
+            }
+            ctx.lose_dropped(cmd);
+            Ok(out)
+        }
     }
 }
 
@@ -12313,5 +12420,66 @@ mod tests {
         let s = shared(&game);
         assert_eq!(s.bodies.len(), 2);
         assert_eq!(s.depth, None);
+    }
+
+    /// A game whose common event 1 shows window 7 standing in for
+    /// picture 7, and window 3 alone.
+    fn with_windows() -> (Game, Vec<Command>) {
+        let page = vec![
+            cmd(COMMENT, &[], "@window 7 8 8 72 48"),
+            cmd(COMMENT_2, &[], "\\c[1]Keys"),
+            cmd(COMMENT_2, &[], "Maps"),
+            cmd(SHOW_PICTURE, &[7, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "Optionen2"),
+            cmd(COMMENT, &[], "@window 3 0 0 64 32 plain"),
+            cmd(COMMENT_2, &[], "abc"),
+            cmd(COMMENT, &[], "@window_erase 3"),
+            cmd(ERASE_PICTURE, &[7], ""),
+        ];
+        let mut game = Game::default();
+        game.common_events.insert(
+            1,
+            CommonEvent {
+                trigger: 5,
+                switch_flag: false,
+                switch_id: 1,
+                commands: page.clone(),
+            },
+        );
+        (game, page)
+    }
+
+    #[test]
+    fn a_window_stands_in_for_the_picture_after_it() {
+        let (game, page) = with_windows();
+        let (code, losses) = losses_on_a_map(&game, &page);
+        let code = code.unwrap();
+        // Window 3 is slot 0 —its "abc" is 18 pixels and two, three cells,
+        // tiles 0 to 5— and 7 is slot 1, from tile 6: "Keys" and "Maps"
+        // four cells each. Each line is a box of its own, in a block that
+        // counts by one byte: the header, the length and the letters, with
+        // the colour's two bytes in the first.
+        assert_eq!(
+            code,
+            [
+                OP_WINDOW, 1, 1, 1, 9, 6, 0, 6, 2, 0, 0, 4, 8, 0, 4,
+                OP_WINDOW, 0, 0, 0, 8, 4, 1, 0, 1, 14, 0, 3,
+                OP_WINDOW_ERASE, 0,
+                OP_WINDOW_ERASE, 1,
+                OP_DONE
+            ]
+        );
+        // The picture is not shown, and nothing says it is lost: the
+        // window is it.
+        assert!(
+            losses.iter().all(|l| l.kind != "picture-not-shown"),
+            "{losses:?}"
+        );
+    }
+
+    #[test]
+    fn an_erase_of_a_picture_no_window_stands_in_for_is_only_the_pictures() {
+        let (game, _) = with_windows();
+        let (code, _) = losses_on_a_map(&game, &[cmd(ERASE_PICTURE, &[8], "")]);
+        assert!(!code.unwrap().contains(&OP_WINDOW_ERASE));
     }
 }

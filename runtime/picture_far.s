@@ -87,6 +87,9 @@ palettes:
 .a8
     jsl f:picc_clear            ; and the common events' set in VRAM
     jsr big_clear               ; and the big one: see big_picture.s
+.ifdef SHOW_WINDOW_SLOTS
+    jsl f:sw_clear              ; and the windows, which RM2k's pictures are
+.endif
     rtl
 .endproc
 

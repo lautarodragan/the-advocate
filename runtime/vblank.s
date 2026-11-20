@@ -346,6 +346,12 @@ no_finished:
     sta HDMAEN
     bra on
 no_window:
+.ifdef SHOW_WINDOW_SLOTS
+    ; Or the game's windows, which take the window's HDMA when no message
+    ; does: see show_window.s.
+    jsl f:sw_vblank
+    bcs on
+.endif
     ; Only while the vblank lasts, as when the window turns on: turned off
     ; in the middle of a frame, a face's channel would leave its colours in
     ; palette 1 —the map's— without the lines that put the map's back. The

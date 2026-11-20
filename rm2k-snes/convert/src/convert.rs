@@ -1882,6 +1882,13 @@ pub fn run(options: Options) -> Result<()> {
         &game.db.common_events,
         &file_commands,
     ));
+    // And how many windows the game's `ShowWindow`s name, which the runtime
+    // keeps a slot for each: see `scan::window_slots`.
+    request["window_slots"] = json!(scan::window_slots(
+        every_refs.iter().copied(),
+        &game.db.common_events,
+        &file_commands,
+    ));
     // And the common events' small pictures, by set: see
     // [`crate::common_pictures`]. Only when there are some.
     if !common_small.emit.is_empty() {
