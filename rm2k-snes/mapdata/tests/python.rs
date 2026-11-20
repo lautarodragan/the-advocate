@@ -1902,6 +1902,17 @@ fn without_terrain_damage(text: &str) -> String {
 
 /// The text without the sandstorm's type, which the header names since
 /// 2026-11-02, when the runtime started drawing it.
+/// The text without the NPCs' priorities by layer, which the header names
+/// since 2026-11-20 for the page of a walking row.
+fn without_npc_priorities(text: &str) -> String {
+    let lines = "; An event's object priority by its page's layer —above the hero, or\n\
+                 ; any other—, which an NPC row's attributes already carry: the page\n\
+                 ; of a walking row sets it from these. See `page_graphic`.\n\
+                 LAYER_ABOVE = 2\nNPC_PRIORITY = $10\nNPC_PRIORITY_ABOVE = $20\n";
+    assert!(text.contains(lines), "no NPC priorities as written");
+    text.replacen(lines, "", 1)
+}
+
 fn without_weather_sand(text: &str) -> String {
     let lines = "; And the sandstorm's type: see sandstorm.s.\nWEATHER_SAND  = 4\n";
     assert!(text.contains(lines), "no sandstorm type as written");
@@ -2062,7 +2073,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&text))),
+                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&without_npc_priorities(&text)))),
                                         )),
                                     )),
                                 )),
@@ -2108,7 +2119,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
                                 &without_actor_level(&with_two_pan_operations_as_before(
                                     &without_wrap_and_grid_narrow(&without_song_levels(
                                         &with_the_route_table_as_before(&without_common_pictures(
-                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&text))),
+                                            &without_terrain_damage(&without_weather_sand(&without_grid_top(&without_npc_priorities(&text)))),
                                         )),
                                     )),
                                 )),
