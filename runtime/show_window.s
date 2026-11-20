@@ -1144,7 +1144,7 @@ other:
     sep #$20
 .a8
     bcs no_draw
-    CALL0 compose_char
+    jsl f:compose_char_far      ; the message window's letter: messages.s
     jsl f:msg_ink_char
 no_draw:
     rep #$20
