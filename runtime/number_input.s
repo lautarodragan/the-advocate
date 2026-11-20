@@ -37,11 +37,12 @@ NUMBER_CURSOR = '>' - 32
 ; narrower than a ">", and the digits would move with the cursor.
 NUMBER_BLANK  = 127 - 32
 
-; `op_number`, opening: Y on its operands —the variable's slot and how many
-; digits— and it comes back with Y on the box, which `op_message` takes from
-; there. Leaves `NUMBER_LINE` with all the digits at zero and the cursor on
-; the last one, and `pick_cancel` at zero: the line is not drawn until the
-; message's lines are.
+; `op_number`, opening: Y on its operands —the variable's slot, how many
+; digits and its high word's slot— and it comes back with Y on the box, which
+; `op_message` takes from there. Leaves `NUMBER_LINE` with all the digits at
+; zero and the cursor on the last one, and `pick_cancel` at zero: the line is
+; not drawn until the message's lines are. An `InputNumber` on its own has a
+; box with no lines, and its digits go on the first.
 .proc number_open
 .a8
 .i16
@@ -55,6 +56,7 @@ NUMBER_BLANK  = 127 - 32
     iny
     lda [code_ptr], y           ; how many digits
     iny
+    iny                         ; past the high word's slot
     sta pick_n
     dec a
     sta pick_sel                ; `ResetIndex`: the last digit
@@ -142,12 +144,12 @@ put:
     rts
 .endproc
 
-; The number on the line, in `NUMBER_VALUE`: **saturated at 65535**, because
-; the variables are sixteen bits. Six digits go up to 999999, and saturating
-; is what keeps a number that does not fit from being equal to one that does
-; —wrapping around, 100957 would be 35421, Drust Camp's password—. That is why
-; the compiler does not take 65535 for an "equal": it would also be every
-; number above it.
+; The number on the line, whole, in the four bytes of `NUMBER_VALUE`: seven
+; digits are at most 9999999, which is 24 bits. Each step is times ten —times
+; eight plus times two, each long shifted a word at a time, the carry going
+; from the low word into the high one— plus the digit.
+;
+; What goes into a sixteen-bit variable is saturated, by `number_tick`.
 .proc number_value
 .a8
 .i16
@@ -155,26 +157,44 @@ put:
 .a16
     lda #0
     sta f:NUMBER_VALUE
+    sta f:NUMBER_VALUE + 2
     ldx #0
 other:
+    lda f:NUMBER_VALUE          ; `lda` and `sta` leave the carry as it is
+    asl a
+    sta f:NUMBER_TWICE
+    lda f:NUMBER_VALUE + 2
+    rol a
+    sta f:NUMBER_TWICE + 2      ; times two
+    lda f:NUMBER_TWICE
+    asl a
+    sta f:NUMBER_VALUE
+    lda f:NUMBER_TWICE + 2
+    rol a
+    sta f:NUMBER_VALUE + 2      ; times four
     lda f:NUMBER_VALUE
-    cmp #6554                   ; times ten would go past 65535
-    bcs saturates
     asl a
-    sta f:NUMBER_VALUE          ; times two
-    asl a
-    asl a                       ; times eight
+    sta f:NUMBER_VALUE
+    lda f:NUMBER_VALUE + 2
+    rol a
+    sta f:NUMBER_VALUE + 2      ; times eight
+    lda f:NUMBER_VALUE
     clc
-    adc f:NUMBER_VALUE
-    sta f:NUMBER_VALUE          ; times ten
+    adc f:NUMBER_TWICE
+    sta f:NUMBER_VALUE
+    lda f:NUMBER_VALUE + 2
+    adc f:NUMBER_TWICE + 2
+    sta f:NUMBER_VALUE + 2      ; times ten
     lda f:NUMBER_LINE + 2, x    ; the digit, and the next cursor in B
     and #$00FF
     sec
     sbc #NUMBER_ZERO
     clc
     adc f:NUMBER_VALUE
-    bcs saturates               ; 6553 times ten plus 6 or more
     sta f:NUMBER_VALUE
+    lda f:NUMBER_VALUE + 2
+    adc #0
+    sta f:NUMBER_VALUE + 2
     inx
     inx
     sep #$20
@@ -184,13 +204,6 @@ other:
     rep #$20
 .a16
     bne other                   ; `rep` does not touch Z
-    sep #$20
-.a8
-    rts
-saturates:
-.a16
-    lda #$FFFF
-    sta f:NUMBER_VALUE
     sep #$20
 .a8
     rts
@@ -284,6 +297,39 @@ no_left:
     lda pad_a_prev
     bne nothing                 ; it was already held: not an edge
     jsr number_value
+    ldy pick_table
+    lda [code_ptr], y           ; the variable's slot
+    iny
+    iny
+    cmp [code_ptr], y           ; and its high word's
+    beq narrow
+    ; A wide variable —see `OP_IF_WIDE`—: the high word to its own slot, and
+    ; the number goes whole.
+    lda [code_ptr], y
+    rep #$20
+.a16
+    and #VAR_SLOT
+    asl a
+    tax
+    lda f:NUMBER_VALUE + 2
+    sta f:FAR_LENGTH + FAR_VARIABLES, x
+    bra low
+narrow:
+.a8
+    ; **Saturated at 65535**, because the variable is sixteen bits: seven
+    ; digits go up to 9999999, and saturating is what keeps a number that
+    ; does not fit from being equal to one that does —wrapping around, 100957
+    ; would be 35421, Drust Camp's password—. That is why the compiler does
+    ; not take 65535 for an "equal": it would also be every number above it.
+    rep #$20
+.a16
+    lda f:NUMBER_VALUE + 2
+    beq low
+    lda #$FFFF
+    sta f:NUMBER_VALUE
+low:
+    sep #$20
+.a8
     ldy pick_table
     lda [code_ptr], y           ; the variable's slot
     rep #$20
@@ -467,3 +513,128 @@ ready:
 alone:
     rtl
 .endproc
+
+; --- `OP_IF_WIDE`: a wide variable against a constant ---------------------------
+;
+; A wide variable is one the game compares with a number sixteen bits do not
+; hold, and does nothing else with but `InputNumber`: Desert Nightmare's safes,
+; 71456 and 136264. It lives in two slots, its low word in its own and its high
+; word in one the converter puts after every other, and `number_tick` writes
+; the two —see `wide` in the event compiler's indices—. Here it is compared as
+; a signed 32-bit number with the constant, which comes in 24 bits and is
+; sign-extended.
+;
+; The comparison is RM2k's, `==` `>=` `<=` `>` `<` `!=`, and `WIDE_HOLDS` says
+; for each which outcomes make it hold.
+;
+; In `FAR3`, and not in bank 1 with the rest of this file: it calls nothing
+; here, and Desert Nightmare's bank 1 has no room. Only in a cartridge with a
+; wide variable —`WIDE_VARIABLES`, from the converter—: Zounds' `FAR3` has
+; no room either, and no wide variable.
+
+.if ::WIDE_VARIABLES > 0
+.pushseg
+.segment "FARBSS"
+WIDE_DIFFERENCE: .res 4         ; the variable, and then it minus the constant
+WIDE_HIGH:       .res 2         ; the constant's high word, sign-extended
+.popseg
+
+.pushseg
+.segment "FAR3"
+
+WIDE_GREATER = 1
+WIDE_LESS    = 2
+WIDE_EQUAL   = 4
+WIDE_HOLDS:
+    .byte WIDE_EQUAL                    ; ==
+    .byte WIDE_GREATER | WIDE_EQUAL     ; >=
+    .byte WIDE_LESS | WIDE_EQUAL        ; <=
+    .byte WIDE_GREATER                  ; >
+    .byte WIDE_LESS                     ; <
+    .byte WIDE_GREATER | WIDE_LESS      ; !=
+
+; Y on the operands —the two slots, the comparison and the value— and it
+; comes back with Y on the destination and the carry set when the condition
+; holds. Called from `op_if_wide`, in bank 0.
+.proc wide_compare
+.a8
+.i16
+    lda [code_ptr], y           ; the low word's slot
+    iny
+    rep #$20
+.a16
+    and #VAR_SLOT
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    sta f:WIDE_DIFFERENCE
+    sep #$20
+.a8
+    lda [code_ptr], y           ; the high word's
+    iny
+    rep #$20
+.a16
+    and #VAR_SLOT
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    sta f:WIDE_DIFFERENCE + 2
+    lda [code_ptr], y           ; the comparison, and the value's low byte in B
+    and #$00FF
+    tax
+    iny                         ; Y on the value
+    iny
+    iny
+    lda [code_ptr], y           ; its top byte, and the destination's in B
+    and #$00FF
+    cmp #$0080
+    bcc positive
+    ora #$FF00
+positive:
+    sta f:WIDE_HIGH
+    dey
+    dey                         ; back on the value's low word
+    lda f:WIDE_DIFFERENCE
+    sec
+    sbc [code_ptr], y
+    sta f:WIDE_DIFFERENCE
+    lda f:WIDE_DIFFERENCE + 2
+    sbc f:WIDE_HIGH
+    sta f:WIDE_DIFFERENCE + 2
+    ; Less is the sign of the difference, unless it overflowed: N xor V.
+    bvc signed
+    eor #$8000
+signed:
+    sep #$20
+.a8
+    iny
+    iny
+    iny                         ; Y on the destination
+    lda #WIDE_LESS
+    xba                         ; the sign's byte in A, and "less" in B
+    bmi outcome
+    rep #$20
+.a16
+    lda f:WIDE_DIFFERENCE
+    ora f:WIDE_DIFFERENCE + 2
+    sep #$20
+.a8
+    bne greater                 ; `sep` does not touch Z
+    lda #WIDE_EQUAL
+    bra put
+greater:
+    lda #WIDE_GREATER
+    bra put
+outcome:
+    xba                         ; "less"
+put:
+    and f:WIDE_HOLDS, x
+    beq no
+    sec
+    rtl
+no:
+    clc
+    rtl
+.endproc
+.popseg
+.endif

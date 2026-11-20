@@ -220,9 +220,14 @@ bytecode! {
     /// `InputNumber`, together with the `ShowMessage` right before it: the box
     /// `window` opens with its lines and, on the line below them, `digits` digits
     /// the player changes one at a time. A writes the number to the variable at
-    /// `slot`, saturated at 65535 —the variables are sixteen bits—, and the page
-    /// goes on.
-    OP_NUMBER = 0x38 (slot: byte, digits: byte, window: word);
+    /// `slot`, and the page goes on. An `InputNumber` on its own is the same with
+    /// a box of no lines: the digits go on the first.
+    ///
+    /// `high` is the slot of the variable's high word when it is a wide one
+    /// —see `OP_IF_WIDE`—, and the number goes whole into the two; otherwise it
+    /// is `slot` again, and the number goes saturated at 65535, as the
+    /// variables are sixteen bits.
+    OP_NUMBER = 0x38 (slot: byte, digits: byte, high: byte, window: word);
 
     /// `ChangeSystemBGM` for the battle (`slot` 0) and the victory (1): the song
     /// the next battle plays instead of the database's, with its level, in
@@ -464,6 +469,22 @@ bytecode! {
     )
         repeated options (window: word, destination: word);
 
+    /// `ConditionalBranch` on a **wide** variable against a constant: its low
+    /// word in `low` and its high word in `high`, two slots, compared as a
+    /// signed 32-bit number with `value`, which is 24 and goes sign-extended
+    /// —RM2k's constants reach 9,999,999, and a game that compares with one
+    /// past 8,388,607 does not compile—; `comparison` is RM2k's —`==` `>=`
+    /// `<=` `>` `<` `!=`— and the cursor goes to `destination` when it does
+    /// not hold, as `OP_IF_VAR`. A variable is wide when the game compares
+    /// it with a number sixteen bits do not hold and does nothing with it
+    /// but an `InputNumber` and branches like this: Desert Nightmare's
+    /// safes. See `wide` in the event compiler's indices, and `op_if_wide`
+    /// in the runtime's `interpreter_conditions.s`.
+    OP_IF_WIDE = 0x58 (
+        low: byte, high: byte, comparison: byte, value: signed long,
+        destination: word,
+    );
+
     /// RPG Maker 2000 PLUS's `ShowWindow`, a `Comment` that starts with
     /// `@window`: window `slot` up —its place among the game's window ids,
     /// lowest first, which is also the order they are drawn in—, at cell
@@ -474,14 +495,14 @@ bytecode! {
     /// widest text on that line of that window, so a window shown again
     /// with other text lands on the same tiles. A window up again replaces
     /// what it showed. See `op_window` in the runtime's `show_window.s`.
-    OP_WINDOW = 0x58 (
+    OP_WINDOW = 0x59 (
         slot: byte, x: byte, y: byte, w: byte, h: byte, style: byte,
         tiles: byte, length: count byte,
     )
         repeated lines (box: word, cells: byte);
 
     /// Window `slot` down, and the layer above back where it was.
-    OP_WINDOW_ERASE = 0x59 (slot: byte);
+    OP_WINDOW_ERASE = 0x5A (slot: byte);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and

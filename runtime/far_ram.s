@@ -1174,16 +1174,19 @@ CACHE_MAX    = 32
 ; and two letters per digit, the cursor's column and the digit itself, in the
 ; font's numbering. `msg_ptr` points here while the line is being composed, and
 ; the digits the player has entered are the ones on it: there is no other copy.
-; And the number, once A is pressed, before it goes to the variable.
+; And the number, once A is pressed, before it goes to the variable: 32 bits,
+; as seven digits go past sixteen, and the number times two while it is
+; worked out.
 ;
 ; **They do not travel in the save**: an open number input is a
 ; page blocked in the middle, which the save does not keep either.
 .pushseg
 .segment "FARBSS"
-NUMBER_LINE: .res $10             ; 1 + 2 * NUMBER_DIGITS_MAX bytes
+NUMBER_LINE: .res $18             ; 1 + 2 * NUMBER_DIGITS_MAX bytes, and two longs
 .popseg
-NUMBER_VALUE = NUMBER_LINE + $0E             ; word
-NUMBER_DIGITS_MAX = 6
+NUMBER_VALUE = NUMBER_LINE + $10             ; four bytes
+NUMBER_TWICE = NUMBER_LINE + $14             ; four bytes
+NUMBER_DIGITS_MAX = 7
 .assert NUMBER_LINE + 1 + 2 * NUMBER_DIGITS_MAX <= NUMBER_VALUE, error, "the digits' line overflows"
 
 ; --- the battle animation frame, in far RAM ---------------------------------
