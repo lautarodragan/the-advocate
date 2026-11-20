@@ -1051,23 +1051,29 @@ pub fn font_reach_with(font: &Font, letters: &[char]) -> Vec<u8> {
         .collect()
 }
 
-/// The window's glyphs already composed, for each of the eight phases a
-/// character can land on: with a variable-width font a letter starts at
-/// any column of a cell. Until 2026-10-03 there were four —x was the
-/// border plus six times the column, so modulo 8 it gave 0, 6, 4 or 2 and
-/// never anything else—. Per glyph and phase go the cell rows it touches
-/// —its twelve, and one more of shadow— and per row the two cells it can
-/// step on, each with three words: what is kept of what is there, and what
-/// is set in planes 0-1 and in 2-3. The cartridge does
-/// `buf = buf & keep | set`.
+/// The glyphs already shifted, for each of the eight phases a character
+/// can land on: with a variable-width font a letter starts at any column of
+/// a cell. Until 2026-10-03 there were four —x was the border plus six
+/// times the column, so modulo 8 it gave 0, 6, 4 or 2 and never anything
+/// else—. Per glyph and phase go the cell rows it touches —its twelve, and
+/// one more of shadow— and per row the two cells it can step on, each with
+/// two words: the pixels it inks —glyph and shadow— and, of those, the
+/// glyph's, each byte twice, so that a word masks two planes at once.
+///
+/// **There is no colour in them**, and that is what makes one table serve
+/// every writer: until 2026-11-20 there were three, the message window's,
+/// the text screens' and the slot bank's, each with its words already
+/// coloured for its palette —what is kept, and what is set in planes 0-1
+/// and 2-3— and 364 KB between them in every cartridge. The colour is put
+/// in by the writer as it composes, from [`FontInk`]: see `ink_cell` in the
+/// runtime's `font_ink.inc`.
 ///
 /// The shadow and the glyph come already combined, with `Font::Render`'s
 /// order: on a row land the glyph and the shadow of the row above, shifted
 /// one pixel, and where they overlap the glyph wins.
 ///
-/// `source` is [`font_bytes`], `colors` the palette index of each glyph
-/// row and `shadow` the shadow's. The eight tables, one per phase.
-pub fn font_prerender(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> {
+/// `source` is [`font_bytes`]. The eight tables, one per phase.
+pub fn font_prerender(source: &[u8]) -> Vec<Vec<u8>> {
     let glyphs = source.len() / FONT_HEIGHT;
     let mut tables = Vec::new();
     for phase in 0u32..FONT_PHASES as u32 {
@@ -1077,28 +1083,13 @@ pub fn font_prerender(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> 
             let run: Vec<u32> = rows.iter().map(|&f| ((f as u32) << 8) >> phase).collect();
             for k in 0..FONT_PRE_ROWS {
                 let glyph = if k < FONT_HEIGHT { run[k] } else { 0 };
-                let color = if k < FONT_HEIGHT { colors[k] as u32 } else { 0 };
-                let mut shadow_m = if k >= 1 { run[k - 1] >> 1 } else { 0 };
-                shadow_m &= !glyph & 0xFFFF;
+                let above = if k >= 1 { run[k - 1] >> 1 } else { 0 };
+                let shadow = above & !glyph & 0xFFFF;
                 for cell in 0..2 {
                     let shift = if cell == 0 { 8 } else { 0 };
                     let g = (glyph >> shift) & 0xFF;
-                    let s = (shadow_m >> shift) & 0xFF;
-                    let keep = !((g | s) * 0x0101) & 0xFFFF;
-                    let mut words = vec![keep];
-                    for bits in [0u32, 2] {
-                        let mut word = 0u32;
-                        for (m, col) in [(g, color), (s, shadow as u32)] {
-                            if col >> bits & 1 != 0 {
-                                word |= m;
-                            }
-                            if col >> (bits + 1) & 1 != 0 {
-                                word |= m << 8;
-                            }
-                        }
-                        words.push(word);
-                    }
-                    for word in words {
+                    let s = (shadow >> shift) & 0xFF;
+                    for word in [(g | s) * 0x0101, g * 0x0101] {
                         out.push((word & 0xFF) as u8);
                         out.push((word >> 8) as u8);
                     }
@@ -1110,9 +1101,143 @@ pub fn font_prerender(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> 
     tables
 }
 
+/// The palette index each row of a glyph takes and its shadow's: what one
+/// writer puts in the colour-free glyphs of [`font_prerender`]. The
+/// message window's is its gradient, the text screens' their inks' shared
+/// layout, the slot bank's its palette's.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FontInk {
+    /// Row k of the glyph, the twelve of them.
+    pub rows: Vec<u8>,
+    pub shadow: u8,
+}
+
+impl FontInk {
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({"rows": self.rows, "shadow": self.shadow})
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The tables as they were until 2026-11-20, coloured for one writer:
+    /// per cell row what is kept, and what is set in planes 0-1 and 2-3.
+    fn coloured(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> {
+        let glyphs = source.len() / FONT_HEIGHT;
+        let mut tables = Vec::new();
+        for phase in 0u32..FONT_PHASES as u32 {
+            let mut out = Vec::new();
+            for c in 0..glyphs {
+                let rows = &source[c * FONT_HEIGHT..(c + 1) * FONT_HEIGHT];
+                let run: Vec<u32> = rows.iter().map(|&f| ((f as u32) << 8) >> phase).collect();
+                for k in 0..FONT_PRE_ROWS {
+                    let glyph = if k < FONT_HEIGHT { run[k] } else { 0 };
+                    let color = if k < FONT_HEIGHT { colors[k] as u32 } else { 0 };
+                    let mut shadow_m = if k >= 1 { run[k - 1] >> 1 } else { 0 };
+                    shadow_m &= !glyph & 0xFFFF;
+                    for cell in 0..2 {
+                        let shift = if cell == 0 { 8 } else { 0 };
+                        let g = (glyph >> shift) & 0xFF;
+                        let s = (shadow_m >> shift) & 0xFF;
+                        let keep = !((g | s) * 0x0101) & 0xFFFF;
+                        let mut words = vec![keep];
+                        for bits in [0u32, 2] {
+                            let mut word = 0u32;
+                            for (m, col) in [(g, color), (s, shadow as u32)] {
+                                if col >> bits & 1 != 0 {
+                                    word |= m;
+                                }
+                                if col >> (bits + 1) & 1 != 0 {
+                                    word |= m << 8;
+                                }
+                            }
+                            words.push(word);
+                        }
+                        for word in words {
+                            out.push((word & 0xFF) as u8);
+                            out.push((word >> 8) as u8);
+                        }
+                    }
+                }
+            }
+            tables.push(out);
+        }
+        tables
+    }
+
+    /// A colour's mask over planes `low` and `low + 1`: font_ink.s's
+    /// `INK_PLANES01` and `INK_PLANES23`.
+    fn planes(color: u8, low: u32) -> u32 {
+        (u32::from(color) >> low & 1) * 0x00FF | (u32::from(color) >> (low + 1) & 1) * 0xFF00
+    }
+
+    /// The colour-free tables, painted over any buffer with font_ink.s's
+    /// formula, give what the coloured ones gave: what is kept of the
+    /// buffer, and what is set, for every glyph, phase, row and writer —the
+    /// window's gradient, the screens' layout, a palette by use—.
+    #[test]
+    fn the_colour_put_in_as_it_composes_is_the_one_that_was_precomposed() {
+        let f = Font::named("low-variable", font::MINCHO).unwrap();
+        let source = font_bytes_with(&f, &['é', 'ñ']).unwrap();
+        let mono = font_prerender(&source);
+        assert_eq!(
+            mono[0].len(),
+            source.len() / FONT_HEIGHT * crate::layout::FONT_PRE_CHAR
+        );
+        let inks = [
+            FontInk {
+                rows: vec![12, 12, 11, 10, 10, 9, 9, 10, 10, 11, 12, 12],
+                shadow: 2,
+            },
+            crate::items::screens_ink(),
+            FontInk {
+                rows: vec![5, 5, 4, 2, 2, 3, 3, 2, 2, 4, 5, 5],
+                shadow: 1,
+            },
+            FontInk {
+                rows: vec![15; 12],
+                shadow: 15,
+            },
+            FontInk {
+                rows: vec![0; 12],
+                shadow: 9,
+            },
+        ];
+        let word = |t: &[u8], at: usize| u32::from(t[at]) | u32::from(t[at + 1]) << 8;
+        for ink in &inks {
+            let old = coloured(&source, &ink.rows, ink.shadow);
+            for (phase, (new, old)) in mono.iter().zip(&old).enumerate() {
+                assert_eq!(new.len() / 4, old.len() / 6);
+                for cell in 0..new.len() / 4 {
+                    let k = (cell / 2) % FONT_PRE_ROWS;
+                    // The thirteenth row has no glyph: font_ink.s paints it
+                    // in the shadow's colour, which is the same.
+                    let color = if k < FONT_HEIGHT {
+                        ink.rows[k]
+                    } else {
+                        ink.shadow
+                    };
+                    let (i, g) = (word(new, cell * 4), word(new, cell * 4 + 2));
+                    let keep = word(old, cell * 6);
+                    assert_eq!(!i & 0xFFFF, keep, "phase {phase}, cell {cell}");
+                    for (pair, low) in [0u32, 2].into_iter().enumerate() {
+                        let (cm, sm) = (planes(color, low), planes(ink.shadow, low));
+                        let set = word(old, cell * 6 + 2 + 2 * pair);
+                        for buf in [0u32, 0xFFFF, 0x5A3C] {
+                            let painted = ((buf ^ sm) & !i) ^ ((g & (cm ^ sm)) ^ sm);
+                            assert_eq!(
+                                painted & 0xFFFF,
+                                buf & keep | set,
+                                "phase {phase}, cell {cell}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /// The letters the boxes draw go after the console's 96 glyphs, each
     /// with its rows and its reach; one the font lacks is refused.

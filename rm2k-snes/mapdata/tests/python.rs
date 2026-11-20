@@ -181,6 +181,15 @@
 //! addresses, which the runtime checks against the linker's, and the room
 //! a painted map's grid has before its queue: seven more lines, which it
 //! takes away too.
+//!
+//! On 2026-11-20 the font went from three coloured copies —the window's
+//! `font_pre`, the screens' `scr_pre`, the menu bank's `slot_pre`— to one,
+//! colour-free, `font_pre`, with each writer's colours as constants:
+//! `with_one_font` makes the requests the stage's new answer —the window's
+//! made-up tables as the one font, the window's own colours, made-up ones
+//! for the other two— and `with_three_fonts_as_before` takes the constants
+//! away and puts the two old tables back where they went, from the same
+//! requests; with it the text is the old one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -311,7 +320,79 @@ fn emit_request_with(name: &str, cursor: usize) -> Emit {
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
     with_the_actor_choice_on_top(&mut value["screens"]);
+    with_one_font(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
+}
+
+/// The screens stage's answer as it is since 2026-11-20: one font,
+/// colour-free —here the window's made-up tables—, and the colours each
+/// writer puts in it: the window's are its own, the screens' and the menu
+/// bank's made up. See [`with_three_fonts_as_before`].
+fn with_one_font(screens: &mut serde_json::Value) {
+    let window = &mut screens["window"];
+    let tables = window["prerender"].take();
+    window["font_ink"] = serde_json::json!({
+        "rows": window["color"].clone(),
+        "shadow": window["shadow"].clone(),
+    });
+    screens["font"] = serde_json::json!({"prerender": tables, "letters_at": 96});
+    for part in ["slots", "text_inks"] {
+        screens[part]["prerender"].take();
+        screens[part]["font_ink"] =
+            serde_json::json!({"rows": (1..=12).collect::<Vec<_>>(), "shadow": 13});
+    }
+}
+
+/// The text with the screens' and the menu bank's coloured font tables of
+/// before 2026-11-20 back, from request `name`'s, and without the one
+/// font's constants: what [`with_one_font`] changed.
+fn with_three_fonts_as_before(text: &str, name: &str) -> String {
+    let request: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(here().join(format!("tests/emit-{name}.json"))).unwrap(),
+    )
+    .unwrap();
+    let tables = |label: &str, phases: &serde_json::Value| -> String {
+        phases
+            .as_array()
+            .unwrap()
+            .iter()
+            .enumerate()
+            .map(|(phase, t)| {
+                let bytes = rm2k_snes_mapdata::json::bytes(t).unwrap();
+                rm2k_snes_mapdata::asm::block(&format!("{label}{phase}"), &bytes) + "\n"
+            })
+            .collect()
+    };
+    let mut text = text.to_string();
+    let start = text
+        .find("; The console's glyphs, and where a box's letter k is: glyph\n")
+        .expect("the font's constants");
+    let last = start + text[start..].find("SLOT_INK_SHADOW = ").unwrap();
+    let end = last + text[last..].find('\n').unwrap() + 1;
+    assert_eq!(
+        &text[end..end + 1],
+        "\n",
+        "the blank line after the constants"
+    );
+    text.replace_range(start..end + 1, "");
+    // The bank's, right after its tiles.
+    let tiles = text.find("\nslot_tiles:\n").expect("slot_tiles") + 1;
+    let mut after = tiles + text[tiles..].find('\n').unwrap() + 1;
+    while text[after..].starts_with("    .byte ") {
+        after += text[after..].find('\n').unwrap() + 1;
+    }
+    text.insert_str(
+        after,
+        &tables("slot_pre", &request["screens"]["slots"]["prerender"]),
+    );
+    // The screens', right before `font_advance`'s block.
+    let advance = text.find("\nfont_advance:\n").expect("font_advance");
+    let declaration = text[..advance].rfind('\n').unwrap() + 1;
+    text.insert_str(
+        declaration,
+        &tables("scr_pre", &request["screens"]["text_inks"]["prerender"]),
+    );
+    text
 }
 
 /// The text without the `ITEM_TEXT_MORE` line, which came on 2026-11-02
@@ -757,11 +838,12 @@ fn with_the_shop_party(screens: &mut serde_json::Value) {
 /// cells, checked here to be the made-up ones of
 /// [`with_the_system_cursors`].
 fn with_the_cursors_as_before(text: &str, name: &str) -> String {
-    let with_cursor = without_layer_texts(
+    let with_cursor = without_layer_texts(&with_three_fonts_as_before(
         &rm2k_snes_mapdata::emit::emit(&emit_request_with(name, 1), &db())
             .unwrap()
             .text,
-    );
+        name,
+    ));
     let request: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(here().join(format!("tests/emit-{name}.json"))).unwrap(),
     )
@@ -1955,7 +2037,8 @@ fn with_one_font_table_as_before(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted.text), "bare"));
+    let emitted_text = with_three_fonts_as_before(&emitted.text, "bare");
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted_text), "bare"));
     let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
@@ -2000,7 +2083,8 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted.text), "whole"));
+    let emitted_text = with_three_fonts_as_before(&emitted.text, "whole");
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted_text), "whole"));
     let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
@@ -2099,6 +2183,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
     with_the_actor_choice_on_top(&mut value["screens"]);
+    with_one_font(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -2345,6 +2430,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     with_the_menu_list(&mut value["screens"]);
     with_the_menu_states(&mut value["screens"]);
     with_the_actor_choice_on_top(&mut value["screens"]);
+    with_one_font(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 

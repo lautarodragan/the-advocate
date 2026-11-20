@@ -71,12 +71,15 @@
 ; 2026-10-03 with fourteen items, four frames for a step of the cursor and
 ; six for a step that scrolls the list —ten rows adopt, two are typeset—.
 ;
-; The letter comes **precomposed**, like the message window's: a table per
-; phase, `scr_pre0` to `scr_pre7`, that says per row what is kept and what is
-; set. The colour is the palette: every ink has the same layout —row k of
-; the glyph is entry 1 + k, the shadow 13—, so one table paints them all.
-; Composing them one bit per pixel, shifted as it went, was measured first:
-; a description of fifty letters took nine frames to show. See `tl_glyph`.
+; The letter comes **already shifted**, like the message window's, from the
+; same table: `font_pre0` to `font_pre7`, one per phase, which says per row
+; what it inks and of that what is the glyph's —see font_ink.s—. The colour
+; is the palette: every ink has the same layout —row k of the glyph is
+; entry 1 + k, the shadow 15—, so one set of colours, `SCR_INK_*`, paints
+; them all. Composing them one bit per pixel, shifted as it went, was
+; measured first: a description of fifty letters took nine frames to show.
+; Until 2026-11-20 the table was the screens' own, already coloured
+; —`scr_pre0` to `scr_pre7`—. See `tl_glyph`.
 ;
 ; **In the 512-wide mode**, mode 5, which only the debug screen asks for
 ; —`tl_hires`—, a cell of the tilemap is 16 of the screen's pixels and two
@@ -169,8 +172,8 @@ TL_G         = TL_VARS + 44     ; where its rows start in `font_table`
 TL_PH        = TL_VARS + 46     ; its phase's shift table
 TL_PS        = TL_VARS + 48     ; and its shadow's, one pixel further
 TL_BASE      = TL_VARS + 50     ; the stage byte of its first column
-TL_G16       = TL_VARS + 52     ; a glyph row, shifted: two cells
-TL_S16       = TL_VARS + 54     ; and its shadow's
+TL_INK_T     = TL_VARS + 52     ; `tl_paint_scr`: what a pair of planes sets
+TL_INK       = TL_VARS + 54     ; and what a cell row inks
 TL_GG        = TL_VARS + 56     ; one cell's, on both bytes of a word
 TL_SS        = TL_VARS + 58
 TL_KEEP      = TL_VARS + 60
@@ -194,7 +197,7 @@ TL_SWITCHED  = TL_NEW + TL_PAIRS ; nonzero: `TL_NEW` has to be cleared
 TL_KEEP_X    = TL_SWITCHED + 2 ; `tl_idle` keeps the caller's X,
 TL_KEEP_Y    = TL_SWITCHED + 4 ; Y
 TL_KEEP_G    = TL_SWITCHED + 6 ; and `comp_glyph`, three bytes
-TL_PRE       = TL_SWITCHED + 10 ; which tables `tl_glyph` reads: 0 the
+TL_PRE       = TL_SWITCHED + 10 ; which colours `tl_glyph` paints: 0 the
                                 ; screens', `TL_SLOT_PRE` the menu bank's
 TL_STRIP_NEXT = TL_SWITCHED + 12 ; `tl_strip`: the next free tile of the bank
 TL_STRIP_CELL = TL_SWITCHED + 14 ; the strip's upper left tilemap word
@@ -282,7 +285,7 @@ TL_PAIR_WORDS = 32
 ; The slot screen's slots `tl_slot_name` keeps a name for.
 TL_SLOTS     = 8
 .assert SRAM_SLOTS_N <= TL_SLOTS, error, "tl_slot_name keeps a name per slot"
-; The menu bank's tables in `scr_pre_lo` and `scr_pre_bk`.
+; The menu bank's colours, `tl_paint_slot`'s, in `TL_PRE`: anything but 0.
 TL_SLOT_PRE  = 16
 ; Where the slot screen's strips go: from the first even tile after the
 ; bank, up to its tilemap; or, if the converter put each screen's text
@@ -2403,48 +2406,6 @@ same_bank:
     rts
 .endproc
 
-; Row K of a glyph in one of its two columns —D 0 the first, 6 the second—,
-; at byte OFS of the column of the stage X points to —rows 2 to 7 of the top
-; tile, then 0 to 6 of the bottom one, as `tl_row_ofs` says—: what is kept
-; and what is set in planes 0-1 and 2-3, from the glyph's data at 12 * K +
-; D. A column it does not touch is $FFFF. A column at a time and not a row
-; at a time since 2026-11-17, when the two columns stopped being side by
-; side in the stage —see `tl_glyph_ring`—: X is loaded once per column and
-; not once per row.
-.macro tl_glyph_cell K, OFS, D
-    ldy #(K * 12 + D)
-    lda [comp_glyph], y
-    cmp #$FFFF
-    beq :+
-    sta TL_KEEP
-    ldy #(K * 12 + D + 2)
-    lda a:OFS, x
-    and TL_KEEP
-    ora [comp_glyph], y
-    sta a:OFS, x
-    ldy #(K * 12 + D + 4)
-    lda a:OFS + 16, x
-    and TL_KEEP
-    ora [comp_glyph], y
-    sta a:OFS + 16, x
-:
-.endmacro
-
-.macro tl_glyph_column D
-    tl_glyph_cell 0, 4, D
-    tl_glyph_cell 1, 6, D
-    tl_glyph_cell 2, 8, D
-    tl_glyph_cell 3, 10, D
-    tl_glyph_cell 4, 12, D
-    tl_glyph_cell 5, 14, D
-    tl_glyph_cell 6, 32, D
-    tl_glyph_cell 7, 34, D
-    tl_glyph_cell 8, 36, D
-    tl_glyph_cell 9, 38, D
-    tl_glyph_cell 10, 40, D
-    tl_glyph_cell 11, 42, D
-    tl_glyph_cell 12, 44, D
-.endmacro
 
 ; Letter `TL_C` at x `TL_X` into the stage as a ring, the rows' way: each
 ; column it inks takes the ring's next slot the first time a letter of the
@@ -2572,16 +2533,16 @@ taken:
     rts
 .endproc
 
-; Letter `TL_C` at x `TL_X` into the stage, from its already composed data:
-; `scr_pre0` to `scr_pre7`, one table per phase, built by `font_prerender`
-; in the screens stage for the inks' shared layout —row k is palette entry
-; 1 + k, the shadow 13—, so one table paints every colour and the palette
-; says which. Per row of the thirteen it touches and per each of the two
-; columns: what is kept of the stage, and what is set in planes 0-1 and in
-; 2-3; a column it does not touch comes with $FFFF and is skipped. It is the
-; message window's `compose_char`, over the stage's columns. Marks the
-; columns it inks. Clobbers `comp_glyph`, which `tl_idle` and `tl_work` keep.
-; A16.
+; Letter `TL_C` at x `TL_X` into the stage, from its already shifted data:
+; `font_pre0` to `font_pre7`, one table per phase, built by
+; `font_prerender` and shared with the message window, in the inks' shared
+; layout —row k is palette entry 1 + k, the shadow 15: `SCR_INK_*`—, so
+; one set of colours paints every ink and the palette says which. Per row
+; of the thirteen it touches and per each of the two columns: what it
+; inks, and of that the glyph's; a column it does not touch comes with 0
+; and is skipped —`tl_paint_scr`—. It is the message window's
+; `compose_char`, over the stage's columns. Marks the columns it inks.
+; Clobbers `comp_glyph`, which `tl_idle` and `tl_work` keep. A16.
 .proc tl_glyph
 .a16
 .i16
@@ -2636,49 +2597,27 @@ taken:
     lda TL_X
     and #$0007
     asl a
-    clc
-    adc TL_PRE                  ; the screens' tables or the menu bank's
     tax
-    lda f:scr_pre_lo, x
+    lda f:font_pre_lo, x
     clc
     adc f:RDMPYL
     sta comp_glyph
     sep #$20
 .a8
-    lda f:scr_pre_bk, x
+    lda f:font_pre_bk, x
     sta comp_glyph + 2
     rep #$20
 .a16
-    ; The thirteen rows of each column, unrolled: each one's place in the
-    ; column is a constant, and so is where its data starts. The second
-    ; column only if it is not the first —`tl_glyph_ring` says so of a
-    ; letter that stays in one—.
+    ; In the screens' inks' colours, or the menu bank's: see `tl_paint_scr`.
     ldx TL_BASE
-    tl_glyph_column 0
-    ldx TL_BASE2
-    cpx TL_BASE
-    bne two
+    lda TL_PRE
+    bne slots
+    jsl f:tl_paint_scr
     rts
-two:
-    tl_glyph_column 6
+slots:
+    jsl f:tl_paint_slot
     rts
 .endproc
-.assert FONT_PRE_ROWS = 13, error, "tl_row_ofs has a place for each of the thirteen rows"
-
-; Where the composed glyphs of each phase start, indexed by twice the phase:
-; that is why the banks go with a padding byte between them.
-; After them, at `TL_SLOT_PRE`, the menu bank's: the same font, for the
-; layout of that bank's text palette.
-scr_pre_lo:
-    .word .loword(scr_pre0), .loword(scr_pre1), .loword(scr_pre2), .loword(scr_pre3)
-    .word .loword(scr_pre4), .loword(scr_pre5), .loword(scr_pre6), .loword(scr_pre7)
-    .word .loword(slot_pre0), .loword(slot_pre1), .loword(slot_pre2), .loword(slot_pre3)
-    .word .loword(slot_pre4), .loword(slot_pre5), .loword(slot_pre6), .loword(slot_pre7)
-scr_pre_bk:
-    .byte ^scr_pre0, 0, ^scr_pre1, 0, ^scr_pre2, 0, ^scr_pre3, 0
-    .byte ^scr_pre4, 0, ^scr_pre5, 0, ^scr_pre6, 0, ^scr_pre7, 0
-    .byte ^slot_pre0, 0, ^slot_pre1, 0, ^slot_pre2, 0, ^slot_pre3, 0
-    .byte ^slot_pre4, 0, ^slot_pre5, 0, ^slot_pre6, 0, ^slot_pre7, 0
 
 ; The row is composed: its old pairs go —`tl_release_row`—, each inked column
 ; takes a free pair, which only it points to, and the tilemap points its two
@@ -3733,8 +3672,8 @@ tl_hi_pre_lo:
 .else
 TL_HI_ADVANCE = font_advance
 TL_HI_REACH   = font_reach
-tl_hi_pre_lo = scr_pre_lo
-tl_hi_pre_bk = scr_pre_bk
+tl_hi_pre_lo = font_pre_lo
+tl_hi_pre_bk = font_pre_bk
 .endif
 
 ; A letter, A16, in the 512-wide mode: `tl_letters`' with its font. The
@@ -3879,44 +3818,6 @@ empty:
 .endproc
 .assert ^TL_STAGE_HI = $7E || ^TL_STAGE_HI = $7F, error, "the wide stage is cleared through WMADD"
 
-; Row K of a glyph, both columns, for the wide stage —`tl_glyph_cell` is
-; the other one's—: X is the stage byte of the glyph's first
-; column of eight, and the data bank the stage's, so the layer's own words go
-; long.
-.macro tl_glyph_row_hi K, OFS
-    ldy #(K * 12)
-    lda [comp_glyph], y
-    cmp #$FFFF
-    beq :+
-    sta f:$7E0000 + TL_KEEP
-    ldy #(K * 12 + 2)
-    lda a:OFS, x
-    and f:$7E0000 + TL_KEEP
-    ora [comp_glyph], y
-    sta a:OFS, x
-    ldy #(K * 12 + 4)
-    lda a:OFS + 16, x
-    and f:$7E0000 + TL_KEEP
-    ora [comp_glyph], y
-    sta a:OFS + 16, x
-:   ldy #(K * 12 + 6)
-    lda [comp_glyph], y
-    cmp #$FFFF
-    beq :+
-    sta f:$7E0000 + TL_KEEP
-    ldy #(K * 12 + 8)
-    lda a:OFS + 64, x
-    and f:$7E0000 + TL_KEEP
-    ora [comp_glyph], y
-    sta a:OFS + 64, x
-    ldy #(K * 12 + 10)
-    lda a:OFS + 80, x
-    and f:$7E0000 + TL_KEEP
-    ora [comp_glyph], y
-    sta a:OFS + 80, x
-:
-.endmacro
-
 ; `tl_glyph` in the wide stage: the letter from the mode's own font's
 ; tables —its pixels are the screen's—, its eight-pixel columns 64 bytes
 ; apart as in the other, and the columns it marks are the tilemap's, of
@@ -3998,19 +3899,8 @@ empty:
     plb
     rep #$20
 .a16
-    tl_glyph_row_hi 0, 4
-    tl_glyph_row_hi 1, 6
-    tl_glyph_row_hi 2, 8
-    tl_glyph_row_hi 3, 10
-    tl_glyph_row_hi 4, 12
-    tl_glyph_row_hi 5, 14
-    tl_glyph_row_hi 6, 32
-    tl_glyph_row_hi 7, 34
-    tl_glyph_row_hi 8, 36
-    tl_glyph_row_hi 9, 38
-    tl_glyph_row_hi 10, 40
-    tl_glyph_row_hi 11, 42
-    tl_glyph_row_hi 12, 44
+    ; Both columns, in the screens' colours: see `tl_paint_hi`.
+    jsl f:tl_paint_hi
     plb
     rtl
 .endproc
@@ -4126,4 +4016,62 @@ more:
     rtl
 .endproc
 .assert TL_QUAD_WORDS = 64, error, "tl_dma_quads puts a quad 64 words apart"
+.popseg
+
+.pushseg
+.segment "FAR4"
+; The letter `tl_glyph_paint` set up, into the stage, with writer P's
+; colours as immediates: the text screens' inks' layout, `tl_paint_scr`, or
+; the menu bank's, `tl_paint_slot`. Font_ink.s's `ink_row_cell` for each of
+; the thirteen rows of each of the two columns, unrolled: X on the first
+; column's stage byte —rows 2 to 7 of the top tile, then 0 to 6 of the
+; bottom one, as `tl_row_ofs` says—, and the second, at `TL_BASE2`, only if
+; it is not the first —`tl_glyph_ring` says so of a letter that stays in
+; one—. Until 2026-11-20 this was in bank 1 and read a table already
+; coloured for the screens or the bank, `tl_glyph_cell`; it is here because
+; a routine per writer did not fit in bank 1. Clobbers X and Y. A16, data
+; bank $7E; `jsl`.
+.macro tl_paint_column P, D
+    .repeat ::FONT_PRE_ROWS, K
+        tl_at .set ((K) < 6) * (4 + 2 * (K)) + ((K) >= 6) * (32 + 2 * ((K) - 6))
+        ink_row_cell P, K, D, a:tl_at, a:tl_at + 16, TL_KEEP, TL_INK, TL_INK_T
+    .endrepeat
+.endmacro
+.macro tl_paint_body P
+    tl_paint_column P, 0
+    ldx TL_BASE2
+    cpx TL_BASE
+    bne two
+    rtl
+two:
+    tl_paint_column P, 1
+    rtl
+.endmacro
+.proc tl_paint_scr
+.a16
+.i16
+    tl_paint_body "SCR"
+.endproc
+.proc tl_paint_slot
+.a16
+.i16
+    tl_paint_body "SLOT"
+.endproc
+.assert FONT_PRE_ROWS = 13, error, "tl_paint_column's rows are six in the top tile and seven in the bottom one"
+
+; The same in the wide stage, for `tl_glyph_hi`: the screens' colours, X
+; on the letter's first column of eight and the second always 64 bytes on,
+; the data bank the stage's —so the layer's own words go long—. Until
+; 2026-11-20 it read a table already coloured, `tl_glyph_row_hi`, in
+; `FAR3`. Clobbers Y. A16; `jsl`.
+.proc tl_paint_hi
+.a16
+.i16
+    .repeat ::FONT_PRE_ROWS, K
+        tl_at .set ((K) < 6) * (4 + 2 * (K)) + ((K) >= 6) * (32 + 2 * ((K) - 6))
+        ink_row_cell "SCR", K, 0, a:tl_at, a:tl_at + 16, f:$7E0000 + TL_KEEP, f:$7E0000 + TL_INK, f:$7E0000 + TL_INK_T
+        ink_row_cell "SCR", K, 1, a:tl_at + 64, a:tl_at + 80, f:$7E0000 + TL_KEEP, f:$7E0000 + TL_INK, f:$7E0000 + TL_INK_T
+    .endrepeat
+    rtl
+.endproc
 .popseg

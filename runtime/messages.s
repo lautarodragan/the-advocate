@@ -808,12 +808,13 @@ fits:
 .endproc
 .popseg
 
-; One character, from its already composed data: `font_pre0` to
-; `font_pre7`, one table per phase, built by `font_prerender` in the
-; converter. For each of the FONT_PRE_ROWS rows and each of the two cells
-; it can touch come three words —what is kept from the buffer, and what is
-; set in planes 0-1 and in 2-3—, so painting is read, mask and write. A cell
-; that touches nothing comes with the mask at $FFFF and is skipped.
+; One character, from its already shifted data: `font_pre0` to `font_pre7`,
+; one table per phase, built by `font_prerender` in the converter and
+; shared with the text screens —see font_ink.s—. For each of the
+; FONT_PRE_ROWS rows and each of the two cells it can touch come two words
+; —what it inks, and of that the glyph's—, and the window's colours go in
+; here, as immediates: `ink_row_cell` with the "MSG" constants. A cell that
+; touches nothing comes with its ink at 0 and is skipped.
 ;
 ; **The edge is checked by `message_tick`**, not by this: here `comp_col`
 ; —x, in pixels— has already arrived as good and the offset that comes from
@@ -825,25 +826,58 @@ fits:
 ; shifted the row one bit at a time up to its phase: about 25 lines per
 ; character, and with MSG_CHARS at 5 it was the most expensive thing in the
 ; frame while a message was being built. taro noticed it in the opening, with
-; rain. The result is the same byte for byte: the order of `Font::Render`
-; —the shadow of a row is overwritten by the glyph of the next— already comes
-; resolved in the tables.
+; rain. The order of `Font::Render` —the shadow of a row is overwritten by
+; the glyph of the next— already comes resolved in the tables.
 ;
-; **The tables are a decision with a number, and it was taken again on
-; 2026-10-03.** With the variable-width font a letter lands on any of the
-; eight columns of a cell, so the precomposed tables went from four phases to
-; eight: 117 KB of ROM. The other way was the font itself, one bit per pixel
-; —1.1 KB, plus 4.5 KB of a table with each row shifted to each phase—, and
-; the colour and the shift done here, letter by letter. Both were written and
-; draw the same window pixel for pixel; measured as `MSG_CHARS` is, over map
-; 6 with the camera scrolling, the one-bit one loses frames from 11 letters
-; per pass —once already with 6— and this one from 20. It costs about twice
-; as much per letter, and 5 would have been left with no margin to speak of.
-; The 117 KB went in: the cartridge is 8 MB.
+; **The tables are a decision with a number, taken three times.** With the
+; variable-width font, on 2026-10-03, a letter lands on any of the eight
+; columns of a cell, so the tables went from four phases to eight. The
+; other way was the font itself, one bit per pixel —1.1 KB, plus 4.5 KB of
+; a table with each row shifted to each phase—, and the colour and the
+; shift done here, letter by letter: measured as `MSG_CHARS` is, over map 6
+; with the camera scrolling, it lost frames from 11 letters per pass
+; —once already with 6— and the coloured tables from 20, so 117 KB of them
+; went in. On 2026-11-20 the cartridge had no room left in Desert
+; Nightmare, and the window's table was one of three copies of the same
+; letters: the shift stayed precomposed, the colour came here, and the
+; rows were unrolled, which takes back more than what the colour costs. What
+; it costs per letter now is in the task
+; `the-font-is-precomposed-three-times`. Unrolled it does not fit in bank 0
+; with room to spare, so it lives in `FAR4` and this is its door: the
+; callers keep their `jsr`.
 .proc compose_char
+    jsl f:compose_char_far
+    rts
+.endproc
+;
+; Where buffer row R starts, as `row_buf_table` says: the top cell row's
+; eight, then the bottom's, a row of the area's tiles further.
+.define MSG_ROW_AT(R) (((R) < 8) * 2 * (R) + ((R) >= 8) * (::WINDOW_TEXT_COLS * 32 + 2 * ((R) - 8)))
+; Row K of the letter, its two cells: X on its cell column in `text_buf`,
+; and `comp_and` and `comp_phase` —read above, free from there— as the
+; scratch `ink_cell` asks for.
+; The row's place goes through a symbol: a `.define`'s call followed by more
+; of an operand, passed down to another macro, takes the rest of the operand
+; as its argument.
+.macro msg_ink_row K
+    msg_at .set MSG_ROW_AT(::TEXT_OFS_Y + K)
+    ink_row_cell "MSG", K, 0, text_buf + msg_at, text_buf + msg_at + 16, comp_and, comp_phase, comp_and + 2
+    ink_row_cell "MSG", K, 1, text_buf + msg_at + 32, text_buf + msg_at + 48, comp_and, comp_phase, comp_and + 2
+.endmacro
+.pushseg
+.segment "FAR4"
+.proc compose_char_far
 .a8
 .i16
     lda comp_char
+.if ::FONT_LETTERS_AT <> ::FONT_CONSOLE_GLYPHS
+    ; A box's letters, past the console's glyphs, are further in the one
+    ; font: the screens' glyphs go before them.
+    cmp #FONT_CONSOLE_GLYPHS
+    bcc console
+    adc #(FONT_LETTERS_AT - FONT_CONSOLE_GLYPHS - 1) ; the carry is set
+console:
+.endif
     sta WRMPYA
     lda #FONT_PRE_CHAR
     sta WRMPYB                  ; starts: what follows gives it the eight cycles
@@ -880,78 +914,15 @@ fits:
 .a8
     lda f:font_pre_bk, x
     sta comp_glyph + 2
-
-    ldy #0
-    lda #(TEXT_OFS_Y * 2)
-    sta comp_row                ; two at a time: it is the index into `row_buf_table`
-row:
     rep #$20
 .a16
-    lda comp_row
-    and #$00FF
-    tax
-    lda f:row_buf_table, x
-    clc
-    adc comp_base
-    tax                         ; X = the buffer byte where the row starts
-    lda [comp_glyph], y
-    cmp #$FFFF
-    beq no_first
-    sta comp_and
-    iny
-    iny
-    lda text_buf, x             ; planes 0 and 1 of the first cell
-    and comp_and
-    ora [comp_glyph], y
-    sta text_buf, x
-    iny
-    iny
-    lda text_buf + 16, x        ; planes 2 and 3
-    and comp_and
-    ora [comp_glyph], y
-    sta text_buf + 16, x
-    iny
-    iny
-    bra second
-no_first:
-    tya
-    clc
-    adc #6
-    tay
-second:
-    lda [comp_glyph], y
-    cmp #$FFFF
-    beq no_second
-    sta comp_and
-    iny
-    iny
-    lda text_buf + 32, x        ; the neighboring cell, one tile further
-    and comp_and
-    ora [comp_glyph], y
-    sta text_buf + 32, x
-    iny
-    iny
-    lda text_buf + 48, x
-    and comp_and
-    ora [comp_glyph], y
-    sta text_buf + 48, x
-    iny
-    iny
-    bra other_row
-no_second:
-    tya
-    clc
-    adc #6
-    tay
-other_row:
+    ldx comp_base
+    .repeat ::FONT_PRE_ROWS, K
+        msg_ink_row K
+    .endrepeat
     sep #$20
 .a8
-    lda comp_row
-    clc
-    adc #2
-    sta comp_row
-    cmp #((TEXT_OFS_Y + FONT_PRE_ROWS) * 2)
-    bcc row
-    rts
+    rtl
 .endproc
+.popseg
 

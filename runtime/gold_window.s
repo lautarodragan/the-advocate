@@ -63,9 +63,9 @@ GOLD_DIGIT: .res 8              ; and its digits, as letters, the last first
 GOLD_X:     .res 2              ; where the next digit to the left ends
 GOLD_AT:    .res 2              ; scratch: a byte of a buffer, or a tile
 GOLD_KEEP:  .res 2              ; scratch: what a glyph's row keeps, a letter
+GOLD_T:     .res 2              ; scratch: what a pair of planes sets
 GOLD_Y:     .res 1              ; scratch: a pixel row, or a count
-GREY_C:     .res 1              ; a greyed row's colour,
-GREY_FLIP:  .res 1              ; the planes its grey flips,
+GREY_FLIP:  .res 1              ; a greyed row's planes its grey flips,
 GREY_SET:   .res 1              ; and the pixels of its glyph in a cell
 .popseg
 ; Rows 1 and 2, with the number: a tenant of `GRID_TOP`, the top of bank
@@ -267,8 +267,8 @@ no:
 ; option, or in the box's colour if it is not 0 —`\c[n]`, see
 ; message_pace.s—: from `message_tick`, with `comp_glyph` and `comp_base` as
 ; it left them. For each of the glyph's twelve rows and the two cells it can
-; step on, the pixels the letter set —not kept, see `font_prerender`— and of
-; the glyph's colour —not the shadow's— have their planes flipped to the
+; step on, the glyph's pixels —not the shadow's: the font's second word,
+; see font_ink.s— have their planes flipped to the
 ; entry `MSG_INK_ROWS` gives that row: the glyph goes over whatever was
 ; there, so its pixels in the buffer are exactly those. And the cells it
 ; touched are noted for a box being typed. Leaves A8, and X and Y anything.
@@ -316,7 +316,6 @@ row:
     sep #$20
 .a8
     lda f:font_color, x
-    sta f:GREY_C
     eor f:MSG_INK_ROWS, x
     sta f:GREY_FLIP
     ; The buffer byte where this row starts, as `compose_char` has it.
@@ -352,25 +351,25 @@ row:
     rtl
 .endproc
 
-; One cell of one glyph row for `msg_ink_char`: Y on its three words in the
+; One cell of one glyph row for `msg_ink_char`: Y on its two words in the
 ; glyph's data —it leaves Y past them—, the buffer byte in `GOLD_AT`, the
-; row's colour and flips in `GREY_C` and `GREY_FLIP`.
+; planes the row's colour flips in `GREY_FLIP`. The glyph's pixels are the
+; second word's, which the font carries apart from its shadow's since
+; 2026-11-20 —see font_ink.s—: until then they were told apart by their
+; colour.
 .proc grey_cell
 .a8
 .i16
-    rep #$20
-.a16
-    lda [comp_glyph], y         ; what is kept: the rest is the letter's
-    iny
-    iny
-    eor #$FFFF
-    sep #$20
-.a8
-    sta f:GREY_SET
     lda f:GREY_FLIP
     beq skip                    ; the grey is the same entry
-    lda f:GREY_SET
+    iny
+    iny
+    lda [comp_glyph], y         ; the glyph's, the low byte of its word
+    iny
+    iny
+    sta f:GREY_SET
     bne set
+    rts
 skip:
     iny
     iny
@@ -378,26 +377,7 @@ skip:
     iny
     rts
 set:
-    ; Of those, the glyph's: each plane's bit as the colour's. Planes 0 and
-    ; 1 are the low and high bytes of the first word, 2 and 3 of the second.
-    ldx #0
-plane:
-    lda f:GREY_C
-    and f:plane_bit, x
-    beq off
-    lda [comp_glyph], y
-    bra matched
-off:
-    lda [comp_glyph], y
-    eor #$FF
-matched:
-    and f:GREY_SET
-    sta f:GREY_SET
-    iny
-    inx
-    cpx #4
-    bne plane
-    ; And the planes that flip, flipped on those pixels, in the buffer.
+    ; The planes that flip, flipped on those pixels, in the buffer.
     phy
     ldx #0
 flip:
@@ -551,12 +531,20 @@ each:
 .endproc
 
 ; Letter A into `GOLD_BUF`, ending at `GOLD_X`, which it moves left by the
-; letter's advance: the window's composed tables, read as `compose_char`
-; reads them, written into the two rows' own layout —eleven tiles a row—.
+; letter's advance: the font, read as `compose_char` reads it and in the
+; window's colours —`msg_ink`—, written into the two rows' own layout
+; —eleven tiles a row—.
 .proc gold_glyph
 .a8
 .i16
     sta f:GOLD_KEEP
+.if ::FONT_LETTERS_AT <> ::FONT_CONSOLE_GLYPHS
+    ; A box's letters are further in the font: see `compose_char`.
+    cmp #FONT_CONSOLE_GLYPHS
+    bcc console
+    adc #(FONT_LETTERS_AT - FONT_CONSOLE_GLYPHS - 1) ; the carry is set
+console:
+.endif
     sta WRMPYA
     lda #FONT_PRE_CHAR
     sta WRMPYB                  ; starts: what follows gives it the cycles
@@ -586,6 +574,13 @@ each:
 .a8
     lda f:font_pre_bk, x
     sta comp_glyph + 2
+    ; And its colours, row by row as the font's data goes.
+    lda #^msg_ink
+    sta comp_and + 2
+    rep #$20
+.a16
+    lda #.loword(msg_ink)
+    sta comp_and
     ; The cell column's first byte, and the number's first pixel row's.
     rep #$20
 .a16
@@ -647,31 +642,41 @@ same_tile:
     rts
 .endproc
 
-; One cell of one row of `gold_glyph`: Y on its three words, which it leaves
-; past them, and `GOLD_AT` on the buffer's byte: what is kept and what is
-; set, in planes 0-1 and, sixteen bytes on, 2-3.
+; One cell of one row of `gold_glyph`: Y on its two words, which it leaves
+; past them, `comp_and` on `msg_ink` and `GOLD_AT` on the buffer's byte:
+; planes 0-1 and, sixteen bytes on, 2-3, with the formula and the colours
+; of font_ink.s —here not as immediates: the gold window is a handful of
+; digits, and this is shorter—.
 .proc gold_cell
 .a8
 .i16
     rep #$20
 .a16
     lda [comp_glyph], y
-    iny
-    iny
-    cmp #$FFFF
     beq none
+    eor #$FFFF
     sta f:GOLD_KEEP
     lda f:GOLD_AT
     tax
+    lda [comp_and], y           ; planes 0-1: the row's colour ^ the shadow's
+    iny
+    iny
+    and [comp_glyph], y
+    eor #MSG_SM01
+    sta f:GOLD_T
     lda f:GOLD_BUF, x
+    eor #MSG_SM01
     and f:GOLD_KEEP
-    ora [comp_glyph], y
+    eor f:GOLD_T
     sta f:GOLD_BUF, x
-    iny
-    iny
+    lda [comp_and], y           ; and 2-3
+    and [comp_glyph], y
+    eor #MSG_SM23
+    sta f:GOLD_T
     lda f:GOLD_BUF + 16, x
+    eor #MSG_SM23
     and f:GOLD_KEEP
-    ora [comp_glyph], y
+    eor f:GOLD_T
     sta f:GOLD_BUF + 16, x
     iny
     iny
@@ -688,6 +693,10 @@ none:
 .a8
     rts
 .endproc
+
+; The window's colours, as `gold_cell` reads them: see `ink_table`.
+msg_ink:
+    ink_table "MSG"
 
 ; The four rows of tiles, one per vblank in which the composer uploads a
 ; line: from `msg_face_vblank`. Rows 0 and 3 from the cartridge, 1 and 2
