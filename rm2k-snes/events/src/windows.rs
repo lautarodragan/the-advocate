@@ -114,12 +114,16 @@ pub fn directive(first: &str, rest: &[String]) -> Result<Option<Directive>> {
         }
         Some(SHOW) => {
             if !(6..=7).contains(&words.len()) {
-                return Err(bad("a window is `@window <id> <x> <y> <w> <h> [plain]`".into()));
+                return Err(bad(
+                    "a window is `@window <id> <x> <y> <w> <h> [plain]`".into()
+                ));
             }
             let style = match words.get(6) {
                 None => Style::Framed,
                 Some(&"plain") => Style::Plain,
-                Some(other) => return Err(bad(format!("{other:?} is not a style: `plain` or nothing"))),
+                Some(other) => {
+                    return Err(bad(format!("{other:?} is not a style: `plain` or nothing")))
+                }
             };
             let shown = Shown {
                 id: number(words[1])?,
@@ -185,7 +189,10 @@ pub fn directives(commands: &[Command]) -> Result<Vec<(usize, Directive)>> {
             while j < commands.len() && commands[j].code == COMMENT_2 {
                 j += 1;
             }
-            let extra: Vec<String> = commands[i + 1..j].iter().map(|c| c.string.clone()).collect();
+            let extra: Vec<String> = commands[i + 1..j]
+                .iter()
+                .map(|c| c.string.clone())
+                .collect();
             if let Some(d) = of_command(&commands[i], &extra)? {
                 out.push((i, d));
             }
@@ -207,7 +214,8 @@ pub fn replaced_pictures(commands: &[Command]) -> Result<Vec<usize>> {
             j += 1;
         }
         if let Some(next) = commands.get(j) {
-            if next.code == SHOW_PICTURE && next.parameters.first().map(|&p| p as i64) == Some(w.id) {
+            if next.code == SHOW_PICTURE && next.parameters.first().map(|&p| p as i64) == Some(w.id)
+            {
                 out.push(j);
             }
         }
@@ -369,7 +377,10 @@ mod tests {
         assert_eq!(directive("just a comment", &[]).unwrap(), None);
         assert!(matches!(
             directive("@window 7 8 8 72 96 plain", &[]).unwrap(),
-            Some(Directive::Show(Shown { style: Style::Plain, .. }))
+            Some(Directive::Show(Shown {
+                style: Style::Plain,
+                ..
+            }))
         ));
     }
 

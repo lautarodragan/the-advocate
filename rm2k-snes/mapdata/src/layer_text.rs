@@ -61,7 +61,12 @@ impl Text {
     /// nothing is baked for them.
     pub fn of(screens: &serde_json::Value) -> Option<Text> {
         let window = screens.get("window")?;
-        if window.get("ink").and_then(serde_json::Value::as_i64).unwrap_or(0) > 0 {
+        if window
+            .get("ink")
+            .and_then(serde_json::Value::as_i64)
+            .unwrap_or(0)
+            > 0
+        {
             return None;
         }
         let cgram: Vec<u16> = window
@@ -223,13 +228,12 @@ pub fn bake(map: &mut Map, text: &Text, reserved: usize) -> Result<Option<Baked>
         }
     }
     let room = COLORS_PER_PALETTE - 1 - text.entries.len();
-    let fits = (0..palettes)
-        .all(|p| used(map, &palette_of, p).iter().filter(|&&u| u).count() <= room);
+    let fits =
+        (0..palettes).all(|p| used(map, &palette_of, p).iter().filter(|&&u| u).count() <= room);
     // The copies go right under the layer's palettes, where the background
     // may not reach.
     let background_end = reserved + map.cgram.len() / 2;
-    let copies =
-        first >= 2 * palettes && background_end <= (first - palettes) * COLORS_PER_PALETTE;
+    let copies = first >= 2 * palettes && background_end <= (first - palettes) * COLORS_PER_PALETTE;
     let in_place = fits || !copies;
     let mut merged = 0;
     let mut farthest = 0;
@@ -289,7 +293,14 @@ pub fn bake(map: &mut Map, text: &Text, reserved: usize) -> Result<Option<Baked>
     }
     if in_place {
         map.layer_text = IN_PLACE;
-        Ok(Some(if fits { Baked::InPlace } else { Baked::Merged { merged, far: farthest } }))
+        Ok(Some(if fits {
+            Baked::InPlace
+        } else {
+            Baked::Merged {
+                merged,
+                far: farthest,
+            }
+        }))
     } else {
         map.layer_text = palettes as u8;
         Ok(Some(Baked::Copies { gave }))
@@ -364,7 +375,11 @@ fn merge_plan(
             .iter()
             .map(|&k| {
                 let j = nearest(k, &live);
-                (weight[k].max(1) * u64::from(distance(words[k], words[j]).max(1)), k, j)
+                (
+                    weight[k].max(1) * u64::from(distance(words[k], words[j]).max(1)),
+                    k,
+                    j,
+                )
             })
             .min()
             .expect("more colours than room");
@@ -381,7 +396,11 @@ fn merge_plan(
             c.iter().max().unwrap() - c.iter().min().unwrap()
         };
         let dulls = tint(words[gone]).abs_diff(tint(words[into])) > 1;
-        far = far.max(if dulls { u32::MAX } else { distance(words[gone], words[into]) });
+        far = far.max(if dulls {
+            u32::MAX
+        } else {
+            distance(words[gone], words[into])
+        });
         weight[into] += weight[gone];
         weight[gone] = 0;
         live.retain(|&k| k != gone);
@@ -495,7 +514,13 @@ mod tests {
 
     fn text() -> Text {
         Text {
-            entries: vec![(2, 0x0C63), (9, 0x739C), (10, 0x77BD), (11, 0x7BDE), (12, 0x7FFF)],
+            entries: vec![
+                (2, 0x0C63),
+                (9, 0x739C),
+                (10, 0x77BD),
+                (11, 0x7BDE),
+                (12, 0x7FFF),
+            ],
         }
     }
 
@@ -509,7 +534,11 @@ mod tests {
         let (to, n) = arrange(&used, &words, &text());
         assert_eq!(n, 0);
         for k in 1..=9 {
-            assert!(![2, 9, 10, 11, 12].contains(&to[k]), "{k} went to {}", to[k]);
+            assert!(
+                ![2, 9, 10, 11, 12].contains(&to[k]),
+                "{k} went to {}",
+                to[k]
+            );
         }
         let mut seen = to.clone();
         seen.sort_unstable();
@@ -528,7 +557,9 @@ mod tests {
         let words: Vec<u16> = (0..16).map(|k| (2 * k as u16).min(31) * 0x0421).collect();
         let (to, n) = arrange(&used, &words, &text());
         assert_eq!(n, 5);
-        let on: Vec<usize> = (1..16).filter(|&k| [2, 9, 10, 11, 12].contains(&to[k])).collect();
+        let on: Vec<usize> = (1..16)
+            .filter(|&k| [2, 9, 10, 11, 12].contains(&to[k]))
+            .collect();
         assert_eq!(on.len(), 5);
         assert!(on.contains(&15) && on.contains(&14), "{on:?}");
         let mut seen = to.clone();
