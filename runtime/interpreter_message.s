@@ -175,3 +175,10 @@ open:
     jsl f:face_change
     jmp run_code::other
 .endproc
+
+; `OP_WINDOW` and `OP_WINDOW_ERASE`, RPG Maker 2000 PLUS's `ShowWindow`: a
+; game without one never gets them from the compiler, and they end the page
+; like a number that is not an opcode: it pays only for their entries in the
+; dispatch.
+op_window = page_ends
+op_window_erase = page_ends

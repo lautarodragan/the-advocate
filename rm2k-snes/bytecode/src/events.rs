@@ -463,6 +463,25 @@ bytecode! {
         question: word, lines: byte, length: count byte, on_cancel: byte,
     )
         repeated options (window: word, destination: word);
+
+    /// RPG Maker 2000 PLUS's `ShowWindow`, a `Comment` that starts with
+    /// `@window`: window `slot` up —its place among the game's window ids,
+    /// lowest first, which is also the order they are drawn in—, at cell
+    /// `x`, `y` of the console's screen and `w` by `h` cells, framed from
+    /// the System or, with `style` 1, only its background. Each line of text
+    /// is a box of the `messages` block, `box`, and takes `cells` cells of
+    /// the window's text tiles from `tiles` on, two rows of them: the game's
+    /// widest text on that line of that window, so a window shown again
+    /// with other text lands on the same tiles. A window up again replaces
+    /// what it showed. See `op_window` in the runtime's `show_window.s`.
+    OP_WINDOW = 0x58 (
+        slot: byte, x: byte, y: byte, w: byte, h: byte, style: byte,
+        tiles: byte, length: count byte,
+    )
+        repeated lines (box: word, cells: byte);
+
+    /// Window `slot` down, and the layer above back where it was.
+    OP_WINDOW_ERASE = 0x59 (slot: byte);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and
