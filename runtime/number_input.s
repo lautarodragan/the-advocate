@@ -527,9 +527,12 @@ alone:
 ; The comparison is RM2k's, `==` `>=` `<=` `>` `<` `!=`, and `WIDE_HOLDS` says
 ; for each which outcomes make it hold.
 ;
-; In `FAR3`, which has room, and not in bank 1 with the rest of this file:
-; it calls nothing here, and Desert Nightmare's bank 1 has none.
+; In `FAR3`, and not in bank 1 with the rest of this file: it calls nothing
+; here, and Desert Nightmare's bank 1 has no room. Only in a cartridge with a
+; wide variable —`WIDE_VARIABLES`, from the converter—: Zounds' `FAR3` has
+; no room either, and no wide variable.
 
+.if ::WIDE_VARIABLES > 0
 .pushseg
 .segment "FARBSS"
 WIDE_DIFFERENCE: .res 4         ; the variable, and then it minus the constant
@@ -634,3 +637,4 @@ no:
     rtl
 .endproc
 .popseg
+.endif

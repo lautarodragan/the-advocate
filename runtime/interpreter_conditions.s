@@ -319,12 +319,17 @@ if_var_continues:
 
 ; `OP_IF_WIDE`: `ConditionalBranch` on a wide variable against a constant.
 ; The comparison is `wide_compare`'s, in number_input.s with the rest of the
-; wide variables; the jump is `OP_IF_VAR`'s.
+; wide variables; the jump is `OP_IF_VAR`'s. A cartridge with no wide variable
+; never emits it, and carries none of this.
+.if ::WIDE_VARIABLES > 0
 .proc op_if_wide
     jsl f:wide_compare          ; C set: it holds; Y on the destination
     bcc op_if_var::if_var_no
     jmp op_if_var::if_var_continues
 .endproc
+.else
+op_if_wide = page_ends
+.endif
 
 ; `ConditionalBranch` case 5 with two operands: "has at least this many HP"
 ; —sub 3—, "knows this skill" —sub 4—, "has this item equipped" —sub 5— and

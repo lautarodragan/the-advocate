@@ -469,11 +469,6 @@ bytecode! {
     )
         repeated options (window: word, destination: word);
 
-    /// Held for opcodes other branches are adding: they end the page until
-    /// they land.
-    OP_RESERVED_58 = 0x58 ();
-    OP_RESERVED_59 = 0x59 ();
-
     /// `ConditionalBranch` on a **wide** variable against a constant: its low
     /// word in `low` and its high word in `high`, two slots, compared as a
     /// signed 32-bit number with `value`, which is 24 and goes sign-extended
@@ -485,7 +480,7 @@ bytecode! {
     /// but an `InputNumber` and branches like this: Desert Nightmare's
     /// safes. See `wide` in the event compiler's indices, and `op_if_wide`
     /// in the runtime's `interpreter_conditions.s`.
-    OP_IF_WIDE = 0x5A (
+    OP_IF_WIDE = 0x58 (
         low: byte, high: byte, comparison: byte, value: signed long,
         destination: word,
     );

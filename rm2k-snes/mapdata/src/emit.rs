@@ -977,6 +977,13 @@ fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -
     // How many: the runtime reads the pieces through `window_systems` only
     // when there are more than one —see `window_system.s`—.
     out.push_str(&format!("WINDOW_SYSTEMS = {}\n", windows.len()));
+    // How many wide variables the cartridge has: the event compiler lists
+    // their high words' slots with the variable's number negated. Without
+    // any, the runtime leaves out the code that compares them —see
+    // `OP_IF_WIDE` in number_input.s—, which a cartridge tight in `FAR3`
+    // has no room for.
+    let wide = r.variables.iter().filter(|(v, _)| *v < 0).count();
+    out.push_str(&format!("WIDE_VARIABLES = {wide}\n"));
     let one_line = windows
         .iter()
         .map(|w| backdrop_is_one_line(w, t))
