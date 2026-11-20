@@ -1,0 +1,31 @@
+# The crossing's two tile layers: the clearing's field and its hedge, and
+# nothing else. What makes it worth a map is in `Map0011.json`: four cells
+# with two events standing on each, which the editor never places but a move
+# route or a `SetEventLocation` does —a box pushed onto a ladder, a dog sent
+# onto a doorway—. `tests/test_two_events_on_a_cell.py` says what each is
+# for.
+
+grid = '''
+####################
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+####################
+'''
+
+[legend]
+# The field: terrain autotile 0, the light grass, in its plain middle
+# pattern. Every cell has it below.
+"." = { lower = 4000 }
+# A green bush, which does not let the hero through.
+"#" = { lower = 4000, upper = 10007 }
