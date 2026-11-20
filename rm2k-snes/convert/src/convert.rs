@@ -250,26 +250,47 @@ pub fn run(options: Options) -> Result<()> {
             .filter_map(|c| c["common_event"].as_i64())
             .map(|n| n as i32),
     );
-    // And the ones the project names, `[events] commons_not_copied`: a copy
-    // is the common's whole bytecode in every map's, and a long one can
-    // push the maps' past what decompresses into WRAM —`code_in_rom` in
-    // rm2k-snes-mapdata—, which then stays in the cartridge uncompressed.
-    // Without the key, none.
-    if project.value(&["events", "commons_not_copied"]).is_ok() {
-        not_copied.extend(
-            project
-                .ints(&["events", "commons_not_copied"])?
-                .into_iter()
-                .map(|n| n as i32),
-        );
-    }
-    let common_pages = crate::common_pages::CommonPages::decide(
+    let mut common_pages = crate::common_pages::CommonPages::decide(
         &game,
         &not_copied,
         &order,
         test_event_map,
         events_max,
     )?;
+    compiler.common_pages = common_pages.to_json();
+    // For `rm2k-snes-events culprits --request`, which asks the same thing
+    // of the same dump.
+    compiler.keep_request = output
+        .parent()
+        .map(|d| rm2k_project::absolute(d).join("events-request.json"));
+    if !switched.is_empty() {
+        println!("  Systems: {}", compiler.systems.join(", "));
+    }
+    let mut scan_answer =
+        compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
+    // A copy is for the small pictures, and which pictures a body shows the
+    // scan says: the ones whose copy would draw nothing are decided again
+    // as not copied —they run anywhere then, and can turn on another's
+    // switch—, and the scan asked again, so no map gathers their pictures.
+    // A cartridge where every copy draws scans once, as before.
+    let drawing_nothing = common_pages.drawing_nothing(&game, &scan_answer)?;
+    if !drawing_nothing.is_empty() {
+        println!(
+            "  common events {}: not copied into the maps, every picture they show is big, and \
+             a big one is the same with a map and without one",
+            join(&drawing_nothing, ", ")
+        );
+        not_copied.extend(drawing_nothing);
+        common_pages = crate::common_pages::CommonPages::decide(
+            &game,
+            &not_copied,
+            &order,
+            test_event_map,
+            events_max,
+        )?;
+        compiler.common_pages = common_pages.to_json();
+        scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
+    }
     if !common_pages.maps.is_empty() {
         println!(
             "  common events {} copied into {} of the {} maps, for their pictures",
@@ -284,16 +305,6 @@ pub fn run(options: Options) -> Result<()> {
             order.len()
         );
     }
-    compiler.common_pages = common_pages.to_json();
-    // For `rm2k-snes-events culprits --request`, which asks the same thing
-    // of the same dump.
-    compiler.keep_request = output
-        .parent()
-        .map(|d| rm2k_project::absolute(d).join("events-request.json"));
-    if !switched.is_empty() {
-        println!("  Systems: {}", compiler.systems.join(", "));
-    }
-    let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
     let mut indices = Indices::from_answer(&scan_answer);
     if !cases.is_empty() {
         // The test pages turn it on, and the table has to hold it: the one
@@ -1021,6 +1032,10 @@ pub fn run(options: Options) -> Result<()> {
     // Where the hero is flashed, by the map's index, and the map whose page
     // does it: checked once every map is known.
     let mut flashes: BTreeMap<(usize, Option<(String, i64)>, bool), i32> = BTreeMap::new();
+    // The maps whose copy of the common events is not kept, and why: see
+    // below, before each map's code is laid out.
+    let mut copies_pushing: Vec<i32> = Vec::new();
+    let mut copies_drawing_nothing: Vec<i32> = Vec::new();
     for m in infos.iter_mut() {
         if !cases.is_empty() && m.id == boot {
             // The test pages, only in the map the ROM boots in, at **index
@@ -1048,7 +1063,42 @@ pub fn run(options: Options) -> Result<()> {
                 Vec::new(),
             ));
         }
-        let code = lay_out_code(&mut m.pages);
+        // The copy of the automatic common events stays only where it draws
+        // and its map's bytecode still goes to WRAM: see
+        // [`lay_out_with_copy`].
+        let copy = common_pages
+            .maps
+            .contains(&m.id)
+            .then(|| (m.map.events.len() as i64 - 1, m.copies_draw));
+        let behind = |code: usize| {
+            rm2k_snes_mapdata::materials::code_behind_grid(
+                m.cells.len() / 2,
+                m.blocks.len() / rm2k_snes_mapdata::materials::BLOCK_BYTES,
+                m.blocks.len() + m.block_pass.len(),
+                code,
+            )
+        };
+        let (code, dropped) = lay_out_with_copy(&mut m.pages, copy, behind);
+        match dropped {
+            None => {}
+            Some(CopyDropped::DrawsNothing) => copies_drawing_nothing.push(m.id),
+            Some(CopyDropped::Pushes { with, without }) => {
+                let line = format!(
+                    "  map {}: WARNING, the copy of the common events {} isn't kept here: with it \
+                     the map's bytecode, {with} bytes, would not decompress into WRAM, and \
+                     without it it is {without}; their shared bodies run, and their small \
+                     pictures are drawn only if the cartridge's set of them fits beside the map's",
+                    m.id,
+                    join(&common_pages.commons, ", "),
+                );
+                println!("{line}");
+                degradations.map(m.id as i64, "pictures-not-drawn", &line, &[]);
+                copies_pushing.push(m.id);
+            }
+        }
+        if dropped.is_some() {
+            common_pages.maps.remove(&m.id);
+        }
         // What each page of the events that change graphic draws: where
         // its poses are in the sprite bank —`page_oam` in the emission—.
         for page in m.pages.iter_mut() {
@@ -1237,6 +1287,15 @@ pub fn run(options: Options) -> Result<()> {
                 runnable
             );
         }
+    }
+    if !copies_drawing_nothing.is_empty() || !copies_pushing.is_empty() {
+        println!(
+            "  the copy of the common events is kept in {} maps: {} draw nothing with it, {} \
+             would keep their bytecode in the cartridge",
+            common_pages.maps.len(),
+            copies_drawing_nothing.len(),
+            copies_pushing.len()
+        );
     }
 
     let mut shared_flashes: Vec<String> = Vec::new();
@@ -1711,14 +1770,11 @@ pub fn run(options: Options) -> Result<()> {
     // The shared bodies, with the copies of the automatic ones by map index:
     // see [`crate::common_pages`].
     let mut commons_with_copies = compiled.get("commons").cloned().unwrap_or(Value::Null);
-    if let (Some(c), Some(copies)) = (
-        commons_with_copies.as_object_mut(),
-        cartridge.common_pages.to_json(),
-    ) {
+    if let (Some(c), Some(copies)) = (commons_with_copies.as_object_mut(), common_pages.to_json()) {
         let maps: Vec<usize> = order
             .iter()
             .enumerate()
-            .filter(|(_, m)| cartridge.common_pages.maps.contains(m))
+            .filter(|(_, m)| common_pages.maps.contains(m))
             .map(|(k, _)| k)
             .collect();
         c.insert(
@@ -2106,6 +2162,58 @@ fn lay_out_code(pages: &mut [PageRecord]) -> Vec<u8> {
     code
 }
 
+/// Why a map's copy of the automatic common events is not kept: see
+/// [`lay_out_with_copy`].
+#[derive(Debug, PartialEq, Eq)]
+enum CopyDropped {
+    /// Wally put the map's own pictures in instead of the copy's.
+    DrawsNothing,
+    /// With it the map's bytecode, `with` bytes, would stay in the
+    /// cartridge raw; without it, `without`, it goes to WRAM.
+    Pushes { with: usize, without: usize },
+}
+
+/// A map's bytecode, laid out by [`lay_out_code`], and whether the copy of
+/// the automatic common events stays in it. `copy` is the copy's event
+/// —the map's last— and whether its pictures went in, on a map that
+/// carries one; `behind` says whether a bytecode of so many bytes goes to
+/// WRAM behind the map's grid —`code_behind_grid` in rm2k-snes-mapdata—.
+///
+/// The copy is kept only where it draws, and where it does not push the
+/// bytecode into the cartridge raw, which would cost every byte of the
+/// map's there —a copy can be most of it—. A map already past it without
+/// the copy keeps it: the copy only adds its own bytes there. A copy not
+/// kept leaves its event with no pages, last, so no index moves; the
+/// caller takes the map off the copies, and the shared bodies start there
+/// as on a map without room for the event. See [`crate::common_pages`].
+fn lay_out_with_copy(
+    pages: &mut Vec<PageRecord>,
+    copy: Option<(i64, bool)>,
+    behind: impl Fn(usize) -> bool,
+) -> (Vec<u8>, Option<CopyDropped>) {
+    let code = lay_out_code(pages);
+    let Some((event, draws)) = copy else {
+        return (code, None);
+    };
+    let mut without: Vec<PageRecord> = pages.iter().filter(|p| p.event != event).cloned().collect();
+    let bare = lay_out_code(&mut without);
+    let dropped = if !behind(code.len()) && behind(bare.len()) {
+        Some(CopyDropped::Pushes {
+            with: code.len(),
+            without: bare.len(),
+        })
+    } else if !draws {
+        Some(CopyDropped::DrawsNothing)
+    } else {
+        None
+    };
+    if dropped.is_none() {
+        return (code, None);
+    }
+    *pages = without;
+    (bare, dropped)
+}
+
 /// The header title of a SNES ROM: 21 bytes, at `$FFC0`.
 const TITLE_HEADER: usize = 21;
 
@@ -2238,6 +2346,57 @@ mod tests {
         // The last page's route has the second page's bytes: they are
         // bytes, and nothing writes them.
         assert_eq!(routes, [5, 5, 3]);
+    }
+
+    /// A map keeps its copy of the common events where it draws and its
+    /// bytecode still goes to WRAM; otherwise the copy's pages go, and the
+    /// rest are laid out as if it had never been there.
+    #[test]
+    fn a_copy_is_kept_only_where_it_draws_and_the_code_goes_to_wram() {
+        let pages = || {
+            let mut pages = vec![
+                test_page(0, 0, Value::Null, vec![1, 2, 3]),
+                test_page(1, 0, Value::Null, vec![9; 8]),
+            ];
+            pages[1].event = 4;
+            pages
+        };
+        let room = |n: usize| move |code: usize| code <= n;
+        // A map without a copy, or one where it draws and fits: as before.
+        let mut kept = pages();
+        assert_eq!(lay_out_with_copy(&mut kept, None, room(0)).1, None);
+        assert_eq!(
+            lay_out_with_copy(&mut kept, Some((4, true)), room(11)),
+            ([1, 2, 3, 9, 9, 9, 9, 9, 9, 9, 9].to_vec(), None)
+        );
+        assert_eq!(kept.len(), 2);
+        // Where Wally put the map's own pictures in, the copy draws nothing.
+        let mut nothing = pages();
+        assert_eq!(
+            lay_out_with_copy(&mut nothing, Some((4, false)), room(11)),
+            (vec![1, 2, 3], Some(CopyDropped::DrawsNothing))
+        );
+        assert_eq!(nothing.len(), 1);
+        // A copy that would leave the map's bytecode in the cartridge raw,
+        // which without it goes to WRAM, is not kept, even if it draws.
+        let mut pushed = pages();
+        assert_eq!(
+            lay_out_with_copy(&mut pushed, Some((4, true)), room(10)),
+            (
+                vec![1, 2, 3],
+                Some(CopyDropped::Pushes {
+                    with: 11,
+                    without: 3
+                })
+            )
+        );
+        assert_eq!(pushed.len(), 1);
+        // And on a map already past it without the copy, it stays.
+        let mut past = pages();
+        assert_eq!(
+            lay_out_with_copy(&mut past, Some((4, true)), room(2)).1,
+            None
+        );
     }
 
     #[test]
