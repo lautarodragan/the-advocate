@@ -2397,7 +2397,12 @@ fn without_window_systems(text: &str) -> String {
         !text.contains("window_systems:"),
         "one System needs no table"
     );
-    text.replacen(line, "", 1)
+    let wide = "WIDE_VARIABLES = 0\n";
+    assert!(
+        text.contains(wide),
+        "a cartridge says it has no wide variables"
+    );
+    text.replacen(line, "", 1).replacen(wide, "", 1)
 }
 
 /// The window's text area, as `background` of the request, with each of its

@@ -348,11 +348,12 @@ const CHOICE_MAX: i64 = 4;
 /// `ShowChoiceOption` with index 4, past the four the window shows.
 /// `choice_result` is `cancel_type - 1`, so cancelling runs it.
 const CANCEL_BRANCH: i64 = 5;
-/// The most digits an `InputNumber` asks for that the ROM takes: six, which
-/// is RM2k 2000's editor's cap. The ROM writes the number into a sixteen-bit
-/// variable, saturating —see `number_value` in runtime/number_input.s—,
-/// and its line is a cursor column and a digit per digit: twelve letters.
-const NUMBER_DIGITS_MAX: i64 = 6;
+/// The most digits an `InputNumber` asks for that the ROM takes: seven,
+/// RPG_RT's cap —its variables go to 9,999,999—. The ROM writes the number
+/// into a sixteen-bit variable saturating, or whole into a wide one —see
+/// `number_value` in runtime/number_input.s—, and its line is a cursor
+/// column and a digit per digit: fourteen letters.
+const NUMBER_DIGITS_MAX: i64 = 7;
 // Where the two destinations go inside `OP_CELL_TEST` —see its declaration
 // in rm2k-snes-bytecode—, and
 // the top two bits of each write, over the variable's offset: y instead of
@@ -531,6 +532,9 @@ const CUT_THE_EXIT_TOO: [i32; 3] = [BREAK_LOOP, END_LOOP, END_EVENT_PROCESSING];
 pub struct Indices {
     /// RM2k variable to its slot in the ROM.
     pub variables: BTreeMap<i32, usize>,
+    /// The wide variables, to the slot of their high word: see
+    /// [`crate::indices::wide`]. Their low word is in `variables`.
+    pub wide: BTreeMap<i32, usize>,
     /// (actor, skill) to its bit in `FAR_SKILL`.
     pub skills: BTreeMap<(i32, i32), usize>,
     /// Actor to the name `\N[n]` bakes into the text: see
@@ -564,6 +568,7 @@ impl Default for Indices {
     fn default() -> Indices {
         Indices {
             variables: BTreeMap::new(),
+            wide: BTreeMap::new(),
             skills: BTreeMap::new(),
             hero_names: BTreeMap::new(),
             renames: Vec::new(),
@@ -1863,7 +1868,9 @@ fn page(
             }
             piece = p;
         } else if let Some(&j) = input_after.get(&i) {
-            piece = compile_number(ctx, cmd, &extra, &commands[j])?;
+            piece = compile_number(ctx, Some(cmd), &extra, &commands[j])?;
+        } else if cmd.code == INPUT_NUMBER {
+            piece = compile_number(ctx, None, &[], cmd)?;
         } else {
             let p = compile_command(ctx, cmd, &extra, map_events.as_ref())?;
             // A jump to another map: the page keeps running there. See
@@ -2621,9 +2628,9 @@ fn choice_boxes(
 /// It is `CommandShowMessage`: after gathering the `ShowMessage_2`s it looks
 /// at the next command, and an `InputNumber` there goes into the same
 /// message if the box leaves it a line —`pm.NumLines() < 4`—. Otherwise
-/// the `InputNumber` is one on its own, a window with no text, which the
-/// ROM does not do: the game's two are both after a message of two and
-/// three lines.
+/// the `InputNumber` is one on its own, a window with no text and the
+/// digits on its first line: `CommandInputNumber`, and
+/// [`compile_number`] with no message.
 fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
     let groups = group_boxes(commands);
     groups
@@ -2669,9 +2676,14 @@ fn questions(commands: &[Command], options_of: &HashMap<usize, Vec<(i64, String)
 }
 
 /// `ShowMessage` and the `InputNumber` that goes in its window, in one
-/// opcode.
+/// opcode; or, with no `cmd`, an `InputNumber` on its own, whose window is
+/// a box with no lines: RPG_RT's `CommandInputNumber` pushes a message with
+/// only the number, and `Window_Message` puts the digits at `contents_y`,
+/// the first line —Desert Nightmare's four locks, after a message that
+/// closed or a face that changed—.
 ///
-/// OP_NUMBER: the variable's slot (byte), how many digits (byte) and the
+/// OP_NUMBER: the variable's slot (byte), how many digits (byte), the slot
+/// of its high word if it is wide or the same slot (byte), and the
 /// message's box (word). The box is the message's as it is, and the ROM
 /// writes the digits' line below its lines, from RAM: what changes when the
 /// player presses up or down is that line, and nothing of it is in the text
@@ -2682,7 +2694,7 @@ fn questions(commands: &[Command], options_of: &HashMap<usize, Vec<(i64, String)
 /// digits appear when its text finishes, and A is what enters the number.
 fn compile_number(
     ctx: &mut Ctx,
-    cmd: &Command,
+    cmd: Option<&Command>,
     extra: &[String],
     input: &Command,
 ) -> Step<Vec<u8>> {
@@ -2693,21 +2705,50 @@ fn compile_number(
         return cannot();
     }
     let slot = ctx.indices.variable_slot(variable)?;
+    let high = match i32::try_from(variable)
+        .ok()
+        .and_then(|v| ctx.indices.wide.get(&v))
+    {
+        Some(&h) => u8::try_from(h).map_err(|_| Stop::Cannot)?,
+        None => slot,
+    };
     let Some(messages) = ctx.messages.as_deref_mut() else {
         return cannot();
     };
-    let mut lines = vec![cmd.string.clone()];
-    lines.extend_from_slice(extra);
-    // The same escapes as the `ShowMessage` it stands for.
-    let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
-    let at = messages.add(&lines)?;
-    ctx.lose_dropped(cmd);
-    let mut out = vec![OP_NUMBER, slot, digits as u8];
+    let at = match cmd {
+        Some(cmd) => {
+            let mut lines = vec![cmd.string.clone()];
+            lines.extend_from_slice(extra);
+            // The same escapes as the `ShowMessage` it stands for.
+            let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
+            let at = messages.add(&lines)?;
+            ctx.lose_dropped(cmd);
+            at
+        }
+        None => messages.add(&[])?,
+    };
+    let mut out = vec![OP_NUMBER, slot, digits as u8, high];
     out.extend(usize_word(at)?);
     Ok(out)
 }
 
 // --- branches ----------------------------------------------------------------------
+
+/// Whether a branch comparing a sixteen-bit variable with the constant `v`
+/// means on the ROM what it means in RM2k.
+///
+/// **Equal and not equal take up to 65534**, as the sixteen bits of the
+/// variable: the ROM compares the words, and there the sign does not
+/// matter. It is Drust Camp's door (A Blurred Line's map 68, event 10),
+/// which asks for 35421 after an `InputNumber`, and `OP_NUMBER` writes what
+/// was entered that way —saturated at 65535, which is why that one is left
+/// out: it would also be every number above it—. Any other comparison with
+/// a constant like that would be signed, and it does not hold. A variable
+/// that has to go further is a wide one: see `wide` in the indices.
+pub fn sixteen_bits_hold(comparison: i64, v: i64) -> bool {
+    let as_word = matches!(comparison, CMP_EQUAL | CMP_NOT_EQUAL) && (0x8000..=0xFFFE).contains(&v);
+    (-0x8000..=0x7FFF).contains(&v) || as_word
+}
 
 /// A `ConditionalBranch` of the kinds this knows, with the destination
 /// blank: switch, variable, gold, item, and three of the actor's seven
@@ -2851,21 +2892,37 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
         }
         let slot = ctx.indices.variable_slot(number)?;
         let comparison = p(4).unwrap();
+        if let Some(&high) = i32::try_from(number)
+            .ok()
+            .and_then(|n| ctx.indices.wide.get(&n))
+        {
+            // A wide variable: every branch on it is the wide one, whatever
+            // the constant, because its value is in two slots. Only a
+            // constant gets here —see `wide` in the indices—.
+            let v = p(3).unwrap();
+            if p(2).unwrap() != 0
+                || !(0..=CMP_NOT_EQUAL).contains(&comparison)
+                || !(-0x80_0000..=0x7F_FFFF).contains(&v)
+            {
+                return cannot();
+            }
+            let high = u8::try_from(high).map_err(|_| Stop::Cannot)?;
+            return Ok(vec![
+                OP_IF_WIDE,
+                slot,
+                high,
+                comparison as u8,
+                (v & 0xFF) as u8,
+                ((v >> 8) & 0xFF) as u8,
+                ((v >> 16) & 0xFF) as u8,
+                0,
+                0,
+            ]);
+        }
         let (operand_kind, value) = match p(2).unwrap() {
             0 => {
                 let v = p(3).unwrap();
-                // **Equal and not equal take up to 65534**, as the sixteen
-                // bits of the variable: the ROM compares the words, and
-                // there the sign does not matter. It is Drust Camp's door
-                // (map 68, event 10), which asks for 35421 after an
-                // `InputNumber`, and `OP_NUMBER` writes what was entered
-                // that way —saturated at 65535, which is why that one is
-                // left out: it would also be every number above it—. Any
-                // other comparison with a constant like that would be
-                // signed, and it does not compile.
-                let as_word = matches!(comparison, CMP_EQUAL | CMP_NOT_EQUAL)
-                    && (0x8000..=0xFFFE).contains(&v);
-                if !(-0x8000..=0x7FFF).contains(&v) && !as_word {
+                if !sixteen_bits_hold(comparison, v) {
                     return cannot();
                 }
                 (VAR_CONSTANT, v)
@@ -8689,8 +8746,30 @@ mod tests {
             cmd(INPUT_NUMBER, &[6, 143], ""),
         ];
         let code = on_a_map_with(&with_the_password(), &page).unwrap();
-        assert_eq!(code, [OP_NUMBER, 3, 6, 0, 0, OP_DONE]);
-        assert_eq!(instruction_size(&code, 0), 5);
+        // The high word's slot is the variable's own: it is not wide.
+        assert_eq!(code, [OP_NUMBER, 3, 6, 3, 0, 0, OP_DONE]);
+        assert_eq!(instruction_size(&code, 0), 6);
+    }
+
+    #[test]
+    fn a_number_on_its_own_goes_in_a_box_with_no_lines() {
+        // Desert Nightmare's safe (map 28, event 12, page 3): the message
+        // closes, the face changes, and only then the `InputNumber`, which
+        // in RPG_RT is a window with the digits on its first line.
+        let page = [
+            cmd(SHOW_MESSAGE, &[], "( A safe... )"),
+            cmd(CHANGE_FACE_GRAPHIC, &[0, 0, 0], ""),
+            cmd(INPUT_NUMBER, &[5, 143], ""),
+        ];
+        let code = on_a_map_with(&with_the_password(), &page).unwrap();
+        let at = code.iter().position(|&b| b == OP_NUMBER).unwrap();
+        assert_eq!(code[at..at + 4], [OP_NUMBER, 3, 5, 3]);
+        // Its box is another one than the message's, and has no lines.
+        assert_eq!(code[0], OP_MESSAGE);
+        assert_ne!(code[1..3], code[at + 4..at + 6]);
+        let alone =
+            on_a_map_with(&with_the_password(), &[cmd(INPUT_NUMBER, &[5, 143], "")]).unwrap();
+        assert_eq!(alone[..4], [OP_NUMBER, 3, 5, 3]);
     }
 
     #[test]
@@ -8708,21 +8787,83 @@ mod tests {
                 .collect()
         };
         let input = |digits: i32| cmd(INPUT_NUMBER, &[digits, 143], "");
-        // On its own: RM2k opens a window with no text, and the ROM does
-        // not.
-        assert_eq!(on_a_map_with(&indices, &[input(6)]), None);
         // After four lines it does not fit in the message's window, so it
-        // is one on its own too.
+        // is one on its own: the message, and then a box with no lines.
         let mut four = message(4);
         four.push(input(4));
-        assert_eq!(on_a_map_with(&indices, &four), None);
+        let code = on_a_map_with(&indices, &four).unwrap();
+        assert_eq!(code[0], OP_MESSAGE);
+        assert_eq!(code[3], OP_NUMBER);
         let mut three = message(3);
         three.push(input(4));
-        assert!(on_a_map_with(&indices, &three).is_some());
-        // Seven digits are more than the ROM's line takes.
+        assert_eq!(on_a_map_with(&indices, &three).unwrap()[0], OP_NUMBER);
+        // Seven digits are RPG_RT's most, and the ROM's line takes them;
+        // eight, no, and nor does zero.
         let mut seven = message(1);
         seven.push(input(7));
-        assert_eq!(on_a_map_with(&indices, &seven), None);
+        assert!(on_a_map_with(&indices, &seven).is_some());
+        let mut eight = message(1);
+        eight.push(input(8));
+        assert_eq!(on_a_map_with(&indices, &eight), None);
+        assert_eq!(on_a_map_with(&indices, &[input(0)]), None);
+    }
+
+    fn with_a_wide_safe() -> Indices {
+        Indices {
+            variables: BTreeMap::from([(207, 3)]),
+            wide: BTreeMap::from([(207, 9)]),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_wide_variable_takes_the_number_whole_and_compares_it_wide() {
+        // Desert Nightmare's safe again: five digits into 207, and the
+        // branch asks for 71456, which sixteen bits do not hold.
+        let page = [
+            cmd(INPUT_NUMBER, &[5, 207], ""),
+            cmd(COND_BRANCH, &[1, 207, 0, 71456, CMP_EQUAL as i32, 1], ""),
+            cmd(COND_END, &[], ""),
+        ];
+        let code = on_a_map_with(&with_a_wide_safe(), &page).unwrap();
+        // The number goes to slot 3 and its high word to 9.
+        assert_eq!(code[..4], [OP_NUMBER, 3, 5, 9]);
+        // 71456 is $011720, and the destination is the end of the branch,
+        // right after it.
+        let end = (6 + 9) as u8;
+        assert_eq!(
+            code[6..],
+            [
+                OP_IF_WIDE,
+                3,
+                9,
+                CMP_EQUAL as u8,
+                0x20,
+                0x17,
+                0x01,
+                end,
+                0,
+                OP_DONE
+            ]
+        );
+        assert_eq!(instruction_size(&code, 6), 9);
+        // A small constant goes wide too —the value is in two slots—, and
+        // a negative one sign-extended; one past 24 bits does not compile.
+        let branch = |value: i32| {
+            on_a_map_with(
+                &with_a_wide_safe(),
+                &[
+                    cmd(COND_BRANCH, &[1, 207, 0, value, 4, 1], ""),
+                    cmd(COND_END, &[], ""),
+                ],
+            )
+        };
+        assert_eq!(branch(12).unwrap()[..7], [OP_IF_WIDE, 3, 9, 4, 12, 0, 0]);
+        assert_eq!(
+            branch(-2).unwrap()[..7],
+            [OP_IF_WIDE, 3, 9, 4, 0xFE, 0xFF, 0xFF]
+        );
+        assert_eq!(branch(9_999_999), None);
     }
 
     #[test]
