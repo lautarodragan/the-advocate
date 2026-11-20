@@ -1,4 +1,4 @@
-.segment "FAR2"
+.segment "FAR3"
 .a8
 .i16
 
