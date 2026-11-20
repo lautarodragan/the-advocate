@@ -6729,12 +6729,15 @@ fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8
             // does not compile, and its page with it: that is also what a
             // scan over the dump without the project's forked common
             // events —the harness's, for the variables' slots— finds.
-            let (Some(slot), Some((first, cells))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
+            let (Some(slot), Some((first, tiles))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
             else {
                 return cannot();
             };
-            if w.lines.len() > cells.len()
-                || w.lines.iter().zip(&cells).any(|(l, &c)| crate::windows::line_cells(l, &window) > c)
+            // Each line with its own cells, which the runtime packs after the
+            // lines before it in the id's tiles: see `windows::Registry`.
+            let cells: Vec<usize> = w.lines.iter().map(|l| crate::windows::line_cells(l, &window)).collect();
+            if crate::windows::tiles(&w.lines, &window) > tiles
+                || cells.iter().any(|&c| (c * 8) as i64 > w.text_width())
             {
                 return Err(Stop::Fatal(Bad::answer(format!(
                     "`@window {}`: its text is wider or longer than the game's window {} has room for",

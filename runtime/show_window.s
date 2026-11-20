@@ -46,9 +46,10 @@
 ; mask, from `WH0` to `WH1`.
 ;
 ; **Each window's text tiles are its own for the game**, numbered by the
-; converter —`OP_WINDOW`'s `tiles`, the widest text each of its lines ever
-; has—, so windows up together never write each other's, and one shown again
-; with other text lands on the same tiles. The last text tile, 239, is the
+; converter —`OP_WINDOW`'s `tiles`, the most any one window of that id
+; takes—, so windows up together never write each other's, and one shown
+; again with other text lands on the same tiles, each line after the ones
+; before it, by the cells `OP_WINDOW` gives it. The last text tile, 239, is the
 ; windows' background, the first cell of the message window's: a System
 ; whose background is a gradient gets it flat.
 ;
@@ -832,8 +833,9 @@ some:
     eor #SW_STYLE_PLAIN
     and #1                      ; 1 framed, 0 plain
     sta temp + 3
-    ; The cells a line has room for: past them it would ink its neighbour,
-    ; whose tiles its widest text in the game took.
+    ; The cells a line has room for: past them it would ink its neighbour.
+    ; The compiler gives no line more since 2026-11-20 —each line has its
+    ; own cells, not the widest of its id's—: kept as a guard.
     asl a
     eor #$FF
     sec
