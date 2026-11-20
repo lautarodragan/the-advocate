@@ -310,6 +310,23 @@ fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
     Ok(!truthy(&key["map_fixed"]) || (w >= WIDTH && h >= HEIGHT))
 }
 
+/// Whether some picture of `keys` is small: one [`for_map`] would cut for
+/// the plane of objects, and not [`big_for_map`]'s. A copy of a common
+/// event into a map exists for those —see [`crate::common_pages`]—: a big
+/// one is the cartridge's, and the same with a map and without one.
+pub fn any_small(game_dir: &Path, keys: &[Value], cropped: &Cropped) -> Result<bool> {
+    for key in keys {
+        let name = key["name"].as_str().unwrap_or("");
+        let Some(path) = path_of(game_dir, name) else {
+            continue;
+        };
+        if !is_big(&path, key, cropped)? && fits(&convert(&path, key, cropped.for_console(name))?) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// Where the layer is drawn from: the key's centre, or the screen's for
 /// one that goes with the map, which covers it whole.
 fn big_center(key: &Value) -> (i64, i64) {

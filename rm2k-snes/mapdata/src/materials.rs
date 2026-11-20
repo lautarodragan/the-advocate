@@ -66,8 +66,9 @@ pub const GRID_AT: usize = 0x7E8000;
 pub const GRID_HIGH_AT: usize = 0x7F8000;
 /// What of the grid's first half a painted map may take, its grid and what
 /// lives behind it: the runtime keeps the queue of its DMAs right after,
-/// `PAINT_Q` in `painted.s`, which the `.inc` places with this.
-pub const PAINT_ROOM: usize = 0x7E00;
+/// and the columns it gathers from the cells for them —`PAINT_Q` and
+/// `PAINT_COL` in `painted.s`, which the `.inc` places with this—.
+pub const PAINT_ROOM: usize = 0x7700;
 
 /// The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—,
 /// so it is compressed in two streams of up to 32 KB: each one lands whole
@@ -158,6 +159,18 @@ pub fn narrow(cells: &[u8]) -> Vec<u8> {
 /// bank $7F whole. It is where [`map_ram`] lands.
 pub fn grid_high_used(cells: usize) -> usize {
     cells.saturating_sub(HALF_GRID)
+}
+
+/// Whether a map's bytecode of `code` bytes goes to WRAM behind its grid
+/// —`cells` is its grid's cells, two bytes each as the converter cuts them,
+/// `ram` what [`map_ram`] puts behind it—, and not into the cartridge raw:
+/// see `code_in_rom` in record.rs, which asks it of the map as the emission
+/// has it. The converter asks it before it keeps a copy of a common event
+/// in a map —`common_pages.rs` there—, which can be all of a map's
+/// bytecode.
+pub fn code_behind_grid(cells: usize, blocks: usize, ram: usize, code: usize) -> bool {
+    let grid = cells * cell_bytes(cells, blocks, ram).unwrap_or(2);
+    code <= LZ2_CAP_CODE && grid_high_used(grid) + ram + code <= BEHIND_ROOM
 }
 
 /// What of a map lives in WRAM behind its grid, in this order: the block

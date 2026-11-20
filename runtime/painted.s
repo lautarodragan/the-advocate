@@ -1,4 +1,4 @@
-.segment "FAR2"
+.segment "FAR3"
 .a8
 .i16
 
@@ -17,9 +17,16 @@
 ; 33)` —`PAINT_COLUMNS` and `PAINT_ROWS`, which the converter writes—, and no
 ; two cells on screen share one. When the camera crosses a column, the one
 ; coming in goes over the one that just left; a row is uploaded ahead, into
-; the spare one: see `paint_tick`. A column is one run of slots and of
-; cartridge, so it goes in one DMA or two; a row is 33 tiles of 32 bytes,
-; one DMA each.
+; the spare one: see `paint_tick`. A column is one run of slots, so it goes
+; in one DMA or two; a row is 33 tiles of 32 bytes, one DMA each.
+;
+; **The cartridge carries each distinct cell of a map once**, and the map a
+; word per cell: its number —`paint_pieces` and the columns' numbers, see
+; `paint_table` in `panorama.rs` of rm2k-snes-mapdata—. Most of a painting
+; made of tiles repeats. A row's tiles go up from
+; there, one DMA each as they always did; a column's are gathered first, by
+; DMA through the WRAM port into `PAINT_COL`, outside the vblank, so that in
+; it the column is still one run and one DMA or two —`paint_stage`—.
 ;
 ; The tilemap is the map's moving window —`build_column` and `build_row`
 ; build it as always, and `paint_column` and `paint_row` overwrite what goes
@@ -58,13 +65,15 @@ PAINT_END  = PAINT_ON + $20
 ; And the row being uploaded ahead: see `paint_tick`.
 .pushseg
 .segment "FARBSS"
-PAINT_JOB: .res 7           ; word: the row being uploaded, $FFFF none
+PAINT_JOB: .res 11          ; word: the row being uploaded, $FFFF none
 .popseg
 PAINT_JK    = PAINT_JOB + $02           ; word: how many of its 33 columns are up
 PAINT_LASTY = PAINT_JOB + $04           ; word: last frame's camera, down
 PAINT_DIR   = PAINT_JOB + $06           ; 0 the camera last went down, 1 up
-PAINT_END2  = PAINT_JOB + $07
-.assert PAINT_END2 <= PAINT_JOB + 7, error, "the painted maps' row overflows its block"
+PAINT_SP    = PAINT_JOB + $07           ; word: bytes of `PAINT_COL` gathered
+PAINT_PB    = PAINT_JOB + $09           ; word: the map's first piece, times four
+PAINT_END2  = PAINT_JOB + $0B
+.assert PAINT_END2 <= PAINT_JOB + 11, error, "the painted maps' row overflows its block"
 ; Tiles of the row ahead a frame: a row in three frames, and the camera
 ; crosses one every four at the walk's two pixels a frame.
 PAINT_STEP  = 11
@@ -75,7 +84,10 @@ PAINT_STEP  = 11
 ; bank, a spare byte and the length.
 PAINT_Q     = GRID + PAINT_ROOM
 PAINT_Q_MAX = 40
-.assert PAINT_Q + PAINT_Q_MAX * 8 <= GRID_END, error, "the painted maps' queue goes past the grid's bank"
+; And behind it the columns a tick gathers, two at most: see `paint_tick`.
+PAINT_COL   = PAINT_Q + PAINT_Q_MAX * 8
+PAINT_COL_BYTES = 2 * PAINT_ROWS * 32
+.assert PAINT_COL + PAINT_COL_BYTES <= GRID_END, error, "the painted maps' columns go past the grid's bank"
 
 ; The fields of a `paint_table` record: see `panorama.rs` in
 ; rm2k-snes-mapdata.
@@ -86,6 +98,7 @@ PR_ATTRS   = 6
 PR_COLUMNS = 9
 PR_VRAM    = 12
 PR_BLANK   = 14
+PR_PIECES  = 16
 
 ; Looks the map being entered up in `paint_table`, with `map_current` set.
 ; From `load_map_data`, right after `pano_find`.
@@ -118,6 +131,8 @@ none:
 found:
     txa
     sta f:PAINT_ENT
+    lda f:paint_table + PR_PIECES, x
+    sta f:PAINT_PB
     lda #0
     sta f:PAINT_QN
     sep #$20
@@ -552,34 +567,152 @@ done:
     rts
 .endproc
 
-; The source of column A's cell in row `PAINT_T + 4`, into `PAINT_T + 10`
-; and `+ 12`: the column's pointer plus 32 bytes a row. With `cells_ptr` at
-; the column table. Keeps X and Y.
-.proc paint_source_of
+; `cells_ptr` at the number of column A's cell in row `PAINT_T + 4`: the
+; column's pointer, from the record's table, plus a word a row. Keeps Y.
+.proc paint_numbers_at
 .a16
 .i16
     phy
+    pha
+    jsr paint_columns_at
+    pla
     sta f:PAINT_M               ; the column, times three
     asl a
     clc
     adc f:PAINT_M
     tay
     lda [cells_ptr], y
-    sta f:PAINT_T + 10
+    pha
     iny
     iny
     lda [cells_ptr], y
-    and #$00FF
-    sta f:PAINT_T + 12          ; the bank
+    sep #$20
+.a8
+    sta cells_ptr + 2           ; the bank
+    rep #$20
+.a16
     lda f:PAINT_T + 4
+    asl a
+    clc
+    adc 1, s
+    sta cells_ptr               ; a column never crosses a bank
+    pla
+    ply
+    rts
+.endproc
+
+; Where the map's cell number A is, into `PAINT_T + 10` and `+ 12`: its
+; piece is the number's top six bits from the map's first, and in it 32
+; bytes a cell. Keeps Y.
+.proc paint_source_of
+.a16
+.i16
+    pha
+    and #(PAINT_PIECE_CELLS - 1)
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sta f:PAINT_T + 10
+    pla
+    xba
+    and #$00FC                  ; the piece times four
+    clc
+    adc f:PAINT_PB
+    tax
+    lda f:paint_pieces, x
+    clc
+    adc f:PAINT_T + 10
+    sta f:PAINT_T + 10          ; a piece never crosses a bank
+    lda f:paint_pieces + 2, x
+    and #$00FF
+    sta f:PAINT_T + 12
+    rts
+.endproc
+.assert PAINT_PIECE_CELLS = 1024, error, "paint_source_of takes a cell's piece from its number's top six bits"
+
+; Column `PAINT_T`'s cells from row `PAINT_T + 4`, `PAINT_T + 2` of them,
+; gathered from the pieces into `PAINT_COL` at `PAINT_SP`, a DMA a cell
+; through the WRAM port; `PAINT_T + 10` and `+ 12` at where they start, and
+; `PAINT_SP` past them. Outside the vblank: the DMA is the CPU's, and nothing
+; reads that port in an interrupt (see sound_effects.s). Keeps Y.
+.proc paint_stage
+.a16
+.i16
+    phy
+    lda f:PAINT_T
+    jsr paint_numbers_at
+    lda f:PAINT_SP
+    clc
+    adc #.loword(PAINT_COL)
+    sta f:PAINT_T + 10
+    sta f:WMADDL
+    lda #^PAINT_COL
+    sta f:PAINT_T + 12
+    phb
+    pea $0000
+    plb
+    plb
+    sep #$20
+.a8
+    lda #(^PAINT_COL & 1)
+    sta WMADDH
+    stz DMAP0                   ; one register, the source advancing
+    lda #<WMDATA
+    sta BBAD0
+    rep #$20
+.a16
+    lda f:PAINT_T + 2
+    pha                         ; 1, s: how many are left
+    ldy #0
+cell:
+    lda [cells_ptr], y
+    tax
+    and #(PAINT_PIECE_CELLS - 1)
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sta A1T0L
+    txa
+    xba
+    and #$00FC                  ; the piece times four
+    clc
+    adc f:PAINT_PB              ; from the map's first
+    tax
+    lda f:paint_pieces, x
+    clc
+    adc A1T0L
+    sta A1T0L
+    lda #32
+    sta DAS0L
+    sep #$20
+.a8
+    lda f:paint_pieces + 2, x
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    iny
+    iny
+    lda 1, s
+    dec a
+    sta 1, s
+    bne cell
+    pla
+    plb
+    lda f:PAINT_T + 2
     asl a
     asl a
     asl a
     asl a
     asl a
     clc
-    adc f:PAINT_T + 10
-    sta f:PAINT_T + 10          ; a column never crosses a bank
+    adc f:PAINT_SP
+    sta f:PAINT_SP
     ply
     rts
 .endproc
@@ -635,9 +768,7 @@ few:
     sta f:PAINT_T + 2           ; how many rows
     lda f:PAINT_TY
     sta f:PAINT_T + 4
-    jsr paint_columns_at
-    lda f:PAINT_T
-    jsr paint_source_of
+    jsr paint_stage
     lda #PAINT_COLUMNS
     sta f:PAINT_M + 2
     lda f:PAINT_T
@@ -746,7 +877,6 @@ some:
     clc
     adc 1, s
     pha                         ; 1, s: the slot, which walks
-    jsr paint_columns_at
     lda #32
     sta f:PAINT_T + 6
 tile:
@@ -754,7 +884,9 @@ tile:
     jsr paint_slot_vram
     sta f:PAINT_T + 8
     lda f:PAINT_T
-    jsr paint_source_of
+    jsr paint_numbers_at
+    lda [cells_ptr]
+    jsr paint_source_of         ; straight from the piece, as it always was
     jsr paint_enqueue
     ; The next column: its slot 30 further, or the first lap's.
     lda f:PAINT_T + 14
@@ -878,6 +1010,8 @@ on:
     plp
     rtl
 free:
+    lda #0
+    sta f:PAINT_SP              ; and so are the columns it gathered
     jsr paint_screen_cells
     lda f:PAINT_T
     pha                         ; where the screen starts across
@@ -1214,6 +1348,8 @@ on:
     lda #PAINT_COLUMNS
     pha                         ; 1, s: how many are left
 column:
+    lda #0
+    sta f:PAINT_SP
     ldy #0
     lda 3, s
     jsr paint_enqueue_column

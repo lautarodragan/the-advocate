@@ -20,6 +20,17 @@
 //! pictures fit is Wally's to say: they go in only if they cost the map
 //! nothing —see `picture_own` in its `map::convert`—.
 //!
+//! **A copy is only its bytecode where it draws nothing**, and a long one
+//! in every map pushes the maps' bytecode past what decompresses into WRAM,
+//! where it stays in the cartridge raw: Desert Nightmare's 12 and 14 did
+//! that to 181 maps. So the copies are made only of a common that shows a
+//! small picture —[`CommonPages::drawing_nothing`], asked after the scan—,
+//! and a map keeps its copy only if Wally put the copy's pictures in and
+//! its bytecode still goes to WRAM with it —`lay_out_with_copy` in
+//! `convert.rs`, after the compile—. Until 2026-11-20 every automatic
+//! common with a `ShowPicture` was copied, and a project could name the
+//! ones it kept shared, `[events] commons_not_copied`.
+//!
 //! The event compiler builds the same pages from the same list: see
 //! `with_test_event` in it.
 
@@ -144,6 +155,32 @@ impl CommonPages {
             maps.clear();
         }
         Ok(CommonPages { commons, maps })
+    }
+
+    /// Those of [`CommonPages::commons`] whose copy would draw nothing on
+    /// any map: every picture they show —theirs and their callees', which a
+    /// copy pastes— is big, or none can be drawn at all. A big picture is
+    /// the cartridge's, the same with a map and without one, so the shared
+    /// body does what the copy would, and the copy is only its bytecode in
+    /// every map's: Desert Nightmare's notes screen, common 12, was 13,833
+    /// bytes in each of 181 maps, and drew nothing.
+    ///
+    /// Asked of the scan's `commons_pictures`, which gathers each body as it
+    /// runs without a map, its calls pasted. One the scan says nothing of
+    /// —its shared body does not compile— is not judged, and stays.
+    pub fn drawing_nothing(&self, game: &Game, scan: &Value) -> crate::fail::Result<Vec<i32>> {
+        let mut nothing = Vec::new();
+        for c in scan["commons_pictures"].as_array().into_iter().flatten() {
+            let n = c["common"].as_i64().unwrap_or(0) as i32;
+            if !self.commons.contains(&n) {
+                continue;
+            }
+            let keys = c["pictures"].as_array().map_or(&[][..], Vec::as_slice);
+            if !crate::pictures::any_small(&game.game_dir, keys, &game.cropped)? {
+                nothing.push(n);
+            }
+        }
+        Ok(nothing)
     }
 
     /// What the event compiler's requests carry: nothing in a cartridge
