@@ -60,6 +60,36 @@ pub struct Request {
     pub debug: bool,
 }
 
+/// The cartridge's one font table, colour-free —see
+/// `message_window::font_prerender`—, as `font_bytes`' rows: the console's
+/// 96 glyphs, then what the text screens draw after them
+/// —`items::glyphs_after`: `TL_FIGURE`'s blank and the ExFont icons'
+/// halves—, then `letters`, the Latin-1 the message boxes draw. With where
+/// those letters start: a box names its letter k as glyph 96 + k, and the
+/// message composer moves it there.
+///
+/// Until 2026-11-20 each writer had its own table, coloured for it, and
+/// the boxes' and the screens' differed from glyph 96 on.
+pub fn font_glyphs(game: &Game, letters: &[char]) -> Result<(Vec<u8>, usize)> {
+    let (_, mut all) = items::glyphs_after(&game.font, &texts::screen_icons(game))?;
+    let letters_at = rm2k_snes_text::font::CONSOLE_GLYPHS + all.len();
+    all.extend(letters);
+    // A glyph's number is a byte: the composers multiply it.
+    let glyphs = rm2k_snes_text::font::CONSOLE_GLYPHS + all.len();
+    if glyphs > 256 {
+        return Err(Bad::answer(format!(
+            "the font carries {glyphs} glyphs —{} letters for the boxes, {} for the screens— \
+             and a byte names 256",
+            letters.len(),
+            letters_at - rm2k_snes_text::font::CONSOLE_GLYPHS
+        )));
+    }
+    Ok((
+        message_window::font_bytes_with(&game.font, &all)?,
+        letters_at,
+    ))
+}
+
 pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
@@ -616,7 +646,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         lose(&mut says, &mut losses, "window-frame-fused", Some(line));
     }
     let font = message_window::font_bytes_with(&game.font, &request.letters)?;
-    let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
+    let (glyphs, letters_at) = font_glyphs(game, &request.letters)?;
+    let prerender = message_window::font_prerender(&glyphs);
 
     // The items the actor choice opens for, whose names it writes: the
     // medicines, since 2026-10-04 the materials, and since 2026-11-01 the
@@ -1003,8 +1034,16 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         &game.font,
         &request.letters
     ));
-    window_json["prerender"] = json!(prerender.iter().map(|t| hex(t)).collect::<Vec<_>>());
+    window_json["font_ink"] = message_window::FontInk {
+        rows: window.color.clone(),
+        shadow: window.shadow,
+    }
+    .to_json();
     Ok(json!({
+        "font": {
+            "prerender": prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
+            "letters_at": letters_at,
+        },
         "custom_menus": custom_menus,
         "debug_screen": debug_screen,
         "window": window_json,
@@ -1032,12 +1071,12 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 "arrows": menu.arrows,
                 "arrow_colors": colors_json(&menu.arrow_colors),
             },
-            "prerender": slots.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
+            "font_ink": slots.ink.to_json(),
             "states": states_json(&skin, &slots.states)?,
         },
         "text_inks": {
             "palettes": inks.palettes,
-            "prerender": inks.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
+            "font_ink": items::screens_ink().to_json(),
             "advances": inks.advances,
             "reach": inks.reach,
             "icons": inks.icons,

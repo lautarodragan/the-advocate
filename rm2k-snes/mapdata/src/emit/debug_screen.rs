@@ -22,8 +22,8 @@ const SCREEN_MAP_BYTES: usize = 32 * 28 * 2;
 /// And a bar: two cell rows of it.
 const BAR_BYTES: usize = 2 * 32 * 2;
 /// A precomposed letter's bytes, in each phase: 13 rows of two columns'
-/// mask and planes. The runtime's `FONT_PRE_CHAR`, of the game's font.
-const FONT_PRE_CHAR: usize = 13 * 12;
+/// ink and glyph words. The runtime's `FONT_PRE_CHAR`, of the game's font.
+const FONT_PRE_CHAR: usize = 13 * 8;
 
 fn words(v: &Value) -> Result<Vec<u8>> {
     Ok(words_le(ints(v)?.into_iter().map(|w| w as u32)))
@@ -112,8 +112,9 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
     out.push('\n');
     // Its font, which only the text layer's 512-wide mode reads: how far
     // each letter moves the line and how far it paints, and its glyphs
-    // precomposed for the inks, a table per phase —what `font_advance`,
-    // `font_reach` and `scr_pre0` to `scr_pre7` are of the game's font—.
+    // precomposed, colour-free, a table per phase —what `font_advance`,
+    // `font_reach` and `font_pre0` to `font_pre7` are of the game's font—,
+    // which the text layer paints with the screens' ink, `SCR_INK_*`.
     let font = get("font")?;
     let small = |name: &str| -> Result<Vec<u8>> {
         Ok(ints(&font[name])?.into_iter().map(|n| n as u8).collect())

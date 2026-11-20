@@ -142,6 +142,7 @@ mod tests {
             assert!(
                 crate::banks::FAR2.bank != SPILL_BANK
                     && crate::banks::FAR3.bank != SPILL_BANK
+                    && crate::banks::FAR4.bank != SPILL_BANK
                     && SPILL_BANK > 1
             );
         }

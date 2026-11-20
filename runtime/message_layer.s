@@ -665,10 +665,10 @@ none:
     bne done
     lda f:LAYER_ON
     beq done
-    ; Which of its two cells and two rows the glyph inks: the composed
-    ; tables say per row what is kept of each cell, all of it where nothing
-    ; is drawn —see `compose_char`—. Bits 0 and 1 its cell's top and
-    ; bottom, 2 and 3 the next one's.
+    ; Which of its two cells and two rows the glyph inks: the font says
+    ; per row what each cell inks, 0 where nothing is drawn —see
+    ; font_ink.s—. Bits 0 and 1 its cell's top and bottom, 2 and 3 the
+    ; next one's.
     rep #$20
 .a16
     lda #0
@@ -677,18 +677,16 @@ none:
     ldx #0                      ; the glyph's row
 row:
     lda [comp_glyph], y
-    cmp #$FFFF
     beq no_first
     jsr bit_of_row
     ora f:LAYER_BITS
     sta f:LAYER_BITS
 no_first:
-    tya
-    clc
-    adc #6
-    tay
+    iny
+    iny
+    iny
+    iny
     lda [comp_glyph], y
-    cmp #$FFFF
     beq no_second
     jsr bit_of_row
     asl a
@@ -696,10 +694,10 @@ no_first:
     ora f:LAYER_BITS
     sta f:LAYER_BITS
 no_second:
-    tya
-    clc
-    adc #6
-    tay
+    iny
+    iny
+    iny
+    iny
     inx
     cpx #FONT_PRE_ROWS
     bne row

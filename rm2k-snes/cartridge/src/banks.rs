@@ -44,8 +44,8 @@
 //!
 //! **What this module assumes about the runtime** is that banks 0 and 1 are
 //! its first two code banks, that the low halves of `$C0` and `$C1` are the
-//! third and the fourth —[`FAR2`], [`FAR3`]—, and that the generated data
-//! goes in the rest: [`slots`].
+//! third and the fourth —[`FAR2`], [`FAR3`]—, that of `$FF` the fifth
+//! —[`FAR4`]—, and that the generated data goes in the rest: [`slots`].
 
 use std::path::Path;
 
@@ -92,6 +92,26 @@ pub const FAR3: Slot = Slot {
     start: 0,
     size: HALF,
 };
+
+/// The fifth code bank: `FAR4`, linked at `$FF:0000` and 32 KB long, like
+/// [`FAR3`] —a plain fast ExHiROM half, entered only with `jsl` or `jml`—.
+/// It came on 2026-11-20 with the font's colour: the font went from three
+/// coloured copies to one, 280 KB less in A Blurred Line, and the writers
+/// that put the colour in as they compose went unrolled, a routine per
+/// writer, for speed; no code bank had room for them in every game —bank 1
+/// had 117 bytes left in Vampires Dawn, `FAR2` 70 in Desert Nightmare,
+/// `FAR3` 90 in Zounds—. It is the low half of the last fast bank, so the
+/// data still starts at `$C2:0000` and only `$FF` became a half. Its area in
+/// the `.cfg` is [`FAR4_AREA`], since `$FF`'s upper half is data and takes
+/// the bank's name.
+pub const FAR4: Slot = Slot {
+    bank: 0xFF,
+    start: 0,
+    size: HALF,
+};
+
+/// The `.cfg` area of [`FAR4`].
+pub const FAR4_AREA: &str = "CODEFF";
 
 /// The file offset of a CPU address, as the cartridge decodes it, or `None`
 /// if the cartridge does not answer there.
@@ -152,10 +172,12 @@ pub fn slots() -> Vec<Slot> {
         start: 0x8000,
         size: HALF,
     };
-    let mut out: Vec<Slot> = (0xC2..=0xFF).map(whole).collect();
+    let mut out: Vec<Slot> = (0xC2..=0xFE).map(whole).collect();
     // The low halves of `$C0` and `$C1` are the third and fourth code
     // banks: see [`FAR2`] and [`FAR3`]. Until 2026-10-15 that of `$C1` was
-    // data.
+    // data. And that of `$FF` the fifth, [`FAR4`], since 2026-11-20: its
+    // upper half is the last fast slot.
+    out.push(high(0xFF));
     out.extend((0x42..=0x6F).map(whole));
     // The low halves of the copies of banks 0 and 1, the upper halves of the
     // banks whose low one is not used, and those of `$7E` and `$7F`, which
@@ -1252,6 +1274,7 @@ pub fn cfg() -> String {
         ),
         format!("FAR2:     load = {}, type = ro;", segment_of(FAR2.bank)),
         format!("FAR3:     load = {}, type = ro;", segment_of(FAR3.bank)),
+        format!("FAR4:     load = {FAR4_AREA}, type = ro;"),
     ]);
     let data = slots();
     let area = |name: String, start: usize, size: usize| {
@@ -1277,6 +1300,11 @@ pub fn cfg() -> String {
         {
             memory.push(area(segment_of(code.bank), code.address(), code.size));
             offset += code.size;
+            continue;
+        }
+        if Some(offset) == file_offset(FAR4.address()) {
+            memory.push(area(FAR4_AREA.to_string(), FAR4.address(), FAR4.size));
+            offset += FAR4.size;
             continue;
         }
         if offset == 0x018000 {

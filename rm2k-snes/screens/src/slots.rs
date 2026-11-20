@@ -68,9 +68,9 @@ pub struct Slots {
     pub menu: MenuBlocks,
     /// The actors whose face had to borrow another's palette.
     pub lent: Vec<i32>,
-    /// The font precomposed for palette 0, one table per phase: what the
-    /// cartridge's `tl_strip` composes names with —see `text_layer.s`—.
-    pub prerender: Vec<Vec<u8>>,
+    /// The colours the font takes in palette 0: what the cartridge's
+    /// `tl_strip` composes names with —see `text_layer.s`—.
+    pub ink: message_window::FontInk,
     /// How many of `tiles`, from the first, the menu and the actor choice
     /// show: their names are composed from the first even tile after
     /// these. All of them unless the bank went [`Order::MenuFirst`] or
@@ -647,13 +647,10 @@ pub fn slots_screen_with(
     let index = cells::index_of(&palette);
     let at = |color: &Color| palette.iter().position(|c| c == color).expect("seen") as u8;
     let rows: Vec<u8> = ink_rows.iter().map(at).collect();
-    // The same glyphs as the screens' tables: see `items::glyphs_after`.
-    let (_, after) = crate::items::glyphs_after(&game.font, &crate::texts::screen_icons(game))?;
-    let prerender = message_window::font_prerender(
-        &message_window::font_bytes_with(&game.font, &after)?,
-        &rows,
-        at(&ink_shadow),
-    );
+    let ink = message_window::FontInk {
+        rows: rows.clone(),
+        shadow: at(&ink_shadow),
+    };
     debug_assert_eq!(rows.len(), font::HEIGHT);
     let mut gray_palette = vec![BLACK];
     gray_palette.extend(seen_gray.by_use());
@@ -819,7 +816,7 @@ pub fn slots_screen_with(
     };
     out.tiles = bank.tiles;
     out.palettes = palettes;
-    out.prerender = prerender;
+    out.ink = ink;
     out.states = states;
     Ok(out)
 }

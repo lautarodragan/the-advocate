@@ -916,9 +916,10 @@ pub const FONT_GLYPHS: usize = font::CONSOLE_GLYPHS;
 pub const FONT_PHASES: usize = 8;
 /// The precomposed glyphs: per glyph and phase, the cell rows it touches
 /// —its twelve, and one more of shadow— and per row the two cells it can
-/// step on, three words each.
+/// step on, two words each —what it inks, and of that the glyph's—. See
+/// `message_window::font_prerender`.
 pub const FONT_PRE_ROWS: usize = FONT_HEIGHT + 1;
-pub const FONT_PRE_CHAR: usize = FONT_PRE_ROWS * 2 * 6;
+pub const FONT_PRE_CHAR: usize = FONT_PRE_ROWS * 2 * 4;
 /// A line of the window, in pixels: RM2k's, which a glyph of twelve and
 /// its shadow fit in.
 pub const WINDOW_LINE: usize = 16;
