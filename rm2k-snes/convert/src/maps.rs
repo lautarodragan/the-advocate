@@ -742,6 +742,10 @@ pub struct MapInfo {
     pub outside: HashMap<i64, HashSet<(String, i64)>>,
     pub shared: HashMap<i64, (Value, Value)>,
     pub pictures: Option<(Value, Vec<Value>, Vec<Value>)>,
+    /// Whether the pictures that went in are the copied common events'
+    /// too, and not the map's own instead: a map keeps its copy only if it
+    /// draws. See [`crate::common_pages`].
+    pub copies_draw: bool,
     pub big_pictures: Vec<Big>,
     pub big_table: Vec<Value>,
     pub pages: Vec<PageRecord>,
@@ -1377,6 +1381,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             .unwrap_or(Value::Array(Vec::new())),
         outside,
         shared,
+        copies_draw: pictures.is_some() && !truthy(answer.get("pictures_own")),
         pictures,
         big_pictures,
         big_table: Vec::new(),
