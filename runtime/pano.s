@@ -347,8 +347,8 @@ no_paint:
     rtl
 .endproc
 
-; Mode 3 for a screen that opens over the map: they all draw in mode 3, and
-; `back_to_map` puts mode 1 back through `ppu_init`. And no mask on BG1: the
+; Mode 3 for a screen that opens over the map or the title: they all draw in
+; mode 3, and `back_to_map` puts mode 1 back through `ppu_init`. And no mask on BG1: the
 ; HDMA is off and W12SEL stays as its last line left it. And no color math:
 ; a translucent picture or the hero's feet in a bush —`pic_blend`— leave it
 ; on, and the screens' own objects in palettes 4 to 7 —the shop's arrows—
@@ -368,19 +368,14 @@ no_paint:
     lda #0
     sta f:W12SEL
 no_bg1:
-.ifdef paint_table
-    lda f:PAINT_ON              ; a painted map is mode 1 too
-    bne mode3
-.endif
-    lda f:PANO_ON
-    cmp #1
-    bne done
-.ifdef paint_table
-mode3:
-.endif
+    ; **Mode 3 whatever the map was**: not only after a panorama or a
+    ; painted map in mode 1. A title of four bits leaves mode 1 too —see
+    ; `title.s`— and clears `PANO_ON`, so the slot screen opened from it
+    ; read its 8bpp cursor, on BG1, as 4bpp: a few brown bits around "File
+    ; 1" (Desert Nightmare, 2026-11-20). Until that day it was written only
+    ; with `PANO_ON` at 1 or a painted map on.
     lda #$03
     sta f:BGMODE
-done:
     rtl
 .endproc
 
