@@ -173,18 +173,28 @@ impl MapPictures {
     }
 }
 
-/// What the file of a picture says: its size and how much of it is the
-/// transparent colour, index 0.
+/// What the file of a picture says: its size, how much of it is the
+/// transparent colour, index 0, and the size of what it draws: the box
+/// around every other index —the whole file for one that is not indexed,
+/// nothing for one all transparent—.
 #[derive(Clone, Copy, Debug)]
 struct File {
     size: (i32, i32),
     holes: f64,
+    drawn: (i32, i32),
 }
 
 /// How much of the picture at `path` is its transparent colour, index 0: 0
 /// for one that is not indexed. See [`crate::pictures::still_over`] too.
 pub fn holes(path: &Path) -> Result<f64> {
     Ok(read_file(path)?.holes)
+}
+
+/// The size of what the picture at `path` draws over its transparent
+/// colour: see [`File`]. The first, cheap look of `sparse` in
+/// [`crate::pictures`], before it converts the picture.
+pub fn drawn(path: &Path) -> Result<(i32, i32)> {
+    Ok(read_file(path)?.drawn)
 }
 
 fn read_file(path: &Path) -> Result<File> {
@@ -199,26 +209,38 @@ fn read_file(path: &Path) -> Result<File> {
         .map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
     let (w, h) = (frame.width as usize, frame.height as usize);
     // Only an indexed picture has an index 0; any other has no holes.
-    let holes = if frame.color_type == png::ColorType::Indexed {
+    let (holes, drawn) = if frame.color_type == png::ColorType::Indexed {
         let bits = frame.bit_depth as usize;
         let per_byte = 8 / bits;
         let mut zeros = 0usize;
-        for row in buf[..frame.buffer_size()].chunks(frame.line_size) {
+        let (mut x0, mut y0, mut x1, mut y1) = (w, h, 0, 0);
+        for (y, row) in buf[..frame.buffer_size()]
+            .chunks(frame.line_size)
+            .enumerate()
+        {
             for x in 0..w {
                 let byte = row[x / per_byte];
                 let shift = 8 - bits * (x % per_byte + 1);
                 if (byte >> shift) & ((1 << bits) - 1) as u8 == 0 {
                     zeros += 1;
+                } else {
+                    (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x + 1), y1.max(y + 1));
                 }
             }
         }
-        zeros as f64 / (w * h).max(1) as f64
+        let drawn = if x1 > x0 {
+            ((x1 - x0) as i32, (y1 - y0) as i32)
+        } else {
+            (0, 0)
+        };
+        (zeros as f64 / (w * h).max(1) as f64, drawn)
     } else {
-        0.0
+        (0.0, (w as i32, h as i32))
     };
     Ok(File {
         size: (w as i32, h as i32),
         holes,
+        drawn,
     })
 }
 
@@ -254,6 +276,21 @@ struct Shown {
     /// Whether its page runs when the player asks —the action key, a
     /// touch— and not on its own: see [`Parts`].
     on_demand: bool,
+}
+
+impl Shown {
+    /// The key the scan would answer for it, as [`crate::pictures`] reads
+    /// one: its file, where its `ShowPicture` puts it, and how.
+    fn key(&self) -> Value {
+        json!({
+            "number": self.number,
+            "name": self.name,
+            "at": [self.screen.0, self.screen.1],
+            "zoom": self.zoom,
+            "transparent_color": self.transparent_color,
+            "map_fixed": self.on_map,
+        })
+    }
 }
 
 /// RM2k's camera on `map` with the hero at cell `(x, y)`.
@@ -683,6 +720,13 @@ pub fn decide(maps: &[&GameMap], game_dir: &Path, out_dir: &Path) -> Result<MapP
             (Some((path, file)), Some(&size)) => match placed(&s, file, size) {
                 Ok(p) => Some((path.clone(), p)),
                 Err(why) => {
+                    // One that draws little goes in the objects whatever the
+                    // size of its file, over the map, or is left out: it
+                    // hides nothing. See `sparse` in `crate::pictures`.
+                    let why = match why {
+                        Some(why) if !crate::pictures::draws_little(path, &s.key())? => Some(why),
+                        _ => None,
+                    };
                     if let Some(why) = why {
                         hidden.push(Hidden {
                             map: s.from,
@@ -810,6 +854,7 @@ mod tests {
     const SCREEN_SIZED: File = File {
         size: (320, 240),
         holes: 0.5,
+        drawn: (320, 240),
     };
     const SCROLLS: (i32, i32) = (20, 19);
 
@@ -939,6 +984,7 @@ mod tests {
         let small = File {
             size: (64, 64),
             holes: 0.5,
+            drawn: (64, 64),
         };
         assert_eq!(placed(&shown(true, true), &small, SCROLLS), Err(None));
         let mut invisible = shown(true, false);
