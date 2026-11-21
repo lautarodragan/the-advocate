@@ -1932,7 +1932,12 @@ fn page(
             }
             let mut p = p;
             if fade_outs.contains(&i) && matches!(p.first(), Some(&(OP_BIG_MOVE | OP_BIG_ZOOM))) {
-                p.extend([OP_PICTURE_ERASE, PICTURE_BIG]);
+                // Taken down as its `ErasePicture` would: the game's windows
+                // it covered come back too —see [`window_cover`]—.
+                let taken = [OP_PICTURE_ERASE, PICTURE_BIG];
+                let erase = Command::new(ERASE_PICTURE, cmd.indent, "", vec![cmd.parameters[0]]);
+                p.extend(taken);
+                p.extend(window_cover(ctx, &erase, &taken)?);
             }
             piece = p;
         }
@@ -12758,6 +12763,7 @@ mod tests {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: Vec::new(),
         };
         let (indices, sound) = (Indices::default(), SoundSettings::default());
         let mut messages = Messages::new(1, Window::columns(39, 4));
@@ -12812,6 +12818,22 @@ mod tests {
                 1,
                 OP_DONE
             ]
+        );
+        // Faded to nothing and taken down —see `big_fade_outs`—, it
+        // uncovers them as its `ErasePicture` would.
+        let fade = cmd(
+            MOVE_PICTURE,
+            &[
+                17, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 30, 1,
+            ],
+            "",
+        );
+        let code = compile_page(&mut ctx, &[page[0].clone(), fade], None, 0, 0)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            &code[code.len() - 5..],
+            [OP_PICTURE_ERASE, PICTURE_BIG, OP_WINDOW_COVER, 0, OP_DONE]
         );
         // A game without windows gets none: in its ROM the opcode ends the
         // page.
