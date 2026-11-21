@@ -308,7 +308,11 @@ fn recolor_tiles(
             .unwrap_or_default();
         let pairs: Vec<([u8; 3], [u8; 3])> = item["colors"]
             .as_array()
-            .map(|a| a.iter().map(|p| (rgb(&p[0]), to_15_bits(rgb(&p[1])))).collect())
+            .map(|a| {
+                a.iter()
+                    .map(|p| (rgb(&p[0]), to_15_bits(rgb(&p[1]))))
+                    .collect()
+            })
             .unwrap_or_default();
         // The tiles' pixels and their colours are read before painting
         // anything, so a `to` that is another pair's `from` is not painted

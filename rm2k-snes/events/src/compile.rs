@@ -2678,7 +2678,10 @@ fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
 /// then the choice may stay a box of its own where RPG_RT joins it. And a
 /// face that narrows the box past the window is looked at when compiling,
 /// in the frame that goes last: see `OP_ASK` in the page's loop.
-fn questions(commands: &[Command], options_of: &HashMap<usize, Vec<(i64, String)>>) -> HashMap<usize, usize> {
+fn questions(
+    commands: &[Command],
+    options_of: &HashMap<usize, Vec<(i64, String)>>,
+) -> HashMap<usize, usize> {
     group_boxes(commands)
         .windows(2)
         .filter(|w| {
@@ -2686,7 +2689,9 @@ fn questions(commands: &[Command], options_of: &HashMap<usize, Vec<(i64, String)
             let j = w[1].0;
             commands[*i].code == SHOW_MESSAGE
                 && commands[j].code == SHOW_CHOICE
-                && options_of.get(&j).is_some_and(|o| !o.is_empty() && o.len() + 1 + extra.len() <= CHOICE_MAX as usize)
+                && options_of.get(&j).is_some_and(|o| {
+                    !o.is_empty() && o.len() + 1 + extra.len() <= CHOICE_MAX as usize
+                })
         })
         .map(|w| (w[0].0, w[1].0))
         .collect()
@@ -6732,13 +6737,18 @@ fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8
             // does not compile, and its page with it: that is also what a
             // scan over the dump without the project's forked common
             // events —the harness's, for the variables' slots— finds.
-            let (Some(slot), Some((first, tiles))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
+            let (Some(slot), Some((first, tiles))) =
+                (registry.slot(w.id), registry.windows.get(&w.id).cloned())
             else {
                 return cannot();
             };
             // Each line with its own cells, which the runtime packs after the
             // lines before it in the id's tiles: see `windows::Registry`.
-            let cells: Vec<usize> = w.lines.iter().map(|l| crate::windows::line_cells(l, &window)).collect();
+            let cells: Vec<usize> = w
+                .lines
+                .iter()
+                .map(|l| crate::windows::line_cells(l, &window))
+                .collect();
             if crate::windows::tiles(&w.lines, &window) > tiles
                 || cells.iter().any(|&c| (c * 8) as i64 > w.text_width())
             {
@@ -6798,7 +6808,11 @@ fn window_cover(ctx: &mut Ctx, cmd: &Command, code: &[u8]) -> Result<Vec<u8>> {
         let under = registry.windows.keys().filter(|&&id| id < number).count();
         return Ok(vec![OP_WINDOW_COVER, under as u8]);
     }
-    if cmd.code == ERASE_PICTURE && code.windows(2).any(|w| w == [OP_PICTURE_ERASE, PICTURE_BIG]) {
+    if cmd.code == ERASE_PICTURE
+        && code
+            .windows(2)
+            .any(|w| w == [OP_PICTURE_ERASE, PICTURE_BIG])
+    {
         return Ok(vec![OP_WINDOW_COVER, 0]);
     }
     Ok(vec![])
@@ -8524,7 +8538,12 @@ mod tests {
         }
         out.push(cmd(SHOW_CHOICE, &[0], "options"));
         for n in 0..options {
-            out.push(Command::new(SHOW_CHOICE_OPTION, 0, &format!("Option {n}"), vec![n as i32]));
+            out.push(Command::new(
+                SHOW_CHOICE_OPTION,
+                0,
+                &format!("Option {n}"),
+                vec![n as i32],
+            ));
             out.push(Command::new(END, 1, "", vec![]));
         }
         out.push(cmd(SHOW_CHOICE_END, &[], ""));
@@ -8590,10 +8609,12 @@ mod tests {
                 jump: None,
                 decision_key: None,
             };
-            compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+            compile_page(&mut ctx, commands, None, 0, 0)
+                .unwrap()
+                .unwrap()
         };
         let long = "a".repeat(30); // one line whole, two with a face
-        // One line, two with the face, and two options: four, one box.
+                                   // One line, two with the face, and two options: four, one box.
         let code = compiled(&question_of(&[&long], 2));
         assert_eq!(code[0], OP_ASK);
         assert_eq!(code[3], 2, "the options go under the face's two lines");
@@ -12468,7 +12489,11 @@ mod tests {
             cmd(COMMENT, &[], "@window 7 8 8 72 48"),
             cmd(COMMENT_2, &[], "\\c[1]Keys"),
             cmd(COMMENT_2, &[], "Maps"),
-            cmd(SHOW_PICTURE, &[7, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "Optionen2"),
+            cmd(
+                SHOW_PICTURE,
+                &[7, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+                "Optionen2",
+            ),
             cmd(COMMENT, &[], "@window 3 0 0 64 32 plain"),
             cmd(COMMENT_2, &[], "abc"),
             cmd(COMMENT, &[], "@window_erase 3"),
@@ -12500,10 +12525,37 @@ mod tests {
         assert_eq!(
             code,
             [
-                OP_WINDOW, 1, 1, 1, 9, 6, 0, 6, 2, 0, 0, 4, 8, 0, 4,
-                OP_WINDOW, 0, 0, 0, 8, 4, 1, 0, 1, 14, 0, 3,
-                OP_WINDOW_ERASE, 0,
-                OP_WINDOW_ERASE, 1,
+                OP_WINDOW,
+                1,
+                1,
+                1,
+                9,
+                6,
+                0,
+                6,
+                2,
+                0,
+                0,
+                4,
+                8,
+                0,
+                4,
+                OP_WINDOW,
+                0,
+                0,
+                0,
+                8,
+                4,
+                1,
+                0,
+                1,
+                14,
+                0,
+                3,
+                OP_WINDOW_ERASE,
+                0,
+                OP_WINDOW_ERASE,
+                1,
                 OP_DONE
             ]
         );
@@ -12522,7 +12574,11 @@ mod tests {
         use crate::messages::{Messages, Window};
         let (game, _) = with_windows();
         let show = |n: i32, name: &str| {
-            cmd(SHOW_PICTURE, &[n, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0], name)
+            cmd(
+                SHOW_PICTURE,
+                &[n, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0],
+                name,
+            )
         };
         let note = show(17, "Notiz_Bild1");
         let face = show(5, "Introauswahl");
@@ -12567,12 +12623,30 @@ mod tests {
         assert_eq!(
             code,
             [
-                OP_BIG_SHOW, 0, 100, 100, 100, 0, 100, 0,
-                OP_WINDOW_COVER, 2,
-                OP_PICTURE_ERASE, PICTURE_BIG,
-                OP_WINDOW_COVER, 0,
-                OP_BIG_SHOW, 1, 100, 100, 100, 0, 100, 0,
-                OP_WINDOW_COVER, 1,
+                OP_BIG_SHOW,
+                0,
+                100,
+                100,
+                100,
+                0,
+                100,
+                0,
+                OP_WINDOW_COVER,
+                2,
+                OP_PICTURE_ERASE,
+                PICTURE_BIG,
+                OP_WINDOW_COVER,
+                0,
+                OP_BIG_SHOW,
+                1,
+                100,
+                100,
+                100,
+                0,
+                100,
+                0,
+                OP_WINDOW_COVER,
+                1,
                 OP_DONE
             ]
         );
@@ -12580,7 +12654,9 @@ mod tests {
         // page.
         ctx.game = &bare;
         ctx.messages = Some(&mut other_messages);
-        let code = compile_page(&mut ctx, &page[..1], None, 0, 0).unwrap().unwrap();
+        let code = compile_page(&mut ctx, &page[..1], None, 0, 0)
+            .unwrap()
+            .unwrap();
         assert!(!code.contains(&OP_WINDOW_COVER), "{code:?}");
     }
 

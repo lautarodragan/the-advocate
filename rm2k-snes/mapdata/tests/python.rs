@@ -222,7 +222,9 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "41dcddb2bba3c23d41d630c0c4811e4b85ba9bd27742a11190941c54658045b7"
     );
     assert_eq!(
-        sha(&without_arrow_objs(&without_pose_masks(&without_layer_texts(&written.tables)))),
+        sha(&without_arrow_objs(&without_pose_masks(
+            &without_layer_texts(&written.tables)
+        ))),
         "1480f2054c9226f9bc616abd24a469498b5792a4f7805e70b413d2f474fa874c"
     );
 }
@@ -1438,13 +1440,19 @@ fn without_layer_texts(text: &str) -> String {
     let at = text.find(head).expect("the layer_texts table");
     let lines: Vec<&str> = text[at + 1..].split('\n').collect();
     assert_eq!(lines[4], "layer_texts:");
-    let bytes: Vec<&str> = lines[5].trim_start_matches("    .byte ").split(", ").collect();
+    let bytes: Vec<&str> = lines[5]
+        .trim_start_matches("    .byte ")
+        .split(", ")
+        .collect();
     assert_eq!(lines[3], format!(".block {}", bytes.len()));
     assert!(bytes.iter().all(|b| *b == "0"), "{}", lines[5]);
     let end = lines[..6].iter().map(|l| l.len() + 1).sum::<usize>();
     text = format!("{}{}", &text[..at], &text[at + 1 + end..]);
     let mut lines: Vec<&str> = text.split('\n').collect();
-    if let Some(at) = lines.iter().position(|l| l.starts_with("LAYER_TEXT_ENTRIES = $")) {
+    if let Some(at) = lines
+        .iter()
+        .position(|l| l.starts_with("LAYER_TEXT_ENTRIES = $"))
+    {
         assert_eq!(lines[at + 1], "");
         lines.drain(at..at + 2);
     }
@@ -2049,7 +2057,10 @@ fn with_one_font_table_as_before(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let emitted_text = with_three_fonts_as_before(&emitted.text, "bare");
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted_text), "bare"));
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(
+        &without_layer_texts(&emitted_text),
+        "bare",
+    ));
     let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
@@ -2097,7 +2108,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let emitted_text = with_three_fonts_as_before(&emitted.text, "whole");
-    let text = with_one_font_table_as_before(&with_the_cursors_as_before(&without_layer_texts(&emitted_text), "whole"));
+    let text = with_one_font_table_as_before(&with_the_cursors_as_before(
+        &without_layer_texts(&emitted_text),
+        "whole",
+    ));
     let text = without_actor_choice_on_top(&without_item_text_more(&text));
     let text = without_menu_states(&without_menu_list(&without_sp_line(&without_debug_screen(
         &without_phasing(&text),
