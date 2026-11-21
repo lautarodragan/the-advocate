@@ -613,6 +613,7 @@ mod tests {
             layer: 0,
             animation_type: 0,
             translucent: false,
+            trigger: 0,
             commands,
         }
     }

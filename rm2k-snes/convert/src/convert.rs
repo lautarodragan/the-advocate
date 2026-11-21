@@ -491,7 +491,13 @@ pub fn run(options: Options) -> Result<()> {
         }
     }
     let map_pictures = if game.map_pictures {
-        let decided = crate::map_pictures::decide(&every_refs, &game.game_dir)?;
+        // The parts of the drawings that share a number go next to the
+        // cartridge's `mapdata.inc`: see `map_pictures::Parts`.
+        let cartridge_dir = output
+            .parent()
+            .map(rm2k_project::absolute)
+            .unwrap_or_default();
+        let decided = crate::map_pictures::decide(&every_refs, &game.game_dir, &cartridge_dir)?;
         println!(
             "  pictures drawn into their map: {} in {} of the {} maps",
             decided.per_map.values().map(Vec::len).sum::<usize>(),
@@ -504,6 +510,12 @@ pub fn run(options: Options) -> Result<()> {
                 .map(|p| format!("'{}' at {} %", p.name, 100 - p.transparency))
                 .collect();
             println!("  map {map}: drawn into the map: {}", names.join(", "));
+        }
+        for ((map, number, name), path) in &decided.parts {
+            println!(
+                "  map {map}: the picture '{name}' under {number} shows only what it has of its own: {}",
+                path.display()
+            );
         }
         // The translucent big ones the rule leaves as pictures stay over
         // black, with the map hidden: a loss, next to the ROM.

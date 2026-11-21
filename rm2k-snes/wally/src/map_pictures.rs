@@ -30,6 +30,7 @@ use crate::game::Game;
 use crate::layers::Panorama;
 use rm2k_render::{picture, Layers, Picture};
 use serde_json::Value;
+use std::path::PathBuf;
 
 /// One picture of the map: see `map_pictures` in the request.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -46,11 +47,16 @@ pub struct MapPicture {
     /// Repeated over the whole map from its corner: a mist that goes with
     /// the screen on a map that scrolls.
     pub repeat: bool,
+    /// The file to draw instead of the one `name` names: the part that
+    /// several drawings under one number have in common, which the
+    /// converter writes —see `map_pictures` in rm2k-snes-convert—.
+    pub path: Option<PathBuf>,
 }
 
 /// `map_pictures`, which can be missing: a list of
 /// `{"number", "name", "corner": [x, y], "transparency", "tone": [r, g, b,
-/// s], "transparent_color", "repeat"}`.
+/// s], "transparent_color", "repeat"}`, and a `"path"` when the file is
+/// not the game's —see [`MapPicture::path`]—.
 pub fn from_json(data: &Value, whose: &str) -> Result<Vec<MapPicture>> {
     let Some(list) = data.get("map_pictures").filter(|v| !v.is_null()) else {
         return Ok(Vec::new());
@@ -83,6 +89,10 @@ pub fn from_json(data: &Value, whose: &str) -> Result<Vec<MapPicture>> {
                     .as_bool()
                     .ok_or_else(|| bad("transparent colour"))?,
                 repeat: p["repeat"].as_bool().ok_or_else(|| bad("repeat"))?,
+                path: match &p["path"] {
+                    Value::Null => None,
+                    v => Some(PathBuf::from(v.as_str().ok_or_else(|| bad("path"))?)),
+                },
             })
         })
         .collect()
@@ -185,12 +195,16 @@ pub fn compose(
     let mut panorama = panorama.filter(|p| fixed_to_map(p, map));
     let mut front = vec![false; map.0 * map.1];
     for p in pictures {
-        let path = game.resource("Picture", &p.name).ok_or_else(|| {
-            Bad::answer(format!(
-                "map {id}: picture {:?} is in none of the search directories",
-                p.name
-            ))
-        })?;
+        let path = p
+            .path
+            .clone()
+            .or_else(|| game.resource("Picture", &p.name))
+            .ok_or_else(|| {
+                Bad::answer(format!(
+                    "map {id}: picture {:?} is in none of the search directories",
+                    p.name
+                ))
+            })?;
         let art = if p.transparent_color {
             picture::read_rm2k(&path)?
         } else {

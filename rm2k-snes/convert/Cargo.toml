@@ -14,6 +14,9 @@ ditto = { path = "../../rm2k/ditto" }
 png = "0.17"
 rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
+# To read a picture as RM2k does, for the parts of the drawings that share
+# a number: see `map_pictures`.
+rm2k-render = { path = "../../rm2k/rm2k-render" }
 # The opcodes and their sizes, to walk a compiled page.
 rm2k-snes-bytecode = { path = "../bytecode" }
 # Which members of a troop the battle carries: its `fit`.

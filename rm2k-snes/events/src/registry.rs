@@ -474,6 +474,11 @@ pub struct Pictures {
     /// compiled without a map —see [`CommonPicture`]—: in the registry of a
     /// body, those of its set. Looked up after the map's own.
     pub common: Vec<CommonPicture>,
+    /// The pictures of `table`, by their image, that go with the map though
+    /// their `ShowPicture` says the screen: each one the part of a drawing
+    /// whose rest the map carries —see `map_pictures` in
+    /// rm2k-snes-convert—, which has to stay where that rest is.
+    pub with_map: Vec<u8>,
 }
 
 /// A small picture of a common event compiled without a map: an entry of
@@ -506,6 +511,7 @@ impl Pictures {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: Vec::new(),
         }
     }
 
