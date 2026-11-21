@@ -499,6 +499,7 @@ same_page:
     bne :+
     jmp next                    ; the same page as before: it goes on where it was
 :
+    jsr page_pose_into_slot     ; while +20 still names the old page
     bra load
 fresh:
     lda rp_ev
@@ -537,6 +538,7 @@ no_route:
     bne :+
     jmp next
 :
+    jsr page_pose_into_slot     ; while +20 still names the old page
     jsr remove_page_from_slot
     jmp next
 .a16
@@ -1818,6 +1820,64 @@ ready:
     sta route_ev + 20, x
     sep #$20
 .a8
+    rts
+.endproc
+
+; The new page's pose, into slot X, which still names the page it had at +20:
+; it is the pose half of `Game_Event::RefreshPage`. A stopped event faces its
+; new page's direction if the direction or the pattern differ from the old
+; page's, and a page with a fixed graphic shows its own column. Until
+; 2026-11-21 the slot kept the old page's: an event whose page spins —which
+; has a slot since 2026-10-04, see `load_page_into_slot`— and whose next page
+; stands still kept facing wherever the spin had left it, at the column the
+; stand-still animation goes back to, and drew another pose of the new
+; page's graphic. Desert Nightmare: on map 28 the warehouse safe, once its
+; key is taken, on map 16 the motel's papers by the stairs, and on map 31
+; the bar's smoke, whose next page is an empty cell and drew a white one or
+; the smoker over again. A slot that no longer names a page —a forced route,
+; or the page was already page-less— is left alone: the old page is not
+; known, and this runs on every refresh. Keeps X; A and Y are lost.
+.proc page_pose_into_slot
+.a8
+.i16
+    rep #$20
+.a16
+    lda route_ev + 20, x
+    cmp #$FFFF
+    sep #$20                    ; keeps Z
+.a8
+    beq ready
+    lda pg_speed
+    jsr fixed_graphic_into_slot ; `SetAnimFrame`, if its graphic is fixed
+    lda route_ev + 7, x
+    bne ready                   ; mid-step: `IsStopping` is false
+    lda pg_pose
+    bpl ready                   ; it draws nothing: it faces nowhere
+    rep #$20
+.a16
+    lda route_ev + 20, x
+    clc
+    adc #22
+    tay
+    sep #$20
+.a8
+    lda [page_ptr], y           ; the old page's pose, at its +22
+    eor pg_pose
+    and #$0F                    ; direction times three plus column
+    beq ready                   ; the same: it keeps facing where it does
+    lda pg_pose
+    and #$0F
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:pose_dir, x
+    plx
+    sta route_ev + 8, x
+ready:
     rts
 .endproc
 
