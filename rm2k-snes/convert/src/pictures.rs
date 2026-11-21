@@ -13,6 +13,9 @@
 //! **The big ones go in BG1, in mode 1, while they are shown**, with the
 //! map hidden: a picture that goes with the screen and does not fit the
 //! objects, or one that goes with the map and covers the whole screen.
+//! What fits is what it draws over its transparent colour, not its file:
+//! a file of the whole screen with a silhouette in it is a small one (see
+//! `sparse`).
 //! They are the cartridge's, not each map's: the same picture on two maps
 //! is one layer.
 //!
@@ -349,7 +352,78 @@ fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
     if w <= WIDTH_MAX && h <= HEIGHT_MAX {
         return Ok(false);
     }
+    if sparse(path, key, cropped.for_console(name))? {
+        return Ok(false);
+    }
     Ok(!truthy(&key["map_fixed"]) || (w >= WIDTH && h >= HEIGHT))
+}
+
+/// Whether the picture at `path`, shown as `key` says, is a small one by
+/// what it draws and not by its file: see [`sparse`]. For
+/// [`crate::map_pictures`], which says what a picture it does not take
+/// loses, and one of these hides nothing.
+pub fn draws_little(path: &Path, key: &Value) -> Result<bool> {
+    let (w, h) = on_console(path, key, false)?;
+    Ok((w > WIDTH_MAX || h > HEIGHT_MAX) && sparse(path, key, false)?)
+}
+
+/// How many objects a picture bigger than [`HEIGHT_MAX`] may be cut into
+/// and still be a small one: see [`sparse`]. An eighth of the 128 the
+/// console has for everything. Desert Nightmare's game over, `GO_Text`, is
+/// eight lines of text of 45 objects each, and is shown on forty maps: as
+/// small ones they took 35 KB of `picture_data`'s 64, and the maps' sprite
+/// tiles, for what RM2k shows over a screen faded to black anyway.
+pub const SPARSE_OBJECTS: usize = 16;
+
+/// Whether a picture bigger than [`HEIGHT_MAX`] draws, over its transparent
+/// colour, so little that it is cut into no more than [`SPARSE_OBJECTS`]
+/// —its empty blocks are no objects, see [`Bank::cut`]—: then the objects
+/// take it as a small one, placed where its file puts what it draws, and it
+/// is seen over the map as in RM2k. As a big one it hid the map and showed
+/// its few pixels over black: Desert Nightmare's roof scene, map 28, drops
+/// its monster in four files of RM2k's whole screen, each a 14x19
+/// silhouette, and the screen went black for six seconds. What it costs is
+/// the tiles of what it draws, which `wally` weighs against the map's as
+/// with any small one; and on a map without room for them it is left out
+/// as any small one, its commands accepted without being done, and the map
+/// is seen: a few pixels are not worth hiding it for —Desert Nightmare's
+/// map 28 has none to spare, and loses the monster—.
+///
+/// The file says it first, cheaply —[`crate::map_pictures::drawn`], twice
+/// the limit at its zoom, before the console's scale—, so that a photograph
+/// is not converted for it; the conversion says it exactly.
+fn sparse(path: &Path, key: &Value, for_console: bool) -> Result<bool> {
+    if !truthy(&key["transparent_color"]) {
+        return Ok(false);
+    }
+    let (dw, dh) = crate::map_pictures::drawn(path)?;
+    let zoom = int(&key["zoom"]);
+    let (dw, dh) = (zoomed(dw as i64, zoom), zoomed(dh as i64, zoom));
+    if dw == 0 || dw > 2 * WIDTH_MAX || dh > 2 * HEIGHT_MAX {
+        return Ok(false);
+    }
+    let info = convert(path, key, for_console)?;
+    // What it draws within an object's reach from its corner: one that goes
+    // with the map is not scaled, and its file is wider than the objects
+    // take —Desert Nightmare's warehouse, map 21, drops a 6x7 shadow at the
+    // 204th pixel of a 320x240 file—.
+    if !part_fits(&info) {
+        return Ok(false);
+    }
+    Ok(sparse_info(&info))
+}
+
+/// Whether the objects take a picture that is not a big one: a part, or
+/// one small by what it draws —[`sparse`]—, by what it draws; the rest, by
+/// their size.
+fn takes(info: &Converted, key: &Value) -> bool {
+    fits(info) || part_fits(info) && (is_part(key) || sparse_info(info))
+}
+
+/// [`sparse`]'s count, on the picture converted.
+fn sparse_info(info: &Converted) -> bool {
+    let objects = Bank::default().cut(info).len();
+    0 < objects && objects <= SPARSE_OBJECTS
 }
 
 /// Whether some picture of `keys` is small: one [`for_map`] would cut for
@@ -362,7 +436,9 @@ pub fn any_small(game_dir: &Path, keys: &[Value], cropped: &Cropped) -> Result<b
         let Some(path) = file_of(game_dir, key) else {
             continue;
         };
-        if !is_big(&path, key, cropped)? && fits(&convert(&path, key, cropped.for_console(name))?) {
+        if !is_big(&path, key, cropped)?
+            && takes(&convert(&path, key, cropped.for_console(name))?, key)
+        {
             return Ok(true);
         }
     }
@@ -1029,11 +1105,7 @@ pub fn for_map(
             continue;
         }
         let info = convert(&path, key, cropped.for_console(name))?;
-        if !(if is_part(key) {
-            part_fits(&info)
-        } else {
-            fits(&info)
-        }) {
+        if !takes(&info, key) {
             println!(
                 "  {whose}: the picture {} is {}x{} on the console: bigger than the plane of objects",
                 crate::text::repr(name),
