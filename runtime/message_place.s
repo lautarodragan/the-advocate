@@ -197,6 +197,18 @@ with_mask:
     lda #^mask_none
     sta A1B3
     sta A1B6
+    ; And window 1 edge to edge, which the masks take for granted. ShowWindow
+    ; moves it to its windows' edges and puts it back only in `sw_hide`,
+    ; which a load that takes them off skips —the big picture Desert
+    ; Nightmare's menu draws behind them, a map's— and a message over them
+    ; puts off until it closes. Then the message hid the map's cells in
+    ; front of the hero and the objects only between those edges: on the
+    ; warehouse's corridor, after the menu, a wall and a crate cut the
+    ; letters (2026-11-20, task `desert-nightmare-message-text-cut-by-the-map`).
+    lda #0
+    sta WH0
+    dec a
+    sta WH1
 
     ; The scroll: line W of the screen shows line `vofs + 1 + W` of the
     ; layer, and the window's tilemap is 256 lines tall, so for its first row
