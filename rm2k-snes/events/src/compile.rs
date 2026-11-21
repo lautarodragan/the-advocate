@@ -5357,7 +5357,10 @@ fn command(
             // console does not do, and the loop was left with nothing that
             // ends a frame.
             match done {
-                Some(code) => Ok(code),
+                Some(mut code) => {
+                    code.extend(window_cover(ctx, cmd, &code)?);
+                    Ok(code)
+                }
                 None if cmd.code == MOVE_PICTURE => picture_wait(p),
                 None => Ok(Vec::new()),
             }
@@ -6729,12 +6732,15 @@ fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8
             // does not compile, and its page with it: that is also what a
             // scan over the dump without the project's forked common
             // events —the harness's, for the variables' slots— finds.
-            let (Some(slot), Some((first, cells))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
+            let (Some(slot), Some((first, tiles))) = (registry.slot(w.id), registry.windows.get(&w.id).cloned())
             else {
                 return cannot();
             };
-            if w.lines.len() > cells.len()
-                || w.lines.iter().zip(&cells).any(|(l, &c)| crate::windows::line_cells(l, &window) > c)
+            // Each line with its own cells, which the runtime packs after the
+            // lines before it in the id's tiles: see `windows::Registry`.
+            let cells: Vec<usize> = w.lines.iter().map(|l| crate::windows::line_cells(l, &window)).collect();
+            if crate::windows::tiles(&w.lines, &window) > tiles
+                || cells.iter().any(|&c| (c * 8) as i64 > w.text_width())
             {
                 return Err(Stop::Fatal(Bad::answer(format!(
                     "`@window {}`: its text is wider or longer than the game's window {} has room for",
@@ -6763,6 +6769,39 @@ fn compile_window(ctx: &mut Ctx, cmd: &Command, extra: &[String]) -> Step<Vec<u8
             Ok(out)
         }
     }
+}
+
+/// What a big picture's `ShowPicture` or `ErasePicture` does to the
+/// game's windows, after `code`, what it compiled to: **a big one covers the
+/// windows with a lower number**, as a picture covers the pictures under it
+/// in RM2k, and taking it down uncovers them. The big ones are a layer
+/// under the windows' —BG1, and the windows are BG2's—, so without this the
+/// windows came out over the picture: Desert Nightmare's notes and maps,
+/// picture 17, shown over its menu's windows, 7 to 16, came out under
+/// them. The console carries one big picture at a time, so the last one
+/// shown says which are covered. Nothing in a game without windows.
+///
+/// ```text
+/// OP_WINDOW_COVER  slots: the windows of the slots under it are covered —
+///                  up, but not drawn— until another OP_WINDOW_COVER.
+/// ```
+fn window_cover(ctx: &mut Ctx, cmd: &Command, code: &[u8]) -> Result<Vec<u8>> {
+    let Some(window) = ctx.messages.as_deref().map(|m| m.window) else {
+        return Ok(vec![]);
+    };
+    let registry = ctx.game.windows(&window)?;
+    if registry.is_empty() {
+        return Ok(vec![]);
+    }
+    let number = cmd.parameters.first().copied().unwrap_or(0) as i64;
+    if cmd.code == SHOW_PICTURE && code.first() == Some(&OP_BIG_SHOW) {
+        let under = registry.windows.keys().filter(|&&id| id < number).count();
+        return Ok(vec![OP_WINDOW_COVER, under as u8]);
+    }
+    if cmd.code == ERASE_PICTURE && code.windows(2).any(|w| w == [OP_PICTURE_ERASE, PICTURE_BIG]) {
+        return Ok(vec![OP_WINDOW_COVER, 0]);
+    }
+    Ok(vec![])
 }
 
 /// The boxes a `ShowMessage` and its `ShowMessage_2`s are stored as, in
@@ -12474,6 +12513,75 @@ mod tests {
             losses.iter().all(|l| l.kind != "picture-not-shown"),
             "{losses:?}"
         );
+    }
+
+    #[test]
+    fn a_big_picture_covers_the_windows_under_its_number() {
+        // Desert Nightmare's notes: picture 17, big, over the menu's
+        // windows; here windows 3 and 7, and a big picture under them, 5.
+        use crate::messages::{Messages, Window};
+        let (game, _) = with_windows();
+        let show = |n: i32, name: &str| {
+            cmd(SHOW_PICTURE, &[n, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0], name)
+        };
+        let note = show(17, "Notiz_Bild1");
+        let face = show(5, "Introauswahl");
+        let big = |c: &Command, image| BigPicture {
+            key: picture_key(c).unwrap(),
+            image,
+            center: (160, 120),
+            texture: false,
+        };
+        let mut pictures = Pictures {
+            table: Vec::new(),
+            big: vec![big(&note, 0), big(&face, 1)],
+            gathering: false,
+            zooms: Vec::new(),
+            tinted: Vec::new(),
+            common: Vec::new(),
+        };
+        let (indices, sound) = (Indices::default(), SoundSettings::default());
+        let mut messages = Messages::new(1, Window::columns(39, 4));
+        let mut other_messages = Messages::new(1, Window::columns(39, 4));
+        let bare = Game::default();
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: Some(&mut messages),
+            songs: None,
+            graphics: None,
+            pictures: Some(&mut pictures),
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+            landings: None,
+            jump: None,
+            decision_key: None,
+        };
+        let page = [note, cmd(ERASE_PICTURE, &[17], ""), face];
+        let code = compile_page(&mut ctx, &page, None, 0, 0).unwrap().unwrap();
+        assert_eq!(
+            code,
+            [
+                OP_BIG_SHOW, 0, 100, 100, 100, 0, 100, 0,
+                OP_WINDOW_COVER, 2,
+                OP_PICTURE_ERASE, PICTURE_BIG,
+                OP_WINDOW_COVER, 0,
+                OP_BIG_SHOW, 1, 100, 100, 100, 0, 100, 0,
+                OP_WINDOW_COVER, 1,
+                OP_DONE
+            ]
+        );
+        // A game without windows gets none: in its ROM the opcode ends the
+        // page.
+        ctx.game = &bare;
+        ctx.messages = Some(&mut other_messages);
+        let code = compile_page(&mut ctx, &page[..1], None, 0, 0).unwrap().unwrap();
+        assert!(!code.contains(&OP_WINDOW_COVER), "{code:?}");
     }
 
     #[test]
