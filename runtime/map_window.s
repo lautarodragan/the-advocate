@@ -576,9 +576,12 @@ wanted:
 .a8
     lda f:BIG_FLAGS
     lsr a                       ; BIG_ON: the buffer has its tilemap, and
-    bcs wait                    ; the map is not on screen
-    lda f:ANIMB_ACTIVE
-    bne wait                    ; the buffer has its frames
+    bcc :+                      ; the map is not on screen. `brl` because
+    brl wait                    ; with wrap_maps assembled the loop's path
+:   lda f:ANIMB_ACTIVE          ; puts `wait` past a short branch's reach
+    beq :+
+    brl wait                    ; the buffer has its frames
+:
 .ifdef wrap_maps
     lda f:WRAP_ON
     beq no_loop
