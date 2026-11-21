@@ -1621,8 +1621,17 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
                 u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
             );
             entry.push(palette);
-            entry.extend(word((start + objects_at) as i64)?);
-            entry.extend(word((start + colors_at) as i64)?);
+            // The two offsets are unsigned, as the console reads them —an
+            // index of `picture_data`—: the table reaches 64 KB, and Desert
+            // Nightmare's went past 32 KB on 2026-11-21, when the pictures of
+            // RM2k's whole screen that draw little became small ones.
+            let offset = |v: usize| -> Result<[u8; 2]> {
+                Ok(u16::try_from(v)
+                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
+                    .to_le_bytes())
+            };
+            entry.extend(offset(start + objects_at)?);
+            entry.extend(offset(start + colors_at)?);
             entry.extend(word(p.base)?);
             data[at..at + entry.len()].copy_from_slice(&entry);
         }
