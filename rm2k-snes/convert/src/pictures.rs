@@ -1169,11 +1169,20 @@ pub fn for_map(
     let mut objects = 0;
     for (s, cut) in shown.iter().zip(&cuts) {
         let palette = int(&s.entry["palette"]);
+        // `behind_map`: a picture under a lower number than one its map
+        // draws opaque —`map_pictures`, which `maps.rs` marks— goes at the
+        // characters' priority, behind the cells that one raised, as RM2k
+        // shows a lower number under a higher one. Desert Nightmare's dog
+        // runs behind a warehouse that way, on map 11: picture 1 under
+        // picture 2, the warehouse's roof. What it loses is RM2k's "over
+        // everything": it goes behind the ChipSet's layer above the hero
+        // too, and the events above the hero go over it.
         images.push(json!({
             "half": [s.info.half.0, s.info.half.1],
             "objects": cut.iter().map(|&(dx, dy, piece)| json!([dx, dy, bank.word(piece, &cell_tiles)])).collect::<Vec<_>>(),
             "palette": palettes[palette as usize],
             "palette_index": palette,
+            "behind_map": s.entry.get("behind_map").is_some_and(truthy),
         }));
         objects += cut.len();
     }

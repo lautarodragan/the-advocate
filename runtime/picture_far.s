@@ -30,6 +30,13 @@
 ; which is RM2k's order: `Priority_Timer` is 140, `Priority_PictureOld` 120
 ; and `Priority_Player` 40. In OAM that is the order of the list, because
 ; the lowest index wins; and priority 3 puts them in front of both layers.
+; But for one under a lower number than a picture its map draws opaque
+; —`map_pictures` in the converter—: that one is in the map, raised above
+; the hero, and RM2k shows the higher number over the lower. Such a one
+; goes at the characters' priority, 1, behind what is raised: its entry's
+; palette byte says so with PIC_BEHIND (`behind_map` in the converter).
+; Desert Nightmare's dog, on map 11, runs behind a warehouse's roof that
+; way.
 ;
 ; The transparency goes in three steps: one three quarters transparent or
 ; more is not drawn at all, from a quarter it is mixed half and half with
@@ -1396,12 +1403,14 @@ base:
     sep #$20
 .a8
 still:
-    ; vhoopppN: priority 3 and the slot's palette, 7 - p from the top.
+    ; vhoopppN: the slot's palette, 7 - p from the top, and priority 3, or
+    ; 1 with PIC_BEHIND: shifted it is $20, and the last `eor` leaves $10
+    ; for it and $30 without it. In as many cycles as the `ora #$30` alone.
     lda f:PIC_PAL, x
-    and #$07
+    and #PIC_BEHIND | $07
     eor #$07
     asl a
-    ora #$30
+    eor #$30
     pha
     ; The stack: 1 the attributes, 2 how many are left, 3 the objects, 5
     ; the base, 7 the slot.

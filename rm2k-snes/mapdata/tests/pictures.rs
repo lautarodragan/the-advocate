@@ -3,7 +3,7 @@
 //! count and an entry per picture that says where its objects and its
 //! colours are.
 
-use rm2k_snes_mapdata::emit::{picture_tables, PICTURE_ENTRY};
+use rm2k_snes_mapdata::emit::{picture_tables, PICTURE_BEHIND, PICTURE_ENTRY};
 use rm2k_snes_mapdata::request::{self, MapPictures, Maps, PictureImage};
 use std::path::Path;
 
@@ -27,12 +27,14 @@ fn a_map_carries_its_pictures_and_the_others_a_zero() {
                 objects: vec![[0, 0, 0], [32, 0, 4]],
                 palette: vec![[31, 0, 0], [0, 31, 0]],
                 palette_index: 0,
+                behind_map: false,
             },
             PictureImage {
                 half: [-1, 4],
                 objects: vec![[0, 32, 0x8000 | 70]],
                 palette: vec![[1, 2, 3]],
                 palette_index: 1,
+                behind_map: true,
             },
             // A third that shares the first one's palette.
             PictureImage {
@@ -40,6 +42,7 @@ fn a_map_carries_its_pictures_and_the_others_a_zero() {
                 objects: vec![[0, 0, 0x8000 | 71]],
                 palette: vec![[31, 0, 0], [0, 31, 0]],
                 palette_index: 0,
+                behind_map: false,
             },
         ],
     });
@@ -60,7 +63,11 @@ fn a_map_carries_its_pictures_and_the_others_a_zero() {
         "two objects, palette 0 from the top"
     );
     assert_eq!(word(&data, second) as i16, -1, "a half is signed");
-    assert_eq!((data[second + 4], data[second + 5]), (1, 1));
+    assert_eq!(
+        (data[second + 4], data[second + 5]),
+        (1, 1 | PICTURE_BEHIND),
+        "one object, palette 1 from the top, and behind the map's layer above"
+    );
     assert_eq!(word(&data, first + 10), 192, "the base, again in the entry");
     // Its objects —dx, dy and the tile word—, and its colours: black first,
     // then its own, sixteen.

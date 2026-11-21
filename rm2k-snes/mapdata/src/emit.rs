@@ -1527,6 +1527,11 @@ fn normalized_windows(window: &Value, others: &[Value]) -> Result<Vec<Value>> {
 /// [`picture_tables`].
 pub const PICTURE_ENTRY: usize = 16;
 
+/// The bit of an entry's palette byte that sends the picture behind what
+/// its map draws above the hero: `PIC_BEHIND` in the runtime's
+/// picture_far.s, which builds the object's attributes with it.
+pub const PICTURE_BEHIND: u8 = 0x10;
+
 /// The pictures each map carries, as the console reads them with
 /// `lda f:picture_data, x`: `picture_maps` has a word per map, the offset of
 /// its block in `picture_data`, or 0 if it carries none. A map's block is
@@ -1538,7 +1543,9 @@ pub const PICTURE_ENTRY: usize = 16;
 ///     word  half its width, in RM2k's pixels
 ///     word  half its height
 ///     byte  how many objects
-///     byte  its sprite palette, counted from the top: 0 is palette 7
+///     byte  its sprite palette, counted from the top: 0 is palette 7;
+///           and PICTURE_BEHIND if it goes at the characters' priority,
+///           behind what the map draws above the hero —`behind_map`—
 ///     word  where its objects are: per object dx and dy from its corner,
 ///           and a word with its tile from the first one in the low nine
 ///           bits and bit 15 for an 8x8 object instead of a 32x32
@@ -1620,7 +1627,7 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
             entry.push(
                 u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
             );
-            entry.push(palette);
+            entry.push(palette | if image.behind_map { PICTURE_BEHIND } else { 0 });
             // The two offsets are unsigned, as the console reads them —an
             // index of `picture_data`—: the table reaches 64 KB, and Desert
             // Nightmare's went past 32 KB on 2026-11-21, when the pictures of
@@ -5759,6 +5766,7 @@ mod tests {
             objects: vec![[0, 0, 0x8000], [8, 0, 0x8001]],
             palette: vec![[31, 0, 0]],
             palette_index,
+            behind_map: false,
         };
         let set = |name: &str, images| crate::request::CommonSet {
             name: name.into(),

@@ -435,6 +435,22 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
             k["with_map"] = json!(true);
         }
     }
+    // And the ones under a lower number than one the map draws opaque,
+    // which RM2k shows under it: see `behind_map` in
+    // [`pictures::for_map`].
+    let raised: Vec<i64> = c
+        .map_pictures
+        .of(map_id)
+        .iter()
+        .filter(|p| p.transparency <= 0)
+        .map(|p| i64::from(p.number))
+        .collect();
+    for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
+        let number = k["number"].as_i64().unwrap_or(i64::MAX);
+        if raised.iter().any(|&n| n > number) {
+            k["behind_map"] = json!(true);
+        }
+    }
     // And the numbers the map tones, which do not share a palette.
     let tinted: Vec<i64> = scanned
         .get("tinted")
