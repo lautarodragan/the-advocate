@@ -261,13 +261,13 @@ sub_has:    .res 2      ; whether some key already was the one going out
 ;
 ; It is needed because **the tilemap in VRAM does not rewrite itself**:
 ; `stream_map` only builds the column and the row the camera uncovers, so a
-; substitution with the camera still would not show until walking. **One
-; column per frame** is redone, and only on frames where the camera did not
-; take its own: two columns per frame do not fit, because `push_strips`
-; uploads a single one and the rest of the vblank is already sold. So the whole
-; window takes `WINDOW_COLS` frames to catch up, against RM2k's "on the spot"
-; —it redraws the spriteset—; the stretch that is seen is the screen's
-; columns, and the margin's go after. It is measured in `test_substitution.py`.
+; substitution with the camera still would not show until walking. What the
+; screen shows goes up at once —`sub_bulk`, in map_window.s—, and this is
+; what is left: the margins the screen shake uncovers, one column a frame
+; and only on frames where the camera did not take its own, over the 41 of
+; `fill_window`'s range from its left. On a map that loops it is still the
+; whole window, the 64, as it was for every map until 2026-11-20: the screen
+; changed in a sweep, one column a frame.
 sub_refresh: .res 2
 
 ; The loaded map's NPC table. It is the only one of the map tables that is

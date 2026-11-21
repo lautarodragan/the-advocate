@@ -41,6 +41,18 @@ no_flash2:
     lda #2
     sta vq_cap
 no_tint:
+    ; A `TileSubstitution`'s layer, the screen's 34 columns of it, in one
+    ; go: 20 lines of the vblank, measured. It takes the rest of the budget —no pose,
+    ; nor the ChipSet's animation step, nor the battle animation's frame:
+    ; they wait with their flags set, as behind a window line that missed a
+    ; vblank—, and what checks the clock after it, the window's line among
+    ; them, finds less room. See `sub_bulk` in map_window.s.
+    lda f:SUB_SEND
+    beq no_sub
+    jsr sub_upload
+    stz vq_cap
+    jmp no_anim_frame
+no_sub:
     ; And a window line waiting also eats into their budget: it is 1920 bytes
     ; in a single DMA, almost four poses. With the usual five the vblank ends
     ; in the middle and the rest of the line is written with the screen on,
@@ -661,6 +673,87 @@ no_row:
     stz row_addr_b
     sep #$20
 .a8
+    rts
+.endproc
+
+; The layer `sub_bulk` left in `SUB_BUF`: its 34 columns, from the window's
+; column `SUB_COL`, one DMA each down the column —the PPU advancing 32 words
+; a write, as in `push_one_column`—. The source is one run, so the channel's
+; address carries on from one DMA to the next by itself, and the loop only
+; points VRAM at the next column and restarts the count: the cost that is
+; not the bytes is a few cycles a column. A8 in and out.
+.proc sub_upload
+.a8
+.i16
+    lda #$81                    ; advance 32 words after the high byte
+    sta VMAIN
+    lda #$01
+    sta DMAP0                   ; two registers, word by word
+    lda #$18
+    sta BBAD0                   ; destination: VMDATAL
+    lda #^SUB_BUF
+    sta A1B0
+    ldx #.loword(SUB_BUF)
+    stx A1T0L
+    stz DAS0L + 1               ; a column is under 256 bytes: only the low
+                                ; byte of the count is written below
+    ; The first column's VRAM word: `build_column`'s, from the window column.
+    rep #$20
+.a16
+    lda f:SUB_COL
+    and #(WINDOW_COLS - 1)
+    sta temp
+    and #$001F
+    sta temp + 2
+    lda temp
+    and #$0020                  ; the right screen lives 1024 words on
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    ora temp + 2
+    sta temp
+    lda f:SUB_SEND
+    lsr a                       ; SUB_BG
+    bcs background
+    lda #VRAM_ABOVE_MAP         ; the upper layer: its own tilemap, at a
+    bra base                    ; multiple of the window, see `push_one_row`
+background:
+    lda f:FAR_VRAM_MAP
+base:
+    ora temp
+    tax
+    sep #$20
+.a8
+    ldy #SUB_COLS
+column:
+    stx VMADDL
+    lda #(WINDOW_ROWS * 2)
+    sta DAS0L
+    lda #$01
+    sta MDMAEN
+    inx
+    txa
+    and #$1F
+    bne same_screen
+    ; Past a screen's last column, into the other screen's first: back 32
+    ; and across the 1024 words between the two. Both start at multiples of
+    ; 2048, so across is the bit.
+    rep #$20
+.a16
+    txa
+    sec
+    sbc #32
+    eor #1024
+    tax
+    sep #$20
+.a8
+same_screen:
+    dey
+    bne column
+    lda #0
+    sta f:SUB_SEND
     rts
 .endproc
 
