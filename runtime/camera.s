@@ -178,9 +178,9 @@ as_is:
 ; the most left to go still needs, divided by the step and rounded up. It is
 ; `GetPanWait`. Returns the number in a 16-bit A.
 ;
-; What is left goes up to fifteen cells —3840 sixteenths— and the step does
-; not go past 128, so they fit exactly in the hardware's 16-bit dividend and
-; 8-bit divisor.
+; What is left is a signed word's worth at most —127 cells; Frozen World's
+; intro pans 30 at once— and the step does not go past 128, so they fit in
+; the hardware's 16-bit dividend and 8-bit divisor.
 .proc pan_frames
 .a8
 .i16
