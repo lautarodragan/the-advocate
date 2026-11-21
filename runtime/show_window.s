@@ -46,9 +46,10 @@
 ; mask, from `WH0` to `WH1`.
 ;
 ; **Each window's text tiles are its own for the game**, numbered by the
-; converter —`OP_WINDOW`'s `tiles`, the widest text each of its lines ever
-; has—, so windows up together never write each other's, and one shown again
-; with other text lands on the same tiles. The last text tile, 239, is the
+; converter —`OP_WINDOW`'s `tiles`, the most any one window of that id
+; takes—, so windows up together never write each other's, and one shown
+; again with other text lands on the same tiles, each line after the ones
+; before it, by the cells `OP_WINDOW` gives it. The last text tile, 239, is the
 ; windows' background, the first cell of the message window's: a System
 ; whose background is a gradient gets it flat.
 ;
@@ -59,8 +60,15 @@
 ; every window up: a second colour goes with the window's nearest, as in a
 ; box. One line a frame.
 ;
-; Everything is reached with `jsl`; the hooks are `op_window` and
-; `op_window_erase` in interpreter_message.s, `sw_tick` in the main loop,
+; **A big picture covers the windows under its number**, as a picture covers
+; the lower ones in RM2k: its layer is BG1, under the windows', so the slots
+; under `SW_COVER` are left out of the screen —up, and drawn again when it
+; goes— —`OP_WINDOW_COVER`, after every big picture's show and erase: see
+; `window_cover` in the events compiler—.
+;
+; Everything is reached with `jsl`; the hooks are `op_window`,
+; `op_window_erase` and `op_window_cover` in interpreter_message.s,
+; `sw_tick` in the main loop,
 ; `sw_vblank` in `flush_video` when no message is up, `sw_lost` in
 ; `stamp_window_at` —a map's load, a big picture, a System— and `sw_clear`
 ; in `pic_clear`.
@@ -101,6 +109,7 @@ SW_FRAME:    .res 18            ; the frame's eight entries and the text's first
 SW_MAPDIRTY: .res 1             ; 1: the screen has to be composed again
 SW_SHOWN:    .res 1             ; 1 while the HDMA shows it
 SW_HIDE:     .res 1             ; 1: off the screen in the next vblank
+SW_COVER:    .res 1             ; the slots under it are under a big picture
 SW_PLANES:   .res 1             ; 1: the message's planes were written over
 SW_CUR:      .res 1             ; the slot being composed, $FF none
 SW_LINE:     .res 1             ; and its line
@@ -196,6 +205,7 @@ each:
     sta f:SW_READ
     sta f:SW_PUT
     sta f:SW_HIDE
+    sta f:SW_COVER              ; and no big picture
     lda #$FF
     sta f:SW_CUR
     plx
@@ -416,6 +426,23 @@ done:
     rtl
 .endproc
 
+; `OP_WINDOW_COVER`, from `op_window_cover`: the slots under the one at
+; `[code_ptr], y` covered by a big picture, Y past it. The screen again if
+; that changed; their text stays composed.
+.proc sw_cover
+.a8
+.i16
+    lda [code_ptr], y
+    iny
+    cmp f:SW_COVER
+    beq done
+    sta f:SW_COVER
+    lda #1
+    sta f:SW_MAPDIRTY
+done:
+    rtl
+.endproc
+
 .segment "FAR3"
 
 ; One frame of the windows, from the main loop after the message's: a box
@@ -590,8 +617,20 @@ off:
     sta f:SW_BOT
     sta f:SW_X1
     sta f:SW_V                  ; none up so far
-    ldx #0
-    ldy #SHOW_WINDOW_SLOTS
+    ; From the first slot a big picture does not cover.
+    lda f:SW_COVER
+    cmp #SHOW_WINDOW_SLOTS
+    bcs done                    ; all of them: none up
+    jsr sw_rec_of
+    lda #SHOW_WINDOW_SLOTS
+    sec
+    sbc f:SW_COVER
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
 each:
     lda f:SW_RECS + R_UP, x
     beq next
@@ -637,6 +676,7 @@ next:
 .a8
     dey
     bne each
+done:
     lda f:SW_V
     cmp #1                      ; the carry set if one was up
     rts
@@ -691,12 +731,13 @@ sw_row_x_top:
 .a8
     rts
 
-; The windows up over `SW_MAP`, the lowest slot first. A8; keeps nothing.
+; The windows up over `SW_MAP`, the lowest slot first, from the first a big
+; picture does not cover: `sw_span` found one. A8; keeps nothing.
 .proc sw_overlay
 .a8
 .i16
     jsr sw_frame_entries
-    lda #0
+    lda f:SW_COVER
     sta f:SW_SLOT                  ; the slot
 each:
     lda f:SW_SLOT
@@ -832,8 +873,9 @@ some:
     eor #SW_STYLE_PLAIN
     and #1                      ; 1 framed, 0 plain
     sta temp + 3
-    ; The cells a line has room for: past them it would ink its neighbour,
-    ; whose tiles its widest text in the game took.
+    ; The cells a line has room for: past them it would ink its neighbour.
+    ; The compiler gives no line more since 2026-11-20 —each line has its
+    ; own cells, not the widest of its id's—: kept as a guard.
     asl a
     eor #$FF
     sec

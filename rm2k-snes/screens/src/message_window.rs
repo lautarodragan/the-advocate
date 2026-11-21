@@ -1170,7 +1170,8 @@ mod tests {
     /// A colour's mask over planes `low` and `low + 1`: font_ink.s's
     /// `INK_PLANES01` and `INK_PLANES23`.
     fn planes(color: u8, low: u32) -> u32 {
-        (u32::from(color) >> low & 1) * 0x00FF | (u32::from(color) >> (low + 1) & 1) * 0xFF00
+        (((u32::from(color) >> low) & 1) * 0x00FF)
+            | (((u32::from(color) >> (low + 1)) & 1) * 0xFF00)
     }
 
     /// The colour-free tables, painted over any buffer with font_ink.s's

@@ -114,12 +114,16 @@ pub fn directive(first: &str, rest: &[String]) -> Result<Option<Directive>> {
         }
         Some(SHOW) => {
             if !(6..=7).contains(&words.len()) {
-                return Err(bad("a window is `@window <id> <x> <y> <w> <h> [plain]`".into()));
+                return Err(bad(
+                    "a window is `@window <id> <x> <y> <w> <h> [plain]`".into()
+                ));
             }
             let style = match words.get(6) {
                 None => Style::Framed,
                 Some(&"plain") => Style::Plain,
-                Some(other) => return Err(bad(format!("{other:?} is not a style: `plain` or nothing"))),
+                Some(other) => {
+                    return Err(bad(format!("{other:?} is not a style: `plain` or nothing")))
+                }
             };
             let shown = Shown {
                 id: number(words[1])?,
@@ -185,7 +189,10 @@ pub fn directives(commands: &[Command]) -> Result<Vec<(usize, Directive)>> {
             while j < commands.len() && commands[j].code == COMMENT_2 {
                 j += 1;
             }
-            let extra: Vec<String> = commands[i + 1..j].iter().map(|c| c.string.clone()).collect();
+            let extra: Vec<String> = commands[i + 1..j]
+                .iter()
+                .map(|c| c.string.clone())
+                .collect();
             if let Some(d) = of_command(&commands[i], &extra)? {
                 out.push((i, d));
             }
@@ -207,7 +214,8 @@ pub fn replaced_pictures(commands: &[Command]) -> Result<Vec<usize>> {
             j += 1;
         }
         if let Some(next) = commands.get(j) {
-            if next.code == SHOW_PICTURE && next.parameters.first().map(|&p| p as i64) == Some(w.id) {
+            if next.code == SHOW_PICTURE && next.parameters.first().map(|&p| p as i64) == Some(w.id)
+            {
                 out.push(j);
             }
         }
@@ -228,11 +236,20 @@ pub fn erased_window(cmd: &Command, registry: &Registry) -> Option<u8> {
 /// first— and its text tiles. Every `@window` of the game counts, whether
 /// its page compiles or not: a window's tiles are fixed for the game, so
 /// two windows up at once never write each other's.
+///
+/// **An id's tiles are the most one `@window` of it takes**: its lines
+/// packed, two rows of each line's own cells. Two `@window`s of the same id
+/// are never up together —the second takes the first's place, as a picture
+/// of the same number does—, so they share the id's tiles, and each line
+/// goes where the lines before it in that window end: the runtime packs
+/// them from the cells `OP_WINDOW` gives each. Until 2026-11-20 each line of
+/// an id had room for the widest text the game wrote on that line of that
+/// id, and Desert Nightmare's keys and notes, which are its inventory's
+/// windows with other text, did not fit beside the inventory.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Registry {
-    /// By id: its first tile and the cells of each of its lines, the
-    /// widest the game writes on that line of that window.
-    pub windows: BTreeMap<i64, (usize, Vec<usize>)>,
+    /// By id: its first tile and how many it has.
+    pub windows: BTreeMap<i64, (usize, usize)>,
 }
 
 impl Registry {
@@ -241,12 +258,11 @@ impl Registry {
         pages: impl IntoIterator<Item = &'a [Command]>,
         window: &Window,
     ) -> Result<Registry> {
-        let mut cells: BTreeMap<i64, Vec<usize>> = BTreeMap::new();
+        let mut most: BTreeMap<i64, usize> = BTreeMap::new();
         for commands in pages {
             for (_, d) in directives(commands)? {
                 if let Directive::Show(w) = d {
-                    let each = cells.entry(w.id).or_default();
-                    for (k, line) in w.lines.iter().enumerate() {
+                    for line in &w.lines {
                         let c = line_cells(line, window);
                         if (c * 8) as i64 > w.text_width() {
                             return Err(Bad::answer(format!(
@@ -256,19 +272,16 @@ impl Registry {
                                 w.text_width()
                             )));
                         }
-                        if each.len() <= k {
-                            each.resize(k + 1, 0);
-                        }
-                        each[k] = each[k].max(c);
                     }
+                    let each = most.entry(w.id).or_default();
+                    *each = (*each).max(tiles(&w.lines, window));
                 }
             }
         }
         let mut windows = BTreeMap::new();
         let mut next = 0;
-        for (id, each) in cells {
-            let tiles: usize = each.iter().map(|c| 2 * c).sum();
-            windows.insert(id, (next, each));
+        for (id, tiles) in most {
+            windows.insert(id, (next, tiles));
             next += tiles;
         }
         if next > BACKGROUND_TILE {
@@ -277,10 +290,7 @@ impl Registry {
                  {BACKGROUND_TILE} for them: {}",
                 windows
                     .iter()
-                    .map(|(id, (_, c))| format!(
-                        "{id} {} tiles",
-                        c.iter().map(|c| 2 * c).sum::<usize>()
-                    ))
+                    .map(|(id, (_, tiles))| format!("{id} {tiles} tiles"))
                     .collect::<Vec<_>>()
                     .join(", ")
             )));
@@ -328,6 +338,12 @@ pub fn line_pixels(line: &str, window: &Window) -> usize {
     }
 }
 
+/// The text tiles a window with these lines takes: two rows of each line's
+/// cells.
+pub fn tiles(lines: &[String], window: &Window) -> usize {
+    lines.iter().map(|l| 2 * line_cells(l, window)).sum()
+}
+
 /// The cells a line inks: its pixels, and two more for the last letter's
 /// reach past its advance and its shadow. None for an empty one.
 pub fn line_cells(line: &str, window: &Window) -> usize {
@@ -369,7 +385,10 @@ mod tests {
         assert_eq!(directive("just a comment", &[]).unwrap(), None);
         assert!(matches!(
             directive("@window 7 8 8 72 96 plain", &[]).unwrap(),
-            Some(Directive::Show(Shown { style: Style::Plain, .. }))
+            Some(Directive::Show(Shown {
+                style: Style::Plain,
+                ..
+            }))
         ));
     }
 
@@ -395,7 +414,7 @@ mod tests {
     }
 
     #[test]
-    fn each_window_gets_tiles_for_its_widest_text_on_each_line() {
+    fn each_id_gets_the_tiles_its_widest_window_takes() {
         let window = Window::columns(40, 4); // six pixels a letter
         let a = vec![
             cmd(COMMENT, "@window 9 0 0 160 48", vec![]),
@@ -410,10 +429,12 @@ mod tests {
             cmd(COMMENT_2, "abc", vec![]),
         ];
         let r = Registry::new([a.as_slice(), b.as_slice()], &window).unwrap();
-        // 3: "abc" is 18 pixels and two more, three cells; 9: "abcd" 26,
-        // four, and "abcdefgh" 50, seven. Id 3 goes first.
-        assert_eq!(r.windows[&3], (0, vec![3]));
-        assert_eq!(r.windows[&9], (6, vec![4, 7]));
+        // 3: "abc" is 18 pixels and two more, three cells. 9: "abcd" 26,
+        // four, and "ab" two, six cells; or "a" one and "abcdefgh" 50,
+        // seven, eight: the most one of its windows takes, and not the
+        // widest of each line, eleven. Id 3 goes first.
+        assert_eq!(r.windows[&3], (0, 6));
+        assert_eq!(r.windows[&9], (6, 16));
         assert_eq!(r.slot(3), Some(0));
         assert_eq!(r.slot(9), Some(1));
         assert_eq!(r.slot(5), None);
