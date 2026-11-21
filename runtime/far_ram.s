@@ -1025,7 +1025,7 @@ PIC_X:      .res 2 * PIC_SLOTS      ; the corner, words
 PIC_Y:      .res 2 * PIC_SLOTS
 PIC_TRANS:  .res PIC_SLOTS
 PIC_FLAGS:  .res PIC_SLOTS          ; PIC_BY_VARIABLE, PIC_MAP_FIXED
-PIC_PAL:    .res PIC_SLOTS          ; its sprite palette from the top: 0 is 7
+PIC_PAL:    .res PIC_SLOTS          ; its sprite palette from the top: 0 is 7; PIC_BEHIND
 PIC_TONE:   .res 3 * PIC_SLOTS      ; r, g, b
 ; The ramps. `PIC_R_STEPS` at zero is no ramp.
 PIC_R_STEP:  .res PIC_SLOTS
@@ -1057,6 +1057,10 @@ PIC_NONE    = $FF
 PIC_BY_VARIABLE = $01
 PIC_MAP_FIXED   = $02
 PIC_MOVES       = $80
+; And in `PIC_PAL`, from its entry's palette byte: the picture goes at the
+; characters' priority, not at 3. See `PICTURE_BEHIND` in rm2k-snes-mapdata
+; and the top of picture_far.s.
+PIC_BEHIND      = $10
 
 ; --- the big picture: the one in the background layer ---------------------------
 ;

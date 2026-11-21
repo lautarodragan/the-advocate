@@ -224,7 +224,9 @@ pub struct MapPictures {
 /// One picture: half its size in RM2k's pixels —the console computes its
 /// corner from its centre with it—, its objects —each one's place from the
 /// picture's corner and its tile word: see `picture_tables`—, the colours
-/// of the palette it shares and which palette that is, from the top.
+/// of the palette it shares and which palette that is, from the top; and
+/// whether it goes behind what its map draws above the hero —see
+/// `picture_tables`—.
 #[derive(Deserialize)]
 pub struct PictureImage {
     pub half: [i64; 2],
@@ -232,6 +234,8 @@ pub struct PictureImage {
     pub palette: Vec<Color>,
     #[serde(default)]
     pub palette_index: i64,
+    #[serde(default)]
+    pub behind_map: bool,
 }
 
 /// `emit`: everything the cartridge carries, from every domain.
