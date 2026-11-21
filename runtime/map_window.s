@@ -466,9 +466,13 @@ ready:
     jsr one_row
     jsr one_column
     jsr one_column
-    ; What a `TileSubstitution` left pending: one column of the window, and
-    ; only if the camera did not take any this frame —both addresses at zero
-    ; means none is built—. See `sub_refresh`.
+    ; A `TileSubstitution` this tick: what the screen shows of the window,
+    ; for the next vblank. After the camera's strips, so that it is built
+    ; around the window this frame shows: see `sub_bulk`.
+    jsr sub_bulk
+    ; And what it leaves for later: one column of the window, and only if
+    ; the camera did not take any this frame —both addresses at zero means
+    ; none is built—. See `sub_refresh`.
     lda sub_refresh
     beq no_refresh
     lda col_addr
@@ -485,6 +489,342 @@ ready:
 no_refresh:
     sep #$20
 .a8
+    rts
+.endproc
+
+; --- a `TileSubstitution`, all at once ---------------------------------------
+;
+; RM2k redraws its spriteset when a tile is substituted, and the whole
+; screen changes from one frame to the next. Here the tilemap in VRAM does
+; not rewrite itself, and until 2026-11-20 the window was redone one
+; column a frame —`sub_refresh`, then 64 frames—: the screen changed in a
+; sweep from right to left, over the 33 columns it shows. taro saw it on
+; Zounds' spikes.
+;
+; So the tick that substitutes builds **every column the screen shows**,
+; both halves of the 33 and of the block that sticks out —34 from an even
+; column, 17 blocks across—, into `SUB_BUF`, and the next vblank uploads
+; them all, one DMA a column (`sub_upload` in vblank.s). Only the layers
+; that change, one a tick: `sub_layers` compares the blocks.
+;
+; **What it costs, measured** on A Blurred Line's map 6 (2026-11-20, the
+; cases of `test_substitution.py`, snes9x and bsnes alike): building one
+; column with `build_column` is about 19 lines of CPU, so the screen's 33
+; that way are some 620, two frames and a half the game would stand still.
+; Built a block at a time, as here —the grid and the substitution table
+; read once a block and not four times—, a layer is ~277 lines: the tick
+; that substitutes lasts one frame more, once. The upload is 34 DMAs of 64
+; bytes, 20 lines of the vblank's 37 —from line 232 to 252, and that
+; vblank's work ended on 257—. Both layers do not fit in one vblank, so
+; when a substitution changes both —an upper tile drawn into the
+; background, or two substitutions in one tick— the background goes first
+; and the upper layer is built on the next tick and goes up a vblank
+; later: one frame shows the background changed and the layer above not
+; yet.
+;
+; **The 32 rows of a column are the window's from `win_row`'s block**, not
+; from `win_row` as in `build_column`: with `win_row` odd, the column holds
+; from the row above the screen to the one before its last spare row. The
+; screen shows 29, and the three spare rows are rebuilt by `one_row` as they
+; come in, so what is there does not matter; and that way every block is
+; whole and there is no half to leave out.
+;
+; **The buffer is the load buffer's start**, `LZ2_BUFFER`, free on the map
+; once it is loaded, below what a page carries from another map
+; (`CODE_CARRY`). Two others use that stretch while the map runs: a battle
+; animation's frames and a big picture's tilemap. While either is there it
+; waits, and before taking it it empties the animation's buffer, whose next
+; frame would erase the last one's tiles from what was there: see
+; `anim_buf_clear`. A `.define` and not a symbol, like the text layer's
+; stage: it is the load buffer, not a new tenant of the WRAM.
+;
+; What it does not do: a map that loops —`wrap.s`— reads its grid through
+; `map_index`, and there it falls back to `sub_refresh`'s sweep. The
+; margins —`MARGIN_COLS` on each side, which the screen shake uncovers— are
+; left to `sub_refresh` too, which redoes the 41 columns of `fill_window`'s
+; range afterwards, one a frame: the screen's 33 again, to the same words.
+SUB_COLS = 34
+SUB_BLOCKS = SUB_COLS / 2
+SUB_LAYER_BYTES = SUB_COLS * WINDOW_ROWS * 2
+.define SUB_BUF LZ2_BUFFER
+.assert SUB_BUF + SUB_LAYER_BYTES <= CODE_CARRY, error, "a substitution's columns would overwrite the carried bytecode"
+SUB_BG    = $01                 ; `SUB_WANT` and `SUB_SEND`: the background
+SUB_ABOVE = $02                 ; and the upper layer
+.pushseg
+.segment "FARBSS"
+SUB_WANT:  .res 1               ; the layers a substitution changed, to build
+SUB_SEND:  .res 1               ; the layers in `SUB_BUF`, for the vblank
+SUB_COL:   .res 2               ; the window column of `SUB_BUF`'s first
+SUB_LAYER: .res 2               ; 0 or 8: the half of the record being built
+SUB_SLOT:  .res 2               ; the block row's top slot, in bytes
+SUB_REAL:  .res 2               ; the block columns inside the map, * 128
+SUB_INMAP: .res 2               ; the block rows inside the map, left
+SUB_ROWS:  .res 2               ; the block rows left
+SUB_ROWP:  .res 3               ; the grid row's first block, for the slow path
+.popseg
+
+; From `stream_map`, A16. Nothing unless a substitution marked a layer.
+.proc sub_bulk
+.a16
+.i16
+    lda f:SUB_WANT
+    and #$00FF
+    bne wanted
+    rts
+wanted:
+    sep #$20
+.a8
+    lda f:BIG_FLAGS
+    lsr a                       ; BIG_ON: the buffer has its tilemap, and
+    bcs wait                    ; the map is not on screen
+    lda f:ANIMB_ACTIVE
+    bne wait                    ; the buffer has its frames
+.ifdef wrap_maps
+    lda f:WRAP_ON
+    beq no_loop
+    lda #0                      ; a map that loops: the sweep
+    sta f:SUB_WANT
+    rep #$20
+.a16
+    lda #WINDOW_COLS
+    sta sub_refresh
+    rts
+.a8
+no_loop:
+.endif
+    ; The layers that are not the blocks': the upper one when a panorama
+    ; is BG2 —see `push_one_column`—, and a painted map's background.
+    lda f:PANO_ON
+    cmp #3
+    bne pano_checked
+    lda f:SUB_WANT
+    and #<~SUB_ABOVE
+    sta f:SUB_WANT
+pano_checked:
+.ifdef paint_table
+    lda f:PAINT_ON
+    beq paint_checked
+    lda f:SUB_WANT
+    and #<~SUB_BG
+    sta f:SUB_WANT
+paint_checked:
+.endif
+    ; One layer a tick: the background first. `SUB_SEND` says which one
+    ; the buffer holds, and the vblank right after this tick takes it.
+    lda f:SUB_WANT
+    beq wait                    ; nothing of the blocks is on screen
+    lsr a                       ; SUB_BG
+    lda #SUB_BG
+    bcs chosen
+    lda #SUB_ABOVE
+chosen:
+    sta f:SUB_SEND
+    eor f:SUB_WANT
+    sta f:SUB_WANT              ; the other one, if any, on the next tick
+    lda f:ANIMB_PREV + 2
+    beq anim_free
+    jsl f:anim_buf_clear        ; its last frame's tiles are about to go
+anim_free:
+    rep #$20
+.a16
+    lda win_col
+    and #$FFFE                  ; the block's left half
+    sta f:SUB_COL
+    lda f:SUB_SEND
+    lsr a                       ; SUB_BG: the record's first half
+    lda #0
+    bcs layer_chosen
+    lda #8                      ; the upper layer's: see `blocks8_ptr`
+layer_chosen:
+    sta f:SUB_LAYER
+    jsr sub_build_layer
+    lda #(VIEW_COLS + 2 * MARGIN_COLS)
+    sta sub_refresh             ; and the margins, afterwards
+    rts
+.a8
+wait:
+    rep #$20
+.a16
+    rts
+.endproc
+
+; One layer into `SUB_BUF`, with `SUB_LAYER` saying which half of each
+; record. Block row by block row: X walks the buffer —a block's top-left
+; word at `SUB_BUF + X`; its top-right 64 bytes on, in the next column; its
+; bottom ones a slot down— and Y the grid's row, `[cells_ptr], y`. A16 in
+; and out.
+.proc sub_build_layer
+.a16
+.i16
+    lda win_row
+    lsr a
+    sta temp                    ; the window's top block row
+    lda map_ch
+    lsr a
+    sec
+    sbc temp
+    sta f:SUB_INMAP
+    lda win_row                 ; that row's top slot, in bytes: (2 * block
+    and #$001E                  ; row) mod 32, two bytes a slot
+    asl a
+    sta f:SUB_SLOT
+    lda f:SUB_COL
+    lsr a
+    sta temp                    ; the first block column
+    lda map_cw
+    lsr a
+    sec
+    sbc temp                    ; the block columns inside the map
+    bpl some
+    lda #0
+some:
+    cmp #SUB_BLOCKS
+    bcc counted
+    lda #SUB_BLOCKS
+counted:
+    xba                         ; * 256
+    lsr a                       ; * 128: a block column in the buffer
+    sta f:SUB_REAL
+    jsr ptr_from_cells          ; the window's top block row
+    lda temp
+    jsr cells_to_bytes
+    jsr ptr_more                ; at its first block
+    lda #(WINDOW_ROWS / 2)
+    sta f:SUB_ROWS
+
+row:
+    lda f:SUB_SLOT
+    tax                         ; the row's first block
+    lda f:SUB_INMAP
+    beq past_edge               ; below the map: all zeros
+    bmi past_edge
+    txa
+    clc
+    adc f:SUB_REAL
+    sta temp + 2                ; where its blocks inside the map end
+    cpx temp + 2
+    beq past_edge               ; right of the map
+    ; The grid's row crosses from bank $7E to $7F —see `ptr_more`— only
+    ; on a grid of more than 32 KB, and then `[cells_ptr], y` would read
+    ; past it: that row goes a block at a time, moving the pointer.
+    lda cells_ptr
+    clc
+    adc #(SUB_BLOCKS * 2)
+    bcs slow
+    ldy #$0000
+fast:
+    lda [cells_ptr], y          ; the block, as the grid says
+    sty temp
+    jsr sub_block
+    lda temp
+    clc
+    adc cell_bytes
+    tay
+    txa
+    cmp temp + 2
+    bcc fast
+    bra past_edge
+
+slow:
+    lda cells_ptr
+    sta f:SUB_ROWP
+    sep #$20
+.a8
+    lda cells_ptr + 2
+    sta f:SUB_ROWP + 2
+    rep #$20
+.a16
+slow_block:
+    lda [cells_ptr]
+    jsr sub_block
+    lda cell_bytes
+    jsr ptr_more
+    txa
+    cmp temp + 2
+    bcc slow_block
+    lda f:SUB_ROWP
+    sta cells_ptr
+    sep #$20
+.a8
+    lda f:SUB_ROWP + 2
+    sta cells_ptr + 2
+    rep #$20
+.a16
+
+past_edge:
+    ; What is past the map's edge, at zero: what `clear_tilemaps` leaves
+    ; there and `build_column` never writes.
+    lda f:SUB_SLOT
+    clc
+    adc #(SUB_BLOCKS * 128)
+    sta temp + 2
+zero:
+    txa
+    cmp temp + 2
+    bcs row_done
+    lda #0
+    sta f:SUB_BUF, x
+    sta f:SUB_BUF + 2, x
+    sta f:SUB_BUF + 64, x
+    sta f:SUB_BUF + 66, x
+    txa
+    clc
+    adc #128
+    tax
+    bra zero
+
+row_done:
+    lda f:SUB_INMAP
+    dec a
+    sta f:SUB_INMAP
+    lda strip_step_col
+    jsr ptr_more                ; the next block row
+    lda f:SUB_SLOT
+    clc
+    adc #4                      ; two slots further down
+    and #(WINDOW_ROWS * 2 - 1)  ; the window wraps
+    sta f:SUB_SLOT
+    lda f:SUB_ROWS
+    dec a
+    sta f:SUB_ROWS
+    beq built
+    jmp row
+built:
+    rts
+.endproc
+
+; A block of the grid, in A, into `SUB_BUF + X` —its four words of the
+; layer `SUB_LAYER` says—, and X on to the next block column. Y is not
+; kept.
+.proc sub_block
+.a16
+.i16
+    and cell_mask
+    jsr cell_replaced
+    asl a
+    asl a
+    asl a
+    asl a                       ; 16 bytes a record: see `build_column`
+    ora f:SUB_LAYER
+    tay
+    lda [blocks_ptr], y
+    sta f:SUB_BUF, x            ; top left
+    iny
+    iny
+    lda [blocks_ptr], y
+    sta f:SUB_BUF + 64, x       ; top right: the next column
+    iny
+    iny
+    lda [blocks_ptr], y
+    sta f:SUB_BUF + 2, x        ; bottom left: the next slot
+    iny
+    iny
+    lda [blocks_ptr], y
+    sta f:SUB_BUF + 66, x
+    txa
+    clc
+    adc #128                    ; two columns of 32 slots
+    tax
     rts
 .endproc
 
@@ -704,6 +1044,9 @@ strips:
 .proc window_start
 .a8
 .i16
+    lda #0                      ; a substitution's columns, built or to
+    sta f:SUB_WANT              ; build, are what this fills anyway: see
+    sta f:SUB_SEND              ; `sub_bulk`
     rep #$20
 .a16
     stz col_addr

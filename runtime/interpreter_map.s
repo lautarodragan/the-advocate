@@ -46,6 +46,7 @@ other_pair:
     sta sub_a
     iny
     iny
+    jsr sub_layers              ; which of the window's layers this changes
     stz sub_has
     ldx #$0000
 walk_sub:
@@ -82,14 +83,102 @@ add_sub:
     sta sub_n
     bra other_pair
 sub_ready:
-    rep #$20
-.a16
-    lda #WINDOW_COLS            ; and the window is redrawn one column per
-    sta sub_refresh             ; frame: see `sub_refresh`
-    sep #$20
-.a8
+    ; And the window is redrawn by `sub_bulk`, at the end of this tick,
+    ; with the layers `sub_layers` marked in `SUB_WANT`.
     jmp run_code::other
 
+.endproc
+
+; Which of the window's layers a pair changes: wherever the outgoing block
+; shows, the incoming one will —see `op_tile_sub`—, so the layer of the
+; tilemap changes if one of its four words differs between the two blocks'
+; records. A bit in `SUB_WANT` per layer, which `sub_bulk` builds and the
+; vblank uploads: a substitution of a lower tile usually leaves the upper
+; layer's words as they were, and then only half the window goes up. A
+; block substituted for itself —the control of `test_substitution.py`—
+; marks none.
+;
+; The records are read with the data bank at theirs, `blocks_ptr`'s: a
+; record does not cross a bank —the table lives behind the grid, in one—.
+; A16 in and out; Y, the operand's cursor, comes back as it was.
+.proc sub_layers
+.a16
+.i16
+    phy
+    lda sub_of
+    cmp sub_a
+    beq done
+    asl a
+    asl a
+    asl a
+    asl a                       ; 16 bytes a record: see `build_column`
+    clc
+    adc blocks_ptr
+    tax
+    lda sub_a
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc blocks_ptr
+    tay
+    phb
+    sep #$20
+.a8
+    lda blocks_ptr + 2
+    pha
+    plb
+    rep #$20
+.a16
+    ; Bytes 0 to 7 are the background's four words, 8 to 15 the upper
+    ; layer's: `blocks8_ptr` is this same table eight bytes on.
+    lda a:0, x
+    cmp a:0, y
+    bne background
+    lda a:2, x
+    cmp a:2, y
+    bne background
+    lda a:4, x
+    cmp a:4, y
+    bne background
+    lda a:6, x
+    cmp a:6, y
+    beq upper
+background:
+    sep #$20
+.a8
+    lda f:SUB_WANT
+    ora #SUB_BG
+    sta f:SUB_WANT
+    rep #$20
+.a16
+upper:
+    lda a:8, x
+    cmp a:8, y
+    bne above
+    lda a:10, x
+    cmp a:10, y
+    bne above
+    lda a:12, x
+    cmp a:12, y
+    bne above
+    lda a:14, x
+    cmp a:14, y
+    beq compared
+above:
+    sep #$20
+.a8
+    lda f:SUB_WANT
+    ora #SUB_ABOVE
+    sta f:SUB_WANT
+    rep #$20
+.a16
+compared:
+    plb
+done:
+    ply
+    rts
 .endproc
 
 ; `StoreTerrainID`: a cell's terrain into a variable.
