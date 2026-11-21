@@ -208,7 +208,7 @@ fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
         cy,
         COLORS,
         zoom,
-        key["map_fixed"].as_bool().unwrap_or(false),
+        goes_with_map(key),
         for_console,
     )?;
     let indices = a["indices"]
@@ -232,6 +232,48 @@ fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
         palette: a["palette"].clone(),
         indices,
     })
+}
+
+/// Whether the picture of `key` goes with the map: by its `ShowPicture`, or
+/// because it is the part of a drawing the map carries the rest of —see
+/// [`crate::map_pictures::Parts`]—, which the compiler is told too.
+fn goes_with_map(key: &Value) -> bool {
+    truthy(&key["map_fixed"]) || is_part(key)
+}
+
+/// Whether `key` shows only its own part of one of several drawings under
+/// a number: see [`crate::map_pictures::Parts`]. Such a part is never a big
+/// one —it is what the drawings do not share, a lit option—, and its file
+/// is not the game's.
+fn is_part(key: &Value) -> bool {
+    truthy(&key["with_map"])
+}
+
+/// The file of `key`'s picture: the part's, or the game's by its name.
+fn file_of(game_dir: &Path, key: &Value) -> Option<PathBuf> {
+    match key["path"].as_str() {
+        Some(path) => Some(PathBuf::from(path)),
+        None => path_of(game_dir, key["name"].as_str().unwrap_or("")),
+    }
+}
+
+/// Whether a part fits the plane of objects: what it draws within the
+/// reach of an object's place from the picture's corner, a byte. The part
+/// is the whole drawing's size, mostly transparent, so its corner stays
+/// the drawing's.
+fn part_fits(info: &Converted) -> bool {
+    let mut any = false;
+    for (y, row) in info.indices.iter().enumerate() {
+        for (x, &i) in row.iter().enumerate() {
+            if i != 0 {
+                if x as i64 >= WIDTH_MAX || y as i64 >= OBJECTS_HEIGHT_MAX {
+                    return false;
+                }
+                any = true;
+            }
+        }
+    }
+    any && info.palette.as_array().is_some_and(|p| !p.is_empty())
 }
 
 fn truthy(v: &Value) -> bool {
@@ -278,7 +320,7 @@ fn on_console(path: &Path, key: &Value, for_console: bool) -> Result<(i64, i64)>
     let (width, height) = png_size(path)?;
     let zoom = int(&key["zoom"]);
     let (w, h) = (zoomed(width, zoom), zoomed(height, zoom));
-    if truthy(&key["map_fixed"]) || for_console {
+    if goes_with_map(key) || for_console {
         return Ok((w, h));
     }
     let (cx, cy) = match key["at"].as_array() {
@@ -296,7 +338,7 @@ fn on_console(path: &Path, key: &Value, for_console: bool) -> Result<(i64, i64)>
 /// objects, and either with the screen or covering it whole; or cropped,
 /// which is the screen.
 fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
-    if truthy(&key["by_variable"]) {
+    if truthy(&key["by_variable"]) || is_part(key) {
         return Ok(false);
     }
     let name = key["name"].as_str().unwrap_or("");
@@ -317,7 +359,7 @@ fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
 pub fn any_small(game_dir: &Path, keys: &[Value], cropped: &Cropped) -> Result<bool> {
     for key in keys {
         let name = key["name"].as_str().unwrap_or("");
-        let Some(path) = path_of(game_dir, name) else {
+        let Some(path) = file_of(game_dir, key) else {
             continue;
         };
         if !is_big(&path, key, cropped)? && fits(&convert(&path, key, cropped.for_console(name))?) {
@@ -378,7 +420,7 @@ pub fn big_for_map(
     let mut out = Vec::new();
     for key in keys {
         let name = key["name"].as_str().unwrap_or("");
-        let Some(path) = path_of(game_dir, name) else {
+        let Some(path) = file_of(game_dir, key) else {
             continue;
         };
         if !is_big(&path, key, cropped)? && !small(key) {
@@ -980,14 +1022,18 @@ pub fn for_map(
         let number = int(&key["number"]);
         let name = key["name"].as_str().unwrap_or("");
         // The big ones are `big_for_map`'s, and take no slot.
-        let Some(path) = path_of(game_dir, name) else {
+        let Some(path) = file_of(game_dir, key) else {
             continue;
         };
         if is_big(&path, key, cropped)? {
             continue;
         }
         let info = convert(&path, key, cropped.for_console(name))?;
-        if !fits(&info) {
+        if !(if is_part(key) {
+            part_fits(&info)
+        } else {
+            fits(&info)
+        }) {
             println!(
                 "  {whose}: the picture {} is {}x{} on the console: bigger than the plane of objects",
                 crate::text::repr(name),
@@ -1006,7 +1052,7 @@ pub fn for_map(
             }
             slots.push(number);
         }
-        if let Some(at) = key["at"].as_array() {
+        if let Some(at) = key["at"].as_array().filter(|_| !is_part(key)) {
             // The corner the console computes from the centre and the half
             // size —`pic_show`— has to be the one the picture was converted
             // at: the same floor of four fifths and fourteen fifteenths.
@@ -1128,6 +1174,7 @@ mod tests {
             layer: 0,
             animation_type: 0,
             translucent: false,
+            trigger: 0,
             commands,
         };
         let black = c(TINT_SCREEN, "", &[0, 0, 0, 100, 50, 1]);
@@ -1215,6 +1262,7 @@ mod tests {
             layer: 0,
             animation_type: 0,
             translucent: false,
+            trigger: 0,
             commands,
         };
         let map = |commands: Vec<Command>| GameMap {

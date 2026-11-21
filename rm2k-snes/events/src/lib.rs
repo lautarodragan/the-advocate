@@ -348,6 +348,10 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
                 set: int(field(e, "set", whose)?, whose)? as usize,
             });
         } else {
+            // Optional: see `Pictures::with_map`.
+            if e.get("with_map").and_then(Value::as_bool) == Some(true) {
+                pictures.with_map.push(pictures.table.len() as u8);
+            }
             pictures
                 .table
                 .push((key, int(field(e, "slot", whose)?, whose)? as u8));

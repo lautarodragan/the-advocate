@@ -1304,6 +1304,9 @@ fn page(
     // Each `ShowMessage` an `InputNumber` follows, with the `InputNumber`:
     // they go in one window. See [`compile_number`].
     let numbers = number_inputs(commands);
+    // The big pictures' fades to nothing that leave the map to be seen: see
+    // [`big_fade_outs`].
+    let fade_outs = big_fade_outs(commands, ctx.pictures.as_deref());
     // The `ShowPicture`s a `ShowWindow` stands in for: the window is shown
     // by its comment, and the picture is RPG_RT's. See [`crate::windows`].
     let by_window: BTreeSet<usize> = crate::windows::replaced_pictures(commands)
@@ -1926,6 +1929,15 @@ fn page(
                 })
             {
                 shops.push(Shop::default());
+            }
+            let mut p = p;
+            if fade_outs.contains(&i) && matches!(p.first(), Some(&(OP_BIG_MOVE | OP_BIG_ZOOM))) {
+                // Taken down as its `ErasePicture` would: the game's windows
+                // it covered come back too —see [`window_cover`]—.
+                let taken = [OP_PICTURE_ERASE, PICTURE_BIG];
+                let erase = Command::new(ERASE_PICTURE, cmd.indent, "", vec![cmd.parameters[0]]);
+                p.extend(taken);
+                p.extend(window_cover(ctx, &erase, &taken)?);
             }
             piece = p;
         }
@@ -2648,6 +2660,68 @@ fn choice_boxes(
 /// the `InputNumber` is one on its own, a window with no text and the
 /// digits on its first line: `CommandInputNumber`, and
 /// [`compile_number`] with no message.
+/// The `MovePicture`s after which the big picture is taken down: each one
+/// that fades a big picture to nothing —transparency 100—, waits for it,
+/// and leaves no other big one seen by the page; and that no later move of
+/// the page brings back before a `ShowPicture` of its number.
+///
+/// In RM2k a picture at 100 % is not seen, and what is under it is: Desert
+/// Nightmare's intro, map 6, shows a black picture and its title over it,
+/// fades both out and talks over the gas station. The console's big
+/// picture is drawn over black with the map hidden —see
+/// [`compile_big_picture`]—, so faded out it stayed black, and the whole
+/// scene was talked over a black screen. Taken down, the map comes back
+/// —with the two black frames of `big_back_far`, at the end of a fade to
+/// black—.
+///
+/// Which numbers are seen is followed down the page as written, without
+/// its branches: what another page showed is not known, and the console's
+/// layer is one, the last shown, which every move of a big number takes.
+fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeSet<usize> {
+    let mut out = BTreeSet::new();
+    let Some(pictures) = pictures else {
+        return out;
+    };
+    let big = |n: i32| pictures.numbered_big(n).next().is_some();
+    let mut seen: BTreeSet<i32> = BTreeSet::new();
+    for (i, c) in commands.iter().enumerate() {
+        let p = &c.parameters;
+        let Some(&n) = p.first() else { continue };
+        match c.code {
+            SHOW_PICTURE if p.len() > 6 && big(n) => {
+                if p[6] < 100 {
+                    seen.insert(n);
+                } else {
+                    seen.remove(&n);
+                }
+            }
+            MOVE_PICTURE if p.len() > 15 && big(n) => {
+                if p[6] < 100 {
+                    seen.insert(n);
+                    continue;
+                }
+                seen.remove(&n);
+                let back = commands[i + 1..]
+                    .iter()
+                    .take_while(|l| !(l.code == SHOW_PICTURE && l.parameters.first() == Some(&n)))
+                    .any(|l| {
+                        l.code == MOVE_PICTURE
+                            && l.parameters.first() == Some(&n)
+                            && l.parameters.get(6).is_some_and(|&t| t < 100)
+                    });
+                if seen.is_empty() && p[15] != 0 && !back {
+                    out.insert(i);
+                }
+            }
+            ERASE_PICTURE => {
+                seen.remove(&n);
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
 fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
     let groups = group_boxes(commands);
     groups
@@ -3596,7 +3670,7 @@ pub fn compile_picture(
         } else {
             (p[2] as i64, p[3] as i64)
         };
-        if key.map_fixed {
+        if key.map_fixed || pictures.with_map.contains(&image) {
             mode |= PICTURE_MAP_FIXED;
         }
         let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
@@ -10437,6 +10511,17 @@ mod tests {
         indices: &Indices,
         commands: &[Command],
     ) -> Vec<u8> {
+        with_pictures_on(table, &[], indices, commands)
+    }
+
+    /// The same, with the pictures of `with_map` going with the map: see
+    /// `Pictures::with_map`.
+    fn with_pictures_on(
+        table: &[(PictureKey, u8)],
+        with_map: &[u8],
+        indices: &Indices,
+        commands: &[Command],
+    ) -> Vec<u8> {
         let game = Game::default();
         let sound = SoundSettings::default();
         let mut pictures = Pictures {
@@ -10446,6 +10531,7 @@ mod tests {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: with_map.to_vec(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -10713,6 +10799,7 @@ mod tests {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -10735,6 +10822,72 @@ mod tests {
         compile_page(&mut ctx, commands, None, 0, 0)
             .unwrap()
             .unwrap()
+    }
+
+    /// Desert Nightmare's intro, map 6, shrunk: a black picture and the
+    /// title over it, the title faded in and out, then the black one out
+    /// —and the map is seen—. Only the last fade takes the layer down: after
+    /// the title's the black one is still seen in RM2k. And not one that a
+    /// later move of the page brings back.
+    #[test]
+    fn a_big_picture_faded_to_nothing_is_taken_down() {
+        let black = cmd(
+            SHOW_PICTURE,
+            &[1, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+            "Schwarz",
+        );
+        let title = cmd(
+            SHOW_PICTURE,
+            &[2, 0, 160, 120, 0, 100, 100, 1, 100, 100, 100, 100, 0, 0],
+            "Introtext",
+        );
+        let fade = |n: i32, to: i32| {
+            cmd(
+                MOVE_PICTURE,
+                &[
+                    n, 0, 160, 120, 0, 100, to, 0, 100, 100, 100, 100, 0, 0, 30, 1,
+                ],
+                "",
+            )
+        };
+        let bigs = [
+            BigPicture {
+                key: picture_key(&black).unwrap(),
+                image: 0,
+                center: (160, 120),
+                // As in the game, whose other pages zoom it: its moves are
+                // `OP_BIG_ZOOM`s.
+                texture: true,
+            },
+            BigPicture {
+                key: picture_key(&title).unwrap(),
+                image: 1,
+                center: (160, 120),
+                texture: false,
+            },
+        ];
+        let erases = |code: &[u8]| {
+            code.windows(2)
+                .filter(|w| *w == [OP_PICTURE_ERASE, PICTURE_BIG])
+                .count()
+        };
+        let intro = with_big(
+            &bigs,
+            &[
+                black.clone(),
+                title.clone(),
+                fade(2, 0),
+                fade(2, 100),
+                fade(1, 100),
+            ],
+        );
+        assert_eq!(erases(&intro), 1);
+        assert_eq!(
+            &intro[intro.len() - 3..],
+            [OP_PICTURE_ERASE, PICTURE_BIG, OP_DONE]
+        );
+        let and_back = with_big(&bigs, &[black, fade(1, 100), fade(1, 0)]);
+        assert_eq!(erases(&and_back), 0);
     }
 
     #[test]
@@ -10999,6 +11152,21 @@ mod tests {
                 OP_DONE
             ]
         );
+    }
+
+    /// Desert Nightmare's start menu: each option's lit box is the part of
+    /// a drawing whose rest is in the map, so it goes with the map though
+    /// its `ShowPicture` says the screen —see `map_pictures` in
+    /// rm2k-snes-convert—.
+    #[test]
+    fn a_part_of_a_drawing_in_the_map_goes_with_the_map() {
+        let lit = picture(1, "Introauswahl_2", 0, (160, 120), false, 100, 0);
+        let table = [(picture_key(&lit).unwrap(), 0)];
+        let alone = with_pictures(&table, &Indices::default(), std::slice::from_ref(&lit));
+        let part = with_pictures_on(&table, &[0], &Indices::default(), &[lit]);
+        assert_eq!(alone[3], 0);
+        assert_eq!(part[3], PICTURE_MAP_FIXED);
+        assert_eq!((&alone[..3], &alone[4..]), (&part[..3], &part[4..]));
     }
 
     #[test]
@@ -12595,6 +12763,7 @@ mod tests {
             zooms: Vec::new(),
             tinted: Vec::new(),
             common: Vec::new(),
+            with_map: Vec::new(),
         };
         let (indices, sound) = (Indices::default(), SoundSettings::default());
         let mut messages = Messages::new(1, Window::columns(39, 4));
@@ -12649,6 +12818,22 @@ mod tests {
                 1,
                 OP_DONE
             ]
+        );
+        // Faded to nothing and taken down —see `big_fade_outs`—, it
+        // uncovers them as its `ErasePicture` would.
+        let fade = cmd(
+            MOVE_PICTURE,
+            &[
+                17, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 30, 1,
+            ],
+            "",
+        );
+        let code = compile_page(&mut ctx, &[page[0].clone(), fade], None, 0, 0)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            &code[code.len() - 5..],
+            [OP_PICTURE_ERASE, PICTURE_BIG, OP_WINDOW_COVER, 0, OP_DONE]
         );
         // A game without windows gets none: in its ROM the opcode ends the
         // page.
