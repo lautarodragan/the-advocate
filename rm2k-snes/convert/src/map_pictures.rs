@@ -464,13 +464,13 @@ fn placed(
 /// the arrows swap; drawn into the map as one, the arrows changed nothing
 /// on the screen.
 ///
-/// So what they have in common —the pixels where every one of them is the
-/// same— is drawn into the map, and each `ShowPicture` shows, as a small
-/// picture, its drawing where they are not all the same: the three boxes,
-/// one of them lit. Not "as most of them have it", which was the first
-/// version: on the shrine's ten digits (Desert Nightmare's map 161) the
-/// majority of each pixel drew a digit of none of them into the map, a
-/// "3" behind every wheel.
+/// So what they have in common —each pixel as most of them have it— is
+/// drawn into the map, and each `ShowPicture` shows, as a small picture,
+/// only what its drawing has that the common part does not: its lit box.
+/// The common part is a drawing of none of them where they all differ
+/// —ten digits make a glyph of none—, which is seen only before the first
+/// show; and every part covers all its drawing differs in, so the one up
+/// is always whole.
 /// That part goes with the map, where the common one is, and not with the
 /// screen —which the console scales—: the compiler is told so by the
 /// picture's `with_map` (see `pictures_of` in rm2k-snes-events).
@@ -536,23 +536,42 @@ impl Parts {
                 [p[0], p[1], p[2], 255]
             }
         };
-        // Each pixel where every drawing is the same is the common part's;
-        // the rest is every drawing's own, and each part covers the same
-        // pixels, so showing one hides the one before it.
-        let same: Vec<bool> = (0..w * h)
-            .map(|i| arts.iter().all(|a| pixel(a, i) == pixel(&arts[0], i)))
-            .collect();
-        let common: Vec<[u8; 4]> = (0..w * h)
-            .map(|i| if same[i] { pixel(&arts[0], i) } else { [0; 4] })
-            .collect();
+        // Each pixel as most drawings have it; of equals, the first's. Not
+        // only where all are the same: the menu's three pictures each have
+        // a palette of their own, and its unlit boxes differ by a shade
+        // from one to the next, so the parts took the three boxes whole,
+        // 704 tiles, and the map had no room for them (measured on
+        // 2026-11-20). What most have is the unlit box, and each part only
+        // its lit one.
+        let mut common = vec![[0u8; 4]; w * h];
+        for (i, c) in common.iter_mut().enumerate() {
+            let mut best = (0, pixel(&arts[0], i));
+            for a in &arts {
+                let p = pixel(a, i);
+                let votes = arts.iter().filter(|b| pixel(b, i) == p).count();
+                if votes > best.0 {
+                    best = (votes, p);
+                }
+            }
+            *c = best.1;
+        }
         let mut own = Vec::new();
         let mut files = Vec::new();
         for a in &arts {
-            let part: Vec<[u8; 4]> = (0..w * h)
-                .map(|i| if same[i] { [0; 4] } else { pixel(a, i) })
-                .collect();
-            // One transparent wherever the others differ shows nothing:
-            // the one before it would stay up.
+            let mut part = vec![[0u8; 4]; w * h];
+            for (i, p) in part.iter_mut().enumerate() {
+                let mine = pixel(a, i);
+                if mine != common[i] {
+                    // A hole where the common part has none: a picture over
+                    // the map cannot open it.
+                    if mine[3] == 0 {
+                        return Ok(None);
+                    }
+                    *p = mine;
+                }
+            }
+            // One the same as the common part shows nothing: the one before
+            // it would stay up.
             if part.iter().all(|p| p[3] == 0) {
                 return Ok(None);
             }
@@ -976,14 +995,14 @@ mod tests {
         let parts = Parts::of(1, 1, &refs, &dir)
             .unwrap()
             .expect("the menu splits");
-        // The common part is the frame alone: every row differs somewhere
-        // among the three. Each part is the three rows, its own lit.
+        // The common part is the frame and the three rows unlit, as most
+        // drawings have each; each part, its own row lit.
         let common = read(&parts.common.path);
         for (i, p) in common.iter().enumerate() {
-            if i % 4 == 1 {
-                assert_eq!(*p, [60, 20, 0, 255], "common, pixel {i}");
-            } else {
-                assert_eq!(p[3], 0, "common, pixel {i}");
+            match i % 4 {
+                0 => assert_eq!(p[3], 0, "common, pixel {i}"),
+                1 => assert_eq!(*p, [60, 20, 0, 255], "common, pixel {i}"),
+                _ => assert_eq!(*p, [90, 40, 0, 255], "common, pixel {i}"),
             }
         }
         assert!(parts.common.derived);
@@ -991,10 +1010,11 @@ mod tests {
             assert_eq!(*name, format!("menu_{k}"));
             let own = read(path);
             for (i, p) in own.iter().enumerate() {
-                match i % 4 {
-                    0 | 1 => assert_eq!(p[3], 0, "part {k}, pixel {i}"),
-                    _ if i / 4 == k => assert_eq!(*p, [250, 200, 0, 255], "part {k}, pixel {i}"),
-                    _ => assert_eq!(*p, [90, 40, 0, 255], "part {k}, pixel {i}"),
+                let lit = i / 4 == k && i % 4 > 1;
+                if lit {
+                    assert_eq!(*p, [250, 200, 0, 255], "part {k}, pixel {i}");
+                } else {
+                    assert_eq!(p[3], 0, "part {k}, pixel {i}");
                 }
             }
         }
