@@ -38,6 +38,7 @@ toward_ahead:
     bcc add
     lda pan_step
 add:
+    jsr pan_at_edge             ; what of it the map's edge lets through
     clc
     adc pan_x, x
     sta pan_x, x
@@ -62,13 +63,124 @@ in_place:
     rts
 .endproc
 
+; A pan's step against the map's edge: `UpdatePan` moves the screen with
+; `Game_Map::AddScreenX`, which clamps it to the map, and the pan advances
+; **only by what the screen moved**. So a pan toward an edge the camera
+; already touches does not move and stays short of its finish, and a pan
+; away from it moves the screen on its first frame. In A, 16 bits, the
+; step this frame wants, signed and not zero, and X the axis; returns in A
+; what of it goes into `pan_x`.
+;
+; Here the camera is the hero —`PAN_BASE`— plus the pan, clamped, so at an
+; edge part of that sum is hidden: RM2k's screen, which is state and not a
+; sum, has no such part. Before moving, the hidden part goes from the sum
+; into `PAN_GAP` —`PAN_ANCHOR` while locked—, which is RM2k's screen apart
+; from the hero, and the hero walking toward the middle closes it as
+; `UpdateScroll` does. Without it Frozen World's intro, at the bottom edge
+; of map 10, panned left for 240 frames before the camera began to go up.
+;
+; The screen in sixteenths is the camera times sixteen plus what of the
+; pan is below a pixel; it is not computed, because a big map's overflows
+; sixteen bits: the step is 128 at most, so only within eight pixels of an
+; edge can it be cut, and there the products are small. Since the pan's
+; fraction rides on the camera's whole pixel, the step is cut a fraction
+; short of where RM2k cuts it only when a pan slower than a pixel a frame
+; reaches the edge, and never by a pixel. Not on an axis that loops: there
+; `AddScreenX` does not clamp.
+.pushseg
+.segment "FARBSS"
+CAM_WANT:   .res 4              ; x, y: the camera before it is kept inside the map
+.popseg
+
+.proc pan_at_edge
+.a16
+.i16
+    sta temp                    ; the step
+.ifdef wrap_maps
+    lda f:WRAP_ON
+    and f:axis_bit, x
+    beq clamps
+    lda temp
+    rts
+clamps:
+.endif
+    lda f:CAM_WANT, x           ; the hidden part, in pixels
+    sec
+    sbc camera_x, x
+    beq whole
+    sta temp + 2
+    lda f:PAN_LOCKED            ; a byte: the one after it is the anchor's
+    and #$00FF
+    bne locked
+    lda f:PAN_GAP, x
+    sec
+    sbc temp + 2
+    sta f:PAN_GAP, x
+    bra whole
+locked:
+    lda f:PAN_ANCHOR, x
+    sec
+    sbc temp + 2
+    sta f:PAN_ANCHOR, x
+whole:
+    lda temp
+    bpl forward
+    ; Toward zero: the screen goes down to 0 at most, which is the camera
+    ; times sixteen plus the fraction away.
+    lda camera_x, x
+    cmp #8
+    bcs as_is
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp + 2
+    lda pan_x, x
+    and #$000F
+    ora temp + 2                ; how far, a positive number
+    eor #$FFFF
+    inc a                       ; and as a step, negative
+    beq nothing                 ; or none: the camera is at the edge
+    cmp temp
+    bcc as_is                   ; both negative: a smaller one is further
+    rts
+forward:
+    ; Toward the far edge: up to `cam_max_x`, minus the fraction already
+    ; past the camera's pixel; nothing, if that is less than nothing.
+    lda cam_max_x, x
+    sec
+    sbc camera_x, x
+    cmp #9
+    bcs as_is
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp + 2
+    lda pan_x, x
+    and #$000F
+    eor #$FFFF
+    sec
+    adc temp + 2                ; the room left, in sixteenths
+    bmi nothing
+    cmp temp
+    bcs as_is
+    rts
+nothing:
+    lda #0
+    rts
+as_is:
+    lda temp
+    rts
+.endproc
+
 ; How many frames the page that asked for the pan waits: what the axis with
 ; the most left to go still needs, divided by the step and rounded up. It is
 ; `GetPanWait`. Returns the number in a 16-bit A.
 ;
-; What is left goes up to fifteen cells —3840 sixteenths— and the step does
-; not go past 128, so they fit exactly in the hardware's 16-bit dividend and
-; 8-bit divisor.
+; What is left is a signed word's worth at most —127 cells; Frozen World's
+; intro pans 30 at once— and the step does not go past 128, so they fit in
+; the hardware's 16-bit dividend and 8-bit divisor.
 .proc pan_frames
 .a8
 .i16
@@ -465,6 +577,7 @@ locked:
     ; `ports/abl/decisions/the-camera-offset-after-the-gate-is-the-games.md` in the
 ; book.
     adc pan_px
+    sta f:CAM_WANT              ; `sta` keeps the flags the `bpl` looks at
     bpl limit_x
     lda #0                      ; the hero is near the left edge
 limit_x:
@@ -481,6 +594,7 @@ saves_x:
     sbc #112                    ; half a screen high
     clc
     adc pan_py
+    sta f:CAM_WANT + 2
     bpl limit_y
     lda #0
 limit_y:

@@ -184,6 +184,7 @@ axis:
     clc
     adc pan_px, x
     sta f:WRAP_T
+    sta f:CAM_WANT, x           ; what `pan_at_edge` looks at, in camera.s
     lda f:WRAP_ON
     and f:axis_bit, x
     bne this_loops
