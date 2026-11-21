@@ -45,13 +45,16 @@
 ; between the windows' left and right edges: PPU window 1, as the message's
 ; mask, from `WH0` to `WH1`.
 ;
-; **Each window's text tiles are its own for the game**, numbered by the
-; converter —`OP_WINDOW`'s `tiles`, the most any one window of that id
-; takes—, so windows up together never write each other's, and one shown
-; again with other text lands on the same tiles, each line after the ones
-; before it, by the cells `OP_WINDOW` gives it. The last text tile, 239, is the
-; windows' background, the first cell of the message window's: a System
-; whose background is a gradient gets it flat.
+; **Each window's text tiles are a run of the 239 text tiles**, each line
+; after the ones before it, by the cells `OP_WINDOW` gives it. Which run is
+; chosen when its text is composed —`sw_place`—: one the screen does not
+; show and no other window up takes, so the old text stays on the screen
+; until the new one is whole. The converter numbers each id's tiles of its
+; own —`OP_WINDOW`'s `tiles`, the most any one window of that id takes—,
+; so that windows up together always fit; they are where a window goes when
+; no run is free. The last text tile, 239, is the windows' background, the
+; first cell of the message window's: a System whose background is a
+; gradient gets it flat.
 ;
 ; **A line is composed as a message's**: the background into `text_buf`, the
 ; letters through `msg_letter` —pairs, `\c[n]`, `\V[n]`— with
@@ -93,12 +96,20 @@ R_TILES = 7                     ; its first text tile
 R_N     = 8                     ; lines
 R_LINES = 9                     ; four bytes each: the box, and its cells
 SW_LINES_MAX = 13               ; `LINES_MAX` in windows.rs
-SW_REC = R_LINES + SW_LINES_MAX * 4
+R_USED  = R_LINES + SW_LINES_MAX * 4 ; the tiles its lines take
+R_BASE  = R_USED + 1            ; where they are: its text's first tile
+R_SBASE = R_USED + 2            ; and where the ones on the screen are,
+R_SUSED = R_USED + 3            ; and how many; 0 none
+SW_REC = R_USED + 4
 SW_BACKGROUND = 239             ; `BACKGROUND_TILE` in windows.rs
 SW_ROWS = LINES / 8             ; the screen's cell rows
 SW_PLANE_ROW = 20               ; the first row of the window's tilemap past
                                 ; the message's two planes
 SW_STYLE_PLAIN = 1
+; `SW_RDIRTY`'s bits: a row a change touched, and a row the screen being
+; composed takes —read, composed and put up—.
+RD_CHANGED = 1
+RD_NOW     = 2
 
 .pushseg
 .segment "FARBSS"
@@ -132,10 +143,15 @@ SW_COPY:     .res 1             ; 1: the layer is copied, 0: nothing beside
 SW_T:        .res 2             ; scratch
 SW_U:        .res 2
 SW_V:        .res 2
-SW_SLOT:     .res 1
-SW_CHG:      .res 1
+SW_SLOT:     .res 1             ; `sw_overlay`'s slot
+SW_CHG:      .res 1             ; `sw_show`'s: whether anything changed
 SW_ROOM:     .res 1             ; `sw_one_window`'s: cells a line has room for
-SW_C:        .res 1             ; and the line's own             ; `sw_show`'s: whether anything changed             ; `sw_overlay`'s slot
+SW_C:        .res 1             ; and the line's own
+SW_RDIRTY:   .res SW_ROWS       ; each row's `RD_` bits
+SW_COST:     .res 1             ; the screen's lines of vblank, about
+SW_PEND:     .res 1             ; one past the last row it puts up
+SW_HOMED:    .res 1             ; 1: every window's text in its own tiles
+SW_WAITED:   .res 1             ; vblanks it waited for them; $FF going up
 SW_VT:       .res 2             ; the vblank's scratch: it may come in the
 SW_VU:       .res 2             ; middle of the main loop's
 SW_VV:       .res 2
@@ -206,6 +222,12 @@ each:
     sta f:SW_PUT
     sta f:SW_HIDE
     sta f:SW_COVER              ; and no big picture
+    sta f:SW_HOMED
+    ldx #SW_ROWS - 1
+rows:
+    sta f:SW_RDIRTY, x
+    dex
+    bpl rows
     lda #$FF
     sta f:SW_CUR
     plx
@@ -229,6 +251,7 @@ each:
     sta f:SW_UPLOAD
     sta f:SW_READ
     sta f:SW_PUT
+    jsl f:sw_none_shown
     jsl f:sw_all_dirty_l
     plx
     plp
@@ -237,11 +260,13 @@ each:
 
 .segment "FAR3"
 
-; Every window up, to be composed again, and the screen; and the ink and the
-; background tile, which a box or a load wrote over. A8; keeps nothing.
+; Every window up, to be composed again, and the screen, every row; and the
+; ink and the background tile, which a box or a load wrote over. A8; keeps
+; nothing.
 .proc sw_all_dirty
 .a8
 .i16
+    jsr sw_rows_changed
     ldx #0
     ldy #SHOW_WINDOW_SLOTS
 each:
@@ -272,6 +297,49 @@ each:
 sw_all_dirty_l:
     jsr sw_all_dirty
     rtl
+
+; Every row of the screen changed. A8; keeps Y.
+sw_rows_changed:
+.a8
+    ldx #SW_ROWS - 1
+each_row:
+    lda f:SW_RDIRTY, x
+    ora #RD_CHANGED
+    sta f:SW_RDIRTY, x
+    dex
+    bpl each_row
+    rts
+
+; `sw_rows_changed`, from FAR2.
+sw_rows_changed_l:
+    jsr sw_rows_changed
+    rtl
+
+; No window's tiles on the screen: the HDMA is off, or a box or a load
+; writes over them. A8; keeps Y.
+.proc sw_none_shown
+.a8
+.i16
+    ldx #R_SUSED
+    lda #SHOW_WINDOW_SLOTS
+    sta f:SW_T
+each:
+    lda #0
+    sta f:SW_RECS, x
+    rep #$20
+.a16
+    txa
+    clc
+    adc #SW_REC
+    tax
+    sep #$20
+.a8
+    lda f:SW_T
+    dec a
+    sta f:SW_T
+    bne each
+    rtl
+.endproc
 
 .segment "FAR2"
 
@@ -306,7 +374,13 @@ sw_rec_of2:
     phy
     jsr sw_rec_of2
     ply
+    ; Where it was, for the rows to compose again if it moves.
+    lda f:SW_RECS + R_Y, x
+    sta f:SW_V
+    lda f:SW_RECS + R_H, x
+    sta f:SW_V + 1
     lda f:SW_RECS + R_UP, x
+    sta f:SW_C
     eor #1
     sta f:SW_CHG                ; 1: something changed
     ; x, y, w, h, the style, the first tile and the lines, as they come.
@@ -330,7 +404,9 @@ field_same:
     plx
     phx
     ; The lines: each box's offset made a long pointer into `messages`, as
-    ; `msg_start` makes it, and its cells.
+    ; `msg_start` makes it, and its cells, which it counts.
+    lda #0
+    sta f:SW_ROOM
     lda f:SW_RECS + R_N, x
     sta f:SW_T                  ; lines left
     beq lines_done
@@ -380,6 +456,9 @@ bank_same:
     lda [code_ptr], y           ; its cells
     iny
     sta f:SW_RECS + 3, x
+    clc
+    adc f:SW_ROOM
+    sta f:SW_ROOM
     inx
     inx
     inx
@@ -390,8 +469,20 @@ bank_same:
     bne line
 lines_done:
     plx
+    lda f:SW_ROOM
+    asl a                       ; two rows of tiles a cell
+    sta f:SW_RECS + R_USED, x
     lda f:SW_CHG
     beq done                    ; up already, as it is
+    ; The rows it covered, if it was up, and the ones it covers.
+    lda f:SW_C
+    beq was_down
+    lda f:SW_V + 1
+    sta f:SW_ROOM
+    lda f:SW_V
+    jsr sw_mark
+was_down:
+    jsr sw_mark_x
     lda #1
     sta f:SW_RECS + R_UP, x
     sta f:SW_RECS + R_DIRTY, x
@@ -420,11 +511,51 @@ done:
     lda #0
     sta f:SW_RECS + R_UP, x
     sta f:SW_RECS + R_DIRTY, x
+    jsr sw_mark_x               ; the rows it covered
     lda #1
     sta f:SW_MAPDIRTY
 done:
     rtl
 .endproc
+
+; The rows the window at record X covers, changed. A8; keeps X.
+sw_mark_x:
+.a8
+    lda f:SW_RECS + R_H, x
+    sta f:SW_ROOM
+    lda f:SW_RECS + R_Y, x
+    ; and on into `sw_mark`
+
+; Rows A to A + `SW_ROOM` - 1 of the screen, changed. A8; keeps X.
+sw_mark:
+.a8
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+mark_more:
+    lda f:SW_ROOM
+    beq marked
+    dec a
+    sta f:SW_ROOM
+    cpx #SW_ROWS
+    bcs marked                  ; past the screen's last
+    lda f:SW_RDIRTY, x
+    ora #RD_CHANGED
+    sta f:SW_RDIRTY, x
+    inx
+    bra mark_more
+marked:
+    plx
+    rts
+
+; `sw_mark`, from FAR3.
+sw_mark_l:
+    jsr sw_mark
+    rtl
 
 ; `OP_WINDOW_COVER`, from `op_window_cover`: the slots under the one at
 ; `[code_ptr], y` covered by a big picture, Y past it. The screen again if
@@ -437,6 +568,7 @@ done:
     cmp f:SW_COVER
     beq done
     sta f:SW_COVER
+    jsl f:sw_rows_changed_l
     lda #1
     sta f:SW_MAPDIRTY
 done:
@@ -449,6 +581,17 @@ done:
 ; opening takes them off the screen; with none, a few letters of a window
 ; still to be composed, or the screen composed again, or the layer beside
 ; them copied again under a camera that moved. A8; keeps nothing.
+;
+; **What changes goes up on one frame** —taro's report, 2026-11-21: the
+; menu's boxes showed for a dozen frames after each press half the old text
+; and half the new—. A window's text is composed into tiles the screen does
+; not show —`sw_place`—, a line a vblank, and the screen is composed again
+; only on the rows something changed on; then those rows and the HDMA's
+; tables go up in one vblank, the old windows on the screen until then. A
+; stage in RAM for the new text, put up with the rows, was tried first: a
+; description box's 36 cells are 2,304 bytes, and with the rows that is
+; more than the vblank's twenty lines left on the menu —some 120 bytes a
+; line, measured—.
 .proc sw_tick
 .a8
 .i16
@@ -457,28 +600,50 @@ done:
     ora pick_active
     beq no_box
     ; A box: off the screen —and the message's planes back, if the windows
-    ; wrote over them—, and drawn again when it closes.
+    ; wrote over them—, and drawn again when it closes; and whatever was
+    ; under way, from the start then, since the box writes over `text_buf`
+    ; and the windows' tiles.
+    lda f:SW_CUR
+    inc a                       ; $FF: none being composed
+    ora f:SW_SHOWN
+    ora f:SW_PLANES
+    ora f:SW_PUT
+    ora f:SW_READ
+    ora f:SW_UPLOAD
+    beq quiet
     lda f:SW_SHOWN
     ora f:SW_PLANES
-    beq quiet
+    beq not_shown
     lda #1
     sta f:SW_HIDE
+not_shown:
+    jsl f:sw_none_shown
     jsr sw_all_dirty
 quiet:
     lda #0
     sta f:SW_UPLOAD             ; the box's line owns `text_buf` now
     sta f:SW_READ
     sta f:SW_PUT
+busy:
     rtl
 no_box:
     lda f:SW_HIDE
-    bne wait                    ; the planes are going back
+    bne busy                    ; the planes are going back
     lda f:SW_UPLOAD
-    bne wait                    ; a line waits for its vblank
+    bne busy                    ; a line waits for its vblank
     lda f:SW_PUT
-    bne wait                    ; the screen is going up
+    bne busy                    ; the screen is going up
     lda f:SW_READ
     beq not_reading
+    lda f:SW_MAPDIRTY
+    beq reading
+    ; Something changed while the layer's rows were read: its text first,
+    ; and the rows again with the ones it touched.
+    lda #0
+    sta f:SW_READ
+    bra not_reading
+reading:
+    lda f:SW_READ
     cmp #2
     bne wait                    ; the layer is being read
     ; Read: the windows over it, and the screen up.
@@ -497,18 +662,25 @@ not_reading:
     jsr sw_on_grid
     bcc wait
     lda f:SW_COPY
-    beq screen                  ; nothing was copied beside them
+    beq moved                   ; nothing was copied beside them
     jsr sw_camera_word
 .a16
     cmp f:SW_CAM
     sep #$20
 .a8
     beq wait
+moved:
+    jsr sw_rows_changed
 screen:
     lda #0
     sta f:SW_MAPDIRTY
+    lda f:SW_TOP                ; the span on the screen, to tell whether
+    sta f:SW_U                  ; it moves
+    lda f:SW_BOT
+    sta f:SW_U + 1
     jsr sw_span
     bcc none_up
+    jsr sw_rows_now
     ; The layer's rows first: the vblank reads them into `SW_MAP`, and the
     ; windows go over them when it is done.
     jsr sw_camera_word
@@ -540,14 +712,142 @@ none_up:
     rtl
 .endproc
 
+; The rows this screen takes, `RD_NOW`: the ones a change touched inside the
+; span, or all of it if the span moved or was not on the screen —its rows
+; land elsewhere in the window's tilemap then—. Outside the span a row is
+; not seen, and when the span grows over it, it moved. The old span in
+; `SW_U` and `SW_U + 1`. A8; keeps nothing.
+.proc sw_rows_now
+.a8
+.i16
+    lda f:SW_SHOWN
+    beq all
+    lda f:SW_U
+    cmp f:SW_TOP
+    bne all
+    lda f:SW_U + 1
+    cmp f:SW_BOT
+    beq each_start
+    ; Only its bottom moved: the rows on the screen stay where they were in
+    ; the window's tilemap, and the ones past the shorter span are new.
+    bcc shorter
+    lda f:SW_BOT
+shorter:
+    pha                         ; the shorter span's end
+    sta f:SW_ROOM
+    lda #SW_ROWS
+    sec
+    sbc f:SW_ROOM
+    sta f:SW_ROOM
+    pla
+    jsl f:sw_mark_l
+    bra each_start
+all:
+    jsr sw_rows_changed
+each_start:
+    ldx #SW_ROWS - 1
+each:
+    txa                         ; X's low byte: below 28
+    cmp f:SW_TOP
+    bcc out
+    cmp f:SW_BOT
+    bcs out
+    lda f:SW_RDIRTY, x
+    lsr a                       ; RD_CHANGED to the carry
+    bcc next
+    lda #RD_NOW
+    bra put
+out:
+    lda #0
+put:
+    sta f:SW_RDIRTY, x
+next:
+    dex
+    bpl each
+    rts
+.endproc
+
 ; The rows are in `SW_MAP`: the windows over them, and the screen up in the
-; vblanks that follow. From `sw_tick`. A8.
+; vblank that has room for those rows and the tables: how many lines that
+; is, about; and which tiles will be on the screen then. From `sw_tick`. A8.
 .proc sw_overlay_and_put
 .a8
 .i16
     jsr sw_overlay
-    lda f:SW_TOP
+    ; The rows it puts up: from the first this screen takes to the last,
+    ; and the ones between as they are —see `sw_commit`—; and theirs taken
+    ; now, so that only a change since keeps a row.
+    lda #$FF
     sta f:SW_PROW
+    lda #0
+    sta f:SW_PEND
+    ldx #0
+range:
+    lda f:SW_RDIRTY, x
+    and #RD_NOW
+    beq range_next
+    lda f:SW_PROW
+    cmp #$FF
+    bne first_kept
+    txa                         ; X's low byte: below 28
+    sta f:SW_PROW
+first_kept:
+    txa
+    inc a
+    sta f:SW_PEND
+    lda #RD_CHANGED
+    and f:SW_RDIRTY, x
+    sta f:SW_RDIRTY, x
+range_next:
+    inx
+    cpx #SW_ROWS
+    bne range
+    lda f:SW_PROW
+    cmp #$FF
+    bne some_rows
+    lda #0                      ; none: the tables only
+    sta f:SW_PROW
+    sta f:SW_PEND
+some_rows:
+    ; A row is 64 bytes, and a line of the vblank moves some 120 by DMA
+    ; —measured in snes9x on Desert Nightmare's menu, 2026-11-21: 2,316
+    ; bytes from line 234 to 252—: half a line a row and six lines for
+    ; the setups, the clock and the tables —measured the same day: the
+    ; tables alone, three—.
+    lda f:SW_PEND
+    sec
+    sbc f:SW_PROW
+    lsr a
+    clc
+    adc #6
+    sta f:SW_COST
+    ; The tiles on the screen once it is up: each window's that is up and
+    ; not under a big picture. No window is composed into them until another
+    ; screen goes up: see `sw_place`.
+    lda #0
+    sta f:SW_V
+shown:
+    lda f:SW_V
+    jsr sw_rec_of
+    lda f:SW_RECS + R_BASE, x
+    sta f:SW_RECS + R_SBASE, x
+    lda f:SW_V
+    cmp f:SW_COVER
+    lda #0
+    bcc covered
+    lda f:SW_RECS + R_UP, x
+    beq covered
+    lda f:SW_RECS + R_USED, x
+covered:
+    sta f:SW_RECS + R_SUSED, x
+    lda f:SW_V
+    inc a
+    sta f:SW_V
+    cmp #SHOW_WINDOW_SLOTS
+    bne shown
+    lda #0
+    sta f:SW_WAITED
+    sta f:SW_HOMED
     lda #1
     sta f:SW_PUT
     rtl
@@ -682,8 +982,8 @@ done:
     rts
 .endproc
 
-; Zero entries on the sw_span's rows of `SW_MAP`: the window's tile 0 is BG2's
-; first, blank on every map. A8; keeps nothing.
+; Zero entries on the sw_span's rows of `SW_MAP` this screen takes: the
+; window's tile 0 is BG2's first, blank on every map. A8; keeps nothing.
 .proc sw_clear_span
 .a8
 .i16
@@ -695,6 +995,17 @@ done:
     rep #$20
 .a16
 row:
+    txa
+    jsr sw_row_now
+    rep #$20
+.a16
+    bne clear
+    txa
+    clc
+    adc #64
+    tax
+    bra row_done
+clear:
     ldy #32
 cell:
     lda #0
@@ -703,6 +1014,7 @@ cell:
     inx
     dey
     bne cell
+row_done:
     sep #$20
 .a8
     lda f:SW_T
@@ -715,6 +1027,26 @@ cell:
 .a8
     rts
 .endproc
+
+; Whether the row of `SW_MAP`'s byte A is one this screen takes: Z clear if
+; it is. A16 in, A8 out; keeps X and Y.
+sw_row_now:
+.a16
+    phx
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; 64 bytes a row
+    tax
+    sep #$20
+.a8
+    lda f:SW_RDIRTY, x
+    and #RD_NOW
+    plx
+    cmp #0                      ; `plx` left Z from X
+    rts
 
 ; X to the byte of `SW_MAP` where row `SW_TOP` starts. A8 in and out.
 sw_row_x_top:
@@ -831,8 +1163,9 @@ row:
 .a16
     lda f:SW_T
     tay                         ; Y on the cell
-    sep #$20
+    jsr sw_row_now
 .a8
+    beq row_done                ; a row this screen does not take
 cell:
     jsr record_x
     jsr sw_piece                   ; A16: the cell's entry
@@ -848,6 +1181,7 @@ cell:
     lda temp + 1
     cmp f:SW_RECS + R_W, x
     bne cell
+row_done:
     rep #$20
 .a16
     lda f:SW_T
@@ -896,7 +1230,7 @@ some:
     adc f:SW_T
     sta f:SW_T                  ; the line's top left cell, in `SW_MAP`
     ; The text's first entry, plus the window's first tile.
-    lda f:SW_RECS + R_TILES, x
+    lda f:SW_RECS + R_BASE, x
     and #$00FF
     clc
     adc f:SW_FRAME + F_TEXT
@@ -951,6 +1285,11 @@ line_done:
 ; `SW_V` past the row's `SW_C` tiles, the line's whole run. A16.
 cells_run:
 .a16
+    txa
+    jsr sw_row_now
+    rep #$20
+.a16
+    beq run_done                ; a row this screen does not take
     lda temp + 1
     and #$00FF
     tay
@@ -962,6 +1301,7 @@ run:
     inx
     dey
     bne run
+run_done:
     lda f:SW_C
     and #$00FF
     clc
@@ -1098,6 +1438,7 @@ found:
     sta f:SW_PRIMED
     lda f:SW_V
     sta f:SW_CUR
+    jsr sw_place
 going:
     lda f:SW_CUR
     jsr sw_rec_of
@@ -1208,7 +1549,7 @@ line_end:
     ; plus two rows of each line before it— and its cells.
     lda f:SW_CUR
     jsr sw_rec_of
-    lda f:SW_RECS + R_TILES, x
+    lda f:SW_RECS + R_BASE, x
     sta f:SW_UPTILE
     lda #0
     sta f:SW_UPTILE + 1
@@ -1256,7 +1597,6 @@ next_line:
     sta f:SW_LINE
     sec                         ; still composing
     rts
-
 ; X on line `SW_LINE`'s four bytes of slot `SW_CUR`. A8 in and out.
 line_x:
 .a8
@@ -1276,6 +1616,143 @@ line_x:
     tax
     sep #$20
 .a8
+    rts
+.endproc
+
+; Which tiles the text of slot `SW_CUR`, about to be composed, goes to:
+; `R_BASE`, the first of a run of `R_USED` that are not on the screen and
+; that no other window up takes. So the screen keeps showing the window's
+; old text while the new one is composed, a line a vblank, and the new one
+; shows when the screen goes up with the rows that point at it —one vblank,
+; and a few rows: see `sw_commit`—. The converter gives each window id
+; tiles of its own, `R_TILES`, the most any window of that id takes, so
+; that windows up together never meet (`windows.rs` in rm2k-snes-events):
+; with every id's in use a window has no room for a second copy of itself,
+; but the ids not up leave theirs, and on Desert Nightmare's menu the
+; description box finds room for its new text in all the screens the tests
+; walk —not, perhaps, in a full grid with a long description—.
+;
+; When no run is free of the screen's tiles, one that may take the window's
+; own: its text changes on the screen a line at a time, as all of them did
+; before 2026-11-21. When not even that, every window goes back to its own
+; tiles and is composed again —`SW_HOMED`, until that screen goes up—. A8;
+; keeps nothing.
+.proc sw_place
+.a8
+.i16
+    lda f:SW_CUR
+    jsr sw_rec_of
+    lda f:SW_HOMED
+    beq free
+    lda f:SW_RECS + R_TILES, x
+    jmp placed
+free:
+    lda f:SW_RECS + R_USED, x
+    sta f:SW_C                  ; the run's length
+    beq placed                  ; no text: anywhere
+    lda #0
+    sta f:SW_ROOM               ; 0: not on the screen's tiles; 1: but its own
+round:
+    lda #0
+    sta f:SW_T                  ; the run's first
+again:
+    lda f:SW_T
+    clc
+    adc f:SW_C
+    bcs full
+    cmp #SW_BACKGROUND + 1
+    bcs full                    ; past the last text tile
+    lda #0
+    sta f:SW_SLOT
+each:
+    lda f:SW_SLOT
+    jsr sw_rec_of
+    lda f:SW_SLOT
+    cmp f:SW_CUR
+    bne other
+    lda f:SW_ROOM
+    bne next                    ; its own, which it may take now
+    jsr on_screen
+    bcs again
+    bra next
+other:
+    jsr on_screen
+    bcs again
+    lda f:SW_RECS + R_UP, x
+    beq next
+    lda f:SW_RECS + R_BASE, x   ; what another window up has composed
+    sta f:SW_V
+    lda f:SW_RECS + R_USED, x
+    sta f:SW_V + 1
+    jsr clash
+    bcs again
+next:
+    lda f:SW_SLOT
+    inc a
+    sta f:SW_SLOT
+    cmp #SHOW_WINDOW_SLOTS
+    bne each
+    lda f:SW_CUR
+    jsr sw_rec_of
+    lda f:SW_T
+placed:
+    sta f:SW_RECS + R_BASE, x
+    rts
+full:
+    lda f:SW_ROOM
+    bne home
+    inc a
+    sta f:SW_ROOM
+    jmp round
+home:
+    ; No room even so: everything to its own tiles.
+    lda #1
+    sta f:SW_HOMED
+    lda f:SW_CUR
+    sta f:SW_SLOT
+    jsr sw_all_dirty
+    lda f:SW_SLOT               ; `sw_all_dirty` let go of it: this one is
+    sta f:SW_CUR                ; being composed, from its first line
+    jsr sw_rec_of
+    lda #0
+    sta f:SW_RECS + R_DIRTY, x
+    lda f:SW_RECS + R_TILES, x
+    bra placed
+
+; The tiles of the window at record X that are on the screen, against the
+; run: `clash`.
+on_screen:
+    lda f:SW_RECS + R_SBASE, x
+    sta f:SW_V
+    lda f:SW_RECS + R_SUSED, x
+    sta f:SW_V + 1
+    ; and on into `clash`
+
+; The carry set if the run, `SW_C` tiles from `SW_T`, meets the `SW_V + 1`
+; from `SW_V`, and then the run moved past them. Neither goes past tile
+; 239. A8; keeps X.
+clash:
+    lda f:SW_V + 1
+    beq apart                   ; none
+    lda f:SW_V
+    clc
+    adc f:SW_V + 1
+    sta temp                    ; one past them
+    lda f:SW_T
+    cmp temp
+    bcs apart                   ; the run starts after them
+    lda f:SW_T
+    clc
+    adc f:SW_C
+    cmp f:SW_V
+    beq apart
+    bcc apart                   ; and ends before them
+    lda temp
+    sta f:SW_T
+    sec
+    rts
+apart:
+    clc
     rts
 .endproc
 
@@ -1379,7 +1856,7 @@ no_bg:
 no_read:
     lda f:SW_PUT
     beq no_put
-    jsr sw_put_rows
+    jsr sw_commit
 no_put:
     lda f:SW_HIDE
     beq no_hide
@@ -1508,12 +1985,32 @@ off:
     rts
 .endproc
 
-; The layer's tilemap rows under the sw_span, one at a time while they fit, to
-; `SW_MAP`; the windows over them and the screen up when the last is in. A8.
+; The layer's tilemap rows under the sw_span that this screen takes, one at a
+; time while they fit, to `SW_MAP`; the windows over them and the screen up
+; when the last is in. A8.
 .proc sw_read_rows
 .a8
 .i16
 row:
+    lda f:SW_RROW
+    cmp f:SW_BOT
+    bne a_row
+    jmp all_rows
+a_row:
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:SW_RDIRTY, x
+    and #RD_NOW
+    bne take
+    lda f:SW_RROW               ; one it does not take
+    inc a
+    sta f:SW_RROW
+    bra row
+take:
     jsl f:vblank_line
 .a16
     cmp #SW_ROW_LATEST + 1
@@ -1612,8 +2109,6 @@ one_piece:
     lda f:SW_RROW
     inc a
     sta f:SW_RROW
-    cmp f:SW_BOT
-    beq all_rows
     jmp row
 all_rows:
     lda #2                      ; read: `sw_tick` puts the windows over
@@ -1634,10 +2129,16 @@ prefetched:
     rts
 .endproc
 
-; `SW_MAP`'s sw_span to the window's tilemap, one row at a time while they fit,
-; from its row `SW_PLANE_ROW` on, wrapping; and the HDMA's sw_tables when the
-; last is up. A8.
-.proc sw_put_rows
+; The screen up: the rows of `SW_MAP` this screen takes to the window's
+; tilemap —from its row `SW_PLANE_ROW` on,
+; wrapping—, and the HDMA's tables. All in one vblank, so that the screen
+; goes from the old windows to the new ones between two frames: it starts
+; only on a vblank with `SW_COST` lines left, and waits for one —the old
+; windows stay meanwhile—. After `SW_WAIT_MAX` vblanks without room it goes
+; up a piece at a time as they fit, as everything went before 2026-11-21:
+; the frames in between show part of the change. A8.
+SW_WAIT_MAX = 2
+.proc sw_commit
 .a8
 .i16
     jsr sw_tilemap
@@ -1646,15 +2147,34 @@ prefetched:
     sbc f:SW_TOP
     and #31
     sta f:SW_OFF
-row:
-    jsl f:vblank_line
+    lda f:SW_WAITED
+    cmp #SW_WAIT_MAX
+    bcs go                      ; going up, or waited enough
+    ; The last line it may start on. Off the vblank, `vblank_line` is $FFFF.
+    rep #$20
 .a16
-    cmp #SW_ROW_LATEST + 1
+    lda f:SW_COST
+    and #$00FF
+    eor #$FFFF
+    sec
+    adc #VBLANK_WRITES_END      ; the end, less the cost
+    sta f:SW_VT
     sep #$20
 .a8
-    bcc fits
-    jmp later
-fits:
+    jsl f:vblank_line
+.a16
+    cmp f:SW_VT
+    sep #$20
+.a8
+    bcc go
+    beq go
+    lda f:SW_WAITED
+    inc a
+    sta f:SW_WAITED
+    rts
+go:
+    lda #$FF
+    sta f:SW_WAITED
     lda #$80
     sta VMAIN
     lda #$01
@@ -1663,20 +2183,57 @@ fits:
     sta BBAD0
     lda #^SW_MAP
     sta A1B0
+row:
+    ; From `SW_PROW` to `SW_PEND`: one DMA, or two where the rows wrap past
+    ; the window tilemap's last. The rows between the ones this screen takes
+    ; go up too, as they are: a row has to go up for less than a DMA's setup
+    ; costs to skip it —a scanline is some forty instructions—.
     lda f:SW_PROW
+    cmp f:SW_PEND
+    bcc a_run
+    jmp all_rows
+a_run:
     clc
     adc f:SW_OFF
     and #31
+    sta f:SW_VU                 ; where the first lands
+    lda f:SW_PEND
+    sec
+    sbc f:SW_PROW
+    sta f:SW_VT                 ; how many
+    lda #32
+    sec
+    sbc f:SW_VU
+    cmp f:SW_VT
+    bcs whole
+    sta f:SW_VT                 ; up to the tilemap's last row
+whole:
+    lda f:SW_VT
+    lsr a
+    eor #$FF
+    sec
+    adc #VBLANK_WRITES_END - 2  ; the last line it may start on: half a
+    sta f:SW_VV                 ; line a row, and its setup
+    lda #0
+    sta f:SW_VV + 1
+    jsl f:vblank_line
+.a16
+    cmp f:SW_VV
+    sep #$20
+.a8
+    bcc fits
+    beq fits
+    jmp later
+fits:
+    lda f:SW_VU
     cmp #SW_PLANE_ROW
     bcs past_planes
-    pha
     lda #1
     sta f:SW_PLANES             ; a message's plane, written over
-    pla
 past_planes:
-    ldx map_ofs
     rep #$20
 .a16
+    lda f:SW_VU
     and #$00FF
     xba
     lsr a
@@ -1693,17 +2250,20 @@ past_planes:
     clc
     adc #.loword(SW_MAP)
     sta A1T0L
-    lda #64
+    lda f:SW_VT
+    and #$00FF
+    xba
+    lsr a
+    lsr a                       ; 64 bytes a row
     sta DAS0L
     sep #$20
 .a8
     lda #$01
     sta MDMAEN
     lda f:SW_PROW
-    inc a
+    clc
+    adc f:SW_VT
     sta f:SW_PROW
-    cmp f:SW_BOT
-    beq all_rows
     jmp row
 all_rows:
     ; Every row is up: the sw_tables, if they still fit.
@@ -1712,19 +2272,16 @@ all_rows:
     cmp #SW_TABLES_LATEST + 1
     sep #$20
 .a8
-    bcs tables_later
+    bcs later
     lda #0
     sta f:SW_PUT
     jsr sw_tables
     lda #1
     sta f:SW_SHOWN
-later:
     rts
-tables_later:
-    ; Every row is up already: next vblank, the sw_tables only.
-    lda f:SW_BOT
-    dec a
-    sta f:SW_PROW
+later:
+    sep #$20
+.a8
     rts
 .endproc
 
