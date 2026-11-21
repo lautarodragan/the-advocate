@@ -2,6 +2,17 @@
 .a8
 .i16
 
+; What `cache_was_note` keeps: three bytes a row —its event, or $FF in a
+; free one, the key it showed and its attributes—, and whether a `build_oam`
+; already looked at them —$FF none noted, 1 noted and not drawn yet, 0
+; drawn once—. See "a still one whose look changes" below.
+CACHE_WAS_MAX = 4
+.pushseg
+.segment "FARBSS"
+CACHE_WAS:       .res 3 * CACHE_WAS_MAX
+CACHE_WAS_FRESH: .res 1
+.popseg
+
 ; --- a cache of slots -----------------------------------------------------------
 ;
 ; Every other map gives each event drawn a VRAM slot for the whole map: the
@@ -50,6 +61,23 @@
 ; turn slot and does not ask; one that walks turns in its own: see
 ; `turn_fire`.
 ;
+; **But a still one whose look changes on screen keeps its old one meanwhile**:
+; a page that gives it another graphic —`page_graphic`— or a route that
+; turns it —`still_turn`— hands it a key that is not up, and waiting for it
+; with nothing drawn took the row off the screen for that frame, two when a
+; tick lasts two. RM2k changes it at once. Desert Nightmare's trash can by
+; the motel, on map 2, is two events whose page goes from the closed can to
+; the open one when it opens: the closed lid went missing for two frames
+; before the open can showed. So `cache_was_note` keeps, for the rows that
+; were drawn, the key and attributes they showed, and if their new pose is
+; not up `cache_was_draw` draws the old one, which is still in its slot: it
+; was drawn last frame, so no one could take that slot. They last one
+; frame: `cache_age` forgets them on the next. What it does not cover: a
+; row whose look changes in the same tick it comes into view, which has no
+; old look in any slot, or whose old key someone else queued that same
+; frame, which is shown before it is up; and more than `CACHE_WAS_MAX` rows
+; changing in a frame, the rest of which wait with nothing drawn.
+;
 ; Whether the map has a cache is bit 7 of `SHARE_N`, so that `place_npc`
 ; looks at a single byte for both: no map has both, because the cache is
 ; what is left when taking turns is not enough.
@@ -87,6 +115,7 @@ events:
     sta f:CACHE_EV, x
     dex
     bpl events
+    jsr cache_was_forget
 none:
     rtl
 .endproc
@@ -129,6 +158,164 @@ older:
 keep:
     dex
     bpl older
+    ; And the old looks `cache_was_note` kept: this frame draws them if they
+    ; were noted since the last, and the next one forgets them.
+    lda f:CACHE_WAS_FRESH
+    bmi kept                    ; none
+    bne first
+    jsr cache_was_forget        ; one frame drew them already
+    rtl
+first:
+    lda #0
+    sta f:CACHE_WAS_FRESH
+kept:
+    rtl
+.endproc
+
+; Forgets every old look `cache_was_note` kept. X is lost.
+.proc cache_was_forget
+.a8
+.i16
+    lda #$FF
+    sta f:CACHE_WAS_FRESH
+    ldx #3 * (CACHE_WAS_MAX - 1)
+free:
+    sta f:CACHE_WAS, x
+    dex
+    dex
+    dex
+    bpl free
+    rts
+.endproc
+
+; Row Y's look is about to become key A: from `page_graphic` and
+; `still_turn`, before they write it, in any map. In a map with a cache, if
+; the row is drawn and its key changes, what it shows now is kept for
+; `cache_was_draw`. The one facing the hero is left out: its tile byte is
+; the turn slot's, not a key. Keeps A, X and Y.
+.proc cache_was_note
+.a8
+.i16
+    pha
+    phx
+    sta f:CACHE_T_KEY           ; the new key: nobody's until `cache_want`
+    lda f:SHARE_N
+    bpl done                    ; no cache
+    lda npc_buf + 14, y
+    dec a                       ; drawn: as `build_oam` looks at it
+    cmp #(TRANSP_HIDDEN * 2)
+    bcs done
+    lda npc_buf + 6, y
+    cmp f:CACHE_T_KEY
+    beq done                    ; the same key: its slot is up
+    lda npc_buf + 8, y
+    cmp f:TURN_EV
+    beq done
+.ifdef posed_stills
+    lda npc_buf + 7, y          ; nor one drawn into the background: posed.s
+    and #$30
+    cmp #$30
+    beq done
+.endif
+    lda f:CACHE_WAS_FRESH
+    bne fresh
+    jsr cache_was_forget        ; a frame drew them: they are not this one's
+fresh:
+    ; A row whose look changes twice before a frame draws it keeps the
+    ; first: that is the one on screen.
+    lda npc_buf + 8, y
+    ldx #3 * (CACHE_WAS_MAX - 1)
+seen:
+    cmp f:CACHE_WAS, x
+    beq done
+    dex
+    dex
+    dex
+    bpl seen
+    ldx #3 * (CACHE_WAS_MAX - 1)
+free:
+    lda f:CACHE_WAS, x
+    cmp #$FF
+    beq take
+    dex
+    dex
+    dex
+    bpl free
+    bra done                    ; full: this one waits with nothing drawn
+take:
+    lda npc_buf + 8, y
+    sta f:CACHE_WAS, x
+    lda npc_buf + 6, y
+    sta f:CACHE_WAS + 1, x
+    lda npc_buf + 7, y
+    sta f:CACHE_WAS + 2, x
+    lda #1
+    sta f:CACHE_WAS_FRESH
+done:
+    plx
+    pla
+    rtl
+.endproc
+
+; Row `CACHE_T_ROW`, which `cache_want` did not draw: carry clear if it is
+; drawn with the look `cache_was_note` kept for it, `obj_tile` and
+; `obj_attr` set, and its slot kept for the frame; carry set if it has none,
+; or no slot holds it any more. From `place_npc`.
+.proc cache_was_draw
+.a8
+.i16
+    lda f:CACHE_WAS_FRESH
+    bmi none
+    rep #$20
+.a16
+    lda f:CACHE_T_ROW
+    tay
+    sep #$20
+.a8
+    lda npc_buf + 8, y          ; its event: `CACHE_T_EV` is a twin's by now
+    ldx #3 * (CACHE_WAS_MAX - 1)
+find:
+    cmp f:CACHE_WAS, x
+    beq found
+    dex
+    dex
+    dex
+    bpl find
+none:
+    sec
+    rtl
+found:
+    lda f:CACHE_WAS + 2, x
+    sta temp + 1                ; its attributes
+    lda f:CACHE_WAS + 1, x
+    sta temp                    ; and its key
+    jsr cache_last
+seek:
+    lda f:CACHE_KEY, x
+    cmp temp
+    beq up
+    dex
+    bpl seek
+    sec                         ; no slot holds it
+    rtl
+up:
+    lda #0
+    sta f:CACHE_AGE, x          ; drawn: nobody takes it this frame
+    jsr cache_tile
+.a16
+    sta temp + 2
+    sep #$20
+.a8
+    lda temp + 2
+    sta obj_tile
+    lda temp + 3
+    and #$01                    ; bit 8 of the tile lives in the attributes
+    sta obj_attr
+    lda temp + 1
+    and #$FE
+    ora obj_attr
+    sta obj_attr
+    clc
     rtl
 .endproc
 
@@ -498,6 +685,7 @@ counted:
     sbc f:CACHE_T_KEY
     clc
     adc f:CACHE_T_POSE
+    jsl f:cache_was_note + FAST ; the look it had, while the new one goes up
     sta npc_buf + 6, y
     lda f:CACHE_T_POSE
     sta npc_buf + 12, y

@@ -1407,6 +1407,7 @@ with_graphic:
     pla
     sta npc_buf + 12, y         ; the pose in VRAM is this one
     lda pg_tile
+    jsl f:cache_was_note + FAST ; the look it had, while the new one goes up
     sta npc_buf + 6, y
     lda pg_attr
     sta npc_buf + 7, y

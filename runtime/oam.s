@@ -869,10 +869,15 @@ cached:
     jsl f:cache_want + FAST
     bcc draw
     cmp #0
-    beq later                   ; the cache is full: it asks again next frame
+    beq waits                   ; the cache is full: it asks again next frame
     jsr vram_queue
-    beq later                   ; the queue was full: likewise
+    beq waits                   ; the queue was full: likewise
     jsl f:cache_took + FAST
+waits:
+    ; Meanwhile, the look it had if a page or a route changed it on screen:
+    ; see `cache_was_draw`.
+    jsl f:cache_was_draw + FAST
+    bcc draw
     rts
 own:
     lda npc_buf + 6, x
