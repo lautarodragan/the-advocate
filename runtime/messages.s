@@ -720,6 +720,22 @@ LINE_LATEST_BARE = VBLANK_WRITES_END - 15
 .proc upload_line
 .a8
 .i16
+.ifdef SHOW_WINDOW_SLOTS
+    ; **Not while the game's windows are on the screen or on the window's
+    ; planes.** A screen of windows taller than twelve rows is written over
+    ; the planes, and only `sw_hide` puts them back, from `sw_vblank`, which
+    ; `flush_video` calls only while no box is open. A box whose lines went
+    ; up first opened on the windows' screen: Desert Nightmare's "You have
+    ; no notes." came out in a window's text cells, a few letters a row,
+    ; inside the windows' frame (2026-11-21, task
+    ; `desert-nightmare-the-menu-s-empty-text-breaks-sometimes`). So the box
+    ; waits for that vblank, with nothing of it written yet —the face's
+    ; cells go on the planes with its lines—, counted as a line that missed
+    ; one: from `WAIT_CEILING` on the forced blank gives `sw_hide` its room.
+    lda f:SW_SHOWN
+    ora f:SW_PLANES
+    bne late
+.endif
     ; The line the PPU is on, $FFFF on the screen's —the vblank is over—,
     ; and the vblank's first in forced blank: see `WAIT_CEILING`.
     jsl f:vblank_line
