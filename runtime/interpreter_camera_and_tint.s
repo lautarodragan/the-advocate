@@ -71,6 +71,11 @@ pan_read_step:
 .a8
     lda [code_ptr], y           ; whether the page waits
     iny
+    ; `iny` leaves Z from Y, not from the byte: without the `cmp` every pan
+    ; waited, and an up without a wait and a right after it —one diagonal
+    ; in RM2k— ran one after the other. From 2026-09-06, when the pan was
+    ; born, until 2026-11-20.
+    cmp #0
     beq pan_no_wait
     jsr pan_frames
     rep #$20
