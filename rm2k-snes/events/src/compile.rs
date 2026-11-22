@@ -2694,7 +2694,9 @@ fn choice_boxes(
 /// before the first command that is not one of [`passes_a_fade`]'s: a
 /// message, a branch, a call, anything that may wait or jump. Taking it
 /// down sooner costs little, since over the console's black a fading
-/// picture only darkens; later would leave the map hidden.
+/// picture only darkens; later would leave the map hidden. But not before
+/// a picture's command, a teleport or an `EraseScreen` that comes before
+/// the fade's time: see [`fade_waited`].
 ///
 /// Which numbers are seen is followed down the page as written, without
 /// its branches: what another page showed is not known, and the console's
@@ -2731,12 +2733,12 @@ fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeMap<
                             && l.parameters.first() == Some(&n)
                             && l.parameters.get(6).is_some_and(|&t| t < 100)
                     });
-                if seen.is_empty() && !back {
-                    let after = if p[15] != 0 {
-                        i
-                    } else {
-                        fade_waited(commands, i, p[14])
-                    };
+                let after = if p[15] != 0 {
+                    Some(i)
+                } else {
+                    fade_waited(commands, i, p[14])
+                };
+                if let Some(after) = after.filter(|_| seen.is_empty() && !back) {
                     out.insert(after, i);
                 }
             }
@@ -2751,33 +2753,52 @@ fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeMap<
 
 /// The last command, from the non-waiting fade at `i` on, that the page
 /// runs with the fade still going and no reason to stop at: it adds up the
-/// `Wait`s down the page, at the move's indent, until they last the fade's
-/// `tenths`, and stops before anything that is not [`passes_a_fade`]. See
-/// [`big_fade_outs`].
-fn fade_waited(commands: &[Command], i: usize, tenths: i32) -> usize {
+/// `Wait`s down the page —and the `TintScreen`s that wait—, at the move's
+/// indent, until they last the fade's `tenths`, and stops before anything
+/// that is not [`passes_a_fade`]. See [`big_fade_outs`].
+///
+/// None, and the picture stays up as before, when what stops it before
+/// the fade's time is a picture's command, a teleport or an
+/// `EraseScreen`: another big picture takes the layer with the screen off,
+/// so a take-down in between would flash the map for nothing —Sunset Over
+/// Imdahl's intro, map 1, lays its title cards one over the fading
+/// other—; a page that erases the picture itself is left to do it, as
+/// Zounds' notes do; and a map change or an erased screen hide it anyway.
+fn fade_waited(commands: &[Command], i: usize, tenths: i32) -> Option<usize> {
     let mut left = tenths;
     let mut last = i;
     for (j, c) in commands.iter().enumerate().skip(i + 1) {
-        if left <= 0 || c.indent != commands[i].indent || !passes_a_fade(c) {
+        if left <= 0 {
             break;
+        }
+        if c.indent != commands[i].indent || !passes_a_fade(c) {
+            let held = matches!(
+                c.code,
+                SHOW_PICTURE | MOVE_PICTURE | ERASE_PICTURE | TELEPORT | ERASE_SCREEN
+            );
+            return (!held).then_some(last);
         }
         last = j;
         if c.code == WAIT {
             left -= c.p(0).unwrap_or(0) as i32;
+        } else if c.code == TINT_SCREEN && c.p(5).is_some_and(|w| w != 0) {
+            left -= c.p(4).unwrap_or(0) as i32;
         }
     }
-    last
+    Some(last)
 }
 
 /// The commands a fade that does not wait is not taken down in front of:
-/// they take no time, or the time a `Wait` says, and neither jump nor
-/// show anything over the picture. Each compiles on its own, to a code
-/// that runs straight on, and the big picture's `OP_PICTURE_ERASE` goes
-/// after it. A switch's toggle is left out: it is compiled with its own
-/// jump.
+/// they take no time, or the time a `Wait` or a `TintScreen` that waits
+/// says, and neither jump nor show anything over the picture —the music
+/// and the weather are not drawn over it—. Each
+/// compiles on its own, to a code that runs straight on, and the big
+/// picture's `OP_PICTURE_ERASE` goes after it. A switch's toggle is left
+/// out: it is compiled with its own jump.
 fn passes_a_fade(c: &Command) -> bool {
     match c.code {
-        WAIT | MOVE_EVENT | PLAY_SOUND => true,
+        WAIT | MOVE_EVENT | PLAY_SOUND | TINT_SCREEN | PLAY_BGM | FADE_OUT_BGM
+        | WEATHER_EFFECTS => true,
         CONTROL_SWITCHES => c.p(3) != Some(SWITCH_TOGGLE),
         _ => false,
     }
@@ -10985,7 +11006,9 @@ mod tests {
         // second `Wait`, not the third—, or before something else comes.
         let fade_on = cmd(
             MOVE_PICTURE,
-            &[1, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 20, 0],
+            &[
+                1, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 20, 0,
+            ],
             "",
         );
         let wait = |tenths: i32| cmd(WAIT, &[tenths], "");
@@ -11005,12 +11028,11 @@ mod tests {
         tail.extend(delay(10));
         tail.push(OP_DONE);
         assert_eq!(&scene[scene.len() - tail.len()..], tail);
+        // Another big one shown before the fade's time takes the layer
+        // itself, and a take-down in between would flash the map: the
+        // black one stays up until then, as before.
         let before_the_title = with_big(&bigs, &[black, fade_on, wait(5), title]);
-        let erased = before_the_title
-            .windows(2)
-            .position(|w| w == [OP_PICTURE_ERASE, PICTURE_BIG]);
-        let titled = before_the_title.iter().rposition(|&b| b == OP_BIG_SHOW);
-        assert!(erased.is_some() && erased < titled);
+        assert_eq!(erases(&before_the_title), 0);
     }
 
     #[test]
