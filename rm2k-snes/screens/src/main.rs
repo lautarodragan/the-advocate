@@ -202,6 +202,10 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
 /// project file's `[text] font` —`rm2k`, one the engine carries, or the
 /// path of a sheet—, spaced by its `letter_spacing`, and with the icons of
 /// the ExFont when the request names its sheet, `exfont`.
+///
+/// And with the Latin-1 letters the text screens write, `screen_letters`,
+/// carried —see `texts::carry_letters`—: every text a screen writes keeps
+/// them from here on.
 fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
     let mut game = args.game()?;
     game.use_font(
@@ -209,6 +213,12 @@ fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
         json.number_or("letter_spacing", 0)?,
         json.exfont()?.as_deref(),
     )?;
+    let letters = rm2k_snes_screens::texts::screen_letters(
+        &game,
+        &json.letters("letters")?,
+        &json.letters("screen_letters")?,
+    )?;
+    rm2k_snes_screens::texts::carry_letters(&letters.screens);
     Ok(game)
 }
 

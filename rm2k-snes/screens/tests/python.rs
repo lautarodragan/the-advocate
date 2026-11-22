@@ -121,6 +121,7 @@ fn everything_a_cartridge_carries() {
         title: true,
         cgram_reserved: 9,
         letters: Vec::new(),
+        screen_letters: Vec::new(),
         vram: vram(),
         menus: Vec::new(),
         menu_context: Default::default(),
@@ -176,6 +177,12 @@ fn everything_a_cartridge_carries() {
     assert_eq!(inks.remove("icons"), Some(Value::from(Vec::<Value>::new())));
     inks.remove("advances");
     inks.remove("reach");
+    // The letters the text screens reach, since 2026-11-22: none here.
+    let font = answer["font"].as_object_mut().unwrap();
+    assert_eq!(
+        font.remove("screen_letters"),
+        Some(Value::from(Vec::<Value>::new()))
+    );
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()
@@ -368,6 +375,7 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         title: true,
         cgram_reserved: 9,
         letters: Vec::new(),
+        screen_letters: Vec::new(),
         vram: vram(),
         menus: Vec::new(),
         menu_context: Default::default(),

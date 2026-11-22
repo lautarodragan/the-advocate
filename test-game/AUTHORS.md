@@ -18,6 +18,7 @@ this file: the RTP's `COPYING`, unchanged.
 | `CharSet/People1.png` | 2023 | VictorSena | CC BY 4.0 | <https://vashmaker.blogspot.com/p/works.html> | none: the RTP's file, byte for byte |
 | `FaceSet/Actor1.png` | 2024 | Garakuta | CC0 | <http://garakutamaker.blog.fc2.com/> | none: the RTP's file, byte for byte |
 | `System/System.png` | 2011 | andwhyisit | CC BY 4.0, OGA-BY 3.0 | none given | none: the RTP's file, byte for byte |
+| `Monster/Hornet.png` | 2018 | Orochii Zouveleki | CC BY 4.0 | <https://ragnarokrproject.com/> | none: the RTP's file, byte for byte |
 | `Picture/Night.png` | 2026 | this project | CC0 | none | ours, not the RTP's: a near-black mask with a cone of light, 64 indices, drawn by a script for `tests/test_map_picture.py` |
 | `Picture/Digit1.png` | 2026 | this project | CC0 | none | ours: an 8x10 digit in three colours, drawn by a script for `tests/test_pictures.py` |
 | `Picture/Digit2.png` | 2026 | this project | CC0 | none | ours: an 8x10 digit in three colours, drawn by a script for `tests/test_pictures.py` |

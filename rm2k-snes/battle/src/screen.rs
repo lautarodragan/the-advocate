@@ -266,19 +266,22 @@ pub fn check_party_line(font: &rm2k_snes_text::font::Font, hp: &str, sp: &str) -
     (!bad.is_empty()).then(|| bad.join("; "))
 }
 
-/// What the text screens' font can write: the characters it has, a letter
+/// What the text screens' font can write: the characters it has, the
+/// Latin-1 `letters` the cartridge carries for the text screens, a letter
 /// it lacks as its plain ASCII stand-in —see `rm2k_snes_text::plain`—, a
 /// '?' instead of the others, and cut to `width`. It is the screens' rule,
 /// over the font's range; and like the screens' it keeps an ExFont icon as
 /// its two halves —see `rm2k_snes_text::exfont`—.
-pub fn item_text(text: &str, width: usize) -> String {
+pub fn item_text(text: &str, width: usize, letters: &[char]) -> String {
     let first = font::FIRST as usize;
     let half = rm2k_snes_text::exfont::is_half;
-    rm2k_snes_text::plain::plain_text_but(text, half)
-        .0
+    rm2k_snes_text::plain::screen_text(text, letters)
         .chars()
         .map(|c| {
-            if (first..first + font::GLYPHS).contains(&(c as usize)) || half(c) {
+            if (first..first + font::GLYPHS).contains(&(c as usize))
+                || half(c)
+                || letters.contains(&c)
+            {
                 c
             } else {
                 '?'
@@ -388,8 +391,12 @@ pub fn gold_line(db: &Db, gold: i64) -> String {
 /// `GetItemReceivedMessage`: the name, as the cartridge carries it —cut to
 /// the item screens' `name_width`—, stuck to `item_recieved`, with no space
 /// in between: that one is RM2k3's.
-pub fn item_line(db: &Db, name: &str, name_width: usize) -> String {
-    format!("{}{}", item_text(name, name_width), db.terms.item_recieved)
+pub fn item_line(db: &Db, name: &str, name_width: usize, letters: &[char]) -> String {
+    format!(
+        "{}{}",
+        item_text(name, name_width, letters),
+        db.terms.item_recieved
+    )
 }
 
 /// What the battle writes after the name of a fallen one an item revived:
@@ -424,10 +431,11 @@ pub fn check_victory(
     gold_max: i64,
     items: &[String],
     name_width: usize,
+    letters: &[char],
     font: Option<&rm2k_snes_text::font::Font>,
 ) -> Result<()> {
     let mut lines = vec![exp_line(db, exp_max), gold_line(db, gold_max)];
-    lines.extend(items.iter().map(|n| item_line(db, n, name_width)));
+    lines.extend(items.iter().map(|n| item_line(db, n, name_width, letters)));
     lines.extend(actors.iter().map(|n| level_line(db, n, 99)));
     lines.extend(skills.iter().map(|h| skill_line(db, h)));
     // In pixels with the game's font, which is how the console cuts; in

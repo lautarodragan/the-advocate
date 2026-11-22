@@ -9,21 +9,99 @@ use rm2k_rules::actor as rules;
 use rm2k_snes_text::exfont;
 use rm2k_snes_text::font::Font;
 
-/// What the screen can write: the characters the font has, a letter it
-/// does not have as its plain ASCII stand-in —`Unamë` as `Uname`, see
-/// `rm2k_snes_text::plain`—, a '?' instead of the rest, and cut to `width`.
+thread_local! {
+    /// The Latin-1 letters the cartridge carries for the text screens —see
+    /// [`ScreenLetters`]—: set once, by [`carry_letters`], when the stage
+    /// reads the game, since every text a screen writes goes through
+    /// [`item_text`] and most of them do not see the game. Empty until
+    /// then, and in a cartridge whose screens carry none.
+    static LETTERS: std::cell::RefCell<Vec<char>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// From here on [`item_text`] keeps `letters` as they are.
+pub fn carry_letters(letters: &[char]) {
+    LETTERS.with(|l| *l.borrow_mut() = letters.to_vec());
+}
+
+/// The letters [`carry_letters`] gave.
+pub fn carried_letters() -> Vec<char> {
+    LETTERS.with(|l| l.borrow().clone())
+}
+
+/// The Latin-1 letters of the cartridge's one font, past the screens' own
+/// glyphs —the console's 96, `TL_FIGURE`'s place and the icons' halves—:
+/// the message boxes' first, in the event compiler's order, and then the
+/// ones only the text screens write. `at` is the glyph of the first one,
+/// `FONT_LETTERS_AT`.
+///
+/// `screens` are the ones the text screens reach: none when no text of
+/// theirs has a letter —so a cartridge whose screens write ASCII is the
+/// same as before they drew any—, and otherwise every one whose glyph
+/// plus 32 is still a byte, `SCREEN_GLYPHS`. `past` are the ones a screen
+/// writes beyond that, which it shows as their plain stand-ins.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScreenLetters {
+    pub all: Vec<char>,
+    pub at: usize,
+    pub screens: Vec<char>,
+    pub past: Vec<char>,
+}
+
+/// [`ScreenLetters`] for `boxes`, the letters the message boxes carry, and
+/// `written`, the ones the converter found in the texts the screens
+/// compose at run time —the database's names, items, skills, enemies,
+/// conditions and terms—: those the font does not draw are left out.
+pub fn screen_letters(game: &Game, boxes: &[char], written: &[char]) -> Result<ScreenLetters> {
+    let written: Vec<char> = written
+        .iter()
+        .copied()
+        .filter(|&c| !c.is_ascii() && !exfont::is_half(c) && game.font.draws(c))
+        .collect();
+    let any = !written.is_empty();
+    let (_, after) = crate::items::glyphs_after(&game.font, &screen_icons(game), any)?;
+    let at = rm2k_snes_text::font::CONSOLE_GLYPHS + after.len();
+    let mut all = boxes.to_vec();
+    all.extend(written.iter().filter(|c| !boxes.contains(c)));
+    let screens: Vec<char> = if any {
+        all.iter()
+            .enumerate()
+            .take_while(|&(k, _)| at + k < rm2k_snes_text::font::SCREEN_GLYPHS)
+            .map(|(_, &c)| c)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let past = written
+        .into_iter()
+        .filter(|c| !screens.contains(c))
+        .collect();
+    Ok(ScreenLetters {
+        all,
+        at,
+        screens,
+        past,
+    })
+}
+
+/// What the screen can write: the characters the font has, the Latin-1
+/// letters the cartridge carries for the screens —see [`carry_letters`]—,
+/// any other letter as its plain ASCII stand-in —`Unamë` as `Uname`
+/// where the cartridge carries no `ë`, see `rm2k_snes_text::plain`—, a
+/// '?' instead of the rest, and cut to `width`.
 ///
 /// An ExFont icon stays, as its two halves —see `rm2k_snes_text::exfont`—:
 /// the screens' tables carry the ones the database uses —see
 /// [`screen_icons`]—, and the emission drops the rest. Each half counts as
 /// a letter of `width`, as its code's two characters did in RM2k.
 pub fn item_text(text: &str, width: usize) -> String {
-    rm2k_snes_text::plain::plain_text_but(text, exfont::is_half)
-        .0
+    let letters = carried_letters();
+    rm2k_snes_text::plain::screen_text(text, &letters)
         .chars()
         .map(|c| {
             let code = c as usize;
-            if (ITEM_FIRST_CHAR..ITEM_FIRST_CHAR + ITEM_CHARS).contains(&code) || exfont::is_half(c)
+            if (ITEM_FIRST_CHAR..ITEM_FIRST_CHAR + ITEM_CHARS).contains(&code)
+                || exfont::is_half(c)
+                || letters.contains(&c)
             {
                 c
             } else {
@@ -427,11 +505,11 @@ mod tests {
         assert_eq!(name_strip("$NUna", 4), "Una ");
         let plain = Font::named("low-variable", rm2k_snes_text::font::MINCHO).unwrap();
         assert_eq!(
-            crate::items::glyphs_after(&plain, &[13]).unwrap(),
+            crate::items::glyphs_after(&plain, &[13], false).unwrap(),
             (vec![], vec![])
         );
         let drawn = plain.with_exfont(&vec![[1u16; 12]; exfont::ICONS]);
-        let (icons, after) = crate::items::glyphs_after(&drawn, &[13, 14]).unwrap();
+        let (icons, after) = crate::items::glyphs_after(&drawn, &[13, 14], false).unwrap();
         assert_eq!(icons, [13, 14]);
         assert_eq!(after[1..3], [l, r]);
         assert_eq!(after.len(), 5);
