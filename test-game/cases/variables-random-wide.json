@@ -1,0 +1,10 @@
+{
+  "event_commands": [
+    {"code": "ControlVars", "parameters": [0, 17, 17, 0, 3, 1000, 2500]},
+    {"code": "ControlVars", "parameters": [0, 39, 39, 0, 3, 500, 100]},
+    {"code": "ControlVars", "parameters": [0, 40, 40, 0, 3, -300, -10]},
+    {"code": "ControlVars", "parameters": [0, 41, 41, 0, 3, -32768, 32767]},
+    {"code": "ControlVars", "parameters": [0, 21, 21, 0, 3, 0, 100]},
+    {"code": "ControlSwitches", "parameters": [0, 1401, 1401, 0]}
+  ]
+}

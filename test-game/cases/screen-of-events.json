@@ -1,0 +1,12 @@
+{
+  "event_commands": [
+    {"code": "Wait", "parameters": [1]},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 0, 6, 10001, 4]},
+    {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 5]},
+    {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 1, 4]},
+    {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 1, 5]},
+    {"code": "ControlVars", "parameters": [0, 21, 21, 0, 6, 3, 4]},
+    {"code": "ControlVars", "parameters": [0, 25, 25, 0, 6, 3, 5]},
+    {"code": "ControlSwitches", "parameters": [0, 1401, 1401, 0]}
+  ]
+}

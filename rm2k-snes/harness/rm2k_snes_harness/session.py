@@ -39,13 +39,18 @@ class Session:
     another cartridge than `release`, and `options` the core's, as
     `retro.Console` takes them."""
 
-    def __init__(self, core, case=None, on=RELEASE, options=None):
+    def __init__(self, core, case=None, on=RELEASE, options=None,
+                 switches=()):
         self.cartridge = cartridge(on)
         self.core = core
         self.console = retro.Console(self.cartridge.rom, core, options)
         self.console.run(self.symbol("BOOT_FRAMES"))
         if case is not None:
             self.choose_case(case)
+        # Before the first game frame, like the case: a switch that decides
+        # which page of a map runs arrives in time for it.
+        if switches:
+            self.turn_on(*switches)
         # How many ticks the test took.
         self.tick = 0
 
@@ -67,6 +72,29 @@ class Session:
     def word(self, name):
         low, high = self.console.ram(self._ram(name), 2)
         return low | (high << 8)
+
+    def put_byte(self, name, value):
+        """Writes a byte of the ROM's RAM, by symbol: a state that would take
+        long to reach by playing —a spent budget, a speed a route left—, and
+        then the ROM is asked what it does with it."""
+        self.console.write_ram(self._ram(name), [value & 0xFF])
+
+    def put_word(self, name, value):
+        self.console.write_ram(self._ram(name), [value & 0xFF,
+                                                 (value >> 8) & 0xFF])
+
+    def variable(self, number):
+        """RM2k variable `number`, signed, read from far RAM. The ROM keeps
+        only the variables the game names, packed, so its slot is asked of
+        the event compiler: see `Cartridge.variable_slots`."""
+        slots = self.cartridge.variable_slots
+        assert number in slots, (
+            "the cartridge does not keep variable %d: no page names it"
+            % number)
+        low, high = self.console.ram(
+            self._ram("FAR_VARIABLES") + 2 * slots[number], 2)
+        value = low | (high << 8)
+        return value - 0x10000 if value & 0x8000 else value
 
     def choose_case(self, case):
         """Chooses test page `case`, by its name in `cases/`: at boot, and
@@ -99,6 +127,20 @@ class Session:
         self.console.write_ram(address, [page & 0xFF, page >> 8])
         self.console.write_ram(self._ram("refresh"), [1])
 
+    def turn_on(self, *numbers):
+        """Turns switches on by writing the table, as if the game had: the
+        refresh is what `OP_SWITCH` does after touching it, so the ROM looks
+        again at which page is active, and `compar_owed` tells the pure
+        parallel common events a switch changed. A Blurred Line's
+        `turn_on`."""
+        base = self._ram("switches")
+        for number in numbers:
+            octet = self.console.ram(base + number // 8, 1)[0]
+            self.console.write_ram(base + number // 8,
+                                   [octet | (1 << (number % 8))])
+        self.console.write_ram(self._ram("refresh"), [1])
+        self.console.write_ram(self._ram("compar_owed"), [1])
+
     def switch(self, number):
         """Whether the switch is on, read from the table the ROM reads:
         `switches`, in far RAM, `SWITCH_BYTES` long."""
@@ -113,8 +155,29 @@ class Session:
         return self.cartridge.maps[self.word("map_current")]
 
     def cell(self):
-        """The hero's cell, once they stand on one."""
+        """The hero's cell, once they stand on one. Midway through a step it
+        is the pixels' one, that is, the one they left until they arrive."""
         return self.word("hero_x") // 16, self.word("hero_y") // 16
+
+    def event(self, index):
+        """The cell where the ROM has event `index` of its table now: from
+        zero, in the order of the map's ids."""
+        base = self._ram("ev_pos_buf") + index * self.symbol("EV_STRIDE")
+        b = self.console.ram(base, 4)
+        return (b[0] | (b[1] << 8), b[2] | (b[3] << 8))
+
+    def party(self):
+        """The party's actors, by their RM2k number, in order."""
+        return list(self.console.ram(self._ram("party"), self.byte("party_n")))
+
+    def running_a_page(self):
+        return bool(self.byte("ev_active"))
+
+    def box_up(self):
+        """The message window up with its box typed whole: what waits for
+        the player. `msg_open` is on while the box is typed, so it alone is
+        not "the box is there"."""
+        return bool(self.byte("msg_open")) and not self.byte("MSG_TYPE")
 
     def advance(self, *buttons):
         """One tick —one round of the main loop— with `buttons` held.
@@ -138,6 +201,12 @@ class Session:
         return not (self.byte("ev_active") or self.byte("fade")
                     or self.byte("msg_open") or self.byte("menu_open"))
 
+    def run(self, ticks, holding=()):
+        """`ticks` ticks with `holding` held on every one of them, and
+        nothing else."""
+        for _ in range(ticks):
+            self.advance(*holding)
+
     def until(self, what, condition, limit):
         """Ticks with nothing pressed until `condition()` holds."""
         for _ in range(limit):
@@ -146,6 +215,12 @@ class Session:
             self.advance()
         raise AssertionError("%d ticks and still not %s; on map %d, cell %s"
                              % (limit, what, self.map_(), self.cell()))
+
+    def until_control(self, limit=600):
+        """Ticks until the player has control again: at least one, since
+        before the first one a case's page has not started yet."""
+        self.advance()
+        self.until("control", self.has_control, limit)
 
     def walk_until_blocked(self, direction, limit=200):
         """Holds `direction` until the hero stops moving: in front of what
@@ -163,6 +238,73 @@ class Session:
                 return here
         raise AssertionError("%d ticks walking %s and the hero never stopped"
                              % (limit, direction))
+
+    def go_to_map(self, map_id, x, y, ticks=90):
+        """Teleports the game as a door of the game would: the ROM is asked
+        for a door's fade —where to, which cell, and the flag— and it loads
+        the map by its own path. The screen's tint is cleared, which is the
+        only thing a real door does not do: appearing on a map nobody walked
+        to would keep whatever tint the map before left. A Blurred Line's
+        `go_to_map`."""
+        assert map_id in self.cartridge.maps, (
+            "map %d is not in this cartridge; it carries %s"
+            % (map_id, self.cartridge.maps))
+        self.put_word("fade_map", self.cartridge.maps.index(map_id))
+        self.put_word("entry_x", x)
+        self.put_word("entry_y", y)
+        # `start_fade`, from outside: which fade, that there is one, and the
+        # clock, in ticks.
+        self.put_byte("fade_kind", self.symbol("FADE_DOOR"))
+        self.put_byte("fade", 1)
+        self.put_byte("fade_base", self.word("ticks"))
+        for name in ("tint_r", "tint_g", "tint_b", "tint_s"):
+            self.put_byte(name, self.symbol("TINT_NEUTRAL"))
+        self.run(ticks)
+
+    def window(self):
+        """Which map cell is drawn at each place of the screen, as the VRAM
+        has it: `{(mx, my): (below, above)}`, the two tilemap entries, for
+        the cells the screen touches inside the map.
+
+        The tilemap's window is a torus —map cell `(mx, my)` always lives in
+        slot `(mx mod 64, my mod 32)`—, so two shifted rows look like a
+        plausible map on screen: one has to ask each slot. The two 32x32
+        screens are not contiguous, the right one lives 1024 words further
+        on, which is how `push_strips` writes them; where the background's
+        is depends on the map's layout, and the ROM leaves it in
+        `FAR_VRAM_MAP`. A Blurred Line's `window`."""
+        win_col, win_row = self.word("win_col"), self.word("win_row")
+        width, height = self.word("map_cw"), self.word("map_ch")
+        cols, rows = self.symbol("WINDOW_COLS"), self.symbol("WINDOW_ROWS")
+        below = self.console.vram(self.word("FAR_VRAM_MAP"), 32 * 32 * 2)
+        above = self.console.vram(self.symbol("VRAM_ABOVE_MAP"), 32 * 32 * 2)
+        seen = {}
+        for my in range(win_row, min(win_row + self.symbol("VIEW_ROWS"), height)):
+            for mx in range(win_col, min(win_col + self.symbol("VIEW_COLS"), width)):
+                slot = (my % rows) * 32 + (mx % 32)
+                if (mx % cols) >= 32:
+                    slot += 1024
+                seen[(mx, my)] = (below[slot], above[slot])
+        return seen
+
+    def wrongly_drawn_cells(self):
+        """The window's cells that do not match what the ROM draws when it
+        fills the window from scratch, and the window from before.
+
+        It teleports the game to the cell where it already is, which makes
+        the ROM rebuild the whole window by its own path —and so it
+        **repairs** whatever it finds—. It only holds with the camera still
+        and the pan back at zero, which is checked."""
+        before = self.window()
+        camera = (self.word("camera_x"), self.word("camera_y"))
+        self.go_to_map(self.map_(), self.word("tile_x"), self.word("tile_y"))
+        self.run(10)
+        assert (self.word("camera_x"), self.word("camera_y")) == camera, (
+            "the teleport left the camera at %s and before it was at %s: the "
+            "reference is no good" % ((self.word("camera_x"),
+                                       self.word("camera_y")), camera))
+        after = self.window()
+        return [c for c in before if before[c] != after[c]], before
 
     def reset(self):
         """The console's reset button: the cartridge's SRAM survives and the

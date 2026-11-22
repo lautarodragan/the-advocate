@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [4, 10, 3]},
+    {"code": "OpenSaveMenu"}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [13, 30, 10, 0]},
+    {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 28, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]},
+    {"code": "PanScreen", "parameters": [2, 2, 8, 6, 1]},
+    {"code": "ProceedWithMovement"},
+    {"code": "PanScreen", "parameters": [3, 0, 0, 6, 1]}
+  ]
+}

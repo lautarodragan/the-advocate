@@ -1,0 +1,150 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Door",
+      "x": 10,
+      "y": 7,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 6,
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1440,
+                1440,
+                0
+              ]
+            },
+            {
+              "code": "ChangeEventLocation",
+              "parameters": [
+                10005,
+                0,
+                1,
+                1
+              ]
+            },
+            {
+              "code": "ChangeEventLocation",
+              "parameters": [
+                2,
+                0,
+                18,
+                13
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Marker",
+      "x": 3,
+      "y": 10,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 6,
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Up",
+      "x": 10,
+      "y": 7,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1440
+          },
+          "trigger": "touched",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "Teleport",
+              "parameters": [
+                12,
+                15,
+                3,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Down",
+      "x": 15,
+      "y": 1,
+      "pages": [
+        {
+          "id": 1,
+          "trigger": "touched",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "Teleport",
+              "parameters": [
+                12,
+                10,
+                9,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Hatch",
+      "x": 4,
+      "y": 11,
+      "pages": [
+        {
+          "id": 1,
+          "layer": "above",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "Teleport",
+              "parameters": [
+                4,
+                10,
+                7,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

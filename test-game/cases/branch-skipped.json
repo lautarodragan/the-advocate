@@ -1,0 +1,19 @@
+{
+  "event_commands": [
+    {"code": "ConditionalBranch", "parameters": [0, 1423, 0, 0, 0, 1]},
+    {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 2]},
+    {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 1]},
+    {"code": "Wait", "indent": 1, "parameters": [10]},
+    {"code": "END", "indent": 1},
+    {"code": "ElseBranch"},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"},
+    {"code": "ConditionalBranch", "parameters": [0, 1424, 0, 0, 0, 0]},
+    {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 3]},
+    {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2]},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"},
+    {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+    {"code": "ControlSwitches", "parameters": [0, 1425, 1425, 0]}
+  ]
+}

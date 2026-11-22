@@ -13,6 +13,7 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 
 # The cartridge the tests run unless they ask for another: the one the tools
 # demand of every project.
@@ -48,6 +49,15 @@ class Game:
         assert done.returncode == 0, done.stderr
         return json.loads(done.stdout)
 
+    @functools.cached_property
+    def project(self):
+        """What the tools resolve of its project —`project`, `suite`,
+        `settings`—, as `rm2k-snes-project` prints it."""
+        done = subprocess.run(["rm2k-snes-project", "--project", self.root],
+                              capture_output=True, text=True)
+        assert done.returncode == 0, done.stderr
+        return json.loads(done.stdout)
+
     @functools.lru_cache(maxsize=None)
     def cartridge(self, name=RELEASE):
         """The built `release`, or the cartridge `name` of `advocate.toml`.
@@ -60,13 +70,15 @@ class Game:
         assert not data["stale"], (
             "the cartridge is stale (%s): build it with `just cartridges` in "
             "%s" % (data["stale"], self.root))
-        return Cartridge(data)
+        return Cartridge(data, self.project["project"]["data"])
 
 
 class Cartridge:
-    """A cartridge, built: the ROM, its symbols and its maps."""
+    """A cartridge, built: the ROM, its symbols and its maps. `dump` is the
+    game's dump it was converted from, for what is asked of the stages."""
 
-    def __init__(self, data):
+    def __init__(self, data, dump=None):
+        self.dump = dump
         self.rom = data["rom"]
         # Where the converter left what it built: `degradations.json`, the
         # `.inc`s.
@@ -84,6 +96,22 @@ class Cartridge:
         index = dict((int(i), int(m)) for i, m in re.findall(
             r"^; --- (\d+): map (\d+) ", inc, re.MULTILINE))
         self.maps = [index[i] for i in range(len(index))]
+
+    @functools.cached_property
+    def variable_slots(self):
+        """{RM2k variable: its slot in `FAR_VARIABLES`}: the ROM keeps only
+        the variables the game names, packed, so the number is not the
+        place. Asked of the events compiler with the request the converter
+        left beside the ROM, so it is the answer the ROM was built with."""
+        assert self.dump, "this cartridge was not given its game's dump"
+        with tempfile.TemporaryDirectory() as out:
+            subprocess.run(
+                ["rm2k-snes-events", "scan", "--data", self.dump,
+                 "--request", os.path.join(self.directory,
+                                           "events-request.json"),
+                 "--out", out], check=True, capture_output=True)
+            with open(os.path.join(out, "events.json")) as file:
+                return dict(json.load(file)["variables"])
 
 
 _current = None
