@@ -147,6 +147,8 @@ BE_M7_Y         = 30
     sta BG1SC
     lda #$01                    ; BG1 alone: BG2's tiles are under the picture
     sta TM
+    lda #$10                    ; and no mask on BG1, which is the picture:
+    sta TMW                     ; see `big_load`
     plx
     ; Still, at its size, with the texture to go up from the first piece.
     lda #BIG_M7_STILL

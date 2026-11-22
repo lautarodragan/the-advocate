@@ -325,6 +325,14 @@ bases:
     lda #$13                    ; and the sprites, as `ppu_init`
 layers:
     sta TM
+    ; And the window mask on the objects alone. A painted or flattened map
+    ; masks BG1 on a window's lines —its cells in front of the hero would
+    ; cover the window: `PANO_HDMA` in pano.s—, and with the picture up BG1
+    ; is the picture: Desert Nightmare's menu over a painted map showed its
+    ; burning face black across the windows' lines. The map's load puts it
+    ; back when the picture goes.
+    lda #$10
+    sta TMW
     lda f:BIG_FLAGS
     ora #BIG_ON
     sta f:BIG_FLAGS
