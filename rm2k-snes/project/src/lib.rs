@@ -14,8 +14,9 @@
 //! * **What a cached value depends on**: [`cache`], the key of the disk
 //!   cache.
 //!
-//! And [`suite`]: where the suite's own files are —the runtime—, which
-//! travel with the tools and not with any game.
+//! And [`suite`]: where the suite's own files are —the runtime, and the
+//! tests' generic harness—, which travel with the tools and not with any
+//! game.
 //!
 //! And [`windows`]: `[windows.background]`, the one setting more than one
 //! stage reads with rules of its own —by System, colour or gradient—.

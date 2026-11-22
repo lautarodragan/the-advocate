@@ -26,7 +26,7 @@ Seen red with the tools before the change: the converter left four of the
 six numbers out, and the moves were not done.
 """
 
-from game import Session, golden
+from rm2k_snes_harness import Session, golden
 
 # The slots the converter gives the numbers: the highest number first,
 # which OAM draws in front.

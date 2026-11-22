@@ -26,7 +26,7 @@ the buffer —`anim_buf_clear` after the swap—; no case shows a battle
 animation on a map while its panorama is swapped.
 """
 
-from game import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
 
 LOOKOUT = 10
 AFTER_SWAP = 1700   # the case page's switch, after its wait

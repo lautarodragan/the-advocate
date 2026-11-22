@@ -90,12 +90,12 @@ quietly found in somebody's RTP.
 
 They boot the cartridge in a libretro core —snes9x, and bsnes, which starts
 with garbage in WRAM— and compare what it draws against goldens, at 15 bits.
-The harness is `tests/game.py`, small on purpose, and the core driver
-`tests/emulator/retro.py`, a copy of A Blurred Line's: phase 2 of the
-research brings the generic part of that game's harness here, and then both
-go. bsnes needs a patch to expose its WRAM, `tests/emulator/bsnes-wram.patch`,
-a copy of that game's too; the CI workflow builds both cores, and its
-steps are how to build them by hand.
+The harness is the tools' generic one, `rm2k-snes/harness/` at the
+repository's root, and what is the test game's —where it is, the flags it
+is built with, where its goldens are— is said once, in `tests/conftest.py`.
+bsnes needs a patch to expose its WRAM, `rm2k-snes/harness/cores/bsnes-wram.patch`;
+the CI workflow builds both cores, and its steps are how to build them by
+hand.
 
     test_meadow.py      the meadow as it is reached, and the elder's message
     test_switches_past_1023.py

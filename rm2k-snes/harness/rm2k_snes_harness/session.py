@@ -1,66 +1,20 @@
-"""The test game's cartridge, running, for its tests: the smallest harness
-that boots it, plays it and compares what it draws.
+"""A cartridge running on a core, past its boot: the tick clock, and what
+any game's tests ask it —which map, which cell, which switch, whether the
+player has control—, read through the symbols the cartridge leaves.
 
-It is small on purpose, and it is a stopgap. A Blurred Line's harness, in
-the ports' repo, is the one that knows how to play a game —cases, routes,
-battles, menus—, and phase 2 of the test game's research, in the book,
-brings its generic part here as one package; until then, what the test game
-asks for is written here, and the ports' `tests/games.py` is where it comes
-from: the tick clock, the control, the goldens at 15 bits. The libretro
-driver, `emulator/retro.py`, is a copy of that game's.
-
-Nothing here is written by hand about the cartridge: which symbols there
-are in RAM is said by its `.sym`, which map each index is by its
-`mapdata.inc`, and where the cartridge is and whether it is up to date by
-`rm2k-snes-cartridges`.
+It is what a game with no title screen in the way needs: one with a title,
+or that asks its own questions, puts its own on top. A Blurred Line's
+`Session`, in the ports, is where this came from —the tick clock, the
+control, the reset—, and it still keeps its own, with its title screen,
+its menus and its battles.
 """
 
-import functools
-import json
-import os
-import re
-import subprocess
-
-from PIL import Image
-
-from emulator import retro
-
-TESTS = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(TESTS)
-GOLDENS = os.path.join(TESTS, "golden")
-# The captures that came out red, to look at them: not versioned.
-SNAPSHOTS = os.path.join(TESTS, "snapshots")
-
-# The two cores, as in the ports: snes9x is the one the goldens are taken
-# with, and bsnes the one that powers on with WRAM full of garbage, like the
-# console, so a difference between the two is uninitialised memory. bsnes
-# needs the patch that exposes its WRAM, `emulator/bsnes-wram.patch` —a copy
-# of A Blurred Line's, in `tests/harness/emulator/`, whose README says how it
-# is built—, and without it the clock cannot read the ROM's tick.
-# Where they are belongs to the machine: these are the libretro packages'
-# paths, and a variable moves them.
-SNES9X = os.environ.get("SNES9X_CORE", "/usr/lib/libretro/snes9x_libretro.so")
-BSNES = os.environ.get("BSNES_CORE", "/usr/lib/libretro/bsnes_libretro.so")
-
-# And bsnes with the display-access audit, a third core: the same bsnes
-# with `emulator/bsnes-display-audit.patch` on top of the WRAM one —a copy
-# of A Blurred Line's, whose `just audit-core` builds it in the ports, as
-# the CI workflow does here—. With its accurate PPU it counts every VRAM,
-# CGRAM and OAM access the console would lose because the screen was being
-# drawn: see `retro.Console.watch_the_display`. Where it is belongs to the
-# machine; this is where that recipe installs it by default.
-AUDIT = os.environ.get("AUDIT_CORE",
-                       "/usr/local/lib/libretro/bsnes_audit_libretro.so")
-# Its accurate PPU: the core's default is the fast one, which does not
-# count.
-ACCURATE = {"bsnes_ppu_fast": "OFF"}
-
-# The cartridge the tests run: the one the tools demand of every project.
-RELEASE = "release"
+from . import retro
+from .game import RELEASE, cartridge
 
 # How many hardware frames a tick can last before giving the ROM up as hung.
 # Not a tuned number: a hung ROM never advances, so the margin costs nothing
-# while it works. The ports' `FRAMES_PER_TICK`.
+# while it works. A Blurred Line's `FRAMES_PER_TICK`.
 FRAMES_PER_TICK = 3000
 
 # `msg_state` back at idle: with `msg_open` set, the message is whole on
@@ -73,66 +27,9 @@ MESSAGE_SHOWN = 0
 WRAM = 0x20000
 
 # The frames a screen with no ticks —the slot screen— is given to upload and
-# draw itself before a press, and after one: the ports' `TITLE_HEADROOM`.
+# draw itself before a press, and after one: A Blurred Line's
+# `TITLE_HEADROOM`.
 SCREEN_HEADROOM = 30
-
-
-def _builder(*args):
-    """`rm2k-snes-cartridges` with the flags of `just cartridges`, which is
-    what built it: the builder's answer depends on them."""
-    soundfont = os.environ.get("SOUNDFONT")
-    assert soundfont, ("SOUNDFONT is not set: run the tests with `just test` in "
-                       "test-game/, which builds the cartridge first")
-    return subprocess.run(
-        ["rm2k-snes-cartridges", "--game-dir", "build/game",
-         "--rtp-dir", "build/no-rtp", "--soundfont", soundfont,
-         "--without-tracks", *args],
-        cwd=ROOT, capture_output=True, text=True)
-
-
-class Cartridge:
-    """A cartridge, built: the ROM, its symbols and its maps."""
-
-    def __init__(self, data):
-        self.rom = data["rom"]
-        # Where the converter left what it built: `degradations.json`, the
-        # `.inc`s.
-        self.directory = data["directory"]
-        # The cases it carries, in the order of their test pages: page k
-        # runs when the case variable is at least k, and 0 asks for nothing.
-        self.cases = data["cases"]
-        with open(self.rom + ".sym") as file:
-            self.symbols = {name: int(value) for name, value
-                            in (line.split() for line in file if line.strip())}
-        # The order of the map table, which is what `map_current` indexes:
-        # from the comment the converter leaves on each entry.
-        with open(os.path.join(self.directory, "mapdata.inc")) as file:
-            inc = file.read()
-        index = dict((int(i), int(m)) for i, m in re.findall(
-            r"^; --- (\d+): map (\d+) ", inc, re.MULTILINE))
-        self.maps = [index[i] for i in range(len(index))]
-
-
-@functools.lru_cache(maxsize=None)
-def listing():
-    """What the builder answers about the project: its cartridges, and where
-    `ca65` ran and the runtime is, which the linter's test asks for."""
-    done = _builder("--list", "--json")
-    assert done.returncode == 0, done.stderr
-    return json.loads(done.stdout)
-
-
-@functools.lru_cache(maxsize=None)
-def cartridge(name=RELEASE):
-    """The built `release`, or the cartridge `name` of `advocate.toml`.
-    **It does not build**: a stale cartridge is a red, because a test that
-    ran against an old ROM says nothing. `just test` builds them before."""
-    data = next((c for c in listing()["cartridges"]
-                 if c["name"] == name), None)
-    assert data, "the project does not declare a cartridge %r" % name
-    assert not data["stale"], ("the cartridge is stale (%s): build it with "
-                               "`just cartridges` in test-game/" % data["stale"])
-    return Cartridge(data)
 
 
 class Session:
@@ -196,8 +93,8 @@ class Session:
     def _choose(self, page):
         """Writes the case variable, by its slot in far RAM, and the refresh
         that makes the ROM look at the pages again. Before the first game
-        frame: the test pages are automatic and chosen on it. The ports'
-        `_choose_the_case`."""
+        frame: the test pages are automatic and chosen on it. A Blurred
+        Line's `_choose_the_case`."""
         address = self._ram("FAR_VARIABLES") + 2 * self.symbol("CASE_SLOT")
         self.console.write_ram(address, [page & 0xFF, page >> 8])
         self.console.write_ram(self._ram("refresh"), [1])
@@ -222,8 +119,8 @@ class Session:
     def advance(self, *buttons):
         """One tick —one round of the main loop— with `buttons` held.
 
-        The ports' clock, and for the same reason: the ROM reads the pad once
-        per round, and a round can last more than a frame, so counting ticks
+        A Blurred Line's clock, and for the same reason: the ROM reads the pad
+        once per round, and a round can last more than a frame, so counting ticks
         and not frames both cores see the same presses on the same rounds."""
         before = self.word("ticks")
         self.console.hold(*buttons)
@@ -273,7 +170,7 @@ class Session:
         with first, since the core's reset leaves it as it was —like the
         console's— and a value the load did not bring back would still be
         there. A cartridge without a title loads the saved game on boot, so
-        this is how a test loads one. The ports' `_reset`."""
+        this is how a test loads one. A Blurred Line's `_reset`."""
         self.console.write_ram(0, bytes([0x55]) * WRAM)
         self.console.reset()
         self.console.run(self.symbol("BOOT_FRAMES"))
@@ -304,40 +201,3 @@ class Session:
 
     def image(self):
         return self.console.image()
-
-
-def core_name(core):
-    return os.path.basename(core).split("_")[0]
-
-
-def _save(image, *parts):
-    os.makedirs(os.path.join(SNAPSHOTS, *parts[:-1]), exist_ok=True)
-    path = os.path.join(SNAPSHOTS, *parts)
-    image.save(path)
-    return path
-
-
-def golden(name, image, core):
-    """The capture against its frozen one, identical **at 15 bits**, the
-    console's depth: the golden is snes9x's, and bsnes's is compared against
-    it too. A capture with no golden is left in `snapshots/golden/` and is a
-    red: it is looked at and, if it is right, copied to `golden/` in its own
-    commit. A golden is never overwritten from here."""
-    path = os.path.join(GOLDENS, "%s.png" % name)
-    if not os.path.exists(path):
-        # snes9x's under the golden's name, since it is the one taken; the
-        # other core's beside it, so it does not overwrite it.
-        suffix = "" if core_name(core) == "snes9x" else "-" + core_name(core)
-        where = _save(image, "golden", "%s%s.png" % (name, suffix))
-        raise AssertionError("%r has no golden: the capture was left in %s"
-                             % (name, where))
-    expected = retro.fifteen_bits(Image.open(path))
-    actual = retro.fifteen_bits(image)
-    if expected == actual:
-        return
-    distinct = sum(1 for a, b in zip(expected, actual) if a != b)
-    where = _save(image, "golden", "%s-%s.png" % (name, core_name(core)))
-    raise AssertionError(
-        "%r on %s differs from its golden in %d of %d pixels, at 15 bits. The "
-        "capture was left in %s and the golden is %s."
-        % (name, core_name(core), distinct, len(expected), where, path))

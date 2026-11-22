@@ -11,7 +11,7 @@ The case `close-on-its-own` shows the box and turns switch 1320 on after
 it. Seen red with the tools before the change: the window never came up.
 """
 
-from game import MESSAGE_SHOWN, Session
+from rm2k_snes_harness import MESSAGE_SHOWN, Session
 
 AFTER = 1320
 TYPING = 2

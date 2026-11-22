@@ -24,7 +24,7 @@ Seen red with the tools before the change: the fourth call —Chain 4's to
 Chain 5— was past `CALL_MAX`, so 1260 and 1270 stayed off.
 """
 
-from game import Session
+from rm2k_snes_harness import Session
 
 CASE = "nested-calls"
 # Each frame's "before", in the order the frames are entered, and its

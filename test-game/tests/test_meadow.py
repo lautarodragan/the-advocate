@@ -12,7 +12,7 @@ with WRAM full of garbage: both have to draw the same at 15 bits, so a red
 only in bsnes is memory nobody initialised.
 """
 
-from game import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
 
 # Where `src/maps.json` starts the party, and where `src/maps/Map0001.json`
 # puts the elder, straight up from it: walking up, the hero stops in the

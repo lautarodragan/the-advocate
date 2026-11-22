@@ -18,7 +18,7 @@ Seen red with the tools before the change: the box opens with the screen
 erased and black.
 """
 
-from game import MESSAGE_SHOWN, Session
+from rm2k_snes_harness import MESSAGE_SHOWN, Session
 
 AFTER_JUMP = 1402   # the page's last command, after its Teleport
 

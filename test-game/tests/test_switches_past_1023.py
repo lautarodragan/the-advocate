@@ -18,7 +18,7 @@ seen red with the tools before the change: the branch on 1100 did not
 compile, so neither did the case's page, and the cartridge did not build.
 """
 
-from game import Session
+from rm2k_snes_harness import Session
 
 CASE = "switches-past-1023"
 ASKED = 1100        # the page condition's, set by the case

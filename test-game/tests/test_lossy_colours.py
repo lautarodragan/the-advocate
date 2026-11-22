@@ -20,7 +20,7 @@ small enough to look at. A capture that looks worse than its golden is
 not blessed.
 """
 
-from game import Session, golden
+from rm2k_snes_harness import Session, golden
 
 
 def arrived(sess, map_id):

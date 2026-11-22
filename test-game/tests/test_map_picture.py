@@ -18,7 +18,7 @@ Seen red with the tools before the change: the crowns stayed at their
 full colour under the mask, since only the lower layer was blended.
 """
 
-from game import Session, golden
+from rm2k_snes_harness import Session, golden
 
 LANTERN = 5
 # Where the case's Teleport leaves the hero, and where it walks to.

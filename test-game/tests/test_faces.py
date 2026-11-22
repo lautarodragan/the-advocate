@@ -18,7 +18,7 @@ Seen red with the tools before the change: `ChangeFaceGraphic` compiled to
 nothing, and the boxes had no face and the text at the border.
 """
 
-from game import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
 
 
 def shown(sess):

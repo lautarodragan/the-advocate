@@ -3,9 +3,10 @@
 # build the workspace— downloads them and puts their `bin/` on the PATH.
 #
 # Each archive is `the-advocate/bin/` with the binaries and
-# `the-advocate/runtime/` beside it: the runtime travels with the tools, and
-# a binary that does not find the checkout it was compiled from looks for it
-# there —see `rm2k-snes/project/src/suite.rs`—. cc65 and the rest of what
+# `the-advocate/runtime/` beside it, and the games' test harness at its own
+# path, `the-advocate/rm2k-snes/harness/`: both travel with the tools, and
+# a binary that does not find the checkout it was compiled from looks for
+# them there —see `rm2k-snes/project/src/suite.rs`—. cc65 and the rest of what
 # the README asks for are still the machine's.
 #
 # It follows CI instead of running beside it, so that a red commit is never
@@ -110,6 +111,8 @@ jobs:
             cp "target/${{ matrix.target }}/release/$bin" dist/the-advocate/bin/
           done
           cp -R runtime README.md dist/the-advocate/
+          mkdir -p dist/the-advocate/rm2k-snes
+          cp -R rm2k-snes/harness dist/the-advocate/rm2k-snes/
           ls dist/the-advocate/bin
           archive="the-advocate-$TAG-${{ matrix.target }}.tar.gz"
           tar -czf "dist/$archive" -C dist the-advocate
@@ -118,7 +121,7 @@ jobs:
 
       # What a downloaded archive does: the checkout the binaries were
       # compiled from is not there —its runtime is moved away—, and they
-      # find the runtime of the archive.
+      # find the runtime and the harness of the archive.
       - name: Smoke test
         if: ${{ !matrix.cross }}
         run: |
@@ -126,10 +129,14 @@ jobs:
           tar -xzf "$ARCHIVE" -C "$RUNNER_TEMP/unpacked"
           mv runtime/main.s "$RUNNER_TEMP/main.s.away"
           got="$("$RUNNER_TEMP/unpacked/the-advocate/bin/rm2k-snes-project" --project test-game | jq -r .suite.runtime)"
+          harness="$("$RUNNER_TEMP/unpacked/the-advocate/bin/rm2k-snes-project" --harness)"
           mv "$RUNNER_TEMP/main.s.away" runtime/main.s
           want="$(cd "$RUNNER_TEMP/unpacked/the-advocate/runtime" && pwd -P)"
           echo "runtime: $got"
           [ "$got" = "$want" ]
+          want="$(cd "$RUNNER_TEMP/unpacked/the-advocate/rm2k-snes/harness" && pwd -P)"
+          echo "harness: $harness"
+          [ "$harness" = "$want" ]
 
       - name: Upload
         run: gh release upload "$TAG" "$ARCHIVE" "$ARCHIVE.sha256"

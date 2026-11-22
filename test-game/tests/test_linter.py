@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 
-from game import cartridge, listing
+from rm2k_snes_harness import cartridge, listing
 
 
 def test_the_runtime_falls_in_no_trap():

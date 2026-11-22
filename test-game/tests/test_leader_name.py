@@ -21,7 +21,7 @@ since a test page's box with `\\N[0]` does not compile.
 
 import pytest
 
-from game import MESSAGE_SHOWN, Session, core_name, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, core_name, golden
 
 
 def shown(sess):

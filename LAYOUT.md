@@ -8,13 +8,16 @@ loose: each thing lives in the folder of its responsibility.
 
 The converter is Rust since 2026-10-02 —`rm2k-snes/convert/`, below—, and
 so is everything it runs. The only Python left is `tests/`, which looks at
-this tree: see `tests/README.md`; and the test game's tests, below.
+this tree: see `tests/README.md`; the test game's tests, below; and the
+games' test harness, `rm2k-snes/harness/`, below too.
 
 What the game's tests read of their game —a reader of the dump, the models
 they predict the console with, the clients of the stages they ask— went to
 their harness the same day: it is theirs. And on 2026-10-02 the game itself,
 A Blurred Line, went to its own repo, with its tests and their harness, and
-the libretro driver they run the ROM with, `emulator/`, went with them. What
+the libretro driver they run the ROM with, `emulator/`, went with them; it
+came back on 2026-11-22 with the rest of that harness that is no game's,
+`rm2k-snes/harness/`. What
 they ask the tools about their project —its paths, the suite's, its
 settings— they ask `rm2k-snes-project`, below, which answers with the same
 library every tool reads the project file with: until that day they read
@@ -155,6 +158,25 @@ it builds with the installed tools, like any game. Its tests run the
 cartridge in an emulator, so they are not in `tests/` and `just test` does
 not run them: `just test-game` does.
 
+## The games' test harness
+
+    rm2k-snes/harness/
+                 the generic part of a game's test harness, in Python: the
+                 libretro driver, the cartridge as the builder answers for
+                 it, the tick clock, the goldens at 15 bits and RPG Maker
+                 2000's rules the tests compute with, as the package
+                 `rm2k_snes_harness`; and `cores/`, the bsnes patches and
+                 Mesen2's shim. Its `README.md` says what each piece is
+
+The test game's tests use it as it is, and a port's harness puts its own on
+top. It is not a Rust project, so it is not in the workspace; it lives in
+`rm2k-snes/` because it knows both sides —RPG Maker's rules and the
+runtime's symbols—. A game's tests find it by asking `rm2k-snes-project
+--harness`, which answers for the checkout the tools were installed from,
+like the runtime, and a release's archive carries it beside the runtime.
+Until 2026-11-22 it was A Blurred Line's, in the ports, and the test game
+had a copy of the driver and a small harness of its own.
+
 ## The ones that run
 
 `just install` installs the Rust binaries, and a game's `justfile` calls
@@ -251,12 +273,10 @@ the tools themselves did, and it was `just -f tools/justfile <recipe>`.
 ## The bsnes patch
 
 The patch for bsnes-libretro that exposes the WRAM, and how to build it,
-went with the libretro driver to A Blurred Line's repo on 2026-10-02: see
-`tests/harness/emulator/README.md` there.
-
-A copy came back on 2026-10-18, next to the test game's copy of the driver,
-`test-game/tests/emulator/bsnes-wram.patch`, for the CI workflow to build
-the core with; a fix to one goes to the other.
+are in `rm2k-snes/harness/cores/` and its `README.md`. They went with the
+libretro driver to A Blurred Line's repo on 2026-10-02, a copy came back
+for the test game's CI on 2026-10-18, and on 2026-11-22 they came back
+whole, with the harness, and the copy went.
 
 ## CI
 

@@ -58,6 +58,15 @@ pub fn runtime() -> PathBuf {
     tools().join("runtime")
 }
 
+/// The generic part of the games' test harness, in Python: the directory a
+/// game's tests put on their import path to `import rm2k_snes_harness`. It
+/// travels with the tools for the same reason the runtime does —it reads
+/// the symbols the runtime names, so both have to be the same checkout's—,
+/// and a release's archive carries it beside the runtime, at the same path.
+pub fn harness() -> PathBuf {
+    tools().join("rm2k-snes/harness")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,6 +80,11 @@ mod tests {
             runtime().join("main.s").is_file(),
             "{}",
             runtime().display()
+        );
+        assert!(
+            harness().join("rm2k_snes_harness/__init__.py").is_file(),
+            "{}",
+            harness().display()
         );
         assert!(
             tools().join("Cargo.toml").is_file(),

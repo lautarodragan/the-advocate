@@ -23,7 +23,7 @@ compile, the call was skipped, and no box came up.
 import json
 import os
 
-from game import MESSAGE_SHOWN, Session, cartridge, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, cartridge, golden
 
 COMMON = 2
 DROPPED = ["\\$", "\\_", "\\q"]

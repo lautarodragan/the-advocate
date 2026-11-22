@@ -155,7 +155,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/cores
-          key: cores-${{ runner.os }}-${{ env.SNES9X_COMMIT }}-${{ env.BSNES_COMMIT }}-${{ hashFiles('test-game/tests/emulator/*.patch') }}
+          key: cores-${{ runner.os }}-${{ env.SNES9X_COMMIT }}-${{ env.BSNES_COMMIT }}-${{ hashFiles('rm2k-snes/harness/cores/bsnes-wram.patch', 'rm2k-snes/harness/cores/bsnes-display-audit.patch') }}
 
       - name: Build the libretro cores
         if: steps.cores.outputs.cache-hit != 'true'
@@ -170,12 +170,12 @@ jobs:
           git init -q bsnes
           git -C bsnes fetch -q --depth 1 https://github.com/libretro/bsnes-libretro.git "$BSNES_COMMIT"
           git -C bsnes checkout -q FETCH_HEAD
-          git -C bsnes apply "$GITHUB_WORKSPACE/test-game/tests/emulator/bsnes-wram.patch"
+          git -C bsnes apply "$GITHUB_WORKSPACE/rm2k-snes/harness/cores/bsnes-wram.patch"
           make -C bsnes -j"$(nproc)"
           cp bsnes/bsnes_libretro.so ~/cores/
           # And bsnes with the display-access audit too, a core of its own:
           # `test_terrace.py` counts what its accurate PPU refuses.
-          git -C bsnes apply "$GITHUB_WORKSPACE/test-game/tests/emulator/bsnes-display-audit.patch"
+          git -C bsnes apply "$GITHUB_WORKSPACE/rm2k-snes/harness/cores/bsnes-display-audit.patch"
           make -C bsnes -j"$(nproc)"
           cp bsnes/bsnes_libretro.so ~/cores/bsnes_audit_libretro.so
 

@@ -27,7 +27,7 @@ Seen red with the tools before the change: the game arrives at the
 clearing black, and 1401 stays off.
 """
 
-from game import Session
+from rm2k_snes_harness import Session
 
 CLEARING = 4
 ASKED = 1400        # the page's condition, which the case turns on

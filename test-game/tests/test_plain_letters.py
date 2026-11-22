@@ -25,7 +25,7 @@ with the second: the letters it showed plain, drawn.
 import json
 import os
 
-from game import MESSAGE_SHOWN, Session, cartridge, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, cartridge, golden
 
 COMMON = 4
 LETTERS = "… as ..., ø as o, Œ as OE"
