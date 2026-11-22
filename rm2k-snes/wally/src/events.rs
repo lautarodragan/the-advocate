@@ -188,9 +188,10 @@ fn active_page(event: &Event) -> Option<&Page> {
 /// Every event with a graphic on **some** page gets in, even if the page
 /// active at load has none: a door is a page without a graphic and another
 /// with the rubble tile. `visible` says whether it is seen at load, and
-/// `changes` whether the graphic follows the active page —only for events
-/// whose conditions the console understands—. If the first page has a
-/// condition, there may be none active: drawing nothing is one more state.
+/// `changes` whether the row follows the active page —its graphic, and the
+/// layer and transparency it draws it with; only for events whose
+/// conditions the console understands—. If the first page has a condition,
+/// there may be none active: drawing nothing is one more state.
 pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
     let mut npcs = Vec::new();
     for (number, event) in events.iter().enumerate() {
@@ -202,8 +203,22 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
         if graphics.iter().all(Option::is_none) {
             continue;
         }
-        let mut possible: Vec<&Option<Graphic>> = Vec::new();
-        for g in &graphics {
+        // What each page looks like: its graphic and, if it draws one, the
+        // layer and the transparency it draws it with, which the row takes
+        // from the page too —`page_graphic` in the runtime's
+        // event_pages.s—. A door whose open page keeps the tile and only
+        // lifts it above the hero (Zounds' map 19) changes as much as one
+        // whose tile changes: with the graphic alone it did not follow the
+        // page, its row kept the hero's layer, and the hero was drawn over
+        // the open door once he stood on its cell.
+        let looks: Vec<Option<(Graphic, i32, bool)>> = event
+            .pages
+            .iter()
+            .zip(&graphics)
+            .map(|(p, g)| g.clone().map(|g| (g, p.layer, p.translucent)))
+            .collect();
+        let mut possible: Vec<&Option<(Graphic, i32, bool)>> = Vec::new();
+        for g in &looks {
             if !possible.contains(&g) {
                 possible.push(g);
             }
@@ -413,5 +428,39 @@ mod tests {
         assert_eq!((row.charset.as_str(), row.index), ("Visitor", 2));
         assert!(!row.visible && row.changes);
         assert_eq!(row.graphics, vec![None, None]);
+    }
+
+    #[test]
+    fn a_page_that_only_moves_the_graphic_above_the_hero_is_followed() {
+        // Zounds' map 19, "Puerta A-1": the closed door is upper tile 60 on
+        // the hero's layer, and the page that opens it, with switch 23, the
+        // same tile above the hero. Without following that page the row
+        // kept the hero's layer, and the hero, on the door's cell, was drawn
+        // over it.
+        let tile = |layer, conditions| Page {
+            index: 60,
+            layer,
+            ..page("", conditions)
+        };
+        let door = event(1, vec![tile(LAYER_SAME, vec![]), tile(2, vec!["switch_a"])]);
+        let npcs = collect_npcs(&[door], "tiles", &[0; 10200]);
+        assert!(npcs[0].changes, "the row does not follow the page that lifts the door");
+        // And the one that only turns translucent, which the row's
+        // transparency follows too.
+        let ghost = event(
+            1,
+            vec![
+                page("Ghost", vec![]),
+                Page {
+                    translucent: true,
+                    ..page("Ghost", vec!["switch_a"])
+                },
+            ],
+        );
+        assert!(collect_npcs(&[ghost], "tiles", &[0; 10200])[0].changes);
+        // A second page that draws the same thing the same way still does
+        // not follow: there is nothing to follow.
+        let same = event(1, vec![page("Guard", vec![]), page("Guard", vec!["switch_a"])]);
+        assert!(!collect_npcs(&[same], "tiles", &[0; 10200])[0].changes);
     }
 }

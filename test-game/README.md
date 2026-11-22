@@ -24,7 +24,8 @@ under a transparent box in the middle of the screen, and then in the
 rain, which an event starts when talked to. And the lookout, whose
 night sky a parallel page swaps for a dawn, and whose dispatcher sends the
 hero on when its switch is on. And the doors, two rooms of one map crossed
-by teleports to itself, with a door that opens and a hatch to stand on;
+by teleports to itself, with a door that opens, a hatch to stand on and
+an awning that, opened, goes above the hero;
 and the patchwork, 60x60 of stripes no two neighbouring rows draw alike,
 for the camera. And the erasure, a bare field where a statue and a
 pacer erase themselves, and a loop leads back to the same map. The showcase's ChipSet gives its first four tiles a
