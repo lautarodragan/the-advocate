@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Red flash",
+    "timings": [
+      {
+        "id": 1,
+        "frame": 2,
+        "flash_scope": "target",
+        "flash_green": 8,
+        "flash_blue": 0,
+        "flash_power": 15
+      }
+    ],
+    "frames": [
+      {"id": 1},
+      {"id": 2},
+      {"id": 3},
+      {"id": 4},
+      {"id": 5},
+      {"id": 6},
+      {"id": 7},
+      {"id": 8}
+    ]
+  }
+]

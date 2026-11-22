@@ -1,0 +1,29 @@
+# The anvil's two tile layers, sketched like the meadow's —see
+# `Map0001.toml`—. The map is `Map0015.json`, and what it is for is there:
+# two still events drawn with a ChipSet tile that a battle animation falls
+# on, `tests/test_animation_flash.py`. The field is bare, as the erasure's.
+
+grid = '''
+####################
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+####################
+'''
+
+[legend]
+# The field: terrain autotile 0, the light grass, in its plain middle
+# pattern. Every cell has it below.
+"." = { lower = 4000 }
+# A green bush, which does not let the hero through.
+"#" = { lower = 4000, upper = 10007 }

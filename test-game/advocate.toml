@@ -74,6 +74,10 @@ timer_never_runs_in = []
 # The lantern's night mask, map 5, drawn into the map: see
 # `tests/test_map_picture.py`.
 map_pictures = true
+# The still events that change pose, drawn into the background a block per
+# pose: only on the anvil, map 15, whose crate is one —see
+# `tests/test_animation_flash.py`—.
+baked_events = [15]
 
 [graphics.palette_weight]
 
