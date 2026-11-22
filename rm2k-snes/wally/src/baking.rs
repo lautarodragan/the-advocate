@@ -22,12 +22,23 @@ use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// The commands that move an event to another cell or touch its drawing:
-/// `MoveEvent`, `SetEventLocation`, `SwapEventLocations` and
-/// `FlashSprite`, liblcf's codes. An event some page can move or flash is
-/// not fixed, so it is not baked. The raw commands are looked at and not
-/// the compiled pages: it is more conservative, and needs no compiling.
-pub const MOVING_COMMANDS: [i32; 4] = [11330, 10860, SWAP_EVENT_LOCATIONS, 11320];
+/// `MoveEvent`, `SetEventLocation`, `SwapEventLocations`, `FlashSprite`
+/// and `ShowBattleAnimation`, liblcf's codes. An event some page can move
+/// or flash is not fixed, so it is not baked. The raw commands are looked
+/// at and not the compiled pages: it is more conservative, and needs no
+/// compiling.
+pub const MOVING_COMMANDS: [i32; 5] = [
+    11330,
+    10860,
+    SWAP_EVENT_LOCATIONS,
+    11320,
+    SHOW_BATTLE_ANIMATION,
+];
 const SWAP_EVENT_LOCATIONS: i32 = 10870;
+/// Its target is the second parameter, and it flashes it: the flash is a
+/// tint of the target object's palette —`flash_start` in the runtime—, and
+/// a baked row has no object, so it fell on whoever had its palette bits.
+const SHOW_BATTLE_ANIMATION: i32 = 11210;
 /// "This event" in a command's event parameter: the one whose page it is.
 const THIS_EVENT: i32 = 10005;
 
@@ -98,8 +109,12 @@ pub fn bakeable(
                 // pair of tiles that trade places to animate showed a hole
                 // where the second one went, and the second one stayed
                 // painted where it started.
-                let named = if *code == SWAP_EVENT_LOCATIONS { 2 } else { 1 };
-                for &who in parameters.iter().take(named) {
+                let (first, named) = match *code {
+                    SWAP_EVENT_LOCATIONS => (0, 2),
+                    SHOW_BATTLE_ANIMATION => (1, 1),
+                    _ => (0, 1),
+                };
+                for &who in parameters.iter().skip(first).take(named) {
                     if who == THIS_EVENT {
                         touched.insert(number);
                     } else if let Some(target) = route_target(events, who).filter(|&t| t != 0) {

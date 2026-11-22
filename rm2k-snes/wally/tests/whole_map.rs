@@ -380,8 +380,9 @@ fn bakeable_says_what_is_baked_and_why_it_is_safe() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
-/// An event some page moves is not baked, whichever way it is named: the
-/// second of a `SwapEventLocations`, and "this event" from its own page.
+/// An event some page moves or flashes is not baked, whichever way it is
+/// named: the second of a `SwapEventLocations`, "this event" from its own
+/// page, and the target of a battle animation.
 #[test]
 fn an_event_a_page_moves_is_not_baked() {
     for (name, mover, command) in [
@@ -399,6 +400,18 @@ fn an_event_a_page_moves_is_not_baked() {
             "moves-itself",
             0,
             json!({"code": 10860, "indent": 0, "parameters": [10005, 0, 2, 2], "string": ""}),
+        ),
+        // A battle animation flashes its target's object: baked, the row
+        // has none, and the flash fell on whoever has its palette bits.
+        (
+            "animates-itself",
+            0,
+            json!({"code": 11210, "indent": 0, "parameters": [1, 10005, 1, 0], "string": ""}),
+        ),
+        (
+            "animated-by-id",
+            1,
+            json!({"code": 11210, "indent": 0, "parameters": [1, 1, 1, 0], "string": ""}),
         ),
     ] {
         let dir = scratch(&format!("not-baked-{name}"));
