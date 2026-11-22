@@ -88,7 +88,7 @@ import os
 
 import pytest
 
-from game import ACCURATE, AUDIT, MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import ACCURATE, AUDIT, MESSAGE_SHOWN, Session, golden
 
 TERRACE = 9
 BOXES = 4                   # dry, and as many again in the rain
@@ -200,7 +200,7 @@ def test_each_line_goes_up_inside_the_vblank(core):
 @pytest.mark.skipif(not os.path.exists(AUDIT),
                     reason="no bsnes with the display-access audit at %s: "
                     "build it as the CI workflow does —bsnes at its pin with "
-                    "both patches of tests/emulator/— and point AUDIT_CORE "
+                    "both patches of rm2k-snes/harness/cores/— and point AUDIT_CORE "
                     "at it" % AUDIT)
 def test_nothing_reaches_the_screen_while_it_is_drawn():
     sess = Session(AUDIT, case="terrace", options=ACCURATE)

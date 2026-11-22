@@ -1,0 +1,13 @@
+{
+  "event_commands": [
+    {"code": "ChangeItems", "parameters": [0, 0, 1, 0, 13]},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 0, 4, 1, 0]},
+    {"code": "ControlVars", "parameters": [0, 39, 39, 0, 0, 5, 0]},
+    {"code": "ControlVars", "parameters": [0, 39, 39, 1, 4, 1, 0]},
+    {"code": "ChangeEquipment", "parameters": [1, 1, 0, 0, 1]},
+    {"code": "ControlVars", "parameters": [0, 40, 40, 0, 4, 1, 0]},
+    {"code": "ControlVars", "parameters": [0, 41, 41, 0, 4, 1, 1]},
+    {"code": "ControlVars", "parameters": [0, 21, 21, 0, 4, 0, 1]},
+    {"code": "ControlSwitches", "parameters": [0, 1401, 1401, 0]}
+  ]
+}

@@ -18,7 +18,8 @@ use crate::{suite, Error, Project};
 ///   file, each `[paths]` entry resolved against the file, and the two
 ///   folders the tools look for inside the patches—;
 /// * `suite`: where this suite's own files are —its `directory`, the one
-///   that holds the tools; the `root` above it; and the `runtime`—, for the
+///   that holds the tools; the `root` above it; the `runtime`; and the
+///   `harness`, the directory of the tests' generic Python package—, for the
 ///   checkout the binary was built from: see [`suite`];
 /// * `settings`: the whole project file, keys in the order the file writes
 ///   them.
@@ -43,6 +44,7 @@ pub fn resolved(project: &Project) -> Result<Value, Error> {
             "directory": path(suite::tools()),
             "root": path(suite::root()),
             "runtime": path(suite::runtime()),
+            "harness": path(suite::harness()),
         },
         "settings": table(project.settings()),
     }))

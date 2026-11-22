@@ -11,7 +11,7 @@ in snes9x and in bsnes. See `pick_with_filter`, in `runtime/event_pages.s`,
 and tasks/a-map-with-no-events-wipes-wram-when-entered.md.
 """
 
-from game import Session, golden
+from rm2k_snes_harness import Session, golden
 
 CLEARING = 4
 # Where the case's Teleport leaves the hero.

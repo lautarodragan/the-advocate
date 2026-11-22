@@ -1,13 +1,5 @@
 """Drives a libretro core from Python. No X, no clock, no sleeps.
 
-**A copy, unchanged but for this paragraph**, of A Blurred Line's
-`tests/harness/emulator/retro.py`, in the ports' repo, at its commit
-`ebe3367`. It lived in this repository until 2026-10-02 and left with that
-game's tests; the test game needs it back, and until the harness's generic
-part comes back here as one package —phase 2 of the test game's research,
-in the book— there are two. A fix to one goes to the other. The comments
-below cite measurements made on that game: they were taken there.
-
 `retro_run()` advances exactly one frame, the D-pad goes in frame by frame and
 the framebuffer comes out through the video callback. A case stops being "sleep
 45 seconds and take a picture of the screen" and becomes "run N frames with
@@ -148,6 +140,32 @@ class DisplayAudit(ctypes.Structure):
     def seen(self, frame):
         return DisplayAccess(frame, *(getattr(self, name)
                                       for name, _ in self._fields_))
+
+
+class MsuAccess(ctypes.Structure):
+    """One access to the MSU-1 that `bsnes-msu-log.patch` logged: a write
+    to `$2000 + reg` (`kind` WRITE), a read of `$2000` (READ), with the
+    value written or read and the status `$2000` gave just before; or a run
+    of reads of the data port, `$2001` (DATA), with how many in `value`, up
+    to 255. And where the track was playing, in bytes of its `.pcm`. See
+    `MSU1AccessLog` there."""
+    _fields_ = [("kind", ctypes.c_uint8), ("reg", ctypes.c_uint8),
+                ("value", ctypes.c_uint8), ("status", ctypes.c_uint8),
+                ("play_offset", ctypes.c_uint32)]
+
+    WRITE, READ, DATA = 0, 1, 2
+
+    def __repr__(self):
+        if self.kind == self.DATA:
+            return "%d reads of $2001" % self.value
+        return ("%s $%04X %s $%02X (status $%02X, track at %d)"
+                % ("write" if self.kind == self.WRITE else "read",
+                   0x2000 + self.reg, "<-" if self.kind == self.WRITE
+                   else "->", self.value, self.status, self.play_offset))
+
+
+class MsuLog(ctypes.Structure):
+    _fields_ = [("count", ctypes.c_uint32), ("entries", MsuAccess * 256)]
 
 
 class SystemInfo(ctypes.Structure):
@@ -300,6 +318,14 @@ class Console:
             ctypes.memset(base, 0, ctypes.sizeof(DisplayAudit))
         self._watching = False
         self.display_accesses = []
+        # And the MSU-1's accesses, from `bsnes-msu-log.patch`, which the
+        # same core carries: zeroed for the same reason.
+        base = self.lib.retro_get_memory_data(self.MEMORY_MSU_LOG)
+        size = self.lib.retro_get_memory_size(self.MEMORY_MSU_LOG)
+        self._msu_log = (MsuLog.from_address(base)
+                         if base and size == ctypes.sizeof(MsuLog) else None)
+        if self._msu_log is not None:
+            ctypes.memset(base, 0, ctypes.sizeof(MsuLog))
 
     def _on_env(self, cmd, data):
         if cmd == ENV_SET_VARIABLES and data:
@@ -374,7 +400,7 @@ class Console:
                 self.display_accesses.append(audit.seen(self.frame_count))
 
     # A custom id, not libretro's: the counters of
-    # `bsnes-display-audit.patch`, next to this file.
+    # `bsnes-display-audit.patch`, in `cores/` beside this package.
     MEMORY_DISPLAY_AUDIT = 0x8000
 
     def watch_the_display(self):
@@ -385,7 +411,8 @@ class Console:
         `frame` None.
 
         It is what the console does and no golden sees until the screen
-        breaks: see `tests/rpgmaker/test_display_accesses.py`. Only bsnes
+        breaks: see A Blurred Line's `tests/rpgmaker/test_display_accesses.py`,
+        in the ports, and the test game's `test_terrace.py`. Only bsnes
         with the audit counts it —`just audit-core`— and only with its
         accurate PPU, `bsnes_ppu_fast` at `OFF`: the fast one does not
         count. Without the audit, this raises.
@@ -396,6 +423,36 @@ class Console:
         if self._audit.any():
             self.display_accesses.append(self._audit.seen(None))
         self._watching = True
+
+    # Another: `bsnes-msu-log.patch`'s log of the MSU-1's accesses.
+    MEMORY_MSU_LOG = 0x8001
+
+    def msu_accesses(self):
+        """The MSU-1's accesses since the last call —every write to
+        `$2000-$2007`, every read of `$2000` and each run of reads of
+        `$2001`, in order, as `MsuAccess`—,
+        and the log starts over. Only bsnes with the audit carries the log
+        —`just audit-core`—; without it, this raises, and so does a log that
+        overflowed its 256 entries, which would hide the end."""
+        log = self._msu_log
+        if log is None:
+            raise RuntimeError("this core has no MSU-1 log: `just "
+                               "audit-core` builds the one that does")
+        count = log.count
+        if count > len(log.entries):
+            raise RuntimeError("%d MSU-1 accesses, more than the log's %d: "
+                               "ask more often" % (count, len(log.entries)))
+        accesses = [MsuAccess.from_buffer_copy(log.entries[i])
+                    for i in range(count)]
+        log.count = 0
+        return accesses
+
+    def forget_msu_accesses(self):
+        """Starts the MSU-1's log over, whatever it held."""
+        if self._msu_log is None:
+            raise RuntimeError("this core has no MSU-1 log: `just "
+                               "audit-core` builds the one that does")
+        self._msu_log.count = 0
 
     def sample_rate(self):
         """At how many samples per second the core delivers the audio.

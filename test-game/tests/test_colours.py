@@ -21,7 +21,7 @@ Seen red with the tools before the change: the colours were dropped and
 the box came out white, and the window appeared with its box whole.
 """
 
-from game import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
 
 TYPING = 2
 

@@ -39,6 +39,40 @@
           ]
         }
       ]
+    },
+    {
+      "id": 2,
+      "name": "Dispatcher",
+      "x": 0,
+      "y": 1,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1430
+          },
+          "trigger": "auto_start",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "Teleport",
+              "parameters": [
+                4,
+                10,
+                7
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

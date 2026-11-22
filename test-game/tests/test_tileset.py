@@ -20,7 +20,7 @@ listed nothing.
 import json
 import os
 
-from game import Session, cartridge
+from rm2k_snes_harness import Session, cartridge
 
 COMMON = 3
 AFTER = 1290

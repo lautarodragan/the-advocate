@@ -62,7 +62,8 @@ cartridges *args: game
   rm2k-snes-cartridges --game-dir build/game --rtp-dir build/no-rtp --soundfont "$SOUNDFONT" --without-tracks {{args}}
 
 # The tests run the cartridge in an emulator —a libretro core, see
-# `tests/game.py`—, and build nothing: this recipe builds first.
+# `rm2k-snes/harness/` at the root—, and build nothing: this recipe builds
+# first.
 #
 # Builds the cartridges and runs the game's tests.
 test *args: cartridges

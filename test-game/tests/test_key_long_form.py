@@ -18,7 +18,7 @@ Before the change the case did not compile, and with it neither did the
 cartridge: red by construction.
 """
 
-from game import Session
+from rm2k_snes_harness import Session
 
 CASE = "key-long-form"
 DECISION = 1310

@@ -21,7 +21,12 @@ axes, with two walkers that go round it. And the terrace, a slab of grass
 in a night sky that scrolls on its own, where three walkers go round
 under a transparent box in the middle of the screen, and then in the
 rain, which an event starts when talked to. And the lookout, whose
-night sky a parallel page swaps for a dawn. And the crossing, four cells
+night sky a parallel page swaps for a dawn, and whose dispatcher sends the
+hero on when its switch is on. And the doors, two rooms of one map crossed
+by teleports to itself, with a door that opens and a hatch to stand on;
+and the patchwork, 60x60 of stripes no two neighbouring rows draw alike,
+for the camera. The showcase's ChipSet gives its first four tiles a
+terrain each. And the crossing, four cells
 with two events standing on each, where every one whose trigger matches
 fires. And a common event that shows a box with escapes the console
 cannot show, which it drops and the build lists, one that changes the
@@ -90,12 +95,12 @@ quietly found in somebody's RTP.
 
 They boot the cartridge in a libretro core —snes9x, and bsnes, which starts
 with garbage in WRAM— and compare what it draws against goldens, at 15 bits.
-The harness is `tests/game.py`, small on purpose, and the core driver
-`tests/emulator/retro.py`, a copy of A Blurred Line's: phase 2 of the
-research brings the generic part of that game's harness here, and then both
-go. bsnes needs a patch to expose its WRAM, `tests/emulator/bsnes-wram.patch`,
-a copy of that game's too; the CI workflow builds both cores, and its
-steps are how to build them by hand.
+The harness is the tools' generic one, `rm2k-snes/harness/` at the
+repository's root, and what is the test game's —where it is, the flags it
+is built with, where its goldens are— is said once, in `tests/conftest.py`.
+bsnes needs a patch to expose its WRAM, `rm2k-snes/harness/cores/bsnes-wram.patch`;
+the CI workflow builds both cores, and its steps are how to build them by
+hand.
 
     test_meadow.py      the meadow as it is reached, and the elder's message
     test_switches_past_1023.py
@@ -146,6 +151,35 @@ steps are how to build them by hand.
     test_linter.py      Goombario over the cartridge: the runtime falls in
                         none of the traps it knows, but for the lines
                         annotated as right
+
+And the first ten that came from A Blurred Line's `tests/rpgmaker/` on
+2026-11-22, with their cases rewritten on these maps —phase 2 of the
+research—. They ask the ROM's RAM, not the screen, so they have no goldens:
+
+    test_variables.py   `ControlVars`: the operations, the random numbers
+                        against the xorshift, the branch by variable both
+                        ways, a character's place on RM2k's screen, the
+                        word's ceiling, an item's count, and the
+                        variables through a save and a reset
+    test_conditional.py `ConditionalBranch`: the branch that runs with its
+                        switch turned on before the page, and the ones
+                        skipped, after which the page goes on
+    test_labels.py      `Label` and `JumpToLabel`: backwards, forwards, to
+                        one that is not there and inside an `else`
+    test_key.py         `KeyInputProc`: the number of each key, the edge
+                        and not the button held, and cancel winning
+    test_speed.py       the pad walks at the speed a route left, to the
+                        pixel, and the speed travels in the save
+    test_jumps.py       the budget of chained teleports comes back with
+                        control; the lookout's dispatcher sends the hero on
+    test_terrain.py     `StoreTerrainID` on the showcase's first four
+                        tiles, which its ChipSet gives four terrains
+    test_same_door.py   the doors' door to the same map keeps what moved
+                        when it opened, there and back
+    test_own_action.py  the action key looks at the hero's own cell for an
+                        event above them, and not at the one in front
+    test_camera.py      the patchwork's window in the VRAM against the
+                        camera, two rows or columns a tick
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

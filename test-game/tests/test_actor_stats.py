@@ -33,7 +33,7 @@ the clamp branched on them —the trap of AGENTS.md—; this is the case that
 caught it.
 """
 
-from game import Session
+from rm2k_snes_harness import Session
 
 CASE = "actor-stats"
 EXPECTED = {

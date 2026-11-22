@@ -30,7 +30,7 @@ Seen red with the tools before the change: none of the four switches comes
 on, and 1332 without 1333.
 """
 
-from game import Session
+from rm2k_snes_harness import Session
 
 LADDER, DOORWAY, FIRST, SECOND, SIGN = 1330, 1331, 1332, 1333, 1334
 CROSSING = 11

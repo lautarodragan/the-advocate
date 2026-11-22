@@ -20,7 +20,7 @@ Seen red with the tools before the change: the hero stopped at (0, 10) and
 at (12, 0), and the walkers at column 0 and row 0.
 """
 
-from game import Session, golden
+from rm2k_snes_harness import Session, golden
 
 RING = 8
 ARRIVAL = (12, 10)

@@ -2,6 +2,7 @@
 //!
 //!     rm2k-snes-project [--project DIRECTORY]
 //!     rm2k-snes-project --game-dir GAME.zip --unpacked game_dir
+//!     rm2k-snes-project --harness
 //!
 //! What it prints, and why it is asked and not read, is in `resolved.rs`.
 //!
@@ -9,6 +10,11 @@
 //! same one if it is a directory, and its unpacked copy if it is a `.zip`
 //! —see `Environment::unpack`—. It is for whoever reads the game or the RTP
 //! and is not a tool of the suite: a game's tests, Ditto in its recipes.
+//!
+//! With `--harness`, only the directory of the tests' generic harness —see
+//! `suite::harness`—, and with no project: it is what a game's tests put on
+//! their import path before anything else, and the tests of several games
+//! at once have no one project to name.
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -26,6 +32,13 @@ fn command() -> Command {
                 .value_name("DIRECTORY")
                 .help("the directory where advocate.toml is. Without this, it is looked up from the current directory upwards"),
         )
+        .arg(
+            Arg::new("harness")
+                .long("harness")
+                .action(clap::ArgAction::SetTrue)
+                .conflicts_with_all(["project", "unpacked"])
+                .help("print only the directory of the tests' generic harness, the Python package rm2k_snes_harness, for the import path; it needs no project"),
+        )
         .args(arguments(PACKABLE))
         .arg(
             Arg::new("unpacked")
@@ -38,6 +51,10 @@ fn command() -> Command {
 
 fn run() -> Result<(), Error> {
     let matches = command().get_matches();
+    if matches.get_flag("harness") {
+        println!("{}", rm2k_project::suite::harness().display());
+        return Ok(());
+    }
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
     if let Some(name) = matches.get_one::<String>("unpacked") {
         let mut environment = Environment::from_matches(&matches, PACKABLE);

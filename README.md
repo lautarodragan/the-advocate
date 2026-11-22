@@ -48,18 +48,19 @@ root**: until 2026-10-02 it was ABL's, which imported its own, and the
 tools' one uses `justfile_directory()` to find its things, so imported from
 the root it would look for them in the wrong place.
 
-## The ROM tests are in ABL, for now
+## The ROM tests are mostly in ABL, for now
 
-**Today this repo has no tests that run a ROM.** The ones it has —those in
-`tests/` and those of each Rust project— test each stage alone, with small
-games made inside the test. The ones that build a cartridge and run it in
-an emulator, against goldens, belong to A Blurred Line and left with it,
-because they need a game: most of them test the engine using ABL as a
-stage.
+The tests in `tests/` and those of each Rust project test each stage
+alone, with small games made inside the test. The ones that build a
+cartridge and run it in an emulator, against goldens, belonged to A Blurred
+Line and left with it on 2026-10-02, because they need a game: most of
+them test the engine using ABL as a stage.
 
-So **a change in the tools is verified by running ABL's suite with the
-tools of the change**: how, in "Where this runs" in `AGENTS.md`. It is the
-risk pointed out by the study that planned the split
-(`research/2026-10-02-the-test-game.md` in the book), and its phase
-2 cuts it: a test game of our own, made from scratch and with no
-copyrighted assets, where the engine's tests move to.
+The test game, `test-game/`, is where they come back to: a game of our
+own, made from scratch and with no copyrighted assets, whose tests run its
+cartridge here and in CI —phase 2 of the study that planned the split,
+`research/2026-10-02-the-test-game.md` in the book, finished on
+2026-11-22 with the harness's generic part, `rm2k-snes/harness/`, and ABL's
+first ten engine tests—. The rest are still ABL's, so **a change in the
+tools is still verified by running ABL's suite with the tools of the
+change** as well: how, in "Where this runs" in `AGENTS.md`.

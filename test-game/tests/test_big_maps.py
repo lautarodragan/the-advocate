@@ -26,7 +26,7 @@ Seen red with the tools before the change: the build stopped at the plain,
 import json
 import os
 
-from game import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
 
 MEADOW, PLAIN, VAST = 1, 6, 7
 AFTER_JUMP = 1403   # the left-out case's last command, after its Teleport
