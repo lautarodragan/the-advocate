@@ -34,27 +34,15 @@ const SEEDS: u64 = 120;
 /// being a win is red too, so the list cannot go stale: whoever fixes a
 /// reason takes its seeds out, and the ones still red say what is left.
 ///
-/// The split between the two was measured on 2026-11-22 with a copy of
-/// `try_pack` that picks the group that grows the least: in the first list
-/// that copy fits in as few palettes as SuperFamiconv, in the second it
-/// does not.
-const KNOWN: &[(&str, &[u64])] = &[
-    (
-        "try_pack puts each tile in the group that ends smallest, not in the \
-         one that grows the least as its comment says: \
-         tasks/try-pack-picks-the-smallest-group.md in the-advocate-work",
-        &[
-            0, 2, 7, 9, 10, 11, 15, 18, 27, 28, 31, 38, 48, 49, 53, 55, 57, 59, 61, 63, 73, 79, 81,
-            82, 91, 95, 97, 98, 102, 107, 114, 116,
-        ],
-    ),
-    (
-        "best fit never undoes a placement, and SuperFamiconv's \
+/// Until 2026-11-22 there was a first reason, that `try_pack` put each tile
+/// in the group that ended smallest and not in the one that grew the least:
+/// its seeds left with the fix, in the same change.
+const KNOWN: &[(&str, &[u64])] = &[(
+    "best fit never undoes a placement, and SuperFamiconv's \
          overload-and-remove does: tasks/overload-and-remove-for-try-pack.md \
          in the-advocate-work",
-        &[1, 16, 29, 34, 35, 68, 76, 84, 96, 104],
-    ),
-];
+    &[1, 16, 29, 34, 35, 68, 76, 84, 96, 104],
+)];
 
 /// splitmix64: small, and the same numbers on every machine.
 struct Rng(u64);

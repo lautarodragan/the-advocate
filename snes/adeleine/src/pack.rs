@@ -17,7 +17,17 @@ pub type Colors = BTreeSet<Color>;
 /// Colours may repeat across palettes: what has to be achieved is that the
 /// set of colours of each tile is contained in one of them. Best-fit, the
 /// tiles with the most colours first, each into the group that grows the
-/// least; on a tie, the first group.
+/// least —the one that already has most of its colours—; among equal
+/// growth, the group whose union ends smallest, and then the first.
+///
+/// Until 2026-11-22 the comment said that and the code compared only the
+/// size of the union, since the first Python version: a tile that fitted
+/// whole in a big group went to a small one where it added colours,
+/// closer to worst fit than to best. Growth first needs fewer palettes in
+/// most of the pictures of `tests/superfamiconv.rs`, and the tie-break on
+/// the union beat the fuller group and the first one there: keeping groups
+/// even leaves room in more of them for the tiles that come later. Its
+/// ignored `distribution` test prints how they compare.
 ///
 /// Tiles with the same number of colours go **in the order of their
 /// colours**, so what comes out depends on which tiles there are and not on
@@ -38,11 +48,13 @@ pub fn try_pack(tiles: &[Colors], limit: usize, per_palette: usize) -> Option<Ve
     order.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
     let mut groups: Vec<Colors> = Vec::new();
     for colors in order {
-        let mut best: Option<(usize, usize)> = None;
+        // `<` and not `<=`: on a full tie the earlier group keeps it.
+        let mut best: Option<(usize, (usize, usize))> = None;
         for (index, group) in groups.iter().enumerate() {
-            let size = group.len() + colors.difference(group).count();
-            if size <= per_palette && best.is_none_or(|(_, s)| size < s) {
-                best = Some((index, size));
+            let growth = colors.difference(group).count();
+            let size = group.len() + growth;
+            if size <= per_palette && best.is_none_or(|(_, key)| (growth, size) < key) {
+                best = Some((index, (growth, size)));
             }
         }
         match best {
@@ -783,6 +795,32 @@ mod tests {
         let reduced = reduce_colors(&counts, &[tile], 8, 15).unwrap();
         assert!(reduced.palettes.iter().all(|p| p.len() <= 15));
         assert_eq!(reduced.merges.len(), 2);
+    }
+
+    /// Cut down from seed 0 of `tests/superfamiconv.rs`: 36 colours, so 3
+    /// palettes are the least, and 3 is what SuperFamiconv needs. Putting
+    /// each tile in the group whose union ends smallest needed 4: a tile
+    /// that fitted whole in a big group went to a small one where it added
+    /// colours, and the room it took was missing later.
+    #[test]
+    fn each_tile_goes_to_the_group_that_grows_the_least() {
+        let tiles: Vec<Colors> = [
+            &[14, 25, 30][..],
+            &[13, 32, 35],
+            &[2, 15, 22, 24, 28],
+            &[12, 26, 33],
+            &[4, 6, 17, 22, 26, 31, 33],
+            &[6, 12, 31],
+            &[1, 3, 5, 11, 33],
+            &[12, 20, 27, 34],
+            &[10, 14, 16, 19, 23, 30, 34],
+            &[0, 7, 8, 9, 18, 21, 29],
+        ]
+        .iter()
+        .map(|tile| tile.iter().copied().map(grey).collect())
+        .collect();
+        let palettes = try_pack(&tiles, 8, 15).expect("36 colours fit in 8 palettes");
+        assert_eq!(palettes.len(), 3, "{palettes:?}");
     }
 
     #[test]
