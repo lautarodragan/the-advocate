@@ -18,6 +18,11 @@ title screen, its menus, its battles—, and so do the ports' other games.
       rm2k.py             RPG Maker 2000's rules the tests compute what to
                           expect with: passability, terrain, the graphics
                           of a page
+      engine.py           the engine's numbers, as `rm2k-snes-mapdata
+                          engine` publishes them: the keys' values, the
+                          random seed, the caps
+      stage.py            running one of the converter's stages to ask it
+                          something
     cores/                what the cores need that their packages lack: the
                           bsnes patches and Mesen2's shim, below
 

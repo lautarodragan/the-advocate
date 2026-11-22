@@ -4,8 +4,9 @@ What every game's tests need and no game decides: the libretro driver
 (`retro`), the cartridge as the builder answers for it and read through the
 symbols and the map table it leaves (`game`), the tick clock and the
 questions any game is asked —which map, which switch, whether the player
-has control— (`session`), the goldens compared at 15 bits (`golden`), and
-RPG Maker 2000's own rules the tests compute what to expect with (`rm2k`).
+has control— (`session`), the goldens compared at 15 bits (`golden`),
+RPG Maker 2000's own rules the tests compute what to expect with (`rm2k`),
+and what the tools answer them about the engine (`engine`, `stage`).
 It knows no game: each one says, once, where it is and how its cartridges
 are built —a `Game`, handed to `use` before the first test—, and its own
 harness adds what only it knows on top.
