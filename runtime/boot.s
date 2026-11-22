@@ -158,6 +158,8 @@ counted:
 .a8
     jsr anim_tick               ; which ChipSet drawing is due on the next
                                 ; iteration, so the vblank only has to upload it
+    jsl f:package_idle_l        ; and what is left of the frame, for the
+                                ; package's waiting sound effects
     jsr count_lost
 .if ::DEBUG_PHASING || .defined(SHOW_WINDOW_SLOTS)
     jmp loop                    ; `phasing_keys`'s `jsl`, or `sw_tick`'s, put it
