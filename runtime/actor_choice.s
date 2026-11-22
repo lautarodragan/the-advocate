@@ -625,6 +625,14 @@ skill:
     sta BG1VOFS
     lda #$03                    ; BG1 and BG2
     sta TM
+    ; On at the start of a vblank, as `screen_ppu_on`: the pause menu
+    ; opened on a frame black down to the line its uploads ended on.
+out:
+    lda HVBJOY
+    bmi out
+in:
+    lda HVBJOY
+    bpl in
     lda #$0F
     sta INIDISP
     rtl

@@ -103,6 +103,7 @@
     sta BG2VOFS
     lda #$02
     sta TM
+    jsl f:ba_t_vblank           ; on at a vblank's start: see `screen_ppu_on`
     lda #$0F
     sta INIDISP
 
