@@ -84,6 +84,10 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             ids.extend(&p[..3]);
         } else if matches!(code, CHANGE_HP | CHANGE_SP) && p.len() >= 5 && p[3] == 1 {
             ids.insert(p[4]);
+        } else if matches!(code, CHANGE_EXP | CHANGE_LEVEL) && p.len() >= 5 && p[3] != 0 {
+            // The amount by a variable, since 2026-11-22, as OP_EXP reads it
+            // with `EXP_BY_VARIABLE`.
+            ids.insert(p[4]);
         } else if code == CHANGE_ITEMS && p.len() >= 5 {
             // The item and the amount by a variable, since 2026-10-14: The
             // Book of Three's essences and Vampires Dawn's.
@@ -93,18 +97,26 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             if p[3] != 0 {
                 ids.insert(p[4]);
             }
+        } else if code == CHANGE_GOLD && p.len() >= 3 && p[1] == 1 {
+            // The amount by a variable, since 2026-11-22: OP_GOLD compiles
+            // it with `GOLD_BY_VARIABLE`, and until then a variable only
+            // this command named had no slot and its page was skipped.
+            ids.insert(p[2]);
         } else if matches!(code, CHANGE_MONSTER_HP | CHANGE_MONSTER_MP) && p.len() >= 4 && p[2] == 1
         {
             ids.insert(p[3]);
-        } else if code == SHOW_PICTURE && p.len() >= 4 && p[1] == 1 {
+        } else if matches!(code, SHOW_PICTURE | MOVE_PICTURE) && p.len() >= 4 && p[1] == 1 {
             // A picture placed by two variables, since 2026-10-01. In the
             // game they are the smoke's and the aura numbers', and they add
-            // none: a `ControlVars` names all four.
+            // none: a `ControlVars` names all four. `MovePicture`, with the
+            // same layout, since 2026-11-22: without the slots its move was
+            // accepted and not done.
             ids.extend([p[2], p[3]]);
-        } else if matches!(code, SHOW_MESSAGE | SHOW_MESSAGE_2) {
+        } else if matches!(code, SHOW_MESSAGE | SHOW_MESSAGE_2 | SHOW_CHOICE_OPTION) {
             // A variable's value in the text, `\V[n]`, since 2026-10-02. In
             // the game they are three of the portable console and add none:
-            // its `ControlVars` and the troops' name them.
+            // its `ControlVars` and the troops' name them. A choice's
+            // options since 2026-11-22: `choice_boxes` writes them the same.
             ids.extend(text_variables(&cmd.string));
         }
     }
@@ -963,5 +975,52 @@ mod tests {
         assert_eq!(switch_top(&game, &[], &BTreeSet::new()).unwrap(), 2047);
         game.database_switches.insert(SWITCH_TABLE_MAX);
         assert!(switch_top(&game, &[], &BTreeSet::new()).is_err());
+    }
+
+    /// `ChangeGold` by a variable —`[1]` at 1, the variable in `[2]`— names
+    /// it, like `ChangeItems`: it compiles as OP_GOLD with
+    /// `GOLD_BY_VARIABLE`, and a variable no other command names had no
+    /// slot, so the page was skipped whole. A constant names nothing.
+    #[test]
+    fn change_gold_by_a_variable_names_its_variable() {
+        let gold = |by: i32, value: i32| Command::new(CHANGE_GOLD, 0, "", vec![0, by, value]);
+        assert_eq!(command_variables(&[gold(1, 999)]), BTreeSet::from([999]));
+        assert_eq!(command_variables(&[gold(0, 999)]), BTreeSet::new());
+    }
+
+    /// `ChangeEXP` and `ChangeLevel` by a variable —`[3]` set, the variable
+    /// in `[4]`—, which compile as OP_EXP with `EXP_BY_VARIABLE`.
+    #[test]
+    fn change_exp_and_level_by_a_variable_name_their_variable() {
+        for code in [CHANGE_EXP, CHANGE_LEVEL] {
+            let cmd = |by: i32| Command::new(code, 0, "", vec![0, 1, 0, by, 77, 0]);
+            assert_eq!(command_variables(&[cmd(1)]), BTreeSet::from([77]));
+            assert_eq!(command_variables(&[cmd(0)]), BTreeSet::new());
+        }
+    }
+
+    /// `MovePicture` to a place in two variables —`[1]` at 1, as
+    /// `ShowPicture`—, which compiles with `PICTURE_BY_VARIABLE`; without
+    /// their slots the move is accepted and not done.
+    #[test]
+    fn move_picture_by_variables_names_both() {
+        let mut p = vec![0; 16];
+        p[0] = 1;
+        p[1] = 1;
+        p[2] = 40;
+        p[3] = 41;
+        let by_variables = Command::new(MOVE_PICTURE, 0, "", p.clone());
+        assert_eq!(command_variables(&[by_variables]), BTreeSet::from([40, 41]));
+        p[1] = 0;
+        let constant = Command::new(MOVE_PICTURE, 0, "", p);
+        assert_eq!(command_variables(&[constant]), BTreeSet::new());
+    }
+
+    /// A choice's option with `\V[n]`, which `choice_boxes` writes like a
+    /// message's line.
+    #[test]
+    fn a_choice_option_names_its_text_variables() {
+        let option = Command::new(SHOW_CHOICE_OPTION, 1, "Pay \\V[12]", vec![0]);
+        assert_eq!(command_variables(&[option]), BTreeSet::from([12]));
     }
 }
