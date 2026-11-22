@@ -69,8 +69,8 @@ cartridges *args: game
 test *args: cartridges
   pytest tests {{args}}
 
-# The meadow's hub —the guide's signpost and the tester's board, the last
-# two events of `src/maps/Map0001.json`— written again from `hub.toml` and
+# The meadow's hub —the guide's signpost, the tester's board and the
+# shelf of cases, the last three events of `src/maps/Map0001.json`— written again from `hub.toml` and
 # `tester/`: after adding a case or a map, or changing their menus.
 # `tests/test_hub.py` is red while the map says something else.
 #

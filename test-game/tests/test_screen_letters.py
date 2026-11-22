@@ -11,8 +11,10 @@ write. See the book's divergence "Letters the font does not have".
 Actor 4 is Zoë Peña: the `ñ` is a box's letter too —common event 4, the
 plain letters' box—, and the `ë` only the screens write. Item 2 is the
 Poción Ácida, `ó` and `Á` only the screens', and its description has `¡`,
-a box's, and `á`, the screens'. Enemy 1, the Avispón, an `ó`. Each case
-puts Zoë alone in the party and gives her three potions:
+a box's, and `á`, the screens'. Enemy 1, the Avispón, an `ó`. Each case,
+from the tester's "Letters", puts Zoë alone in the party and gives her
+three potions —and she carries the Way Home the tester hands out, which
+the item lists show too—:
 
 * `screen-letters` says "\\N[0] is here.", and then the menu's items
   screen is opened. **The box is the test that goes red without
@@ -29,7 +31,9 @@ The goldens are what RPG Maker 2000 shows with the same database: the
 letters with their accents.
 """
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, golden
+
+from play import playing
 
 
 def shown(sess):
@@ -43,7 +47,7 @@ def shown(sess):
 
 
 def test_a_name_in_a_box_and_the_items_screen(core):
-    sess = Session(core, case="screen-letters")
+    sess = playing(core, "screen-letters")
     shown(sess)
     golden("screen-letters-name", sess.image(), core)
     sess.press("a")
@@ -57,7 +61,7 @@ def test_a_name_in_a_box_and_the_items_screen(core):
 
 
 def test_the_shop(core):
-    sess = Session(core, case="screen-letters-shop")
+    sess = playing(core, "screen-letters-shop")
     sess.screen_up()
     sess.choose("a")                    # Buy
     sess.console.run(30)
@@ -65,7 +69,7 @@ def test_the_shop(core):
 
 
 def test_the_battle(core):
-    sess = Session(core, case="screen-letters-battle")
+    sess = playing(core, "screen-letters-battle")
     for _ in range(1200):
         if sess.byte("menu_open") and sess.byte("BA_MODE") == sess.symbol("BA_M_COMMAND"):
             break

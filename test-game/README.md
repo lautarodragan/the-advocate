@@ -83,9 +83,11 @@ the game starts:
   map —the lookout twice, once with its dispatcher on—, landing where its
   tests land;
 * **the tester**, the board right below the hero, who faces it on boot: the
-  cases, grouped —boxes, variables, events, maps, hero and keys— four
-  options a menu, the last one "More" when there are more. A case runs
-  there, with the hero on the start cell, as the harness ran it at boot;
+  cases, grouped —boxes, variables, events, maps, hero and keys,
+  letters— four options a menu, the last one "More" when there are more.
+  A case runs there, with the hero on the start cell, as the harness ran
+  it at boot: the board calls its page on the shelf, an event with no
+  graphic in the top left corner's bush;
   `branch-switched` is `branch` with its switch on;
 * **the Way Home**, an item both hand out, which brings the hero back to
   the meadow from anywhere: the pause menu, then the items;
