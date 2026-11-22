@@ -93,6 +93,11 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             if p[3] != 0 {
                 ids.insert(p[4]);
             }
+        } else if code == CHANGE_GOLD && p.len() >= 3 && p[1] == 1 {
+            // The amount by a variable, since 2026-11-22: OP_GOLD compiles
+            // it with `GOLD_BY_VARIABLE`, and until then a variable only
+            // this command named had no slot and its page was skipped.
+            ids.insert(p[2]);
         } else if matches!(code, CHANGE_MONSTER_HP | CHANGE_MONSTER_MP) && p.len() >= 4 && p[2] == 1
         {
             ids.insert(p[3]);
@@ -963,5 +968,16 @@ mod tests {
         assert_eq!(switch_top(&game, &[], &BTreeSet::new()).unwrap(), 2047);
         game.database_switches.insert(SWITCH_TABLE_MAX);
         assert!(switch_top(&game, &[], &BTreeSet::new()).is_err());
+    }
+
+    /// `ChangeGold` by a variable —`[1]` at 1, the variable in `[2]`— names
+    /// it, like `ChangeItems`: it compiles as OP_GOLD with
+    /// `GOLD_BY_VARIABLE`, and a variable no other command names had no
+    /// slot, so the page was skipped whole. A constant names nothing.
+    #[test]
+    fn change_gold_by_a_variable_names_its_variable() {
+        let gold = |by: i32, value: i32| Command::new(CHANGE_GOLD, 0, "", vec![0, by, value]);
+        assert_eq!(command_variables(&[gold(1, 999)]), BTreeSet::from([999]));
+        assert_eq!(command_variables(&[gold(0, 999)]), BTreeSet::new());
     }
 }
