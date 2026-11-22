@@ -177,6 +177,12 @@ fn everything_a_cartridge_carries() {
     assert_eq!(inks.remove("icons"), Some(Value::from(Vec::<Value>::new())));
     inks.remove("advances");
     inks.remove("reach");
+    // The letters the text screens reach, since 2026-11-22: none here.
+    let font = answer["font"].as_object_mut().unwrap();
+    assert_eq!(
+        font.remove("screen_letters"),
+        Some(Value::from(Vec::<Value>::new()))
+    );
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()
