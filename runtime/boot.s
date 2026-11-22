@@ -716,6 +716,10 @@ call0_rtl:
 .proc count_lost
 .a8
 .i16
+    ; First, what is left of the frame goes to the package's waiting sound
+    ; effects: this is the end of the iteration. Here and not in the main
+    ; loop, whose `bra loop` has no byte to spare in Sunset's build.
+    jsl f:package_idle_l
     lda boot_frames
     sec
     sbc nmi_seen

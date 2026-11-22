@@ -509,6 +509,10 @@ has:
     bne has_effect
     jmp ready         ; there is no effect
 has_effect:
+    ; If the map's package left its sample waiting, it goes up now —see
+    ; `upload_placed`—, before asking whether it is there: a seek in the
+    ; `.msu` that does not arrive in time leaves it out.
+    jsl f:effect_now_l
     ; And only if its sample is in ARAM: the map's package may not have
     ; uploaded it. See `package_load`.
     phx

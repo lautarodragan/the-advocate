@@ -62,13 +62,23 @@ PKG_PENDING: .res 1             ; 1 while samples marked 3 wait
 ; The package `package_load_done` loaded last: `song_ensure` rebuilds that
 ; one, which in a battle is the battle's and not `map_current`'s.
 PKG_LOADED:  .res 2
-PKG_TIMED:   .res 1             ; 1 if `pump` stops at PUMP_LINE, 2 at PKG_GOAL
+PKG_TIMED:   .res 1             ; 1 if `pump` stops at PUMP_LINE, 2 at PKG_GOAL,
+                                ; 3 as 1 but nothing inside the vblank
 PKG_GOAL:    .res 2             ; bytes `package_settle` wants up now
 PKG_DONE:    .res 2             ; and the bytes that went up since
 PKG_CAP:     .res 1             ; how many triplets a block may take
 PKG_CUR:     .res 1             ; the sample `pump` is on
 PKG_SCAN:    .res 2             ; where it looks for the next one
 PKG_OFS:     .res 2             ; how far it went into it, or $FFFF
+; 1 if PKG_LOADED is in ARAM whole —nothing left out, no extra song—: the
+; same package again uploads nothing. See `package_load_done`.
+PKG_WHOLE:   .res 1
+; 1 if the package's sound effects may wait past its load, and the package
+; that left them so: see `upload_placed`.
+PKG_LAZY:    .res 1
+PKG_LAZY_MAP: .res 2
+; 1 while `pump` uploads only the music: the entries below SE_FIRST.
+PKG_MUSIC:   .res 1
 .popseg
 .pushseg
 .segment "FARBSS"
@@ -88,6 +98,9 @@ INT_END: .res $100           ; and where it ends
     sta f:PKG_PARTIAL
     sta f:PKG_PENDING           ; nothing waits —the WRAM starts with garbage
     sta f:LOAD_DEFER            ; on the console and on bsnes—
+    sta f:PKG_WHOLE
+    sta f:PKG_LAZY
+    sta f:PKG_MUSIC
     lda #$FF
     sta f:PKG_EXTRA
     rep #$20
@@ -525,6 +538,23 @@ ran:
 ; complete: see `package_finish`. The ARAM and the directory end up the same,
 ; only sooner on the wall clock. Measured on 2026-10-18, the uploads were
 ; most of a load's frames inside the black.
+;
+; **And a teleport's sound effects wait past the fade**, `PKG_LAZY`: the
+; fade ends when the music is up, and the effects go up in the idle end of
+; the game's ticks —`package_idle_l`—, or whole the moment one is asked for
+; —`effect_now_l`, from `sound_play`—. A map is on screen for many ticks and
+; plays few of its effects, if any. The case is The Frozen World's battle,
+; whose every turn jumps from the command grid, map 3, to the battle, map 1,
+; and back: the two packages do not fit in ARAM together in any way —not
+; even with the `.msu`'s versions—, and each jump uploaded the other's
+; effects whole, in the black, some 48 and 17 frames without MSU-1 and 60
+; and 86 with it, for one or two effects played per turn. Measured on
+; 2026-11-22: see tasks/frozen-world-every-turn-re-uploads-the-battle-screens-audio.md.
+; Every package load lets go of what the previous one left waiting —see
+; `package_drop`—; a `PlayBGM` that rebuilds the same package with its song
+; first places its effects again and they keep waiting, and any other load
+; outside a fade —the battle's, the boot's, a save's— uploads everything
+; at once, as before.
 .proc upload_placed
 .a8
 .i16
@@ -545,15 +575,57 @@ later:
     rts
 .endproc
 
-; Whatever the package still has waiting, now and whole. Before anything that
-; reads `FAR_ARAM_OF` as "it is in the ARAM" —a new package, the end of the
-; fade—.
+; Whatever the package still has waiting, now and whole —only its music if
+; its sound effects may wait, `PKG_LAZY`—. Before anything that reads
+; `FAR_ARAM_OF` of a song as "it is in the ARAM" —the end of the fade—.
 .proc package_finish
 .a8
 .i16
     lda #0
     sta f:PKG_TIMED
+    lda f:PKG_LAZY
+    sta f:PKG_MUSIC
     jsl f:pump_l
+    lda #0
+    sta f:PKG_MUSIC
+    rts
+.endproc
+
+; What the previous package left waiting is let go, not uploaded: it was
+; never in ARAM, and the new one places what it wants again. Not gated on
+; `PKG_PENDING`, which `pump` clears when its scan ends even if it skipped
+; sound effects from the `.msu` —those go up only when asked for—.
+.proc package_drop
+.a8
+.i16
+    ldx #0
+other:
+    lda f:FAR_WANTS, x
+    cmp #3
+    bne next
+    phx
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda #0
+    sta f:FAR_ARAM_OF, x
+    sep #$20
+.a8
+    plx
+next:
+    inx
+    cpx #SAMPLES_N
+    bcc other
+    lda #0
+    sta f:PKG_PENDING
+    rep #$20
+.a16
+    lda #$FFFF
+    sta f:PKG_OFS
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -609,7 +681,12 @@ some:
 .a8
     lda #2
     sta f:PKG_TIMED
-    jmp pump
+    lda #1
+    sta f:PKG_MUSIC
+    jsr pump
+    lda #0
+    sta f:PKG_MUSIC
+    rts
 .a16
 fits:
     sep #$20
@@ -621,7 +698,8 @@ fits:
 ; the `.msu`, samples spilled into it—, all of them now: one of those in a
 ; tick of the ramp would overrun it and hold a step of the brightness for a
 ; frame, which in the black does not show. The one half uploaded, if any,
-; is not one of them.
+; is not one of them. **Only the music's**: a teleport's sound effects wait
+; past the fade, see `upload_placed`.
 .proc whole_ones
 .a8
 .i16
@@ -631,6 +709,10 @@ fits:
     sep #$20
 .a8
 other:
+    cpx #SE_FIRST
+    bcc music
+    rts
+music:
     lda f:FAR_WANTS, x
     cmp #3
     bne next
@@ -687,8 +769,8 @@ next:
 .endproc
 
 ; The bytes still waiting, in PKG_GOAL: the marked samples' lengths, minus
-; what the one half uploaded already took. A sound effect from the `.msu`
-; counts its length in the cartridge's table, which is close enough.
+; what the one half uploaded already took. **Only the music's**: a
+; teleport's sound effects wait past the fade, see `upload_placed`.
 .proc pending_bytes
 .a8
 .i16
@@ -720,8 +802,11 @@ sum:
     plx
 next:
     inx
-    cpx #SAMPLES_N
+    cpx #SE_FIRST
     bcc other
+    lda f:PKG_CUR
+    cmp #SE_FIRST
+    bcs half_effect             ; the one half uploaded is an effect: not counted
     rep #$20
 .a16
     lda f:PKG_OFS
@@ -732,6 +817,7 @@ next:
     sbc f:PKG_OFS
     sta f:PKG_GOAL
 done:
+half_effect:
     sep #$20
 .a8
     rts
@@ -778,7 +864,7 @@ timed:
     rep #$20
 .a16
     cmp #225
-    bcs whole
+    bcs vblank
     cmp #PUMP_LINE
     bcs none
     cmp #IRQ_LINE
@@ -797,6 +883,17 @@ before_irq:
 capped:
     cmp #85
     bcc fits
+    bra whole
+vblank:
+    ; At the end of a game's tick —3, `package_idle_l`— the vblank is the
+    ; tick that overran, not one that starts: nothing.
+    sep #$20
+.a8
+    lda f:PKG_TIMED
+    cmp #3
+    beq none
+    rep #$20
+.a16
 whole:
     lda #85
 fits:
@@ -814,8 +911,10 @@ none:
 ; The marked samples, in directory order and block by block, while
 ; `pump_room` gives room. `PKG_SCAN` is where the search for the next one
 ; goes on and `PKG_OFS` how far the one in progress went; each one that is
-; complete gets its directory entry and goes from 3 to 1. Sound effects
-; from the `.msu` and samples spilled into it go up whole, as before.
+; complete gets its directory entry and goes from 3 to 1. Samples spilled
+; into the `.msu` go up whole, as before; its sound effects too when the pump
+; is not timed, and in pieces when it is —`se_msu_chunk`—, so the idle end
+; of a tick takes them as it takes the cartridge's.
 .proc pump
 .a8
 .i16
@@ -829,7 +928,14 @@ next:
     cmp #$FFFF
     sep #$20
 .a8
-    bne block                   ; one is half uploaded
+    beq scan
+    lda f:PKG_MUSIC             ; one is half uploaded: on with it, unless
+    beq block                   ; only the music goes and it is an effect
+    lda f:PKG_CUR
+    cmp #SE_FIRST
+    bcc block
+    rts
+scan:
     rep #$20
 .a16
     lda f:PKG_SCAN
@@ -842,6 +948,7 @@ find:
     lda f:FAR_WANTS, x
     cmp #3
     beq found
+other:
     inx
     bra find
 all_done:
@@ -849,6 +956,14 @@ all_done:
     sta f:PKG_PENDING
     rts
 found:
+    ; The sound effects wait if only the music goes —the scan goes in
+    ; directory order, so the music is all behind it—. See `upload_placed`.
+    cpx #SE_FIRST
+    bcc not_effect
+    lda f:PKG_MUSIC
+    beq not_effect
+    rts
+not_effect:
     jsr pump_room
     bne room
     rts
@@ -863,8 +978,11 @@ room:
     sep #$20
 .a8
     jsr pump_load
+    lda f:PKG_TIMED
+    bne by_pieces               ; timed, a `.msu` effect goes up in pieces too
     jsl se_msu_upload           ; a sound effect from the `.msu`: see msu_effects.s
     bcs complete
+by_pieces:
     rep #$20
 .a16
     lda #0
@@ -884,6 +1002,14 @@ block_room:
     tay
     sep #$20
 .a8
+    jsl se_msu_chunk            ; a piece of a `.msu` effect, if it is one
+    bcc from_rom
+    pha
+    jsr pump_count
+    pla
+    bne complete                ; goombario: pull-branch: A is `se_msu_chunk`'s answer, 1 if the effect is whole with its directory entry
+    jmp next
+from_rom:
     jsl f:sample_block_l
     bcs whole
     jsr pump_count
@@ -981,7 +1107,11 @@ last_black:
     lda #0
     sta f:LOAD_DEFER
     sta f:PKG_TIMED             ; `package_finish`, from this bank
+    lda f:PKG_LAZY
+    sta f:PKG_MUSIC             ; a teleport's sound effects wait
     jsr pump
+    lda #0
+    sta f:PKG_MUSIC
     pla
     rtl
 .endproc
@@ -1019,6 +1149,61 @@ next:
     bra other
 none:
     pla
+    rtl
+.endproc
+
+; The sample of the effect on row X of `sound_table`, if a teleport's
+; package left it waiting, uploaded whole now: `sound_play` asks before
+; starting it, with interrupts still on —each block holds them back, so
+; the music's IRQ waits for one block and not for the whole sample—. It is
+; the moment a waiting effect costs: a few frames with the music going on,
+; and only for the effects that play. See `upload_placed`. Keeps A, X, Y
+; and the widths.
+.proc effect_now_l
+.a8
+.i16
+    php
+    sep #$20
+.a8
+    pha
+    phx
+    phy
+    lda f:sound_table, x        ; its sample
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:FAR_WANTS, x
+    cmp #3
+    bne ready
+    txa
+    jsr upload_one
+ready:
+    ply
+    plx
+    pla
+    plp
+    rtl
+.endproc
+
+; At the end of each of the game's ticks, from the main loop: the package's
+; waiting sound effects, block by block, in what is left of the frame
+; before PUMP_LINE —`PKG_TIMED` 3—. Inside a fade, the fade's own ticks do
+; it, `package_pump_l`. With nothing waiting it costs a comparison. See
+; `upload_placed`.
+.proc package_idle_l
+.a8
+.i16
+    lda f:PKG_PENDING
+    beq none
+    lda f:fade
+    bne none
+    lda #3
+    sta f:PKG_TIMED
+    jsr pump
+none:
     rtl
 .endproc
 
@@ -1301,13 +1486,54 @@ ready:
     bne ready_apu
     rts                         ; at reset, before the driver runs
 ready_apu:
-    ; What the previous one left waiting goes up first: what follows takes
-    ; `FAR_ARAM_OF` as "it is in the ARAM". Outside a fade nothing is ever
-    ; left waiting; see `upload_placed`.
-    jsr package_finish
+    ; **The package that is already in ARAM, whole, uploads nothing**: a
+    ; teleport within the same map. Without MSU-1 the rest of this would
+    ; upload nothing either, only take its time; with the `.msu`'s sound
+    ; effects, `se_msu_prepare` forgets them all and they went up again.
+    ; Not with an extra song, which has to go first, nor after a package
+    ; left something out: see `PKG_WHOLE`.
+    lda f:PKG_WHOLE
+    beq load
+    lda f:PKG_EXTRA
+    cmp #$FF
+    bne load
     rep #$20
 .a16
     lda f:PKG_MAP
+    cmp f:PKG_LOADED
+    sep #$20
+.a8
+    bne load
+    rts
+load:
+    lda #0
+    sta f:PKG_WHOLE
+    ; What the previous one left waiting is let go: it was never in ARAM.
+    ; See `package_drop`.
+    jsr package_drop
+    ; Its sound effects may wait if it is a teleport's, or the same package
+    ; again while it is so: see `upload_placed`.
+    lda f:LOAD_DEFER
+    bne lazy
+    lda f:PKG_LAZY
+    beq lazy_set
+    rep #$20
+.a16
+    lda f:PKG_MAP
+    cmp f:PKG_LAZY_MAP
+    sep #$20
+.a8
+    beq lazy
+    lda #0
+    bra lazy_set
+lazy:
+    lda #1
+lazy_set:
+    sta f:PKG_LAZY
+    rep #$20
+.a16
+    lda f:PKG_MAP
+    sta f:PKG_LAZY_MAP
     sta f:PKG_LOADED
     sep #$20
 .a8
@@ -1593,7 +1819,18 @@ upload:
 partial:
     lda #1
     sta f:PKG_PARTIAL
+    rts
 ready:
+    ; Whole, if nothing was left out and no extra song went first: the same
+    ; package again has nothing to upload.
+    lda f:PKG_PARTIAL
+    bne not_whole
+    lda f:PKG_EXTRA
+    cmp #$FF
+    bne not_whole
+    lda #1
+    sta f:PKG_WHOLE
+not_whole:
     rts
 .endproc
 

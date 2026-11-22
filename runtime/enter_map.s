@@ -510,14 +510,14 @@ ramp:
     lda #1                      ; the game stays frozen
     rts
 cut_in:
-    jsl f:package_finish_l      ; the fade ends: nothing may be left waiting
+    jsl f:package_finish_l      ; the fade ends: no music may be left waiting
     sta brightness
     pla
     stz fade
     lda #1                      ; this tick, the load's, stays frozen
     rts
 finish:
-    jsl f:package_finish_l      ; the fade ends: nothing may be left waiting
+    jsl f:package_finish_l      ; the fade ends: no music may be left waiting
     stz fade
     lda #BRIGHTNESS_MAX
     sta brightness
