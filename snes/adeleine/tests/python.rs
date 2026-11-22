@@ -2,10 +2,12 @@
 //!
 //! Each case builds its colours and tiles with a small generator, runs them
 //! through the library and hashes the answer as the executable writes it.
-//! The merge and pack hashes are those of the same answer from the Python
-//! version, fed the same generator on 2026-09-29. Reduction deliberately
-//! differs: its hashes freeze the grouped result. A case that changes hash
-//! changed what some picture looks like.
+//! The merge hashes are those of the same answer from the Python version,
+//! fed the same generator on 2026-09-29, and so were the pack ones until
+//! 2026-11-22, when `try_pack` started doing what its comment always said
+//! and putting each tile in the group that grows the least. Reduction and
+//! packing deliberately differ: their hashes freeze our result. A case that
+//! changes hash changed what some picture looks like.
 
 use adeleine::request::{merged_answer, packed_answer, reduced_answer};
 use adeleine::{
@@ -148,12 +150,13 @@ fn fewer_colours_than_kept_merge_nothing() {
 }
 
 /// Forty tiles of one to eight colours, with many the same size: the order
-/// among those is the colours'.
+/// among those is the colours'. Five palettes, before and after growing
+/// least; only which tile goes where moved.
 #[test]
 fn tiles_into_eight_palettes() {
     assert_eq!(
         pack(11, 24, 40, 8, 8),
-        "a68d73741b785abcda1bf066c77c18f234f5bd6662a233a2e8654abe1056ae06"
+        "ba1d288accf7d53a4f200e9de5ddb332681037fad58d7119706d53665f4cfab6"
     );
 }
 
