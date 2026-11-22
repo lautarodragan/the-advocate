@@ -1409,6 +1409,19 @@ pub fn run(options: Options) -> Result<()> {
         // And the debug screen, which shows every variable by its slot.
         "debug": options.debug_screen,
     });
+    // The battle terms the project gives over the database's, if any: a
+    // knob at rest when missing. See `battle_term` in the mapdata stage.
+    let battle_terms = match project
+        .settings()
+        .get("battle")
+        .and_then(|b| b.get("terms"))
+    {
+        Some(_) => settings.table(&["battle", "terms"])?,
+        None => json!({}),
+    };
+    let renames: Vec<String> = indices.names.iter().map(|(_, n)| n.clone()).collect();
+    let screen_letters =
+        crate::letters::screen_letters(&game.dump, &font.font, &battle_terms, &renames)?;
     let screens_answer = screens::convert(
         &game,
         &font,
@@ -1419,6 +1432,7 @@ pub fn run(options: Options) -> Result<()> {
         window_colors,
         &window_answer["text_rows"],
         &compiled["messages"]["letters"],
+        &screen_letters,
     )?;
     for loss in screens_answer["losses"].as_array().into_iter().flatten() {
         degradations.cartridge(
@@ -1715,6 +1729,9 @@ pub fn run(options: Options) -> Result<()> {
             "actors": members, "troops": troops.ids, "items": items_all,
             "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
             "item_name_width": layout["ITEM_NAME_WIDTH"],
+            // The letters the text screens carry: an item's name in a
+            // victory line keeps them.
+            "letters": screens_answer["font"]["screen_letters"],
             "font": font.spec, "letter_spacing": font.spacing,
             "exfont": font.request()["exfont"],
         }),
@@ -1951,14 +1968,7 @@ pub fn run(options: Options) -> Result<()> {
     request["gold_maps"] = json!(gold_maps);
     // The battle terms the project gives over the database's, if any: a
     // knob at rest when missing. See `battle_term` in the mapdata stage.
-    request["battle_terms"] = match project
-        .settings()
-        .get("battle")
-        .and_then(|b| b.get("terms"))
-    {
-        Some(_) => settings.table(&["battle", "terms"])?,
-        None => json!({}),
-    };
+    request["battle_terms"] = battle_terms;
     let emitted = emit::emit(&output, &request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",

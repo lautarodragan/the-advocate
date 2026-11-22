@@ -340,6 +340,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         gold_max,
         &drop_texts,
         name_width,
+        &letters_of(request)?,
         game_font.as_ref(),
     )?;
 
@@ -609,6 +610,7 @@ pub fn lines(db: &Db, request: &Value) -> Result<Value> {
                 db,
                 &db.item(arg(1)? as i32)?.name,
                 name_width,
+                &letters_of(request)?,
             )],
             "level" => vec![screen::level_line(
                 db,
@@ -748,6 +750,27 @@ pub fn field_skill(db: &Db, request: &Value) -> Result<Value> {
 /// The game's font, if the request names it —`font` and `letter_spacing`,
 /// as the screens stage takes them—, with the icons of the ExFont's sheet
 /// when it names one, `exfont`.
+/// `letters`, the Latin-1 letters the cartridge carries for the text
+/// screens —the screens stage's `screen_letters`—: none if it is missing,
+/// and then an item's name is its plain stand-ins, as until 2026-11-22.
+fn letters_of(request: &Value) -> Result<Vec<char>> {
+    let Some(v) = request.get("letters").filter(|v| !v.is_null()) else {
+        return Ok(Vec::new());
+    };
+    let bad = || Bad::answer(format!("`letters` is not a list of letters: {v}"));
+    v.as_array()
+        .ok_or_else(bad)?
+        .iter()
+        .map(|l| {
+            let mut chars = l.as_str().unwrap_or("").chars();
+            match (chars.next(), chars.next()) {
+                (Some(c), None) => Ok(c),
+                _ => Err(bad()),
+            }
+        })
+        .collect()
+}
+
 fn font_of(request: &Value) -> Result<Option<Font>> {
     let Some(spec) = request.get("font") else {
         return Ok(None);

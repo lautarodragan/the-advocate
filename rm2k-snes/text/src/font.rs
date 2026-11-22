@@ -59,6 +59,14 @@ pub const CONSOLE_GLYPHS: usize = GLYPHS + 1;
 /// and in a text it is Unicode's figure space.
 pub const FIGURE_BLANK: char = '\u{2007}';
 
+/// How many of the font's glyphs a text screen reaches: a screen's byte is
+/// its glyph plus 32 —`tl_text_at` and the runtime's other readers of the
+/// text block subtract the space—, and a byte stops at 255. A Latin-1
+/// letter the cartridge carries past this one is shown on the screens as
+/// its plain stand-in —see [`crate::plain`]—; the boxes, which name their
+/// letters another way, still draw it.
+pub const SCREEN_GLYPHS: usize = 256 - FIRST as usize;
+
 /// The widest a glyph's ink can be in a font for the console's low
 /// resolution: with its shadow one pixel further, that is nine columns,
 /// and from any of a cell's eight starting columns it still touches two

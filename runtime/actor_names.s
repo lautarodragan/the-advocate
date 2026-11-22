@@ -319,6 +319,20 @@ more:
     lda [msg_ptr], y
     sec
     sbc #' '                    ; the font is the ASCII minus 32
+.if .defined(::FONT_SCREEN_LETTERS)
+    ; The name is the text screens' text, and a Latin-1 letter there is its
+    ; glyph, `FONT_LETTERS_AT` + k; the composer takes the window's letter
+    ; k as 96 + k and moves it there itself —`compose_char`—. Without this
+    ; a name's letter lands that many glyphs further on: Unamë's `ë` drew
+    ; another letter, and nothing failed. A name carries no icon, the
+    ; glyphs between. A cartridge whose screens carry no letter has no
+    ; `FONT_SCREEN_LETTERS`: its names have none past the icons, and it is
+    ; what it was before the screens drew letters.
+    cmp #FONT_LETTERS_AT
+    bcc not_a_letter
+    sbc #(FONT_LETTERS_AT - FONT_CONSOLE_GLYPHS) ; the carry is set
+not_a_letter:
+.endif
     pha
     rep #$20
 .a16
