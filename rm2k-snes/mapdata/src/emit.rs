@@ -298,6 +298,17 @@ fn plain(text: &str) -> String {
     rm2k_snes_text::plain::plain_text(text).0
 }
 
+/// A text of the database's for the battle's lists and messages —a
+/// skill's name, description and using messages, an enemy's name, a
+/// condition's—: [`plain`]'s stand-ins, but **with its ExFont icons**,
+/// which [`Texts::add`] writes when the screens' tables carry them —
+/// Zounds' `$LLátigo de Seda`, its icon and `Latigo de Seda`—, as
+/// `item_text` does in the screens stage. Until 2026-11-22 these went to
+/// [`Texts::add`] raw, and every accent was a `?`.
+fn db_text(text: &str) -> String {
+    rm2k_snes_text::plain::plain_text_but(text, rm2k_snes_text::exfont::is_half).0
+}
+
 /// A name on the actor choice's line on top, as the screens stage stored
 /// it —`target_text`, its letters already the console's and its ExFont
 /// icons as halves—: its bytes, `width` of them. A half goes as the text
@@ -349,7 +360,8 @@ impl Texts {
     /// What the text screens' font can write: the characters it has, a `?`
     /// for the others, cut to `width` —`item_text` in the screens stage—.
     /// What comes from the screens stage has its plain letters stood in
-    /// already; what comes from the database goes through [`plain`] first.
+    /// already; what comes from the database goes through [`plain`] first,
+    /// or [`db_text`] where its icons are drawn.
     ///
     /// An ExFont icon —a code of the database's, or the halves the screens
     /// stage left— goes as its two halves' bytes, the text layer's glyph
@@ -2876,14 +2888,17 @@ impl Rest<'_> {
             battle_text.get_or_insert(k);
         }
         let battle_text = battle_text.unwrap_or(0);
-        let revived_text = texts.add(text_at(mtexts, "revived")?);
-        let dead_text = texts.add(text_at(mtexts, "dead")?);
-        let victory2_text = texts.add(victory.get(1).map_or("", String::as_str));
+        let revived_text = texts.add(&db_text(text_at(mtexts, "revived")?));
+        let dead_text = texts.add(&db_text(text_at(mtexts, "dead")?));
+        let victory2_text = texts.add(&db_text(victory.get(1).map_or("", String::as_str)));
         let rom_enemies = ints_at(model, "enemies")?;
         let enemy_names = at(mtexts, "enemies")?;
         let mut enemy_text = HashMap::new();
         for &e in &rom_enemies {
-            enemy_text.insert(e, texts.add(text_at(enemy_names, &e.to_string())?));
+            enemy_text.insert(
+                e,
+                texts.add(&db_text(text_at(enemy_names, &e.to_string())?)),
+            );
         }
         let actions = at(model, "actions")?;
         let rom_skills = ints_at(model, "skills")?;
@@ -2892,14 +2907,17 @@ impl Rest<'_> {
         for &h in &rom_skills {
             skill_text.insert(
                 h,
-                texts.add(text_at(at(skill_texts, &h.to_string())?, "name")?),
+                texts.add(&db_text(text_at(at(skill_texts, &h.to_string())?, "name")?)),
             );
         }
         let mut skill_desc_text = HashMap::new();
         for &h in &rom_skills {
             skill_desc_text.insert(
                 h,
-                texts.add(text_at(at(skill_texts, &h.to_string())?, "description")?),
+                texts.add(&db_text(text_at(
+                    at(skill_texts, &h.to_string())?,
+                    "description",
+                )?)),
             );
         }
         // An item's description whole, for the battle's help window, which
@@ -2935,15 +2953,15 @@ impl Rest<'_> {
         let taught = ints_at(model, "taught")?;
         let mut whole_skill_text = HashMap::new();
         for &h in &taught {
-            whole_skill_text.insert(h, texts.add(&skill(h)?.name));
+            whole_skill_text.insert(h, texts.add(&db_text(&skill(h)?.name)));
         }
         let mut skill_msg1_text = HashMap::new();
         for &h in &rom_skills {
-            skill_msg1_text.insert(h, texts.add(&skill(h)?.using_message1));
+            skill_msg1_text.insert(h, texts.add(&db_text(&skill(h)?.using_message1)));
         }
         let mut skill_msg2_text = HashMap::new();
         for &h in &rom_skills {
-            skill_msg2_text.insert(h, texts.add(&skill(h)?.using_message2));
+            skill_msg2_text.insert(h, texts.add(&db_text(&skill(h)?.using_message2)));
         }
         let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
@@ -2978,13 +2996,13 @@ impl Rest<'_> {
                 (&st.message_already, &mut state_already_text),
             ] {
                 if !message.is_empty() {
-                    out[k] = texts.add(message);
+                    out[k] = texts.add(&db_text(message));
                 }
             }
         }
         // The skills screen's level term, since 2026-10-12: after the
         // conditions', for the same reason they go last.
-        let level_text = texts.add(&term(db, "lvl_short")?);
+        let level_text = texts.add(&db_text(&term(db, "lvl_short")?));
         out.push_str(&format!("SK_TXT_LEVEL = {level_text}\n"));
         // And the terms of a skill's result lines, since 2026-10-20: after
         // that, for the same reason, and one after the other —see
@@ -5862,5 +5880,24 @@ mod tests {
             );
             assert!(stand_in.chars().all(|c| (' '..='~').contains(&c)), "{name}");
         }
+    }
+
+    /// Zounds' skills, `L?tigo de Seda` in the battle until 2026-11-22: a
+    /// database text keeps its icon and stands its accents in.
+    #[test]
+    fn a_database_text_stands_its_accents_in_and_keeps_its_icons() {
+        let mut texts = Texts {
+            data: Vec::new(),
+            offsets: Vec::new(),
+            first: 32,
+            count: 95,
+            icons: vec![rm2k_snes_text::exfont::icon_of_letter('L').unwrap()],
+        };
+        let k = texts.add(&db_text("$LL\u{e1}tigo de Seda")) as usize;
+        let (at, len) = texts.offsets[k];
+        let bytes = &texts.data[at..at + len];
+        let icon = ICON_CODE_FIRST as u8;
+        assert_eq!(bytes[..2], [icon, icon + 1]);
+        assert_eq!(&bytes[2..], b"Latigo de Seda");
     }
 }
