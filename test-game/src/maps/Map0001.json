@@ -406,7 +406,7 @@
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 23]},
             {"code": "END", "indent": 3},
             {"code": "ShowChoiceOption", "indent": 2, "string": "More", "parameters": [3]},
-            {"code": "ShowChoice", "indent": 3, "string": "parallel-teleport/tileset/missing-teleport", "parameters": [5]},
+            {"code": "ShowChoice", "indent": 3, "string": "parallel-teleport/tileset/missing-teleport/teleport-mid-step", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 3, "string": "parallel-teleport", "parameters": [0]},
             {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 24]},
             {"code": "END", "indent": 4},
@@ -415,6 +415,9 @@
             {"code": "END", "indent": 4},
             {"code": "ShowChoiceOption", "indent": 3, "string": "missing-teleport", "parameters": [2]},
             {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 26]},
+            {"code": "END", "indent": 4},
+            {"code": "ShowChoiceOption", "indent": 3, "string": "teleport-mid-step", "parameters": [3]},
+            {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 27]},
             {"code": "END", "indent": 4},
             {"code": "ShowChoiceOption", "indent": 3, "string": "", "parameters": [4]},
             {"code": "END", "indent": 4},
@@ -433,57 +436,57 @@
             {"code": "ShowChoiceOption", "indent": 1, "string": "Maps", "parameters": [0]},
             {"code": "ShowChoice", "indent": 2, "string": "garden/showcase/empty-map/More", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 2, "string": "garden", "parameters": [0]},
-            {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 27]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "string": "showcase", "parameters": [1]},
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 28]},
             {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "string": "empty-map", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 2, "string": "showcase", "parameters": [1]},
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 29]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceOption", "indent": 2, "string": "empty-map", "parameters": [2]},
+            {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 30]},
             {"code": "END", "indent": 3},
             {"code": "ShowChoiceOption", "indent": 2, "string": "More", "parameters": [3]},
             {"code": "ShowChoice", "indent": 3, "string": "lantern/big-narrow-map/map-left-out/More", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 3, "string": "lantern", "parameters": [0]},
-            {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 30]},
-            {"code": "END", "indent": 4},
-            {"code": "ShowChoiceOption", "indent": 3, "string": "big-narrow-map", "parameters": [1]},
             {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 31]},
             {"code": "END", "indent": 4},
-            {"code": "ShowChoiceOption", "indent": 3, "string": "map-left-out", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 3, "string": "big-narrow-map", "parameters": [1]},
             {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 32]},
+            {"code": "END", "indent": 4},
+            {"code": "ShowChoiceOption", "indent": 3, "string": "map-left-out", "parameters": [2]},
+            {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 33]},
             {"code": "END", "indent": 4},
             {"code": "ShowChoiceOption", "indent": 3, "string": "More", "parameters": [3]},
             {"code": "ShowChoice", "indent": 4, "string": "ring/panorama-swap/terrain/More", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 4, "string": "ring", "parameters": [0]},
-            {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 33]},
-            {"code": "END", "indent": 5},
-            {"code": "ShowChoiceOption", "indent": 4, "string": "panorama-swap", "parameters": [1]},
             {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 34]},
             {"code": "END", "indent": 5},
-            {"code": "ShowChoiceOption", "indent": 4, "string": "terrain", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 4, "string": "panorama-swap", "parameters": [1]},
             {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 35]},
+            {"code": "END", "indent": 5},
+            {"code": "ShowChoiceOption", "indent": 4, "string": "terrain", "parameters": [2]},
+            {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 36]},
             {"code": "END", "indent": 5},
             {"code": "ShowChoiceOption", "indent": 4, "string": "More", "parameters": [3]},
             {"code": "ShowChoice", "indent": 5, "string": "crossing-both/crossing-doorway/crossing-ladder/More", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 5, "string": "crossing-both", "parameters": [0]},
-            {"code": "CallEvent", "indent": 6, "parameters": [1, 13, 36]},
-            {"code": "END", "indent": 6},
-            {"code": "ShowChoiceOption", "indent": 5, "string": "crossing-doorway", "parameters": [1]},
             {"code": "CallEvent", "indent": 6, "parameters": [1, 13, 37]},
             {"code": "END", "indent": 6},
-            {"code": "ShowChoiceOption", "indent": 5, "string": "crossing-ladder", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 5, "string": "crossing-doorway", "parameters": [1]},
             {"code": "CallEvent", "indent": 6, "parameters": [1, 13, 38]},
+            {"code": "END", "indent": 6},
+            {"code": "ShowChoiceOption", "indent": 5, "string": "crossing-ladder", "parameters": [2]},
+            {"code": "CallEvent", "indent": 6, "parameters": [1, 13, 39]},
             {"code": "END", "indent": 6},
             {"code": "ShowChoiceOption", "indent": 5, "string": "More", "parameters": [3]},
             {"code": "ShowChoice", "indent": 6, "string": "crossing-sign/camera-fast/camera-fast-x", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 6, "string": "crossing-sign", "parameters": [0]},
-            {"code": "CallEvent", "indent": 7, "parameters": [1, 13, 39]},
-            {"code": "END", "indent": 7},
-            {"code": "ShowChoiceOption", "indent": 6, "string": "camera-fast", "parameters": [1]},
             {"code": "CallEvent", "indent": 7, "parameters": [1, 13, 40]},
             {"code": "END", "indent": 7},
-            {"code": "ShowChoiceOption", "indent": 6, "string": "camera-fast-x", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 6, "string": "camera-fast", "parameters": [1]},
             {"code": "CallEvent", "indent": 7, "parameters": [1, 13, 41]},
+            {"code": "END", "indent": 7},
+            {"code": "ShowChoiceOption", "indent": 6, "string": "camera-fast-x", "parameters": [2]},
+            {"code": "CallEvent", "indent": 7, "parameters": [1, 13, 42]},
             {"code": "END", "indent": 7},
             {"code": "ShowChoiceOption", "indent": 6, "string": "", "parameters": [4]},
             {"code": "END", "indent": 7},
@@ -508,32 +511,32 @@
             {"code": "ShowChoiceOption", "indent": 1, "string": "Hero and keys", "parameters": [1]},
             {"code": "ShowChoice", "indent": 2, "string": "key-long-form/key-wait-for-a/key-wait-for-all/More", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 2, "string": "key-long-form", "parameters": [0]},
-            {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 42]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "string": "key-wait-for-a", "parameters": [1]},
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 43]},
             {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "string": "key-wait-for-all", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 2, "string": "key-wait-for-a", "parameters": [1]},
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 44]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceOption", "indent": 2, "string": "key-wait-for-all", "parameters": [2]},
+            {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 45]},
             {"code": "END", "indent": 3},
             {"code": "ShowChoiceOption", "indent": 2, "string": "More", "parameters": [3]},
             {"code": "ShowChoice", "indent": 3, "string": "key-wait-for-dir/speed/speed-saved/More", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 3, "string": "key-wait-for-dir", "parameters": [0]},
-            {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 45]},
-            {"code": "END", "indent": 4},
-            {"code": "ShowChoiceOption", "indent": 3, "string": "speed", "parameters": [1]},
             {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 46]},
             {"code": "END", "indent": 4},
-            {"code": "ShowChoiceOption", "indent": 3, "string": "speed-saved", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 3, "string": "speed", "parameters": [1]},
             {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 47]},
+            {"code": "END", "indent": 4},
+            {"code": "ShowChoiceOption", "indent": 3, "string": "speed-saved", "parameters": [2]},
+            {"code": "CallEvent", "indent": 4, "parameters": [1, 13, 48]},
             {"code": "END", "indent": 4},
             {"code": "ShowChoiceOption", "indent": 3, "string": "More", "parameters": [3]},
             {"code": "ShowChoice", "indent": 4, "string": "screen-of-hero/screen-of-events", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 4, "string": "screen-of-hero", "parameters": [0]},
-            {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 48]},
+            {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 49]},
             {"code": "END", "indent": 5},
             {"code": "ShowChoiceOption", "indent": 4, "string": "screen-of-events", "parameters": [1]},
-            {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 49]},
+            {"code": "CallEvent", "indent": 5, "parameters": [1, 13, 50]},
             {"code": "END", "indent": 5},
             {"code": "ShowChoiceOption", "indent": 4, "string": "", "parameters": [4]},
             {"code": "END", "indent": 5},
@@ -550,13 +553,13 @@
             {"code": "ShowChoiceOption", "indent": 1, "string": "Letters", "parameters": [2]},
             {"code": "ShowChoice", "indent": 2, "string": "screen-letters/screen-letters-shop/screen-letters-battle", "parameters": [5]},
             {"code": "ShowChoiceOption", "indent": 2, "string": "screen-letters", "parameters": [0]},
-            {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 50]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "string": "screen-letters-shop", "parameters": [1]},
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 51]},
             {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "string": "screen-letters-battle", "parameters": [2]},
+            {"code": "ShowChoiceOption", "indent": 2, "string": "screen-letters-shop", "parameters": [1]},
             {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 52]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceOption", "indent": 2, "string": "screen-letters-battle", "parameters": [2]},
+            {"code": "CallEvent", "indent": 3, "parameters": [1, 13, 53]},
             {"code": "END", "indent": 3},
             {"code": "ShowChoiceOption", "indent": 2, "string": "", "parameters": [4]},
             {"code": "END", "indent": 3},
@@ -973,35 +976,43 @@
         {
           "id": 27,
           "event_commands": [
-            {"code": "Teleport", "parameters": [2, 10, 10, 0]}
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 1, 37]},
+            {"code": "Wait", "parameters": [1]},
+            {"code": "Teleport", "parameters": [4, 10, 7, 0]}
           ]
         },
         {
           "id": 28,
           "event_commands": [
-            {"code": "Teleport", "parameters": [3, 10, 10, 0]}
+            {"code": "Teleport", "parameters": [2, 10, 10, 0]}
           ]
         },
         {
           "id": 29,
           "event_commands": [
-            {"code": "Teleport", "parameters": [4, 10, 7, 0]}
+            {"code": "Teleport", "parameters": [3, 10, 10, 0]}
           ]
         },
         {
           "id": 30,
           "event_commands": [
-            {"code": "Teleport", "parameters": [5, 10, 10, 0]}
+            {"code": "Teleport", "parameters": [4, 10, 7, 0]}
           ]
         },
         {
           "id": 31,
           "event_commands": [
-            {"code": "Teleport", "parameters": [6, 100, 158, 0]}
+            {"code": "Teleport", "parameters": [5, 10, 10, 0]}
           ]
         },
         {
           "id": 32,
+          "event_commands": [
+            {"code": "Teleport", "parameters": [6, 100, 158, 0]}
+          ]
+        },
+        {
+          "id": 33,
           "event_commands": [
             {"code": "ControlSwitches", "parameters": [0, 1403, 1403, 1]},
             {"code": "Teleport", "parameters": [7, 5, 5, 0]},
@@ -1009,13 +1020,13 @@
           ]
         },
         {
-          "id": 33,
+          "id": 34,
           "event_commands": [
             {"code": "Teleport", "parameters": [8, 12, 10, 0]}
           ]
         },
         {
-          "id": 34,
+          "id": 35,
           "event_commands": [
             {"code": "Teleport", "parameters": [10, 10, 10, 0]},
             {"code": "Wait", "parameters": [10]},
@@ -1024,7 +1035,7 @@
           ]
         },
         {
-          "id": 35,
+          "id": 36,
           "event_commands": [
             {"code": "Teleport", "parameters": [3, 10, 10]},
             {"code": "StoreTerrainID", "parameters": [0, 0, 0, 17]},
@@ -1038,31 +1049,31 @@
           ]
         },
         {
-          "id": 36,
+          "id": 37,
           "event_commands": [
             {"code": "Teleport", "parameters": [11, 11, 6, 1]}
           ]
         },
         {
-          "id": 37,
+          "id": 38,
           "event_commands": [
             {"code": "Teleport", "parameters": [11, 8, 6, 1]}
           ]
         },
         {
-          "id": 38,
+          "id": 39,
           "event_commands": [
             {"code": "Teleport", "parameters": [11, 5, 6, 1]}
           ]
         },
         {
-          "id": 39,
+          "id": 40,
           "event_commands": [
             {"code": "Teleport", "parameters": [11, 14, 6, 1]}
           ]
         },
         {
-          "id": 40,
+          "id": 41,
           "event_commands": [
             {"code": "Teleport", "parameters": [13, 30, 10, 0]},
             {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 28, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]},
@@ -1072,7 +1083,7 @@
           ]
         },
         {
-          "id": 41,
+          "id": 42,
           "event_commands": [
             {"code": "Teleport", "parameters": [13, 10, 30, 0]},
             {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 28, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]},
@@ -1082,7 +1093,7 @@
           ]
         },
         {
-          "id": 42,
+          "id": 43,
           "event_commands": [
             {"code": "Loop"},
             {"code": "KeyInputProc", "indent": 1, "parameters": [30, 1, 1, 1, 1, 1, 1, 1, 1, 1]},
@@ -1104,7 +1115,7 @@
           ]
         },
         {
-          "id": 43,
+          "id": 44,
           "event_commands": [
             {"code": "Teleport", "parameters": [4, 10, 7]},
             {"code": "Wait", "parameters": [5]},
@@ -1112,7 +1123,7 @@
           ]
         },
         {
-          "id": 44,
+          "id": 45,
           "event_commands": [
             {"code": "Teleport", "parameters": [4, 10, 7]},
             {"code": "Wait", "parameters": [5]},
@@ -1120,7 +1131,7 @@
           ]
         },
         {
-          "id": 45,
+          "id": 46,
           "event_commands": [
             {"code": "Teleport", "parameters": [4, 10, 7]},
             {"code": "Wait", "parameters": [5]},
@@ -1128,20 +1139,20 @@
           ]
         },
         {
-          "id": 46,
+          "id": 47,
           "event_commands": [
             {"code": "Teleport", "parameters": [4, 10, 3]}
           ]
         },
         {
-          "id": 47,
+          "id": 48,
           "event_commands": [
             {"code": "Teleport", "parameters": [4, 10, 3]},
             {"code": "OpenSaveMenu"}
           ]
         },
         {
-          "id": 48,
+          "id": 49,
           "event_commands": [
             {"code": "Teleport", "parameters": [6, 100, 100]},
             {"code": "Wait", "parameters": [1]},
@@ -1151,7 +1162,7 @@
           ]
         },
         {
-          "id": 49,
+          "id": 50,
           "event_commands": [
             {"code": "Wait", "parameters": [1]},
             {"code": "ControlVars", "parameters": [0, 17, 17, 0, 6, 10001, 4]},
@@ -1164,7 +1175,7 @@
           ]
         },
         {
-          "id": 50,
+          "id": 51,
           "event_commands": [
             {"code": "ChangePartyMembers", "parameters": [0, 0, 4]},
             {"code": "ChangePartyMembers", "parameters": [1, 0, 1]},
@@ -1173,7 +1184,7 @@
           ]
         },
         {
-          "id": 51,
+          "id": 52,
           "event_commands": [
             {"code": "ChangePartyMembers", "parameters": [0, 0, 4]},
             {"code": "ChangePartyMembers", "parameters": [1, 0, 1]},
@@ -1182,7 +1193,7 @@
           ]
         },
         {
-          "id": 52,
+          "id": 53,
           "event_commands": [
             {"code": "ChangePartyMembers", "parameters": [0, 0, 4]},
             {"code": "ChangePartyMembers", "parameters": [1, 0, 1]},
