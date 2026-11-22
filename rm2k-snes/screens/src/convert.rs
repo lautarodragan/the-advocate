@@ -36,8 +36,14 @@ pub struct Request {
     /// The Latin-1 letters the message boxes draw, in the order of their
     /// indices after the console's 96 glyphs: the event compiler's
     /// `messages.letters`. Their glyphs go into the message window's
-    /// tables, and only there: the text screens and the battle write ASCII.
+    /// tables, and the text screens reach them too —see
+    /// `texts::ScreenLetters`—.
     pub letters: Vec<char>,
+    /// The Latin-1 letters the converter found in the texts the screens
+    /// compose at run time, `screen_letters`: the database's names, items,
+    /// skills, enemies, conditions and terms. None, the screens write their
+    /// stand-ins, as they did until 2026-11-22.
+    pub screen_letters: Vec<char>,
     pub vram: Vram,
     /// The custom menus the project declares, by name, each its file as
     /// JSON, in the order the cartridge numbers them; and what the
@@ -64,30 +70,38 @@ pub struct Request {
 /// `message_window::font_prerender`—, as `font_bytes`' rows: the console's
 /// 96 glyphs, then what the text screens draw after them
 /// —`items::glyphs_after`: `TL_FIGURE`'s blank and the ExFont icons'
-/// halves—, then `letters`, the Latin-1 the message boxes draw. With where
-/// those letters start: a box names its letter k as glyph 96 + k, and the
-/// message composer moves it there.
+/// halves—, then `letters.all`, the Latin-1 the message boxes draw and,
+/// after them, the letters only the text screens write. A box names its
+/// letter k as glyph 96 + k, and the message composer moves it to
+/// `letters.at` + k; a screen names it as `letters.at` + k plus 32.
 ///
 /// Until 2026-11-20 each writer had its own table, coloured for it, and
 /// the boxes' and the screens' differed from glyph 96 on.
-pub fn font_glyphs(game: &Game, letters: &[char]) -> Result<(Vec<u8>, usize)> {
-    let (_, mut all) = items::glyphs_after(&game.font, &texts::screen_icons(game))?;
-    let letters_at = rm2k_snes_text::font::CONSOLE_GLYPHS + all.len();
-    all.extend(letters);
+pub fn font_glyphs(game: &Game, letters: &texts::ScreenLetters) -> Result<Vec<u8>> {
+    let (_, mut all) = items::glyphs_after(
+        &game.font,
+        &texts::screen_icons(game),
+        !letters.screens.is_empty(),
+    )?;
+    if rm2k_snes_text::font::CONSOLE_GLYPHS + all.len() != letters.at {
+        return Err(Bad::answer(format!(
+            "the screens' letters start at glyph {} and the font puts them at {}",
+            letters.at,
+            rm2k_snes_text::font::CONSOLE_GLYPHS + all.len()
+        )));
+    }
+    all.extend(&letters.all);
     // A glyph's number is a byte: the composers multiply it.
     let glyphs = rm2k_snes_text::font::CONSOLE_GLYPHS + all.len();
     if glyphs > 256 {
         return Err(Bad::answer(format!(
-            "the font carries {glyphs} glyphs —{} letters for the boxes, {} for the screens— \
+            "the font carries {glyphs} glyphs —{} letters, {} glyphs for the screens before them— \
              and a byte names 256",
-            letters.len(),
-            letters_at - rm2k_snes_text::font::CONSOLE_GLYPHS
+            letters.all.len(),
+            letters.at - rm2k_snes_text::font::CONSOLE_GLYPHS
         )));
     }
-    Ok((
-        message_window::font_bytes_with(&game.font, &all)?,
-        letters_at,
-    ))
+    message_window::font_bytes_with(&game.font, &all)
 }
 
 pub fn hex(bytes: &[u8]) -> String {
@@ -646,7 +660,36 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         lose(&mut says, &mut losses, "window-frame-fused", Some(line));
     }
     let font = message_window::font_bytes_with(&game.font, &request.letters)?;
-    let (glyphs, letters_at) = font_glyphs(game, &request.letters)?;
+    let letters = texts::screen_letters(game, &request.letters, &request.screen_letters)?;
+    if letters.screens != texts::carried_letters() {
+        return Err(Bad::usage(
+            "the screens' letters were not carried when the game was read",
+        ));
+    }
+    if !letters.past.is_empty() {
+        let line = format!(
+            "  WARNING, the text screens reach glyph {} and the font carries {} letters from {}: \
+             they show {}",
+            rm2k_snes_text::font::SCREEN_GLYPHS - 1,
+            letters.all.len(),
+            letters.at,
+            rm2k_snes_text::plain::plain_loss(&letters.past)
+                .trim_start_matches("letters the box does not draw are shown plain: ")
+        );
+        lose(&mut says, &mut losses, "letter-plain", Some(line));
+    }
+    // The letters past the boxes' that only the screens write go in the
+    // message window's tables too: a name in a box, `\N[n]`, is the text
+    // the screens write, and a letter of it the boxes do not use is a
+    // letter past theirs —see `msg_name_letter` in the runtime—.
+    let only_screens: Vec<char> = letters
+        .screens
+        .iter()
+        .filter(|c| !request.letters.contains(c))
+        .copied()
+        .collect();
+    let glyphs = font_glyphs(game, &letters)?;
+    let letters_at = letters.at;
     let prerender = message_window::font_prerender(&glyphs);
 
     // The items the actor choice opens for, whose names it writes: the
@@ -741,7 +784,12 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         TARGET_CGRAM + TARGET_COLORS_MAX,
     )?;
     request.vram.target(target.tiles.len())?;
-    let inks = items::text_inks(&skin, &game.font, &texts::screen_icons(game))?;
+    let inks = items::text_inks(
+        &skin,
+        &game.font,
+        &texts::screen_icons(game),
+        &letters.screens,
+    )?;
     // The item and equipment windows share tiles and colours, and go at the
     // end of the bank: the text has what is below them. Counted first, then
     // numbered from where they land.
@@ -1028,12 +1076,15 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     );
     window_json["font"] = json!(hex(&font));
     let mut advances = game.font.console_advances();
-    advances.extend(request.letters.iter().map(|&c| game.font.advance(c) as u8));
+    let window_letters: Vec<char> = request
+        .letters
+        .iter()
+        .chain(&only_screens)
+        .copied()
+        .collect();
+    advances.extend(window_letters.iter().map(|&c| game.font.advance(c) as u8));
     window_json["advances"] = json!(advances);
-    window_json["reach"] = json!(message_window::font_reach_with(
-        &game.font,
-        &request.letters
-    ));
+    window_json["reach"] = json!(message_window::font_reach_with(&game.font, &window_letters));
     window_json["font_ink"] = message_window::FontInk {
         rows: window.color.clone(),
         shadow: window.shadow,
@@ -1043,6 +1094,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         "font": {
             "prerender": prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
             "letters_at": letters_at,
+            // The letters the text screens reach, from `letters_at` on: the
+            // emission writes the database's texts with them.
+            "screen_letters": letters.screens.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
         },
         "custom_menus": custom_menus,
         "debug_screen": debug_screen,

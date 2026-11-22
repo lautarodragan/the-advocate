@@ -1,1 +1,4 @@
-[]
+[
+  {"id": 1, "name": "Avispón", "battler_name": "Hornet", "max_hp": 30, "attack": 5, "defense": 5, "spirit": 5, "agility": 5, "exp": 1, "gold": 1,
+   "actions": [{"id": 1, "kind": "basic", "basic": "attack", "rating": 5}]}
+]

@@ -27,6 +27,7 @@ mod fork;
 mod fullscreen;
 mod game;
 mod images;
+mod letters;
 mod map_pictures;
 mod maps;
 mod msu_missing;

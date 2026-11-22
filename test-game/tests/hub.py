@@ -2,8 +2,8 @@
 
 They are what makes the test game playable by hand: the guide teleports to
 every map, and the tester runs every case of `tester/` from `ShowChoice`
-menus. They are two events of `src/maps/Map0001.json`, the last two, and
-this module writes them there —`just hub`, which is `python3 tests/hub.py`—
+menus, which call each case's page on the shelf. They are the last three
+events of `src/maps/Map0001.json`, and this module writes them there —`just hub`, which is `python3 tests/hub.py`—
 out of `hub.toml` and `tester/`: a menu of fifty cases nested four options
 at a time is not something to keep in step by hand. `test_hub.py` fails if
 the map says something else than what this writes.
@@ -120,26 +120,23 @@ def guide_page(hub):
     return way_home(0) + menu([going(m) for m in hub["guide"]["map"]], 0)
 
 
-def reindented(commands, indent):
-    out = []
-    for c in commands:
-        c = dict(c)
-        level = c.get("indent", 0) + indent
-        c.pop("indent", None)
-        out.append(command(c["code"], level, c.get("string"), c.get("parameters")))
-    return out
+def offered(hub):
+    """The tester's cases, in the order of its menus: the shelf's pages."""
+    return [n for g in hub["tester"]["group"] for n in g["cases"]]
 
 
-def tester_page(hub):
+def tester_page(hub, shelf):
+    """The tester's menus. A case chosen sets its switches and calls its
+    page on the shelf, event `shelf`."""
     tester = hub["tester"]
     needs = tester.get("case", {})
+    pages = {name: k + 1 for k, name in enumerate(offered(hub))}
 
     def running(name):
         def body(indent):
-            commands = case_commands(name, hub)
             return (switches(needs.get(name, {}).get("on", []),
                              needs.get(name, {}).get("off", []), indent)
-                    + reindented(commands, indent))
+                    + [command("CallEvent", indent, parameters=[1, shelf, pages[name]])])
         return name, body
 
     def group(g):
@@ -184,26 +181,61 @@ def event(id, name, spec, commands):
 
 def events(first_id, hub=None):
     hub = hub or load()
+    shelf = first_id + 2
     return [event(first_id, "Guide", hub["guide"], guide_page(hub)),
-            event(first_id + 1, "Tester", hub["tester"], tester_page(hub))]
+            event(first_id + 1, "Tester", hub["tester"], tester_page(hub, shelf)),
+            shelf_event(shelf, hub)]
+
+
+# Where the shelf stands: the top left corner's bush, a cell the hero never
+# stands on nor faces, so its pages run only when the tester calls them.
+SHELF = (0, 0)
+
+
+def shelf_event(id, hub):
+    """Every case of the tester, a page each, in the order of its menus:
+    the tester calls the one chosen.
+
+    A page each and not inline in the tester's branches, though a call is
+    one more level of the call stack —`nested-calls` goes six deep, of
+    eight—: the converter asks which actors can lead a map page by page,
+    from the cartridge's party, and the branches of one page it plays in a
+    row, as if every case ran after the one before. Inline, `screen-letters`
+    puts Zoë first on a party the cases before it had filled, and she was
+    not among the meadow's leaders: the hero was not drawn."""
+    return {
+        "id": id,
+        "name": "Shelf",
+        "x": SHELF[0],
+        "y": SHELF[1],
+        "pages": [{"id": k + 1, "event_commands": case_commands(name, hub)}
+                  for k, name in enumerate(offered(hub))],
+    }
+
+
+def _format_page(page):
+    head = {k: v for k, v in page.items() if k != "event_commands"}
+    lines = ["        {"]
+    for k, v in head.items():
+        lines.append('          %s: %s,' % (json.dumps(k), json.dumps(v, ensure_ascii=False)))
+    commands = [json.dumps(c, ensure_ascii=False) for c in page["event_commands"]]
+    if commands:
+        lines.append('          "event_commands": [')
+        lines.append(",\n".join("            " + c for c in commands))
+        lines.append("          ]")
+    else:
+        lines.append('          "event_commands": []')
+    lines.append("        }")
+    return "\n".join(lines)
 
 
 def _format(ev):
     """An event in the style the map is written in: one command a line."""
-    page = ev["pages"][0]
-    head = {k: v for k, v in page.items() if k != "event_commands"}
     lines = ["    {"]
     for k in ("id", "name", "x", "y"):
         lines.append('      %s: %s,' % (json.dumps(k), json.dumps(ev[k], ensure_ascii=False)))
     lines.append('      "pages": [')
-    lines.append("        {")
-    for k, v in head.items():
-        lines.append('          %s: %s,' % (json.dumps(k), json.dumps(v, ensure_ascii=False)))
-    lines.append('          "event_commands": [')
-    commands = [json.dumps(c, ensure_ascii=False) for c in page["event_commands"]]
-    lines.append(",\n".join("            " + c for c in commands))
-    lines.append("          ]")
-    lines.append("        }")
+    lines.append(",\n".join(_format_page(p) for p in ev["pages"]))
     lines.append("      ]")
     lines.append("    }")
     return "\n".join(lines)

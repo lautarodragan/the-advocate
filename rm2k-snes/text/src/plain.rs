@@ -127,6 +127,16 @@ pub fn plain_text_but(text: &str, drawn: impl Fn(char) -> bool) -> (String, Vec<
     (out, replaced)
 }
 
+/// What a text screen writes of `text`: the ExFont icons as their halves,
+/// the Latin-1 `letters` the cartridge carries for the screens as they are
+/// —see `SCREEN_GLYPHS` in [`crate::font`]—, and every other letter as its
+/// plain stand-in. The one rule the screens stage, the battle's and the
+/// emission of the text block share, so a letter is cut and measured where
+/// it is drawn.
+pub fn screen_text(text: &str, letters: &[char]) -> String {
+    plain_text_but(text, |c| crate::exfont::is_half(c) || letters.contains(&c)).0
+}
+
 /// What standing in `letters` loses, said for a build's report: each
 /// letter and the ASCII drawn for it.
 pub fn plain_loss(letters: &[char]) -> String {
@@ -220,5 +230,15 @@ mod tests {
             plain_loss(&['é', 'ß']),
             "letters the box does not draw are shown plain: é as e, ß as ss"
         );
+    }
+
+    #[test]
+    fn a_screen_keeps_its_icons_and_the_letters_it_carries() {
+        let [l, r] = crate::exfont::halves(13);
+        assert_eq!(
+            screen_text("$NUnamë, Weiß", &['ë']),
+            format!("{l}{r}Unamë, Weiss")
+        );
+        assert_eq!(screen_text("Unamë", &[]), "Uname");
     }
 }

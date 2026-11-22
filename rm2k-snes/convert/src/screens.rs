@@ -167,6 +167,7 @@ pub fn convert(
     window_colors: u32,
     text_rows: &Value,
     letters: &Value,
+    screen_letters: &[char],
 ) -> Result<Value> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
@@ -201,6 +202,10 @@ pub fn convert(
         // The Latin-1 letters the message boxes draw, as the event compiler
         // numbered them: their glyphs go after the console's 96.
         "letters": letters,
+        // And the ones the converter found in the texts the text screens
+        // compose at run time: those go after them, and the screens write
+        // both. See `letters.rs`.
+        "screen_letters": screen_letters.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
         "vram": {
             "slot_vram": vram::SLOT_VRAM,
             "slot_map": vram::SLOT_MAP,

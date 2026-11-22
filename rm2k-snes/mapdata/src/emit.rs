@@ -284,40 +284,110 @@ struct Texts {
     offsets: Vec<(usize, usize)>,
     first: usize,
     count: usize,
-    /// The ExFont icons the screens' tables carry, in their order: see
-    /// `Inks` in the screens stage.
-    icons: Vec<usize>,
+    /// The glyphs past the console's the screens' tables carry: see
+    /// [`ScreenGlyphs`].
+    glyphs: ScreenGlyphs,
 }
 
-/// A name or a term of the database with each letter the font lacks as its
-/// plain ASCII stand-in —an actor's `Unamë` as `Uname`, see
-/// `rm2k_snes_text::plain`—, where [`Texts::add`] would write a `?`; and
-/// without its ExFont icons, which the menu's bank and a message box's
-/// names do not draw.
-fn plain(text: &str) -> String {
-    rm2k_snes_text::plain::plain_text(text).0
+/// What the text screens draw past the console's 96 glyphs, as the screens
+/// stage decided it: the ExFont icons, in their order —see `Inks` there—,
+/// and the Latin-1 letters they reach, the font's from `letters_at` on —see
+/// `texts::ScreenLetters` there—. A screen's byte is its glyph plus 32.
+#[derive(Debug, Clone, Default)]
+struct ScreenGlyphs {
+    icons: Vec<usize>,
+    letters: Vec<char>,
+    letters_at: usize,
+}
+
+impl ScreenGlyphs {
+    /// The screens stage's: its `text_inks`' icons and its `font`'s
+    /// letters. An answer from before 2026-11-22 carries no letters.
+    fn of(screens: &Value) -> Result<ScreenGlyphs> {
+        let font = at(screens, "font")?;
+        let letters = match font.get("screen_letters") {
+            Some(v) => list(v)?
+                .iter()
+                .map(|l| {
+                    let mut chars = text(l)?.chars();
+                    match (chars.next(), chars.next()) {
+                        (Some(c), None) => Ok(c),
+                        _ => Err(Bad::answer(format!("a screen letter is {l}"))),
+                    }
+                })
+                .collect::<Result<Vec<char>>>()?,
+            None => Vec::new(),
+        };
+        Ok(ScreenGlyphs::new(
+            screen_icons(screens)?,
+            letters,
+            int_at(font, "letters_at")? as usize,
+        ))
+    }
+
+    /// The letters past `SCREEN_GLYPHS` are not carried: a screen's byte
+    /// would not hold them. The screens stage already stops there; this is
+    /// the emission's half of the same rule.
+    fn new(icons: Vec<usize>, mut letters: Vec<char>, letters_at: usize) -> ScreenGlyphs {
+        letters.truncate(rm2k_snes_text::font::SCREEN_GLYPHS.saturating_sub(letters_at));
+        ScreenGlyphs {
+            icons,
+            letters,
+            letters_at,
+        }
+    }
+
+    /// `text` as the screens write it: its icons as halves, the letters
+    /// they carry as they are, and every other letter as its plain
+    /// stand-in —see `rm2k_snes_text::plain::screen_text`—.
+    fn text(&self, text: &str) -> String {
+        rm2k_snes_text::plain::screen_text(text, &self.letters)
+    }
+
+    /// A text's byte for a character of [`ScreenGlyphs::text`]'s, `None`
+    /// for an icon's half the tables do not carry and anything else that is
+    /// not the console's.
+    fn byte(&self, c: char) -> Option<u8> {
+        if let Some((icon, side)) = rm2k_snes_text::exfont::half_of(c) {
+            let k = self.icons.iter().position(|&i| i == icon)?;
+            return Some((ICON_CODE_FIRST + 2 * k + side) as u8);
+        }
+        if let Some(k) = self.letters.iter().position(|&l| l == c) {
+            return Some((32 + self.letters_at + k) as u8);
+        }
+        (c == ' ' || c.is_ascii_graphic()).then_some(c as u8)
+    }
+}
+
+/// A name or a term of the database as the text screens write it —an
+/// actor's `Unamë`, as `Uname` where the cartridge carries no `ë`, see
+/// [`ScreenGlyphs::text`]—, and without its ExFont icons, which the menu's
+/// bank and a message box's names do not draw.
+fn plain(glyphs: &ScreenGlyphs, text: &str) -> String {
+    rm2k_snes_text::exfont::without_icons(&glyphs.text(text))
 }
 
 /// A text of the database's for the battle's lists and messages —a
 /// skill's name, description and using messages, an enemy's name, a
-/// condition's—: [`plain`]'s stand-ins, but **with its ExFont icons**,
+/// condition's—: [`plain`]'s letters, but **with its ExFont icons**,
 /// which [`Texts::add`] writes when the screens' tables carry them —
-/// Zounds' `$LLátigo de Seda`, its icon and `Latigo de Seda`—, as
+/// Zounds' `$LLátigo de Seda`, its icon and `Látigo de Seda`—, as
 /// `item_text` does in the screens stage. Until 2026-11-22 these went to
-/// [`Texts::add`] raw, and every accent was a `?`.
-fn db_text(text: &str) -> String {
-    rm2k_snes_text::plain::plain_text_but(text, rm2k_snes_text::exfont::is_half).0
+/// [`Texts::add`] raw, and every accent was a `?`; and until the screens
+/// drew Latin-1, the same day, each was its plain stand-in.
+fn db_text(glyphs: &ScreenGlyphs, text: &str) -> String {
+    glyphs.text(text)
 }
 
 /// A name on the actor choice's line on top, as the screens stage stored
-/// it —`target_text`, its letters already the console's and its ExFont
-/// icons as halves—: its bytes, `width` of them. A half goes as the text
-/// layer's byte for it, as [`Texts::add`] writes it: the menu's bank,
-/// where the line is composed, carries the same glyphs as the screens'
-/// tables —`icons`, their order—. One whose icon they do not carry is
-/// dropped, and the name padded again. Anything else is the stage's
-/// mistake, said here rather than drawn as another letter.
-fn target_name_bytes(name: &str, width: usize, icons: &[usize]) -> Result<Vec<u8>> {
+/// it —`target_text`, its letters already the console's or the screens'
+/// and its ExFont icons as halves—: its bytes, `width` of them. A half goes
+/// as the text layer's byte for it, as [`Texts::add`] writes it: the menu's
+/// bank, where the line is composed, carries the same glyphs as the
+/// screens' tables. One whose icon they do not carry is dropped, and the
+/// name padded again. Anything else is the stage's mistake, said here
+/// rather than drawn as another letter.
+fn target_name_bytes(name: &str, width: usize, glyphs: &ScreenGlyphs) -> Result<Vec<u8>> {
     let bad = || {
         Bad::answer(format!(
             "the actor choice's name {name:?} is not {width} letters of the console's"
@@ -328,17 +398,31 @@ fn target_name_bytes(name: &str, width: usize, icons: &[usize]) -> Result<Vec<u8
     }
     let mut out = Vec::with_capacity(width);
     for c in name.chars() {
-        if let Some((icon, side)) = rm2k_snes_text::exfont::half_of(c) {
-            if let Some(k) = icons.iter().position(|&i| i == icon) {
-                out.push((ICON_CODE_FIRST + 2 * k + side) as u8);
-            }
-        } else if c == ' ' || c.is_ascii_graphic() {
-            out.push(c as u8);
-        } else {
-            return Err(bad());
+        match glyphs.byte(c) {
+            Some(b) => out.push(b),
+            None if rm2k_snes_text::exfont::is_half(c) => {}
+            None => return Err(bad()),
         }
     }
     out.resize(width, b' ');
+    Ok(out)
+}
+
+/// A row of the actors' strips, `width` letters, as the text screens write
+/// it: [`target_name_bytes`]'s rule, without the icons the strips never
+/// carry, and padded with spaces.
+fn strip_bytes(row: &str, width: usize, glyphs: &ScreenGlyphs) -> Result<Vec<u8>> {
+    let mut out = Vec::with_capacity(width);
+    for c in row.chars() {
+        out.push(glyphs.byte(c).ok_or_else(|| {
+            Bad::answer(format!(
+                "the slot screen's row {row:?} has a letter the screens do not draw: {c:?}"
+            ))
+        })?);
+    }
+    if out.len() < width {
+        out.resize(width, b' ');
+    }
     Ok(out)
 }
 
@@ -357,23 +441,24 @@ fn screen_icons(screens: &Value) -> Result<Vec<usize>> {
 const ICON_CODE_FIRST: usize = 32 + rm2k_snes_text::font::CONSOLE_GLYPHS + 1;
 
 impl Texts {
-    /// What the text screens' font can write: the characters it has, a `?`
-    /// for the others, cut to `width` —`item_text` in the screens stage—.
-    /// What comes from the screens stage has its plain letters stood in
-    /// already; what comes from the database goes through [`plain`] first,
-    /// or [`db_text`] where its icons are drawn.
+    /// What the text screens' font can write: the characters it has, the
+    /// letters and icons [`ScreenGlyphs`] carries, a `?` for the others,
+    /// cut to `width` —`item_text` in the screens stage—. What comes from
+    /// the screens stage has its letters stood in already; what comes from
+    /// the database goes through [`plain`] first, or [`db_text`] where its
+    /// icons are drawn.
     ///
     /// An ExFont icon —a code of the database's, or the halves the screens
     /// stage left— goes as its two halves' bytes, the text layer's glyph
     /// plus 32, if the screens' tables carry it, and is dropped if they do
-    /// not: see `ICON_GLYPH_FIRST` in the screens stage.
+    /// not: see `ICON_GLYPH_FIRST` in the screens stage. A letter goes as
+    /// its glyph plus 32, past every icon.
     fn add(&mut self, text: &str) -> i64 {
         let fitted: Vec<u8> = rm2k_snes_text::exfont::with_icons(text)
             .chars()
             .filter_map(|c| {
-                if let Some((icon, side)) = rm2k_snes_text::exfont::half_of(c) {
-                    let k = self.icons.iter().position(|&i| i == icon)?;
-                    return Some((ICON_CODE_FIRST + 2 * k + side) as u8);
+                if rm2k_snes_text::exfont::is_half(c) || self.glyphs.letters.contains(&c) {
+                    return self.glyphs.byte(c);
                 }
                 let n = c as usize;
                 Some(if (self.first..self.first + self.count).contains(&n) {
@@ -999,6 +1084,33 @@ fn font_section(out: &mut String, window: &Value, screens: &Value) -> Result<()>
         rm2k_snes_text::font::CONSOLE_GLYPHS,
         int_at(font, "letters_at")?
     ));
+    // And each letter the text screens carry, by its code point: the
+    // glyph a screen's byte names, less 32. No byte of the ROM: a test
+    // reads them from the symbols to decode what a screen wrote. The
+    // halves of the boxes' icons among them are not letters, and the
+    // screens write theirs with their own glyphs.
+    let shown = ScreenGlyphs::of(screens)?;
+    // How many the text screens reach, if any: with none, no name carries
+    // a letter past the screens' icons, so `msg_name_letter` has nothing
+    // to take back to the window's numbering, and without the symbol its
+    // code is not assembled.
+    if !shown.letters.is_empty() {
+        out.push_str(&format!(
+            "; The letters the text screens reach, from FONT_LETTERS_AT.\n\
+             FONT_SCREEN_LETTERS = {}\n",
+            shown.letters.len()
+        ));
+    }
+    for (k, c) in shown.letters.iter().enumerate() {
+        if rm2k_snes_text::exfont::is_half(*c) {
+            continue;
+        }
+        out.push_str(&format!(
+            "FONT_LETTER_{:04X} = {}\n",
+            *c as u32,
+            shown.letters_at + k
+        ));
+    }
     for (prefix, ink) in [
         ("MSG", at(window, "font_ink")?),
         ("SCR", at(at(screens, "text_inks")?, "font_ink")?),
@@ -2805,11 +2917,9 @@ impl Rest<'_> {
             offsets: Vec::new(),
             first: t.n("ITEM_FIRST_CHAR") as usize,
             count: t.n("ITEM_CHARS") as usize,
-            icons: match at(screens, "text_inks")?.get("icons") {
-                Some(icons) => ints(icons)?.into_iter().map(|i| i as usize).collect(),
-                None => Vec::new(),
-            },
+            glyphs: ScreenGlyphs::of(screens)?,
         };
+        let shown = texts.glyphs.clone();
         let textos = at(screens, "texts")?;
         for item in list_at(textos, "items")? {
             for text in list_at(item, "texts")? {
@@ -2841,13 +2951,13 @@ impl Rest<'_> {
                 .actor(a as i32)
                 .map_err(|b| Bad::answer(b.message().to_string()))?
                 .name;
-            actor_text.insert(a, texts.add(&plain(name)));
+            actor_text.insert(a, texts.add(&plain(&shown, name)));
         }
         // And each rename's, in the order `OP_CHANGE_NAME` counts them.
         let name_text: Vec<i64> = r
             .names
             .iter()
-            .map(|(_, name)| texts.add(&plain(name)))
+            .map(|(_, name)| texts.add(&plain(&shown, name)))
             .collect();
         let mut shop_text = None;
         for messages in list_at(textos, "shop")? {
@@ -2880,7 +2990,7 @@ impl Rest<'_> {
                 "victory" => victory[0].clone(),
                 _ => battle_term(&self.r.battle_terms, db, liblcf)?,
             };
-            let value = plain(&value);
+            let value = plain(&shown, &value);
             let k = texts.add(&value);
             if BA_COMMAND_TERMS.contains(&name) {
                 command_texts.entry(value).or_insert(k);
@@ -2888,16 +2998,16 @@ impl Rest<'_> {
             battle_text.get_or_insert(k);
         }
         let battle_text = battle_text.unwrap_or(0);
-        let revived_text = texts.add(&db_text(text_at(mtexts, "revived")?));
-        let dead_text = texts.add(&db_text(text_at(mtexts, "dead")?));
-        let victory2_text = texts.add(&db_text(victory.get(1).map_or("", String::as_str)));
+        let revived_text = texts.add(&db_text(&shown, text_at(mtexts, "revived")?));
+        let dead_text = texts.add(&db_text(&shown, text_at(mtexts, "dead")?));
+        let victory2_text = texts.add(&db_text(&shown, victory.get(1).map_or("", String::as_str)));
         let rom_enemies = ints_at(model, "enemies")?;
         let enemy_names = at(mtexts, "enemies")?;
         let mut enemy_text = HashMap::new();
         for &e in &rom_enemies {
             enemy_text.insert(
                 e,
-                texts.add(&db_text(text_at(enemy_names, &e.to_string())?)),
+                texts.add(&db_text(&shown, text_at(enemy_names, &e.to_string())?)),
             );
         }
         let actions = at(model, "actions")?;
@@ -2907,17 +3017,20 @@ impl Rest<'_> {
         for &h in &rom_skills {
             skill_text.insert(
                 h,
-                texts.add(&db_text(text_at(at(skill_texts, &h.to_string())?, "name")?)),
+                texts.add(&db_text(
+                    &shown,
+                    text_at(at(skill_texts, &h.to_string())?, "name")?,
+                )),
             );
         }
         let mut skill_desc_text = HashMap::new();
         for &h in &rom_skills {
             skill_desc_text.insert(
                 h,
-                texts.add(&db_text(text_at(
-                    at(skill_texts, &h.to_string())?,
-                    "description",
-                )?)),
+                texts.add(&db_text(
+                    &shown,
+                    text_at(at(skill_texts, &h.to_string())?, "description")?,
+                )),
             );
         }
         // An item's description whole, for the battle's help window, which
@@ -2953,20 +3066,20 @@ impl Rest<'_> {
         let taught = ints_at(model, "taught")?;
         let mut whole_skill_text = HashMap::new();
         for &h in &taught {
-            whole_skill_text.insert(h, texts.add(&db_text(&skill(h)?.name)));
+            whole_skill_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.name)));
         }
         let mut skill_msg1_text = HashMap::new();
         for &h in &rom_skills {
-            skill_msg1_text.insert(h, texts.add(&db_text(&skill(h)?.using_message1)));
+            skill_msg1_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.using_message1)));
         }
         let mut skill_msg2_text = HashMap::new();
         for &h in &rom_skills {
-            skill_msg2_text.insert(h, texts.add(&db_text(&skill(h)?.using_message2)));
+            skill_msg2_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.using_message2)));
         }
         let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
         for &a in &r.actors {
-            let name = plain(text_at(commands, &a.to_string())?);
+            let name = plain(&shown, text_at(commands, &a.to_string())?);
             let k = texts.add(&name);
             command_texts.entry(name).or_insert(k);
             skill_command_text.insert(a, k);
@@ -2996,20 +3109,20 @@ impl Rest<'_> {
                 (&st.message_already, &mut state_already_text),
             ] {
                 if !message.is_empty() {
-                    out[k] = texts.add(&db_text(message));
+                    out[k] = texts.add(&db_text(&shown, message));
                 }
             }
         }
         // The skills screen's level term, since 2026-10-12: after the
         // conditions', for the same reason they go last.
-        let level_text = texts.add(&db_text(&term(db, "lvl_short")?));
+        let level_text = texts.add(&db_text(&shown, &term(db, "lvl_short")?));
         out.push_str(&format!("SK_TXT_LEVEL = {level_text}\n"));
         // And the terms of a skill's result lines, since 2026-10-20: after
         // that, for the same reason, and one after the other —see
         // `RESULT_TERMS`—.
         for (name, liblcf) in RESULT_TERMS {
             let value = battle_term(&self.r.battle_terms, db, liblcf)?;
-            let k = texts.add(&plain(&value));
+            let k = texts.add(&plain(&shown, &value));
             out.push_str(&pyf!("BA_TXT_%-11s= %d\n", name.to_uppercase(), k));
         }
         // Each actor's commands, as the battle's model names them —a 2003
@@ -3023,7 +3136,7 @@ impl Rest<'_> {
         for &a in &r.actors {
             let mut row = Vec::new();
             for (slot, name) in list_at(actor_commands, &a.to_string())?.iter().enumerate() {
-                let name = plain(text(name)?);
+                let name = plain(&shown, text(name)?);
                 // The skill command is the one `skill_commands` gave this
                 // actor, its own text since before the other four.
                 let own = skill_command_text
@@ -3382,12 +3495,11 @@ impl Rest<'_> {
         // Each medicine's name on the line on top, `TARGET_NAME_WIDTH`
         // letters, as the screens stage stored it: `target_text` there.
         let width = t.n("TARGET_NAME_WIDTH") as usize;
-        let icons = screen_icons(screens)?;
         let mut medicine_names: HashMap<i64, Vec<u8>> = HashMap::new();
         for m in list_at(textos, "medicines")? {
             medicine_names.insert(
                 int_at(m, "number")?,
-                target_name_bytes(text_at(m, "name")?, width, &icons)?,
+                target_name_bytes(text_at(m, "name")?, width, &shown)?,
             );
         }
         let medicines: Vec<i64> = r
@@ -3499,7 +3611,7 @@ impl Rest<'_> {
                 text(&three[2])?,
                 w = SLOT_TEXT_LEVEL as usize
             );
-            strip.extend(format!("{row:<w$}", w = SLOT_TEXT_WIDTH as usize).bytes());
+            strip.extend(strip_bytes(&row, SLOT_TEXT_WIDTH as usize, &shown)?);
         }
         // And after the actors' rows, one per rename, with its name alone:
         // the menu and the slot screen take it instead of the actor's own
@@ -3518,12 +3630,11 @@ impl Rest<'_> {
             )));
         }
         for pair in renamed {
-            let row = format!(
-                "{:<w$}",
+            strip.extend(strip_bytes(
                 text(&list(pair)?[1])?,
-                w = SLOT_TEXT_WIDTH as usize
-            );
-            strip.extend(row.bytes());
+                SLOT_TEXT_WIDTH as usize,
+                &shown,
+            )?);
         }
         if n_actors_slots as usize + r.names.len() > 256 {
             return Err(Bad::answer(format!(
@@ -4725,7 +4836,7 @@ impl Rest<'_> {
         // `skill_target_names`, and per skill where its name is there —$FF
         // for the others—. Its own copy, as a medicine's: see
         // `target_name` in the screens stage's `skills.rs`.
-        let icons = screen_icons(self.screens)?;
+        let shown = ScreenGlyphs::of(self.screens)?;
         let mut target_index = Vec::new();
         let mut target_names: Vec<u8> = Vec::new();
         for &h in rom_skills {
@@ -4751,7 +4862,7 @@ impl Rest<'_> {
                 target_names.extend(target_name_bytes(
                     text_at(of(h)?, "target_name")?,
                     width,
-                    &icons,
+                    &shown,
                 )?);
             } else {
                 target_index.push(0xFF);
@@ -5886,18 +5997,70 @@ mod tests {
     /// database text keeps its icon and stands its accents in.
     #[test]
     fn a_database_text_stands_its_accents_in_and_keeps_its_icons() {
+        let glyphs = ScreenGlyphs::new(
+            vec![rm2k_snes_text::exfont::icon_of_letter('L').unwrap()],
+            Vec::new(),
+            99,
+        );
         let mut texts = Texts {
             data: Vec::new(),
             offsets: Vec::new(),
             first: 32,
             count: 95,
-            icons: vec![rm2k_snes_text::exfont::icon_of_letter('L').unwrap()],
+            glyphs: glyphs.clone(),
         };
-        let k = texts.add(&db_text("$LL\u{e1}tigo de Seda")) as usize;
-        let (at, len) = texts.offsets[k];
-        let bytes = &texts.data[at..at + len];
+        let k = texts.add(&db_text(&glyphs, "$LL\u{e1}tigo de Seda"));
+        let bytes = text_bytes(&texts, k);
         let icon = ICON_CODE_FIRST as u8;
         assert_eq!(bytes[..2], [icon, icon + 1]);
         assert_eq!(&bytes[2..], b"Latigo de Seda");
+    }
+
+    fn text_bytes(texts: &Texts, k: i64) -> Vec<u8> {
+        let (at, len) = texts.offsets[k as usize];
+        texts.data[at..at + len].to_vec()
+    }
+
+    /// A letter the screens carry is its glyph plus 32, after the icons'
+    /// halves; a name loses its icon and keeps its letter. Zounds' `á` and
+    /// Unamë's `ë` since 2026-11-22.
+    #[test]
+    fn a_letter_the_screens_carry_is_its_glyph() {
+        let icon = rm2k_snes_text::exfont::icon_of_letter('L').unwrap();
+        let glyphs = ScreenGlyphs::new(vec![icon], vec!['\u{eb}', '\u{e1}'], 99);
+        let mut texts = Texts {
+            data: Vec::new(),
+            offsets: Vec::new(),
+            first: 32,
+            count: 95,
+            glyphs: glyphs.clone(),
+        };
+        let k = texts.add(&db_text(&glyphs, "$LL\u{e1}tigo"));
+        let bytes = text_bytes(&texts, k);
+        assert_eq!(bytes[2..4], [b'L', 32 + 99 + 1]);
+        let k = texts.add(&plain(&glyphs, "$LUnam\u{eb}"));
+        assert_eq!(text_bytes(&texts, k), [b'U', b'n', b'a', b'm', 32 + 99]);
+        // And one it does not carry is its stand-in.
+        let k = texts.add(&plain(&glyphs, "Ni\u{f1}o"));
+        assert_eq!(text_bytes(&texts, k), b"Nino");
+    }
+
+    /// A screen's byte is its glyph plus 32, so the screens reach glyph
+    /// 223 and no further: a letter the font carries past it is shown on
+    /// them as its plain stand-in, and nothing wraps around to a low byte.
+    #[test]
+    fn the_screens_stop_at_glyph_223() {
+        let letters = vec!['\u{e1}', '\u{e9}', '\u{ed}', '\u{f3}', '\u{fa}'];
+        let glyphs = ScreenGlyphs::new(Vec::new(), letters, 220);
+        assert_eq!(glyphs.letters, ['\u{e1}', '\u{e9}', '\u{ed}', '\u{f3}']);
+        let mut texts = Texts {
+            data: Vec::new(),
+            offsets: Vec::new(),
+            first: 32,
+            count: 95,
+            glyphs: glyphs.clone(),
+        };
+        let k = texts.add(&db_text(&glyphs, "\u{f3}\u{fa}"));
+        assert_eq!(text_bytes(&texts, k), [255, b'u']);
     }
 }

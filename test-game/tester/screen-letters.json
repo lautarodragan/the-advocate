@@ -1,0 +1,8 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 4]},
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 1]},
+    {"code": "ChangeItems", "parameters": [0, 0, 2, 0, 3]},
+    {"code": "ShowMessage", "string": "\\N[0] is here."}
+  ]
+}

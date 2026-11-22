@@ -1,5 +1,5 @@
 # The meadow's hub, which makes every map and every case of the test game
-# reachable by playing it: `tests/hub.py` writes its two events into
+# reachable by playing it: `tests/hub.py` writes its three events into
 # `src/maps/Map0001.json` from this file —`just hub`—, as the map's last
 # events, and `tests/test_hub.py` fails if that file says something else.
 #
@@ -78,7 +78,9 @@ to = [14, 14, 9, 1]
 # finds them where the harness's did, on the start cell and facing down:
 # the board is there so that no teleport has to put them back. A case runs
 # with the switches in `on` and `off` set, and then its commands, as they
-# are in its file.
+# are in its file: a page each of the shelf, an event with no graphic in
+# the top left corner's bush, which the tester calls —see `shelf_event` in
+# `tests/hub.py` for why a page each—.
 [tester]
 x = 10
 y = 11
@@ -112,6 +114,10 @@ label = "Hero and keys"
 cases = ["key-long-form", "key-wait-for-a", "key-wait-for-all",
          "key-wait-for-dir", "speed", "speed-saved", "screen-of-hero",
          "screen-of-events"]
+
+[[tester.group]]
+label = "Letters"
+cases = ["screen-letters", "screen-letters-shop", "screen-letters-battle"]
 
 # What a case needs set before it runs, which the harness used to set from
 # outside: `branch` runs with 1420 off, and `branch-switched` is the same
