@@ -20,7 +20,7 @@ opened door's stripes came back. It came from that game's suite, in the
 ports, on 2026-11-22.
 """
 
-from rm2k_snes_harness import Session
+from play import boot, go_to
 
 DOORS = 12
 EV_DOOR, EV_MARKER = 0, 1           # indices, from zero
@@ -41,10 +41,12 @@ def walk(sess, button, target, limit=200):
 
 
 def opened(core):
-    """A game with the door opened, standing in front of it."""
-    sess = Session(core)
-    sess.go_to_map(DOORS, *IN_FRONT)
-    sess.put_byte("hero_dir", sess.symbol("DIR_UP"))
+    """A game with the door opened, standing in front of it: the guide's
+    doors leave the hero there, facing it."""
+    sess = boot(core)
+    go_to(sess, "Doors")
+    sess.until("control", sess.has_control, 300)
+    assert sess.cell() == IN_FRONT and sess.byte("hero_dir") == sess.symbol("DIR_UP")
     sess.press("a")
     sess.until("the door's page", lambda: sess.switch(1440) and sess.has_control(), 120)
     return sess

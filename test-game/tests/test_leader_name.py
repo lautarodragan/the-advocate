@@ -21,7 +21,9 @@ since a test page's box with `\\N[0]` does not compile.
 
 import pytest
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, core_name, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, core_name, golden
+
+from play import playing, run_case
 
 
 def shown(sess):
@@ -36,7 +38,7 @@ def shown(sess):
 
 
 def test_the_leader_and_a_renamed_actor(core):
-    sess = Session(core, case="leader-name")
+    sess = playing(core, "leader-name")
     shown(sess)
     golden("leader-hero", sess.image(), core)
     sess.press("a")
@@ -54,7 +56,7 @@ def test_the_leader_and_a_renamed_actor(core):
 
 
 def test_no_leader_is_no_name(core):
-    sess = Session(core, case="no-leader")
+    sess = playing(core, "no-leader")
     shown(sess)
     golden("no-leader", sess.image(), core)
 
@@ -72,14 +74,16 @@ def test_a_rename_travels_in_the_save(core):
         # would start from it. The save is the ROM's, not the core's: one
         # core is enough.
         pytest.skip("bsnes keeps the SRAM between tests and does not let it be cleared")
-    sess = Session(core, case="rename-saved")
+    sess = playing(core, "rename-saved")
     try:
         sess.screen_up()
         sess.choose()
         sess.reset()
-        # The saved game is loaded, with 1300 on, and the case runs again:
-        # now down its other branch.
-        sess.choose_case("rename-saved")
+        # The saved game is loaded, with 1300 on, on the start cell where
+        # the tester put the hero; the case again, now down its other
+        # branch.
+        sess.until("control", sess.has_control, 600)
+        run_case(sess, "rename-saved")
         shown(sess)
         golden("rename-loaded", sess.image(), core)
         # In frames and not ticks: the slot screen opens right after, and

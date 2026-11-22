@@ -20,7 +20,9 @@ Seen red with the tools before the change: the hero stopped at (0, 10) and
 at (12, 0), and the walkers at column 0 and row 0.
 """
 
-from rm2k_snes_harness import Session, golden
+from rm2k_snes_harness import golden
+
+from play import playing
 
 RING = 8
 ARRIVAL = (12, 10)
@@ -32,7 +34,7 @@ def tile(sess):
 
 
 def on_the_ring(core):
-    sess = Session(core, case="ring")
+    sess = playing(core, "ring")
     sess.until("on map %d with control" % RING,
                lambda: sess.map_() == RING and sess.has_control(), 600)
     for _ in range(10):

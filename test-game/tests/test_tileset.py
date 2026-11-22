@@ -20,14 +20,16 @@ listed nothing.
 import json
 import os
 
-from rm2k_snes_harness import Session, cartridge
+from rm2k_snes_harness import cartridge
+
+from play import playing
 
 COMMON = 3
 AFTER = 1290
 
 
 def test_the_page_goes_on_past_the_tileset_change(core):
-    sess = Session(core, case="tileset")
+    sess = playing(core, "tileset")
     for _ in range(60):
         sess.advance()
     assert sess.switch(AFTER), (

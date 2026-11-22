@@ -20,7 +20,9 @@ small enough to look at. A capture that looks worse than its golden is
 not blessed.
 """
 
-from rm2k_snes_harness import Session, golden
+from rm2k_snes_harness import golden
+
+from play import playing
 
 
 def arrived(sess, map_id):
@@ -33,12 +35,12 @@ def arrived(sess, map_id):
 
 
 def test_the_garden_loses_a_little(core):
-    sess = Session(core, case="garden")
+    sess = playing(core, "garden")
     arrived(sess, 2)
     golden("garden", sess.image(), core)
 
 
 def test_the_showcase_loses_too_much(core):
-    sess = Session(core, case="showcase")
+    sess = playing(core, "showcase")
     arrived(sess, 3)
     golden("showcase", sess.image(), core)

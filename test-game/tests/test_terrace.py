@@ -15,7 +15,8 @@ measured. Here it costs that game nothing.
 scrolling three pixels a step on its own; the hero still at its bottom,
 three walkers going round with repeating routes, and two trees whose
 crowns go above the hero, which makes the map flattened, as that one is.
-The case `terrace` leaves the hero there, and a parallel page of the map
+The guide's "Terrace" leaves the hero there —and the probe cartridge's
+case `terrace`, the same teleport—, and a parallel page of the map
 —a parallel one so the walkers go on walking, which under an automatic
 page they would not, as in RM2k— shows four boxes, transparent and in
 the middle: four lines, four, three and one. The sky is left where the
@@ -90,6 +91,8 @@ import pytest
 
 from rm2k_snes_harness import ACCURATE, AUDIT, MESSAGE_SHOWN, Session, golden
 
+from play import boot, go_to
+
 TERRACE = 9
 BOXES = 4                   # dry, and as many again in the rain
 PROBE = "test-vblank"
@@ -142,6 +145,8 @@ def play(sess, at_each_box=lambda k: None):
 
 
 def test_each_line_goes_up_inside_the_vblank(core):
+    # The probe's cartridge, which carries the terrace and the clearing and
+    # no hub: the case is the harness's, the guide's same teleport.
     sess = Session(core, case="terrace", on=PROBE)
     bare = sess.symbol("LINE_LATEST_BARE")
     latest = sess.symbol("LINE_LATEST")
@@ -203,8 +208,9 @@ def test_each_line_goes_up_inside_the_vblank(core):
                     "both patches of rm2k-snes/harness/cores/— and point AUDIT_CORE "
                     "at it" % AUDIT)
 def test_nothing_reaches_the_screen_while_it_is_drawn():
-    sess = Session(AUDIT, case="terrace", options=ACCURATE)
+    sess = boot(AUDIT, options=ACCURATE)
     sess.console.watch_the_display()
+    go_to(sess, "Terrace")
     play(sess)
     seen = sess.console.display_accesses
     assert not seen, (
@@ -214,7 +220,8 @@ def test_nothing_reaches_the_screen_while_it_is_drawn():
 
 
 def test_what_it_looks_like(core):
-    sess = Session(core, case="terrace")
+    sess = boot(core)
+    go_to(sess, "Terrace")
     shots = {0: "terrace-first-box", 2: "terrace-three-lines",
              4: "terrace-rain-first-box", 6: "terrace-rain-three-lines"}
     play(sess, lambda k: k in shots and golden(shots[k], sess.image(), core))

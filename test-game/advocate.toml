@@ -25,7 +25,10 @@ excluded = []
 added = []
 test = []
 
-# The tools demand a cartridge called `release` with every case.
+# The tools demand a cartridge called `release` with every case: here only
+# `nothing`, the game as it boots. What used to be cases is played, from the
+# meadow's tester —see `hub.toml`—, and `terrace` is `test-vblank`'s alone,
+# the same teleport as the guide's.
 # `--no-title`: the game has no title picture, and starts on its map.
 [cartridges.release]
 start_map = 1
@@ -34,7 +37,7 @@ maps = "game"
 test_graphics = []
 flags = ["--no-title"]
 cases = "all"
-excluded_cases = []
+excluded_cases = ["terrace"]
 
 # The terrace, map 9, with `--vblank-probe`: the ROM leaves in RAM on which
 # vblank line each of the message window's lines went up, how late its

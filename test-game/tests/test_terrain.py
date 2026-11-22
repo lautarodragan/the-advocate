@@ -25,7 +25,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from rm2k_snes_harness import Session, cartridge, rm2k
+from rm2k_snes_harness import cartridge, rm2k
+
+from play import playing
 
 SHOWCASE = 3
 # Which cell the case asks about and in which variable it leaves the answer.
@@ -68,7 +70,7 @@ def sequence(request):
     core = SNES9X if request.param == "snes9x" else BSNES
     if not os.path.exists(core):
         pytest.skip("no libretro core at %s" % core)
-    sess = Session(core, case="terrain")
+    sess = playing(core, "terrain")
     sess.until_control()
     return sess
 

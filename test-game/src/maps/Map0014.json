@@ -159,6 +159,33 @@
           ]
         }
       ]
+    },
+    {
+      "id": 4,
+      "name": "Keeper",
+      "x": 14,
+      "y": 13,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 3,
+          "move_type": "stationary",
+          "layer": "same",
+          "event_commands": [
+            {"code": "ShowChoice", "string": "Wake the statue/Start the pacer", "parameters": [5]},
+            {"code": "ShowChoiceOption", "string": "Wake the statue", "parameters": [0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 1452, 1452, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "string": "Start the pacer", "parameters": [1]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 1450, 1450, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "string": "", "parameters": [4]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ]
+        }
+      ]
     }
   ]
 }

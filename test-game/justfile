@@ -68,3 +68,68 @@ cartridges *args: game
 # Builds the cartridges and runs the game's tests.
 test *args: cartridges
   pytest tests {{args}}
+
+# The meadow's hub —the guide's signpost and the tester's board, the last
+# two events of `src/maps/Map0001.json`— written again from `hub.toml` and
+# `tester/`: after adding a case or a map, or changing their menus.
+# `tests/test_hub.py` is red while the map says something else.
+#
+# Writes the hub into src/maps/Map0001.json from hub.toml and tester/.
+hub:
+  python3 tests/hub.py
+
+# **Leaves `release` for taro in `$SHARED/builds/test-game/`**, the shape of
+# the ports' `just deliver`: `test-game.sfc`, its `.sfc.dbg` for Mesen2's
+# debugger, the `runtime/` it was assembled from —Mesen2 finds the source
+# going up folders from the `.dbg`— and a `README.txt` with the commits and
+# what is passed as what to look at. No `.msu` and no tracks: the game has
+# no music nor battles yet, and its cartridges build without tracks. The
+# previous build's files are overwritten, and whatever else is there stays.
+#
+# `SHARED` belongs to the machine, like `SOUNDFONT`: the ports' is in their
+# `machine.just`, and this has no default. It refuses with uncommitted
+# changes in the game or in the runtime it is built with, since the README
+# names their commits: the game's, this checkout's; the runtime's, that of
+# the checkout the tools were installed from, which `rm2k-snes-project`
+# answers.
+#
+#     SHARED=<where taro looks> SOUNDFONT=<a .sf2> just deliver "What changed and what to look at."
+#
+# Builds release and delivers it to $SHARED/builds/test-game/.
+deliver what_to_look_at: (cartridges "release")
+  #!/usr/bin/env bash
+  set -euo pipefail
+  shared="${SHARED:-}"
+  [ -n "$shared" ] || { echo "deliver: SHARED=<the folder taro sees> is not set" >&2; exit 1; }
+  [ -d "$shared" ] || { echo "deliver: $shared does not exist" >&2; exit 1; }
+  project=$(rm2k-snes-project --project .)
+  tools=$(echo "$project" | python3 -c 'import json, sys; print(json.load(sys.stdin)["suite"]["root"])')
+  name=$(echo "$project" | python3 -c 'import json, sys; print(json.load(sys.stdin)["settings"]["rom"]["name"])')
+  dirty=$(git status --porcelain -- . ; git -C "$tools" status --porcelain -- runtime)
+  if [ -n "$dirty" ]; then
+    echo "deliver: there are uncommitted changes, and the README names the commits:" >&2
+    echo "$dirty" >&2
+    exit 1
+  fi
+  dest="$shared/builds/test-game"
+  mkdir -p "$dest"
+  cp "build/release/$name.sfc" "build/release/$name.sfc.dbg" "$dest/"
+  rm -rf "$dest/runtime"
+  git -C "$tools" archive HEAD runtime | tar -x -C "$dest"
+  {
+    echo "$name.sfc of commit $(git rev-parse --short HEAD) ($(date +%F)): $(git log -1 --format=%s)"
+    echo "Built with the runtime of commit $(git -C "$tools" rev-parse --short HEAD): $(git -C "$tools" log -1 --format=%s)"
+    echo
+    printf '%s\n' {{quote(what_to_look_at)}} | fold -s -w 76
+    echo
+    echo "How to play it: the game starts on the meadow. The signpost on the"
+    echo "left is the guide, who teleports to every map; the board right below"
+    echo "the hero is the tester, who runs every case of the tests from its"
+    echo "menus. Both hand out the Way Home, an item that brings the hero back"
+    echo "to the meadow from anywhere: the pause menu, then the items. See"
+    echo "test-game/README.md."
+    echo
+    echo "$name.sfc.dbg: the routines' names for Mesen2's debugger, which loads"
+    echo "it on its own next to the ROM; runtime/ is the source it shows (Ctrl+Q)."
+  } > "$dest/README.txt"
+  echo "deliver: $dest"

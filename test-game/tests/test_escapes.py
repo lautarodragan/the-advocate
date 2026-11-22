@@ -23,14 +23,16 @@ compile, the call was skipped, and no box came up.
 import json
 import os
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, cartridge, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, cartridge, golden
+
+from play import playing
 
 COMMON = 2
 DROPPED = ["\\$", "\\_", "\\q"]
 
 
 def test_the_box_shows_its_text_without_the_escapes(core):
-    sess = Session(core, case="escapes")
+    sess = playing(core, "escapes")
     # The box is typed: a few hundred ticks for three lines at speed 1.
     sess.until("a message composed",
                lambda: sess.byte("msg_open")

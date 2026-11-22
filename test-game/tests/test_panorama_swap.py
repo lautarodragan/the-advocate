@@ -26,7 +26,9 @@ the buffer —`anim_buf_clear` after the swap—; no case shows a battle
 animation on a map while its panorama is swapped.
 """
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, golden
+
+from play import playing
 
 LOOKOUT = 10
 AFTER_SWAP = 1700   # the case page's switch, after its wait
@@ -35,7 +37,7 @@ NONE = 0xFFFF       # `CARRY_MAP` when no page is carried
 
 
 def test_a_swap_keeps_the_carried_page(core):
-    sess = Session(core, case="panorama-swap")
+    sess = playing(core, "panorama-swap")
     sess.until("on map %d" % LOOKOUT,
                lambda: sess.map_() == LOOKOUT and not sess.byte("fade"), 600)
     # The fade in and a few ticks more, so the map is drawn whole; the

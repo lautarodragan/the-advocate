@@ -18,7 +18,7 @@ Before the change the case did not compile, and with it neither did the
 cartridge: red by construction.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 CASE = "key-long-form"
 DECISION = 1310
@@ -27,7 +27,7 @@ DOWN = 1312
 
 
 def test_the_long_form_reads_the_same_keys(core):
-    sess = Session(core, case=CASE)
+    sess = playing(core, CASE)
     # The first turn of the waiting form eats the edge that is there and
     # looks from the next frame on: a few ticks with nothing pressed, then
     # one key at a time, with a release in between so each is an edge.

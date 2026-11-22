@@ -11,14 +11,16 @@ The case `close-on-its-own` shows the box and turns switch 1320 on after
 it. Seen red with the tools before the change: the window never came up.
 """
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session
+from rm2k_snes_harness import MESSAGE_SHOWN
+
+from play import playing
 
 AFTER = 1320
 TYPING = 2
 
 
 def test_the_box_is_typed_whole_and_then_closes(core):
-    sess = Session(core, case="close-on-its-own")
+    sess = playing(core, "close-on-its-own")
     sess.until("the box being typed",
                lambda: sess.byte("msg_open")
                and sess.byte("MSG_TYPE") == TYPING, 300)

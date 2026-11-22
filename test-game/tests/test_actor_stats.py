@@ -33,7 +33,7 @@ the clamp branched on them —the trap of AGENTS.md—; this is the case that
 caught it.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 CASE = "actor-stats"
 EXPECTED = {
@@ -51,7 +51,7 @@ EXPECTED = {
 
 
 def test_an_actors_stats_into_variables(core):
-    sess = Session(core, case=CASE)
+    sess = playing(core, CASE)
     for _ in range(30):
         sess.advance()
     wrong = [why for switch, why in EXPECTED.items() if not sess.switch(switch)]

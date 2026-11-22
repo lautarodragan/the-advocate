@@ -29,8 +29,12 @@ The erasure, map 14, has two events that erase themselves:
 
 And the loop, event 3 at (1, 3), below the hero and touched: a `Teleport`
 to this same map, in front of the statue. RM2k loads nothing on a jump to
-the map it is on, so what was erased stays erased; the harness's
-`go_to_map` is not that, it loads the map.
+the map it is on, so what was erased stays erased; leaving with the Way
+Home and coming back with the guide loads it.
+
+And the keeper, event 4 at (14, 13), who turns 1452 or 1450 on when asked:
+what the test used to turn on from outside. The guide's "Erasure" puts the
+hero at (14, 9), facing the statue, with the keeper four cells below.
 
 What is drawn is asked of the screen, not of a golden: the field is one
 grass tile, so a region where nothing is drawn is equal, pixel for pixel,
@@ -57,7 +61,7 @@ broken. The task is `eraseevent-no-test-looks-at-what-is-seen`, in
 the-advocate-work.
 """
 
-from rm2k_snes_harness import Session
+from play import boot, choose, go_home, go_to
 
 ERASURE = 14
 STATUE, PACER = 0, 1                # their rows in the ROM's table
@@ -69,9 +73,10 @@ PACER_RUNS = 200                    # +1 each time the pacer's page starts
 STATUE_WENT_ON = 201                # the statue's command after EraseEvent
 OTHER_PAGE = 1452                   # the statue's second page asks for it
 OTHER_PAGE_RAN = 202                # and sets this
-CLEARING = 4
 LOOP = (1, 3)
 LOOP_LANDING = (14, 9)              # where the loop's Teleport puts the hero
+LANDING = (14, 9)                   # where the guide's puts them
+KEEPER = (14, 13)
 
 # How far to the right the region it is compared against is: three cells
 # of the same grass, where no event stands and the hero is never put.
@@ -97,9 +102,29 @@ def drawn(sess, x, rows):
     return here.tobytes() != there.tobytes()
 
 
+def arrive(core):
+    """The guide's erasure: below the statue, facing it."""
+    sess = boot(core)
+    go_to(sess, "Erasure")
+    sess.until("control", sess.has_control, 300)
+    assert sess.cell() == LANDING
+    return sess
+
+
+def ask_the_keeper(sess, option):
+    """Walks down to the keeper, below the landing, and picks `option`:
+    0 wakes the statue's other page, 1 starts the pacer."""
+    sess.walk_until_blocked("down")
+    assert sess.cell() == (KEEPER[0], KEEPER[1] - 1), (
+        "walking down the hero stopped at %s, not in front of the keeper"
+        % (sess.cell(),))
+    sess.press("a")
+    choose(sess, option)
+    sess.until("control", sess.has_control, 120)
+
+
 def test_an_erased_event_is_not_drawn_and_does_not_block(core):
-    sess = Session(core)
-    sess.go_to_map(ERASURE, STATUE_CELL[0], 9)
+    sess = arrive(core)
     assert drawn(sess, STATUE_CELL[0], [STATUE_CELL[1]]), (
         "the statue is not drawn before anything happened: the region "
         "check sees nothing")
@@ -116,22 +141,23 @@ def test_an_erased_event_is_not_drawn_and_does_not_block(core):
 
 
 def erase_the_statue(sess):
-    """Walks up to the statue and presses A: it erases itself."""
-    sess.go_to_map(ERASURE, STATUE_CELL[0], 9)
+    """From the landing, walks up to the statue and presses A: it erases
+    itself."""
     sess.walk_until_blocked("up")
     sess.press("a")
     sess.run(10)
 
 
 def take_the_loop(sess):
-    """From in front of the statue's cell, walks to the loop and steps on
-    it: its `Teleport` to this map puts the hero back below the statue."""
+    """Walks left to the loop's column and along it to the loop: its
+    `Teleport` to this map puts the hero back below the statue."""
     sess.walk_until_blocked("left")
     assert sess.cell()[0] == LOOP[0], "the hero did not reach the loop's column"
-    for _ in range(200):
+    toward = "up" if sess.cell()[1] > LOOP[1] else "down"
+    for _ in range(400):
         if sess.cell() == LOOP:
             break
-        sess.advance("up")
+        sess.advance(toward)
     sess.until("back from the loop",
                lambda: sess.cell() == LOOP_LANDING and sess.has_control(), 300)
     assert sess.map_() == ERASURE
@@ -143,11 +169,14 @@ def test_the_erasure_lasts_until_the_map_is_loaded_again(core):
     nothing, so it stays erased; going to another map and back brings it
     back. A Blurred Line's `test_erase_event_for_real.py` asks the same of
     an event with no graphic."""
-    sess = Session(core)
+    sess = arrive(core)
     erase_the_statue(sess)
     assert sess.variable(STATUE_WENT_ON) == 1, (
         "a foreground page has to go on after erasing its event")
-    sess.turn_on(OTHER_PAGE)
+    # Back down past the landing —the statue no longer stops the hero— to
+    # the keeper, who wakes its other page.
+    ask_the_keeper(sess, 0)
+    assert sess.switch(OTHER_PAGE), "the keeper did not turn the other page's switch on"
     sess.run(30)
     assert sess.variable(OTHER_PAGE_RAN) == 0, (
         "a page of an erased event started: it is still standing")
@@ -156,8 +185,9 @@ def test_the_erasure_lasts_until_the_map_is_loaded_again(core):
         "a jump to the same map brought the erased statue back")
     assert not drawn(sess, STATUE_CELL[0], [STATUE_CELL[1]]), (
         "a jump to the same map draws the erased statue again")
-    sess.go_to_map(CLEARING, 10, 10)
-    sess.go_to_map(ERASURE, STATUE_CELL[0], 9)
+    go_home(sess)
+    go_to(sess, "Erasure")
+    sess.until("control", sess.has_control, 300)
     assert sess.variable(OTHER_PAGE_RAN) == 1, (
         "after loading the map again the statue's other page did not start")
     assert not sess.switch(OTHER_PAGE), "the statue's other page did not end"
@@ -168,12 +198,11 @@ def test_the_erasure_lasts_until_the_map_is_loaded_again(core):
 
 
 def test_a_parallel_page_that_erases_its_event_stops_there(core):
-    sess = Session(core)
-    sess.go_to_map(ERASURE, 16, 12)
+    sess = arrive(core)
     rows = list(range(1, 14))
     assert not drawn(sess, PACER_COLUMN, rows), (
         "the pacer is drawn with its page's switch off")
-    sess.turn_on(PACER_ON)
+    ask_the_keeper(sess, 1)
     sess.run(5)
     assert sess.variable(PACER_RUNS) == 1, "the pacer's page did not start"
     assert drawn(sess, PACER_COLUMN, rows), (

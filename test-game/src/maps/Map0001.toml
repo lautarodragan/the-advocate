@@ -17,8 +17,8 @@ grid = '''
 #..................#
 #...*..............#
 #............*.....#
-#..................#
-#..T...........T...#
+#......s...........#
+#..T......b....T...#
 #..t.....*.....t...#
 #..................#
 ####################
@@ -35,3 +35,8 @@ grid = '''
 "t" = { lower = 4000, upper = 10008 }
 # Flowers, walked over.
 "*" = { lower = 4000, upper = 10018 }
+# The hub: the guide's signpost and the tester's board, each under an event
+# of the same name with no graphic —see `hub.toml`—, which is what stops the
+# hero in front of them and answers A.
+"s" = { lower = 4000, upper = 10038 }
+"b" = { lower = 4000, upper = 10014 }

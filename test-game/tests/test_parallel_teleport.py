@@ -27,7 +27,7 @@ Seen red with the tools before the change: the game arrives at the
 clearing black, and 1401 stays off.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 CLEARING = 4
 ASKED = 1400        # the page's condition, which the case turns on
@@ -35,7 +35,7 @@ AFTER_JUMP = 1401   # the page's last command, after its Teleport
 
 
 def test_a_parallel_page_runs_past_its_teleport(core):
-    sess = Session(core, case="parallel-teleport")
+    sess = playing(core, "parallel-teleport")
     sess.until("on map %d with control" % CLEARING,
                lambda: sess.map_() == CLEARING and sess.has_control(), 600)
     # The tint back is half a second: well done after 60 ticks.
