@@ -1,3 +1,4 @@
 [
-  {"id": 1, "name": "Sword", "type": "weapon", "atk_points1": 5, "def_points1": 7, "spi_points1": 9, "agi_points1": 11, "actor_set": [true, true, true]}
+  {"id": 1, "name": "Sword", "type": "weapon", "atk_points1": 5, "def_points1": 7, "spi_points1": 9, "agi_points1": 11, "actor_set": [true, true, true]},
+  {"id": 2, "name": "Poción Ácida", "description": "Cura, ¡y rápido!", "type": "medicine", "price": 30, "recover_hp": 50}
 ]

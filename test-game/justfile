@@ -43,7 +43,7 @@ game:
   done
   ditto pack build/text build/game
   cp src/RPG_RT.ini build/game/
-  cp -r ChipSet CharSet FaceSet Panorama Picture System build/game/
+  cp -r ChipSet CharSet FaceSet Monster Panorama Picture System build/game/
   ditto unpack build/game build/exact build/data
 
 # `--rtp-dir` an empty directory: the game uses nothing from any RTP, and

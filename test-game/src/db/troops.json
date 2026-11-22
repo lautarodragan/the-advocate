@@ -1,1 +1,3 @@
-[]
+[
+  {"id": 1, "name": "Avispón", "members": [{"id": 1, "enemy_id": 1, "x": 160, "y": 96}]}
+]

@@ -36,7 +36,9 @@ which it draws or shows plain. And a case that puts six small pictures
 up on the meadow at once and slides two of them, and one that types boxes
 in the System's colours and at three speeds. The database has three
 actors —the Hero, Alda and Bram, who is in no party— and one item, the
-Sword, for the cases that read an actor's stats.
+Sword, for the cases that read an actor's stats; and Zoë Peña, the Poción
+Ácida and the Avispón, an actor, an item and the one enemy of the one
+troop, whose names carry letters outside ASCII for the text screens.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json
@@ -152,6 +154,11 @@ hand.
     test_linter.py      Goombario over the cartridge: the runtime falls in
                         none of the traps it knows, but for the lines
                         annotated as right
+    test_screen_letters.py
+                        Latin-1 on the text screens: Zoë's name in a box,
+                        `\N[0]`, and on the menu; the Poción Ácida on the
+                        items screen, in a shop and in the battle's item
+                        list, against the Avispón
 
 And the first ten that came from A Blurred Line's `tests/rpgmaker/` on
 2026-11-22, with their cases rewritten on these maps —phase 2 of the
