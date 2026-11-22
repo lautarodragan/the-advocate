@@ -1307,6 +1307,7 @@ fn page(
     // The big pictures' fades to nothing that leave the map to be seen: see
     // [`big_fade_outs`].
     let fade_outs = big_fade_outs(commands, ctx.pictures.as_deref());
+    let mut faded_big: BTreeSet<usize> = BTreeSet::new();
     // The `ShowPicture`s a `ShowWindow` stands in for: the window is shown
     // by its comment, and the picture is RPG_RT's. See [`crate::windows`].
     let by_window: BTreeSet<usize> = crate::windows::replaced_pictures(commands)
@@ -1931,11 +1932,19 @@ fn page(
                 shops.push(Shop::default());
             }
             let mut p = p;
-            if fade_outs.contains(&i) && matches!(p.first(), Some(&(OP_BIG_MOVE | OP_BIG_ZOOM))) {
+            // A fade's move that compiled to the big picture's: only then is
+            // the layer taken down, after it or a few commands later.
+            if fade_outs.values().any(|&m| m == i)
+                && matches!(p.first(), Some(&(OP_BIG_MOVE | OP_BIG_ZOOM)))
+            {
+                faded_big.insert(i);
+            }
+            if let Some(&m) = fade_outs.get(&i).filter(|m| faded_big.contains(m)) {
                 // Taken down as its `ErasePicture` would: the game's windows
                 // it covered come back too —see [`window_cover`]—.
                 let taken = [OP_PICTURE_ERASE, PICTURE_BIG];
-                let erase = Command::new(ERASE_PICTURE, cmd.indent, "", vec![cmd.parameters[0]]);
+                let number = commands[m].parameters[0];
+                let erase = Command::new(ERASE_PICTURE, cmd.indent, "", vec![number]);
                 p.extend(taken);
                 p.extend(window_cover(ctx, &erase, &taken)?);
             }
@@ -2660,10 +2669,11 @@ fn choice_boxes(
 /// the `InputNumber` is one on its own, a window with no text and the
 /// digits on its first line: `CommandInputNumber`, and
 /// [`compile_number`] with no message.
-/// The `MovePicture`s after which the big picture is taken down: each one
-/// that fades a big picture to nothing —transparency 100—, waits for it,
-/// and leaves no other big one seen by the page; and that no later move of
-/// the page brings back before a `ShowPicture` of its number.
+/// Where the big picture is taken down after a fade to nothing, as (the
+/// command after whose code the `ErasePicture` goes, the `MovePicture`):
+/// each move that fades a big picture to transparency 100 and leaves no
+/// other big one seen by the page; and that no later move of the page
+/// brings back before a `ShowPicture` of its number.
 ///
 /// In RM2k a picture at 100 % is not seen, and what is under it is: Desert
 /// Nightmare's intro, map 6, shows a black picture and its title over it,
@@ -2674,11 +2684,23 @@ fn choice_boxes(
 /// —with the two black frames of `big_back_far`, at the end of a fade to
 /// black—.
 ///
+/// A move that waits for its fade is taken down right after it. **One that
+/// does not wait** goes on fading while the page runs, and in RM2k the map
+/// comes up through it: Desert Nightmare's motel at night, map 32, fades
+/// its black picture out in two seconds and plays the whole scene of the
+/// old man over the corridor —until 2026-11-22 it played on black here,
+/// the task `desert-nightmare-the-scene-after-the-bar-is-black`—. That one
+/// is taken down where the page has waited the fade's time, or earlier,
+/// before the first command that is not one of [`passes_a_fade`]'s: a
+/// message, a branch, a call, anything that may wait or jump. Taking it
+/// down sooner costs little, since over the console's black a fading
+/// picture only darkens; later would leave the map hidden.
+///
 /// Which numbers are seen is followed down the page as written, without
 /// its branches: what another page showed is not known, and the console's
 /// layer is one, the last shown, which every move of a big number takes.
-fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeSet<usize> {
-    let mut out = BTreeSet::new();
+fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeMap<usize, usize> {
+    let mut out = BTreeMap::new();
     let Some(pictures) = pictures else {
         return out;
     };
@@ -2709,8 +2731,13 @@ fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeSet<
                             && l.parameters.first() == Some(&n)
                             && l.parameters.get(6).is_some_and(|&t| t < 100)
                     });
-                if seen.is_empty() && p[15] != 0 && !back {
-                    out.insert(i);
+                if seen.is_empty() && !back {
+                    let after = if p[15] != 0 {
+                        i
+                    } else {
+                        fade_waited(commands, i, p[14])
+                    };
+                    out.insert(after, i);
                 }
             }
             ERASE_PICTURE => {
@@ -2720,6 +2747,40 @@ fn big_fade_outs(commands: &[Command], pictures: Option<&Pictures>) -> BTreeSet<
         }
     }
     out
+}
+
+/// The last command, from the non-waiting fade at `i` on, that the page
+/// runs with the fade still going and no reason to stop at: it adds up the
+/// `Wait`s down the page, at the move's indent, until they last the fade's
+/// `tenths`, and stops before anything that is not [`passes_a_fade`]. See
+/// [`big_fade_outs`].
+fn fade_waited(commands: &[Command], i: usize, tenths: i32) -> usize {
+    let mut left = tenths;
+    let mut last = i;
+    for (j, c) in commands.iter().enumerate().skip(i + 1) {
+        if left <= 0 || c.indent != commands[i].indent || !passes_a_fade(c) {
+            break;
+        }
+        last = j;
+        if c.code == WAIT {
+            left -= c.p(0).unwrap_or(0) as i32;
+        }
+    }
+    last
+}
+
+/// The commands a fade that does not wait is not taken down in front of:
+/// they take no time, or the time a `Wait` says, and neither jump nor
+/// show anything over the picture. Each compiles on its own, to a code
+/// that runs straight on, and the big picture's `OP_PICTURE_ERASE` goes
+/// after it. A switch's toggle is left out: it is compiled with its own
+/// jump.
+fn passes_a_fade(c: &Command) -> bool {
+    match c.code {
+        WAIT | MOVE_EVENT | PLAY_SOUND => true,
+        CONTROL_SWITCHES => c.p(3) != Some(SWITCH_TOGGLE),
+        _ => false,
+    }
 }
 
 fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
@@ -10915,8 +10976,41 @@ mod tests {
             &intro[intro.len() - 3..],
             [OP_PICTURE_ERASE, PICTURE_BIG, OP_DONE]
         );
-        let and_back = with_big(&bigs, &[black, fade(1, 100), fade(1, 0)]);
+        let and_back = with_big(&bigs, &[black.clone(), fade(1, 100), fade(1, 0)]);
         assert_eq!(erases(&and_back), 0);
+
+        // Desert Nightmare's motel at night, map 32: the black one fades out
+        // in two seconds without waiting, and the page goes on. It is taken
+        // down where the page has waited those two seconds —after the
+        // second `Wait`, not the third—, or before something else comes.
+        let fade_on = cmd(
+            MOVE_PICTURE,
+            &[1, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 20, 0],
+            "",
+        );
+        let wait = |tenths: i32| cmd(WAIT, &[tenths], "");
+        let delay = |tenths: i32| {
+            let frames = (tenths as i64 * FRAMES_PER_TENTH) as u16;
+            let [low, high] = frames.to_le_bytes();
+            [OP_DELAY, low, high]
+        };
+        let scene = with_big(
+            &bigs,
+            &[black.clone(), fade_on.clone(), wait(15), wait(5), wait(10)],
+        );
+        assert_eq!(erases(&scene), 1);
+        let mut tail = delay(15).to_vec();
+        tail.extend(delay(5));
+        tail.extend([OP_PICTURE_ERASE, PICTURE_BIG]);
+        tail.extend(delay(10));
+        tail.push(OP_DONE);
+        assert_eq!(&scene[scene.len() - tail.len()..], tail);
+        let before_the_title = with_big(&bigs, &[black, fade_on, wait(5), title]);
+        let erased = before_the_title
+            .windows(2)
+            .position(|w| w == [OP_PICTURE_ERASE, PICTURE_BIG]);
+        let titled = before_the_title.iter().rposition(|&b| b == OP_BIG_SHOW);
+        assert!(erased.is_some() && erased < titled);
     }
 
     #[test]

@@ -88,7 +88,8 @@ y = 11
 [[tester.group]]
 label = "Boxes"
 cases = ["close-on-its-own", "colours", "escapes", "faces", "leader-name",
-         "no-leader", "rename-saved", "plain-letters", "pictures"]
+         "no-leader", "rename-saved", "plain-letters", "pictures",
+         "big-fade-on"]
 
 [[tester.group]]
 label = "Variables"

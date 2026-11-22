@@ -25,6 +25,7 @@ this file: the RTP's `COPYING`, unchanged.
 | `Picture/Digit3.png` | 2026 | this project | CC0 | none | ours: an 8x10 digit in three colours, drawn by a script for `tests/test_pictures.py` |
 | `Picture/Panel.png` | 2026 | this project | CC0 | none | ours: a 64x48 panel, a frame and twelve blues, drawn by a script for `tests/test_pictures.py` |
 | `Picture/Bar.png` | 2026 | this project | CC0 | none | ours: a 320x16 bar in two greens, drawn by a script for `tests/test_pictures.py` |
+| `Picture/Curtain.png` | 2026 | this project | CC0 | none | ours: a 320x240 curtain of one dark plum, drawn by a script for `tests/test_big_fade_on.py` |
 | `Panorama/Stars.png` | 2026 | this project | CC0 | none | ours: a 320x240 night sky that loops on x —bands of blue, stars, a moon and hills—, 11 colours, drawn by a script for `tests/test_terrace.py` |
 | `Panorama/Dawn.png` | 2026 | this project | CC0 | none | ours: a 320x240 dawn —bands from purple to yellow, a sun, clouds and hills—, 8 colours, drawn by a script for `tests/test_panorama_swap.py` |
 
