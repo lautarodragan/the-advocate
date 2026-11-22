@@ -26,7 +26,8 @@ use rm2k_project::Project;
 use rm2k_snes_bytecode::events::{
     INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
 };
-use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
+use rm2k_snes_events::codes::{ROUTE_CHANGE_GRAPHIC, TELEPORT, TIMER_OPERATION};
+use rm2k_snes_events::route;
 use rm2k_snes_mapdata::{engine, record, vram};
 
 /// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
@@ -99,6 +100,46 @@ fn page_party(commands: &[Command], party: &[i32]) -> Option<Vec<i32>> {
         }
     }
     touches.then_some(state.party)
+}
+
+/// Where a compiled page flashes the hero, in order, as the flash check
+/// in [`run`] reads it: the map's index the flash runs on —`here`, or the
+/// last `Teleport`'s destination before it—, the graphic the last route on
+/// the hero gave it —from `graphics`, the map's route graphics—, and
+/// whether a teleport came before. The walk is in bytecode order and does
+/// not follow jumps.
+fn hero_flashes(
+    code: &[u8],
+    here: usize,
+    graphics: &[(String, i64)],
+) -> Result<Vec<(usize, Option<(String, i64)>, bool)>> {
+    let mut out = Vec::new();
+    let mut at = here;
+    let mut teleported = false;
+    let mut hero: Option<(String, i64)> = None;
+    for i in bytecode::walk(code)? {
+        if code[i] == OP_TELEPORT || code[i] == OP_TELEPORT_FACING {
+            // The facing's byte goes before the map.
+            let map = i + 1 + usize::from(code[i] == OP_TELEPORT_FACING);
+            teleported = true;
+            at = bytecode::at(code, map) as usize | (bytecode::at(code, map + 1) as usize) << 8;
+        } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
+            let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
+            // The operands come with their command, so a sound's index or a
+            // switch's number whose low byte is 34 is not a graphic change.
+            for (command, operands) in route::path_commands(path) {
+                if command == ROUTE_CHANGE_GRAPHIC {
+                    hero = operands
+                        .first()
+                        .and_then(|&g| graphics.get(g as usize))
+                        .cloned();
+                }
+            }
+        } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
+            out.push((at, hero.clone(), teleported));
+        }
+    }
+    Ok(out)
 }
 
 fn int(v: &Value) -> i64 {
@@ -1232,41 +1273,8 @@ pub fn run(options: Options) -> Result<()> {
         // common event 3 teleports, gives the hero `rangedmelee[7]` and flashes.
         let here = table_index[&m.id];
         for code in &run_here {
-            let mut at = here;
-            let mut teleported = false;
-            let mut hero: Option<(String, i64)> = None;
-            for i in bytecode::walk(code)? {
-                if code[i] == OP_TELEPORT || code[i] == OP_TELEPORT_FACING {
-                    // The facing's byte goes before the map.
-                    let map = i + 1 + usize::from(code[i] == OP_TELEPORT_FACING);
-                    teleported = true;
-                    at = bytecode::at(code, map) as usize
-                        | (bytecode::at(code, map + 1) as usize) << 8;
-                } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
-                    let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
-                    let mut k = 0;
-                    while k < path.len() {
-                        match path[k] {
-                            34 => {
-                                k += 1;
-                                hero = path
-                                    .get(k)
-                                    .and_then(|&g| m.route_graphics.get(g as usize))
-                                    .cloned();
-                            }
-                            // The sound's index and the switch's number, two
-                            // bytes each, which are not commands: a low byte
-                            // of 34 would read as a graphic change.
-                            32 | 33 | 35 => k += 2,
-                            _ => {}
-                        }
-                        k += 1;
-                    }
-                } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
-                    flashes
-                        .entry((at, hero.clone(), teleported))
-                        .or_insert(m.id);
-                }
+            for flash in hero_flashes(code, here, &m.route_graphics)? {
+                flashes.entry(flash).or_insert(m.id);
             }
         }
         // More than that is not lost while they do not all move at once:
@@ -2421,5 +2429,49 @@ mod tests {
         };
         assert_eq!(page_party(&[add], &[10]), Some(vec![10, 11]));
         assert_eq!(page_party(&[], &[10]), None);
+    }
+
+    use rm2k_snes_bytecode::events::OP_DONE;
+
+    /// A route on the hero and then a flash of the hero, the flash being
+    /// target 0 with its five bytes of colour, power and frames.
+    fn route_then_flash(path: &[u8]) -> Vec<u8> {
+        let mut code = vec![OP_ROUTE, 0, 8, path.len() as u8];
+        code.extend(path);
+        code.extend([OP_FLASH, 0, 31, 31, 31, 31, 8, OP_DONE]);
+        code
+    }
+
+    #[test]
+    fn a_hero_route_s_sound_is_not_a_graphic_change_at_a_flash() {
+        // Sound 290 —low byte 34, high byte 1, which read as a graphic would
+        // be the map's second route graphic— and a step up. Until
+        // the-advocate 9329f602 the walk skipped no byte after a 35, and
+        // the flash ran with `Other[2]`.
+        let graphics = [("Own".to_string(), 0), ("Other".to_string(), 2)];
+        let code = route_then_flash(&[35, 34, 1, 0]);
+        assert_eq!(
+            hero_flashes(&code, 7, &graphics).unwrap(),
+            [(7, None, false)]
+        );
+        // A graphic after the sound is read: the operands are skipped, not
+        // the command after them.
+        let code = route_then_flash(&[35, 34, 1, 34, 0]);
+        assert_eq!(
+            hero_flashes(&code, 7, &graphics).unwrap(),
+            [(7, Some(("Own".to_string(), 0)), false)]
+        );
+    }
+
+    #[test]
+    fn a_hero_route_s_switch_is_not_a_graphic_change_at_a_flash() {
+        // Switch 290 on —low byte 34— and switch 34 off: neither number is
+        // a graphic, and the graphic the hero had stays.
+        let graphics = [("Own".to_string(), 0), ("Other".to_string(), 2)];
+        let code = route_then_flash(&[34, 0, 32, 34, 1, 33, 34, 0]);
+        assert_eq!(
+            hero_flashes(&code, 7, &graphics).unwrap(),
+            [(7, Some(("Own".to_string(), 0)), false)]
+        );
     }
 }

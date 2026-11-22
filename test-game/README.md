@@ -25,7 +25,8 @@ night sky a parallel page swaps for a dawn, and whose dispatcher sends the
 hero on when its switch is on. And the doors, two rooms of one map crossed
 by teleports to itself, with a door that opens and a hatch to stand on;
 and the patchwork, 60x60 of stripes no two neighbouring rows draw alike,
-for the camera. The showcase's ChipSet gives its first four tiles a
+for the camera. And the erasure, a bare field where a statue and a
+pacer erase themselves, and a loop leads back to the same map. The showcase's ChipSet gives its first four tiles a
 terrain each. And the crossing, four cells
 with two events standing on each, where every one whose trigger matches
 fires. And a common event that shows a box with escapes the console
@@ -180,6 +181,17 @@ research—. They ask the ROM's RAM, not the screen, so they have no goldens:
                         event above them, and not at the one in front
     test_camera.py      the patchwork's window in the VRAM against the
                         camera, two rows or columns a tick
+
+And on the same day, for what no test of A Blurred Line looked at:
+
+    test_erase_event.py `EraseEvent` on the erasure: a statue on the
+                        hero's layer that erases itself is not drawn and
+                        lets the hero through its cell, its foreground
+                        page goes on, it stays erased over a jump to the
+                        same map and comes back when the map is loaded
+                        again; and a parallel page that erases its walking
+                        event stops there, does not start again and leaves
+                        it still and not drawn
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

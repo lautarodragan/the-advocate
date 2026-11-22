@@ -6978,7 +6978,9 @@ fn compile_missing_teleport(ctx: &mut Ctx, map: i64) -> Step<Vec<u8>> {
 /// (byte), and the commands. The target is 0 for the hero, and otherwise the
 /// event's index in the map's table plus one. Three commands carry operands
 /// in the path: 34 one byte, the graphic, and 32, 33 and 35 two, the switch
-/// and the sound, low byte first. Whoever walks a compiled path skips them.
+/// and the sound, low byte first. Whoever walks a compiled path skips them,
+/// and does it with `route::path_commands`, which knows those widths: if
+/// this writes a new one, `route::operand_bytes` changes with it.
 ///
 /// **The index is not the RM2k id.** 39 maps of the game have gaps in the
 /// event numbering, so a route aimed at id 8 would move whichever is eighth
@@ -7139,11 +7141,11 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         // are other cars, locked with a 26 that only map 64 releases. Until
         // then they were dropped on the hero, and each arrow drew another car.
         if command == ROUTE_CHANGE_GRAPHIC {
-            // The only command with an operand: after 34 goes the graphic's
-            // index in `Graphics`, which the converter resolves to the map's
-            // sprite bank. Whoever walks an already compiled route has to
-            // skip that byte: read as a command, a 30 or a 31 change the
-            // route's frequency without anyone asking.
+            // After 34 goes the graphic's index in `Graphics`, which the
+            // converter resolves to the map's sprite bank. Whoever walks an
+            // already compiled route has to skip that byte —see
+            // `route::path_commands`—: read as a command, a 30 or a 31
+            // change the route's frequency without anyone asking.
             //
             // **On the hero too**, since 2026-09-12. Its graphic comes from
             // the actor table, but the actor's twelve poses are written with
@@ -8539,6 +8541,33 @@ mod tests {
         // A switch past the game's table leaves the page out, as
         // `ControlSwitches` does.
         assert_eq!(route(1, &[32, 136, 77]), None);
+    }
+
+    #[test]
+    fn a_compiled_route_walks_with_its_operands() {
+        // What `compile_route` writes and what `route::path_commands` reads
+        // agree on the operand widths: switch 34 on, a sound, switch 290
+        // off —both low bytes 34— and a step down.
+        let map = watching(5, 1);
+        let indices = Indices {
+            switch_top: 1100,
+            ..Indices::default()
+        };
+        let mut p = vec![ROUTE_HERO as i32, 8, 0, 1, 32, 34, 35, 1, 120, 100, 100, 50];
+        p.extend([33, 130, 34, 2]);
+        let code =
+            on_this_map(&Game::default(), &indices, &map, &[cmd(MOVE_EVENT, &p, "")]).unwrap();
+        let paths = hero_paths(&code);
+        assert_eq!(paths.len(), 1);
+        let walked: Vec<(i32, Vec<u8>)> = route::path_commands(&paths[0])
+            .map(|(c, operands)| (c, operands.to_vec()))
+            .collect();
+        assert_eq!(walked.len(), 4, "{:?}", paths[0]);
+        assert_eq!(walked[0], (32, vec![34, 0]));
+        assert_eq!(walked[1].0, 35);
+        assert_eq!(walked[1].1.len(), 2);
+        assert_eq!(walked[2], (33, vec![34, 1]));
+        assert_eq!(walked[3], (2, vec![]));
     }
 
     #[test]
