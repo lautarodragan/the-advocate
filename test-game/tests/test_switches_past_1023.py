@@ -18,7 +18,7 @@ seen red with the tools before the change: the branch on 1100 did not
 compile, so neither did the case's page, and the cartridge did not build.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 CASE = "switches-past-1023"
 ASKED = 1100        # the page condition's, set by the case
@@ -28,7 +28,7 @@ TOO_EARLY = 1103    # the page ran before its switch was on
 
 
 def test_switches_past_1023(core):
-    sess = Session(core, case=CASE)
+    sess = playing(core, CASE)
     # The case's `Wait` is a second —RM2k counts it in tenths—, and the case
     # ends around tick 60 and the page on 1100 runs a few later: twice that
     # leaves both done, and a page that never runs has had time to.

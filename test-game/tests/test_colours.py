@@ -21,7 +21,9 @@ Seen red with the tools before the change: the colours were dropped and
 the box came out white, and the window appeared with its box whole.
 """
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, golden
+
+from play import playing
 
 TYPING = 2
 
@@ -65,7 +67,7 @@ def gaps(ticks):
 
 
 def test_the_colours_are_the_systems(core):
-    sess = Session(core, case="colours")
+    sess = playing(core, "colours")
     shown(sess)
     golden("colours", sess.image(), core)
 
@@ -73,7 +75,7 @@ def test_the_colours_are_the_systems(core):
 def test_a_box_half_typed(core):
     """What was typed is on screen and the rest is not: the window up, and
     half of the line."""
-    sess = Session(core, case="colours")
+    sess = playing(core, "colours")
     shown(sess)
     sess.press("a")
     typing(sess)
@@ -83,7 +85,7 @@ def test_a_box_half_typed(core):
 
 
 def test_speed_1_types_two_letters_a_tick(core):
-    sess = Session(core, case="colours")
+    sess = playing(core, "colours")
     shown(sess)
     sess.press("a")
     ticks = ticks_of_each_letter(sess)
@@ -94,7 +96,7 @@ def test_speed_1_types_two_letters_a_tick(core):
 
 
 def test_speed_10_types_a_letter_every_six_ticks(core):
-    sess = Session(core, case="colours")
+    sess = playing(core, "colours")
     for _ in range(2):
         shown(sess)
         sess.press("a")
@@ -106,7 +108,7 @@ def test_speed_10_types_a_letter_every_six_ticks(core):
 
 
 def test_speed_20_a_quarter_second_and_the_instant_text(core):
-    sess = Session(core, case="colours")
+    sess = playing(core, "colours")
     for _ in range(3):
         shown(sess)
         sess.press("a")

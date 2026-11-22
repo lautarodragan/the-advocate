@@ -30,14 +30,14 @@ Seen red with the tools before the change: none of the four switches comes
 on, and 1332 without 1333.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 LADDER, DOORWAY, FIRST, SECOND, SIGN = 1330, 1331, 1332, 1333, 1334
 CROSSING = 11
 
 
 def arrive(core, case, column):
-    sess = Session(core, case=case)
+    sess = playing(core, case)
     sess.until("on the crossing with control",
                lambda: sess.map_() == CROSSING and sess.has_control(), 600)
     assert sess.cell() == (column, 6), "the hero is at %s" % (sess.cell(),)

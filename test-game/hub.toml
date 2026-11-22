@@ -1,0 +1,123 @@
+# The meadow's hub, which makes every map and every case of the test game
+# reachable by playing it: `tests/hub.py` writes its two events into
+# `src/maps/Map0001.json` from this file —`just hub`—, as the map's last
+# events, and `tests/test_hub.py` fails if that file says something else.
+#
+# Each menu is a `ShowChoice` of up to four options: a longer list goes
+# three at a time, with a "More" that opens the next ones. Cancel leaves.
+#
+# Both are drawn in the map's tiles, a signpost and a board, and their
+# events have no graphic: a CharSet would take a sprite palette, and the
+# meadow has none to spare —the tester's `pictures` needs five of the
+# eight—. Each one hands out the Way Home, the item that brings the hero
+# back here, to whoever does not carry it.
+
+# The guide, the signpost left of where the hero starts: a teleport to each
+# map, where the case that visits it lands, or the middle, facing down as
+# the hero boots. `to` is the Teleport's map, cell and facing, in RM2k's
+# numbers: 1 up, 2 right, 3 down, 4 left. `on` and `off` are switches set
+# before going.
+[guide]
+x = 7
+y = 10
+
+[[guide.map]]
+label = "Garden"
+to = [2, 10, 10, 3]
+[[guide.map]]
+label = "Showcase"
+to = [3, 10, 10, 3]
+[[guide.map]]
+label = "Clearing"
+to = [4, 10, 7, 3]
+[[guide.map]]
+label = "Lantern"
+to = [5, 10, 10, 3]
+[[guide.map]]
+label = "Plain"
+to = [6, 100, 100, 3]
+# Too big for the console: the cartridge leaves it out, and its teleport is
+# a box that says so.
+[[guide.map]]
+label = "Vast"
+to = [7, 5, 5, 3]
+[[guide.map]]
+label = "Ring"
+to = [8, 12, 10, 3]
+[[guide.map]]
+label = "Terrace"
+to = [9, 10, 12, 3]
+# The lookout's dispatcher sends whoever arrives with 1430 on to the
+# clearing, and nothing turns it off: the plain visit turns it off first.
+[[guide.map]]
+label = "Lookout"
+to = [10, 10, 10, 3]
+off = [1430]
+[[guide.map]]
+label = "Lookout, sent on"
+to = [10, 10, 10, 3]
+on = [1430]
+[[guide.map]]
+label = "Crossing"
+to = [11, 10, 10, 3]
+# In front of the door, facing it.
+[[guide.map]]
+label = "Doors"
+to = [12, 10, 8, 1]
+[[guide.map]]
+label = "Patchwork"
+to = [13, 30, 30, 3]
+# Below the statue, facing it; the keeper in the corner wakes its other
+# page and the pacer.
+[[guide.map]]
+label = "Erasure"
+to = [14, 14, 9, 1]
+
+# The tester, the board right below where the hero starts: every case of
+# `tester/`, by group. The hero boots facing it, so a case chosen there
+# finds them where the harness's did, on the start cell and facing down:
+# the board is there so that no teleport has to put them back. A case runs
+# with the switches in `on` and `off` set, and then its commands, as they
+# are in its file.
+[tester]
+x = 10
+y = 11
+
+[[tester.group]]
+label = "Boxes"
+cases = ["close-on-its-own", "colours", "escapes", "faces", "leader-name",
+         "no-leader", "rename-saved", "plain-letters", "pictures"]
+
+[[tester.group]]
+label = "Variables"
+cases = ["variables", "variables-arithmetic", "variables-branch-no",
+         "variables-item-count", "variables-past-the-word",
+         "variables-random-wide", "variables-saved", "actor-stats"]
+
+[[tester.group]]
+label = "Events"
+cases = ["branch", "branch-switched", "branch-skipped", "labels",
+         "nested-calls", "switches-past-1023", "parallel-teleport",
+         "tileset", "missing-teleport"]
+
+[[tester.group]]
+label = "Maps"
+cases = ["garden", "showcase", "empty-map", "lantern", "big-narrow-map",
+         "map-left-out", "ring", "panorama-swap", "terrain", "crossing-both",
+         "crossing-doorway", "crossing-ladder", "crossing-sign", "camera-fast",
+         "camera-fast-x"]
+
+[[tester.group]]
+label = "Hero and keys"
+cases = ["key-long-form", "key-wait-for-a", "key-wait-for-all",
+         "key-wait-for-dir", "speed", "speed-saved", "screen-of-hero",
+         "screen-of-events"]
+
+# What a case needs set before it runs, which the harness used to set from
+# outside: `branch` runs with 1420 off, and `branch-switched` is the same
+# file with it on.
+[tester.case.branch]
+off = [1420]
+[tester.case.branch-switched]
+file = "branch"
+on = [1420]

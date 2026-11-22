@@ -17,7 +17,7 @@ commands in the compiler, the whole page did not compile and turned
 nothing on: seen red like that, there.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 SKIPPED = 1410   # the one the jumps dodge
 GOES_ON = 1411   # after the jump to a label that is not there
@@ -26,7 +26,7 @@ END = 1413       # the last thing on the page
 
 
 def test_the_jumps_to_labels(core):
-    sess = Session(core, case="labels")
+    sess = playing(core, "labels")
     sess.run(30)
     assert sess.switch(END), "the page did not reach the end: did it compile?"
     assert sess.variable(40) == 3, "the loop backwards did not give three passes"

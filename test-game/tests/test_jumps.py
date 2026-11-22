@@ -18,15 +18,21 @@ again forever. The lookout carries one like it, "Dispatcher", on switch
 
 from rm2k_snes_harness import Session
 
+from play import boot, go_to
+
 DISPATCHER = 1430
 LOOKOUT, CLEARING = 10, 4
 
 
 def test_the_budget_comes_back_when_the_player_has_control(core):
     """The chain ends when the player can move, and there it is restored."""
-    sess = Session(core)
+    sess = boot(core)
     sess.until("control", lambda: not sess.running_a_page()
                and not sess.byte("waiting_n"), 300)
+    # Poked, not played: the budget runs out only on a chain of teleports
+    # with no control in between, which no map of this game builds —the
+    # dispatcher below is one jump—; what is asked is that control brings
+    # it back.
     sess.put_byte("jumps_left", 0)
     sess.advance()
     assert sess.byte("jumps_left") == sess.symbol("JUMPS_MAX"), (
@@ -35,15 +41,17 @@ def test_the_budget_comes_back_when_the_player_has_control(core):
 
 
 def test_the_dispatcher_gets_you_out(core):
-    """Entering the lookout with 1430 on, as a door would, and getting out.
+    """Entering the lookout with 1430 on —the guide's "Lookout, sent on"
+    turns it on and teleports—, and getting out.
 
     If that teleport is lost, the page ends, 1430 stays on and —being
     automatic— it starts again on its own: the player is locked in with no
     control. This does not fail on its own with the budget broken —a door
     restores it—: what it covers is that the path exists and ends where it
     has to end. The one that catches the budget is the one above."""
-    sess = Session(core, switches=[DISPATCHER])
-    sess.go_to_map(LOOKOUT, 10, 7)
+    sess = boot(core)
+    go_to(sess, "Lookout, sent on")
+    assert sess.switch(DISPATCHER)
     sess.until("out of the lookout", lambda: sess.map_() == CLEARING, 600)
     assert sess.cell() == (10, 7)
 

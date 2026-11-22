@@ -36,5 +36,16 @@
       {"code": "ShowMessage", "string": "¿Qué tal? ¡Olé! Straße, señor…"},
       {"code": "ShowMessage_2", "string": "« Ça va », Ærø, Œuvre, Ünd çà."}
     ]
+  },
+  {
+    "id": 5,
+    "name": "Way Home",
+    "trigger": "automatic",
+    "switch_flag": true,
+    "switch_id": 1600,
+    "event_commands": [
+      {"code": "ControlSwitches", "parameters": [0, 1600, 1600, 1]},
+      {"code": "Teleport", "parameters": [1, 10, 10, 3]}
+    ]
   }
 ]

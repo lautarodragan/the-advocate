@@ -14,7 +14,9 @@ Blurred Line's suite, in the ports, on 2026-11-22.
 
 import pytest
 
-from rm2k_snes_harness import Session, core_name, engine
+from rm2k_snes_harness import core_name, engine
+
+from play import playing
 
 
 def step_per_speed(speed):
@@ -35,7 +37,7 @@ def where_it_ends(tile_y, speed, ticks):
 
 
 def on_the_clearing(core, case="speed"):
-    sess = Session(core, case=case)
+    sess = playing(core, case)
     sess.until_control()
     assert sess.map_() == 4 and sess.cell() == (10, 3)
     return sess
@@ -53,6 +55,9 @@ def test_the_pad_walks_at_the_speed_the_route_left(core, speed, ticks):
     and 64 frames."""
     sess = on_the_clearing(core)
     y0 = sess.word("tile_y")
+    # Poked, not played: in the game only a route's speed commands change
+    # it, and this sweeps five speeds over the same walk; what is asked is
+    # the pad's step at each, not the route.
     sess.put_byte("FAR_HERO_SPEED", speed)
     before = sess.console.frame_count
     sess.run(ticks, holding=("up",))
@@ -69,9 +74,10 @@ def test_the_speed_travels_in_the_save(core):
     if core_name(core) == "bsnes":
         # As in `test_variables.py`: bsnes keeps the SRAM between consoles.
         pytest.skip("bsnes keeps the SRAM between tests and does not let it be cleared")
-    sess = Session(core, case="speed-saved")
+    sess = playing(core, "speed-saved")
     try:
         sess.screen_up()
+        # Poked, as above: what is asked is that the save carries it.
         sess.put_byte("FAR_HERO_SPEED", 2)
         sess.choose()
         sess.reset()

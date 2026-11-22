@@ -18,7 +18,9 @@ Seen red with the tools before the change: the crowns stayed at their
 full colour under the mask, since only the lower layer was blended.
 """
 
-from rm2k_snes_harness import Session, golden
+from rm2k_snes_harness import golden
+
+from play import playing
 
 LANTERN = 5
 # Where the case's Teleport leaves the hero, and where it walks to.
@@ -33,7 +35,7 @@ def settled(sess):
 
 
 def test_the_mask_shades_the_map_and_its_layer_above(core):
-    sess = Session(core, case="lantern")
+    sess = playing(core, "lantern")
     sess.until("on map %d with control" % LANTERN,
                lambda: sess.map_() == LANTERN and sess.has_control(), 600)
     settled(sess)

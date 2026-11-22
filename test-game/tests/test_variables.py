@@ -17,7 +17,9 @@ the second this game's Sword.
 
 import pytest
 
-from rm2k_snes_harness import Session, core_name, engine
+from rm2k_snes_harness import core_name, engine
+
+from play import playing
 
 INSIDE, END = 1400, 1401
 
@@ -25,7 +27,7 @@ INSIDE, END = 1400, 1401
 def ran(core, case):
     """The case, run to its end: the switch it turns on last, or a red that
     says it did not get there."""
-    sess = Session(core, case=case)
+    sess = playing(core, case)
     try:
         sess.until("the page's end", lambda: sess.switch(END), 300)
     except AssertionError:
@@ -88,7 +90,7 @@ def test_the_variables_travel_in_the_save(core):
         # title loads a saved game on boot, so every test after this one
         # would start from it. The save is the ROM's: one core is enough.
         pytest.skip("bsnes keeps the SRAM between tests and does not let it be cleared")
-    sess = Session(core, case="variables-saved")
+    sess = playing(core, "variables-saved")
     try:
         sess.screen_up()
         sess.choose()

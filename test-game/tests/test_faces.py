@@ -18,7 +18,9 @@ Seen red with the tools before the change: `ChangeFaceGraphic` compiled to
 nothing, and the boxes had no face and the text at the border.
 """
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, golden
+
+from play import playing
 
 
 def shown(sess):
@@ -33,7 +35,7 @@ def shown(sess):
 
 
 def test_the_face_left_right_mirrored_changed_and_cleared(core):
-    sess = Session(core, case="faces")
+    sess = playing(core, "faces")
     for name in ("face-left", "face-right-mirrored", "face-stays",
                  "face-changed", "face-cleared"):
         shown(sess)

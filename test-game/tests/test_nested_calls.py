@@ -24,7 +24,7 @@ Seen red with the tools before the change: the fourth call —Chain 4's to
 Chain 5— was past `CALL_MAX`, so 1260 and 1270 stayed off.
 """
 
-from rm2k_snes_harness import Session
+from play import playing
 
 CASE = "nested-calls"
 # Each frame's "before", in the order the frames are entered, and its
@@ -37,7 +37,7 @@ EVERY_FRAME = 1280  # the parallel page ran
 
 
 def test_nested_calls_return_and_go_on(core):
-    sess = Session(core, case=CASE)
+    sess = playing(core, CASE)
     # Two `Wait`s of a second inside the chain, and a tick is a frame or
     # two: the chain is done well before 300.
     for _ in range(300):

@@ -13,7 +13,9 @@ the three. The form that **does not wait** is `test_key_long_form.py`'s.
 It came from A Blurred Line's suite, in the ports, on 2026-11-22.
 """
 
-from rm2k_snes_harness import Session, engine
+from rm2k_snes_harness import engine
+
+from play import playing
 
 VARIABLE = 88
 CLEARING = 4
@@ -29,7 +31,7 @@ def on_the_clearing(sess):
 
 
 def waiting(core, case):
-    sess = Session(core, case=case)
+    sess = playing(core, case)
     on_the_clearing(sess)
     sess.run(REACHED)
     assert sess.running_a_page(), "the page is not waiting for anything"
@@ -60,7 +62,7 @@ def test_holding_the_key_does_not_answer(core):
     """What the command looks at is the **edge**, not that the button is
     down: `Input::IsTriggered`, the same thing a message is closed with, so
     the command does not eat the A that has just closed a box."""
-    sess = Session(core, case="key-wait-for-a")
+    sess = playing(core, "key-wait-for-a")
     on_the_clearing(sess)
     sess.run(REACHED + 20, holding=("a",))
     assert sess.variable(VARIABLE) == 0, (
@@ -105,7 +107,7 @@ def test_with_all_three_asked_cancel_wins(core):
 
 def test_holding_a_direction_does_not_answer(core):
     """The same as with A: the **edge**."""
-    sess = Session(core, case="key-wait-for-dir")
+    sess = playing(core, "key-wait-for-dir")
     on_the_clearing(sess)
     sess.run(REACHED + 20, holding=("left",))
     assert sess.variable(VARIABLE) == 0, (

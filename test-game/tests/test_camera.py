@@ -21,7 +21,9 @@ ran on that game's map 5.
 
 import pytest
 
-from rm2k_snes_harness import Session, core_name
+from rm2k_snes_harness import core_name
+
+from play import playing
 
 
 def test_the_camera_reaches_two_rows_per_tick(core):
@@ -31,7 +33,7 @@ def test_the_camera_reaches_two_rows_per_tick(core):
     below keep reproducing the bug: if someone lowers their speed, this
     fails instead of the other two passing without testing anything."""
     for case, axis in (("camera-fast", "camera_y"), ("camera-fast-x", "camera_x")):
-        sess = Session(core, case=case)
+        sess = playing(core, case)
         sess.until("on the patchwork", lambda: sess.map_() == 13
                    and not sess.byte("fade"), 300)
         worst, previous = 0, None
@@ -51,7 +53,7 @@ def window_after(core, case):
         # Its libretro core exposes no VRAM, which is what this reads; the
         # suite this came from ran it on snes9x alone too.
         pytest.skip("bsnes's core does not expose the VRAM")
-    sess = Session(core, case=case)
+    sess = playing(core, case)
     sess.until("on the patchwork", lambda: sess.map_() == 13
                and not sess.byte("fade"), 300)
     sess.until_control()
@@ -82,7 +84,7 @@ def test_no_row_or_column_draws_like_its_neighbours(core):
     is the right one."""
     if core_name(core) == "bsnes":
         pytest.skip("bsnes's core does not expose the VRAM")
-    sess = Session(core, case="camera-fast")
+    sess = playing(core, "camera-fast")
     sess.until("on the patchwork", lambda: sess.map_() == 13
                and not sess.byte("fade"), 300)
     seen = sess.window()

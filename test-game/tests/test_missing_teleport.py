@@ -18,7 +18,9 @@ Seen red with the tools before the change: the box opens with the screen
 erased and black.
 """
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session
+from rm2k_snes_harness import MESSAGE_SHOWN
+
+from play import playing
 
 AFTER_JUMP = 1402   # the page's last command, after its Teleport
 
@@ -29,7 +31,7 @@ def lit(sess):
 
 
 def test_the_box_of_a_missing_map_is_seen(core):
-    sess = Session(core, case="missing-teleport")
+    sess = playing(core, "missing-teleport")
     sess.until("a message composed",
                lambda: sess.byte("msg_open")
                and sess.byte("msg_state") == MESSAGE_SHOWN

@@ -11,7 +11,9 @@ in snes9x and in bsnes. See `pick_with_filter`, in `runtime/event_pages.s`,
 and tasks/a-map-with-no-events-wipes-wram-when-entered.md.
 """
 
-from rm2k_snes_harness import Session, golden
+from rm2k_snes_harness import golden
+
+from play import playing
 
 CLEARING = 4
 # Where the case's Teleport leaves the hero.
@@ -19,7 +21,7 @@ ARRIVAL = (10, 7)
 
 
 def test_a_map_with_no_events_arrives_and_draws(core):
-    sess = Session(core, case="empty-map")
+    sess = playing(core, "empty-map")
     sess.until("on map %d with control" % CLEARING,
                lambda: sess.map_() == CLEARING and sess.has_control(), 600)
     # A few ticks more, so the map is drawn whole and the hero is up.

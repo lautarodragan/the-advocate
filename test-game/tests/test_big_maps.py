@@ -26,14 +26,16 @@ Seen red with the tools before the change: the build stopped at the plain,
 import json
 import os
 
-from rm2k_snes_harness import MESSAGE_SHOWN, Session, golden
+from rm2k_snes_harness import MESSAGE_SHOWN, golden
+
+from play import playing
 
 MEADOW, PLAIN, VAST = 1, 6, 7
 AFTER_JUMP = 1403   # the left-out case's last command, after its Teleport
 
 
 def test_a_200x200_map_walks_across_the_two_halves_of_its_grid(core):
-    sess = Session(core, case="big-narrow-map")
+    sess = playing(core, "big-narrow-map")
     sess.until("on map %d with control" % PLAIN,
                lambda: sess.map_() == PLAIN and sess.has_control(), 600)
     assert sess.word("cell_bytes") == 1, "the plain's grid is not one byte a cell"
@@ -53,7 +55,7 @@ def test_a_200x200_map_walks_across_the_two_halves_of_its_grid(core):
 
 
 def test_a_map_too_big_for_wram_is_left_out(core):
-    sess = Session(core, case="map-left-out")
+    sess = playing(core, "map-left-out")
     with open(os.path.join(sess.cartridge.directory, "degradations.json")) as f:
         losses = json.load(f)["losses"]
     left = [loss for loss in losses

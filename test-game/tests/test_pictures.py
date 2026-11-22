@@ -26,7 +26,9 @@ Seen red with the tools before the change: the converter left four of the
 six numbers out, and the moves were not done.
 """
 
-from rm2k_snes_harness import Session, golden
+from rm2k_snes_harness import golden
+
+from play import playing
 
 # The slots the converter gives the numbers: the highest number first,
 # which OAM draws in front.
@@ -41,7 +43,7 @@ def ramp(sess, slot):
 
 
 def test_six_pictures_and_two_slides_at_once(core):
-    sess = Session(core, case="pictures")
+    sess = playing(core, "pictures")
     sess.until("the bar sliding", lambda: ramp(sess, BAR)[1] == 60, 600)
     sess.until("the bar halfway", lambda: ramp(sess, BAR)[0] >= 30, 60)
     assert ramp(sess, BAR) == (30, 60), "the bar's ramp is at %s" % (ramp(sess, BAR),)

@@ -7,8 +7,9 @@ where they come back to, one by one. Why, and the plan, are in the book:
 the research "The test game" and the page on the test game under "Project
 progress".
 
-Today it is a skeleton: the meadow —the Exterior ChipSet, the hero and an
-elder with People1's CharSet—, a test that boots the cartridge, walks up
+Today it is a skeleton: the meadow —the Exterior ChipSet, the hero, an
+elder with People1's CharSet, and a signpost and a board that lead to
+everything else, see "Playing it"—, a test that boots the cartridge, walks up
 to the elder and reads what he says, the first engine test brought back
 from A Blurred Line —switches past 1023— and the first born here: a chain
 of nested calls that returns. And two more maps with the same ChipSet,
@@ -59,12 +60,45 @@ Sword, for the cases that read an actor's stats.
                         the license most of them are under
     advocate.toml       its cartridges, like a port's: `release`, and
                         `test-vblank` with the vblank's probe
-    cases/              the test pages the cartridge carries, one JSON
-                        each, like a port's; a test chooses one with
-                        `Session(core, case=...)`
-    justfile            making it, building it, testing it
+    hub.toml            the meadow's hub: the guide's maps and the
+                        tester's menus, which `just hub` writes into
+                        `src/maps/Map0001.json`
+    tester/             the cases the tester runs, one JSON each, in a
+                        case's format: the commands of a page
+    cases/              the test pages the harness still injects, like a
+                        port's: `nothing`, the game as it boots, and the
+                        probe cartridge's `terrace`
+    justfile            making it, building it, testing it, delivering it
     tests/              its tests, in pytest, and their goldens
     build/              what is made: not versioned
+
+## Playing it
+
+Everything the tests reach is reached by playing, from the meadow, where
+the game starts:
+
+* **the guide**, the signpost to the left of the hero: a teleport to each
+  map —the lookout twice, once with its dispatcher on—, landing where its
+  tests land;
+* **the tester**, the board right below the hero, who faces it on boot: the
+  cases, grouped —boxes, variables, events, maps, hero and keys— four
+  options a menu, the last one "More" when there are more. A case runs
+  there, with the hero on the start cell, as the harness ran it at boot;
+  `branch-switched` is `branch` with its switch on;
+* **the Way Home**, an item both hand out, which brings the hero back to
+  the meadow from anywhere: the pause menu, then the items;
+* on the erasure, **the keeper** in the corner wakes the statue's other
+  page or starts the pacer.
+
+A case leaves behind what it changes —a picture, a tint, the party—, as a
+page of a game does: a reset starts clean.
+
+A new case is a file in `tester/` and its name in a group of `hub.toml`,
+and then `just hub`; a new map, its line in `hub.toml`'s guide.
+`tests/test_hub.py` is red until the meadow says what those two say.
+
+`just deliver "<what to look at>"`, with `SHARED`, leaves the build where
+taro plays it; see the recipe.
 
 ## Making it, building it
 
@@ -103,6 +137,15 @@ bsnes needs a patch to expose its WRAM, `rm2k-snes/harness/cores/bsnes-wram.patc
 the CI workflow builds both cores, and its steps are how to build them by
 hand.
 
+They play it: each boots the game and reaches what it tests through the
+hub, as a player does —`play.py`—, and only pokes the RAM where playing it
+cannot be done or would take absurdly long, which it says on that line.
+
+    hub.py, play.py     the hub written from `hub.toml`, and playing it:
+                        the guide, the tester's menus, the Way Home
+    test_hub.py         the meadow says what `hub.toml` says, every case
+                        and every map is offered, and each map is reached
+                        and left with the Way Home
     test_meadow.py      the meadow as it is reached, and the elder's message
     test_switches_past_1023.py
                         a switch past 1023 set, branched on and asked for
