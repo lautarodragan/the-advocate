@@ -151,6 +151,43 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
     lowest
 }
 
+/// How many bytes of operand command `command` carries after it in a
+/// compiled path —the one `OP_ROUTE` carries, which `compile_route` writes,
+/// and a page's own route, whose switches [`own`] writes the same way— and
+/// the ROM reads in `change_graphic`, `sound_ev` and `switch_ev`, in
+/// runtime/event_routes.s, and their `_hero` twins in runtime/hero_route.s—:
+/// 34 one, the graphic's index, and 32, 33 and 35 two, the switch's number
+/// and the sound's index, low byte first. The rest, none.
+///
+/// It is the one place that knows it on this side: until 2026-11-22 each
+/// walk of a compiled path carried its own copy, and the converter's, which
+/// works out the hero's graphic at a flash, skipped 34's byte and not 35's
+/// two until 2026-10-20, so a sound whose index's low byte was 34 read as a
+/// graphic change. See
+/// `tasks/the-flash-check-reads-a-route-sound-as-a-graphic-change.md`.
+pub fn operand_bytes(command: i32) -> usize {
+    match command {
+        ROUTE_CHANGE_GRAPHIC => 1,
+        ROUTE_SWITCH_ON | ROUTE_SWITCH_OFF | ROUTE_SOUND => 2,
+        _ => 0,
+    }
+}
+
+/// The commands of a compiled path, in order, each with its operand bytes
+/// —see [`operand_bytes`]—, so that whoever walks one never reads an operand
+/// as a command. A path cut in the middle of an operand, which the compiler
+/// never writes, gives the bytes that are there.
+pub fn path_commands(path: &[u8]) -> impl Iterator<Item = (i32, &[u8])> + '_ {
+    let mut k = 0;
+    std::iter::from_fn(move || {
+        let command = *path.get(k)? as i32;
+        let start = k + 1;
+        let end = (start + operand_bytes(command)).min(path.len());
+        k = end;
+        Some((command, &path[start..end]))
+    })
+}
+
 /// The four turns, the eight moves and the rest the ROM knows how to walk,
 /// in a single place.
 ///
@@ -635,5 +672,22 @@ mod tests {
     fn a_repeating_route_goes_all_the_way_down() {
         assert_eq!(min_frequency(8, &[31, 31], false), 6);
         assert_eq!(min_frequency(8, &[31, 31, 30], true), 1);
+    }
+
+    #[test]
+    fn a_compiled_path_s_operands_are_not_commands() {
+        // A sound whose index's low byte is 34, switch 34 on and off, a
+        // step up, graphic 34, and a graphic cut short at the end.
+        let path = [35, 34, 1, 32, 34, 0, 33, 34, 4, 0, 34, 34, 34];
+        let commands: Vec<(i32, &[u8])> = path_commands(&path).collect();
+        let expected: Vec<(i32, &[u8])> = vec![
+            (35, &[34, 1]),
+            (32, &[34, 0]),
+            (33, &[34, 4]),
+            (0, &[]),
+            (34, &[34]),
+            (34, &[]),
+        ];
+        assert_eq!(commands, expected);
     }
 }

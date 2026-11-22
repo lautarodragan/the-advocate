@@ -1,0 +1,30 @@
+# The erasure's two tile layers, sketched like the meadow's —see
+# `Map0001.toml`—. The map is `Map0014.json`, and what it is for is there:
+# two events that `EraseEvent` themselves and a jump to this same map,
+# `tests/test_erase_event.py`. The field is bare so that a cell where
+# nothing is drawn looks like any other.
+
+grid = '''
+####################
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+####################
+'''
+
+[legend]
+# The field: terrain autotile 0, the light grass, in its plain middle
+# pattern. Every cell has it below.
+"." = { lower = 4000 }
+# A green bush, which does not let the hero through.
+"#" = { lower = 4000, upper = 10007 }
