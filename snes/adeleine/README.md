@@ -100,3 +100,14 @@ the call is wrong. The message goes to standard error.
 hashes the answers. The unchanged operations retain the hashes of the Python
 version they replaced; reduction has its own hashes because it deliberately
 chooses different pixels. They need no picture.
+
+`tests/superfamiconv.rs` uses [SuperFamiconv](https://github.com/Optiroc/SuperFamiconv)
+as a referee for `pack`. It builds pictures from seeds, gives each one to
+both packers and fails when SuperFamiconv's `palette`, without `-Q`, needs
+fewer palettes. That includes fitting a picture whose `pack` answer is
+`null`. Without `-Q` SuperFamiconv keeps every colour, so the result with
+fewer palettes is better, and the test checks that claim before using the
+answer. Seeds where SuperFamiconv already wins are listed in `KNOWN`, grouped
+by reason. Without `superfamiconv` on the PATH the test is skipped, which is
+how it runs in CI. `cargo test --test superfamiconv -- --ignored --nocapture`
+prints how many palettes each packer needs over `ADELEINE_ORACLE_SEEDS` seeds.

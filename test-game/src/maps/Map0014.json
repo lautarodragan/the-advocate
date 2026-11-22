@@ -1,0 +1,164 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Statue",
+      "x": 14,
+      "y": 5,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 6,
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "EraseEvent"
+            },
+            {
+              "code": "ControlVars",
+              "parameters": [
+                0,
+                201,
+                201,
+                0,
+                0,
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1452
+          },
+          "character_name": "People1",
+          "character_index": 6,
+          "trigger": "auto_start",
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "ControlVars",
+              "parameters": [
+                0,
+                202,
+                202,
+                0,
+                0,
+                1,
+                0
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1452,
+                1452,
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Pacer",
+      "x": 6,
+      "y": 7,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1450
+          },
+          "character_name": "People1",
+          "character_index": 1,
+          "trigger": "parallel",
+          "layer": "same",
+          "move_type": "vertical",
+          "event_commands": [
+            {
+              "code": "ControlVars",
+              "parameters": [
+                0,
+                200,
+                200,
+                1,
+                0,
+                1,
+                0
+              ]
+            },
+            {
+              "code": "Wait",
+              "parameters": [
+                10
+              ]
+            },
+            {
+              "code": "EraseEvent"
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1451,
+                1451,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Loop",
+      "x": 1,
+      "y": 3,
+      "pages": [
+        {
+          "id": 1,
+          "trigger": "touched",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "Teleport",
+              "parameters": [
+                14,
+                14,
+                9,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

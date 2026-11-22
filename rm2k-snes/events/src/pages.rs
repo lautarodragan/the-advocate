@@ -827,20 +827,9 @@ fn route_graphics(code: &[u8]) -> Vec<[usize; 2]> {
     for at in instructions(code).filter(|&at| code[at] == OP_ROUTE && code[at + 1] != 0) {
         let target = code[at + 1] as usize - 1;
         let path = &code[at + 4..at + 4 + code[at + 3] as usize];
-        let mut k = 0;
-        while k < path.len() {
-            // The commands with operands: 34 one byte, the graphic, and 35
-            // two, the sound, and 32 and 33 two, the switch —see
-            // `compile_route`—.
-            match path[k] as i32 {
-                ROUTE_CHANGE_GRAPHIC => {
-                    if let Some(&g) = path.get(k + 1) {
-                        out.push([target, g as usize]);
-                    }
-                    k += 2;
-                }
-                ROUTE_SOUND | ROUTE_SWITCH_ON | ROUTE_SWITCH_OFF => k += 3,
-                _ => k += 1,
+        for (command, operands) in route::path_commands(path) {
+            if let (ROUTE_CHANGE_GRAPHIC, Some(&g)) = (command, operands.first()) {
+                out.push([target, g as usize]);
             }
         }
     }
@@ -872,18 +861,7 @@ fn route_turns(code: &[u8]) -> Vec<usize> {
     for at in instructions(code).filter(|&at| code[at] == OP_ROUTE && code[at + 1] != 0) {
         let target = code[at + 1] as usize - 1;
         let path = &code[at + 4..at + 4 + code[at + 3] as usize];
-        let mut only_turns = true;
-        let mut k = 0;
-        while k < path.len() {
-            let command = path[k] as i32;
-            only_turns &= in_place(command);
-            // The operands, as `route_graphics` skips them.
-            k += match command {
-                ROUTE_CHANGE_GRAPHIC => 2,
-                ROUTE_SOUND | ROUTE_SWITCH_ON | ROUTE_SWITCH_OFF => 3,
-                _ => 1,
-            };
-        }
+        let only_turns = route::path_commands(path).all(|(command, _)| in_place(command));
         if only_turns {
             turned.insert(target);
         } else {
