@@ -1352,6 +1352,43 @@ layer:
 .a8
 .endproc
 
+; The vblank's uploads of the shop's loop: the windows, the text and the
+; party. Apart from the loop so that its branches reach `wait`.
+.proc ti_upload
+.a8
+.i16
+    ; The windows and the party go with the text, not ahead of it: only in
+    ; the vblank the text's tilemap goes up in, or once the text has nothing
+    ; left to change —`tl_settled`—. The text arrives some frames after the
+    ; key, and until 2026-11-22 the windows went up in the next vblank: a
+    ; switch showed the new screen's windows, its bar and its party over the
+    ; old one's text for up to twelve frames (taro, playing). Asked once,
+    ; here: `tl_vblank` empties `TL_UP_N` and would answer yes in a vblank
+    ; whose tilemap did not go up.
+    jsl f:tl_settled + FAST
+    lda #0
+    rol a
+    pha
+    beq windows_wait
+    ; The windows before the text. The other way around, in the frame the
+    ; text's tilemap went up —1792 bytes, the longest DMA— the windows' bar
+    ; fell out of the vblank and was lost that frame: measured on
+    ; 2026-10-03, the windows end around line 244 and the tilemap at 254, of
+    ; the 261 of the vblank.
+    jsr ti_windows
+windows_wait:
+    ; `scr_upload`, in its three steps, with the party between the text's
+    ; uploads and its typesetting: the last two run into the frame.
+    jsl f:tl_map + FAST
+    jsl f:tl_vblank + FAST
+    pla
+    beq party_waits             ; goombario: pull-branch: `tl_settled`'s answer, pushed above
+    lda #0
+    jsl f:ti_party_vblank
+party_waits:
+    rts
+.endproc
+
 ; The shop: `ti_type`, `ti_set` and `FAR_SHOP` with `ti_nt` items, set by
 ; `op_shop`. Returns when the player leaves.
 .proc shop_screen
@@ -1396,18 +1433,7 @@ begins:
 wait:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad                ; the controller before the DMA: see the equipment screen
-    ; The windows before the text. The other way around, in the frame the
-    ; text's tilemap went up —1792 bytes, the longest DMA— the windows' bar
-    ; fell out of the vblank and was lost that frame: measured on
-    ; 2026-10-03, the windows end around line 244 and the tilemap at 254, of
-    ; the 261 of the vblank.
-    jsr ti_windows
-    ; `scr_upload`, in its three steps, with the party between the text's
-    ; uploads and its typesetting: the last two run into the frame.
-    jsl f:tl_map + FAST
-    jsl f:tl_vblank + FAST
-    lda #0
-    jsl f:ti_party_vblank
+    jsr ti_upload
     jsl f:tl_work + FAST
     jsl f:ti_party_tick
     lda pad
