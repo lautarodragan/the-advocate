@@ -830,6 +830,7 @@ in_place:
 .a8
 .i16
     ldy #0                      ; what has been uploaded
+::msu_a_aram_y:                 ; or from Y on, a piece: see `se_msu_chunk`
 suite:
     rep #$20
 .a16
@@ -964,6 +965,137 @@ ready:
 .a8
     lda f:FAR_EFFECT_IN - SE_FIRST, x
     rts
+.endproc
+
+; For a timed `pump`: the next piece of sample PKG_S, if it is a sound effect
+; that comes from the `.msu`, from offset Y and up to PKG_CAP triplets, so
+; that a tick's idle end can take it the way it takes the cartridge's
+; samples, block by block. Returns C clear if it is not one —the ROM uploads
+; it—; C set if it is, with Y how far it went and A 1 if it is whole, its
+; directory entry written, or 0 if there is more. Each piece seeks only if
+; the stream was not left where it goes: between two ticks another reader
+; may have moved it. A seek that does not arrive in time leaves it out, as
+; in `se_msu_upload`, and answers whole.
+.pushseg
+.segment "FARBSS"
+MSU_CHUNK: .res 3               ; where in the `.msu` this piece starts
+.popseg
+.proc se_msu_chunk
+.a8
+.i16
+    lda f:MSU_SE
+    cmp #1
+    bne no
+    lda f:PKG_S
+    cmp #SE_FIRST
+    bcc no
+    phy
+    jsr place_effect
+    jsr se_msu_row              ; X, its row; does not touch Y
+    ply
+    bcs has
+no:
+    clc
+    rtl
+has:
+    rep #$20
+.a16
+    tya
+    clc
+    adc f:se_msu_rows, x
+    sta f:MSU_CHUNK
+    sep #$20
+.a8
+    lda f:se_msu_rows + 2, x
+    adc #0
+    sta f:MSU_CHUNK + 2
+    cmp f:MSU_SE_NEXT + 2
+    bne seek
+    rep #$20
+.a16
+    lda f:MSU_CHUNK
+    cmp f:MSU_SE_NEXT
+    sep #$20
+.a8
+    beq in_place
+seek:
+    phx
+    phy
+    lda f:MSU_CHUNK + 2
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    lda f:MSU_CHUNK
+    jsr msu_data_seek           ; returns with 8-bit A; clobbers X
+.a8
+    ply
+    plx
+    bcc in_place
+    lda #$FF
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
+    rep #$20
+.a16
+    lda f:PKG_S
+    and #$00FF
+    asl a
+    tax
+    lda #0
+    sta f:FAR_ARAM_OF, x
+    sep #$20
+.a8
+    lda #1
+    sec
+    rtl
+in_place:
+    ; This piece ends PKG_CAP triplets ahead, or at the sample's end.
+    rep #$20
+.a16
+    lda f:PKG_CAP
+    and #$00FF
+    sta f:PKG_LENGTH
+    asl a
+    clc
+    adc f:PKG_LENGTH            ; three bytes a triplet
+    sty temp
+    clc
+    adc temp
+    cmp f:se_msu_rows + 4, x
+    bcc short
+    lda f:se_msu_rows + 4, x
+short:
+    sta f:PKG_LENGTH
+    clc
+    adc f:se_msu_rows, x
+    sta f:MSU_SE_NEXT           ; where it will be left
+    sep #$20
+.a8
+    lda f:se_msu_rows + 2, x
+    adc #0
+    sta f:MSU_SE_NEXT + 2
+    phx
+    jsr msu_a_aram_y            ; from Y to PKG_LENGTH
+    plx
+    rep #$20
+.a16
+    lda f:PKG_LENGTH
+    tay
+    cmp f:se_msu_rows + 4, x
+    sep #$20
+.a8
+    bcc more
+    phy
+    jsr msu_directory
+    ply
+    lda #1
+    sec
+    rtl
+more:
+    lda #0
+    sec
+    rtl
 .endproc
 
 ; The directory entry of sample PKG_S, already uploaded to PKG_A: the loop

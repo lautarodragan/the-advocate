@@ -911,8 +911,10 @@ none:
 ; The marked samples, in directory order and block by block, while
 ; `pump_room` gives room. `PKG_SCAN` is where the search for the next one
 ; goes on and `PKG_OFS` how far the one in progress went; each one that is
-; complete gets its directory entry and goes from 3 to 1. Sound effects
-; from the `.msu` and samples spilled into it go up whole, as before.
+; complete gets its directory entry and goes from 3 to 1. Samples spilled
+; into the `.msu` go up whole, as before; its sound effects too when the pump
+; is not timed, and in pieces when it is —`se_msu_chunk`—, so the idle end
+; of a tick takes them as it takes the cartridge's.
 .proc pump
 .a8
 .i16
@@ -955,20 +957,12 @@ all_done:
     rts
 found:
     ; The sound effects wait if only the music goes —the scan goes in
-    ; directory order, so the music is all behind it—; and the ones from the
-    ; `.msu`, which go up whole, wait in a timed pump for the moment they are
-    ; asked for: one of them would overrun the tick. See `upload_placed`.
+    ; directory order, so the music is all behind it—. See `upload_placed`.
     cpx #SE_FIRST
     bcc not_effect
     lda f:PKG_MUSIC
-    beq music_too
-    rts
-music_too:
-    lda f:PKG_TIMED
     beq not_effect
-    lda f:MSU_SE
-    cmp #1
-    beq other
+    rts
 not_effect:
     jsr pump_room
     bne room
@@ -984,8 +978,11 @@ room:
     sep #$20
 .a8
     jsr pump_load
+    lda f:PKG_TIMED
+    bne by_pieces               ; timed, a `.msu` effect goes up in pieces too
     jsl se_msu_upload           ; a sound effect from the `.msu`: see msu_effects.s
     bcs complete
+by_pieces:
     rep #$20
 .a16
     lda #0
@@ -1005,6 +1002,14 @@ block_room:
     tay
     sep #$20
 .a8
+    jsl se_msu_chunk            ; a piece of a `.msu` effect, if it is one
+    bcc from_rom
+    pha
+    jsr pump_count
+    pla
+    bne complete                ; goombario: pull-branch: A is `se_msu_chunk`'s answer, 1 if the effect is whole with its directory entry
+    jmp next
+from_rom:
     jsl f:sample_block_l
     bcs whole
     jsr pump_count

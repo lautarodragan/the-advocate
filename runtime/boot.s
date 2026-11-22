@@ -158,8 +158,6 @@ counted:
 .a8
     jsr anim_tick               ; which ChipSet drawing is due on the next
                                 ; iteration, so the vblank only has to upload it
-    jsl f:package_idle_l        ; and what is left of the frame, for the
-                                ; package's waiting sound effects
     jsr count_lost
 .if ::DEBUG_PHASING || .defined(SHOW_WINDOW_SLOTS)
     jmp loop                    ; `phasing_keys`'s `jsl`, or `sw_tick`'s, put it
@@ -718,6 +716,10 @@ call0_rtl:
 .proc count_lost
 .a8
 .i16
+    ; First, what is left of the frame goes to the package's waiting sound
+    ; effects: this is the end of the iteration. Here and not in the main
+    ; loop, whose `bra loop` has no byte to spare in Sunset's build.
+    jsl f:package_idle_l
     lda boot_frames
     sec
     sbc nmi_seen
