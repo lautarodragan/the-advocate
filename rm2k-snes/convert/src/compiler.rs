@@ -517,7 +517,8 @@ pub fn compiling_pages(answer: &Value, map_id: i32) -> Result<BTreeSet<(i64, i64
         .unwrap_or_default())
 }
 
-/// `{variable: slot}` and `{(actor, skill): slot}` of the scan's answer.
+/// `{variable: slot}` and `{(actor, skill): slot}` of the scan's answer, as
+/// lists: each key comes once, since the scan keeps them in maps.
 pub struct Indices {
     pub variables: Vec<(i64, i64)>,
     pub skills: Vec<((i64, i64), i64)>,
@@ -551,31 +552,15 @@ impl Indices {
                 })
                 .unwrap_or_default()
         };
-        // A dictionary keeps the last value of a repeated key in the place
-        // of the first: what the Python's `{v: s for v, s in …}` did.
-        fn dict<K: PartialEq + Clone>(entries: Vec<(K, i64)>) -> Vec<(K, i64)> {
-            let mut out: Vec<(K, i64)> = Vec::new();
-            for (k, v) in entries {
-                match out.iter_mut().find(|(o, _)| *o == k) {
-                    Some(slot) => slot.1 = v,
-                    None => out.push((k, v)),
-                }
-            }
-            out
-        }
         Indices {
-            variables: dict(
-                pairs("variables")
-                    .into_iter()
-                    .map(|e| (e[0], e[1]))
-                    .collect(),
-            ),
-            skills: dict(
-                pairs("skills")
-                    .into_iter()
-                    .map(|e| ((e[0], e[1]), e[2]))
-                    .collect(),
-            ),
+            variables: pairs("variables")
+                .into_iter()
+                .map(|e| (e[0], e[1]))
+                .collect(),
+            skills: pairs("skills")
+                .into_iter()
+                .map(|e| ((e[0], e[1]), e[2]))
+                .collect(),
             switch_top: answer["switch_top"].as_i64().unwrap_or(0),
             test_switch: answer["test_switch"].as_i64(),
             names: answer["names"]

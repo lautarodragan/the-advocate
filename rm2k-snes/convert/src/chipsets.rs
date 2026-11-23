@@ -365,7 +365,7 @@ fn build(
     let source = find("ChipSet", base).ok_or_else(|| {
         Stop::new(format!(
             "ChipSet {}, which {number} comes from, is missing",
-            crate::text::repr(base)
+            crate::text::quoted(base)
         ))
     })?;
     let mut image = Indexed::read(&source)?;
@@ -426,7 +426,7 @@ fn build(
             let sheet = find("CharSet", name).ok_or_else(|| {
                 Stop::new(format!(
                     "CharSet {}, which ChipSet {number} bakes, is missing",
-                    crate::text::repr(name)
+                    crate::text::quoted(name)
                 ))
             })?;
             let source = Indexed::read(&sheet)?;
@@ -587,7 +587,7 @@ pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Res
                 "{}: ChipSet {} already exists, in {}: a ChipSet the project adds takes a \
                  name nobody has",
                 path.display(),
-                crate::text::repr(name),
+                crate::text::quoted(name),
                 there.display()
             );
         }

@@ -541,7 +541,7 @@ pub fn big_for_map(
         let Some(mut layer) = layer else {
             println!(
                 "  {whose}: the picture {} doesn't fit the background layer even cut to the screen",
-                crate::text::repr(name)
+                crate::text::quoted(name)
             );
             continue;
         };
@@ -568,8 +568,8 @@ pub fn big_for_map(
         if let Some(panorama) = panorama {
             println!(
                 "  {whose}: the picture {} is drawn over the panorama {}, which shows through its holes",
-                crate::text::repr(name),
-                crate::text::repr(&panorama.file_stem().unwrap_or_default().to_string_lossy())
+                crate::text::quoted(name),
+                crate::text::quoted(&panorama.file_stem().unwrap_or_default().to_string_lossy())
             );
             object.insert("under".into(), json!(panorama.to_string_lossy()));
         }
@@ -1171,7 +1171,7 @@ pub fn for_map(
         if !takes(&info, key) {
             println!(
                 "  {whose}: the picture {} is {}x{} on the console: bigger than the plane of objects",
-                crate::text::repr(name),
+                crate::text::quoted(name),
                 info.width,
                 info.height
             );
@@ -1181,7 +1181,7 @@ pub fn for_map(
             if slots.len() == SLOTS {
                 println!(
                     "  {whose}: the picture {} (number {number}) doesn't go in: the console keeps {SLOTS} at a time",
-                    crate::text::repr(name)
+                    crate::text::quoted(name)
                 );
                 continue;
             }

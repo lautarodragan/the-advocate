@@ -109,7 +109,7 @@ pub fn sets(game: &Game, scan: &Value) -> Result<CommonPictures> {
         println!(
             "  {whose}: their small pictures {}, {} objects in {} tiles and {} palette(s), go up \
              when shown",
-            crate::text::repr(cut.asked["name"].as_str().unwrap_or("")),
+            crate::text::quoted(cut.asked["name"].as_str().unwrap_or("")),
             cut.asked["objects"],
             cut.asked["tiles"],
             cut.asked["palettes"]

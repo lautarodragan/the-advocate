@@ -21,7 +21,7 @@ use crate::scene;
 use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
-use crate::text::{hex, repr, unhex};
+use crate::text::{hex, quoted, unhex};
 use crate::variants;
 use rm2k_project::Project;
 use rm2k_snes_bytecode::events::{
@@ -1570,7 +1570,7 @@ pub fn run(options: Options) -> Result<()> {
             fullscreen::compressed(&picture, fullscreen::MENU_CGRAM, fullscreen::COLORS, &below)?;
         println!(
             "  title screen {}: {} 8bpp tiles + {} colors, {} B in an LZ2 stream of {} B",
-            repr(name),
+            quoted(name),
             screen.tiles,
             screen.colors - below.len(),
             screen.raw,
@@ -1578,7 +1578,11 @@ pub fn run(options: Options) -> Result<()> {
         );
         println!(
             "    menu ({}): {} 4bpp tiles ({} B) + {} colors, {} tilemap(s)",
-            texts.iter().map(|t| repr(t)).collect::<Vec<_>>().join(", "),
+            texts
+                .iter()
+                .map(|t| quoted(t))
+                .collect::<Vec<_>>()
+                .join(", "),
             menu_tiles,
             menu_tiles * 32,
             menu_palette.len(),
@@ -1638,7 +1642,7 @@ pub fn run(options: Options) -> Result<()> {
         let screen = fullscreen::compressed(&path, 0, 256, &[])?;
         println!(
             "  Game Over screen {}: {} 8bpp tiles + {} colors, {} B in an LZ2 stream of {} B",
-            repr(&path.file_name().unwrap().to_string_lossy()),
+            quoted(&path.file_name().unwrap().to_string_lossy()),
             screen.tiles,
             screen.colors,
             screen.raw,
@@ -1699,7 +1703,7 @@ pub fn run(options: Options) -> Result<()> {
         println!(
             "  battle backdrop {} {}: {}x{}, {} tiles from CGRAM entry {}; in the ROM {}x{} at 4bpp and {} colors ({} B), in the .msu 8bpp and {} colors ({} B)",
             b.number,
-            repr(&b.name),
+            quoted(&b.name),
             scene::WIDTH,
             scene::HEIGHT,
             scene::TILES,
@@ -1719,7 +1723,7 @@ pub fn run(options: Options) -> Result<()> {
     if !outside.is_empty() && !scenes.backdrops.is_empty() {
         let line = format!(
             "  battle backdrops only in the .msu, which without MSU-1 fall back to {}: {}",
-            repr(&scenes.backdrops[scenes.fallback_of[outside[0]]].name),
+            quoted(&scenes.backdrops[scenes.fallback_of[outside[0]]].name),
             outside
                 .iter()
                 .map(|k| format!("{k} {}", scenes.game[*k]))

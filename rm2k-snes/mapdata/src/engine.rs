@@ -350,19 +350,9 @@ pub fn shake_sine() -> Vec<i64> {
     (0..256)
         .map(|t| {
             let v = (f64::from(t) * std::f64::consts::PI / 128.0).sin() * 127.0;
-            round_half_even(v)
+            v.round() as i64
         })
         .collect()
-}
-
-/// Python's `round`: to the nearest, ties to even.
-fn round_half_even(v: f64) -> i64 {
-    let r = v.round();
-    if (v - v.trunc()).abs() == 0.5 && (r as i64) % 2 != 0 {
-        (r - v.signum()) as i64
-    } else {
-        r as i64
-    }
 }
 
 #[cfg(test)]

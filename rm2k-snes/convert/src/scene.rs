@@ -48,7 +48,7 @@ use crate::images;
 use crate::maps::MapInfo;
 use crate::resources;
 use crate::settings::Settings;
-use crate::text::{hex, repr};
+use crate::text::{hex, quoted};
 use rm2k_snes_bytecode::events::{OP_ANIMATION, OP_BATTLE};
 use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
 use rm2k_snes_mapdata::snes::{cgram_word, pack_tile};
@@ -233,7 +233,7 @@ pub fn game_backdrops(game: &Game, rtp: &Path, named: &BTreeSet<String>) -> Vec<
         {
             println!(
                 "  backdrop {} is neither in the game nor in the RTP",
-                repr(name)
+                quoted(name)
             );
             continue;
         }
@@ -473,7 +473,7 @@ pub fn fallback_number(
         None if !needed => Ok(None),
         None => Err(Stop::new(format!(
             "the fallback backdrop {} is not one of the game's",
-            repr(name)
+            quoted(name)
         ))),
     }
 }
@@ -675,7 +675,7 @@ pub fn rom_scene(
         .collect();
     for ((name, _), path) in asked.iter().zip(&paths) {
         if path.is_none() {
-            println!("  battler {} is neither in the game nor in the RTP: its enemies fight with no picture", repr(name));
+            println!("  battler {} is neither in the game nor in the RTP: its enemies fight with no picture", quoted(name));
         }
     }
     let mut answers = images::battlers(
@@ -908,45 +908,34 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
             }
         }
     }
-    // The origins go sorted as text, so a map id and "case" can share a
-    // list; and the keys by the text of their `(key, origins)` pair, which
-    // is the order the file always had.
+    // A map's id or "case", in the order of `Origin`: the maps by number,
+    // then the test pages.
     fn origins(set: &BTreeSet<Origin>) -> Value {
-        let mut list: Vec<(String, Value)> = set
-            .iter()
-            .map(|o| match o {
-                Origin::Map(m) => (m.to_string(), json!(m)),
-                Origin::Case => ("case".to_string(), json!("case")),
-            })
-            .collect();
-        list.sort_by(|a, b| a.0.cmp(&b.0));
-        Value::Array(list.into_iter().map(|(_, v)| v).collect())
+        Value::Array(
+            set.iter()
+                .map(|o| match o {
+                    Origin::Map(m) => json!(m),
+                    Origin::Case => json!("case"),
+                })
+                .collect(),
+        )
     }
-    let mut anim: Vec<(String, String, Value)> = animations
+    let anim: Map<String, Value> = animations
         .iter()
-        .map(|(k, v)| (format!("({k}, "), k.to_string(), origins(v)))
+        .map(|(k, v)| (k.to_string(), origins(v)))
         .collect();
-    anim.sort_by(|a, b| a.0.cmp(&b.0));
-    let mut bat: Vec<(String, String, Value)> = battlers
+    let bat: Map<String, Value> = battlers
         .iter()
-        .map(|(k, v)| (format!("({}, ", repr(k)), k.clone(), origins(v)))
+        .map(|(k, v)| (k.clone(), origins(v)))
         .collect();
-    bat.sort_by(|a, b| a.0.cmp(&b.0));
-    let object = |list: Vec<(String, String, Value)>| {
-        let mut m = Map::new();
-        for (_, k, v) in list {
-            m.insert(k, v);
-        }
-        Value::Object(m)
-    };
-    Ok(json!({"animation": object(anim), "battler": object(bat)}))
+    Ok(json!({"animation": anim, "battler": bat}))
 }
 
 /// The battler's numbers, for the log.
 pub fn battler_report(b: &Battler) -> String {
     format!(
         "  battler {}: {}x{}, {} B, {} colors of {}",
-        repr(&b.key),
+        quoted(&b.key),
         b.width,
         b.height,
         battler_bytes(b).len(),

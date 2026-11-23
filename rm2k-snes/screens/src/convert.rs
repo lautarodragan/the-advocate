@@ -384,7 +384,7 @@ fn names_in_cells(
             .map(|name| {
                 (
                     name.clone(),
-                    texts::strip_text(font, &texts::ljust(name, cells), cells),
+                    texts::strip_text(font, &texts::padded(name, cells), cells),
                 )
             })
             .filter(|(name, shown)| shown != name.trim_end())

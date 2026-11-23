@@ -5,10 +5,6 @@
 //! nothing, and one where a merge changed has to say **which**. It is the
 //! only thing that makes the check useful: "the file differs" sends you to
 //! run `diff` and guess whether the change matters.
-//!
-//! The messages quote the values the way the Python that first wrote them
-//! printed them —`None` for a missing field, a list as `[1, 2]`, a sheet
-//! with its quotes—, so the check says the same thing it always said.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -49,62 +45,19 @@ pub fn versioned(auto: &Path, kind: Kind) -> Result<Vec<Key>, String> {
 
 // --- Values as the messages print them --------------------------------------
 
-/// A value as Python's `str` prints it; `None` when it is missing.
+/// A value as the messages print it: a text bare, anything else as TOML
+/// writes it, and `nothing` when it is missing.
 fn shown(value: Option<&Value>) -> String {
     match value {
-        None => "None".into(),
         Some(Value::String(s)) => s.clone(),
-        Some(v) => quoted(Some(v)),
+        _ => quoted(value),
     }
 }
 
-/// A value as Python's `repr` prints it: a text with its quotes.
+/// A value as TOML writes it —a text with its quotes—, and `nothing` when
+/// it is missing.
 fn quoted(value: Option<&Value>) -> String {
-    match value {
-        None => "None".into(),
-        Some(Value::String(s)) => repr(s),
-        Some(Value::Integer(n)) => n.to_string(),
-        Some(Value::Float(f)) => f.to_string(),
-        Some(Value::Boolean(b)) => if *b { "True" } else { "False" }.into(),
-        Some(Value::Array(items)) => format!(
-            "[{}]",
-            items
-                .iter()
-                .map(|v| quoted(Some(v)))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Some(v) => v.to_string(),
-    }
-}
-
-/// A text with its quotes: single ones, unless it has a single quote and no
-/// double one.
-fn repr(s: &str) -> String {
-    let quote = if s.contains('\'') && !s.contains('"') {
-        '"'
-    } else {
-        '\''
-    };
-    let mut out = String::from(quote);
-    for c in s.chars() {
-        match c {
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if c == quote => {
-                out.push('\\');
-                out.push(c);
-            }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
-                out.push_str(&format!("\\x{:02x}", c as u32))
-            }
-            c => out.push(c),
-        }
-    }
-    out.push(quote);
-    out
+    value.map_or_else(|| "nothing".into(), Value::to_string)
 }
 
 fn color(value: &Value) -> String {
@@ -519,16 +472,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_text_is_quoted_the_way_python_quotes_it() {
-        assert_eq!(repr("hit"), "'hit'");
-        assert_eq!(repr("it's"), "\"it's\"");
-        assert_eq!(repr("a'b\"c"), "'a\\'b\"c'");
-        assert_eq!(repr("back\\slash\n"), "'back\\\\slash\\n'");
+    fn a_text_is_quoted_the_way_toml_writes_it() {
+        let text = |s: &str| Value::String(s.into());
+        assert_eq!(quoted(Some(&text("hit"))), "\"hit\"");
+        assert_eq!(quoted(Some(&text("it's"))), "\"it's\"");
+        assert_eq!(shown(Some(&text("it's"))), "it's");
     }
 
     #[test]
-    fn a_missing_value_is_none() {
-        assert_eq!(shown(None), "None");
+    fn a_missing_value_is_nothing() {
+        assert_eq!(shown(None), "nothing");
         assert_eq!(sides(None), "nothing");
         let pair = Value::Array(vec![Value::Integer(64), Value::Integer(49)]);
         assert_eq!(shown(Some(&pair)), "[64, 49]");

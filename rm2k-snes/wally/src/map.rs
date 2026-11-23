@@ -198,9 +198,9 @@ fn note_json(n: &Note) -> Value {
     out
 }
 
-/// A Python-like quoted name, as the messages have always shown them.
+/// A name quoted for the messages, with Rust's escapes.
 fn quoted(name: &str) -> String {
-    format!("'{name}'")
+    format!("{name:?}")
 }
 
 /// The layers of one baking.

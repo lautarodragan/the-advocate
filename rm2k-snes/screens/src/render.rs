@@ -584,7 +584,7 @@ fn target_with(
         &mut p,
         game,
         skin,
-        &texts::ljust(name, TARGET_NAME_WIDTH),
+        &texts::padded(name, TARGET_NAME_WIDTH),
         TARGET_NAME_WIDTH,
         TARGET_NAME_ROW,
         TARGET_NAME_COL,
