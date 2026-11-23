@@ -101,7 +101,7 @@ pub struct Songs {
     /// runtime/audio_package.s. And which ROM maps each one jumps to
     /// —`destinations`, indices into the map table—, which is where it comes
     /// from which song may be playing when a package is loaded: see
-    /// `inherited_songs` in music.py.
+    /// `inherited_songs` in rm2k-snes-audio.
     pub per_package: Vec<(Package, Wants)>,
     /// Per package, each song a `PlayBGM` of it turns on, and whether all of
     /// them are right before a jump to another map. A song is an exit song
@@ -150,7 +150,7 @@ impl Songs {
     /// effects in between —the one it surely carries—, or with None if it
     /// carries whatever is playing. The page notes it when it compiles, and
     /// `recalled_destination` that of a `RecallToLocation`, always with None.
-    /// See `inherited_songs` in music.py.
+    /// See `inherited_songs` in rm2k-snes-audio.
     pub fn jump(&mut self, dest: usize, song: Option<usize>) {
         if let Some(current) = self.current {
             let dests = entry(&mut self.jumps, current);

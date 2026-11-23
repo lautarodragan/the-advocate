@@ -7394,7 +7394,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
 /// is drawn over. The number goes raw and not as an index of ours on
 /// purpose: the ROM looks it up in `anim_battle`, a table by number, so
 /// neither end has to carry a counter the other one guesses. See
-/// `animation.py`.
+/// `animations.rs` in rm2k-snes-convert.
 ///
 /// OP_ANIMATION: number, what it is drawn over, n, and n entries of eight
 /// bytes. The parameters are (animation, target, wait, global).

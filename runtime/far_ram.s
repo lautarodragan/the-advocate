@@ -1200,7 +1200,7 @@ NUMBER_DIGITS_MAX = 7
 ;
 ; The 2 KB of the frame the vblank uploads to the box. The cartridge does not
 ; store them whole —only the tiles that are not all zero, see
-; `frame_without_gaps` in snes_convert.py— and `anim_frame_build` rebuilds
+; `frame_without_gaps` in rm2k-snes-mapdata— and `anim_frame_build` rebuilds
 ; them here, outside the vblank. The DMA in `anim_drawing_dma` comes from
 ; here and not from the cartridge.
 ;

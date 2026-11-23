@@ -608,8 +608,8 @@ fn save_signature(
 /// The sine the screen shake reads by index, in bank 0's neighbour.
 fn sine_table() -> String {
     let mut out = vec![
-        "; The sine at scale 127, for the screen shake: it is the same".to_string(),
-        "; list `SENO_SACUDIDA` builds in events.py.".into(),
+        "; The sine at scale 127, for the screen shake: `shake_sine` in".to_string(),
+        "; rm2k-snes-mapdata's engine.rs.".into(),
         ";".into(),
         "; It goes outside bank 0 —`lda f:sine_shake, x`, one read per".into(),
         "; shake frame— for the same reason as `item_k`: it is 256 bytes".into(),
@@ -2272,7 +2272,7 @@ fn animations_section(out: &mut String, r: &Emit) -> Result<()> {
         "\n; --- the drawing of the battle animations ---".into(),
         ";".into(),
         "; The box is a single one for the whole ROM and the reason is in".into(),
-        "; tools/port/animation.py: four 32x32 objects in one row of blocks".into(),
+        "; rm2k-snes-convert's animations.rs: four 32x32 objects in one row of blocks".into(),
         "; of the name grid, which is the most that fits in the sprite VRAM".into(),
         "; map 2 has left free. What changes per map is where that row lands".into(),
         "; and with which palette, and that goes in `anim_battle_split`,".into(),

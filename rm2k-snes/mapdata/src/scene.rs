@@ -2,7 +2,7 @@
 //! battlers separately, which the console composes when a battle starts.
 //!
 //! What a backdrop and a battler look like, where each member stands and in
-//! which order they are drawn are the scene's —the converter's `scene.py`—
+//! which order they are drawn are the scene's —the converter's `scene.rs`—
 //! and come in the request already as bytes and numbers: see `scene` in the
 //! request. Here they are only written.
 
@@ -68,7 +68,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
         ";".into(),
         "; They go separately and the ROM composes them in an 8bpp layer of".into(),
         "; 256x128, which is the seven text lines at the top. The reason is".into(),
-        "; in tools/port/scene.py; only the bytes travel here.".into(),
+        "; in rm2k-snes-convert's scene.rs; only the bytes travel here.".into(),
         "; The game's backdrops, which the .msu carries all of, and the ROM's.".into(),
         format!("BACKDROPS_GAME  = {}", int_at(scene, "game")?),
         format!("SCENE_BACKDROPS = {}", backdrops.len()),
@@ -86,7 +86,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
         format!("SCENE_VRAM      = ${:04X}", n("VRAM_TILES")?),
         format!("SCENE_MAP       = ${:04X}", n("VRAM_MAP")?),
         "; The ROM's light fallback: 4bpp and a single palette. See".into(),
-        "; tools/port/scene.py.".into(),
+        "; rm2k-snes-convert's scene.rs.".into(),
         format!("FALLBACK_COLORS = {}", n("FALLBACK_COLORS")?),
         format!("FALLBACK_TILE   = {}", n("FALLBACK_PLANES")? * 8),
         format!(

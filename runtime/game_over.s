@@ -154,7 +154,7 @@ black:
     lda #0
     sta f:GO_WAIT
     ; The song, first: its package —the song alone, see PACKAGE_GAME_OVER in
-    ; snes_convert.py— is uploaded with the screen black, and so it plays from
+    ; rm2k-snes-audio— is uploaded with the screen black, and so it plays from
     ; the first frame of the fade, as in RM2k. With an MSU-1 track the package
     ; uploads nothing and the track plays.
     ldx #PACKAGE_GAME_OVER

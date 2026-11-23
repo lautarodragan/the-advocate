@@ -162,7 +162,7 @@ pub const TIMER_X: u32 = 4;
 pub const TIMER_Y: u32 = 4;
 
 /// The ChipSet animation's cadences: the water's slow frames and its cycle,
-/// the animated tiles' frames and steps (`rm2k.py`).
+/// the animated tiles' frames and steps.
 pub const WATER_FRAMES_SLOW: u32 = 24;
 pub const WATER_CYCLE: usize = 4;
 pub const ANIMATED_FRAMES: u32 = 6;

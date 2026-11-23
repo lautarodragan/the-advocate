@@ -1746,9 +1746,7 @@ pub fn anim_table(
     let mut out: Vec<String> = vec![
         ".segment \"RODATA\"".into(),
         format!("; The ChipSet animation, one entry of {ANIM_STRIDE} bytes per map."),
-        // `rom/src/` and not `runtime/`, on purpose: it goes into the
-        // `.inc`, and what is emitted is not touched yet.
-        "; See `anim_table` in tools/port/snes_convert.py and `anim_flush` in rom/src/chipset_animation.s.".into(),
+        "; See `anim_table` in rm2k-snes-mapdata's record.rs and `anim_flush` in runtime/chipset_animation.s.".into(),
         ";".into(),
         "; **It lives in RODATA and is read with `lda f:anim_table + campo, x`**,".into(),
         "; for the same reason as `map_table`: it is 16 bytes per map, and".into(),
