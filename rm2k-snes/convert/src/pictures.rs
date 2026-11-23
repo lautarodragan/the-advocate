@@ -691,9 +691,15 @@ fn textured(layer: &Value) -> bool {
 /// maps meet them, and each map's table —each key with its layer's number,
 /// its centre and whether it has a texture—, which the event compiler
 /// numbers against. The same picture drawn the same way on two maps, or
-/// under two numbers, is one layer; and **it has a texture if any of them
-/// zooms it**: the other maps show it still, in mode 1, as before, from
-/// the other half of VRAM.
+/// under two numbers, is one layer; but **the one a map zooms, with its
+/// texture, is another layer than the one the rest show still**. Shown
+/// still, one with a texture goes in VRAM's upper half, over the message
+/// window's tiles, and the window's layer is off: Desert Nightmare's black
+/// screen, which map 151 zooms, hid every message over it on the other
+/// maps —the thoughts after the bar, map 32—. Until 2026-11-23 the two
+/// were one layer, with the texture. The emission shares the tiles, the
+/// tilemap and the colours of two layers that have the same: see
+/// `big_pictures_section` in rm2k-snes-mapdata.
 pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
     let mut layers: Vec<Value> = Vec::new();
     let mut index: HashMap<String, usize> = HashMap::new();
@@ -706,16 +712,14 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
                 big.key["zoom"],
                 big.key["transparent_color"],
                 big.layer["center"],
-                big.layer.get("under")
+                big.layer.get("under"),
+                textured(&big.layer)
             ])
             .to_string();
             let number = *index.entry(ident).or_insert_with(|| {
                 layers.push(big.layer.clone());
                 layers.len() - 1
             });
-            if textured(&big.layer) && !textured(&layers[number]) {
-                layers[number] = big.layer.clone();
-            }
             map.push(number);
         }
         numbers.push(map);
@@ -1444,7 +1448,7 @@ mod tests {
     }
 
     #[test]
-    fn a_layer_has_a_texture_if_any_map_zooms_it() {
+    fn a_layer_has_a_texture_only_on_the_maps_that_zoom_it() {
         // The same photo on three maps: still on the first, zoomed on the
         // second; and another one, still, on the third.
         let key = |name: &str| json!({"name": name, "zoom": 100, "transparent_color": true, "number": 20});
@@ -1461,18 +1465,22 @@ mod tests {
             key: key("Other"),
             layer: layer(false),
         }];
-        let (layers, tables) = number_big(&[&still, &zoomed, &other]);
-        assert_eq!(layers.len(), 2);
-        assert!(textured(&layers[0]) && !textured(&layers[1]));
+        let (layers, tables) = number_big(&[&still, &zoomed, &other, &still]);
+        assert_eq!(layers.len(), 3);
+        assert!(!textured(&layers[0]) && textured(&layers[1]) && !textured(&layers[2]));
+        // Desert Nightmare's black screen, which one map zooms: shown still
+        // with the texture, it hid the window of every message over it.
         assert_eq!(tables[0][0]["image"], 0);
-        assert_eq!(
-            tables[0][0]["texture"], true,
-            "the map that shows it still too"
-        );
-        assert_eq!(tables[1][0]["texture"], true);
         assert!(
-            tables[2][0].get("texture").is_none(),
-            "and nothing for one that does not zoom"
+            tables[0][0].get("texture").is_none(),
+            "the map that shows it still goes without the texture"
+        );
+        assert_eq!(tables[1][0]["image"], 1);
+        assert_eq!(tables[1][0]["texture"], true);
+        assert!(tables[2][0].get("texture").is_none());
+        assert_eq!(
+            tables[3][0]["image"], 0,
+            "and the still one is a single layer"
         );
         // Which moves zoom: another size than the one shown, under its number.
         let zooms = [json!([20, 100]), json!([3, 0])];
