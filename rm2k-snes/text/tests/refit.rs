@@ -343,7 +343,7 @@ fn three_hundred_made_up_boxes_fit_keep_their_words_and_settle() {
         };
         assert_eq!(
             untailed(words(&out, speaker)),
-            untailed(words(&[b.clone()], speaker)),
+            untailed(words(std::slice::from_ref(&b), speaker)),
             "{b:?}"
         );
         if let Some(tail) = ["\\|\\^", "\\|"]
