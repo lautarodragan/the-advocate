@@ -23,12 +23,10 @@
 //! What to put behind —which layers, what an event covers— is the caller's
 //! to decide, as is whether the blend stays in a picture at all.
 
-use crate::fail::{Bad, Result};
-use crate::picture::{self, Picture};
+use crate::picture::Picture;
 use rm2k_rules::charset::{self as rules, CHARACTER_HEIGHT, CHARACTER_WIDTH};
 use rm2k_rules::chipset::{common_origin, TILE, TILES_PER_LAYER};
 use rm2k_rules::event::TRANSLUCENT_OPACITY;
-use std::path::{Path, PathBuf};
 
 /// A CharSet sheet: 4 characters across by 2 down.
 pub const SHEET_WIDTH: usize = (rules::CHARACTERS_ACROSS * CHARACTER_WIDTH) as usize;
@@ -103,122 +101,4 @@ pub fn translucent(sheet: &Picture, behind: &Picture, x: i64, y: i64) -> Picture
         }
     }
     out
-}
-
-/// One sheet a request asks for.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Sheet {
-    /// A CharSet's picture.
-    CharSet(PathBuf),
-    /// Upper-layer tile `index` of the ChipSet in this picture.
-    Tile { chipset: PathBuf, index: i32 },
-}
-
-/// A translucent page: what is behind it, and the cell it stands on.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Behind {
-    pub picture: PathBuf,
-    pub x: i64,
-    pub y: i64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Wanted {
-    pub sheet: Sheet,
-    pub translucent: Option<Behind>,
-}
-
-/// A request: a JSON list, one entry per sheet, and sheet `i` is written as
-/// `<i>.png`. An entry is `{"charset_file": path}` or
-/// `{"chipset_file": path, "tile": n}`, and either can carry
-/// `"translucent": {"behind": path, "x": x, "y": y}`. A relative path is
-/// relative to the request's directory.
-pub fn request(path: &Path) -> Result<Vec<Wanted>> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let whose = path.display().to_string();
-    let bad = |what: String| Bad::answer(format!("{whose}: {what}"));
-    let data: serde_json::Value = serde_json::from_str(&text).map_err(|e| bad(e.to_string()))?;
-    let base = path.parent().unwrap_or(Path::new(""));
-    let file = |entry: &serde_json::Value, key: &str| {
-        entry.get(key).map(|v| {
-            v.as_str()
-                .map(|s| base.join(s))
-                .ok_or_else(|| bad(format!("`{key}` is not a path")))
-        })
-    };
-    let number = |entry: &serde_json::Value, key: &str, i: usize| {
-        entry
-            .get(key)
-            .and_then(|v| v.as_i64())
-            .ok_or_else(|| bad(format!("entry {i}: `{key}` is not a number")))
-    };
-    let entries = data
-        .as_array()
-        .ok_or_else(|| bad("not a list".to_string()))?;
-    let mut wanted = Vec::with_capacity(entries.len());
-    for (i, entry) in entries.iter().enumerate() {
-        let sheet = match (file(entry, "charset_file"), file(entry, "chipset_file")) {
-            (Some(charset), None) => Sheet::CharSet(charset?),
-            (None, Some(chipset)) => {
-                let index = number(entry, "tile", i)?;
-                if !(0..TILES_PER_LAYER as i64).contains(&index) {
-                    return Err(bad(format!(
-                        "entry {i}: tile {index} is not one of the upper layer's 0 to {}",
-                        TILES_PER_LAYER - 1
-                    )));
-                }
-                Sheet::Tile {
-                    chipset: chipset?,
-                    index: index as i32,
-                }
-            }
-            _ => {
-                return Err(bad(format!(
-                    "entry {i}: it needs `charset_file` or `chipset_file`, and only one"
-                )))
-            }
-        };
-        let translucent = match entry.get("translucent") {
-            None => None,
-            Some(t) => Some(Behind {
-                picture: file(t, "behind")
-                    .ok_or_else(|| bad(format!("entry {i}: `translucent` without `behind`")))??,
-                x: number(t, "x", i)?,
-                y: number(t, "y", i)?,
-            }),
-        };
-        wanted.push(Wanted { sheet, translucent });
-    }
-    Ok(wanted)
-}
-
-/// Draws every sheet of a request into `dir`, which is created if it is not
-/// there. A picture several entries share is read once.
-pub fn write(dir: &Path, wanted: &[Wanted]) -> Result<()> {
-    std::fs::create_dir_all(dir).map_err(|e| Bad::usage(format!("{}: {e}", dir.display())))?;
-    let mut read: std::collections::HashMap<PathBuf, Picture> = Default::default();
-    let mut load = |path: &PathBuf, rm2k: bool| -> Result<Picture> {
-        if let Some(p) = read.get(path) {
-            return Ok(p.clone());
-        }
-        let picture = if rm2k {
-            picture::read_rm2k(path)?
-        } else {
-            picture::read_rgba(path)?
-        };
-        read.insert(path.clone(), picture.clone());
-        Ok(picture)
-    };
-    for (i, w) in wanted.iter().enumerate() {
-        let mut sheet = match &w.sheet {
-            Sheet::CharSet(path) => load(path, true)?,
-            Sheet::Tile { chipset, index } => tile_sheet(&load(chipset, true)?, *index),
-        };
-        if let Some(t) = &w.translucent {
-            sheet = translucent(&sheet, &load(&t.picture, false)?, t.x, t.y);
-        }
-        picture::write_png(&dir.join(format!("{i}.png")), &sheet)?;
-    }
-    Ok(())
 }

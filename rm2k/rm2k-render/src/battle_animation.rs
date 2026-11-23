@@ -22,12 +22,9 @@
 //! another that does not are then in the same coordinates, and the anchor
 //! —the point RM2k puts over the target— is at minus the box's corner.
 
-use crate::fail::{Bad, Result};
-use crate::picture::{self, FilterType, Picture};
-use crate::request::Request;
+use crate::picture::{FilterType, Picture};
 use ditto::schema::{Animation, AnimationCellData};
 use rm2k_rules::battle_animation::{cell_origin, cell_side};
-use std::path::{Path, PathBuf};
 
 /// A cell as RM2k places it, before its tone.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,68 +133,4 @@ pub fn frames(animation: &Animation, sheet: &Picture) -> (Option<Bounds>, Vec<Ve
         })
         .collect();
     (Some(bounds), frames)
-}
-
-/// One animation a request asks for: its sheet, and the animation as
-/// Ditto reads it.
-#[derive(Debug, Clone)]
-pub struct Wanted {
-    pub sheet: PathBuf,
-    pub animation: Animation,
-}
-
-/// A request: a JSON list, one entry per animation, each
-/// `{"sheet_file": path, "animation": {...}}`, the animation named as in
-/// Ditto's dump —only `large` and `frames` are read—. A relative path is
-/// relative to the request's directory.
-pub fn request(path: &Path) -> Result<Vec<Wanted>> {
-    let request = Request::read(path)?;
-    (0..request.entries.len())
-        .map(|i| {
-            let sheet = request.file(i, "sheet_file")?;
-            let animation = request.entries[i]
-                .get("animation")
-                .ok_or_else(|| request.bad(i, "no `animation`"))?;
-            let animation: Animation = serde_json::from_value(animation.clone())
-                .map_err(|e| request.bad(i, format!("`animation`: {e}")))?;
-            Ok(Wanted { sheet, animation })
-        })
-        .collect()
-}
-
-/// The file cell `k` of frame `f` of animation `i` is written to.
-pub fn piece_file(i: usize, f: usize, k: usize) -> String {
-    format!("{i}-{f}-{k}.png")
-}
-
-/// Draws every animation of a request into `dir`, which is created if it
-/// is not there: for animation `i`, `<i>.json` with its box and where each
-/// cell goes, and each cell as `<i>-<frame>-<cell>.png`. A sheet several
-/// entries share is read once.
-pub fn write(dir: &Path, wanted: &[Wanted]) -> Result<()> {
-    std::fs::create_dir_all(dir).map_err(|e| Bad::usage(format!("{}: {e}", dir.display())))?;
-    let mut read: std::collections::HashMap<PathBuf, Picture> = Default::default();
-    for (i, w) in wanted.iter().enumerate() {
-        if !read.contains_key(&w.sheet) {
-            read.insert(w.sheet.clone(), picture::read_rm2k(&w.sheet)?);
-        }
-        let (bounds, frames) = frames(&w.animation, &read[&w.sheet]);
-        let mut listed = Vec::with_capacity(frames.len());
-        for (f, pieces) in frames.iter().enumerate() {
-            let mut cells = Vec::with_capacity(pieces.len());
-            for (k, piece) in pieces.iter().enumerate() {
-                picture::write_png(&dir.join(piece_file(i, f, k)), &piece.picture)?;
-                cells.push(serde_json::json!({"x": piece.x, "y": piece.y, "tone": piece.tone}));
-            }
-            listed.push(serde_json::Value::Array(cells));
-        }
-        let manifest = serde_json::json!({
-            "box": bounds.map(|(x, y, w, h)| [x, y, w, h]),
-            "frames": listed,
-        });
-        let path = dir.join(format!("{i}.json"));
-        std::fs::write(&path, manifest.to_string())
-            .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    }
-    Ok(())
 }

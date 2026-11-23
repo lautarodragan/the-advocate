@@ -13,7 +13,6 @@
 
 use crate::fail::Result;
 use crate::picture::{self, Picture};
-use crate::request::{self, Request};
 use std::path::Path;
 
 /// A backdrop's picture, opaque.
@@ -122,25 +121,4 @@ pub fn rotate_hue(picture: &mut Picture, degrees: i32) {
         px[1] = g.clamp(0, 255) as u8;
         px[2] = b.clamp(0, 255) as u8;
     }
-}
-
-/// Draws a request: each entry is `{"backdrop_file": path}` or
-/// `{"monster_file": path, "hue": degrees}`, the hue 0 if left out, and
-/// picture `i` is written as `<i>.png`.
-pub fn write(dir: &Path, request_path: &Path) -> Result<()> {
-    let request = Request::read(request_path)?;
-    request::write(dir, &request, |r, i| {
-        let entry = &r.entries[i];
-        match (entry.get("backdrop_file"), entry.get("monster_file")) {
-            (Some(_), None) => backdrop(&r.file(i, "backdrop_file")?),
-            (None, Some(_)) => {
-                let hue = r.number_in(i, "hue", Some(0), i32::MIN as i64..i32::MAX as i64)?;
-                battler(&r.file(i, "monster_file")?, hue as i32)
-            }
-            _ => Err(r.bad(
-                i,
-                "it needs `backdrop_file` or `monster_file`, and only one",
-            )),
-        }
-    })
 }

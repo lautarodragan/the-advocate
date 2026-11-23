@@ -9,4 +9,3 @@ pub mod codec;
 pub mod extract;
 pub mod fail;
 pub mod sf2;
-pub mod wav;

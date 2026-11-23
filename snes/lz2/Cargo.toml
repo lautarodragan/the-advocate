@@ -8,10 +8,6 @@ description = "LC_LZ2, the LZ format of first-party Super NES games, with an opt
 name = "lz2"
 path = "src/lib.rs"
 
-[[bin]]
-name = "lz2"
-path = "src/main.rs"
-
 [dependencies]
 
 [lints]
