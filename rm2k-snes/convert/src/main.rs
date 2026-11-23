@@ -45,6 +45,7 @@ mod stage;
 mod systems;
 mod text;
 mod trim;
+mod variants;
 
 use std::io::Write;
 use std::process::ExitCode;

@@ -301,3 +301,15 @@ terrain_set:
     jsl f:pano_change
     jmp run_code::other
 .endproc
+
+; `ChangeMapTileset`: only the entry point. The body is `tileset_change`, in
+; tileset.s, which reads its operand; a cartridge with no map that swaps its
+; ChipSet assembles none, and the operand is skipped here.
+.proc op_change_tileset
+.ifdef tileset_variants
+    jsl f:tileset_change
+.else
+    iny                         ; the variant
+.endif
+    jmp run_code::other
+.endproc
