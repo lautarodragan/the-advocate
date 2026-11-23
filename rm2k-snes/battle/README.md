@@ -67,10 +67,10 @@ first to be written to it:
 * **Two exit codes**: `1` when the answer is no —it does not fit, the dump
   is broken—, `2` when the call is wrong. The message goes to standard
   error.
-* **Its tests need no game**: a small one is built inside the test, and
-  what comes out is compared against the hashes of what the Python it
-  replaced wrote for the same input (`tests/python.rs`). The model's game
-  is bigger and lives in `tests/game/`, with the requests and their hashes
+* **Its tests need no game**: a small one is built inside the test, made
+  to touch the tables' edges (`tests/tables.rs`). The model's game is
+  bigger and lives in `tests/game/`, with four hundred battles and
+  twenty-six models asked of it and which of them must be refused
   (`tests/model.rs`).
 
 ## The request of `tables`

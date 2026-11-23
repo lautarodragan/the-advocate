@@ -455,8 +455,7 @@ pub fn own(page: &Page, indices: &Indices) -> Option<Value> {
         ),
         "animation_continues": matches!(page.animation_type, ANIM_CONTINUOUS | ANIM_FIXED_CONTINUOUS),
     });
-    // Only on the one that spins: the others' answer stays the one
-    // `tests/python.rs` holds the hashes of, byte for byte.
+    // Only on the one that spins.
     if spin {
         out["spin"] = json!(true);
         out["pattern"] = json!(page.character_pattern);

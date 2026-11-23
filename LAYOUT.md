@@ -48,8 +48,7 @@ have layers of their own, one folder each:
       rules/     `rm2k-rules`, the library of what the format means:
                  passability, which layer covers which, the page a new
                  game starts on and what it draws, the experience curve,
-                 what a map inherits from the tree. Its tests hold it to the
-                 answers the converter's Python gave, in `tests/python.json`
+                 what a map inherits from the tree
       sketch/    `rm2k-sketch`: a map's tile layers drawn as text —a grid of
                  characters and a legend of the tiles each one stands for—
                  made into the `.tiles` of a dump; the test game's maps are
