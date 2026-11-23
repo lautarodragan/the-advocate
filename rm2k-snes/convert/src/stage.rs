@@ -432,9 +432,9 @@ mod tests {
         let mut keys = Vec::new();
         for (side, map) in [("one", "{}"), ("two", "{}"), ("three", "{\"x\": 1}")] {
             let data = root.join(side).join("data");
-            std::fs::create_dir_all(data.join("maps")).unwrap();
-            std::fs::write(data.join("maps").join("Map0001.json"), map).unwrap();
-            let forked = root.join(side).join("Map0001.json");
+            std::fs::create_dir_all(data.join("some")).unwrap();
+            std::fs::write(data.join("some").join("file"), map).unwrap();
+            let forked = root.join(side).join("forked");
             std::fs::write(&forked, "forked").unwrap();
             let request = json!({"map": 1, "map_files": {"1": forked.display().to_string()}});
             let flags: Vec<OsString> = vec!["--data".into(), data.into_os_string()];
