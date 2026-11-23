@@ -7,8 +7,8 @@
     rm2k-snes-audio msu-index build/game.msu
     rm2k-snes-audio decode --stream stream.bin --sounds sounds.bin
     rm2k-snes-audio keys song-a song-b --game-dir game/ --soundfont bank.sf2
-    rm2k-snes-msu build/game.sfc --game-dir game/ --soundfont bank.sf2
-    rm2k-snes-volume-ceilings --measure
+    rm2k-snes-audio msu build/game.sfc --game-dir game/ --soundfont bank.sf2
+    rm2k-snes-audio volume-ceilings --measure
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.
@@ -123,30 +123,38 @@ one's own.
 Two tests read a real SoundFont's envelopes, in `SOUNDFONT`; without the
 variable they are skipped with a message.
 
-## The other two programs
+## The tracks and the ceilings
 
-Two more binaries come out of this crate, because they are about the same
-music and read what `compile` leaves next to a built cartridge:
+Two more subcommands, which are not stages of the converter, live in this
+crate because they are about the same music and read what `compile` leaves
+next to a built cartridge:
 
-* **`rm2k-snes-msu`**, the MSU-1 tracks: one `<rom>-N.pcm` per song of the
+* **`msu`**, the MSU-1 tracks: one `<rom>-N.pcm` per song of the
   cartridge, rendered from its MIDI with `fluidsynth` and the same
   SoundFont —or decoded with `ffmpeg`, from a replacement or a WAV—, and
   normalized. Both programs are looked up on the PATH. A track made from
   the same sources is not made again: the disk cache keeps the sha256 of
   each `.pcm` under a key that carries the MIDI, the SoundFont, both
-  programs and this binary itself.
-* **`rm2k-snes-volume-ceilings`**, each song's volume ceiling, measured by
+  programs and the source of the code that writes a track —`OWN_SOURCES`
+  in `src/tracks.rs`—.
+* **`volume-ceilings`**, each song's volume ceiling, measured by
   playing it in the built ROM on a libretro core, and written to the
   project's table —the one `compile` reads—. It runs the cartridges'
   builder to make the copy it measures and to rebuild with the table, and
-  plays each song in a process of its own —itself, with `--play`—, because
-  a libretro core is one console per process. `--play` is also what a test
-  asks when it wants a single song.
+  plays each song in a process of its own —itself, with `volume-ceilings
+  --play`—, because a libretro core is one console per process. `--play`
+  is also what a test asks when it wants a single song.
 
-They are separate binaries and not subcommands so they keep the names the
-game's recipes already call, and so the MSU-1 tracks' key only changes when
-code that goes into that binary changes: a new flag in `compile` does not
-make every track again.
+Until 2026-11-23 they were binaries of their own, `rm2k-snes-msu` and
+`rm2k-snes-volume-ceilings`, so the game's recipes kept their names and so
+the MSU-1 tracks' key, which was the running executable, only changed when
+code that went into that binary did. taro folded them in, to have fewer
+commands on the PATH; the key stopped being the executable then, which
+carries the whole compiler, and became the source of the tracks' code: a
+new flag in `compile` still does not make every track again. What does
+change with them is the audio stage's key in the converter's cache, which
+is this binary: a change to the tracks or the ceilings expires its
+answers, which cost seconds to give again.
 
 Until 2026-09-29 both were Python scripts; the tracks come out byte for
 byte the same, and the ceilings measure the same numbers.
