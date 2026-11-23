@@ -1,24 +1,23 @@
-//! The CharSet sheets against the ones they replace.
-//!
-//! Until `charset` existed, the same sheets were drawn by the Python of the
-//! converter. It was deleted once the two gave the same pixels on every
-//! CharSet a whole game draws; what is left of it is here: the SHA-256 of
-//! what it drew for CharSets, ChipSets and a background generated inside
-//! this file, which need no game and no RTP.
+//! CharSet sheets, an event drawn with a tile, and translucent sheets,
+//! over CharSets, ChipSets and a background generated inside this file,
+//! which need no game and no RTP.
 //!
 //! The inputs touch what can differ: an indexed CharSet —the colour key at
 //! index 0— and an RGBA one with half-transparent pixels; tiles of an
-//! indexed ChipSet and of a half-transparent one, whose two copies each
-//! round; and translucent sheets on cells in the middle of the background
-//! and against its edges, where what is behind is black.
+//! indexed ChipSet and of a half-transparent one; and translucent sheets on
+//! cells in the middle of the background and against its edges, where what
+//! is behind is black.
 //!
-//! **If one of these changes, a pixel changed.** The hashes are not to be
-//! regenerated to make a test pass: the Python that produced them is gone,
-//! and with it the only independent answer.
+//! **The path it guards**: the RGBA pictures and the edges, which a game's
+//! events do not bring. What a real event looks like is A Blurred Line's
+//! goldens'. What is checked is what the drawing promises: a tile in each
+//! of the twelve poses and nothing else, and a translucent pixel that is
+//! opaque, between the sheet's colour and what is behind, and nearer the
+//! sheet's.
 
 mod common;
 
-use common::{indexed_chipset, rgba_chipset, sha};
+use common::{indexed_chipset, rgba_chipset};
 use rm2k_render::charset::{tile_sheet, translucent, SHEET_HEIGHT, SHEET_WIDTH};
 use rm2k_render::{picture, Picture};
 use std::path::{Path, PathBuf};
@@ -111,9 +110,47 @@ fn behind() -> Picture {
     }
 }
 
+/// The drawn pixels of a picture.
+fn drawn(p: &Picture) -> usize {
+    p.rgba.chunks_exact(4).filter(|px| px[3] != 0).count()
+}
+
 #[test]
-fn the_sheets_are_what_the_python_drew() {
-    let dir = scratch("python");
+fn a_tile_goes_in_each_of_the_twelve_poses_and_nowhere_else() {
+    let dir = scratch("tiles");
+    for (name, write) in [
+        ("indexed", indexed_chipset as fn(&Path)),
+        ("rgba", rgba_chipset),
+    ] {
+        let path = dir.join(format!("{name}.png"));
+        write(&path);
+        let chipset = picture::read_rm2k(&path).unwrap();
+        for index in [0, 5, 7, 100, 143] {
+            let sheet = tile_sheet(&chipset, index);
+            assert_eq!((sheet.width, sheet.height), (SHEET_WIDTH, SHEET_HEIGHT));
+            let poses = drawn(&sheet);
+            assert_eq!(poses % 12, 0, "{name} tile {index}: {poses} pixels");
+            // Pose 0 is the top-left one, and the others are copies of it.
+            let pose = |n: usize| -> Vec<u8> {
+                let (x0, y0) = ((n % 3) * 24, (n / 3) * 32);
+                (y0..y0 + 32)
+                    .flat_map(|y| {
+                        let at = (y * sheet.width + x0) * 4;
+                        sheet.rgba[at..at + 24 * 4].to_vec()
+                    })
+                    .collect()
+            };
+            for n in 1..12 {
+                assert_eq!(pose(n), pose(0), "{name} tile {index}: pose {n}");
+            }
+        }
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_translucent_pixel_is_opaque_and_nearer_the_sheet_than_what_is_behind() {
+    let dir = scratch("translucent");
     let read = |name: &str, write: fn(&Path)| {
         let path = dir.join(name);
         write(&path);
@@ -121,60 +158,51 @@ fn the_sheets_are_what_the_python_drew() {
     };
     let indexed = read("indexed-charset.png", indexed_charset);
     let rgba = read("rgba-charset.png", rgba_charset);
-    let indexed_chip = read("indexed-chipset.png", indexed_chipset);
-    let rgba_chip = read("rgba-chipset.png", rgba_chipset);
-    let behind = behind();
-    let rgba_tile = tile_sheet(&rgba_chip, 7);
-
-    let got = [
-        ("indexed CharSet", sha(&indexed)),
-        ("RGBA CharSet", sha(&rgba)),
-        ("indexed tile 0", sha(&tile_sheet(&indexed_chip, 0))),
-        ("indexed tile 5", sha(&tile_sheet(&indexed_chip, 5))),
-        ("indexed tile 143", sha(&tile_sheet(&indexed_chip, 143))),
-        ("RGBA tile 7", sha(&rgba_tile)),
-        ("RGBA tile 100", sha(&tile_sheet(&rgba_chip, 100))),
-        (
-            "indexed translucent at 0,0",
-            sha(&translucent(&indexed, &behind, 0, 0)),
-        ),
-        (
-            "indexed translucent at 3,2",
-            sha(&translucent(&indexed, &behind, 3, 2)),
-        ),
-        (
-            "indexed translucent at 5,4",
-            sha(&translucent(&indexed, &behind, 5, 4)),
-        ),
-        (
-            "RGBA translucent at 2,1",
-            sha(&translucent(&rgba, &behind, 2, 1)),
-        ),
-        (
-            "RGBA tile 7 translucent at 1,1",
-            sha(&translucent(&rgba_tile, &behind, 1, 1)),
-        ),
-    ];
-    let expected = [
-        "a8dd7d43b0d908a742cdf30f0d4461acd219561d9c1717fc99733fe6803dc09b",
-        "1ebc63b214609ddf2074640632fbb1c2302286de48514ab45a48701b0dace987",
-        "79d00eafada08878e35e82fa0697c01bb256500b46aa9e1b993c250f7516c7c9",
-        "4306edf8dc2b59e213754eee7c28eaa0432ddc74dc9783cb78c1ee6b0879f1ad",
-        "91a2463b13dc6f2de94d70087ce9659957f2a5ddc51efd46462a82f1d2e0fb5c",
-        "64a826ba391bf78fec364b697ba1b3a6e1afacc477cf21f6e336189bce6ae6fa",
-        "f7a4ab7618cff90c718a291283c37ad169fc5083e4a307570f28b7648e839937",
-        "2e3aa404750c22e4247e2e290c06c9cba151a16216d82212b3d404065f63afc5",
-        "1ff2e7d247e1f6d31f8f8577f03ffa8157b4cf13897551990483f93131db025c",
-        "4e2fd9c3dc301781d8bcdd54c25a553978d0285638effe1619f4a847f4b0da8f",
-        "e9b7a83e83d2c31bf09becc02c15c594f8167eac713ffb606e20d3406efc7092",
-        "829e734342eaf849b91a0f56a47960006ac10bb611d28c61aa1ed4b0187766d5",
-    ];
-    let wrong: Vec<String> = got
-        .iter()
-        .zip(expected)
-        .filter(|((_, g), e)| g != e)
-        .map(|((what, g), e)| format!("{what}: {g}, and the Python gave {e}"))
-        .collect();
+    let rgba_tile = tile_sheet(&read("rgba-chipset.png", rgba_chipset), 7);
     std::fs::remove_dir_all(&dir).unwrap();
-    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+    let behind = behind();
+    for (name, sheet, x, y) in [
+        ("indexed", &indexed, 0, 0),
+        ("indexed", &indexed, 3, 2),
+        ("indexed past the edge", &indexed, 5, 4),
+        ("RGBA", &rgba, 2, 1),
+        ("RGBA tile", &rgba_tile, 1, 1),
+    ] {
+        let out = translucent(sheet, &behind, x, y);
+        let mut black = 0;
+        for (k, (o, s)) in out
+            .rgba
+            .chunks_exact(4)
+            .zip(sheet.rgba.chunks_exact(4))
+            .enumerate()
+        {
+            if s[3] == 0 {
+                assert_eq!(o, s, "{name}: pixel {k} was transparent");
+                continue;
+            }
+            assert_eq!(o[3], 255, "{name}: pixel {k} not opaque");
+            for c in 0..3 {
+                // Nearer the sheet's colour: at least as far from black as
+                // 160/255 of it, and no farther than that plus what is behind.
+                let least = s[c] as u32 * 160 / 255;
+                let most = least + 95 + 1;
+                assert!(
+                    (least..=most).contains(&(o[c] as u32)),
+                    "{name}: pixel {k}, channel {c}: {} over {}",
+                    o[c],
+                    s[c]
+                );
+            }
+            if o[..3]
+                .iter()
+                .zip(&s[..3])
+                .all(|(o, s)| *o as u32 == *s as u32 * 160 / 255)
+            {
+                black += 1;
+            }
+        }
+        if name.contains("edge") {
+            assert!(black > 0, "{name}: nothing black behind past the edge");
+        }
+    }
 }

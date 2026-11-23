@@ -413,7 +413,6 @@ dependencies = [
  "png",
  "rm2k-rules",
  "serde_json",
- "sha2",
 ]
 
 [[package]]

@@ -92,10 +92,10 @@ through two copies —ChipSet to atlas, atlas to map—, each one rounding.
 
 That is not a style choice. Until this crate existed the same layers were
 drawn by a Python port of the same code, and what this draws was checked
-equal to it, pixel for pixel, on every map of a whole game. `tests/python.rs`
-keeps the SHA-256 of what that Python drew for a ChipSet and a map generated
-inside the test —an indexed one and a half-transparent one—, so the check
-does not need the Python, nor the game.
+equal to it, pixel for pixel, on every map of a whole game. What a map
+looks like is A Blurred Line's goldens' now; `tests/every_id.rs` draws a
+map of every id over an indexed ChipSet and a half-transparent one, which
+no game brings, and checks it is drawn whole.
 
 ## What an event is drawn with
 
@@ -122,8 +122,9 @@ The blend is `(over * 160 + under * 95) / 255` rounded **down**, and the
 sheet's own alpha does not weigh in: any pixel that is not fully
 transparent is mixed whole. The tile of a tile event is copied through its
 alpha twice, like a tile of the layers. Both are what the Python that drew
-these before gave, and `tests/charsets.rs` keeps its hashes for CharSets,
-ChipSets and a background generated inside the test.
+these before gave; `tests/charsets.rs` checks the tile in each pose and
+the blend's bounds over CharSets, ChipSets and a background generated
+inside the test.
 
 ## What the screens are drawn with
 
@@ -164,11 +165,10 @@ which is `rm2k-rules`' (`picture`)—. It takes the file read both ways, with
 `read_unkeyed` and with `read_rm2k`. Where it goes, at what size and in
 which tone is the caller's.
 
-`tests/screens.rs` keeps the SHA-256 of what the Python that drew these
-before gave for Systems —an indexed one and a half-transparent one—,
-FaceSets and a picture generated inside the test; what that Python never
-drew —the tiled background, the second cursor, a transparency— is checked
-there against RM2k's rules.
+`tests/screens.rs` draws Systems —an indexed one and a half-transparent
+one—, FaceSets and a picture generated inside the test at sizes a game's
+screens do not use, and checks the tiled background, the second cursor, a
+face past its FaceSet and a transparency against RM2k's rules.
 
 ## What a battle is drawn with
 
@@ -199,9 +199,8 @@ The zoom is **bilinear**, the `image` crate's, with the colour
 premultiplied by the alpha so a transparent pixel does not bleed into its
 neighbours: `Picture::resized`, which the pictures that are scaled for the
 console use too. Until 2026-10-02 it was Pillow's arithmetic copied to the
-bit, and a zoomed cell is no longer checked against what the Python drew:
-the tests check where it lands and its size, and the zoom itself by its
-properties.
+bit: the tests check where a cell lands and its size, and the zoom itself
+by its properties.
 The zoomed side is the sheet's times `zoom` percent, rounded down and at
 least a pixel; the fade multiplies the alpha by `100 - transparency`
 percent, rounded down, with the transparency clamped to 0..100.
@@ -216,9 +215,9 @@ percent, rounded down, with the transparency clamped to 0..100.
   whatever colour it had.
 
 Where each enemy stands, which one covers which, and what size any of this
-is shown at are the caller's. `tests/battle.rs` keeps the hashes of what the
-Python drew before, for cells, battlers and backdrops of pictures generated
-inside the test.
+is shown at are the caller's. `tests/battle.rs` checks, over pictures
+generated inside the test, where each cell lands and how big, its tone,
+the animation's box, a battler's hue going round and a backdrop opaque.
 
 ## Two kinds of no
 
