@@ -81,10 +81,8 @@ pub const TRACKS: &str = "rm2k-snes-msu";
 /// And `rm2k-snes-patches`, whose files go next to it: the check reads them
 /// from the build, so a cartridge built by an older one is stale too.
 ///
-/// Only the ones it **runs**: a library goes in through the binaries it is
-/// compiled into. `voodoo` and `lz2` are not here because nobody runs them
-/// any more —the maps and the screens cut their tiles with `voodoo` as a
-/// library, and the emission and the converter compress with `lz2`—.
+/// Only the ones it **runs**: a library —Voodoo, LZ2, Adeleine, Gunter,
+/// `rm2k-render`— goes in through the binaries it is compiled into.
 const CONVERTER_TOOLS: &[&str] = &[
     CONVERT,
     "rm2k-snes-audio",

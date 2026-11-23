@@ -10,11 +10,8 @@
 //!
 //! Where it goes, at what size and in which tone, is the caller's.
 
-use crate::fail::Result;
-use crate::picture::{self, Picture};
-use crate::request::{self, Files, Request};
+use crate::picture::Picture;
 use rm2k_rules::picture::opacity;
-use std::path::Path;
 
 /// `file` —the picture read without its colour key— as RM2k draws it: with
 /// index 0 transparent if `transparent_color`, and every other pixel at
@@ -39,25 +36,4 @@ pub fn picture(
         };
     }
     out
-}
-
-/// Draws a request: each entry is `{"picture_file": path}`, and it can
-/// carry `"use_transparent_color": true` and `"top_trans": n`, 0 to 100,
-/// named as RM2k's saved picture names them. Picture `i` is written as
-/// `<i>.png`, RGBA.
-pub fn write(dir: &Path, request_path: &Path) -> Result<()> {
-    let request = Request::read(request_path)?;
-    let mut plain = Files::new(picture::read_unkeyed);
-    let mut keyed = Files::new(picture::read_rm2k);
-    request::write(dir, &request, |r, i| {
-        let path = r.file(i, "picture_file")?;
-        let transparent_color = r.flag(i, "use_transparent_color")?;
-        let top_trans = r.number_in(i, "top_trans", Some(0), 0..101)?;
-        Ok(picture(
-            plain.get(&path)?,
-            keyed.get(&path)?,
-            transparent_color,
-            top_trans as i32,
-        ))
-    })
 }

@@ -17,12 +17,8 @@
 //! shifted by 8, half an edge. The two only differ with an edge that does
 //! not repeat every 8 pixels.
 
-use crate::fail::Result;
-use crate::picture::{self, Picture};
-use crate::request::{self, Files, Request};
-use ditto::schema::SystemStretch;
+use crate::picture::Picture;
 use rm2k_rules::system::{self as rules, Background, COLOR_BLOCK, EDGE, PIECE};
-use std::path::Path;
 
 /// `src` repeated from its corner until it fills `width` x `height`.
 pub fn tiled(src: &Picture, width: usize, height: usize) -> Picture {
@@ -205,63 +201,4 @@ pub fn timer(system: &Picture) -> Picture {
         rules::TIMER_GLYPHS * rules::TIMER_GLYPH_WIDTH,
         rules::TIMER_GLYPH_HEIGHT,
     )
-}
-
-/// Draws a request. Each entry has `system_file` and `draw`, which is one
-/// of:
-///
-/// * `"window"`, with `width`, `height` and `message_stretch` —0 stretched,
-///   1 tiled, as the database says it—;
-/// * `"cursor"`, with `width`, `height` and, optionally, `drawing`, 0 or 1;
-/// * `"text_color"`, with `color`, 0 to 19;
-/// * `"shadow"`;
-/// * `"timer"`.
-///
-/// Picture `i` is written as `<i>.png`, RGBA.
-pub fn write(dir: &Path, request_path: &Path) -> Result<()> {
-    let request = Request::read(request_path)?;
-    let mut files = Files::new(picture::read_rm2k);
-    request::write(dir, &request, |r, i| {
-        let size = |r: &Request| -> Result<(usize, usize)> {
-            Ok((
-                r.number_in(i, "width", None, 1..4096)? as usize,
-                r.number_in(i, "height", None, 1..4096)? as usize,
-            ))
-        };
-        let what = r.text(i, "draw")?.to_string();
-        let system = files.get(&r.file(i, "system_file")?)?;
-        Ok(match what.as_str() {
-            "window" => {
-                let (w, h) = size(r)?;
-                let stretch = SystemStretch::from_i32(r.number(i, "message_stretch")? as i32);
-                let background = rules::background(stretch).ok_or_else(|| {
-                    r.bad(
-                        i,
-                        format!("`message_stretch` {stretch:?} is not one RM2k draws"),
-                    )
-                })?;
-                window(system, w, h, background)
-            }
-            "cursor" => {
-                let (w, h) = size(r)?;
-                let drawing = r.number_in(i, "drawing", Some(0), 0..rules::CURSOR.len() as i64)?;
-                cursor(system, w, h, drawing as usize)
-            }
-            "text_color" => {
-                let color = r.number_in(i, "color", None, 0..rules::TEXT_COLORS as i64)?;
-                text_color(system, color as i32)
-            }
-            "shadow" => shadow(system),
-            "timer" => timer(system),
-            other => {
-                return Err(r.bad(
-                    i,
-                    format!(
-                        "`draw` is {other:?}, and it is window, cursor, text_color, shadow \
-                         or timer"
-                    ),
-                ))
-            }
-        })
-    })
 }

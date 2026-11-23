@@ -1,7 +1,7 @@
 //! Stable decisions for colours generated here.
 //!
 //! Each case builds its colours and tiles with a small generator, runs them
-//! through the library and hashes the answer as the executable writes it.
+//! through the library and hashes the answer as `common` writes it.
 //! The merge hashes are those of the same answer from the Python version,
 //! fed the same generator on 2026-09-29, and so were the pack ones until
 //! 2026-11-22, when `try_pack` started doing what its comment always said
@@ -9,10 +9,12 @@
 //! packing deliberately differ: their hashes freeze our result. A case that
 //! changes hash changed what some picture looks like.
 
-use adeleine::request::{merged_answer, packed_answer, reduced_answer};
+mod common;
+
 use adeleine::{
     keep_most_used, merge_least_visible, reduce_colors, try_pack, Bad, Color, Colors, USABLE_COLORS,
 };
+use common::{merged_answer, packed_answer, reduced_answer};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 

@@ -20,7 +20,6 @@ pub mod lab;
 pub mod merge;
 pub mod most_used;
 pub mod pack;
-pub mod request;
 pub mod tiles;
 
 pub use fail::{Bad, Result};

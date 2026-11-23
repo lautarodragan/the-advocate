@@ -19,13 +19,15 @@ cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 local_tools := justfile_directory() / ".local-tools"
 export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
-# The Rust projects, in the order they are installed. `project` and `rules`
-# are libraries, and they go into the binaries that use them —`project`
-# into `cartridge`'s and the others', `rules` into `rm2k-render` and
-# `battle`—, which are compiled with them. So a branch that changes `rules`
-# reinstalls those two, not `rules`; one that changes `project` reinstalls
-# everything, and `project` too, for its one binary, `rm2k-snes-project`,
-# which answers what a game's tests ask about the project.
+# The Rust projects, in the order they are installed. `project`, `rules`,
+# `gunter`, `adeleine`, `voodoo`, `lz2`, `rm2k-render`, `bytecode` and
+# `text` are libraries, and they go into the binaries that use them, which
+# are compiled with them. So a branch that changes a library reinstalls the
+# binaries that link it, not the library —its dependents in `cargo
+# metadata`: `gunter`'s is `rm2k-snes-audio`, `rm2k-render`'s are most of
+# the stages—; one that changes `project` reinstalls everything, and
+# `project` too, for its one binary, `rm2k-snes-project`, which answers
+# what a game's tests ask about the project.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own:
@@ -131,7 +133,7 @@ ditto-round-trip:
 # They are installed once and stay. Nothing else is installed: since
 # 2026-10-02 the suite has no Python scripts.
 #
-# With Rust project names —`just install lz2`— it installs only those: that
+# With Rust project names —`just install wally`— it installs only those: that
 # is what whoever merges a branch runs, with the Rust the branch touched.
 # Without names, all of them.
 #
@@ -205,6 +207,6 @@ _install root *projects:
 # Which executable this checkout resolves for each tool.
 which:
   #!/usr/bin/env sh
-  for x in gunter goombario ditto adeleine voodoo lz2 fxpak rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-audio rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-mapdata rm2k-snes-project; do
+  for x in goombario ditto fxpak rm2k-sketch rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-audio rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-mapdata rm2k-snes-project; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

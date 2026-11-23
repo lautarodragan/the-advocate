@@ -1,19 +1,15 @@
 # lz2: LC_LZ2 with an optimal parser
 
-LC_LZ2 is the LZ format Nintendo used in its own Super NES games. This tool
-writes it and reads it back.
+LC_LZ2 is the LZ format Nintendo used in its own Super NES games. This
+library writes it and reads it back.
 
-    lz2 compress   tiles.bin tiles.lz2 grid.bin grid.lz2
-    lz2 compress   --no-increasing tiles.bin tiles.lz2
-    lz2 decompress tiles.lz2 tiles.bin
-    lz2 stats      tiles.lz2 grid.lz2
+    let stream = lz2::compress(&tiles)?;
+    let stream = lz2::compress_with(&tiles, Options { increasing: false })?;
+    let tiles = lz2::decompress(&stream)?;
 
-`cargo build --release`, or `cargo test --release`. `lz2 --help` prints the
-usage. There are no dependencies. The tests build their streams inside the
-test, so they need nothing else.
-
-Where the files go is the caller's business: every input is followed by its
-output, so a build script can pass a few hundred files to one process.
+It is a library and not a command: the emission and the converter compress with
+it. `cargo test --release` tests it. There are no dependencies. The tests build
+their streams inside the test, so they need nothing else.
 
 ## The format
 
@@ -39,7 +35,7 @@ from its first byte, not a distance back from the current one. That is what
 makes the format cheap on a 65816 with the output in RAM: the source of a
 repeat is the output's base plus a number, and one block-move instruction does
 the copy. It is also why no output can be longer than 65536 bytes, and why
-this tool refuses a longer input instead of splitting it: where to split, and
+this library refuses a longer input instead of splitting it: where to split, and
 where each part goes, is a decision about the consumer's memory.
 
 A repeat may overlap the bytes it produces. The copy goes forward one byte at a
@@ -53,7 +49,7 @@ that size, **the one with the fewest commands**. The decoder spends a fixed
 time per command on top of its time per byte, so fewer commands decode faster
 at no cost in size.
 
-`--no-increasing` leaves command 3 out, for decoders that do not implement
+`Options { increasing: false }` leaves command 3 out, for decoders that do not implement
 it: the increasing fill is the one command a block move cannot do. The stream
 is then the shortest without it.
 
@@ -67,6 +63,5 @@ cutoff.
 
 Anything a correct encoder cannot produce: a stream cut before its terminator,
 bytes after it, a command that does not exist, a repeat from a position not yet
-written, and an output past 65536 bytes. `stats` reads the same way and prints
-one line of JSON per stream: its size, its output size, and how many commands of
-each kind it has.
+written, and an output past 65536 bytes. `decompress_prefix` reads a stream that
+has more after its terminator, and says where it ended.

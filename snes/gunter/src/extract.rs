@@ -1,67 +1,17 @@
-//! Taking one sample out of a SoundFont, as `gunter sf2 --extract` does.
+//! Finding one sample in a SoundFont.
 //!
 //! The selector picks a zone —or a raw sample by name—, and what comes out is
-//! the audio plus everything a player needs to play it as the font meant:
-//! the root key, the tuning, the loop relative to the extracted audio, and
-//! the zone's volume envelope. The command line prints this; a program that
-//! uses this crate as a library gets the same thing without a process in the
-//! middle.
+//! everything a player needs to play its audio as the font meant: where the
+//! audio is, the root key, the tuning, the loop relative to the extracted
+//! audio, and the zone's volume envelope.
 
-use crate::fail::{Bad, Result};
 use crate::sf2::{self, SoundFont, VolumeEnvelope};
 
-/// What `--extract` was asked for.
+/// Which sample: a program's zone at a key, or a raw sample by name.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Selector {
     Program { program: u16, bank: u16, key: u8 },
     Named(String),
-}
-
-/// The key a melodic program's zone is chosen with when nobody says: middle C.
-pub const REFERENCE_KEY: u8 = 60;
-
-pub fn parse_selector(text: &str) -> Result<Selector> {
-    let bad = || {
-        Bad(format!(
-            "{text:?} is not a selector: expected program:N, program:N@KEY, \
-             drum:N or sample:NAME"
-        ))
-    };
-    let (kind, rest) = text.split_once(':').ok_or_else(bad)?;
-    match kind {
-        "program" => {
-            let (number, key) = match rest.split_once('@') {
-                Some((n, k)) => (n, Some(k)),
-                None => (rest, None),
-            };
-            let program: u16 = number
-                .parse()
-                .map_err(|_| Bad(format!("program {number:?} is not a number 0-127")))?;
-            let key: u8 = match key {
-                None => REFERENCE_KEY,
-                Some(k) => k
-                    .parse()
-                    .map_err(|_| Bad(format!("key {k:?} is not a number 0-127")))?,
-            };
-            Ok(Selector::Program {
-                program,
-                bank: 0,
-                key,
-            })
-        }
-        "drum" => {
-            let key: u8 = rest
-                .parse()
-                .map_err(|_| Bad(format!("drum key {rest:?} is not a number 0-127")))?;
-            Ok(Selector::Program {
-                program: 0,
-                bank: sf2::DRUM_BANK,
-                key,
-            })
-        }
-        "sample" => Ok(Selector::Named(rest.to_string())),
-        _ => Err(bad()),
-    }
 }
 
 /// Where a selector leads, before any audio is read: the sample's entry and
@@ -143,21 +93,4 @@ pub fn contract(font: &SoundFont, selector: &Selector) -> Option<Contract> {
         envelope,
         sample,
     })
-}
-
-/// A contract and its audio.
-#[derive(Clone, Debug)]
-pub struct Extracted {
-    pub contract: Contract,
-    pub pcm: Vec<i16>,
-}
-
-/// The sample the selector picks, with its audio, or `None` if nothing
-/// covers it. An error is the font's audio block being short.
-pub fn extract(font: &mut SoundFont, selector: &Selector) -> Result<Option<Extracted>> {
-    let Some(contract) = contract(font, selector) else {
-        return Ok(None);
-    };
-    let pcm = font.pcm(contract.sample.start, contract.sample.end)?;
-    Ok(Some(Extracted { contract, pcm }))
 }

@@ -1,9 +1,8 @@
 //! What goes wrong, and which of the two kinds of wrong it is.
 //!
-//! "These colours cannot be brought down to what was asked" is this tool
-//! answering no; "that request is not JSON" is the call being wrong. A script
-//! wants to tell those apart without reading the message, so they get
-//! different exit codes.
+//! "These colours cannot be brought down to what was asked" is this library
+//! answering no; "that colour is there twice" is the call being wrong. A
+//! caller wants to tell those apart without reading the message.
 
 use std::fmt;
 
@@ -11,7 +10,7 @@ use std::fmt;
 pub enum Bad {
     /// The answer is no: no amount of merging makes it fit.
     Answer(String),
-    /// The call is wrong: a missing file, a request that makes no sense.
+    /// The call is wrong: what was asked makes no sense.
     Usage(String),
 }
 
