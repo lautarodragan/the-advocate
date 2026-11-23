@@ -24,7 +24,8 @@
 //!
 //! The rest of what keeps one an object is what the cell cannot follow:
 //! anything that moves it —a route that steps, `SetEventLocation`,
-//! `SwapEventLocations`—, flashes it or makes it translucent, a page that
+//! `SwapEventLocations`—, flashes it —a `FlashSprite`, or a battle animation
+//! on it— or makes it translucent, a page that
 //! animates it or puts it above the hero, a route that gives it another
 //! graphic, and turning toward the hero, which swaps the row's tile for the
 //! turn slot's.
@@ -48,6 +49,12 @@ use std::collections::{BTreeMap, BTreeSet};
 const SET_EVENT_LOCATION: i32 = 10860;
 const SWAP_EVENT_LOCATIONS: i32 = 10870;
 const FLASH_SPRITE: i32 = 11320;
+/// `ShowBattleAnimation`, whose second parameter is its target: the
+/// animation flashes it, and the flash is a tint of the target object's
+/// palette —`flash_start` in the runtime—. Drawn into the background it
+/// has none: its row's palette bits are which of its characters it shows
+/// (posed.s), and the flash fell on whoever had that palette.
+const SHOW_BATTLE_ANIMATION: i32 = 11210;
 /// `MoveEvent`: one that names "this event" from a common event can walk
 /// whoever calls it.
 const MOVE_EVENT: i32 = 11330;
@@ -199,6 +206,7 @@ fn named(events: &[Event], common: &[(i32, Vec<i32>)]) -> Option<BTreeSet<usize>
         match code {
             SET_EVENT_LOCATION | FLASH_SPRITE => params.iter().take(1).copied().collect(),
             SWAP_EVENT_LOCATIONS => params.iter().take(2).copied().collect(),
+            SHOW_BATTLE_ANIMATION => params.get(1).copied().into_iter().collect(),
             _ => Vec::new(),
         }
     };
@@ -1082,5 +1090,52 @@ mod tests {
         assert_eq!(at(0, 16), 200);
         assert_eq!(at(1, 16), 7);
         assert_eq!(at(0, 0), 7);
+    }
+
+    /// A still event with one page of `commands`.
+    fn still(id: i32, commands: Vec<(i32, Vec<i32>)>) -> Event {
+        Event {
+            id,
+            x: 0,
+            y: 0,
+            pages: vec![crate::events::Page {
+                name: "Tile:1".to_string(),
+                index: 0,
+                pose: 0,
+                layer: LAYER_BELOW,
+                speed: 3,
+                animation: 0,
+                move_type: 0,
+                own_route: false,
+                translucent: false,
+                conditions: Vec::new(),
+                commands,
+            }],
+        }
+    }
+
+    /// A battle animation flashes its target, and the flash is the target
+    /// object's palette: one drawn into the background has none, and its
+    /// row's palette bits say which of its characters it shows, so the
+    /// flash fell on whoever has that palette —the hero, on A Blurred
+    /// Line's map 11, when the rock hits the computer—. One its own page
+    /// animates, and one another page names by id, stay objects; the hero,
+    /// 10001, is nobody's row.
+    #[test]
+    fn an_event_a_battle_animation_falls_on_stays_an_object() {
+        let animation = |target: i32| (SHOW_BATTLE_ANIMATION, vec![1, target, 1, 0]);
+        let events = vec![
+            still(35, vec![animation(THIS_EVENT)]),
+            still(36, vec![]),
+            still(37, vec![animation(36)]),
+            still(38, vec![animation(10001)]),
+        ];
+        assert_eq!(named(&events, &[]), Some(BTreeSet::from([0, 1])));
+        // From a common event "this event" is whoever calls it.
+        assert_eq!(named(&events[1..2], &[animation(THIS_EVENT)]), None);
+        assert_eq!(
+            named(&events[1..2], &[animation(36)]),
+            Some(BTreeSet::from([0]))
+        );
     }
 }

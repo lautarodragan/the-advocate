@@ -15,8 +15,9 @@
     {"id": 11, "indentation": 1, "name": "Crossing", "type": "map"},
     {"id": 12, "indentation": 1, "name": "Doors", "type": "map"},
     {"id": 13, "indentation": 1, "name": "Patchwork", "type": "map"},
-    {"id": 14, "indentation": 1, "name": "Erasure", "type": "map"}
+    {"id": 14, "indentation": 1, "name": "Erasure", "type": "map"},
+    {"id": 15, "indentation": 1, "name": "Anvil", "type": "map"}
   ],
   "start": {"party_map_id": 1, "party_x": 10, "party_y": 10},
-  "tree_order": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+  "tree_order": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 }

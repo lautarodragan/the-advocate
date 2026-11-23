@@ -1,0 +1,86 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Crate",
+      "x": 10,
+      "y": 5,
+      "pages": [
+        {
+          "id": 1,
+          "character_index": 39,
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "ShowBattleAnimation",
+              "parameters": [
+                1,
+                10005,
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1460
+          },
+          "character_index": 78,
+          "layer": "same",
+          "move_type": "stationary"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Lever",
+      "x": 11,
+      "y": 6,
+      "pages": [
+        {
+          "id": 1,
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "ShowBattleAnimation",
+              "parameters": [
+                1,
+                3,
+                1,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Slab",
+      "x": 12,
+      "y": 6,
+      "pages": [
+        {
+          "id": 1,
+          "character_index": 39,
+          "move_type": "stationary"
+        }
+      ]
+    }
+  ]
+}

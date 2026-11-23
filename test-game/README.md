@@ -27,7 +27,9 @@ hero on when its switch is on. And the doors, two rooms of one map crossed
 by teleports to itself, with a door that opens and a hatch to stand on;
 and the patchwork, 60x60 of stripes no two neighbouring rows draw alike,
 for the camera. And the erasure, a bare field where a statue and a
-pacer erase themselves, and a loop leads back to the same map. The showcase's ChipSet gives its first four tiles a
+pacer erase themselves, and a loop leads back to the same map. And the
+anvil, where a battle animation falls on a crate and a slab drawn with a
+ChipSet tile, and flashes them. The showcase's ChipSet gives its first four tiles a
 terrain each. And the crossing, four cells
 with two events standing on each, where every one whose trigger matches
 fires. And a common event that shows a box with escapes the console
@@ -244,6 +246,10 @@ And on the same day, for what no test of A Blurred Line looked at:
                         again; and a parallel page that erases its walking
                         event stops there, does not start again and leaves
                         it still and not drawn
+    test_animation_flash.py
+                        a battle animation on the anvil's still events
+                        drawn with a ChipSet tile —one on itself, one
+                        named by id— flashes them and not the hero
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

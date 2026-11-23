@@ -72,6 +72,10 @@ to = [13, 30, 30, 3]
 [[guide.map]]
 label = "Erasure"
 to = [14, 14, 9, 1]
+# Below the crate, facing it; the lever is on the hero's right.
+[[guide.map]]
+label = "Anvil"
+to = [15, 10, 6, 1]
 
 # The tester, the board right below where the hero starts: every case of
 # `tester/`, by group. The hero boots facing it, so a case chosen there
