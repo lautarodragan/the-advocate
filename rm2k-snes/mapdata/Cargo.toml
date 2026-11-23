@@ -29,8 +29,5 @@ wally = { path = "../wally" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-[dev-dependencies]
-sha2 = "0.10"
-
 [lints]
 workspace = true

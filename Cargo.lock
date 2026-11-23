@@ -422,9 +422,6 @@ name = "rm2k-rules"
 version = "0.1.0"
 dependencies = [
  "ditto",
- "serde",
- "serde_json",
- "sha2",
 ]
 
 [[package]]
@@ -462,7 +459,6 @@ dependencies = [
  "rm2k-rules",
  "rm2k-snes-text",
  "serde_json",
- "sha2",
 ]
 
 [[package]]
@@ -513,7 +509,6 @@ dependencies = [
  "rm2k-snes-bytecode",
  "rm2k-snes-text",
  "serde_json",
- "sha2",
 ]
 
 [[package]]
@@ -541,7 +536,6 @@ dependencies = [
  "rm2k-snes-text",
  "serde",
  "serde_json",
- "sha2",
  "wally",
 ]
 
@@ -554,7 +548,6 @@ dependencies = [
  "rm2k-snes-cartridge",
  "serde",
  "serde_json",
- "sha2",
  "toml",
 ]
 
@@ -570,7 +563,6 @@ dependencies = [
  "rm2k-snes-battle",
  "rm2k-snes-text",
  "serde_json",
- "sha2",
  "voodoo",
  "wally",
 ]
@@ -583,7 +575,6 @@ dependencies = [
  "rm2k-render",
  "rm2k-rules",
  "serde_json",
- "sha2",
 ]
 
 [[package]]
@@ -753,7 +744,6 @@ dependencies = [
  "rm2k-render",
  "rm2k-rules",
  "serde_json",
- "sha2",
  "voodoo",
 ]
 
