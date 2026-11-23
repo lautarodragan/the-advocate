@@ -12,7 +12,6 @@
 //! the unit everything downstream counts in.
 
 use crate::fail::{Bad, Result};
-use crate::num;
 use std::collections::{BTreeMap, HashMap};
 
 const NOTE_OFF: u8 = 0x80;
@@ -632,7 +631,7 @@ impl Clock {
     }
 
     pub fn frame(&self, tick: i64) -> i64 {
-        num::round(self.seconds(tick) * TICKS_PER_SECOND as f64)
+        (self.seconds(tick) * TICKS_PER_SECOND as f64).round() as i64
     }
 }
 

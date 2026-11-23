@@ -438,7 +438,7 @@ fn build_with(notes: &[Note], controls: &[Control]) -> Vec<Write> {
 #[test]
 fn velocity_lowers_the_volume_squared() {
     let out = build_with(&[Note::new(0, 30, 0, 60, 64)], &[]);
-    let expected = num::round(sdsp::ceiling() as f64 * (64.0f64 / 127.0).powi(2)) as u8;
+    let expected = (sdsp::ceiling() as f64 * (64.0f64 / 127.0).powi(2)).round() as i64 as u8;
     assert_eq!(registers(&out, 0, sdsp::V_VOL_L), [expected]);
     assert_eq!(registers(&out, 0, sdsp::V_VOL_R), [expected]);
 }
@@ -452,7 +452,7 @@ fn channel_volume_changes_a_note_already_sounding() {
         &[Note::new(0, 100, 0, 60, 127)],
         &[control(40, midi::VOLUME, 50.0, 0)],
     );
-    let quarter = num::round(sdsp::ceiling() as f64 / 4.0) as u8;
+    let quarter = (sdsp::ceiling() as f64 / 4.0).round() as i64 as u8;
     let written = writes_to(&out, 0);
     for register in [sdsp::V_VOL_L, sdsp::V_VOL_R] {
         let got: Vec<(i64, u8)> = written
@@ -475,9 +475,8 @@ fn expression_and_volume_multiply() {
             control(0, midi::VOLUME, 127.0, 0),
         ],
     );
-    let expected =
-        num::round(sdsp::ceiling() as f64 * (127.0f64 / 100.0).powi(2) * (64.0f64 / 127.0).powi(2))
-            as u8;
+    let expected = (sdsp::ceiling() as f64 * (127.0f64 / 100.0).powi(2) * (64.0f64 / 127.0).powi(2))
+        .round() as i64 as u8;
     assert_eq!(registers(&out, 0, sdsp::V_VOL_L), [expected]);
 }
 
@@ -497,7 +496,7 @@ fn pan_splits_the_note_between_both_sides() {
         registers(&out, 0, sdsp::V_VOL_R),
     );
     let c = sdsp::ceiling() as f64;
-    assert_eq!((l[0], r[0]), (num::round(c * 2f64.sqrt()) as u8, 0));
+    assert_eq!((l[0], r[0]), ((c * 2f64.sqrt()).round() as i64 as u8, 0));
     assert!(
         (20.0 * (l[1] as f64 / c).log10() - 2.3).abs() < 0.3,
         "{l:?}"

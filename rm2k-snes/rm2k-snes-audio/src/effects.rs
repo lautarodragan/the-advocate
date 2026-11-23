@@ -14,7 +14,6 @@
 
 use crate::audible::Audible;
 use crate::fail::Result;
-use crate::num;
 use crate::samples::{self, BLOCK, BLOCK_BYTES};
 use crate::sdsp;
 use std::collections::{BTreeMap, HashMap};
@@ -39,9 +38,8 @@ pub struct SoundEffect {
 /// A WAV's samples as 16-bit integers, mixed down to mono, and its rate.
 /// None if it is not a WAV that can be understood: PCM of 8 or 16 bits.
 ///
-/// It reads them the way Python's `wave` module did until 2026-09-29,
-/// odd cases included —a data chunk cut short, a RIFF size that ends before
-/// the file—, because the samples it gives go into the cartridge.
+/// It is lenient on purpose, because games' WAVs are: a data chunk cut
+/// short or a RIFF size that ends before the file give what there is.
 pub fn read_wav_bytes(data: &[u8]) -> Option<(Vec<i64>, i64)> {
     // The RIFF chunk bounds everything read inside it.
     if data.len() < 8 || &data[..4] != b"RIFF" {
@@ -132,7 +130,7 @@ pub fn read_wav_bytes(data: &[u8]) -> Option<(Vec<i64>, i64)> {
             let channels = channels as usize;
             let raw = if channels > 1 {
                 raw.chunks(channels)
-                    .map(|c| num::floor_div(c.iter().sum(), channels as i64))
+                    .map(|c| c.iter().sum::<i64>() / channels as i64)
                     .collect()
             } else {
                 raw
@@ -181,7 +179,7 @@ pub fn build(
         rate = r;
         keep = raw.len();
     }
-    let out = ((num::round((keep as i64 * rate) as f64 / source as f64) / BLOCK as i64)
+    let out = ((((keep as i64 * rate) as f64 / source as f64).round() as i64 / BLOCK as i64)
         * BLOCK as i64)
         .max(BLOCK as i64) as usize;
     let audio = samples::normalize(&samples::resample(&raw[..keep], out, false, &[]));
@@ -203,12 +201,12 @@ pub fn build(
 /// The DSP pitch register: 4096 is the 32 kHz rate, and RM2k's tempo —from
 /// 50 to 150— stretches it.
 pub fn pitch(rate: i64, tempo: i64) -> i64 {
-    num::round(rate as f64 * 4096.0 / 32000.0 * tempo as f64 / 100.0).min(0x3FFF)
+    ((rate as f64 * 4096.0 / 32000.0 * tempo as f64 / 100.0).round() as i64).min(0x3FFF)
 }
 
 /// How long it lasts, in 60 Hz frames, with the tempo applied.
 pub fn frames(seconds: f64, tempo: i64) -> i64 {
-    num::round(seconds * 60.0 * 100.0 / tempo.max(1) as f64).max(1)
+    ((seconds * 60.0 * 100.0 / tempo.max(1) as f64).round() as i64).max(1)
 }
 
 /// DSP left and right, from 0 to 127, from RM2k's volume and pan: pan at
@@ -217,12 +215,10 @@ pub fn volume(volume: i64, balance: i64) -> (i64, i64) {
     // The $60 was chosen with the master volume at $60, which also applies to
     // the sound effects. With the headroom the master went up, and the sound
     // effect's ceiling goes down by the same amount so it sounds the same.
-    let v = num::floor_div(
-        volume.clamp(0, 100) * num::round((0x60 * 0x60) as f64 / sdsp::master() as f64),
-        100,
-    );
-    let left = num::floor_div(v * (100 - balance).min(50), 50);
-    let right = num::floor_div(v * balance.min(50), 50);
+    let v =
+        volume.clamp(0, 100) * ((0x60 * 0x60) as f64 / sdsp::master() as f64).round() as i64 / 100;
+    let left = v * (100 - balance).min(50) / 50;
+    let right = v * balance.min(50) / 50;
     (left.clamp(0, 0x7F), right.clamp(0, 0x7F))
 }
 
@@ -242,7 +238,7 @@ const RATES: [i64; 20] = [
 fn msu_size(length: usize, source_rate: i64, rate: i64) -> i64 {
     let rate = rate.min(source_rate);
     let count =
-        ((num::round((length as i64 * rate) as f64 / source_rate as f64) / 16) * 16).max(16);
+        ((((length as i64 * rate) as f64 / source_rate as f64).round() as i64 / 16) * 16).max(16);
     count / 16 * BLOCK_BYTES as i64
 }
 
@@ -252,7 +248,8 @@ fn msu_size(length: usize, source_rate: i64, rate: i64) -> i64 {
 pub fn build_msu(wav: &(Vec<i64>, i64), rate: i64) -> Result<(i64, Vec<u8>)> {
     let (raw, source) = wav;
     let rate = rate.min(*source);
-    let count = ((num::round((raw.len() as i64 * rate) as f64 / *source as f64) / BLOCK as i64)
+    let count = ((((raw.len() as i64 * rate) as f64 / *source as f64).round() as i64
+        / BLOCK as i64)
         * BLOCK as i64)
         .max(BLOCK as i64) as usize;
     let audio = samples::normalize(&samples::resample(raw, count, false, &[]));
@@ -480,8 +477,8 @@ mod tests {
             .flat_map(|s| s.to_le_bytes())
             .collect();
         let (raw, _) = read_wav_bytes(&wav(2, 16, &data)).unwrap();
-        // -1 // 2 floors to -1.
-        assert_eq!(raw, [-1, 7]);
+        // -1 / 2 truncates to 0.
+        assert_eq!(raw, [0, 7]);
     }
 
     #[test]

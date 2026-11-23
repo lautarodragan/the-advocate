@@ -201,8 +201,6 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
         // song, or the boot's in the boot map —`plan` puts them in front—;
         // the battle's, the Game Over's and the title's always. A map whose
         // songs are all started by its pages' `PlayBGM`s enters with none.
-        // It is not in the job because the job is the Python's, byte for
-        // byte: see `the_job_is_the_one_the_python_built`.
         job.enters = (0..p.len())
             .map(|i| match e.map_song.get(i) {
                 Some(&song) => song != 0xFF || (i == e.start && e.boot != 0xFF),

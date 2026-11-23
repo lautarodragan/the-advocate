@@ -43,9 +43,6 @@
 //! loop carried the two seconds of silence fluidsynth leaves after the end
 //! —a bar of `hzstream`, in A Blurred Line—. The tracks from an audio file
 //! still loop at 0: they bring no loop mark to read.
-//!
-//! Until 2026-09-29 this was a Python program, and the tracks came out
-//! byte for byte the same: see [`track`].
 
 use crate::fail::{Bad, Result};
 use crate::game::Game;
@@ -150,10 +147,9 @@ fn program_fingerprint(program: &str, version_flag: &str, missing: &str) -> Resu
 /// alone. The source still changes exactly when the code does, without
 /// anyone having to remember to bump a number; a comment changed in one of
 /// these files renders them again too.
-const OWN_SOURCES: [(&str, &str); 6] = [
+const OWN_SOURCES: [(&str, &str); 5] = [
     ("tracks.rs", include_str!("tracks.rs")),
     ("midi.rs", include_str!("midi.rs")),
-    ("num.rs", include_str!("num.rs")),
     ("game.rs", include_str!("game.rs")),
     ("fail.rs", include_str!("fail.rs")),
     ("commands/msu.rs", include_str!("commands/msu.rs")),
@@ -290,9 +286,7 @@ fn read_wav(path: &Path) -> Result<(Vec<i16>, usize)> {
 /// and the audio—, normalized so the peak ends at `peak` of full scale.
 /// Returns the file's bytes and the scale.
 ///
-/// The arithmetic is the Python program's, so the tracks come out byte for
-/// byte the same: the product in double precision, truncated towards zero
-/// and clipped. A scale close enough to one is left out, and the audio goes
+/// The product in double precision, truncated towards zero and clipped. A scale close enough to one is left out, and the audio goes
 /// as it came.
 pub fn track(samples: &[i16], loop_point: u32, peak: f64) -> (Vec<u8>, f64) {
     // In i32: the absolute value of -32768 does not fit in 16 bits.
@@ -657,7 +651,6 @@ impl Tracks {
         verbose: bool,
         print: &mut dyn FnMut(&str),
     ) -> Result<(usize, usize)> {
-        // Python's `splitext`, which is what `Path::with_extension` does:
         // `abl.sfc` gives `abl`, and a name without a dot stays as it is.
         let base = rom.with_extension("").to_string_lossy().into_owned();
         // The file that turns MSU-1 on. The cartridge's builder writes it
@@ -800,17 +793,16 @@ fn decode(audio: &Path, out: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Python's `str()` of a float: the shortest text that reads back as the
-/// same number, with a `.0` when it is whole. It is what went to fluidsynth
-/// as `-g`, so it keeps going the same.
-fn python_float(x: f64) -> String {
+/// A float as fluidsynth's `-g` takes it: the shortest text that reads back
+/// as the same number, with a `.0` when it is whole.
+fn float_text(x: f64) -> String {
     format!("{x:?}")
 }
 
 /// The MIDI to 44.1 kHz stereo WAV, with fluidsynth.
 fn render(midi: &Path, out: &Path, soundfont: &Path, gain: f64) -> Result<()> {
     let status = Command::new("fluidsynth")
-        .args(["-ni", "-r", "44100", "-g", &python_float(gain), "-F"])
+        .args(["-ni", "-r", "44100", "-g", &float_text(gain), "-F"])
         .arg(out)
         .arg(soundfont)
         .arg(midi)
@@ -1035,9 +1027,9 @@ mod tests {
     }
 
     #[test]
-    fn python_writes_the_gain_like_this() {
-        assert_eq!(python_float(0.6), "0.6");
-        assert_eq!(python_float(1.0), "1.0");
-        assert_eq!(python_float(0.25), "0.25");
+    fn the_gain_is_written_like_this() {
+        assert_eq!(float_text(0.6), "0.6");
+        assert_eq!(float_text(1.0), "1.0");
+        assert_eq!(float_text(0.25), "0.25");
     }
 }

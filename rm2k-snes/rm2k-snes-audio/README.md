@@ -108,14 +108,9 @@ It reads the map tree and the database's `System` from a Ditto dump
 the request carries. `msu-index` and `msu-sign` are for whoever looks
 inside a `.msu`: its entries, and the same file signed again.
 
-## Exactly those bytes
+## Its tests
 
-Until 2026-09-29 the same music was compiled by a Python program, and this
-was checked equal to it byte for byte —streams, samples, tables— on two
-whole cartridges of a real game. So it rounds as Python did (to even),
-floors its integer divisions, filters the samples with numpy's kernel summed
-in numpy's order and calls the C library's `pow` even for a square. The
-tests compile a small game generated inside them —see `tests/fixture/` and
+The tests compile a small game generated inside them —see `tests/fixture/` and
 `tests/small_game.rs`— and plan the small cartridge of
 `tests/cartridge.json`, so they need neither a game nor a SoundFont of
 one's own.
@@ -155,9 +150,6 @@ new flag in `compile` still does not make every track again. What does
 change with them is the audio stage's key in the converter's cache, which
 is this binary: a change to the tracks or the ceilings expires its
 answers, which cost seconds to give again.
-
-Until 2026-09-29 both were Python scripts; the tracks come out byte for
-byte the same, and the ceilings measure the same numbers.
 
 ## Exit codes
 

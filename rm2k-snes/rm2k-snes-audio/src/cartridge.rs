@@ -8,10 +8,6 @@
 //! and which song can already be playing when each one loads. And what the
 //! `.msu` carries besides the quality sound effects: the backdrops, which
 //! come made.
-//!
-//! Until 2026-09-30 this was the converter's Python (`music.py`, and the
-//! part of the old `snes_convert.py` that built the packages), and what it writes
-//! into a cartridge has to keep coming out byte for byte the same.
 
 use crate::compile::Music;
 use crate::fail::{Bad, Result};

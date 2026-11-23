@@ -11,7 +11,6 @@
 
 use crate::fail::Result;
 use crate::midi::{self, Control, Note, TICKS_PER_SECOND};
-use crate::num;
 use crate::sdsp;
 use crate::stream::{Frames, NoteSetup};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -608,7 +607,7 @@ pub fn lost_time(allocation: &[Allotted], notes: &[Note]) -> (f64, f64) {
 
 /// Rounds for printing a percentage, as the reports have always done.
 pub fn percent(x: f64) -> i64 {
-    num::round(100.0 * x)
+    (100.0 * x).round() as i64
 }
 
 #[cfg(test)]
