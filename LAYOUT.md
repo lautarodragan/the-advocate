@@ -33,6 +33,8 @@ have layers of their own, one folder each:
     snes/        the console's formats, knowing nothing of RPG Maker
       adeleine/  Adeleine: which colors a picture loses and how the ones
                  left are grouped into palettes
+      fxpak/     talks usb2snes to an FX Pak over its USB serial port:
+                 its memory, its SD card, booting a ROM
       gunter/    Gunter: BRR codec and SoundFont reader
       goombario/ Goombario: static checks for 65816 code built with ca65
                  and ld65, for what assembles fine and is wrong

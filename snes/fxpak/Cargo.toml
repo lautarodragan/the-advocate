@@ -1,0 +1,22 @@
+[package]
+name = "fxpak"
+version = "0.1.0"
+edition = "2021"
+description = "Talks usb2snes to an FX Pak (sd2snes) over its USB serial port: info, peek, get, put, ls, mkdir, boot"
+
+[lib]
+name = "fxpak"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fxpak"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+# termios raw mode, poll and flock on the serial port; already in the
+# workspace's lock through other crates.
+libc = "0.2"
+
+[lints]
+workspace = true
