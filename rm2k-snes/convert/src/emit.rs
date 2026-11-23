@@ -155,7 +155,9 @@ pub struct Emitted {
 /// decompresses of each map, uncompressed, in `raw/` next to it.
 pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> Result<Emitted> {
     let directory = rm2k_project::absolute(path.parent().unwrap_or(std::path::Path::new(".")));
-    let written = crate::stage::run(
+    // Not from the disk cache: besides its answer it writes `raw/`, which
+    // an answer from the cache would leave out.
+    let written = crate::stage::run_uncached(
         "rm2k-snes-mapdata",
         "mapdata",
         "emit",

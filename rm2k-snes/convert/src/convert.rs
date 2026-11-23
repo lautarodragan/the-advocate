@@ -161,6 +161,11 @@ pub fn run(options: Options) -> Result<()> {
     // A `.zip` game or RTP, as a directory from here on, and the game with
     // the port's own files on top: see `unpack`.
     environment.unpack(&project)?;
+    // The stages' answers, from the disk cache when they were already
+    // asked the same thing: see `stage`. `NO_CACHE=1` runs every one.
+    if !rm2k_project::cache::disabled() {
+        crate::stage::keep_answers_in(environment.cache(&project)?);
+    }
     if let Some(own) = environment.own_files() {
         println!("The port's own files, in front of the game's:");
         for line in own.lines() {
