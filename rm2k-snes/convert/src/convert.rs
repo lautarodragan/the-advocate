@@ -2178,7 +2178,7 @@ pub fn run(options: Options) -> Result<()> {
     }
     degradations.write(&directory)?;
     // The bank packing is not decided here: both files send everything to
-    // RODATA, and `rm2k-snes-assemble` spreads it into banks.
+    // RODATA, and `rm2k-snes-cartridges assemble` spreads it into banks.
     Ok(())
 }
 

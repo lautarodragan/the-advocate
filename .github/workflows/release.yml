@@ -67,7 +67,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # glibc and not musl: rm2k-snes-volume-ceilings plays the songs
+          # glibc and not musl: rm2k-snes-audio volume-ceilings plays the songs
           # in a libretro core it loads with dlopen, and a static musl
           # binary cannot load one ("Dynamic loading not supported"). Built
           # on the oldest runner, so they run on any distribution with a

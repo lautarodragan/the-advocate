@@ -8,6 +8,14 @@
 //!     rm2k-snes-cartridges --list --json   everything a test suite needs to know
 //!     rm2k-snes-cartridges release --convert-into DIR -- --some-converter-flag
 //!                                          a copy, somewhere else, with more flags
+//!     rm2k-snes-cartridges space …         how much each one has left: `space`
+//!     rm2k-snes-cartridges assemble …      one ROM from the runtime and the
+//!                                          converter's files: `assemble`
+//!
+//! The subcommands go first, before any flag. They were commands of their
+//! own until 2026-11-23, `rm2k-snes-space` and `rm2k-snes-assemble`: they
+//! share this crate, so folding them took two commands off the PATH and
+//! moved nothing between them.
 //!
 //! A new cartridge is one more table in `[cartridges]`, and nothing here. No
 //! test builds anything: they run against what this leaves.
@@ -16,14 +24,22 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::mpsc;
 
-use cartridge::cartridges::{Cartridges, FROM_ENVIRONMENT, RELEASE};
-use clap::{Arg, ArgAction, Command};
+mod assemble;
+mod space;
+
+use cartridge::cartridges::{Cartridges, FROM_ENVIRONMENT, RELEASE, SUBCOMMANDS};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::Project;
 
 fn command() -> Command {
     Command::new("rm2k-snes-cartridges")
         .about("The game's cartridges, the ones its project file declares in [cartridges]")
+        // A cartridge called `space` or `assemble` would be taken for the
+        // subcommand: `Cartridges::load` refuses one —see `SUBCOMMANDS`—.
+        .subcommand(space::command())
+        .subcommand(assemble::command())
+        .args_conflicts_with_subcommands(true)
         .arg(
             Arg::new("project")
                 .long("project")
@@ -80,16 +96,20 @@ fn command() -> Command {
         )
 }
 
-fn run() -> Result<(), String> {
-    let matches = command().get_matches();
+fn run(matches: &ArgMatches) -> Result<(), String> {
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
-    let environment = Environment::from_matches(&matches, FROM_ENVIRONMENT);
+    let environment = Environment::from_matches(matches, FROM_ENVIRONMENT);
     let cartridges = Cartridges::load(project, environment)?;
     let names: Vec<String> = matches
         .get_many::<String>("names")
         .map(|n| n.cloned().collect())
         .unwrap_or_default();
     for name in &names {
+        if SUBCOMMANDS.contains(&name.as_str()) {
+            return Err(format!(
+                "`{name}` is a subcommand, and it goes first: rm2k-snes-cartridges {name} --project …"
+            ));
+        }
         if cartridges.get(name).is_none() {
             return Err(format!(
                 "there is no cartridge '{name}': the ones there are {}",
@@ -199,7 +219,13 @@ struct Outcome {
 }
 
 fn main() -> ExitCode {
-    match run() {
+    let matches = command().get_matches();
+    let done = match matches.subcommand() {
+        Some(("assemble", sub)) => return assemble::run(sub),
+        Some(("space", sub)) => space::run(sub),
+        _ => run(&matches),
+    };
+    match done {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
             eprintln!("{message}");

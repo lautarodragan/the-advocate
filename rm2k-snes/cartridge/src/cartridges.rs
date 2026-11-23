@@ -36,9 +36,9 @@ pub const RELEASE: &str = "release";
 /// What the converter needs from the machine, since it runs in another
 /// process and receives it by flags; and what this one adds: where the test
 /// cartridges go, and the replacements for the MSU-1 tracks.
-/// `rm2k-snes-space` takes the same ones: it asks whether a cartridge is up
-/// to date, and the fingerprint reads the game, the RTP's path and the
-/// SoundFont's.
+/// `rm2k-snes-cartridges space` takes the same ones: it asks whether a
+/// cartridge is up to date, and the fingerprint reads the game, the RTP's
+/// path and the SoundFont's.
 pub const TO_CONVERTER: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 pub const FROM_ENVIRONMENT: &[&str] = &[
     "game_dir",
@@ -71,10 +71,17 @@ pub fn variables_stamp(lookup: impl Fn(&str) -> Option<String>) -> String {
 /// there; and the cache, where they remember which tracks are already there.
 const TO_TRACKS: &[&str] = &["game_dir", "rtp_dir", "soundfont", "replacements", "cache"];
 
-/// The executables of the suite this one runs, by name.
+/// The executables of the suite this one runs, by name, and the
+/// subcommand when it is one: the assembler is this same program's, and
+/// the tracks the music's.
 pub const CONVERT: &str = "rm2k-snes-convert";
-pub const ASSEMBLE: &str = "rm2k-snes-assemble";
-pub const TRACKS: &str = "rm2k-snes-msu";
+pub const CARTRIDGES: &str = "rm2k-snes-cartridges";
+pub const ASSEMBLE: [&str; 2] = [CARTRIDGES, "assemble"];
+pub const TRACKS: [&str; 2] = ["rm2k-snes-audio", "msu"];
+
+/// The subcommands of `rm2k-snes-cartridges`, which no cartridge can be
+/// called: `rm2k-snes-cartridges space` would not build it.
+pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
 
 /// The converter and the tools it runs, besides `ca65` and `ld65`: what
 /// they write goes into the ROM, so their binaries go into the fingerprint.
@@ -290,6 +297,13 @@ impl Cartridges {
             .cloned()
             .collect();
         for name in names {
+            if SUBCOMMANDS.contains(&name.as_str()) {
+                return Err(format!(
+                    "{}: a cartridge cannot be called {name}: `rm2k-snes-cartridges {name}` \
+                     is the subcommand",
+                    cartridges.project.file().display()
+                ));
+            }
             let c =
                 cartridges.read_cartridge(&name, with_enemy_hp, with_debug_screen, with_phasing)?;
             cartridges.cartridges.push(c);
@@ -617,7 +631,7 @@ impl Cartridges {
         for name in ["ca65", "ld65"]
             .iter()
             .chain(CONVERTER_TOOLS)
-            .chain(&[ASSEMBLE])
+            .chain(&[CARTRIDGES])
         {
             parts.push(which(name).ok_or_else(|| {
                 format!("`{name}` is not on the PATH, and the cartridges need it")
@@ -913,7 +927,8 @@ impl Cartridges {
                 log.display()
             ));
         }
-        let status = Command::new(ASSEMBLE)
+        let status = Command::new(ASSEMBLE[0])
+            .arg(ASSEMBLE[1])
             .arg(self.runtime.join("main.s"))
             .arg("-I")
             .arg(dest)
@@ -929,7 +944,7 @@ impl Cartridges {
                     .map_err(|e| e.to_string())?,
             )
             .status()
-            .map_err(|e| format!("{ASSEMBLE}: {e}"))?;
+            .map_err(|e| format!("{}: {e}", ASSEMBLE.join(" ")))?;
         if !status.success() {
             return Err(format!("{name}: the assembler failed"));
         }
@@ -944,7 +959,9 @@ impl Cartridges {
     /// which is printed in its place; the tracks it makes are printed as
     /// they come.
     pub fn msu_tracks(&self) -> Result<String, String> {
-        let mut child = Command::new(TRACKS)
+        let tracks = TRACKS.join(" ");
+        let mut child = Command::new(TRACKS[0])
+            .arg(TRACKS[1])
             .arg(self.rom_of(RELEASE)?)
             .arg("--project")
             .arg(self.project.directory())
@@ -952,22 +969,22 @@ impl Cartridges {
             .arg("--quiet")
             .stdout(Stdio::piped())
             .spawn()
-            .map_err(|e| format!("{TRACKS}: {e}"))?;
+            .map_err(|e| format!("{tracks}: {e}"))?;
         let mut summary = None;
         for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-            let line = line.map_err(|e| format!("{TRACKS}: {e}"))?;
+            let line = line.map_err(|e| format!("{tracks}: {e}"))?;
             if line.starts_with(TRACKS_SUMMARY) {
                 summary = Some(line);
             } else {
                 println!("{line}");
             }
         }
-        let status = child.wait().map_err(|e| format!("{TRACKS}: {e}"))?;
+        let status = child.wait().map_err(|e| format!("{tracks}: {e}"))?;
         if !status.success() {
             return Err(format!("{RELEASE}: the MSU-1 tracks failed"));
         }
         let summary =
-            summary.ok_or_else(|| format!("{TRACKS} did not say how many tracks it made"))?;
+            summary.ok_or_else(|| format!("{tracks} did not say how many tracks it made"))?;
         Ok(format!("{RELEASE}: {summary}"))
     }
 

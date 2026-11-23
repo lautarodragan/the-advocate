@@ -377,7 +377,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         "wally",
         "rm2k-snes-patches",
         "rm2k-snes-screens",
-        "rm2k-snes-assemble",
+        "rm2k-snes-cartridges",
     ] {
         let path = bin.join(tool);
         fs::write(&path, tool).unwrap();
@@ -409,7 +409,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
             source.display()
         );
     }
-    assert!(files.contains(&bin.join("rm2k-snes-assemble")));
+    assert!(files.contains(&bin.join("rm2k-snes-cartridges")));
     assert!(files.contains(&bin.join("rm2k-snes-convert")));
     assert!(files.contains(&bin.join("rm2k-snes-audio")));
     assert!(files.contains(&bin.join("rm2k-snes-battle")));

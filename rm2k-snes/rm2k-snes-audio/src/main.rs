@@ -5,7 +5,7 @@
 //! with the same flags the rest of the suite takes: nothing here has a
 //! default path.
 
-use clap::{Args as ClapArgs, Parser, Subcommand};
+use clap::{Args as ClapArgs, CommandFactory, FromArgMatches, Parser, Subcommand};
 use ditto::dump::Dump;
 use ditto::schema::System;
 use rm2k_project::{suite, Project};
@@ -24,6 +24,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+/// The subcommands written with clap's builder and not its derive, like
+/// the flags of the machine they take —`arguments` in `rm2k-project`—.
+mod commands {
+    pub mod msu;
+    pub mod volume_ceilings;
+}
 
 /// "The samples do not fit" is this tool answering no; "that flag makes no
 /// sense" is the call being wrong.
@@ -734,7 +741,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         .map_err(|e| Bad::usage(format!("{}: {e}", musicdata.display())))?;
     text.push_str(&written.inc);
     // With the header and not at the end: from the first `.segment` on,
-    // `rm2k-snes-assemble` packs the file into banks and the comments do
+    // `rm2k-snes-cartridges assemble` packs the file into banks and the comments do
     // not survive it.
     let header = text.find("\n\n").map_or(text.len(), |i| i + 1);
     text.insert_str(
@@ -918,7 +925,28 @@ fn do_find_song(args: &FindSongArgs) -> Result<()> {
 }
 
 fn main() -> ExitCode {
-    let cli = Cli::parse();
+    let matches = Cli::command()
+        .subcommand(commands::msu::command())
+        .subcommand(commands::volume_ceilings::command())
+        .get_matches();
+    let builder = match matches.subcommand() {
+        Some(("msu", sub)) => Some(("msu", commands::msu::run(sub))),
+        Some(("volume-ceilings", sub)) => {
+            Some(("volume-ceilings", commands::volume_ceilings::run(sub)))
+        }
+        _ => None,
+    };
+    if let Some((name, done)) = builder {
+        return match done {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(bad) => {
+                let _ = std::io::stdout().flush();
+                eprintln!("rm2k-snes-audio {name}: {bad}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|e| e.exit());
     let done = match &cli.command {
         Command::Compile(a) => do_compile(a),
         Command::Cartridge(a) => do_cartridge(a),
