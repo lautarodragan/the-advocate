@@ -1,8 +1,14 @@
-//! The rules the Python copy has no function for: they are checked here
-//! against what easyrpg-player's source says, case by case.
+//! The rules, checked against what easyrpg-player's source says, case by
+//! case.
+//!
+//! Most of them a game's build runs over every map —passability, terrain,
+//! pages, animated tiles, the tree— and A Blurred Line's suite sees what
+//! they give, the experience against its harness's own `experience.py`;
+//! what is here is what a game does not reach.
 
 use ditto::schema::{ChipsetAnimType, Encounter, MapInfo, Rect, TreeMapMapType};
 use rm2k_rules::animation::water_drawing;
+use rm2k_rules::chipset::chip_index;
 use rm2k_rules::tree::{Tree, Zone};
 
 /// `TilemapLayer::Draw`: `frames / speed`, then `% 3` if the type is not 0,
@@ -144,4 +150,51 @@ fn a_map_inherits_what_it_allows_from_its_parents() {
         all(true, true, true),
         "a loop in the tree ends"
     );
+}
+
+/// `ChipIdToIndex` at each block's two ends, past them and in the gaps
+/// between them, where the entry is 0.
+///
+/// **The path it guards**: the ids outside every block. A game's maps only
+/// hold valid ids, so no build ever asks for those.
+#[test]
+fn a_tile_id_outside_every_block_is_entry_0() {
+    for (id, entry) in [
+        (0, 0),
+        (1, 0),
+        (49, 0),
+        (50, 0),
+        (999, 0),
+        (1000, 1),
+        (1999, 1),
+        (2000, 2),
+        (2999, 2),
+        (3000, 3),
+        (3049, 3),
+        (3050, 4),
+        (3149, 5),
+        (3150, 0),
+        (3999, 0),
+        (4000, 6),
+        (4020, 6),
+        (4023, 6),
+        (4033, 6),
+        (4049, 6),
+        (4050, 7),
+        (4599, 17),
+        (4600, 0),
+        (4999, 0),
+        (5000, 18),
+        (5001, 19),
+        (5143, 161),
+        (5144, 0),
+        (9999, 0),
+        (10000, 162),
+        (10001, 163),
+        (10143, 305),
+        (10144, 0),
+        (12000, 0),
+    ] {
+        assert_eq!(chip_index(id), entry, "{id}");
+    }
 }

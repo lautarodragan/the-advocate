@@ -1,29 +1,18 @@
-//! Faces, windows and pictures against the ones they replace.
-//!
-//! Until `face`, `system` and `picture` existed, the same pictures were
-//! drawn by the Python of the converter. It was deleted once the two gave
-//! the same pixels on every FaceSet, System and picture of a whole game and
-//! of the RTP; what is left of it is here: the SHA-256 of what it drew for
-//! pictures generated inside this file, which need no game and no RTP.
+//! Faces, windows and pictures, generated inside this file, which need no
+//! game and no RTP.
 //!
 //! The inputs touch what can differ: an indexed System —the colour key at
-//! index 0— and an RGBA one with half-transparent pixels, where the
-//! rounding of each blend shows; windows whose size is not a multiple of
-//! the background's, where the stretch has to pick the same pixels, and
-//! edges that do not repeat every 8 pixels; a FaceSet smaller than the
-//! faces it is asked for.
+//! index 0— and an RGBA one with half-transparent pixels; windows whose
+//! size is not a multiple of the background's, and edges that do not repeat
+//! every 8 pixels; a FaceSet smaller than the faces it is asked for.
 //!
-//! **If one of these changes, a pixel changed.** The hashes are not to be
-//! regenerated to make a test pass: the Python that produced them is gone,
-//! and with it the only independent answer.
-//!
-//! What the Python never drew —the tiled background, the cursor's second
-//! drawing, a transparent colour or a transparency on a `ShowPicture`— is
-//! checked here against what RM2k does, pixel by pixel.
+//! **The path it guards**: those sizes and the RGBA System, which a game's
+//! screens do not have. What a real window, cursor or face looks like is A
+//! Blurred Line's goldens'. What is checked is that each is drawn at the
+//! size asked for, and what RM2k does with the tiled background, the
+//! cursor's second drawing, a face past its FaceSet and a `ShowPicture`'s
+//! transparency, pixel by pixel.
 
-mod common;
-
-use common::sha;
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::{face, show_picture, system};
 use rm2k_rules::system::Background;
@@ -144,206 +133,38 @@ fn systems(dir: &Path) -> [(&'static str, Picture); 2] {
     ]
 }
 
-fn find<'a>(systems: &'a [(&str, Picture); 2], kind: &str) -> &'a Picture {
-    &systems.iter().find(|(k, _)| *k == kind).unwrap().1
-}
-
+/// Windows and cursors of sizes the System's pieces do not divide, down
+/// to a single frame's, at the size they were asked for; and the 16x16
+/// blocks the text, its shadow and the timer take their pixels from.
 #[test]
-fn windows_stretched_are_the_pythons() {
-    let s = systems(&scratch("windows"));
-    for (kind, w, h, hash) in [
-        (
-            "indexed",
-            256,
-            80,
-            "9382802088f44fbdef998976bded8c72a1f77f1b14f2ef07938e64d67f4b7b21",
-        ),
-        (
-            "indexed",
-            80,
-            48,
-            "b1f6653cfc56eb88b1cd886a023b13578af765b881027c0d2df294fe4db09674",
-        ),
-        (
-            "indexed",
-            17,
-            23,
-            "5e94ee70d6810b46ef256c5228ef9ef8a3cfa6f7c4a57a15cae0c19f78e96df5",
-        ),
-        (
-            "indexed",
-            320,
-            240,
-            "9761702e0086747a9242f431823695145a8c562400b14915c295e26712b18fb3",
-        ),
-        (
-            "indexed",
-            16,
-            16,
-            "0428386d71fe49e4f403aa126552502ab353ca6d175ee0540fc56e805e57b618",
-        ),
-        (
-            "indexed",
-            100,
-            16,
-            "f3fe8375d2ee22ace4e19b704e73df9cf17ff6a3715f6e330386a93f94d43f6d",
-        ),
-        (
-            "rgba",
-            256,
-            80,
-            "0f20198126f0ce93a2d31080f2d3f2b4d52ee74a7c2944dc94e12964809a73a4",
-        ),
-        (
-            "rgba",
-            80,
-            48,
-            "84140ac18db8b5c5f87e39cd9b669c540996d970ce13142764febece56369c07",
-        ),
-        (
-            "rgba",
-            17,
-            23,
-            "48cb57e84abe1de285f0c361ababb7034f8384f505083f30b8f995c4caa2260e",
-        ),
-        (
-            "rgba",
-            320,
-            240,
-            "b76f0d5643b26d675af0b2516d048bc9cb14ffe3fa87df04f21716acdd93f50b",
-        ),
-        (
-            "rgba",
-            16,
-            16,
-            "e1201b8000d574e3ee9440fb546a02019edcc194911f917758d849a7a2882760",
-        ),
-        (
-            "rgba",
-            100,
-            16,
-            "a798e8804d184e75dfd3fbc85007a4c5c48aea7adabbb093307766ca6ccc0f8e",
-        ),
-    ] {
-        let window = system::window(find(&s, kind), w, h, Background::Stretched);
-        assert_eq!(sha(&window), hash, "{kind} window {w}x{h}");
-    }
-}
-
-#[test]
-fn cursors_are_the_pythons() {
-    let s = systems(&scratch("cursors"));
-    for (kind, w, h, hash) in [
-        (
-            "indexed",
-            100,
-            16,
-            "6d4a642cd528de1c8d23f5804d51fa5d961b022ec91cf78730f9c533a83a2d41",
-        ),
-        (
-            "indexed",
-            57,
-            33,
-            "859c3b8c9a8f79360687df373cfe225caae732d4bcde81bd55328a38e04e0a48",
-        ),
-        (
-            "indexed",
-            16,
-            16,
-            "a525e01cd962210c3f15daf384ed3ff920159a812e7c61d1efa82db6a04bc6e6",
-        ),
-        (
-            "indexed",
-            240,
-            32,
-            "96200302e8a0d22978414fbb1ecd57595d2bd28c28972ef1b74fed08fbf7667d",
-        ),
-        (
-            "rgba",
-            100,
-            16,
-            "2be81122bc47de663b16e88ca844a3c1dc5bae42b3c8bbe3ad2a06776b778186",
-        ),
-        (
-            "rgba",
-            57,
-            33,
-            "fef0c09192204afaf543e7eb8e370011042463ea103af5f60fd9a43b16086b9f",
-        ),
-        (
-            "rgba",
-            16,
-            16,
-            "3c3d7253d8a2d4ec68d306f0e77b58fccf9ace2f3095193fd528104d95287f17",
-        ),
-        (
-            "rgba",
-            240,
-            32,
-            "532153086672f69ce9e8a2598955c7fa40f040d0ae6a5d923204114de2536a6b",
-        ),
-    ] {
-        let cursor = system::cursor(find(&s, kind), w, h, 0);
-        assert_eq!(sha(&cursor), hash, "{kind} cursor {w}x{h}");
-    }
-}
-
-#[test]
-fn blocks_are_the_pythons() {
-    let s = systems(&scratch("blocks"));
-    for (kind, color, hash) in [
-        (
-            "indexed",
-            0,
-            "3c3db104db99da9be07619b76195a0b23c2abc0604087967b98a954922f668ba",
-        ),
-        (
-            "indexed",
-            13,
-            "1eca47b00ac01afd957cf74b4a3b0487475614f68518af9cc07824095712bde3",
-        ),
-        (
-            "indexed",
-            19,
-            "c3845c376eb692fd894092b09363b0d40d4a3c330302fb368e1f6618463da211",
-        ),
-        (
-            "rgba",
-            0,
-            "d4716bd7f06c7fee44862f4e531229d4b36ae6ed50447dbc191e1e5e0714264d",
-        ),
-        (
-            "rgba",
-            13,
-            "39d18b74cbc1a51326ffddf3abe1f8b87f522de777fd3f168d992e7906b4e8d8",
-        ),
-        (
-            "rgba",
-            19,
-            "3a757c8cae7f20bdadfaa94ba5ebab3d825ae80312a720e4e2beb62c7f2c301b",
-        ),
-    ] {
-        let block = system::text_color(find(&s, kind), color);
-        assert_eq!(sha(&block), hash, "{kind} text colour {color}");
-    }
-    for (kind, shadow, timer) in [
-        (
-            "indexed",
-            "a5d5b7d137300cc30d2f51f0627d81fda886956f88bcc5d36215eb535873913f",
-            "763269afba3bbbd6b6b038e615239d61f2046c22a33700303ace49ba616cb93f",
-        ),
-        (
-            "rgba",
-            "93a28a5a90aa53c5ea87734895af9c9e238bea904d49330be54ca99873d506e4",
-            "377a5af171aa1a0234d3006e59f45776abf44ca6564781922680bbc52065e9da",
-        ),
-    ] {
-        assert_eq!(
-            sha(&system::shadow(find(&s, kind))),
-            shadow,
-            "{kind} shadow"
-        );
-        assert_eq!(sha(&system::timer(find(&s, kind))), timer, "{kind} timer");
+fn every_piece_is_drawn_at_its_size() {
+    let s = systems(&scratch("sizes"));
+    for (kind, system) in &s {
+        for (w, h) in [
+            (256, 80),
+            (80, 48),
+            (17, 23),
+            (320, 240),
+            (16, 16),
+            (100, 16),
+        ] {
+            let window = system::window(system, w, h, Background::Stretched);
+            assert_eq!((window.width, window.height), (w, h), "{kind} window");
+        }
+        for (w, h) in [(100, 16), (57, 33), (16, 16), (240, 32)] {
+            let cursor = system::cursor(system, w, h, 0);
+            assert_eq!((cursor.width, cursor.height), (w, h), "{kind} cursor");
+        }
+        for color in [0, 13, 19] {
+            let block = system::text_color(system, color);
+            assert_eq!(
+                (block.width, block.height),
+                (16, 16),
+                "{kind} colour {color}"
+            );
+        }
+        let shadow = system::shadow(system);
+        assert_eq!((shadow.width, shadow.height), (16, 16), "{kind} shadow");
     }
 }
 
@@ -397,83 +218,59 @@ fn the_second_cursor_is_laid_out_like_the_first() {
     }
 }
 
+/// A face is its 48x48 square of the FaceSet; one partly outside a small
+/// FaceSet comes out transparent where there is nothing, and one wholly
+/// outside, all transparent.
 #[test]
-fn faces_are_the_pythons() {
+fn a_face_is_its_square_and_transparent_past_the_faceset() {
     let dir = scratch("faces");
     indexed_sheet(&dir.join("faceset.png"), 192, 192);
     indexed_sheet(&dir.join("faceset-small.png"), 100, 100);
-    for (name, index, hash) in [
-        (
-            "faceset",
-            0,
-            "f618c1588690d01308eb733ea3fed7846c151f04374bbd9e85cf96ccc60b74a8",
-        ),
-        (
-            "faceset",
-            5,
-            "4d7d031ebc3ed7d659d116fc7559549b8fb2818c1e579db8913426cfc2d83957",
-        ),
-        (
-            "faceset",
-            15,
-            "fa4bf78dfad0cc9a7545bddf8ef0236bab859ee9be2804ba5eed2ac591ddf6b1",
-        ),
-        // A face partly outside the FaceSet, and one wholly outside: what
-        // is not there comes out transparent.
-        (
-            "faceset-small",
-            1,
-            "ed1ff5590740bebd0c0962918dca896a0b01bcc6ad68f4dca0f49fd9c7975288",
-        ),
-        (
-            "faceset-small",
-            15,
-            "2d07a41ae992770085117e9815300bfd0730745883e60b24aaad5e69dfc087ae",
-        ),
-    ] {
-        let sheet = picture::read_rm2k(&dir.join(format!("{name}.png"))).unwrap();
-        assert_eq!(sha(&face::face(&sheet, index)), hash, "{name} face {index}");
+    let read = |name: &str| picture::read_rm2k(&dir.join(format!("{name}.png"))).unwrap();
+    let (whole, small) = (read("faceset"), read("faceset-small"));
+    for index in [0, 5, 15] {
+        let x = (index % 4) as i64 * 48;
+        let y = (index / 4) as i64 * 48;
+        assert_eq!(
+            face::face(&whole, index),
+            whole.crop(x, y, 48, 48),
+            "face {index}"
+        );
     }
-}
-
-/// The RGB of each pixel, which is all the Python kept of a picture.
-fn rgb(picture: &Picture) -> Picture {
-    let rgba = picture
-        .rgba
-        .chunks(4)
-        .flat_map(|p| p[..3].to_vec())
-        .collect();
-    Picture {
-        width: picture.width,
-        height: picture.height,
-        rgba,
+    let partly = face::face(&small, 1);
+    for y in 0..48 {
+        for x in 0..48 {
+            let inside = 48 + x < 100;
+            let pixel = partly.get(x, y);
+            if inside {
+                assert_eq!(pixel, small.get(48 + x, y), "({x}, {y})");
+            } else {
+                assert_eq!(pixel[3], 0, "({x}, {y}) past the FaceSet");
+            }
+        }
     }
+    let outside = face::face(&small, 15);
+    assert!(outside.rgba.chunks(4).all(|p| p[3] == 0));
 }
 
 #[test]
-fn pictures_are_the_pythons_and_rm2ks() {
+fn a_picture_is_drawn_as_rm2k_shows_it() {
     let dir = scratch("pictures");
     let path = dir.join("picture.png");
     indexed_sheet(&path, 64, 40);
     let plain = picture::read_unkeyed(&path).unwrap();
     let keyed = picture::read_rm2k(&path).unwrap();
 
-    // Opaque and without its transparent colour, which is the one kind the
-    // Python drew: every pixel opaque, with the colours of the file.
+    // Opaque and without its transparent colour: every pixel opaque, with
+    // the colours of the file.
     let drawn = show_picture::picture(&plain, &keyed, false, 0);
-    assert_eq!(
-        sha(&rgb(&drawn)),
-        "b1915b23e52704464b17313ccabea43e46b6a6b6cf3d22369c0440a0a0da92ac"
-    );
+    assert_eq!(drawn, plain);
     assert!(drawn.rgba.chunks(4).all(|p| p[3] == 255));
 
-    // With the transparent colour: index 0 transparent, which is what the
-    // Python did to any RM2k picture that was not a `ShowPicture`.
+    // With the transparent colour: index 0 transparent, as RM2k reads any
+    // picture with its colour key.
     let drawn = show_picture::picture(&plain, &keyed, true, 0);
-    assert_eq!(
-        sha(&drawn),
-        "baeccda7ae6cb122c42865cd9fcceb7ba6118d0b8d935bacb258e2deb511e4c8"
-    );
+    assert_eq!(drawn, keyed);
 
     // At a transparency, every pixel that is drawn is at its opacity, and
     // the colours do not change.

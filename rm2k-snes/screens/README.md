@@ -111,6 +111,7 @@ console that runs the same rule keeps.
 
 ## Its tests
 
-They build a small game and its System inside the test, and compare what
-comes out against the hashes of what the Python that drew these screens
-until 2026-09-30 answered for the same input: they need no game.
+They need no game: `tests/game/` is a small one made to crowd the
+screens, with its System and FaceSet. What a screen looks like is A
+Blurred Line's suite's, which holds the console's screens against
+`render`.

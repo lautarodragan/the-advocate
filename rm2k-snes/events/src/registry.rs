@@ -214,9 +214,8 @@ impl Songs {
             "jumps": self.jumps.iter().map(|(p, j)| json!([p.key(), j])).collect::<Vec<_>>(),
             "requested": self.requested,
         });
-        // Only when there are some: without them the answer stays the one
-        // `tests/python.rs` holds the hashes of, and the reader takes a
-        // missing list as an empty one.
+        // Only when there are some: the reader takes a missing list as an
+        // empty one.
         if !self.troop_songs.is_empty() {
             out["troop_songs"] = json!(self.troop_songs);
         }

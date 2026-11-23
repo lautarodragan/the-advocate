@@ -114,13 +114,11 @@ Until 2026-09-29 the same music was compiled by a Python program, and this
 was checked equal to it byte for byte —streams, samples, tables— on two
 whole cartridges of a real game. So it rounds as Python did (to even),
 floors its integer divisions, filters the samples with numpy's kernel summed
-in numpy's order and calls the C library's `pow` even for a square. What
-`tests/python.rs` keeps is the SHA-256 of what that Python wrote for a small
-game generated inside the test —see `tests/fixture/`—, so the check needs
-neither the Python nor a game. The same goes for `cartridge`, whose
-decisions were the converter's Python until 2026-09-30: `tests/cartridge.rs`
-keeps the SHA-256 of the job and of the `.msu` it gave for the small game of
-`tests/cartridge.json`.
+in numpy's order and calls the C library's `pow` even for a square. The
+tests compile a small game generated inside them —see `tests/fixture/` and
+`tests/small_game.rs`— and plan the small cartridge of
+`tests/cartridge.json`, so they need neither a game nor a SoundFont of
+one's own.
 
 Two tests read a real SoundFont's envelopes, in `SOUNDFONT`; without the
 variable they are skipped with a message.

@@ -562,7 +562,10 @@ fn crc32(data: &[u8]) -> u32 {
     !crc
 }
 
-/// A JSON value as Python's `json.dumps` writes it: `, ` and `: `.
+/// A JSON value as Python's `json.dumps` writes it: `, ` and `: `. The
+/// Python that wrote the save signature is gone, but the signature is a
+/// CRC of this text and goes into every ROM: writing it any other way
+/// changes every cartridge and turns every save away.
 fn python_json(value: &Value) -> String {
     match value {
         Value::Array(items) => {
@@ -3110,8 +3113,7 @@ impl Rest<'_> {
         // `battle_states.s`—: the one said while it lasts and the one said
         // when it goes. The empty ones, which are most, share one text.
         // **They are the last texts**, with the empty one first: the ones
-        // before keep the numbers they had before 2026-10-12, which is what
-        // `tests/python.rs` holds.
+        // before keep the numbers they had before 2026-10-12.
         let empty_text = texts.add("");
         let states_n = db.states.keys().max().map_or(1, |&m| m.max(0) as usize + 1);
         let mut state_affected_text = vec![empty_text; states_n];

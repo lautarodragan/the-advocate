@@ -1930,8 +1930,8 @@ pub fn page_table_with(map: &PageMap, number: usize, dest: &dyn Fn(usize) -> Str
                 | bit(own.spin, 128)
                 | if own.spin { own.pattern << 4 } else { 0 }
                 | fixed_graphic(page);
-            // The comment is the old one on purpose: `tests/python.rs`
-            // hashes the `.inc`, comments and all.
+            // The comment names the speed alone: the other bits are told
+            // above.
             out.push(format!("    .byte {speed:<4} ; +15 and its speed"));
             out.push(format!(
                 "    .byte <({dest}), >({dest}), ^({dest}) ; +16 its commands"

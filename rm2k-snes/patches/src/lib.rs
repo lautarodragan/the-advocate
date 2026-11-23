@@ -99,8 +99,8 @@
 //! animation is reduced to, and translucent decorations.
 //!
 //! The tests write and check a small game made of requests, in
-//! `tests/game/`, and compare against what the Python that did this until
-//! 2026-09-30 answered for it: they need no game.
+//! `tests/game/`, and make every complaint the check has: they need no
+//! game.
 
 mod check;
 mod text;

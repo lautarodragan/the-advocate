@@ -96,12 +96,11 @@ enough. `Bad::Usage` when the call is wrong: a colour given twice.
 
 ## Tests
 
-`tests/python.rs` builds its colours and tiles with a small generator and
-hashes the answers, written as JSON the way `tests/common/` writes them
-—the way the command line Adeleine had until 2026-11-23 wrote them—.
-`tests/answers.rs` has three answers small enough to read whole. The unchanged operations retain the hashes of the Python
-version they replaced; reduction has its own hashes because it deliberately
-chooses different pixels. They need no picture.
+`tests/generated.rs` builds its colours and tiles with a small generator
+and checks what every answer owes the console: no more colours than asked
+for, every colour mapped to one that stayed, every tile in a palette that
+holds its colours. `tests/answers.rs` has three answers small enough to
+read whole, as JSON. They need no picture.
 
 `tests/superfamiconv.rs` uses [SuperFamiconv](https://github.com/Optiroc/SuperFamiconv)
 as a referee for `try_pack`. It builds pictures from seeds, gives each one to

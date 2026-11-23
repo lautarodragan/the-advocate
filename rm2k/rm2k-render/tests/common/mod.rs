@@ -1,10 +1,9 @@
-//! What more than one test builds: the ChipSets the Python drew from, and
-//! the hash a drawing is checked by.
+//! What more than one test builds: two ChipSets, an indexed one and an
+//! RGBA one with half-transparent pixels.
 
 #![allow(dead_code)]
 
 use rm2k_render::{picture, Picture};
-use sha2::{Digest, Sha256};
 
 /// An indexed ChipSet, every pixel from a formula: the colour key at index
 /// 0, and no two neighbours alike.
@@ -52,13 +51,4 @@ pub fn rgba_chipset(path: &std::path::Path) {
         rgba,
     };
     picture::write_png(path, &picture).unwrap();
-}
-
-/// The SHA-256 of a drawing's pixels, as the Python's hashes were taken:
-/// the RGBA bytes, rows top to bottom.
-pub fn sha(picture: &Picture) -> String {
-    Sha256::digest(&picture.rgba)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
 }

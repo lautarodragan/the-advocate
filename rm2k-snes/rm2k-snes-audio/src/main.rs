@@ -17,7 +17,7 @@ use rm2k_snes_audio::emit;
 use rm2k_snes_audio::fail::{Bad, Result};
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
-use rm2k_snes_audio::{effects, job, msu, msu_data, pyjson, sdsp, stream};
+use rm2k_snes_audio::{effects, job, msu, msu_data, sdsp, stream};
 use rm2k_snes_bytecode::level::Level;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -257,6 +257,11 @@ fn read_json(path: &Path) -> Result<Value> {
     serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
 
+/// What a person may open: indented, with a newline at the end.
+fn pretty(value: &Value) -> String {
+    serde_json::to_string_pretty(value).expect("a value is JSON") + "\n"
+}
+
 fn write_file(path: &Path, text: &str) -> Result<()> {
     std::fs::write(path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
@@ -427,7 +432,7 @@ fn compile_into(
         write_file(&out_dir.join("musicdata.inc"), &text)?;
         write_file(
             &out_dir.join("music.json"),
-            &pyjson::to_string(&emit::songs_json(&music.songs)),
+            &pretty(&emit::songs_json(&music.songs)),
         )?;
         let rom = emit::rom_packages(&music, emit);
         out.insert("packages".into(), json!(rom));
@@ -655,10 +660,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
     let plan = cartridge::plan(&c)?;
     std::fs::create_dir_all(&args.out)
         .map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))?;
-    write_file(
-        &args.out.join("audio-job.json"),
-        &pyjson::to_string(&plan.job),
-    )?;
+    write_file(&args.out.join("audio-job.json"), &pretty(&plan.job))?;
     let (job, emit) = job::parse(&plan.job, bank::ARAM_END)?;
     let emit = emit.expect("the plan always says what to emit");
     let done = compile_into(&job, Some(&emit), &game, &args.soundfont, &args.out, false)?;
@@ -748,7 +750,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
     let rates = &done.audio["msu"]["rates"];
     write_file(
         &args.out.join("effects.json"),
-        &pyjson::to_string(&cartridge::effects_json(music, &c.songs.sounds, rates)),
+        &pretty(&cartridge::effects_json(music, &c.songs.sounds, rates)),
     )?;
     for package in &quality.packages {
         if let Some(theirs) = rates

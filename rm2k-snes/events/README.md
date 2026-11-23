@@ -220,9 +220,7 @@ many switches— go as constants with a comment that says so.
 
 They need no game. `tests/game/` is a small one built for them, with the
 two requests a caller would send for it, `tests/scan.json` and
-`tests/compile.json`. `tests/python.json` is the SHA-256 of each part of
-what the converter's Python compiler answered for them, which this
-replaced on 2026-09-29 after both gave the same bytes on every page of
-every cartridge of a whole game: **those hashes are not to be regenerated
-to make a test pass**. The escape tail of a text box is
+`tests/compile.json`; `tests/small_game.rs` checks what the answers carry
+beyond the bytes, which A Blurred Line's suite and the test game check by
+playing them. The escape tail of a text box is
 `rm2k-snes-text`'s, and its cases are there.

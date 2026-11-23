@@ -11,9 +11,8 @@
 //! **None of the numbers are ours.** They are easyrpg-player's and liblcf's,
 //! and each function says which of theirs it is.
 //!
-//! The tests need no game: they check these rules against
-//! `tests/python.json`, what the Python they were copied from answered for
-//! some inputs.
+//! The tests need no game: they check these rules against what
+//! easyrpg-player's source says, case by case.
 //!
 //! It reads Ditto's types —`ditto::schema`— and nothing else: whatever a
 //! caller changed on top of a game reaches this as those same types.

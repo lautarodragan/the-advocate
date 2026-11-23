@@ -64,8 +64,8 @@ character by character.
 
 ## Its tests
 
-They need no game. `tests/python.rs` compares what this writes against the
-SHA-256 of what the converter's Python wrote for the same input before it
-was deleted: maps made up to go through every path (`tests/maps.json`), and
-two whole cartridges over them (`tests/emit-*.json`) with the database of
-`rm2k-snes-battle`'s test game.
+They need no game. `tests/made_up.rs` goes over maps made up to go through
+every path (`tests/maps.json`), and two whole cartridges over them
+(`tests/emit-*.json`) with the database of `rm2k-snes-battle`'s test game:
+what they share and lose, what is refused, and the tables a game's build
+never asks for —more than a byte numbers, a 4bpp title, a second System—.

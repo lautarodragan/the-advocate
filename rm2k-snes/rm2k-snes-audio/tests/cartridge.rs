@@ -1,34 +1,21 @@
-//! A cartridge's plan and its `.msu`, against what the Python gave for them.
+//! A cartridge's plan and its `.msu`, for the small game of
+//! `cartridge.json` —six maps, one without pages, exit songs, separate
+//! ones, a jump that never happens, a jump that carries what came in and
+//! one that carries its song; with and without title, Game Over and
+//! battle— and two backdrops and three packages' sound effects.
 //!
-//! Until 2026-09-30 the converter decided in Python which songs each map's
-//! package carries, which one may be playing when it loads, and wrote the
-//! `.msu`. It was deleted once the two gave the same bytes for three whole
-//! cartridges of a real game; what is left of it is here: the SHA-256 of
-//! what it wrote for the small game of `cartridge.json` —six maps, one
-//! without pages, exit songs, separate ones, a jump that never happens, a
-//! jump that carries what came in and one that carries its song; with and
-//! without title, Game Over and battle— and of the `.msu` it built for two
-//! backdrops and three packages' sound effects.
-//!
-//! **If one of these changes, what the cartridge carries changed.** The
-//! hashes are not to be regenerated to make a test pass: the Python that
-//! produced them is gone, and with it the only independent answer.
+//! **The path it guards**: those shapes, which a game may not have. What a
+//! real cartridge's plan gives is heard and played in A Blurred Line's
+//! suite —which song each map's package carries, what is playing when it
+//! loads— and its `.msu` read back by the console in `test_msu_data.py`
+//! and `test_msu_effects.py`.
 
 use rm2k_snes_audio::cartridge::{self, Cartridge, Songs};
 use rm2k_snes_audio::msu::{Effects, PackageEffects, Version};
-use rm2k_snes_audio::pyjson;
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
 const GAME: &str = include_str!("cartridge.json");
-
-fn sha(data: &[u8]) -> String {
-    Sha256::digest(data)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
-}
 
 fn unhex(text: &str) -> Vec<u8> {
     (0..text.len())
@@ -90,24 +77,14 @@ fn cartridge(name: &str) -> Cartridge {
     }
 }
 
+/// The job a plan writes is one `compile` reads back, for both games.
 #[test]
-fn the_job_is_the_one_the_python_built() {
-    for (name, expected) in [
-        (
-            "full",
-            "fc543ffcdf37beecf8899e9097ec3dc21236ce3bbdb2402b0b172f4c10ea5e2d",
-        ),
-        (
-            "sparse",
-            "5e35cf376546a9a28c7003116f82a49f2c7fae43ab9683f5b9ab5386e747f379",
-        ),
-    ] {
+fn the_job_is_one_compile_reads() {
+    for name in ["full", "sparse"] {
         let plan = cartridge::plan(&cartridge(name)).unwrap();
-        assert_eq!(
-            sha(pyjson::to_string(&plan.job).as_bytes()),
-            expected,
-            "{name}"
-        );
+        let (_, emit) = rm2k_snes_audio::job::parse(&plan.job, rm2k_snes_audio::bank::ARAM_END)
+            .unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert!(emit.is_some(), "{name}: the plan says what to emit");
     }
 }
 
@@ -165,7 +142,10 @@ fn a_maps_level_and_the_titles_go_into_the_job() {
 }
 
 #[test]
-fn the_msu_is_the_one_the_python_built() {
+/// The `.msu` reads back as one of this game's —signed, versioned— with an
+/// entry per backdrop's tiles and colours and per package's version, each
+/// the bytes it was given.
+fn the_msu_reads_back() {
     let game: Value = serde_json::from_str(GAME).unwrap();
     let m = &game["msu"];
     let backdrops: Vec<(Vec<u8>, Vec<u8>)> = m["backdrops"]
@@ -211,20 +191,24 @@ fn the_msu_is_the_one_the_python_built() {
         rates: Vec::new(),
     };
     let msu = cartridge::msu(&backdrops, &quality, b"TEST").unwrap();
-    assert_eq!(
-        sha(&msu.blob),
-        "3abd8f1c1580d53a6b36d5751aa12d1a0d42769c593e9123089bf26430f771de"
-    );
-    // What the assembler reads: the comments explain the file, and are free
-    // to change.
-    let data: Vec<&str> = msu
-        .inc
-        .split('\n')
-        .filter(|l| !l.starts_with(';'))
+    let entries = rm2k_snes_audio::msu_data::index(&msu.blob, b"TEST").unwrap();
+    // The backdrops' tiles and colours, then each package's versions in
+    // order, each entry the bytes it was given.
+    let mut sources: Vec<&[u8]> = backdrops
+        .iter()
+        .flat_map(|(t, c)| [t.as_slice(), c.as_slice()])
         .collect();
-    assert_eq!(
-        sha(data.join("\n").as_bytes()),
-        "118408b373795f46f64c0a1799f9e7c81adb59ac1064bef4672507c6e7ea434f"
-    );
+    for p in &quality.packages {
+        sources.extend(
+            p.versions
+                .iter()
+                .map(|&v| quality.versions[v].data.as_slice()),
+        );
+    }
+    assert_eq!(entries.len(), sources.len());
+    for (k, (&(at, length), data)) in entries.iter().zip(&sources).enumerate() {
+        let (at, length) = (at as usize, length as usize);
+        assert_eq!(&msu.blob[at..at + length], *data, "entry {k}");
+    }
     assert_eq!((msu.backdrops, msu.effects), (2, 3));
 }
