@@ -105,7 +105,7 @@ cases = ["variables", "variables-arithmetic", "variables-branch-no",
 label = "Events"
 cases = ["branch", "branch-switched", "branch-skipped", "labels",
          "nested-calls", "switches-past-1023", "parallel-teleport",
-         "tileset", "missing-teleport"]
+         "tileset", "missing-teleport", "teleport-mid-step"]
 
 [[tester.group]]
 label = "Maps"

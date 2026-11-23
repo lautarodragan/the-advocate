@@ -179,6 +179,15 @@ from_door:
 set:
     sep #$20
 .a8
+    ; And standing on it: a step halfway along is cut short, as
+    ; `Game_Character::MoveTo` sets the remaining step to zero. A teleport
+    ; from a page comes whenever the page gets there, and the hero may be
+    ; mid-step of a route a parallel page gave him: Zounds' maps 26 and 27
+    ; walk him on both, and he landed on 27 with half of 26's diagonal
+    ; step still to go, which the camera followed down and right after the
+    ; fade-in. The route itself is not cancelled: `MoveTo` does not.
+    stz step_left
+    stz moving
     lda f:map_table + M_BG12NBA_VALUE, x
     sta BG12NBA
     ; And the background's tilemap, which also comes from the layout: almost
@@ -855,13 +864,8 @@ load:
     jsr enter_map               ; the harness's: resets the jump cap
     sep #$20
 .a8
-    ; The hero appears standing still on the entry cell. No jump in the game
-    ; needs this —`advance_step` only triggers a teleport with the step
-    ; already finished, and `move_hero` recomputes `moving` on the first live
-    ; frame— but here the save comes from outside, with RAM in any state, and
-    ; starting halfway through a step is not what the test asked for.
-    stz step_left
-    stz moving
+    ; The hero appears standing still on the entry cell: `enter_map_no_events`
+    ; cuts the step short, as it does for a jump.
     bra on
 jump:
     rep #$20
