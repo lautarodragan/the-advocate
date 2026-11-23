@@ -1,0 +1,8 @@
+{
+  "event_commands": [
+    {"code": "ShowPicture", "parameters": [1, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Curtain"},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "MovePicture", "parameters": [1, 0, 160, 120, 0, 100, 100, 0, 100, 100, 100, 100, 0, 0, 10, 0]},
+    {"code": "Wait", "parameters": [10]}
+  ]
+}
