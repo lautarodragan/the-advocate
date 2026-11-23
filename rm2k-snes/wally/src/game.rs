@@ -40,6 +40,11 @@ pub struct Game {
     /// The request's map's `ShowPicture` pictures that are part of it: see
     /// [`crate::map_pictures`]. The caller decides them.
     pub map_pictures: Vec<crate::map_pictures::MapPicture>,
+    /// The maps read with another ChipSet than the one they say, by map:
+    /// the caller converts a map once more for each ChipSet its pages swap
+    /// in with `ChangeMapTileset`, over the same cells. See `variants.rs`
+    /// in rm2k-snes-convert.
+    pub chipsets: BTreeMap<i32, i32>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -49,11 +54,7 @@ fn answer(e: ditto::lcf::Error) -> Bad {
 impl Game {
     /// Map `id`: the project's file if it has one, the dump's otherwise.
     pub fn map(&self, id: i32) -> Result<Map> {
-        let mut map = match self.map_files.get(&id) {
-            Some(path) => read_map(path),
-            None => Dump::open(&self.data).and_then(|d| d.map(id as u32)),
-        }
-        .map_err(answer)?;
+        let mut map = self.map_untrimmed(id)?;
         if let Some(dropped) = self.dropped.get(&id) {
             map.events.retain(|e| !dropped.contains(&e.id));
         }
@@ -63,11 +64,15 @@ impl Game {
     /// Map `id` with every event, the ones the RAM's trim leaves out too:
     /// only for what is painted of those, see [`crate::pieces`].
     pub fn map_untrimmed(&self, id: i32) -> Result<Map> {
-        match self.map_files.get(&id) {
+        let mut map = match self.map_files.get(&id) {
             Some(path) => read_map(path),
             None => Dump::open(&self.data).and_then(|d| d.map(id as u32)),
         }
-        .map_err(answer)
+        .map_err(answer)?;
+        if let Some(&chipset) = self.chipsets.get(&id) {
+            map.chipset_id = chipset;
+        }
+        Ok(map)
     }
 
     /// ChipSet `id` of the database, or one the project adds.

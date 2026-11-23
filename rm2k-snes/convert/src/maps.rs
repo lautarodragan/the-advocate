@@ -638,9 +638,13 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     })
 }
 
-/// Runs the stage on every prepared map, in parallel, and hands back what
-/// each wrote, in order.
-pub fn run_all(c: &Cartridge, prepared: &[Prepared]) -> Result<Vec<BTreeMap<String, Vec<u8>>>> {
+/// Runs the stage on each `(map, request)` —every prepared map's, and the
+/// ones of its ChipSet variants, see `variants.rs`—, in parallel, and hands
+/// back what each wrote, in order.
+pub fn run_requests(
+    c: &Cartridge,
+    prepared: &[(i32, &Value)],
+) -> Result<Vec<BTreeMap<String, Vec<u8>>>> {
     let mut flags: Vec<OsString> = vec!["--data".into(), c.game.dump.clone().into_os_string()];
     for dir in &c.search_dirs {
         flags.push("--search-dir".into());
@@ -662,8 +666,8 @@ pub fn run_all(c: &Cartridge, prepared: &[Prepared]) -> Result<Vec<BTreeMap<Stri
                 if k >= prepared.len() {
                     break;
                 }
-                let done = stage::run(STAGE, "wally", "map", &prepared[k].request, &flags)
-                    .map_err(|e| e.in_map(prepared[k].map.id));
+                let done = stage::run(STAGE, "wally", "map", prepared[k].1, &flags)
+                    .map_err(|e| e.in_map(prepared[k].0));
                 *results[k].lock().unwrap() = Some(done);
             });
         }
@@ -797,6 +801,12 @@ pub struct MapInfo {
     /// What Wally's notes said the map lost: `(kind, text, events)`, for
     /// the cartridge's degradations.
     pub losses: Vec<(String, String, Vec<i64>)>,
+    /// The ChipSets its pages swap in, each converted over its grid: see
+    /// [`crate::variants`]. Empty for a map that swaps none.
+    pub variants: Vec<crate::variants::Variant>,
+    /// What its events came out as, to hold its variants against: see
+    /// `variants::Drawn::events`.
+    pub events_drawn: Value,
 }
 
 fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Vec<u8>> {
@@ -1441,6 +1451,8 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         passability: p.passability,
         map: p.map,
         losses,
+        variants: Vec::new(),
+        events_drawn: crate::variants::map_events(&answer),
     })
 }
 

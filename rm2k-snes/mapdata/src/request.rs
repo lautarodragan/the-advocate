@@ -120,6 +120,43 @@ pub struct Map {
     /// decides it.
     #[serde(default)]
     pub layer_text: u8,
+    /// The ChipSets its pages swap in with `ChangeMapTileset`, each
+    /// converted over its grid, in the order the bytecode numbers them from
+    /// 1. Missing, none. See [`Variant`].
+    #[serde(default)]
+    pub variants: Vec<Variant>,
+}
+
+/// The map drawn and walked with another ChipSet, over its own grid: the
+/// converter numbered the map's blocks by every ChipSet at once, so each
+/// variant's block table has the map's size and lands where the map's
+/// does. What it does not carry —the events, the sprites, the grid— is the
+/// map's. See `variants.rs` in rm2k-snes-convert and `tileset.s` in the
+/// runtime.
+#[derive(Deserialize)]
+pub struct Variant {
+    pub chipset: i64,
+    /// Whether it draws otherwise than the map: one that does not carries
+    /// the map's tiles, colours and animation, and the console swaps only
+    /// its blocks in.
+    pub draws: bool,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub tiles: Vec<u8>,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub cgram: Vec<u8>,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub above_tiles: Vec<u8>,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub above_cgram: Vec<u8>,
+    pub above_first: i64,
+    pub runs: Vec<Run>,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub blocks: Vec<u8>,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub block_pass: Vec<u8>,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub block_terrain: Vec<u8>,
+    pub terrain_outside: i64,
 }
 
 fn eight() -> usize {

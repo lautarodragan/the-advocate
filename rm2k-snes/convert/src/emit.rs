@@ -138,6 +138,9 @@ pub fn map_record(m: &MapInfo, access: u8) -> Value {
         // The `ShowPicture` pictures the map carries: where they start in
         // its sprite bank, and each one's half size, objects and colours.
         "pictures": m.pictures.as_ref().map(|(base, _table, images)| json!({"base": base, "images": images})),
+        // The ChipSets its pages swap in, each converted over its grid: see
+        // `variants.rs`. Missing, none.
+        "variants": m.variants.iter().map(crate::variants::Variant::json).collect::<Vec<_>>(),
     })
 }
 

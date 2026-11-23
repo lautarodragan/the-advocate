@@ -22,6 +22,7 @@ use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
 use crate::text::{hex, repr, unhex};
+use crate::variants;
 use rm2k_project::Project;
 use rm2k_snes_bytecode::events::{
     INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
@@ -626,16 +627,47 @@ pub fn run(options: Options) -> Result<()> {
     let mut animation_cache = Animations::new(&search_dirs, &game.dump);
     let mut prepared = Vec::new();
     // What stops one map says which in its own line, also from Wally's
-    // calls in `run_all`: see `Stop::in_map`.
+    // calls in `run_requests`: see `Stop::in_map`.
     for id in &order {
         prepared
             .push(maps::prepare(&cartridge, &mut animation_cache, *id).map_err(|e| e.in_map(*id))?);
     }
-    let answers = maps::run_all(&cartridge, &prepared)?;
+    // And each map once more for each ChipSet its pages swap in, in the
+    // same run: see `variants.rs`.
+    let mut asked: Vec<(usize, i32, bool, Value)> = Vec::new();
+    for (k, p) in prepared.iter().enumerate() {
+        for chipset in variants::asked(&game, &p.map) {
+            let draws = !variants::draws_alike(&game, p.map.chipset_id, chipset);
+            asked.push((
+                k,
+                chipset,
+                draws,
+                variants::request(&p.request, p.map.id, chipset),
+            ));
+        }
+    }
+    let requests: Vec<(i32, &Value)> = prepared
+        .iter()
+        .map(|p| (p.map.id, &p.request))
+        .chain(asked.iter().map(|(k, _, _, r)| (prepared[*k].map.id, r)))
+        .collect();
+    let mut answers = maps::run_requests(&cartridge, &requests)?;
+    let theirs = answers.split_off(prepared.len());
+    let mut drawn: BTreeMap<usize, Vec<variants::Drawn>> = BTreeMap::new();
+    for ((k, chipset, draws, _), written) in asked.iter().zip(&theirs) {
+        let d = variants::drawn(written, *chipset, *draws)
+            .map_err(|e| e.in_map(prepared[*k].map.id))?;
+        drawn.entry(*k).or_default().push(d);
+    }
     let mut infos: Vec<MapInfo> = Vec::new();
-    for (p, written) in prepared.into_iter().zip(answers) {
+    for (k, (p, written)) in prepared.into_iter().zip(answers).enumerate() {
         let id = p.map.id;
-        infos.push(maps::map_info(&game, p, written).map_err(|e| e.in_map(id))?);
+        let mut info = maps::map_info(&game, p, written).map_err(|e| e.in_map(id))?;
+        if let Some(d) = drawn.remove(&k) {
+            let events = info.events_drawn.clone();
+            info.variants = variants::take(&game, &mut info, &events, d);
+        }
+        infos.push(info);
     }
     // A map whose grid does not fit in WRAM either way —see `cell_bytes` in
     // rm2k-snes-mapdata— is left out, before anything compiles a teleport
@@ -824,6 +856,13 @@ pub fn run(options: Options) -> Result<()> {
             pictures: m.pictures.as_ref().map(|(_, table, _)| table.clone()),
             big_table: m.big_table.clone(),
             panoramas: maps::panorama_names(m.panorama.as_ref()),
+            tilesets: if m.variants.is_empty() {
+                Vec::new()
+            } else {
+                std::iter::once(m.map.chipset_id)
+                    .chain(m.variants.iter().map(|v| v.chipset))
+                    .collect()
+            },
             route_graphics: m.route_graphics.clone(),
         })
         .collect();

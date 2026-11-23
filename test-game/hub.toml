@@ -76,6 +76,10 @@ to = [14, 14, 9, 1]
 [[guide.map]]
 label = "Anvil"
 to = [15, 10, 6, 1]
+# Left of the hedge, facing it; the three swaps wait for their switches.
+[[guide.map]]
+label = "Frost"
+to = [16, 9, 7, 2]
 
 # The tester, the board right below where the hero starts: every case of
 # `tester/`, by group. The hero boots facing it, so a case chosen there

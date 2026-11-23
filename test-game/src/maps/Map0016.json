@@ -1,0 +1,154 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Winter",
+      "x": 0,
+      "y": 0,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1800
+          },
+          "trigger": "parallel",
+          "event_commands": [
+            {
+              "code": "ChangeMapTileset",
+              "parameters": [
+                3
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1800,
+                1800,
+                1
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1801,
+                1801,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Open",
+      "x": 1,
+      "y": 0,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1802
+          },
+          "trigger": "parallel",
+          "event_commands": [
+            {
+              "code": "ChangeMapTileset",
+              "parameters": [
+                2
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1802,
+                1802,
+                1
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1803,
+                1803,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Own",
+      "x": 2,
+      "y": 0,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1804
+          },
+          "trigger": "parallel",
+          "event_commands": [
+            {
+              "code": "ChangeMapTileset",
+              "parameters": [
+                0
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1804,
+                1804,
+                1
+              ]
+            },
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1805,
+                1805,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

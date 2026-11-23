@@ -1,7 +1,7 @@
 # The test game's assets, and whose they are
 
-Every picture in this folder but the `Picture/` and `Panorama/` ones,
-which are this project's own, comes from **EasyRPG's RTP**, the free
+Every picture in this folder but the `Picture/` and `Panorama/` ones and
+`ChipSet/Winter.png`, which are this project's own, comes from **EasyRPG's RTP**, the free
 replacement for RPG Maker 2000's run-time package:
 <https://github.com/EasyRPG/RTP>, taken at commit `993d88c`
 (2025-04-05). Its materials are licensed under the [Creative Commons
@@ -15,6 +15,7 @@ this file: the RTP's `COPYING`, unchanged.
 | File | Year | Author | License | Author's page | Changes |
 | :- | :- | :- | :- | :- | :- |
 | `ChipSet/Exterior.png` | 2022 | Jason Perry | CC0 | <https://finalbossblues.itch.io/> | none: the RTP's file, byte for byte |
+| `ChipSet/Winter.png` | 2026 | this project, from Jason Perry's `Exterior.png` | CC0 | none | ours: `Exterior.png` with its palette turned to a winter's —each colour's luminance pulled towards a pale blue—, the same indices, made by a script for `tests/test_tileset_swap.py` |
 | `CharSet/People1.png` | 2023 | VictorSena | CC BY 4.0 | <https://vashmaker.blogspot.com/p/works.html> | none: the RTP's file, byte for byte |
 | `FaceSet/Actor1.png` | 2024 | Garakuta | CC0 | <http://garakutamaker.blog.fc2.com/> | none: the RTP's file, byte for byte |
 | `System/System.png` | 2011 | andwhyisit | CC BY 4.0, OGA-BY 3.0 | none given | none: the RTP's file, byte for byte |

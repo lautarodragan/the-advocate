@@ -244,6 +244,23 @@ pub fn patches(data: &Value, whose: &str, game: &mut Game) -> Result<()> {
             game.walls.insert(map, cells);
         }
     }
+    // Not required either: `{"<map>": <ChipSet>}`, the maps read with
+    // another ChipSet than their own. See `Game::chipsets`.
+    if let Some(c) = data.get("chipsets") {
+        let obj = c
+            .as_object()
+            .ok_or_else(|| Bad::answer(format!("{whose}: `chipsets` is not an object")))?;
+        for (k, v) in obj {
+            let map = k
+                .parse::<i32>()
+                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
+            let chipset = v
+                .as_i64()
+                .and_then(|c| i32::try_from(c).ok())
+                .ok_or_else(|| Bad::answer(format!("{whose}: map {k}'s ChipSet is {v}")))?;
+            game.chipsets.insert(map, chipset);
+        }
+    }
     Ok(())
 }
 

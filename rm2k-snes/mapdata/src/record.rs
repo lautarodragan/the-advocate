@@ -16,7 +16,7 @@ use crate::objects::{
     block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
     POSE_BYTES, POSE_TILES, SPRITE_POSES, TILE_BYTES,
 };
-use crate::request::{Map, Page, Slot};
+use crate::request::{Map, Page, Run, Slot, Variant};
 use crate::snes::{cgram_word, BYTES_PER_TILE, COLORS_PER_PALETTE};
 use crate::text::quoted;
 use crate::vram::{self, Layout};
@@ -530,15 +530,204 @@ pub fn ev_pos_bytes(map: &Map) -> Result<Vec<u8>> {
 
 /// The map's ChipSet animation drawings, one after the other in VRAM order.
 pub fn anim_bytes(map: &Map) -> Vec<u8> {
+    runs_bytes(&map.runs)
+}
+
+/// [`anim_bytes`] of some runs: a map's, or one of its variants'.
+pub fn runs_bytes(runs: &[Run]) -> Vec<u8> {
     let mut data = Vec::new();
     for (_, family, _) in FAMILIES {
-        if let Some(run) = map.runs.iter().find(|r| r.family == family) {
+        if let Some(run) = runs.iter().find(|r| r.family == family) {
             for drawing in &run.drawings {
                 data.extend_from_slice(drawing);
             }
         }
     }
     data
+}
+
+/// What the console decompresses of a map's variant, by class, as
+/// [`raw_blocks`] says it of a map: its tiles, its animation, and the map's
+/// grid with the variant's block table behind it. No sprites and no
+/// bytecode: those are the map's.
+pub fn variant_raw(map: &Map, v: &Variant) -> crate::materials::RawBlocks {
+    let mut raw = crate::materials::RawBlocks::new();
+    raw.insert("map_tiles".into(), v.tiles.clone());
+    raw.insert("above_tiles".into(), v.above_tiles.clone());
+    raw.insert("anim_tiles".into(), runs_bytes(&v.runs));
+    raw.insert("map_cells".into(), map.grid());
+    raw.insert("map_ram".into(), map_ram(&v.blocks, &v.block_pass));
+    raw
+}
+
+/// The most records `map_table` holds: `map_ofs` is the record's offset in
+/// sixteen bits —see `enter_map` and `tileset.s` in the runtime—.
+pub const RECORDS_MAX: usize = 0x1_0000 / MAP_STRIDE;
+
+/// `tileset_table`'s entries, eight bytes: the record's offset in
+/// `map_table`, the 24-bit pointer to its block table alone, compressed,
+/// whether it draws otherwise than the map —never the map's own—, and how
+/// many entries the map has, the same in each.
+pub const TILESET_STRIDE: usize = 8;
+
+/// A map's variants' blocks and records: per variant, its tiles, colours,
+/// animation and terrain, its grid with its block table behind it —what
+/// `lz2_grid` decompresses when the record is the current one, after a
+/// battle—, and its block table alone, which is what `tileset.s`
+/// decompresses to swap it in. And the map's own block table alone, for
+/// swapping the map's back. `own` is the map's labels, which each variant's
+/// record starts from.
+pub fn variant_data(
+    map: &Map,
+    number: usize,
+    rows: &[NpcRow],
+    own: &Labels,
+    materials: &mut Materials,
+) -> Result<(String, Vec<VariantRecord>, Vec<String>)> {
+    let layout = layout_of(map)?;
+    let mut out = Vec::new();
+    let mut records = Vec::new();
+    let mut alone = Vec::new();
+    let keep = |out: &mut Vec<String>, (label, text): (String, String)| {
+        if !text.is_empty() {
+            out.push(text);
+        }
+        label
+    };
+    let ram = map_ram(&map.blocks, &map.block_pass);
+    alone.push(keep(&mut out, materials.store_compressed("map_ram", &ram)));
+    let grid = map.grid();
+    for (k, v) in map.variants.iter().enumerate() {
+        let whose = format!("map {}, ChipSet {}", map.id, v.chipset);
+        if v.blocks.len() != map.blocks.len() || v.block_pass.len() != map.block_pass.len() {
+            return Err(Bad::answer(format!(
+                "{whose}: its block table is not the map's size, and it goes where the map's does"
+            )));
+        }
+        for (count, name, room) in [
+            (v.tiles.len() / BYTES_PER_TILE, "tiles", layout.tiles.count),
+            (v.above_tiles.len() / 32, "upper tiles", layout.above.count),
+        ] {
+            if count > room as usize {
+                return Err(Bad::answer(format!(
+                    "{whose}: in the map's VRAM layout, {name} need {count} tiles and {room} fit"
+                )));
+            }
+        }
+        let mut labels = own.clone();
+        for (name, data) in [
+            ("map_tiles", v.tiles.clone()),
+            ("map_cgram", v.cgram.clone()),
+            ("above_tiles", v.above_tiles.clone()),
+            ("above_cgram", v.above_cgram.clone()),
+            ("block_terrain", map_terrain(&v.block_terrain)),
+            ("anim_tiles", runs_bytes(&v.runs)),
+        ] {
+            let stored = if COMPRESSED_KINDS.contains(&name) {
+                materials.store_compressed(name, &data)
+            } else {
+                materials.store(name, &data)
+            };
+            labels.insert(name, keep(&mut out, stored));
+        }
+        let ram = map_ram(&v.blocks, &v.block_pass);
+        let joined = materials.store_compressed_joined(&[("map_cells", &grid), ("map_ram", &ram)]);
+        labels.insert("map_cells", keep(&mut out, joined));
+        alone.push(keep(&mut out, materials.store_compressed("map_ram", &ram)));
+        let mut fields = map_fields(map, layout, rows);
+        for (name, value) in [
+            ("MAP_TILES", (v.tiles.len() / BYTES_PER_TILE) as i64),
+            ("MAP_CGRAM", (v.cgram.len() / 2) as i64),
+            ("ABOVE_TILES", (v.above_tiles.len() / 32) as i64),
+            ("ABOVE_CGRAM", (v.above_cgram.len() / 2) as i64),
+            ("ABOVE_FIRST", v.above_first * COLORS_PER_PALETTE as i64),
+            ("TERRAIN_OUTSIDE", v.terrain_outside),
+            ("TERRAIN_PLANE", terrain_plane(&v.block_terrain).into()),
+        ] {
+            fields.insert(name, value);
+        }
+        records.push(VariantRecord {
+            number,
+            k: k + 1,
+            chipset: v.chipset,
+            draws: v.draws,
+            fields,
+            labels,
+        });
+    }
+    Ok((out.join("\n"), records, alone))
+}
+
+/// `ChangeMapTileset`'s tables, for `tileset.s`: `tileset_maps`, a word per
+/// map in the order of `map_table` —where its entries start in
+/// `tileset_table`, or $FFFF if it has no variants—, and `tileset_table`,
+/// per map that has them its own entry and then one per variant, of
+/// [`TILESET_STRIDE`] bytes. `alone` is, per map, the labels of the block
+/// tables alone that [`variant_data`] stored, the map's first.
+pub fn tileset_table(
+    maps: &[Map],
+    variants: &[VariantRecord],
+    alone: &BTreeMap<usize, Vec<String>>,
+) -> Result<String> {
+    let records = maps.len() + variants.len();
+    if records > RECORDS_MAX {
+        return Err(Bad::answer(format!(
+            "the maps and their ChipSet variants are {records} records, and `map_ofs` reaches \
+             {RECORDS_MAX}"
+        )));
+    }
+    let entries: usize = alone.values().map(Vec::len).sum();
+    let mut starts = vec!["$FFFF".to_string(); maps.len()];
+    let mut out = vec![
+        ".segment \"RODATA\"".to_string(),
+        "; `ChangeMapTileset`'s variants: see `tileset.s`. Assembled only in a".into(),
+        "; cartridge that has some.".into(),
+        "tileset_variants = 1".into(),
+        format!("TILESET_STRIDE = {TILESET_STRIDE}"),
+    ];
+    let mut table = vec![
+        format!(".block {}", TILESET_STRIDE * entries),
+        "tileset_table:".into(),
+    ];
+    let mut at = 0;
+    for (&number, labels) in alone {
+        starts[number] = format!("${at:04X}");
+        let count = labels.len();
+        let mut entry = |record: usize, label: &str, draws: bool, what: String| {
+            table.push(format!("    .word ${:04X} ; {what}", record * MAP_STRIDE));
+            table.push(format!(
+                "    .byte <({label}), >({label}), ^({label}), {}, {count}, $00",
+                u8::from(draws)
+            ));
+        };
+        let map = &maps[number];
+        // The map's own does not draw otherwise than the map: coming back to
+        // it uploads its drawing again only if the one it leaves drew
+        // otherwise, which `tileset.s` reads from that one's entry.
+        let ours: Vec<&VariantRecord> = variants.iter().filter(|v| v.number == number).collect();
+        entry(
+            number,
+            &labels[0],
+            false,
+            format!("map {} {}, its own ChipSet", map.id, quoted(&map.name)),
+        );
+        for (v, label) in ours.iter().zip(&labels[1..]) {
+            let record = maps.len()
+                + variants
+                    .iter()
+                    .position(|w| std::ptr::eq(w, *v))
+                    .expect("a variant of the table");
+            entry(record, label, v.draws, format!("its ChipSet {}", v.chipset));
+        }
+        at += TILESET_STRIDE * labels.len();
+    }
+    out.push(format!(".block {}", 2 * maps.len()));
+    out.push("tileset_maps:".into());
+    for chunk in starts.chunks(16) {
+        out.push(format!("    .word {}", chunk.join(", ")));
+    }
+    out.extend(table);
+    Ok(out.join("\n"))
 }
 
 /// What the console decompresses of a map, by class.
@@ -861,9 +1050,92 @@ fn wrap_bits(map: &Map) -> u8 {
     u8::from(map.wrap[0]) | u8::from(map.wrap[1]) << 1
 }
 
+/// A map's record's lines: its fields, and its pointers to the blocks
+/// `labels` names, with the grid's width and the axes it loops on in their
+/// fourth bytes.
+fn record_lines(
+    out: &mut Vec<String>,
+    fields: &HashMap<&'static str, i64>,
+    labels: &Labels,
+    narrow: bool,
+    wrap: u8,
+) {
+    let mut used = 0;
+    for (name, comment) in MAP_SCALARS {
+        let comment = if comment.is_empty() {
+            String::new()
+        } else {
+            format!("  {comment}")
+        };
+        out.push(format!(
+            "    .word {:<6} ; +{used:<3} {name}{comment}",
+            fields[name]
+        ));
+        used += 2;
+    }
+    for (name, comment) in MAP_BYTES {
+        out.push(format!(
+            "    .byte ${:02X}    ; +{used:<3} {name}  {comment}",
+            fields[name]
+        ));
+        used += 1;
+    }
+    let padding = MAP_PTR_BASE - used;
+    // Without padding the line does not go: a `.byte` without operands
+    // is an error for ca65.
+    if padding > 0 {
+        out.push(format!(
+            "    .byte {} ; +{used}  padding up to the pointers",
+            vec!["$00"; padding].join(",")
+        ));
+    }
+    used += padding;
+    for name in MAP_POINTERS {
+        let label = &labels[name];
+        let fourth = if name == "map_cells" && narrow {
+            "$01".to_string()
+        } else if name == MAP_POINTERS[MAP_POINTERS.len() - 1] {
+            format!("${wrap:02X}")
+        } else {
+            "$00".to_string()
+        };
+        out.push(format!(
+            "    .byte <({label}), >({label}), ^({label}), {fourth} ; +{used}  {name}"
+        ));
+        used += MAP_PTR_STEP;
+    }
+    if used < MAP_STRIDE {
+        out.push(format!(
+            "    .byte {}",
+            vec!["$00"; MAP_STRIDE - used].join(",")
+        ));
+    }
+}
+
+/// A map drawn with another ChipSet, as its record and its animation's
+/// entry go behind the maps': see [`Variant`] and `tileset.s` in the
+/// runtime.
+pub struct VariantRecord {
+    /// The map it is of, by its place in the table.
+    pub number: usize,
+    /// Its place among the map's, from 1, and its ChipSet.
+    pub k: usize,
+    pub chipset: i64,
+    pub draws: bool,
+    pub fields: HashMap<&'static str, i64>,
+    pub labels: Labels,
+}
+
 /// The table the console walks to know what to load. `labels` says, per
-/// map, which block each pointer points to.
-pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Result<String> {
+/// map, which block each pointer points to; and behind the maps, the
+/// records of their `variants`, which only `tileset.s` points `map_ofs`
+/// at.
+pub fn map_table(
+    maps: &[Map],
+    labels: &[Labels],
+    rows: &[Vec<NpcRow>],
+    variants: &[VariantRecord],
+) -> Result<String> {
     let mut out: Vec<String> = vec![
         ".segment \"RODATA\"".into(),
         format!("; The map table: one record of {MAP_STRIDE} bytes per map, with everything"),
@@ -886,7 +1158,7 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
         "; of the suite didn't see it because their table landed somewhere".into(),
         "; else, which is exactly the kind of error that shows up when adding".into(),
         "; a byte anywhere else.".into(),
-        format!(".block {}", MAP_STRIDE * maps.len()),
+        format!(".block {}", MAP_STRIDE * (maps.len() + variants.len())),
         "map_table:".into(),
     ];
     for (number, map) in maps.iter().enumerate() {
@@ -897,56 +1169,26 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
             map.id,
             quoted(&map.name)
         ));
-        let mut used = 0;
-        for (name, comment) in MAP_SCALARS {
-            let comment = if comment.is_empty() {
-                String::new()
-            } else {
-                format!("  {comment}")
-            };
-            out.push(format!(
-                "    .word {:<6} ; +{used:<3} {name}{comment}",
-                fields[name]
-            ));
-            used += 2;
-        }
-        for (name, comment) in MAP_BYTES {
-            out.push(format!(
-                "    .byte ${:02X}    ; +{used:<3} {name}  {comment}",
-                fields[name]
-            ));
-            used += 1;
-        }
-        let padding = MAP_PTR_BASE - used;
-        // Without padding the line does not go: a `.byte` without operands
-        // is an error for ca65.
-        if padding > 0 {
-            out.push(format!(
-                "    .byte {} ; +{used}  padding up to the pointers",
-                vec!["$00"; padding].join(",")
-            ));
-        }
-        used += padding;
-        for name in MAP_POINTERS {
-            let label = &labels[number][name];
-            let fourth = if name == "map_cells" && map.narrow() {
-                "$01".to_string()
-            } else if name == MAP_POINTERS[MAP_POINTERS.len() - 1] {
-                format!("${:02X}", wrap_bits(map))
-            } else {
-                "$00".to_string()
-            };
-            out.push(format!(
-                "    .byte <({label}), >({label}), ^({label}), {fourth} ; +{used}  {name}"
-            ));
-            used += MAP_PTR_STEP;
-        }
-        if used < MAP_STRIDE {
-            out.push(format!(
-                "    .byte {}",
-                vec!["$00"; MAP_STRIDE - used].join(",")
-            ));
-        }
+        record_lines(
+            &mut out,
+            &fields,
+            &labels[number],
+            map.narrow(),
+            wrap_bits(map),
+        );
+    }
+    // Not `--- N: map`, which the tests read the maps' order from.
+    for (n, v) in variants.iter().enumerate() {
+        let map = &maps[v.number];
+        out.push(format!(
+            "    ; --- record {}: ChipSet {} of map {} {}, its variant {} ---",
+            maps.len() + n,
+            v.chipset,
+            map.id,
+            quoted(&map.name),
+            v.k
+        ));
+        record_lines(&mut out, &v.fields, &v.labels, map.narrow(), wrap_bits(map));
     }
     // And each map's RM2k id, by index: `MemorizeLocation` writes it into a
     // variable and `RecallToLocation` looks it up.
@@ -1496,7 +1738,11 @@ pub fn map_code_table(maps: &[Map], labels: &[Labels]) -> String {
 /// inside the block, how many bytes a drawing is, and how many tiles. The
 /// padding of the second family carries whether the map has some still
 /// event with continuous animation.
-pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
+pub fn anim_table(
+    maps: &[Map],
+    rows: &[Vec<NpcRow>],
+    variants: &[(usize, &[Run])],
+) -> Result<String> {
     let mut out: Vec<String> = vec![
         ".segment \"RODATA\"".into(),
         format!("; The ChipSet animation, one entry of {ANIM_STRIDE} bytes per map."),
@@ -1508,57 +1754,72 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
         "; for the same reason as `map_table`: it is 16 bytes per map, and".into(),
         "; with the maps the tests ask for bank 0 went over by 361. Whole".into(),
         "; within one bank, because what follows $xxFFFF isn't the next one's ROM.".into(),
-        format!(".block {}", ANIM_STRIDE * maps.len()),
+        format!(".block {}", ANIM_STRIDE * (maps.len() + variants.len())),
         "anim_table:".into(),
     ];
     for (number, map) in maps.iter().enumerate() {
-        let layout = layout_of(map)?;
         out.push(format!(
             "    ; --- map {} {} ---",
             map.id,
             quoted(&map.name)
         ));
-        let mut offset = 0;
-        // A background at 4bpp —a map whose panorama goes in mode 1— has
-        // tiles of half the bytes.
-        let bytes_per_tile = (BYTES_PER_TILE * map.bpp / 8) as i64;
-        for (k, (name, family, count)) in FAMILIES.iter().enumerate() {
-            let run = map.runs.iter().find(|r| r.family == *family);
-            let tiles = run.map_or(0, |r| r.tiles);
-            let vram =
-                i64::from(layout.tiles.base) + run.map_or(0, |r| r.base) * bytes_per_tile / 2;
-            out.push(format!("    .word {vram:<6} ; VRAM of {name}"));
-            out.push(format!(
-                "    .word {offset:<6} ; drawing 0, inside the block"
-            ));
-            out.push(format!(
-                "    .word {:<6} ; bytes per drawing",
-                tiles * bytes_per_tile
-            ));
-            // The last family's padding: how many rows animate standing
-            // still and upload their pose, so `animate_still` stops walking
-            // the table after the last one.
-            let padding = if k == FAMILIES.len() - 1 {
-                rows[number]
-                    .iter()
-                    .filter(|n| n.animates)
-                    .count()
-                    .min(u8::MAX as usize)
-            } else {
-                0
-            };
-            out.push(format!(
-                "    .byte {tiles}, {padding}   ; {tiles} tile(s){}",
-                if padding != 0 {
-                    ", and the map has still events that animate"
-                } else {
-                    ""
-                }
-            ));
-            offset += tiles * bytes_per_tile * *count as i64;
-        }
+        anim_entry(&mut out, map, &map.runs, &rows[number])?;
+    }
+    // Behind the maps', their ChipSet variants', in the order of their
+    // records in `map_table`: `anim_where` finds the entry from `map_ofs`.
+    for &(number, runs) in variants {
+        let map = &maps[number];
+        out.push(format!(
+            "    ; --- a ChipSet variant of map {} {} ---",
+            map.id,
+            quoted(&map.name)
+        ));
+        anim_entry(&mut out, map, runs, &rows[number])?;
     }
     Ok(out.join("\n"))
+}
+
+/// A map's entry in [`anim_table`], with its runs or a variant's.
+fn anim_entry(out: &mut Vec<String>, map: &Map, runs: &[Run], rows: &[NpcRow]) -> Result<()> {
+    let layout = layout_of(map)?;
+    let mut offset = 0;
+    // A background at 4bpp —a map whose panorama goes in mode 1— has
+    // tiles of half the bytes.
+    let bytes_per_tile = (BYTES_PER_TILE * map.bpp / 8) as i64;
+    for (k, (name, family, count)) in FAMILIES.iter().enumerate() {
+        let run = runs.iter().find(|r| r.family == *family);
+        let tiles = run.map_or(0, |r| r.tiles);
+        let vram = i64::from(layout.tiles.base) + run.map_or(0, |r| r.base) * bytes_per_tile / 2;
+        out.push(format!("    .word {vram:<6} ; VRAM of {name}"));
+        out.push(format!(
+            "    .word {offset:<6} ; drawing 0, inside the block"
+        ));
+        out.push(format!(
+            "    .word {:<6} ; bytes per drawing",
+            tiles * bytes_per_tile
+        ));
+        // The last family's padding: how many rows animate standing
+        // still and upload their pose, so `animate_still` stops walking
+        // the table after the last one.
+        let padding = if k == FAMILIES.len() - 1 {
+            rows.iter()
+                .filter(|n| n.animates)
+                .count()
+                .min(u8::MAX as usize)
+        } else {
+            0
+        };
+        out.push(format!(
+            "    .byte {tiles}, {padding}   ; {tiles} tile(s){}",
+            if padding != 0 {
+                ", and the map has still events that animate"
+            } else {
+                ""
+            }
+        ));
+        offset += tiles * bytes_per_tile * *count as i64;
+    }
+    Ok(())
 }
 
 /// The map's event pages, with the pointer to their code: `evcode` is the
@@ -2461,8 +2722,18 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     let rows: Vec<Vec<NpcRow>> = maps.iter().map(npc_table).collect::<Result<_>>()?;
     let raw: Vec<crate::materials::RawBlocks> =
         maps.iter().map(raw_blocks).collect::<Result<_>>()?;
-    let refs: Vec<(i64, &crate::materials::RawBlocks)> =
-        maps.iter().zip(&raw).map(|(m, r)| (m.id, r)).collect();
+    // And the ChipSet variants', compressed with the maps' and not written to
+    // `raw/`, which is what the console loads on entering a map.
+    let variants_raw: Vec<(i64, crate::materials::RawBlocks)> = maps
+        .iter()
+        .flat_map(|m| m.variants.iter().map(move |v| (m.id, variant_raw(m, v))))
+        .collect();
+    let refs: Vec<(i64, &crate::materials::RawBlocks)> = maps
+        .iter()
+        .zip(&raw)
+        .map(|(m, r)| (m.id, r))
+        .chain(variants_raw.iter().map(|(id, r)| (*id, r)))
+        .collect();
     let compressed = crate::materials::compress_blocks(&refs)?;
     let frames = raw
         .iter()
@@ -2503,6 +2774,8 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     let mut materials = Materials::new(true, compressed);
     materials.msu = msu;
     let mut labels = Vec::new();
+    let mut variants: Vec<VariantRecord> = Vec::new();
+    let mut alone: BTreeMap<usize, Vec<String>> = BTreeMap::new();
     for (number, map) in maps.iter().enumerate() {
         // The console's tests read the table order from this line. In a
         // cartridge whose streams may go to the `.msu`, it goes behind a
@@ -2530,12 +2803,25 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         )?;
         text.push_str(&data);
         text.push('\n');
+        // And its ChipSet variants', right behind: see [`variant_data`].
+        if !map.variants.is_empty() {
+            let (data, records, blocks) =
+                variant_data(map, number, &rows[number], &theirs, &mut materials)?;
+            text.push_str(&data);
+            text.push('\n');
+            variants.extend(records);
+            alone.insert(number, blocks);
+        }
         labels.push(theirs);
     }
+    let variant_runs: Vec<(usize, &[Run])> = variants
+        .iter()
+        .map(|v| (v.number, maps[v.number].variants[v.k - 1].runs.as_slice()))
+        .collect();
     let mut tables = format!(
         "{}\n\n{}\n\n{}\n\n{}\n\n{}\n",
-        map_table(maps, &labels, &rows)?,
-        anim_table(maps, &rows)?,
+        map_table(maps, &labels, &rows, &variants)?,
+        anim_table(maps, &rows, &variant_runs)?,
         map_code_table(maps, &labels),
         share_table(maps)?,
         cache_table(maps)?
@@ -2543,6 +2829,12 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     let _ = write!(tables, "\n{}\n", pose_masks_table(maps));
     let _ = write!(tables, "\n{}\n", arrow_objs_table(maps)?);
     let _ = write!(tables, "\n{}\n", layer_texts_table(maps));
+    // And `ChangeMapTileset`'s, only in a cartridge with a map that swaps its
+    // ChipSet: see `tileset.s`, which assembles nothing without
+    // `tileset_variants`.
+    if !variants.is_empty() {
+        let _ = write!(tables, "\n{}\n", tileset_table(maps, &variants, &alone)?);
+    }
     // And the still events drawn into the background, only in a cartridge
     // that has some: see `posed.s`, which assembles nothing without
     // `posed_stills`.

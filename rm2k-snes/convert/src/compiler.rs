@@ -338,6 +338,15 @@ impl<'a> Compiler<'a> {
         if !panoramas.is_empty() {
             r.insert("panoramas".into(), Value::Object(panoramas));
         }
+        // And the ChipSets a `ChangeMapTileset` can swap in, the same way.
+        let tilesets: Map<String, Value> = maps
+            .iter()
+            .filter(|m| !m.tilesets.is_empty())
+            .map(|m| (m.id.to_string(), json!(m.tilesets)))
+            .collect();
+        if !tilesets.is_empty() {
+            r.insert("tilesets".into(), Value::Object(tilesets));
+        }
         r.insert("counters".into(), Value::Array(counters(self.settings)?));
         r.insert("sound_effects".into(), self.sound_effects()?);
         // Each test page turns itself off first: it is a convention of the
@@ -475,6 +484,9 @@ pub struct CompileMap {
     /// The panoramas it carries, in the order the bytecode numbers them:
     /// see `maps::panorama_names`.
     pub panoramas: Vec<String>,
+    /// The ChipSets it can be drawn with, its own first, in the order the
+    /// bytecode numbers them: see `variants.rs`. Empty if it swaps none.
+    pub tilesets: Vec<i32>,
     /// Its table of route graphics as the scan numbered it, the one its
     /// sprite bank was built with: the compilation numbers against it and
     /// does not add to it. See `route_graphics` in the events compiler's

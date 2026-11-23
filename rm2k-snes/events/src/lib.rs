@@ -114,6 +114,12 @@ pub struct Request {
     /// carries only its own, if it shows it. See `CHANGE_PBG` in
     /// `compile.rs`.
     pub panoramas: BTreeMap<i32, Vec<String>>,
+    /// Per map, the ChipSets it can be drawn with, in the order the bytecode
+    /// numbers them: its own first, then the variants the converter made of
+    /// it over its grid. A map that is not here has none, and its
+    /// `ChangeMapTileset`s do not compile. See `CHANGE_MAP_TILESET` in
+    /// `compile.rs`.
+    pub tilesets: BTreeMap<i32, Vec<i32>>,
     pub sound: SoundSettings,
     /// Each test page and the map it runs in, compiled with that map's
     /// context and as its event 0. What the caller puts in front of it —the
@@ -560,6 +566,17 @@ impl Request {
                     })?
                     .iter()
                     .map(|n| text(n, whose))
+                    .collect()
+            })?;
+        }
+        if let Some(t) = data.get("tilesets") {
+            r.tilesets = by_map(t, whose, |v| {
+                v.as_array()
+                    .ok_or_else(|| {
+                        Bad::answer(format!("{whose}: a map's tilesets are not a list"))
+                    })?
+                    .iter()
+                    .map(|n| int(n, whose).map(|x| x as i32))
                     .collect()
             })?;
         }
@@ -1297,7 +1314,10 @@ fn compile_pass(
             ..Default::default()
         });
         let panoramas = Rc::new(request.panoramas.get(&map.id).cloned().unwrap_or_default());
-        let me = MapEvents::new(&map, Some(subs.clone())).with_panoramas(panoramas.clone());
+        let tilesets = Rc::new(request.tilesets.get(&map.id).cloned().unwrap_or_default());
+        let me = MapEvents::new(&map, Some(subs.clone()))
+            .with_panoramas(panoramas.clone())
+            .with_tilesets(tilesets.clone());
         // The scan's table, when the converter passes it: see
         // `Graphics::frozen`.
         let mut graphics = match request.route_graphics.get(&map.id) {
@@ -1370,6 +1390,7 @@ fn compile_pass(
                 Some(
                     MapEvents::new(&map, Some(subs.clone()))
                         .with_panoramas(panoramas.clone())
+                        .with_tilesets(tilesets.clone())
                         .numbered(&map, &indices)
                         .for_event(0),
                 ),
