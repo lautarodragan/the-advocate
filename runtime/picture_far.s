@@ -26,6 +26,14 @@
 ; that goes with the map is not, because the map is not: its corner is kept
 ; in the map's pixels, and it scrolls with the camera.
 ;
+; **A screen picture can go with the map**, with PIC_SCREEN in its flags:
+; on a map RM2k never scrolls, its screen is its map, and one placed by the
+; same variables as a picture that goes with the map lands where that one
+; does —the converter's `screen_on_map`—. Scaled, it would land elsewhere.
+; It goes with the map, but moves as RM2k moves a screen picture. Desert
+; Nightmare's hit dog, on map 11, is shown where the running one was and
+; moved behind the warehouse's roof.
+;
 ; They go **after the timer and the counter and before the characters**,
 ; which is RM2k's order: `Priority_Timer` is 140, `Priority_PictureOld` 120
 ; and `Priority_Player` 40. In OAM that is the order of the list, because
@@ -175,7 +183,7 @@ below:
     sta f:PIC_IMG, x
     lda [code_ptr], y           ; how it is placed
     iny
-    and #PIC_BY_VARIABLE | PIC_MAP_FIXED
+    and #PIC_BY_VARIABLE | PIC_MAP_FIXED | PIC_SCREEN
     sta f:PIC_FLAGS, x
     ; The centre, in `temp` and `temp + 2`.
     rep #$20
@@ -647,7 +655,8 @@ pic_neg:  .res 1
 ; straight line from where they are, which is what `Game_Pictures::Picture::
 ; Update`'s `(finish - current) / time_left` gives over the frames. A
 ; picture that goes with the map does not move: RM2k 2000 does not move it
-; either —`ignore_position` with `IsLegacy`—.
+; either —`ignore_position` with `IsLegacy`—. But for one with PIC_SCREEN,
+; whose `ShowPicture` says the screen: see the top.
 ;
 ; A `Move` on a slot with nothing shown writes the target to something that
 ; is not drawn: the operands are consumed anyway —the stream has to stay on
@@ -767,9 +776,12 @@ shown:
     lda pic_mode
     and #PIC_MOVES
     beq placed
+    ; One that goes with the map stays, but for one that only goes with
+    ; it because RM2k shows it where its map is: PIC_SCREEN, see the top.
     lda f:PIC_FLAGS, x
-    and #PIC_MAP_FIXED
-    bne placed
+    and #PIC_MAP_FIXED | PIC_SCREEN
+    cmp #PIC_MAP_FIXED
+    beq placed
     lda pic_mode
     jsr pic_place               ; the corner it goes to, in temp
     bcs placed
