@@ -1,15 +1,13 @@
-//! Taking one sample out of a SoundFont, as `gunter sf2 --extract` does.
+//! Finding one sample in a SoundFont.
 //!
 //! The selector picks a zone —or a raw sample by name—, and what comes out is
-//! the audio plus everything a player needs to play it as the font meant:
-//! the root key, the tuning, the loop relative to the extracted audio, and
-//! the zone's volume envelope. The command line prints this; a program that
-//! uses this crate as a library gets the same thing without a process in the
-//! middle.
+//! everything a player needs to play its audio as the font meant: where the
+//! audio is, the root key, the tuning, the loop relative to the extracted
+//! audio, and the zone's volume envelope.
 
 use crate::sf2::{self, SoundFont, VolumeEnvelope};
 
-/// What `--extract` was asked for.
+/// Which sample: a program's zone at a key, or a raw sample by name.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Selector {
     Program { program: u16, bank: u16, key: u8 },

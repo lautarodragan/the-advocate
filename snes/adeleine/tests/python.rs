@@ -1,7 +1,7 @@
 //! Stable decisions for colours generated here.
 //!
 //! Each case builds its colours and tiles with a small generator, runs them
-//! through the library and hashes the answer as the executable writes it.
+//! through the library and hashes the answer as `common` writes it.
 //! The merge hashes are those of the same answer from the Python version,
 //! fed the same generator on 2026-09-29, and so were the pack ones until
 //! 2026-11-22, when `try_pack` started doing what its comment always said

@@ -1,10 +1,9 @@
 //! What goes wrong, and which of the two kinds of wrong it is.
 //!
 //! The distinction is the whole reason this is a type and not a `String`.
-//! "This cell has 19 colours and 4bpp fits 15" is this tool working correctly
-//! and answering no; "that file is not a PNG" is the call being wrong. A
-//! script wants to tell those apart without reading the message, so they get
-//! different exit codes.
+//! "This cell has 19 colours and 4bpp fits 15" is this library working
+//! correctly and answering no; "that file is not a PNG" is the call being
+//! wrong. A caller wants to tell those apart without reading the message.
 
 use std::fmt;
 

@@ -1,18 +1,4 @@
-//! Where a map and its ChipSet come from.
-//!
-//! Two ways in, and they end in the same [`Map`]:
-//!
-//! * **a request**: a JSON file with the map's size, its two layers and its
-//!   ChipSet entry. It is how a caller that has already changed the map
-//!   —patched it, baked something into a layer— asks for exactly that map;
-//! * **the dump**: a map number, read from a Ditto dump with Ditto's own
-//!   reader, and its ChipSet entry from the database's `chipsets`. The dump
-//!   as Ditto wrote it: whatever a project patches on top of it is the
-//!   caller's to apply, and then it is a request.
-//!
-//! A request is a piece of the dump —a `Map` and a `Chipset`, with Ditto's
-//! field names— and Ditto's types read it, so it is not a format of its own:
-//! a field it leaves out holds the format's default, as in the exact dump.
+//! Where a picture comes from: the game's folder first, then the RTP's.
 
 use std::path::PathBuf;
 
