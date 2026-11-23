@@ -159,12 +159,12 @@ def test_each_line_goes_up_inside_the_vblank(core):
     def put(name, value):
         sess.console.write_ram(sess._ram(name), [value & 0xFF, value >> 8])
 
-    def probed(frames):
+    def probed(frames=1, draw=True):
         for _ in range(frames):
             put("VBLANK_UPLOAD_LINE", 0)
             put("VBLANK_WRITES_LINE", 0)
             waited = sess.byte("msg_waited")
-            run(1)
+            run(1, draw=draw)
             if sess.map_() != TERRACE:
                 continue
             seen = sess.word("VBLANK_UPLOAD_LINE")

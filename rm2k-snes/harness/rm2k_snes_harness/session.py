@@ -179,7 +179,7 @@ class Session:
         not "the box is there"."""
         return bool(self.byte("msg_open")) and not self.byte("MSG_TYPE")
 
-    def advance(self, *buttons):
+    def advance(self, *buttons, draw=True):
         """One tick —one round of the main loop— with `buttons` held.
 
         A Blurred Line's clock, and for the same reason: the ROM reads the pad
@@ -188,7 +188,7 @@ class Session:
         before = self.word("ticks")
         self.console.hold(*buttons)
         for _ in range(FRAMES_PER_TICK):
-            self.console.run(1)
+            self.console.run(1, draw=draw)
             if self.word("ticks") != before:
                 self.tick += 1
                 return
@@ -204,8 +204,10 @@ class Session:
     def run(self, ticks, holding=()):
         """`ticks` ticks with `holding` held on every one of them, and
         nothing else."""
-        for _ in range(ticks):
-            self.advance(*holding)
+        # Only the last tick is drawn: the screen is looked at after this
+        # returns. See `retro.Console.run`.
+        for k in range(ticks):
+            self.advance(*holding, draw=k == ticks - 1)
 
     def until(self, what, condition, limit):
         """Ticks with nothing pressed until `condition()` holds."""

@@ -64,7 +64,32 @@ ENV_SET_PIXEL_FORMAT = 10
 ENV_GET_VARIABLE = 15
 ENV_SET_VARIABLES = 16
 ENV_GET_SAVE_DIRECTORY = 31
+# `47 | RETRO_ENVIRONMENT_EXPERIMENTAL`: snes9x asks it at the start of
+# every frame, and with the video bit clear it emulates the frame without
+# drawing it —`IPPU.RenderThisFrame`— and does not call the video callback.
+# The audio bit it ignores on purpose, and only the hard-disable one, which
+# is never answered here, would stop the DSP. bsnes does not ask. See
+# `Console.run`.
+ENV_GET_AUDIO_VIDEO_ENABLE = 47 | 0x10000
+AV_ENABLE_VIDEO, AV_ENABLE_AUDIO = 1, 2
 PIXEL_FORMATS = {0: "0RGB1555", 1: "XRGB8888", 2: "RGB565"}
+
+# The cores whose power-on is kept as a savestate, so that the next console
+# of the same ROM, with the same options and in the same process, starts
+# from it instead of loading the ROM again: snes9x spends ~50 ms in
+# `retro_init` and `retro_load_game` for an 8 MB cartridge, and the suites
+# open thousands of consoles. **Not bsnes**: its power-on is meant to differ
+# every time —`bsnes_entropy` fills the WRAM with garbage, which is what
+# `test_cores.py` lives on—, and reusing one would give every console the
+# same garbage. Its `library_name`.
+POWER_ON_STATES = {"Snes9x"}
+
+# The cores that are told not to draw the frames nobody is going to look
+# at: see `Console.run`. Only the measured one; another core that asks
+# `ENV_GET_AUDIO_VIDEO_ENABLE` —mesen-s, Mesen2— is told to draw every
+# frame until somebody measures that skipping changes nothing in it.
+SKIPS_DRAWING = {"Snes9x"}
+
 
 # The lines the project compares. Each core returns the height it wants
 # —bsnes and snes9x 224, mesen-s 239— and the excess is cropped around the
@@ -192,6 +217,38 @@ class AvInfo(ctypes.Structure):
                 ("fps", ctypes.c_double), ("sample_rate", ctypes.c_double)]
 
 
+class _Scratch:
+    """A directory of its own for a console's copy of the ROM, deleted when
+    nobody holds it any more, or at exit: there is no `retro_deinit` marking
+    the end. The power-on cache holds it too, because the core keeps the
+    path it was loaded from."""
+
+    def __init__(self):
+        self.path = tempfile.mkdtemp(prefix="retro-")
+        weakref.finalize(self, shutil.rmtree, self.path, True)
+
+
+class _PowerOn:
+    """A core's state right after loading a ROM, before its first frame:
+    see `POWER_ON_STATES`. A single one per core, the last ROM loaded, which
+    is what a suite's process opens again and again."""
+
+    def __init__(self, data, forced, scratch, path, directory, pixel_format,
+                 state):
+        self.data = data
+        self.forced = forced
+        self.scratch = scratch
+        self.path = path
+        self.directory = directory
+        self.pixel_format = pixel_format
+        self.state = state
+
+
+# By core path. ctypes keeps one copy of each `.so` for the whole process, so
+# a core is a single console at a time and its cache is a single power-on.
+_power_on = {}
+
+
 class Console:
 
     def __init__(self, rom, core=CORE, options=None, msu=False):
@@ -205,9 +262,22 @@ class Console:
         # list, which is the default by libretro convention.
         self.options = {}
         self.frame = None           # (bytes, width, height, pitch) of the last one
+        # Frames run, counted by `run` and not by the video callback, which
+        # a frame run without drawing does not call.
         self.frame_count = 0
         self.held = set()
         self.audio = bytearray()
+        # Whether the frame that starts is drawn, and whether the last one
+        # run was: see `run`.
+        self._draw = True
+        self._drawn = True
+        # Where the core left the last frame drawn, until somebody reads
+        # it: see `frame`.
+        self._shown = None
+        for name, restype in (("retro_serialize_size", ctypes.c_size_t),
+                              ("retro_serialize", ctypes.c_bool),
+                              ("retro_unserialize", ctypes.c_bool)):
+            getattr(self.lib, name).restype = restype
 
         info = SystemInfo()
         self.lib.retro_get_system_info(ctypes.byref(info))
@@ -236,18 +306,32 @@ class Console:
         # And the system and save directory —mesen-s does not load without
         # it— is that same one: if it were the ROM's, a core looking there
         # would also find the tracks.
+        # A console of the same ROM as the previous one starts from its
+        # power-on, which is kept: see `POWER_ON_STATES`. The MSU-1 never,
+        # because then the core opens the tracks next to the ROM when
+        # loading it.
+        library = info.library_name.decode()
+        # See `SKIPS_DRAWING`.
+        self._skips = library in SKIPS_DRAWING
+        cached = _power_on.get(core)
+        if (msu or library not in POWER_ON_STATES or cached is None
+                or cached.data != data or cached.forced != self._forced):
+            cached = None
+        self._scratch = None
         if msu:
             path = os.path.abspath(rom)
+        elif cached is not None:
+            path = cached.path
+            self._scratch = cached.scratch
         else:
-            own_dir = tempfile.mkdtemp(prefix="retro-")
-            # It is deleted when the console is collected, or at exit: there
-            # is no `retro_deinit` marking the end. Each console has its own,
-            # so two at once do not step on each other.
-            weakref.finalize(self, shutil.rmtree, own_dir, True)
-            path = os.path.join(own_dir, os.path.basename(rom))
+            # Each console has its own, so two at once do not step on each
+            # other.
+            self._scratch = _Scratch()
+            path = os.path.join(self._scratch.path, os.path.basename(rom))
             with open(path, "wb") as handle:
                 handle.write(data)
-        self._directory = ctypes.c_char_p(os.path.dirname(path).encode())
+        self._directory = (cached.directory if cached is not None else
+                           ctypes.c_char_p(os.path.dirname(path).encode()))
 
         # The callbacks are kept on self: if they are left as temporaries,
         # Python's collector frees them and the core calls into dead memory.
@@ -266,15 +350,61 @@ class Console:
 
         # The environment one before retro_init, the rest after: it is
         # RetroArch's order, and the only one mesen-s does not crash with. See
-        # the docstring.
+        # the docstring. From a kept power-on there is no `retro_init`: it
+        # would throw away the loaded ROM.
         self.lib.retro_set_environment(self._env)
-        self.lib.retro_init()
+        if cached is None:
+            self.lib.retro_init()
         self.lib.retro_set_video_refresh(self._video)
         self.lib.retro_set_audio_sample(self._audio_one)
         self.lib.retro_set_audio_sample_batch(self._audio)
         self.lib.retro_set_input_poll(self._poll)
         self.lib.retro_set_input_state(self._state)
 
+        if cached is not None:
+            self.pixel_format = cached.pixel_format
+            if not self.lib.retro_unserialize(
+                    cached.state, ctypes.c_size_t(len(cached.state))):
+                raise RuntimeError("the core did not take back its power-on")
+        else:
+            # Whatever is kept is not what the core has loaded any more.
+            _power_on.pop(core, None)
+            self._load(rom, path, data, wants_path)
+            if not msu and library in POWER_ON_STATES:
+                size = self.lib.retro_serialize_size()
+                state = ctypes.create_string_buffer(size)
+                if self.lib.retro_serialize(state, ctypes.c_size_t(size)):
+                    _power_on[core] = _PowerOn(
+                        data, dict(self._forced), self._scratch, path,
+                        self._directory, self.pixel_format, state)
+
+        # The display-access audit, if the core has one: see
+        # `watch_the_display`. It is zeroed here because it lives in the
+        # `.so`, and ctypes keeps one loaded for the whole process: without
+        # this, a console would inherit the previous one's counts.
+        # A core that does not know the id answers null, or a size that is
+        # not the audit's.
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORY_DISPLAY_AUDIT)
+        size = self.lib.retro_get_memory_size(self.MEMORY_DISPLAY_AUDIT)
+        self._audit = (DisplayAudit.from_address(base)
+                       if base and size == ctypes.sizeof(DisplayAudit) else None)
+        if self._audit is not None:
+            ctypes.memset(base, 0, ctypes.sizeof(DisplayAudit))
+        self._watching = False
+        self.display_accesses = []
+        # And the MSU-1's accesses, from `bsnes-msu-log.patch`, which the
+        # same core carries: zeroed for the same reason.
+        base = self.lib.retro_get_memory_data(self.MEMORY_MSU_LOG)
+        size = self.lib.retro_get_memory_size(self.MEMORY_MSU_LOG)
+        self._msu_log = (MsuLog.from_address(base)
+                         if base and size == ctypes.sizeof(MsuLog) else None)
+        if self._msu_log is not None:
+            ctypes.memset(base, 0, ctypes.sizeof(MsuLog))
+
+    def _load(self, rom, path, data, wants_path):
+        """`retro_load_game`, with the ROM from scratch."""
         self._buf = ctypes.create_string_buffer(data, len(data))
         game = GameInfo(path.encode(),
                         None if wants_path
@@ -301,31 +431,6 @@ class Console:
             os.close(saved)
         if not loaded:
             raise SystemExit("the core could not load %s" % rom)
-
-        # The display-access audit, if the core has one: see
-        # `watch_the_display`. It is zeroed here because it lives in the
-        # `.so`, and ctypes keeps one loaded for the whole process: without
-        # this, a console would inherit the previous one's counts.
-        # A core that does not know the id answers null, or a size that is
-        # not the audit's.
-        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
-        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
-        base = self.lib.retro_get_memory_data(self.MEMORY_DISPLAY_AUDIT)
-        size = self.lib.retro_get_memory_size(self.MEMORY_DISPLAY_AUDIT)
-        self._audit = (DisplayAudit.from_address(base)
-                       if base and size == ctypes.sizeof(DisplayAudit) else None)
-        if self._audit is not None:
-            ctypes.memset(base, 0, ctypes.sizeof(DisplayAudit))
-        self._watching = False
-        self.display_accesses = []
-        # And the MSU-1's accesses, from `bsnes-msu-log.patch`, which the
-        # same core carries: zeroed for the same reason.
-        base = self.lib.retro_get_memory_data(self.MEMORY_MSU_LOG)
-        size = self.lib.retro_get_memory_size(self.MEMORY_MSU_LOG)
-        self._msu_log = (MsuLog.from_address(base)
-                         if base and size == ctypes.sizeof(MsuLog) else None)
-        if self._msu_log is not None:
-            ctypes.memset(base, 0, ctypes.sizeof(MsuLog))
 
     def _on_env(self, cmd, data):
         if cmd == ENV_SET_VARIABLES and data:
@@ -368,12 +473,48 @@ class Console:
         if cmd in (ENV_GET_SYSTEM_DIRECTORY, ENV_GET_SAVE_DIRECTORY) and data:
             ctypes.cast(data, ctypes.POINTER(ctypes.c_char_p))[0] = self._directory
             return True
+        if cmd == ENV_GET_AUDIO_VIDEO_ENABLE and self._skips:
+            # Whether to draw the frame that starts: see `run`. The audio is
+            # always wanted. Any other core gets the no it always got.
+            if data:
+                ctypes.cast(data, ctypes.POINTER(ctypes.c_int))[0] = (
+                    AV_ENABLE_AUDIO | (AV_ENABLE_VIDEO if self._draw else 0))
+            return True
         return False
 
     def _on_video(self, data, w, h, pitch):
-        if data:
-            self.frame = (ctypes.string_at(data, pitch * h), w, h, pitch)
-        self.frame_count += 1
+        # snes9x's is not copied here: almost no frame is read, and copying
+        # every one was 2% of a suite. It draws into `GFX.Screen`, which
+        # stays as it is until the next frame drawn, so `frame` copies it
+        # then. The rest are copied now, because nobody measured where they
+        # leave it. A repeated frame arrives with data set to NULL, and the
+        # previous one holds.
+        if data and self._skips:
+            self._shown = (data, w, h, pitch)
+        elif data:
+            self._frame = (ctypes.string_at(data, pitch * h), w, h, pitch)
+            self._shown = None
+
+    @property
+    def frame(self):
+        """`(bytes, width, height, pitch)` of the last frame drawn. If the
+        last frame run was not drawn —`run` with `draw=False`—, there is
+        nothing to show, and it says so."""
+        if not self._drawn:
+            raise RuntimeError(
+                "the last frame was run without drawing it (`run` with "
+                "draw=False), so there is no screen to look at: whoever "
+                "runs the frames has to draw the one that is looked at")
+        if self._shown is not None:
+            data, w, h, pitch = self._shown
+            self._frame = (ctypes.string_at(data, pitch * h), w, h, pitch)
+            self._shown = None
+        return self._frame
+
+    @frame.setter
+    def frame(self, value):
+        self._frame = value
+        self._shown = None
 
     def _on_audio(self, data, frames):
         if data:
@@ -387,17 +528,45 @@ class Console:
         """Which buttons are held from now on."""
         self.held = {BUTTONS[n] for n in names}
 
-    def run(self, frames=1):
-        if not self._watching:
-            for _ in range(frames):
-                self.lib.retro_run()
-            return
-        audit = self._audit
+    def run(self, frames=1, draw=True):
+        """Advances `frames` frames, drawing them, or **without drawing
+        them** if `draw` is false.
+
+        Drawing is a quarter of what a frame costs in snes9x —measured on
+        the nine games, 25% to 30%—, and almost no frame of a suite is
+        looked at: ABL's, the other games' boots and the test game run some
+        two million and capture fewer than fifteen thousand. snes9x lets the
+        frontend say, frame by frame, whether to draw
+        —`ENV_GET_AUDIO_VIDEO_ENABLE`—, and what a frame does to the console
+        does not depend on whether it is drawn: `test_retro.py` holds it, and
+        the goldens too. A core that does not ask —bsnes— draws every frame,
+        as always, and then `draw` changes nothing.
+
+        `draw=False` is for whoever knows nobody is going to look at these
+        frames —a clock that is still not on the tick it was asked for—;
+        if somebody does, `frame` and `image` refuse instead of showing an
+        old frame. **It is not the default, not even for all but the last of
+        several frames**, because what is on the screen is not always the
+        last frame's: after an `stp` snes9x stops emulating and shows the
+        last frame it drew, so the title's End, run sixty frames drawing
+        only the last, showed the menu from before the fade instead of
+        black. Only a loop whose clock advances to the end knows that its
+        last frame was emulated and drawn."""
+        audit = self._audit if self._watching else None
         for _ in range(frames):
-            ctypes.memset(ctypes.addressof(audit), 0, ctypes.sizeof(audit))
+            if audit is not None:
+                ctypes.memset(ctypes.addressof(audit), 0,
+                              ctypes.sizeof(audit))
+            self._draw = draw
             self.lib.retro_run()
-            if audit.any():
+            self.frame_count += 1
+            if audit is not None and audit.any():
                 self.display_accesses.append(audit.seen(self.frame_count))
+        if frames:
+            # Even a core that draws everything counts as not drawn when
+            # it was asked not to: a test that looks there is wrong in
+            # every core, not only in the one that skips.
+            self._drawn = draw
 
     # A custom id, not libretro's: the counters of
     # `bsnes-display-audit.patch`, in `cores/` beside this package.
@@ -533,6 +702,7 @@ class Console:
         at where the hero starts.
         """
         self.lib.retro_reset()
+        self._drawn = True
         self.frame = None
 
     def ram(self, address=0, length=None):
