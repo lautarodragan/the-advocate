@@ -230,7 +230,10 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
                 ..Default::default()
             })
         });
-        let me = MapEvents::new(map, subs).numbered(map, &indices);
+        let tilesets = Rc::new(request.tilesets.get(&map.id).cloned().unwrap_or_default());
+        let me = MapEvents::new(map, subs)
+            .with_tilesets(tilesets)
+            .numbered(map, &indices);
         for event in &map.events {
             for (k, page) in event.pages.iter().enumerate() {
                 let found = chase(page.commands.clone(), |commands| {

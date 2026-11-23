@@ -510,6 +510,13 @@ bytecode! {
     /// them. After a big picture's show or erase: see `window_cover` in the
     /// events compiler.
     OP_WINDOW_COVER = 0x5B (slots: byte);
+
+    /// `ChangeMapTileset`: the map is drawn and walked with its own ChipSet
+    /// —variant 0— or with the variant numbered here, one of those the
+    /// converter made of the map over the same grid. Asking for the one it
+    /// already has does nothing. See `tileset_change` in the runtime's
+    /// `tileset.s`.
+    OP_CHANGE_TILESET = 0x5C (variant: byte);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and

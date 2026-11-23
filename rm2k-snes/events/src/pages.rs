@@ -133,6 +133,11 @@ pub struct MapEvents {
     /// them —see `Request::panoramas`—; empty if it carries none or only
     /// its own. The converter sets it, as it does the substitutions.
     pub panoramas: Rc<Vec<String>>,
+    /// The ChipSets the map can be drawn with, in the order the bytecode
+    /// numbers them: its own first, then the variants the converter made of
+    /// it over its grid —see `Request::tilesets`—; empty if it has none.
+    /// The converter sets it, as it does the panoramas.
+    pub tilesets: Rc<Vec<i32>>,
 }
 
 /// A `CallEvent` to a page of the map, compiled as `OP_CALL_PAGE`: the
@@ -207,12 +212,18 @@ impl MapEvents {
             table,
             page_calls: Rc::new(RefCell::new(Vec::new())),
             panoramas: Rc::new(Vec::new()),
+            tilesets: Rc::new(Vec::new()),
         }
     }
 
     /// The same, carrying `panoramas`: see [`MapEvents::panoramas`].
     pub fn with_panoramas(self, panoramas: Rc<Vec<String>>) -> MapEvents {
         MapEvents { panoramas, ..self }
+    }
+
+    /// The same, carrying `tilesets`: see [`MapEvents::tilesets`].
+    pub fn with_tilesets(self, tilesets: Rc<Vec<i32>>) -> MapEvents {
+        MapEvents { tilesets, ..self }
     }
 
     /// The same, with the page table as the ROM gets it: without the events
