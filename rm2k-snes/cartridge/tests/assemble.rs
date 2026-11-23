@@ -6,7 +6,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use cartridge::assemble::{assemble, generated, sources, write_bytecodes, Failure};
+use cartridge::assemble::{assemble, generated, object_key, sources, write_bytecodes, Failure};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
@@ -74,6 +74,7 @@ fn refuses_a_generated_file_next_to_the_source() {
         &build.join("x.sfc"),
         None,
         &dir,
+        None,
     );
     match result {
         Err(Failure::Message(message)) => {
@@ -117,4 +118,45 @@ fn the_bytecodes_are_generated_files_too() {
     fs::write(dir.join("music_opcodes.inc"), "stale").unwrap();
     let message = generated(&dir.join("main.s"), &build).unwrap_err();
     assert!(message.contains("music_opcodes.inc"), "{message}");
+}
+
+/// Two worktrees assemble the same runtime and the same data from different
+/// places: `ca65`'s object is the same, so its key has to be too. And a
+/// change in anything `ca65` reads —a source, a generated file, the
+/// binary— is another key.
+#[test]
+fn the_object_key_is_what_ca65_reads_not_where() {
+    let dir = scratch("object_key");
+    let ca65 = dir.join("ca65");
+    fs::write(&ca65, "an assembler").unwrap();
+    let mut keys = Vec::new();
+    for (side, data, code) in [
+        ("one", "maps", "lda #0"),
+        ("two", "maps", "lda #0"),
+        ("three", "other maps", "lda #0"),
+        ("four", "maps", "lda #1"),
+    ] {
+        let runtime = dir.join(side).join("runtime");
+        let build = dir.join(side).join("build").join(side);
+        fs::create_dir_all(&runtime).unwrap();
+        fs::create_dir_all(&build).unwrap();
+        fs::write(
+            runtime.join("main.s"),
+            ".include \"mapdata.inc\"\n.include \"rest.s\"\n",
+        )
+        .unwrap();
+        fs::write(runtime.join("rest.s"), code).unwrap();
+        fs::write(build.join("mapdata.inc"), data).unwrap();
+        keys.push(object_key(&ca65, &runtime.join("main.s"), &build).unwrap());
+    }
+    assert_eq!(keys[0], keys[1]);
+    assert_ne!(keys[0], keys[2]);
+    assert_ne!(keys[0], keys[3]);
+    fs::write(&ca65, "another assembler").unwrap();
+    let runtime = dir.join("one").join("runtime");
+    let build = dir.join("one").join("build").join("one");
+    assert_ne!(
+        keys[0],
+        object_key(&ca65, &runtime.join("main.s"), &build).unwrap()
+    );
 }

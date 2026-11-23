@@ -15,7 +15,7 @@ use std::process::ExitCode;
 use cartridge::assemble::{self, Failure};
 use cartridge::banks;
 use clap::{Arg, ArgAction, Command};
-use rm2k_project::suite;
+use rm2k_project::{cache, environment, suite};
 use serde_json::json;
 
 fn command() -> Command {
@@ -57,6 +57,10 @@ fn command() -> Command {
                 .conflicts_with_all(["include", "rom"])
                 .help("print, as JSON, the numbers of the memory map —the bank size, the banks, the stack, the far RAM the linker hands out—, and build nothing"),
         )
+        // Where `ca65`'s objects are kept, to assemble once what several
+        // builds assemble the same: without it, or with `NO_CACHE=1`, it
+        // always runs.
+        .args(environment::arguments(&["cache"]))
 }
 
 fn main() -> ExitCode {
@@ -97,8 +101,18 @@ fn main() -> ExitCode {
     let include = PathBuf::from(matches.get_one::<String>("include").unwrap());
     let rom = PathBuf::from(matches.get_one::<String>("rom").unwrap());
     let table = matches.get_one::<String>("symbols").map(PathBuf::from);
-    match assemble::assemble(&source, &include, &rom, table.as_deref(), &suite::root()) {
-        Ok(()) => ExitCode::SUCCESS,
+    let cache_dir = matches
+        .get_one::<String>("cache")
+        .filter(|_| !cache::disabled())
+        .map(rm2k_project::absolute);
+    let root = suite::root();
+    match assemble::assemble(&source, &include, &rom, table.as_deref(), &root, cache_dir.as_deref()) {
+        Ok(from_the_cache) => {
+            if from_the_cache {
+                println!("ca65: the object came from the cache");
+            }
+            ExitCode::SUCCESS
+        }
         Err(Failure::Message(message)) => {
             eprintln!("{message}");
             ExitCode::FAILURE

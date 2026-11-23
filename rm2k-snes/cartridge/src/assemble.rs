@@ -23,7 +23,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use rm2k_project::{absolute, relative};
+use rm2k_project::{absolute, cache, relative};
 
 use crate::banks;
 
@@ -228,6 +228,54 @@ impl From<String> for Failure {
     }
 }
 
+/// The disk cache's category for `ca65`'s objects.
+const OBJECTS: &str = "ca65";
+
+/// What `ca65` is given besides the files.
+const CA65_FLAGS: [&str; 3] = ["-g", "--cpu", "65816"];
+
+/// The key of the object `ca65` makes of `source`: the binary, its flags,
+/// and every file it reads —each `.s` from `source` down and each `.inc`
+/// they include, from next to the file or from `include`, as `ca65` looks
+/// them up—, by name and content. **Not where they are**: two worktrees
+/// that assemble the same thing give the same key.
+///
+/// The object also carries, for the debug file, the path, size and date of
+/// each source, and those do not go in: an object from the cache names the
+/// files of the build that made it, and `ld65` passes that on to the `.dbg`.
+/// The ROM does not change, which is what the cache answers for; the
+/// generated `.inc` files are not delivered next to the `.dbg` anyway, and
+/// the runtime's are named relative to the checkout.
+pub fn object_key(ca65: &Path, source: &Path, include: &Path) -> Result<String, String> {
+    let read = |path: &Path| std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()));
+    let base = absolute(source);
+    let base = base.parent().unwrap_or(Path::new("/")).to_path_buf();
+    let mut parts: Vec<Vec<u8>> = vec![
+        b"ca65 object 1".to_vec(),
+        read(ca65)?,
+        CA65_FLAGS.join(" ").into_bytes(),
+    ];
+    walk(source, &mut |path, names| {
+        let path = absolute(path);
+        let name = path.strip_prefix(&base).unwrap_or(&path);
+        parts.push(name.as_os_str().as_encoded_bytes().to_vec());
+        parts.push(read(&path)?);
+        let here = path.parent().unwrap_or(Path::new("/"));
+        for name in names.iter().filter(|n| !n.ends_with(".s")) {
+            let found = [here.join(name), include.join(name)]
+                .into_iter()
+                .find(|p| p.is_file());
+            parts.push(name.as_bytes().to_vec());
+            parts.push(match found {
+                Some(file) => read(&file)?,
+                None => b"\0missing".to_vec(),
+            });
+        }
+        Ok(())
+    })?;
+    Ok(cache::key(&parts))
+}
+
 /// Builds `rom` from `source`, with the generated files in `include`.
 ///
 /// `ca65` and `ld65` run standing in `root`, with paths relative to it,
@@ -235,13 +283,19 @@ impl From<String> for Failure {
 /// it. With absolute paths the machine's would stay in it, and a debugger on
 /// another machine would not find the source in its clone: it looks for it
 /// next to the debug file and climbing up folder by folder.
+///
+/// With `cache_dir`, `ca65`'s object comes from the disk cache if the same
+/// sources were assembled before —see [`object_key`]—: it is most of what
+/// assembling a big game costs, and a single thread. `ld65` runs always.
+/// Says whether the object came from the cache.
 pub fn assemble(
     source: &Path,
     include: &Path,
     rom: &Path,
     table: Option<&Path>,
     root: &Path,
-) -> Result<(), Failure> {
+    cache_dir: Option<&Path>,
+) -> Result<bool, Failure> {
     // The bytecodes' equates first, so that they are generated files like
     // the others: found in `include`, and refused if a stale copy shadows
     // them.
@@ -272,13 +326,37 @@ pub fn assemble(
     let rom_r = under(rom, &root);
     let obj = with_suffix(&rom_r, ".o");
     let dbg = with_suffix(&rom_r, ".dbg");
-    run(Command::new(&ca65)
-        .args(["-g", "--cpu", "65816", "-I"])
-        .arg(&include_r)
-        .arg(&source_r)
-        .arg("-o")
-        .arg(&obj)
-        .current_dir(&root))?;
+    // After the packing, which rewrites the generated files in place: the
+    // key is what `ca65` is about to read.
+    let key = match cache_dir {
+        Some(_) => Some(object_key(&ca65, source, include)?),
+        None => None,
+    };
+    let object = root.join(&obj);
+    // Copied in and out, never linked: `ca65` rewrites its object in place,
+    // and with a link it would rewrite the cache's.
+    let cached = match (cache_dir, &key) {
+        (Some(dir), Some(key)) => cache::load(dir, OBJECTS, key),
+        _ => None,
+    };
+    let from_the_cache = cached.is_some();
+    if let Some(bytes) = cached {
+        std::fs::write(&object, bytes).map_err(|e| format!("{}: {e}", object.display()))?;
+    } else {
+        run(Command::new(&ca65)
+            .args(CA65_FLAGS)
+            .arg("-I")
+            .arg(&include_r)
+            .arg(&source_r)
+            .arg("-o")
+            .arg(&obj)
+            .current_dir(&root))?;
+        if let (Some(dir), Some(key)) = (cache_dir, &key) {
+            if let Ok(bytes) = std::fs::read(&object) {
+                cache::store(dir, OBJECTS, key, &bytes);
+            }
+        }
+    }
     run(Command::new(&ld65)
         .arg("-C")
         .arg(include_r.join(MEMORY_MAP))
@@ -306,7 +384,7 @@ pub fn assemble(
         rom.display(),
         data.len()
     );
-    Ok(())
+    Ok(from_the_cache)
 }
 
 fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
