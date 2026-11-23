@@ -28,7 +28,6 @@ pub mod materials;
 pub mod objects;
 pub mod panorama;
 pub mod posed;
-pub mod pyfmt;
 pub mod record;
 pub mod request;
 pub mod scene;

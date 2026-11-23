@@ -4,11 +4,6 @@
 //! the item, equipment and shop screens, the battle and its tables, the
 //! troops and their pages, the battle scene, and the tables the console
 //! reads from bank 0.
-//!
-//! What it writes is what the converter's Python wrote until 2026-10-01,
-//! character by character: the long blocks of constants keep their
-//! templates as they were —see [`crate::pyfmt`]— so that nobody has to
-//! read them twice to know they say the same.
 
 use crate::asm::{block, msu_block, unplaced};
 use crate::cgram::{cgram_reserved, PRIORITY_ABOVE, WINDOW_PALETTE};
@@ -18,8 +13,6 @@ use crate::json::{
     at, bytes_at, colors, int, int_at, ints, ints_at, list, list_at, text, text_at, tiles,
 };
 use crate::objects::{LAYER_ABOVE, LAYER_SAME, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE};
-use crate::pyf;
-use crate::pyfmt::{format, Arg};
 use crate::record::{
     self, ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE, ANIM_STRIDE, EV_MAX, EV_STRIDE, FAMILIES,
     FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX,
@@ -43,7 +36,7 @@ mod custom_menu;
 mod debug_screen;
 mod header;
 mod skills_screen;
-use header::HEADER;
+use header::header;
 
 /// What [`emit`] makes.
 pub struct Emitted {
@@ -712,172 +705,6 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         .unwrap_or(0)
         .max(1);
 
-    let mut args: Vec<Arg> = vec![
-        r.maps
-            .iter()
-            .map(|m| format!("{} {}", m.id, m.name))
-            .collect::<Vec<_>>()
-            .join(", ")
-            .into(),
-        r.maps.len().into(),
-        MAP_STRIDE.into(),
-        r.start.into(),
-        VRAM_ABOVE_MAP.into(),
-        MAP_LAYOUT.into(),
-        NPC_STRIDE.into(),
-        NPC_MAX.into(),
-        NPC_STILL.into(),
-        EV_STRIDE.into(),
-        EV_MAX.into(),
-        TWIN_STRIDE.into(),
-        ROUTE_EV_MAX.into(),
-        PAGE_BYTES.into(),
-        TURN_NONE.into(),
-        route_gfx_max.into(),
-        HEADER_LINES.into(),
-        HEADER_AUTO_CLOSE.into(),
-        PAUSE_FRAMES.into(),
-        VAR_REFRESH.into(),
-        VAR_SLOT_MAX.into(),
-        ANIM_ENTRY_BYTES.into(),
-        ANIM_SOUND.into(),
-        ANIM_SCREEN_FLASH.into(),
-        KEY_WAIT.into(),
-        KEY_DIRS.into(),
-        KEY_DECISION.into(),
-        KEY_CANCEL.into(),
-        KEY_START.into(),
-        KEY_VALUE_DECISION.into(),
-        KEY_VALUE_CANCEL.into(),
-        KEY_VALUE_DIR[0].into(),
-        KEY_VALUE_DIR[1].into(),
-        KEY_VALUE_DIR[3].into(),
-        KEY_VALUE_DIR[2].into(),
-        OBJ_SIDE.into(),
-        (4 * GRID).into(),
-        RAIN_DROPS.iter().copied().max().unwrap_or(0).into(),
-        RAIN_DROPS[0].into(),
-        RAIN_DROPS[1].into(),
-        RAIN_DROPS[2].into(),
-        RAIN_LIFE.into(),
-        RAIN_SPAWN.into(),
-        RAIN_SEED.into(),
-        WEATHER_RAIN.into(),
-        WEATHER_SAND.into(),
-        ITEMS_N.into(),
-        ITEM_MAX.into(),
-        variables_n.into(),
-        VAR_ADD.into(),
-        VAR_VARIABLE.into(),
-        VAR_RANDOM.into(),
-        VAR_OTHER.into(),
-        VAR_CHARACTER.into(),
-        CHARACTER_X.into(),
-        CHARACTER_Y.into(),
-        VAR_ACTOR.into(),
-        CELL_Y.into(),
-        CELL_REFRESH.into(),
-        RANDOM_SEED.into(),
-        ENC_SEED.into(),
-        TIMER_SET_VAR.into(),
-        TIMER_SLOT.into(),
-        COND_TIMER.into(),
-        COND_GOLD.into(),
-        COND_ITEM.into(),
-        COND_ACTOR.into(),
-        COND_ACTOR_SKILL.into(),
-        COND_ACTOR_EQUIPMENT.into(),
-        COND_ACTOR_HP.into(),
-        COND_ACTOR_STATE.into(),
-        GOLD_MAX.into(),
-        PAN_LOCK.into(),
-        PAN_UNLOCK.into(),
-        PAN_SHIFT.into(),
-        PAN_RETURN.into(),
-        TIMER_SET.into(),
-        TIMER_START.into(),
-        TIMER_X.into(),
-        TIMER_Y.into(),
-        TIMER_GLYPH_W.into(),
-        (TIMER_GLYPHS - 1).into(),
-        FRAMES_PER_SECOND.into(),
-        TIMER_EXTRA_FRAMES.into(),
-        FLASH_MAX.into(),
-        PARALLEL_MAX.into(),
-        TRIGGER_AUTOSTART.into(),
-        TRIGGER_ACTION.into(),
-        TRIGGER_TOUCH_HERO.into(),
-        TRIGGER_COLLISION.into(),
-        TRIGGER_PARALLEL.into(),
-        FRAMES_PER_CELL.into(),
-        ROUTE_FREQUENCY.into(),
-        ROUTE_WAIT_FRAMES.into(),
-        JUMP_STEP.into(),
-        NEUTRAL_TINT.into(),
-        FADE_RAMP.into(),
-        FADE_TOTAL.into(),
-        FADE_RAMP.into(),
-        FADE_RAMP.into(),
-        BRIGHTNESS_MAX.into(),
-        TRANSITION_MOSAIC.into(),
-        TRANSITION_CUT.into(),
-        LUMA_R.into(),
-        LUMA_G.into(),
-        LUMA_B.into(),
-        switch_bytes(r.switch_top)?.into(),
-        PARTY_MAX.into(),
-        r.party.len().into(),
-        ACTOR_BYTES.into(),
-        ACTOR_COLORS.into(),
-        OBJ_COLORS.into(),
-        LAYER_SAME.into(),
-        (if r.hero_above {
-            OBJ_PRIORITY_ABOVE
-        } else {
-            OBJ_PRIORITY
-        })
-        .into(),
-        LAYER_ABOVE.into(),
-        OBJ_PRIORITY.into(),
-        OBJ_PRIORITY_ABOVE.into(),
-        cgram_reserved(r.window_colors).into(),
-        (WINDOW_PALETTE as usize * COLORS_PER_PALETTE).into(),
-        (bytes_at(window, "tiles")?.len() / 32).into(),
-        t.n("WINDOW_ROWS_INC").into(),
-        t.n("WINDOW_COLS_INC").into(),
-        int_at(window, "base")?.into(),
-        t.n("WINDOW_TEXT_ROW").into(),
-        t.n("WINDOW_TEXT_ROWS").into(),
-        t.n("WINDOW_TEXT_COL").into(),
-        t.n("WINDOW_TEXT_COLS").into(),
-        t.n("MESSAGE_WIDTH").into(),
-        t.n("FONT_HEIGHT").into(),
-        t.n("FONT_WIDTH").into(),
-        int_at(window, "shadow")?.into(),
-        t.n("FONT_PRE_ROWS").into(),
-        t.n("FONT_PRE_CHAR").into(),
-        t.n("CHOICE_INDENT").into(),
-        t.n("MSG_FACE_ROW").into(),
-        t.n("MSG_FACE_COL_LEFT").into(),
-        t.n("MSG_FACE_COL_RIGHT").into(),
-        t.n("MSG_FACE_TEXT_X").into(),
-        t.n("MSG_FACE_RIGHT_X").into(),
-        t.n("WINDOW_ARROW_ROW").into(),
-        t.n("WINDOW_ARROW_COL").into(),
-        t.n("WINDOW_ARROW_CELLS").into(),
-        FAMILIES.len().into(),
-        ANIM_STRIDE.into(),
-        ANIM_FAM_STRIDE.into(),
-        WATER_FRAMES_SLOW.into(),
-        FAMILIES[0].2.into(),
-        WATER_CYCLE.into(),
-        ANIMATED_FRAMES.into(),
-        ANIMATED_STEPS.into(),
-        BYTES_PER_TILE.into(),
-        title.as_ref().map_or(0, |(full, _)| full.tiles).into(),
-        title.as_ref().map_or(8, |(full, _)| full.bpp).into(),
-        MENU_CGRAM.into(),
-    ];
     // Where the slot screen's names go. An answer without it is one from
     // before 2026-10-20, whose names went after the whole bank, up to its
     // tilemap.
@@ -899,61 +726,222 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         None => (0, 0),
         Some(menu) => (list_at(menu, "tiles")?.len(), list_at(menu, "texts")?.len()),
     };
-    args.extend([
-        menu_counts.0.into(),
-        menu_counts.1.into(),
-        SLOT_VRAM.into(),
-        SLOT_MAP.into(),
-        list_at(slots, "rows")?.len().into(),
-        list_at(slots, "tiles")?.len().into(),
-        slots
+    let mut out = format!(
+        header!(),
+        maps = r
+            .maps
+            .iter()
+            .map(|m| format!("{} {}", m.id, m.name))
+            .collect::<Vec<_>>()
+            .join(", "),
+        map_count = r.maps.len(),
+        map_stride = MAP_STRIDE,
+        map_initial = r.start,
+        vram_above_map = VRAM_ABOVE_MAP,
+        map_layout = MAP_LAYOUT,
+        npc_stride = NPC_STRIDE,
+        npc_max = NPC_MAX,
+        npc_still = NPC_STILL,
+        ev_stride = EV_STRIDE,
+        ev_max = EV_MAX,
+        twin_stride = TWIN_STRIDE,
+        route_ev_max = ROUTE_EV_MAX,
+        page_bytes = PAGE_BYTES,
+        turn_none = TURN_NONE,
+        route_gfx_max = route_gfx_max,
+        header_lines = HEADER_LINES,
+        header_autoclose = HEADER_AUTO_CLOSE,
+        pause_frames = PAUSE_FRAMES,
+        var_refresh = VAR_REFRESH,
+        var_slot = VAR_SLOT_MAX,
+        anim_entry = ANIM_ENTRY_BYTES,
+        anim_sound = ANIM_SOUND,
+        anim_flash = ANIM_SCREEN_FLASH,
+        key_wait = KEY_WAIT,
+        key_dirs = KEY_DIRS,
+        key_decision = KEY_DECISION,
+        key_cancel = KEY_CANCEL,
+        key_starts = KEY_START,
+        key_value_decision = KEY_VALUE_DECISION,
+        key_value_cancel = KEY_VALUE_CANCEL,
+        key_value_up = KEY_VALUE_DIR[0],
+        key_value_right = KEY_VALUE_DIR[1],
+        key_value_left = KEY_VALUE_DIR[3],
+        key_value_down = KEY_VALUE_DIR[2],
+        picture_obj_stride = OBJ_SIDE,
+        picture_row_stride = (4 * GRID),
+        rain_drops_max = RAIN_DROPS.iter().copied().max().unwrap_or(0),
+        rain_drops_0 = RAIN_DROPS[0],
+        rain_drops_1 = RAIN_DROPS[1],
+        rain_drops_2 = RAIN_DROPS[2],
+        rain_life = RAIN_LIFE,
+        rain_born = RAIN_SPAWN,
+        rain_seed = RAIN_SEED,
+        weather_rain = WEATHER_RAIN,
+        weather_sand = WEATHER_SAND,
+        items_n = ITEMS_N,
+        item_max = ITEM_MAX,
+        variables_n = variables_n,
+        var_add = VAR_ADD,
+        var_variable = VAR_VARIABLE,
+        var_random = VAR_RANDOM,
+        var_other = VAR_OTHER,
+        var_character = VAR_CHARACTER,
+        character_x = CHARACTER_X,
+        character_y = CHARACTER_Y,
+        var_actor = VAR_ACTOR,
+        cell_y = CELL_Y,
+        cell_refresh = CELL_REFRESH,
+        random_seed = RANDOM_SEED,
+        enc_seed = ENC_SEED,
+        timer_set_var = TIMER_SET_VAR,
+        timer_slot = TIMER_SLOT,
+        cond_timer = COND_TIMER,
+        cond_gold = COND_GOLD,
+        cond_item = COND_ITEM,
+        cond_actor = COND_ACTOR,
+        cond_actor_skill = COND_ACTOR_SKILL,
+        cond_actor_equipment = COND_ACTOR_EQUIPMENT,
+        cond_actor_hp = COND_ACTOR_HP,
+        cond_actor_state = COND_ACTOR_STATE,
+        gold_max = GOLD_MAX,
+        pan_lock = PAN_LOCK,
+        pan_unlock = PAN_UNLOCK,
+        pan_run = PAN_SHIFT,
+        pan_return = PAN_RETURN,
+        timer_set = TIMER_SET,
+        timer_start = TIMER_START,
+        timer_x = TIMER_X,
+        timer_y = TIMER_Y,
+        timer_glyph_w = TIMER_GLYPH_W,
+        timer_two_points = (TIMER_GLYPHS - 1),
+        timer_frames = FRAMES_PER_SECOND,
+        more_timer = TIMER_EXTRA_FRAMES,
+        flash_max = FLASH_MAX,
+        parallel_max = PARALLEL_MAX,
+        trigger_auto = TRIGGER_AUTOSTART,
+        trigger_action = TRIGGER_ACTION,
+        trigger_touches_hero = TRIGGER_TOUCH_HERO,
+        trigger_collision = TRIGGER_COLLISION,
+        trigger_parallel = TRIGGER_PARALLEL,
+        frames_per_cell = FRAMES_PER_CELL,
+        route_frequency = ROUTE_FREQUENCY,
+        route_wait = ROUTE_WAIT_FRAMES,
+        jump_step = JUMP_STEP,
+        tint_neutral = NEUTRAL_TINT,
+        fade_load_tick = FADE_RAMP,
+        fade_total = FADE_TOTAL,
+        fade_ramp = FADE_RAMP,
+        fade_load = FADE_RAMP,
+        brightness_max = BRIGHTNESS_MAX,
+        transition_mosaic = TRANSITION_MOSAIC,
+        transition_cutoff = TRANSITION_CUT,
+        light_r = LUMA_R,
+        light_g = LUMA_G,
+        light_b = LUMA_B,
+        switch_bytes = switch_bytes(r.switch_top)?,
+        party_max = PARTY_MAX,
+        party_initial_n = r.party.len(),
+        actor_bytes = ACTOR_BYTES,
+        actor_colors = ACTOR_COLORS,
+        obj_colors = OBJ_COLORS,
+        hero_layer = LAYER_SAME,
+        hero_priority = (if r.hero_above {
+            OBJ_PRIORITY_ABOVE
+        } else {
+            OBJ_PRIORITY
+        }),
+        layer_above = LAYER_ABOVE,
+        npc_priority = OBJ_PRIORITY,
+        npc_priority_above = OBJ_PRIORITY_ABOVE,
+        cgram_base = cgram_reserved(r.window_colors),
+        window_cgadd = (WINDOW_PALETTE as usize * COLORS_PER_PALETTE),
+        window_tiles = (bytes_at(window, "tiles")?.len() / 32),
+        window_rows_ = t.n("WINDOW_ROWS_INC"),
+        text_window_cols = t.n("WINDOW_COLS_INC"),
+        window_text_base = int_at(window, "base")?,
+        window_text_row = t.n("WINDOW_TEXT_ROW"),
+        window_text_rows = t.n("WINDOW_TEXT_ROWS"),
+        window_text_col = t.n("WINDOW_TEXT_COL"),
+        window_text_cols = t.n("WINDOW_TEXT_COLS"),
+        message_width = t.n("MESSAGE_WIDTH"),
+        font_height = t.n("FONT_HEIGHT"),
+        font_width = t.n("FONT_WIDTH"),
+        font_shadow = int_at(window, "shadow")?,
+        font_pre_rows = t.n("FONT_PRE_ROWS"),
+        font_pre_char = t.n("FONT_PRE_CHAR"),
+        choice_indent = t.n("CHOICE_INDENT"),
+        msg_face_row = t.n("MSG_FACE_ROW"),
+        msg_face_col_left = t.n("MSG_FACE_COL_LEFT"),
+        msg_face_col_right = t.n("MSG_FACE_COL_RIGHT"),
+        msg_face_text_x = t.n("MSG_FACE_TEXT_X"),
+        msg_face_right_x = t.n("MSG_FACE_RIGHT_X"),
+        window_arrow_row = t.n("WINDOW_ARROW_ROW"),
+        window_arrow_col = t.n("WINDOW_ARROW_COL"),
+        window_arrow_cells = t.n("WINDOW_ARROW_CELLS"),
+        anim_families = FAMILIES.len(),
+        anim_stride = ANIM_STRIDE,
+        anim_fam_stride = ANIM_FAM_STRIDE,
+        water_frames = WATER_FRAMES_SLOW,
+        water_drawings = FAMILIES[0].2,
+        water_cycle_n = WATER_CYCLE,
+        animated_frames = ANIMATED_FRAMES,
+        animated_steps = ANIMATED_STEPS,
+        bytes_per_tile = BYTES_PER_TILE,
+        title_tiles = title.as_ref().map_or(0, |(full, _)| full.tiles),
+        title_bpp = title.as_ref().map_or(8, |(full, _)| full.bpp),
+        title_menu_cgram = MENU_CGRAM,
+        title_menu_tiles = menu_counts.0,
+        title_menu_n = menu_counts.1,
+        slot_vram = SLOT_VRAM,
+        slot_map = SLOT_MAP,
+        sram_slots_n = list_at(slots, "rows")?.len(),
+        slot_tiles = list_at(slots, "tiles")?.len(),
+        slot_menu_tiles = slots
             .get("menu_tiles")
             .and_then(Value::as_u64)
-            .map_or(list_at(slots, "tiles")?.len(), |n| n as usize)
-            .into(),
-        slot_names.0.into(),
-        slot_names.1.into(),
-        (t.n("HEADER_Y").div_euclid(cell)).into(),
-        t.n("HEADER_ROWS").into(),
-        (t.n("HEADER_ROWS") * cols).into(),
-        (t.n("SLOT_Y").div_euclid(cell)).into(),
-        (t.n("SLOT_STEP").div_euclid(cell)).into(),
-        t.n("SLOT_ROWS").into(),
-        (t.n("SLOT_ROWS") * cols).into(),
-        (t.n("HEADER_Y").div_euclid(cell) * 32).into(),
-        t.n("FACES_MAX").into(),
-        t.n("FACE_CELLS").into(),
-        t.n("FACE_CELLS").into(),
-        t.n("NAME_COLS").into(),
-        SLOT_TEXT_WIDTH.into(),
-        SLOT_TEXT_LEVEL.into(),
-        slot_text_max.into(),
-        t.n("LEVEL_DIGITS").into(),
-        ((t.n("LEVEL_ROW") - t.n("NAME_ROW")) * 32 + t.n("LEVEL_COL") - t.n("NAME_COL")).into(),
-        ((i64::from(b'0') - t.n("ITEM_FIRST_CHAR")) * 4).into(),
-        (faces
+            .map_or(list_at(slots, "tiles")?.len(), |n| n as usize),
+        slot_names_first = slot_names.0,
+        slot_names_end = slot_names.1,
+        slot_hdr_row = (t.n("HEADER_Y").div_euclid(cell)),
+        slot_hdr_rows = t.n("HEADER_ROWS"),
+        slot_hdr_cells = (t.n("HEADER_ROWS") * cols),
+        slot_row0 = (t.n("SLOT_Y").div_euclid(cell)),
+        slot_jump = (t.n("SLOT_STEP").div_euclid(cell)),
+        slot_rows = t.n("SLOT_ROWS"),
+        slot_cells = (t.n("SLOT_ROWS") * cols),
+        slot_hdr_vram = (t.n("HEADER_Y").div_euclid(cell) * 32),
+        slot_faces_max = t.n("FACES_MAX"),
+        slot_face_cols = t.n("FACE_CELLS"),
+        slot_face_rows = t.n("FACE_CELLS"),
+        slot_name_cols = t.n("NAME_COLS"),
+        slot_text_width = SLOT_TEXT_WIDTH,
+        slot_text_level = SLOT_TEXT_LEVEL,
+        slot_text_max = slot_text_max,
+        slot_level_digits = t.n("LEVEL_DIGITS"),
+        slot_level_ofs =
+            ((t.n("LEVEL_ROW") - t.n("NAME_ROW")) * 32 + t.n("LEVEL_COL") - t.n("NAME_COL")),
+        glyph_digit_0 = ((i64::from(b'0') - t.n("ITEM_FIRST_CHAR")) * 4),
+        slot_actors_n = (faces
             .keys()
             .copied()
             .chain(r.actors.iter().copied())
             .max()
             .unwrap_or(-1)
             .max(-1)
-            + 1)
-        .into(),
-        (list_at(slots, "palettes")?.len() * MENU_CGRAM).into(),
-        MENU_CGRAM.into(),
-    ]);
-    let mut out = format(HEADER, &args);
+            + 1),
+        slot_cgram_n = (list_at(slots, "palettes")?.len() * MENU_CGRAM),
+        title_menu_cgram_again = MENU_CGRAM,
+    );
 
     // Who the cartridge is.
-    out.push_str(&pyf!(
+    out.push_str(&format!(
         "; Who the ROM is, from the project file: the header title and\n\
          ; the signature with which the SRAM says a slot holds a save of\n\
          ; this game.\n\
-         .define ROM_TITLE \"%s\"\n\
-         .define SRAM_MAGIC_TEXT \"%s\"\n\n",
-        format!("{:<21}", r.rom.title),
-        r.rom.sram_signature.clone()
+         .define ROM_TITLE \"{:<21}\"\n\
+         .define SRAM_MAGIC_TEXT \"{}\"\n\n",
+        r.rom.title, r.rom.sram_signature
     ));
     // Only in a cartridge that needs the MSU-1: one that does not gets the
     // same `.inc` as before there was a way to need it.
@@ -976,13 +964,13 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     }
     out.push_str(&per_map.offsets);
     out.push_str("\n\n");
-    out.push_str(&pyf!(
-        "; Whether L and R change the hero's speed: see `hero_speed_keys.s`.\nHERO_SPEED_KEYS = %d\n\n",
-        r.speed_keys
+    out.push_str(&format!(
+        "; Whether L and R change the hero's speed: see `hero_speed_keys.s`.\nHERO_SPEED_KEYS = {}\n\n",
+        u8::from(r.speed_keys)
     ));
-    out.push_str(&pyf!(
-        "; Whether Select walks the hero through everything: see `phasing.s`.\nDEBUG_PHASING = %d\n\n",
-        r.phasing
+    out.push_str(&format!(
+        "; Whether Select walks the hero through everything: see `phasing.s`.\nDEBUG_PHASING = {}\n\n",
+        u8::from(r.phasing)
     ));
     // Only in a cartridge where some `Teleport` asks for a facing: one where
     // none does —every RM2k game's— gets the same `.inc` as before there was
@@ -998,9 +986,9 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     // without gets the same `.inc` as before there was one, and its runtime
     // only the two opcodes' entries in the dispatch. See show_window.s.
     if r.window_slots > 0 {
-        out.push_str(&pyf!(
+        out.push_str(&format!(
             "; The game's ShowWindows: a slot per window id. See show_window.s.\n\
-             SHOW_WINDOW_SLOTS = %d\n\n",
+             SHOW_WINDOW_SLOTS = {}\n\n",
             r.window_slots
         ));
     }
@@ -1014,11 +1002,11 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         );
     }
     // The fade ramp, in bank 0: `fade_tick` reads it with `lda fade_ramp, x`.
-    out.push_str(&pyf!(
+    out.push_str(&format!(
         ".segment \"TABLES\"\n\
          ; The master brightness on each frame of the ramp, from\n\
          ; black to full. Going down it is read backwards.\n\
-         fade_ramp:\n        .byte %s\n\n",
+         fade_ramp:\n        .byte {}\n\n",
         decimal(fade_ramp()).join(",")
     ));
     // The data goes in RODATA, which the linker spreads over the upper
@@ -1205,14 +1193,14 @@ fn window_section(
     line(out, &block("messages", &r.messages));
     // How big it is and how big it can be, for `rm2k-snes-space`: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
-    out.push_str(&pyf!(
-        "MESSAGES_BYTES = %d\nMESSAGES_CAP = %d\n",
+    out.push_str(&format!(
+        "MESSAGES_BYTES = {}\nMESSAGES_CAP = {}\n",
         r.messages.len(),
         0x10000 * MESSAGES_STEP
     ));
     // The pairs its letters are written with, for `message_tick`.
     line(out, &block("message_pairs", &r.message_pairs.table));
-    out.push_str(&pyf!("MESSAGE_PAIR_FIRST = %d\n", r.message_pairs.first));
+    out.push_str(&format!("MESSAGE_PAIR_FIRST = {}\n", r.message_pairs.first));
     message_faces(out, &r.faces)?;
     Ok(())
 }
@@ -1227,10 +1215,10 @@ pub const MESSAGE_FACE_BYTES: usize = 36 * 32 + 15 * 2;
 /// table of long pointers `OP_FACE` indexes, `message_face_ptr`. `faces.rs`
 /// in `rm2k-snes-screens` says what each one holds.
 fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
-    out.push_str(&pyf!(
+    out.push_str(&format!(
         "; The faces of the message window: `MESSAGE_FACES` of `MESSAGE_FACE_BYTES`\n\
          ; each, and a long pointer to each one. See the runtime's message_face.s.\n\
-         MESSAGE_FACES = %d\nMESSAGE_FACE_BYTES = %d\n",
+         MESSAGE_FACES = {}\nMESSAGE_FACE_BYTES = {}\n",
         faces.len(),
         MESSAGE_FACE_BYTES
     ));
@@ -2438,8 +2426,8 @@ fn title_section(out: &mut String, menu: Option<&Value>) -> Result<()> {
 
 fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
     out.push_str("\n; --- the full screens ---\n");
-    out.push_str(&pyf!(
-        "GAME_OVER_TILES = %d\n",
+    out.push_str(&format!(
+        "GAME_OVER_TILES = {}\n",
         r.game_over.as_ref().map_or(0, |g| g.tiles)
     ));
     let mut rows = Vec::new();
@@ -2469,8 +2457,8 @@ fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     out.push_str(&format!(".block {}\nscreens_table:\n", 8 * rows.len()));
     for (_, label, data) in &rows {
-        out.push_str(&pyf!(
-            "    .word .loword(%s)\n    .byte ^%s\n    .word %d, %d\n    .byte %d\n",
+        out.push_str(&format!(
+            "    .word .loword({})\n    .byte ^{}\n    .word {}, {}\n    .byte {}\n",
             *label,
             *label,
             data.tiles * data.bpp * 8,
@@ -2679,9 +2667,9 @@ impl Rest<'_> {
             }
         }
         line(out, &block("ba_win_bars", &records));
-        out.push_str(&pyf!(
-            "BA_WIN_TILES      = %d\nBA_WIN_FIRST      = %d\nBA_WIN_CGRAM      = %d\nBA_WIN_COLORS     = %d\n\
-             BA_WIN_BAND_ROW   = %d\nBA_WIN_BAND_ROWS  = %d\nBA_WIN_HELP_ROWS  = %d\n",
+        out.push_str(&format!(
+            "BA_WIN_TILES      = {}\nBA_WIN_FIRST      = {}\nBA_WIN_CGRAM      = {}\nBA_WIN_COLORS     = {}\n\
+             BA_WIN_BAND_ROW   = {}\nBA_WIN_BAND_ROWS  = {}\nBA_WIN_HELP_ROWS  = {}\n",
             bw_tiles.len(),
             int_at(bw, "first")?,
             int_at(bw, "cgram")?,
@@ -2762,9 +2750,9 @@ impl Rest<'_> {
             .map(|b| b as u8)
             .collect();
         line(out, &block("ti_layer_mode", &modes));
-        out.push_str(&pyf!(
-            "TI_BORDER_VRAM    = $%04X\nTI_BORDER_MAP     = $%04X\nTI_BORDER_TILES   = %d\n\
-             TI_BORDER_COLORS  = %d\nTI_BORDER_UP      = %d\n",
+        out.push_str(&format!(
+            "TI_BORDER_VRAM    = ${:04X}\nTI_BORDER_MAP     = ${:04X}\nTI_BORDER_TILES   = {}\n\
+             TI_BORDER_COLORS  = {}\nTI_BORDER_UP      = {}\n",
             t.n("TI_VRAM"),
             ti_map,
             ti_tiles.len(),
@@ -2874,14 +2862,14 @@ impl Rest<'_> {
         }
         oam.resize(544, 0);
         line(out, &block("ti_party_oam", &oam));
-        out.push_str(&pyf!(
-            "TI_PARTY_ACTORS   = %d\nTI_PARTY_TILE0    = %d\nTI_PARTY_VRAM     = $%04X\n\
-             TI_ARROW_TILE0    = %d\nTI_ARROW_VRAM     = $%04X\nTI_PARTY_MEMBERS  = %d\n\
-             TI_PARTY_X0       = %d\nTI_PARTY_Y0       = %d\nTI_PARTY_STEP     = %d\n\
-             TI_ARROW_DX       = %d\nTI_ARROW_DY       = %d\nTI_PARTY_RATE     = %d\n\
-             TI_FRAME_TILES    = %d\nTI_FRAME_COLS     = %d\nTI_ARROW_FRAMES   = %d\n\
-             TI_ARROW_UP       = %d\nTI_ARROW_SAME     = %d\nTI_ARROW_DOWN     = %d\n\
-             TI_ARROW_EQUIPPED = %d\nTI_LAYER_BUY      = %d\nTI_PARTY_ON       = %d\n",
+        out.push_str(&format!(
+            "TI_PARTY_ACTORS   = {}\nTI_PARTY_TILE0    = {}\nTI_PARTY_VRAM     = ${:04X}\n\
+             TI_ARROW_TILE0    = {}\nTI_ARROW_VRAM     = ${:04X}\nTI_PARTY_MEMBERS  = {}\n\
+             TI_PARTY_X0       = {}\nTI_PARTY_Y0       = {}\nTI_PARTY_STEP     = {}\n\
+             TI_ARROW_DX       = {}\nTI_ARROW_DY       = {}\nTI_PARTY_RATE     = {}\n\
+             TI_FRAME_TILES    = {}\nTI_FRAME_COLS     = {}\nTI_ARROW_FRAMES   = {}\n\
+             TI_ARROW_UP       = {}\nTI_ARROW_SAME     = {}\nTI_ARROW_DOWN     = {}\n\
+             TI_ARROW_EQUIPPED = {}\nTI_LAYER_BUY      = {}\nTI_PARTY_ON       = {}\n",
             n_party_actors,
             party_tile0,
             t.n("TI_VRAM") + party_tile0 * 16,
@@ -2924,9 +2912,9 @@ impl Rest<'_> {
             .map(|b| b as u8)
             .collect();
         line(out, &block("end_ramp", &ramp));
-        out.push_str(&pyf!(
-            "END_TILES   = %d\nEND_ROW0    = %d\nEND_ROWS    = %d\nEND_ENTERS  = %d\nEND_NO      = %d\n\
-             END_FRAMES = %d\nEND_STEP_SONG = %d\n",
+        out.push_str(&format!(
+            "END_TILES   = {}\nEND_ROW0    = {}\nEND_ROWS    = {}\nEND_ENTERS  = {}\nEND_NO      = {}\n\
+             END_FRAMES = {}\nEND_STEP_SONG = {}\n",
             end_tiles.len(),
             int_at(end, "row0")?,
             (end_rows.len() as i64).div_euclid(cols),
@@ -3147,7 +3135,7 @@ impl Rest<'_> {
         for (name, liblcf) in RESULT_TERMS {
             let value = battle_term(&self.r.battle_terms, db, liblcf)?;
             let k = texts.add(&plain(&shown, &value));
-            out.push_str(&pyf!("BA_TXT_%-11s= %d\n", name.to_uppercase(), k));
+            out.push_str(&format!("BA_TXT_{:<11}= {}\n", name.to_uppercase(), k));
         }
         // Each actor's commands, as the battle's model names them —a 2003
         // game's from its battle commands, see `command_names` in
@@ -3283,13 +3271,13 @@ impl Rest<'_> {
         let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS") + custom_n)
             .map(|n| (t.n("MENU_OPT_Y") + n * t.n("MENU_OPT_STEP")).div_euclid(cell))
             .collect();
-        out.push_str(&pyf!(
-            "MENU_OPTIONS      = %d\nMENU_EQUIPMENT    = %d\nMENU_SAVE         = %d\nMENU_END          = %d\n\
-             MENU_BLK_OPTION   = %d\nMENU_BLK_CURRENCY = %d\nMENU_BLK_ROW      = %d\nMENU_OPT_COLS     = %d\n\
-             MENU_CURRENCY_COLS = %d\nMENU_CURRENCY_VRAM = %d\nMENU_ACTOR_COLS   = %d\nMENU_ACTOR_ROWS   = %d\n\
-             MENU_ROWS_PARTY   = %d\nMENU_ACTORS_N     = %d\nMENU_HP_DIGITS    = %d\nMENU_HP_OFS       = %d\n\
-             MENU_FACE_CELLS   = %d\nMENU_NAME_COLS    = %d\nMENU_NAME_OFS = %d\nMENU_LEVEL_OFS    = %d\n\
-             MENU_MAX_DIGITS   = %d\nMENU_MAX_OFS      = %d\n",
+        out.push_str(&format!(
+            "MENU_OPTIONS      = {}\nMENU_EQUIPMENT    = {}\nMENU_SAVE         = {}\nMENU_END          = {}\n\
+             MENU_BLK_OPTION   = {}\nMENU_BLK_CURRENCY = {}\nMENU_BLK_ROW      = {}\nMENU_OPT_COLS     = {}\n\
+             MENU_CURRENCY_COLS = {}\nMENU_CURRENCY_VRAM = {}\nMENU_ACTOR_COLS   = {}\nMENU_ACTOR_ROWS   = {}\n\
+             MENU_ROWS_PARTY   = {}\nMENU_ACTORS_N     = {}\nMENU_HP_DIGITS    = {}\nMENU_HP_OFS       = {}\n\
+             MENU_FACE_CELLS   = {}\nMENU_NAME_COLS    = {}\nMENU_NAME_OFS = {}\nMENU_LEVEL_OFS    = {}\n\
+             MENU_MAX_DIGITS   = {}\nMENU_MAX_OFS      = {}\n",
             t.n("MENU_OPTIONS"),
             t.n("MENU_EQUIPMENT"),
             t.n("MENU_SAVE"),
@@ -3465,12 +3453,9 @@ impl Rest<'_> {
             &block("menu_bar_cells", &words(at(target, "menu_bar")?)?),
         );
         let bar_at = ints_at(target, "menu_bar_at")?;
-        out.push_str(&pyf!(
-            "MENU_BAR_ROW0 = %d\nMENU_BAR_ROWS = %d\nMENU_BAR_COL0 = %d\nMENU_BAR_COLS = %d\n",
-            bar_at[0],
-            bar_at[1],
-            bar_at[2],
-            bar_at[3]
+        out.push_str(&format!(
+            "MENU_BAR_ROW0 = {}\nMENU_BAR_ROWS = {}\nMENU_BAR_COL0 = {}\nMENU_BAR_COLS = {}\n",
+            bar_at[0], bar_at[1], bar_at[2], bar_at[3]
         ));
         // The pause menu's command cursor and the slot cursor, each on its
         // first row and over nothing, like the bar: see `alone` in
@@ -3504,9 +3489,9 @@ impl Rest<'_> {
             all_index.extend(ints(which)?.into_iter().map(|k| k as u8));
         }
         line(out, &block("target_all", &all_index));
-        out.push_str(&pyf!(
-            "TARGET_TERM_ROW0 = %d\nTARGET_TERM_ROWS = %d\nTARGET_TERM_COL0 = %d\nTARGET_TERM_COLS = %d\n\
-             TARGET_ALL_ROW0 = %d\nTARGET_ALL_ROWS = %d\nTARGET_ALL_COL0 = %d\nTARGET_ALL_COLS = %d\n",
+        out.push_str(&format!(
+            "TARGET_TERM_ROW0 = {}\nTARGET_TERM_ROWS = {}\nTARGET_TERM_COL0 = {}\nTARGET_TERM_COLS = {}\n\
+             TARGET_ALL_ROW0 = {}\nTARGET_ALL_ROWS = {}\nTARGET_ALL_COL0 = {}\nTARGET_ALL_COLS = {}\n",
             term_at[0],
             term_at[1],
             term_at[2],
@@ -3557,12 +3542,12 @@ impl Rest<'_> {
             names.push(b' '); // a label over nothing would be no `.block`
         }
         line(out, &block("target_names", &names));
-        out.push_str(&pyf!(
-            "TARGET_VRAM       = $%04X\nTARGET_MAP        = $%04X\nTARGET_TILES      = %d\n\
-             TARGET_CGRAM      = %d\nTARGET_COLORS     = %d\nTARGET_NAME_WIDTH = %d\n\
-             TARGET_NAME_VRAM = %d\nTARGET_COUNT_VRAM = %d\nTARGET_BAR_ROW0 = %d\n\
-             TARGET_BAR_ROWS = %d\nTARGET_BAR_COL0 = %d\nTARGET_BAR_COLS = %d\n\
-             TARGET_ROW_CELLS = %d\n",
+        out.push_str(&format!(
+            "TARGET_VRAM       = ${:04X}\nTARGET_MAP        = ${:04X}\nTARGET_TILES      = {}\n\
+             TARGET_CGRAM      = {}\nTARGET_COLORS     = {}\nTARGET_NAME_WIDTH = {}\n\
+             TARGET_NAME_VRAM = {}\nTARGET_COUNT_VRAM = {}\nTARGET_BAR_ROW0 = {}\n\
+             TARGET_BAR_ROWS = {}\nTARGET_BAR_COL0 = {}\nTARGET_BAR_COLS = {}\n\
+             TARGET_ROW_CELLS = {}\n",
             t.n("TARGET_VRAM"),
             t.n("TARGET_MAP"),
             obj_tiles.len(),
@@ -3577,9 +3562,9 @@ impl Rest<'_> {
             int_at(target, "cols")?,
             t.n("TARGET_ROW_CELLS")
         ));
-        out.push_str(&pyf!(
-            "MENU_EXP_X        = %d\nMENU_EXP_NUM_X    = %d\nMENU_EXP_Y        = %d\nMENU_EXP_STEP     = %d\n\
-             MENU_EXP_DIGITS   = %d\nMENU_EXP_LETTERS  = %d\n",
+        out.push_str(&format!(
+            "MENU_EXP_X        = {}\nMENU_EXP_NUM_X    = {}\nMENU_EXP_Y        = {}\nMENU_EXP_STEP     = {}\n\
+             MENU_EXP_DIGITS   = {}\nMENU_EXP_LETTERS  = {}\n",
             t.n("MENU_EXP_X"),
             t.n("MENU_EXP_X") + t.n("MENU_EXP_NUM_DX") - t.n("GLYPH_DX"),
             t.n("MENU_EXP_Y") - t.n("GLYPH_DY"),
@@ -3591,8 +3576,8 @@ impl Rest<'_> {
         // actor choice where its term goes, counted from a row's first
         // cell like the HP's —on the HP's line, see `TARGET_SP_COL`—. The
         // number follows the term: see `menu_sp_put`.
-        out.push_str(&pyf!(
-            "MENU_SP_LETTERS   = %d\nMENU_SP_TERM_CELLS = %d\nTARGET_SP_TERM_OFS = %d\n",
+        out.push_str(&format!(
+            "MENU_SP_LETTERS   = {}\nMENU_SP_TERM_CELLS = {}\nTARGET_SP_TERM_OFS = {}\n",
             t.n("MENU_SP_LETTERS"),
             t.n("MENU_SP_TERM_CELLS"),
             t.n("MENU_HP_ROW") * 32 + t.n("TARGET_SP_COL") - t.n("TARGET_ACTOR_COL")
@@ -3600,10 +3585,10 @@ impl Rest<'_> {
         // The pause menu's list: three rows of nine cells from the first
         // row's cell, each actor painted there once; and the SP line in
         // cells, counted from the row's first cell like the HP's.
-        out.push_str(&pyf!(
-            "MENU_LIST_ROWS    = %d\nMENU_SHOWN        = %d\nMENU_LIST_HEIGHT  = %d\n\
-             MENU_LIST_VRAM    = %d\nMENU_SP_TERM_OFS  = %d\nMENU_SP_NUM_OFS   = %d\n\
-             MENU_ARROW_X      = %d\nMENU_ARROW_Y      = %d\n",
+        out.push_str(&format!(
+            "MENU_LIST_ROWS    = {}\nMENU_SHOWN        = {}\nMENU_LIST_HEIGHT  = {}\n\
+             MENU_LIST_VRAM    = {}\nMENU_SP_TERM_OFS  = {}\nMENU_SP_NUM_OFS   = {}\n\
+             MENU_ARROW_X      = {}\nMENU_ARROW_Y      = {}\n",
             t.n("MENU_LIST_ROWS"),
             t.n("MENU_SHOWN"),
             t.n("MENU_LIST_ROWS") * cell,
@@ -4178,13 +4163,13 @@ impl Rest<'_> {
         }
         let item = |n: i64| db.item(n as i32).map_err(bad);
         let k_of: HashMap<i64, usize> = items.iter().enumerate().map(|(k, &n)| (n, k)).collect();
-        out.push_str(&pyf!(
-            "ITEMS_ROM         = %d\nITEMS_CGRAM_N     = %d\nITEM_ROWS         = %d\n\
-             ITEM_CURSOR_COL   = %d\nITEM_NAME_COL     = %d\nITEM_DIGITS_COL   = %d\nITEM_LIST_POS     = %d\n\
-             ITEM_FIRST_CHAR = %d\nSCR_TEXT_X        = %d\nSCR_TEXT_Y        = %d\n\
-             ITEM_BORDER_VRAM  = $%04X\nITEM_BORDER_TILES = %d\n\
-             ITEM_BORDER_MAP   = $%04X\nITEM_BORDER_CGRAM = %d\nITEM_BORDER_COLORS = %d\nITEM_BORDER_ROWS  = %d\n\
-             ITEM_BORDER_LIST  = %d\nITEM_TEXT_MORE    = %d\n",
+        out.push_str(&format!(
+            "ITEMS_ROM         = {}\nITEMS_CGRAM_N     = {}\nITEM_ROWS         = {}\n\
+             ITEM_CURSOR_COL   = {}\nITEM_NAME_COL     = {}\nITEM_DIGITS_COL   = {}\nITEM_LIST_POS     = {}\n\
+             ITEM_FIRST_CHAR = {}\nSCR_TEXT_X        = {}\nSCR_TEXT_Y        = {}\n\
+             ITEM_BORDER_VRAM  = ${:04X}\nITEM_BORDER_TILES = {}\n\
+             ITEM_BORDER_MAP   = ${:04X}\nITEM_BORDER_CGRAM = {}\nITEM_BORDER_COLORS = {}\nITEM_BORDER_ROWS  = {}\n\
+             ITEM_BORDER_LIST  = {}\nITEM_TEXT_MORE    = {}\n",
             items.len(),
             t.n("ITEM_UP") * MENU_CGRAM as i64,
             t.n("ITEM_ROWS"),
@@ -4650,13 +4635,13 @@ impl Rest<'_> {
         out.push_str(".segment \"RODATA\"\n");
         words_asm(out, "item_price", &per_item(&|i| i.price.into())?, true);
         out.push_str(".segment \"TABLES\"\n");
-        out.push_str(&pyf!(
-            "TI_TEXT           = %d\nTI_TEXT_HAVE      = %d\nTI_TEXT_CARRIED   = %d\nTI_TEXT_CURRENCY  = %d\n\
-             TI_SECOND         = %d\nTI_MAIN_MSG_POS = %d\nTI_MSG_POS        = %d\nTI_COMMAND_POS0   = %d\n\
-             TI_GOLD_POS       = %d\nTI_HAVE_POS       = %d\nTI_HAVE_NUM       = %d\nTI_CARRIED_POS    = %d\n\
-             TI_CARRIED_NUM    = %d\nTI_LIST_POS0      = %d\nTI_LIST_ROWS_BUY = %d\nTI_LIST_ROWS_SALE = %d\n\
-             TI_NAME           = %d\nTI_PRICE          = %d\nTI_COUNT_POS      = %d\nTI_COUNT_X_POS    = %d\n\
-             TI_COUNT_NUM_POS = %d\nTI_TOTAL_POS      = %d\nTI_RED            = %d\n",
+        out.push_str(&format!(
+            "TI_TEXT           = {}\nTI_TEXT_HAVE      = {}\nTI_TEXT_CARRIED   = {}\nTI_TEXT_CURRENCY  = {}\n\
+             TI_SECOND         = {}\nTI_MAIN_MSG_POS = {}\nTI_MSG_POS        = {}\nTI_COMMAND_POS0   = {}\n\
+             TI_GOLD_POS       = {}\nTI_HAVE_POS       = {}\nTI_HAVE_NUM       = {}\nTI_CARRIED_POS    = {}\n\
+             TI_CARRIED_NUM    = {}\nTI_LIST_POS0      = {}\nTI_LIST_ROWS_BUY = {}\nTI_LIST_ROWS_SALE = {}\n\
+             TI_NAME           = {}\nTI_PRICE          = {}\nTI_COUNT_POS      = {}\nTI_COUNT_X_POS    = {}\n\
+             TI_COUNT_NUM_POS = {}\nTI_TOTAL_POS      = {}\nTI_RED            = {}\n",
             x.shop_text,
             x.owned_text,
             x.carried_text,
@@ -4689,12 +4674,12 @@ impl Rest<'_> {
                 t.n("EQ_SLOT_ROW0")
             )));
         }
-        out.push_str(&pyf!(
-            "ACTORS_N          = %d\nSLOTS_EQUIPMENT   = %d\nEQ_TEXT_PARAM     = %d\nEQ_TEXT_SLOT      = %d\n\
-             EQ_ACTOR_POS      = %d\nEQ_BAR_ROW0       = %d\nEQ_BORDER_TEXT    = %d\nEQ_BORDER_TEXT_N  = %d\n\
-             EQ_PARAM_VALUE    = %d\nEQ_PARAM_ARROW    = %d\nEQ_SLOT_POS0      = %d\nEQ_SLOT_TERM      = %d\n\
-             EQ_SLOT_NAME      = %d\nEQ_SLOT_WIDTH     = %d\nEQ_LIST_POS0      = %d\nEQ_LIST_ROWS      = %d\n\
-             EQ_LIST_NAME      = %d\nSCR_TWO_POINTS    = %d\nSCR_DESC_POS      = %d\n",
+        out.push_str(&format!(
+            "ACTORS_N          = {}\nSLOTS_EQUIPMENT   = {}\nEQ_TEXT_PARAM     = {}\nEQ_TEXT_SLOT      = {}\n\
+             EQ_ACTOR_POS      = {}\nEQ_BAR_ROW0       = {}\nEQ_BORDER_TEXT    = {}\nEQ_BORDER_TEXT_N  = {}\n\
+             EQ_PARAM_VALUE    = {}\nEQ_PARAM_ARROW    = {}\nEQ_SLOT_POS0      = {}\nEQ_SLOT_TERM      = {}\n\
+             EQ_SLOT_NAME      = {}\nEQ_SLOT_WIDTH     = {}\nEQ_LIST_POS0      = {}\nEQ_LIST_ROWS      = {}\n\
+             EQ_LIST_NAME      = {}\nSCR_TWO_POINTS    = {}\nSCR_DESC_POS      = {}\n",
             n_actors,
             EQUIPMENT_SLOTS,
             x.param_text[0],
@@ -5648,11 +5633,11 @@ impl Rest<'_> {
         ] {
             out.push_str(&format!("{name:<17} = {value}\n"));
         }
-        out.push_str(&pyf!(
-            "TROOPS_N          = %d\nBATTLE_SEED       = $%04X\nBA_TXT_BASE       = %d\n\
-             TROOP_PAGE_MAX    = %d\nTPAGE_SWITCH_A    = $%02X\nTPAGE_SWITCH_B    = $%02X\nTPAGE_VARIABLE    = $%02X\n\
-             TPAGE_TURN        = $%02X\nTPAGE_ENEMY       = $%02X\nTPAGE_ACTOR       = $%02X\n\
-             TPAGE_WITH_HEADER = $%02X\nTPAGE_HEADER      = %d\n",
+        out.push_str(&format!(
+            "TROOPS_N          = {}\nBATTLE_SEED       = ${:04X}\nBA_TXT_BASE       = {}\n\
+             TROOP_PAGE_MAX    = {}\nTPAGE_SWITCH_A    = ${:02X}\nTPAGE_SWITCH_B    = ${:02X}\nTPAGE_VARIABLE    = ${:02X}\n\
+             TPAGE_TURN        = ${:02X}\nTPAGE_ENEMY       = ${:02X}\nTPAGE_ACTOR       = ${:02X}\n\
+             TPAGE_WITH_HEADER = ${:02X}\nTPAGE_HEADER      = {}\n",
             used.len(),
             bs.n("BATTLE_SEED"),
             x.battle_text,
@@ -5680,8 +5665,8 @@ impl Rest<'_> {
                 .and_then(Value::as_i64)
                 .unwrap_or(missing)
         };
-        out.push_str(&pyf!(
-            "BA_SONG           = $%02X\nBA_SONG_END       = $%02X\nBA_PACKAGE        = $%04X\n",
+        out.push_str(&format!(
+            "BA_SONG           = ${:02X}\nBA_SONG_END       = ${:02X}\nBA_PACKAGE        = ${:04X}\n",
             get("battle_music", 0xFF),
             get("battle_end_music", 0xFF),
             if audio.is_some() {
@@ -5705,8 +5690,8 @@ impl Rest<'_> {
                 .filter(|l: &Vec<i64>| l.len() == 6)
                 .unwrap_or_else(|| vec![128, 128, 0, 1, 0, 0]);
             let word = |i: usize| level[i] | level[i + 1] << 8;
-            out.push_str(&pyf!(
-                "%-18s= $%04X\n%-18s= $%04X\n%-18s= $%04X\n",
+            out.push_str(&format!(
+                "{:<18}= ${:04X}\n{:<18}= ${:04X}\n{:<18}= ${:04X}\n",
                 format!("{prefix}_GAINS"),
                 word(0),
                 format!("{prefix}_STEP"),
@@ -5724,16 +5709,15 @@ impl Rest<'_> {
             ("escape_se", "BA_SE_FLEE"),
             ("item_se", "BA_SE_ITEM"),
         ] {
-            out.push_str(&pyf!("%-18s= $%04X\n", constant, get(name, 0xFFFF)));
+            out.push_str(&format!("{:<18}= ${:04X}\n", constant, get(name, 0xFFFF)));
         }
-        out.push_str(&pyf!(
-            "BA_TXT_VICTORY2   = %d\nBA_VIC_FINISHED_N = %d\n",
-            x.victory2_text,
-            x.victory_lines
+        out.push_str(&format!(
+            "BA_TXT_VICTORY2   = {}\nBA_VIC_FINISHED_N = {}\n",
+            x.victory2_text, x.victory_lines
         ));
         for (k, (name, _)) in BATTLE_TERMS.iter().enumerate() {
-            out.push_str(&pyf!(
-                "BA_TXT_%-11s= BA_TXT_BASE + %d\n",
+            out.push_str(&format!(
+                "BA_TXT_{:<11}= BA_TXT_BASE + {}\n",
                 name.to_uppercase(),
                 k
             ));
@@ -5742,8 +5726,8 @@ impl Rest<'_> {
         out.push_str(&format!("BA_TXT_DEAD       = {}\n", x.dead_text));
         let commands = list(bs.v("BA_COMMANDS"))?;
         out.push_str(&format!("BA_COMMANDS_N     = {}\n", commands.len()));
-        out.push_str(&pyf!(
-            "BA_ITEM_POS0      = %d\nBA_ITEM_ROWS      = %d\nBA_ITEM_NAME_WIDTH = %d\nBA_ITEM_COUNT_DX  = %d\n",
+        out.push_str(&format!(
+            "BA_ITEM_POS0      = {}\nBA_ITEM_ROWS      = {}\nBA_ITEM_NAME_WIDTH = {}\nBA_ITEM_COUNT_DX  = {}\n",
             pos(bs.n("BA_ITEM_ROW0"), 0),
             bs.n("BA_ITEM_ROWS"),
             bs.n("BA_ITEM_NAME_WIDTH"),
@@ -5763,10 +5747,10 @@ impl Rest<'_> {
             bs.n("BA_COMMAND_DEFEND")
         ));
         out.push_str(&format!("BA_COMMAND_SKILL= {}\n", bs.n("BA_COMMAND_SKILL")));
-        out.push_str(&pyf!(
-            "SKILLS_N          = %d\nBA_SKILL_DESC_POS = %d\nBA_SKILL_POS0     = %d\nBA_SKILL_ROWS     = %d\n\
-             BA_SKILL_COLUMNS  = %d\nBA_SKILL_COLUMN_DX = %d\nBA_SKILL_NAME_DX  = %d\nBA_SKILL_NAME_WIDTH = %d\n\
-             BA_SKILL_DASH_DX  = %d\nBA_SKILL_COST_DX  = %d\nBA_SKILL_COST_DIGITS = %d\n",
+        out.push_str(&format!(
+            "SKILLS_N          = {}\nBA_SKILL_DESC_POS = {}\nBA_SKILL_POS0     = {}\nBA_SKILL_ROWS     = {}\n\
+             BA_SKILL_COLUMNS  = {}\nBA_SKILL_COLUMN_DX = {}\nBA_SKILL_NAME_DX  = {}\nBA_SKILL_NAME_WIDTH = {}\n\
+             BA_SKILL_DASH_DX  = {}\nBA_SKILL_COST_DX  = {}\nBA_SKILL_COST_DIGITS = {}\n",
             x.rom_skills.len(),
             pos(bs.n("BA_SKILL_DESC_ROW"), bs.n("BA_SKILL_DESC_COL")),
             pos(bs.n("BA_SKILL_ROW0"), 0),
