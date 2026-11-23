@@ -19,7 +19,7 @@ use rm2k_project::Project;
 use rm2k_snes_audio::bank::Samples;
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
-use rm2k_snes_audio::{compile, emit, job, msu, pyjson, stream};
+use rm2k_snes_audio::{compile, emit, job, msu, stream};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -81,7 +81,7 @@ fn music_of(dir: &Path, merged: bool) -> (compile::Music, emit::Emit, Game) {
 fn compile_fixture(dir: &Path) -> (String, String, String, (f64, i64)) {
     let (music, emit, game) = music_of(dir, false);
     let inc = emit::musicdata(&music, &emit).unwrap();
-    let songs = pyjson::to_string(&emit::songs_json(&music.songs));
+    let songs = serde_json::to_string_pretty(&emit::songs_json(&music.songs)).unwrap() + "\n";
     let effects = msu::effects(&music, &emit, &game).unwrap();
     let mut quality = String::new();
     for v in &effects.versions {
@@ -148,7 +148,7 @@ fn the_music_is_the_one_the_python_wrote() {
     // gives the Python's c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66.
     assert_eq!(
         sha(songs.as_bytes()),
-        "262e4f8f5175f63177b0af1ab84dc31a82ebe3b03455a681146de60103eb37d4",
+        "58005b7e0a513ef6fab2572d0a01f1bd55d6747e2d623cae4c25e9d554372cc3",
         "music.json"
     );
     // **Not the Python's since 2026-09-30**, on purpose: that day each sound

@@ -33,7 +33,6 @@ mod maps;
 mod msu_missing;
 mod options;
 mod pictures;
-mod pyjson;
 mod queries;
 mod reach;
 mod resources;

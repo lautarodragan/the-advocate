@@ -16,7 +16,6 @@
 
 use rm2k_snes_audio::cartridge::{self, Cartridge, Songs};
 use rm2k_snes_audio::msu::{Effects, PackageEffects, Version};
-use rm2k_snes_audio::pyjson;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -95,16 +94,16 @@ fn the_job_is_the_one_the_python_built() {
     for (name, expected) in [
         (
             "full",
-            "fc543ffcdf37beecf8899e9097ec3dc21236ce3bbdb2402b0b172f4c10ea5e2d",
+            "033859b5d40079a4f282cd90b337e6447f1249d7b56f2e39678d31a5100306b3",
         ),
         (
             "sparse",
-            "5e35cf376546a9a28c7003116f82a49f2c7fae43ab9683f5b9ab5386e747f379",
+            "42ccb681448ebba796b489874d6a942bb347986ae85c17d7a8211f173269409a",
         ),
     ] {
         let plan = cartridge::plan(&cartridge(name)).unwrap();
         assert_eq!(
-            sha(pyjson::to_string(&plan.job).as_bytes()),
+            sha((serde_json::to_string_pretty(&plan.job).unwrap() + "\n").as_bytes()),
             expected,
             "{name}"
         );

@@ -2101,8 +2101,11 @@ pub fn run(options: Options) -> Result<()> {
     // exists because of the suite.
     let uses = scene::patch_uses(&infos, &game)?;
     let uses_path = directory.join("patches").join("uses.json");
-    std::fs::write(&uses_path, crate::pyjson::to_string(&uses))
-        .map_err(|e| crate::fail::io(&uses_path, e))?;
+    std::fs::write(
+        &uses_path,
+        serde_json::to_string_pretty(&uses).expect("uses are JSON") + "\n",
+    )
+    .map_err(|e| crate::fail::io(&uses_path, e))?;
     if !emitted.report.is_empty() {
         println!("material compressed and shared between maps:");
         for line in &emitted.report {
