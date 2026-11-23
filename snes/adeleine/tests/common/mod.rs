@@ -1,8 +1,6 @@
-//! The answers as JSON, the way the hashes of `python.rs` were taken.
-//!
-//! Until 2026-11-23 the `adeleine` executable wrote them, and the Python
-//! version before it: the hashes of `python.rs` are of these bytes, so their
-//! shape is frozen here. A colour is `[r, g, b]`.
+//! The answers as JSON, small enough to read whole in `answers.rs`: the
+//! shape the `adeleine` executable wrote them in until 2026-11-23. A colour
+//! is `[r, g, b]`.
 
 #![allow(dead_code)]
 
