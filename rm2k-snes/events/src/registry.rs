@@ -479,6 +479,12 @@ pub struct Pictures {
     /// whose rest the map carries —see `map_pictures` in
     /// rm2k-snes-convert—, which has to stay where that rest is.
     pub with_map: Vec<u8>,
+    /// And those that go with the map because RM2k shows them where its map
+    /// is: placed by the same variables as a picture under their number
+    /// that goes with the map, on a map RM2k never scrolls —see
+    /// `screen_on_map` in rm2k-snes-convert—. Unlike `with_map`'s they
+    /// move, as RM2k moves a picture that goes with the screen.
+    pub screen_on_map: Vec<u8>,
 }
 
 /// A small picture of a common event compiled without a map: an entry of
@@ -512,6 +518,7 @@ impl Pictures {
             tinted: Vec::new(),
             common: Vec::new(),
             with_map: Vec::new(),
+            screen_on_map: Vec::new(),
         }
     }
 

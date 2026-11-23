@@ -3586,6 +3586,11 @@ fn sound_index(ctx: &mut Ctx, cmd: &Command, sound: Sound, from_route: bool) -> 
 pub const PICTURE_BY_VARIABLE: u8 = 0x01;
 /// And the picture goes with the map.
 pub const PICTURE_MAP_FIXED: u8 = 0x02;
+/// And, with `PICTURE_MAP_FIXED`, it goes with the map only because RM2k
+/// shows it where its map is —see `Pictures::screen_on_map`—: its
+/// `ShowPicture` says the screen, so a `MovePicture` moves it, which RM2k
+/// 2000 does not do to one that goes with the map.
+pub const PICTURE_SCREEN: u8 = 0x04;
 /// `OP_PICTURE_MOVE`'s `mode`: the centre goes to its x and y.
 pub const PICTURE_MOVES: u8 = 0x80;
 
@@ -3754,6 +3759,8 @@ pub fn compile_picture(
         };
         if key.map_fixed || pictures.with_map.contains(&image) {
             mode |= PICTURE_MAP_FIXED;
+        } else if pictures.screen_on_map.contains(&image) {
+            mode |= PICTURE_MAP_FIXED | PICTURE_SCREEN;
         }
         let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
             return Ok(None);
@@ -10622,14 +10629,16 @@ mod tests {
         indices: &Indices,
         commands: &[Command],
     ) -> Vec<u8> {
-        with_pictures_on(table, &[], indices, commands)
+        with_pictures_on(table, &[], &[], indices, commands)
     }
 
-    /// The same, with the pictures of `with_map` going with the map: see
-    /// `Pictures::with_map`.
+    /// The same, with the pictures of `with_map` and of `screen_on_map`
+    /// going with the map: see `Pictures::with_map` and
+    /// `Pictures::screen_on_map`.
     fn with_pictures_on(
         table: &[(PictureKey, u8)],
         with_map: &[u8],
+        screen_on_map: &[u8],
         indices: &Indices,
         commands: &[Command],
     ) -> Vec<u8> {
@@ -10643,6 +10652,7 @@ mod tests {
             tinted: Vec::new(),
             common: Vec::new(),
             with_map: with_map.to_vec(),
+            screen_on_map: screen_on_map.to_vec(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -10911,6 +10921,7 @@ mod tests {
             tinted: Vec::new(),
             common: Vec::new(),
             with_map: Vec::new(),
+            screen_on_map: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -11308,10 +11319,37 @@ mod tests {
         let lit = picture(1, "Introauswahl_2", 0, (160, 120), false, 100, 0);
         let table = [(picture_key(&lit).unwrap(), 0)];
         let alone = with_pictures(&table, &Indices::default(), std::slice::from_ref(&lit));
-        let part = with_pictures_on(&table, &[0], &Indices::default(), &[lit]);
+        let part = with_pictures_on(&table, &[0], &[], &Indices::default(), &[lit]);
         assert_eq!(alone[3], 0);
         assert_eq!(part[3], PICTURE_MAP_FIXED);
         assert_eq!((&alone[..3], &alone[4..]), (&part[..3], &part[4..]));
+    }
+
+    /// Desert Nightmare's hit dog, on map 11: shown by the running dog's
+    /// variables with the screen, where RM2k shows its map —see
+    /// `Pictures::screen_on_map`—, so it goes with the map; and moved, which
+    /// the runtime does to it, unlike to one whose `ShowPicture` says the
+    /// map, because of `PICTURE_SCREEN`.
+    #[test]
+    fn a_screen_picture_where_rm2k_shows_its_map_goes_with_it_and_moves() {
+        let hit = picture(1, "Hund_Animation4", 1, (14, 15), false, 100, 0);
+        let slide = moving_by_variables(1, (14, 15), 0);
+        let table = [(picture_key(&hit).unwrap(), 2)];
+        let mut indices = Indices::default();
+        indices.variables.insert(14, 3);
+        indices.variables.insert(15, 4);
+        let commands = [hit, slide];
+        let alone = with_pictures(&table, &indices, &commands);
+        let on_map = with_pictures_on(&table, &[], &[0], &indices, &commands);
+        assert_eq!(alone[3], PICTURE_BY_VARIABLE);
+        assert_eq!(
+            on_map[3],
+            PICTURE_BY_VARIABLE | PICTURE_MAP_FIXED | PICTURE_SCREEN
+        );
+        // The rest is the same, the move's mode too: it moves.
+        assert_eq!((&alone[..3], &alone[4..]), (&on_map[..3], &on_map[4..]));
+        assert_eq!(alone[12], OP_PICTURE_MOVE);
+        assert_eq!(alone[12 + 7], PICTURE_MOVES | PICTURE_BY_VARIABLE);
     }
 
     #[test]
@@ -12909,6 +12947,7 @@ mod tests {
             tinted: Vec::new(),
             common: Vec::new(),
             with_map: Vec::new(),
+            screen_on_map: Vec::new(),
         };
         let (indices, sound) = (Indices::default(), SoundSettings::default());
         let mut messages = Messages::new(1, Window::columns(39, 4));

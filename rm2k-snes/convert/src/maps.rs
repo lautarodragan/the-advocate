@@ -451,6 +451,14 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
             k["behind_map"] = json!(true);
         }
     }
+    // And the ones with the screen that RM2k shows where its map is, which
+    // go with the map: see [`pictures::screen_on_map`].
+    let on_map = pictures::screen_on_map(&map);
+    for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
+        if pictures::screen_on_map_in(k, &on_map) {
+            k["screen_on_map"] = json!(true);
+        }
+    }
     // And the numbers the map tones, which do not share a palette.
     let tinted: Vec<i64> = scanned
         .get("tinted")

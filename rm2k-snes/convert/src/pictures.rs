@@ -239,9 +239,10 @@ fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
 
 /// Whether the picture of `key` goes with the map: by its `ShowPicture`, or
 /// because it is the part of a drawing the map carries the rest of —see
-/// [`crate::map_pictures::Parts`]—, which the compiler is told too.
+/// [`crate::map_pictures::Parts`]—, or because RM2k shows it where its map
+/// is —see [`screen_on_map`]—, both of which the compiler is told too.
 fn goes_with_map(key: &Value) -> bool {
-    truthy(&key["map_fixed"]) || is_part(key)
+    truthy(&key["map_fixed"]) || is_part(key) || truthy(&key["screen_on_map"])
 }
 
 /// Whether `key` shows only its own part of one of several drawings under
@@ -621,6 +622,64 @@ pub fn shown_in(key: &Value, shown: &BTreeSet<(i64, String)>) -> bool {
     !truthy(&key["by_variable"])
         && !truthy(&key["map_fixed"])
         && shown.contains(&(
+            int(&key["number"]),
+            key["name"].as_str().unwrap_or("").to_lowercase(),
+        ))
+}
+
+/// The pictures `map`'s pages show by variables **with the screen where
+/// RM2k shows its map**, by number and name in lowercase: on a map RM2k
+/// never scrolls —its one screen or less, not looping—, the screen
+/// pictures shown by the same two variables as one under the same number
+/// that goes with the map. A name also shown by other variables with the
+/// screen is not one of them.
+///
+/// The console scales a picture that goes with the screen, four fifths
+/// across, and not one that goes with the map, so the two would land in
+/// different places where RM2k puts them in the same one. Such a one goes
+/// with the map: its image is not scaled, and the compiler gives its
+/// `ShowPicture` `PICTURE_SCREEN` too, which lets it move as a screen
+/// picture does. Desert Nightmare's dog, on map 11, runs as pictures with
+/// the map by its event's screen place, and the hit one is shown at the
+/// same variables with the screen and moved behind the warehouse's roof:
+/// scaled, it landed sixteen pixels to the left, on the sand. Measured
+/// over the eight games on 2026-11-23, it is the only one.
+pub fn screen_on_map(map: &GameMap) -> BTreeSet<(i64, String)> {
+    let one_screen =
+        i64::from(map.width) * 16 <= RM_WIDTH && i64::from(map.height) * 16 <= RM_HEIGHT;
+    if !one_screen || map.scroll_type != 0 {
+        return BTreeSet::new();
+    }
+    let by_variable = || {
+        map.events
+            .iter()
+            .flat_map(|e| &e.pages)
+            .flat_map(|p| &p.commands)
+            .filter(|c| c.code == SHOW_PICTURE && c.parameters.len() >= 5 && c.parameters[1] == 1)
+    };
+    let with_map: BTreeSet<(i32, i32, i32)> = by_variable()
+        .filter(|c| c.parameters[4] != 0)
+        .map(|c| (c.parameters[0], c.parameters[2], c.parameters[3]))
+        .collect();
+    let (mut same, mut other) = (BTreeSet::new(), BTreeSet::new());
+    for c in by_variable().filter(|c| c.parameters[4] == 0) {
+        let p = &c.parameters;
+        let name = (i64::from(p[0]), c.string.to_lowercase());
+        if with_map.contains(&(p[0], p[2], p[3])) {
+            same.insert(name);
+        } else {
+            other.insert(name);
+        }
+    }
+    &same - &other
+}
+
+/// Whether the key, as the scan answers it, is one of `on_map`'s, as
+/// [`screen_on_map`] answers them: placed by variables and with the screen.
+pub fn screen_on_map_in(key: &Value, on_map: &BTreeSet<(i64, String)>) -> bool {
+    truthy(&key["by_variable"])
+        && !truthy(&key["map_fixed"])
+        && on_map.contains(&(
             int(&key["number"]),
             key["name"].as_str().unwrap_or("").to_lowercase(),
         ))
@@ -1296,6 +1355,82 @@ mod tests {
         );
         let key = json!({"number": 20, "name": "QUOTE1", "by_variable": false, "map_fixed": false});
         assert!(shown_in(&key, &found));
+    }
+
+    /// Desert Nightmare's map 11, shrunk: the dog runs as picture 1 with the
+    /// map by variables 14 and 15, and the hit one is shown by the same ones
+    /// with the screen. Another number by other variables, or the map
+    /// bigger than RM2k's screen, or looping, and it is not.
+    #[test]
+    fn a_screen_picture_by_the_variables_of_one_with_the_map_goes_with_it() {
+        use crate::game::{Command, Event, Page};
+        let show = |number: i32, name: &str, vars: (i32, i32), with_map: bool| Command {
+            code: SHOW_PICTURE,
+            indent: 0,
+            string: name.to_string(),
+            parameters: vec![
+                number,
+                1,
+                vars.0,
+                vars.1,
+                i32::from(with_map),
+                100,
+                0,
+                1,
+                100,
+                100,
+                100,
+                100,
+                0,
+                0,
+            ],
+        };
+        let map = |width: i32, scroll_type: i32, commands: Vec<Command>| GameMap {
+            id: 11,
+            chipset_id: 1,
+            width,
+            height: 15,
+            scroll_type,
+            events: vec![Event {
+                id: 80,
+                x: 0,
+                y: 0,
+                pages: vec![Page {
+                    id: 1,
+                    character_name: String::new(),
+                    dump_name: String::new(),
+                    character_index: 0,
+                    direction: 2,
+                    pattern: 1,
+                    layer: 0,
+                    animation_type: 0,
+                    translucent: false,
+                    trigger: 3,
+                    commands,
+                }],
+            }],
+            lower_layer: Vec::new(),
+            upper_layer: Vec::new(),
+            twins: Vec::new(),
+        };
+        let dog = || {
+            vec![
+                show(1, "Hund_Animation1", (14, 15), true),
+                show(1, "Hund_Animation4", (14, 15), false),
+                show(3, "Selector", (14, 15), false),
+                show(1, "Elsewhere", (16, 17), false),
+            ]
+        };
+        let found = screen_on_map(&map(20, 0, dog()));
+        assert_eq!(found, BTreeSet::from([(1, "hund_animation4".to_string())]));
+        let key = json!({"number": 1, "name": "Hund_Animation4", "by_variable": true, "map_fixed": false});
+        assert!(screen_on_map_in(&key, &found));
+        assert!(screen_on_map(&map(21, 0, dog())).is_empty());
+        assert!(screen_on_map(&map(20, 3, dog())).is_empty());
+        // Shown by other variables too, it is not: it would land apart.
+        let mut twice = dog();
+        twice.push(show(1, "Hund_Animation4", (16, 17), false));
+        assert!(screen_on_map(&map(20, 0, twice)).is_empty());
     }
 
     /// Zounds' map 190, shrunk: the frame shown once, still, over the
