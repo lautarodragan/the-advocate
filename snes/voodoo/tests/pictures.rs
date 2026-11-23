@@ -9,10 +9,10 @@
 //! colour 1 of palette 1.
 
 use std::path::PathBuf;
-use std::process::Command;
-use voodoo::convert::Options;
-use voodoo::grid::{Picture, ENTRIES};
-use voodoo::image;
+use voodoo::color::from_cgram_word;
+use voodoo::convert::{Options, COLORS_PER_PALETTE};
+use voodoo::grid::{Picture, CELL, ENTRIES};
+use voodoo::{image, unpack_tile};
 
 /// Every entry gets a colour, so a case only has to care about indices.
 fn every_colour() -> Vec<Option<voodoo::Rgb15>> {
@@ -193,9 +193,10 @@ fn colour_memory_is_the_palette_of_the_picture() {
 }
 
 /// The property the whole design rests on: converting changes bytes and never
-/// pixels, so rendering what came out gives back the same indices.
+/// pixels, so drawing back what came out gives the same indices. Both ends go
+/// through a PNG, as a picture arrives and as one is looked at.
 #[test]
-fn render_gives_back_the_picture_that_went_in() {
+fn drawing_back_what_came_out_gives_the_picture_that_went_in() {
     let dir = scratch("round-trip");
     for bpp in [4usize, 8] {
         let source = picture(24, 16, |x, y| {
@@ -207,7 +208,7 @@ fn render_gives_back_the_picture_that_went_in() {
                 return (8 + (x * 7 + y * 3) % 200) as u8;
             }
             // One palette per cell; the transparent pixels are that
-            // palette's first entry, which is what render writes back.
+            // palette's first entry, which is what drawing back writes.
             let palette = (cx + cy) % 8;
             let color = ((x * 5 + y) % 16) as u8;
             (palette * 16) as u8 + color
@@ -215,35 +216,50 @@ fn render_gives_back_the_picture_that_went_in() {
         let input = dir.join(format!("in{bpp}.png"));
         let output = dir.join(format!("out{bpp}.png"));
         image::write(&input, &source).unwrap();
-        run(&[
-            "convert",
-            input.to_str().unwrap(),
-            "--bpp",
-            &bpp.to_string(),
-            "-o",
-            dir.join("t.bin").to_str().unwrap(),
-            "--palette",
-            dir.join("c.bin").to_str().unwrap(),
-            "--tilemap",
-            dir.join("m.bin").to_str().unwrap(),
-        ]);
-        run(&[
-            "render",
-            dir.join("t.bin").to_str().unwrap(),
-            "--bpp",
-            &bpp.to_string(),
-            "--palette",
-            dir.join("c.bin").to_str().unwrap(),
-            "--tilemap",
-            dir.join("m.bin").to_str().unwrap(),
-            "--columns",
-            "3",
-            "-o",
-            output.to_str().unwrap(),
-        ]);
+        let done = convert(&image::read(&input).unwrap(), bpp).unwrap();
+        image::write(&output, &draw_back(&done, bpp)).unwrap();
         let back = image::read(&output).unwrap();
         assert_eq!(back.pixels, source.pixels, "at {bpp}bpp");
         assert_eq!(back.colors, source.colors, "at {bpp}bpp");
+    }
+}
+
+/// What the PPU draws from the tiles, the tilemap and colour memory: an
+/// indexed picture, colour memory as its palette.
+fn draw_back(done: &voodoo::Converted, bpp: usize) -> Picture {
+    let bytes = bpp * CELL;
+    let (rows, columns) = (done.tilemap.len(), done.tilemap[0].len());
+    let width = columns * CELL;
+    let mut pixels = vec![0u8; width * rows * CELL];
+    for (cy, row) in done.tilemap.iter().enumerate() {
+        for (cx, &cell) in row.iter().enumerate() {
+            let number = (cell & 0x03FF) as usize;
+            let palette = ((cell >> 10) & 0x07) as usize;
+            let indices = unpack_tile(&done.tiles[number * bytes..(number + 1) * bytes], bpp);
+            for y in 0..CELL {
+                for x in 0..CELL {
+                    let sy = if cell & 0x8000 != 0 { CELL - 1 - y } else { y };
+                    let sx = if cell & 0x4000 != 0 { CELL - 1 - x } else { x };
+                    let mut value = indices[sy][sx] as usize;
+                    if bpp == 4 {
+                        // A 4-bit index counts inside its own sixteen.
+                        value += palette * COLORS_PER_PALETTE;
+                    }
+                    pixels[(cy * CELL + y) * width + cx * CELL + x] = value as u8;
+                }
+            }
+        }
+    }
+    let colors = done
+        .cgram
+        .chunks_exact(2)
+        .map(|w| Some(from_cgram_word(u16::from_le_bytes([w[0], w[1]]))))
+        .collect();
+    Picture {
+        width,
+        height: rows * CELL,
+        pixels,
+        colors,
     }
 }
 
@@ -270,18 +286,6 @@ fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("voodoo-test-{}-{name}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
-}
-
-fn run(args: &[&str]) {
-    let status = Command::new(env!("CARGO_BIN_EXE_voodoo"))
-        .args(args)
-        .output()
-        .unwrap();
-    assert!(
-        status.status.success(),
-        "voodoo {args:?}: {}",
-        String::from_utf8_lossy(&status.stderr)
-    );
 }
 
 // --- animations -------------------------------------------------------------

@@ -8,12 +8,7 @@ description = "Turns an indexed picture into 8x8 tiles, a tilemap and colour mem
 name = "voodoo"
 path = "src/lib.rs"
 
-[[bin]]
-name = "voodoo"
-path = "src/main.rs"
-
 [dependencies]
-clap = { version = "4", features = ["derive"] }
 png = "0.17"
 
 [dev-dependencies]

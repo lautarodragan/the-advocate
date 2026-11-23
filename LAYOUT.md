@@ -31,15 +31,16 @@ in English and without a single mention of this game (see AGENTS.md). They
 have layers of their own, one folder each:
 
     snes/        the console's formats, knowing nothing of RPG Maker
-      adeleine/  Adeleine: which colors a picture loses and how the ones
-                 left are grouped into palettes
+      adeleine/  Adeleine, a library: which colors a picture loses and how
+                 the ones left are grouped into palettes
       fxpak/     talks usb2snes to an FX Pak over its USB serial port:
                  its memory, its SD card, booting a ROM
-      gunter/    Gunter: BRR codec and SoundFont reader
+      gunter/    Gunter, a library: BRR codec and SoundFont reader
       goombario/ Goombario: static checks for 65816 code built with ca65
                  and ld65, for what assembles fine and is wrong
-      voodoo/    Voodoo: from an image to tiles, palettes and tilemap
-      lz2/       Nintendo's LC_LZ2, with an optimal parser
+      voodoo/    Voodoo, a library: from an image to tiles, palettes and
+                 tilemap
+      lz2/       a library: Nintendo's LC_LZ2, with an optimal parser
 
     rm2k/        RPG Maker 2000's, knowing nothing of the console
       ditto/     reads and writes its formats; and as a library, the one
@@ -53,9 +54,10 @@ have layers of their own, one folder each:
                  characters and a legend of the tiles each one stands for—
                  made into the `.tiles` of a dump; the test game's maps are
                  written that way
-      rm2k-render/  a map's tile layers, its CharSets, what its battles are
-                 drawn with —animation cells, backdrops, enemies—, and the
-                 faces, windows and pictures of the screens, as pictures
+      rm2k-render/  a library: a map's tile layers, its CharSets, what its
+                 battles are drawn with —animation cells, backdrops,
+                 enemies—, and the faces, windows and pictures of the
+                 screens, as pictures, the way RM2k draws them
 
     rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
       project/   `rm2k-project`, the library: which game, its settings, the
@@ -126,6 +128,25 @@ have layers of their own, one folder each:
                  the game's tests how it asks: `scan`, `compile`,
                  `leaders`, `map-context`, `boxes`
 
+**A few of them are commands, and the rest are libraries under them.**
+The commands a person runs, from a game's recipes or by hand:
+`rm2k-snes-cartridges`, `rm2k-snes-space`, `rm2k-snes-patches`,
+`rm2k-snes-project`, `ditto`, `rm2k-snes-events` (its `culprits`),
+`rm2k-snes-volume-ceilings`, `goombario`, `fxpak` and `rm2k-sketch`. The
+commands the pipeline runs: `rm2k-snes-convert`, which
+`rm2k-snes-cartridges` runs, and its stages —`wally`, `rm2k-snes-events`,
+`rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
+`rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—; and
+`rm2k-snes-assemble` and `rm2k-snes-msu`, which `rm2k-snes-cartridges` runs
+after it. Each stage is a process on purpose: the conversion cache keys
+every answer by the binary that gave it (`key` in `convert/src/stage.rs`),
+so a stage that changes expires its own answers and nobody else's. Everything
+else is a library, compiled into the commands that use it: Adeleine, Voodoo,
+LZ2, Gunter, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
+`rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto's reader. Until 2026-11-23
+Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when
+the converter was Python and could only reach Rust through a process.
+
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
 can go on its own, to a game that is not for the console or a console game
@@ -140,13 +161,15 @@ build profiles are the workspace's too, because Cargo ignores a member's;
 `ditto` keeps optimizing for size there. They are still
 separate projects, installed and tested one by one:
 
-    just install lz2    one, with `cargo install --locked
+    just install wally    one, with `cargo install --locked
                                           --path`, from the workspace's lock
-    just crate-test lz2 one project's tests
-    just rust-test      all of them, `cargo test --workspace`
+    just crate-test lz2   one project's tests
+    just rust-test        all of them, `cargo test --workspace`
 
-They are used from the PATH: nothing here builds them or looks for them in
-`target/`.
+Installing a library installs nothing: it goes into the commands that are
+compiled with it, so a change to one is installed by reinstalling those.
+The commands are used from the PATH: nothing here builds them or looks for
+them in `target/`.
 
 ## The test game
 

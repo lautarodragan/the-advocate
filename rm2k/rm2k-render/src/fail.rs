@@ -1,9 +1,8 @@
 //! What goes wrong, and which of the two kinds of wrong it is.
 //!
-//! "The map names a ChipSet nobody has" is this tool answering no about its
-//! input; "`--out` is missing" is the call being wrong. A script wants to
-//! tell those apart without reading the message, so they get different exit
-//! codes.
+//! "That layer has the wrong number of tiles" is this library answering no
+//! about its input; "that file cannot be read" is the call being wrong. A
+//! caller wants to tell those apart without reading the message.
 
 use std::fmt;
 

@@ -6,31 +6,32 @@ what is seen. The other half, cutting tiles and writing colour memory, is
 Voodoo's, and Voodoo never touches a pixel. To tell which side something
 belongs to, ask whether it changes a pixel.
 
-    adeleine merge  --request counts.json --out answer/
-    adeleine pack   --request tiles.json  --out answer/
-    adeleine reduce --request both.json   --out answer/
+    let merged = adeleine::merge_least_visible(&counts, 15)?;
+    let palettes = adeleine::try_pack(&tiles, 8, USABLE_COLORS);
+    let reduced = adeleine::reduce_colors(&counts, &tiles, 8, USABLE_COLORS)?;
 
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-the shape of its request and its answer.
+A library, and `cargo test` tests it. It is not a command: the stages that
+bring a picture down to the console's palettes —the maps, the screens, the
+pictures— call it in their own process.
 
 Nothing here knows what the pictures are of. A colour is three channels. A
 tile is the set of colours it draws with. A palette has sixteen entries, and
-the first one is transparent, so a tile gets fifteen unless the request says
+the first one is transparent, so a tile gets fifteen unless the caller says
 otherwise.
 
 ## The three questions
 
-* **`merge`**: bring these colours down to N. It is for a sprite, a face or a
+* **`merge_least_visible`**: bring these colours down to N. It is for a sprite, a face or a
   backdrop, where every pixel can use every colour.
-* **`pack`**: split these tiles' colours into at most N palettes, so that
-  each tile draws with one. Nothing is merged. The answer is `null` if they
-  do not fit.
-* **`reduce`**: group nearby tiles into N palettes and choose the colours of
-  each palette. This is `pack` for a picture that does not fit as it is. The
+* **`try_pack`**: split these tiles' colours into at most N palettes, so
+  that each tile draws with one. Nothing is merged. The answer is none if
+  they do not fit.
+* **`reduce_colors`**: group nearby tiles into N palettes and choose the
+  colours of each palette. This is `try_pack` for a picture that does not fit as it is. The
   real limit is how the colours are spread, not how many there are: a tile
   with 14 colours asks one palette to represent all 14.
 
-## How `merge` merges
+## How `merge_least_visible` merges
 
 It merges the pair that **shows the least**, one pair at a time. Sending
 colour `a` to colour `b` costs `pixels(a) × distance(a, b)`, which is the
@@ -48,7 +49,7 @@ It never invents a colour: the one that stays was already in the picture. It
 is also deterministic. The costs are integers, and every tie is broken by the
 colour, red first.
 
-## How `reduce` groups
+## How `reduce_colors` groups
 
 Tiles start in groups by their pixel-weighted mean colour, with far-apart
 means chosen first. Each group then fills its palette greedily with the colour
@@ -58,13 +59,12 @@ them best. A source colour may therefore go to different targets in different
 palettes. The answer gives every tile's palette and local mapping.
 
 It uses only colours from the picture, integer costs and sorted tie breaks, so
-it invents no colour and is deterministic. If `pack` already succeeds,
-`reduce` returns exactly those palettes and changes no pixel.
+it invents no colour and is deterministic. If `try_pack` already succeeds,
+`reduce_colors` returns exactly those palettes and changes no pixel.
 
 ## Keeping the most used
 
-The library has a blunter way down to N colours, `keep_most_used`, with no
-subcommand: keep the colours that cover the most pixels, and send each of
+There is a blunter way down to N colours, `keep_most_used`: keep the colours that cover the most pixels, and send each of
 the others to its nearest neighbour among them —plain Euclidean distance,
 ties broken by the colour—. One colour the caller names goes first whether
 the picture has it or not, which is how a picture keeps the colour a
@@ -75,7 +75,7 @@ picture's reducer changes its pixels.
 
 ## Fewer tiles
 
-`group_tiles`, in the library and with no subcommand: for a picture with
+`group_tiles`: for a picture with
 more distinct 8x8 tiles than video memory holds, which tile draws each one
 so that at most N are left. A k-means over the tiles averaged two by two,
 each group drawn by its medoid, seeded without chance: see `tiles.rs`. It
@@ -89,23 +89,25 @@ Tiles with the same number of colours are taken in the order of their
 colours. The answer depends only on which tiles there are, never on the
 order they were handed in.
 
-## Exit codes
+## Two kinds of no
 
-`1` when the answer is no: the colours cannot be merged far enough. `2` when
-the call is wrong. The message goes to standard error.
+`Bad::Answer` when the answer is no: the colours cannot be merged far
+enough. `Bad::Usage` when the call is wrong: a colour given twice.
 
 ## Tests
 
 `tests/python.rs` builds its colours and tiles with a small generator and
-hashes the answers. The unchanged operations retain the hashes of the Python
+hashes the answers, written as JSON the way `tests/common/` writes them
+—the way the command line Adeleine had until 2026-11-23 wrote them—.
+`tests/answers.rs` has three answers small enough to read whole. The unchanged operations retain the hashes of the Python
 version they replaced; reduction has its own hashes because it deliberately
 chooses different pixels. They need no picture.
 
 `tests/superfamiconv.rs` uses [SuperFamiconv](https://github.com/Optiroc/SuperFamiconv)
-as a referee for `pack`. It builds pictures from seeds, gives each one to
+as a referee for `try_pack`. It builds pictures from seeds, gives each one to
 both packers and fails when SuperFamiconv's `palette`, without `-Q`, needs
-fewer palettes. That includes fitting a picture whose `pack` answer is
-`null`. Without `-Q` SuperFamiconv keeps every colour, so the result with
+fewer palettes. That includes fitting a picture `try_pack` answers none
+for. Without `-Q` SuperFamiconv keeps every colour, so the result with
 fewer palettes is better, and the test checks that claim before using the
 answer. Seeds where SuperFamiconv already wins are listed in `KNOWN`, grouped
 by reason. Without `superfamiconv` on the PATH the test is skipped, which is

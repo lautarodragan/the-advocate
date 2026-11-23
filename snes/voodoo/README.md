@@ -1,18 +1,17 @@
 # Voodoo: an indexed picture into tiles
 
-Voodoo is the tool; **tiles, tilemaps and colour memory are the formats it
+Voodoo is the library; **tiles, tilemaps and colour memory are the formats it
 writes**, the ones a planar PPU reads. Those names stay wherever they name the
-format — an 8x8 tile, a tilemap entry, bits per pixel — and `voodoo` is what
-you type.
+format — an 8x8 tile, a tilemap entry, bits per pixel — and `voodoo` is the
+crate.
 
-    voodoo convert town.png --bpp 4 -o town.4bpp --palette town.cgram --tilemap town.map
-    voodoo convert sky.png  --bpp 8 -o sky.8bpp --palette sky.cgram --tilemap sky.map
-    voodoo render town.4bpp --palette town.cgram --tilemap town.map --columns 40 -o back.png
+    let picture = voodoo::image::read(Path::new("town.png"))?;
+    let done = voodoo::convert(&picture, &[], &Options::at(4))?;
+    // done.tiles, done.tilemap, done.cgram, done.report
 
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints the
-rules below.
-
-An indexed picture in; tiles, a tilemap and colour memory out.
+An indexed picture in; tiles, a tilemap and colour memory out. It is a library
+and not a command: the stages that cut tiles —the maps, the screens, the
+pictures— call it in their own process. `cargo test` tests it.
 
 **This tool makes no decision anyone could see.** The picture arrives with its
 palettes already chosen — which colours survive, how they are grouped, where
@@ -20,7 +19,7 @@ each group sits in colour memory — because those are choices about what the
 picture looks like, and they belong to whoever made it. What is left is
 bookkeeping that changes bytes and never pixels: cutting the cells, numbering
 the distinct ones, reusing a mirrored one. That is a property, not a hope:
-`render` gives back exactly the indices `convert` was given.
+drawing back what `convert` wrote gives exactly the indices it was given.
 
 A picture the format cannot hold is refused, never repaired. Repairing it would
 be choosing what to lose.
@@ -71,11 +70,10 @@ count as a second palette.
 
 ## Saying no is most of the job
 
-    $ voodoo convert busy.png --bpp 4
-    error: the cell at column 12, row 3 draws with palettes 1 and 2, and a
+    the cell at column 12, row 3 draws with palettes 1 and 2, and a
     tilemap entry names one palette per cell
 
-The message names the cell, because the thing a caller does next is fix that
+That is a `Bad::Answer`, and the message names the cell, because the thing a caller does next is fix that
 cell. The other refusals: a palette a tilemap cannot name, an entry the
 picture's palette has no colour for, and more distinct tiles than a tilemap
 entry can number.
@@ -88,17 +86,15 @@ already placed before a new one is added, and tiles are numbered in the order
 their first cell is met, row-major. At 4bpp the match also has to be in the
 same palette, because an index only means a colour inside one.
 
-Tile 0 is kept for the empty cell unless `--no-blank-tile` says otherwise:
+Tile 0 is kept for the empty cell unless `Options::blank_tile` says otherwise:
 whatever a tilemap points at before anybody writes it is tile 0, so it is
 usually worth one tile to have that be the empty one. An empty cell is written
-as a plain 0 — its priority and palette would say nothing — and `--priority`
-goes on the cells that draw.
+as a plain 0 — its priority and palette would say nothing — and
+`Options::priority` goes on the cells that draw.
 
 ## Animations
 
-    voodoo convert map.png --bpp 8 -o map.8bpp --tilemap map.map --palette map.cgram \
-        --animation water1.png,water2.png --animation-out water.bin \
-        --animation flag1.png,flag2.png,flag3.png --animation-out flag.bin
+    voodoo::convert(&map, &[vec![water1, water2], vec![flag1, flag2, flag3]], &options)
 
 An animation is **the frames other than the picture itself**: the picture is
 every animation's first frame. A cell that differs from it in some frame
@@ -108,8 +104,8 @@ that cell move too.
 
 Still cells are numbered first, then each animation's cells in one contiguous
 run, in the order the animations were given, so that a step is one upload of
-`count` tiles at `first`. `--animation-out` writes that run as every frame draws
-it, the picture first, back to back. A cell that moves with two animations
+`count` tiles at `first`. Each animation in the answer carries that run as every
+frame draws it, the picture first. A cell that moves with two animations
 would need every combination of their frames, and is refused.
 
 A mirrored match has to hold in every frame at once: the hardware flips the
@@ -120,30 +116,26 @@ some of them draw with** — otherwise they cannot be shown together, and saying
 which entry is better than picking one. Where nobody draws, the picture's own
 copy is what comes out.
 
-## Exit codes
+## Two kinds of no
 
-    0   done
-    1   the answer is no
-    2   the call was wrong
-
-**1** is this tool working correctly and saying no: the picture breaks the
-format, or needs more than 1024 distinct tiles. **2** is a broken call: a file
-that is not an indexed PNG, a tilemap that does not divide into rows. A script
-should not have to read the message to tell those apart.
+`Bad::Answer` is this library working correctly and saying no: the picture
+breaks the format, or needs more than 1024 distinct tiles. `Bad::Usage` is a
+broken call: a file that is not an indexed PNG, frames of another size. A
+caller should not have to read the message to tell those apart.
 
 ## Testing
 
 `cargo test` needs nothing: the pictures are built inside the tests, and half
 the cases are the refusals, because a tool whose refusals are vague is one
 people work around instead of reading. The one the design rests on converts a
-picture and renders it back, at both depths, and asks for the same indices.
+picture and draws it back, at both depths, and asks for the same indices.
 
 ## What is deliberately not here
 
 * **Choosing colours.** Merging, grouping colours into palettes, deciding which
   palette a layer starts at: that is deciding what the picture looks like, and
-  it happens before this tool runs. This tool used to do it, with a `--merge`
-  flag; it was taken out so that there is exactly one answer to "which colour
+  it happens before this library is called. It used to do it, with a `--merge`
+  flag on its old command line; it was taken out so that there is exactly one answer to "which colour
   was given up", and it is not here.
 * **Anything that knows what the picture is of.** Sprite sheets, animation
   strips, autotiles, fonts: those are all somebody's file format, and this is
