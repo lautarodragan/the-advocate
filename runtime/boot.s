@@ -869,9 +869,9 @@ anim_continues:
     stz BG1HOFS                 ; the scroll takes two writes, low byte
     stz BG1HOFS                 ; and high byte
     ; The PPU shows line vofs+1 on the first visible scanline, not vofs. With
-    ; 0 the map ends up shifted one line up; with -1 it falls in place. The
-    ; pixel-by-pixel comparison against the Python render uncovered it: by eye
-    ; the two images looked identical.
+    ; 0 the map ends up shifted one line up; with -1 it falls in place. A
+    ; pixel-by-pixel comparison uncovered it: by eye the two images looked
+    ; identical.
     lda #$FF
     sta BG1VOFS
     sta BG1VOFS

@@ -21,7 +21,7 @@ pub type Colors = BTreeSet<Color>;
 /// growth, the group whose union ends smallest, and then the first.
 ///
 /// Until 2026-11-22 the comment said that and the code compared only the
-/// size of the union, since the first Python version: a tile that fitted
+/// size of the union, since the first version: a tile that fitted
 /// whole in a big group went to a small one where it added colours,
 /// closer to worst fit than to best. Growth first needs fewer palettes in
 /// most of the pictures of `tests/superfamiconv.rs`, and the tie-break on
@@ -31,10 +31,7 @@ pub type Colors = BTreeSet<Color>;
 ///
 /// Tiles with the same number of colours go **in the order of their
 /// colours**, so what comes out depends on which tiles there are and not on
-/// the order they were handed in. The Python this replaced used to take them
-/// in the order of a Python `set`, which is the order of CPython's hashes and
-/// nothing another language can reproduce; it moved to this order first, on
-/// its own.
+/// the order they were handed in.
 ///
 /// A tile with more colours than a palette holds fits in none, so it is
 /// `None` too, and `reduce_colors` merges until it fits. Until 2026-10-05 it
