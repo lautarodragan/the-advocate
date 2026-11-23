@@ -160,3 +160,84 @@ fn the_object_key_is_what_ca65_reads_not_where() {
         object_key(&ca65, &runtime.join("main.s"), &build).unwrap()
     );
 }
+
+/// An object from the cache names, in its debug info, the files of the
+/// build that assembled it first: the generated ones by their absolute path
+/// in that build's directory, and every one with that build's dates. `ld65`
+/// passes that on to the `.dbg`, where a debugger looks for the sources. So
+/// the `.dbg` of a build served from the cache has to be the one `ca65`
+/// itself would have given in this build.
+#[test]
+fn a_cached_object_gives_the_dbg_a_fresh_one_gives() {
+    use cartridge::assemble::which;
+    if which("ca65").is_none() || which("ld65").is_none() {
+        eprintln!("skipped: ca65 and ld65 are not on the PATH");
+        return;
+    }
+    let dir = scratch("cached_dbg");
+    let cache = dir.join("cache");
+    let mut dbgs = Vec::new();
+    // Two worktrees, each with its tools' checkout and its game's build,
+    // the first one with older files: other paths, other dates. The second
+    // assembles twice, from the cache and without it.
+    for (side, cached) in [("one", true), ("two", true), ("two", false)] {
+        let root = dir.join(side).join("tools");
+        let runtime = root.join("runtime");
+        let build = dir.join(side).join("game").join("build");
+        if !runtime.exists() {
+            fs::create_dir_all(&runtime).unwrap();
+            fs::create_dir_all(&build).unwrap();
+            fs::write(
+                runtime.join("main.s"),
+                ".p816\n.include \"mapdata.inc\"\n.include \"rest.s\"\n",
+            )
+            .unwrap();
+            // The header carries the checksum's placeholders, which the build
+            // checks.
+            fs::write(
+                runtime.join("rest.s"),
+                ".segment \"CODE\"\n  rts\n\
+                 .segment \"HEADER\"\n  .res 28\n  .word $FFFF\n  .word $0000\n",
+            )
+            .unwrap();
+            fs::write(build.join("mapdata.inc"), ".segment \"CODE\"\n  nop\n").unwrap();
+            if side == "one" {
+                let old = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+                for file in [
+                    runtime.join("main.s"),
+                    runtime.join("rest.s"),
+                    build.join("mapdata.inc"),
+                ] {
+                    let file = fs::File::options().write(true).open(file).unwrap();
+                    file.set_modified(old).unwrap();
+                }
+            }
+        }
+        let hit = assemble(
+            &runtime.join("main.s"),
+            &build,
+            &build.join("game.sfc"),
+            None,
+            &root,
+            cached.then_some(cache.as_path()),
+        )
+        .unwrap();
+        assert_eq!(hit, side == "two" && cached, "{side}");
+        dbgs.push(fs::read_to_string(build.join("game.sfc.dbg")).unwrap());
+    }
+    let files = |dbg: &str| -> Vec<String> {
+        dbg.lines()
+            .filter(|l| l.starts_with("file\t"))
+            .map(String::from)
+            .collect()
+    };
+    assert!(
+        files(&dbgs[2])
+            .iter()
+            .any(|l| l.contains("name=\"runtime/rest.s\"")),
+        "the test is not looking at the runtime: {}",
+        dbgs[2]
+    );
+    assert_eq!(files(&dbgs[1]), files(&dbgs[2]));
+    assert_eq!(dbgs[1], dbgs[2]);
+}
