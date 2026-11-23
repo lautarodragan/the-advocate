@@ -26,7 +26,7 @@ source, and `tests/pty.rs` runs the client against a fake FX Pak on a
 pseudo-terminal that answers —and hangs— as the firmware does. The test in
 `tests/hardware.rs` runs against a real one when `FXPAK_DEVICE` names its
 port, and is skipped otherwise; it boots and resets nothing, and writes one
-file under `/advocate/fxpak-test/`.
+file under `/advocate/tmp/fxpak-test/`.
 
 ## Where the protocol comes from
 

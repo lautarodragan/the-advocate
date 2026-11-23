@@ -3,7 +3,7 @@
 //!
 //! It boots nothing and resets nothing: someone may be playing. It reads
 //! INFO, the memory, `/advocate`, and writes one small file under
-//! `/advocate/fxpak-test/`, which it reads back. One test, so that its
+//! `/advocate/tmp/fxpak-test/`, which it reads back. One test, so that its
 //! steps do not race for the port.
 
 use std::path::PathBuf;
@@ -34,7 +34,7 @@ fn a_real_fx_pak_answers_and_keeps_a_file() {
         "two reads of the ROM's copy differ"
     );
 
-    let dir = SdPath::parse("/advocate/fxpak-test").unwrap();
+    let dir = SdPath::parse("/advocate/tmp/fxpak-test").unwrap();
     c.mkdir(&dir).unwrap();
     let file = dir.join("round-trip.bin").unwrap();
     let data: Vec<u8> = (0..1500u32)
