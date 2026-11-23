@@ -256,3 +256,101 @@ fn the_escape_tail_is_the_compilers() {
         }
     }
 }
+
+const WORDS: [&str; 24] = [
+    "the",
+    "Link",
+    "Colony",
+    "is",
+    "connected",
+    "to",
+    "Block.",
+    "Sector",
+    "33.",
+    "Well,",
+    "maybe...",
+    "\"Odile.\"",
+    "surprise!",
+    "why?",
+    "(really)",
+    "no-one",
+    "a",
+    "an",
+    "electromagnetic",
+    "supercalifragilisticexpialidocious",
+    "Remember,",
+    "it's",
+    "I",
+    "go",
+];
+
+fn made_up_boxes() -> Vec<Vec<String>> {
+    let mut seed: u64 = 12345;
+    let mut out = Vec::new();
+    for n in 0..300usize {
+        let mut lines = Vec::new();
+        if n % 3 == 0 {
+            lines.push(["ODILE", "?????", "DOCK OFFICER", "WHAT?"][n % 4].to_string());
+        }
+        for _ in 0..1 + n % 5 {
+            let mut words = Vec::new();
+            for _ in 0..2 + n % 9 {
+                seed = (seed * 1_103_515_245 + 12345) % 2_147_483_648;
+                words.push(WORDS[(seed >> 16) as usize % WORDS.len()]);
+            }
+            lines.push(words.join(" "));
+        }
+        if n % 7 == 0 {
+            let last = lines.last_mut().unwrap();
+            last.push_str(if n % 2 == 1 { "\\|\\^" } else { " \\|" });
+        }
+        out.push(lines);
+    }
+    out
+}
+
+/// Three hundred boxes of words a linear congruence picks —with speakers,
+/// quotes, numbers after a name, a word almost as wide as the window,
+/// escape tails—: every box the reflow gives fits, is left alone if
+/// reflowed again, and keeps the words, the speaker and the tail.
+///
+/// **The path it guards**: the reflow over shapes the hand-written cases
+/// above do not have —up to five lines of up to ten words, every
+/// combination of speaker and tail—. A game's boxes go through it on every
+/// build, but only the ones that game has.
+#[test]
+fn three_hundred_made_up_boxes_fit_keep_their_words_and_settle() {
+    for b in made_up_boxes() {
+        let out = refit(&b, COLUMNS, LINES);
+        let speaker = is_speaker(&b[0]);
+        for c in &out {
+            assert!(
+                fits(c, &Measure::columns(COLUMNS), LINES).unwrap(),
+                "{b:?} gave {c:?}"
+            );
+            assert_eq!(refit(c, COLUMNS, LINES), vec![c.clone()], "{b:?}");
+            if speaker {
+                assert_eq!(c[0], b[0], "{b:?}");
+            }
+        }
+        // The tail goes glued to the last word; the words are the same
+        // without it.
+        let untailed = |w: Vec<String>| -> Vec<String> {
+            w.iter()
+                .map(|w| w.replace("\\|", "").replace("\\^", ""))
+                .filter(|w| !w.is_empty())
+                .collect()
+        };
+        assert_eq!(
+            untailed(words(&out, speaker)),
+            untailed(words(&[b.clone()], speaker)),
+            "{b:?}"
+        );
+        if let Some(tail) = ["\\|\\^", "\\|"]
+            .iter()
+            .find(|t| b.last().unwrap().ends_with(*t))
+        {
+            assert!(out.last().unwrap().last().unwrap().ends_with(tail), "{b:?}");
+        }
+    }
+}
