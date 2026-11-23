@@ -1191,8 +1191,8 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
 }
 
 /// The same, with one byte per letter: what the compiler answered before
-/// there were pairs. No cartridge uses it; the tests compare against it,
-/// because the hashes of `tests/python.rs` are of an answer without pairs.
+/// there were pairs. No cartridge uses it: the tests compare against it
+/// that the pairs write the same boxes.
 pub fn compile_without_pairs(game: &Game, request: &Request) -> Result<Value> {
     let messages = Messages::new(request.messages_step, request.window());
     Ok(compile_pass(game, request, messages)?.0)
@@ -1577,8 +1577,7 @@ fn compile_pass(
         },
     );
     answer.insert("parallel_commons".into(), json!(parallel));
-    // Only when there are some, like `troop_songs`: without them the answer
-    // stays the one `tests/python.rs` holds the hashes of.
+    // Only when there are some, like `troop_songs`.
     if !commons.bodies.is_empty() {
         answer.insert("commons".into(), commons.to_json());
     }
