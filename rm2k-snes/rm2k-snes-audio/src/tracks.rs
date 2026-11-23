@@ -888,7 +888,10 @@ mod tests {
             Outcome::Already
         ));
         let one = std::fs::read(root.join("one").join("game-1.pcm")).unwrap();
-        assert_eq!(std::fs::read(root.join("two").join("game-1.pcm")).unwrap(), one);
+        assert_eq!(
+            std::fs::read(root.join("two").join("game-1.pcm")).unwrap(),
+            one
+        );
         std::fs::remove_dir_all(&root).unwrap();
     }
 

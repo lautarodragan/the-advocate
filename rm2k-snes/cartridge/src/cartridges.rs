@@ -925,7 +925,11 @@ impl Cartridges {
             .arg(with_suffix(sfc, ".sym"))
             // The same cache the converter uses, for `ca65`'s objects.
             .arg("--cache")
-            .arg(self.environment.cache(&self.project).map_err(|e| e.to_string())?)
+            .arg(
+                self.environment
+                    .cache(&self.project)
+                    .map_err(|e| e.to_string())?,
+            )
             .status()
             .map_err(|e| format!("{ASSEMBLE}: {e}"))?;
         if !status.success() {

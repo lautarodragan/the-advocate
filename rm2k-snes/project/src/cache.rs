@@ -124,7 +124,9 @@ pub fn store(directory: &Path, category: &str, key: &str, value: &[u8]) -> bool 
 /// the same disk —a track weighs tens of megabytes, and the build keeps its
 /// copy anyway—, a copy otherwise.
 pub fn store_file(directory: &Path, category: &str, key: &str, from: &Path) -> bool {
-    into_place(&entry(directory, category, key), |tmp| link_or_copy(from, tmp))
+    into_place(&entry(directory, category, key), |tmp| {
+        link_or_copy(from, tmp)
+    })
 }
 
 /// Puts the file stored under `key` at `to`, replacing what was there, the

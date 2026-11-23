@@ -148,6 +148,9 @@ fn request_in_key(value: &Value, cache_dir: &Path) -> Result<Value> {
     })
 }
 
+/// The stages' flags whose value is a path they read.
+const PATH_FLAGS: &[&str] = &["--data", "--search-dir", "--game-dir", "--rtp-dir"];
+
 /// Everything a stage's answer can depend on: the binary that answers, by
 /// content —a reinstalled stage expires its answers on its own—, the
 /// command, the request, and the flags, each path among them and in the
@@ -168,9 +171,20 @@ pub fn key(
         serde_json::to_string(&request_in_key(request, cache_dir)?).expect("a request is JSON"),
     ];
     let mut reads = Reads::Everything;
+    let mut names_a_path = false;
     for flag in flags {
         let flag = flag.to_string_lossy();
-        parts.push(in_key(&flag, reads, cache_dir)?);
+        // A folder that is not there —`build/patches-manual` in a game
+        // without manual patches— is the same nothing in every worktree,
+        // and its path is the worktree's. Only after a flag that names a
+        // path: in a request, a text that starts with a slash may be
+        // anything.
+        parts.push(if names_a_path && !Path::new(flag.as_ref()).exists() {
+            "\0missing".to_string()
+        } else {
+            in_key(&flag, reads, cache_dir)?
+        });
+        names_a_path = PATH_FLAGS.contains(&flag.as_ref());
         reads = if flag == "--search-dir" {
             Reads::Resources
         } else {
@@ -478,6 +492,40 @@ mod tests {
         }
         assert_eq!(keys[0], keys[1]);
         assert_ne!(keys[1], keys[2]);
+    }
+
+    /// A folder searched that a game does not have —the patches' built
+    /// images, `build/patches-manual`, in a game without manual patches—
+    /// is in each worktree's `build`: it goes into the key as missing, not
+    /// by where it would be. Measured: without this, Sunset, Vampires Dawn
+    /// and Zounds found none of Wally's answers from another worktree.
+    #[test]
+    fn a_missing_folder_goes_as_missing_wherever_it_would_be() {
+        let root = scratch("missing");
+        let binary = root.join("wally");
+        std::fs::write(&binary, b"a stage").unwrap();
+        let keys: Vec<String> = ["one", "two"]
+            .iter()
+            .map(|side| {
+                let flags: Vec<OsString> = vec![
+                    "--search-dir".into(),
+                    root.join(side)
+                        .join("build")
+                        .join("patches-manual")
+                        .into_os_string(),
+                ];
+                key(&binary, "map", &json!({}), &flags, &root.join("cache")).unwrap()
+            })
+            .collect();
+        assert_eq!(keys[0], keys[1]);
+        // And a folder that is there is not the same as one that is not.
+        let there = root.join("there");
+        std::fs::create_dir_all(&there).unwrap();
+        let flags: Vec<OsString> = vec!["--search-dir".into(), there.into_os_string()];
+        assert_ne!(
+            keys[0],
+            key(&binary, "map", &json!({}), &flags, &root.join("cache")).unwrap()
+        );
     }
 
     #[test]

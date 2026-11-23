@@ -106,7 +106,14 @@ fn main() -> ExitCode {
         .filter(|_| !cache::disabled())
         .map(rm2k_project::absolute);
     let root = suite::root();
-    match assemble::assemble(&source, &include, &rom, table.as_deref(), &root, cache_dir.as_deref()) {
+    match assemble::assemble(
+        &source,
+        &include,
+        &rom,
+        table.as_deref(),
+        &root,
+        cache_dir.as_deref(),
+    ) {
         Ok(from_the_cache) => {
             if from_the_cache {
                 println!("ca65: the object came from the cache");
