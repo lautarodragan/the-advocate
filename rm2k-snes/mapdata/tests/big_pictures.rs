@@ -96,3 +96,37 @@ fn a_texture_s_rows_are_the_plane_s() {
     };
     assert!(big_mode7(2, &many).is_err());
 }
+
+/// The same picture as two layers, zoomed on one map and still on the
+/// others, is carried once: both entries point at the first one's tiles,
+/// tilemap and colours. Another picture, or the same with other colours,
+/// has its own.
+#[test]
+fn a_layer_with_the_same_tiles_tilemap_and_colours_shares_them() {
+    use rm2k_snes_mapdata::emit::big_shared;
+    use rm2k_snes_mapdata::request::{BigLayer, Mode7Texture};
+    let layer = |tile: u8, colour: u8, texture: bool| BigLayer {
+        top: 0,
+        center: [160, 120],
+        half: [160, 120],
+        wider: false,
+        rows: 1,
+        tiles: vec![tile; 32],
+        tilemap: vec![0; SCREEN],
+        palettes: vec![vec![[colour, 0, 0]]],
+        mode7: texture.then(|| Mode7Texture {
+            tiles: vec![0; 64],
+            map: vec![0; SCREEN],
+            center: [128, 112],
+        }),
+        keeps_objects: false,
+    };
+    let bigs = [
+        layer(1, 0, true),
+        layer(2, 0, false),
+        layer(1, 0, false),
+        layer(1, 9, false),
+        layer(2, 0, false),
+    ];
+    assert_eq!(big_shared(&bigs), [0, 1, 0, 3, 1]);
+}

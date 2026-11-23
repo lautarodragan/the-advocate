@@ -23,7 +23,11 @@
 ;
 ; **That takes the message window while it is still**: its tiles and its
 ; tilemap were in the upper half. No scene of A Blurred Line shows a message
-; over a photo before its zoom. Once in mode 7 the upper half is free
+; over a photo before its zoom, and **only the maps that zoom a picture get
+; it with a texture**: the others show it as any big one, window included
+; —`number_big` in rm2k-snes/convert/src/pictures.rs; Desert Nightmare's
+; black screen, which one map zooms, hid the messages over it on all of
+; them—. Once in mode 7 the upper half is free
 ; again, and the window goes back there a piece per vblank —`BIG_PIECES`—:
 ; a zoom that ends at nothing leaves mode 1 with the layer off —BIG_M7_GONE—,
 ; and the messages that follow over the black, the widow's in map 212, see

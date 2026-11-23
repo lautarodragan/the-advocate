@@ -2151,6 +2151,7 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
     let streams = crate::compress::compress_many(&refs)?;
+    let shared = big_shared(&r.big_pictures);
     out.push_str(&format!(
         ".block {}\nbig_table:\n",
         BIG_ENTRY * r.big_pictures.len()
@@ -2158,10 +2159,11 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
     for (k, big) in r.big_pictures.iter().enumerate() {
         let vofs = (-big.top - 1) as i16 as u16;
         let corner = ((big.center[1] - big.half[1]) * BIG_CONSOLE_HEIGHT).div_euclid(BIG_RM_HEIGHT);
+        let j = shared[k];
         out.push_str(&format!(
-            "    .word .loword(big_tiles_{k})\n    .byte ^big_tiles_{k}\n\
-             \x20   .word .loword(big_map_{k})\n    .byte ^big_map_{k}\n\
-             \x20   .word .loword(big_colors_{k})\n    .byte ^big_colors_{k}\n\
+            "    .word .loword(big_tiles_{j})\n    .byte ^big_tiles_{j}\n\
+             \x20   .word .loword(big_map_{j})\n    .byte ^big_map_{j}\n\
+             \x20   .word .loword(big_colors_{j})\n    .byte ^big_colors_{j}\n\
              \x20   .word {}\n    .byte {}\n    .word {vofs}\n\
              \x20   .word {}\n    .word {}\n",
             big.tiles.len(),
@@ -2208,9 +2210,11 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
         // LZ2 stream: both may travel in the `.msu`, and a picture is shown
         // with the screen off. See `msu_block`.
         let msu = r.rom.msu != MsuData::Optional;
-        line(out, &msu_block(&format!("big_tiles_{k}"), &big.tiles, msu));
-        line(out, &msu_block(&format!("big_map_{k}"), &streams[k], msu));
-        line(out, &block(&format!("big_colors_{k}"), &colors));
+        if shared[k] == k {
+            line(out, &msu_block(&format!("big_tiles_{k}"), &big.tiles, msu));
+            line(out, &msu_block(&format!("big_map_{k}"), &streams[k], msu));
+            line(out, &block(&format!("big_colors_{k}"), &colors));
+        }
         if let Some(t) = &big.mode7 {
             let (tiles, rows) = big_mode7(big.rows, t)?;
             line(out, &block(&format!("big_m7_tiles_{k}"), &tiles));
@@ -2218,6 +2222,24 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// For each big picture, the one whose tiles, tilemap and colours its entry
+/// points at: the first with the same three, itself if none before has
+/// them. The same picture zoomed on one map and still on others is two
+/// layers, one with a mode 7 texture and one without —see `number_big` in
+/// rm2k-snes-convert—, and the cartridge carries what they share once.
+pub fn big_shared(bigs: &[crate::request::BigLayer]) -> Vec<usize> {
+    let same = |a: &crate::request::BigLayer, b: &crate::request::BigLayer| {
+        a.tiles == b.tiles
+            && a.tilemap == b.tilemap
+            && a.rows == b.rows
+            && a.wider == b.wider
+            && a.palettes == b.palettes
+    };
+    (0..bigs.len())
+        .map(|k| (0..k).find(|&j| same(&bigs[j], &bigs[k])).unwrap_or(k))
+        .collect()
 }
 
 /// A row of mode 7's map: 128 tiles, of which a layer takes the first 32.
