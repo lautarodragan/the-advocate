@@ -340,6 +340,16 @@ ITEM_MORE_FIRST = (ITEM_MORE_VRAM - SLOT_VRAM) / TL_PAIR_WORDS
     sta BG1VOFS
     lda #$03
     sta TM
+    ; On at the start of a vblank, not wherever the uploads ended: on that
+    ; line of a frame the screen came on, and the frame showed black down to
+    ; it and the screen from there on —the shop's opening, line 166 (taro,
+    ; 2026-11-22)—. Out of the vblank first, in case it is ending.
+out:
+    lda HVBJOY
+    bmi out
+in:
+    lda HVBJOY
+    bpl in
     lda #$0F
     sta INIDISP
     rtl

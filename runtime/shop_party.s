@@ -613,6 +613,16 @@ member:
     lda f:ti_party_k, x
     plx
     sta f:$7E0000 + TI_P_K, x
+    ; Its first step, in colour, already up: the vblank a buy layer first
+    ; shows the party in is the one its windows and its text's tilemap go
+    ; up in —see `ti_upload` in shop.s—, and a step's 384 bytes do not fit
+    ; after them. Without this the member came a frame after the screen.
+    lda #0
+    sta temp + 2
+    sta f:$7E0000 + TI_P_UP, x
+    sta f:$7E0000 + TI_P_PAL, x
+    jsr ti_party_vblank::palette
+    jsl f:ti_party_upload
 next_member:
     inx
     cpx #TI_PARTY_MEMBERS

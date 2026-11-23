@@ -95,6 +95,10 @@ MENU_EXP_SPRITES = 128
 
     jsl f:menu_exp_build
     jsl f:menu_sp_upload
+    ; On at a vblank's start, and BG1 and the sprites in the same vblank:
+    ; the screen came on wherever the uploads ended, and the menu opened on
+    ; a frame black down to that line —see `screen_ppu_on`—.
+    jsl f:ba_t_vblank
     jsl f:ba_t_ppu              ; the screen, on with BG2 alone
     ; And BG1, with its own base, for the bar: empty until something is
     ; chosen. `slot_ppu_on` left BG2's base, which does not change.
