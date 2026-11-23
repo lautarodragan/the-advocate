@@ -555,29 +555,6 @@ fn crc32(data: &[u8]) -> u32 {
     !crc
 }
 
-/// A JSON value as Python's `json.dumps` writes it: `, ` and `: `. The
-/// Python that wrote the save signature is gone, but the signature is a
-/// CRC of this text and goes into every ROM: writing it any other way
-/// changes every cartridge and turns every save away.
-fn python_json(value: &Value) -> String {
-    match value {
-        Value::Array(items) => {
-            format!(
-                "[{}]",
-                items.iter().map(python_json).collect::<Vec<_>>().join(", ")
-            )
-        }
-        Value::Object(map) => format!(
-            "{{{}}}",
-            map.iter()
-                .map(|(k, v)| format!("{}: {}", Value::String(k.clone()), python_json(v)))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        other => other.to_string(),
-    }
-}
-
 /// How many bytes the ROM's switch table takes, a bit per switch from 0 to
 /// `top`, the highest the game names. It lives in the cartridge's `SWITCHRAM`,
 /// 256 bytes of far RAM, and a game past it is refused before this: see
@@ -604,19 +581,28 @@ fn save_signature(
     n_actors: i64,
     switch_bytes: i64,
 ) -> u32 {
-    let shape =
-        format!(
-        "{{\"variables\": {}, \"items\": {ITEMS_N}, \"switches\": {switch_bytes}, \"actores\": \
-         {n_actors}, \"habilidades\": {}, \"experiencia\": {}}}",
-        python_json(&Value::Array(
-            variables.iter().map(|(v, s)| serde_json::json!([v, s])).collect()
-        )),
-        python_json(&Value::Array(
-            pairs.iter().map(|(a, h, r)| serde_json::json!([a, h, r])).collect()
-        )),
-        python_json(experience)
-    );
-    crc32(shape.as_bytes()) & 0xFFFF
+    // A struct and not `json!`: its fields go in this order whether or not
+    // serde_json preserves the order of an object's keys, which depends on
+    // the features other crates of the build ask for.
+    #[derive(serde::Serialize)]
+    struct Shape<'a> {
+        variables: &'a [(i64, i64)],
+        items: usize,
+        switches: i64,
+        actors: i64,
+        skills: &'a [(i64, i64, i64)],
+        experience: &'a Value,
+    }
+    let shape = Shape {
+        variables,
+        items: ITEMS_N,
+        switches: switch_bytes,
+        actors: n_actors,
+        skills: pairs,
+        experience,
+    };
+    let text = serde_json::to_string(&shape).expect("the shape is plain JSON");
+    crc32(text.as_bytes()) & 0xFFFF
 }
 
 /// The sine the screen shake reads by index, in bank 0's neighbour.
@@ -5944,13 +5930,6 @@ mod tests {
     #[test]
     fn the_crc_is_zlib_s() {
         assert_eq!(crc32(b"123456789"), 0xCBF4_3926);
-    }
-
-    #[test]
-    fn json_is_written_as_python_writes_it() {
-        let v = serde_json::json!([[1, 2], [3, null]]);
-        assert_eq!(python_json(&v), "[[1, 2], [3, null]]");
-        assert_eq!(python_json(&serde_json::json!([])), "[]");
     }
 
     /// The switch table is the game's: ABL names up to 1008, Vampires Dawn
