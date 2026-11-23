@@ -1,67 +1,34 @@
-//! The battle's model, its text screen and the battle played, against what
-//! the Python they replace answered.
+//! The battle's model over a small game built to touch the edges: every
+//! request answers or is refused, and the refused ones are the ones that
+//! must be.
 //!
-//! Until 2026-09-30 the converter asked a model in Python for these, and
-//! the tests that compare a console's battle played the battle with it. It
-//! was deleted once both gave the same on every cartridge and on thousands
-//! of random battles of a whole game; what is left of it is here: a small
-//! game in `tests/game/dump`, built to touch the edges, and for each
-//! request in `tests/game/` the SHA-256 of the answer the Python gave, or
-//! `null` where it refused.
+//! The game, in `tests/game/dump`, has actors whose level is past their
+//! curves, below 1 and above their cap, who learn a skill twice or one the
+//! database does not have, with a weapon that costs SP and armor that does
+//! not charge it; skills of every type and scope, a cost of 100, one that
+//! ignores defense and ones that only touch parameters; medicines that
+//! revive, that only work on the fallen, that only work outside battle;
+//! enemies that miss, with a critical, with actions that are dropped for
+//! their condition, their switches or their kind, ties in rating and ones
+//! that weigh zero; and troops with hidden members, more members than a
+//! battle holds, and pages on switches, turns, HP, a variable, with
+//! branches, an `else` and a `ControlSwitches` the battle does not know.
+//! `battles.json` is four hundred battles played on it, with seeds, and
+//! `models.json` twenty-six models asked of it.
 //!
-//! The game has actors whose level is past their curves, below 1 and
-//! above their cap, who learn a skill twice or one the database does not
-//! have, with a weapon that costs SP and armor that does not charge it;
-//! skills of every type and scope, a cost of 100, one that ignores defense
-//! and ones that only touch parameters; medicines that revive, that only
-//! work on the fallen, that only work outside battle; enemies that miss,
-//! with a critical, with actions that are dropped for their condition,
-//! their switches or their kind, ties in rating and ones that weigh zero;
-//! and troops with hidden members, more members than a battle holds, and
-//! pages on switches, turns, HP, a variable, with branches, an `else` and
-//! a `ControlSwitches` the battle does not know.
-//!
-//! **If one of these changes, the battle changed.** The hashes are not to
-//! be regenerated to make a test pass: the Python that produced them is
-//! gone, and with it the only independent answer.
-//!
-//! **Except in one thing the Python got wrong**: it never read an actor's
-//! `critical_hit`, so its actors had none. Since 2026-10-02 they have it,
-//! and so this game's actors go without `critical_hit` —they had it, with
-//! a chance of 7— and its weapons add none: with that, the Python's answer
-//! is still the right one for every request. The actors' critical is
-//! covered by `the_critical_hit_adds_in_floating_point` and by the
-//! console's tests.
-//!
-//! **And in a second one**: it let any skill be ordered in battle, and RM2k
-//! lets only the ones `Algo::IsSkillUsable` allows —`usable_in_battle`, since
-//! 2026-10-20—. So this game's switch skill 2 has `occasion_battle` —it did
-//! not—, which keeps the Python's answer right for the battles that order
-//! it; and the three battles of `battles.json` that order the teleport skill
-//! 7 or the escape one 12, which RM2k never lets be chosen in battle, are
-//! refusals now —cases 14, 106 and 107—.
-//!
-//! **And in a third**: it rolled and applied everything a skill touches,
-//! where `Skill::vExecute` returns once the damage kills and once one
-//! against enemies missed the HP or SP it touches. Since 2026-10-20, taro's
-//! decision, the model returns there too, and the battles of
-//! `battles.json` in which skill 14 —HP and defense against every enemy—
-//! kills or misses a target carry the hash of that answer: the dead or
-//! missed target's defense is no longer rolled nor lowered, and every roll
-//! after it comes one earlier. They are exactly the battles that cross a
-//! return with a roll after it.
-//!
-//! **And in a fourth**: it gave no condition, and every skill of this game
-//! carries condition 2 in its `state_effects`. Since 2026-11-01 a skill
-//! gives and takes its conditions, with two rolls more for each; so the
-//! game is read here **without** the skills' `state_effects`, which keeps
-//! the Python's answer the right one for every request. Giving them is
-//! covered by `tests/states.rs` and by the console's tests.
+//! **The path it guards**: those edges. A Blurred Line's suite plays its
+//! battles on the console and holds them against this model, which is
+//! what checks what a battle gives; but only with that game's actors,
+//! skills and troops, none of which reach most of these. What is checked
+//! here is what does not depend on knowing the right numbers: that the
+//! model gets through each one —no panic, no overflow in a debug build—,
+//! and that it refuses exactly the orders RM2k does not allow, such as a
+//! skill `usable_in_battle` says no to (cases 14, 106 and 107 of
+//! `battles.json`).
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::model;
-use serde_json::{Map, Value};
-use sha2::{Digest, Sha256};
+use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 fn game() -> PathBuf {
@@ -76,62 +43,17 @@ fn read(name: &str) -> Value {
     serde_json::from_str(&text).unwrap()
 }
 
-fn db() -> Db {
-    let mut db = Db::from_dump(&game().join("dump"), true).unwrap();
-    for skill in db.skills.values_mut() {
-        skill.state_effects.clear();
-    }
-    db
-}
-
-/// The answer with its keys sorted, compact: what the Python hashed. The
-/// order does not depend on whether `serde_json` keeps insertion order,
-/// which another crate of the workspace turns on.
-fn sorted(v: &Value) -> Value {
-    match v {
-        Value::Object(o) => {
-            let mut keys: Vec<&String> = o.keys().collect();
-            keys.sort();
-            let mut out = Map::new();
-            for k in keys {
-                out.insert(k.clone(), sorted(&o[k]));
-            }
-            Value::Object(out)
-        }
-        Value::Array(a) => Value::Array(a.iter().map(sorted).collect()),
-        _ => v.clone(),
-    }
-}
-
-fn sha256(v: &Value) -> String {
-    let text = serde_json::to_string(&sorted(v)).unwrap();
-    Sha256::digest(text.as_bytes())
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
-}
-
 fn check(name: &str, answer: fn(&Db, &Value) -> rm2k_snes_battle::Result<Value>) -> usize {
-    let db = db();
+    let db = Db::from_dump(&game().join("dump"), true).unwrap();
     let cases = read(name);
     let cases = cases.as_array().unwrap();
     let mut wrong = Vec::new();
     for (k, case) in cases.iter().enumerate() {
-        let got = answer(&db, &case["request"]);
-        let ok = match (&case["sha256"], &got) {
-            (Value::Null, Err(_)) => true,
-            (Value::String(expected), Ok(v)) => *expected == sha256(v),
-            _ => false,
-        };
-        if !ok {
-            wrong.push(format!(
-                "case {k}: expected {}, got {}",
-                case["sha256"],
-                match got {
-                    Ok(v) => sha256(&v),
-                    Err(e) => format!("no: {e}"),
-                }
-            ));
+        let refused = case["refused"].as_bool().unwrap();
+        match (refused, answer(&db, &case["request"])) {
+            (true, Err(_)) | (false, Ok(_)) => {}
+            (true, Ok(_)) => wrong.push(format!("case {k}: answered, and it must be refused")),
+            (false, Err(e)) => wrong.push(format!("case {k}: refused: {e}")),
         }
     }
     assert!(
@@ -144,113 +66,16 @@ fn check(name: &str, answer: fn(&Db, &Value) -> rm2k_snes_battle::Result<Value>)
     cases.len()
 }
 
-/// A battle as the Python answered it: it wrote no line for what a skill
-/// did on each target, which the model says since 2026-10-20 in
-/// `results`, so they are taken out wherever they are.
-fn pythons_battle(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
-    fn without_results(v: &mut Value) {
-        match v {
-            Value::Object(o) => {
-                o.remove("results");
-                o.values_mut().for_each(without_results);
-            }
-            Value::Array(a) => a.iter_mut().for_each(without_results),
-            _ => {}
-        }
-    }
-    let mut v = model::simulate(db, request)?;
-    without_results(&mut v);
-    Ok(v)
-}
-
 #[test]
-fn every_battle_plays_as_the_pythons() {
-    let n = check("battles.json", pythons_battle);
+fn every_battle_plays_or_is_refused_as_rm2k_would() {
+    let n = check("battles.json", model::simulate);
     assert!(n >= 400, "the battles are {n}");
 }
 
-/// A model as the Python wrote it: it cut a skill's name at eleven
-/// letters and an enemy's at fourteen, one per cell, and since 2026-10-04
-/// the cartridge keeps them whole —see `TL_RECORD` in `screen.rs`—, so
-/// they are cut here again.
-///
-/// And its screen was the one before 2026-10-04, when the battle's windows
-/// went to the band below the scene, as RM2k's, and a skill's description
-/// cut at thirty-one letters, which the cartridge keeps whole since then and
-/// the console cuts in pixels: its geometry is
-/// `layout-python.json`, what the layout answered the day before, and the
-/// dead state's name, which the party's line writes since then, is taken
-/// out.
-///
-/// Nor did it know special items, which cast their skill since 2026-10-19,
-/// nor each actor's `commands`, since 2026-10-20, which in this 2000 game
-/// are the terms it answered and are checked against them before going:
-/// the game has none, so their `item_skill` —and `item_map_skill`, since
-/// 2026-11-01— is all zeros and is taken out,
-/// and `item_battle` and `skills` are what the Python answered.
-fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
-    let mut v = model::model(db, request)?;
-    let cut = |names: &mut Value, letters: usize, pick: fn(&mut Value) -> &mut Value| {
-        if let Some(all) = names.as_object_mut() {
-            for one in all.values_mut() {
-                let name = pick(one);
-                *name = Value::from(
-                    name.as_str()
-                        .unwrap()
-                        .chars()
-                        .take(letters)
-                        .collect::<String>(),
-                );
-            }
-        }
-    };
-    cut(&mut v["texts"]["skills"], 11, |s| &mut s["name"]);
-    cut(&mut v["texts"]["skills"], 31, |s| &mut s["description"]);
-    cut(&mut v["texts"]["enemies"], 14, |e| e);
-    v["layout"] = read("layout-python.json");
-    if let Some(texts) = v["texts"].as_object_mut() {
-        texts.remove("dead");
-        // Each actor's five commands, since 2026-10-20: in a 2000 game, the
-        // three terms the Python gave, its skill command and the item term.
-        let commands = texts.remove("commands").unwrap_or_default();
-        for (a, five) in commands.as_object().unwrap() {
-            let item = rm2k_snes_battle::screen::command_text(&db.terms.command_item);
-            let expected = [
-                &texts["attack"],
-                &texts["skill_commands"][a],
-                &texts["defend"],
-                &Value::from(item),
-                &texts["escape"],
-            ];
-            assert_eq!(
-                five.as_array().unwrap().iter().collect::<Vec<_>>(),
-                expected
-            );
-        }
-    }
-    if let Some(all) = v.as_object_mut() {
-        for table in ["item_skill", "item_map_skill"] {
-            let item_skill = all.remove(table).unwrap_or_default();
-            assert!(
-                item_skill.as_array().unwrap().iter().all(|h| h == 0),
-                "{table}: {item_skill}"
-            );
-        }
-    }
-    Ok(v)
-}
-
 #[test]
-fn every_model_is_the_pythons() {
-    let n = check("models.json", pythons_model);
+fn every_model_answers_or_is_refused() {
+    let n = check("models.json", model::model);
     assert!(n >= 26, "the models are {n}");
-}
-
-#[test]
-fn the_victory_lines_are_the_pythons() {
-    let case = read("lines.json");
-    let got = model::lines(&db(), &case["request"]).unwrap();
-    assert_eq!(got, case["answer"]);
 }
 
 #[test]

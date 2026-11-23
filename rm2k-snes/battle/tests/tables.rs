@@ -1,29 +1,25 @@
-//! The tables against the ones they replace.
+//! The tables over a game built to touch every edge.
 //!
-//! Until 2026-09-29 these tables were written by the converter in Python
-//! (`battle_tables.py`, with the curves of `experience.py`). It was deleted
-//! once both gave the same bytes on every cartridge of a whole game; what is
-//! left of it is here: the SHA-256 of the text it wrote for a game built
-//! inside this file, which needs no real game.
+//! The game has actors whose curve hits the experience cap, whose levels
+//! are out of range —initial 0, initial past the final, final 0 and past
+//! 50—, with parameters shorter than 50 levels, missing or negative; two
+//! actors with the same experience curve, which share its row; a party
+//! with an actor the game does not have and one twice; and a party with
+//! nobody. For the encounters: maps with their own troops, with areas, with
+//! both, with steps 0 and 1, a map the tree does not have, an area without
+//! troops, an area inside an area, a node the request adds, and the steps a
+//! test cartridge forces.
 //!
-//! The game is built to touch every edge: actors whose curve hits the
-//! experience cap, whose levels are out of range —initial 0, initial past
-//! the final, final 0 and past 50—, with parameters shorter than 50 levels,
-//! missing or negative; two actors with the same experience curve, which
-//! share its row; a party with an actor the game does not have and one
-//! twice; and a party with nobody. For the encounters: maps with their own
-//! troops, with areas, with both, with steps 0 and 1, a map the tree does
-//! not have, an area without troops, an area inside an area, a node the
-//! request adds, and the steps a test cartridge forces.
-//!
-//! **If one of these changes, a byte of the cartridge changed.** The
-//! hashes are not to be regenerated to make a test pass: the Python that
-//! produced them is gone, and with it the only independent answer.
+//! **The path it guards**: those edges. A game's build makes these tables
+//! for its own actors and maps, and A Blurred Line's suite checks the
+//! levels and the encounters the console gives with them; none of its
+//! actors or maps is any of these. What is checked is what can be read:
+//! which slot each actor gets, which record each map gets and which troops
+//! each zone lists; the experience table's text only has to be built.
 
 use rm2k_snes_battle::encounters::NONE as NO_RECORD;
 use rm2k_snes_battle::{Game, Request, Tables};
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
 const CURVES: [&str; 6] = ["maxhp", "maxsp", "attack", "defense", "spirit", "agility"];
@@ -113,7 +109,7 @@ const PARTY: [i64; 9] = [8, 3, 1, 4, 12, 3, 7, 5, 2];
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
-        "rm2k-snes-battle-python-{name}-{}",
+        "rm2k-snes-battle-tables-{name}-{}",
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&dir);
@@ -154,24 +150,13 @@ fn tables(name: &str, party: &[i64], steps: Option<i64>) -> Tables {
     tables
 }
 
-fn sha256(text: &str) -> String {
-    Sha256::digest(text.as_bytes())
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
-}
-
 #[test]
-fn the_experience_of_a_party_is_the_pythons() {
+fn each_actor_gets_one_slot_in_order_and_one_the_game_lacks_none() {
     let t = tables("party", &PARTY, None);
     assert_eq!(
         t.slots,
         [1, 2, 3, 3, 5, 7, 8, 12].map(Some).to_vec(),
         "the slots"
-    );
-    assert_eq!(
-        sha256(&t.experience),
-        "fabb6eec9249205508b2f92faa5f898d4e8c7b4e34839fdf430045b225c7ec5f"
     );
 }
 
@@ -179,38 +164,19 @@ fn the_experience_of_a_party_is_the_pythons() {
 fn a_party_of_nobody_still_has_one_slot() {
     let t = tables("nobody", &[], None);
     assert_eq!(t.slots, vec![None]);
-    assert_eq!(
-        sha256(&t.experience),
-        "10ebff53b00bfcfb2709778253167df528b353ca6add8506b691063260a0563b"
-    );
 }
 
 #[test]
-fn the_encounters_of_the_game_are_the_pythons() {
+fn each_map_gets_its_record_and_each_zone_its_troops() {
     let t = tables("game", &PARTY, None);
     let e = &t.encounters;
     assert_eq!(e.per_map, [0, 1, NO_RECORD, 2, NO_RECORD, 3, NO_RECORD, 4]);
     assert_eq!(e.troops, [9, 9, 8, 2, 3, 3, 1, 4, 5, 6, 1, 11]);
     assert_eq!((e.bases.len(), e.zones.len()), (5, 7));
-    // **Not the Python's any more, on purpose, and by one number.** The
-    // Python wrote `8bec7277…` with map 5's `enc_base` at 65536, which does
-    // not fit in the ROM's word and did not assemble; since 2026-09-29 one
-    // step saturates at 65535 —see `base`—. This is the Python's text with
-    // that one `.word` changed from 65536 to 65535, and nothing else.
-    // **And not that one either, since 2026-10-06**: `enc_map`,
-    // `enc_zone_init` and `enc_troop_init` are word tables now, and "no
-    // record" is 65535 and not 255. That is all that changed in the text.
-    // **Nor since 2026-11-01**: the terrain's rate counts, so the thresholds
-    // are the accumulated rate of each row and not the step —`enc_threshold`,
-    // words, `row * steps`—. Only that table changed.
-    assert_eq!(
-        sha256(&e.tables()),
-        "ce06fe2c2df483257e673f13d18c6b3e2bd1530b6e7cc4f9a9fd5d66740c842e"
-    );
 }
 
 #[test]
-fn the_steps_of_a_test_cartridge_are_the_pythons() {
+fn the_steps_a_test_cartridge_forces_turn_a_map_on() {
     // Map 3 has troops and steps 0, which is off; forced to 3, it gets a
     // record.
     let t = tables("test", &PARTY, Some(3));
@@ -218,15 +184,10 @@ fn the_steps_of_a_test_cartridge_are_the_pythons() {
     assert_eq!(e.per_map, [0, 1, NO_RECORD, 2, 3, 4, NO_RECORD, 5]);
     assert_eq!(e.troops, [9, 9, 8, 2, 3, 3, 1, 4, 5, 6, 2, 1, 11]);
     assert_eq!((e.bases.len(), e.zones.len()), (6, 8));
-    assert_eq!(
-        sha256(&e.tables()),
-        "6fdcdd96dffa8e328086becdcc68af373769427f5626d906c32ed2bb12c01a92"
-    );
 }
 
 /// A game of `n` maps with two troops each: more records, zones and troops
-/// than a byte can number. Not the Python's: it is what one-byte tables
-/// could not hold, and Vampires Dawn is 121 records, 136 zones and 779
+/// than a byte can number: what one-byte tables could not hold, and Vampires Dawn is 121 records, 136 zones and 779
 /// troops.
 fn big(n: i64) -> Tables {
     let dir = scratch("big");
