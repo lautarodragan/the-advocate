@@ -1,32 +1,32 @@
-//! `rm2k-snes-space`: how much space each cartridge has left. It prints it
-//! and does not write it down.
+//! `rm2k-snes-cartridges space`: how much space each cartridge has left. It
+//! prints it and does not write it down.
 //!
-//!     rm2k-snes-space                  every cartridge
-//!     rm2k-snes-space release          only that one
-//!     rm2k-snes-space DIR/game.sfc     a ROM built separately
-//!     rm2k-snes-space --json …         the same, as JSON
+//!     rm2k-snes-cartridges space                every cartridge
+//!     rm2k-snes-cartridges space release        only that one
+//!     rm2k-snes-cartridges space DIR/game.sfc   a ROM built separately
+//!     rm2k-snes-cartridges space --json …       the same, as JSON
 //!
 //! Everything comes from what the build left next to the ROM, so it neither
 //! relinks nor assembles anything; a cartridge that is not up to date is
 //! refused. See `space` in the library for what each number is.
 //!
-//! It takes the same machine flags as `rm2k-snes-cartridges`, because it
-//! asks the same question: the fingerprint reads the original game
+//! It takes the same machine flags as building, because it asks the same
+//! question: the fingerprint reads the original game
 //! —`--game-dir`— and the RTP's and the SoundFont's paths. Only a built ROM
-//! passed by its path needs none of them.
+//! passed by its path needs none of them. Until 2026-11-23 it was a
+//! command of its own, `rm2k-snes-space`.
 
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 
 use cartridge::cartridges::{Cartridges, FROM_ENVIRONMENT};
 use cartridge::space;
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{absolute, relative, suite, Project};
 use serde_json::json;
 
-fn command() -> Command {
-    Command::new("rm2k-snes-space")
+pub fn command() -> Command {
+    Command::new("space")
         .about("How much space each cartridge has left: it prints it and does not write it down")
         .arg(
             Arg::new("project")
@@ -49,10 +49,9 @@ fn command() -> Command {
         )
 }
 
-fn run() -> Result<(), String> {
-    let matches = command().get_matches();
+pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
-    let environment = Environment::from_matches(&matches, FROM_ENVIRONMENT);
+    let environment = Environment::from_matches(matches, FROM_ENVIRONMENT);
     let cartridges = Cartridges::load(project, environment)?;
     let which_ones: Vec<String> = match matches.get_many::<String>("which_ones") {
         Some(names) => names.cloned().collect(),
@@ -125,14 +124,4 @@ fn run() -> Result<(), String> {
         println!("{}", serde_json::Value::Object(report));
     }
     Ok(())
-}
-
-fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(message) => {
-            eprintln!("{message}");
-            ExitCode::FAILURE
-        }
-    }
 }

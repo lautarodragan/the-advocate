@@ -136,14 +136,39 @@ fn program_fingerprint(program: &str, version_flag: &str, missing: &str) -> Resu
     Ok(cache::hex(&h.finalize()))
 }
 
-/// What this program is, for the key: the sha256 of the running executable.
-/// It is what normalizes and writes the track, so changing it has to expire
-/// the tracks; and it is the only thing that changes exactly when the code
-/// does, without anyone having to remember to bump a number.
+/// The code a track's bytes come from, by its source: this file, what it
+/// uses from the crate —and what that uses, closed: a test checks that each
+/// `crate::` they name is here—, and the subcommand that runs it.
+///
+/// **Not the running executable**, which is what went in until 2026-11-23:
+/// it was `rm2k-snes-msu` then, with only this code in it. Since the tracks
+/// are a subcommand of `rm2k-snes-audio` the executable carries the whole
+/// compiler, and a change to it would have rendered every track again for
+/// nothing —measured over the seven weeks before: 18 of the crate's 31
+/// commits— and left one more copy of them in the cache, which keeps them
+/// as hard links and has no eviction: 2.4 GB each time, A Blurred Line's
+/// alone. The source still changes exactly when the code does, without
+/// anyone having to remember to bump a number; a comment changed in one of
+/// these files renders them again too.
+const OWN_SOURCES: [(&str, &str); 6] = [
+    ("tracks.rs", include_str!("tracks.rs")),
+    ("midi.rs", include_str!("midi.rs")),
+    ("num.rs", include_str!("num.rs")),
+    ("game.rs", include_str!("game.rs")),
+    ("fail.rs", include_str!("fail.rs")),
+    ("commands/msu.rs", include_str!("commands/msu.rs")),
+];
+
+/// What this program is, for the key: [`OWN_SOURCES`], hashed.
 fn own_version() -> Result<String> {
-    let exe =
-        std::env::current_exe().map_err(|e| Bad::usage(format!("the running executable: {e}")))?;
-    file_sha256(&exe).map_err(|e| io(&exe, e))
+    let mut h = Sha256::new();
+    for (name, text) in OWN_SOURCES {
+        h.update(name.as_bytes());
+        h.update([0]);
+        h.update(text.as_bytes());
+        h.update([0]);
+    }
+    Ok(cache::hex(&h.finalize()))
 }
 
 /// The audio file that replaces this song's MIDI, or None.
@@ -415,9 +440,10 @@ impl Tracks {
     /// Everything that changes the bytes of a track rendered from a MIDI.
     ///
     /// The MIDI, the SoundFont and the synthesizer are where the audio
-    /// comes from; the gain and the peak, how it is scaled; and this
-    /// program, what normalizes and writes it. **The track number does not
-    /// go in**: it does not change a single sample, only the file name.
+    /// comes from; the gain and the peak, how it is scaled; and the code
+    /// that normalizes and writes it, by its source —[`OWN_SOURCES`]—.
+    /// **The track number does not go in**: it does not change a single
+    /// sample, only the file name.
     /// The SoundFont goes in by content and not by path: a bank can change
     /// without changing its name.
     pub fn midi_key(&self, midi: &Path) -> Result<String> {
@@ -802,6 +828,45 @@ fn render(midi: &Path, out: &Path, soundfont: &Path, gain: f64) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    /// That [`OWN_SOURCES`] is closed: each module of the crate one of them
+    /// names —`crate::x` from the library, `rm2k_snes_audio::x` from the
+    /// subcommand— is in the list too. One that is not would change a
+    /// track's bytes without expiring it.
+    #[test]
+    fn the_track_sources_name_no_module_outside_them() {
+        let listed: Vec<&str> = super::OWN_SOURCES.iter().map(|(n, _)| *n).collect();
+        for (name, text) in super::OWN_SOURCES {
+            let code = text.lines().filter(|l| !l.trim_start().starts_with("//"));
+            for line in code {
+                for prefix in ["crate::", "rm2k_snes_audio::"] {
+                    for (at, _) in line.match_indices(prefix) {
+                        let rest = &line[at + prefix.len()..];
+                        assert!(
+                            !rest.starts_with('{'),
+                            "{name}: a `use` of several modules hides them from this: one per line"
+                        );
+                        let module: String = rest
+                            .chars()
+                            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                            .collect();
+                        // Nothing after it is the prefix written in a string
+                        // —this test's own—; a capital, what the crate
+                        // re-exports at its root: `Bad` and `Result`, from
+                        // `fail.rs`.
+                        if module.is_empty() || module.starts_with(char::is_uppercase) {
+                            continue;
+                        }
+                        let file = format!("{module}.rs");
+                        assert!(
+                            listed.contains(&file.as_str()),
+                            "{name} uses `{prefix}{module}`, and {file} is not in OWN_SOURCES"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     use super::*;
 
     #[test]

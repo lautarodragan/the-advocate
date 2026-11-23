@@ -347,7 +347,7 @@ pub fn table(
         "# The volume ceiling of each song of `release`: the headroom the",
         "# converter builds its stream with, instead of `sdsp::HEADROOM`.",
         "#",
-        "# **Not edited by hand**: `rm2k-snes-volume-ceilings` writes it,",
+        "# **Not edited by hand**: `rm2k-snes-audio volume-ceilings` writes it,",
         "# playing each song in the ROM and giving it the highest headroom",
         "# that does not clip; the reason and how it is measured are in it.",
         "# The table is stale if any song clips or if the mix of any of them",

@@ -9,16 +9,8 @@ name = "cartridge"
 path = "src/lib.rs"
 
 [[bin]]
-name = "rm2k-snes-assemble"
-path = "src/bin/assemble.rs"
-
-[[bin]]
-name = "rm2k-snes-space"
-path = "src/bin/space.rs"
-
-[[bin]]
 name = "rm2k-snes-cartridges"
-path = "src/bin/cartridges.rs"
+path = "src/bin/cartridges/main.rs"
 
 [dependencies]
 clap = "4"

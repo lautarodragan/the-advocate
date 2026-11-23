@@ -1,7 +1,7 @@
 .segment "FAR"
 
 ; Up to the end of bank 1, which is the end of `FAR`'s area: what it pads is
-; what `rm2k-snes-space` reports as bank 1's free space.
+; what `rm2k-snes-cartridges space` reports as bank 1's free space.
 .align $8000
 
 ; --- header and vectors ----------------------------------------------------

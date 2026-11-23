@@ -1203,7 +1203,7 @@ fn window_section(
 
     font_section(out, window, screens)?;
     line(out, &block("messages", &r.messages));
-    // How big it is and how big it can be, for `rm2k-snes-space`: the operand
+    // How big it is and how big it can be, for `rm2k-snes-cartridges space`: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
     out.push_str(&pyf!(
         "MESSAGES_BYTES = %d\nMESSAGES_CAP = %d\n",

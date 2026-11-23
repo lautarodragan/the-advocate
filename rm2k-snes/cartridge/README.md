@@ -1,16 +1,22 @@
 # rm2k-snes-cartridge
 
 What turns a converted RPG Maker 2000 game into Super NES cartridges, and says
-how much room they have left. Three executables share one library:
+how much room they have left. One executable, with two subcommands, over one
+library:
 
-    rm2k-snes-cartridges    which cartridges the project declares; builds the stale ones
-    rm2k-snes-assemble      bank packing, ca65 + ld65, header checksum, symbols
-    rm2k-snes-space         how much is left in each bank and each RAM area
+    rm2k-snes-cartridges           which cartridges the project declares; builds the stale ones
+    rm2k-snes-cartridges assemble  bank packing, ca65 + ld65, header checksum, symbols
+    rm2k-snes-cartridges space     how much is left in each bank and each RAM area
 
-They read the game's `advocate.toml` through `rm2k-project` (see
-`../project/`), and run the rest of the suite **from the PATH**: the converter
-(`rm2k-snes-convert`), the MSU-1 tracks (`rm2k-snes-msu`) and `ca65`/`ld65`,
-from the cc65 project.
+The subcommand goes first, before any flag; a cartridge cannot be called like
+one. Until 2026-11-23 they were three executables, the other two
+`rm2k-snes-assemble` and `rm2k-snes-space`.
+
+It reads the game's `advocate.toml` through `rm2k-project` (see
+`../project/`), and runs the rest of the suite **from the PATH**: the converter
+(`rm2k-snes-convert`), the MSU-1 tracks (`rm2k-snes-audio msu`), `ca65`/`ld65`,
+from the cc65 project, and its own `assemble`, as a process and by its name,
+so that what builds is the binary the fingerprint hashes.
 
 ## `rm2k-snes-cartridges`
 
@@ -37,15 +43,16 @@ is played, and its MSU-1 tracks are made with it.
 
 The fingerprint hashes everything that changes a ROM without changing its
 flags: the whole runtime, `ca65`, `ld65`, the binaries the converter runs,
-`rm2k-snes-assemble` —the bank packing lives there—, the game's dump, the
-hand-made patches, the project file and each song's volume headroom, and the
+`rm2k-snes-cartridges` itself —the bank packing lives there, in `assemble`—,
+the game's dump, the hand-made patches, the project file and each song's
+volume headroom, and the
 original game's resources —every `.png`, `.bmp`, `.xyz`, `.mid` and `.wav`
 below `--game-dir`, with its name—. Contents, never dates. The RTP and the
 SoundFont go in **by their path**: after changing one in place, `--force`
 builds even what is up to date.
 
 So **whoever asks whether a cartridge is up to date needs the machine flags
-too**: `--list` and `rm2k-snes-space` take the same ones, and without
+too**: `--list` and `space` take the same ones, and without
 `--game-dir` the fingerprint is an error.
 
 `--list --json` is what a game's test suite reads instead of importing any of
@@ -53,12 +60,12 @@ this: where each cartridge and its ROM are, its flags, its cases and whether
 each starts with a `Teleport`, whether it is stale and why, which cartridge a
 case runs in, the maps, and the files in the fingerprint.
 
-## `rm2k-snes-assemble`
+## `rm2k-snes-cartridges assemble`
 
-    rm2k-snes-assemble runtime/main.s -I build/game -o build/game/game.sfc \
-        --symbols build/game/game.sfc.sym
-    rm2k-snes-assemble --sources runtime/main.s
-    rm2k-snes-assemble --memory-map
+    rm2k-snes-cartridges assemble runtime/main.s -I build/game \
+        -o build/game/game.sfc --symbols build/game/game.sfc.sym
+    rm2k-snes-cartridges assemble --sources runtime/main.s
+    rm2k-snes-cartridges assemble --memory-map
 
 **The bank packing.** A DMA that crosses a bank wraps around inside it, and
 does not read the next bank, so everything the ROM uploads by DMA has to fit whole in one bank. `ld65`
@@ -89,12 +96,12 @@ table of `name value` lines. Why the map is the way it is, in the docs of
 `--sources` prints the `.s` files a main file includes, in the order `ca65`
 reads them; `--memory-map`, the map's numbers as JSON.
 
-## `rm2k-snes-space`
+## `rm2k-snes-cartridges space`
 
-    rm2k-snes-space                 every cartridge
-    rm2k-snes-space release         only that one
-    rm2k-snes-space DIR/game.sfc    a ROM built separately
-    rm2k-snes-space --json …        the same, as JSON
+    rm2k-snes-cartridges space                every cartridge
+    rm2k-snes-cartridges space release        only that one
+    rm2k-snes-cartridges space DIR/game.sfc   a ROM built separately
+    rm2k-snes-cartridges space --json …       the same, as JSON
 
 It reads what the build left —the debug file and the memory map— and relinks
 nothing: data banks used and free —whole banks of 64 KB, fast and slow, and

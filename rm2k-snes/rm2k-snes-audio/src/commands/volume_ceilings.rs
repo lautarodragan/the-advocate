@@ -1,20 +1,22 @@
-//! `rm2k-snes-volume-ceilings`: measures each song's volume ceiling and
-//! writes the project's `music/ceilings.toml`, in its automatic patches.
+//! `rm2k-snes-audio volume-ceilings`: measures each song's volume ceiling
+//! and writes the project's `music/ceilings.toml`, in its automatic patches.
 //!
-//!     rm2k-snes-volume-ceilings            measures, writes the table and
-//!                                          rebuilds `release` with it
-//!     rm2k-snes-volume-ceilings --measure  only measures the `release` that
-//!                                          is built, and writes nothing
-//!     rm2k-snes-volume-ceilings --play ROM --song N --frames F
+//!     rm2k-snes-audio volume-ceilings            measures, writes the table
+//!                                                and rebuilds `release` with it
+//!     rm2k-snes-audio volume-ceilings --measure  only measures the `release`
+//!                                                that is built, and writes
+//!                                                nothing
+//!     rm2k-snes-audio volume-ceilings --play ROM --song N --frames F
 //!                                          plays one song and says, as
 //!                                          JSON, what it gave: what a test
 //!                                          asks of a single song
 //!
 //! How it measures, in the library's `ceilings`. The songs are played in
 //! separate processes —this same program, with `--play`—, because a
-//! libretro core is one console per process.
+//! libretro core is one console per process. Until 2026-11-23 it was a
+//! command of its own, `rm2k-snes-volume-ceilings`.
 
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{relative, Project};
 use rm2k_snes_audio::ceilings::{self, Row, HEADROOM, MEASURING_HEADROOM};
@@ -23,7 +25,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
-use std::process::{ExitCode, Stdio};
+use std::process::Stdio;
 use std::sync::Mutex;
 
 /// What the cartridges' builder needs from the machine, which this passes
@@ -32,8 +34,8 @@ const TO_CONVERTER: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 
 const CARTRIDGES: &str = "rm2k-snes-cartridges";
 
-fn command() -> Command {
-    Command::new("rm2k-snes-volume-ceilings")
+pub fn command() -> Command {
+    Command::new("volume-ceilings")
         .about("Measures each song's volume ceiling and writes the project's music/ceilings.toml")
         .arg(
             Arg::new("project")
@@ -83,9 +85,12 @@ fn play_apart(sfc: &Path, song: usize, frames: i64, lufs: bool) -> Result<Row, B
     let exe =
         std::env::current_exe().map_err(|e| Bad::usage(format!("the running executable: {e}")))?;
     let mut cmd = std::process::Command::new(exe);
-    cmd.arg("--play")
-        .arg(sfc)
-        .args(["--song", &song.to_string(), "--frames", &frames.to_string()]);
+    cmd.arg("volume-ceilings").arg("--play").arg(sfc).args([
+        "--song",
+        &song.to_string(),
+        "--frames",
+        &frames.to_string(),
+    ]);
     if lufs {
         cmd.arg("--lufs");
     }
@@ -199,8 +204,7 @@ impl Run {
     }
 }
 
-fn run() -> Result<(), Bad> {
-    let matches = command().get_matches();
+pub fn run(matches: &ArgMatches) -> Result<(), Bad> {
     if let Some(sfc) = matches.get_one::<String>("play") {
         let row = play_one(
             Path::new(sfc),
@@ -212,7 +216,7 @@ fn run() -> Result<(), Bad> {
         return Ok(());
     }
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
-    let environment = Environment::from_matches(&matches, TO_CONVERTER);
+    let environment = Environment::from_matches(matches, TO_CONVERTER);
     let rom_name = project.string(&["rom", "name"])?.to_string();
     let run = Run {
         project,
@@ -338,15 +342,4 @@ fn run() -> Result<(), Bad> {
     let here = std::env::current_dir().unwrap_or_default();
     println!("-> {}", relative(run.ceilings_path()?, here).display());
     Ok(())
-}
-
-fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(bad) => {
-            let _ = std::io::stdout().flush();
-            eprintln!("rm2k-snes-volume-ceilings: {bad}");
-            ExitCode::FAILURE
-        }
-    }
 }

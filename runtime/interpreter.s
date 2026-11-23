@@ -124,9 +124,9 @@ op_reserved_52 = page_ends
     jmp run_code::other
 .endproc
 
-; Entry k is the handler for opcode k. `rm2k-snes-assemble` writes it from the
-; declaration, so a new opcode does not touch this: the handler for `OP_X`
-; has to be called `op_x`, and if it is missing it does not assemble. It has to
+; Entry k is the handler for opcode k. `rm2k-snes-cartridges assemble` writes it
+; from the declaration, so a new opcode does not touch this: the handler for
+; `OP_X` has to be called `op_x`, and if it is missing it does not assemble. It has to
 ; be in `run_code`'s bank, which is where the `jmp` reads it from, and so
 ; does each handler: an `.addr` is sixteen bits.
 opcode_handlers:
