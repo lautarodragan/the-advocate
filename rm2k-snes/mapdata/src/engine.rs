@@ -162,7 +162,7 @@ pub const TIMER_X: u32 = 4;
 pub const TIMER_Y: u32 = 4;
 
 /// The ChipSet animation's cadences: the water's slow frames and its cycle,
-/// the animated tiles' frames and steps (`rm2k.py`).
+/// the animated tiles' frames and steps.
 pub const WATER_FRAMES_SLOW: u32 = 24;
 pub const WATER_CYCLE: usize = 4;
 pub const ANIMATED_FRAMES: u32 = 6;
@@ -350,19 +350,9 @@ pub fn shake_sine() -> Vec<i64> {
     (0..256)
         .map(|t| {
             let v = (f64::from(t) * std::f64::consts::PI / 128.0).sin() * 127.0;
-            round_half_even(v)
+            v.round() as i64
         })
         .collect()
-}
-
-/// Python's `round`: to the nearest, ties to even.
-fn round_half_even(v: f64) -> i64 {
-    let r = v.round();
-    if (v - v.trunc()).abs() == 0.5 && (r as i64) % 2 != 0 {
-        (r - v.signum()) as i64
-    } else {
-        r as i64
-    }
 }
 
 #[cfg(test)]

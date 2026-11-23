@@ -21,7 +21,6 @@
 //! and encoding BRR—, as a library.
 
 use crate::fail::{Bad, Result};
-use crate::num;
 use gunter::extract::{self, Contract, Selector};
 use gunter::sf2::{SoundFont, VolumeEnvelope};
 use std::cell::RefCell;
@@ -70,7 +69,7 @@ pub struct Voice {
 pub(crate) const CUTOFF: f64 = 0.9;
 const CYCLES: f64 = 12.0;
 
-/// numpy's Blackman window of `m` points.
+/// The Blackman window of `m` points.
 fn blackman(m: usize) -> Vec<f64> {
     if m == 1 {
         return vec![1.0];
@@ -85,10 +84,12 @@ fn blackman(m: usize) -> Vec<f64> {
         .collect()
 }
 
-/// numpy's normalised sinc.
+/// The normalised sinc.
 fn sinc(x: f64) -> f64 {
+    if x == 0.0 {
+        return 1.0;
+    }
     let y = std::f64::consts::PI * x;
-    let y = if y == 0.0 { f64::EPSILON } else { y };
     y.sin() / y
 }
 
@@ -109,7 +110,7 @@ fn low_pass(samples: &[f64], fraction: f64, circular: bool, after: &[f64]) -> Ve
             2.0 * fraction * sinc(2.0 * fraction * n) * window[i]
         })
         .collect();
-    let total = num::numpy_sum(&kernel);
+    let total = kernel.iter().sum::<f64>();
     for k in &mut kernel {
         *k /= total;
     }
@@ -203,7 +204,7 @@ pub fn resample(samples: &[i64], count: usize, circular: bool, after: &[i64]) ->
             let fraction = position - index as f64;
             let first = filtered[index];
             let second = filtered[(index + 1).min(len - 1)];
-            num::round(first + (second - first) * fraction)
+            (first + (second - first) * fraction).round() as i64
         })
         .collect()
 }
@@ -218,7 +219,7 @@ pub fn normalize(samples: &[i64]) -> Vec<i64> {
     let scale = PEAK / top as f64;
     samples
         .iter()
-        .map(|&s| num::round(s as f64 * scale))
+        .map(|&s| (s as f64 * scale).round() as i64)
         .collect()
 }
 
@@ -357,15 +358,17 @@ impl SoundFontSamples {
         let loop_out = if looped {
             // The loop first: its length has to be a multiple of 16, and
             // from that rounding comes the rate actually declared.
-            let out = ((num::round(loop_frames as f64 * ratio / BLOCK as f64) as usize) * BLOCK)
+            let out = (((loop_frames as f64 * ratio / BLOCK as f64).round() as i64 as usize)
+                * BLOCK)
                 .max(BLOCK);
             ratio = out as f64 / loop_frames as f64;
-            rate = num::round(source_rate as f64 * ratio);
+            rate = (source_rate as f64 * ratio).round() as i64;
             out
         } else {
             0
         };
-        let attack_out = num::round(attack_frames as f64 * ratio / BLOCK as f64) as usize * BLOCK;
+        let attack_out =
+            (attack_frames as f64 * ratio / BLOCK as f64).round() as i64 as usize * BLOCK;
 
         let loop_pcm: &[i64] = if looped {
             &pcm[loop_start..loop_end]
@@ -387,7 +390,7 @@ impl SoundFontSamples {
             program: program as i64,
             name: sample.name.clone(),
             data,
-            rate: rate as f64 * num::pow(2.0, -(sample.tuning_cents as f64) / 1200.0),
+            rate: rate as f64 * 2.0f64.powf(-(sample.tuning_cents as f64) / 1200.0),
             root: sample.root_key as i64,
             loop_block: loop_block.unwrap_or(0),
             frames: audio.len(),
@@ -422,7 +425,7 @@ impl SoundFontSamples {
         let source_rate = sample.rate as i64;
         let frames = pcm.len().min((DRUM_SECONDS * source_rate as f64) as usize);
         let rate = plan_rate(frames, 0, source_rate, budget);
-        let out = (num::round(frames as f64 * rate as f64 / source_rate as f64) as f64
+        let out = ((frames as f64 * rate as f64 / source_rate as f64).round() as i64 as f64
             / BLOCK as f64) as i64
             * BLOCK as i64;
         if out < BLOCK as i64 {

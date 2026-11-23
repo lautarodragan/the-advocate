@@ -324,7 +324,7 @@ fn chipsets(manual: &Path) -> Result<BTreeMap<i32, (PathBuf, Value)>> {
                 "{entry} builds ChipSet {} with its recipe, and ChipSet/{image} is a hand-made \
                  image with that name: the built one would cover it without a word. One of the \
                  two takes another name",
-                crate::text::repr(name)
+                crate::text::quoted(name)
             );
         }
         added.insert(number, (path, data));

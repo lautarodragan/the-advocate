@@ -11,9 +11,6 @@
 //!                                     song, the packages of each map
 //!     stream per note   --the ROM-->  writes to the DSP, frame by frame
 //! ```
-//!
-//! Until 2026-09-29 this was a Python program, and what it writes into a
-//! cartridge has to keep coming out byte for byte the same: see [`num`].
 
 pub mod audible;
 pub mod bank;
@@ -28,7 +25,6 @@ pub mod job;
 pub mod midi;
 pub mod msu;
 pub mod msu_data;
-pub mod num;
 pub mod relief;
 pub mod retro;
 pub mod samples;

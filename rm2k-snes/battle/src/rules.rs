@@ -37,10 +37,11 @@ const ACTION_KIND_SKILL: i32 = 1;
 const ACTION_BASIC_ATTACK: i32 = 0;
 const ACTION_CONDITION_ALWAYS: i32 = 0;
 
-/// Python's `//`: division rounding toward minus infinity. RM2k's
-/// formulas are C++ and truncate, but they were written against a model
-/// that floored, and on every value they meet the two agree; where they
-/// would not —a negative effect halved— the caller says so.
+/// Division rounding toward minus infinity: `i64::div_floor` is not
+/// stable yet. RM2k's formulas are C++ and truncate, and on every value
+/// they meet here the two agree but one, where the floor is wanted —see
+/// `hit_rate_by_agility`—; where truncating matters —a negative effect
+/// halved— the caller truncates and says so.
 pub fn floor_div(a: i64, b: i64) -> i64 {
     let q = a / b;
     if (a % b != 0) && ((a < 0) != (b < 0)) {

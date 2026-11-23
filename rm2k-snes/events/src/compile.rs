@@ -4135,7 +4135,7 @@ pub fn instruction_size(code: &[u8], at: usize) -> usize {
 /// the ROM reads the bytecode shifted, and that is no error: it is a page
 /// that does anything. So every page is checked as it comes out, the
 /// game's included —until 2026-10-02 it was a test of the game's that
-/// walked its 3000-odd pages in Python—, and a mismatch stops the
+/// walked its 3000-odd pages—, and a mismatch stops the
 /// conversion, because it is a bug of this compiler and not of the page.
 fn whole_instructions(code: &[u8]) -> Result<()> {
     let mut at = 0;
@@ -5017,13 +5017,10 @@ fn command(
                 // —`RaceController2` on maps 49, 51, 52 and 54—, which also
                 // forces the hero's route on every frame.
                 //
-                // It was not accepted until 2026-09-27, first because of the
-                // Python reference —which did not know that a forced route
-                // rules over the pad— and then, when the reference went away,
-                // because nobody had looked at it again. On accepting it two
+                // It was not accepted until 2026-09-27. On accepting it two
                 // things of the ROM that no compiled page exercised showed up:
                 // that `op_key` looked at edges in this form too —see
-                // `key_value` in the converter's events.py— and that a
+                // `key_value` in ABL's test harness— and that a
                 // `Teleport` from a parallel page was not handled with the
                 // foreground idle —see the main loop—.
                 // `test_playthrough_race_golden.py` enforces it.
@@ -7397,7 +7394,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
 /// is drawn over. The number goes raw and not as an index of ours on
 /// purpose: the ROM looks it up in `anim_battle`, a table by number, so
 /// neither end has to carry a counter the other one guesses. See
-/// `animation.py`.
+/// `animations.rs` in rm2k-snes-convert.
 ///
 /// OP_ANIMATION: number, what it is drawn over, n, and n entries of eight
 /// bytes. The parameters are (animation, target, wait, global).

@@ -57,10 +57,9 @@ and writes pieces and a JSON.
 
 The engine's numbers —RM2k's, taken from easyrpg-player where they say,
 and the console's caps— are in `src/engine.rs` and `src/record.rs`; the
-ones measured against A Blurred Line say so. The long templates of
-constants keep the text the converter always wrote, and `src/pyfmt.rs`
-fills them as Python's `%` did, so that the `.inc` comes out the same
-character by character.
+ones measured against A Blurred Line say so. The header of constants
+that opens the `.inc` is a format string, in `src/emit/header.rs`, with a
+named argument per constant.
 
 ## Its tests
 

@@ -298,17 +298,12 @@ pub fn cut(text: &str, width: usize) -> String {
     text.chars().take(width).collect()
 }
 
-/// Python's `str.strip()`: the whitespace at both ends.
-fn strip(text: &str) -> &str {
-    text.trim_matches(|c: char| c.is_whitespace())
-}
-
 /// One of the commands as the screen writes it: the database's terms carry
 /// leading spaces —" Escape"—, which would shift the text out of its
 /// column, so it goes trimmed, and the console does not have to know how
 /// to trim.
 pub fn command_text(term: &str) -> String {
-    cut(strip(term), BA_COMMAND_WIDTH)
+    cut(term.trim(), BA_COMMAND_WIDTH)
 }
 
 /// The victory term split into the message window's lines, at the spaces:
@@ -339,7 +334,7 @@ fn split_lines(term: &str, measure: &dyn Fn(&str) -> usize, width: usize) -> Res
     let mut lines = Vec::new();
     let mut current = indent;
     for word in term.split_whitespace() {
-        let empty = strip(&current).is_empty();
+        let empty = current.trim().is_empty();
         let together = if empty {
             format!("{current}{word}")
         } else {

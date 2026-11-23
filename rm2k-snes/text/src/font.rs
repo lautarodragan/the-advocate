@@ -213,8 +213,7 @@ impl Font {
     /// The space between letters goes in the advance, not in the glyph. The
     /// shadow is not drawn: whoever draws the line adds it.
     ///
-    /// It is the format of the sheets Espinillo drew on 2026-09-30, and their
-    /// reader was the Python that drew the mock-ups with them.
+    /// It is the format of the sheets Espinillo drew on 2026-09-30.
     pub fn from_sheet(png_bytes: &[u8]) -> Result<Font, String> {
         let (indices, width, height) = read_indexed(png_bytes)?;
         let cell = (width - 1) / PER_ROW - 1;

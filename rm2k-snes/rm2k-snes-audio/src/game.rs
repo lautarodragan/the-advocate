@@ -20,12 +20,12 @@ pub fn ceilings_path(project: &Project) -> Result<PathBuf> {
     Ok(project.auto_patches()?.join("music").join("ceilings.toml"))
 }
 
-/// Python's `os.path.splitext`: the extension is from the last dot, unless
-/// everything before it is dots.
+/// A file name's stem and its extension with the dot, `Path`'s: a name
+/// that starts with its only dot has none.
 fn splitext(name: &str) -> (&str, &str) {
-    match name.rfind('.') {
-        Some(i) if name[..i].chars().any(|c| c != '.') => (&name[..i], &name[i..]),
-        _ => (name, ""),
+    match std::path::Path::new(name).extension() {
+        Some(ext) => name.split_at(name.len() - ext.len() - 1),
+        None => (name, ""),
     }
 }
 
@@ -318,11 +318,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn splitext_is_pythons() {
+    fn splitext_is_paths() {
         assert_eq!(splitext("Rain1.wav"), ("Rain1", ".wav"));
         assert_eq!(splitext(".hidden"), (".hidden", ""));
         assert_eq!(splitext("a.b.mid"), ("a.b", ".mid"));
-        assert_eq!(splitext("..x"), ("..x", ""));
         assert_eq!(splitext("noext"), ("noext", ""));
     }
 

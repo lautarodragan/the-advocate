@@ -8,7 +8,6 @@
 //! The envelopes come from the SoundFont: [`envelope`] translates each
 //! zone's into what the DSP's ADSR and GAIN can do.
 
-use crate::num;
 use gunter::sf2::VolumeEnvelope;
 
 pub const VOICES: usize = 8;
@@ -93,7 +92,7 @@ fn db_per_step() -> f64 {
 /// is "nothing".
 fn seconds(timecents: i32) -> f64 {
     if timecents > -12000 {
-        num::pow(2.0, timecents as f64 / 1200.0)
+        2.0f64.powf(timecents as f64 / 1200.0)
     } else {
         0.0
     }
@@ -152,8 +151,8 @@ pub fn envelope(sf2: &VolumeEnvelope, key: i64) -> (u8, u8, u8) {
         // It goes down to a level and stays: SL in eighths, and the decay
         // (rate 2D+16) with the SoundFont's slope. Above 1/8 the DSP's
         // decrease is exponential, so here the slope is what matters.
-        let level = num::pow(10.0, -sustain_db / 20.0);
-        let sl = (num::round(8.0 * level) - 1).clamp(0, 7);
+        let level = 10.0f64.powf(-sustain_db / 20.0);
+        let sl = ((8.0 * level).round() as i64 - 1).clamp(0, 7);
         let period = db_per_step() * rate / (100.0 / decay.max(1e-3));
         let dr = closest_rate(period, |d| PERIOD[(2 * d + 16) as usize] as f64, 0..8);
         (sl, dr, 0)
@@ -185,8 +184,8 @@ pub fn envelope(sf2: &VolumeEnvelope, key: i64) -> (u8, u8, u8) {
 /// sticking at the cap.
 pub fn pitch_for(mut note: f64, root: f64, rate: f64) -> i64 {
     loop {
-        let step = rate * 4096.0 / SAMPLE_RATE as f64 * num::pow(2.0, (note - root) / 12.0);
-        let value = num::round(step);
+        let step = rate * 4096.0 / SAMPLE_RATE as f64 * 2.0f64.powf((note - root) / 12.0);
+        let value = step.round() as i64;
         if value <= MAX_PITCH {
             return value.max(1);
         }
@@ -211,17 +210,17 @@ pub const HEADROOM: f64 = 0.5;
 
 /// The master volume: `$60` raised by the headroom, as far as $7F.
 pub fn master() -> i64 {
-    num::round(0x60 as f64 / HEADROOM).min(0x7F)
+    ((0x60 as f64 / HEADROOM).round() as i64).min(0x7F)
 }
 
 /// A melodic voice's ceiling.
 pub fn ceiling() -> i64 {
-    num::round(96.0 * HEADROOM)
+    (96.0 * HEADROOM).round() as i64
 }
 
 /// A percussion voice's: it hits hard and is short, so it can take more.
 pub fn ceiling_drum() -> i64 {
-    num::round(84.0 * HEADROOM)
+    (84.0 * HEADROOM).round() as i64
 }
 
 /// The floor: a note the calculation does not leave at zero is heard at
@@ -237,10 +236,8 @@ const VOLUME_FLOOR: i64 = 2;
 /// 40·log10 dB each; and pan (CC10) with sine and cosine, the center at the
 /// ceiling, so a hard pan exceeds it by 1.41.
 pub fn volume(velocity: f64, ceiling: f64, cc7: f64, cc11: f64, pan: f64) -> (i64, i64) {
-    let amplitude = ceiling
-        * num::pow(velocity / 127.0, 2.0)
-        * num::pow(cc7 / 100.0, 2.0)
-        * num::pow(cc11 / 127.0, 2.0);
+    let amplitude =
+        ceiling * (velocity / 127.0).powf(2.0) * (cc7 / 100.0).powf(2.0) * (cc11 / 127.0).powf(2.0);
     // fluidsynth maps GM pan to an angle with 128 steps, not 127: 64 is the
     // exact center and 127 does not quite reach the right.
     let angle = pan.clamp(0.0, 127.0) / 128.0 * std::f64::consts::PI / 2.0;
@@ -249,7 +246,7 @@ pub fn volume(velocity: f64, ceiling: f64, cc7: f64, cc11: f64, pan: f64) -> (i6
         if x < 0.5 {
             0
         } else {
-            num::round(x).clamp(VOLUME_FLOOR, 0x7F)
+            (x.round() as i64).clamp(VOLUME_FLOOR, 0x7F)
         }
     };
     (
@@ -306,7 +303,7 @@ mod tests {
     fn a_hard_pan_exceeds_the_ceiling_by_the_square_root_of_two() {
         let c = ceiling() as f64;
         let (l, r) = volume(127.0, c, 100.0, 127.0, 0.0);
-        assert_eq!((l, r), (num::round(c * 2f64.sqrt()), 0));
+        assert_eq!((l, r), ((c * 2f64.sqrt()).round() as i64, 0));
         let (l, r) = volume(127.0, c, 100.0, 127.0, 64.0);
         assert_eq!((l, r), (48, 48));
     }

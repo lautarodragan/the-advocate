@@ -201,7 +201,12 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             let mut commands = Vec::new();
             let mut known: BTreeMap<i32, BTreeSet<i32>> = BTreeMap::new();
             for &a in &actors {
-                commands.extend(rules::command_names(db, a)?.iter().map(|n| strip_name(n)));
+                // Trimmed, as `screen::command_text` writes them.
+                commands.extend(
+                    rules::command_names(db, a)?
+                        .iter()
+                        .map(|n| n.trim().to_string()),
+                );
                 known.insert(a, BTreeSet::new());
             }
             for &(a, h) in &pairs {
@@ -791,12 +796,6 @@ fn font_of(request: &Value) -> Result<Option<Font>> {
         .and_then(|f| f.with_exfont_of(exfont))
         .map(Some)
         .map_err(Bad::answer)
-}
-
-/// Python's `str.strip()`, which the commands go through: see
-/// `screen::command_text`.
-fn strip_name(text: &str) -> String {
-    text.trim_matches(|c: char| c.is_whitespace()).to_string()
 }
 
 /// How many letters the cartridge keeps of an enemy's or a skill's name:

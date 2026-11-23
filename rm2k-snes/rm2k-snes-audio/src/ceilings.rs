@@ -28,7 +28,6 @@
 //! [`game`]: crate::game
 
 use crate::fail::{Bad, Result};
-use crate::num;
 use crate::retro::Console;
 use crate::sdsp;
 use serde_json::Value;
@@ -48,7 +47,7 @@ pub const MEASURING_HEADROOM: f64 = HEADROOM / 2.0;
 /// is the rounding of each voice's volume to an integer, which makes the
 /// peak not scale exactly with the headroom.
 pub fn margin() -> f64 {
-    num::pow(10.0, -0.5 / 20.0)
+    10.0f64.powf(-0.5 / 20.0)
 }
 
 /// Where the cap lies in what comes out of the console: the DSP saturates
@@ -244,7 +243,7 @@ pub fn row(samples: &[i16], rate: f64) -> Row {
         }
     }
     // The samples are left/right pairs.
-    let frame = (at / 2) as i64 * 60 / num::round(rate);
+    let frame = (at / 2) as i64 * 60 / rate.round() as i64;
     Row {
         clipped: clipped(samples),
         peak,
@@ -258,7 +257,7 @@ pub fn lufs(samples: &[i16], rate: f64) -> Result<f64> {
     let dir = std::env::temp_dir().join(format!("rm2k-snes-lufs-{}", std::process::id()));
     std::fs::create_dir_all(&dir).map_err(|e| io(&dir, e))?;
     let path = dir.join("t.wav");
-    let rate = num::round(rate) as u32;
+    let rate = rate.round() as u32;
     let data_len = (samples.len() * 2) as u32;
     let mut wav = Vec::with_capacity(44 + samples.len() * 2);
     wav.extend_from_slice(b"RIFF");
@@ -331,12 +330,6 @@ pub fn lowered(current: f64, peak: i64) -> f64 {
     (1000.0 * current * cap() as f64 * margin() / peak as f64).floor() / 1000.0
 }
 
-/// Python's `str()` of a float, for the one number the table writes that
-/// way: the shortest text that reads back the same.
-fn python_float(x: f64) -> String {
-    format!("{x:?}")
-}
-
 /// The table, with its reason on top.
 pub fn table(
     ceilings: &BTreeMap<String, f64>,
@@ -365,10 +358,7 @@ pub fn table(
     .iter()
     .map(|s| s.to_string())
     .collect();
-    lines.push(format!(
-        "measuring_headroom = {}",
-        python_float(MEASURING_HEADROOM)
-    ));
+    lines.push(format!("measuring_headroom = {MEASURING_HEADROOM:?}"));
     lines.push("margin_db = -0.5".to_string());
     lines.push(String::new());
     for (name, headroom) in ceilings {

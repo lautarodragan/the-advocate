@@ -13,7 +13,7 @@
 ; substitutes by tile number and here the unit is the 16x16 block, which
 ; carries both layers together: an RM2k tile can be in as many blocks as it
 ; has combinations with the other layer. Which ones was worked out by the
-; converter, see `Substitutions` in snes_convert.py.
+; converter, see `Substitutions` in Wally's substitutions.rs.
 ;
 ; The table is applied like easyrpg's `DoSubstitute`, which walks the whole
 ; translation and changes **the values** that are the old block, not the keys:

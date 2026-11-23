@@ -5,7 +5,6 @@
 
 use crate::fail::{Bad, Result};
 use crate::midi;
-use crate::num;
 use crate::samples::{SoundFontSamples, Voice, Zone, REFERENCE_KEY};
 use crate::song::Parsed;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -535,7 +534,7 @@ pub fn copies(
                 continue;
             }
             let option = (
-                num::round_to(fraction, 3),
+                (fraction * 1000.0).round() / 1000.0,
                 -outside,
                 key.clone(),
                 name.clone(),

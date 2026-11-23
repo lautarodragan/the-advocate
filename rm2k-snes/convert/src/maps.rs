@@ -18,7 +18,6 @@ use crate::game::{Command, Event, Game, GameMap, COPY_SUFFIX, TILE_PREFIX};
 use crate::pictures::{self, Big, ForMap};
 use crate::settings::Settings;
 use crate::stage;
-use crate::text::round0;
 use rm2k_snes_events::codes::{FLASH_SPRITE, MOVE_EVENT, TILE_SUBSTITUTION};
 use rm2k_snes_mapdata::vram;
 use serde_json::{json, Value};
@@ -278,7 +277,7 @@ fn system_path(game: &Game) -> Result<PathBuf> {
         .ok_or_else(|| {
             Stop::new(format!(
                 "System {} is not in {}",
-                crate::text::repr(name),
+                crate::text::quoted(name),
                 game.game_dir.display()
             ))
         })
@@ -1039,7 +1038,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         println!(
             "  map {map_id}: the pictures {} are shown in the background layer instead, over the \
              black screen they are shown on",
-            crate::text::repr(&rescued.iter().cloned().collect::<Vec<_>>().join(", "))
+            crate::text::quoted(&rescued.iter().cloned().collect::<Vec<_>>().join(", "))
         );
         if lost.is_subset(&rescued) {
             losses.retain(|(kind, text, _)| {
@@ -1093,7 +1092,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let cells_count = int(&bg["cells"]);
     println!(
         "Map {map_id} {}: {}x{} cells of {}x{} px",
-        crate::text::repr(&name),
+        crate::text::quoted(&name),
         tilemap_dims.0,
         tilemap_dims.1,
         8,
@@ -1107,10 +1106,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         bg["merges"].as_array().map_or(0, Vec::len)
     );
     println!(
-        "  {} unique tiles of {} cells ({}% reuse)",
+        "  {} unique tiles of {} cells ({:.0}% reuse)",
         int(&bg["tiles"]),
         cells_count,
-        round0(100.0 * (1.0 - int(&bg["tiles"]) as f64 / cells_count as f64))
+        100.0 * (1.0 - int(&bg["tiles"]) as f64 / cells_count as f64)
     );
     let animated: Vec<Value> = s["animated"].as_array().cloned().unwrap_or_default();
     println!(
@@ -1133,10 +1132,10 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     );
     let open_ones = passable.iter().filter(|&&b| b == 0x0F).count();
     println!(
-        "  collision: {} cells, {} open on all four sides ({}%), the hero starts at ({},{})",
+        "  collision: {} cells, {} open on all four sides ({:.0}%), the hero starts at ({},{})",
         passable.len(),
         open_ones,
-        round0(100.0 * open_ones as f64 / passable.len() as f64),
+        100.0 * open_ones as f64 / passable.len() as f64,
         start.0,
         start.1
     );

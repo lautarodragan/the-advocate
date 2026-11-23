@@ -90,10 +90,8 @@ indexed ChipSet the alpha is only 0 or 255 and the blend is a plain copy;
 with half transparencies the rounding shows, and a tile reaches a map
 through two copies —ChipSet to atlas, atlas to map—, each one rounding.
 
-That is not a style choice. Until this crate existed the same layers were
-drawn by a Python port of the same code, and what this draws was checked
-equal to it, pixel for pixel, on every map of a whole game. What a map
-looks like is A Blurred Line's goldens' now; `tests/every_id.rs` draws a
+That is not a style choice: what a map looks like is A Blurred Line's
+goldens', pixel for pixel, and they hold these roundings. `tests/every_id.rs` draws a
 map of every id over an indexed ChipSet and a half-transparent one, which
 no game brings, and checks it is drawn whole.
 
@@ -121,8 +119,7 @@ a pose is the caller's, and so is whatever a pose becomes afterwards.
 The blend is `(over * 160 + under * 95) / 255` rounded **down**, and the
 sheet's own alpha does not weigh in: any pixel that is not fully
 transparent is mixed whole. The tile of a tile event is copied through its
-alpha twice, like a tile of the layers. Both are what the Python that drew
-these before gave; `tests/charsets.rs` checks the tile in each pose and
+alpha twice, like a tile of the layers. `tests/charsets.rs` checks the tile in each pose and
 the blend's bounds over CharSets, ChipSets and a background generated
 inside the test.
 

@@ -188,20 +188,9 @@ impl Instruments for SongBank<'_> {
 /// loop. Whatever changes this can move the peak, and the table of volume
 /// ceilings stores it so the game knows whether what was measured is still
 /// what plays. The driver does not count: it mixes nothing.
-///
-/// The writes go in as Python's `repr` of a list of tuples, because that is
-/// how the fingerprints in that table were taken.
 pub fn mix_fingerprint(writes: &[Write], bank: &Bank) -> String {
-    let mut text = String::from("[");
-    for (i, (f, r, v)) in writes.iter().enumerate() {
-        if i > 0 {
-            text.push_str(", ");
-        }
-        text.push_str(&format!("({f}, {r}, {v})"));
-    }
-    text.push(']');
     let mut h = Sha256::new();
-    h.update(text.as_bytes());
+    h.update(format!("{writes:?}").as_bytes());
     let used: BTreeSet<u8> = writes
         .iter()
         .filter(|(_, r, _)| *r < 0x80 && r & 0x0F == sdsp::V_SRCN)

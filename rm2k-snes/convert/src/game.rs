@@ -464,7 +464,7 @@ impl Game {
                 crate::stop!(
                     "[windows.background] {}: the game has no System by that name, nor does the RTP; \
                      the key is the System's name without its extension",
-                    crate::text::repr(name)
+                    crate::text::quoted(name)
                 );
             }
         }

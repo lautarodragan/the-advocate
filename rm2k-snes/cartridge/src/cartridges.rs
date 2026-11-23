@@ -647,9 +647,6 @@ impl Cartridges {
         if let Some((zip, _)) = self.environment.archive("rtp_dir") {
             parts.push(zip.to_path_buf());
         }
-        // Until 2026-10-02 the `.py` files of the tools went in here too,
-        // when the converter was a Python program; the last of them left
-        // that day, and the converter is among the binaries above.
         // The hand-made patches. Their RM2k folders hold the files that
         // replace the game's —see `own_files` in `rm2k-project`—, and each
         // of them goes in with its name, in `fingerprint`: renaming one

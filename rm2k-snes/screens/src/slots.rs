@@ -14,7 +14,7 @@ use crate::game::{Game, Skin};
 use crate::items::ink_colors;
 use crate::layout::*;
 use crate::message_window;
-use crate::texts::{ljust, NUMBER_GLYPHS};
+use crate::texts::{padded, NUMBER_GLYPHS};
 use adeleine::luma_distance;
 use ditto::schema::State;
 use rm2k_render::picture::Picture;
@@ -337,7 +337,7 @@ fn arrow_layer(skin: &Skin) -> Result<(Picture, Vec<Color>)> {
 /// cartridge composes it with glyphs, because it depends on the actor.
 fn level_term(game: &Game, skin: &Skin, dest: &mut Picture, x: usize, y: usize) -> Result<()> {
     let term: String = game.term("lvl_short")?.chars().take(2).collect();
-    skin.draw_line(dest, x as i64, y as i64, &ljust(&term, 2), 1, &game.font);
+    skin.draw_line(dest, x as i64, y as i64, &padded(&term, 2), 1, &game.font);
     Ok(())
 }
 

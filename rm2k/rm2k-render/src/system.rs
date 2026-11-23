@@ -38,11 +38,11 @@ pub fn tiled(src: &Picture, width: usize, height: usize) -> Picture {
 
 /// `src` scaled to `width` x `height`, each pixel the nearest one.
 ///
-/// The nearest is found the way the drawing this replaces found it —
-/// Pillow's `NEAREST`—: the source column of column `x` is the whole part
-/// of `(x + 0.5) * src.width / width`, **added up column by column in a
-/// double** and not computed one by one. The two ways differ by one pixel
-/// on some sizes, and the pixels have to be those.
+/// The nearest is found as Pillow's `NEAREST` finds it: the source column
+/// of column `x` is the whole part of `(x + 0.5) * src.width / width`,
+/// **added up column by column in a double** and not computed one by one.
+/// The two ways differ by one pixel on some sizes, and the goldens hold
+/// these.
 pub fn stretched(src: &Picture, width: usize, height: usize) -> Picture {
     fn nearest(from: usize, to: usize) -> Vec<i64> {
         let scale = from as f64 / to as f64;

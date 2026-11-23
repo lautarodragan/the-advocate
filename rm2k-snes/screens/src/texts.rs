@@ -132,7 +132,7 @@ pub fn target_text(font: &Font, name: &str, room: usize) -> String {
             width <= room
         })
         .collect();
-    ljust(&shown, TARGET_NAME_WIDTH)
+    padded(&shown, TARGET_NAME_WIDTH)
 }
 
 /// Item `item`'s name on the actor choice, before "Owned Items":
@@ -217,16 +217,13 @@ pub fn fit_cells(font: &Font, text: &str, cells: usize) -> String {
         .collect()
 }
 
-/// `text` padded with spaces to `width` characters, like Python's `ljust`.
-pub fn ljust(text: &str, width: usize) -> String {
-    let n = text.chars().count();
-    let mut out = text.to_string();
-    out.extend(std::iter::repeat_n(' ', width.saturating_sub(n)));
-    out
+/// `text` padded with spaces to `width` characters.
+pub fn padded(text: &str, width: usize) -> String {
+    format!("{text:<width$}")
 }
 
 /// `value` right-aligned in `width` columns, and only its last `width`
-/// characters if it is longer: `("%*d" % (width, value))[-width:]`.
+/// characters if it is longer.
 pub fn right(value: i64, width: usize) -> String {
     let text = format!("{value:>width$}");
     let n = text.chars().count();
@@ -371,7 +368,7 @@ pub fn name_text(game: &Game, actor: i32, cols: usize) -> Result<String> {
 /// padded to `cols` letters. Without its icons: the menu's bank, which
 /// composes the strips, carries none.
 pub fn name_strip(name: &str, cols: usize) -> String {
-    ljust(&item_text(&exfont::without_icons(name), cols), cols)
+    padded(&item_text(&exfont::without_icons(name), cols), cols)
 }
 
 /// The two digits of the level, right-aligned as RM2k says them. Without
@@ -385,7 +382,7 @@ pub fn level_text(game: &Game, actor: i32, level: Option<i64>) -> String {
 /// the starting one.
 pub fn max_text(game: &Game, actor: i32, level: Option<i64>) -> String {
     let maximum = game.actors.get(&actor).map_or(0, |a| max_hp(a, level));
-    let text = ljust(&format!("/{maximum}"), MENU_MAX_DIGITS);
+    let text = padded(&format!("/{maximum}"), MENU_MAX_DIGITS);
     text.chars().take(MENU_MAX_DIGITS).collect()
 }
 
@@ -403,7 +400,7 @@ pub fn max_sp(actor: &Actor, level: Option<i64>) -> i64 {
 pub fn sp_text(game: &Game, actor: i32, level: Option<i64>, sp: Option<i64>) -> String {
     let maximum = game.actors.get(&actor).map_or(0, |a| max_sp(a, level));
     let current = sp.unwrap_or(maximum).clamp(0, 999);
-    let after = ljust(&format!("/{}", maximum.min(999)), MENU_MAX_DIGITS);
+    let after = padded(&format!("/{}", maximum.min(999)), MENU_MAX_DIGITS);
     format!(
         "{}{}",
         right(current, MENU_HP_DIGITS),

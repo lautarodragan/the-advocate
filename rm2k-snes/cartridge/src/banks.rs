@@ -49,7 +49,7 @@
 
 use std::path::Path;
 
-use crate::text::{code, first_word, is_constant, is_label, split_lines};
+use crate::text::{code, first_word, is_constant, is_label};
 
 /// A whole ExHiROM bank: 64 KB, from `$0000`.
 pub const BANK_SIZE: usize = 0x10000;
@@ -627,7 +627,7 @@ pub fn pack_with_msu(
         // A `.msu` or a `.msu_only` waiting for its `.block`.
         let mut msu_next = false;
         let mut only_next = false;
-        for line in split_lines(text) {
+        for line in text.lines() {
             let directive = code(line);
             match constant(directive) {
                 Some((REQUIRED, value)) => required = value == "1",

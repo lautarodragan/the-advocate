@@ -215,21 +215,11 @@ pub fn curve<'a>(actor: &'a Actor, which: &str) -> Option<&'a [i16]> {
 }
 
 /// A curve at `level`: the database's table starts at level 1, so the
-/// index is the level minus one, and past its end it is 0.
-///
-/// A level of 0 or less counts from the end, which is how the Python model
-/// the callers replaced indexed it; it is not a level RM2k has, and `None`
-/// is that count falling before the start.
+/// index is the level minus one, and past its end it is 0. A level below 1
+/// is not one RM2k has: `None`.
 pub fn curve_at(values: &[i16], level: i64) -> Option<i64> {
-    let at = level - 1;
-    if at >= values.len() as i64 {
-        return Some(0);
-    }
-    let at = if at < 0 { values.len() as i64 + at } else { at };
-    usize::try_from(at)
-        .ok()
-        .and_then(|at| values.get(at))
-        .map(|&v| v as i64)
+    let at = usize::try_from(level - 1).ok()?;
+    Some(values.get(at).map_or(0, |&v| v as i64))
 }
 
 /// What an item adds when equipped: attack, defense, spirit, agility.
@@ -354,8 +344,8 @@ mod tests {
         assert_eq!(curve_at(&values, 1), Some(10));
         assert_eq!(curve_at(&values, 3), Some(30));
         assert_eq!(curve_at(&values, 4), Some(0));
-        assert_eq!(curve_at(&values, 0), Some(30));
-        assert_eq!(curve_at(&[], 0), None);
+        assert_eq!(curve_at(&values, 0), None);
+        assert_eq!(curve_at(&[], 1), Some(0));
     }
 
     #[test]

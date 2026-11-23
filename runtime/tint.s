@@ -8,9 +8,8 @@
 ; is 8 bits per pixel and addresses CGRAM directly, ends up tinted exactly.
 ;
 ; The computation is `i * value / 100` on integers. The hardware does both
-; operations and they are exact, so the same computation in Python always
-; gives the same result. An approximation with shifts would not do: the
-; comparison is pixel by pixel.
+; operations and they are exact, so the result is RM2k's to the bit. An
+; approximation with shifts would not do: the comparison is pixel by pixel.
 
 ; t[i] = i * value / 100 for i from 0 to 31, capped at 31. A = value, X = table.
 .proc channel_table

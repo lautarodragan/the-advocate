@@ -160,7 +160,7 @@ ANIMB_PREV   = ANIMB_HAS + $16          ; three bytes: the last frame built in
 
 ; This map's layout, when loading it. The byte is 0 —"nothing is drawn here"—
 ; or bit 7 set with the 64-tile block and the palette, three bits each.
-; See `animations_asm` in snes_convert.py.
+; See `anim_battle_split` in rm2k-snes-mapdata's emit.rs.
 .proc anim_drawing_map
 .a8
 .i16

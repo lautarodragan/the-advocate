@@ -669,17 +669,8 @@ fn chars(text: &str) -> usize {
     text.chars().count()
 }
 
-/// Python's whitespace, which is what splits words: Unicode's, and the
-/// four separators `\x1c`..`\x1f`.
-fn is_space(c: char) -> bool {
-    c.is_whitespace() || ('\x1c'..='\x1f').contains(&c)
-}
-
 fn split_words(text: &str) -> Vec<String> {
-    text.split(is_space)
-        .filter(|w| !w.is_empty())
-        .map(str::to_string)
-        .collect()
+    text.split_whitespace().map(str::to_string).collect()
 }
 
 /// Whether the word ends a sentence, with the quotes or parenthesis that
@@ -707,7 +698,7 @@ fn ends_with(word: &str, marks: &[char]) -> bool {
 /// if there is nothing but question marks. "WHAT?" is a shouted sentence,
 /// not a name.
 pub fn is_speaker(line: &str) -> bool {
-    let text = line.trim_matches(is_space);
+    let text = line.trim();
     if text.is_empty() || chars(text) > 20 || text != text.to_uppercase() {
         return false;
     }

@@ -7,8 +7,8 @@
 //! there can be —1419 of them, in a 32x45-tile atlas—, and that table is
 //! built here once per ChipSet.
 //!
-//! It is a port of EasyRPG Tools' `lmu2png/src/chipset.cpp`, by way of the
-//! Python this replaced. The offsets are theirs: the original says it was
+//! It is a port of EasyRPG Tools' `lmu2png/src/chipset.cpp`. The offsets
+//! are theirs: the original says it was
 //! easier to write them down than to work out the rule behind them, and
 //! there is no reason to doubt it. Changing one changes pixels.
 
