@@ -30,7 +30,9 @@ and the patchwork, 60x60 of stripes no two neighbouring rows draw alike,
 for the camera. And the erasure, a bare field where a statue and a
 pacer erase themselves, and a loop leads back to the same map. And the
 anvil, where a battle animation falls on a crate and a slab drawn with a
-ChipSet tile, and flashes them. The showcase's ChipSet gives its first four tiles a
+ChipSet tile, and flashes them. And the frost, a field with a hedge down
+the middle whose events swap its ChipSet for a winter's and for one that
+lets the hero through the hedge, and back. The showcase's ChipSet gives its first four tiles a
 terrain each. And the crossing, four cells
 with two events standing on each, where every one whose trigger matches
 fires. And a common event that shows a box with escapes the console
