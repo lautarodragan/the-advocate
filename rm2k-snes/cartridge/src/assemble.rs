@@ -23,7 +23,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use rm2k_project::{absolute, relative};
+use rm2k_project::{absolute, cache, relative};
 
 use crate::banks;
 
@@ -228,6 +228,53 @@ impl From<String> for Failure {
     }
 }
 
+/// The disk cache's category for `ca65`'s objects.
+const OBJECTS: &str = "ca65";
+
+/// What `ca65` is given besides the files.
+const CA65_FLAGS: [&str; 3] = ["-g", "--cpu", "65816"];
+
+/// The key of the object `ca65` makes of `source`: the binary, its flags,
+/// and every file it reads —each `.s` from `source` down and each `.inc`
+/// they include, from next to the file or from `include`, as `ca65` looks
+/// them up—, by name and content. **Not where they are**: two worktrees
+/// that assemble the same thing give the same key.
+///
+/// The object also carries, for the debug file, the path, size and date of
+/// each source, and those do not go in: an object from the cache names the
+/// files of the build that made it, and `ld65` passes that on to the
+/// `.dbg`. [`assemble`] puts this build's back in the `.dbg`: see
+/// [`retarget_dbg`].
+pub fn object_key(ca65: &Path, source: &Path, include: &Path) -> Result<String, String> {
+    let read = |path: &Path| std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()));
+    let base = absolute(source);
+    let base = base.parent().unwrap_or(Path::new("/")).to_path_buf();
+    let mut parts: Vec<Vec<u8>> = vec![
+        b"ca65 object 2".to_vec(),
+        read(ca65)?,
+        CA65_FLAGS.join(" ").into_bytes(),
+    ];
+    walk(source, &mut |path, names| {
+        let path = absolute(path);
+        let name = path.strip_prefix(&base).unwrap_or(&path);
+        parts.push(name.as_os_str().as_encoded_bytes().to_vec());
+        parts.push(read(&path)?);
+        let here = path.parent().unwrap_or(Path::new("/"));
+        for name in names.iter().filter(|n| !n.ends_with(".s")) {
+            let found = [here.join(name), include.join(name)]
+                .into_iter()
+                .find(|p| p.is_file());
+            parts.push(name.as_bytes().to_vec());
+            parts.push(match found {
+                Some(file) => read(&file)?,
+                None => b"\0missing".to_vec(),
+            });
+        }
+        Ok(())
+    })?;
+    Ok(cache::key(&parts))
+}
+
 /// Builds `rom` from `source`, with the generated files in `include`.
 ///
 /// `ca65` and `ld65` run standing in `root`, with paths relative to it,
@@ -235,13 +282,19 @@ impl From<String> for Failure {
 /// it. With absolute paths the machine's would stay in it, and a debugger on
 /// another machine would not find the source in its clone: it looks for it
 /// next to the debug file and climbing up folder by folder.
+///
+/// With `cache_dir`, `ca65`'s object comes from the disk cache if the same
+/// sources were assembled before —see [`object_key`]—: it is most of what
+/// assembling a big game costs, and a single thread. `ld65` runs always.
+/// Says whether the object came from the cache.
 pub fn assemble(
     source: &Path,
     include: &Path,
     rom: &Path,
     table: Option<&Path>,
     root: &Path,
-) -> Result<(), Failure> {
+    cache_dir: Option<&Path>,
+) -> Result<bool, Failure> {
     // The bytecodes' equates first, so that they are generated files like
     // the others: found in `include`, and refused if a stale copy shadows
     // them.
@@ -272,13 +325,48 @@ pub fn assemble(
     let rom_r = under(rom, &root);
     let obj = with_suffix(&rom_r, ".o");
     let dbg = with_suffix(&rom_r, ".dbg");
-    run(Command::new(&ca65)
-        .args(["-g", "--cpu", "65816", "-I"])
-        .arg(&include_r)
-        .arg(&source_r)
-        .arg("-o")
-        .arg(&obj)
-        .current_dir(&root))?;
+    // After the packing, which rewrites the generated files in place: the
+    // key is what `ca65` is about to read.
+    let key = match cache_dir {
+        Some(_) => Some(object_key(&ca65, source, include)?),
+        None => None,
+    };
+    let object = root.join(&obj);
+    // Copied in and out, never linked: `ca65` rewrites its object in place,
+    // and with a link it would rewrite the cache's.
+    let cached = match (cache_dir, &key) {
+        (Some(dir), Some(key)) => cache::load(dir, OBJECTS, key),
+        _ => None,
+    };
+    let names = Names {
+        sources: source_r
+            .parent()
+            .unwrap_or(Path::new(""))
+            .to_string_lossy()
+            .into_owned(),
+        include: include_r.to_string_lossy().into_owned(),
+    };
+    let cached = cached.as_deref().and_then(Names::unpack);
+    let from_the_cache = cached.is_some();
+    let mut named = None;
+    if let Some((was, bytes)) = cached {
+        std::fs::write(&object, bytes).map_err(|e| format!("{}: {e}", object.display()))?;
+        named = Some(was);
+    } else {
+        run(Command::new(&ca65)
+            .args(CA65_FLAGS)
+            .arg("-I")
+            .arg(&include_r)
+            .arg(&source_r)
+            .arg("-o")
+            .arg(&obj)
+            .current_dir(&root))?;
+        if let (Some(dir), Some(key)) = (cache_dir, &key) {
+            if let Ok(bytes) = std::fs::read(&object) {
+                cache::store(dir, OBJECTS, key, &names.pack(&bytes));
+            }
+        }
+    }
     run(Command::new(&ld65)
         .arg("-C")
         .arg(include_r.join(MEMORY_MAP))
@@ -288,6 +376,9 @@ pub fn assemble(
         .arg("--dbgfile")
         .arg(&dbg)
         .current_dir(&root))?;
+    if let Some(was) = named {
+        retarget_dbg(&root.join(&dbg), &root, &was, &names)?;
+    }
     let mut data = std::fs::read(rom).map_err(|e| format!("{}: {e}", rom.display()))?;
     mirror(&mut data)?;
     checksum(&mut data)?;
@@ -306,7 +397,92 @@ pub fn assemble(
         rom.display(),
         data.len()
     );
-    Ok(())
+    Ok(from_the_cache)
+}
+
+/// The two directories `ca65` names a build's sources by, as it was given
+/// them: the source's, which the runtime's `.s` files hang from, and the
+/// include directory, which the generated files hang from.
+#[derive(Debug, PartialEq)]
+pub struct Names {
+    pub sources: String,
+    pub include: String,
+}
+
+impl Names {
+    /// What the cache keeps: these names, then the object. In one value, so
+    /// that two builds storing the same key at once cannot leave one's names
+    /// with the other's object.
+    fn pack(&self, object: &[u8]) -> Vec<u8> {
+        let mut out = Vec::with_capacity(object.len() + 512);
+        for name in [&self.sources, &self.include] {
+            out.extend_from_slice(name.as_bytes());
+            out.push(0);
+        }
+        out.extend_from_slice(object);
+        out
+    }
+
+    fn unpack(bytes: &[u8]) -> Option<(Names, &[u8])> {
+        let mut parts = bytes.splitn(3, |&b| b == 0);
+        let sources = String::from_utf8(parts.next()?.to_vec()).ok()?;
+        let include = String::from_utf8(parts.next()?.to_vec()).ok()?;
+        Some((Names { sources, include }, parts.next()?))
+    }
+
+    /// `name` as this build calls it, if the one `was` describes named it.
+    fn moved(&self, was: &Names, name: &str) -> String {
+        for (old, new) in [(&was.include, &self.include), (&was.sources, &self.sources)] {
+            if old.is_empty() || old == new {
+                continue;
+            }
+            if let Some(rest) = name.strip_prefix(old.as_str()).filter(|r| r.starts_with('/')) {
+                return format!("{new}{rest}");
+            }
+        }
+        name.to_string()
+    }
+}
+
+/// Gives the `.dbg` linked from a cached object the `file` records `ca65`
+/// would have given in this build: the names under this build's directories,
+/// and the size and date of this build's files, which `ca65` takes when it
+/// opens each one. A debugger looks for each source by that name, next to
+/// the `.dbg` and climbing up. `ld65` numbers the files in the order it read
+/// them, not by name, so renaming them moves nothing else in the file.
+pub fn retarget_dbg(dbg: &Path, root: &Path, was: &Names, now: &Names) -> Result<(), String> {
+    let text = std::fs::read_to_string(dbg).map_err(|e| format!("{}: {e}", dbg.display()))?;
+    let mut out = String::with_capacity(text.len());
+    for line in text.split_inclusive('\n') {
+        match retarget_line(line, root, was, now) {
+            Some(new) => out.push_str(&new),
+            None => out.push_str(line),
+        }
+    }
+    std::fs::write(dbg, out).map_err(|e| format!("{}: {e}", dbg.display()))
+}
+
+/// A `file\tid=0,name="x",size=1,mtime=0x00000000,mod=0` record, as `ld65`
+/// prints it (`PrintDbgFileInfo`). `None` leaves the line as it was.
+fn retarget_line(line: &str, root: &Path, was: &Names, now: &Names) -> Option<String> {
+    let rest = line.strip_prefix("file\t")?;
+    let (head, rest) = rest.split_once("name=\"")?;
+    let (name, rest) = rest.split_once("\",size=")?;
+    let (_, tail) = rest.split_once(",mod=")?;
+    let name = now.moved(was, name);
+    let meta = std::fs::metadata(root.join(&name)).ok()?;
+    let mtime = meta
+        .modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_secs();
+    // `ca65` keeps the date in 32 bits.
+    Some(format!(
+        "file\t{head}name=\"{name}\",size={},mtime=0x{:08X},mod={tail}",
+        meta.len(),
+        mtime as u32
+    ))
 }
 
 fn with_suffix(path: &Path, suffix: &str) -> PathBuf {

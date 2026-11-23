@@ -70,8 +70,15 @@ pub const PEAK: f64 = 0.97;
 /// Which extensions the replacements are looked for with, in this order.
 pub const EXTENSIONS: [&str; 4] = [".mp3", ".ogg", ".flac", ".wav"];
 
-/// The disk cache's category.
+/// The disk cache's category: each track's sha256, under its key.
 const CATEGORY: &str = "msu";
+
+/// And the tracks themselves, under the same key: a hard link to the
+/// build's `.pcm` when the cache is on its disk, so keeping them costs no
+/// space. What a build finds here it links into its own directory. A track
+/// is never written in place —see [`Tracks::one`]—, so replacing a linked
+/// one leaves the cache's as it was.
+const TRACKS: &str = "msu-tracks";
 
 fn io(path: &Path, e: std::io::Error) -> Bad {
     Bad::usage(format!("{}: {e}", path.display()))
@@ -458,22 +465,26 @@ impl Tracks {
     }
 
     fn cached(&self, key: &str) -> Option<String> {
-        let path = self.cache.as_ref()?.join(CATEGORY).join(key);
-        std::fs::read_to_string(path).ok()
+        String::from_utf8(cache::load(self.cache.as_ref()?, CATEGORY, key)?).ok()
     }
 
-    /// Stores the value whole or not at all: written aside and renamed. A
-    /// cache that cannot be written breaks nothing.
+    /// Stores the value whole or not at all. A cache that cannot be written
+    /// breaks nothing.
     fn store(&self, key: &str, value: &str) {
-        let Some(dir) = &self.cache else { return };
-        let dir = dir.join(CATEGORY);
-        if std::fs::create_dir_all(&dir).is_err() {
-            return;
+        if let Some(dir) = &self.cache {
+            cache::store(dir, CATEGORY, key, value.as_bytes());
         }
-        let tmp = dir.join(format!(".tmp-{}-{key}", std::process::id()));
-        if std::fs::write(&tmp, value).is_ok() && std::fs::rename(&tmp, dir.join(key)).is_err() {
-            let _ = std::fs::remove_file(&tmp);
-        }
+    }
+
+    /// Puts at `out_path` the track another build made from the same
+    /// sources, if the cache keeps it and it is still what was stored —its
+    /// sha256, `stored`—. Says whether it did.
+    fn from_the_cache(&self, key: &str, stored: &str, out_path: &Path) -> bool {
+        let Some(dir) = &self.cache else {
+            return false;
+        };
+        file_fingerprint(&cache::entry(dir, TRACKS, key)).as_deref() == Some(stored)
+            && cache::fetch_file(dir, TRACKS, key, out_path)
     }
 
     /// One track: `<base>-<number>.pcm`.
@@ -501,8 +512,13 @@ impl Tracks {
         // from these same sources. What is stored is the `.pcm`'s sha256,
         // so a run cut off halfway is not taken as good: it does not match
         // and is redone.
+        //
+        // And if it is not there, the one another build made: with the cache
+        // shared, a worktree finds every track another one already rendered.
         if let Some(stored) = self.cached(&key) {
-            if Some(stored) == file_fingerprint(&out_path) {
+            if file_fingerprint(&out_path).as_ref() == Some(&stored)
+                || self.from_the_cache(&key, &stored, &out_path)
+            {
                 return Ok(Outcome::Already);
             }
         }
@@ -577,6 +593,11 @@ impl Tracks {
         std::fs::rename(&new, &out_path).map_err(|e| io(&out_path, e))?;
         std::fs::remove_file(&tmp_wav).map_err(|e| io(&tmp_wav, e))?;
         if let Some(fp) = file_fingerprint(&out_path) {
+            // The track first and its sha256 after: whoever finds the
+            // sha256 finds the track too.
+            if let Some(dir) = &self.cache {
+                cache::store_file(dir, TRACKS, &key, &out_path);
+            }
             self.store(&key, &fp);
         }
         let from = audio
@@ -802,6 +823,75 @@ mod tests {
             Some(root.join("mp3").join("Credits.MP3"))
         );
         assert_eq!(followed_link(&music.join("Plain.wav")), None);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// A WAV of `frames` frames of 16-bit stereo at 44.1 kHz.
+    fn wav(frames: usize) -> Vec<u8> {
+        let data = frames * 4;
+        let mut out = b"RIFF".to_vec();
+        out.extend((36 + data as u32).to_le_bytes());
+        out.extend(b"WAVEfmt ");
+        out.extend(16u32.to_le_bytes());
+        out.extend(1u16.to_le_bytes());
+        out.extend(2u16.to_le_bytes());
+        out.extend(44100u32.to_le_bytes());
+        out.extend((44100u32 * 4).to_le_bytes());
+        out.extend(4u16.to_le_bytes());
+        out.extend(16u16.to_le_bytes());
+        out.extend(b"data");
+        out.extend((data as u32).to_le_bytes());
+        for k in 0..frames * 2 {
+            out.extend(((k as i16 % 200) * 50).to_le_bytes());
+        }
+        out
+    }
+
+    /// Two worktrees that share the cache build the same track once: the
+    /// second one finds the first one's `.pcm` in the cache and links it,
+    /// instead of rendering it again. With a replacement, which ffmpeg
+    /// decodes, so that it does not need a SoundFont.
+    #[test]
+    fn a_track_another_build_made_comes_from_the_cache() {
+        if which("ffmpeg").is_none() {
+            eprintln!("skipped: ffmpeg is not on the PATH");
+            return;
+        }
+        let root =
+            std::env::temp_dir().join(format!("rm2k-snes-audio-shared-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for dir in ["game", "replacements", "one", "two"] {
+            std::fs::create_dir_all(root.join(dir)).unwrap();
+        }
+        std::fs::write(root.join("replacements").join("Song.wav"), wav(4410)).unwrap();
+        // Each one a `Tracks` of its own, as two processes would be.
+        let tracks = || {
+            Tracks::new(
+                Game {
+                    game_dir: root.join("game"),
+                    rtp_dir: None,
+                    project: rm2k_project::Project::from_text(&root, "").unwrap(),
+                },
+                root.join("none.sf2"),
+                GAIN,
+                Some(root.join("replacements")),
+                Some(root.join("cache")),
+            )
+        };
+        let base = |dir: &str| root.join(dir).join("game").display().to_string();
+        assert!(matches!(
+            tracks().one(&base("one"), "Song", 1).unwrap(),
+            Outcome::Made(_)
+        ));
+        assert!(matches!(
+            tracks().one(&base("two"), "Song", 1).unwrap(),
+            Outcome::Already
+        ));
+        let one = std::fs::read(root.join("one").join("game-1.pcm")).unwrap();
+        assert_eq!(
+            std::fs::read(root.join("two").join("game-1.pcm")).unwrap(),
+            one
+        );
         std::fs::remove_dir_all(&root).unwrap();
     }
 
