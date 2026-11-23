@@ -69,8 +69,8 @@ troop, whose names carry letters outside ASCII for the text screens.
     advocate.toml       its cartridges, like a port's: `release`, and
                         `test-vblank` with the vblank's probe
     hub.toml            the meadow's hub: the guide's maps and the
-                        tester's menus, which `just hub` writes into
-                        `src/maps/Map0001.json`
+                        tester's menus, which `python3 tests/hub.py`
+                        writes into `src/maps/Map0001.json`
     tester/             the cases the tester runs, one JSON each, in a
                         case's format: the commands of a page
     cases/              the test pages the harness still injects, like a
@@ -104,7 +104,7 @@ A case leaves behind what it changes —a picture, a tint, the party—, as a
 page of a game does: a reset starts clean.
 
 A new case is a file in `tester/` and its name in a group of `hub.toml`,
-and then `just hub`; a new map, its line in `hub.toml`'s guide.
+and then `python3 tests/hub.py`, standing in `test-game/`; a new map, its line in `hub.toml`'s guide.
 `tests/test_hub.py` is red until the meadow says what those two say.
 
 `just deliver "<what to look at>"`, with `SHARED`, leaves the build where
@@ -157,6 +157,9 @@ cannot be done or would take absurdly long, which it says on that line.
                         and every map is offered, and each map is reached
                         and left with the Way Home
     test_meadow.py      the meadow as it is reached, and the elder's message
+    test_round_trip.py  the game's RM2k files, unpacked and packed again by
+                        Ditto, come back byte for byte: Ditto reads what
+                        Ditto writes
     test_switches_past_1023.py
                         a switch past 1023 set, branched on and asked for
                         by a page —the meadow's invisible event at (1,1)—

@@ -1,7 +1,7 @@
 # The meadow's hub, which makes every map and every case of the test game
 # reachable by playing it: `tests/hub.py` writes its three events into
-# `src/maps/Map0001.json` from this file —`just hub`—, as the map's last
-# events, and `tests/test_hub.py` fails if that file says something else.
+# `src/maps/Map0001.json` from this file —`python3 tests/hub.py`, standing
+# in `test-game/`—, as the map's last events, and `tests/test_hub.py` fails if that file says something else.
 #
 # Each menu is a `ShowChoice` of up to four options: a longer list goes
 # three at a time, with a "More" that opens the next ones. Cancel leaves.
