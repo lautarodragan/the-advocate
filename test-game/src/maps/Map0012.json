@@ -145,6 +145,49 @@
           ]
         }
       ]
+    },
+    {
+      "id": 6,
+      "name": "Awning",
+      "x": 15,
+      "y": 11,
+      "pages": [
+        {
+          "id": 1,
+          "character_index": 39,
+          "layer": "same",
+          "move_type": "stationary",
+          "event_commands": [
+            {
+              "code": "ControlSwitches",
+              "parameters": [
+                0,
+                1441,
+                1441,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "condition": {
+            "flags": {
+              "switch_a": true,
+              "switch_b": false,
+              "variable": false,
+              "item": false,
+              "actor": false,
+              "timer": false
+            },
+            "switch_a_id": 1441
+          },
+          "character_index": 39,
+          "layer": "above",
+          "move_type": "stationary",
+          "event_commands": []
+        }
+      ]
     }
   ]
 }

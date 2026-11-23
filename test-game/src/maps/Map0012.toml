@@ -1,7 +1,9 @@
 # The doors' two tile layers, sketched like the meadow's —see
 # `Map0001.toml`—. The map is `Map0012.json`, and what it is for is there:
 # a door that opens and leads to the same map, `tests/test_same_door.py`,
-# and a hatch the hero stands on, `tests/test_own_action.py`. The bushes
+# a hatch the hero stands on, `tests/test_own_action.py`, and an awning
+# whose opened page lifts it above the hero,
+# `tests/test_above_the_hero_by_its_page.py`. The bushes
 # across the middle make two rooms, crossed only by the door's teleports.
 
 grid = '''
