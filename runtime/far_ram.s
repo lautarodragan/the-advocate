@@ -1024,7 +1024,7 @@ PIC_IMG:    .res PIC_SLOTS          ; the entry of the map's table, or PIC_NONE
 PIC_X:      .res 2 * PIC_SLOTS      ; the corner, words
 PIC_Y:      .res 2 * PIC_SLOTS
 PIC_TRANS:  .res PIC_SLOTS
-PIC_FLAGS:  .res PIC_SLOTS          ; PIC_BY_VARIABLE, PIC_MAP_FIXED
+PIC_FLAGS:  .res PIC_SLOTS          ; PIC_BY_VARIABLE, PIC_MAP_FIXED, PIC_SCREEN
 PIC_PAL:    .res PIC_SLOTS          ; its sprite palette from the top: 0 is 7; PIC_BEHIND
 PIC_TONE:   .res 3 * PIC_SLOTS      ; r, g, b
 ; The ramps. `PIC_R_STEPS` at zero is no ramp.
@@ -1051,11 +1051,14 @@ PIC_STEPS:  .res 1
 .popseg
 PIC_NONE    = $FF
 ; OP_PICTURE's mode, which the slot keeps in its flags: the centre came from
-; two variables, and the picture goes with the map. See `PICTURE_BY_VARIABLE`
-; and `PICTURE_MAP_FIXED` in the event compiler. And OP_PICTURE_MOVE's: the
-; move goes somewhere, `PICTURE_MOVES`.
+; two variables, and the picture goes with the map —and, with PIC_SCREEN too,
+; only because RM2k shows it where its map is, so it still moves—. See
+; `PICTURE_BY_VARIABLE`, `PICTURE_MAP_FIXED` and `PICTURE_SCREEN` in the
+; event compiler. And OP_PICTURE_MOVE's: the move goes somewhere,
+; `PICTURE_MOVES`.
 PIC_BY_VARIABLE = $01
 PIC_MAP_FIXED   = $02
+PIC_SCREEN      = $04
 PIC_MOVES       = $80
 ; And in `PIC_PAL`, from its entry's palette byte: the picture goes at the
 ; characters' priority, not at 3. See `PICTURE_BEHIND` in rm2k-snes-mapdata

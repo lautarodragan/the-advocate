@@ -352,6 +352,10 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
             if e.get("with_map").and_then(Value::as_bool) == Some(true) {
                 pictures.with_map.push(pictures.table.len() as u8);
             }
+            // Optional too: see `Pictures::screen_on_map`.
+            if e.get("screen_on_map").and_then(Value::as_bool) == Some(true) {
+                pictures.screen_on_map.push(pictures.table.len() as u8);
+            }
             pictures
                 .table
                 .push((key, int(field(e, "slot", whose)?, whose)? as u8));
