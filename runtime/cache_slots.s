@@ -2,15 +2,15 @@
 .a8
 .i16
 
-; What `cache_was_note` keeps: three bytes a row —its event, or $FF in a
-; free one, the key it showed and its attributes—, and whether a `build_oam`
-; already looked at them —$FF none noted, 1 noted and not drawn yet, 0
-; drawn once—. See "a still one whose look changes" below.
+; What `cache_was_note` keeps: four bytes a row —its event, or $FF in a
+; free one, the key it showed, its attributes, and whether it was shown
+; since the last `cache_age`: noted, or drawn by `cache_was_draw`—. See "a
+; still one whose look changes" below.
 CACHE_WAS_MAX = 4
+CACHE_WAS_SIZE = 4
 .pushseg
 .segment "FARBSS"
-CACHE_WAS:       .res 3 * CACHE_WAS_MAX
-CACHE_WAS_FRESH: .res 1
+CACHE_WAS: .res CACHE_WAS_SIZE * CACHE_WAS_MAX
 .popseg
 
 ; --- a cache of slots -----------------------------------------------------------
@@ -71,12 +71,26 @@ CACHE_WAS_FRESH: .res 1
 ; before the open can showed. So `cache_was_note` keeps, for the rows that
 ; were drawn, the key and attributes they showed, and if their new pose is
 ; not up `cache_was_draw` draws the old one, which is still in its slot: it
-; was drawn last frame, so no one could take that slot. They last one
-; frame: `cache_age` forgets them on the next. What it does not cover: a
-; row whose look changes in the same tick it comes into view, which has no
-; old look in any slot, or whose old key someone else queued that same
-; frame, which is shown before it is up; and more than `CACHE_WAS_MAX` rows
-; changing in a frame, the rest of which wait with nothing drawn.
+; was drawn last frame, so no one could take that slot, and drawing it keeps
+; it so. **It is kept for as long as the row waits**, not for a frame: a row
+; that finds the cache full waits more than one. The two cans left of the
+; motel's door open with two lids above them, four new looks at once, and
+; with room for three the last can lost its old look after a frame and
+; waited two more with nothing drawn, until its own old slot aged out
+; (taro's second report). `cache_age` forgets a kept look on the first
+; frame that did not draw it: the row showed its new one, or left the view.
+;
+; And waiting on a full cache while holding the old slot would wait for
+; ever if no one else left: so a row in that case **takes its old slot for
+; the new pose** —`cache_was_own`—, if no one drew that slot yet in this
+; pass, and is drawn from it at once, the new pose going up in the vblank
+; that shows it, with the attributes it had for that frame. What it does
+; not cover: a row whose look changes in the same tick it comes into view,
+; which has no old look in any slot, or whose old key someone else queued
+; that same frame, which is shown before it is up; a row further on in the
+; pass that shows the same still pose as the one taking its old slot, which
+; loses it and waits; and more than `CACHE_WAS_MAX` rows changing at once,
+; the rest of which wait with nothing drawn.
 ;
 ; Whether the map has a cache is bit 7 of `SHARE_N`, so that `place_npc`
 ; looks at a single byte for both: no map has both, because the cache is
@@ -158,17 +172,23 @@ older:
 keep:
     dex
     bpl older
-    ; And the old looks `cache_was_note` kept: this frame draws them if they
-    ; were noted since the last, and the next one forgets them.
-    lda f:CACHE_WAS_FRESH
-    bmi kept                    ; none
-    bne first
-    jsr cache_was_forget        ; one frame drew them already
-    rtl
-first:
+    ; And the old looks `cache_was_note` kept: one that was not shown since
+    ; the last frame is forgotten —its row showed its new look, or nothing—,
+    ; and the rest have to be shown again in this one to stay.
+    ldx #CACHE_WAS_SIZE * (CACHE_WAS_MAX - 1)
+was:
+    lda f:CACHE_WAS + 3, x
+    bne shown
+    lda #$FF
+    sta f:CACHE_WAS, x
+shown:
     lda #0
-    sta f:CACHE_WAS_FRESH
-kept:
+    sta f:CACHE_WAS + 3, x
+    dex
+    dex
+    dex
+    dex
+    bpl was
     rtl
 .endproc
 
@@ -176,11 +196,13 @@ kept:
 .proc cache_was_forget
 .a8
 .i16
-    lda #$FF
-    sta f:CACHE_WAS_FRESH
-    ldx #3 * (CACHE_WAS_MAX - 1)
+    ldx #CACHE_WAS_SIZE * (CACHE_WAS_MAX - 1)
 free:
+    lda #$FF
     sta f:CACHE_WAS, x
+    lda #0
+    sta f:CACHE_WAS + 3, x
+    dex
     dex
     dex
     dex
@@ -217,22 +239,20 @@ free:
     cmp #$30
     beq done
 .endif
-    lda f:CACHE_WAS_FRESH
-    bne fresh
-    jsr cache_was_forget        ; a frame drew them: they are not this one's
-fresh:
-    ; A row whose look changes twice before a frame draws it keeps the
-    ; first: that is the one on screen.
+    ; A row whose look changes again while it still shows the kept one
+    ; —noted this frame, or drawn by the last— keeps that one: it is the one
+    ; on screen. If the last frame did not draw it, the row showed its own.
     lda npc_buf + 8, y
-    ldx #3 * (CACHE_WAS_MAX - 1)
+    ldx #CACHE_WAS_SIZE * (CACHE_WAS_MAX - 1)
 seen:
     cmp f:CACHE_WAS, x
-    beq done
+    beq again
+    dex
     dex
     dex
     dex
     bpl seen
-    ldx #3 * (CACHE_WAS_MAX - 1)
+    ldx #CACHE_WAS_SIZE * (CACHE_WAS_MAX - 1)
 free:
     lda f:CACHE_WAS, x
     cmp #$FF
@@ -240,8 +260,12 @@ free:
     dex
     dex
     dex
+    dex
     bpl free
     bra done                    ; full: this one waits with nothing drawn
+again:
+    lda f:CACHE_WAS + 3, x
+    bne done
 take:
     lda npc_buf + 8, y
     sta f:CACHE_WAS, x
@@ -250,7 +274,7 @@ take:
     lda npc_buf + 7, y
     sta f:CACHE_WAS + 2, x
     lda #1
-    sta f:CACHE_WAS_FRESH
+    sta f:CACHE_WAS + 3, x      ; on screen until a frame does not draw it
 done:
     plx
     pla
@@ -259,32 +283,16 @@ done:
 
 ; Row `CACHE_T_ROW`, which `cache_want` did not draw: carry clear if it is
 ; drawn with the look `cache_was_note` kept for it, `obj_tile` and
-; `obj_attr` set, and its slot kept for the frame; carry set if it has none,
-; or no slot holds it any more. From `place_npc`.
+; `obj_attr` set, and its slot and the look kept for the frame; carry set if
+; it has none, or no slot holds it any more. From `place_npc`.
 .proc cache_was_draw
 .a8
 .i16
-    lda f:CACHE_WAS_FRESH
-    bmi none
-    rep #$20
-.a16
-    lda f:CACHE_T_ROW
-    tay
-    sep #$20
-.a8
-    lda npc_buf + 8, y          ; its event: `CACHE_T_EV` is a twin's by now
-    ldx #3 * (CACHE_WAS_MAX - 1)
-find:
-    cmp f:CACHE_WAS, x
-    beq found
-    dex
-    dex
-    dex
-    bpl find
-none:
-    sec
+    jsr cache_was_find
+    bcc found
     rtl
 found:
+    phx
     lda f:CACHE_WAS + 2, x
     sta temp + 1                ; its attributes
     lda f:CACHE_WAS + 1, x
@@ -296,6 +304,7 @@ seek:
     beq up
     dex
     bpl seek
+    plx
     sec                         ; no slot holds it
     rtl
 up:
@@ -315,8 +324,92 @@ up:
     and #$FE
     ora obj_attr
     sta obj_attr
+    plx
+    lda #1
+    sta f:CACHE_WAS + 3, x      ; shown: kept for the next frame
     clc
     rtl
+.endproc
+
+; X: the entry `cache_was_note` kept for row `CACHE_T_ROW`, carry clear; or
+; carry set if it has none. Y is the row.
+.proc cache_was_find
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:CACHE_T_ROW
+    tay
+    sep #$20
+.a8
+    lda npc_buf + 8, y          ; its event: `CACHE_T_EV` is a twin's by now
+    ldx #CACHE_WAS_SIZE * (CACHE_WAS_MAX - 1)
+find:
+    cmp f:CACHE_WAS, x
+    beq found
+    dex
+    dex
+    dex
+    dex
+    bpl find
+    sec
+    rts
+found:
+    clc
+    rts
+.endproc
+
+; From `cache_want`, with the cache full: row `CACHE_T_ROW` takes the slot
+; of the look `cache_was_note` kept for it, for its new still pose. Carry
+; clear and A the slot, whose pose goes up now. Carry set if it has no kept
+; look, or no slot holds it; or someone already drew that slot in this pass
+; —a row showing the same still pose, which would lose it in the middle of
+; the frame—; or either key is not a still pose —a walking one's slot is
+; shared with whoever animates with it—; or the queue has no room, and then
+; it is drawn with the kept look and tries again next frame. The kept
+; look's key becomes the new one, so `cache_was_draw` draws the row from
+; that slot on this same frame, with the attributes it had: the pose goes
+; up in the vblank that shows it.
+.proc cache_was_own
+.a8
+.i16
+    lda f:CACHE_T_KEY
+    bmi no
+    lda vq_n
+    cmp #VQ_MAX - 1
+    bcs no                      ; `vram_queue` would refuse it
+    jsr cache_was_find
+    bcs no
+    lda f:CACHE_WAS + 1, x
+    bmi no
+    sta temp
+    phx
+    jsr cache_last
+seek:
+    lda f:CACHE_KEY, x
+    cmp temp
+    beq up
+    dex
+    bpl seek
+    plx
+no:
+    sec
+    rts
+up:
+    lda f:CACHE_AGE, x
+    beq drawn                   ; someone drew it in this pass
+    txa
+    sta f:CACHE_T_SLOT
+    plx
+    lda f:CACHE_T_KEY
+    sta f:CACHE_WAS + 1, x
+    lda f:CACHE_T_SLOT
+    clc
+    rts
+drawn:
+    plx
+    sec
+    rts
 .endproc
 
 ; Row X, about to be drawn in a map with a cache. Carry clear: it is drawn,
@@ -405,7 +498,11 @@ younger:
     lda f:CACHE_T_SLOT
     cmp #$FF
     bne upload
-    lda #0                      ; full: it waits
+    ; Full: a row whose look changed on screen takes the slot of the one it
+    ; had, and the rest wait.
+    jsr cache_was_own
+    bcc upload
+    lda #0
     sec
     rtl
 
