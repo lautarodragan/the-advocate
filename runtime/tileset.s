@@ -137,7 +137,7 @@ old_known:
     plx
     jsl f:lz2_decompress + FAST
     pla                         ; whether to upload
-    beq done
+    beq done                    ; goombario: pull-branch: the pulled byte is whether to upload
     ; The drawing: what `back_to_map` uploads, from the record now current,
     ; and the window filled from the grid with the new blocks.
     lda #$80
@@ -155,8 +155,9 @@ old_known:
     jsl f:anim_buf_clear
     jsl f:code_carry_after + FAST
     bra done
+.a16
 none:
-    pla
+    pla                         ; the variant's place, still on the stack
 same:
     sep #$20
 .a8
