@@ -1,25 +1,29 @@
-//! `rm2k-snes-assemble`: builds a ROM from the runtime and a directory of
-//! generated data.
+//! `rm2k-snes-cartridges assemble`: builds a ROM from the runtime and a
+//! directory of generated data.
 //!
-//!     rm2k-snes-assemble runtime/main.s -I build/game -o build/game/game.sfc \
-//!         --symbols build/game/game.sfc.sym
+//!     rm2k-snes-cartridges assemble runtime/main.s -I build/game \
+//!         -o build/game/game.sfc --symbols build/game/game.sfc.sym
 //!
 //! It writes the bytecodes' equates next to the generated files, packs those
 //! into banks —rewriting them in place—, writes the memory map next to
 //! them, runs `ca65` and `ld65`, writes the header checksum and, with
 //! `--symbols`, the symbol table. See the library.
+//!
+//! The cartridges' builder runs it as a process of its own, by its name on
+//! the PATH, which is the binary the fingerprint hashes. Until 2026-11-23 it
+//! was a command of its own, `rm2k-snes-assemble`.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use cartridge::assemble::{self, Failure};
 use cartridge::banks;
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::{cache, environment, suite};
 use serde_json::json;
 
-fn command() -> Command {
-    Command::new("rm2k-snes-assemble")
+pub fn command() -> Command {
+    Command::new("assemble")
         .about("Builds the ROM: the bank packing, ca65 + ld65, the header checksum and the symbols")
         .arg(Arg::new("source").value_name("SOURCE").help("the runtime's main file"))
         .arg(
@@ -63,8 +67,7 @@ fn command() -> Command {
         .args(environment::arguments(&["cache"]))
 }
 
-fn main() -> ExitCode {
-    let matches = command().get_matches();
+pub fn run(matches: &ArgMatches) -> ExitCode {
     if matches.get_flag("memory_map") {
         let map = json!({
             "bank_size": banks::BANK_SIZE,
@@ -81,7 +84,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     let Some(source) = matches.get_one::<String>("source").map(PathBuf::from) else {
-        eprintln!("rm2k-snes-assemble: missing SOURCE");
+        eprintln!("rm2k-snes-cartridges assemble: missing SOURCE");
         return ExitCode::from(2);
     };
     if matches.get_flag("sources") {

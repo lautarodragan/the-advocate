@@ -66,11 +66,11 @@ have layers of their own, one folder each:
       bytecode/  `rm2k-snes-bytecode`, the library that declares the two
                  bytecodes a cartridge reads —the events one and the music
                  stream—, once: the Rust side takes its constants with a
-                 `use`, and `rm2k-snes-assemble` writes the 65816 side's
-                 equates at every build
-      cartridge/ `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
-                 `rm2k-snes-space`: which cartridges there are and building
-                 them, the bank packing, ca65 + ld65, and the space left
+                 `use`, and `rm2k-snes-cartridges assemble` writes the
+                 65816 side's equates at every build
+      cartridge/ `rm2k-snes-cartridges`: which cartridges there are and
+                 building them; and its subcommands `assemble`, the bank
+                 packing and ca65 + ld65, and `space`, the space left
       patches/   `rm2k-snes-patches`: what the converter decided to lose
                  —a map's colors, an animation's size, a battler's
                  palette—, written as TOML next to each ROM, copied to the
@@ -80,7 +80,8 @@ have layers of their own, one folder each:
                  bank, a stream per song, an audio package per map, and
                  the `.msu` with the data the MSU-1 serves; the converter
                  runs it as a stage, `cartridge`, and it uses `gunter` as
-                 a library
+                 a library. Its subcommands `msu`, the MSU-1 tracks, and
+                 `volume-ceilings`, each song's headroom, are not stages
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
                  level per actor, each map's random encounters—, its model
                  and text screen, and the battle played for the tests; the
@@ -129,22 +130,27 @@ have layers of their own, one folder each:
 
 **A few of them are commands, and the rest are libraries under them.**
 The commands a person runs, from a game's recipes or by hand:
-`rm2k-snes-cartridges`, `rm2k-snes-space`, `rm2k-snes-patches`,
+`rm2k-snes-cartridges` (and its `space`), `rm2k-snes-patches`,
 `rm2k-snes-project`, `ditto`, `rm2k-snes-events` (its `culprits`),
-`rm2k-snes-volume-ceilings`, `goombario`, `fxpak` and `rm2k-sketch`. The
+`rm2k-snes-audio` (its `volume-ceilings`), `goombario`, `fxpak` and
+`rm2k-sketch`. The
 commands the pipeline runs: `rm2k-snes-convert`, which
 `rm2k-snes-cartridges` runs, and its stages —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
 `rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—; and
-`rm2k-snes-assemble` and `rm2k-snes-msu`, which `rm2k-snes-cartridges` runs
-after it. Each stage is a process on purpose: the conversion cache keys
-every answer by the binary that gave it (`key` in `convert/src/stage.rs`),
-so a stage that changes expires its own answers and nobody else's. Everything
-else is a library, compiled into the commands that use it: Adeleine, Voodoo,
+`rm2k-snes-cartridges assemble` and `rm2k-snes-audio msu`, which
+`rm2k-snes-cartridges` runs after it. Each stage is a process on purpose:
+the conversion cache keys every answer by the binary that gave it (`key` in
+`convert/src/stage.rs`), so a stage that changes expires its own answers and
+nobody else's —the audio stage's, also when its `msu` or `volume-ceilings`
+change, which share its binary—. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
 LZ2, Gunter, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
 `rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto's reader. Until 2026-11-23
 Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when
-the converter was Python and could only reach Rust through a process.
+the converter was Python and could only reach Rust through a process; and
+`assemble`, `space`, `msu` and `volume-ceilings` were commands of their own,
+`rm2k-snes-assemble`, `rm2k-snes-space`, `rm2k-snes-msu` and
+`rm2k-snes-volume-ceilings`.
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
@@ -211,11 +217,9 @@ Python scripts too, installed as symlinks next to them: the last ones were
 `common/` and `emulator/` from, and went with them.
 
 The binaries are `rm2k-snes-convert`, from
-`rm2k-snes/convert/`; `rm2k-snes-cartridges`,
-`rm2k-snes-assemble` and `rm2k-snes-space`, from `rm2k-snes/cartridge/`, which find
-the runtime through the checkout they were installed from; and
-`rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
-`rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
+`rm2k-snes/convert/`; `rm2k-snes-cartridges`, from `rm2k-snes/cartridge/`,
+which finds the runtime through the checkout it was installed from;
+`rm2k-snes-audio`, from `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
 `rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`;
 `wally`, from `rm2k-snes/wally/`; `rm2k-snes-mapdata`, from
 `rm2k-snes/mapdata/`; `rm2k-snes-patches`, from

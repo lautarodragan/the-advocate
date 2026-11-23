@@ -1,13 +1,16 @@
-//! `rm2k-snes-msu`: the MSU-1 tracks of a built cartridge, next to its ROM.
+//! `rm2k-snes-audio msu`: the MSU-1 tracks of a built cartridge, next to
+//! its ROM.
 //!
-//!     rm2k-snes-msu build/release/game.sfc --game-dir … --soundfont …
+//!     rm2k-snes-audio msu build/release/game.sfc --game-dir … --soundfont …
 //!
 //! What a track is and where its audio comes from, in the library's
 //! `tracks`. Its last line is always "MSU-1 tracks, N made and M that were
 //! already there": whoever builds the cartridges recognizes it by its start
 //! and prints it in its place.
+//!
+//! Until 2026-11-23 it was a command of its own, `rm2k-snes-msu`.
 
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{cache, Project};
 use rm2k_snes_audio::game::Game;
@@ -15,14 +18,13 @@ use rm2k_snes_audio::tracks::{Tracks, GAIN};
 use rm2k_snes_audio::Bad;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 
 /// What it uses from the machine: the RTP, because a song can come from
 /// there; and the cache, where it remembers which tracks are already there.
 const FROM_ENVIRONMENT: &[&str] = &["game_dir", "rtp_dir", "soundfont", "replacements", "cache"];
 
-fn command() -> Command {
-    Command::new("rm2k-snes-msu")
+pub fn command() -> Command {
+    Command::new("msu")
         .about("A built cartridge's MSU-1 tracks, rendered from each song's MIDI with fluidsynth, next to its ROM")
         .arg(
             Arg::new("rom")
@@ -46,10 +48,9 @@ fn command() -> Command {
         )
 }
 
-fn run() -> Result<(), Bad> {
-    let matches = command().get_matches();
+pub fn run(matches: &ArgMatches) -> Result<(), Bad> {
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
-    let mut environment = Environment::from_matches(&matches, FROM_ENVIRONMENT);
+    let mut environment = Environment::from_matches(matches, FROM_ENVIRONMENT);
     environment.unpack(&project)?;
     let game = Game {
         game_dir: environment.game()?.to_path_buf(),
@@ -74,15 +75,4 @@ fn run() -> Result<(), Bad> {
     // The last line, always, and with this shape.
     println!("MSU-1 tracks, {made} made and {already} that were already there");
     Ok(())
-}
-
-fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(bad) => {
-            let _ = std::io::stdout().flush();
-            eprintln!("rm2k-snes-msu: {bad}");
-            ExitCode::FAILURE
-        }
-    }
 }

@@ -1,4 +1,4 @@
-//! What `rm2k-snes-assemble` does besides calling `ca65` + `ld65`: which
+//! What `rm2k-snes-cartridges assemble` does besides calling `ca65` + `ld65`: which
 //! sources a ROM is made of, which files are the generated ones, and
 //! refusing when one is shadowed. The checksum and the symbols are tested
 //! next to their code.

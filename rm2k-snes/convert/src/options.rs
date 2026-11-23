@@ -99,7 +99,7 @@ fn command() -> clap::Command {
             .value_parser(value_parser!(f64))
             .help(
                 "the same headroom for every song, instead of the volume ceiling table: it is \
-                 what `rm2k-snes-volume-ceilings` builds the ROM where it measures each song's \
+                 what `rm2k-snes-audio volume-ceilings` builds the ROM where it measures each song's \
                  peak with",
             ),
     )
