@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # and one `target/`, but each is still tested and installed on its own:
 # `crate-test` runs `cargo test` standing in the project, which tests only
 # that one, and `cargo install --locked --path` takes the workspace's lock.
-rust_projects := "gunter goombario ditto rules sketch adeleine voodoo lz2 rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
+rust_projects := "gunter goombario ditto rules sketch adeleine voodoo lz2 fxpak rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -205,6 +205,6 @@ _install root *projects:
 # Which executable this checkout resolves for each tool.
 which:
   #!/usr/bin/env sh
-  for x in gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-audio rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-mapdata rm2k-snes-project; do
+  for x in gunter goombario ditto adeleine voodoo lz2 fxpak rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-audio rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-mapdata rm2k-snes-project; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done
