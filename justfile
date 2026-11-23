@@ -109,23 +109,6 @@ crate-test project *args:
   echo "'{{project}}' is not a Rust project: they are {{rust_projects}}." >&2
   exit 1
 
-# Ditto's short suite runs over a sample of maps; this is every map, the LDB
-# and the tree, and measures the only thing that makes the tool useful: that
-# the binary comes back **byte for byte**. It is separate because it is the
-# one you want to see with the number, not the one that runs quietly; and
-# without a corpus it measures nothing, so instead of skipping it refuses.
-#
-# Every file of DITTO_CORPUS back to binary, byte for byte.
-ditto-round-trip:
-  #!/usr/bin/env sh
-  set -eu
-  if [ -z "${DITTO_CORPUS:-}" ]; then
-    echo "ditto-round-trip needs a game: DITTO_CORPUS=<folder with RPG_RT.ldb, RPG_RT.lmt and the Map*.lmu>." >&2
-    exit 1
-  fi
-  cd rm2k/ditto
-  cargo test --release -- --include-ignored --nocapture
-
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
 # projects, and the port consumes them **from the PATH**, the way it
@@ -200,13 +183,3 @@ _install root *projects:
     cargo install --locked --path "$dir" --root "{{root}}"
   done
   echo "in {{root}}/bin, from Rust: {{ if projects == "" { "none" } else { projects } }}"
-
-# Which executable this checkout resolves for each tool: the one in
-# `.local-tools/bin/` if it is there, otherwise the global one.
-#
-# Which executable this checkout resolves for each tool.
-which:
-  #!/usr/bin/env sh
-  for x in goombario ditto fxpak rm2k-sketch rm2k-snes-cartridges rm2k-snes-convert rm2k-snes-patches rm2k-snes-audio rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-mapdata rm2k-snes-project; do
-    printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
-  done

@@ -26,7 +26,7 @@ def test_the_meadow_has_the_hub_that_hub_toml_says():
         text = file.read()
     assert hub.written(text) == text, (
         "src/maps/Map0001.json is not what hub.toml and tester/ make: run "
-        "`just hub` in test-game/")
+        "`python3 tests/hub.py` in test-game/")
 
 
 def test_the_tester_offers_every_case_once():

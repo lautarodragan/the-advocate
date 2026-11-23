@@ -3,9 +3,11 @@
 They are what makes the test game playable by hand: the guide teleports to
 every map, and the tester runs every case of `tester/` from `ShowChoice`
 menus, which call each case's page on the shelf. They are the last three
-events of `src/maps/Map0001.json`, and this module writes them there —`just hub`, which is `python3 tests/hub.py`—
-out of `hub.toml` and `tester/`: a menu of fifty cases nested four options
-at a time is not something to keep in step by hand. `test_hub.py` fails if
+events of `src/maps/Map0001.json`, and this module writes them there
+—`python3 tests/hub.py`, standing in `test-game/`; until 2026-11-23 the
+recipe `just hub`, which only ran it— out of `hub.toml` and `tester/`: a
+menu of fifty cases nested four options at a time is not something to
+keep in step by hand. `test_hub.py` fails if
 the map says something else than what this writes.
 
 The tests import it too, to know which options lead where: see `play.py`.
