@@ -69,15 +69,6 @@ cartridges *args: game
 test *args: cartridges
   pytest tests {{args}}
 
-# The meadow's hub —the guide's signpost, the tester's board and the
-# shelf of cases, the last three events of `src/maps/Map0001.json`— written again from `hub.toml` and
-# `tester/`: after adding a case or a map, or changing their menus.
-# `tests/test_hub.py` is red while the map says something else.
-#
-# Writes the hub into src/maps/Map0001.json from hub.toml and tester/.
-hub:
-  python3 tests/hub.py
-
 # **Leaves `release` for taro in `$SHARED/builds/test-game/`**, the shape of
 # the ports' `just deliver`: `test-game.sfc`, its `.sfc.dbg` for Mesen2's
 # debugger, the `runtime/` it was assembled from —Mesen2 finds the source
