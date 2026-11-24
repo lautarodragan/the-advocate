@@ -23,6 +23,15 @@ pub fn read<T: DeserializeOwned + Paths>(path: &Path) -> Result<T> {
     Ok(request)
 }
 
+/// A request already parsed, read into `T`; a relative path in it stays
+/// relative to the current directory. `whose` is what its complaints
+/// start with.
+pub fn of<T: DeserializeOwned + Paths>(request: &Value, whose: &str) -> Result<T> {
+    let mut request = T::deserialize(request).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
+    request.resolve(Path::new(""));
+    Ok(request)
+}
+
 /// The paths of a request, which are made relative to its directory.
 pub trait Paths {
     fn resolve(&mut self, base: &Path);
