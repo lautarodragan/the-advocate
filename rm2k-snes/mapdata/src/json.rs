@@ -1,17 +1,10 @@
-//! Reading what the request still carries as JSON: the troops' pages, as
-//! the event compiler answered them, and the lists of numbers by name of
-//! the screens' and the battle's geometry. A field that is missing or has
-//! another type is a request this stage cannot use, and it says which.
+//! Reading what the request still carries as JSON: the geometry of the
+//! screens and the battle, numbers and lists of numbers by name, which the
+//! emission writes out by name. One that has another type is a request
+//! this stage cannot use, and it says which.
 
 use crate::fail::{Bad, Result};
 use serde_json::Value;
-
-/// `value[key]`, or why not.
-pub fn at<'a>(value: &'a Value, key: &str) -> Result<&'a Value> {
-    value
-        .get(key)
-        .ok_or_else(|| Bad::answer(format!("the request has no `{key}` where it should")))
-}
 
 pub fn int(value: &Value) -> Result<i64> {
     value
@@ -26,10 +19,6 @@ pub fn list(value: &Value) -> Result<&Vec<Value>> {
         .ok_or_else(|| Bad::answer(format!("{} is not a list", short(value))))
 }
 
-pub fn list_at<'a>(value: &'a Value, key: &str) -> Result<&'a Vec<Value>> {
-    list(at(value, key)?)
-}
-
 pub fn ints(value: &Value) -> Result<Vec<i64>> {
     list(value)?.iter().map(int).collect()
 }
@@ -38,15 +27,6 @@ pub fn text(value: &Value) -> Result<&str> {
     value
         .as_str()
         .ok_or_else(|| Bad::answer(format!("{} is not text", short(value))))
-}
-
-/// Hex text, as bytes.
-pub fn bytes(value: &Value) -> Result<Vec<u8>> {
-    crate::hex::decode(text(value)?)
-}
-
-pub fn bytes_at(value: &Value, key: &str) -> Result<Vec<u8>> {
-    bytes(at(value, key)?)
 }
 
 /// An object's entries in the order of their keys as text, for what

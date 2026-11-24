@@ -9,7 +9,7 @@ use crate::asm::{block, unplaced, Inc};
 use crate::cgram::{cgram_reserved, PRIORITY_ABOVE, WINDOW_PALETTE};
 use crate::engine::*;
 use crate::fail::{Bad, Result};
-use crate::json::{int, ints, list, list_at, text};
+use crate::json::{ints, list, text};
 use crate::objects::{LAYER_ABOVE, LAYER_SAME, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE};
 use crate::record::{
     self, ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE, ANIM_STRIDE, EV_MAX, EV_STRIDE, FAMILIES,
@@ -4721,19 +4721,19 @@ impl Rest<'_> {
         // Per troop, where its pages start and how many there are; per page,
         // its trigger and where its code is inside `troop_code`. All in
         // RODATA, each table in its `.block`.
-        let empty = serde_json::json!({"per_troop": [], "code": "", "messages": "00"});
-        let pt = self.r.troop_pages.as_ref().unwrap_or(&empty);
-        let mut per_troop: HashMap<i64, Vec<(Vec<i64>, i64)>> = HashMap::new();
-        for entry in list_at(pt, "per_troop")? {
-            let entry = list(entry)?;
-            let number = int(&entry[0])?;
-            let mut theirs = Vec::new();
-            for page in list(&entry[1])? {
-                let page = list(page)?;
-                theirs.push((ints(&page[0])?, int(&page[1])?));
-            }
-            per_troop.insert(number, theirs);
-        }
+        let pt = self.r.troop_pages.as_ref();
+        let per_troop: HashMap<i64, Vec<([i64; 13], usize)>> = pt
+            .map(|pt| &pt.per_troop[..])
+            .unwrap_or_default()
+            .iter()
+            .map(|(number, pages)| {
+                let theirs = pages
+                    .iter()
+                    .map(|(trigger, offset, _)| (trigger.map(i64::from), *offset))
+                    .collect();
+                (i64::from(*number), theirs)
+            })
+            .collect();
         let mut entries = Vec::new();
         let mut page_start = Vec::new();
         let mut page_n = Vec::new();
@@ -4776,9 +4776,12 @@ impl Rest<'_> {
             };
             out.words(name, values);
         }
-        let code = crate::json::bytes_at(pt, "code")?;
-        out.block("troop_code", if code.is_empty() { &[0] } else { &code });
-        out.block("messages_troop", &crate::json::bytes_at(pt, "messages")?);
+        // Without pages, no code, and the message block's one byte, its end.
+        let (code, messages) = pt.map_or((&[][..], &[0][..]), |pt| {
+            (&pt.code.0[..], &pt.messages.0[..])
+        });
+        out.block("troop_code", if code.is_empty() { &[0] } else { code });
+        out.block("messages_troop", messages);
         Ok(())
     }
 

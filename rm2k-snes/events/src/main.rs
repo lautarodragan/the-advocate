@@ -7,6 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_events::stage::{self, Files};
 use rm2k_snes_events::{culprits, read_request, Bad, Game, Request, Result};
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -93,9 +94,12 @@ fn write(dir: &Path, files: &Files) -> Result<()> {
     Ok(())
 }
 
-fn run(args: &Args, answer: fn(&Path, &serde_json::Value) -> Result<Files>) -> Result<()> {
+fn run<A: Serialize>(
+    args: &Args,
+    answer: fn(&Path, &serde_json::Value) -> Result<A>,
+) -> Result<()> {
     let request = read_request(&args.request)?;
-    write(&args.out, &answer(&args.data, &request)?)
+    write(&args.out, &stage::files(&answer(&args.data, &request)?))
 }
 
 fn run_culprits(c: &CulpritArgs) -> Result<()> {

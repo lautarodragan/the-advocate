@@ -31,43 +31,37 @@ fn short(value: &Value) -> String {
 
 /// A page as the emission takes it.
 pub fn page_record(page: &PageRecord) -> Result<request::Page> {
-    let own_route = match &page.own_route {
-        None => None,
-        Some(own) => {
-            let flag = |name: &str| own[name].as_bool().unwrap_or(false);
-            Some(request::OwnRoute {
-                repeats: flag("repeats"),
-                skippable: flag("skippable"),
-                fixed_direction: flag("fixed_direction"),
-                animation_continues: flag("animation_continues"),
-                spin: flag("spin"),
-                by_type: flag("by_type"),
-                pattern: own["pattern"].as_i64().unwrap_or(1),
-                frequency: typed(&own["frequency"])?,
-                speed: typed(&own["speed"])?,
-                orders: own["commands"].as_array().map_or(0, Vec::len),
-            })
-        }
-    };
+    let own_route = page.own_route.as_ref().map(|own| request::OwnRoute {
+        repeats: own.repeats,
+        skippable: own.skippable,
+        fixed_direction: own.fixed_direction,
+        animation_continues: own.animation_continues,
+        spin: own.spin,
+        by_type: own.by_type,
+        pattern: own.pattern.unwrap_or(1).into(),
+        frequency: own.frequency.into(),
+        speed: own.speed.into(),
+        orders: own.commands.len(),
+    });
     Ok(request::Page {
         event: page.event,
         page: page.page,
         trigger: page.trigger,
-        switch_a: typed(&page.switch_a)?,
-        switch_b: typed(&page.switch_b)?,
-        actor: typed(&page.actor)?,
-        layer: typed(&page.layer)?,
-        item: typed(&page.item)?,
+        switch_a: page.switch_a.into(),
+        switch_b: page.switch_b.into(),
+        actor: page.actor.into(),
+        layer: page.layer.into(),
+        item: page.item.into(),
         has_code: page.has_code,
         offset: page.offset,
         route_offset: page.route_offset,
-        frequency: typed(&page.frequency)?,
-        speed: typed(&page.speed)?,
+        frequency: page.frequency.into(),
+        speed: page.speed.into(),
         fixed_direction: page.fixed_direction,
         fixed_graphic: page.fixed_graphic,
         own_route,
         draws: page.draws.as_ref().map(typed).transpose()?,
-        variable: typed(&page.variable)?,
+        variable: page.variable,
         graphic: page.graphic.clone(),
         turns: page.turns,
         pure: page.pure,

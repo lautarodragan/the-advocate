@@ -28,6 +28,8 @@ rm2k-snes-text = { path = "../text" }
 wally = { path = "../wally" }
 # The screens' answer, which the request carries as the screens typed it.
 rm2k-snes-screens = { path = "../screens" }
+# And the troops' pages, as the event compiler typed them.
+rm2k-snes-events = { path = "../events" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

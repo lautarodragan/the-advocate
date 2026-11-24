@@ -12740,7 +12740,7 @@ mod tests {
     fn pages_and_losses(
         game: &Game,
         map: &crate::game::Map,
-    ) -> (Vec<serde_json::Value>, Vec<crate::losses::Loss>) {
+    ) -> (Vec<crate::answer::Page>, Vec<crate::losses::Loss>) {
         use crate::messages::{Messages, Window};
         let (indices, sound, mut songs) = (
             Indices::default(),
@@ -12799,19 +12799,10 @@ mod tests {
         );
         let (pages, losses) = pages_and_losses(&Game::default(), &map);
         assert_eq!(
-            pages[0]["code"],
-            json!(crate::pages::hex(&[
-                OP_SWITCH,
-                7,
-                0,
-                1,
-                OP_CALL_PAGE,
-                1,
-                0,
-                OP_DONE
-            ]))
+            pages[0].code.as_ref().unwrap().0,
+            [OP_SWITCH, 7, 0, 1, OP_CALL_PAGE, 1, 0, OP_DONE]
         );
-        assert!(pages[1]["code"].is_null());
+        assert!(pages[1].code.is_none());
         let skipped: Vec<serde_json::Value> = losses
             .iter()
             .filter(|l| l.kind == "call-skipped")
@@ -12855,7 +12846,7 @@ mod tests {
         events.push((12, vec![page_with(0, vec![call_page(11, 1)])]));
         let map = map_of(5, events);
         let (pages, losses) = pages_and_losses(&game, &map);
-        assert!(pages.iter().all(|p| !p["code"].is_null()));
+        assert!(pages.iter().all(|p| p.code.is_some()));
         let deep: Vec<(i64, String)> = losses
             .iter()
             .filter(|l| l.kind == "call-stack-exceeded")

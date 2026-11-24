@@ -19,6 +19,9 @@ use crate::game::{Command, Game, GameMap};
 use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
+use rm2k_snes_events::answer::{Compiled, Indices, Scan};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -240,16 +243,20 @@ impl<'a> Compiler<'a> {
         r
     }
 
-    fn run(
+    /// The answer to `request`, from the cache if it is there: kept as the
+    /// file the binary writes.
+    fn run<A: Serialize + DeserializeOwned>(
         &self,
         stage: stage::Stage,
-        answer: fn(&std::path::Path, &Value) -> rm2k_snes_events::Result<stage::Files>,
+        answer: fn(&std::path::Path, &Value) -> rm2k_snes_events::Result<A>,
         request: Value,
-    ) -> Result<Value> {
+    ) -> Result<A> {
         let written = stage::call(stage, &request, &self.data(), || {
-            answer(&self.game.dump, &request)
+            answer(&self.game.dump, &request).map(|a| rm2k_snes_events::stage::files(&a))
         })?;
-        stage::json(&written, rm2k_snes_events::ANSWER_FILE)
+        let file = rm2k_snes_events::ANSWER_FILE;
+        serde_json::from_value(stage::json(&written, file)?)
+            .map_err(|e| Stop::new(format!("{}'s {file}: {e}", stage.binary)))
     }
 
     /// The first call: the indices, which pages of each map compile, each
@@ -263,7 +270,7 @@ impl<'a> Compiler<'a> {
         extra_variables: &BTreeSet<i32>,
         test_event_map: Option<i32>,
         cases: &[(i32, Vec<Command>)],
-    ) -> Result<Value> {
+    ) -> Result<Scan> {
         let mut r = self.request(maps, test_commands, extra_variables, test_event_map);
         if !cases.is_empty() {
             r.insert(
@@ -305,7 +312,7 @@ impl<'a> Compiler<'a> {
         test_event_map: Option<i32>,
         test_graphics: &BTreeMap<i32, Vec<(String, i32)>>,
         encounter_troops: &Value,
-    ) -> Result<Value> {
+    ) -> Result<Compiled> {
         let ids: Vec<i32> = maps.iter().map(|m| m.id).collect();
         let mut r = self.request(&ids, test_commands, extra_variables, test_event_map);
         r.insert(
@@ -414,7 +421,7 @@ impl<'a> Compiler<'a> {
         maps: &[i32],
         cases: &[(i32, Vec<Command>)],
         encounter_troops: &[i32],
-    ) -> Result<Value> {
+    ) -> Result<Compiled> {
         let test_commands: Vec<Command> =
             cases.iter().flat_map(|(_, c)| c.iter().cloned()).collect();
         let mut r = self.request(maps, &test_commands, &BTreeSet::new(), None);
@@ -506,107 +513,29 @@ pub struct CompileMap {
     pub route_graphics: Vec<(String, i64)>,
 }
 
-/// A map's entry in an answer.
-pub fn map_entry(answer: &Value, map_id: i32) -> Result<&Value> {
-    answer["maps"]
-        .as_array()
-        .and_then(|maps| {
-            maps.iter()
-                .find(|e| e["id"].as_i64() == Some(map_id as i64))
-        })
-        .ok_or_else(|| Stop::new(format!("map {map_id} is not in the answer")))
-}
-
 /// `(event, page)` of the pages of that map that compile, by index.
-pub fn compiling_pages(answer: &Value, map_id: i32) -> Result<BTreeSet<(i64, i64)>> {
-    Ok(map_entry(answer, map_id)?["compiled"]
-        .as_array()
-        .map(|list| {
-            list.iter()
-                .map(|e| (e[0].as_i64().unwrap_or(-1), e[1].as_i64().unwrap_or(-1)))
-                .collect()
-        })
-        .unwrap_or_default())
+pub fn compiling_pages(answer: &Scan, map_id: i32) -> Result<BTreeSet<(i64, i64)>> {
+    let map = answer
+        .map(map_id)
+        .ok_or_else(|| Stop::new(format!("map {map_id} is not in the answer")))?;
+    Ok(map
+        .compiled
+        .iter()
+        .map(|(e, p, _)| (*e as i64, *p as i64))
+        .collect())
 }
 
-/// `{variable: slot}` and `{(actor, skill): slot}` of the scan's answer, as
-/// lists: each key comes once, since the scan keeps them in maps.
-pub struct Indices {
-    pub variables: Vec<(i64, i64)>,
-    pub skills: Vec<((i64, i64), i64)>,
-    /// The highest switch the game names: the ROM's table holds 0 to it.
-    pub switch_top: i64,
-    /// The switch the test pages can turn on, if the scan was asked.
-    pub test_switch: Option<i64>,
-    /// Every (actor, name) a `ChangeHeroName` gives, in the order
-    /// `OP_CHANGE_NAME` counts them: the screens and the emission write
-    /// their texts in it.
-    pub names: Vec<(i64, String)>,
-    /// Every face a `ChangeFaceGraphic` names, as (FaceSet, index,
-    /// mirrored), in the order `OP_FACE` counts them: the screens draw them
-    /// in it, for the emission.
-    pub faces: Vec<(String, i64, bool)>,
-}
-
-impl Indices {
-    pub fn from_answer(answer: &Value) -> Indices {
-        let pairs = |key: &str| -> Vec<Vec<i64>> {
-            answer[key]
-                .as_array()
-                .map(|list| {
-                    list.iter()
-                        .map(|e| {
-                            e.as_array()
-                                .map(|v| v.iter().filter_map(Value::as_i64).collect())
-                                .unwrap_or_default()
-                        })
-                        .collect()
-                })
-                .unwrap_or_default()
-        };
-        Indices {
-            variables: pairs("variables")
-                .into_iter()
-                .map(|e| (e[0], e[1]))
-                .collect(),
-            skills: pairs("skills")
-                .into_iter()
-                .map(|e| ((e[0], e[1]), e[2]))
-                .collect(),
-            switch_top: answer["switch_top"].as_i64().unwrap_or(0),
-            test_switch: answer["test_switch"].as_i64(),
-            names: answer["names"]
-                .as_array()
-                .map(|list| {
-                    list.iter()
-                        .filter_map(|e| Some((e[0].as_i64()?, e[1].as_str()?.to_string())))
-                        .collect()
-                })
-                .unwrap_or_default(),
-            faces: answer["faces"]
-                .as_array()
-                .map(|list| {
-                    list.iter()
-                        .filter_map(|e| {
-                            Some((e[0].as_str()?.to_string(), e[1].as_i64()?, e[2].as_bool()?))
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
-        }
+/// The slot of `variable` in `indices`, or why it has none that fits in a
+/// byte.
+pub fn variable_slot(indices: &Indices, variable: i64) -> Result<i64> {
+    let slot = indices
+        .variables
+        .iter()
+        .find(|(v, _)| *v == variable)
+        .map(|(_, s)| *s)
+        .ok_or_else(|| Stop::new(format!("variable {variable} has no slot in this ROM")))?;
+    if slot > rm2k_snes_mapdata::engine::VAR_SLOT_MAX as i64 {
+        crate::stop!("slot {slot} does not fit in a byte: see VAR_SLOT_MAX");
     }
-
-    /// The slot of `variable`, or why it has none that fits in a byte.
-    pub fn variable_slot(&self, variable: i64) -> Result<i64> {
-        let slot = self
-            .variables
-            .iter()
-            .find(|(v, _)| *v == variable)
-            .map(|(_, s)| *s)
-            .ok_or_else(|| Stop::new(format!("variable {variable} has no slot in this ROM")))?;
-        if slot > rm2k_snes_mapdata::engine::VAR_SLOT_MAX as i64 {
-            crate::stop!("slot {slot} does not fit in a byte: see VAR_SLOT_MAX");
-        }
-        Ok(slot)
-    }
+    Ok(slot)
 }

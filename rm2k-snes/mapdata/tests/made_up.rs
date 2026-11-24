@@ -136,7 +136,7 @@ fn a_troop_page_that_asks_for_a_variable_carries_its_tables() {
     // console reads.
     let mut request = emit_request("whole");
     let pages = request.troop_pages.as_mut().unwrap();
-    pages["per_troop"][0][1][0][0] = serde_json::json!([4, 5, 0, 17, -2, 0, 0, 0, 0, 0, 0, 0, 0]);
+    pages.per_troop[0].1[0].0 = [4, 5, 0, 17, -2, 0, 0, 0, 0, 0, 0, 0, 0];
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains(".block 6\ntpage_var:\n    .word 17, 0, 0\n"));
     assert!(text.contains(".block 6\ntpage_value:\n    .word 65534, 0, 0\n"));

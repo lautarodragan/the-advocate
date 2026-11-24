@@ -7,8 +7,8 @@
 use crate::compiler;
 use crate::fail::Result;
 use crate::game::{Command, Database, GameMap};
+use rm2k_snes_events::answer::Scan;
 use rm2k_snes_events::codes::*;
-use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// `ChangePartyMembers`' first parameter: add or remove; and its second:
@@ -185,7 +185,7 @@ pub fn window_slots<'a>(
 /// `timer_reach` and `sandstorm_reach` follow.
 fn walked_pages<'c>(
     maps: &[&'c GameMap],
-    scan: &Value,
+    scan: &Scan,
     common_events: &'c BTreeMap<i32, Vec<Command>>,
 ) -> Result<Vec<(i32, Vec<&'c Command>)>> {
     fn walk<'c>(
@@ -240,7 +240,7 @@ fn walked_pages<'c>(
 /// overlay is still drawn.
 pub fn sandstorm_reach(
     maps: &[&GameMap],
-    scan: &Value,
+    scan: &Scan,
     common_events: &BTreeMap<i32, Vec<Command>>,
 ) -> Result<BTreeSet<i32>> {
     let in_rom: BTreeSet<i32> = maps.iter().map(|m| m.id).collect();
@@ -308,7 +308,7 @@ pub fn sandstorm_reach(
 /// the compiler's first answer does not know the counters.
 pub fn timer_reach(
     maps: &[&GameMap],
-    scan: &Value,
+    scan: &Scan,
     common_events: &BTreeMap<i32, Vec<Command>>,
     never: &BTreeSet<i32>,
     stays: &BTreeSet<i32>,
@@ -374,7 +374,7 @@ pub type Batch = Vec<(i32, i32)>;
 /// everyone before adding someone back left three possible leaders more,
 /// with their poses and colors in every map of the cartridge. A page
 /// without any is not listed.
-pub fn party_changes(maps: &[&GameMap], scan: &Value) -> Result<Vec<Vec<Vec<Batch>>>> {
+pub fn party_changes(maps: &[&GameMap], scan: &Scan) -> Result<Vec<Vec<Vec<Batch>>>> {
     let mut out = Vec::new();
     for map in maps {
         let compiling = compiler::compiling_pages(scan, map.id)?;
@@ -600,7 +600,7 @@ pub fn possible_members<'a>(
 mod tests {
     use super::*;
     use crate::game::{Event, Page};
-    use serde_json::json;
+    use rm2k_snes_events::answer::{Hex, ScanMap};
 
     fn cmd(code: i32, parameters: &[i32]) -> Command {
         Command {
@@ -651,11 +651,18 @@ mod tests {
     }
 
     /// A scan where every page of these maps compiles.
-    fn everything_compiles(maps: &[&GameMap]) -> Value {
-        json!({"maps": maps.iter().map(|m| json!({
-            "id": m.id,
-            "compiled": m.events.iter().enumerate().map(|(e, _)| json!([e, 0, ""])).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>()})
+    fn everything_compiles(maps: &[&GameMap]) -> Scan {
+        let maps = maps.iter().map(|m| ScanMap {
+            id: m.id,
+            compiled: (0..m.events.len())
+                .map(|e| (e, 0, Hex::default()))
+                .collect(),
+            ..Default::default()
+        });
+        Scan {
+            maps: maps.collect(),
+            ..Default::default()
+        }
     }
 
     fn party(op: i32, actor: i32) -> Command {
@@ -754,7 +761,13 @@ mod tests {
     #[test]
     fn a_page_that_does_not_compile_adds_no_leader_but_adds_a_member() {
         let one = map(1, vec![vec![party(PARTY_REMOVE, 10), party(PARTY_ADD, 11)]]);
-        let scan = json!({"maps": [{"id": 1, "compiled": []}]});
+        let scan = Scan {
+            maps: vec![ScanMap {
+                id: 1,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
         let changes = party_changes(&[&one], &scan).unwrap();
         assert_eq!(possible_leaders(&changes, &[10]), [10]);
         // The slots screen counts every page, and a repeat once.

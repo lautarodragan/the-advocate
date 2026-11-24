@@ -359,7 +359,7 @@ pub struct Emit {
     /// encounters' pieces— and its experience slots.
     pub battle_tables: BattleTables,
     /// The troops' event pages, as the compiler answered them, if any.
-    pub troop_pages: Option<serde_json::Value>,
+    pub troop_pages: Option<rm2k_snes_events::answer::TroopPages>,
     /// The parallel common events that compile: `[switch, number, pure,
     /// code]`, with switch 0 for one that runs always and `pure` for one
     /// that only runs when what it reads changes —see `commons::pure` in the

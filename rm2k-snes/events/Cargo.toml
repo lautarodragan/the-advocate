@@ -22,6 +22,7 @@ rm2k-snes-battle = { path = "../battle" }
 # A box's escape tail: the rule the boxes are reflowed around is the one
 # the compiler cuts them with.
 rm2k-snes-text = { path = "../text" }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [lints]

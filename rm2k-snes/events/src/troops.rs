@@ -11,6 +11,7 @@
 //! When each one runs is decided by the ROM and it is copied from
 //! `Scene_Battle_Rpg2k`; see `ba_page_test` in runtime/battle_troop.s.
 
+use crate::answer::Hex;
 use crate::codes::*;
 use crate::compile::{compile_page, Ctx, ACCEPTED_UNDONE, CALL_MAX};
 use crate::fail::Result;
@@ -19,7 +20,6 @@ use crate::indices::battle_branch;
 use crate::losses::Origin;
 use crate::messages::Messages;
 use crate::registry::Package;
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// What a troop page can do in this port. **It is a list of the ones that
@@ -149,9 +149,11 @@ pub struct Trigger {
 }
 
 impl Trigger {
-    fn to_json(&self) -> Value {
-        json!([
-            self.flags,
+    /// As `BA_COND` reads it, in the answer: see `troop_pages` in
+    /// rm2k-snes-mapdata.
+    fn row(&self) -> [i32; 13] {
+        [
+            self.flags.into(),
             self.switch_a,
             self.switch_b,
             self.slot,
@@ -163,8 +165,8 @@ impl Trigger {
             self.enemy_max,
             self.actor,
             self.actor_min,
-            self.actor_max
-        ])
+            self.actor_max,
+        ]
     }
 
     /// The ten bytes in front of a page that looks at the turn or the HP:
@@ -620,29 +622,26 @@ impl TroopPages {
         Ok(theirs)
     }
 
-    pub fn to_json(&self) -> Value {
-        let mut out = json!({
-            "pages": self.pages,
-            "left_out": self.left_out,
-            "distinct": self.where_.len(),
-            "per_troop": self.per_troop.iter().map(|(n, theirs)| json!([
-                n,
-                theirs.iter().map(|(t, at, k)| json!([t.to_json(), at, k])).collect::<Vec<_>>(),
-            ])).collect::<Vec<_>>(),
-            "code": crate::pages::hex(&self.bodies),
-            "messages": crate::pages::hex(&self.messages.bytes()),
-            "message_count": self.messages.count(),
-        });
-        // Only when there are some, so the answer of a game without them
-        // stays the one the tests that hold its hashes expect.
-        if !self.debts.is_empty() {
-            out["debts"] = json!(self
-                .debts
+    pub fn answer(&self) -> crate::answer::TroopPages {
+        crate::answer::TroopPages {
+            pages: self.pages,
+            left_out: self.left_out,
+            distinct: self.where_.len(),
+            per_troop: self
+                .per_troop
                 .iter()
-                .map(|(code, pages)| json!([code, pages]))
-                .collect::<Vec<_>>());
+                .map(|(n, theirs)| {
+                    (
+                        *n,
+                        theirs.iter().map(|(t, at, k)| (t.row(), *at, *k)).collect(),
+                    )
+                })
+                .collect(),
+            code: Hex(self.bodies.clone()),
+            messages: Hex(self.messages.bytes()),
+            message_count: self.messages.count(),
+            debts: self.debts.clone().into_iter().collect(),
         }
-        out
     }
 }
 

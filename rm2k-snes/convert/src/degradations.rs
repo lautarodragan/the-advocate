@@ -15,6 +15,7 @@
 //! pasted into a page carries `via`, the pasted bodies with the command
 //! each was at.
 
+use rm2k_snes_events::answer::Compiled;
 use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -30,13 +31,10 @@ pub struct Degradations {
 
 impl Degradations {
     /// The event compiler's: every page of the cartridge's.
-    pub fn add_compiler_answer(&mut self, answer: &Value) {
-        let d = &answer["degradations"];
-        self.losses
-            .extend(d["losses"].as_array().cloned().unwrap_or_default());
-        if let Some(commons) = d["commons"].as_object() {
-            self.commons.extend(commons.clone());
-        }
+    pub fn add_compiler_answer(&mut self, answer: &Compiled) {
+        let d = &answer.degradations;
+        self.losses.extend(d.losses.iter().cloned());
+        self.commons.extend(d.commons.clone());
     }
 
     /// Takes out what was not lost after all: what `done` says the
