@@ -1,15 +1,15 @@
-//! The requests each subcommand reads, and the answers it writes.
+//! The requests each subcommand reads, and the answers it writes that are
+//! not a library type of their own.
 //!
 //! A request names the pictures —by path: finding a game's file, in its
 //! folder or in the RTP, is the caller's— and carries the sizes the
 //! cartridge decided. A relative path is relative to the request.
 
 use crate::fail::{Bad, Result};
-use crate::{animation, background, fullscreen, mode7, scene, show_picture};
+use crate::{animation, background, mode7, scene};
 use adeleine::Color;
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// A request file, read into `T`, with its paths made absolute.
@@ -20,15 +20,6 @@ pub fn read<T: DeserializeOwned + Paths>(path: &Path) -> Result<T> {
         serde_json::from_str(&text).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
     let base = path.parent().unwrap_or(Path::new("."));
     request.resolve(base);
-    Ok(request)
-}
-
-/// A request already parsed, read into `T`; a relative path in it stays
-/// relative to the current directory. `whose` is what its complaints
-/// start with.
-pub fn of<T: DeserializeOwned + Paths>(request: &Value, whose: &str) -> Result<T> {
-    let mut request = T::deserialize(request).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
-    request.resolve(Path::new(""));
     Ok(request)
 }
 
@@ -45,7 +36,7 @@ fn resolve(path: &mut PathBuf, base: &Path) {
 
 /// `fullscreen`: one picture, the screen's size and the cell's, and the
 /// palette: how many colours and from which CGRAM entry.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Fullscreen {
     pub file: PathBuf,
     pub width: usize,
@@ -64,7 +55,7 @@ impl Paths for Fullscreen {
 /// `picture`: the file and what the `ShowPicture` says of it —its
 /// transparent colour, its transparency, its centre on RM2k's screen—,
 /// the two screens, and how many colours.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ShowPicture {
     pub file: PathBuf,
     #[serde(default)]
@@ -92,7 +83,7 @@ pub struct ShowPicture {
 /// `background`: the file and what the `ShowPicture` says of it, the two
 /// screens, and the room the layer gets: how many palettes from which one,
 /// how many tiles and how many rows of cells.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Background {
     pub file: PathBuf,
     #[serde(default)]
@@ -130,7 +121,7 @@ pub struct Background {
 /// the texture's map names, the blank one included, and how many tiles and
 /// rows of cells the layer itself can take while the texture shares VRAM
 /// with it.
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct Mode7Room {
     pub tiles: usize,
     pub layer_tiles: usize,
@@ -154,7 +145,7 @@ impl Paths for ShowPicture {
 }
 
 /// The scene's geometry, as `scene::Geometry` names it.
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct Scene {
     pub width: usize,
     pub height: usize,
@@ -185,13 +176,13 @@ impl From<Scene> for scene::Geometry {
 
 /// `backdrops`: each backdrop's file, and which of its two versions are
 /// wanted.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Backdrops {
     pub scene: Scene,
     pub backdrops: Vec<BackdropWanted>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct BackdropWanted {
     pub file: PathBuf,
     #[serde(default)]
@@ -209,13 +200,13 @@ impl Paths for Backdrops {
 }
 
 /// `battlers`: each battler's file and its `battler_hue`.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Battlers {
     pub scene: Scene,
     pub battlers: Vec<BattlerWanted>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct BattlerWanted {
     pub file: PathBuf,
     #[serde(default)]
@@ -232,7 +223,7 @@ impl Paths for Battlers {
 
 /// `animations`: the box, and each animation by its number in the dump
 /// with the sheet its cells are cut from.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Animations {
     pub side: usize,
     pub colors: usize,
@@ -240,7 +231,7 @@ pub struct Animations {
     pub animations: Vec<AnimationWanted>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AnimationWanted {
     pub number: i32,
     pub sheet: PathBuf,
@@ -264,54 +255,81 @@ impl From<&Animations> for animation::Geometry {
     }
 }
 
-fn colors(palette: &[Color]) -> Value {
-    json!(palette)
+/// What `background` answers: the layer, as [`background::Background`]
+/// and [`mode7::Texture`] carry it to a cartridge.
+#[derive(Serialize, Deserialize)]
+pub struct Layer {
+    pub top: i64,
+    pub rows: usize,
+    pub columns: usize,
+    pub wider: bool,
+    pub tile_count: usize,
+    #[serde(with = "hex")]
+    pub tiles: Vec<u8>,
+    pub tilemap: Vec<u16>,
+    pub palettes: Vec<Vec<Color>>,
+    /// Only for a layer that was asked for one and leaves room for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode7: Option<LayerTexture>,
 }
 
-pub fn fullscreen_answer(s: &fullscreen::Screen) -> Value {
-    json!({"tiles": s.tiles, "palette": colors(&s.palette), "tilemap": s.tilemap})
+/// A layer's mode 7 texture, and where on the screen a zoom shrinks it
+/// towards.
+#[derive(Serialize, Deserialize)]
+pub struct LayerTexture {
+    pub tile_count: usize,
+    #[serde(with = "hex")]
+    pub tiles: Vec<u8>,
+    pub map: Vec<u8>,
+    pub distinct: usize,
+    pub center: (i64, i64),
 }
 
-pub fn picture_answer(p: &show_picture::Converted) -> Value {
-    json!({"x": p.x, "y": p.y, "width": p.width, "height": p.height,
-           "palette": colors(&p.palette), "indices": p.indices})
-}
-
-pub fn background_answer(b: &background::Background, texture: Option<&mode7::Texture>) -> Value {
-    let hex = |bytes: &[u8]| -> String { bytes.iter().map(|v| format!("{v:02x}")).collect() };
-    let mut answer = json!({
-        "top": b.top, "rows": b.rows, "columns": b.columns, "wider": b.wider,
-        "tile_count": b.tile_count, "tiles": hex(&b.tiles), "tilemap": b.tilemap,
-        "palettes": b.palettes.iter().map(|p| colors(p)).collect::<Vec<_>>(),
-    });
-    // Only for a layer that was asked for one, so the answer of every
-    // other is the one it always was.
-    if let Some(t) = texture {
-        answer["mode7"] = json!({
-            "tile_count": t.tile_count, "tiles": hex(&t.tiles), "map": t.map,
-            "distinct": t.distinct, "center": [b.center.0, b.center.1],
-        });
+impl Layer {
+    pub fn of(b: background::Background, texture: Option<mode7::Texture>) -> Layer {
+        Layer {
+            mode7: texture.map(|t| LayerTexture {
+                tile_count: t.tile_count,
+                tiles: t.tiles,
+                map: t.map,
+                distinct: t.distinct,
+                center: b.center,
+            }),
+            top: b.top,
+            rows: b.rows,
+            columns: b.columns,
+            wider: b.wider,
+            tile_count: b.tile_count,
+            tiles: b.tiles,
+            tilemap: b.tilemap,
+            palettes: b.palettes,
+        }
     }
-    answer
 }
 
-pub fn backdrop_answer(b: &scene::Backdrop) -> Value {
-    json!({"indices": b.indices, "palette": colors(&b.palette)})
+/// Bytes as lowercase hex, which is how a cartridge's requests carry them.
+mod hex {
+    use serde::{de::Error, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(bytes: &[u8], s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&bytes.iter().map(|v| format!("{v:02x}")).collect::<String>())
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
+        let text = String::deserialize(d)?;
+        (0..text.len() / 2)
+            .map(|i| {
+                text.get(2 * i..2 * i + 2)
+                    .and_then(|b| u8::from_str_radix(b, 16).ok())
+            })
+            .collect::<Option<_>>()
+            .ok_or_else(|| D::Error::custom(format!("{text:?} is not hex")))
+    }
 }
 
-pub fn light_answer(l: &scene::Light) -> Value {
-    json!({"small": l.small, "indices": l.indices, "palette": colors(&l.palette)})
-}
-
-pub fn battler_answer(b: &scene::Battler) -> Value {
-    json!({
-        "width": b.width, "height": b.height, "pixels": b.pixels,
-        "rm_height": b.rm_height, "palette": colors(&b.palette), "colors": b.colors,
-        "merges": b.merges.iter().map(|m| json!([m.victim, m.target, m.pixels])).collect::<Vec<_>>(),
-    })
-}
-
-pub fn animation_answer(a: &animation::Converted) -> Value {
-    json!({"frames": a.frames, "palette": colors(&a.palette), "anchor": a.anchor,
-           "size": a.size, "rm_box": a.rm_box})
+/// What `backdrops` answers for each backdrop: the versions asked for.
+#[derive(Serialize, Deserialize)]
+pub struct BackdropAnswer {
+    pub quality: Option<scene::Backdrop>,
+    pub light: Option<scene::Light>,
 }

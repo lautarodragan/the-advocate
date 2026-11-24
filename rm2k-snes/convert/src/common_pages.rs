@@ -175,8 +175,8 @@ impl CommonPages {
             if !self.commons.contains(&n) {
                 continue;
             }
-            let keys = c["pictures"].as_array().map_or(&[][..], Vec::as_slice);
-            if !crate::pictures::any_small(&game.game_dir, keys, &game.cropped)? {
+            let keys = crate::pictures::keys(c.get("pictures"))?;
+            if !crate::pictures::any_small(&game.game_dir, &keys, &game.cropped)? {
                 nothing.push(n);
             }
         }

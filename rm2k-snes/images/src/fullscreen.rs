@@ -11,11 +11,14 @@
 use crate::pixels::{most_used, rgb_to_15_bits, scaled_rgb};
 use adeleine::Color;
 use rm2k_render::Picture;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// A tile: 8x8 CGRAM indices, row by row.
 pub type Cell = Vec<Vec<usize>>;
 
+/// What `fullscreen` answers.
+#[derive(Serialize, Deserialize)]
 pub struct Screen {
     /// The distinct cells, in the order they first appear.
     pub tiles: Vec<Cell>,

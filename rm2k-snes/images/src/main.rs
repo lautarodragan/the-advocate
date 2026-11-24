@@ -6,9 +6,10 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_images::request::{self, Paths};
-use rm2k_snes_images::stage::{self, Files};
+use rm2k_snes_images::stage;
 use rm2k_snes_images::{Bad, Result};
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -62,8 +63,8 @@ enum Command {
         starts, from the top of the screen), \"rows\", \"columns\", \"wider\" (whether it goes \
         past the screen's sides), \"tile_count\", \"tiles\" \
         (4bpp, hex), \"tilemap\" (an entry per cell, row by row), \"palettes\" (sixteen \
-        colours each, from first_palette on), and if asked, \"mode7\": null if the layer \
-        takes more, or {\"tile_count\", \"tiles\" (a byte a pixel, hex, tile 0 blank), \"map\" \
+        colours each, from first_palette on), and if asked and the layer leaves room for \
+        it, \"mode7\": {\"tile_count\", \"tiles\" (a byte a pixel, hex, tile 0 blank), \"map\" \
         (a tile per cell, row by row), \"distinct\" (the tiles before grouping them), \"center\" \
         (where on the screen a zoom shrinks it towards)}}."
     )]
@@ -120,33 +121,39 @@ struct WithDump {
     out: PathBuf,
 }
 
-/// What a command answered, into `out`, which is created if it is not
-/// there.
-fn write(out: &Path, files: &Files) -> Result<()> {
+/// What a command answered, as `<command>.json` in `out`, which is created
+/// if it is not there: on one line, with no newline after it, and its keys
+/// sorted, which is how a `serde_json::Value` without `preserve_order`
+/// keeps them.
+fn write(out: &Path, command: &str, answer: &impl Serialize) -> Result<()> {
+    let text = serde_json::to_value(answer)
+        .map_err(|e| Bad::answer(e.to_string()))?
+        .to_string();
     std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
-    for (name, bytes) in files {
-        let path = out.join(name);
-        std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    }
-    Ok(())
+    let path = out.join(format!("{command}.json"));
+    std::fs::write(&path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
 
 /// A command over its request file: read it, ask, write what it answered.
-fn asked<T: DeserializeOwned + Paths>(args: &Plain, answer: fn(&T) -> Result<Files>) -> Result<()> {
-    write(&args.out, &answer(&request::read(&args.request)?)?)
+fn asked<T: DeserializeOwned + Paths, A: Serialize>(
+    args: &Plain,
+    command: &str,
+    answer: fn(&T) -> Result<A>,
+) -> Result<()> {
+    write(&args.out, command, &answer(&request::read(&args.request)?)?)
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Fullscreen(args) => asked(args, stage::fullscreen_of),
-        Command::Picture(args) => asked(args, stage::picture_of),
-        Command::Background(args) => asked(args, stage::background_of),
-        Command::Backdrops(args) => asked(args, stage::backdrops_of),
-        Command::Battlers(args) => asked(args, stage::battlers_of),
+        Command::Fullscreen(args) => asked(args, "fullscreen", stage::fullscreen),
+        Command::Picture(args) => asked(args, "picture", stage::picture),
+        Command::Background(args) => asked(args, "background", stage::background),
+        Command::Backdrops(args) => asked(args, "backdrops", stage::backdrops),
+        Command::Battlers(args) => asked(args, "battlers", stage::battlers),
         Command::Animations(args) => request::read(&args.request)
-            .and_then(|r| stage::animations_of(&args.data, &r))
-            .and_then(|files| write(&args.out, &files)),
+            .and_then(|r| stage::animations(&args.data, &r))
+            .and_then(|answer| write(&args.out, "animations", &answer)),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
