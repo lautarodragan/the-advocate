@@ -77,7 +77,10 @@ impl Drop for Fresh {
     }
 }
 
-/// `request` as the screens read a request, named for their messages.
+/// `request` as the screens read a request, named for their messages:
+/// the converter's has no file. Each command has a door that takes the
+/// [`Json`] instead, `<command>_of`, which the binary goes through so its
+/// complaints keep the request file's name.
 fn json(request: &Value) -> Json {
     Json {
         data: request.clone(),
@@ -117,9 +120,13 @@ pub fn game_with_font(place: &Place, json: &Json) -> Result<Game> {
 
 /// `convert`: every screen a cartridge carries, as `screens.json`.
 pub fn convert(place: &Place, request: &Value) -> Result<Files> {
+    convert_of(place, &json(request))
+}
+
+/// [`convert`], asked a request already read.
+pub fn convert_of(place: &Place, json: &Json) -> Result<Files> {
     let _fresh = Fresh::start();
-    let json = json(request);
-    let game = game_with_font(place, &json)?;
+    let game = game_with_font(place, json)?;
     let answer = screens::convert(&game, &json.convert()?)?;
     Ok(one("screens.json", &answer))
 }
@@ -185,12 +192,16 @@ pub fn measure_of(json: &Json) -> Result<Measure> {
 /// `boxes`: every message box of the game in `data` reflowed for the
 /// console's window, as `boxes.json`.
 pub fn boxes(data: &Path, request: &Value) -> Result<Files> {
+    boxes_of(data, &json(request))
+}
+
+/// [`boxes`], asked a request already read.
+pub fn boxes_of(data: &Path, json: &Json) -> Result<Files> {
     let _fresh = Fresh::start();
-    let json = json(request);
     let table = box_table::table(
         data,
         &json.files("map_files")?,
-        &measure_of(&json)?,
+        &measure_of(json)?,
         json.index_or("lines", 0)?,
     )?;
     Ok(one("boxes.json", &table))
@@ -198,9 +209,13 @@ pub fn boxes(data: &Path, request: &Value) -> Result<Files> {
 
 /// `faces`: the faces the message window shows, as `faces.json`.
 pub fn faces(place: &Place, request: &Value) -> Result<Files> {
+    faces_of(place, &json(request))
+}
+
+/// [`faces`], asked a request already read.
+pub fn faces_of(place: &Place, json: &Json) -> Result<Files> {
     let _fresh = Fresh::start();
     let game = place.game()?;
-    let json = json(request);
     let drawn = face_sets::draw(&game, &face_sets::requested(&json.data, &json.whose)?)?;
     Ok(one("faces.json", &face_sets::answer(&drawn)))
 }
@@ -208,10 +223,15 @@ pub fn faces(place: &Place, request: &Value) -> Result<Files> {
 /// `window`: how many colour-memory entries the message window takes, as
 /// `window.json`; with the request's `systems`, each one's window too.
 pub fn window(place: &Place, request: &Value) -> Result<Files> {
+    window_of(place, &json(request))
+}
+
+/// [`window`], asked a request already read.
+pub fn window_of(place: &Place, json: &Json) -> Result<Files> {
     let _fresh = Fresh::start();
     let game = place.game()?;
     let skin = game.skin()?;
-    let others = json(request).systems()?;
+    let others = json.systems()?;
     let merges_json = |merges: &[adeleine::Merge]| -> Vec<Value> {
         merges
             .iter()

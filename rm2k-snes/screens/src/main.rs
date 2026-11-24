@@ -10,7 +10,6 @@ use rm2k_snes_screens::game::Skin;
 use rm2k_snes_screens::request::Json;
 use rm2k_snes_screens::stage::{self, Files, Place};
 use rm2k_snes_screens::{borders, boxes, convert, fit, layout, render, Bad, Result};
-use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -205,9 +204,10 @@ fn write_files(out: &Path, files: &Files) -> Result<()> {
 }
 
 /// One of the commands the converter calls: its stage function asked the
-/// request in `path`, its files into `out`.
-fn asked(path: &Path, out: &Path, answer: impl FnOnce(&Value) -> Result<Files>) -> Result<()> {
-    write_files(out, &answer(&Json::read(path)?.data)?)
+/// request in `path`, its files into `out`. Through the door that takes
+/// the request read, so a complaint names the file.
+fn asked(path: &Path, out: &Path, answer: impl FnOnce(&Json) -> Result<Files>) -> Result<()> {
+    write_files(out, &answer(&Json::read(path)?)?)
 }
 
 fn do_render(args: &GameArgs) -> Result<()> {
@@ -472,20 +472,20 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Convert(args) => asked(&args.request, &args.out, |request| {
-            stage::convert(&args.place(), request)
+            stage::convert_of(&args.place(), request)
         }),
         Command::Render(args) => do_render(args),
         Command::Boxes(args) => asked(&args.request, &args.out, |request| {
-            stage::boxes(&args.data, request)
+            stage::boxes_of(&args.data, request)
         }),
         Command::Faces(args) => asked(&args.request, &args.out, |request| {
-            stage::faces(&args.place(), request)
+            stage::faces_of(&args.place(), request)
         }),
         Command::Layout(args) => write_files(&args.out, &stage::layout()),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),
         Command::Window(args) => asked(&args.request, &args.out, |request| {
-            stage::window(&args.place(), request)
+            stage::window_of(&args.place(), request)
         }),
     };
     match done {
