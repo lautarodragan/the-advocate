@@ -1642,38 +1642,14 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
         data.push(n as u8);
         let entries = data.len();
         data.resize(entries + n * PICTURE_ENTRY, 0);
+        // The first tile again at the end of each entry, so drawing needs
+        // the entry alone.
+        let base = i16::try_from(p.base)
+            .map_err(|_| whose(format!("a picture's {}", p.base)))?
+            .to_le_bytes();
         // Each palette's colours once, by its index.
-        let mut colors_of: std::collections::BTreeMap<i64, usize> =
-            std::collections::BTreeMap::new();
+        let mut colors_of = BTreeMap::new();
         for (i, image) in p.images.iter().enumerate() {
-            let objects_at = data.len() - start;
-            for &[dx, dy, tile] in &image.objects {
-                let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
-                data.push(byte(dx)?);
-                data.push(byte(dy)?);
-                data.extend(
-                    u16::try_from(tile)
-                        .map_err(|_| whose(format!("an object's tile {tile}")))?
-                        .to_le_bytes(),
-                );
-            }
-            let colors_at = match colors_of.get(&image.palette_index) {
-                Some(&at) => at,
-                None => {
-                    let at = data.len() - start;
-                    let mut colors = vec![[0, 0, 0]];
-                    colors.extend_from_slice(&image.palette);
-                    colors.resize(16, [0, 0, 0]);
-                    data.extend(cgram_bytes(&colors));
-                    colors_of.insert(image.palette_index, at);
-                    at
-                }
-            };
-            let word = |v: i64| -> Result<[u8; 2]> {
-                Ok(i16::try_from(v)
-                    .map_err(|_| whose(format!("a picture's {v}")))?
-                    .to_le_bytes())
-            };
             let palette = u8::try_from(image.palette_index)
                 .ok()
                 .filter(|&p| p < 8)
@@ -1683,33 +1659,84 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
                         image.palette_index
                     ))
                 })?;
+            let entry = picture_entry(
+                &mut data,
+                image,
+                &mut colors_of,
+                palette | if image.behind_map { PICTURE_BEHIND } else { 0 },
+                [base[0], base[1], 0, 0],
+                &whose,
+            )?;
             let at = entries + i * PICTURE_ENTRY;
-            let mut entry = Vec::with_capacity(PICTURE_ENTRY);
-            entry.extend(word(image.half[0])?);
-            entry.extend(word(image.half[1])?);
-            entry.push(
-                u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
-            );
-            entry.push(palette | if image.behind_map { PICTURE_BEHIND } else { 0 });
-            // The two offsets are unsigned, as the console reads them —an
-            // index of `picture_data`—: the table reaches 64 KB, and Desert
-            // Nightmare's went past 32 KB on 2026-11-21, when the pictures of
-            // RM2k's whole screen that draw little became small ones.
-            let offset = |v: usize| -> Result<[u8; 2]> {
-                Ok(u16::try_from(v)
-                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
-                    .to_le_bytes())
-            };
-            entry.extend(offset(start + objects_at)?);
-            entry.extend(offset(start + colors_at)?);
-            entry.extend(word(p.base)?);
-            data[at..at + entry.len()].copy_from_slice(&entry);
+            data[at..at + PICTURE_ENTRY].copy_from_slice(&entry);
         }
         starts.push(
             u16::try_from(start).map_err(|_| whose("the pictures' table passes 64 KB".into()))?,
         );
     }
     Ok((words_le(starts.iter().map(|&s| u32::from(s))), data))
+}
+
+/// One picture's objects and its palette's colours, added to `data`, and
+/// its entry —see [`picture_tables`]—, whose offsets are indices of `data`.
+/// `colors_of` says where each palette's colours already are, so the
+/// pictures that share a palette point to it once. The palette byte and
+/// the entry's last four bytes are each caller's: a map's picture and a
+/// common one say different things there.
+fn picture_entry(
+    data: &mut Vec<u8>,
+    image: &crate::request::PictureImage,
+    colors_of: &mut BTreeMap<i64, usize>,
+    palette: u8,
+    tail: [u8; 4],
+    whose: &dyn Fn(String) -> Bad,
+) -> Result<[u8; PICTURE_ENTRY]> {
+    let objects_at = data.len();
+    for &[dx, dy, tile] in &image.objects {
+        let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
+        data.push(byte(dx)?);
+        data.push(byte(dy)?);
+        data.extend(
+            u16::try_from(tile)
+                .map_err(|_| whose(format!("an object's tile {tile}")))?
+                .to_le_bytes(),
+        );
+    }
+    let colors_at = match colors_of.get(&image.palette_index) {
+        Some(&at) => at,
+        None => {
+            let at = data.len();
+            let mut colors = vec![[0, 0, 0]];
+            colors.extend_from_slice(&image.palette);
+            colors.resize(16, [0, 0, 0]);
+            data.extend(cgram_bytes(&colors));
+            colors_of.insert(image.palette_index, at);
+            at
+        }
+    };
+    let half = |v: i64| -> Result<[u8; 2]> {
+        Ok(i16::try_from(v)
+            .map_err(|_| whose(format!("a picture's {v}")))?
+            .to_le_bytes())
+    };
+    // The two offsets are unsigned, as the console reads them —an index of
+    // `picture_data`—: the table reaches 64 KB, and Desert Nightmare's went
+    // past 32 KB on 2026-11-21, when the pictures of RM2k's whole screen
+    // that draw little became small ones.
+    let offset = |v: usize| -> Result<[u8; 2]> {
+        Ok(u16::try_from(v)
+            .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
+            .to_le_bytes())
+    };
+    let mut entry = [0u8; PICTURE_ENTRY];
+    entry[0..2].copy_from_slice(&half(image.half[0])?);
+    entry[2..4].copy_from_slice(&half(image.half[1])?);
+    entry[4] = u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?;
+    entry[5] = palette;
+    entry[6..8].copy_from_slice(&offset(objects_at)?);
+    entry[8..10].copy_from_slice(&offset(colors_at)?);
+    entry[10..14].copy_from_slice(&tail);
+    Ok(entry)
 }
 
 /// The common events' small pictures' entries, after the maps' in
@@ -1734,61 +1761,21 @@ pub fn common_entries(sets: &[crate::request::CommonSet], data: &mut Vec<u8>) ->
     let mut at = entries;
     for (k, set) in sets.iter().enumerate() {
         let whose = |what: String| Bad::answer(format!("{}: {what}", set.name));
-        let mut colors_of: BTreeMap<i64, usize> = BTreeMap::new();
+        let mut colors_of = BTreeMap::new();
         for image in &set.images {
-            let objects_at = data.len();
-            for &[dx, dy, tile] in &image.objects {
-                let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
-                data.push(byte(dx)?);
-                data.push(byte(dy)?);
-                data.extend(
-                    u16::try_from(tile)
-                        .map_err(|_| whose(format!("an object's tile {tile}")))?
-                        .to_le_bytes(),
-                );
-            }
-            let colors_at = match colors_of.get(&image.palette_index) {
-                Some(&c) => c,
-                None => {
-                    let c = data.len();
-                    let mut colors = vec![[0, 0, 0]];
-                    colors.extend_from_slice(&image.palette);
-                    colors.resize(16, [0, 0, 0]);
-                    data.extend(cgram_bytes(&colors));
-                    colors_of.insert(image.palette_index, c);
-                    c
-                }
-            };
-            let word = |v: i64| -> Result<[u8; 2]> {
-                Ok(i16::try_from(v)
-                    .map_err(|_| whose(format!("a picture's {v}")))?
-                    .to_le_bytes())
-            };
             let palette = u8::try_from(image.palette_index)
                 .ok()
                 .filter(|&p| (p as usize) < set.palettes.max(1))
                 .ok_or_else(|| whose(format!("palette {}", image.palette_index)))?;
-            let mut entry = Vec::with_capacity(PICTURE_ENTRY);
-            entry.extend(word(image.half[0])?);
-            entry.extend(word(image.half[1])?);
-            entry.push(
-                u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
-            );
-            entry.push(palette);
-            entry.extend(
-                u16::try_from(objects_at)
-                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
-                    .to_le_bytes(),
-            );
-            entry.extend(
-                u16::try_from(colors_at)
-                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
-                    .to_le_bytes(),
-            );
-            entry.extend([0, 0]);
-            entry.push(k as u8);
-            entry.push(0x80);
-            data[at..at + entry.len()].copy_from_slice(&entry);
+            let entry = picture_entry(
+                data,
+                image,
+                &mut colors_of,
+                palette,
+                [0, 0, k as u8, 0x80],
+                &whose,
+            )?;
+            data[at..at + PICTURE_ENTRY].copy_from_slice(&entry);
             at += PICTURE_ENTRY;
         }
     }
