@@ -49,9 +49,12 @@ const BATTLE_MODEL: stage::Stage = stage::Stage {
     binary: "rm2k-snes-battle",
     command: "model",
 };
+const AUDIO_CARTRIDGE: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-audio",
+    command: "cartridge",
+};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 /// How many block pairs the ROM's substitution table holds at once. It is
@@ -2141,51 +2144,54 @@ pub fn run(options: Options) -> Result<()> {
         .clone()
         .map(rm2k_project::absolute)
         .unwrap_or_else(|| directory.join("datos.msu"));
-    let mut flags: Vec<OsString> = vec![
-        "--out".into(),
-        directory.clone().into_os_string(),
-        "--msu".into(),
-        msu.into_os_string(),
-        "--data".into(),
-        game.dump.clone().into_os_string(),
-        "--project".into(),
-        project.directory().as_os_str().to_owned(),
-    ];
-    flags.extend(environment.as_flags(&["game_dir", "rtp_dir", "soundfont"]));
-    stage::hand_over(
-        "rm2k-snes-audio",
-        "rm2k-snes-audio",
-        &json!({
-            "songs": compiled["songs"],
-            "maps": infos.iter().map(|m| m.id).collect::<Vec<_>>(),
-            "start": start_index,
-            "title": title_screen.is_some(),
-            "game_over": game_over.is_some(),
-            "decompress_frames": emitted.frames.get(start_index).cloned().unwrap_or(Value::Null),
-            "measuring_headroom": options.measure_headroom,
-            // The quality backdrops are the emission's bytes: the stage only
-            // puts them in their place in the `.msu`.
-            "backdrops": scenes.quality.iter().map(|(t, c)| json!([hex(t), hex(c)])).collect::<Vec<_>>(),
-            "tree_nodes": game.tree.added_nodes,
-            // Whether the samples may travel in the `.msu`, in a cartridge
-            // that needs the MSU-1: see `Emit::msu_samples` in the stage.
-            "msu_samples": msu_data != "optional",
-        }),
-        &flags,
-        Some("cartridge"),
-    )?;
+    let request = json!({
+        "songs": compiled["songs"],
+        "maps": infos.iter().map(|m| m.id).collect::<Vec<_>>(),
+        "start": start_index,
+        "title": title_screen.is_some(),
+        "game_over": game_over.is_some(),
+        "decompress_frames": emitted.frames.get(start_index).cloned().unwrap_or(Value::Null),
+        "measuring_headroom": options.measure_headroom,
+        // The quality backdrops are the emission's bytes: the stage only
+        // puts them in their place in the `.msu`.
+        "backdrops": scenes.quality.iter().map(|(t, c)| json!([hex(t), hex(c)])).collect::<Vec<_>>(),
+        "tree_nodes": game.tree.added_nodes,
+        // Whether the samples may travel in the `.msu`, in a cartridge
+        // that needs the MSU-1: see `Emit::msu_samples` in the stage.
+        "msu_samples": msu_data != "optional",
+    });
+    let flags = rm2k_snes_audio::stage::Flags {
+        place: rm2k_snes_audio::stage::Place {
+            game_dir: environment.game()?.to_path_buf(),
+            rtp_dir: Some(environment.rtp()?.to_path_buf()),
+            project: Some(project.directory().to_path_buf()),
+        },
+        data: game.dump.clone(),
+        soundfont: environment.soundfont()?.to_path_buf(),
+        out: directory.clone(),
+        msu: msu.clone(),
+    };
+    let mut files = stage::call_uncached(AUDIO_CARTRIDGE, || {
+        rm2k_snes_audio::stage::cartridge(&flags, &request, "the request")
+    })?;
+    let blob = files
+        .remove(rm2k_snes_audio::stage::MSU)
+        .ok_or_else(|| Stop::new("rm2k-snes-audio cartridge answered no .msu"))?;
+    for (name, bytes) in &files {
+        let path = directory.join(name);
+        std::fs::write(&path, bytes).map_err(|e| crate::fail::io(&path, e))?;
+    }
+    // Alongside and renamed, and not overwritten in place: an emulator may
+    // have it open.
+    let fresh = PathBuf::from(format!("{}.nuevo", msu.display()));
+    std::fs::write(&fresh, &blob).map_err(|e| crate::fail::io(&fresh, e))?;
+    std::fs::rename(&fresh, &msu).map_err(|e| crate::fail::io(&msu, e))?;
     // And what the music lost to fit in the ARAM —a package's songs that
     // its `PlayBGM` uploads, its sound effects left out—, which the stage
     // leaves in its `audio.json` because it runs after everything else: the
-    // one piece of its output the conversion reads. With it, the list is
+    // one piece of its answer the conversion reads. With it, the list is
     // complete, and it is written.
-    let audio_path = directory.join("audio.json");
-    let audio: Value = std::fs::read_to_string(&audio_path)
-        .map_err(|e| crate::fail::io(&audio_path, e))
-        .and_then(|text| {
-            serde_json::from_str(&text)
-                .map_err(|e| Stop::new(format!("{}: {e}", audio_path.display())))
-        })?;
+    let audio = stage::json(&files, "audio.json")?;
     for loss in audio["losses"].as_array().into_iter().flatten() {
         let (kind, text) = (
             loss["kind"].as_str().unwrap_or(""),

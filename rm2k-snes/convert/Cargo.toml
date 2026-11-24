@@ -33,6 +33,9 @@ rm2k-snes-mapdata = { path = "../mapdata" }
 # ROM.
 rm2k-snes-patches = { path = "../patches" }
 rm2k-snes-screens = { path = "../screens" }
+# The music, `rm2k-snes-audio cartridge`, a stage the converter calls as a
+# function.
+rm2k-snes-audio = { path = "../rm2k-snes-audio" }
 rm2k-snes-text = { path = "../text" }
 # A whole map: Wally's `map` stage, called once per map.
 wally = { path = "../wally" }
