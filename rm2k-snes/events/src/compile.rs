@@ -782,7 +782,7 @@ impl Ctx<'_> {
         if !plain.is_empty() {
             self.losses.lose(
                 Some(cmd.code),
-                "letter-plain",
+                crate::losses::LETTER_PLAIN,
                 rm2k_snes_text::plain::plain_loss(&plain),
             );
         }
@@ -5493,7 +5493,7 @@ fn command(
                 match cmd.code {
                     SHOW_PICTURE => ctx.losses.lose_about(
                         Some(cmd.code),
-                        "picture-not-shown",
+                        crate::losses::PICTURE_NOT_SHOWN,
                         format!(
                             "picture {} {:?} is not shown here",
                             p.first().unwrap_or(&0),
@@ -6128,7 +6128,7 @@ fn command(
             {
                 ctx.lose(
                     cmd,
-                    "panorama-not-changed",
+                    crate::losses::PANORAMA_NOT_CHANGED,
                     format!(
                         "the panorama stays the map's instead of {:?}; its scroll does change",
                         cmd.string

@@ -28,6 +28,7 @@ use rm2k_snes_bytecode::events::{
     INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
 };
 use rm2k_snes_events::codes::{ROUTE_CHANGE_GRAPHIC, TELEPORT, TIMER_OPERATION};
+use rm2k_snes_events::losses::{EVENT_LEFT_OUT, PANORAMA_NOT_CHANGED, PICTURE_NOT_SHOWN};
 use rm2k_snes_events::request::{Picture, Place};
 use rm2k_snes_events::route;
 use rm2k_snes_mapdata::{engine, record, request, vram};
@@ -240,7 +241,7 @@ pub fn run(options: Options) -> Result<()> {
             map as i64,
             event as i64,
             (at.0 as i64, at.1 as i64),
-            "event-left-out",
+            EVENT_LEFT_OUT,
             &text,
         );
     }
@@ -904,8 +905,8 @@ pub fn run(options: Options) -> Result<()> {
         .flat_map(|m| m.painted_trimmed.iter().map(move |&e| (m.id as i64, e)))
         .collect();
     degradations.forget(|l| {
-        l["kind"] == "event-left-out"
-            && match (l["map"].as_i64(), l["event"].as_i64()) {
+        l.kind == EVENT_LEFT_OUT
+            && match (l.place.map, l.place.event) {
                 (Some(m), Some(e)) => painted.contains(&(m, e)),
                 _ => false,
             }
@@ -913,11 +914,11 @@ pub fn run(options: Options) -> Result<()> {
     // The pictures drawn into their map were shown by the conversion, not
     // lost: the compiler is not given them, so it says they are not shown.
     degradations.forget(|l| {
-        l["kind"] == "picture-not-shown"
-            && l["map"].as_i64().is_some_and(|m| {
+        l.kind == PICTURE_NOT_SHOWN
+            && l.place.map.is_some_and(|m| {
                 cartridge
                     .map_pictures
-                    .done(m as i32, l["subject"].as_str().unwrap_or(""))
+                    .done(m as i32, l.subject.as_deref().unwrap_or(""))
             })
     });
     // Nor is the picture a `ChangePBG` names on a map whose panorama is
@@ -929,8 +930,7 @@ pub fn run(options: Options) -> Result<()> {
         .map(|m| m.id as i64)
         .collect();
     degradations.forget(|l| {
-        l["kind"] == "panorama-not-changed"
-            && l["map"].as_i64().is_some_and(|m| unseen.contains(&m))
+        l.kind == PANORAMA_NOT_CHANGED && l.place.map.is_some_and(|m| unseen.contains(&m))
     });
     // And what the copies of the automatic common events lose: the common
     // event's own body says it once, under `"common"`, and a copy whose
@@ -941,7 +941,7 @@ pub fn run(options: Options) -> Result<()> {
         .filter(|m| cartridge.common_pages.maps.contains(&m.id))
         .filter_map(|m| m.map.events.last().map(|e| (m.id as i64, e.id as i64)))
         .collect();
-    degradations.forget(|l| match (l["map"].as_i64(), l["event"].as_i64()) {
+    degradations.forget(|l| match (l.place.map, l.place.event) {
         (Some(m), Some(e)) => copy_events.contains(&(m, e)),
         _ => false,
     });

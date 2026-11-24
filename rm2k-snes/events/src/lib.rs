@@ -54,7 +54,7 @@ use crate::pages::{map_pages, MapEvents, SubstitutionTable, Substitutions};
 use crate::registry::{BigPicture, Graphics, Package, Pictures, Songs, Troops};
 use crate::troops::TroopPages;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 use std::rc::Rc;
@@ -1297,8 +1297,8 @@ fn compile_pass(
 /// Who calls each common event by number: the cartridge's maps' pages,
 /// with their cell, and the other common events. It is what says where a
 /// loss in a common event's shared body is met while playing.
-fn callers(game: &Game, maps: &[Map]) -> BTreeMap<i32, Vec<Value>> {
-    let mut out: BTreeMap<i32, Vec<Value>> = BTreeMap::new();
+fn callers(game: &Game, maps: &[Map]) -> BTreeMap<i32, Vec<losses::Where>> {
+    let mut out: BTreeMap<i32, Vec<losses::Where>> = BTreeMap::new();
     let called = |commands: &[Command]| -> BTreeSet<i32> {
         commands
             .iter()
@@ -1310,16 +1310,23 @@ fn callers(game: &Game, maps: &[Map]) -> BTreeMap<i32, Vec<Value>> {
         for event in &map.events {
             for page in &event.pages {
                 for n in called(&page.commands) {
-                    out.entry(n).or_default().push(json!({
-                        "map": map.id, "event": event.id, "page": page.id, "x": event.x, "y": event.y,
-                    }));
+                    let page = Origin::Page {
+                        map: map.id,
+                        event: event.id,
+                        page: Some(page.id),
+                        x: event.x,
+                        y: event.y,
+                    };
+                    out.entry(n).or_default().push(page.place());
                 }
             }
         }
     }
     for (&number, common) in &game.common_events {
         for n in called(&common.commands) {
-            out.entry(n).or_default().push(json!({"common": number}));
+            out.entry(n)
+                .or_default()
+                .push(Origin::Common(number).place());
         }
     }
     out
@@ -1331,7 +1338,7 @@ fn callers(game: &Game, maps: &[Map]) -> BTreeMap<i32, Vec<Value>> {
 fn degradations(
     game: &Game,
     losses: &[losses::Loss],
-    callers: &BTreeMap<i32, Vec<Value>>,
+    callers: &BTreeMap<i32, Vec<losses::Where>>,
 ) -> answer::Degradations {
     let commons: BTreeSet<i32> = losses
         .iter()
@@ -1341,7 +1348,7 @@ fn degradations(
         })
         .collect();
     answer::Degradations {
-        losses: losses.iter().map(losses::Loss::to_json).collect(),
+        losses: losses.iter().map(losses::Loss::entry).collect(),
         commons: commons
             .iter()
             .map(|n| {
@@ -1351,13 +1358,12 @@ fn degradations(
                     Some(TRIGGER_PARALLEL) => "parallel",
                     _ => "called",
                 };
-                let switch = c.filter(|c| c.switch_flag).map(|c| c.switch_id);
-                let entry = json!({
-                    "trigger": trigger,
-                    "switch": switch,
-                    "called_from": callers.get(n).cloned().unwrap_or_default(),
-                });
-                (n.to_string(), entry)
+                let run = losses::CommonRun {
+                    trigger: trigger.to_string(),
+                    switch: c.filter(|c| c.switch_flag).map(|c| c.switch_id),
+                    called_from: callers.get(n).cloned().unwrap_or_default(),
+                };
+                (*n, run)
             })
             .collect(),
     }

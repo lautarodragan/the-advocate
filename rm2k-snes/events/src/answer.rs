@@ -7,17 +7,15 @@
 //! converter keeps the keys' order, so the files it writes from these
 //! —`degradations.json`, the emission's request— stay what they were.
 //!
-//! What the caller only passes on to another stage stays a JSON value
-//! here: the zooms (the pictures' stage reads them) and the losses
-//! (`degradations.json`'s, with every other stage's). A picture is a
-//! [`PictureKey`].
+//! A picture is a [`PictureKey`], and a loss an [`Entry`] of
+//! `degradations.json`, which the converter adds every other stage's to.
 
 use crate::game::Sound;
+use crate::losses::{CommonRun, Entry};
 use crate::pages::hex;
 use crate::registry::{Jumps, Package, PictureKey, Wants};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::{Map, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Bytes, written as a string of hex pairs: how bytecode travels in an
 /// answer.
@@ -248,12 +246,12 @@ pub struct BattleAudio {
     pub item_se: usize,
 }
 
-/// Every loss, and how the common events they are in run: see
+/// Every loss, and how the common events they are in run, by number: see
 /// [`crate::losses`].
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Degradations {
-    pub losses: Vec<Value>,
-    pub commons: Map<String, Value>,
+    pub losses: Vec<Entry>,
+    pub commons: BTreeMap<i32, CommonRun>,
 }
 
 /// A map in the compilation.

@@ -15,8 +15,15 @@
 //! pasted into a page carries `via`, the pasted bodies with the command
 //! each was at.
 
+//!
+//! An entry is the event compiler's [`Entry`], whose place is the richest
+//! of the stages': the others' are a map or the cartridge, a kind and a
+//! text, which the converter puts into one with [`Degradations::map`] and
+//! [`Degradations::cartridge`].
+
 use rm2k_snes_events::answer::Compiled;
-use serde_json::{json, Map, Value};
+use rm2k_snes_events::losses::{CommonRun, Entry, Where, LETTER_PLAIN};
+use serde_json::json;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -25,8 +32,8 @@ pub const FILE: &str = "degradations.json";
 
 #[derive(Debug, Default)]
 pub struct Degradations {
-    losses: Vec<Value>,
-    commons: Map<String, Value>,
+    losses: Vec<Entry>,
+    commons: BTreeMap<i32, CommonRun>,
 }
 
 impl Degradations {
@@ -39,61 +46,74 @@ impl Degradations {
 
     /// Takes out what was not lost after all: what `done` says the
     /// conversion did on its own.
-    pub fn forget(&mut self, done: impl Fn(&Value) -> bool) {
+    pub fn forget(&mut self, done: impl Fn(&Entry) -> bool) {
         self.losses.retain(|l| !done(l));
     }
 
     /// A loss of a whole map, or of some of its events by RM2k id.
     pub fn map(&mut self, map: i64, kind: &str, text: &str, events: &[i64]) {
-        let mut entry = json!({"map": map, "kind": kind, "text": text.trim()});
-        if !events.is_empty() {
-            entry["events"] = json!(events);
-        }
-        self.losses.push(entry);
+        self.losses.push(Entry {
+            place: Where {
+                map: Some(map),
+                ..Where::default()
+            },
+            events: events.to_vec(),
+            ..entry(kind, text)
+        });
     }
 
     /// A loss of one map event, with its cell.
     pub fn event(&mut self, map: i64, event: i64, at: (i64, i64), kind: &str, text: &str) {
-        self.losses.push(json!({
-            "map": map, "event": event, "page": null, "x": at.0, "y": at.1, "kind": kind, "text": text.trim(),
-        }));
+        self.losses.push(Entry {
+            place: Where {
+                map: Some(map),
+                event: Some(event),
+                page: Some(None),
+                x: Some(at.0),
+                y: Some(at.1),
+                ..Where::default()
+            },
+            ..entry(kind, text)
+        });
     }
 
     /// A loss of a whole troop, not of one of its pages.
     pub fn troop(&mut self, troop: i64, kind: &str, text: &str) {
-        self.losses
-            .push(json!({"troop": troop, "page": null, "kind": kind, "text": text.trim()}));
+        self.losses.push(Entry {
+            place: Where {
+                troop: Some(troop),
+                page: Some(None),
+                ..Where::default()
+            },
+            ..entry(kind, text)
+        });
     }
 
     /// A loss of the whole cartridge: a screen, the window, the battle.
     pub fn cartridge(&mut self, kind: &str, text: &str) {
-        self.losses.push(json!({"kind": kind, "text": text.trim()}));
+        self.losses.push(entry(kind, text));
     }
 
     /// The losses, sorted: the maps' by map, event, page and command —so a
     /// map's are together, and its whole-map ones first—, then the common
     /// events', the troops', and the cartridge's.
-    fn sorted(&self) -> Vec<Value> {
-        let int = |v: &Value, k: &str| v.get(k).and_then(Value::as_i64);
-        let key = |v: &Value| {
-            let group = if int(v, "map").is_some() {
+    fn sorted(&self) -> Vec<Entry> {
+        let key = |l: &Entry| {
+            let p = &l.place;
+            let group = if p.map.is_some() {
                 0
-            } else if int(v, "common").is_some() {
+            } else if p.common.is_some() {
                 1
-            } else if int(v, "troop").is_some() {
+            } else if p.troop.is_some() {
                 2
             } else {
                 3
             };
-            let first = int(v, "map")
-                .or(int(v, "common"))
-                .or(int(v, "troop"))
-                .unwrap_or(-1);
-            let event = int(v, "event").unwrap_or(-1);
-            let page = int(v, "page").unwrap_or(-1);
-            let command = int(v, "command").unwrap_or(-1);
-            let kind = v["kind"].as_str().unwrap_or("").to_string();
-            (group, first, event, page, command, kind)
+            let first = p.map.or(p.common).or(p.troop).unwrap_or(-1);
+            let event = p.event.unwrap_or(-1);
+            let page = p.page.flatten().unwrap_or(-1);
+            let command = p.command.flatten().unwrap_or(-1);
+            (group, first, event, page, command, l.kind.clone())
         };
         let mut out = self.losses.clone();
         out.sort_by_key(key);
@@ -104,8 +124,7 @@ impl Degradations {
     pub fn counts(&self) -> BTreeMap<String, usize> {
         let mut out = BTreeMap::new();
         for l in &self.losses {
-            *out.entry(l["kind"].as_str().unwrap_or("").to_string())
-                .or_insert(0) += 1;
+            *out.entry(l.kind.clone()).or_insert(0) += 1;
         }
         out
     }
@@ -141,9 +160,9 @@ impl Degradations {
     fn plain_warning(&self) -> Option<String> {
         let mut commands = 0;
         let mut letters: Vec<String> = Vec::new();
-        for l in self.losses.iter().filter(|l| l["kind"] == "letter-plain") {
+        for l in self.losses.iter().filter(|l| l.kind == LETTER_PLAIN) {
             commands += 1;
-            let text = l["text"].as_str().unwrap_or("");
+            let text = l.text.as_str();
             let each = text.split_once(": ").map_or("", |(_, e)| e);
             for one in each.split(", ").filter(|e| !e.is_empty()) {
                 if !letters.iter().any(|x| x == one) {
@@ -160,17 +179,49 @@ impl Degradations {
     }
 }
 
+/// An entry without a place: the whole cartridge's, or one a place is
+/// put into.
+fn entry(kind: &str, text: &str) -> Entry {
+    Entry {
+        kind: kind.to_string(),
+        text: text.trim().to_string(),
+        ..Entry::default()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A place by map, event, common event, page and command.
+    fn at(
+        map: Option<i64>,
+        event: Option<i64>,
+        common: Option<i64>,
+        page: Option<i64>,
+        command: Option<i64>,
+    ) -> Where {
+        Where {
+            map,
+            event,
+            common,
+            page: page.map(Some),
+            command: command.map(Some),
+            ..Where::default()
+        }
+    }
 
     #[test]
     fn the_plain_letters_are_one_warning_with_every_letter_once() {
         let mut d = Degradations::default();
         assert_eq!(d.plain_warning(), None);
         let text = |t: &str| format!("letters the box does not draw are shown plain: {t}");
-        d.losses.push(json!({"map": 8, "event": 3, "page": 1, "command": 0, "kind": "letter-plain", "text": text("é as e, ¿ as ?")}));
-        d.losses.push(json!({"map": 8, "event": 3, "page": 1, "command": 2, "kind": "letter-plain", "text": text("é as e, ß as ss")}));
+        let plain = |command: i64, letters: &str| Entry {
+            place: at(Some(8), Some(3), None, None, Some(command)),
+            ..entry(LETTER_PLAIN, &text(letters))
+        };
+        d.losses.push(plain(0, "é as e, ¿ as ?"));
+        d.losses.push(plain(2, "é as e, ß as ss"));
         assert_eq!(
             d.plain_warning().unwrap(),
             "  WARNING, letter-plain: 2 command(s) show letters their box does not draw as plain ASCII: é as e, ¿ as ?, ß as ss"
@@ -181,19 +232,32 @@ mod tests {
     fn the_maps_go_first_and_in_order_then_the_rest() {
         let mut d = Degradations::default();
         d.cartridge("title-menu-not-drawn", "x");
+        let lost = |place: Where, kind: &str| Entry {
+            place,
+            ..entry(kind, "")
+        };
+        d.losses.push(lost(
+            Where {
+                troop: Some(3),
+                ..at(None, None, None, Some(1), Some(0))
+            },
+            "b",
+        ));
         d.losses
-            .push(json!({"troop": 3, "page": 1, "command": 0, "kind": "b", "text": ""}));
+            .push(lost(at(None, None, Some(9), None, Some(2)), "a"));
         d.losses
-            .push(json!({"common": 9, "command": 2, "kind": "a", "text": ""}));
-        d.losses
-            .push(json!({"map": 7, "event": 2, "page": 1, "command": 5, "kind": "a", "text": ""}));
+            .push(lost(at(Some(7), Some(2), None, Some(1), Some(5)), "a"));
         d.map(7, "rain-not-drawn", "y", &[]);
         d.losses
-            .push(json!({"map": 3, "event": 9, "page": 2, "command": 0, "kind": "a", "text": ""}));
+            .push(lost(at(Some(3), Some(9), None, Some(2), Some(0)), "a"));
         let places: Vec<String> = d
             .sorted()
             .iter()
-            .map(|v| format!("{}/{}/{}/{}", v["map"], v["event"], v["common"], v["troop"]))
+            .map(|v| {
+                let p = &v.place;
+                let n = |x: Option<i64>| x.map_or("null".to_string(), |x| x.to_string());
+                format!("{}/{}/{}/{}", n(p.map), n(p.event), n(p.common), n(p.troop))
+            })
             .collect();
         assert_eq!(
             places,

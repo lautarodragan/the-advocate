@@ -17,7 +17,7 @@
 //! `judged_page`—, so what is listed is what reaches the cartridge.
 
 use ditto::schema::EventCommandCode;
-use serde_json::{json, Value};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// What runs, or what a `CallEvent` pasted into it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,23 +40,136 @@ pub enum Origin {
 }
 
 impl Origin {
-    fn to_json(&self) -> Value {
-        match self {
+    /// Where it is, as an entry says it.
+    pub fn place(&self) -> Where {
+        match *self {
             Origin::Page {
                 map,
                 event,
                 page,
                 x,
                 y,
-            } => {
-                json!({"map": map, "event": event, "page": page, "x": x, "y": y})
-            }
-            Origin::Common(n) => json!({"common": n}),
-            Origin::Troop { troop, page } => json!({"troop": troop, "page": page}),
-            Origin::Called { event, page } => json!({"event": event, "page": page}),
+            } => Where {
+                map: Some(map.into()),
+                event: Some(event.into()),
+                page: Some(page.map(i64::from)),
+                x: Some(x.into()),
+                y: Some(y.into()),
+                ..Where::default()
+            },
+            Origin::Common(n) => Where {
+                common: Some(n.into()),
+                ..Where::default()
+            },
+            Origin::Troop { troop, page } => Where {
+                troop: Some(troop.into()),
+                page: Some(Some(page.into())),
+                ..Where::default()
+            },
+            Origin::Called { event, page } => Where {
+                event: Some(event.into()),
+                page: Some(Some(page.into())),
+                ..Where::default()
+            },
         }
     }
 }
+
+/// Where a loss is, as `degradations.json` writes it: a map's event page
+/// with its cell, a common event, a troop's page, a page called by number,
+/// a whole map —or none of them, the whole cartridge—, and the command's
+/// index. `page` and `command` can be written as null —an event left out
+/// whole, a frame not yet at a command—, which is not the same as not
+/// written.
+///
+/// **The fields go in the order the entries have always been written**,
+/// every kind of place in one: the converter keeps the keys' order, and
+/// `degradations.json` stays what it was.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Where {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub troop: Option<i64>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "written"
+    )]
+    pub page: Option<Option<i64>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub y: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub common: Option<i64>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "written"
+    )]
+    pub command: Option<Option<i64>>,
+}
+
+/// A field that is written, null or not: `Some`. One that is not written
+/// takes the default, `None`.
+fn written<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Option<i64>>, D::Error> {
+    Option::<i64>::deserialize(d).map(Some)
+}
+
+/// One entry of `degradations.json`: where —and, for a loss inside a
+/// common event pasted into a page, `via`, the pasted bodies with the
+/// command each was at—, the command's code and name, `kind`, a stable
+/// slug to count by, `text`, what is lost, and `subject`, what it is about
+/// by name. `events`, for a loss of some of a map's events, their ids.
+///
+/// The compiler answers its losses as these, and the converter adds the
+/// other stages' and its own and writes them: one type both ends see, so
+/// the converter filters by field. The compiler's is the richest place of
+/// all the stages', and the others' —a map, or the cartridge, a kind and a
+/// text— are this with fewer fields.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Entry {
+    #[serde(flatten)]
+    pub place: Where,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub via: Vec<Where>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub kind: String,
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub events: Vec<i64>,
+}
+
+/// How a common event a loss is in runs: its trigger —`automatic`,
+/// `parallel` or `called`—, its switch if it has one, and the pages and
+/// common events that call it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CommonRun {
+    pub trigger: String,
+    pub switch: Option<i32>,
+    pub called_from: Vec<Where>,
+}
+
+/// The kinds someone downstream tells apart: the converter takes some of
+/// them back when the conversion did on its own what was lost.
+///
+/// An event the RAM left out, or a page that names one.
+pub const EVENT_LEFT_OUT: &str = "event-left-out";
+/// A picture the map's sprite bank does not carry.
+pub const PICTURE_NOT_SHOWN: &str = "picture-not-shown";
+/// A `ChangePBG` to a panorama the map does not carry.
+pub const PANORAMA_NOT_CHANGED: &str = "panorama-not-changed";
+/// Letters a box does not draw, shown as plain ASCII: the screens say it
+/// too, of the letters only they write, under the same word.
+pub const LETTER_PLAIN: &str = "letter-plain";
 
 /// One loss: the frames it is under, with the command each one was at.
 #[derive(Debug, Clone)]
@@ -71,36 +184,28 @@ pub struct Loss {
 }
 
 impl Loss {
-    pub fn to_json(&self) -> Value {
-        let mut out = match self.path.first() {
-            Some((origin, _)) => origin.to_json(),
-            None => json!({}),
+    /// As `degradations.json` writes it.
+    pub fn entry(&self) -> Entry {
+        let place = |(origin, at): &(Origin, Option<usize>)| Where {
+            command: Some(at.map(|a| a as i64)),
+            ..origin.place()
         };
-        if let Some((_, at)) = self.path.first() {
-            out["command"] = json!(at);
+        Entry {
+            place: self.path.first().map(place).unwrap_or_default(),
+            via: self.path.iter().skip(1).map(place).collect(),
+            code: self.code,
+            name: self.code.map(name),
+            kind: self.kind.to_string(),
+            text: self.text.clone(),
+            subject: self.subject.clone(),
+            events: Vec::new(),
         }
-        if self.path.len() > 1 {
-            out["via"] = json!(self
-                .path
-                .iter()
-                .skip(1)
-                .map(|(o, at)| {
-                    let mut v = o.to_json();
-                    v["command"] = json!(at);
-                    v
-                })
-                .collect::<Vec<_>>());
-        }
-        if let Some(code) = self.code {
-            out["code"] = json!(code);
-            out["name"] = json!(name(code));
-        }
-        out["kind"] = json!(self.kind);
-        out["text"] = json!(self.text);
-        if let Some(subject) = &self.subject {
-            out["subject"] = json!(subject);
-        }
-        out
+    }
+
+    /// [`Loss::entry`] as JSON, for the tests that look at one field.
+    #[cfg(test)]
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::to_value(self.entry()).expect("an entry is JSON")
     }
 }
 
@@ -217,5 +322,48 @@ impl Losses {
 
     pub fn take(&mut self) -> Vec<Loss> {
         std::mem::take(&mut self.found)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A loss inside a common event pasted into a map's page, the page's
+    /// number not known and the common event's command not yet reached:
+    /// written in the order the entries always were, its nulls written, and
+    /// read back as itself.
+    #[test]
+    fn an_entry_goes_and_comes_back_the_same() {
+        let loss = Loss {
+            path: vec![
+                (
+                    Origin::Page {
+                        map: 3,
+                        event: 7,
+                        page: None,
+                        x: 4,
+                        y: 5,
+                    },
+                    Some(2),
+                ),
+                (Origin::Common(9), None),
+            ],
+            code: Some(11330),
+            kind: PICTURE_NOT_SHOWN,
+            text: "lost".into(),
+            subject: Some("Pic".into()),
+        };
+        let entry = loss.entry();
+        let text = serde_json::to_string(&entry).unwrap();
+        assert_eq!(
+            text,
+            r#"{"map":3,"event":7,"page":null,"x":4,"y":5,"command":2,"via":[{"common":9,"command":null}],"code":11330,"name":"MoveEvent","kind":"picture-not-shown","text":"lost","subject":"Pic"}"#
+        );
+        assert_eq!(serde_json::from_str::<Entry>(&text).unwrap(), entry);
+        let troop: Entry =
+            serde_json::from_str(r#"{"troop":2,"page":null,"kind":"k","text":""}"#).unwrap();
+        assert_eq!((troop.place.troop, troop.place.page), (Some(2), Some(None)));
+        assert_eq!(troop.place.command, None);
     }
 }
