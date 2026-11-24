@@ -15,6 +15,7 @@
 //! because there the screen behind is black; here the map is behind, and a
 //! hole would show it, so every colour is a colour and index 0 is unused.
 
+use crate::answer;
 use crate::cells::{self, rgb15, Color, Counts};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
@@ -22,7 +23,7 @@ use crate::layout::{FACE, FACE_CELLS, MSG_FACE_X, MSG_FACE_Y, WINDOW_HEIGHT, WIN
 use crate::message_window::cgram_word;
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::source::find_resource;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 
 /// The colours a face has, besides index 0, which the window never shows.
@@ -174,17 +175,17 @@ fn one(face: &Picture) -> Result<DrawnFace> {
 }
 
 /// The answer of `faces`: `{"faces": [face, ...]}`, see the command's help.
-pub fn answer(drawn: &[DrawnFace]) -> Value {
-    json!({
-        "faces": drawn
+pub fn answer(drawn: &[DrawnFace]) -> answer::FacesAnswer {
+    answer::FacesAnswer {
+        faces: drawn
             .iter()
-            .map(|f| json!({"tiles": hex(&f.tiles), "palette": f.palette, "missing": f.missing}))
-            .collect::<Vec<_>>(),
-    })
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+            .map(|f| answer::Face {
+                tiles: f.tiles.clone(),
+                palette: f.palette.clone(),
+                missing: f.missing,
+            })
+            .collect(),
+    }
 }
 
 #[cfg(test)]

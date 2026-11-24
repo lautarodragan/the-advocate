@@ -6,7 +6,9 @@
 
 use crate::fail::{Result, Stop};
 use rm2k_project::Project;
+use rm2k_snes_mapdata::request::MsuData;
 use serde_json::{Map, Value};
+use std::collections::BTreeMap;
 
 /// A custom menu of the project: see [`Settings::menus`].
 #[derive(Debug, Clone)]
@@ -167,6 +169,25 @@ impl<'a> Settings<'a> {
         Ok(Value::Object(out))
     }
 
+    /// The battle terms the project gives over the database's, by liblcf's
+    /// name, in `[battle.terms]`: none when it is missing, a knob at rest.
+    /// See `battle_term` in the mapdata stage.
+    pub fn battle_terms(&self) -> Result<BTreeMap<String, String>> {
+        if self.project.value(&["battle", "terms"]).is_err() {
+            return Ok(BTreeMap::new());
+        }
+        let mut out = BTreeMap::new();
+        for (name, term) in self.project.table(&["battle", "terms"])? {
+            let term = term.as_str().ok_or_else(|| {
+                Stop::new(format!(
+                    "`battle.terms.{name}` of the project file is not a text"
+                ))
+            })?;
+            out.insert(name.clone(), term.to_string());
+        }
+        Ok(out)
+    }
+
     /// The custom menus the project declares in `[menus]`: each one's
     /// name, its file —relative to the project file— and that file's
     /// contents as JSON, in the order they are written, which is the order
@@ -212,13 +233,13 @@ impl<'a> Settings<'a> {
     /// needs —a console or emulator that has it, and the `.msu` next to
     /// the ROM—, and a map more must not change that without anyone
     /// deciding it. A game that does not fit says so, as always.
-    pub fn msu(&self) -> Result<&'static str> {
+    pub fn msu(&self) -> Result<MsuData> {
         if self.project.value(&["rom", "msu"]).is_err() {
-            return Ok("optional");
+            return Ok(MsuData::Optional);
         }
         match self.project.string(&["rom", "msu"])? {
-            "optional" => Ok("optional"),
-            "required" => Ok("required"),
+            "optional" => Ok(MsuData::Optional),
+            "required" => Ok(MsuData::Required),
             other => Err(Stop::new(format!(
                 "`[rom] msu` is {other:?}, and it can be \"optional\" or \"required\""
             ))),

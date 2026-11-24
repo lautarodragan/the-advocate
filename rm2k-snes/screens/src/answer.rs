@@ -373,6 +373,62 @@ pub struct OtherSystem {
     pub window: SystemWindow,
 }
 
+/// What `window` answers: the colour-memory entries the message window
+/// takes, and what the starting System lost to fit them —how many colours
+/// it brought, Adeleine's merges, `[victim, target, pixels]`—. With the
+/// Systems the cartridge switches to, the text's entries common to all of
+/// them, `text_rows`, and each one's window in `systems`; without them,
+/// neither.
+///
+/// The stage writes it through a `Value`, so the binary's keys stay sorted
+/// as they were when it was built with `json!`: see `stage::window_of`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WindowAnswer {
+    pub colors: usize,
+    pub brought: usize,
+    pub merges: Vec<WindowMerge>,
+    pub system: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_rows: Option<Vec<Vec<usize>>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub systems: Vec<SwitchedWindow>,
+}
+
+/// A colour Adeleine merged into another, and how many pixels it had.
+pub type WindowMerge = ([u8; 3], [u8; 3], u64);
+
+/// Another System's entry in [`WindowAnswer`]: its window, as the emission
+/// takes it, and what it lost —as the starting one's, with the entries it
+/// fits in, `colors`—; the frame's colours it fused, if any, and the rows
+/// of its text colour that are not one colour.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwitchedWindow {
+    #[serde(flatten)]
+    pub other: OtherSystem,
+    pub brought: usize,
+    pub merges: Vec<WindowMerge>,
+    pub colors: usize,
+    pub frame_fused: Option<usize>,
+    pub mixed_text_rows: Vec<usize>,
+}
+
+/// What `faces` answers: each face asked for, in the order asked.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FacesAnswer {
+    pub faces: Vec<Face>,
+}
+
+/// A face of the message window as the cartridge stores it: see
+/// `faces::DrawnFace`. `missing` is one whose FaceSet is neither the
+/// game's nor the RTP's, drawn as the window's background alone.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Face {
+    #[serde(with = "hex")]
+    pub tiles: Vec<u8>,
+    pub palette: Vec<u16>,
+    pub missing: bool,
+}
+
 /// Bytes as hex text, both ways: `#[serde(with = "hex")]`.
 pub mod hex {
     pub fn encode(bytes: &[u8]) -> String {

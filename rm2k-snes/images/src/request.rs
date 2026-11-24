@@ -260,7 +260,7 @@ impl From<&Animations> for animation::Geometry {
 
 /// What `background` answers: the layer, as [`background::Background`]
 /// and [`mode7::Texture`] carry it to a cartridge.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Layer {
     pub top: i64,
     pub rows: usize,
@@ -278,7 +278,7 @@ pub struct Layer {
 
 /// A layer's mode 7 texture, and where on the screen a zoom shrinks it
 /// towards.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LayerTexture {
     pub tile_count: usize,
     #[serde(with = "hex")]
