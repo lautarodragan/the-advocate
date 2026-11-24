@@ -9,9 +9,10 @@
 //! them, runs `ca65` and `ld65`, writes the header checksum and, with
 //! `--symbols`, the symbol table. See the library.
 //!
-//! The cartridges' builder runs it as a process of its own, by its name on
-//! the PATH, which is the binary the fingerprint hashes. Until 2026-11-23 it
-//! was a command of its own, `rm2k-snes-assemble`.
+//! It is for running by hand: the cartridges' builder calls the library's
+//! `assemble` itself, with what this makes of its flags. Until 2026-11-23 it
+//! was a command of its own, `rm2k-snes-assemble`, and until 2026-11-24 the
+//! builder ran it as a process.
 
 use std::path::PathBuf;
 use std::process::ExitCode;

@@ -138,8 +138,11 @@ commands the pipeline runs: `rm2k-snes-convert`, which
 `rm2k-snes-cartridges` runs, and its stages —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
 `rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—; and
-`rm2k-snes-cartridges assemble` and `rm2k-snes-audio msu`, which
-`rm2k-snes-cartridges` runs after it. Each stage is a process on purpose:
+`rm2k-snes-audio msu`, which `rm2k-snes-cartridges` runs after it.
+`rm2k-snes-cartridges assemble` is not one of them: the build calls its
+code, which is the same crate's, and the subcommand is for running by hand
+and for a game's tests, which ask it the memory map and the runtime's
+sources. Each stage is a process on purpose:
 the conversion cache keys every answer by the binary that gave it (`key` in
 `convert/src/stage.rs`), so a stage that changes expires its own answers and
 nobody else's —the audio stage's, also when its `msu` or `volume-ceilings`
