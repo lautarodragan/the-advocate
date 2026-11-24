@@ -200,7 +200,7 @@ pub fn convert(
     text_rows: &Value,
     letters: &Value,
     screen_letters: &[char],
-) -> Result<Value> {
+) -> Result<rm2k_snes_screens::answer::Answer> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
         .iter()
@@ -266,5 +266,5 @@ pub fn convert(
     let written = stage::call(SCREENS_CONVERT, &request, &flags, || {
         rm2k_snes_screens::stage::convert(&place, &request)
     })?;
-    stage::json(&written, "screens.json")
+    stage::typed(&written, "screens.json")
 }

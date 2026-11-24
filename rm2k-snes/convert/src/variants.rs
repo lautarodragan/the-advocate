@@ -183,21 +183,24 @@ pub struct Variant {
 
 impl Variant {
     /// Its entry in the emission's map request.
-    pub fn json(&self) -> Value {
-        let hex = crate::text::hex;
-        json!({
-            "chipset": self.chipset,
-            "draws": self.draws,
-            "tiles": hex(&self.tile_data),
-            "cgram": hex(&self.cgram),
-            "above_tiles": hex(&self.above_tiles),
-            "above_cgram": hex(&self.above_cgram),
-            "above_first": self.above_first,
-            "runs": self.runs,
-            "blocks": hex(&self.blocks.table),
-            "block_pass": hex(&self.blocks.pass),
-            "block_terrain": hex(&self.blocks.terrain),
-            "terrain_outside": self.terrain_outside,
+    pub fn request(&self) -> crate::fail::Result<rm2k_snes_mapdata::request::Variant> {
+        Ok(rm2k_snes_mapdata::request::Variant {
+            chipset: self.chipset.into(),
+            draws: self.draws,
+            tiles: self.tile_data.clone(),
+            cgram: self.cgram.clone(),
+            above_tiles: self.above_tiles.clone(),
+            above_cgram: self.above_cgram.clone(),
+            above_first: self.above_first,
+            runs: self
+                .runs
+                .iter()
+                .map(crate::emit::typed)
+                .collect::<crate::fail::Result<_>>()?,
+            blocks: self.blocks.table.clone(),
+            block_pass: self.blocks.pass.clone(),
+            block_terrain: self.blocks.terrain.clone(),
+            terrain_outside: self.terrain_outside.into(),
         })
     }
 }

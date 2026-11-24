@@ -9,9 +9,7 @@ use crate::asm::{block, unplaced, Inc};
 use crate::cgram::{cgram_reserved, PRIORITY_ABOVE, WINDOW_PALETTE};
 use crate::engine::*;
 use crate::fail::{Bad, Result};
-use crate::json::{
-    at, bytes_at, colors, int, int_at, ints, ints_at, list, list_at, text, text_at, tiles,
-};
+use crate::json::{ints, list, text};
 use crate::objects::{LAYER_ABOVE, LAYER_SAME, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE};
 use crate::record::{
     self, ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE, ANIM_STRIDE, EV_MAX, EV_STRIDE, FAMILIES,
@@ -29,6 +27,7 @@ use crate::vram::{
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::encounters;
 use rm2k_snes_battle::rules;
+use rm2k_snes_screens::answer::{Answer, OtherSystem, SystemWindow};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -233,6 +232,14 @@ impl Geometry<'_> {
     }
 }
 
+/// What the battle's model answered for the number `n`, or why not.
+fn by_number<'a, T>(answered: &'a BTreeMap<i32, T>, n: i64, what: &str) -> Result<&'a T> {
+    i32::try_from(n)
+        .ok()
+        .and_then(|n| answered.get(&n))
+        .ok_or_else(|| Bad::answer(format!("the battle's model has nothing of {what} {n}")))
+}
+
 /// The text block of the text screens, which the console names by index.
 struct Texts {
     data: Vec<u8>,
@@ -257,27 +264,13 @@ struct ScreenGlyphs {
 
 impl ScreenGlyphs {
     /// The screens stage's: its `text_inks`' icons and its `font`'s
-    /// letters. An answer from before 2026-11-22 carries no letters.
-    fn of(screens: &Value) -> Result<ScreenGlyphs> {
-        let font = at(screens, "font")?;
-        let letters = match font.get("screen_letters") {
-            Some(v) => list(v)?
-                .iter()
-                .map(|l| {
-                    let mut chars = text(l)?.chars();
-                    match (chars.next(), chars.next()) {
-                        (Some(c), None) => Ok(c),
-                        _ => Err(Bad::answer(format!("a screen letter is {l}"))),
-                    }
-                })
-                .collect::<Result<Vec<char>>>()?,
-            None => Vec::new(),
-        };
-        Ok(ScreenGlyphs::new(
-            screen_icons(screens)?,
-            letters,
-            int_at(font, "letters_at")? as usize,
-        ))
+    /// letters.
+    fn of(screens: &Answer) -> ScreenGlyphs {
+        ScreenGlyphs::new(
+            screens.text_inks.icons.clone(),
+            screens.font.screen_letters.clone(),
+            screens.font.letters_at,
+        )
     }
 
     /// The letters past `SCREEN_GLYPHS` are not carried: a screen's byte
@@ -381,15 +374,6 @@ fn strip_bytes(row: &str, width: usize, glyphs: &ScreenGlyphs) -> Result<Vec<u8>
     Ok(out)
 }
 
-/// The ExFont icons the screens' tables carry, in their order: see `Inks`
-/// in the screens stage.
-fn screen_icons(screens: &Value) -> Result<Vec<usize>> {
-    Ok(match at(screens, "text_inks")?.get("icons") {
-        Some(icons) => ints(icons)?.into_iter().map(|i| i as usize).collect(),
-        None => Vec::new(),
-    })
-}
-
 /// The byte the text layer reads as the first half of the first icon the
 /// screens' tables carry: their glyph `ICON_GLYPH_FIRST` —past the console's
 /// 96 and `TL_FIGURE`— plus 32, since a letter is its byte less 32.
@@ -470,17 +454,25 @@ fn hex4(values: impl IntoIterator<Item = i64>) -> Vec<String> {
 }
 
 /// Cells of a 4bpp tilemap as words: the index already carries its palette.
-fn cell_words(cells: &[i64], priority: u32) -> Vec<u8> {
+fn cell_words(cells: &[u16], priority: u32) -> Vec<u8> {
     words_le(
         cells
             .iter()
-            .map(|&c| entry(c as u32, false, false, priority)),
+            .map(|&c| entry(c.into(), false, false, priority)),
     )
 }
 
 /// Tiles in the PPU's format.
-fn packed(cells: &[Vec<Vec<u8>>], planes: usize) -> Vec<u8> {
-    cells.iter().flat_map(|c| pack_tile(c, planes)).collect()
+fn packed<T: AsRef<[R]>, R: AsRef<[u8]>>(cells: &[T], planes: usize) -> Vec<u8> {
+    cells
+        .iter()
+        .flat_map(|c| pack_tile(c.as_ref(), planes))
+        .collect()
+}
+
+/// A tilemap's words, little-endian.
+fn words(cells: &[u16]) -> Vec<u8> {
+    words_le(cells.iter().map(|&w| w.into()))
 }
 
 /// Palettes of sixteen, padded with black.
@@ -543,7 +535,7 @@ pub fn switch_bytes(top: i64) -> Result<i64> {
 fn save_signature(
     variables: &[(i64, i64)],
     pairs: &[(i64, i64, i64)],
-    experience: &Value,
+    experience: &[Option<i64>],
     n_actors: i64,
     switch_bytes: i64,
 ) -> u32 {
@@ -557,7 +549,7 @@ fn save_signature(
         switches: i64,
         actors: i64,
         skills: &'a [(i64, i64, i64)],
-        experience: &'a Value,
+        experience: &'a [Option<i64>],
     }
     let shape = Shape {
         variables,
@@ -606,23 +598,25 @@ fn sine_table() -> String {
 pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     check_battle_terms(r)?;
     let screens = &r.screens;
-    let t = Geometry(at(screens, "layout")?);
+    let t = Geometry(&screens.layout);
     let model = &r.battle_model;
-    let bs = Geometry(at(model, "layout")?);
+    let bs = Geometry(&model.layout);
     let slot_text_max = SLOT_TEXT_LEVEL as i64 + t.n("LEVEL_DIGITS");
 
     // Everything that goes per map, first: it is also where what each map
     // spends is checked against its VRAM layout.
     let per_map = record::maps_with(&r.maps, r.rom.msu != MsuData::Optional)?;
 
-    let windows = normalized_windows(at(screens, "window")?, &r.window_systems)?;
+    let windows = normalized_windows(&screens.window.system, &r.window_systems)?;
     let window = &windows[0];
-    let slots = at(screens, "slots")?;
-    let title = r.title.as_ref().map(|full| (full, at(screens, "title")));
-    let title_menu = match &title {
-        Some((_, menu)) => Some(
-            menu.as_ref()
-                .map_err(|e| Bad::answer(e.message().to_string()))?,
+    let slots = &screens.slots;
+    let title = r.title.as_ref();
+    let title_menu = match title {
+        Some(_) => Some(
+            screens
+                .title
+                .as_ref()
+                .ok_or_else(|| Bad::answer("the cartridge has a title and the screens no menu"))?,
         ),
         None => None,
     };
@@ -632,18 +626,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             "{variables_n} variables don't fit in far RAM: FAR_ITEMS is 512 bytes from FAR_VARIABLES"
         )));
     }
-    let faces: BTreeMap<i64, &Value> = at(slots, "faces")?
-        .as_object()
-        .ok_or_else(|| Bad::answer("the slots' faces are not an object"))?
-        .iter()
-        .map(|(k, v)| {
-            Ok((
-                k.parse::<i64>()
-                    .map_err(|_| Bad::answer(format!("face {k}")))?,
-                v,
-            ))
-        })
-        .collect::<Result<_>>()?;
+    let faces: BTreeMap<i64, &Vec<u16>> = slots.faces.iter().map(|(&k, v)| (k.into(), v)).collect();
     let cell = CELL;
     let cols = COLS;
     // The RAM table of route graphics, as big as the map that asks for most:
@@ -657,27 +640,9 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         .unwrap_or(0)
         .max(1);
 
-    // Where the slot screen's names go. An answer without it is one from
-    // before 2026-10-20, whose names went after the whole bank, up to its
-    // tilemap.
-    let slot_names = match slots.get("slot_names") {
-        Some(pair) => match ints(pair)?.as_slice() {
-            &[first, end] => (first as usize, end as usize),
-            _ => {
-                return Err(Bad::answer(
-                    "the slot screen's `slot_names` is not two numbers",
-                ))
-            }
-        },
-        None => (
-            list_at(slots, "tiles")?.len(),
-            ((SLOT_MAP - SLOT_VRAM) / 16) as usize,
-        ),
-    };
-    let menu_counts = match title_menu {
-        None => (0, 0),
-        Some(menu) => (list_at(menu, "tiles")?.len(), list_at(menu, "texts")?.len()),
-    };
+    // Where the slot screen's names go.
+    let slot_names = slots.slot_names;
+    let menu_counts = title_menu.map_or((0, 0), |menu| (menu.tiles.len(), menu.texts.len()));
     let mut out = Inc::new(format!(
         header!(),
         maps = r
@@ -808,10 +773,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         npc_priority_above = OBJ_PRIORITY_ABOVE,
         cgram_base = cgram_reserved(r.window_colors),
         window_cgadd = (WINDOW_PALETTE as usize * COLORS_PER_PALETTE),
-        window_tiles = (bytes_at(window, "tiles")?.len() / 32),
+        window_tiles = (window.tiles.len() / 32),
         window_rows_ = t.n("WINDOW_ROWS_INC"),
         text_window_cols = t.n("WINDOW_COLS_INC"),
-        window_text_base = int_at(window, "base")?,
+        window_text_base = window.base,
         window_text_row = t.n("WINDOW_TEXT_ROW"),
         window_text_rows = t.n("WINDOW_TEXT_ROWS"),
         window_text_col = t.n("WINDOW_TEXT_COL"),
@@ -819,7 +784,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         message_width = t.n("MESSAGE_WIDTH"),
         font_height = t.n("FONT_HEIGHT"),
         font_width = t.n("FONT_WIDTH"),
-        font_shadow = int_at(window, "shadow")?,
+        font_shadow = window.shadow,
         font_pre_rows = t.n("FONT_PRE_ROWS"),
         font_pre_char = t.n("FONT_PRE_CHAR"),
         choice_indent = t.n("CHOICE_INDENT"),
@@ -840,19 +805,16 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         animated_frames = ANIMATED_FRAMES,
         animated_steps = ANIMATED_STEPS,
         bytes_per_tile = BYTES_PER_TILE,
-        title_tiles = title.as_ref().map_or(0, |(full, _)| full.tiles),
-        title_bpp = title.as_ref().map_or(8, |(full, _)| full.bpp),
+        title_tiles = title.map_or(0, |full| full.tiles),
+        title_bpp = title.map_or(8, |full| full.bpp),
         title_menu_cgram = MENU_CGRAM,
         title_menu_tiles = menu_counts.0,
         title_menu_n = menu_counts.1,
         slot_vram = SLOT_VRAM,
         slot_map = SLOT_MAP,
-        sram_slots_n = list_at(slots, "rows")?.len(),
-        slot_tiles = list_at(slots, "tiles")?.len(),
-        slot_menu_tiles = slots
-            .get("menu_tiles")
-            .and_then(Value::as_u64)
-            .map_or(list_at(slots, "tiles")?.len(), |n| n as usize),
+        sram_slots_n = slots.rows.len(),
+        slot_tiles = slots.tiles.len(),
+        slot_menu_tiles = slots.menu_tiles,
         slot_names_first = slot_names.0,
         slot_names_end = slot_names.1,
         slot_hdr_row = (t.n("HEADER_Y").div_euclid(cell)),
@@ -882,7 +844,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             .unwrap_or(-1)
             .max(-1)
             + 1),
-        slot_cgram_n = (list_at(slots, "palettes")?.len() * MENU_CGRAM),
+        slot_cgram_n = (slots.palettes.len() * MENU_CGRAM),
         title_menu_cgram_again = MENU_CGRAM,
     ));
 
@@ -972,7 +934,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     picture_section(&mut out, r, &mut notes)?;
     big_pictures_section(&mut out, r)?;
     animations_section(&mut out, r)?;
-    title_section(&mut out, title_menu.copied())?;
+    title_section(&mut out, title_menu)?;
     full_screens_section(&mut out, r)?;
     let rest = Rest {
         r,
@@ -985,14 +947,8 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         faces: &faces,
     };
     rest.write(&mut out, &mut notes)?;
-    custom_menu::section(
-        &mut out,
-        screens.get("custom_menus").unwrap_or(&Value::Null),
-    )?;
-    debug_screen::section(
-        &mut out,
-        screens.get("debug_screen").unwrap_or(&Value::Null),
-    )?;
+    custom_menu::section(&mut out, &screens.custom_menus)?;
+    debug_screen::section(&mut out, screens.debug_screen.as_ref())?;
     skills_screen::section(&mut out, screens)?;
     out.push_str(&per_map.tables);
     timer_and_case(&mut out, r);
@@ -1011,10 +967,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
 /// `font_ink.inc` composes a letter with them as immediates. And where the
 /// boxes' letters start in it. Until 2026-11-20 each writer had its own
 /// table, already coloured: `font_pre`, `scr_pre` and `slot_pre`.
-fn font_section(out: &mut Inc, window: &Value, screens: &Value) -> Result<()> {
-    let font = at(screens, "font")?;
-    for (phase, data) in list_at(font, "prerender")?.iter().enumerate() {
-        out.block(format!("font_pre{phase}"), &crate::json::bytes(data)?);
+fn font_section(out: &mut Inc, screens: &Answer) -> Result<()> {
+    let font = &screens.font;
+    for (phase, data) in font.prerender.iter().enumerate() {
+        out.block(format!("font_pre{phase}"), data);
     }
     out.push_str(&format!(
         "; The console's glyphs, and where a box's letter k is: glyph\n\
@@ -1022,14 +978,14 @@ fn font_section(out: &mut Inc, window: &Value, screens: &Value) -> Result<()> {
          FONT_CONSOLE_GLYPHS = {}\n\
          FONT_LETTERS_AT = {}\n",
         rm2k_snes_text::font::CONSOLE_GLYPHS,
-        int_at(font, "letters_at")?
+        font.letters_at
     ));
     // And each letter the text screens carry, by its code point: the
     // glyph a screen's byte names, less 32. No byte of the ROM: a test
     // reads them from the symbols to decode what a screen wrote. The
     // halves of the boxes' icons among them are not letters, and the
     // screens write theirs with their own glyphs.
-    let shown = ScreenGlyphs::of(screens)?;
+    let shown = ScreenGlyphs::of(screens);
     // How many the text screens reach, if any: with none, no name carries
     // a letter past the screens' icons, so `msg_name_letter` has nothing
     // to take back to the window's numbering, and without the symbol its
@@ -1052,17 +1008,14 @@ fn font_section(out: &mut Inc, window: &Value, screens: &Value) -> Result<()> {
         ));
     }
     for (prefix, ink) in [
-        ("MSG", at(window, "font_ink")?),
-        ("SCR", at(at(screens, "text_inks")?, "font_ink")?),
-        ("SLOT", at(at(screens, "slots")?, "font_ink")?),
+        ("MSG", &screens.window.font_ink),
+        ("SCR", &screens.text_inks.font_ink),
+        ("SLOT", &screens.slots.font_ink),
     ] {
-        for (k, c) in ints_at(ink, "rows")?.iter().enumerate() {
+        for (k, c) in ink.rows.iter().enumerate() {
             out.push_str(&format!("{prefix}_INK_{k} = {c}\n"));
         }
-        out.push_str(&format!(
-            "{prefix}_INK_SHADOW = {}\n",
-            int_at(ink, "shadow")?
-        ));
+        out.push_str(&format!("{prefix}_INK_SHADOW = {}\n", ink.shadow));
     }
     out.push('\n');
     Ok(())
@@ -1071,9 +1024,9 @@ fn font_section(out: &mut Inc, window: &Value, screens: &Value) -> Result<()> {
 fn window_section(
     out: &mut Inc,
     r: &Emit,
-    windows: &[Value],
+    windows: &[SystemWindow],
     t: &Geometry,
-    screens: &Value,
+    screens: &Answer,
 ) -> Result<()> {
     // The window is a single one for the whole cartridge, in palette 0. That
     // the background does not step on it comes from the split —it starts at
@@ -1106,34 +1059,23 @@ fn window_section(
     // has no room for.
     let wide = r.variables.iter().filter(|(v, _)| *v < 0).count();
     out.push_str(&format!("WIDE_VARIABLES = {wide}\n"));
-    let one_line = windows
-        .iter()
-        .map(|w| Ok(Backdrop::of(w, t)?.is_one_line()))
-        .collect::<Result<Vec<bool>>>()?
-        .iter()
-        .all(|&b| b);
+    let one_line = windows.iter().all(|w| Backdrop::of(w, t).is_one_line());
     for (k, w) in windows.iter().enumerate() {
         window_pieces(out, r, w, t, &system_suffix(k), one_line)?;
     }
     if windows.len() > 1 {
-        window_systems_table(out, windows.len(), windows[0].get("gold").is_some());
+        window_systems_table(out, windows.len());
     }
-    let window = &windows[0];
-    out.block("font_table", &bytes_at(window, "font")?);
+    let window = &screens.window;
+    out.block("font_table", &window.font);
     // How far each letter moves the line, and how far it paints: the
-    // composer adds the first and checks the second against the edge.
-    let small = |name: &str| -> Result<Vec<u8>> {
-        Ok(ints_at(window, name)?
-            .into_iter()
-            .map(|n| n as u8)
-            .collect())
-    };
-    // The message window's, with the letters its boxes draw; the text
-    // screens' are `font_advance` and `font_reach`, further down.
-    out.block("msg_font_advance", &small("advances")?);
-    out.block("msg_font_reach", &small("reach")?);
+    // composer adds the first and checks the second against the edge. The
+    // message window's, with the letters its boxes draw; the text screens'
+    // are `font_advance` and `font_reach`, further down.
+    out.block("msg_font_advance", &window.advances);
+    out.block("msg_font_reach", &window.reach);
 
-    font_section(out, window, screens)?;
+    font_section(out, screens)?;
     out.block("messages", &r.messages);
     // How big it is and how big it can be, for `rm2k-snes-cartridges space`: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
@@ -1211,20 +1153,20 @@ fn system_suffix(k: usize) -> String {
 fn window_pieces(
     out: &mut Inc,
     r: &Emit,
-    window: &Value,
+    window: &SystemWindow,
     t: &Geometry,
     suffix: &str,
     one_line: bool,
 ) -> Result<()> {
     let reserved = cgram_reserved(r.window_colors);
-    out.block(format!("window_tiles{suffix}"), &bytes_at(window, "tiles")?);
+    out.block(format!("window_tiles{suffix}"), &window.tiles);
     // Only the `reserved` at the bottom: from there up it is the
     // background's.
-    let cgram = ints_at(window, "cgram")?;
-    let words: Vec<u32> = cgram
+    let words: Vec<u32> = window
+        .cgram
         .iter()
         .take(reserved as usize)
-        .map(|&w| w as u32)
+        .map(|&w| w.into())
         .collect();
     out.block(format!("window_cgram{suffix}"), &words_le(words));
     // One layout of the cells per window base the VRAM layouts use, with
@@ -1236,7 +1178,7 @@ fn window_pieces(
     // background—, where only the text cells remain and every other one is
     // cell 0, the BG2 tile that is blank in every map. Which one shows is
     // the scroll: see `msg_hdma_build` in the runtime.
-    let text_base = int_at(window, "base")?;
+    let text_base = window.base;
     for (base, label) in WINDOW_BASES
         .iter()
         .zip(["window_cells", "window_cells_256"])
@@ -1244,8 +1186,8 @@ fn window_pieces(
         let label = format!("{label}{suffix}");
         let mut framed = Vec::new();
         let mut bare = Vec::new();
-        for row in list_at(window, "cells")? {
-            for c in ints(row)? {
+        for row in &window.cells {
+            for &c in row {
                 let cell =
                     entry(base + c as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10);
                 framed.push(cell);
@@ -1260,7 +1202,7 @@ fn window_pieces(
     // without it, off and on. Off is what the window has there —its frame,
     // or cell 0 without it—. The console writes one of the four on the
     // plane the window shows: see `msg_arrow` in the runtime.
-    let arrow = ints_at(window, "arrow")?;
+    let arrow = &window.arrow;
     let arrow_row = t.n("WINDOW_ARROW_ROW") as usize;
     let arrow_col = t.n("WINDOW_ARROW_COL") as usize;
     let arrow_cells = t.n("WINDOW_ARROW_CELLS") as usize;
@@ -1271,11 +1213,7 @@ fn window_pieces(
             arrow.len()
         )));
     }
-    let window_rows = list_at(window, "cells")?;
-    let under = match window_rows.get(arrow_row) {
-        Some(row) => ints(row)?,
-        None => vec![],
-    };
+    let under: &[usize] = window.cells.get(arrow_row).map_or(&[], Vec::as_slice);
     if under.len() < arrow_col + arrow_cells {
         return Err(Bad::answer(format!(
             "the window's arrow goes at row {arrow_row}, columns {arrow_col} to {}, and the \
@@ -1285,7 +1223,7 @@ fn window_pieces(
     }
     let mut arrow_table = Vec::new();
     for base in WINDOW_BASES {
-        let cell = |tile: i64| {
+        let cell = |tile: usize| {
             entry(base + tile as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10)
         };
         for k in 0..arrow_cells {
@@ -1311,10 +1249,10 @@ fn window_pieces(
     // A tile the window does not carry goes blank: the screens stage always
     // carries the arrow's, among `tiles` before `base`, and only a made-up
     // window —the tests' carry three tiles— names one past them.
-    let tiles = bytes_at(window, "tiles")?;
+    let tiles = &window.tiles;
     let mut arrow_obj = Vec::with_capacity(arrow_cells * 32);
     for &tile in &arrow[arrow_cells..] {
-        let at = tile as usize * 32;
+        let at = tile * 32;
         let mut bytes = tiles
             .get(at..)
             .unwrap_or_default()
@@ -1332,10 +1270,9 @@ fn window_pieces(
     // adds—, and the twelve entries a greyed option's glyph rows take. See
     // `gold` in rm2k-snes-screens' `message_window.rs`, and the runtime's
     // gold_window.s.
-    // A request without it is a test's made-up window, which assembles
-    // nothing.
-    if let Some(gold) = window.get("gold") {
-        let mut gold_block = bytes_at(gold, "tiles")?;
+    let gold = &window.gold;
+    {
+        let mut gold_block = gold.tiles.clone();
         if gold_block.len() != GOLD_TILES * 32 {
             return Err(Bad::answer(format!(
                 "the gold window has {} bytes of tiles, not {}",
@@ -1343,18 +1280,17 @@ fn window_pieces(
                 GOLD_TILES * 32
             )));
         }
-        let gold_cgram = ints_at(gold, "cgram")?;
         gold_block.extend(words_le(
-            gold_cgram.iter().skip(1).take(15).map(|&w| w as u32),
+            gold.cgram.iter().skip(1).take(15).map(|&w| u32::from(w)),
         ));
-        let disabled = ints_at(window, "disabled")?;
+        let disabled = &window.disabled;
         if disabled.len() != 12 {
             return Err(Bad::answer(format!(
                 "the window's disabled ink has {} rows, not twelve",
                 disabled.len()
             )));
         }
-        gold_block.extend(disabled.iter().map(|&i| i as u8));
+        gold_block.extend(disabled);
         // And the text's twenty colours, which go with the grey: for each,
         // the word the box's ink entry takes and the entries of the glyph's
         // twelve rows with the ink and without it. See `inks` in
@@ -1363,7 +1299,7 @@ fn window_pieces(
         // ink: the others never read them —`colour` in the runtime is 0
         // without an ink—, and half a kilobyte of nothing would only move
         // the rest of the packing.
-        if window.get("ink").and_then(Value::as_i64).unwrap_or(0) > 0 {
+        if window.ink > 0 {
             gold_block.extend(text_inks(window)?);
         }
         if suffix.is_empty() {
@@ -1374,11 +1310,7 @@ fn window_pieces(
                  ; The window's entry a box's ink takes, 0 if its boxes type no\n\
                  ; colour but 0. See the runtime's message_pace.s.\n\
                  TEXT_INK_ENTRY = {}\n",
-                int_at(gold, "width")?,
-                int_at(gold, "height")?,
-                int_at(gold, "right")?,
-                int_at(gold, "text_y")?,
-                window.get("ink").and_then(Value::as_i64).unwrap_or(0),
+                gold.width, gold.height, gold.right, gold.text_y, window.ink,
             ));
         }
         out.block(format!("window_gold{suffix}"), &gold_block);
@@ -1388,7 +1320,7 @@ fn window_pieces(
     // every line is the same —a window over one colour, `[windows.
     // background]`— only the first goes, and `prime_line` copies it under
     // all of them: a quarter of the bytes.
-    let backdrop = Backdrop::of(window, t)?;
+    let backdrop = Backdrop::of(window, t);
     let backdrop_lines = if one_line { 1 } else { backdrop.lines };
     if suffix.is_empty() {
         out.push_str(&format!("WINDOW_BACKDROP_LINES = {backdrop_lines}\n"));
@@ -1404,11 +1336,8 @@ fn window_pieces(
     // And the same background with the System's cursor on each line, and
     // one line's with the cursor over nothing: a choice's highlighted
     // option is composed over these. See `prime_line` in the runtime.
-    out.block(format!("window_bar{suffix}"), &bytes_at(window, "bar")?);
-    out.block(
-        format!("window_bar_bare{suffix}"),
-        &bytes_at(window, "bar_bare")?,
-    );
+    out.block(format!("window_bar{suffix}"), &window.bar);
+    out.block(format!("window_bar_bare{suffix}"), &window.bar_bare);
     Ok(())
 }
 
@@ -1418,21 +1347,10 @@ fn window_pieces(
 pub const INK_COLOURS: usize = 20;
 pub const INK_BYTES: usize = 2 + 12 + 12;
 
-/// The window's `inks` as the cartridge carries them: see [`INK_BYTES`]. A
-/// window without them —a made-up one of the tests— has every colour drawn
-/// as colour 0.
-fn text_inks(window: &Value) -> Result<Vec<u8>> {
+/// The window's `inks` as the cartridge carries them: see [`INK_BYTES`].
+fn text_inks(window: &SystemWindow) -> Result<Vec<u8>> {
     let mut out = Vec::with_capacity(INK_COLOURS * INK_BYTES);
-    let Some(inks) = window.get("inks") else {
-        let color: Vec<u8> = ints_at(window, "color")?.iter().map(|&i| i as u8).collect();
-        for _ in 0..INK_COLOURS {
-            out.extend([0, 0]);
-            out.extend(&color);
-            out.extend(&color);
-        }
-        return Ok(out);
-    };
-    let inks = list(inks)?;
+    let inks = &window.inks;
     if inks.len() != INK_COLOURS {
         return Err(Bad::answer(format!(
             "the window has {} text colours, not {INK_COLOURS}",
@@ -1440,17 +1358,15 @@ fn text_inks(window: &Value) -> Result<Vec<u8>> {
         )));
     }
     for ink in inks {
-        let word = int_at(ink, "word")? as u32;
-        out.extend(words_le([word]));
-        for rows in ["inked", "plain"] {
-            let rows = ints_at(ink, rows)?;
+        out.extend(words_le([u32::from(ink.word)]));
+        for rows in [&ink.inked, &ink.plain] {
             if rows.len() != 12 {
                 return Err(Bad::answer(format!(
                     "a text colour has {} rows, not twelve",
                     rows.len()
                 )));
             }
-            out.extend(rows.iter().map(|&i| i as u8));
+            out.extend(rows);
         }
     }
     Ok(out)
@@ -1467,12 +1383,12 @@ struct Backdrop {
 }
 
 impl Backdrop {
-    fn of(window: &Value, t: &Geometry) -> Result<Backdrop> {
-        Ok(Backdrop {
-            bytes: bytes_at(window, "background")?,
+    fn of(window: &SystemWindow, t: &Geometry) -> Backdrop {
+        Backdrop {
+            bytes: window.background.clone(),
             line: (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize,
             lines: (t.n("WINDOW_TEXT_ROWS") / 2) as usize,
-        })
+        }
     }
 
     /// Whether every line is the same: a window over one colour,
@@ -1495,13 +1411,8 @@ const GOLD_TILES: usize = crate::record::GOLD_OBJ_TILES;
 
 /// The table the runtime finds each System's window in: per System, in the
 /// cartridge's order, a pointer to each of its pieces.
-fn window_systems_table(out: &mut Inc, systems: usize, gold: bool) {
-    // A test's made-up window has no gold window: see `window_pieces`.
-    let bytes = if gold {
-        WINDOW_SYSTEM_BYTES
-    } else {
-        WINDOW_SYSTEM_BYTES - 3
-    };
+fn window_systems_table(out: &mut Inc, systems: usize) {
+    let bytes = WINDOW_SYSTEM_BYTES;
     out.push_str(&format!(
         "; The message window of each System, for `window_select`.\n\
          WINDOW_SYSTEM_BYTES = {bytes}\n\
@@ -1521,10 +1432,7 @@ fn window_systems_table(out: &mut Inc, systems: usize, gold: bool) {
             "window_bar_bare",
             "window_arrow_obj",
             "window_gold",
-        ]
-        .iter()
-        .filter(|p| gold || **p != "window_gold")
-        {
+        ] {
             out.far(&format!("{piece}{suffix}"));
         }
     }
@@ -1539,42 +1447,33 @@ fn window_systems_table(out: &mut Inc, systems: usize, gold: bool) {
 /// each has to give the text the same entries: the screens stage laid them
 /// out that way —see `text_rows` in `rm2k-snes-screens window`—, and this
 /// checks it. With one System, its window as it came.
-fn normalized_windows(window: &Value, others: &[Value]) -> Result<Vec<Value>> {
+fn normalized_windows(window: &SystemWindow, others: &[OtherSystem]) -> Result<Vec<SystemWindow>> {
     if others.is_empty() {
         return Ok(vec![window.clone()]);
     }
-    let mut all: Vec<Value> = vec![window.clone()];
-    let mut base = int_at(window, "base")?;
+    let mut all = vec![window.clone()];
+    let mut base = window.base;
     for o in others {
-        let w = at(o, "window")?;
-        base = base.max(int_at(w, "base")?);
-        if (at(w, "color")?, at(w, "shadow")?) != (at(window, "color")?, at(window, "shadow")?) {
+        let w = &o.window;
+        base = base.max(w.base);
+        if (&w.color, w.shadow) != (&window.color, window.shadow) {
             return Err(Bad::answer(format!(
-                "System {} gives the text other palette entries than the starting one: the \
+                "System {:?} gives the text other palette entries than the starting one: the \
                  font's tables are one for all of them",
-                at(o, "system")?
+                o.system
             )));
         }
         all.push(w.clone());
     }
     for w in &mut all {
-        let own = int_at(w, "base")?;
-        let mut tiles = bytes_at(w, "tiles")?;
-        tiles.resize(base as usize * 32, 0);
-        let cells: Vec<Value> = list_at(w, "cells")?
-            .iter()
-            .map(|row| {
-                Ok(Value::from(
-                    ints(row)?
-                        .into_iter()
-                        .map(|c| if c >= own { c - own + base } else { c })
-                        .collect::<Vec<i64>>(),
-                ))
-            })
-            .collect::<Result<_>>()?;
-        w["tiles"] = Value::from(tiles.iter().map(|b| format!("{b:02x}")).collect::<String>());
-        w["cells"] = Value::from(cells);
-        w["base"] = Value::from(base);
+        let own = w.base;
+        w.tiles.resize(base * 32, 0);
+        for c in w.cells.iter_mut().flatten() {
+            if *c >= own {
+                *c = *c - own + base;
+            }
+        }
+        w.base = base;
     }
     Ok(all)
 }
@@ -2324,7 +2223,7 @@ fn animations_section(out: &mut Inc, r: &Emit) -> Result<()> {
     Ok(())
 }
 
-fn title_section(out: &mut Inc, menu: Option<&Value>) -> Result<()> {
+fn title_section(out: &mut Inc, menu: Option<&rm2k_snes_screens::answer::Title>) -> Result<()> {
     out.push_str("\n; --- the title screen ---\n");
     match menu {
         None => {
@@ -2335,10 +2234,10 @@ fn title_section(out: &mut Inc, menu: Option<&Value>) -> Result<()> {
             // A 4-bit tile bank and one tilemap per selected option, one after
             // the other, first the ones without a save and then the ones with:
             // the console indexes them by multiplying.
-            out.block("title_menu_tiles", &packed(&tiles(at(menu, "tiles")?)?, 4));
+            out.block("title_menu_tiles", &packed(&menu.tiles, 4));
             let mut plane = Vec::new();
-            for tilemap in list_at(menu, "tilemaps")? {
-                plane.extend(cell_words(&ints(tilemap)?, PRIORITY_ABOVE));
+            for tilemap in &menu.tilemaps {
+                plane.extend(cell_words(tilemap, PRIORITY_ABOVE));
             }
             out.block("title_menu_cells", &plane);
         }
@@ -2400,12 +2299,12 @@ fn full_screens_section(out: &mut Inc, r: &Emit) -> Result<()> {
 struct Rest<'a> {
     r: &'a Emit,
     db: &'a Db,
-    slots: &'a Value,
-    screens: &'a Value,
+    slots: &'a rm2k_snes_screens::answer::Slots,
+    screens: &'a Answer,
     t: &'a Geometry<'a>,
     bs: &'a Geometry<'a>,
-    model: &'a Value,
-    faces: &'a BTreeMap<i64, &'a Value>,
+    model: &'a rm2k_snes_battle::model::Model,
+    faces: &'a BTreeMap<i64, &'a Vec<u16>>,
 }
 
 impl Rest<'_> {
@@ -2417,23 +2316,22 @@ impl Rest<'_> {
         // --- the slots screen, in every cartridge: the save point opens it
         // from inside the game.
         out.push_str("\n; --- the slots screen ---\n");
-        out.block("slot_tiles", &packed(&tiles(at(slots, "tiles")?)?, 4));
+        out.block("slot_tiles", &packed(&slots.tiles, 4));
         // Each cell block with its own label, named by a pointer table. The
         // bank of the slots and the menu goes with the priority bit set: the
         // actor choice turns on BG1, which at priority 0 would cover BG2.
         let mut slot_blocks: Vec<String> = Vec::new();
-        for (mode, cells) in list_at(slots, "headers")?.iter().enumerate() {
+        for (mode, cells) in slots.headers.iter().enumerate() {
             let name = format!("slot_hdr_{mode}");
-            out.block(&name, &cell_words(&ints(cells)?, 1));
+            out.block(&name, &cell_words(cells, 1));
             slot_blocks.push(name);
         }
         // Two per slot, empty and full: the cursor is the System's, on BG1
         // —`slot_bar_cells`, below—.
-        for (number, row) in list_at(slots, "rows")?.iter().enumerate() {
-            for full in 0..2 {
+        for (number, row) in slots.rows.iter().enumerate() {
+            for (full, cells) in row.iter().enumerate() {
                 let name = format!("slot_{number}_{full}");
-                let cells = &list(row)?[full];
-                out.block(&name, &cell_words(&ints(cells)?, 1));
+                out.block(&name, &cell_words(cells, 1));
                 slot_blocks.push(name);
             }
         }
@@ -2441,62 +2339,38 @@ impl Rest<'_> {
         let mut face_block: BTreeMap<i64, usize> = BTreeMap::new();
         for (actor, cells) in self.faces {
             let name = format!("slot_face_{actor}");
-            out.block(&name, &cell_words(&ints(cells)?, 1));
+            out.block(&name, &cell_words(cells, 1));
             face_block.insert(*actor, slot_blocks.len());
             slot_blocks.push(name);
         }
         // The pause menu's: each command in its two variants, the coin, and
         // a party row's text.
-        let menu = at(slots, "menu")?;
+        let menu = &slots.menu;
         let menu_option_block = slot_blocks.len();
-        for (order, variants) in list_at(menu, "options")?.iter().enumerate() {
-            for (disabled, cells) in list(variants)?.iter().enumerate() {
+        for (order, variants) in menu.options.iter().enumerate() {
+            for (disabled, cells) in variants.iter().enumerate() {
                 let name = format!("menu_option_{order}_{disabled}");
-                out.block(&name, &cell_words(&ints(cells)?, 1));
+                out.block(&name, &cell_words(cells, 1));
                 slot_blocks.push(name);
             }
         }
         let menu_currency_block = slot_blocks.len();
-        out.block("menu_currency", &cell_words(&ints_at(menu, "currency")?, 1));
+        out.block("menu_currency", &cell_words(&menu.currency, 1));
         slot_blocks.push("menu_currency".into());
         let menu_row_block = slot_blocks.len();
-        out.block("menu_row", &cell_words(&ints_at(menu, "row")?, 1));
+        out.block("menu_row", &cell_words(&menu.row, 1));
         slot_blocks.push("menu_row".into());
 
         // The text screens' inks: a palette per colour, all with the same
         // layout —the font's colours for it are `SCR_INK_*`, with the
         // window's—. Until 2026-10-03 this was a font bank, each letter in
         // two cells.
-        let inks = at(screens, "text_inks")?;
+        let inks = &screens.text_inks;
         // How far each of the screens' glyphs moves the line and paints:
-        // the console's, `TL_FIGURE`'s place and the icons' halves. A
-        // request from before 2026-11-02 carries none, and its screens draw
-        // the console's glyphs, which are the window's first 96.
-        let screen_font = |name: &str, figure: u8| -> Result<Vec<u8>> {
-            match inks.get(name) {
-                Some(v) => Ok(ints(v)?.into_iter().map(|n| n as u8).collect()),
-                None => {
-                    let mut out: Vec<u8> = ints_at(at(self.screens, "window")?, name)?
-                        .into_iter()
-                        .take(rm2k_snes_text::font::CONSOLE_GLYPHS)
-                        .map(|n| n as u8)
-                        .collect();
-                    out.push(figure);
-                    Ok(out)
-                }
-            }
-        };
-        let window_advances = ints_at(at(self.screens, "window")?, "advances")?;
-        let zero = window_advances
-            .get(('0' as usize) - 32)
-            .copied()
-            .unwrap_or(0) as u8;
-        out.block("font_advance", &screen_font("advances", zero)?);
-        out.block("font_reach", &screen_font("reach", 0)?);
-        let item_palettes: Vec<Vec<Color>> = list_at(inks, "palettes")?
-            .iter()
-            .map(colors)
-            .collect::<Result<_>>()?;
+        // the console's, `TL_FIGURE`'s place and the icons' halves.
+        out.block("font_advance", &inks.advances);
+        out.block("font_reach", &inks.reach);
+        let item_palettes = &inks.palettes;
         let up = t.n("ITEM_UP") as usize;
         out.block(
             "items_cgram",
@@ -2507,50 +2381,40 @@ impl Rest<'_> {
             &palettes_cgram(&item_palettes[up.min(item_palettes.len())..]),
         );
         // The windows of the item and equipment screens, on BG1.
-        let border = at(screens, "items_border")?;
-        let border_tiles = tiles(at(border, "tiles")?)?;
-        let border_colors = colors(at(border, "colors")?)?;
-        let maps = list_at(border, "maps")?;
-        let (border_map, border_bars) = (&list(&maps[0])?[0], &list(&maps[0])?[1]);
-        let (eq_map, eq_bars) = (&list(&maps[1])?[0], &list(&maps[1])?[1]);
-        let words =
-            |v: &Value| -> Result<Vec<u8>> { Ok(words_le(ints(v)?.into_iter().map(|w| w as u32))) };
-        let bars = |v: &Value| -> Result<Vec<u8>> {
-            let mut all = Vec::new();
-            for bar in list(v)? {
-                all.extend(words(bar)?);
-            }
-            Ok(all)
+        let border = &screens.items_border;
+        let border_tiles = &border.tiles;
+        let border_colors = &border.colors;
+        let [(border_map, border_bars), (eq_map, eq_bars)] = &border.maps[..] else {
+            return Err(Bad::answer(format!(
+                "the item and equipment windows are {} screens, not two",
+                border.maps.len()
+            )));
         };
-        out.block("items_border_tiles", &packed(&border_tiles, 8));
-        out.block("items_border_map", &words(border_map)?);
-        out.block("items_border_bars", &bars(border_bars)?);
-        out.block("eq_border_map", &words(eq_map)?);
-        out.block("eq_border_bars", &bars(eq_bars)?);
-        out.block("items_border_cgram", &cgram_bytes(&border_colors));
+        let bars = |bars: &[Vec<u16>]| -> Vec<u8> { bars.iter().flat_map(|b| words(b)).collect() };
+        out.block("items_border_tiles", &packed(border_tiles, 8));
+        out.block("items_border_map", &words(border_map));
+        out.block("items_border_bars", &bars(border_bars));
+        out.block("eq_border_map", &words(eq_map));
+        out.block("eq_border_bars", &bars(eq_bars));
+        out.block("items_border_cgram", &cgram_bytes(border_colors));
         // The battle's windows, on BG1 at 8bpp in the cells the scene does
         // not take: see `battle.rs` in `rm2k-snes-screens`. Per layout its
         // band's rows, and per layout and set the bars, sixteen records of
         // six bytes —row, column, rows, columns, the first word in
         // `ba_win_patches`— with ten for set A, five for set B and one of
         // padding; a record of no rows is no bar.
-        let bw = at(screens, "battle_windows")?;
-        let bw_tiles = tiles(at(bw, "tiles")?)?;
-        let bw_colors = colors(at(bw, "colors")?)?;
-        out.block("ba_win_tiles", &packed(&bw_tiles, 8));
-        out.block("ba_win_cgram", &cgram_bytes(&bw_colors));
-        let mut band = Vec::new();
-        for layout in list_at(bw, "band")? {
-            band.extend(words(layout)?);
-        }
+        let bw = &screens.battle_windows;
+        out.block("ba_win_tiles", &packed(&bw.tiles, 8));
+        out.block("ba_win_cgram", &cgram_bytes(&bw.colors));
+        let band: Vec<u8> = bw.band.iter().flat_map(|layout| words(layout)).collect();
         out.block("ba_win_band", &band);
-        out.block("ba_win_help", &words(at(bw, "help")?)?);
-        out.block("ba_win_patches", &words(at(bw, "patches")?)?);
+        out.block("ba_win_help", &words(&bw.help));
+        out.block("ba_win_patches", &words(&bw.patches));
         let mut records = Vec::new();
-        for sets in list_at(bw, "bars")? {
-            let sets = list(sets)?;
+        for sets in &bw.bars {
             for (set, room) in [(0, 10), (1, 6)] {
-                let bars = list(&sets[set])?;
+                let no_bars = Vec::new();
+                let bars = sets.get(set).unwrap_or(&no_bars);
                 if bars.len() > room {
                     return Err(Bad::answer(format!(
                         "a battle layout has {} bars in a set of {room}",
@@ -2560,7 +2424,6 @@ impl Rest<'_> {
                 for k in 0..room {
                     match bars.get(k) {
                         Some(b) => {
-                            let b = ints(b)?;
                             records.extend([b[0] as u8, b[1] as u8, b[2] as u8, b[3] as u8]);
                             records.extend((b[4] as u16 * 2).to_le_bytes());
                         }
@@ -2573,37 +2436,30 @@ impl Rest<'_> {
         out.push_str(&format!(
             "BA_WIN_TILES      = {}\nBA_WIN_FIRST      = {}\nBA_WIN_CGRAM      = {}\nBA_WIN_COLORS     = {}\n\
              BA_WIN_BAND_ROW   = {}\nBA_WIN_BAND_ROWS  = {}\nBA_WIN_HELP_ROWS  = {}\n",
-            bw_tiles.len(),
-            int_at(bw, "first")?,
-            int_at(bw, "cgram")?,
-            bw_colors.len(),
-            int_at(bw, "band_row")?,
-            list(&list_at(bw, "band")?[0])?.len() / 32,
-            list(at(bw, "help")?)?.len() / 32
+            bw.tiles.len(),
+            bw.first,
+            bw.cgram,
+            bw.colors.len(),
+            bw.band_row,
+            bw.band.first().map_or(0, Vec::len) / 32,
+            bw.help.len() / 32
         ));
         // The shop windows, on BG1 with their own base.
-        let shop = at(screens, "shop_border")?;
-        let ti_tiles = tiles(at(shop, "tiles")?)?;
-        let ti_colors = colors(at(shop, "colors")?)?;
-        out.block("ti_border_tiles", &packed(&ti_tiles, 8));
-        out.block("ti_border_cgram", &cgram_bytes(&ti_colors));
-        let mut rows_words = Vec::new();
-        for f in list_at(shop, "rows")? {
-            rows_words.extend(ints(f)?);
-        }
-        out.block(
-            "ti_border_rows",
-            &words_le(rows_words.iter().map(|&w| w as u32)),
-        );
-        out.block("ti_border_patches", &words(at(shop, "patches")?)?);
+        let shop = &screens.shop_border;
+        let ti_tiles = &shop.tiles;
+        let ti_colors = &shop.colors;
+        out.block("ti_border_tiles", &packed(ti_tiles, 8));
+        out.block("ti_border_cgram", &cgram_bytes(ti_colors));
+        let rows_words: Vec<u8> = shop.compact.rows.iter().flat_map(|f| words(f)).collect();
+        out.block("ti_border_rows", &rows_words);
+        out.block("ti_border_patches", &words(&shop.compact.patches));
         let ti_map = t.n("TI_MAP");
         let mut stretches: Vec<i64> = Vec::new();
         let mut layer_stretches: Vec<i64> = Vec::new();
-        for layer in list_at(shop, "layers")? {
+        for layer in &shop.compact.layers {
             layer_stretches.push(2 * stretches.len() as i64);
-            for s in list(layer)? {
-                let s = ints(s)?;
-                let (row, origin, how_many) = (s[0], s[1], s[2]);
+            for &(row, origin, how_many) in layer {
+                let (row, origin, how_many) = (row as i64, origin as i64, how_many as i64);
                 stretches.extend([ti_map + row * cols, origin * 2 * cols, how_many * 2 * cols]);
             }
             stretches.extend([0, 0, 0]);
@@ -2618,11 +2474,15 @@ impl Rest<'_> {
         );
         let mut ti_bars = Vec::new();
         let mut base_bars = vec![0i64];
-        for layer in list_at(shop, "bars")? {
-            let layer = list(layer)?;
-            for b in layer {
-                let b = ints(b)?;
-                let (row, col, rows, width, origin) = (b[0], b[1], b[2], b[3], b[4]);
+        for layer in &shop.compact.bars {
+            for &(row, col, rows, width, origin) in layer {
+                let (row, col, rows, width, origin) = (
+                    row as i64,
+                    col as i64,
+                    rows as i64,
+                    width as i64,
+                    origin as i64,
+                );
                 ti_bars.extend([ti_map + row * cols + col, 2 * origin, 2 * width, rows]);
             }
             base_bars.push(base_bars[base_bars.len() - 1] + layer.len() as i64);
@@ -2645,7 +2505,7 @@ impl Rest<'_> {
             ti_map,
             ti_tiles.len(),
             ti_colors.len(),
-            int_at(shop, "top")?
+            shop.compact.top
         ));
         // The shop's party: each possible member's three front frames,
         // twelve 4bpp tiles each, behind a pointer per member; its palette in
@@ -2653,7 +2513,7 @@ impl Rest<'_> {
         // first; which member each actor is; and the System's sixteen arrows
         // with their palette. See `party.rs` in `rm2k-snes-screens`.
         out.push_str("\n; --- the shop's party: see shop_party.s ---\n");
-        let party = at(screens, "shop_party")?;
+        let party = &screens.shop_party;
         let mut party_k = Vec::new();
         let mut party_pointers = Vec::new();
         let mut party_cgram = Vec::new();
@@ -2661,18 +2521,15 @@ impl Rest<'_> {
         // Two actors drawn with the same CharSet share it: in A Blurred Line
         // there are two Kershes and three with the same sheet's index.
         let mut stored: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
-        for m in list_at(party, "members")? {
-            let actor = int_at(m, "actor")?;
-            if m.get("frames").is_none() {
+        for m in &party.members {
+            let actor = i64::from(m.actor);
+            let Some(drawn) = &m.drawn else {
                 continue;
-            }
-            let mut frames = Vec::new();
-            for f in list_at(m, "frames")? {
-                frames.extend(tiles(f)?);
-            }
+            };
+            let frames: Vec<_> = drawn.frames.iter().flatten().collect();
             let bytes = packed(&frames, 4);
-            let mut cgram = palette16(&colors(at(m, "colors")?)?);
-            cgram.extend(palette16(&colors(at(m, "greys")?)?));
+            let mut cgram = palette16(&drawn.colors);
+            cgram.extend(palette16(&drawn.greys));
             if let Some(k) = stored.iter().position(|s| s.0 == bytes && s.1 == cgram) {
                 members.push((actor, k as i64));
                 continue;
@@ -2715,13 +2572,9 @@ impl Rest<'_> {
             party_cgram.push(0);
         }
         out.block("ti_party_cgram", &party_cgram);
-        let arrows = tiles(at(party, "arrows")?)?;
-        out.block("ti_arrow_tiles", &packed(&arrows, 4));
-        out.block(
-            "ti_arrow_cgram",
-            &palette16(&colors(at(party, "arrow_colors")?)?),
-        );
-        let party_tile0 = int_at(party, "tile0")?;
+        out.block("ti_arrow_tiles", &packed(&party.arrows, 4));
+        out.block("ti_arrow_cgram", &palette16(&party.arrow_colors));
+        let party_tile0 = party.tile0 as i64;
         // The whole OAM the shop opens with: each member's twelve objects,
         // three across by four down with palette `i` over every layer, the
         // four arrows and the rest below the screen, and the high table at
@@ -2769,20 +2622,16 @@ impl Rest<'_> {
             t.n("TI_ARROW_DOWN"),
             t.n("TI_ARROW_EQUIPPED"),
             t.n("TI_LAYER_BUY"),
-            party.get("on").and_then(|v| v.as_bool()).unwrap_or(true) as i64
+            i64::from(party.on)
         ));
         out.push_str("; --- the shop's party ends ---\n");
         // The End Game screen, whole: the "Yes" palette first.
-        let end = at(screens, "end_game")?;
-        let end_tiles = tiles(at(end, "tiles")?)?;
-        let end_rows = ints_at(end, "rows")?;
-        let end_palettes: Vec<Vec<Color>> = list_at(end, "palettes")?
-            .iter()
-            .map(colors)
-            .collect::<Result<_>>()?;
-        out.block("end_tiles", &packed(&end_tiles, 4));
-        out.block("end_map", &words_le(end_rows.iter().map(|&w| w as u32)));
-        out.block("end_cgram", &palettes_cgram(&end_palettes));
+        let end = &screens.end_game;
+        let end_tiles = &end.tiles;
+        let end_rows = &end.rows;
+        out.block("end_tiles", &packed(end_tiles, 4));
+        out.block("end_map", &words(end_rows));
+        out.block("end_cgram", &palettes_cgram(&end.palettes));
         let ramp: Vec<u8> = ints(t.v("END_RAMP"))?
             .into_iter()
             .map(|b| b as u8)
@@ -2792,7 +2641,7 @@ impl Rest<'_> {
             "END_TILES   = {}\nEND_ROW0    = {}\nEND_ROWS    = {}\nEND_ENTERS  = {}\nEND_NO      = {}\n\
              END_FRAMES = {}\nEND_STEP_SONG = {}\n",
             end_tiles.len(),
-            int_at(end, "row0")?,
+            end.row0,
             (end_rows.len() as i64).div_euclid(cols),
             t.n("END_DEFAULT_CHOICE"),
             t.n("END_NO"),
@@ -2806,13 +2655,13 @@ impl Rest<'_> {
             offsets: Vec::new(),
             first: t.n("ITEM_FIRST_CHAR") as usize,
             count: t.n("ITEM_CHARS") as usize,
-            glyphs: ScreenGlyphs::of(screens)?,
+            glyphs: ScreenGlyphs::of(screens),
         };
         let shown = texts.glyphs.clone();
-        let textos = at(screens, "texts")?;
-        for item in list_at(textos, "items")? {
-            for text in list_at(item, "texts")? {
-                texts.add(crate::json::text(text)?);
+        let textos = &screens.texts;
+        for item in &textos.items {
+            for text in &item.texts {
+                texts.add(text);
             }
         }
         // Dead texts after the item ones and before the others, so the
@@ -2821,14 +2670,8 @@ impl Rest<'_> {
         for _ in 0..r.text_padding {
             texts.offsets.push((0, 0));
         }
-        let param_text: Vec<i64> = list_at(textos, "params")?
-            .iter()
-            .map(|t| Ok(texts.add(text(t)?)))
-            .collect::<Result<_>>()?;
-        let slot_text: Vec<i64> = list_at(textos, "equipment")?
-            .iter()
-            .map(|t| Ok(texts.add(text(t)?)))
-            .collect::<Result<_>>()?;
+        let param_text: Vec<i64> = textos.params.iter().map(|t| texts.add(t)).collect();
+        let slot_text: Vec<i64> = textos.equipment.iter().map(|t| texts.add(t)).collect();
         let mut actor_text: HashMap<i64, i64> = HashMap::new();
         // The renamed actors too, who may never join: a message's `\N[n]`
         // writes the name from here. See the runtime's `actor_names.s`.
@@ -2849,25 +2692,18 @@ impl Rest<'_> {
             .map(|(_, name)| texts.add(&plain(&shown, name)))
             .collect();
         let mut shop_text = None;
-        for messages in list_at(textos, "shop")? {
-            for lines in list(messages)? {
-                for l in list(lines)? {
-                    let k = texts.add(text(l)?);
-                    shop_text.get_or_insert(k);
-                }
-            }
+        for l in textos.shop.iter().flatten().flatten() {
+            let k = texts.add(l);
+            shop_text.get_or_insert(k);
         }
-        let owned_text = texts.add(text_at(textos, "owned")?);
-        let carried_text = texts.add(text_at(textos, "carried")?);
-        let currency_text = texts.add(text_at(textos, "currency")?);
+        let owned_text = texts.add(&textos.owned);
+        let carried_text = texts.add(&textos.carried);
+        let currency_text = texts.add(&textos.currency);
         // The battle's: the LDB's terms —the three commands already trimmed,
         // the victory split as the stage checked it fits— and the rest.
         let model = self.model;
-        let mtexts = at(model, "texts")?;
-        let victory: Vec<String> = list_at(mtexts, "victory")?
-            .iter()
-            .map(|v| Ok(text(v)?.to_string()))
-            .collect::<Result<_>>()?;
+        let mtexts = &model.texts;
+        let victory = &mtexts.victory;
         let mut battle_text = None;
         // The commands' texts the cartridge already has, by what they say:
         // an actor's command that says the same points to it —see
@@ -2875,7 +2711,9 @@ impl Rest<'_> {
         let mut command_texts: HashMap<String, i64> = HashMap::new();
         for (name, liblcf) in BATTLE_TERMS {
             let value = match name {
-                "attack" | "defend" | "escape" => text_at(mtexts, name)?.to_string(),
+                "attack" => mtexts.attack.clone(),
+                "defend" => mtexts.defend.clone(),
+                "escape" => mtexts.escape.clone(),
                 "victory" => victory[0].clone(),
                 _ => battle_term(&self.r.battle_terms, db, liblcf)?,
             };
@@ -2887,40 +2725,37 @@ impl Rest<'_> {
             battle_text.get_or_insert(k);
         }
         let battle_text = battle_text.unwrap_or(0);
-        let revived_text = texts.add(&db_text(&shown, text_at(mtexts, "revived")?));
-        let dead_text = texts.add(&db_text(&shown, text_at(mtexts, "dead")?));
+        let revived_text = texts.add(&db_text(&shown, &mtexts.revived));
+        let dead_text = texts.add(&db_text(&shown, &mtexts.dead));
         let victory2_text = texts.add(&db_text(&shown, victory.get(1).map_or("", String::as_str)));
-        let rom_enemies = ints_at(model, "enemies")?;
-        let enemy_names = at(mtexts, "enemies")?;
-        let enemy_text = texts.add_each(&rom_enemies, |e| text_at(enemy_names, &e.to_string()))?;
-        let actions = at(model, "actions")?;
-        let rom_skills = ints_at(model, "skills")?;
-        let skill_texts = at(mtexts, "skills")?;
+        let rom_enemies: Vec<i64> = model.enemies.iter().map(|&e| e.into()).collect();
+        let enemy_text = texts.add_each(&rom_enemies, |e| {
+            by_number(&mtexts.enemies, e, "enemy").map(String::as_str)
+        })?;
+        let actions = &model.actions;
+        let rom_skills: Vec<i64> = model.skills.iter().map(|&h| h.into()).collect();
         let skill_text = texts.add_each(&rom_skills, |h| {
-            text_at(at(skill_texts, &h.to_string())?, "name")
+            Ok(&by_number(&mtexts.skills, h, "skill")?.name)
         })?;
         let skill_desc_text = texts.add_each(&rom_skills, |h| {
-            text_at(at(skill_texts, &h.to_string())?, "description")
+            Ok(&by_number(&mtexts.skills, h, "skill")?.description)
         })?;
         // An item's description whole, for the battle's help window, which
         // has one line: the item screens split it in two, `3k + 1` and `3k +
         // 2`. Only the items the battle offers; the others point to text 0.
-        let item_battle = list_at(model, "item_battle")?;
-        let item_list = list_at(textos, "items")?;
+        let item_battle = &model.item_battle;
+        let item_list = &textos.items;
         if item_battle.len() != item_list.len() {
             return Err(Bad::answer(
                 "the battle's items and the screens' are not the same list",
             ));
         }
         let mut item_desc_battle = Vec::new();
-        for (item, battle) in item_list.iter().zip(item_battle) {
-            if battle.as_bool().unwrap_or(false) {
-                let lines = list_at(item, "texts")?;
-                let whole: Vec<&str> = lines[1..]
+        for (item, &battle) in item_list.iter().zip(item_battle) {
+            if battle {
+                let whole: Vec<&str> = item.texts[1..]
                     .iter()
-                    .map(text)
-                    .collect::<Result<Vec<_>>>()?
-                    .into_iter()
+                    .map(String::as_str)
                     .filter(|l| !l.is_empty())
                     .collect();
                 item_desc_battle.push(texts.add(&whole.join(" ")));
@@ -2932,14 +2767,16 @@ impl Rest<'_> {
             db.skill(h as i32)
                 .map_err(|b| Bad::answer(b.message().to_string()))
         };
-        let taught = ints_at(model, "taught")?;
+        let taught: Vec<i64> = model.taught.iter().map(|&h| h.into()).collect();
         let whole_skill_text = texts.add_each(&taught, |h| Ok(&skill(h)?.name))?;
         let skill_msg1_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message1))?;
         let skill_msg2_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message2))?;
-        let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
         for &a in &r.actors {
-            let name = plain(&shown, text_at(commands, &a.to_string())?);
+            let name = plain(
+                &shown,
+                by_number(&mtexts.skill_commands, a, "actor")?.as_str(),
+            );
             let k = texts.add(&name);
             command_texts.entry(name).or_insert(k);
             skill_command_text.insert(a, k);
@@ -2990,12 +2827,11 @@ impl Rest<'_> {
         // when it says the same, so a 2000 game adds none, and otherwise a
         // new one, after every other for the same reason as the result
         // terms'.
-        let actor_commands = at(mtexts, "commands")?;
         let mut command_text = HashMap::new();
         for &a in &r.actors {
             let mut row = Vec::new();
-            for (slot, name) in list_at(actor_commands, &a.to_string())?.iter().enumerate() {
-                let name = plain(&shown, text(name)?);
+            for (slot, name) in by_number(&mtexts.commands, a, "actor")?.iter().enumerate() {
+                let name = plain(&shown, name);
                 // The skill command is the one `skill_commands` gave this
                 // actor, its own text since before the other four.
                 let own = skill_command_text
@@ -3026,11 +2862,7 @@ impl Rest<'_> {
             )));
         }
         // The palette, padded to the sixteen the console uploads at once.
-        let slot_palettes: Vec<Vec<Color>> = list_at(slots, "palettes")?
-            .iter()
-            .map(colors)
-            .collect::<Result<_>>()?;
-        out.block("slot_cgram", &palettes_cgram(&slot_palettes));
+        out.block("slot_cgram", &palettes_cgram(&slots.palettes));
 
         // The tables that name the cell blocks: outside bank 0, read with
         // `lda f:slot_block_lo, x`, because they grow with every face.
@@ -3091,15 +2923,10 @@ impl Rest<'_> {
         let vram_cell = |row: i64, col: i64| i64::from(SLOT_MAP) + row * 32 + col;
         // The custom menus' options go after RM2k's five, as commands 5 and
         // on, and the column has a row for each: see `menu_rows_build`.
-        let custom = screens.get("custom_menus").filter(|c| !c.is_null());
-        let custom_n = match custom {
-            Some(c) => list_at(c, "labels")?.len() as i64,
-            None => 0,
-        };
         // And the debug screen's, after them: one more command, which the
         // screens stage drew after theirs.
         let custom_n =
-            custom_n + i64::from(screens.get("debug_screen").is_some_and(|d| !d.is_null()));
+            screens.custom_menus.labels.len() as i64 + i64::from(screens.debug_screen.is_some());
         let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS") + custom_n)
             .map(|n| (t.n("MENU_OPT_Y") + n * t.n("MENU_OPT_STEP")).div_euclid(cell))
             .collect();
@@ -3171,123 +2998,117 @@ impl Rest<'_> {
         // Where the command cursor and the slot cursor start on BG1, per
         // command and per slot: their rectangles on the first one, which
         // `alone` in `rm2k-snes-screens` cut, moved down by whole cells.
-        let target = at(screens, "target")?;
+        let target = &screens.target;
+        let compact = &target.compact;
         let bg1_cell = |row: i64, col: i64| t.n("TARGET_MAP") + row * 32 + col;
-        let cmd_at = ints_at(target, "menu_cmd_at")?;
+        let cmd_at = compact.menu_cmd_at;
         out.words(
             "menu_cursor_vram",
             (0..t.n("MENU_OPTIONS") + custom_n).map(|n| {
                 bg1_cell(
-                    cmd_at[0] + n * t.n("MENU_OPT_STEP").div_euclid(cell),
-                    cmd_at[2],
+                    cmd_at.0 as i64 + n * t.n("MENU_OPT_STEP").div_euclid(cell),
+                    cmd_at.2 as i64,
                 )
             }),
         );
-        let slot_at = ints_at(target, "slot_bar_at")?;
+        let slot_at = compact.slot_bar_at;
         out.words(
             "slot_bar_vram",
             (0..i64::from(SLOTS)).map(|n| {
                 bg1_cell(
-                    slot_at[0] + n * t.n("SLOT_STEP").div_euclid(cell),
-                    slot_at[2],
+                    slot_at.0 as i64 + n * t.n("SLOT_STEP").div_euclid(cell),
+                    slot_at.2 as i64,
                 )
             }),
         );
         // A cell's word, in the palette `palette` counts.
-        let cells = |cells: Vec<i64>, palette: u32| {
+        let cells = |cells: &[u16], palette: u32| {
             hex4(
                 cells
-                    .into_iter()
-                    .map(move |c| i64::from(entry(c as u32, false, false, palette))),
+                    .iter()
+                    .map(|&c| i64::from(entry(c.into(), false, false, palette))),
             )
         };
         // Two cells a letter, the top and the bottom; the empty cell for the
         // letters the cartridge does not use.
-        let glyphs = at(menu, "glyphs")?;
         let first = t.n("ITEM_FIRST_CHAR");
         let chars = t.n("ITEM_CHARS");
         let mut glyph_cells = Vec::new();
         for n in first..first + chars {
-            let letter = char::from_u32(n as u32).unwrap_or('?').to_string();
-            glyph_cells.extend(match glyphs.get(&letter) {
-                Some(letter) => cells(ints(letter)?, 1),
-                None => cells(vec![0, 0], 0),
+            let letter = char::from_u32(n as u32).unwrap_or('?');
+            glyph_cells.extend(match menu.glyphs.get(&letter) {
+                Some(letter) => cells(letter, 1),
+                None => cells(&[0, 0], 0),
             });
         }
         out.words("slot_glyph_cells", glyph_cells);
-        out.words("menu_exp_finished", cells(ints_at(menu, "exp_term")?, 0));
+        out.words("menu_exp_finished", cells(&menu.exp_term, 0));
         // The SP term the same way: the actor choice's fourth line.
-        out.words("menu_sp_finished", cells(ints_at(menu, "sp_term")?, 0));
+        out.words("menu_sp_finished", cells(&menu.sp_term, 0));
         // And the pause menu's arrows, which go in sprites in a palette of
         // their own: see `MENU_ARROW_Y`.
-        out.words("menu_arrow_cells", cells(ints_at(menu, "arrows")?, 0));
-        let mut arrow_colors = colors(at(menu, "arrow_colors")?)?;
+        out.words("menu_arrow_cells", cells(&menu.arrows, 0));
+        let mut arrow_colors = menu.arrow_colors.clone();
         arrow_colors.resize(16, [0, 0, 0]);
         out.block("menu_arrow_cgram", &cgram_bytes(&arrow_colors));
         // The actor choice: its windows on BG1, a single tilemap and the bar
         // only where it changes; and each medicine's name in two lines.
-        let target = at(screens, "target")?;
-        let obj_tiles = tiles(at(target, "tiles")?)?;
-        let obj_colors = colors(at(target, "colors")?)?;
-        out.block("target_tiles", &packed(&obj_tiles, 8));
-        out.block("target_map", &words(at(target, "map")?)?);
-        out.block("target_bars", &bars(at(target, "bars")?)?);
-        out.block("menu_bar_cells", &words(at(target, "menu_bar")?)?);
-        let bar_at = ints_at(target, "menu_bar_at")?;
+        let obj_tiles = &target.tiles;
+        let obj_colors = &target.colors;
+        out.block("target_tiles", &packed(obj_tiles, 8));
+        out.block("target_map", &words(&compact.map));
+        out.block("target_bars", &bars(&compact.bars));
+        out.block("menu_bar_cells", &words(&compact.menu_bar));
+        let bar_at = compact.menu_bar_at;
         out.push_str(&format!(
             "MENU_BAR_ROW0 = {}\nMENU_BAR_ROWS = {}\nMENU_BAR_COL0 = {}\nMENU_BAR_COLS = {}\n",
-            bar_at[0], bar_at[1], bar_at[2], bar_at[3]
+            bar_at.0, bar_at.1, bar_at.2, bar_at.3
         ));
         // The pause menu's command cursor and the slot cursor, each on its
         // first row and over nothing, like the bar: see `alone` in
         // `rm2k-snes-screens`.
-        for (cells, at_key, name, prefix) in [
-            ("menu_cmd", "menu_cmd_at", "menu_cmd_cells", "MENU_CMD"),
-            ("slot_bar", "slot_bar_at", "slot_bar_cells", "SLOT_BAR"),
+        for (cells, bar_at, name, prefix) in [
+            (
+                &compact.menu_cmd,
+                compact.menu_cmd_at,
+                "menu_cmd_cells",
+                "MENU_CMD",
+            ),
+            (
+                &compact.slot_bar,
+                compact.slot_bar_at,
+                "slot_bar_cells",
+                "SLOT_BAR",
+            ),
         ] {
-            out.block(name, &words(at(target, cells)?)?);
-            let bar_at = ints_at(target, at_key)?;
+            out.block(name, &words(cells));
             out.push_str(&format!(
                 "{prefix}_ROW0 = {}\n{prefix}_ROWS = {}\n{prefix}_COL0 = {}\n{prefix}_COLS = {}\n",
-                bar_at[0], bar_at[1], bar_at[2], bar_at[3]
+                bar_at.0, bar_at.1, bar_at.2, bar_at.3
             ));
         }
-        out.block("target_cgram", &cgram_bytes(&obj_colors));
+        out.block("target_cgram", &cgram_bytes(obj_colors));
         // The same choice for a skill: the cost's term over the count's,
         // and the bar over the whole party as its distinct cell rows and,
         // per party size, which goes on each row. See
         // `compact_target_skill` in `rm2k-snes-screens`.
-        let skill = at(target, "skill")?;
-        let term_at = ints_at(skill, "term_at")?;
-        let all_at = ints_at(skill, "all_at")?;
-        out.block("target_term", &words(at(skill, "term")?)?);
-        out.block("target_all_rows", &bars(at(skill, "all_rows")?)?);
-        let mut all_index = Vec::new();
-        for which in list_at(skill, "all")? {
-            all_index.extend(ints(which)?.into_iter().map(|k| k as u8));
-        }
+        let skill = &target.skill;
+        let (term_at, all_at) = (skill.term_at, skill.all_at);
+        out.block("target_term", &words(&skill.term));
+        out.block("target_all_rows", &bars(&skill.all_rows));
+        let all_index: Vec<u8> = skill.all.iter().flatten().copied().collect();
         out.block("target_all", &all_index);
         out.push_str(&format!(
             "TARGET_TERM_ROW0 = {}\nTARGET_TERM_ROWS = {}\nTARGET_TERM_COL0 = {}\nTARGET_TERM_COLS = {}\n\
              TARGET_ALL_ROW0 = {}\nTARGET_ALL_ROWS = {}\nTARGET_ALL_COL0 = {}\nTARGET_ALL_COLS = {}\n",
-            term_at[0],
-            term_at[1],
-            term_at[2],
-            term_at[3],
-            all_at[0],
-            all_at[1],
-            all_at[2],
-            all_at[3]
+            term_at.0, term_at.1, term_at.2, term_at.3, all_at.0, all_at.1, all_at.2, all_at.3
         ));
         // Each medicine's name on the line on top, `TARGET_NAME_WIDTH`
         // letters, as the screens stage stored it: `target_text` there.
         let width = t.n("TARGET_NAME_WIDTH") as usize;
         let mut medicine_names: HashMap<i64, Vec<u8>> = HashMap::new();
-        for m in list_at(textos, "medicines")? {
-            medicine_names.insert(
-                int_at(m, "number")?,
-                target_name_bytes(text_at(m, "name")?, width, &shown)?,
-            );
+        for m in &textos.medicines {
+            medicine_names.insert(m.number.into(), target_name_bytes(&m.name, width, &shown)?);
         }
         let medicines: Vec<i64> = r
             .items
@@ -3334,10 +3155,10 @@ impl Rest<'_> {
             t.n("TARGET_NAME_WIDTH"),
             vram_cell(t.n("TARGET_NAME_ROW"), t.n("TARGET_NAME_COL")),
             vram_cell(t.n("TARGET_COUNT_ROW"), t.n("TARGET_COUNT_COL")),
-            int_at(target, "row0")?,
-            int_at(target, "rows")?,
-            int_at(target, "col0")?,
-            int_at(target, "cols")?,
+            compact.row0,
+            compact.rows,
+            compact.col0,
+            compact.cols,
             t.n("TARGET_ROW_CELLS")
         ));
         out.push_str(&format!(
@@ -3376,7 +3197,7 @@ impl Rest<'_> {
             t.n("MENU_ARROW_X"),
             t.n("MENU_ARROW_Y")
         ));
-        self.menu_states(out, t, at(slots, "states")?)?;
+        self.menu_states(out, t, &slots.states)?;
         // Each actor's text, in ASCII: the name with trailing spaces, the
         // two digits of the level and max HP, in one row per actor.
         if (SLOT_TEXT_LEVEL as i64) < t.n("MENU_NAME_COLS")
@@ -3387,28 +3208,19 @@ impl Rest<'_> {
                 "the actor's three strips don't fit in the {SLOT_TEXT_WIDTH} bytes of its row"
             )));
         }
-        let actor_strips = list_at(textos, "actors")?;
         let mut strip: Vec<u8> = Vec::new();
         for a in 0..n_actors_slots {
-            let three = list(&actor_strips[a as usize])?;
-            let row = format!(
-                "{:<w$}{}{}",
-                text(&three[0])?,
-                text(&three[1])?,
-                text(&three[2])?,
-                w = SLOT_TEXT_LEVEL as usize
-            );
+            let [name, level, max] = textos
+                .actors
+                .get(a as usize)
+                .ok_or_else(|| Bad::answer(format!("the screens wrote no strips for actor {a}")))?;
+            let row = format!("{name:<w$}{level}{max}", w = SLOT_TEXT_LEVEL as usize);
             strip.extend(strip_bytes(&row, SLOT_TEXT_WIDTH as usize, &shown)?);
         }
         // And after the actors' rows, one per rename, with its name alone:
         // the menu and the slot screen take it instead of the actor's own
         // when the actor carries it. See the runtime's `actor_names.s`.
-        // Absent in a screens' answer from before 2026-10-15: none.
-        let none = Vec::new();
-        let renamed = match textos.get("renamed") {
-            Some(v) => list(v)?,
-            None => &none,
-        };
+        let renamed = &textos.renamed;
         if renamed.len() != r.names.len() {
             return Err(Bad::answer(format!(
                 "the screens wrote {} renamed names and the request has {}",
@@ -3416,12 +3228,8 @@ impl Rest<'_> {
                 r.names.len()
             )));
         }
-        for pair in renamed {
-            strip.extend(strip_bytes(
-                text(&list(pair)?[1])?,
-                SLOT_TEXT_WIDTH as usize,
-                &shown,
-            )?);
+        for (_, name) in renamed {
+            strip.extend(strip_bytes(name, SLOT_TEXT_WIDTH as usize, &shown)?);
         }
         if n_actors_slots as usize + r.names.len() > 256 {
             return Err(Bad::answer(format!(
@@ -3518,7 +3326,7 @@ struct ItemTexts<'a> {
     state_already_text: Vec<i64>,
     rom_enemies: Vec<i64>,
     rom_skills: Vec<i64>,
-    actions: &'a Value,
+    actions: &'a BTreeMap<i32, Vec<(i64, Option<i32>, bool)>>,
     border_tiles: usize,
     border_colors: usize,
 }
@@ -3531,11 +3339,13 @@ impl Rest<'_> {
     /// `tl_strip` reads as many letters as fit— and its length, and its
     /// ink; per ink, the palette entry of each glyph row, the cells'
     /// palette and the colour the skills screen uploads.
-    fn menu_states(&self, out: &mut Inc, t: &Geometry, states: &Value) -> Result<()> {
-        let names: Vec<String> = list_at(states, "names")?
-            .iter()
-            .map(|n| text(n).map(str::to_string))
-            .collect::<Result<_>>()?;
+    fn menu_states(
+        &self,
+        out: &mut Inc,
+        t: &Geometry,
+        states: &rm2k_snes_screens::answer::States,
+    ) -> Result<()> {
+        let names = &states.names;
         let cols = t.n("MENU_STATE_COLS") as usize;
         let width = names
             .iter()
@@ -3547,22 +3357,23 @@ impl Rest<'_> {
             return Err(Bad::answer("a condition's name does not fit in a byte"));
         }
         let mut padded: Vec<u8> = Vec::new();
-        for name in &names {
+        for name in names {
             padded.extend(format!("{name:<width$}").bytes());
         }
-        let inks = list_at(states, "inks")?;
+        let inks = &states.inks;
         let mut rows = Vec::new();
         let mut attr = Vec::new();
         let mut cgram = Vec::new();
-        let shadow = int_at(states, "shadow")?;
-        let gray_shadow = int_at(states, "gray_shadow")?;
         for ink in inks {
-            let palette = int_at(ink, "palette")?;
-            rows.extend(ints_at(ink, "rows")?);
+            rows.extend(&ink.rows);
             // And the shadow's entry in the ink's palette.
-            rows.push(if palette == 0 { shadow } else { gray_shadow });
-            attr.push(palette << 10);
-            cgram.extend(ints_at(ink, "cgram")?);
+            rows.push(if ink.palette == 0 {
+                states.shadow
+            } else {
+                states.gray_shadow
+            });
+            attr.push(i64::from(ink.palette) << 10);
+            cgram.extend(ink.cgram.iter().map(|&w| i64::from(w)));
         }
         out.push_str(&format!(
             "; The party's conditions, where the rows say Normal.\n\
@@ -3570,15 +3381,15 @@ impl Rest<'_> {
              SLOT_GRAY_SHADOW  = {}\nSTATE_NAMES_N     = {}\nSTATE_NAME_W      = {width}\n\
              STATE_INKS_N      = {}\nSK_STATE_PALETTE  = {}\n",
             t.n("MENU_LEVEL_ROW") * 32 + t.n("MENU_STATE_COL") - t.n("MENU_ACTOR_COL"),
-            int_at(states, "shadow")?,
-            int_at(states, "gray_shadow")?,
+            states.shadow,
+            states.gray_shadow,
             names.len(),
             inks.len(),
             t.n("SK_STATE_PALETTE"),
         ));
         out.bytes("state_names", padded.iter());
         out.bytes("state_name_n", names.iter().map(|n| n.chars().count()));
-        out.bytes("state_ink", ints_at(states, "ink")?);
+        out.bytes("state_ink", states.ink.iter());
         out.bytes("state_ink_rows", rows);
         out.words("state_ink_attr", hex4(attr));
         out.words("state_ink_cgram", hex4(cgram));
@@ -3889,7 +3700,7 @@ impl Rest<'_> {
             t.n("ITEM_FIRST_CHAR"),
             t.n("SCR_TEXT_X"),
             t.n("SCR_TEXT_Y"),
-            i64::from(SLOT_VRAM) + int_at(self.screens, "items_border_first")? * 32,
+            i64::from(SLOT_VRAM) + self.screens.items_border_first as i64 * 32,
             x.border_tiles,
             t.n("ITEM_BORDER_MAP"),
             t.n("ITEM_BORDER_CGRAM"),
@@ -3911,13 +3722,13 @@ impl Rest<'_> {
         // Whether it goes in white and does something on the map, whether
         // it opens the actor choice, and whether it is a two-handed weapon.
         // Whether using it spends it is `item_uses`'s, below.
-        let textos = at(self.screens, "texts")?;
-        let mut flags: HashMap<i64, (bool, bool)> = HashMap::new();
-        for i in list_at(textos, "items")? {
-            let usable = at(i, "usable")?.as_bool().unwrap_or(false);
-            let needs = at(i, "needs_actor")?.as_bool().unwrap_or(false);
-            flags.insert(int_at(i, "number")?, (usable, needs));
-        }
+        let flags: HashMap<i64, (bool, bool)> = self
+            .screens
+            .texts
+            .items
+            .iter()
+            .map(|i| (i.number.into(), (i.usable, i.needs_actor)))
+            .collect();
         let mut uses = Vec::new();
         for &n in items {
             let (usable, needs) = flags
@@ -3986,9 +3797,11 @@ impl Rest<'_> {
         out.bytes("terrain_bush", bush);
         // The skill a special item casts from the items screen, by its RM2k
         // number, 0 for none: the battle stage's `item_map_skill`.
-        let map_skills: Vec<i64> = list_at(self.model, "item_map_skill")?
+        let map_skills: Vec<i64> = self
+            .model
+            .item_map_skill
             .iter()
-            .map(|v| v.as_i64().unwrap_or(0))
+            .map(|&h| h.into())
             .collect();
         if map_skills.len() != items.len() {
             return Err(Bad::answer(
@@ -4016,16 +3829,13 @@ impl Rest<'_> {
         );
         // What each item does in a battle: whether it goes in the list
         // —the battle stage's rule— and how much it heals.
-        let item_battle: Vec<i64> = list_at(self.model, "item_battle")?
-            .iter()
-            .map(|v| i64::from(v.as_bool().unwrap_or(false)))
-            .collect();
+        let item_battle: Vec<i64> = self.model.item_battle.iter().map(|&b| b.into()).collect();
         out.bytes("item_battle", item_battle);
         // The skill a special item casts, as its place in the cartridge's
         // skill rows —`skill_*`—, or $FF for every other item: see
         // `ba_items_list` in battle_items.s. The model puts that skill in
         // `skills`.
-        let rom_skills = ints_at(self.model, "skills")?;
+        let rom_skills: Vec<i64> = self.model.skills.iter().map(|&h| h.into()).collect();
         let place_of = |h: i64, where_: &str| -> Result<i64> {
             if h == 0 {
                 return Ok(0xFF);
@@ -4036,9 +3846,11 @@ impl Rest<'_> {
                 ))
             })? as i64)
         };
-        let item_skill = list_at(self.model, "item_skill")?
+        let item_skill = self
+            .model
+            .item_skill
             .iter()
-            .map(|v| place_of(v.as_i64().unwrap_or(0), ""))
+            .map(|&h| place_of(h.into(), ""))
             .collect::<Result<Vec<_>>>()?;
         if item_skill.len() != items.len() {
             return Err(Bad::answer(
@@ -4424,8 +4236,12 @@ impl Rest<'_> {
         // the description's two lines as slices of `skill_desc` —the first's
         // length, and where the second starts and its length— and whether
         // the map can use it. See `skills.rs` in `rm2k-snes-screens`.
-        let on_map = at(self.screens, "skills")?;
-        let of = |h: i64| at(on_map, &h.to_string());
+        let of = |h: i64| {
+            i32::try_from(h)
+                .ok()
+                .and_then(|h| self.screens.skills.get(&h))
+                .ok_or_else(|| Bad::answer(format!("the screens have nothing of skill {h}")))
+        };
         let mut lines: [Vec<i64>; 3] = Default::default();
         let mut field = Vec::new();
         // And the name the actor choice writes on its line on top, for the
@@ -4433,20 +4249,18 @@ impl Rest<'_> {
         // `skill_target_names`, and per skill where its name is there —$FF
         // for the others—. Its own copy, as a medicine's: see
         // `target_name` in the screens stage's `skills.rs`.
-        let shown = ScreenGlyphs::of(self.screens)?;
+        let shown = ScreenGlyphs::of(self.screens);
         let mut target_index = Vec::new();
         let mut target_names: Vec<u8> = Vec::new();
         for &h in rom_skills {
-            let l = ints(at(of(h)?, "lines")?)?;
-            for (k, v) in lines.iter_mut().enumerate() {
-                v.push(l[k]);
+            let row = of(h)?;
+            for (v, &n) in lines.iter_mut().zip(&row.lines) {
+                v.push(n as i64);
             }
             // Bit 0, the map can use it; bit 1, it raises the fallen, which
             // only a skill the map can use is asked.
-            let flag =
-                |name: &str| -> Result<bool> { Ok(at(of(h)?, name)?.as_bool().unwrap_or(false)) };
-            let on_map = flag("field")?;
-            field.push(i64::from(on_map) | i64::from(on_map && flag("revives")?) << 1);
+            let on_map = row.field;
+            field.push(i64::from(on_map) | i64::from(on_map && row.revives) << 1);
             if on_map {
                 let width = self.t.n("TARGET_NAME_WIDTH") as usize;
                 let k = target_names.len() / width;
@@ -4456,11 +4270,7 @@ impl Rest<'_> {
                     ));
                 }
                 target_index.push(k as i64);
-                target_names.extend(target_name_bytes(
-                    text_at(of(h)?, "target_name")?,
-                    width,
-                    &shown,
-                )?);
+                target_names.extend(target_name_bytes(&row.target_name, width, &shown)?);
             } else {
                 target_index.push(0xFF);
             }
@@ -4626,12 +4436,12 @@ impl Rest<'_> {
         );
         out.bytes("skill_initial", hex2(bits));
         // At which level the learning table teaches each pair, or 0.
-        let pair_levels = ints_at(self.model, "pair_levels")?;
+        let pair_levels = &self.model.pair_levels;
         out.bytes("skill_pair_level", pair_levels.iter());
         // And the name the victory tells it by, or $FFFF.
         out.words(
             "skill_pair_learns_txt",
-            hex4(pairs.iter().zip(&pair_levels).map(|(&(a, h, _), &level)| {
+            hex4(pairs.iter().zip(pair_levels).map(|(&(a, h, _), &level)| {
                 match x.whole_skill_text.get(&h) {
                     Some(&k) if actors.contains(&a) && level > 0 => k,
                     _ => 0xFFFF,
@@ -4693,11 +4503,8 @@ impl Rest<'_> {
             )));
         }
         out.words("troop_id", used.iter());
-        let model_troops = list_at(self.model, "troops")?;
-        let answered: Vec<i64> = model_troops
-            .iter()
-            .map(|t| int_at(t, "id"))
-            .collect::<Result<_>>()?;
+        let model_troops = &self.model.troops;
+        let answered: Vec<i64> = model_troops.iter().map(|t| t.id.into()).collect();
         if answered != used {
             return Err(Bad::answer(format!(
                 "the battle stage answered for troops {answered:?} and the cartridge carries {used:?}"
@@ -4706,8 +4513,8 @@ impl Rest<'_> {
         for (field, what) in [("exp", "experience"), ("gold", "gold")] {
             let values: Vec<i64> = model_troops
                 .iter()
-                .map(|t| int_at(t, field))
-                .collect::<Result<_>>()?;
+                .map(|t| if field == "exp" { t.exp } else { t.gold })
+                .collect();
             for (n, v) in used.iter().zip(&values) {
                 if *v > 0xFFFF {
                     return Err(Bad::answer(format!(
@@ -4914,19 +4721,19 @@ impl Rest<'_> {
         // Per troop, where its pages start and how many there are; per page,
         // its trigger and where its code is inside `troop_code`. All in
         // RODATA, each table in its `.block`.
-        let empty = serde_json::json!({"per_troop": [], "code": "", "messages": "00"});
-        let pt = self.r.troop_pages.as_ref().unwrap_or(&empty);
-        let mut per_troop: HashMap<i64, Vec<(Vec<i64>, i64)>> = HashMap::new();
-        for entry in list_at(pt, "per_troop")? {
-            let entry = list(entry)?;
-            let number = int(&entry[0])?;
-            let mut theirs = Vec::new();
-            for page in list(&entry[1])? {
-                let page = list(page)?;
-                theirs.push((ints(&page[0])?, int(&page[1])?));
-            }
-            per_troop.insert(number, theirs);
-        }
+        let pt = self.r.troop_pages.as_ref();
+        let per_troop: HashMap<i64, Vec<([i64; 13], usize)>> = pt
+            .map(|pt| &pt.per_troop[..])
+            .unwrap_or_default()
+            .iter()
+            .map(|(number, pages)| {
+                let theirs = pages
+                    .iter()
+                    .map(|(trigger, offset, _)| (trigger.map(i64::from), *offset))
+                    .collect();
+                (i64::from(*number), theirs)
+            })
+            .collect();
         let mut entries = Vec::new();
         let mut page_start = Vec::new();
         let mut page_n = Vec::new();
@@ -4969,9 +4776,12 @@ impl Rest<'_> {
             };
             out.words(name, values);
         }
-        let code = crate::json::bytes_at(pt, "code")?;
-        out.block("troop_code", if code.is_empty() { &[0] } else { &code });
-        out.block("messages_troop", &crate::json::bytes_at(pt, "messages")?);
+        // Without pages, no code, and the message block's one byte, its end.
+        let (code, messages) = pt.map_or((&[][..], &[0][..]), |pt| {
+            (&pt.code.0[..], &pt.messages.0[..])
+        });
+        out.block("troop_code", if code.is_empty() { &[0] } else { code });
+        out.block("messages_troop", messages);
         Ok(())
     }
 
@@ -5035,19 +4845,16 @@ impl Rest<'_> {
         let mut eacc_n = Vec::new();
         for &e in rom_enemies {
             eacc_start.push(eacc_skill.len() as i64);
-            let theirs = list_at(x.actions, &e.to_string())?;
+            let theirs = by_number(x.actions, e, "enemy")?;
             eacc_n.push(theirs.len() as i64);
-            for a in theirs {
-                let a = list(a)?;
-                let rating = int(&a[0])?;
-                eacc_skill.push(match a[1].as_i64() {
+            for &(rating, skill, effective) in theirs {
+                eacc_skill.push(match skill {
                     None => 0xFF,
                     Some(h) => *skill_place
-                        .get(&h)
+                        .get(&h.into())
                         .ok_or_else(|| Bad::answer(format!("skill {h} is not the battle's")))?
                         as i64,
                 });
-                let effective = a[2].as_bool().unwrap_or(false);
                 eacc_weight.push(rating | if effective { 0 } else { 0x80 });
             }
         }
@@ -5281,11 +5088,7 @@ impl Rest<'_> {
         let r = self.r;
         // `font_color` in bank 0: the console reads it with
         // `lda font_color, y`, which addresses the data bank.
-        let colors: Vec<u8> = ints_at(at(self.screens, "window")?, "color")?
-            .into_iter()
-            .map(|c| c as u8)
-            .collect();
-        out.line(&unplaced("font_color", &colors));
+        out.line(&unplaced("font_color", &self.screens.window.system.color));
         // And the entries the text takes, which a cell with letters over
         // the layer above finds in the text's copy of the layer's palette:
         // see `layer_text`.

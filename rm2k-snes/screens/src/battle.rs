@@ -18,7 +18,6 @@ use crate::fail::{Bad, Result};
 use crate::game::Skin;
 use rm2k_render::picture::Picture;
 use rm2k_snes_battle::screen::{self as bs, Rect};
-use serde_json::{json, Value};
 use std::collections::HashMap;
 
 /// The windows' first colour-memory entry, and how many they may take.
@@ -89,7 +88,7 @@ pub fn layers(skin: &Skin) -> Vec<Screen> {
 /// * per layout and set, each bar **only where it changes**: `[row, col,
 ///   rows, cols, source]`, `source` the first of its words in `patches`,
 ///   and a piece equal to another is not repeated.
-pub fn battle_windows(skin: &Skin) -> Result<Value> {
+pub fn battle_windows(skin: &Skin) -> Result<crate::answer::BattleWindows> {
     let layouts = LAYOUTS;
     let screens = layers(skin);
     let made = borders::borders(
@@ -146,20 +145,20 @@ pub fn battle_windows(skin: &Skin) -> Result<Value> {
                 patches.extend(&piece);
                 patches.len() - piece.len()
             });
-            sets[set].push(json!([row0 + f0, c0, nf, nc, at]));
+            sets[set].push([row0 + f0, c0, nf, nc, at]);
         }
         bars.push(sets);
     }
     let help = rows(&made.maps[layouts.len()].0, 0, help_rows);
-    Ok(json!({
-        "tiles": made.tiles,
-        "colors": made.colors,
-        "first": BATTLE_WINDOW_FIRST,
-        "cgram": BATTLE_WINDOW_CGRAM,
-        "band_row": band0,
-        "band": bands,
-        "help": help,
-        "patches": patches,
-        "bars": bars,
-    }))
+    Ok(crate::answer::BattleWindows {
+        tiles: made.tiles,
+        colors: made.colors,
+        first: BATTLE_WINDOW_FIRST,
+        cgram: BATTLE_WINDOW_CGRAM,
+        band_row: band0,
+        band: bands,
+        help,
+        patches,
+        bars,
+    })
 }

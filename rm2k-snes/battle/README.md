@@ -92,6 +92,8 @@ same shape, and this crate was the first to be written to it:
   a player wants and not what a test does.
 * `tree_nodes`: nodes of `maps.json`, in the dump's shape, over the dump's.
 
+It is `Request` in `src/lib.rs`, and `battle.json` is `Answer` there.
+
 ## What `tables` writes
 
 Into `--out`:
@@ -129,8 +131,15 @@ the compiler gave a slot.
   are more than its learning table's.
 * `item_name_width`: how much of an item's name the item screens write,
   which is theirs: the victory names what it found with it.
-* `font` and `letter_spacing`, optional: the game's font, as the screens
-  stage takes them. With them the answer says what that font leaves out.
+* `font` and `letter_spacing`, optional, and `exfont`: the game's font,
+  as the screens stage takes them. With them the answer says what that
+  font leaves out.
+* `letters`, optional: the letters the text screens carry, which an
+  item's name in a victory line keeps.
+
+The request is `ModelRequest` in `src/model.rs`, and the answer `Model`:
+the converter builds and reads those types, and the binary reads and
+writes the same keys.
 
 It writes `model.json`: `layout`, the geometry and the model's constants
 —see `layout`—; `enemies`, those of the troops, and `actions`, what each
@@ -143,9 +152,10 @@ gold; and `texts`, what the battle writes, cut to its place. With the
 font, also `cut`, the names a place cuts —actors, states, enemies,
 skills, items and commands, each against its cells—; `pairs`, how many
 pairs of tiles of the text layer the busiest skill list and item list can
-ask for, with the widest texts the cartridge can put in them; and
-`party_line`, `null`, or why the party's line —its HP and SP, which are
-runs the console does not cut— does not fit with that font. The answer is
+ask for, with the widest texts the cartridge can put in them; and, only
+when it does not fit, `party_line`: why the party's line —its HP and SP,
+which are runs the console does not cut— does not fit with that font. The
+answer is
 no if the victory does not fit in its window or an enemy carries more
 actions than the console weighs.
 

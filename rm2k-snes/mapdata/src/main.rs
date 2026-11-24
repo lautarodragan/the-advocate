@@ -245,7 +245,7 @@ fn do_pages(args: &Plain) -> Result<()> {
 
 fn do_emit(args: &EmitArgs) -> Result<()> {
     let request: request::Emit = request::read(&args.plain.request)?;
-    let (raw, answer): (stage::Files, stage::Files) = stage::emit_of(&args.data, request)?
+    let (raw, answer): (stage::Files, stage::Files) = stage::emit(&args.data, request)?
         .into_iter()
         .partition(|(name, _)| name.starts_with(stage::RAW));
     if let Some(directory) = &args.raw {

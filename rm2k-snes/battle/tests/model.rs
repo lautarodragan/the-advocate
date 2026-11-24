@@ -43,7 +43,7 @@ fn read(name: &str) -> Value {
     serde_json::from_str(&text).unwrap()
 }
 
-fn check(name: &str, answer: fn(&Db, &Value) -> rm2k_snes_battle::Result<Value>) -> usize {
+fn check<T>(name: &str, answer: impl Fn(&Db, &Value) -> rm2k_snes_battle::Result<T>) -> usize {
     let db = Db::from_dump(&game().join("dump"), true).unwrap();
     let cases = read(name);
     let cases = cases.as_array().unwrap();
@@ -74,7 +74,9 @@ fn every_battle_plays_or_is_refused_as_rm2k_would() {
 
 #[test]
 fn every_model_answers_or_is_refused() {
-    let n = check("models.json", model::model);
+    let n = check("models.json", |db, request| {
+        model::model(db, &model::ModelRequest::of(request)?)
+    });
     assert!(n >= 26, "the models are {n}");
 }
 

@@ -48,7 +48,7 @@ const LUMA: [u32; 3] = [19595, 38470, 7471];
 
 /// A member as the cartridge carries it: its three frames, twelve tiles
 /// each by rows, and its fifteen colours in colour and in grey.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Member {
     pub frames: Vec<Vec<Indices>>,
     pub colors: Vec<Color>,

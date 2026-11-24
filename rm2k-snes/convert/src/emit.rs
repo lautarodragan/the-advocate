@@ -4,43 +4,67 @@
 //! the battle, what the save game is signed with— from what every domain
 //! of the conversion answered, which is what the request carries.
 
-use crate::fail::Result;
+use crate::fail::{Result, Stop};
 use crate::maps::{MapInfo, PageRecord};
-use crate::text::hex;
-use serde_json::{json, Value};
+use rm2k_snes_mapdata::request;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
+
+/// A piece of the request some stage answered as JSON, as the emission's
+/// type: what the emission itself did when it read the request.
+pub fn typed<T: DeserializeOwned>(value: &Value) -> Result<T> {
+    serde_json::from_value(value.clone()).map_err(|e| {
+        Stop::new(format!(
+            "rm2k-snes-mapdata: the request: {e} in {}",
+            short(value)
+        ))
+    })
+}
+
+fn short(value: &Value) -> String {
+    let text = value.to_string();
+    match text.char_indices().nth(60) {
+        Some((at, _)) => format!("{}…", &text[..at]),
+        None => text,
+    }
+}
 
 /// A page as the emission takes it.
-pub fn page_record(page: &PageRecord) -> Value {
-    let own = page.own_route.as_ref().map(|own| {
-        json!({
-            "repeats": own.repeats,
-            "skippable": own.skippable,
-            "fixed_direction": own.fixed_direction,
-            "animation_continues": own.animation_continues,
-            "spin": own.spin,
-            "by_type": own.by_type,
-            "pattern": own.pattern.unwrap_or(1),
-            "frequency": own.frequency,
-            "speed": own.speed,
-            "orders": own.commands.len(),
-        })
+pub fn page_record(page: &PageRecord) -> Result<request::Page> {
+    let own_route = page.own_route.as_ref().map(|own| request::OwnRoute {
+        repeats: own.repeats,
+        skippable: own.skippable,
+        fixed_direction: own.fixed_direction,
+        animation_continues: own.animation_continues,
+        spin: own.spin,
+        by_type: own.by_type,
+        pattern: own.pattern.unwrap_or(1).into(),
+        frequency: own.frequency.into(),
+        speed: own.speed.into(),
+        orders: own.commands.len(),
     });
-    json!({
-        "event": page.event, "page": page.page,
-        "trigger": page.trigger, "switch_a": page.switch_a,
-        "switch_b": page.switch_b, "actor": page.actor,
-        "layer": page.layer, "item": page.item,
-        "has_code": page.has_code, "offset": page.offset,
-        "route_offset": page.route_offset,
-        "frequency": page.frequency, "speed": page.speed,
-        "fixed_direction": page.fixed_direction,
-        "fixed_graphic": page.fixed_graphic,
-        "own_route": own,
-        "draws": page.draws,
-        "variable": page.variable,
-        "graphic": page.graphic.as_ref().map(|(c, i, p)| json!([c, i, p])),
-        "turns": page.turns,
-        "pure": page.pure,
+    Ok(request::Page {
+        event: page.event,
+        page: page.page,
+        trigger: page.trigger,
+        switch_a: page.switch_a.into(),
+        switch_b: page.switch_b.into(),
+        actor: page.actor.into(),
+        layer: page.layer.into(),
+        item: page.item.into(),
+        has_code: page.has_code,
+        offset: page.offset,
+        route_offset: page.route_offset,
+        frequency: page.frequency.into(),
+        speed: page.speed.into(),
+        fixed_direction: page.fixed_direction,
+        fixed_graphic: page.fixed_graphic,
+        own_route,
+        draws: page.draws.as_ref().map(typed).transpose()?,
+        variable: page.variable,
+        graphic: page.graphic.clone(),
+        turns: page.turns,
+        pure: page.pure,
     })
 }
 
@@ -99,48 +123,78 @@ pub fn wrap_axes(m: &MapInfo) -> ((bool, bool), Vec<String>) {
 
 /// A map as the emission takes it: see `Map` in its `request.rs`. `access`
 /// is what it forbids, from [`access_bits`].
-pub fn map_record(m: &MapInfo, access: u8) -> Value {
-    json!({
-        "id": m.id, "name": m.name,
-        "access": access,
-        "tilemap": [m.tilemap.0, m.tilemap.1],
-        "size": [m.map.width, m.map.height], "start": [m.start.0, m.start.1],
-        "layout": m.layout_name,
-        "tiles": hex(&m.tile_data),
-        "bpp": m.bpp,
-        "panorama": m.panorama,
-        "cgram": hex(&m.cgram),
-        "above_tiles": hex(&m.above_tiles),
-        "above_cgram": hex(&m.above_cgram), "above_first": m.above_first,
-        "runs": m.runs,
-        "cells": hex(&m.cells),
-        "blocks": hex(&m.blocks),
-        "block_pass": hex(&m.block_pass),
-        "block_terrain": hex(&m.block_terrain),
-        "terrain_outside": m.terrain_outside,
-        "wrap": [wrap_axes(m).0 .0, wrap_axes(m).0 .1],
-        "sprite": m.objects,
-        "npcs": m.npcs, "movable": m.movable,
-        "posed": m.posed_table,
-        "animates_still": m.animates_still,
-        "animates_with": m.animates_with,
-        "events": m.map.events.iter().map(|e| json!([e.x, e.y])).collect::<Vec<_>>(),
+pub fn map_record(m: &MapInfo, access: u8) -> Result<request::Map> {
+    let ((wrap_x, wrap_y), _) = wrap_axes(m);
+    let events = &m.map.events;
+    Ok(request::Map {
+        id: m.id.into(),
+        name: m.name.clone(),
+        access,
+        tilemap: [m.tilemap.0 as i64, m.tilemap.1 as i64],
+        size: [m.map.width.into(), m.map.height.into()],
+        start: [m.start.0, m.start.1],
+        layout: m.layout_name.clone(),
+        tiles: m.tile_data.clone(),
+        bpp: m.bpp as usize,
+        panorama: m.panorama.as_ref().map(typed).transpose()?,
+        cgram: m.cgram.clone(),
+        above_tiles: m.above_tiles.clone(),
+        above_cgram: m.above_cgram.clone(),
+        above_first: m.above_first,
+        runs: m.runs.iter().map(typed).collect::<Result<_>>()?,
+        cells: m.cells.clone(),
+        blocks: m.blocks.clone(),
+        block_pass: m.block_pass.clone(),
+        block_terrain: m.block_terrain.clone(),
+        terrain_outside: m.terrain_outside.into(),
+        wrap: [wrap_x, wrap_y],
+        sprite: typed(&m.objects)?,
+        npcs: typed(&m.npcs)?,
+        movable: typed(&m.movable)?,
+        posed: typed(&m.posed_table)?,
+        animates_still: typed(&m.animates_still)?,
+        animates_with: typed(&m.animates_with)?,
+        events: events.iter().map(|e| [e.x.into(), e.y.into()]).collect(),
         // The cells that share another event's row, with that event's
         // index: see `trim::twins`.
-        "twins": m.map.twins.iter().map(|&(x, y, owner)| {
-            json!([x, y, m.map.events.iter().position(|e| e.id == owner)])
-        }).collect::<Vec<_>>(),
-        "pages": m.pages.iter().map(page_record).collect::<Vec<_>>(),
-        "evcode": hex(&m.evcode),
-        "changing": m.changing.iter().collect::<Vec<_>>(),
-        "appearing": m.appearing.iter().collect::<Vec<_>>(),
-        "turning": m.turning.iter().collect::<Vec<_>>(),
+        twins: m
+            .map
+            .twins
+            .iter()
+            .map(|&(x, y, owner)| {
+                let index = events.iter().position(|e| e.id == owner).ok_or_else(|| {
+                    Stop::new(format!(
+                        "map {}: a twin of event {owner}, which it does not have",
+                        m.id
+                    ))
+                })?;
+                Ok([x.into(), y.into(), index as i64])
+            })
+            .collect::<Result<_>>()?,
+        pages: m.pages.iter().map(page_record).collect::<Result<_>>()?,
+        evcode: m.evcode.clone(),
+        changing: m.changing.iter().copied().collect(),
+        appearing: m.appearing.iter().copied().collect(),
+        turning: m.turning.iter().copied().collect(),
         // The `ShowPicture` pictures the map carries: where they start in
         // its sprite bank, and each one's half size, objects and colours.
-        "pictures": m.pictures.as_ref().map(|(base, _table, images)| json!({"base": base, "images": images})),
+        pictures: match &m.pictures {
+            None => None,
+            Some((base, _table, images)) => Some(request::MapPictures {
+                base: typed(base)?,
+                images: images.iter().map(typed).collect::<Result<_>>()?,
+            }),
+        },
+        // Not the converter's: the emission decides it, see
+        // `layer_text::bake_all` in rm2k-snes-mapdata.
+        layer_text: 0,
         // The ChipSets its pages swap in, each converted over its grid: see
-        // `variants.rs`. Missing, none.
-        "variants": m.variants.iter().map(crate::variants::Variant::json).collect::<Vec<_>>(),
+        // `variants.rs`.
+        variants: m
+            .variants
+            .iter()
+            .map(crate::variants::Variant::request)
+            .collect::<Result<_>>()?,
     })
 }
 
@@ -162,7 +216,11 @@ const EMIT: crate::stage::Stage = crate::stage::Stage {
 
 /// Runs the emission and writes the `.inc` at `path`, with what the console
 /// decompresses of each map, uncompressed, in `raw/` next to it.
-pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> Result<Emitted> {
+pub fn emit(
+    path: &std::path::Path,
+    request: request::Emit,
+    dump: &std::path::Path,
+) -> Result<Emitted> {
     let directory = rm2k_project::absolute(path.parent().unwrap_or(std::path::Path::new(".")));
     // Not from the disk cache, which never kept it: it is asked once per
     // cartridge, and its request carries what every other stage answered,

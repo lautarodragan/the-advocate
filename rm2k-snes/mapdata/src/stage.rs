@@ -1,7 +1,7 @@
 //! The emission as a stage of a converter: what `emit` answers, as the
 //! files the binary writes, by name. The converter calls [`emit`] as a
-//! function, and the binary is a `main` over [`emit_of`] that reads the
-//! request and writes the files.
+//! function with the request it built, and the binary is a `main` over it
+//! that reads the request from its file and writes the files.
 //!
 //! **It reads nothing but the dump and the request it is given, and writes
 //! nothing**: each map's raw data, which the binary leaves in `--raw`, is in
@@ -10,7 +10,6 @@
 use crate::fail::{Bad, Result};
 use crate::materials;
 use crate::{animation, layer_text, record, request};
-use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -27,14 +26,7 @@ pub const RAW: &str = "raw/";
 /// `emit`: the whole `.inc` of a cartridge, from what every domain of the
 /// conversion answered —see `Emit` in `request.rs`—, with the database read
 /// from the dump in `data`.
-pub fn emit(data: &Path, request: &Value) -> Result<Files> {
-    let request = request::Emit::deserialize(request)
-        .map_err(|e| Bad::answer(format!("the request: {e}")))?;
-    emit_of(data, request)
-}
-
-/// [`emit`], of a request already read.
-pub fn emit_of(data: &Path, mut request: request::Emit) -> Result<Files> {
+pub fn emit(data: &Path, mut request: request::Emit) -> Result<Files> {
     // A ChipSet animation cut to fit is a loss, which the converter lists
     // with the cartridge's others.
     let cut = animation::fit_all_by_map(&mut request.maps);

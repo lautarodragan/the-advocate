@@ -18,6 +18,7 @@
 //! * [`stage`]: the commands a converter calls, as functions that answer
 //!   the files the binary writes.
 
+pub mod answer;
 pub mod battle;
 pub mod borders;
 pub mod boxes;

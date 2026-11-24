@@ -104,7 +104,7 @@ const MAX_RECORDS: usize = 0x0FFF;
 const MAX_TROOPS: usize = 0x7FFF;
 
 /// A map of the cartridge: its number and its size, in cells.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Map {
     pub id: i64,
     pub width: i64,

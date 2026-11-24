@@ -5,7 +5,7 @@ use crate::fail::{Bad, Result};
 use crate::hex;
 use crate::snes::Color;
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// A request file, read into `T`.
@@ -16,14 +16,14 @@ pub fn read<T: DeserializeOwned>(path: &Path) -> Result<T> {
 }
 
 /// `maps`: the cartridge's maps, in the order of its table.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Maps {
     pub maps: Vec<Map>,
 }
 
 /// A map, as the conversion left it: what `wally` answered, the
 /// pages the event compiler compiled, and what the cartridge decided.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Map {
     /// Its RM2k number, and its name in the map tree.
     pub id: i64,
@@ -38,17 +38,17 @@ pub struct Map {
     pub layout: String,
     /// The background: its tiles and its CGRAM words. 8bpp, or 4bpp in a
     /// map whose panorama goes in mode 1: `bpp` says.
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     #[serde(default = "eight")]
     pub bpp: usize,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub cgram: Vec<u8>,
     /// The upper layer: its 4bpp tiles, its CGRAM words, and the palette it
     /// starts at.
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub above_tiles: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub above_cgram: Vec<u8>,
     pub above_first: i64,
     /// The ChipSet's animation: each family's run, with its drawings.
@@ -57,13 +57,13 @@ pub struct Map {
     /// block's passability and terrain; and the terrain outside the map.
     /// The cells come two bytes each, little-endian; what the cartridge
     /// carries is [`Map::grid`].
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub cells: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub blocks: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub block_pass: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub block_terrain: Vec<u8>,
     pub terrain_outside: i64,
     /// Whether the map loops across and down, `[x, y]`: the converter
@@ -95,7 +95,7 @@ pub struct Map {
     pub twins: Vec<[i64; 3]>,
     /// The event pages, and their code and own routes in one block.
     pub pages: Vec<Page>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub evcode: Vec<u8>,
     /// The events whose graphic follows the page, those that only appear
     /// and disappear with it, and those that turn toward the hero.
@@ -133,28 +133,28 @@ pub struct Map {
 /// does. What it does not carry —the events, the sprites, the grid— is the
 /// map's. See `variants.rs` in rm2k-snes-convert and `tileset.s` in the
 /// runtime.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Variant {
     pub chipset: i64,
     /// Whether it draws otherwise than the map: one that does not carries
     /// the map's tiles, colours and animation, and the console swaps only
     /// its blocks in.
     pub draws: bool,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub cgram: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub above_tiles: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub above_cgram: Vec<u8>,
     pub above_first: i64,
     pub runs: Vec<Run>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub blocks: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub block_pass: Vec<u8>,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub block_terrain: Vec<u8>,
     pub terrain_outside: i64,
 }
@@ -199,7 +199,7 @@ impl Map {
 /// 1 the colour of the screen's backdrop. Its palettes are not here: in
 /// mode 3 they travel as the upper layer's, in mode 1 inside the
 /// background's.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Panorama {
     pub name: String,
     pub mode: u8,
@@ -208,7 +208,7 @@ pub struct Panorama {
     #[serde(rename = "loop")]
     pub looped: [bool; 2],
     pub auto: [i64; 2],
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     pub tilemap: Vec<Vec<u16>>,
     pub backdrop: Option<u16>,
@@ -237,12 +237,12 @@ pub struct Panorama {
 /// One of a map's other panoramas: what its record and its data need,
 /// which the map's shares —the mode, the loops, the layout— and its own
 /// colours.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct PanoramaImage {
     pub name: String,
     pub size: [i64; 2],
     pub stretch: [i64; 2],
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     pub tilemap: Vec<Vec<u16>>,
     pub backdrop: Option<u16>,
@@ -252,7 +252,7 @@ pub struct PanoramaImage {
 
 /// A map's `ShowPicture` pictures: the first tile of its sprite bank they
 /// start at, and each picture, in the order the bytecode numbers them.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct MapPictures {
     pub base: i64,
     pub images: Vec<PictureImage>,
@@ -264,7 +264,7 @@ pub struct MapPictures {
 /// of the palette it shares and which palette that is, from the top; and
 /// whether it goes behind what its map draws above the hero —see
 /// `picture_tables`—.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct PictureImage {
     pub half: [i64; 2],
     pub objects: Vec<[i64; 3]>,
@@ -276,7 +276,7 @@ pub struct PictureImage {
 }
 
 /// `emit`: everything the cartridge carries, from every domain.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Emit {
     /// The maps, in the order of the cartridge's table: see [`Map`].
     pub maps: Vec<Map>,
@@ -318,19 +318,18 @@ pub struct Emit {
     /// window and its font, the title's menu, the slots and the pause
     /// menu, the text screens with their windows, End Game, the texts they
     /// compose, and the geometry they were drawn with.
-    pub screens: serde_json::Value,
+    pub screens: rm2k_snes_screens::answer::Answer,
     /// The colour-memory entries the message window takes, as
     /// `rm2k-snes-screens window` counted them from the System: each map's
     /// background starts after them. See [`crate::cgram::cgram_reserved`].
     pub window_colors: u32,
     /// The message window of every other System the cartridge switches to,
     /// in its order, as `rm2k-snes-screens window` answered each in its
-    /// `systems`: `{"system": name, "window": ...}`. Empty in a cartridge
-    /// that does not switch.
+    /// `systems`. Empty in a cartridge that does not switch.
     #[serde(default)]
-    pub window_systems: Vec<serde_json::Value>,
+    pub window_systems: Vec<rm2k_snes_screens::answer::OtherSystem>,
     /// The text block of every `ShowMessage`, as the event compiler left it.
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub messages: Vec<u8>,
     /// The pair table its letters are written with: see `Pairs` in the
     /// event compiler's `messages.rs`.
@@ -355,12 +354,12 @@ pub struct Emit {
     /// The battle's songs and sounds, as the compiler numbered them.
     pub battle_audio: Option<serde_json::Value>,
     /// The battle scene: the backdrops and the battlers, already as bytes.
-    pub scene: serde_json::Value,
+    pub scene: Scene,
     /// What `rm2k-snes-battle tables` wrote —the experience's and the
     /// encounters' pieces— and its experience slots.
     pub battle_tables: BattleTables,
     /// The troops' event pages, as the compiler answered them, if any.
-    pub troop_pages: Option<serde_json::Value>,
+    pub troop_pages: Option<rm2k_snes_events::answer::TroopPages>,
     /// The parallel common events that compile: `[switch, number, pure,
     /// code]`, with switch 0 for one that runs always and `pure` for one
     /// that only runs when what it reads changes —see `commons::pure` in the
@@ -380,7 +379,7 @@ pub struct Emit {
     #[serde(default)]
     pub commons: Option<Commons>,
     /// What `rm2k-snes-battle model` answered.
-    pub battle_model: serde_json::Value,
+    pub battle_model: rm2k_snes_battle::model::Model,
     /// The compiler's indices: each variable's slot, and each (actor,
     /// skill) pair's bit.
     pub variables: Vec<(i64, i64)>,
@@ -421,7 +420,7 @@ pub struct Emit {
 /// Who shows it, the tiles from its first it reserves, its tiles as
 /// `[tile, 64 colour indices]`, its palettes and its pictures, in the order
 /// of the common table.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct CommonSet {
     pub name: String,
     pub tiles: usize,
@@ -435,7 +434,7 @@ pub struct CommonSet {
 /// its rows of 32 cells, its 4bpp tiles, a tilemap entry per cell and its
 /// palettes, sixteen colours each from the first background palette above
 /// the window's.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct BigLayer {
     pub top: i64,
     /// Where it was drawn: its centre on RM2k's screen, and half its size
@@ -448,7 +447,7 @@ pub struct BigLayer {
     #[serde(default)]
     pub wider: bool,
     pub rows: usize,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     pub tilemap: Vec<u16>,
     pub palettes: Vec<Vec<Color>>,
@@ -466,16 +465,16 @@ pub struct BigLayer {
 /// drew it: its tiles, a byte a pixel and the first one blank, a tile per
 /// cell of the layer, and the point of the screen a zoom shrinks it
 /// towards.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Mode7Texture {
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     pub map: Vec<u8>,
     pub center: [i64; 2],
 }
 
 /// The shared common event bodies: see `commons.rs` in the event compiler.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Commons {
     /// Each body's common event number and its bytecode, by index.
     pub bodies: Vec<(i64, String)>,
@@ -493,13 +492,13 @@ pub struct Commons {
 /// of their event 0, by number, and the maps that carry the copies, by
 /// index: see `common_pages.rs` in rm2k-snes-convert and `switch_of` in the
 /// runtime's `common_events.s`.
-#[derive(Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Copies {
     pub commons: Vec<i64>,
     pub maps: Vec<i64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Rom {
     pub title: String,
     pub sram_signature: String,
@@ -511,7 +510,7 @@ pub struct Rom {
 /// What the `.msu` may carry that the ROM cannot do without. Which pieces
 /// go is decided by `pack_with_msu`, in `rm2k-snes-cartridge`: this only
 /// marks the ones that may, and says whether they may.
-#[derive(Deserialize, Default, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum MsuData {
     /// Nothing: without MSU-1 the game is the same. What every game is
@@ -528,10 +527,10 @@ pub enum MsuData {
 
 /// The text block's pair table: the first byte value that stands for a
 /// pair, and two bytes per pair from there up.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct MessagePairs {
     pub first: i64,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub table: Vec<u8>,
 }
 
@@ -539,16 +538,16 @@ pub struct MessagePairs {
 /// fifteen colour words of its palette, entries 1 to 15. See `faces.rs` in
 /// `rm2k-snes-screens`, which draws them, and `message_face.s` in the
 /// runtime, which reads them.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct MessageFace {
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     pub palette: Vec<u16>,
 }
 
 /// A picture that fills the screen, as one LZ2 stream with its tiles,
 /// tilemap and colours.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct FullScreen {
     pub tiles: i64,
     pub colors: i64,
@@ -557,12 +556,80 @@ pub struct FullScreen {
     /// at 8, which goes on BG1 in mode 1.
     #[serde(default = "eight_bits")]
     pub bpp: i64,
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub stream: Vec<u8>,
 }
 
+/// The cartridge's battle scene, as the converter's `scene.rs` decided it:
+/// what a backdrop and a battler look like, where each member stands and in
+/// which order the troop is drawn, already as bytes and numbers. See
+/// [`crate::scene`], which only writes it.
+#[derive(Serialize, Deserialize)]
+pub struct Scene {
+    /// The numbers the scene was drawn with: see [`SceneGeometry`].
+    pub geometry: SceneGeometry,
+    /// How many backdrops the game has, which the `.msu` carries all of.
+    pub game: usize,
+    /// The backdrop of each troop that asks for one: `(troop, its index
+    /// among the ROM's, or `PLACE_BACKDROP`)`.
+    pub troop_backdrop: Vec<(i64, i64)>,
+    /// Each map's backdrop, by the cartridge's index, and each terrain's.
+    pub map_backdrop: Vec<i64>,
+    pub terrains: Vec<i64>,
+    /// Which of the ROM's backdrops stands in for each of the game's.
+    pub fallback_of: Vec<i64>,
+    /// The backdrops the ROM carries, as their light fallback.
+    pub backdrops: Vec<SceneBackdrop>,
+    pub battlers: Vec<SceneBattler>,
+    /// Each troop the cartridge asks for: `(number, [battler or $FF, x,
+    /// y] per member, the members in their drawing order)`.
+    pub troops: Vec<(i64, Vec<[i64; 3]>, Vec<i64>)>,
+}
+
+/// The constants of the converter's `scene.rs` the `.inc` repeats, by
+/// their names there.
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub struct SceneGeometry {
+    pub width: i64,
+    pub height: i64,
+    pub tiles: i64,
+    pub tiles_x: i64,
+    pub tiles_y: i64,
+    pub colors: i64,
+    pub cgram_base: i64,
+    pub vram_tiles: i64,
+    pub vram_map: i64,
+    pub fallback_colors: i64,
+    pub fallback_planes: i64,
+    pub fallback_width: i64,
+    pub fallback_height: i64,
+    pub fallback_scale: i64,
+    pub battler_palette: i64,
+}
+
+/// A backdrop's light fallback: its 4bpp tiles and its colour words.
+#[derive(Serialize, Deserialize)]
+pub struct SceneBackdrop {
+    #[serde(with = "hex")]
+    pub tiles: Vec<u8>,
+    #[serde(with = "hex")]
+    pub colors: Vec<u8>,
+}
+
+/// A battler: its columns of tiles and its height, its colours from entry
+/// 1, and its bytes as the console decompresses them.
+#[derive(Serialize, Deserialize)]
+pub struct SceneBattler {
+    pub columns: i64,
+    pub height: i64,
+    pub palette: Vec<Color>,
+    #[serde(with = "hex")]
+    pub bytes: Vec<u8>,
+}
+
 /// The battle animations, and the box they are drawn in.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Animations {
     /// The box's side, an object's, how many objects and tiles it takes,
     /// and the console's screen.
@@ -577,24 +644,27 @@ pub struct Animations {
 
 /// One battle animation: its frames as they end up in VRAM, its anchor as
 /// the console's table carries it, and its colours.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct BattleAnimation {
     pub number: i64,
-    #[serde(deserialize_with = "drawings")]
+    #[serde(with = "hex::each")]
     pub frames: Vec<Vec<u8>>,
     pub anchor: [i64; 2],
     pub palette: Vec<Color>,
 }
 
-#[derive(Deserialize)]
+/// What `rm2k-snes-battle tables` wrote —the experience's and the
+/// encounters' pieces of the `.inc`— and its experience slots: see
+/// `ExperienceAnswer` there.
+#[derive(Serialize, Deserialize)]
 pub struct BattleTables {
     pub experience: String,
     pub encounters: String,
-    pub slots: serde_json::Value,
+    pub slots: Vec<Option<i64>>,
 }
 
 /// A family's run of the ChipSet's animation.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Run {
     /// `water` or `animated`.
     pub family: String,
@@ -602,20 +672,12 @@ pub struct Run {
     pub base: i64,
     pub tiles: i64,
     /// Each drawing's tiles.
-    #[serde(deserialize_with = "drawings")]
+    #[serde(with = "hex::each")]
     pub drawings: Vec<Vec<u8>>,
 }
 
-fn drawings<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Vec<Vec<u8>>, D::Error> {
-    let texts: Vec<String> = Deserialize::deserialize(d)?;
-    texts
-        .iter()
-        .map(|t| hex::decode(t).map_err(|bad| serde::de::Error::custom(bad.message())))
-        .collect()
-}
-
 /// A graphic of command 34: see [`Sprite::route_gfx`].
-#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum RouteGfx {
     Colored(i64, i64, Vec<u32>),
@@ -647,7 +709,7 @@ impl RouteGfx {
 }
 
 /// A slot of the sprite bank, by what it holds.
-#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Slot {
     Hero {
@@ -673,9 +735,9 @@ pub enum Slot {
 }
 
 /// The objects of a map.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Sprite {
-    #[serde(deserialize_with = "hex::bytes")]
+    #[serde(with = "hex")]
     pub tiles: Vec<u8>,
     /// The palettes, fifteen colours at most each.
     pub palettes: Vec<Vec<Color>>,
@@ -729,7 +791,7 @@ pub struct Sprite {
 
 /// A character's twelve poses, `[CharSet, index, the poses in hex, which
 /// of them the map can show]`. Without the fourth, or null, all twelve.
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum Bank {
     Shows(String, i64, String, Option<Vec<i64>>),
@@ -765,7 +827,7 @@ impl Bank {
 }
 
 /// The cache of slots, as `wally` answered it.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Cache {
     /// `[event, still pose or null, palette]`: each event drawn, with the
     /// still pose it starts with —an index into `stills`— or nothing if it
@@ -782,7 +844,7 @@ pub struct Cache {
 }
 
 /// The slots still events take turns in, as `wally` answered them.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Shared {
     /// `[event, slot, pose, palette]`: the pose is an index into `poses`.
     pub events: Vec<(i64, usize, usize, u32)>,
@@ -793,14 +855,14 @@ pub struct Shared {
 }
 
 /// Where the battle animation's box landed.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Animation {
     pub base: i64,
     pub palette: i64,
 }
 
 /// An event that is drawn.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Npc {
     pub event: i64,
     /// Its cell.
@@ -828,7 +890,7 @@ pub struct Npc {
 
 /// A still event drawn into the background's cells, as Wally placed it:
 /// see `posed` in Wally.
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Posed {
     pub event: i64,
     /// Its cell.
@@ -843,7 +905,7 @@ pub struct Posed {
 }
 
 /// An event page, compiled.
-#[derive(Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Page {
     pub event: i64,
@@ -883,7 +945,7 @@ pub struct Page {
 
 /// What a page of an event that changes graphic draws, as the map's
 /// conversion placed it.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Draws {
     /// The 32x32 block of the sprite bank its poses start at, and its
     /// palette; no block for an event that only appears, whose own row
@@ -908,7 +970,7 @@ pub struct Draws {
 }
 
 /// The route a page walks by itself.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct OwnRoute {
     pub repeats: bool,
     pub skippable: bool,

@@ -9,9 +9,8 @@
 use crate::asm::{block, msu_block};
 use crate::compress;
 use crate::fail::{Bad, Result};
-use crate::json::{at, bytes_at, colors, int, int_at, ints, ints_at, list, list_at};
+use crate::request::Scene;
 use crate::snes::{cgram_bytes, pack_tile};
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// What goes in the backdrop tables instead of a backdrop's number: the
@@ -57,12 +56,11 @@ fn byte_list(values: Vec<i64>, empty: u8) -> Vec<u8> {
 /// With `msu`, the streams of the fallbacks and of the battlers go marked as
 /// pieces that may travel in the `.msu`: the battle reads them only through
 /// `lz2_decompress`, once each as it opens. See `crate::asm::msu_block`.
-pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
-    let g = at(scene, "geometry")?;
-    let n = |name: &str| int_at(g, name);
-    let backdrops = list_at(scene, "backdrops")?;
-    let battlers = list_at(scene, "battlers")?;
-    let terrains = ints_at(scene, "terrains")?;
+pub fn scenes_asm(scene: &Scene, used: &[i64], msu: bool) -> Result<String> {
+    let g = &scene.geometry;
+    let backdrops = &scene.backdrops;
+    let battlers = &scene.battlers;
+    let terrains = scene.terrains.clone();
     let mut out: Vec<String> = vec![
         "\n; --- the battle scene: the backdrops and the battlers ---".into(),
         ";".into(),
@@ -70,31 +68,31 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
         "; 256x128, which is the seven text lines at the top. The reason is".into(),
         "; in rm2k-snes-convert's scene.rs; only the bytes travel here.".into(),
         "; The game's backdrops, which the .msu carries all of, and the ROM's.".into(),
-        format!("BACKDROPS_GAME  = {}", int_at(scene, "game")?),
+        format!("BACKDROPS_GAME  = {}", scene.game),
         format!("SCENE_BACKDROPS = {}", backdrops.len()),
         format!("BACKDROP_PLAIN  = ${FLAT_BACKDROP:02X}"),
         format!("PLACE_BACKDROP = ${PLACE_BACKDROP:02X}"),
         format!("BACKDROP_TERRAINS = {}", terrains.len().max(1)),
         format!("SCENE_BATTLERS = {}", battlers.len()),
-        format!("SCENE_WIDTH     = {}", n("WIDTH")?),
-        format!("SCENE_HEIGHT    = {}", n("HEIGHT")?),
-        format!("SCENE_TILES     = {}", n("TILES")?),
-        format!("SCENE_ROWS      = {}", n("TILES_Y")?),
-        format!("SCENE_COLUMNS = {}", n("TILES_X")?),
-        format!("SCENE_COLORS    = {}", n("COLORS")?),
-        format!("SCENE_CGRAM     = {}", n("CGRAM_BASE")?),
-        format!("SCENE_VRAM      = ${:04X}", n("VRAM_TILES")?),
-        format!("SCENE_MAP       = ${:04X}", n("VRAM_MAP")?),
+        format!("SCENE_WIDTH     = {}", g.width),
+        format!("SCENE_HEIGHT    = {}", g.height),
+        format!("SCENE_TILES     = {}", g.tiles),
+        format!("SCENE_ROWS      = {}", g.tiles_y),
+        format!("SCENE_COLUMNS = {}", g.tiles_x),
+        format!("SCENE_COLORS    = {}", g.colors),
+        format!("SCENE_CGRAM     = {}", g.cgram_base),
+        format!("SCENE_VRAM      = ${:04X}", g.vram_tiles),
+        format!("SCENE_MAP       = ${:04X}", g.vram_map),
         "; The ROM's light fallback: 4bpp and a single palette. See".into(),
         "; rm2k-snes-convert's scene.rs.".into(),
-        format!("FALLBACK_COLORS = {}", n("FALLBACK_COLORS")?),
-        format!("FALLBACK_TILE   = {}", n("FALLBACK_PLANES")? * 8),
+        format!("FALLBACK_COLORS = {}", g.fallback_colors),
+        format!("FALLBACK_TILE   = {}", g.fallback_planes * 8),
         format!(
             "FALLBACK_BYTES  = {}",
-            n("FALLBACK_WIDTH")? * n("FALLBACK_HEIGHT")? * n("FALLBACK_PLANES")? / 8
+            g.fallback_width * g.fallback_height * g.fallback_planes / 8
         ),
-        format!("FALLBACK_SCALE = {}", n("FALLBACK_SCALE")?),
-        format!("SCENE_BAT_PALETTE = {}", n("BATTLER_PALETTE")?),
+        format!("FALLBACK_SCALE = {}", g.fallback_scale),
+        format!("SCENE_BAT_PALETTE = {}", g.battler_palette),
         "; How many bytes of battlers a troop has, at most: they are".into(),
         "; decompressed together when the battle starts.".into(),
         format!("LZ2_CAP_BATTLERS = ${BATTLERS_CAP:04X}"),
@@ -103,15 +101,9 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
         "; that go from SCENE_VRAM to the end of VRAM, so 512 wraps around".into(),
         "; and lands on word 0, which during the battle is map VRAM that".into(),
         "; nobody uses.".into(),
-        format!("SCENE_TARGET    = {}", n("TILES")?),
+        format!("SCENE_TARGET    = {}", g.tiles),
     ];
-    let troop_backdrop: HashMap<i64, i64> = list_at(scene, "troop_backdrop")?
-        .iter()
-        .map(|p| {
-            let p = ints(p)?;
-            Ok((p[0], p[1]))
-        })
-        .collect::<Result<_>>()?;
+    let troop_backdrop: HashMap<i64, i64> = scene.troop_backdrop.iter().copied().collect();
     let by_troop: Vec<i64> = used
         .iter()
         .map(|t| troop_backdrop.get(t).copied().unwrap_or(0xFF))
@@ -119,7 +111,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     out.push(block("scene_troop_backdrop", &byte_list(by_troop, 0xFF)));
     out.push(block(
         "scene_map_backdrop",
-        &byte_list(ints_at(scene, "map_backdrop")?, 0xFF),
+        &byte_list(scene.map_backdrop.clone(), 0xFF),
     ));
     let terrain_bytes = if terrains.is_empty() {
         vec![FLAT_BACKDROP]
@@ -129,7 +121,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     out.push(block("backdrop_terrain", &terrain_bytes));
     out.push(block(
         "backdrop_fallback",
-        &byte_list(ints_at(scene, "fallback_of")?, 0),
+        &byte_list(scene.fallback_of.clone(), 0),
     ));
     let mut pointers = vec![
         format!(".block {}", 4 * backdrops.len().max(1)),
@@ -144,7 +136,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     out.push(pointers.join("\n"));
     let mut cgram = Vec::new();
     for b in backdrops {
-        cgram.extend(bytes_at(b, "colors")?);
+        cgram.extend(&b.colors);
     }
     out.push(block(
         "backdrop_cgram",
@@ -152,7 +144,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     ));
     out.push(block(
         "fallback_height",
-        &fallback_height(n("CGRAM_BASE")? as u8, n("FALLBACK_PLANES")? as usize),
+        &fallback_height(g.cgram_base as u8, g.fallback_planes as usize),
     ));
     out.push(block("fallback_double", &fallback_double()));
     // Sixty-four zeros: the transparent tile under the scene, and the fixed
@@ -161,23 +153,13 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     // Each fallback in LZ2, in a block that does not cross a bank, which is
     // what the decompressor asks for: `scn_double` decompresses it into WRAM
     // and enlarges it from there, before the battlers take that place.
-    let tiles: Vec<Vec<u8>> = backdrops
-        .iter()
-        .map(|b| bytes_at(b, "tiles"))
-        .collect::<Result<_>>()?;
-    let refs: Vec<&[u8]> = tiles.iter().map(Vec::as_slice).collect();
+    let refs: Vec<&[u8]> = backdrops.iter().map(|b| b.tiles.as_slice()).collect();
     for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
         out.push(msu_block(&format!("backdrop_{k}"), stream, msu));
     }
     // The battlers: their tables and then their bytes.
-    let columns: Vec<i64> = battlers
-        .iter()
-        .map(|b| int_at(b, "columns"))
-        .collect::<Result<_>>()?;
-    let heights: Vec<i64> = battlers
-        .iter()
-        .map(|b| int_at(b, "height"))
-        .collect::<Result<_>>()?;
+    let columns: Vec<i64> = battlers.iter().map(|b| b.columns).collect();
+    let heights: Vec<i64> = battlers.iter().map(|b| b.height).collect();
     out.push(block("battler_n", &byte_list(columns.clone(), 0)));
     out.push(block("battler_height", &byte_list(heights.clone(), 0)));
     let mut planes = Vec::new();
@@ -202,7 +184,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     const BATTLER_PALETTES_MAX: usize = 7;
     for b in battlers {
         let mut palette = vec![[0u8, 0, 0]];
-        palette.extend(colors(at(b, "palette")?)?);
+        palette.extend(&b.palette);
         palette.resize(palette.len().max(16), [0, 0, 0]);
         cgram.extend(cgram_bytes(&palette));
     }
@@ -212,11 +194,11 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     ));
     // Per troop member, which battler, where its corner falls and which one
     // of the troop goes in that place of the drawing order.
-    let mut placed: HashMap<i64, (&Vec<Value>, Vec<i64>)> = HashMap::new();
-    for t in list_at(scene, "troops")? {
-        let t = list(t)?;
-        placed.insert(int(&t[0])?, (list(&t[1])?, ints(&t[2])?));
-    }
+    let placed: HashMap<i64, (&Vec<[i64; 3]>, &Vec<i64>)> = scene
+        .troops
+        .iter()
+        .map(|(number, members, order)| (*number, (members, order)))
+        .collect();
     let (mut member_b, mut member_x, mut member_y, mut member_command) =
         (vec![], vec![], vec![], vec![]);
     for number in used {
@@ -225,7 +207,6 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
             .ok_or_else(|| Bad::answer(format!("the scene has nothing of troop {number}")))?;
         let mut distinct = std::collections::BTreeSet::new();
         for m in members.iter() {
-            let m = ints(m)?;
             if m[0] != 0xFF {
                 distinct.insert(m[0]);
             }
@@ -252,14 +233,11 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     // the battle starts —see `scn_battlers_load`— and reads them from there
     // whenever it draws one, so a troop's distinct battlers have to fit in
     // their place together.
-    let raw: Vec<Vec<u8>> = battlers
-        .iter()
-        .map(|b| bytes_at(b, "bytes"))
-        .collect::<Result<_>>()?;
+    let raw: Vec<&[u8]> = battlers.iter().map(|b| b.bytes.as_slice()).collect();
     for (number, (members, _)) in used.iter().map(|n| (n, &placed[n])) {
         let mut distinct: Vec<usize> = Vec::new();
         for m in members.iter() {
-            let b = ints(m)?[0];
+            let b = m[0];
             if b != 0xFF && !distinct.contains(&(b as usize)) {
                 distinct.push(b as usize);
             }
@@ -272,8 +250,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
             )));
         }
     }
-    let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
-    for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
+    for (k, stream) in compress::compress_many(&raw)?.iter().enumerate() {
         out.push(msu_block(&format!("battler_{k}"), stream, msu));
     }
     Ok(out.join("\n") + "\n")

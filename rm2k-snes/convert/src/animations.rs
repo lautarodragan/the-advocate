@@ -24,7 +24,6 @@ use crate::game::{Command, Game};
 use crate::images;
 use rm2k_snes_bytecode::events::OP_ANIMATION;
 use rm2k_snes_events::codes::SHOW_BATTLE_ANIMATION;
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -256,18 +255,27 @@ pub fn report(info: &Info) -> Report {
 /// The cartridge's battle animations as `rm2k-snes-mapdata emit` takes
 /// them: the box, and per animation its frames as they end up in VRAM, its
 /// anchor as the console's table carries it and its colours.
-pub fn request(animations: &BTreeMap<i32, Info>) -> Value {
-    json!({
-        "box": BOX, "obj": OBJ, "objects": OBJECTS, "tiles": TILES,
-        "screen": [SCREEN.0, SCREEN.1],
-        "list": animations.iter().map(|(number, info)| {
-            let (ax, ay) = rom_anchor(info);
-            json!({
-                "number": number,
-                "frames": info.frames.iter().map(|f| crate::text::hex(&frame_bytes(f))).collect::<Vec<_>>(),
-                "anchor": [ax, ay],
-                "palette": info.palette,
+pub fn request(
+    animations: &BTreeMap<i32, Info>,
+) -> crate::fail::Result<rm2k_snes_mapdata::request::Animations> {
+    use rm2k_snes_mapdata::request::{Animations, BattleAnimation};
+    Ok(Animations {
+        side: BOX,
+        obj: OBJ,
+        objects: OBJECTS,
+        tiles: TILES,
+        screen: [SCREEN.0, SCREEN.1],
+        list: animations
+            .iter()
+            .map(|(number, info)| {
+                let (ax, ay) = rom_anchor(info);
+                Ok(BattleAnimation {
+                    number: (*number).into(),
+                    frames: info.frames.iter().map(|f| frame_bytes(f)).collect(),
+                    anchor: [ax, ay],
+                    palette: info.palette.clone(),
+                })
             })
-        }).collect::<Vec<_>>(),
+            .collect::<crate::fail::Result<_>>()?,
     })
 }

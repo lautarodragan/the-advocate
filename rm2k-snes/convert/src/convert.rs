@@ -29,7 +29,7 @@ use rm2k_snes_bytecode::events::{
 };
 use rm2k_snes_events::codes::{ROUTE_CHANGE_GRAPHIC, TELEPORT, TIMER_OPERATION};
 use rm2k_snes_events::route;
-use rm2k_snes_mapdata::{engine, record, vram};
+use rm2k_snes_mapdata::{engine, record, request, vram};
 
 /// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
 /// below `TITLE_MENU_MAP` ($4400) and the menu's 4bpp ones (16 words) from
@@ -824,32 +824,38 @@ pub fn run(options: Options) -> Result<()> {
     let members = scan::possible_members(every_refs.iter().copied(), &party, &file_commands);
     // The random encounters of each map, and the experience tables:
     // `rm2k-snes-battle`'s first call.
-    let request = json!({
-        "party": members,
-        "maps": infos.iter().map(|m| json!({"id": m.id, "width": m.map.width, "height": m.map.height}))
-            .collect::<Vec<_>>(),
-        "encounter_steps": options.test_encounters,
-        "tree_nodes": game.tree.added_nodes,
-    });
+    let request = rm2k_snes_battle::Request {
+        party: members.iter().map(|&a| a.into()).collect(),
+        maps: infos
+            .iter()
+            .map(|m| rm2k_snes_battle::Map {
+                id: m.id.into(),
+                width: m.map.width.into(),
+                height: m.map.height.into(),
+            })
+            .collect(),
+        encounter_steps: options.test_encounters,
+        tree_nodes: game.tree.added_nodes.clone(),
+    };
     let written = stage::call(
         BATTLE_TABLES,
-        &request,
+        &json!(request),
         &["--data".into(), game.dump.clone().into_os_string()],
         || rm2k_snes_battle::stage::tables(&game.dump, &request),
     )?;
-    let tables_answer = stage::json(&written, "battle.json")?;
-    let encounters = tables_answer["encounters"].clone();
-    let battle_tables = json!({
-        "experience": stage::text(&written, "experience.inc")?,
-        "slots": tables_answer["experience"]["slots"],
-        "encounters": stage::text(&written, "encounters.inc")?,
-    });
-    if int(&encounters["records"]) != 0 {
+    let tables_answer: rm2k_snes_battle::Answer = stage::typed(&written, "battle.json")?;
+    let encounters = tables_answer.encounters;
+    let battle_tables = request::BattleTables {
+        experience: stage::text(&written, "experience.inc")?,
+        slots: tables_answer.experience.slots,
+        encounters: stage::text(&written, "encounters.inc")?,
+    };
+    if encounters.records != 0 {
         println!(
             "  random encounters: {} map(s), {} zone(s), {} troop(s)",
-            int(&encounters["records"]),
-            int(&encounters["zones"]),
-            encounters["troops"].as_array().map_or(0, Vec::len)
+            encounters.records,
+            encounters.zones,
+            encounters.troops.len()
         );
     }
     // Every page of the cartridge, compiled: `rm2k-snes-events`' second
@@ -886,7 +892,7 @@ pub fn run(options: Options) -> Result<()> {
         &extra,
         test_event_map,
         &test_graphics,
-        &encounters["troops"],
+        &json!(encounters.troops),
     )?;
     degradations.add_compiler_answer(&compiled);
     // The events the RAM left out that Wally painted into their map lose
@@ -939,8 +945,6 @@ pub fn run(options: Options) -> Result<()> {
     });
     let messages = compiled.messages.data.0.clone();
     let message_count = compiled.messages.count as i64;
-    let message_pairs =
-        json!({"first": compiled.messages.pair_first, "table": compiled.messages.pairs});
     let troops = scene::Troops {
         ids: compiled.troops.ids.clone(),
         backdrops: compiled.troops.backdrops.iter().cloned().collect(),
@@ -1432,47 +1436,33 @@ pub fn run(options: Options) -> Result<()> {
         &json!(compiled.messages.letters),
         &screen_letters,
     )?;
-    for loss in screens_answer["losses"].as_array().into_iter().flatten() {
-        degradations.cartridge(
-            loss["kind"].as_str().unwrap_or(""),
-            loss["text"].as_str().unwrap_or(""),
-        );
+    for loss in &screens_answer.losses {
+        degradations.cartridge(&loss.kind, &loss.text);
     }
-    let w = &screens_answer["window"];
+    let w = &screens_answer.window;
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",
-        w["tiles"].as_str().map_or(0, |s| s.len() / 2) / 32,
-        w["background"].as_str().map_or(0, |s| s.len() / 2) / 32,
+        w.system.tiles.len() / 32,
+        w.system.background.len() / 32,
         window_colors,
-        w["font"].as_str().map_or(0, |s| s.len() / 2),
+        w.font.len(),
         message_count,
         messages.len()
     );
-    for line in screens_answer["says"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-    {
-        println!("{}", line.as_str().unwrap_or(""));
+    for line in &screens_answer.says {
+        println!("{line}");
     }
     vram::check_splits().map_err(|e| Stop::new(e.message().to_string()))?;
-    let s = &screens_answer["slots"];
-    let slot_tiles = s["tiles"].as_array().map_or(0, Vec::len);
-    let headers = s["headers"].as_array().cloned().unwrap_or_default();
-    let mut faces: Vec<i64> = s["faces"]
-        .as_object()
-        .map(|f| f.keys().map(|k| k.parse().unwrap_or(0)).collect())
-        .unwrap_or_default();
-    faces.sort();
+    let s = &screens_answer.slots;
+    let slot_tiles = s.tiles.len();
+    let headers = &s.headers;
+    let faces: Vec<&i32> = s.faces.keys().collect();
     let face_names: Vec<String> = faces
         .iter()
         .map(|a| {
             format!(
                 "{a} {}",
-                game.db
-                    .actors
-                    .get(&(*a as i32))
-                    .map_or("", |x| x.name.as_str())
+                game.db.actors.get(a).map_or("", |x| x.name.as_str())
             )
         })
         .collect();
@@ -1481,37 +1471,24 @@ pub fn run(options: Options) -> Result<()> {
         vram::SLOTS,
         slot_tiles,
         slot_tiles * 32,
-        s["palettes"].as_array().map_or(0, Vec::len),
-        (headers.len() * headers.first().and_then(Value::as_array).map_or(0, Vec::len)
-            + vram::SLOTS as usize * 4 * s["rows"][0][0][0].as_array().map_or(0, Vec::len))
-            * 2,
+        s.palettes.len(),
+        // Only the headers': the slots' rows were never counted, see the
+        // draft `the-slots-screen-line-counts-no-row-cells`.
+        headers.len() * headers.first().map_or(0, Vec::len) * 2,
         faces.len(),
         if face_names.is_empty() { "none".to_string() } else { face_names.join(", ") }
     );
     let mut title_screen = None;
-    if !screens_answer["title"].is_null() {
-        let t = &screens_answer["title"];
+    if let Some(t) = &screens_answer.title {
         let name = &game.db.title_name;
         // The game's, or the RTP's, in any case; where it was looked for
         // when there is none.
         let picture = crate::resources::find(&[&game.game_dir, &rtp_dir], "Title", name, &[".png"])
             .unwrap_or_else(|| game.game_dir.join("Title").join(format!("{name}.png")));
-        let texts: Vec<String> = t["texts"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-            .iter()
-            .map(|v| v.as_str().unwrap_or("").to_string())
-            .collect();
-        let menu_tiles = t["tiles"].as_array().map_or(0, Vec::len);
-        let menu_palette: Vec<[u8; 3]> = t["palette"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-            .iter()
-            .map(|c| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8])
-            .collect();
-        let menu_maps = t["tilemaps"].as_array().map_or(0, Vec::len);
+        let texts = &t.texts;
+        let menu_tiles = t.tiles.len();
+        let menu_palette = t.palette.clone();
+        let menu_maps = t.tilemaps.len();
         // The image, compressed like the Game Over one, and with the menu's
         // colours below its own in the same stream: the whole CGRAM at
         // once, the menu's palette at the bottom because a 4-bit BG only
@@ -1650,7 +1627,14 @@ pub fn run(options: Options) -> Result<()> {
     }
     // The backdrops and the battlers the cartridge's battles ask for,
     // each one once.
-    let scenes = scene::rom_scene(&game, &settings, &rtp_dir, &troops, &infos, &encounters)?;
+    let scenes = scene::rom_scene(
+        &game,
+        &settings,
+        &rtp_dir,
+        &troops,
+        &infos,
+        &encounters.per_map,
+    )?;
     for b in &scenes.backdrops {
         let (rom_tiles, rom_colors) = scene::fallback_bytes(&b.light);
         let (msu_tiles, msu_colors) = &scenes.quality[b.number];
@@ -1721,31 +1705,40 @@ pub fn run(options: Options) -> Result<()> {
     let layout = screens::layout()?;
     let mut pairs = indices.skills.clone();
     pairs.sort_by_key(|(_, _, slot)| *slot);
-    let request = json!({
-        "actors": members, "troops": troops.ids, "items": items_all,
-        "skill_pairs": pairs.iter().map(|(a, h, _)| json!([a, h])).collect::<Vec<_>>(),
-        "item_name_width": layout["ITEM_NAME_WIDTH"],
+    let request = rm2k_snes_battle::model::ModelRequest {
+        actors: members.clone(),
+        troops: troops.ids.clone(),
+        items: items_all.clone(),
+        skill_pairs: pairs
+            .iter()
+            .map(|&(a, h, _)| (a as i32, h as i32))
+            .collect(),
+        item_name_width: emit::typed(&layout["ITEM_NAME_WIDTH"])?,
         // The letters the text screens carry: an item's name in a
         // victory line keeps them.
-        "letters": screens_answer["font"]["screen_letters"],
-        "font": font.spec, "letter_spacing": font.spacing,
-        "exfont": font.request()["exfont"],
-    });
+        letters: Some(screens_answer.font.screen_letters.clone()),
+        font: Some(font.spec.clone()),
+        letter_spacing: Some(font.spacing),
+        exfont: font
+            .exfont
+            .as_ref()
+            .map(|sheet| sheet.to_string_lossy().into_owned()),
+    };
     let written = stage::call(
         BATTLE_MODEL,
-        &request,
+        &json!(request),
         &["--data".into(), game.dump.clone().into_os_string()],
         || rm2k_snes_battle::stage::model(&game.dump, &request),
     )?;
-    let battle_model = stage::json(&written, "model.json")?;
-    for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
-        let line = cut_report(&place);
+    let battle_model: rm2k_snes_battle::model::Model = stage::typed(&written, "model.json")?;
+    for place in battle_model.cut.iter().flatten() {
+        let line = cut_report(place);
         println!("{line}");
         degradations.cartridge("names-cut", &line);
     }
     // The party's line, whose HP and SP the console writes as runs that do
     // not get cut: with a font too wide they would step on each other.
-    if let Some(why) = battle_model["party_line"].as_str() {
+    if let Some(why) = &battle_model.party_line {
         let line = format!("  WARNING, battle text: the party's line does not fit: {why}");
         println!("{line}");
         degradations.cartridge("names-cut", &line);
@@ -1757,9 +1750,8 @@ pub fn run(options: Options) -> Result<()> {
     // from word 0 up to the battle's windows —`TL_POOL_BATTLE` in the
     // runtime's `screen_bank.s`, and `TEXT_PAIRS_END`—.
     let pool = scene::TEXT_PAIRS_END / 32 - 1;
-    let asked = &battle_model["pairs"];
-    if !asked.is_null() {
-        let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));
+    if let Some(asked) = &battle_model.pairs {
+        let (skills, items) = (asked.skills as i64, asked.items as i64);
         let warning = if skills.max(items) > pool {
             "WARNING, "
         } else {
@@ -1769,8 +1761,7 @@ pub fn run(options: Options) -> Result<()> {
             "  {warning}battle text: the skill list asks for {skills} pairs of tiles at most \
              (actor {}, who can know {} skills) and the item list {items}, of the {pool} of \
              the pool",
-            int(&asked["skills_actor"]),
-            int(&asked["skills_known"])
+            asked.skills_actor, asked.skills_known
         );
         println!("{line}");
         if skills.max(items) > pool {
@@ -1783,7 +1774,12 @@ pub fn run(options: Options) -> Result<()> {
     let mut parallel_left_out = Vec::new();
     for (number, switch, pure, code) in &compiled.parallel_commons {
         match code {
-            Some(code) => parallel_common.push(json!([switch, number, pure, code])),
+            Some(code) => parallel_common.push((
+                i64::from(*switch),
+                i64::from(*number),
+                *pure,
+                crate::text::hex(&code.0),
+            )),
             None => parallel_left_out.push(*number),
         }
     }
@@ -1830,112 +1826,6 @@ pub fn run(options: Options) -> Result<()> {
             gold_maps.push(m.id as i64);
         }
     }
-    let mut request = json!({
-        "maps": infos
-            .iter()
-            .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
-            .collect::<Vec<_>>(),
-        "start": start_index,
-        "hero_above": options.hero_above,
-        "speed_keys": !options.no_speed_keys,
-        "enemy_hp": options.enemy_hp,
-        "party": party,
-        // What the ROM says about itself, from the `[rom]` of the project
-        // file: the header title and the save signature in SRAM.
-        "rom": {
-            "title": settings.ascii(&["rom", "title"], None, Some(TITLE_HEADER))?,
-            "sram_signature": settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
-            "msu": msu_data,
-        },
-        "screens": screens_answer,
-        "window_colors": window_colors,
-        // The message window of every other System the cartridge switches
-        // to, in its order: the starting one's is the screens'.
-        "window_systems": window_answer.get("systems").cloned().unwrap_or_else(|| json!([])),
-        "messages": hex(&messages),
-        "message_pairs": message_pairs,
-        "title": title_screen.as_ref().map(fullscreen::Screen::request),
-        "game_over": game_over.as_ref().map(fullscreen::Screen::request),
-        "msu_missing": msu_missing.as_ref().map(fullscreen::Screen::request),
-        "animations": animations::request(&animations),
-        "troops": troops.ids,
-        "battle_audio": compiled.battle_audio,
-        "scene": scene::request(&scenes, &troops.ids, &game.db),
-        "battle_tables": battle_tables,
-        "troop_pages": compiled.troop_pages,
-        "parallel_common": parallel_common,
-        "commons": commons_with_copies,
-        "battle_model": battle_model,
-        // The compiler's indices: each variable's slot and each (actor,
-        // skill) pair's bit.
-        "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
-        "skill_pairs": indices.skills,
-        "items": items_all,
-        "actors": members,
-        "text_padding": options.text_padding,
-        "case_slot": case_slot,
-        // The big pictures' layers.
-        "big_pictures": big_layers.iter().map(|l| json!({
-            "top": l["top"], "rows": l["rows"], "center": l["center"], "half": l["half"],
-            "wider": l["wider"], "tiles": l["tiles"], "tilemap": l["tilemap"], "palettes": l["palettes"],
-            "mode7": l.get("mode7").cloned().unwrap_or(Value::Null),
-        })).collect::<Vec<_>>(),
-    });
-    // Which big pictures keep the small ones over them, apart for the same
-    // reason as what follows: see `pictures::keep_objects`.
-    for (out, l) in request["big_pictures"]
-        .as_array_mut()
-        .into_iter()
-        .flatten()
-        .zip(&big_layers)
-    {
-        out["keeps_objects"] = json!(l["keeps_objects"].as_bool().unwrap_or(false));
-    }
-    // The highest switch the game names, which the table holds: apart, because
-    // the literal above is at `json!`'s recursion limit.
-    request["switch_top"] = json!(indices.switch_top);
-    // And whether Select walks the hero through everything, for debugging:
-    // apart too, for the same limit.
-    request["phasing"] = json!(options.phasing);
-    // And whether the ROM leaves the vblank's last line in RAM, for a test.
-    request["vblank_probe"] = json!(options.vblank_probe);
-    // And whether some `Teleport` asks for a facing, which the runtime
-    // assembles only then: see `scan::teleports_with_a_facing`.
-    request["teleport_facing"] = json!(scan::teleports_with_a_facing(
-        every_refs.iter().copied(),
-        &game.db.common_events,
-        &file_commands,
-    ));
-    // And whether some `MessageOptions` takes the window's background away,
-    // which bakes the maps' layers above for it: see
-    // `scan::transparent_messages`.
-    request["transparent_messages"] = json!(scan::transparent_messages(
-        every_refs.iter().copied(),
-        &game.db.common_events,
-        &file_commands,
-    ));
-    // And how many windows the game's `ShowWindow`s name, which the runtime
-    // keeps a slot for each: see `scan::window_slots`.
-    request["window_slots"] = json!(scan::window_slots(
-        every_refs.iter().copied(),
-        &game.db.common_events,
-        &file_commands,
-    ));
-    // And the common events' small pictures, by set: see
-    // [`crate::common_pictures`]. Only when there are some.
-    if !common_small.emit.is_empty() {
-        request["common_pictures"] = json!(common_small.emit);
-    }
-    // And the switch the test pages turn on, which the cartridge says to the
-    // harnesses.
-    request["test_switch"] = json!((!cases.is_empty()).then_some(compiler.test_switch));
-    // And the names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
-    // counts them, apart for the same reason.
-    request["names"] = json!(indices
-        .names
-        .iter()
-        .map(|(a, n)| json!([a, n]))
-        .collect::<Vec<_>>());
     // And the faces the message window shows, in the order `OP_FACE` counts
     // them, drawn by the screens. One whose FaceSet is nowhere comes as the
     // window's own background —blank, the text still moves over for it—
@@ -1959,12 +1849,106 @@ pub fn run(options: Options) -> Result<()> {
             missing
         );
     }
-    request["faces"] = Value::Array(faces);
-    request["gold_maps"] = json!(gold_maps);
-    // The battle terms the project gives over the database's, if any: a
-    // knob at rest when missing. See `battle_term` in the mapdata stage.
-    request["battle_terms"] = battle_terms;
-    let emitted = emit::emit(&output, &request, &game.dump)?;
+    let request = request::Emit {
+        maps: infos
+            .iter()
+            .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
+            .collect::<Result<_>>()?,
+        start: start_index as i64,
+        hero_above: options.hero_above,
+        speed_keys: !options.no_speed_keys,
+        enemy_hp: options.enemy_hp,
+        // Whether Select walks the hero through everything, for debugging.
+        phasing: options.phasing,
+        // Whether the ROM leaves the vblank's last line in RAM, for a test.
+        vblank_probe: options.vblank_probe,
+        // Whether some `Teleport` asks for a facing, which the runtime
+        // assembles only then: see `scan::teleports_with_a_facing`.
+        teleport_facing: scan::teleports_with_a_facing(
+            every_refs.iter().copied(),
+            &game.db.common_events,
+            &file_commands,
+        ),
+        // Whether some `MessageOptions` takes the window's background away,
+        // which bakes the maps' layers above for it: see
+        // `scan::transparent_messages`.
+        transparent_messages: scan::transparent_messages(
+            every_refs.iter().copied(),
+            &game.db.common_events,
+            &file_commands,
+        ),
+        // How many windows the game's `ShowWindow`s name, which the runtime
+        // keeps a slot for each: see `scan::window_slots`.
+        window_slots: scan::window_slots(
+            every_refs.iter().copied(),
+            &game.db.common_events,
+            &file_commands,
+        ),
+        party: party.iter().map(|&a| a.into()).collect(),
+        // What the ROM says about itself, from the `[rom]` of the project
+        // file: the header title and the save signature in SRAM.
+        rom: request::Rom {
+            title: settings.ascii(&["rom", "title"], None, Some(TITLE_HEADER))?,
+            sram_signature: settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
+            msu: emit::typed(&json!(msu_data))?,
+        },
+        screens: screens_answer,
+        window_colors,
+        // The message window of every other System the cartridge switches
+        // to, in its order: the starting one's is the screens'.
+        window_systems: match window_answer.get("systems") {
+            Some(systems) => emit::typed(systems)?,
+            None => Vec::new(),
+        },
+        messages,
+        message_pairs: request::MessagePairs {
+            first: compiled.messages.pair_first.into(),
+            table: compiled.messages.pairs.0.clone(),
+        },
+        faces: faces.iter().map(emit::typed).collect::<Result<_>>()?,
+        title: title_screen.as_ref().map(fullscreen::Screen::request),
+        game_over: game_over.as_ref().map(fullscreen::Screen::request),
+        msu_missing: msu_missing.as_ref().map(fullscreen::Screen::request),
+        animations: animations::request(&animations)?,
+        troops: troops.ids.iter().map(|&t| t.into()).collect(),
+        battle_audio: emit::typed(&compiled.battle_audio)?,
+        scene: scene::request(&scenes, &troops.ids, &game.db)?,
+        battle_tables,
+        troop_pages: Some(compiled.troop_pages.clone()),
+        parallel_common,
+        gold_maps,
+        // The battle terms the project gives over the database's, if any: a
+        // knob at rest when missing. See `battle_term` in the mapdata stage.
+        battle_terms: emit::typed(&battle_terms)?,
+        commons: emit::typed(&commons_with_copies)?,
+        battle_model,
+        // The compiler's indices: each variable's slot and each (actor,
+        // skill) pair's bit; the highest switch the game names, which the
+        // table holds; and the names `ChangeHeroName` gives, in the order
+        // `OP_CHANGE_NAME` counts them.
+        variables: indices.variables.clone(),
+        skill_pairs: indices.skills.clone(),
+        names: indices.names.clone(),
+        switch_top: indices.switch_top,
+        items: items_all.iter().map(|&i| i.into()).collect(),
+        actors: members.iter().map(|&a| a.into()).collect(),
+        text_padding: options.text_padding as usize,
+        case_slot,
+        // The switch the test pages turn on, which the cartridge says to the
+        // harnesses.
+        test_switch: (!cases.is_empty()).then_some(compiler.test_switch.into()),
+        // The big pictures' layers, and which of them keep the small ones
+        // over them: see `pictures::keep_objects`.
+        big_pictures: big_layers.iter().map(emit::typed).collect::<Result<_>>()?,
+        // The common events' small pictures, by set: see
+        // [`crate::common_pictures`].
+        common_pictures: common_small
+            .emit
+            .iter()
+            .map(emit::typed)
+            .collect::<Result<_>>()?,
+    };
+    let emitted = emit::emit(&output, request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",
         infos.len(),
@@ -2292,26 +2276,17 @@ fn test_page(
 /// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
 /// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
 /// A warning: the console cuts and the battle goes on.
-fn cut_report(place: &Value) -> String {
-    let cells = int(&place["cells"]);
-    let names: Vec<String> = place["names"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
+fn cut_report(place: &rm2k_snes_battle::model::Cut) -> String {
+    let cells = place.cells;
+    let names: Vec<String> = place
+        .names
         .iter()
-        .map(|n| {
-            format!(
-                "{:?} {} px, shows {:?}",
-                n[0].as_str().unwrap_or(""),
-                int(&n[1]),
-                n[2].as_str().unwrap_or("")
-            )
-        })
+        .map(|(name, px, shows)| format!("{name:?} {px} px, shows {shows:?}"))
         .collect();
     format!(
         "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
         names.len(),
-        place["place"].as_str().unwrap_or(""),
+        place.place,
         8 * cells,
         names.join("; ")
     )

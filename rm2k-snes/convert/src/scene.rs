@@ -48,11 +48,12 @@ use crate::images;
 use crate::maps::MapInfo;
 use crate::resources;
 use crate::settings::Settings;
-use crate::text::{hex, quoted};
+use crate::text::quoted;
 use rm2k_snes_bytecode::events::{OP_ANIMATION, OP_BATTLE};
 use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
 use rm2k_snes_images::request::{BackdropAnswer, Scene as Geometry};
 use rm2k_snes_images::scene::{Backdrop, Light};
+use rm2k_snes_mapdata::request;
 use rm2k_snes_mapdata::snes::{cgram_word, pack_tile};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -477,7 +478,7 @@ pub fn rom_scene(
     rtp: &Path,
     troops: &Troops,
     maps: &[MapInfo],
-    encounters: &Value,
+    per_map: &[i64],
 ) -> Result<Scene> {
     let named = named_backdrops(game)?;
     let names = game_backdrops(game, rtp, &named);
@@ -517,12 +518,10 @@ pub fn rom_scene(
     }
     // The map's, for random encounters and for the troops that fight with
     // the one of the place; only where some battle can look at it.
-    let per_map: Vec<i64> = match encounters.get("per_map").and_then(Value::as_array) {
-        Some(list) if !list.is_empty() => list
-            .iter()
-            .map(|v| v.as_i64().unwrap_or(NO_RECORD))
-            .collect(),
-        _ => vec![NO_RECORD; maps.len()],
+    let per_map = if per_map.is_empty() {
+        vec![NO_RECORD; maps.len()]
+    } else {
+        per_map.to_vec()
     };
     let place_ones = troop_backdrop.iter().any(|(_, k)| *k == PLACE_BACKDROP);
     let mut map_backdrop = Vec::new();
@@ -748,33 +747,30 @@ pub fn rom_scene(
 /// `rom_scene` decided, with what a backdrop and a battler look like, where
 /// each member stands and in which order the troop is drawn, already as
 /// bytes and numbers.
-pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Value {
-    let mut geometry = Map::new();
-    for (name, value) in [
-        ("WIDTH", WIDTH),
-        ("HEIGHT", HEIGHT),
-        ("TILES", TILES),
-        ("TILES_X", TILES_X),
-        ("TILES_Y", TILES_Y),
-        ("COLORS", COLORS),
-        ("CGRAM_BASE", CGRAM_BASE),
-        ("VRAM_TILES", VRAM_TILES),
-        ("VRAM_MAP", VRAM_MAP),
-        ("FALLBACK_COLORS", FALLBACK_COLORS),
-        ("FALLBACK_PLANES", FALLBACK_PLANES as i64),
-        ("FALLBACK_WIDTH", FALLBACK_WIDTH),
-        ("FALLBACK_HEIGHT", FALLBACK_HEIGHT),
-        ("FALLBACK_SCALE", FALLBACK_SCALE),
-        ("BATTLER_PALETTE", BATTLER_PALETTE),
-    ] {
-        geometry.insert(name.into(), json!(value));
-    }
-    let backdrops: Vec<Value> = scene
+pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Result<request::Scene> {
+    let geometry = request::SceneGeometry {
+        width: WIDTH,
+        height: HEIGHT,
+        tiles: TILES,
+        tiles_x: TILES_X,
+        tiles_y: TILES_Y,
+        colors: COLORS,
+        cgram_base: CGRAM_BASE,
+        vram_tiles: VRAM_TILES,
+        vram_map: VRAM_MAP,
+        fallback_colors: FALLBACK_COLORS,
+        fallback_planes: FALLBACK_PLANES as i64,
+        fallback_width: FALLBACK_WIDTH,
+        fallback_height: FALLBACK_HEIGHT,
+        fallback_scale: FALLBACK_SCALE,
+        battler_palette: BATTLER_PALETTE,
+    };
+    let backdrops = scene
         .backdrops
         .iter()
         .map(|b| {
             let (tiles, colors) = fallback_bytes(&b.light);
-            json!({"tiles": hex(&tiles), "colors": hex(&colors)})
+            request::SceneBackdrop { tiles, colors }
         })
         .collect();
     let enemies_max = rm2k_snes_mapdata::engine::ENEMIES_MAX;
@@ -797,24 +793,41 @@ pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Value {
             let info = (k != 0xFF).then(|| &scene.battlers[k as usize]);
             infos.push(info);
             let (x, y) = info.map_or((0, 0), |b| position(*center, b));
-            members.push(json!([k, x, y]));
+            members.push([k, x, y]);
         }
         let centers: Vec<(i32, i32)> = theirs.iter().map(|(_, c)| *c).collect();
-        placed.push(json!([number, members, drawing_order(&centers, &infos)]));
+        let order = drawing_order(&centers, &infos);
+        placed.push((
+            (*number).into(),
+            members,
+            order.into_iter().map(|k| k as i64).collect(),
+        ));
     }
-    json!({
-        "geometry": geometry,
-        "game": scene.game.len(),
-        "troop_backdrop": scene.troop_backdrop.iter().map(|(n, k)| json!([n, k])).collect::<Vec<_>>(),
-        "map_backdrop": scene.map_backdrop,
-        "terrains": scene.terrain_backdrop,
-        "fallback_of": scene.fallback_of,
-        "backdrops": backdrops,
-        "battlers": scene.battlers.iter().map(|b| json!({
-            "columns": columns(b), "height": b.height, "palette": b.palette,
-            "bytes": hex(&battler_bytes(b)),
-        })).collect::<Vec<_>>(),
-        "troops": placed,
+    Ok(request::Scene {
+        geometry,
+        game: scene.game.len(),
+        troop_backdrop: scene
+            .troop_backdrop
+            .iter()
+            .map(|&(n, k)| (n.into(), k))
+            .collect(),
+        map_backdrop: scene.map_backdrop.clone(),
+        terrains: scene.terrain_backdrop.clone(),
+        fallback_of: scene.fallback_of.iter().map(|&k| k as i64).collect(),
+        backdrops,
+        battlers: scene
+            .battlers
+            .iter()
+            .map(|b| {
+                Ok(request::SceneBattler {
+                    columns: columns(b),
+                    height: b.height,
+                    palette: b.palette.clone(),
+                    bytes: battler_bytes(b),
+                })
+            })
+            .collect::<Result<_>>()?,
+        troops: placed,
     })
 }
 

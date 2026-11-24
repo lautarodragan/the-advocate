@@ -16,7 +16,8 @@ use crate::simulate::{self, Battle, Combatant, Command, TroopPage, BATTLE_SEED};
 use rm2k_rules::actor::Standing;
 use rm2k_snes_text::cells;
 use rm2k_snes_text::font::Font;
-use serde_json::{json, Map, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
@@ -64,34 +65,141 @@ fn list<'a>(data: &'a Value, name: &str) -> Result<&'a Vec<Value>> {
         .ok_or_else(|| Bad::answer(format!("`{name}` is not a list")))
 }
 
-/// The answer to `model`:
+/// What `model` is asked:
 ///
 /// ```json
 /// {"actors": [11, 12], "troops": [82, 97], "items": [1, 2],
 ///  "skill_pairs": [[11, 131], [11, 146]], "item_name_width": 20}
 /// ```
-///
-/// `actors` are the ones that can be in the party; `troops`, the ones the
-/// cartridge's battles ask for, in the compiler's order; `items`, the ones
-/// the cartridge knows; `skill_pairs`, every (actor, skill) the compiler
-/// gave a slot, in the slots' order; `item_name_width`, how much of an
-/// item's name the item screens write, which is theirs.
-pub fn model(db: &Db, request: &Value) -> Result<Value> {
-    let to_i32 = |v: Vec<i64>| v.into_iter().map(|x| x as i32).collect::<Vec<i32>>();
-    let actors = to_i32(numbers(field(request, "actors")?, "`actors`")?);
-    let troops = to_i32(numbers(field(request, "troops")?, "`troops`")?);
-    let items = to_i32(numbers(field(request, "items")?, "`items`")?);
-    let name_width = number(field(request, "item_name_width")?, "`item_name_width`")? as usize;
-    let mut pairs = Vec::new();
-    for p in list(request, "skill_pairs")? {
-        let p = numbers(p, "a skill pair")?;
-        if p.len() != 2 {
-            return Err(Bad::answer(format!(
-                "a skill pair is two numbers, not {p:?}"
-            )));
-        }
-        pairs.push((p[0] as i32, p[1] as i32));
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ModelRequest {
+    /// The ones that can be in the party.
+    pub actors: Vec<i32>,
+    /// The ones the cartridge's battles ask for, in the compiler's order.
+    pub troops: Vec<i32>,
+    /// The ones the cartridge knows.
+    pub items: Vec<i32>,
+    /// Every (actor, skill) the compiler gave a slot, in the slots' order.
+    pub skill_pairs: Vec<(i32, i32)>,
+    /// How much of an item's name the item screens write, which is theirs.
+    pub item_name_width: usize,
+    /// The letters the text screens carry, which an item's name in a
+    /// victory line keeps. Missing or null, none.
+    #[serde(default)]
+    pub letters: Option<Vec<char>>,
+    /// The game's font, as the screens stage takes it: with it, the answer
+    /// says which names the battle cuts and how many pairs of tiles its
+    /// busiest lists ask for. Missing, the console's, and nothing measured.
+    #[serde(default)]
+    pub font: Option<String>,
+    #[serde(default)]
+    pub letter_spacing: Option<i64>,
+    #[serde(default)]
+    pub exfont: Option<String>,
+}
+
+impl ModelRequest {
+    /// A request as JSON, or why not.
+    pub fn of(request: &Value) -> Result<ModelRequest> {
+        ModelRequest::deserialize(request).map_err(|e| Bad::answer(format!("the request: {e}")))
     }
+}
+
+/// What `model` answers: what the rest of the conversion writes of the
+/// battle.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Model {
+    /// The geometry of the battle's text screen, by name: see
+    /// [`screen::layout`].
+    pub layout: Value,
+    /// The enemies of the troops the cartridge carries, and what each can
+    /// do, `(rating, skill or none for the attack, effective)`.
+    pub enemies: Vec<i32>,
+    pub actions: BTreeMap<i32, Vec<(i64, Option<i32>, bool)>>,
+    /// Every skill the battle can see cast, and those leveling up teaches
+    /// past the starting level.
+    pub skills: Vec<i32>,
+    pub taught: Vec<i32>,
+    /// The level each skill pair of the request is learned at.
+    pub pair_levels: Vec<i64>,
+    /// Per item of the request: whether the battle offers it, and the
+    /// skill it casts there and on the map, 0 none.
+    pub item_battle: Vec<bool>,
+    pub item_skill: Vec<i32>,
+    pub item_map_skill: Vec<i32>,
+    pub troops: Vec<TroopReward>,
+    pub texts: Texts,
+    /// Only with the font: the names the battle cuts, by place; how many
+    /// pairs of tiles its busiest lists ask for; and why the party's line
+    /// does not fit, if it does not.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cut: Option<Vec<Cut>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pairs: Option<PairsAsked>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub party_line: Option<String>,
+}
+
+/// What a troop gives when it is beaten.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TroopReward {
+    pub id: i32,
+    pub exp: i64,
+    pub gold: i64,
+}
+
+/// The battle's texts: the LDB's terms, and by number each enemy's name,
+/// each skill's and each actor's commands.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Texts {
+    /// The victory term, split in the lines the window gives it.
+    pub victory: Vec<String>,
+    pub attack: String,
+    pub defend: String,
+    pub escape: String,
+    pub revived: String,
+    pub dead: String,
+    /// Each actor's skill command, and all its commands: see
+    /// `rules::command_names`.
+    pub skill_commands: BTreeMap<i32, String>,
+    pub commands: BTreeMap<i32, Vec<String>>,
+    pub enemies: BTreeMap<i32, String>,
+    pub skills: BTreeMap<i32, SkillText>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SkillText {
+    pub name: String,
+    pub description: String,
+}
+
+/// The names the battle cuts in one place: each `(name, its pixels, what
+/// shows)`, and the cells the place has.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Cut {
+    pub place: String,
+    pub cells: usize,
+    pub names: Vec<(String, usize, String)>,
+}
+
+/// How many pairs of tiles of the text layer the battle's busiest lists
+/// ask for: the skill list, with the actor who asks the most and how many
+/// skills that actor can know, and the item list.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PairsAsked {
+    pub skills: usize,
+    pub skills_actor: i32,
+    pub skills_known: usize,
+    pub items: usize,
+}
+
+/// The answer to `model`: see [`Model`].
+pub fn model(db: &Db, request: &ModelRequest) -> Result<Model> {
+    let actors = request.actors.clone();
+    let troops = request.troops.clone();
+    let items = request.items.clone();
+    let name_width = request.item_name_width;
+    let pairs = request.skill_pairs.clone();
 
     // The troops the database has, in the cartridge's order, and the
     // enemies that form them.
@@ -109,7 +217,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
 
     // What each enemy can do, and the skills of those actions: the console
     // weighs at most `ACTIONS_MAX`, and carries the rating in seven bits.
-    let mut actions = Map::new();
+    let mut actions = BTreeMap::new();
     let mut skills = BTreeSet::new();
     for &e in &enemies {
         let theirs = rules::actions_of_enemy(db, e)?;
@@ -130,8 +238,11 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             skills.extend(a.skill);
         }
         actions.insert(
-            e.to_string(),
-            json!(theirs.iter().map(simulate::action_json).collect::<Vec<_>>()),
+            e,
+            theirs
+                .iter()
+                .map(|a| (a.rating, a.skill, a.effective))
+                .collect(),
         );
     }
     // And the ones the party can end up knowing that the battle offers:
@@ -187,11 +298,18 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
     // names it cuts, and how many pairs of tiles of the text layer its
     // busiest lists ask for.
     let mut party_line = None;
-    let game_font = font_of(request)?;
-    let (cut, pairs_asked) = match request.get("font") {
-        None => (Vec::new(), Value::Null),
-        Some(_) => {
-            let font = game_font.clone().expect("`font_of` read the font");
+    let game_font = match &request.font {
+        None => None,
+        Some(spec) => Some(font_named(
+            spec,
+            request.letter_spacing.unwrap_or(0),
+            request.exfont.as_deref(),
+        )?),
+    };
+    let (cut, pairs_asked) = match &game_font {
+        None => (None, None),
+        Some(font) => {
+            let font = font.clone();
             let mut usable = Vec::new();
             for (&i, &battle) in items.iter().zip(&item_battle) {
                 if battle {
@@ -275,7 +393,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
                 ),
             ];
             party_line = screen::check_party_line(&font, &db.terms.hp_short, &db.terms.sp_short);
-            let cut: Vec<Value> = places
+            let cut: Vec<Cut> = places
                 .iter()
                 .filter_map(|(place, names, letters, cells)| {
                     cut_in_cells(&font, place, names, *letters, *cells)
@@ -292,8 +410,13 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             }
             let items_asked = lists.item_list(&usable, name_width);
             (
-                cut,
-                json!({"skills": skills_asked.0, "skills_actor": skills_asked.1, "skills_known": skills_asked.2, "items": items_asked}),
+                Some(cut),
+                Some(PairsAsked {
+                    skills: skills_asked.0,
+                    skills_actor: skills_asked.1,
+                    skills_known: skills_asked.2,
+                    items: items_asked,
+                }),
             )
         }
     };
@@ -303,7 +426,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         let (exp, gold) = (rules::troop_exp(db, t)?, rules::troop_gold(db, t)?);
         exp_max = exp_max.max(exp);
         gold_max = gold_max.max(gold);
-        troop_list.push(json!({"id": t, "exp": exp, "gold": gold}));
+        troop_list.push(TroopReward { id: t, exp, gold });
     }
 
     // The texts. The victory term has to fit in the lines the window leaves
@@ -345,66 +468,62 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         gold_max,
         &drop_texts,
         name_width,
-        &letters_of(request)?,
+        request.letters.as_deref().unwrap_or_default(),
         game_font.as_ref(),
     )?;
 
-    let mut enemy_names = Map::new();
+    let mut enemy_names = BTreeMap::new();
     for &e in &enemies {
-        enemy_names.insert(e.to_string(), json!(db.enemy(e)?.name));
+        enemy_names.insert(e, db.enemy(e)?.name.clone());
     }
-    let mut skill_texts = Map::new();
+    let mut skill_texts = BTreeMap::new();
     for &h in &skills {
         let s = db.skill(h)?;
         skill_texts.insert(
-            h.to_string(),
-            json!({"name": s.name,
-                   "description": s.description}),
+            h,
+            SkillText {
+                name: s.name.clone(),
+                description: s.description.clone(),
+            },
         );
     }
     // Each actor's commands, as `rules::command_names` names them: the
     // skill one alone until 2026-10-20, which is why it has its own entry.
-    let mut skill_commands = Map::new();
-    let mut actor_commands = Map::new();
+    let mut skill_commands = BTreeMap::new();
+    let mut actor_commands = BTreeMap::new();
     for &a in &actors {
         let names = rules::command_names(db, a)?.map(|n| screen::command_text(&n));
-        skill_commands.insert(
-            a.to_string(),
-            json!(names[screen::BA_COMMAND_SKILL as usize]),
-        );
-        actor_commands.insert(a.to_string(), json!(names));
+        skill_commands.insert(a, names[screen::BA_COMMAND_SKILL as usize].clone());
+        actor_commands.insert(a, names.to_vec());
     }
-    let mut out = json!({
-        "layout": screen::layout(),
-        "enemies": enemies,
-        "actions": actions,
-        "skills": skills,
-        "taught": taught,
-        "pair_levels": pair_levels,
-        "item_battle": item_battle,
-        "item_skill": item_skill,
-        "item_map_skill": item_map_skill,
-        "troops": troop_list,
-        "texts": {
-            "victory": victory,
-            "attack": screen::command_text(&t.command_attack),
-            "defend": screen::command_text(&t.command_defend),
-            "escape": screen::command_text(&t.battle_escape),
-            "revived": screen::revived_text(db)?,
-            "dead": screen::dead_text(db)?,
-            "skill_commands": skill_commands,
-            "commands": actor_commands,
-            "enemies": enemy_names,
-            "skills": skill_texts,
+    Ok(Model {
+        layout: screen::layout(),
+        enemies,
+        actions,
+        skills,
+        taught,
+        pair_levels,
+        item_battle,
+        item_skill,
+        item_map_skill,
+        troops: troop_list,
+        texts: Texts {
+            victory,
+            attack: screen::command_text(&t.command_attack),
+            defend: screen::command_text(&t.command_defend),
+            escape: screen::command_text(&t.battle_escape),
+            revived: screen::revived_text(db)?,
+            dead: screen::dead_text(db)?,
+            skill_commands,
+            commands: actor_commands,
+            enemies: enemy_names,
+            skills: skill_texts,
         },
-    });
-    // Only with the font: without it there is nothing to measure.
-    if !pairs_asked.is_null() {
-        out["cut"] = json!(cut);
-        out["pairs"] = pairs_asked;
-        out["party_line"] = json!(party_line);
-    }
-    Ok(out)
+        // Only with the font: without it there is nothing to measure.
+        party_line,
+        cut,
+        pairs: pairs_asked,
+    })
 }
 
 /// Whether a request needs the troops, which are most of the database:
@@ -787,14 +906,15 @@ fn font_of(request: &Value) -> Result<Option<Font>> {
         .get("letter_spacing")
         .and_then(Value::as_i64)
         .unwrap_or(0);
-    let exfont = request
-        .get("exfont")
-        .and_then(Value::as_str)
-        .map(std::path::Path::new);
+    let exfont = request.get("exfont").and_then(Value::as_str);
+    font_named(spec, spacing, exfont).map(Some)
+}
+
+/// The font `spec` names, as the screens stage draws it.
+fn font_named(spec: &str, spacing: i64, exfont: Option<&str>) -> Result<Font> {
     Font::named(spec, rm2k_snes_text::font::MINCHO)
         .and_then(|f| f.with_spacing(spacing))
-        .and_then(|f| f.with_exfont_of(exfont))
-        .map(Some)
+        .and_then(|f| f.with_exfont_of(exfont.map(std::path::Path::new)))
         .map_err(Bad::answer)
 }
 
@@ -812,7 +932,7 @@ fn cut_in_cells(
     names: &[String],
     letters: usize,
     cells: usize,
-) -> Option<Value> {
+) -> Option<Cut> {
     let mut seen = BTreeSet::new();
     let mut cut = Vec::new();
     for name in names {
@@ -821,10 +941,14 @@ fn cut_in_cells(
         }
         let shown = shown_in_cells(font, name, letters, cells);
         if shown != *name {
-            cut.push(json!([name, font.width(name), shown]));
+            cut.push((name.clone(), font.width(name), shown));
         }
     }
-    (!cut.is_empty()).then(|| json!({"place": place, "cells": cells, "names": cut}))
+    (!cut.is_empty()).then(|| Cut {
+        place: place.to_string(),
+        cells,
+        names: cut,
+    })
 }
 
 /// What the battle shows of `text`: its first `letters`, and of those the

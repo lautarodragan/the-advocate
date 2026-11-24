@@ -1,8 +1,9 @@
 //! A cartridge's screens, whole: what the conversion asks for once per
 //! cartridge, and what it answers.
 
-use crate::borders::{self, compact_shop, compact_target, Borders};
-use crate::cells::{Color, CELL};
+use crate::answer;
+use crate::borders::{self, compact_shop, compact_target};
+use crate::cells::CELL;
 use crate::checks::{items_border_first, Vram, ITEM_MORE_PAIRS, TEXT_POOL_PAIRS};
 use crate::end_game;
 use crate::fail::{Bad, Result};
@@ -15,8 +16,7 @@ use crate::render;
 use crate::slots;
 use crate::texts::{self, item_text, split_description};
 use crate::title;
-use serde_json::{json, Map, Value};
-use voodoo::pack::Indices;
+use serde_json::Value;
 
 /// What the cartridge decided that the screens depend on.
 #[derive(Debug, Clone, Default)]
@@ -108,32 +108,11 @@ pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-pub fn tiles_json(tiles: &[Indices]) -> Value {
-    json!(tiles)
-}
-
-pub fn colors_json(colors: &[Color]) -> Value {
-    json!(colors)
-}
-
-fn borders_json(b: &Borders) -> Value {
-    json!({"tiles": tiles_json(&b.tiles), "colors": colors_json(&b.colors), "maps": b.maps})
-}
-
-fn glyphs_json(glyphs: &std::collections::BTreeMap<char, Vec<u16>>) -> Value {
-    Value::Object(
-        glyphs
-            .iter()
-            .map(|(c, w)| (c.to_string(), json!(w)))
-            .collect::<Map<_, _>>(),
-    )
-}
-
 /// The conditions as the party panel and the skills screen show them —see
 /// [`slots::StateInks`]—, with each ink's colour as the skills screen
 /// uploads it: the System colour's twelve rows and its shadow, in the text
 /// screens' layout.
-fn states_json(skin: &crate::game::Skin, states: &slots::StateInks) -> Result<Value> {
+fn states(skin: &crate::game::Skin, states: &slots::StateInks) -> Result<answer::States> {
     let mut inks = Vec::new();
     for ink in &states.inks {
         let (rows, shadow) = crate::items::ink_colors(skin, ink.color)?;
@@ -142,15 +121,19 @@ fn states_json(skin: &crate::game::Skin, states: &slots::StateInks) -> Result<Va
             .chain([&shadow])
             .map(|&c| crate::message_window::cgram_word(c))
             .collect();
-        inks.push(json!({"palette": ink.palette, "rows": ink.rows, "cgram": cgram}));
+        inks.push(answer::StateInk {
+            palette: ink.palette,
+            rows: ink.rows.clone(),
+            cgram,
+        });
     }
-    Ok(json!({
-        "names": states.names,
-        "ink": states.ink,
-        "inks": inks,
-        "shadow": states.shadow,
-        "gray_shadow": states.gray_shadow,
-    }))
+    Ok(answer::States {
+        names: states.names.clone(),
+        ink: states.ink.clone(),
+        inks,
+        shadow: states.shadow,
+        gray_shadow: states.gray_shadow,
+    })
 }
 
 /// The pairs of tiles a strip takes: as many columns as its letters reach,
@@ -539,46 +522,47 @@ pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Resul
 
 /// The message window as the emission takes it, without the font: what
 /// changes from one System to another.
-pub fn window_json(
+pub fn window_answer(
     window: &message_window::Window,
     gold: &message_window::Gold,
     inks: &message_window::Inks,
-) -> Value {
-    json!({
-        "disabled": window.disabled,
+) -> answer::SystemWindow {
+    answer::SystemWindow {
+        disabled: window.disabled.clone(),
         // The box's ink entry, 0 without one, and the twenty colours: see
         // `message_window::inks`.
-        "ink": window.ink.unwrap_or(0),
-        "inks": inks.colours.iter().map(|i| json!({
-            "word": i.word, "inked": i.inked, "plain": i.plain,
-        })).collect::<Vec<_>>(),
-        "gold": {
-            "tiles": hex(&gold.tiles),
-            "cgram": gold.cgram,
-            "right": gold.right,
-            "width": GOLD_WIDTH,
-            "height": GOLD_HEIGHT,
-            "text_y": GOLD_TEXT_Y,
+        ink: window.ink.unwrap_or(0),
+        inks: inks.colours.clone(),
+        gold: answer::Gold {
+            tiles: gold.tiles.clone(),
+            cgram: gold.cgram.clone(),
+            right: gold.right,
+            width: GOLD_WIDTH,
+            height: GOLD_HEIGHT,
+            text_y: GOLD_TEXT_Y,
         },
-        "tiles": hex(&window.tiles),
-        "cgram": window.cgram,
-        "cells": window.cells,
-        "base": window.base,
-        "background": hex(&window.background),
-        "color": window.color,
-        "shadow": window.shadow,
-        "arrow": window.arrow,
-        "bar": hex(&window.bar),
-        "bar_bare": hex(&window.bar_bare),
-    })
+        tiles: window.tiles.clone(),
+        cgram: window.cgram.clone(),
+        cells: window.cells.clone(),
+        base: window.base,
+        background: window.background.clone(),
+        color: window.color.clone(),
+        shadow: window.shadow,
+        arrow: window.arrow.clone(),
+        bar: window.bar.clone(),
+        bar_bare: window.bar_bare.clone(),
+    }
 }
 
 /// Says `line`, if there is one, and notes it as a loss of the cartridge's
 /// screens: `kind` is the stable slug the converter lists it by in the
 /// cartridge's degradations.
-fn lose(says: &mut Vec<String>, losses: &mut Vec<Value>, kind: &str, line: Option<String>) {
+fn lose(says: &mut Vec<String>, losses: &mut Vec<answer::Loss>, kind: &str, line: Option<String>) {
     if let Some(line) = line {
-        losses.push(json!({"kind": kind, "text": line.trim()}));
+        losses.push(answer::Loss {
+            kind: kind.to_string(),
+            text: line.trim().to_string(),
+        });
         says.push(line);
     }
 }
@@ -642,12 +626,12 @@ fn fused_windows(whose: &str, tiles: Option<(usize, usize)>) -> Option<String> {
 
 /// Everything the conversion needs from the screens, and what it has to
 /// say about them, in order.
-pub fn convert(game: &Game, request: &Request) -> Result<Value> {
+pub fn convert(game: &Game, request: &Request) -> Result<answer::Answer> {
     let skin = game.skin()?;
     let mut says: Vec<String> = Vec::new();
     // What of the screens the cartridge draws with less than RM2k: the
     // WARNINGs among `says`, each with its kind. See [`lose`].
-    let mut losses: Vec<Value> = Vec::new();
+    let mut losses: Vec<answer::Loss> = Vec::new();
 
     let window =
         message_window::convert_with(&skin, request.cgram_reserved, request.text_rows.as_ref())?;
@@ -878,18 +862,16 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let mut missing = Vec::new();
     for &actor in request.actors.iter().filter(|_| party_on) {
         match crate::party::member(game, actor)? {
-            Some(m) => members.push(json!({
-                "actor": actor,
-                "frames": m.frames.iter().map(|f| tiles_json(f)).collect::<Vec<_>>(),
-                "colors": colors_json(&m.colors),
-                "greys": colors_json(&m.greys),
-            })),
+            Some(m) => members.push(answer::ShopMember {
+                actor,
+                drawn: Some(m),
+            }),
             None => {
                 let name = &game.actors[&actor].character_name;
                 if !name.is_empty() {
                     missing.push(format!("{} ({name})", game.actor_name(actor)?));
                 }
-                members.push(json!({"actor": actor}));
+                members.push(answer::ShopMember { actor, drawn: None });
             }
         }
     }
@@ -940,11 +922,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let battle_windows = crate::battle::battle_windows(&fitted)?;
     says.push(format!(
         "  battle windows: {} tiles of {}, {} colours of {}, {} words of bars",
-        battle_windows["tiles"].as_array().map_or(0, Vec::len),
+        battle_windows.tiles.len(),
         crate::battle::BATTLE_WINDOW_TILES_MAX,
-        battle_windows["colors"].as_array().map_or(0, Vec::len),
+        battle_windows.colors.len(),
         crate::battle::BATTLE_WINDOW_COLORS,
-        battle_windows["patches"].as_array().map_or(0, Vec::len),
+        battle_windows.patches.len(),
     ));
     // The skills screen: its windows, and what the cartridge needs of each
     // skill. The busiest page is a bound over the whole database.
@@ -955,7 +937,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         "window-tiles-fused",
         fused_windows("the skills screen's", fused),
     );
-    let skills_windows = crate::skills::windows_json(&fitted)?;
+    let skills_windows = crate::skills::screen(&fitted)?;
     let actor = request
         .actors
         .iter()
@@ -968,7 +950,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         let line = format!(
             "  {warning}skills screen: {} tiles of windows, and a page asks for {asked} pairs of tiles at most, \
              of the {pool} of its pool",
-            skills_windows["tiles"].as_array().map_or(0, Vec::len)
+            skills_windows.tiles.len()
         );
         if asked > pool {
             lose(&mut says, &mut losses, "text-pool-short", Some(line));
@@ -993,37 +975,42 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         .max()
         .map_or(0, |m| m + 1)
         .max(0);
-    let actor_texts: Vec<Value> = (0..n_actors)
+    let actor_texts: Vec<[String; 3]> = (0..n_actors)
         .map(|a| {
-            Ok(json!([
+            Ok([
                 texts::name_text(game, a, MENU_NAME_COLS)?,
                 texts::level_text(game, a, None),
-                texts::max_text(game, a, None)
-            ]))
+                texts::max_text(game, a, None),
+            ])
         })
         .collect::<Result<_>>()?;
     // And each rename's name strip, after them: see `Request::names`.
-    let renamed: Vec<Value> = request
+    let renamed: Vec<(i32, String)> = request
         .names
         .iter()
-        .map(|(a, name)| json!([a, texts::name_strip(name, MENU_NAME_COLS)]))
+        .map(|(a, name)| (*a, texts::name_strip(name, MENU_NAME_COLS)))
         .collect();
     let mut item_texts = Vec::new();
     for &n in &request.items {
         let item = game.item(n)?;
         let mut lines = vec![item_text(&game.item_name(n)?, ITEM_NAME_WIDTH)];
         lines.extend(split_description(&game.font, &game.item_description(n)?));
-        item_texts.push(json!({
-            "number": n,
-            "texts": lines,
-            "usable": texts::item_usable(item, texts::map_skill(game, item)),
-            "needs_actor": texts::item_needs_actor(item, texts::map_skill(game, item)),
-        }));
+        item_texts.push(answer::ItemText {
+            number: n,
+            texts: lines,
+            usable: texts::item_usable(item, texts::map_skill(game, item)),
+            needs_actor: texts::item_needs_actor(item, texts::map_skill(game, item)),
+        });
     }
-    let medicine_names: Vec<Value> = medicines
+    let medicine_names: Vec<answer::Medicine> = medicines
         .iter()
         // On the actor choice's line on top: see `texts::target_text`.
-        .map(|&(n, _)| Ok(json!({"number": n, "name": texts::target_name(game, n)?})))
+        .map(|&(n, _)| {
+            Ok(answer::Medicine {
+                number: n,
+                name: texts::target_name(game, n)?,
+            })
+        })
         .collect::<Result<_>>()?;
     let params: Vec<String> = ["attack", "defense", "spirit", "agility"]
         .iter()
@@ -1054,27 +1041,24 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let custom_menus = if menus.is_empty() {
         // The geometry goes anyway: the runtime assembles the same with or
         // without menus.
-        json!({"labels": [], "layout": crate::custom_menu::publish()})
+        answer::CustomMenus {
+            labels: Vec::new(),
+            built: None,
+            layout: crate::custom_menu::publish(),
+        }
     } else {
         let built = crate::custom_menu::build(game, &skin, menus, &request.menu_context)?;
         says.extend(built.says.iter().cloned());
-        crate::custom_menu::to_json(&built)
+        crate::custom_menu::answer(&built)
     };
     let debug_screen = if request.debug {
         let built = crate::debug_screen::build(game, &skin, &request.menu_context.variables)?;
         says.extend(built.says.iter().cloned());
-        crate::debug_screen::to_json(&built)
+        Some(crate::debug_screen::answer(&built))
     } else {
-        Value::Null
+        None
     };
-    let menu = &slots.menu;
     let gold = message_window::gold(&skin, &window, &game.font, &game.term("gold")?)?;
-    let mut window_json = window_json(
-        &window,
-        &gold,
-        &message_window::inks(&skin, &window, &game.font),
-    );
-    window_json["font"] = json!(hex(&font));
     let mut advances = game.font.console_advances();
     let window_letters: Vec<char> = request
         .letters
@@ -1083,147 +1067,103 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         .copied()
         .collect();
     advances.extend(window_letters.iter().map(|&c| game.font.advance(c) as u8));
-    window_json["advances"] = json!(advances);
-    window_json["reach"] = json!(message_window::font_reach_with(&game.font, &window_letters));
-    window_json["font_ink"] = message_window::FontInk {
-        rows: window.color.clone(),
-        shadow: window.shadow,
-    }
-    .to_json();
-    Ok(json!({
-        "font": {
-            "prerender": prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
-            "letters_at": letters_at,
+    let window = answer::Window {
+        system: window_answer(
+            &window,
+            &gold,
+            &message_window::inks(&skin, &window, &game.font),
+        ),
+        font,
+        advances,
+        reach: message_window::font_reach_with(&game.font, &window_letters),
+        font_ink: message_window::FontInk {
+            rows: window.color.clone(),
+            shadow: window.shadow,
+        },
+    };
+    Ok(answer::Answer {
+        font: answer::ScreenFont {
+            prerender,
+            letters_at,
             // The letters the text screens reach, from `letters_at` on: the
             // emission writes the database's texts with them.
-            "screen_letters": letters.screens.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
+            screen_letters: letters.screens.clone(),
         },
-        "custom_menus": custom_menus,
-        "debug_screen": debug_screen,
-        "window": window_json,
-        "title": title.map(|t| json!({
-            "texts": t.texts,
-            "tiles": tiles_json(&t.tiles),
-            "palette": colors_json(&t.palette),
-            "tilemaps": t.tilemaps,
-        })),
-        "slots": {
-            "tiles": tiles_json(&slots.tiles),
-            "menu_tiles": slots.menu_tiles,
-            "slot_names": [slots.slot_names.0, slots.slot_names.1],
-            "palettes": slots.palettes,
-            "headers": slots.headers,
-            "rows": slots.rows,
-            "faces": Value::Object(slots.faces.iter().map(|(a, c)| (a.to_string(), json!(c))).collect()),
-            "menu": {
-                "options": menu.options,
-                "glyphs": glyphs_json(&menu.glyphs),
-                "currency": menu.currency,
-                "row": menu.row,
-                "exp_term": menu.exp_term,
-                "sp_term": menu.sp_term,
-                "arrows": menu.arrows,
-                "arrow_colors": colors_json(&menu.arrow_colors),
-            },
-            "font_ink": slots.ink.to_json(),
-            "states": states_json(&skin, &slots.states)?,
+        custom_menus,
+        debug_screen,
+        window,
+        title: title.map(|t| answer::Title {
+            texts: t.texts,
+            tiles: t.tiles,
+            palette: t.palette,
+            tilemaps: t.tilemaps,
+        }),
+        slots: answer::Slots {
+            tiles: slots.tiles.clone(),
+            menu_tiles: slots.menu_tiles,
+            slot_names: slots.slot_names,
+            palettes: slots.palettes.clone(),
+            headers: slots.headers.clone(),
+            rows: slots.rows.clone(),
+            faces: slots.faces.clone(),
+            menu: slots.menu.clone(),
+            font_ink: slots.ink.clone(),
+            states: states(&skin, &slots.states)?,
         },
-        "text_inks": {
-            "palettes": inks.palettes,
-            "font_ink": items::screens_ink().to_json(),
-            "advances": inks.advances,
-            "reach": inks.reach,
-            "icons": inks.icons,
+        text_inks: answer::TextInks {
+            palettes: inks.palettes,
+            font_ink: items::screens_ink(),
+            advances: inks.advances,
+            reach: inks.reach,
+            icons: inks.icons,
         },
-        "battle_windows": battle_windows,
-        "skills_screen": skills_windows,
-        "skills": crate::skills::per_skill(game)?,
-        "items_border": borders_json(&items_border),
-        "items_border_first": first,
-        "shop_border": {
-            "tiles": tiles_json(&shop_border.tiles),
-            "colors": colors_json(&shop_border.colors),
-            "rows": shop_compact.rows,
-            "top": shop_compact.top,
-            "layers": shop_compact.layers,
-            "patches": shop_compact.patches,
-            "bars": shop_compact.bars,
+        battle_windows,
+        skills_screen: skills_windows,
+        skills: crate::skills::per_skill(game)?,
+        items_border: answer::Borders {
+            tiles: items_border.tiles,
+            colors: items_border.colors,
+            maps: items_border.maps,
         },
-        "shop_party": {
-            "on": party_on,
-            "members": members,
-            "arrows": tiles_json(&arrow_tiles),
-            "arrow_colors": colors_json(&arrow_colors),
-            "tile0": 2 * shop_border.tiles.len(),
+        items_border_first: first,
+        shop_border: answer::ShopBorder {
+            tiles: shop_border.tiles.clone(),
+            colors: shop_border.colors.clone(),
+            compact: shop_compact,
         },
-        "target": {
-            "tiles": tiles_json(&target.tiles),
-            "colors": colors_json(&target.colors),
-            "map": target_compact.map,
-            "bars": target_compact.bars,
-            "row0": target_compact.row0,
-            "rows": target_compact.rows,
-            "col0": target_compact.col0,
-            "cols": target_compact.cols,
-            "menu_bar": target_compact.menu_bar,
-            "menu_bar_at": [
-                target_compact.menu_bar_at.0,
-                target_compact.menu_bar_at.1,
-                target_compact.menu_bar_at.2,
-                target_compact.menu_bar_at.3
-            ],
-            "menu_cmd": target_compact.menu_cmd,
-            "menu_cmd_at": [
-                target_compact.menu_cmd_at.0,
-                target_compact.menu_cmd_at.1,
-                target_compact.menu_cmd_at.2,
-                target_compact.menu_cmd_at.3
-            ],
-            "slot_bar": target_compact.slot_bar,
-            "slot_bar_at": [
-                target_compact.slot_bar_at.0,
-                target_compact.slot_bar_at.1,
-                target_compact.slot_bar_at.2,
-                target_compact.slot_bar_at.3
-            ],
-            "skill": {
-                "term_at": [
-                    skill_target.term_at.0,
-                    skill_target.term_at.1,
-                    skill_target.term_at.2,
-                    skill_target.term_at.3
-                ],
-                "term": skill_target.term,
-                "all_at": [
-                    skill_target.all_at.0,
-                    skill_target.all_at.1,
-                    skill_target.all_at.2,
-                    skill_target.all_at.3
-                ],
-                "all_rows": skill_target.all_rows,
-                "all": skill_target.all,
-            },
+        shop_party: answer::ShopParty {
+            on: party_on,
+            members,
+            arrows: arrow_tiles,
+            arrow_colors,
+            tile0: 2 * shop_border.tiles.len(),
         },
-        "end_game": {
-            "tiles": tiles_json(&end.tiles),
-            "rows": end.rows,
-            "row0": end.row0,
-            "palettes": end.palettes,
+        target: answer::Target {
+            tiles: target.tiles.clone(),
+            colors: target.colors.clone(),
+            compact: target_compact,
+            skill: skill_target,
         },
-        "texts": {
-            "actors": actor_texts,
-            "renamed": renamed,
-            "items": item_texts,
-            "medicines": medicine_names,
-            "params": params,
-            "equipment": equipment,
-            "shop": shop,
-            "owned": game.term(TI_TERM_OWNED)?,
-            "carried": game.term(TI_TERM_CARRIED)?,
-            "currency": game.term("gold")?,
+        end_game: answer::EndGame {
+            tiles: end.tiles,
+            rows: end.rows,
+            row0: end.row0,
+            palettes: end.palettes,
         },
-        "layout": layout::publish(),
-        "says": says,
-        "losses": losses,
-    }))
+        texts: answer::Texts {
+            actors: actor_texts,
+            renamed,
+            items: item_texts,
+            medicines: medicine_names,
+            params,
+            equipment,
+            shop,
+            owned: game.term(TI_TERM_OWNED)?,
+            carried: game.term(TI_TERM_CARRIED)?,
+            currency: game.term("gold")?,
+        },
+        layout: layout::publish(),
+        says,
+        losses,
+    })
 }

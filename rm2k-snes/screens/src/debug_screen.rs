@@ -569,22 +569,22 @@ pub fn publish(b: &Built) -> Value {
 }
 
 /// The answer's part for the screen.
-pub fn to_json(b: &Built) -> Value {
+pub fn answer(b: &Built) -> crate::answer::DebugScreen {
     let (layout, bars) = &b.borders.maps;
-    json!({
-        "label": LABEL,
-        "pages": b.pages.iter().map(|p| crate::convert::hex(p)).collect::<Vec<_>>(),
-        "layout": layout,
-        "bars": bars,
-        "tiles": crate::convert::tiles_json(&b.borders.tiles),
-        "colors": crate::convert::colors_json(&b.borders.colors),
-        "geometry": publish(b),
-        "font": {
-            "advances": b.glyphs.advances,
-            "reach": b.glyphs.reach,
-            "prerender": b.glyphs.prerender.iter().map(|t| crate::convert::hex(t)).collect::<Vec<_>>(),
+    crate::answer::DebugScreen {
+        label: LABEL.to_string(),
+        pages: b.pages.clone(),
+        layout: layout.clone(),
+        bars: bars.clone(),
+        tiles: b.borders.tiles.clone(),
+        colors: b.borders.colors.clone(),
+        geometry: publish(b),
+        font: crate::answer::DebugFont {
+            advances: b.glyphs.advances.clone(),
+            reach: b.glyphs.reach.clone(),
+            prerender: b.glyphs.prerender.clone(),
         },
-    })
+    }
 }
 
 #[cfg(test)]

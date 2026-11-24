@@ -26,6 +26,10 @@ rm2k-snes-text = { path = "../text" }
 # 32x32 block starts, how big a pose is— and the timer's glyphs: Wally's
 # numbers, from its `sprites`, written as it decided them.
 wally = { path = "../wally" }
+# The screens' answer, which the request carries as the screens typed it.
+rm2k-snes-screens = { path = "../screens" }
+# And the troops' pages, as the event compiler typed them.
+rm2k-snes-events = { path = "../events" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
