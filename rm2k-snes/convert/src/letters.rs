@@ -15,7 +15,7 @@ use crate::fail::Result;
 use ditto::dump::Dump;
 use rm2k_snes_text::font::Font;
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 /// The five bytes cp1252 does not define, which Ditto keeps as their C1
@@ -32,14 +32,12 @@ const C1: [char; 5] = ['\u{81}', '\u{8d}', '\u{8f}', '\u{90}', '\u{9d}'];
 pub fn screen_letters(
     dump: &Path,
     font: &Font,
-    battle_terms: &Value,
+    battle_terms: &BTreeMap<String, String>,
     names: &[String],
 ) -> Result<Vec<char>> {
     let mut texts = database_texts(&Dump::open(dump)?, battle_terms)?;
     texts.extend(names.iter().cloned());
-    if let Some(terms) = battle_terms.as_object() {
-        texts.extend(terms.values().filter_map(Value::as_str).map(str::to_string));
-    }
+    texts.extend(battle_terms.values().cloned());
     let drawn: BTreeSet<char> = font.latin_letters().into_iter().map(|(c, _)| c).collect();
     let mut out = BTreeSet::new();
     for text in texts.iter().filter(|t| !t.chars().any(|c| C1.contains(&c))) {
@@ -52,7 +50,7 @@ pub fn screen_letters(
 /// time. A 2003 game's battle never shows the terms of
 /// `UNSHOWN_IN_2003` —the mapdata stage's—, so whatever its database
 /// holds in them is not the game's: the project's or English stand in.
-fn database_texts(dump: &Dump, battle_terms: &Value) -> Result<Vec<String>> {
+fn database_texts(dump: &Dump, battle_terms: &BTreeMap<String, String>) -> Result<Vec<String>> {
     let section = |name: &str| -> Result<Value> { Ok(dump.section::<Value>(name)?) };
     let mut out = Vec::new();
     let mut take = |list: &Value, fields: &[&str]| {
@@ -95,7 +93,7 @@ fn database_texts(dump: &Dump, battle_terms: &Value) -> Result<Vec<String>> {
     if let Some(terms) = section("terms")?.as_object() {
         for (name, value) in terms {
             let replaced =
-                battle_terms.get(name).is_some() || (is_2003 && unshown.contains(&name.as_str()));
+                battle_terms.contains_key(name) || (is_2003 && unshown.contains(&name.as_str()));
             if let (false, Some(t)) = (replaced, value.as_str()) {
                 out.push(t.to_string());
             }

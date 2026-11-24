@@ -40,7 +40,7 @@ use crate::images;
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
 use rm2k_snes_events::registry::PictureKey;
-use rm2k_snes_mapdata::request::PictureImage;
+use rm2k_snes_mapdata::request::{self, PictureImage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -490,12 +490,47 @@ fn big_center(key: &Key) -> (i64, i64) {
     key.at.map(wide).unwrap_or((0, 0))
 }
 
-/// A big picture of a map: its key, and its layer as the stage answered
-/// it with its half size and centre.
+/// A big picture of a map: its key, and its layer.
 #[derive(Debug, Clone)]
 pub struct Big {
     pub key: Key,
-    pub layer: Value,
+    pub layer: BigLayer,
+}
+
+/// A big picture's layer: as the stage drew it, with its centre and half
+/// its size in RM2k's pixels; the panorama it was drawn over, if any —see
+/// [`still_over`]—, and whether the map's small pictures stay up over it,
+/// which [`keep_objects`] decides.
+#[derive(Debug, Clone)]
+pub struct BigLayer {
+    pub drawn: rm2k_snes_images::request::Layer,
+    pub center: [i64; 2],
+    pub half: [i64; 2],
+    pub under: Option<String>,
+    pub keeps_objects: bool,
+}
+
+impl BigLayer {
+    /// As the emission takes it.
+    pub fn request(self) -> request::BigLayer {
+        let drawn = self.drawn;
+        request::BigLayer {
+            top: drawn.top,
+            center: self.center,
+            half: self.half,
+            wider: drawn.wider,
+            rows: drawn.rows,
+            tiles: drawn.tiles,
+            tilemap: drawn.tilemap,
+            palettes: drawn.palettes,
+            mode7: drawn.mode7.map(|t| request::Mode7Texture {
+                tiles: t.tiles,
+                map: t.map,
+                center: [t.center.0, t.center.1],
+            }),
+            keeps_objects: self.keeps_objects,
+        }
+    }
 }
 
 /// Whether a `MovePicture` of the map zooms the picture `key`: one under
@@ -588,29 +623,25 @@ pub fn big_for_map(
                 (height * RM_HEIGHT).div_euclid(HEIGHT),
             );
         }
-        let mut layer = serde_json::to_value(layer).expect("a layer is JSON");
-        let object = layer
-            .as_object_mut()
-            .ok_or_else(|| Stop::new("a layer is not an object"))?;
-        object.insert(
-            "half".into(),
-            json!([
-                zoomed(width, zoom).div_euclid(2),
-                zoomed(height, zoom).div_euclid(2)
-            ]),
-        );
-        object.insert("center".into(), json!([cx, cy]));
         if let Some(panorama) = panorama {
             println!(
                 "  {whose}: the picture {} is drawn over the panorama {}, which shows through its holes",
                 crate::text::quoted(name),
                 crate::text::quoted(&panorama.file_stem().unwrap_or_default().to_string_lossy())
             );
-            object.insert("under".into(), json!(panorama.to_string_lossy()));
         }
         out.push(Big {
             key: key.clone(),
-            layer,
+            layer: BigLayer {
+                drawn: layer,
+                center: [cx, cy],
+                half: [
+                    zoomed(width, zoom).div_euclid(2),
+                    zoomed(height, zoom).div_euclid(2),
+                ],
+                under: panorama.map(|p| p.to_string_lossy().into_owned()),
+                keeps_objects: false,
+            },
         });
     }
     Ok(out)
@@ -770,11 +801,6 @@ pub fn still_over(map: &GameMap) -> BTreeSet<(i64, String)> {
     out
 }
 
-/// Whether a layer carries a mode 7 texture.
-fn textured(layer: &Value) -> bool {
-    layer.get("mode7").is_some_and(|t| !t.is_null())
-}
-
 /// The cartridge's big pictures, numbered: the layers, in the order the
 /// maps meet them, and each map's table —each key with its layer's number,
 /// its centre and whether it has a texture—, which the event compiler
@@ -788,22 +814,24 @@ fn textured(layer: &Value) -> bool {
 /// were one layer, with the texture. The emission shares the tiles, the
 /// tilemap and the colours of two layers that have the same: see
 /// `big_pictures_section` in rm2k-snes-mapdata.
-pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
-    let mut layers: Vec<Value> = Vec::new();
-    let mut index: HashMap<String, usize> = HashMap::new();
+pub fn number_big(maps: &[&[Big]]) -> (Vec<BigLayer>, Vec<Vec<Value>>) {
+    let mut layers: Vec<BigLayer> = Vec::new();
+    // What makes two the same layer: the picture, its zoom and colour key,
+    // where it is drawn, over which panorama, and whether it has a texture.
+    type Ident<'a> = (&'a str, i32, bool, [i64; 2], Option<&'a str>, bool);
+    let mut index: HashMap<Ident, usize> = HashMap::new();
     let mut numbers: Vec<Vec<usize>> = Vec::new();
     for bigs in maps {
         let mut map = Vec::new();
         for big in bigs.iter() {
-            let ident = json!([
-                big.key.name,
-                i64::from(big.key.zoom),
+            let ident = (
+                big.key.name.as_str(),
+                big.key.zoom,
                 big.key.transparent_color,
-                big.layer["center"],
-                big.layer.get("under"),
-                textured(&big.layer)
-            ])
-            .to_string();
+                big.layer.center,
+                big.layer.under.as_deref(),
+                big.layer.drawn.mode7.is_some(),
+            );
             let number = *index.entry(ident).or_insert_with(|| {
                 layers.push(big.layer.clone());
                 layers.len() - 1
@@ -819,8 +847,8 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
             let mut entry = entry_of(&big.key);
             entry.insert("plane".into(), json!("background"));
             entry.insert("image".into(), json!(number));
-            entry.insert("center".into(), big.layer["center"].clone());
-            if textured(&layers[number]) {
+            entry.insert("center".into(), json!(big.layer.center));
+            if layers[number].drawn.mode7.is_some() {
                 entry.insert("texture".into(), json!(true));
             }
             table.push(Value::Object(entry));
@@ -842,37 +870,31 @@ pub const BIG_KEEP_TILES: i64 = 512;
 /// pictures' objects while such a layer is up, not the characters, which
 /// are the map's. The rest hide the small ones, as every big picture did
 /// until 2026-10-20.
-pub fn keep_objects(layers: &mut [Value]) {
+pub fn keep_objects(layers: &mut [BigLayer]) {
     for layer in layers.iter_mut() {
-        if layer.get("under").is_none() {
+        let Some(under) = &layer.under else {
             continue;
-        }
-        // The images' `request::Layer`, serialized: it has its count.
-        let tiles = layer["tile_count"]
-            .as_i64()
-            .expect("a big picture's layer has its tile count");
+        };
+        let tiles = layer.drawn.tile_count as i64;
         if tiles <= BIG_KEEP_TILES {
-            layer["keeps_objects"] = json!(true);
+            layer.keeps_objects = true;
         } else {
             println!(
                 "  a big picture over {} takes {tiles} tiles: past {BIG_KEEP_TILES} it would                  overwrite the sprite bank, and the small pictures are not shown over it",
-                layer["under"].as_str().unwrap_or("")
+                under
             );
         }
     }
 }
 
 /// What the log says of [`number_big`]'s layers, once they are final.
-pub fn say_big(layers: &[Value]) {
+pub fn say_big(layers: &[BigLayer]) {
     if !layers.is_empty() {
         println!(
             "  the cartridge carries {} big picture(s) in the background layer",
             layers.len()
         );
-        let kept = layers
-            .iter()
-            .filter(|l| l["keeps_objects"] == json!(true))
-            .count();
+        let kept = layers.iter().filter(|l| l.keeps_objects).count();
         if kept > 0 {
             println!("  {kept} of them over a map's panorama, with the small pictures over them");
         }
@@ -1657,7 +1679,29 @@ mod tests {
                 ..PictureKey::default()
             })
         };
-        let layer = |texture: bool| json!({"center": [160, 120], "tiles": "00", "mode7": if texture { json!({"map": []}) } else { Value::Null }});
+        let layer = |texture: bool| BigLayer {
+            drawn: rm2k_snes_images::request::Layer {
+                top: 0,
+                rows: 1,
+                columns: 1,
+                wider: false,
+                tile_count: 1,
+                tiles: vec![0],
+                tilemap: Vec::new(),
+                palettes: Vec::new(),
+                mode7: texture.then(|| rm2k_snes_images::request::LayerTexture {
+                    tile_count: 1,
+                    tiles: vec![0],
+                    map: Vec::new(),
+                    distinct: 1,
+                    center: (160, 120),
+                }),
+            },
+            center: [160, 120],
+            half: [8, 8],
+            under: None,
+            keeps_objects: false,
+        };
         let still = [Big {
             key: key("Photo"),
             layer: layer(false),
@@ -1672,6 +1716,7 @@ mod tests {
         }];
         let (layers, tables) = number_big(&[&still, &zoomed, &other, &still]);
         assert_eq!(layers.len(), 3);
+        let textured = |l: &BigLayer| l.drawn.mode7.is_some();
         assert!(!textured(&layers[0]) && textured(&layers[1]) && !textured(&layers[2]));
         // Desert Nightmare's black screen, which one map zooms: shown still
         // with the texture, it hid the window of every message over it.

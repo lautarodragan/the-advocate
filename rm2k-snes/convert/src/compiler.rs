@@ -161,7 +161,7 @@ impl<'a> Compiler<'a> {
         // window, with the boxes that go in its place. A line is measured in
         // pixels, with the font the project file names.
         let font = FontChoice::of(settings)?;
-        let width = screens::message_width()?;
+        let width = rm2k_snes_screens::layout::MESSAGE_WIDTH;
         let boxes = screens::boxes(game, &font, width, LINES)?;
         let window = font.window(width, LINES);
         // And the battle's, where the troops' pages show theirs: as many
@@ -169,12 +169,7 @@ impl<'a> Compiler<'a> {
         // pixels, which is how the console cuts them too—. The compiler
         // reflows those itself, because it is the one that knows which pages
         // a troop brings.
-        // Constants, which no game changes: not worth a cache entry.
-        let layout = stage::json(&rm2k_snes_battle::stage::layout(), "layout.json")?;
-        let cells = layout["BA_PAGE_MSG_WIDTH"]
-            .as_u64()
-            .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
-        let troop_window = font.window(cells as usize * 8, LINES);
+        let troop_window = font.window(rm2k_snes_battle::screen::BA_PAGE_MSG_WIDTH * 8, LINES);
         let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
         Ok(Compiler {
             game,
@@ -263,7 +258,7 @@ impl<'a> Compiler<'a> {
             answer(&self.game.dump, &request).map(|a| rm2k_snes_events::stage::files(&a))
         })?;
         let file = rm2k_snes_events::ANSWER_FILE;
-        serde_json::from_value(stage::json(&written, file)?)
+        serde_json::from_str(&stage::text(&written, file)?)
             .map_err(|e| Stop::new(format!("{}'s {file}: {e}", stage.binary)))
     }
 

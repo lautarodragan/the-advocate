@@ -16,6 +16,7 @@ use crate::stage;
 use crate::systems::Switched;
 use rm2k_project::windows::color_text;
 use rm2k_snes_mapdata::{cgram, vram};
+use rm2k_snes_screens::answer::{Face, FacesAnswer, WindowAnswer, WindowMerge};
 use rm2k_snes_screens::stage::Place;
 use serde_json::{json, Value};
 use std::ffi::OsString;
@@ -104,12 +105,11 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
 
 /// The faces the message window shows —`(FaceSet, index, mirrored)`, the
 /// compiler's `faces` in `OP_FACE`'s order—, each as the cartridge stores
-/// it, `{"tiles": hex, "palette": words, "missing": bool}`: `missing` is
-/// one whose FaceSet is neither the game's nor the RTP's, drawn as the
-/// window's background alone. See `faces.rs` in `rm2k-snes-screens`. The
-/// stage draws with the game's System and the project's window background,
-/// like every screen.
-pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Value>> {
+/// it, and `missing` for one whose FaceSet is neither the game's nor the
+/// RTP's, drawn as the window's background alone. See `faces.rs` in
+/// `rm2k-snes-screens`. The stage draws with the game's System and the
+/// project's window background, like every screen.
+pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Face>> {
     if faces.is_empty() {
         return Ok(Vec::new());
     }
@@ -119,18 +119,15 @@ pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Value>> {
     let written = stage::call(SCREENS_FACES, &request, &flags, || {
         rm2k_snes_screens::stage::faces(&place, &request)
     })?;
-    let answer = stage::json(&written, "faces.json")?;
-    answer["faces"]
-        .as_array()
-        .cloned()
-        .filter(|drawn| drawn.len() == faces.len())
-        .ok_or_else(|| {
-            Stop::new(format!(
-                "the screens drew {} faces and {} were asked for",
-                answer["faces"].as_array().map_or(0, Vec::len),
-                faces.len()
-            ))
-        })
+    let answer: FacesAnswer = stage::typed(&written, "faces.json")?;
+    if answer.faces.len() != faces.len() {
+        crate::stop!(
+            "the screens drew {} faces and {} were asked for",
+            answer.faces.len(),
+            faces.len()
+        );
+    }
+    Ok(answer.faces)
 }
 
 /// The colour-memory entries the message window takes after the backdrop,
@@ -147,7 +144,7 @@ pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Value>> {
 /// most any of them takes, the text takes the same entries in all of them
 /// —`text_rows`, which [`convert`] takes back— and each one's window comes
 /// in `systems`.
-pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)> {
+pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, WindowAnswer)> {
     let request = if switched.is_empty() {
         json!({})
     } else {
@@ -157,64 +154,47 @@ pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)>
     let written = stage::call(SCREENS_WINDOW, &request, &flags, || {
         rm2k_snes_screens::stage::window(&place, &request)
     })?;
-    let answer = stage::json(&written, "window.json")?;
-    let colors = answer["colors"]
-        .as_u64()
-        .and_then(|n| u32::try_from(n).ok())
-        .ok_or_else(|| {
-            Stop::new(format!(
-                "the screens' window answer has no colour count: {answer}"
-            ))
-        })?;
+    let answer: WindowAnswer = stage::typed(&written, "window.json")?;
+    let colors = u32::try_from(answer.colors).map_err(|_| {
+        Stop::new(format!(
+            "the screens' window answer counts {} colours",
+            answer.colors
+        ))
+    })?;
     Ok((colors, answer))
 }
 
 /// What the message window lost, for the patches: the starting System's
 /// and each other one's, those whose colours did not fit in one palette.
-/// A System the window answer gives no `colors` of takes the starting
-/// one's, `window_colors`.
-pub fn window_losses(
-    answer: &Value,
-    window_colors: u32,
-) -> Result<Vec<rm2k_snes_patches::WindowDecision>> {
-    #[derive(serde::Deserialize)]
-    struct Window {
-        system: String,
-        brought: i64,
-        colors: Option<i64>,
-        #[serde(default)]
-        merges: Vec<rm2k_snes_patches::Merge>,
-    }
-    let mut out = Vec::new();
-    for w in std::iter::once(answer).chain(answer["systems"].as_array().into_iter().flatten()) {
-        let w: Window = serde::Deserialize::deserialize(w)
-            .map_err(|e| Stop::new(format!("the screens' window answer: {e}")))?;
-        if !w.merges.is_empty() {
-            out.push(rm2k_snes_patches::WindowDecision {
-                system: w.system,
-                colors: w.brought,
-                kept: w.colors.unwrap_or(i64::from(window_colors)),
-                merges: w.merges,
-            });
+pub fn window_losses(answer: &WindowAnswer) -> Vec<rm2k_snes_patches::WindowDecision> {
+    let rgb = |c: &[u8; 3]| c.map(i64::from);
+    let decision = |system: &str, brought: usize, kept: usize, merges: &[WindowMerge]| {
+        rm2k_snes_patches::WindowDecision {
+            system: system.to_string(),
+            colors: brought as i64,
+            kept: kept as i64,
+            merges: merges
+                .iter()
+                .map(|(victim, target, pixels)| {
+                    rm2k_snes_patches::Merge::Global((rgb(victim), rgb(target), *pixels as i64))
+                })
+                .collect(),
         }
-    }
-    Ok(out)
-}
-
-/// The geometry the screens are drawn with, by the names the emission
-/// writes it with. Constants, which no game changes: not worth a cache
-/// entry.
-pub fn layout() -> Result<Value> {
-    stage::json(&rm2k_snes_screens::stage::layout(), "layout.json")
-}
-
-/// How many pixels a line of the message window takes: the screens'.
-pub fn message_width() -> Result<usize> {
-    let layout = layout()?;
-    layout["MESSAGE_WIDTH"]
-        .as_u64()
-        .map(|w| w as usize)
-        .ok_or_else(|| Stop::new("the screens' layout has no MESSAGE_WIDTH"))
+    };
+    let starting = decision(
+        &answer.system,
+        answer.brought,
+        answer.colors,
+        &answer.merges,
+    );
+    let others = answer
+        .systems
+        .iter()
+        .map(|o| decision(&o.other.system, o.brought, o.colors, &o.merges));
+    std::iter::once(starting)
+        .chain(others)
+        .filter(|w| !w.merges.is_empty())
+        .collect()
 }
 
 /// What the cartridge carries of its screens, for `members` —the actors
@@ -229,7 +209,7 @@ pub fn convert(
     title: bool,
     menus: &Value,
     window_colors: u32,
-    text_rows: &Value,
+    text_rows: Option<&Vec<Vec<usize>>>,
     letters: &Value,
     screen_letters: &[char],
 ) -> Result<rm2k_snes_screens::answer::Answer> {
@@ -281,8 +261,8 @@ pub fn convert(
     // The text's entries, the same in every System: only a cartridge that
     // switches has them, and the request of one that does not stays as it
     // was.
-    if !text_rows.is_null() {
-        request["text_rows"] = text_rows.clone();
+    if let Some(rows) = text_rows {
+        request["text_rows"] = json!(rows);
     }
     // The custom menus, their variables' slots and the bodies they run; and
     // the names `ChangeHeroName` gives, which ride along in the same value.
