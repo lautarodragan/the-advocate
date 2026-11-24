@@ -126,55 +126,17 @@ pub const RESULT_TERMS: [(&str, &str); 12] = [
     ("agi", "agility"),
 ];
 
-/// A term of the database, by liblcf's name.
+/// A term of the database, by liblcf's name: `Terms` serializes each field
+/// by that name. In the resolved view, or a term the game left at its
+/// default would be left out and read as no term.
 fn term(db: &Db, name: &str) -> Result<String> {
-    let t = &db.terms;
-    Ok(match name {
-        "command_attack" => &t.command_attack,
-        "command_defend" => &t.command_defend,
-        "battle_escape" => &t.battle_escape,
-        "hp_short" => &t.hp_short,
-        "attacking" => &t.attacking,
-        "defending" => &t.defending,
-        "actor_critical" => &t.actor_critical,
-        "enemy_damaged" => &t.enemy_damaged,
-        "enemy_undamaged" => &t.enemy_undamaged,
-        "actor_damaged" => &t.actor_damaged,
-        "actor_undamaged" => &t.actor_undamaged,
-        "victory" => &t.victory,
-        "defeat" => &t.defeat,
-        "escape_success" => &t.escape_success,
-        "escape_failure" => &t.escape_failure,
-        "command_item" => &t.command_item,
-        "command_skill" => &t.command_skill,
-        "use_item" => &t.use_item,
-        "hp_recovery" => &t.hp_recovery,
-        "exp_received" => &t.exp_received,
-        "level" => &t.level,
-        "level_up" => &t.level_up,
-        "skill_learned" => &t.skill_learned,
-        "gold_recieved_a" => &t.gold_recieved_a,
-        "gold" => &t.gold,
-        "gold_recieved_b" => &t.gold_recieved_b,
-        "item_recieved" => &t.item_recieved,
-        "sp_short" => &t.sp_short,
-        "normal_status" => &t.normal_status,
-        "lvl_short" => &t.lvl_short,
-        "skill_failure_a" => &t.skill_failure_a,
-        "skill_failure_b" => &t.skill_failure_b,
-        "skill_failure_c" => &t.skill_failure_c,
-        "dodge" => &t.dodge,
-        "parameter_increase" => &t.parameter_increase,
-        "parameter_decrease" => &t.parameter_decrease,
-        "health_points" => &t.health_points,
-        "spirit_points" => &t.spirit_points,
-        "attack" => &t.attack,
-        "defense" => &t.defense,
-        "spirit" => &t.spirit,
-        "agility" => &t.agility,
-        _ => return Err(Bad::usage(format!("there is no term {name:?}"))),
-    }
-    .clone())
+    let terms = ditto::lcf::as_resolved(|| serde_json::to_value(&db.terms))
+        .expect("the terms are strings, and strings go into JSON");
+    terms
+        .get(name)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| Bad::usage(format!("there is no term {name:?}")))
 }
 
 /// The terms of [`BATTLE_TERMS`] that RPG Maker 2003's battle never
@@ -5941,6 +5903,33 @@ mod tests {
         assert_eq!(switch_bytes(1643).unwrap(), 206);
         assert_eq!(switch_bytes(2047).unwrap(), 256);
         assert!(switch_bytes(2048).is_err());
+    }
+
+    /// Every term the battle and the skills screen name is one of the
+    /// database's, whether the game left it at its default or wrote its
+    /// own; and a name that is no term is refused.
+    #[test]
+    fn every_term_the_tables_name_is_the_databases() {
+        let names = BATTLE_TERMS
+            .iter()
+            .chain(RESULT_TERMS.iter())
+            .map(|(_, liblcf)| *liblcf)
+            .chain(["lvl_short"]);
+        let mut db = Db::default();
+        for name in names.clone() {
+            term(&db, name).unwrap_or_else(|_| panic!("{name} at its default"));
+        }
+        db.terms.gold_recieved_a = "Found ".to_string();
+        db.terms.lvl_short = "Nv".to_string();
+        assert_eq!(term(&db, "gold_recieved_a").unwrap(), "Found ");
+        assert_eq!(term(&db, "lvl_short").unwrap(), "Nv");
+        assert!(term(&db, "gold_received_a").is_err());
+        let dump =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../battle/tests/game/dump");
+        let game = Db::from_dump(&dump, true).unwrap();
+        for name in names {
+            term(&game, name).unwrap_or_else(|_| panic!("{name} in the test game"));
+        }
     }
 
     /// Zounds' terms, which taro saw as `Kazar 3'I?_???[?W…` in every
