@@ -153,6 +153,12 @@ them: an event that changes graphic and does not fit is a door the player
 cannot open, and a build that does not stop there is worse than one that
 does.
 
+The two JSON files are types of this crate, in `answer.rs`: `map.json` an
+`answer::Map`, `layers.json` an `answer::Layers`. Wally builds them and
+serde writes them, and the converter reads them back with
+`Answer::read`, so a field renamed on one side does not compile on the
+other.
+
 `layers` makes only the two background layers and their blocks, from a
 request with nothing but the map and the cells painted over it: no
 leaders, no compiler's answer, no cartridge. It is the smallest way to see
