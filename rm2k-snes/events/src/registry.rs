@@ -9,7 +9,6 @@
 
 use crate::game::Sound;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 
 /// Where what a page asks for plays: a map's audio package, by its index
 /// in the cartridge, or the battle's, which is a package of its own that
@@ -22,24 +21,15 @@ use serde_json::{json, Value};
 /// putting it in map 2's package the 24 effects of that map —49,068 B, which
 /// all fit today— dropped almost entirely. With its own package the map pays
 /// nothing while there is no battle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Package {
     Map(usize),
     Battle,
 }
 
-impl Package {
-    fn key(self) -> Value {
-        match self {
-            Package::Map(i) => json!(i),
-            Package::Battle => json!("battle"),
-        }
-    }
-}
-
 /// What one package asks for: its songs, by index; its effects, by name;
 /// and the maps its pages jump to.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Wants {
     pub songs: Vec<usize>,
     pub sounds: Vec<String>,
@@ -204,23 +194,17 @@ impl Songs {
         }
     }
 
-    pub fn to_json(&self) -> Value {
-        let mut out = json!({
-            "names": self.names,
-            "sounds": self.sounds.iter().map(|(n, v, t, b)| json!([n, v, t, b])).collect::<Vec<_>>(),
-            "per_package": self.per_package.iter().map(|(p, w)| json!([p.key(), {
-                "songs": w.songs, "sounds": w.sounds, "destinations": w.destinations,
-            }])).collect::<Vec<_>>(),
-            "exits": self.exits.iter().map(|(p, e)| json!([p.key(), e])).collect::<Vec<_>>(),
-            "jumps": self.jumps.iter().map(|(p, j)| json!([p.key(), j])).collect::<Vec<_>>(),
-            "requested": self.requested,
-        });
-        // Only when there are some: the reader takes a missing list as an
-        // empty one.
-        if !self.troop_songs.is_empty() {
-            out["troop_songs"] = json!(self.troop_songs);
+    /// What the compiler answers of it: what was asked for, without
+    /// what it kept to note it.
+    pub fn answer(&self) -> crate::answer::Songs {
+        crate::answer::Songs {
+            names: self.names.clone(),
+            sounds: self.sounds.clone(),
+            per_package: self.per_package.clone(),
+            exits: self.exits.clone(),
+            jumps: self.jumps.clone(),
+            troop_songs: self.troop_songs.clone(),
         }
-        out
     }
 }
 

@@ -1513,7 +1513,7 @@ fn compile_pass(
                 .map(char::to_string)
                 .collect(),
         },
-        songs: songs.to_json(),
+        songs: songs.answer(),
         troops: answer::Troops {
             ids: troops.ids.clone(),
             backdrops: troops
@@ -1526,10 +1526,7 @@ fn compile_pass(
                 .collect(),
         },
         troop_pages: troop_pages.answer(),
-        battle_audio: match battle_audio {
-            None => Value::Null,
-            Some(a) => Value::Object(a.into_iter().collect()),
-        },
+        battle_audio,
         parallel_commons: parallel,
         // Only when there are some, like `troop_songs`.
         commons: (!commons.bodies.is_empty()).then(|| commons.answer()),

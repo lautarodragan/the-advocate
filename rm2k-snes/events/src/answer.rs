@@ -8,13 +8,13 @@
 //! —`degradations.json`, the emission's request— stay what they were.
 //!
 //! What the caller only passes on to another stage stays a JSON value
-//! here: the zooms (the pictures' stage reads them), the songs (the
-//! audio's), the battle's audio (the emission's) and the losses
+//! here: the zooms (the pictures' stage reads them) and the losses
 //! (`degradations.json`'s, with every other stage's). A picture is a
 //! [`PictureKey`].
 
+use crate::game::Sound;
 use crate::pages::hex;
-use crate::registry::PictureKey;
+use crate::registry::{Jumps, Package, PictureKey, Wants};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::BTreeSet;
@@ -191,10 +191,11 @@ pub struct Compiled {
     /// Each test page's code, None if it does not compile.
     pub cases: Vec<Option<Hex>>,
     pub messages: Messages,
-    pub songs: Value,
+    pub songs: Songs,
     pub troops: Troops,
     pub troop_pages: TroopPages,
-    pub battle_audio: Value,
+    /// None when no battle of the cartridge asks for a troop.
+    pub battle_audio: Option<BattleAudio>,
     /// `(number, switch, pure, code)` of each parallel common event; no
     /// code if it does not compile.
     pub parallel_commons: Vec<(i32, i32, bool, Option<Hex>)>,
@@ -207,6 +208,44 @@ impl Compiled {
     pub fn map(&self, id: i32) -> Option<&CompiledMap> {
         self.maps.iter().find(|m| m.id == id)
     }
+}
+
+/// The songs and the sound effects the pages asked for, numbered, and
+/// which package asks for what: the answer of [`crate::registry::Songs`].
+/// The music stage reads it.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Songs {
+    pub names: Vec<String>,
+    /// Each effect, volume, tempo and pan.
+    pub sounds: Vec<Sound>,
+    pub per_package: Vec<(Package, Wants)>,
+    /// Per package, each song a `PlayBGM` of it turns on, and whether all of
+    /// them are right before a jump to another map.
+    pub exits: Vec<(Package, Vec<(usize, bool)>)>,
+    pub jumps: Vec<(Package, Jumps)>,
+    /// The songs a troop page's `PlayBGM` starts.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub troop_songs: Vec<usize>,
+}
+
+/// What the battle plays, as indices into [`Songs`]: its two songs —$FF
+/// the one the database has off— with the levels a game starts them at,
+/// and its system effects —$FFFF off—. See
+/// [`crate::compile::battle_audio`]; the emission reads it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BattleAudio {
+    pub battle_music: usize,
+    pub battle_end_music: usize,
+    /// Gains, step and fade-in, as `OP_BGM` carries them.
+    pub battle_music_level: [u8; 6],
+    pub battle_end_music_level: [u8; 6],
+    pub dodge_se: usize,
+    pub enemy_attack_se: usize,
+    pub enemy_damaged_se: usize,
+    pub actor_damaged_se: usize,
+    pub enemy_death_se: usize,
+    pub escape_se: usize,
+    pub item_se: usize,
 }
 
 /// Every loss, and how the common events they are in run: see

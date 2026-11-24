@@ -285,12 +285,12 @@ pub fn call<E: Display>(
 /// would otherwise take the converter down with it, and the message would
 /// lose which map it was about. The panic itself is already on standard
 /// error, where the default hook prints it.
-pub fn call_uncached<E: Display>(
+pub fn call_uncached<T, E: Display>(
     stage: Stage,
-    answer: impl FnOnce() -> std::result::Result<Files, E>,
-) -> Result<Files> {
+    answer: impl FnOnce() -> std::result::Result<T, E>,
+) -> Result<T> {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(answer)) {
-        Ok(Ok(files)) => Ok(files),
+        Ok(Ok(answer)) => Ok(answer),
         Ok(Err(e)) => Err(Stop::new(format!("{}: {e}", stage.binary))),
         Err(panic) => {
             let what = panic

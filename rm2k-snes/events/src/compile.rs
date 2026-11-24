@@ -25,7 +25,6 @@ use rm2k_snes_battle::encounters;
 use rm2k_snes_bytecode::events::*;
 use rm2k_snes_bytecode::level::Level;
 use rm2k_snes_text::refit::refit_measured;
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 // --- the engine's numbers ------------------------------------------------------
@@ -3390,42 +3389,45 @@ pub fn encounter_backdrop(cmd: &Command) -> Option<Backdrop> {
 /// noted falls into the battle's package and not into that of the map that
 /// has the battle, so the registry's current package has to be saved and
 /// restored around it.
-pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, Value)>> {
+pub fn battle_audio(ctx: &mut Ctx) -> Option<crate::answer::BattleAudio> {
     let game = ctx.game;
     let songs = ctx.songs.as_deref_mut()?;
     let previous = songs.current;
     songs.current = Some(Package::Battle);
-    let mut out = Vec::new();
-    for (name, song) in [
-        ("battle_music", &game.battle_music),
-        ("battle_end_music", &game.battle_end_music),
-    ] {
-        let k = if AUDIO_OFF.contains(&song.as_str()) {
-            0xFF
-        } else {
-            songs.index(song)
-        };
-        out.push((name.to_string(), json!(k)));
-    }
-    // And their levels, the six bytes each that the ROM starts a game with:
-    // see `bgm_level_reset` in runtime/bgm_level.s.
-    for (name, level) in ["battle_music_level", "battle_end_music_level"]
-        .iter()
-        .zip(game.battle_levels)
-    {
-        out.push((name.to_string(), json!(level.bytes())));
-    }
-    for name in BATTLE_AUDIO_SE {
-        let effect = game.system_se[name].clone();
-        let k = if AUDIO_OFF.contains(&effect.0.as_str()) {
-            0xFFFF
-        } else {
-            songs.sound(effect, true)
-        };
-        out.push((name.to_string(), json!(k)));
-    }
+    let [battle_music, battle_end_music] =
+        [&game.battle_music, &game.battle_end_music].map(|song| {
+            if AUDIO_OFF.contains(&song.as_str()) {
+                0xFF
+            } else {
+                songs.index(song)
+            }
+        });
+    let [dodge_se, enemy_attack_se, enemy_damaged_se, actor_damaged_se, enemy_death_se, escape_se, item_se] =
+        BATTLE_AUDIO_SE.map(|name| {
+            let effect = game.system_se[name].clone();
+            if AUDIO_OFF.contains(&effect.0.as_str()) {
+                0xFFFF
+            } else {
+                songs.sound(effect, true)
+            }
+        });
     songs.current = previous;
-    Some(out)
+    // And the songs' levels, the six bytes each that the ROM starts a game
+    // with: see `bgm_level_reset` in runtime/bgm_level.s.
+    let [battle_music_level, battle_end_music_level] = game.battle_levels.map(|l| l.bytes());
+    Some(crate::answer::BattleAudio {
+        battle_music,
+        battle_end_music,
+        battle_music_level,
+        battle_end_music_level,
+        dodge_se,
+        enemy_attack_se,
+        enemy_damaged_se,
+        actor_damaged_se,
+        enemy_death_se,
+        escape_se,
+        item_se,
+    })
 }
 
 /// The actor operand of `OP_HEAL` and `OP_EQUIPMENT`, from RM2k's

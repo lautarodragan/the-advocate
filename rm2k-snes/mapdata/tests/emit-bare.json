@@ -15,7 +15,7 @@
     ],
     "tiles": 64
   },
-  "battle_audio": {},
+  "battle_audio": null,
   "battle_model": {
     "actions": {
       "1": [

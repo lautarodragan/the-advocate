@@ -133,10 +133,16 @@
     "tiles": 64
   },
   "battle_audio": {
-    "battle_end_music": 4,
     "battle_music": 3,
+    "battle_end_music": 4,
+    "battle_music_level": [128, 128, 0, 1, 0, 0],
+    "battle_end_music_level": [128, 128, 0, 1, 0, 0],
     "dodge_se": 1,
     "enemy_attack_se": 2,
+    "enemy_damaged_se": 65535,
+    "actor_damaged_se": 65535,
+    "enemy_death_se": 65535,
+    "escape_se": 65535,
     "item_se": 511
   },
   "battle_model": {

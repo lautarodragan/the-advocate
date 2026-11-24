@@ -7,28 +7,8 @@
 use crate::fail::{Result, Stop};
 use crate::maps::{MapInfo, PageRecord};
 use rm2k_snes_mapdata::request;
-use serde::de::DeserializeOwned;
 use serde_json::Value;
 use wally::answer;
-
-/// A piece of the request some stage answered as JSON, as the emission's
-/// type: what the emission itself did when it read the request.
-pub fn typed<T: DeserializeOwned>(value: &Value) -> Result<T> {
-    serde_json::from_value(value.clone()).map_err(|e| {
-        Stop::new(format!(
-            "rm2k-snes-mapdata: the request: {e} in {}",
-            short(value)
-        ))
-    })
-}
-
-fn short(value: &Value) -> String {
-    let text = value.to_string();
-    match text.char_indices().nth(60) {
-        Some((at, _)) => format!("{}…", &text[..at]),
-        None => text,
-    }
-}
 
 /// A page as the emission takes it.
 pub fn page_record(page: &PageRecord) -> Result<request::Page> {
