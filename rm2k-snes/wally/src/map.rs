@@ -7,6 +7,7 @@
 //! done if the layers' split of colour memory does not move —and undone if
 //! the object palettes had to lend that event someone else's colours—.
 
+use crate::answer::{self, Kind};
 use crate::background::blocks::Blocks;
 use crate::background::Converted;
 use crate::baking::{self, bakeable};
@@ -37,7 +38,7 @@ use adeleine::Color;
 use rm2k_render::picture;
 use rm2k_rules::chipset::passability_table;
 use rm2k_rules::passability::ALL;
-use serde_json::{json, Value};
+
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -163,7 +164,7 @@ pub struct MapRequest {
 /// some.
 #[derive(Clone, Debug, Default)]
 pub struct Note {
-    pub kind: &'static str,
+    pub kind: Kind,
     pub text: String,
     pub stop: bool,
     pub loss: Option<&'static str>,
@@ -172,7 +173,7 @@ pub struct Note {
 
 fn note(text: String) -> Note {
     Note {
-        kind: "note",
+        kind: Kind::Note,
         text,
         ..Default::default()
     }
@@ -181,7 +182,7 @@ fn note(text: String) -> Note {
 /// A note that says a loss: see [`Note`].
 fn lost(loss: &'static str, events: Vec<i32>, text: String) -> Note {
     Note {
-        kind: "note",
+        kind: Kind::Note,
         text,
         loss: Some(loss),
         events,
@@ -190,13 +191,16 @@ fn lost(loss: &'static str, events: Vec<i32>, text: String) -> Note {
 }
 
 /// A note as the answer carries it: the loss only on the ones that say one.
-fn note_json(n: &Note) -> Value {
-    let mut out = json!({"kind": n.kind, "text": n.text, "stop": n.stop});
-    if let Some(loss) = n.loss {
-        out["loss"] = json!(loss);
-        out["events"] = json!(n.events);
+fn answer_note(n: &Note) -> answer::Note {
+    answer::Note {
+        kind: n.kind,
+        text: n.text.clone(),
+        stop: n.stop,
+        loss: n.loss.map(|loss| answer::Loss {
+            loss: loss.to_string(),
+            events: n.events.clone(),
+        }),
     }
-    out
 }
 
 /// A name quoted for the messages, with Rust's escapes.
@@ -961,7 +965,10 @@ fn waiting(done: &Whole) -> usize {
 }
 
 /// The slots still events take turns in, as the console reads them.
-#[derive(Clone, Debug, Default, PartialEq)]
+///
+/// Its fields are its keys in the map's answer, in this order: see
+/// [`crate::answer`].
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SharedObjects {
     /// Each event that takes turns: its slot, its pose —an index into
     /// `poses`— and the palette its character got.
@@ -2278,7 +2285,7 @@ fn convert_with(
         );
         let stop = changes_graphic(&events[*event]);
         done.notes.push(Note {
-            kind: "discard",
+            kind: Kind::Discard,
             text,
             stop,
             loss: Some("event-not-drawn"),
@@ -2297,7 +2304,7 @@ fn convert_with(
     for (actor, key) in request.leaders.iter().zip(&leaders) {
         let Some(image) = sheets.get(&key.0).and_then(Option::as_ref) else {
             done.notes.push(Note {
-                kind: "stop",
+                kind: Kind::Stop,
                 text: format!("can't find CharSet {}", quoted(&key.0)),
                 stop: true,
                 ..Default::default()
@@ -2370,7 +2377,7 @@ fn convert_with(
             .is_some_and(|s| !sprite_colors(s, key.1, None).is_empty());
         if !shows && opaque {
             done.notes.push(Note {
-                kind: "discard",
+                kind: Kind::Discard,
                 text: format!(
                     "map {id}: graphic {}:{}, which a route changes to, doesn't fit in the {palette_cap} \
                      sprite palettes: that command hides the event instead of changing it",
@@ -2657,7 +2664,7 @@ fn convert_with(
         }
         if drawer_missing(&sheets, charset) {
             done.notes.push(Note {
-                kind: "stop",
+                kind: Kind::Stop,
                 text: format!("can't find CharSet {}", quoted(charset)),
                 stop: true,
                 ..Default::default()
@@ -2670,7 +2677,7 @@ fn convert_with(
         Ok(b) => b,
         Err(b) => {
             done.notes.push(Note {
-                kind: "stop",
+                kind: Kind::Stop,
                 text: b.0,
                 stop: true,
                 ..Default::default()
@@ -2680,7 +2687,7 @@ fn convert_with(
     };
     if bank.palettes.len() > palette_cap {
         done.notes.push(Note {
-            kind: "stop",
+            kind: Kind::Stop,
             text: format!(
                 "the map uses {} characters in {} palettes and there are {palette_cap} sprite ones",
                 characters.len(),
@@ -3025,7 +3032,7 @@ fn extras(
             }
             Err(b) => {
                 return Err(Note {
-                    kind: "stop",
+                    kind: Kind::Stop,
                     text: b.0,
                     stop: true,
                     ..Default::default()
@@ -3217,43 +3224,14 @@ fn drawer_missing(sheets: &crate::sprites::character::Sheets, name: &str) -> boo
     !matches!(sheets.get(name), Some(Some(_)))
 }
 
-fn key_json(k: &Key) -> Value {
-    json!([k.0, k.1])
-}
-
-fn slot_json(s: &Slot) -> Value {
-    match s {
-        Slot::Hero => json!({"hero": true}),
-        Slot::Event(e) => json!({"event": e}),
-        Slot::Still(c, i, p) => json!({"charset": c, "index": i, "pose": p}),
-        Slot::Turn => json!({"turn": true}),
-        Slot::Shared(s) => json!({"shared": s}),
-        Slot::Cache(s) => json!({"cache": s}),
-    }
-}
-
-fn npc_json(n: &Npc) -> Value {
-    json!({
-        "event": n.event, "x": n.x, "y": n.y,
-        "charset": n.charset, "index": n.index, "pose": n.pose,
-        "layer": n.layer, "blocks": n.blocks, "speed": n.speed,
-        "animates": n.animates, "visible": n.visible, "translucent": n.translucent,
-        "changes": n.changes,
-        "graphics": n.graphics.iter().map(|g| g.as_ref().map(|(c, i, p)| json!([c, i, p]))).collect::<Vec<_>>(),
-        "layers": n.layers,
-        "tile_pass": n.tile_pass,
-        "outside": n.outside.iter().map(key_json).collect::<Vec<_>>(),
-        "appears": n.appears,
-    })
-}
-
 /// The file the answer is written to.
 pub const ANSWER_FILE: &str = "map.json";
 /// The sprite bank's tiles.
 pub const SPRITE_TILES: &str = "sprites.bin";
 
 /// The map as files by name: the layers as `layers` answers them, the
-/// sprite bank and each pose bank as binaries, and the rest in `map.json`.
+/// sprite bank and each pose bank as binaries, and the rest in `map.json`,
+/// an [`answer::Map`].
 pub fn files(done: &Whole) -> Result<Files> {
     let layers = &done.layers;
     let mut out = stage_layers::files(
@@ -3265,93 +3243,106 @@ pub fn files(done: &Whole) -> Result<Files> {
     let mut file = |name: &str, bytes: &[u8]| {
         out.insert(name.to_string(), bytes.to_vec());
     };
-    let objects = match &done.objects {
-        None => Value::Null,
-        Some(o) => {
-            file(SPRITE_TILES, &o.tiles);
-            let mut banks = Vec::new();
-            for (k, (key, data)) in o.banks.iter().enumerate() {
-                let name = format!("poses-{k}.bin");
-                file(&name, data);
-                banks.push(json!([key.0, key.1, name, o.shows[k]]));
-            }
-            json!({
-                "tiles": SPRITE_TILES,
-                "palettes": o.palettes,
-                "place": o.place.iter().map(|(s, b, p)| json!([slot_json(s), b, p])).collect::<Vec<_>>(),
-                "actors": o.actors.iter().map(|(a, p, k, w)| json!([a, p, k, w])).collect::<Vec<_>>(),
-                "timer": o.timer.map(|(b, p)| json!([b, p])),
-                "timer_mask": o.timer_mask,
-                "animated": o.animated.iter().map(key_json).collect::<Vec<_>>(),
-                "animated_palettes": o.animated_palettes,
-                "banks": banks,
-                "route_gfx": o
-                    .route_gfx
-                    .iter()
-                    .map(|(k, p, c)| if c.is_empty() { json!([k, p]) } else { json!([k, p, c]) })
-                    .collect::<Vec<_>>(),
-                "rain": [o.rain.0, o.rain.1],
-                "sand": o.sand.map(|(b, p, e)| json!([b, p, e])),
-                "turn_block": o.turn_block,
-                "image": [o.image.0, o.image.1],
-                "animation": o.animation.map(|(c, b, p)| json!({"count": c, "base": b, "palette": p})),
-                "characters": o.characters,
-                "shared": o.shared.as_ref().map(|sh| json!({
-                    "events": sh.events.iter().map(|(e, s, p, pal)| json!([e, s, p, pal])).collect::<Vec<_>>(),
-                    "poses": sh.poses.iter().map(|(k, p)| json!([k, p])).collect::<Vec<_>>(),
-                    "slots": sh.slots,
-                })),
-                "cache": o.cache.as_ref().map(|c| json!({
-                    "events": c.events.iter().map(|(e, v, pal)| json!([e, v, pal])).collect::<Vec<_>>(),
-                    "stills": c.stills.iter().map(|((cs, i, p), k, pal)| json!([cs, i, p, k, pal])).collect::<Vec<_>>(),
-                    "slots": c.slots,
-                    // The still ones routes only turn: the cartridge carries
-                    // only the facings of their columns, and mapdata checks it.
-                    "turners": done.moves.turners,
-                })),
-            })
+    let sprite = done.objects.as_ref().map(|o| {
+        file(SPRITE_TILES, &o.tiles);
+        let mut banks = Vec::new();
+        for (k, (key, data)) in o.banks.iter().enumerate() {
+            let name = format!("poses-{k}.bin");
+            file(&name, data);
+            banks.push((key.0.clone(), key.1, name, o.shows[k].clone()));
         }
+        answer::Sprite {
+            tiles: SPRITE_TILES.to_string(),
+            palettes: o.palettes.clone(),
+            place: o.place.iter().map(|(s, b, p)| (s.into(), *b, *p)).collect(),
+            actors: o.actors.clone(),
+            timer: o.timer,
+            timer_mask: o.timer_mask,
+            animated: o.animated.clone(),
+            animated_palettes: o.animated_palettes.clone(),
+            banks,
+            route_gfx: o
+                .route_gfx
+                .iter()
+                .map(|(k, p, c)| match c.is_empty() {
+                    true => answer::RouteGraphic::Plain(*k, *p),
+                    false => answer::RouteGraphic::Uploads(*k, *p, c.clone()),
+                })
+                .collect(),
+            rain: o.rain,
+            sand: o.sand,
+            turn_block: o.turn_block,
+            image: o.image,
+            animation: o.animation.map(|(count, base, palette)| answer::Animation {
+                count,
+                base,
+                palette,
+            }),
+            characters: o.characters,
+            shared: o.shared.clone(),
+            cache: o.cache.as_ref().map(|c| answer::Cache {
+                events: c.events.clone(),
+                stills: c
+                    .stills
+                    .iter()
+                    .map(|((cs, i, p), k, pal)| (cs.clone(), *i, *p, *k, *pal))
+                    .collect(),
+                slots: c.slots.clone(),
+                // The still ones routes only turn: the cartridge carries
+                // only the facings of their columns, and mapdata checks it.
+                turners: done.moves.turners.clone(),
+            }),
+        }
+    });
+    let row = |npc: &Npc| answer::Row {
+        npc: npc.clone(),
+        posed: None,
     };
-    let mut answer = json!({
-        "decorative": done.decorative,
-        "painted_trimmed": done.painted_trimmed,
-        "baked": done.baked.iter().map(|(e, (c, t))| json!([e, c, t])).collect::<Vec<_>>(),
-        "notes": done.notes.iter().map(note_json).collect::<Vec<_>>(),
-        "npcs": done
+    let answer = answer::Map {
+        decorative: done.decorative.clone(),
+        painted_trimmed: done.painted_trimmed.clone(),
+        baked: done.baked.iter().map(|(e, (c, t))| (*e, *c, *t)).collect(),
+        notes: done.notes.iter().map(answer_note).collect(),
+        npcs: done
             .npcs
             .iter()
-            .map(npc_json)
-            .chain(done.posed.iter().enumerate().map(|(k, (n, g, _))| {
-                let mut row = npc_json(n);
-                row["posed"] = json!([k, g]);
-                row
-            }))
-            .collect::<Vec<_>>(),
-        "posed": done.posed.iter().map(|(_, _, p)| json!({
-            "event": p.event, "x": p.x, "y": p.y,
-            "graphics": p.graphics.iter().map(key_json).collect::<Vec<_>>(),
-            "blocks": p.blocks, "none": p.none, "start": p.start,
-        })).collect::<Vec<_>>(),
-        "palette_cap": done.palette_cap,
-        "start": [done.start.0, done.start.1],
-        "sprite": objects,
-        "movable": done.moves.movable,
-        "animates_still": done.moves.animates_still,
-        "animates_with": done.moves.follows.iter().map(|(e, l)| json!([e, l])).collect::<Vec<_>>(),
-        "substitutions": {
-            "table": done.substitutions.table.iter().map(|((u, o, n), pairs)| {
-                json!([u, o, n, pairs.as_ref().map(|p| p.iter().map(|(a, b)| json!([a, b])).collect::<Vec<_>>())])
-            }).collect::<Vec<_>>(),
-            "missing": done.substitutions.missing.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
+            .map(row)
+            .chain(
+                done.posed
+                    .iter()
+                    .enumerate()
+                    .map(|(k, (n, g, _))| answer::Row {
+                        posed: Some((k, *g)),
+                        ..row(n)
+                    }),
+            )
+            .collect(),
+        posed: done.posed.iter().map(|(_, _, p)| p.clone()).collect(),
+        palette_cap: done.palette_cap,
+        start: done.start,
+        sprite,
+        movable: done.moves.movable.clone(),
+        animates_still: done.moves.animates_still.clone(),
+        animates_with: done.moves.follows.iter().map(|(e, l)| (*e, *l)).collect(),
+        substitutions: answer::Substitutions {
+            table: done
+                .substitutions
+                .table
+                .iter()
+                .map(|((u, o, n), pairs)| (*u, *o, *n, pairs.clone()))
+                .collect(),
+            missing: done.substitutions.missing.clone(),
         },
-        "turning": done.moves.turning.iter().map(|(e, pairs)| json!([e, pairs.iter().map(key_json).collect::<Vec<_>>()])).collect::<Vec<_>>(),
-    });
-    // Only when it is so: the answer of a map without copies of common
-    // events stays the one it was.
-    if done.own_pictures {
-        answer["pictures_own"] = json!(true);
-    }
-    file(ANSWER_FILE, answer.to_string().as_bytes());
+        turning: done
+            .moves
+            .turning
+            .iter()
+            .map(|(e, keys)| (*e, keys.iter().cloned().collect()))
+            .collect(),
+        pictures_own: done.own_pictures,
+    };
+    let text = serde_json::to_string(&answer).map_err(|e| Bad::answer(e.to_string()))?;
+    file(ANSWER_FILE, text.as_bytes());
     Ok(out)
 }
 

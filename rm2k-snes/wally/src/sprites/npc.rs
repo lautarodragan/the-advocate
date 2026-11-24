@@ -15,7 +15,10 @@ pub type Graphic = (String, i32, i32);
 pub const NPC_MAX: usize = 104;
 
 /// An event drawn with some graphic, as its row of the map's table starts.
-#[derive(Clone, Debug, PartialEq, Eq)]
+///
+/// Its fields are its row's keys in the map's answer, in this order: the
+/// answer's module, outside this half, says why that matters.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Npc {
     /// Its place in the map's event table —**not** its RM2k id: maps have
     /// gaps in the numbering—.
