@@ -39,8 +39,9 @@ rm2k-snes-audio = { path = "../rm2k-snes-audio" }
 rm2k-snes-text = { path = "../text" }
 # A whole map: Wally's `map` stage, called once per map.
 wally = { path = "../wally" }
-# A stage answer read as the type of what takes it: `emit::typed`.
-serde = "1"
+# What a stage answers, and a picture's key, read as types; and a
+# stage answer read as the type of what takes it: `emit::typed`.
+serde = { version = "1", features = ["derive"] }
 # `preserve_order`: a request's keys go in the order they are written, as
 # they always went, and an object read from a stage's answer or from the
 # project keeps its order on the way to the next.

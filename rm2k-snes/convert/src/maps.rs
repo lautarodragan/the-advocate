@@ -24,6 +24,7 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use wally::answer;
 
 /// Wally's one stage: a whole map, called once per map.
 const WALLY_MAP: stage::Stage = stage::Stage {
@@ -396,15 +397,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
-    let mut keys: Vec<Value> = scanned
-        .get("pictures")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
+    let mut keys = pictures::keys(scanned.get("pictures"))?;
     // The map's own come first, and then those only the copies of the
     // common events show, if the map carries them: the scan says how many
     // are its own. See [`crate::common_pages`].
-    let mut own_keys: Option<Vec<Value>> = scanned
+    let mut own_keys: Option<Vec<pictures::Key>> = scanned
         .get("pictures_own")
         .and_then(Value::as_u64)
         .filter(|&n| (n as usize) < keys.len())
@@ -413,19 +410,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // are accepted without being done; but a drawing's part, which is
     // shown —see [`crate::map_pictures::Parts`]—: its name can be drawn in
     // under another number.
-    let part = |k: &Value| {
-        c.map_pictures.part(
-            map_id,
-            k["number"].as_i64().unwrap_or(-1) as i32,
-            k["name"].as_str().unwrap_or(""),
-        )
-    };
-    let kept = |k: &Value| {
-        part(k).is_some()
-            || !c
-                .map_pictures
-                .done(map_id, k["name"].as_str().unwrap_or(""))
-    };
+    let part = |k: &pictures::Key| c.map_pictures.part(map_id, k.number as i32, &k.name);
+    let kept = |k: &pictures::Key| part(k).is_some() || !c.map_pictures.done(map_id, &k.name);
     keys.retain(kept);
     if let Some(own) = own_keys.as_mut() {
         own.retain(kept);
@@ -434,8 +420,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // wrote, with the map.
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
         if let Some(path) = part(k) {
-            k["path"] = json!(path.display().to_string());
-            k["with_map"] = json!(true);
+            k.path = Some(path.display().to_string());
+            k.with_map = true;
         }
     }
     // And the ones under a lower number than one the map draws opaque,
@@ -449,9 +435,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .map(|p| i64::from(p.number))
         .collect();
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
-        let number = k["number"].as_i64().unwrap_or(i64::MAX);
-        if raised.iter().any(|&n| n > number) {
-            k["behind_map"] = json!(true);
+        if raised.iter().any(|&n| n > k.number) {
+            k.behind_map = true;
         }
     }
     // And the ones with the screen that RM2k shows where its map is, which
@@ -459,7 +444,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     let on_map = pictures::screen_on_map(&map);
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
         if pictures::screen_on_map_in(k, &on_map) {
-            k["screen_on_map"] = json!(true);
+            k.screen_on_map = true;
         }
     }
     // And the numbers the map tones, which do not share a palette.
@@ -511,8 +496,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     let big_over_black = if black.is_empty() {
         Vec::new()
     } else {
-        let already: Vec<&Value> = big_pictures.iter().map(|b| &b.key).collect();
-        let small: Vec<Value> = keys
+        let already: Vec<&pictures::Key> = big_pictures.iter().map(|b| &b.key).collect();
+        let small: Vec<pictures::Key> = keys
             .iter()
             .filter(|k| pictures::shown_in(k, &black) && !already.contains(k))
             .cloned()
@@ -855,13 +840,11 @@ fn int(v: &Value) -> i64 {
 
 /// The most tiles any of a map's panoramas takes: the layout holds the one
 /// shown, and a `ChangePBG` uploads another over it.
-fn panorama_tiles(pano: &Value) -> i64 {
-    pano["images"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .map(|i| int(&i["tiles"]))
-        .fold(int(&pano["tiles"]), i64::max)
+fn panorama_tiles(pano: &answer::Panorama) -> usize {
+    pano.images
+        .iter()
+        .map(|i| i.tiles)
+        .fold(pano.tiles, usize::max)
 }
 
 /// The panoramas a map carries, in the order the bytecode numbers them —
@@ -884,86 +867,65 @@ pub fn panorama_names(panorama: Option<&Value>) -> Vec<String> {
     out
 }
 
-fn truthy(v: Option<&Value>) -> bool {
-    match v {
-        None | Some(Value::Null) => false,
-        Some(Value::Bool(b)) => *b,
-        Some(Value::Number(n)) => n.as_f64() != Some(0.0),
-        Some(_) => true,
-    }
+/// What Wally answered of a map, read: its binaries stay in `written`, by
+/// the names the answer gives them.
+pub fn wally_answer(written: &stage::Files) -> Result<answer::Answer> {
+    answer::Answer::read(written).map_err(|e| Stop::new(format!("{}: {e}", WALLY_MAP.binary)))
 }
 
-/// A slot of the sprite bank by the key it is known by: the hero's, the
-/// turn's, an event's, a shared one, or a graphic's.
-fn slot_key(slot: &Value) -> String {
-    if truthy(slot.get("hero")) {
-        "heroe".to_string()
-    } else if truthy(slot.get("turn")) {
-        "giro".to_string()
-    } else if let Some(e) = slot.get("event") {
-        format!("ev {e}")
-    } else if let Some(s) = slot.get("shared") {
-        format!("compartida {s}")
-    } else if let Some(s) = slot.get("cache") {
-        format!("cache {s}")
-    } else {
-        json!([slot["charset"], slot["index"], slot["pose"]]).to_string()
+/// The background's ChipSet animation as the emission takes it: each run
+/// with its drawings' bytes.
+pub fn runs(bg: &answer::Background, written: &stage::Files) -> Result<Vec<Value>> {
+    let mut runs = Vec::new();
+    for run in &bg.runs {
+        let mut drawings = Vec::new();
+        for name in &run.drawings {
+            drawings.push(crate::text::hex(file(written, name)?));
+        }
+        runs.push(json!({"family": run.family, "base": run.base, "tiles": run.tiles, "drawings": drawings}));
     }
+    Ok(runs)
+}
+
+/// The words of a colour memory, as the bytes the console takes.
+pub fn words(words: &[u16]) -> Vec<u8> {
+    words.iter().flat_map(|w| w.to_le_bytes()).collect()
 }
 
 /// What the stage answered, as the rest of the conversion reads it, with
 /// its messages printed in the order the conversion said them.
 pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) -> Result<MapInfo> {
     let map_id = p.map.id;
-    let answer = stage::json(&written, "map.json")?;
+    let answer::Answer {
+        map: answer,
+        layers,
+    } = wally_answer(&written)?;
     let mut losses = Vec::new();
-    for note in answer["notes"].as_array().cloned().unwrap_or_default() {
-        let text = note["text"].as_str().unwrap_or("");
-        let stop = note["stop"].as_bool().unwrap_or(false);
-        if let Some(loss) = note["loss"].as_str() {
-            let events = note["events"]
-                .as_array()
-                .map(|a| a.iter().map(int).collect())
-                .unwrap_or_default();
-            losses.push((loss.to_string(), text.to_string(), events));
+    for note in &answer.notes {
+        let text = note.text.as_str();
+        if let Some(loss) = &note.loss {
+            let events = loss.events.iter().map(|&e| i64::from(e)).collect();
+            losses.push((loss.loss.clone(), text.to_string(), events));
         }
-        if note["kind"] == "discard" {
-            discard_warning(text, stop)?;
-        } else if stop {
+        if note.kind == answer::Kind::Discard {
+            discard_warning(text, note.stop)?;
+        } else if note.stop {
             return Err(Stop::new(text));
         } else {
             println!("{text}");
         }
     }
-    let layers = stage::json(&written, "layers.json")?;
-    let (bg, above) = (&layers["background"], &layers["above"]);
+    let (bg, above) = (&layers.background, &layers.above);
     let tile_data = file(&written, "background.bin")?.clone();
     let above_tiles = file(&written, "above.bin")?.clone();
     let above_cgram = file(&written, "above-cgram.bin")?.clone();
-    let tilemap = bg["tilemap"].as_array().cloned().unwrap_or_default();
-    let tilemap_dims = (
-        tilemap
-            .first()
-            .and_then(Value::as_array)
-            .map_or(0, Vec::len),
-        tilemap.len(),
-    );
-    let mut runs = Vec::new();
-    for run in bg["runs"].as_array().cloned().unwrap_or_default() {
-        let mut drawings = Vec::new();
-        for name in run["drawings"].as_array().cloned().unwrap_or_default() {
-            drawings.push(json!(crate::text::hex(file(
-                &written,
-                name.as_str().unwrap_or("")
-            )?)));
-        }
-        runs.push(json!({"family": run["family"], "base": run["base"], "tiles": run["tiles"], "drawings": drawings}));
-    }
+    let tilemap_dims = (bg.tilemap.first().map_or(0, Vec::len), bg.tilemap.len());
+    let runs = runs(bg, &written)?;
     let mut pictures_bg = Vec::new();
     let mut above_png = Vec::new();
-    for picture in layers["pictures"].as_array().cloned().unwrap_or_default() {
-        let name = picture["name"].as_str().unwrap_or("");
-        let png = file(&written, picture["file"].as_str().unwrap_or(""))?.clone();
+    for picture in &layers.pictures {
+        let name = picture.name.as_str();
+        let png = file(&written, &picture.file)?.clone();
         if name == "above" {
             above_png = png;
             continue;
@@ -978,24 +940,26 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         };
         pictures_bg.push((name, png));
     }
-    let s = &answer["sprite"];
+    let s = answer
+        .sprite
+        .as_ref()
+        .ok_or_else(|| Stop::new(format!("{} answered no objects", WALLY_MAP.binary)))?;
     let above_count = above_tiles.len() / 32;
     let tiles_count = tile_data.len() / BYTES_PER_TILE;
-    if !s["animation"].is_null() {
+    if let Some(animation) = s.animation {
         // The VRAM **stops**: whether the box fits depends on the tile
         // layout and not on the palettes.
-        let count = int(&s["animation"]["count"]);
-        let layout = if layers["panorama"].is_null() {
-            vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok()
-        } else {
-            vram::panorama_layout(
-                int(&layers["panorama"]["mode"]) as u8,
+        let count = animation.count;
+        let layout = match &layers.panorama {
+            None => vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok(),
+            Some(pano) => vram::panorama_layout(
+                pano.mode,
                 tiles_count as u32,
                 count as u32,
                 above_count as u32,
-                panorama_tiles(&layers["panorama"]) as u32,
+                panorama_tiles(pano) as u32,
             )
-            .ok()
+            .ok(),
         };
         if layout.is_none() {
             // Not the box: the map's own tiles fit no layout, with or without it.
@@ -1005,7 +969,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
                 animations::TILES
             );
         }
-        if count > layout.unwrap().sprites.count as i64 {
+        if count as i64 > layout.unwrap().sprites.count as i64 {
             crate::stop!(
                 "map {map_id}: shows battle animations and the {} tiles of its box don't fit in \
                  the sprite bank: it spends {count} of {}. See `map_shows_animation`.",
@@ -1016,21 +980,19 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         println!(
             "  map {map_id}: battle animations are drawn in {} tiles from {}, palette {}",
             animations::TILES,
-            int(&s["animation"]["base"]),
-            int(&s["animation"]["palette"])
+            animation.base,
+            animation.palette
         );
     }
     // The pictures, if the stage found room for them in the bank.
     // The map's own, without the copied common events', if Wally put those
     // in instead.
     let went_in = match &p.pictures_own {
-        Some(own) if truthy(answer.get("pictures_own")) => own,
+        Some(own) if answer.pictures_own => own,
         _ => &p.pictures,
     };
     let pictures = match went_in {
-        Some(f) if int(&s["image"][0]) != 0 => {
-            Some((s["image"][0].clone(), f.table.clone(), f.images.clone()))
-        }
+        Some(f) if s.image.0 != 0 => Some((json!(s.image.0), f.table.clone(), f.images.clone())),
         _ => None,
     };
     // If it found none, the ones the map shows over a black screen go in
@@ -1038,13 +1000,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     // is all of them, the map loses none.
     let mut big_pictures = p.big_pictures;
     if let (Some(asked), None, false) = (went_in, &pictures, p.big_over_black.is_empty()) {
-        let names = |keys: &mut dyn Iterator<Item = &Value>| -> BTreeSet<String> {
-            keys.filter_map(|k| k["name"].as_str())
-                .map(str::to_lowercase)
-                .collect()
+        let names = |keys: &mut dyn Iterator<Item = &str>| -> BTreeSet<String> {
+            keys.map(str::to_lowercase).collect()
         };
-        let rescued = names(&mut p.big_over_black.iter().map(|b| &b.key));
-        let lost = names(&mut asked.table.iter());
+        let rescued = names(&mut p.big_over_black.iter().map(|b| b.key.name.as_str()));
+        let lost = names(&mut asked.table.iter().filter_map(|k| k["name"].as_str()));
         println!(
             "  map {map_id}: the pictures {} are shown in the background layer instead, over the \
              black screen they are shown on",
@@ -1057,49 +1017,30 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         }
         big_pictures.extend(p.big_over_black);
     }
-    let npcs = answer["npcs"].clone();
+    // Where each still pose landed in the bank: the other slots are
+    // someone's, not a graphic's.
     let mut where_ = HashMap::new();
-    for entry in s["place"].as_array().cloned().unwrap_or_default() {
-        let slot = &entry[0];
-        if truthy(slot.get("hero"))
-            || truthy(slot.get("turn"))
-            || slot.get("event").is_some()
-            || slot.get("shared").is_some()
-            || slot.get("cache").is_some()
+    for (slot, block, palette) in &s.place {
+        if let answer::Slot::Still {
+            charset,
+            index,
+            pose,
+        } = slot
         {
-            continue;
+            let key = (charset.clone(), i64::from(*index), i64::from(*pose));
+            where_.insert(key, (json!(block), json!(palette)));
         }
-        let key = (
-            slot["charset"].as_str().unwrap_or("").to_string(),
-            int(&slot["index"]),
-            int(&slot["pose"]),
-        );
-        where_.insert(key, (entry[1].clone(), entry[2].clone()));
     }
     let mut cached = HashMap::new();
-    for (v, still) in s["cache"]["stills"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-        .iter()
-        .enumerate()
-    {
-        let key = (
-            still[0].as_str().unwrap_or("").to_string(),
-            int(&still[1]),
-            int(&still[2]),
-        );
-        cached.insert(key, (json!(v), still[4].clone()));
+    for (v, still) in s.cache.iter().flat_map(|c| &c.stills).enumerate() {
+        let key = (still.0.clone(), i64::from(still.1), i64::from(still.2));
+        cached.insert(key, (json!(v), json!(still.4)));
     }
-    let tiles_name = s["tiles"].as_str().unwrap_or("").to_string();
-    let sprite_tiles = file(&written, &tiles_name)?.clone();
-    let passable: Vec<u8> = layers["passability"]
-        .as_array()
-        .map(|a| a.iter().map(|v| int(v) as u8).collect())
-        .unwrap_or_default();
-    let start = (int(&answer["start"][0]), int(&answer["start"][1]));
+    let sprite_tiles = file(&written, &s.tiles)?.clone();
+    let passable = &layers.passability;
+    let start = (i64::from(answer.start.0), i64::from(answer.start.1));
     let name = game.tree.name(map_id).to_string();
-    let cells_count = int(&bg["cells"]);
+    let cells_count = bg.cells;
     println!(
         "Map {map_id} {}: {}x{} cells of {}x{} px",
         crate::text::quoted(&name),
@@ -1110,34 +1051,28 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     );
     println!(
         "  {} distinct colors, {} in CGRAM of {} available, {} merged",
-        int(&bg["colors"]),
-        int(&bg["used"]),
-        int(&bg["budget"]),
-        bg["merges"].as_array().map_or(0, Vec::len)
+        bg.colors,
+        bg.used,
+        bg.budget,
+        bg.merges.len()
     );
     println!(
         "  {} unique tiles of {} cells ({:.0}% reuse)",
-        int(&bg["tiles"]),
+        bg.tiles,
         cells_count,
-        100.0 * (1.0 - int(&bg["tiles"]) as f64 / cells_count as f64)
+        100.0 * (1.0 - bg.tiles as f64 / cells_count as f64)
     );
-    let animated: Vec<Value> = s["animated"].as_array().cloned().unwrap_or_default();
     println!(
         "  sprites: {} characters, {} slots, {} tiles in VRAM, {} palettes; {} with their twelve poses in the cartridge",
-        int(&s["characters"]),
-        s["place"].as_array().map_or(0, |p| {
-            // The slots by the key the rest of the conversion knows them by.
-            let keys: HashSet<String> = p.iter().map(|e| slot_key(&e[0])).collect();
-            keys.len()
-        }),
+        s.characters,
+        s.place.iter().map(|(slot, _, _)| slot).collect::<HashSet<_>>().len(),
         sprite_tiles.len() / 32,
-        s["palettes"].as_array().map_or(0, Vec::len),
-        animated.len()
+        s.palettes.len(),
+        s.animated.len()
     );
-    let npc_list = npcs.as_array().cloned().unwrap_or_default();
     println!(
         "  {} NPCs with a CharSet out of {} events",
-        npc_list.len(),
+        answer.npcs.len(),
         p.map.events.len()
     );
     let open_ones = passable.iter().filter(|&&b| b == 0x0F).count();
@@ -1149,20 +1084,16 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         start.0,
         start.1
     );
-    let above_first = int(&above["first"]);
-    let above_merges = above["merges"].as_array().map_or(0, Vec::len);
+    let above_first = above.first as i64;
     println!(
         "  layer above the hero: {} tiles, {} colors in {} palette(s) from {}, {} merged",
         above_count,
         above_cgram.len() / 2,
         BG_PALETTES - above_first,
         above_first,
-        above_merges
+        above.merges.len()
     );
-    let cells_list: Vec<i64> = layers["blocks"]["cells"]
-        .as_array()
-        .map(|a| a.iter().map(int).collect())
-        .unwrap_or_default();
+    let cells_list = &layers.blocks.cells;
     let blocks = file(&written, "blocks.bin")?.clone();
     let block_pass = file(&written, "block-passability.bin")?.clone();
     let block_terrain = file(&written, "block-terrain.bin")?.clone();
@@ -1191,212 +1122,168 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             vram::WINDOW_H
         );
     }
-    let mut cells = Vec::with_capacity(cells_list.len() * 2);
-    for cell in &cells_list {
-        cells.extend_from_slice(&(*cell as u16).to_le_bytes());
-    }
-    let mut cgram = Vec::new();
-    for word in bg["cgram"].as_array().cloned().unwrap_or_default() {
-        cgram.extend_from_slice(&(int(&word) as u16).to_le_bytes());
-    }
     let chipset = game.chipset(p.map.chipset_id)?;
-    let pano = &layers["panorama"];
-    if let Some(way) = layers["panorama_way"].as_str() {
+    if let Some(way) = &layers.panorama_way {
         if way == "flattened" {
             println!(
                 "  map {map_id}: its panorama goes {way}, {} pixels on the wrong side of the hero",
-                int(&layers["panorama_above_lost"])
+                layers.panorama_above_lost
             );
         } else {
             println!("  map {map_id}: its panorama goes {way}");
         }
-        for why in layers["panorama_tried"].as_array().into_iter().flatten() {
-            println!("    not {}", why.as_str().unwrap_or(""));
+        for why in &layers.panorama_tried {
+            println!("    not {why}");
         }
     }
     // What the map's pictures put in front of the hero: see
     // `map_pictures` in Wally.
-    if let Some(front) = layers.get("pictures_in_front").filter(|v| !v.is_null()) {
+    if let Some(front) = layers.pictures_in_front {
         println!(
             "  map {map_id}: its pictures put {} pixels in front of the hero, and {} go to the wrong side of him",
-            int(&front["pixels"]),
-            int(&front["wrong"])
+            front.pixels, front.wrong
         );
     }
-    let layout = if pano.is_null() {
-        vram::vram_layout(
-            tiles_count as u32,
-            (sprite_tiles.len() / 32) as u32,
-            above_count as u32,
-        )
-        .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?
-    } else {
-        let layout = vram::panorama_layout(
-            int(&pano["mode"]) as u8,
-            tiles_count as u32,
-            (sprite_tiles.len() / 32) as u32,
-            above_count as u32,
-            panorama_tiles(pano) as u32,
-        )
-        .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?;
-        println!(
-            "  panorama {}: mode {} in {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged{}",
-            pano["name"].as_str().unwrap_or(""),
-            int(&pano["mode"]),
-            layout.name,
-            int(&pano["stretch"][0]),
-            int(&pano["stretch"][1]),
-            int(&pano["tiles"]),
-            int(&pano["distinct"]),
-            int(&pano["kept"]),
-            int(&pano["colors"]),
-            pano["merges"].as_array().map_or(0, Vec::len),
-            if pano["none_first"].as_bool() == Some(true) { "; the map starts with none" } else { "" }
-        );
-        // The other pictures its `ChangePBG`s swap in, and what each costs:
-        // the cartridge carries its tiles and its tilemap, and a swap
-        // uploads the tiles and fills the tilemap's ring with the screen off.
-        let images = pano["images"].as_array().cloned().unwrap_or_default();
-        let bytes_per_tile = if int(&pano["mode"]) == 1 { 16 } else { 32 };
-        let rom = |p: &Value| {
-            int(&p["tiles"]) * bytes_per_tile
-                + int(&p["stretch"][0]) / 8 * (int(&p["stretch"][1]) / 8) * 2
-        };
-        for image in &images {
+    let sprite_count = (sprite_tiles.len() / 32) as u32;
+    let layout = match &layers.panorama {
+        None => vram::vram_layout(tiles_count as u32, sprite_count, above_count as u32)
+            .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?,
+        Some(pano) => {
+            let layout = vram::panorama_layout(
+                pano.mode,
+                tiles_count as u32,
+                sprite_count,
+                above_count as u32,
+                panorama_tiles(pano) as u32,
+            )
+            .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?;
             println!(
-                "  panorama {} too, by a ChangePBG: a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged, {} bytes of ROM",
-                image["name"].as_str().unwrap_or(""),
-                int(&image["stretch"][0]),
-                int(&image["stretch"][1]),
-                int(&image["tiles"]),
-                int(&image["distinct"]),
-                int(&image["kept"]),
-                int(&image["colors"]),
-                image["merges"].as_array().map_or(0, Vec::len),
-                rom(image)
+                "  panorama {}: mode {} in {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged{}",
+                pano.name,
+                pano.mode,
+                layout.name,
+                pano.stretch.0,
+                pano.stretch.1,
+                pano.tiles,
+                pano.distinct,
+                pano.kept,
+                pano.colors,
+                pano.merges.len(),
+                if pano.none_first { "; the map starts with none" } else { "" }
             );
+            // The other pictures its `ChangePBG`s swap in, and what each
+            // costs: the cartridge carries its tiles and its tilemap, and a
+            // swap uploads the tiles and fills the tilemap's ring with the
+            // screen off.
+            let bytes_per_tile = if pano.mode == 1 { 16 } else { 32 };
+            let rom =
+                |tiles: usize, (w, h): (usize, usize)| tiles * bytes_per_tile + w / 8 * (h / 8) * 2;
+            for image in &pano.images {
+                println!(
+                    "  panorama {} too, by a ChangePBG: a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged, {} bytes of ROM",
+                    image.name,
+                    image.stretch.0,
+                    image.stretch.1,
+                    image.tiles,
+                    image.distinct,
+                    image.kept,
+                    image.colors,
+                    image.merges.len(),
+                    rom(image.tiles, image.stretch)
+                );
+            }
+            if !pano.images.is_empty() {
+                println!(
+                    "  map {map_id}: {} panoramas, {} bytes of ROM, in {} palettes from entry {}",
+                    pano.images.len() + 1,
+                    rom(pano.tiles, pano.stretch)
+                        + pano
+                            .images
+                            .iter()
+                            .map(|i| rom(i.tiles, i.stretch))
+                            .sum::<usize>(),
+                    pano.cgram.len() / 16,
+                    pano.first
+                );
+            }
+            layout
         }
-        if !images.is_empty() {
-            println!(
-                "  map {map_id}: {} panoramas, {} bytes of ROM, in {} palettes from entry {}",
-                images.len() + 1,
-                rom(pano) + images.iter().map(rom).sum::<i64>(),
-                pano["cgram"].as_array().map_or(0, Vec::len) / 16,
-                int(&pano["first"])
-            );
-        }
-        layout
     };
-    for dropped in layers["panorama_dropped"].as_array().into_iter().flatten() {
-        println!(
-            "  map {map_id}: its ChangePBG to {:?} keeps the panorama there is: {}",
-            dropped[0].as_str().unwrap_or(""),
-            dropped[1].as_str().unwrap_or("")
-        );
+    for (picture, why) in &layers.panorama_dropped {
+        println!("  map {map_id}: its ChangePBG to {picture:?} keeps the panorama there is: {why}");
     }
-    let panorama = if pano.is_null() {
-        None
-    } else {
-        let mut record = pano.clone();
-        record["tile_count"] = pano["tiles"].clone();
-        record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
-        for (k, image) in pano["images"].as_array().into_iter().flatten().enumerate() {
-            record["images"][k]["tiles"] = json!(crate::text::hex(file(
-                &written,
-                image["file"].as_str().unwrap_or("")
-            )?));
+    let panorama = match &layers.panorama {
+        None => None,
+        Some(pano) => {
+            let mut record = json!(pano);
+            record["tile_count"] = json!(pano.tiles);
+            record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
+            for (k, image) in pano.images.iter().enumerate() {
+                record["images"][k]["tiles"] =
+                    json!(crate::text::hex(file(&written, &image.file)?));
+            }
+            Some(record)
         }
-        Some(record)
     };
-    let mut objects = s.clone();
+    let mut objects = json!(s);
     objects["tiles"] = json!(crate::text::hex(&sprite_tiles));
     let mut banks = Vec::new();
-    for bank in s["banks"].as_array().cloned().unwrap_or_default() {
-        let data = file(&written, bank[2].as_str().unwrap_or(""))?;
+    for (charset, index, poses, shows) in &s.banks {
         // And which of its poses the map can show: mapdata emits only
         // those, joined over the maps.
-        banks.push(json!([bank[0], bank[1], crate::text::hex(data), bank[3]]));
+        let data = crate::text::hex(file(&written, poses)?);
+        banks.push(json!([charset, index, data, shows]));
     }
     objects["banks"] = Value::Array(banks);
     let mut changing = BTreeSet::new();
     let mut appearing = BTreeSet::new();
     let mut outside = HashMap::new();
-    for n in &npc_list {
-        let event = int(&n["event"]);
-        if n["changes"].as_bool().unwrap_or(false) {
+    for answer::Row { npc: n, .. } in &answer.npcs {
+        let event = n.event as i64;
+        if n.changes {
             changing.insert(event);
         }
-        if n["appears"].as_bool().unwrap_or(false) {
+        if n.appears {
             appearing.insert(event);
         }
-        let set: HashSet<(String, i64)> = n["outside"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|k| (k[0].as_str().unwrap_or("").to_string(), int(&k[1])))
-                    .collect()
-            })
-            .unwrap_or_default();
-        outside.insert(event, set);
+        let set = n.outside.iter().map(|(c, i)| (c.clone(), i64::from(*i)));
+        outside.insert(event, set.collect());
     }
     let mut shared = HashMap::new();
-    if let Some(sh) = s["shared"].as_object() {
-        for e in sh
-            .get("events")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default()
-        {
-            let slot = int(&e[1]) as usize;
-            shared.insert(int(&e[0]), (sh["slots"][slot].clone(), e[3].clone()));
+    if let Some(sh) = &s.shared {
+        for &(event, slot, _, palette) in &sh.events {
+            shared.insert(event as i64, (json!(sh.slots.get(slot)), json!(palette)));
         }
     }
-    let substitution_table = Value::Array(
-        answer["substitutions"]["table"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .map(|t| json!({"upper": t[0], "old": t[1], "new": t[2], "pairs": t[3]}))
-            .collect(),
-    );
-    let missing_substitutions = answer["substitutions"]["missing"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
+    let subs = &answer.substitutions;
+    let substitution_table = subs
+        .table
         .iter()
-        .map(|t| (t[0].as_bool().unwrap_or(false), int(&t[1]), int(&t[2])))
-        .collect();
-    let turning = answer["turning"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-        .iter()
-        .map(|t| int(&t[0]))
+        .map(|(upper, old, new, pairs)| json!({"upper": upper, "old": old, "new": new, "pairs": pairs}))
         .collect();
     Ok(MapInfo {
         id: map_id,
         name,
         route_graphics: p.route_graphics,
         tile_data,
-        cgram,
+        cgram: words(&bg.cgram),
         tilemap: tilemap_dims,
         above_tiles,
         above_cgram,
         above_first,
         above_png,
-        bpp: bg["bpp"].as_i64().unwrap_or(8),
+        bpp: bg.bpp as i64,
         panorama,
         pictures_bg,
         runs,
-        colors: bg["colors"].clone(),
-        budget: bg["budget"].clone(),
-        merges_background: bg["merges"].clone(),
-        panorama_way: layers["panorama_way"].clone(),
-        panorama_unseen: layers["panorama_unseen"].as_bool().unwrap_or(false),
-        merges_above: above["merges"].clone(),
+        colors: json!(bg.colors),
+        budget: json!(bg.budget),
+        merges_background: json!(bg.merges),
+        panorama_way: json!(layers.panorama_way),
+        panorama_unseen: layers.panorama_unseen,
+        merges_above: json!(above.merges),
         start,
-        cells,
+        cells: cells_list.iter().flat_map(|c| c.to_le_bytes()).collect(),
         blocks,
         block_pass,
         block_terrain,
@@ -1405,54 +1292,43 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         terrain_outside: rm2k_rules::chipset::terrain_of(chipset, 0),
         layout_name: layout.name.to_string(),
         objects,
-        npcs,
-        movable: answer["movable"].clone(),
-        animates_still: answer["animates_still"].clone(),
-        animates_with: answer["animates_with"].clone(),
+        npcs: json!(answer.npcs),
+        movable: json!(answer.movable),
+        animates_still: json!(answer.animates_still),
+        animates_with: json!(answer.animates_with),
         where_,
         cached,
-        substitution_table,
-        missing_substitutions,
-        turning,
+        substitution_table: Value::Array(substitution_table),
+        missing_substitutions: subs
+            .missing
+            .iter()
+            .map(|&(upper, old, new)| (upper, i64::from(old), i64::from(new)))
+            .collect(),
+        turning: answer.turning.iter().map(|(e, _)| *e as i64).collect(),
         changing,
         appearing,
-        posed: answer["posed"]
-            .as_array()
-            .map(|list| {
-                list.iter()
-                    .enumerate()
-                    .map(|(k, p)| {
-                        let graphics = p["graphics"]
-                            .as_array()
-                            .map(|a| {
-                                a.iter()
-                                    .map(|g| (g[0].as_str().unwrap_or("").to_string(), int(&g[1])))
-                                    .collect()
-                            })
-                            .unwrap_or_default();
-                        (int(&p["event"]), (k, graphics))
-                    })
-                    .collect()
+        posed: answer
+            .posed
+            .iter()
+            .enumerate()
+            .map(|(k, p)| {
+                let graphics = p.graphics.iter().map(|(c, i)| (c.clone(), i64::from(*i)));
+                (p.event as i64, (k, graphics.collect()))
             })
-            .unwrap_or_default(),
-        posed_table: answer
-            .get("posed")
-            .cloned()
-            .unwrap_or(Value::Array(Vec::new())),
+            .collect(),
+        posed_table: json!(answer.posed),
         outside,
         shared,
-        copies_draw: pictures.is_some() && !truthy(answer.get("pictures_own")),
+        copies_draw: pictures.is_some() && !answer.pictures_own,
         pictures,
         big_pictures,
         big_table: Vec::new(),
-        decorative: answer["decorative"]
-            .as_array()
-            .map(|a| a.iter().map(int).collect())
-            .unwrap_or_default(),
-        painted_trimmed: answer["painted_trimmed"]
-            .as_array()
-            .map(|a| a.iter().map(int).collect())
-            .unwrap_or_default(),
+        decorative: answer.decorative.iter().map(|&d| d as i64).collect(),
+        painted_trimmed: answer
+            .painted_trimmed
+            .iter()
+            .map(|&e| i64::from(e))
+            .collect(),
         pages: Vec::new(),
         sub_keys: BTreeSet::new(),
         evcode: Vec::new(),

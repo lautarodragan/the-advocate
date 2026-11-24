@@ -2,9 +2,10 @@
 //! [`crate::background`], and written for the caller; and the map as
 //! blocks of 16x16, which are made of what the two layers were converted to.
 
+use crate::answer;
 use crate::background::blocks::{self, Blocks};
 use crate::background::panorama::{Mode, Way};
-use crate::background::{Converted, Merge, Run};
+use crate::background::{Converted, Run};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::request::LayersRequest;
@@ -12,7 +13,7 @@ use crate::stage::Files;
 use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
-use serde_json::{json, Value};
+
 use std::collections::BTreeSet;
 
 /// The file what the caller needs to know is written to.
@@ -1308,7 +1309,7 @@ fn blocks_of(
 
 /// The conversion as files by name: the tiles, the runs and the block table
 /// as binaries, what was decided as indexed PNGs, and the rest in
-/// `layers.json`.
+/// `layers.json`, an [`answer::Layers`].
 pub fn files(
     converted: &Converted,
     panorama: Option<&Panorama>,
@@ -1329,14 +1330,18 @@ pub fn files(
     write_file(BLOCK_TERRAIN, &made.terrain);
     let mut runs = Vec::new();
     for run in &bg.runs {
-        let mut files = Vec::new();
+        let mut drawings = Vec::new();
         for (d, drawing) in run.drawings.iter().enumerate() {
             let name = run_file(run, d);
             write_file(&name, drawing);
-            files.push(name);
+            drawings.push(name);
         }
-        runs.push(json!({"family": run.family.name(), "base": run.base,
-                         "tiles": run.tiles, "drawings": files}));
+        runs.push(answer::Run {
+            family: run.family.name().to_string(),
+            base: run.base,
+            tiles: run.tiles,
+            drawings,
+        });
     }
     let mut pictures = Vec::new();
     for decided in &converted.pictures {
@@ -1344,8 +1349,14 @@ pub fn files(
         let png = voodoo::image::encode(&decided.picture)
             .map_err(|e| Bad::usage(format!("{name}: {e}")))?;
         write_file(&name, &png);
-        pictures.push(json!({"name": decided.name, "file": name}));
+        pictures.push(answer::Picture {
+            name: decided.name.clone(),
+            file: name,
+        });
     }
+    let tiles = |p: &crate::background::panorama::Panorama| {
+        p.tiles.len() / if p.mode.number() == 1 { 16 } else { 32 }
+    };
     let pano = match (&converted.panorama, panorama) {
         (Some(p), Some(source)) => {
             write_file(PANORAMA_TILES, &p.tiles);
@@ -1356,91 +1367,82 @@ pub fn files(
                 let Ok(q) = converted else { continue };
                 let file = format!("panorama-{}.bin", images.len() + 1);
                 write_file(&file, &q.tiles);
-                images.push(json!({
-                    "name": extra.name,
-                    "size": [extra.size.0, extra.size.1],
-                    "stretch": [extra.picture.width, extra.picture.height],
-                    "tiles": q.tiles.len() / if q.mode.number() == 1 { 16 } else { 32 },
-                    "file": file,
-                    "tilemap": q.tilemap,
-                    "first": q.first,
-                    "cgram": q.cgram,
-                    "backdrop": q.backdrop,
-                    "distinct": q.distinct,
-                    "colors": q.colors,
-                    "kept": q.kept,
-                    "merges": merges_json(&q.merges),
-                }));
+                images.push(answer::PanoramaImage {
+                    name: extra.name.clone(),
+                    size: extra.size,
+                    stretch: (extra.picture.width, extra.picture.height),
+                    tiles: tiles(q),
+                    file,
+                    tilemap: q.tilemap.clone(),
+                    first: q.first,
+                    cgram: q.cgram.clone(),
+                    backdrop: q.backdrop,
+                    distinct: q.distinct,
+                    colors: q.colors,
+                    kept: q.kept,
+                    merges: answer::merges(&q.merges),
+                });
             }
-            json!({
-                "images": images,
-                "none_first": source.none_first,
-                "name": source.name,
-                "mode": p.mode.number(),
-                "size": [source.size.0, source.size.1],
-                "stretch": [source.picture.width, source.picture.height],
-                "loop": [source.looped.0, source.looped.1],
-                "auto": [source.auto.0, source.auto.1],
-                "tiles": p.tiles.len() / if p.mode.number() == 1 { 16 } else { 32 },
-                "tilemap": p.tilemap,
-                "first": p.first,
-                "cgram": p.cgram,
-                "backdrop": p.backdrop,
-                "distinct": p.distinct,
-                "colors": p.colors,
-                "kept": p.kept,
-                "merges": merges_json(&p.merges),
-                "above_bg1": converted.way == Some(Way::Flattened),
+            Some(answer::Panorama {
+                images,
+                none_first: source.none_first,
+                name: source.name.clone(),
+                mode: p.mode.number(),
+                size: source.size,
+                stretch: (source.picture.width, source.picture.height),
+                looped: source.looped,
+                auto: source.auto,
+                tiles: tiles(p),
+                tilemap: p.tilemap.clone(),
+                first: p.first,
+                cgram: p.cgram.clone(),
+                backdrop: p.backdrop,
+                distinct: p.distinct,
+                colors: p.colors,
+                kept: p.kept,
+                merges: answer::merges(&p.merges),
+                above_bg1: converted.way == Some(Way::Flattened),
             })
         }
-        _ => Value::Null,
+        _ => None,
     };
-    let answer = json!({
-        "panorama": pano,
-        "panorama_way": converted.way.map(Way::name),
-        "panorama_tried": converted.tried,
-        "panorama_dropped": converted.dropped.iter().map(|(n, why)| json!([n, why])).collect::<Vec<_>>(),
-        "panorama_unseen": converted.unseen,
-        "panorama_above_lost": converted.above_lost,
-        "pictures_in_front": converted.in_front.map(|(wrong, total)| json!({"wrong": wrong, "pixels": total})),
-        "background": {
-            "bpp": bg.bpp,
-            "tiles": bg.tiles.len() / 64,
-            "cgram": bg.cgram,
-            "tilemap": bg.tilemap,
-            "colors": bg.colors,
-            "used": bg.used,
-            "budget": bg.budget,
-            "merges": merges_json(&bg.merges),
-            "cells": bg.cells,
-            "runs": runs,
+    let answer = answer::Layers {
+        panorama: pano,
+        panorama_way: converted.way.map(|way| way.name().to_string()),
+        panorama_tried: converted.tried.clone(),
+        panorama_dropped: converted.dropped.clone(),
+        panorama_unseen: converted.unseen,
+        panorama_above_lost: converted.above_lost,
+        pictures_in_front: converted
+            .in_front
+            .map(|(wrong, pixels)| answer::InFront { wrong, pixels }),
+        background: answer::Background {
+            bpp: bg.bpp,
+            tiles: bg.tiles.len() / 64,
+            cgram: bg.cgram.clone(),
+            tilemap: bg.tilemap.clone(),
+            colors: bg.colors,
+            used: bg.used,
+            budget: bg.budget,
+            merges: answer::merges(&bg.merges),
+            cells: bg.cells,
+            runs,
         },
-        "above": {
-            "tilemap": above.tilemap,
-            "first": above.first,
-            "merges": merges_json(&above.merges),
+        above: answer::Above {
+            tilemap: above.tilemap.clone(),
+            first: above.first,
+            merges: answer::merges(&above.merges),
         },
-        "pictures": pictures,
-        "passability": passability,
-        "blocks": {
-            "cells": made.cells,
-            "combos": made.combos.iter().map(|&((l, u), b)| json!([l, u, b])).collect::<Vec<_>>(),
+        pictures,
+        passability: passability.to_vec(),
+        blocks: answer::Blocks {
+            cells: made.cells.clone(),
+            combos: made.combos.iter().map(|&((l, u), b)| (l, u, b)).collect(),
         },
-    });
-    write_file(ANSWER_FILE, answer.to_string().as_bytes());
+    };
+    let text = serde_json::to_string(&answer).map_err(|e| Bad::answer(e.to_string()))?;
+    write_file(ANSWER_FILE, text.as_bytes());
     Ok(out)
-}
-
-/// A global merge as `[victim, target, pixels]`, or a palette-local one as
-/// `[palette, victim, target, pixels]`; a colour is `[r, g, b]`.
-fn merges_json(merges: &[Merge]) -> Vec<Value> {
-    merges
-        .iter()
-        .map(|m| match m.palette {
-            Some(palette) => json!([palette, m.victim, m.target, m.pixels]),
-            None => json!([m.victim, m.target, m.pixels]),
-        })
-        .collect()
 }
 
 /// The whole `layers` command: the request's map, drawn and converted, as

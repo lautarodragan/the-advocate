@@ -24,7 +24,6 @@ use crate::game::{Command, Game};
 use crate::images;
 use rm2k_snes_bytecode::events::OP_ANIMATION;
 use rm2k_snes_events::codes::SHOW_BATTLE_ANIMATION;
-use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -54,8 +53,8 @@ pub const ALPHA_MIN: i64 = 128;
 #[derive(Debug, Clone)]
 pub struct Info {
     /// Its frames: each a 64x64 grid of palette indices.
-    pub frames: Vec<Value>,
-    pub palette: Vec<Value>,
+    pub frames: Vec<Vec<Vec<usize>>>,
+    pub palette: Vec<[u8; 3]>,
     pub anchor: (i64, i64),
     pub size: (i64, i64),
     pub rm_box: (i64, i64),
@@ -69,10 +68,6 @@ pub struct Animations {
     cache: BTreeMap<i32, Option<Info>>,
     search_dirs: Vec<PathBuf>,
     dump: PathBuf,
-}
-
-fn pair(v: &Value) -> (i64, i64) {
-    (v[0].as_i64().unwrap_or(0), v[1].as_i64().unwrap_or(0))
 }
 
 impl Animations {
@@ -127,12 +122,12 @@ impl Animations {
             &self.dump,
         )?;
         for ((number, anim, _), a) in wanted.into_iter().zip(answers) {
-            let info = (!a.is_null()).then(|| Info {
-                frames: a["frames"].as_array().cloned().unwrap_or_default(),
-                palette: a["palette"].as_array().cloned().unwrap_or_default(),
-                anchor: pair(&a["anchor"]),
-                size: pair(&a["size"]),
-                rm_box: pair(&a["rm_box"]),
+            let info = a.map(|a| Info {
+                frames: a.frames,
+                palette: a.palette,
+                anchor: a.anchor,
+                size: (a.size.0 as i64, a.size.1 as i64),
+                rm_box: (a.rm_box.0 as i64, a.rm_box.1 as i64),
                 scope: anim.scope,
                 position: anim.position,
             });
@@ -209,9 +204,12 @@ pub fn rom_anchor(info: &Info) -> (i64, i64) {
 /// OAM numbers them. The four objects fit in one row of blocks and object
 /// `o` starts at `o * 4`; inside it, tile (tx, ty) is `ty` grid rows
 /// further on. On screen the objects go two by two.
-pub fn frame_bytes(frame: &Value) -> Vec<u8> {
+pub fn frame_bytes(frame: &[Vec<usize>]) -> Vec<u8> {
     let mut data = vec![0u8; (TILES * 32) as usize];
-    let pixel = |x: i64, y: i64| frame[y as usize][x as usize].as_u64().unwrap_or(0) as u8;
+    let pixel = |x: i64, y: i64| {
+        let row = frame.get(y as usize);
+        row.and_then(|r| r.get(x as usize)).map_or(0, |&v| v as u8)
+    };
     for o in 0..OBJECTS {
         let start = (o % 4) * OBJ_SIDE;
         let (base_x, base_y) = ((o % 2) * OBJ, (o / 2) * OBJ);
@@ -273,13 +271,9 @@ pub fn request(
                 let (ax, ay) = rom_anchor(info);
                 Ok(BattleAnimation {
                     number: (*number).into(),
-                    frames: info.frames.iter().map(frame_bytes).collect(),
+                    frames: info.frames.iter().map(|f| frame_bytes(f)).collect(),
                     anchor: [ax, ay],
-                    palette: info
-                        .palette
-                        .iter()
-                        .map(crate::emit::typed)
-                        .collect::<crate::fail::Result<_>>()?,
+                    palette: info.palette.clone(),
                 })
             })
             .collect::<crate::fail::Result<_>>()?,

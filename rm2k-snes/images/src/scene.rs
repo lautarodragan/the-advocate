@@ -19,6 +19,7 @@ use crate::pixels::{
 };
 use adeleine::{Color, Merge};
 use rm2k_render::Picture;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// The scene's size and colours, which the caller also emits for the
@@ -52,6 +53,7 @@ impl Geometry {
 }
 
 /// A backdrop in quality: CGRAM indices, row by row, and its colours.
+#[derive(Serialize, Deserialize)]
 pub struct Backdrop {
     pub indices: Vec<Vec<usize>>,
     pub palette: Vec<Color>,
@@ -73,6 +75,7 @@ pub fn backdrop(picture: &Picture, g: &Geometry) -> Backdrop {
 }
 
 /// A backdrop's light fallback.
+#[derive(Serialize, Deserialize)]
 pub struct Light {
     /// Its CGRAM indices at its own size: what travels.
     pub small: Vec<Vec<usize>>,
@@ -112,6 +115,7 @@ pub fn light_backdrop(picture: &Picture, g: &Geometry) -> crate::Result<Light> {
 }
 
 /// A battler ready for the console.
+#[derive(Serialize, Deserialize)]
 pub struct Battler {
     /// At the scene's scale, and cut to the scene: a battler taller than it
     /// is clamped at the top, and its bottom rows are not seen.
@@ -126,7 +130,33 @@ pub struct Battler {
     pub palette: Vec<Color>,
     /// How many colours it had once shrunk, and what was merged into what.
     pub colors: usize,
+    /// Each as `[victim, target, pixels]`: Adeleine's `Merge` knows no
+    /// JSON.
+    #[serde(with = "merges")]
     pub merges: Vec<Merge>,
+}
+
+mod merges {
+    use adeleine::{Color, Merge};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(merges: &[Merge], s: S) -> Result<S::Ok, S::Error> {
+        let rows: Vec<_> = merges
+            .iter()
+            .map(|m| (m.victim, m.target, m.pixels))
+            .collect();
+        rows.serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<Merge>, D::Error> {
+        let rows = Vec::<(Color, Color, u64)>::deserialize(d)?;
+        let merge = |(victim, target, pixels)| Merge {
+            victim,
+            target,
+            pixels,
+        };
+        Ok(rows.into_iter().map(merge).collect())
+    }
 }
 
 pub fn battler(picture: &Picture, g: &Geometry) -> crate::Result<Battler> {

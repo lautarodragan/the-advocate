@@ -67,7 +67,7 @@ pub fn sets(game: &Game, scan: &Value) -> Result<CommonPictures> {
             .collect::<Vec<_>>()
             .join(", ");
         let whose = format!("common events {names}");
-        let keys = set["pictures"].as_array().cloned().unwrap_or_default();
+        let keys = pictures::keys(set.get("pictures"))?;
         let tinted: Vec<i64> = set["tinted"]
             .as_array()
             .map(|a| a.iter().filter_map(Value::as_i64).collect())

@@ -51,6 +51,8 @@ use crate::settings::Settings;
 use crate::text::quoted;
 use rm2k_snes_bytecode::events::{OP_ANIMATION, OP_BATTLE};
 use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
+use rm2k_snes_images::request::{BackdropAnswer, Scene as Geometry};
+use rm2k_snes_images::scene::{Backdrop, Light};
 use rm2k_snes_mapdata::request;
 use rm2k_snes_mapdata::snes::{cgram_word, pack_tile};
 use serde_json::{json, Map, Value};
@@ -111,10 +113,18 @@ const BACKDROP_OF_PLACE: i32 = 0;
 const BACKDROP_OF_COMMAND: i32 = 1;
 
 /// The sizes the stage draws with.
-pub fn scene_settings() -> Value {
-    json!({"width": WIDTH, "height": HEIGHT, "colors": COLORS, "cgram_base": CGRAM_BASE,
-           "light_scale": FALLBACK_SCALE, "light_colors": FALLBACK_COLORS,
-           "scale": [SCALE_NUM, SCALE_DEN], "battler_colors": BATTLER_COLORS, "alpha_min": ALPHA_MIN})
+pub fn scene_settings() -> Geometry {
+    Geometry {
+        width: WIDTH as usize,
+        height: HEIGHT as usize,
+        colors: COLORS as usize,
+        cgram_base: CGRAM_BASE as usize,
+        light_scale: FALLBACK_SCALE as usize,
+        light_colors: FALLBACK_COLORS as usize,
+        scale: (SCALE_NUM, SCALE_DEN),
+        battler_colors: BATTLER_COLORS as usize,
+        alpha_min: ALPHA_MIN as u8,
+    }
 }
 
 /// An RM2k length in scene pixels.
@@ -251,9 +261,9 @@ pub struct Battler {
     pub hue: i64,
     pub width: i64,
     pub height: i64,
-    pub pixels: Vec<Vec<i64>>,
+    pub pixels: Vec<Vec<usize>>,
     pub rm_height: i64,
-    pub palette: Value,
+    pub palette: Vec<[u8; 3]>,
     pub colors: i64,
     pub merges: usize,
 }
@@ -331,19 +341,7 @@ pub fn drawing_order(centers: &[(i32, i32)], infos: &[Option<&Battler>]) -> Vec<
 
 /// The 8x8 tiles of a grid, in the order the tilemap reads them: row by
 /// row, without deduplicating.
-fn tiles(indices: &Value) -> Vec<Vec<Vec<u8>>> {
-    let rows: Vec<Vec<i64>> = indices
-        .as_array()
-        .map(|r| {
-            r.iter()
-                .map(|row| {
-                    row.as_array()
-                        .map(|row| row.iter().map(|v| v.as_i64().unwrap_or(0)).collect())
-                        .unwrap_or_default()
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+fn tiles(rows: &[Vec<usize>]) -> Vec<Vec<Vec<u8>>> {
     let mut out = Vec::new();
     let height = rows.len() / CELL as usize;
     let width = rows.first().map_or(0, Vec::len) / CELL as usize;
@@ -359,19 +357,8 @@ fn tiles(indices: &Value) -> Vec<Vec<Vec<u8>>> {
     out
 }
 
-fn color(c: &Value) -> [u8; 3] {
-    [
-        c[0].as_u64().unwrap_or(0) as u8,
-        c[1].as_u64().unwrap_or(0) as u8,
-        c[2].as_u64().unwrap_or(0) as u8,
-    ]
-}
-
-fn cgram(palette: &Value, count: i64) -> Vec<u8> {
-    let mut colors: Vec<[u8; 3]> = palette
-        .as_array()
-        .map(|p| p.iter().map(color).collect())
-        .unwrap_or_default();
+fn cgram(palette: &[[u8; 3]], count: i64) -> Vec<u8> {
+    let mut colors = palette.to_vec();
     while (colors.len() as i64) < count {
         colors.push([0, 0, 0]);
     }
@@ -384,12 +371,12 @@ fn cgram(palette: &Value, count: i64) -> Vec<u8> {
 
 /// A battle backdrop as the console reads it: `(tiles, colors)`, its 512
 /// 8bpp tiles in tilemap order and its `COLORS` colours, padded with black.
-pub fn backdrop_bytes(quality: &Value) -> (Vec<u8>, Vec<u8>) {
+pub fn backdrop_bytes(quality: &Backdrop) -> (Vec<u8>, Vec<u8>) {
     let mut data = Vec::new();
-    for cell in tiles(&quality["indices"]) {
+    for cell in tiles(&quality.indices) {
         data.extend(pack_tile(&cell, 8));
     }
-    (data, cgram(&quality["palette"], COLORS))
+    (data, cgram(&quality.palette, COLORS))
 }
 
 /// The light fallback of a backdrop, as the ROM carries it: its 4 KB of
@@ -400,8 +387,8 @@ pub fn backdrop_bytes(quality: &Value) -> (Vec<u8>, Vec<u8>) {
 /// time, planes 0/1 before 2/3; and **each byte carries half a byte of two
 /// planes**, so duplicated bit by bit it is already the two-plane word of
 /// a row of a large tile. See `fallback_double` in the emission.
-pub fn fallback_bytes(light: &Value) -> (Vec<u8>, Vec<u8>) {
-    let smalls: Vec<Vec<u8>> = tiles(&light["small"])
+pub fn fallback_bytes(light: &Light) -> (Vec<u8>, Vec<u8>) {
+    let smalls: Vec<Vec<u8>> = tiles(&light.small)
         .into_iter()
         .map(|cell| {
             let shifted: Vec<Vec<u8>> = cell
@@ -427,7 +414,7 @@ pub fn fallback_bytes(light: &Value) -> (Vec<u8>, Vec<u8>) {
             }
         }
     }
-    (out, cgram(&light["palette"], FALLBACK_COLORS))
+    (out, cgram(&light.palette, FALLBACK_COLORS))
 }
 
 /// A backdrop the ROM carries: its name, its number in the game, and its
@@ -435,7 +422,7 @@ pub fn fallback_bytes(light: &Value) -> (Vec<u8>, Vec<u8>) {
 pub struct RomBackdrop {
     pub name: String,
     pub number: usize,
-    pub light: Value,
+    pub light: Light,
 }
 
 /// The troops the compiled battles ask for, and the backdrop each one asks
@@ -594,10 +581,7 @@ pub fn rom_scene(
         }
     }
     let scene = scene_settings();
-    let found = |list: &[String],
-                 quality: bool,
-                 light: bool|
-     -> Result<Vec<(Option<Value>, Option<Value>)>> {
+    let found = |list: &[String], quality: bool, light: bool| -> Result<Vec<BackdropAnswer>> {
         let paths: Vec<Option<PathBuf>> = list
             .iter()
             .map(|n| find_file(game, rtp, "Backdrop", n))
@@ -611,24 +595,31 @@ pub fn rom_scene(
         Ok(paths
             .iter()
             .map(|p| match p {
-                None => (None, None),
-                Some(_) => {
-                    let a = answers.next().unwrap_or(Value::Null);
-                    let q = (!a["quality"].is_null()).then(|| a["quality"].clone());
-                    let l = (!a["light"].is_null()).then(|| a["light"].clone());
-                    (q, l)
-                }
+                None => None,
+                Some(_) => answers.next(),
+            })
+            .map(|a| {
+                a.unwrap_or(BackdropAnswer {
+                    quality: None,
+                    light: None,
+                })
             })
             .collect())
     };
     let wanted: Vec<String> = theirs.iter().map(|&k| names[k as usize].clone()).collect();
     let lights = found(&wanted, false, true)?;
     let mut backdrops = Vec::new();
-    for (k, (_q, light)) in theirs.iter().zip(lights) {
+    for (k, answer) in theirs.iter().zip(lights) {
         backdrops.push(RomBackdrop {
             name: names[*k as usize].clone(),
             number: *k as usize,
-            light: light.unwrap_or(Value::Null),
+            // None only for a file that is not there, as the light of no
+            // backdrop: nothing to draw.
+            light: answer.light.unwrap_or(Light {
+                small: Vec::new(),
+                indices: Vec::new(),
+                palette: Vec::new(),
+            }),
         });
     }
     let place: BTreeMap<i64, usize> = theirs.iter().enumerate().map(|(i, k)| (*k, i)).collect();
@@ -641,7 +632,10 @@ pub fn rom_scene(
     // The quality ones, for the `.msu`: all of them, in the ROM or not.
     let quality = found(&names, true, false)?
         .into_iter()
-        .map(|(q, _)| backdrop_bytes(&q.unwrap_or(Value::Null)))
+        .map(|a| match &a.quality {
+            Some(q) => backdrop_bytes(q),
+            None => (Vec::new(), cgram(&[], COLORS)),
+        })
         .collect();
 
     // Which enemies ask for which battler, in the order they are asked for;
@@ -691,31 +685,20 @@ pub fn rom_scene(
         let info = match path {
             None => None,
             Some(_) => {
-                let a = answers.next().unwrap_or(Value::Null);
+                let a = answers
+                    .next()
+                    .ok_or_else(|| Stop::new("the stage answered fewer battlers than asked"))?;
                 Some(Battler {
                     key: key(name, *hue),
                     image: name.clone(),
                     hue: *hue,
-                    width: a["width"].as_i64().unwrap_or(0),
-                    height: a["height"].as_i64().unwrap_or(0),
-                    pixels: a["pixels"]
-                        .as_array()
-                        .map(|rows| {
-                            rows.iter()
-                                .map(|r| {
-                                    r.as_array()
-                                        .map(|r| {
-                                            r.iter().map(|v| v.as_i64().unwrap_or(0)).collect()
-                                        })
-                                        .unwrap_or_default()
-                                })
-                                .collect()
-                        })
-                        .unwrap_or_default(),
-                    rm_height: a["rm_height"].as_i64().unwrap_or(0),
-                    palette: a["palette"].clone(),
-                    colors: a["colors"].as_i64().unwrap_or(0),
-                    merges: a["merges"].as_array().map_or(0, Vec::len),
+                    width: a.width as i64,
+                    height: a.height as i64,
+                    pixels: a.pixels,
+                    rm_height: a.rm_height as i64,
+                    palette: a.palette,
+                    colors: a.colors as i64,
+                    merges: a.merges.len(),
                 })
             }
         };
@@ -839,7 +822,7 @@ pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Result<request::
                 Ok(request::SceneBattler {
                     columns: columns(b),
                     height: b.height,
-                    palette: crate::emit::typed(&b.palette)?,
+                    palette: b.palette.clone(),
                     bytes: battler_bytes(b),
                 })
             })
@@ -952,7 +935,7 @@ pub fn battler_report(b: &Battler) -> String {
         b.width,
         b.height,
         battler_bytes(b).len(),
-        b.palette.as_array().map_or(0, Vec::len),
+        b.palette.len(),
         b.colors
     )
 }
@@ -961,7 +944,7 @@ pub fn battler_report(b: &Battler) -> String {
 mod tests {
     use super::*;
 
-    fn battler(width: i64, height: i64, pixels: Vec<Vec<i64>>) -> Battler {
+    fn battler(width: i64, height: i64, pixels: Vec<Vec<usize>>) -> Battler {
         Battler {
             key: "b".into(),
             image: "b".into(),
@@ -970,7 +953,7 @@ mod tests {
             height,
             pixels,
             rm_height: height * 5 / 4,
-            palette: json!([]),
+            palette: Vec::new(),
             colors: 0,
             merges: 0,
         }
@@ -1021,7 +1004,7 @@ mod tests {
     fn a_battler_goes_plane_by_plane_each_row_backwards_after_a_zero() {
         // Nine pixels wide: two columns of a plane. Pixel 0 is color 1 and
         // pixel 8 is color 2.
-        let mut row = vec![0i64; 9];
+        let mut row = vec![0usize; 9];
         row[0] = 1;
         row[8] = 2;
         let b = battler(9, 1, vec![row]);
@@ -1040,8 +1023,13 @@ mod tests {
     fn the_fallback_carries_half_a_byte_of_two_planes() {
         // A backdrop of one colour, the second of its palette: every pixel
         // is `CGRAM_BASE + 1`, which is plane 0 lit.
-        let small = vec![vec![CGRAM_BASE + 1; FALLBACK_WIDTH as usize]; FALLBACK_HEIGHT as usize];
-        let light = json!({"small": small, "palette": [[0, 0, 0], [31, 0, 0]]});
+        let small =
+            vec![vec![CGRAM_BASE as usize + 1; FALLBACK_WIDTH as usize]; FALLBACK_HEIGHT as usize];
+        let light = Light {
+            small,
+            indices: Vec::new(),
+            palette: vec![[0, 0, 0], [31, 0, 0]],
+        };
         let (tiles, colors) = fallback_bytes(&light);
         assert_eq!(tiles.len() as i64, TILES_Y * (FALLBACK_WIDTH / CELL) * 16);
         // Of each pair of planes, the first byte has plane 0's high nibble
