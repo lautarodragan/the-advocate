@@ -33,7 +33,7 @@
 
 use crate::fail::Result;
 use crate::game::{Game, GameMap};
-use crate::maps::MapInfo;
+use crate::maps::{self, MapInfo};
 use crate::stage;
 use rm2k_snes_events::codes::{CHANGE_MAP_TILESET, TILE_SUBSTITUTION};
 use rm2k_snes_mapdata::materials::{cell_bytes, BLOCK_BYTES};
@@ -228,70 +228,38 @@ fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Ve
         .ok_or_else(|| crate::fail::Stop::new(format!("wally did not write {name}")))
 }
 
-fn int(v: &Value) -> i64 {
-    v.as_i64().unwrap_or(0)
-}
-
 /// What the events of an answer came out as: see [`Drawn::events`].
-fn events_drawn(answer: &Value) -> Value {
-    let ids = |list: &Value, pick: &dyn Fn(&Value) -> Value| -> Value {
-        Value::Array(list.as_array().into_iter().flatten().map(pick).collect())
-    };
+pub fn map_events(answer: &wally::answer::Map) -> Value {
     json!({
-        "decorative": answer["decorative"],
-        "baked": ids(&answer["baked"], &|b| b[0].clone()),
-        "npcs": ids(&answer["npcs"], &|n| n["event"].clone()),
-        "posed": ids(&answer["posed"], &|p| p["event"].clone()),
+        "decorative": answer.decorative,
+        "baked": answer.baked.iter().map(|b| b.0).collect::<Vec<_>>(),
+        "npcs": answer.npcs.iter().map(|n| n.npc.event).collect::<Vec<_>>(),
+        "posed": answer.posed.iter().map(|p| p.event).collect::<Vec<_>>(),
     })
 }
 
-/// The map's own events as they came out: see [`Drawn::events`].
-pub fn map_events(answer: &Value) -> Value {
-    events_drawn(answer)
-}
-
-/// Reads what Wally wrote for the map with `chipset`.
-pub fn drawn(written: &BTreeMap<String, Vec<u8>>, chipset: i32, draws: bool) -> Result<Drawn> {
-    let answer = stage::json(written, "map.json")?;
-    let layers = stage::json(written, "layers.json")?;
-    let (bg, above) = (&layers["background"], &layers["above"]);
-    let mut runs = Vec::new();
-    for run in bg["runs"].as_array().cloned().unwrap_or_default() {
-        let mut drawings = Vec::new();
-        for name in run["drawings"].as_array().cloned().unwrap_or_default() {
-            drawings.push(json!(crate::text::hex(file(
-                written,
-                name.as_str().unwrap_or("")
-            )?)));
-        }
-        runs.push(json!({"family": run["family"], "base": run["base"], "tiles": run["tiles"], "drawings": drawings}));
-    }
-    let mut cgram = Vec::new();
-    for word in bg["cgram"].as_array().cloned().unwrap_or_default() {
-        cgram.extend_from_slice(&(int(&word) as u16).to_le_bytes());
-    }
-    let cells = layers["blocks"]["cells"]
-        .as_array()
-        .map(|a| a.iter().map(|c| int(c) as u16).collect())
-        .unwrap_or_default();
+/// Reads what Wally answered for the map with `chipset`.
+pub fn drawn(written: &stage::Files, chipset: i32, draws: bool) -> Result<Drawn> {
+    let answer = maps::wally_answer(written)?;
+    let bg = &answer.layers.background;
     Ok(Drawn {
         chipset,
         draws,
         tile_data: file(written, "background.bin")?.clone(),
-        cgram,
+        cgram: maps::words(&bg.cgram),
         above_tiles: file(written, "above.bin")?.clone(),
         above_cgram: file(written, "above-cgram.bin")?.clone(),
-        above_first: int(&above["first"]),
-        bpp: bg["bpp"].as_i64().unwrap_or(8),
-        runs,
+        above_first: answer.layers.above.first as i64,
+        bpp: bg.bpp as i64,
+        runs: maps::runs(bg, written)?,
         blocks: Blocks {
-            cells,
+            cells: answer.layers.blocks.cells.clone(),
             table: file(written, "blocks.bin")?.clone(),
             pass: file(written, "block-passability.bin")?.clone(),
             terrain: file(written, "block-terrain.bin")?.clone(),
         },
-        panorama: !layers["panorama"].is_null(),
-        events: events_drawn(&answer),
+        panorama: answer.layers.panorama.is_some(),
+        events: map_events(&answer.map),
     })
 }
 

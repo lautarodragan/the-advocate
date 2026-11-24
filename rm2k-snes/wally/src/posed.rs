@@ -822,7 +822,10 @@ pub fn compose_spills(layers: &mut Layers, width: usize, spills: &[(usize, Pictu
 /// blocks by `(graphic, pose)` —twelve per graphic, the poses it never
 /// shows filled with its first—, the block of its cell without it, and the
 /// key it starts with: `graphic * 12 + pose`, or $FF hidden.
-#[derive(Clone, Debug, PartialEq, Eq)]
+///
+/// Its fields are its keys in the map's answer, in this order: see
+/// [`crate::answer`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Placed {
     pub event: usize,
     pub x: i32,
