@@ -4,10 +4,14 @@
 //! converter reads them back with [`Answer::read`] —a field renamed here
 //! does not compile there—.
 //!
-//! **The fields are in the files' key order, and it is not free**: the
-//! converter passes parts of the answer on to the emission as JSON, and its
-//! serde_json keeps the order they come in. Reordering a field reorders
-//! what the emission is asked, and what it writes on disk.
+//! **The fields are in the files' key order**, which is what the
+//! conversion cache keeps: reordering a field changes the cached answers'
+//! bytes, not what the converter makes of them. Some of these types the
+//! emission's request holds as they are —a slot's owner, a route's graphic,
+//! the cache, the shared slots, the battle animation's box, a still event
+//! drawn into the cells—, and the rest the converter turns into the
+//! emission's with plain Rust, where the emission takes the bytes of the
+//! files these name: see `emit.rs` in rm2k-snes-convert.
 
 use crate::fail::{Bad, Result};
 use crate::sprites::character::Key;
