@@ -37,7 +37,6 @@
 use crate::game::{Command, Event, Game, GameMap, Page};
 use rm2k_snes_events::answer::Scan;
 use rm2k_snes_events::codes::{CALL_EVENT, CONTROL_SWITCHES, SHOW_PICTURE};
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// `ControlSwitches`' operation that turns them off: the others turn them
@@ -185,8 +184,11 @@ impl CommonPages {
 
     /// What the event compiler's requests carry: nothing in a cartridge
     /// without copies.
-    pub fn to_json(&self) -> Option<Value> {
-        (!self.maps.is_empty()).then(|| json!({"commons": self.commons, "maps": self.maps}))
+    pub fn request(&self) -> Option<rm2k_snes_events::request::CommonPages> {
+        (!self.maps.is_empty()).then(|| rm2k_snes_events::request::CommonPages {
+            commons: self.commons.clone(),
+            maps: self.maps.iter().copied().collect(),
+        })
     }
 
     /// The event with the copies that `map` gets, if it gets one: with the

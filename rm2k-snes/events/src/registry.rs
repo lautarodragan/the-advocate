@@ -377,7 +377,7 @@ impl Troops {
 ///
 /// The scan answers it as this object, and the caller hands it back in the
 /// tables of the compile's request with fields of its own after these:
-/// the converter's `pictures::Key` flattens this one.
+/// [`crate::request::Key`] flattens this one.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PictureKey {
     pub number: i32,

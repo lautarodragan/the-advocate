@@ -9,6 +9,7 @@ use crate::fail::{Bad, Result};
 use ditto::dump::{read_map, Dump};
 use ditto::schema::{CommonEvent, EventCommand};
 use rm2k_snes_text::refit::{refit_measured, Measure};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -56,8 +57,16 @@ pub fn refit_each(boxes: &[Vec<String>], measure: &Measure, rows: usize) -> Valu
     )
 }
 
-/// The boxes that change, as `{"from": lines, "to": boxes}`, in the order
-/// they are first found: the dump's maps by file name, then `map_files`
+/// A box that changes: its lines as they are in the dump, and the boxes
+/// that go in its place. What the event compiler's request carries as its
+/// `boxes`, field for field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Reflowed {
+    pub from: Vec<String>,
+    pub to: Vec<Vec<String>>,
+}
+
+/// The boxes that change, in the order they are first found: the dump's maps by file name, then `map_files`
 /// —the project's, which override the dump's: both are read, which only
 /// adds boxes nobody asks for—, then the common events.
 pub fn table(
@@ -65,7 +74,7 @@ pub fn table(
     map_files: &[PathBuf],
     measure: &Measure,
     rows: usize,
-) -> Result<Value> {
+) -> Result<Vec<Reflowed>> {
     let dump = Dump::open(data).map_err(answer)?;
     let mut paths = dump.map_files().map_err(answer)?;
     paths.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
@@ -91,8 +100,11 @@ pub fn table(
         }
         let frames = refit_measured(&lines, measure, rows);
         if frames != [lines.clone()] {
-            out.push(json!({"from": lines, "to": frames}));
+            out.push(Reflowed {
+                from: lines,
+                to: frames,
+            });
         }
     }
-    Ok(Value::from(out))
+    Ok(out)
 }

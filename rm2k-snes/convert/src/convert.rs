@@ -28,6 +28,7 @@ use rm2k_snes_bytecode::events::{
     INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
 };
 use rm2k_snes_events::codes::{ROUTE_CHANGE_GRAPHIC, TELEPORT, TIMER_OPERATION};
+use rm2k_snes_events::request::{Picture, Place};
 use rm2k_snes_events::route;
 use rm2k_snes_mapdata::{engine, record, request, vram};
 
@@ -298,8 +299,7 @@ pub fn run(options: Options) -> Result<()> {
     // body is not their commands: a custom menu's and a counter's.
     let mut not_copied: BTreeSet<i32> = custom_menus
         .iter()
-        .filter_map(|m| m.spec.get("replaces_common").and_then(Value::as_i64))
-        .map(|n| n as i32)
+        .filter_map(|m| m.replaces_common())
         .collect();
     not_copied.extend(
         compiler::counters(&settings)?
@@ -313,7 +313,7 @@ pub fn run(options: Options) -> Result<()> {
         test_event_map,
         events_max,
     )?;
-    compiler.common_pages = common_pages.to_json();
+    compiler.common_pages = common_pages.request();
     // For `rm2k-snes-events culprits --request`, which asks the same thing
     // of the same dump.
     compiler.keep_request = output
@@ -344,7 +344,7 @@ pub fn run(options: Options) -> Result<()> {
             test_event_map,
             events_max,
         )?;
-        compiler.common_pages = common_pages.to_json();
+        compiler.common_pages = common_pages.request();
         scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
     }
     if !common_pages.maps.is_empty() {
@@ -755,10 +755,9 @@ pub fn run(options: Options) -> Result<()> {
     // moves no number before it—, and the rest are not shown, as before.
     let kept: Vec<pictures::Big>;
     if big_layers.len() > pictures::BIG_IMAGES {
-        let fits = |entry: &Value| {
-            entry["image"]
-                .as_u64()
-                .is_some_and(|i| (i as usize) < pictures::BIG_IMAGES)
+        let fits = |entry: &Picture| {
+            matches!(entry.place, Place::Background { image, .. }
+                if usize::from(image) < pictures::BIG_IMAGES)
         };
         kept = common_bigs
             .iter()
@@ -871,7 +870,11 @@ pub fn run(options: Options) -> Result<()> {
                     .chain(m.variants.iter().map(|v| v.chipset))
                     .collect()
             },
-            route_graphics: m.route_graphics.clone(),
+            route_graphics: m
+                .route_graphics
+                .iter()
+                .map(|(name, index)| (name.clone(), *index as i32))
+                .collect(),
         })
         .collect();
     let test_graphics: BTreeMap<i32, Vec<(String, i32)>> = match &options.test_graphic {
@@ -887,7 +890,11 @@ pub fn run(options: Options) -> Result<()> {
         &extra,
         test_event_map,
         &test_graphics,
-        &json!(encounters.troops),
+        &encounters
+            .troops
+            .iter()
+            .map(|&t| t as i32)
+            .collect::<Vec<_>>(),
     )?;
     degradations.add_compiler_answer(&compiled);
     // The events the RAM left out that Wally painted into their map lose

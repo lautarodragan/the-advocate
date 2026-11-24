@@ -20,12 +20,23 @@ pub struct CustomMenu {
 impl CustomMenu {
     /// What the event compiler needs of it: the common event it replaces
     /// and the ones it runs before a page.
-    pub fn hooks(&self) -> Value {
+    pub fn hooks(&self) -> rm2k_snes_events::request::MenuHooks {
         let mut before = Vec::new();
         find_before(&self.spec, &mut before);
         before.sort();
         before.dedup();
-        serde_json::json!({"replaces_common": self.spec.get("replaces_common"), "before": before})
+        rm2k_snes_events::request::MenuHooks {
+            replaces_common: self.replaces_common(),
+            before: before.into_iter().map(|n| n as i32).collect(),
+        }
+    }
+
+    /// The common event it replaces, if any.
+    pub fn replaces_common(&self) -> Option<i32> {
+        self.spec
+            .get("replaces_common")
+            .and_then(Value::as_i64)
+            .map(|n| n as i32)
     }
 
     /// The variables it reads, which the cartridge has to keep: the

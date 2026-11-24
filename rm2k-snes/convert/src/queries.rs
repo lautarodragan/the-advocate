@@ -201,7 +201,7 @@ pub fn run(argv: Vec<String>) -> Result<()> {
                     .collect::<Vec<_>>(),
                 "map_files": crate::compiler::map_files(&game),
                 "chipset_files": crate::compiler::chipset_files(&game),
-                "names": crate::compiler::names([&map]).into_iter().map(|e| json!([e[1], e[2], e[3]]))
+                "names": crate::compiler::names([&map]).into_iter().map(|(_, e, p, n)| json!([e, p, n]))
                     .collect::<Vec<_>>(),
             })
         }

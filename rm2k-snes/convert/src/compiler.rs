@@ -20,6 +20,7 @@ use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
 use rm2k_snes_events::answer::{Compiled, Indices, Scan};
+use rm2k_snes_events::request::{self, Asked, ByMap, Counter};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -56,12 +57,27 @@ const SWITCH_SINGLE: i32 = 0;
 const SWITCH_ON: i32 = 0;
 
 /// A command as the requests carry it.
-pub fn command(c: &Command) -> Value {
-    json!({"code": c.code, "indent": c.indent, "string": c.string, "parameters": c.parameters})
+pub fn command(c: &Command) -> rm2k_snes_events::game::Command {
+    rm2k_snes_events::game::Command {
+        code: c.code,
+        indent: c.indent,
+        string: c.string.clone(),
+        parameters: c.parameters.clone(),
+    }
 }
 
-fn commands(list: &[Command]) -> Value {
-    Value::Array(list.iter().map(command).collect())
+fn commands(list: &[Command]) -> Vec<rm2k_snes_events::game::Command> {
+    list.iter().map(command).collect()
+}
+
+/// The test pages, each with the map it runs in.
+fn cases(list: &[(i32, Vec<Command>)]) -> Vec<request::Case> {
+    list.iter()
+        .map(|(map, c)| request::Case {
+            map: *map,
+            commands: commands(c),
+        })
+        .collect()
 }
 
 /// The maps read from the project's files and not from the dump, by map
@@ -85,14 +101,14 @@ pub fn chipset_files(game: &Game) -> Value {
 }
 
 /// The graphics the port calls by another name than the dump's, in these
-/// maps: `[map, event, page, name]`.
-pub fn names<'a>(maps: impl IntoIterator<Item = &'a GameMap>) -> Vec<Value> {
+/// maps: `(map, event, page, name)`.
+pub fn names<'a>(maps: impl IntoIterator<Item = &'a GameMap>) -> Vec<(i32, i32, i32, String)> {
     let mut out = Vec::new();
     for map in maps {
         for event in &map.events {
             for page in &event.pages {
                 if page.character_name != page.dump_name {
-                    out.push(json!([map.id, event.id, page.id, page.character_name]));
+                    out.push((map.id, event.id, page.id, page.character_name.clone()));
                 }
             }
         }
@@ -111,14 +127,6 @@ pub fn counters(settings: &Settings) -> Result<Vec<Counter>> {
         .collect()
 }
 
-/// One of `[events] counters`: the common event, and the variable its
-/// digits show. The compile requests take them as they are.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Counter {
-    pub common_event: i32,
-    pub variable: i32,
-}
-
 /// What the compiler is asked for and keeps: the boxes and the battle's
 /// window are asked once.
 pub struct Compiler<'a> {
@@ -126,10 +134,10 @@ pub struct Compiler<'a> {
     pub settings: &'a Settings<'a>,
     /// What the custom menus ask of the events, one entry per menu: see
     /// `CustomMenu::hooks`.
-    menus: Value,
-    boxes: Value,
-    window: Value,
-    troop_window: Value,
+    menus: Vec<request::MenuHooks>,
+    boxes: Vec<request::MessageBox>,
+    window: request::Window,
+    troop_window: request::Window,
     /// The Systems the cartridge carries a message window for, in its
     /// order: see `systems::names`. Empty if it does not switch.
     pub systems: Vec<String>,
@@ -145,14 +153,16 @@ pub struct Compiler<'a> {
     pub test_switch: i32,
     /// The automatic common events copied into the maps, and into which:
     /// see [`crate::common_pages`]. None in a cartridge without them.
-    pub common_pages: Option<Value>,
-    /// The big pictures the common events without a map can show, as a
-    /// map's big table: see `common_pictures` in `rm2k-snes-events`. Empty
-    /// in a cartridge whose common events show none.
-    pub common_pictures: Vec<Value>,
+    pub common_pages: Option<request::CommonPages>,
+    /// The pictures the common events without a map can show: the big
+    /// ones, as a map's big table —see `common_pictures` in
+    /// `rm2k-snes-events`—, and after them the small ones of the common
+    /// table —see [`crate::common_pictures`]—. Empty in a cartridge whose
+    /// common events show none.
+    pub common_pictures: Vec<request::Picture>,
     /// The sets of the common events' small pictures, by their index: see
     /// [`crate::common_pictures`]. Empty in a cartridge without them.
-    pub common_sets: Vec<Value>,
+    pub common_sets: Vec<request::CommonSet>,
 }
 
 impl<'a> Compiler<'a> {
@@ -162,7 +172,13 @@ impl<'a> Compiler<'a> {
         // pixels, with the font the project file names.
         let font = FontChoice::of(settings)?;
         let width = rm2k_snes_screens::layout::MESSAGE_WIDTH;
-        let boxes = screens::boxes(game, &font, width, LINES)?;
+        let boxes = screens::boxes(game, &font, width, LINES)?
+            .into_iter()
+            .map(|b| request::MessageBox {
+                from: b.from,
+                to: b.to,
+            })
+            .collect();
         let window = font.window(width, LINES);
         // And the battle's, where the troops' pages show theirs: as many
         // lines as the map's, and narrower —`BA_PAGE_MSG_WIDTH` cells, in
@@ -170,7 +186,7 @@ impl<'a> Compiler<'a> {
         // reflows those itself, because it is the one that knows which pages
         // a troop brings.
         let troop_window = font.window(rm2k_snes_battle::screen::BA_PAGE_MSG_WIDTH * 8, LINES);
-        let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
+        let menus = settings.menus()?.iter().map(|m| m.hooks()).collect();
         Ok(Compiler {
             game,
             settings,
@@ -199,51 +215,37 @@ impl<'a> Compiler<'a> {
         test_commands: &[Command],
         extra_variables: &BTreeSet<i32>,
         test_event_map: Option<i32>,
-    ) -> Map<String, Value> {
-        let mut r = Map::new();
-        r.insert("map_files".into(), map_files(self.game));
-        r.insert("dropped_events".into(), self.game.dropped_json());
-        if !self.game.boxed_exits.is_empty() {
-            r.insert(
-                "boxed_exits".into(),
-                Value::Object(
-                    self.game
-                        .boxed_exits
-                        .iter()
-                        .map(|(m, ids)| (m.to_string(), json!(ids)))
-                        .collect(),
-                ),
-            );
-        }
-        r.insert("boxes".into(), self.boxes.clone());
-        r.insert("names".into(), json!([]));
-        r.insert("window".into(), self.window.clone());
-        r.insert("troop_window".into(), self.troop_window.clone());
-        r.insert("maps".into(), json!(maps));
-        r.insert("test_commands".into(), commands(test_commands));
-        r.insert(
-            "extra_variables".into(),
-            json!(extra_variables.iter().collect::<Vec<_>>()),
-        );
-        r.insert(
-            "extra_switches".into(),
-            json!(self.extra_switches.iter().collect::<Vec<_>>()),
-        );
-        r.insert("test_event_map".into(), json!(test_event_map));
-        r.insert("menus".into(), self.menus.clone());
-        if let Some(c) = &self.common_pages {
-            r.insert("common_pages".into(), c.clone());
-        }
-        if !self.common_pictures.is_empty() {
-            r.insert("common_pictures".into(), json!(self.common_pictures));
-        }
-        if !self.common_sets.is_empty() {
-            r.insert("common_sets".into(), json!(self.common_sets));
-        }
-        if !self.systems.is_empty() {
-            r.insert("systems".into(), json!(self.systems));
-        }
-        r
+    ) -> Result<Asked> {
+        let ids = |m: &BTreeMap<i32, BTreeSet<i32>>| -> ByMap<Vec<i32>> {
+            m.iter()
+                .map(|(m, ids)| (*m, ids.iter().copied().collect()))
+                .collect()
+        };
+        Ok(Asked {
+            map_files: self.game.forks.map_files().into_iter().collect(),
+            dropped: ids(&self.game.dropped),
+            boxed_exits: ids(&self.game.boxed_exits),
+            boxes: self.boxes.clone(),
+            names: Vec::new(),
+            window: self.window.clone(),
+            troop_window: Some(self.troop_window.clone()),
+            maps: maps.to_vec(),
+            test_commands: commands(test_commands),
+            extra_variables: extra_variables.iter().copied().collect(),
+            extra_switches: self.extra_switches.iter().copied().collect(),
+            test_event_map,
+            menus: self.menus.clone(),
+            common_pages: self.common_pages.clone(),
+            common_pictures: self.common_pictures.clone(),
+            common_sets: self.common_sets.clone(),
+            systems: self.systems.clone(),
+            // And the counters, so a counter's digits are its and not
+            // pictures: without them its body is pasted where it is
+            // called, and its twenty `ShowPicture`s of a digit would ask
+            // for a place in the sprites.
+            counters: counters(self.settings)?,
+            ..Asked::default()
+        })
     }
 
     /// The answer to `request`, from the cache if it is there: kept as the
@@ -251,15 +253,25 @@ impl<'a> Compiler<'a> {
     fn run<A: Serialize + DeserializeOwned>(
         &self,
         stage: stage::Stage,
-        answer: fn(&std::path::Path, &Value) -> rm2k_snes_events::Result<A>,
-        request: Value,
+        answer: fn(&std::path::Path, &Asked) -> rm2k_snes_events::Result<A>,
+        request: &Asked,
     ) -> Result<A> {
-        let written = stage::call(stage, &request, &self.data(), || {
-            answer(&self.game.dump, &request).map(|a| rm2k_snes_events::stage::files(&a))
+        let value = serde_json::to_value(request).expect("a request is JSON");
+        let written = stage::call(stage, &value, &self.data(), || {
+            answer(&self.game.dump, request).map(|a| rm2k_snes_events::stage::files(&a))
         })?;
         let file = rm2k_snes_events::ANSWER_FILE;
         serde_json::from_str(&stage::text(&written, file)?)
             .map_err(|e| Stop::new(format!("{}'s {file}: {e}", stage.binary)))
+    }
+
+    /// Leaves `request` where `keep_request` says, if anywhere.
+    fn keep(&self, request: &Asked) -> Result<()> {
+        if let Some(path) = &self.keep_request {
+            let text = serde_json::to_string(request).expect("a request is JSON");
+            std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
+        }
+        Ok(())
     }
 
     /// The first call: the indices, which pages of each map compile, each
@@ -274,31 +286,15 @@ impl<'a> Compiler<'a> {
         test_event_map: Option<i32>,
         cases: &[(i32, Vec<Command>)],
     ) -> Result<Scan> {
-        let mut r = self.request(maps, test_commands, extra_variables, test_event_map);
+        let mut r = self.request(maps, test_commands, extra_variables, test_event_map)?;
         if !cases.is_empty() {
-            r.insert(
-                "cases".into(),
-                Value::Array(
-                    cases
-                        .iter()
-                        .map(|(m, c)| json!({"map": m, "commands": commands(c)}))
-                        .collect(),
-                ),
-            );
-            r.insert(
-                "messages_step".into(),
-                json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
-            );
+            r.cases = Some(self::cases(cases));
+            r.messages_step = Some(rm2k_snes_mapdata::engine::MESSAGES_STEP);
             // Which switch they can turn on: the scan sees every switch the
             // game names.
-            r.insert("test_switch".into(), json!(TEST_SWITCH));
+            r.test_switch = Some(TEST_SWITCH);
         }
-        // And the counters, so a counter's digits are its and not
-        // pictures: without them its body is pasted where it is called,
-        // and its twenty `ShowPicture`s of a digit would ask for a place
-        // in the sprites.
-        r.insert("counters".into(), json!(counters(self.settings)?));
-        self.run(SCAN, rm2k_snes_events::stage::scan, Value::Object(r))
+        self.run(SCAN, rm2k_snes_events::stage::scan, &r)
     }
 
     /// The second call: every page of the cartridge. `maps` are the
@@ -314,66 +310,61 @@ impl<'a> Compiler<'a> {
         extra_variables: &BTreeSet<i32>,
         test_event_map: Option<i32>,
         test_graphics: &BTreeMap<i32, Vec<(String, i32)>>,
-        encounter_troops: &Value,
+        encounter_troops: &[i32],
     ) -> Result<Compiled> {
         let ids: Vec<i32> = maps.iter().map(|m| m.id).collect();
-        let mut r = self.request(&ids, test_commands, extra_variables, test_event_map);
-        r.insert(
-            "names".into(),
-            Value::Array(maps.iter().flat_map(|m| m.names.clone()).collect()),
+        let mut r = self.request(&ids, test_commands, extra_variables, test_event_map)?;
+        r.names = maps.iter().flat_map(|m| m.names.clone()).collect();
+        r.substitutions = Some(
+            maps.iter()
+                .map(|m| {
+                    let table = m.substitution_table.iter().map(|(upper, old, new, pairs)| {
+                        request::Substitution {
+                            upper: *upper,
+                            old: (*old).into(),
+                            new: (*new).into(),
+                            pairs: pairs
+                                .as_ref()
+                                .map(|p| p.iter().map(|&(a, b)| (a.into(), b.into())).collect()),
+                        }
+                    });
+                    (m.id, table.collect())
+                })
+                .collect(),
         );
-        let mut substitutions = Map::new();
-        for m in maps {
-            let table = m.substitution_table.iter().map(|(upper, old, new, pairs)| {
-                json!({"upper": upper, "old": old, "new": new, "pairs": pairs})
-            });
-            substitutions.insert(m.id.to_string(), table.collect());
-        }
-        r.insert("substitutions".into(), Value::Object(substitutions));
         // The pictures each map carries, with their slots: see `pictures`.
-        let mut pictures = Map::new();
-        for m in maps {
-            if m.pictures.is_some() || !m.big_table.is_empty() {
-                let mut list: Vec<Value> = m.pictures.clone().unwrap_or_default();
-                list.extend(m.big_table.iter().cloned());
-                pictures.insert(m.id.to_string(), Value::Array(list));
-            }
-        }
-        r.insert("pictures".into(), Value::Object(pictures));
-        let route_graphics: Map<String, Value> = maps
-            .iter()
-            .map(|m| {
-                let list = m
-                    .route_graphics
-                    .iter()
-                    .map(|(c, i)| json!([c, i]))
-                    .collect();
-                (m.id.to_string(), Value::Array(list))
-            })
-            .collect();
-        r.insert("route_graphics".into(), Value::Object(route_graphics));
+        r.pictures = Some(
+            maps.iter()
+                .filter(|m| m.pictures.is_some() || !m.big_table.is_empty())
+                .map(|m| {
+                    let mut list = m.pictures.clone().unwrap_or_default();
+                    list.extend(m.big_table.iter().cloned());
+                    (m.id, list)
+                })
+                .collect(),
+        );
+        r.route_graphics = Some(
+            maps.iter()
+                .map(|m| (m.id, m.route_graphics.clone()))
+                .collect(),
+        );
         // The panoramas a `ChangePBG` can swap in, by map: only the maps
         // that carry more than their own, so a cartridge without any asks
         // what it always asked.
-        let panoramas: Map<String, Value> = maps
+        let panoramas: ByMap<Vec<String>> = maps
             .iter()
             .filter(|m| !m.panoramas.is_empty())
-            .map(|m| (m.id.to_string(), json!(m.panoramas)))
+            .map(|m| (m.id, m.panoramas.clone()))
             .collect();
-        if !panoramas.is_empty() {
-            r.insert("panoramas".into(), Value::Object(panoramas));
-        }
+        r.panoramas = (!panoramas.is_empty()).then_some(panoramas);
         // And the ChipSets a `ChangeMapTileset` can swap in, the same way.
-        let tilesets: Map<String, Value> = maps
+        let tilesets: ByMap<Vec<i32>> = maps
             .iter()
             .filter(|m| !m.tilesets.is_empty())
-            .map(|m| (m.id.to_string(), json!(m.tilesets)))
+            .map(|m| (m.id, m.tilesets.clone()))
             .collect();
-        if !tilesets.is_empty() {
-            r.insert("tilesets".into(), Value::Object(tilesets));
-        }
-        r.insert("counters".into(), json!(counters(self.settings)?));
-        r.insert("sound_effects".into(), self.sound_effects()?);
+        r.tilesets = (!tilesets.is_empty()).then_some(tilesets);
+        r.sound_effects = Some(self.sound_effects()?);
         // Each test page turns itself off first: it is a convention of the
         // harness and not of the case —see `TEST_SWITCH`—, and an automatic
         // page that does not turn off repeats forever. With the switch the
@@ -384,37 +375,25 @@ impl<'a> Compiler<'a> {
             string: String::new(),
             parameters: vec![SWITCH_SINGLE, self.test_switch, self.test_switch, SWITCH_ON],
         };
-        r.insert(
-            "cases".into(),
-            Value::Array(
-                cases
-                    .iter()
-                    .map(|(m, c)| {
-                        let mut all = vec![turn_off.clone()];
-                        all.extend(c.iter().cloned());
-                        json!({"map": m, "commands": commands(&all)})
-                    })
-                    .collect(),
-            ),
+        let cases: Vec<(i32, Vec<Command>)> = cases
+            .iter()
+            .map(|(m, c)| {
+                let mut all = vec![turn_off.clone()];
+                all.extend(c.iter().cloned());
+                (*m, all)
+            })
+            .collect();
+        r.cases = Some(self::cases(&cases));
+        r.test_graphics = Some(
+            test_graphics
+                .iter()
+                .map(|(m, list)| (*m, list.clone()))
+                .collect(),
         );
-        let mut graphics = Map::new();
-        for (m, list) in test_graphics {
-            graphics.insert(
-                m.to_string(),
-                Value::Array(list.iter().map(|(c, i)| json!([c, i])).collect()),
-            );
-        }
-        r.insert("test_graphics".into(), Value::Object(graphics));
-        r.insert(
-            "messages_step".into(),
-            json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
-        );
-        r.insert("encounter_troops".into(), encounter_troops.clone());
-        if let Some(path) = &self.keep_request {
-            let text = serde_json::to_string(&r).expect("a request is JSON");
-            std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
-        }
-        self.run(COMPILE, rm2k_snes_events::stage::compile, Value::Object(r))
+        r.messages_step = Some(rm2k_snes_mapdata::engine::MESSAGES_STEP);
+        r.encounter_troops = Some(encounter_troops.to_vec());
+        self.keep(&r)?;
+        self.run(COMPILE, rm2k_snes_events::stage::compile, &r)
     }
 
     /// A compile of a cartridge of `maps` built without converting them: no
@@ -430,82 +409,70 @@ impl<'a> Compiler<'a> {
     ) -> Result<Compiled> {
         let test_commands: Vec<Command> =
             cases.iter().flat_map(|(_, c)| c.iter().cloned()).collect();
-        let mut r = self.request(maps, &test_commands, &BTreeSet::new(), None);
+        let mut r = self.request(maps, &test_commands, &BTreeSet::new(), None)?;
         let common = crate::maps::common_substitutions(self.game);
-        let mut substitutions = Map::new();
+        let mut substitutions = ByMap::default();
         for m in maps {
             let mut mine = common.clone();
             crate::maps::substitution_triples(self.game.map(*m)?.all_commands(), &mut mine);
-            substitutions.insert(
-                m.to_string(),
-                Value::Array(
-                    mine.iter()
-                        .map(|(u, o, n)| json!({"upper": u, "old": o, "new": n, "pairs": null}))
-                        .collect(),
-                ),
-            );
+            let table = mine.iter().map(|&(upper, old, new)| request::Substitution {
+                upper,
+                old: old.into(),
+                new: new.into(),
+                pairs: None,
+            });
+            substitutions.insert(*m, table.collect());
         }
-        r.insert("substitutions".into(), Value::Object(substitutions));
-        r.insert("pictures".into(), json!({}));
-        r.insert("counters".into(), json!(counters(self.settings)?));
-        r.insert("sound_effects".into(), self.sound_effects()?);
-        r.insert(
-            "cases".into(),
-            Value::Array(
-                cases
-                    .iter()
-                    .map(|(m, c)| json!({"map": m, "commands": commands(c)}))
-                    .collect(),
-            ),
-        );
-        r.insert("test_graphics".into(), json!({}));
-        r.insert(
-            "messages_step".into(),
-            json!(rm2k_snes_mapdata::engine::MESSAGES_STEP),
-        );
-        r.insert("encounter_troops".into(), json!(encounter_troops));
-        if let Some(path) = &self.keep_request {
-            let text = serde_json::to_string(&r).expect("a request is JSON");
-            std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
-        }
-        self.run(COMPILE, rm2k_snes_events::stage::compile, Value::Object(r))
+        r.substitutions = Some(substitutions);
+        r.pictures = Some(ByMap::default());
+        r.sound_effects = Some(self.sound_effects()?);
+        r.cases = Some(self::cases(cases));
+        r.test_graphics = Some(ByMap::default());
+        r.messages_step = Some(rm2k_snes_mapdata::engine::MESSAGES_STEP);
+        r.encounter_troops = Some(encounter_troops.to_vec());
+        self.keep(&r)?;
+        self.run(COMPILE, rm2k_snes_events::stage::compile, &r)
     }
 
     /// The boxes the compiler is handed: every text box of the game the
     /// port rebuilds for the console's window.
-    pub fn boxes(&self) -> &Value {
+    pub fn boxes(&self) -> &[request::MessageBox] {
         &self.boxes
     }
 
     /// The map's message window, as the compiler is told it: `width`,
     /// `lines` and `advances`.
-    pub fn window(&self) -> &Value {
+    pub fn window(&self) -> &request::Window {
         &self.window
     }
 
-    fn sound_effects(&self) -> Result<Value> {
-        let mut out = Map::new();
-        for name in [
-            "per_map",
-            "route_effects_left_out",
-            "troop_effects_in_package",
-        ] {
-            out.insert(
-                name.into(),
-                Value::Array(self.settings.list(&["sound_effects", name])?),
-            );
+    /// `[sound_effects]`, what of it the compiler reads.
+    fn sound_effects(&self) -> Result<request::SoundEffects> {
+        fn read<T: DeserializeOwned>(settings: &Settings, name: &str) -> Result<Vec<T>> {
+            settings
+                .list(&["sound_effects", name])?
+                .into_iter()
+                .map(|v| {
+                    serde_json::from_value(v)
+                        .map_err(|e| Stop::new(format!("[sound_effects] {name}: {e}")))
+                })
+                .collect()
         }
-        Ok(Value::Object(out))
+        Ok(request::SoundEffects {
+            per_map: read(self.settings, "per_map")?,
+            route_effects_left_out: read(self.settings, "route_effects_left_out")?,
+            troop_effects_in_package: read(self.settings, "troop_effects_in_package")?,
+        })
     }
 }
 
 /// What a map takes to the second call.
 pub struct CompileMap {
     pub id: i32,
-    pub names: Vec<Value>,
+    pub names: Vec<(i32, i32, i32, String)>,
     pub substitution_table: Vec<(bool, i32, i32, Option<Vec<(u16, u16)>>)>,
-    pub pictures: Option<Vec<Value>>,
-    pub big_table: Vec<Value>,
+    pub pictures: Option<Vec<request::Picture>>,
+    pub big_table: Vec<request::Picture>,
     /// The panoramas it carries, in the order the bytecode numbers them:
     /// see `maps::panorama_names`.
     pub panoramas: Vec<String>,
@@ -516,7 +483,7 @@ pub struct CompileMap {
     /// sprite bank was built with: the compilation numbers against it and
     /// does not add to it. See `route_graphics` in the events compiler's
     /// request.
-    pub route_graphics: Vec<(String, i64)>,
+    pub route_graphics: Vec<(String, i32)>,
 }
 
 /// `(event, page)` of the pages of that map that compile, by index.

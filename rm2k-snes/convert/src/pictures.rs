@@ -40,9 +40,10 @@ use crate::images;
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
 use rm2k_snes_events::registry::PictureKey;
+use rm2k_snes_events::request::{BackgroundPlane, Picture, Place};
 use rm2k_snes_mapdata::request::{self, PictureImage};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -170,45 +171,10 @@ pub fn png_size(path: &Path) -> Result<(i64, i64)> {
     Ok((info.width as i64, info.height as i64))
 }
 
-/// A picture as the scan answers it —its [`PictureKey`], whose fields read
-/// through this one—, and what the converter learns of it on the map that
-/// shows it: `path` and `with_map` for a part, `behind_map`,
-/// `screen_on_map`. It goes on in the tables, to the compiler and the
-/// emission, as the key's fields and then these, only when they say
-/// something.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct Key {
-    #[serde(flatten)]
-    pub key: PictureKey,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<String>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub with_map: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub behind_map: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub screen_on_map: bool,
-}
-
-impl From<PictureKey> for Key {
-    fn from(key: PictureKey) -> Key {
-        Key {
-            key,
-            ..Key::default()
-        }
-    }
-}
-
-impl std::ops::Deref for Key {
-    type Target = PictureKey;
-    fn deref(&self) -> &PictureKey {
-        &self.key
-    }
-}
-
-fn is_false(b: &bool) -> bool {
-    !b
-}
+/// A picture as the scan answers it, and what the converter learns of it
+/// on the map that shows it: the event compiler's, since its tables carry
+/// it whole.
+pub use rm2k_snes_events::request::Key;
 
 /// A key's centre, in the widths the converter computes with.
 fn wide((x, y): (i32, i32)) -> (i64, i64) {
@@ -218,14 +184,6 @@ fn wide((x, y): (i32, i32)) -> (i64, i64) {
 /// The keys a scan answered, in `pictures`, as the converter keeps them.
 pub fn keys(pictures: &[PictureKey]) -> Vec<Key> {
     pictures.iter().cloned().map(Key::from).collect()
-}
-
-/// A key as it goes on in a table, to have more fields put after its own.
-fn entry_of(key: &Key) -> Map<String, Value> {
-    match serde_json::to_value(key) {
-        Ok(Value::Object(entry)) => entry,
-        _ => unreachable!("a key is an object"),
-    }
 }
 
 /// A picture converted, as the stage answers it plus half its size in
@@ -814,7 +772,7 @@ pub fn still_over(map: &GameMap) -> BTreeSet<(i64, String)> {
 /// were one layer, with the texture. The emission shares the tiles, the
 /// tilemap and the colours of two layers that have the same: see
 /// `big_pictures_section` in rm2k-snes-mapdata.
-pub fn number_big(maps: &[&[Big]]) -> (Vec<BigLayer>, Vec<Vec<Value>>) {
+pub fn number_big(maps: &[&[Big]]) -> (Vec<BigLayer>, Vec<Vec<Picture>>) {
     let mut layers: Vec<BigLayer> = Vec::new();
     // What makes two the same layer: the picture, its zoom and colour key,
     // where it is drawn, over which panorama, and whether it has a texture.
@@ -844,14 +802,18 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<BigLayer>, Vec<Vec<Value>>) {
     for (bigs, map) in maps.iter().zip(&numbers) {
         let mut table = Vec::new();
         for (big, &number) in bigs.iter().zip(map) {
-            let mut entry = entry_of(&big.key);
-            entry.insert("plane".into(), json!("background"));
-            entry.insert("image".into(), json!(number));
-            entry.insert("center".into(), json!(big.layer.center));
-            if layers[number].drawn.mode7.is_some() {
-                entry.insert("texture".into(), json!(true));
-            }
-            table.push(Value::Object(entry));
+            let [x, y] = big.layer.center;
+            table.push(Picture {
+                key: big.key.clone(),
+                place: Place::Background {
+                    plane: BackgroundPlane::Background,
+                    // Past a byte, $FF, PIC_NONE: the caller leaves out
+                    // what passes `BIG_IMAGES`, and the compiler refuses it.
+                    image: u8::try_from(number).unwrap_or(u8::MAX),
+                    center: (x as i32, y as i32),
+                    texture: layers[number].drawn.mode7.is_some(),
+                },
+            });
         }
         tables.push(table);
     }
@@ -917,7 +879,7 @@ pub struct ForMap {
     pub tiles: i64,
     pub cells: Vec<(usize, Vec<u8>)>,
     pub palettes: usize,
-    pub table: Vec<Value>,
+    pub table: Vec<Picture>,
     pub images: Vec<PictureImage>,
 }
 
@@ -977,9 +939,10 @@ pub const SMALL_BIT: i64 = 0x8000;
 
 /// One converted picture of the map, before its tiles are placed.
 struct Shown {
-    entry: Map<String, Value>,
-    /// Its number, and the palette [`share_palettes`] put it in: in its
-    /// `entry` too, which goes on to the compiler.
+    key: Key,
+    /// Its slot, its number, and the palette [`share_palettes`] put it in:
+    /// all but the number go on to the compiler, in its entry.
+    slot: u8,
     number: i64,
     palette: usize,
     name: String,
@@ -1034,7 +997,6 @@ fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<[u8; 3]>> {
             }
         }
         s.palette = at;
-        s.entry.insert("palette".into(), json!(at));
     }
     palettes
 }
@@ -1280,7 +1242,8 @@ pub fn for_map(
             }
         }
         shown.push(Shown {
-            entry: entry_of(key),
+            key: key.clone(),
+            slot: 0,
             number,
             palette: 0,
             name: name.to_string(),
@@ -1294,8 +1257,7 @@ pub fn for_map(
     // RM2k the highest number.
     slots.sort_by(|a, b| b.cmp(a));
     for s in shown.iter_mut() {
-        let slot = slots.iter().position(|n| *n == s.number).unwrap();
-        s.entry.insert("slot".into(), json!(slot));
+        s.slot = slots.iter().position(|n| *n == s.number).unwrap() as u8;
     }
     let palettes = share_palettes(&mut shown, tinted);
     let mut bank = Bank::default();
@@ -1322,13 +1284,22 @@ pub fn for_map(
                 .collect(),
             palette: palettes[palette].clone(),
             palette_index: palette as i64,
-            behind_map: s.entry.get("behind_map") == Some(&json!(true)),
+            behind_map: s.key.behind_map,
         });
         objects += cut.len();
     }
     let names: Vec<&str> = shown.iter().map(|s| s.name.as_str()).collect();
     let name = names.join(", ");
-    let table = shown.into_iter().map(|s| Value::Object(s.entry)).collect();
+    let table = shown
+        .into_iter()
+        .map(|s| Picture {
+            key: s.key,
+            place: Place::Sprite {
+                slot: s.slot,
+                palette: Some(s.palette),
+            },
+        })
+        .collect();
     Ok(Some(ForMap {
         name,
         objects,
@@ -1720,16 +1691,20 @@ mod tests {
         assert!(!textured(&layers[0]) && textured(&layers[1]) && !textured(&layers[2]));
         // Desert Nightmare's black screen, which one map zooms: shown still
         // with the texture, it hid the window of every message over it.
-        assert_eq!(tables[0][0]["image"], 0);
-        assert!(
-            tables[0][0].get("texture").is_none(),
+        let place = |p: &Picture| match p.place {
+            Place::Background { image, texture, .. } => (image, texture),
+            _ => panic!("a big picture in another plane: {p:?}"),
+        };
+        assert_eq!(
+            place(&tables[0][0]),
+            (0, false),
             "the map that shows it still goes without the texture"
         );
-        assert_eq!(tables[1][0]["image"], 1);
-        assert_eq!(tables[1][0]["texture"], true);
-        assert!(tables[2][0].get("texture").is_none());
+        assert_eq!(place(&tables[1][0]), (1, true));
+        assert!(!place(&tables[2][0]).1);
         assert_eq!(
-            tables[3][0]["image"], 0,
+            place(&tables[3][0]).0,
+            0,
             "and the still one is a single layer"
         );
         // Which moves zoom: another size than the one shown, under its number.
@@ -1818,7 +1793,8 @@ mod tests {
     #[test]
     fn pictures_whose_colours_fit_together_share_a_palette() {
         let shown = |palette: Vec<[u8; 3]>| Shown {
-            entry: Map::new(),
+            key: Key::default(),
+            slot: 0,
             number: 0,
             palette: 0,
             name: String::new(),
@@ -1833,8 +1809,8 @@ mod tests {
         let palettes = share_palettes(&mut pictures, &[]);
         assert_eq!(palettes.len(), 2);
         assert_eq!(palettes[0], [[1, 1, 1], [2, 2, 2], [3, 3, 3]]);
-        assert_eq!(pictures[1].entry["palette"], 0);
-        assert_eq!(pictures[2].entry["palette"], 1);
+        assert_eq!(pictures[1].palette, 0);
+        assert_eq!(pictures[2].palette, 1);
         // The second one's indices are the shared palette's: its first
         // colour is the first one's second.
         assert_eq!(pictures[1].info.indices[0][..2], [2, 3]);
@@ -1862,10 +1838,7 @@ mod tests {
         };
         let mut pictures = vec![numbered(1), numbered(3), numbered(2), numbered(3)];
         assert_eq!(share_palettes(&mut pictures, &[3]).len(), 2);
-        let palettes: Vec<Value> = pictures
-            .iter()
-            .map(|p| p.entry["palette"].clone())
-            .collect();
-        assert_eq!(palettes, [json!(0), json!(1), json!(0), json!(1)]);
+        let palettes: Vec<usize> = pictures.iter().map(|p| p.palette).collect();
+        assert_eq!(palettes, [0, 1, 0, 1]);
     }
 }

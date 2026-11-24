@@ -32,6 +32,7 @@ pub mod losses;
 pub mod messages;
 pub mod pages;
 pub mod registry;
+pub mod request;
 pub mod route;
 pub mod stage;
 pub mod troops;
@@ -50,12 +51,12 @@ use crate::landings::Landings;
 use crate::losses::{Losses, Origin};
 use crate::messages::{Messages, Window};
 use crate::pages::{map_pages, MapEvents, SubstitutionTable, Substitutions};
-use crate::registry::{BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
+use crate::registry::{BigPicture, Graphics, Package, Pictures, Songs, Troops};
 use crate::troops::TroopPages;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 
 /// The file the answer is written to.
@@ -141,80 +142,43 @@ pub struct Request {
     pub encounter_troops: Vec<i32>,
 }
 
-fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {
-    data.get(name)
-        .ok_or_else(|| Bad::answer(format!("{whose}: no `{name}`")))
-}
-
-fn list<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Vec<Value>> {
-    field(data, name, whose)?
-        .as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not a list")))
-}
-
-fn int(v: &Value, whose: &str) -> Result<i64> {
-    v.as_i64()
-        .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a whole number")))
-}
-
-fn text(v: &Value, whose: &str) -> Result<String> {
-    v.as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a text")))
-}
-
-/// A message window as a request carries it: `width`, a line's pixels,
-/// `lines`, and `advances`, the advance of each glyph of the console's font
-/// from the space on; or, without `width`, `columns` letters of RM2k's
-/// fixed-width font, which is how it was asked until 2026-10-03. And,
-/// optional, `letters`: the Latin-1 letters the font draws, each a pair of
-/// the letter and its advance —see `Font::latin_letters`—. A window carries
-/// none of them until the compilation chooses: see [`compile`].
-fn window(w: &Value, whose: &str) -> Result<Window> {
-    let lines = int(field(w, "lines", whose)?, whose)? as usize;
-    if w.get("width").is_none() {
-        return Ok(Window::columns(
-            int(field(w, "columns", whose)?, whose)? as usize,
-            lines,
-        ));
-    }
-    let given = list(w, "advances", whose)?;
-    let mut advances = [0u8; rm2k_snes_text::font::CONSOLE_GLYPHS];
-    if given.len() != advances.len() {
-        return Err(Bad::answer(format!(
-            "{whose}: the window's `advances` are {} and the console's font has {}",
-            given.len(),
-            advances.len()
-        )));
-    }
-    for (a, g) in advances.iter_mut().zip(given) {
-        *a = int(g, whose)? as u8;
-    }
+/// A message window as a request carries it: see [`request::Window`]. A
+/// window carries no letters until the compilation chooses: see
+/// [`compile`].
+fn window(w: &request::Window, whose: &str) -> Result<Window> {
+    let lines = w.lines;
+    let Some(width) = w.width else {
+        let columns = w.columns.ok_or_else(|| {
+            Bad::answer(format!("{whose}: a window with no `width` nor `columns`"))
+        })?;
+        return Ok(Window::columns(columns, lines));
+    };
+    let given = w
+        .advances
+        .as_ref()
+        .ok_or_else(|| Bad::answer(format!("{whose}: a window with no `advances`")))?;
+    let advances: [u8; rm2k_snes_text::font::CONSOLE_GLYPHS] =
+        given.as_slice().try_into().map_err(|_| {
+            Bad::answer(format!(
+                "{whose}: the window's `advances` are {} and the console's font has {}",
+                given.len(),
+                rm2k_snes_text::font::CONSOLE_GLYPHS
+            ))
+        })?;
     let mut latin = [0u8; messages::LETTER_SLOTS];
-    for pair in w
-        .get("letters")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-    {
+    for &(letter, advance) in w.letters.iter().flatten() {
         let bad = || {
-            Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter or an icon's half and its advance: {pair}"))
+            Bad::answer(format!("{whose}: the window's `letters` are pairs of a Latin-1 letter or an icon's half and its advance: {letter:?}, {advance}"))
         };
-        let letter = pair
-            .get(0)
-            .and_then(Value::as_str)
-            .and_then(|s| s.chars().next())
-            .ok_or_else(bad)?;
-        let advance = pair
-            .get(1)
-            .and_then(Value::as_u64)
-            .filter(|&a| a > 0 && a < 256)
+        let advance = u8::try_from(advance)
+            .ok()
+            .filter(|&a| a > 0)
             .ok_or_else(bad)?;
         let slot = messages::latin_slot(letter).ok_or_else(bad)?;
-        latin[slot] = advance as u8;
+        latin[slot] = advance;
     }
     Ok(Window {
-        width: int(field(w, "width", whose)?, whose)? as usize,
+        width,
         lines,
         advances,
         latin,
@@ -222,427 +186,223 @@ fn window(w: &Value, whose: &str) -> Result<Window> {
     })
 }
 
-fn strings(v: &Value, whose: &str) -> Result<Vec<String>> {
-    v.as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a list")))?
-        .iter()
-        .map(|s| text(s, whose))
-        .collect()
-}
-
-/// A command as the caller writes it: `{"code", "indent", "string",
-/// "parameters"}`.
-fn command(v: &Value, whose: &str) -> Result<Command> {
-    Ok(Command {
-        code: int(field(v, "code", whose)?, whose)? as i32,
-        indent: int(field(v, "indent", whose)?, whose)? as i32,
-        string: text(field(v, "string", whose)?, whose)?,
-        parameters: list(v, "parameters", whose)?
-            .iter()
-            .map(|p| int(p, whose).map(|x| x as i32))
-            .collect::<Result<_>>()?,
-    })
-}
-
-fn commands(v: &Value, whose: &str) -> Result<Vec<Command>> {
-    v.as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: the commands are not a list")))?
-        .iter()
-        .map(|c| command(c, whose))
-        .collect()
-}
-
-fn pair(v: &Value, whose: &str) -> Result<(String, i32)> {
-    let a = v
-        .as_array()
-        .filter(|a| a.len() == 2)
-        .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a pair")))?;
-    Ok((text(&a[0], whose)?, int(&a[1], whose)? as i32))
-}
-
-fn by_map<T>(
-    v: &Value,
-    whose: &str,
-    each: impl Fn(&Value) -> Result<T>,
-) -> Result<BTreeMap<i32, T>> {
-    let obj = v
-        .as_object()
-        .ok_or_else(|| Bad::answer(format!("{whose}: not an object")))?;
-    obj.iter()
-        .map(|(k, v)| {
-            let id = k
-                .parse::<i32>()
-                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a map")))?;
-            Ok((id, each(v)?))
-        })
-        .collect()
-}
-
-/// A list of pictures as the caller answers them: each entry a picture in
-/// the map's sprite bank, with its slot, or —with `"plane": "background"`— a
-/// big one, with its entry in the cartridge's table and half its size, or
-/// —with `"plane": "common"`— one of the common events' small ones, with
-/// its image, its slot and its set: see [`registry::CommonPicture`].
-fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
+/// A list of pictures as the caller answers them, sorted by where each is
+/// carried: see [`request::Place`] and [`registry::CommonPicture`].
+fn pictures_of(entries: &[request::Picture], whose: &str) -> Result<Pictures> {
     let mut pictures = Pictures::default();
-    for e in v
-        .as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: a list of pictures is not a list")))?
-    {
-        let key = PictureKey::deserialize(e)
-            .map_err(|err| Bad::answer(format!("{whose}: a picture: {err}")))?;
-        if e.get("plane").and_then(Value::as_str) == Some("background") {
-            let pair = |name: &str| -> Result<(i32, i32)> {
-                let a = field(e, name, whose)?
-                    .as_array()
-                    .filter(|a| a.len() == 2)
-                    .ok_or_else(|| Bad::answer(format!("{whose}: a big picture's `{name}`")))?;
-                Ok((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
-            };
-            // A byte, and $FF is the runtime's PIC_NONE: a number past it
-            // would show another picture, so it is refused, not wrapped.
-            let image = int(field(e, "image", whose)?, whose)?;
-            let image = u8::try_from(image)
-                .ok()
-                .filter(|&i| i != 0xFF)
-                .ok_or_else(|| {
-                    Bad::answer(format!(
+    for e in entries {
+        let key = e.key.key.clone();
+        match e.place {
+            request::Place::Background {
+                image,
+                center,
+                texture,
+                ..
+            } => {
+                // A byte, and $FF is the runtime's PIC_NONE: a number past
+                // it would show another picture, so it is refused.
+                if image == 0xFF {
+                    return Err(Bad::answer(format!(
                         "{whose}: big picture {image}, and OP_BIG_SHOW's byte names 255"
-                    ))
-                })?;
-            pictures.big.push(BigPicture {
-                key,
-                image,
-                center: pair("center")?,
-                texture: e.get("texture").and_then(Value::as_bool).unwrap_or(false),
-            });
-        } else if e.get("plane").and_then(Value::as_str) == Some("common") {
-            // Bit 7 set and not $FF, PIC_NONE: see `CommonPicture`.
-            let image = int(field(e, "image", whose)?, whose)?;
-            let image = u8::try_from(image)
-                .ok()
-                .filter(|&i| i & registry::PICTURE_COMMON != 0 && i != 0xFF)
-                .ok_or_else(|| Bad::answer(format!("{whose}: common picture {image}")))?;
-            pictures.common.push(registry::CommonPicture {
-                key,
-                image,
-                slot: int(field(e, "slot", whose)?, whose)? as u8,
-                set: int(field(e, "set", whose)?, whose)? as usize,
-            });
-        } else {
-            // Optional: see `Pictures::with_map`.
-            if e.get("with_map").and_then(Value::as_bool) == Some(true) {
-                pictures.with_map.push(pictures.table.len() as u8);
+                    )));
+                }
+                pictures.big.push(BigPicture {
+                    key,
+                    image,
+                    center,
+                    texture,
+                });
             }
-            // Optional too: see `Pictures::screen_on_map`.
-            if e.get("screen_on_map").and_then(Value::as_bool) == Some(true) {
-                pictures.screen_on_map.push(pictures.table.len() as u8);
+            request::Place::Common {
+                slot, image, set, ..
+            } => {
+                // Bit 7 set and not $FF, PIC_NONE: see `CommonPicture`.
+                if image & registry::PICTURE_COMMON == 0 || image == 0xFF {
+                    return Err(Bad::answer(format!("{whose}: common picture {image}")));
+                }
+                pictures.common.push(registry::CommonPicture {
+                    key,
+                    image,
+                    slot,
+                    set,
+                });
             }
-            pictures
-                .table
-                .push((key, int(field(e, "slot", whose)?, whose)? as u8));
+            request::Place::Sprite { slot, .. } => {
+                // See `Pictures::with_map` and `Pictures::screen_on_map`.
+                if e.key.with_map {
+                    pictures.with_map.push(pictures.table.len() as u8);
+                }
+                if e.key.screen_on_map {
+                    pictures.screen_on_map.push(pictures.table.len() as u8);
+                }
+                pictures.table.push((key, slot));
+            }
         }
     }
     Ok(pictures)
 }
 
-/// A request file, as JSON: what [`Request::from_json`] reads. A file that
-/// is not there is the call being wrong; one that is not JSON, a no.
-pub fn read_request(path: &Path) -> Result<Value> {
+/// A request file: what [`Request::read`] makes into a request. A file
+/// that is not there is the call being wrong; one that is not a request,
+/// a no.
+pub fn read_request(path: &Path) -> Result<request::Asked> {
     let text_ = std::fs::read_to_string(path)
         .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     serde_json::from_str(&text_).map_err(|e| Bad::answer(format!("{}: {e}", path.display())))
 }
 
 impl Request {
-    /// A request file. Every field is required; the ones only `compile`
-    /// reads can be left out of a `scan`'s.
+    /// A request file. The fields only `compile` reads can be left out of
+    /// a `scan`'s.
     pub fn read(path: &Path) -> Result<Request> {
-        Request::from_json(&read_request(path)?, &path.display().to_string())
+        Request::from_asked(&read_request(path)?, &path.display().to_string())
     }
 
+    /// A request as JSON, as [`Request::read`] reads it from a file.
     pub fn from_json(data: &Value, whose: &str) -> Result<Request> {
-        let mut r = Request {
-            messages_step: 1,
-            ..Default::default()
-        };
-        r.patches.map_files = by_map(field(data, "map_files", whose)?, whose, |v| {
-            Ok(PathBuf::from(text(v, whose)?))
-        })?;
-        // Not required: a request that leaves nothing out does not have to
-        // say it, and the ones written before it existed stay as they were.
-        if let Some(d) = data.get("dropped_events") {
-            r.patches.dropped = by_map(d, whose, |v| {
-                v.as_array()
-                    .ok_or_else(|| {
-                        Bad::answer(format!("{whose}: a map's `dropped_events` is not a list"))
-                    })?
-                    .iter()
-                    .map(|e| int(e, whose).map(|x| x as i32))
-                    .collect()
-            })?;
-        }
-        if let Some(d) = data.get("boxed_exits") {
-            r.patches.boxed_exits = by_map(d, whose, |v| {
-                v.as_array()
-                    .ok_or_else(|| {
-                        Bad::answer(format!("{whose}: a map's `boxed_exits` is not a list"))
-                    })?
-                    .iter()
-                    .map(|e| int(e, whose).map(|x| x as i32))
-                    .collect()
-            })?;
-        }
-        for b in list(data, "boxes", whose)? {
-            let from = strings(field(b, "from", whose)?, whose)?;
-            let to = field(b, "to", whose)?
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: a box's `to` is not a list")))?
-                .iter()
-                .map(|f| strings(f, whose))
-                .collect::<Result<_>>()?;
-            r.patches.boxes.insert(from, to);
-        }
-        for n in list(data, "names", whose)? {
-            let a = n
-                .as_array()
-                .filter(|a| a.len() == 4)
-                .ok_or_else(|| Bad::answer(format!("{whose}: a name is {n}")))?;
-            r.patches.names.insert(
-                (
-                    int(&a[0], whose)? as i32,
-                    int(&a[1], whose)? as i32,
-                    int(&a[2], whose)? as i32,
-                ),
-                text(&a[3], whose)?,
-            );
-        }
-        r.window = Some(window(field(data, "window", whose)?, whose)?);
-        if let Some(w) = data.get("troop_window") {
-            r.troop_window = Some(window(w, whose)?);
-        }
-        r.maps = list(data, "maps", whose)?
-            .iter()
-            .map(|m| int(m, whose).map(|x| x as i32))
-            .collect::<Result<_>>()?;
-        r.test_commands = commands(field(data, "test_commands", whose)?, whose)?;
-        r.extra_variables = list(data, "extra_variables", whose)?
-            .iter()
-            .map(|m| int(m, whose).map(|x| x as i32))
-            .collect::<Result<_>>()?;
-        if let Some(s) = data.get("extra_switches") {
-            r.extra_switches = s
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `extra_switches` is not a list")))?
-                .iter()
-                .map(|m| int(m, whose).map(|x| x as i32))
-                .collect::<Result<_>>()?;
-        }
-        if let Some(s) = data.get("test_switch").filter(|s| !s.is_null()) {
-            r.test_switch = Some(int(s, whose)? as i32);
-        }
-        let t = field(data, "test_event_map", whose)?;
-        r.test_event_map = if t.is_null() {
-            None
-        } else {
-            Some(int(t, whose)? as i32)
-        };
-        if let Some(c) = data.get("common_pages").filter(|c| !c.is_null()) {
-            let numbers = |name: &str| -> Result<Vec<i32>> {
-                list(c, name, whose)?
-                    .iter()
-                    .map(|m| int(m, whose).map(|x| x as i32))
-                    .collect()
-            };
-            r.common_pages = numbers("commons")?;
-            r.common_page_maps = numbers("maps")?.into_iter().collect();
-        }
+        let asked =
+            request::Asked::deserialize(data).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
+        Request::from_asked(&asked, whose)
+    }
 
-        if let Some(subs) = data.get("substitutions") {
-            r.substitutions = by_map(subs, whose, |v| {
-                let mut table = HashMap::new();
-                for s in v
-                    .as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: substitutions")))?
-                {
-                    let upper = field(s, "upper", whose)?.as_bool().unwrap_or(false);
-                    let old = int(field(s, "old", whose)?, whose)?;
-                    let new = int(field(s, "new", whose)?, whose)?;
-                    let pairs = field(s, "pairs", whose)?;
-                    let pairs = if pairs.is_null() {
-                        None
-                    } else {
-                        Some(
-                            pairs
-                                .as_array()
-                                .unwrap_or(&vec![])
-                                .iter()
-                                .map(|p| {
-                                    let p = p
-                                        .as_array()
-                                        .filter(|p| p.len() == 2)
-                                        .ok_or_else(|| Bad::answer(format!("{whose}: a pair")))?;
-                                    Ok((int(&p[0], whose)?, int(&p[1], whose)?))
-                                })
-                                .collect::<Result<_>>()?,
-                        )
-                    };
-                    table.insert((upper, old, new), pairs);
-                }
-                Ok(table)
-            })?;
-        }
-        if let Some(systems) = data.get("systems").filter(|s| !s.is_null()) {
-            for s in systems
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `systems` is not a list")))?
-            {
-                let name = s
-                    .as_str()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: a System is {s}")))?;
-                r.patches.systems.push(name.to_string());
-            }
-        }
-        if let Some(counters) = data.get("counters") {
-            for c in counters
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `counters` is not a list")))?
-            {
-                r.patches.counters.insert(
-                    int(field(c, "common_event", whose)?, whose)? as i32,
-                    int(field(c, "variable", whose)?, whose)? as i32,
-                );
-            }
-        }
-        if let Some(menus) = data.get("menus").filter(|m| !m.is_null()) {
-            // Each custom menu, in the order the cartridge numbers them:
-            // the common event it replaces, if any, and the ones it runs
-            // before a page.
-            for (k, m) in menus
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `menus` is not a list")))?
+    /// What the compiler makes of a request: the windows checked, the
+    /// pictures by plane, the tables keyed for lookup.
+    pub fn from_asked(a: &request::Asked, whose: &str) -> Result<Request> {
+        let by_map = |m: &request::ByMap<Vec<i32>>| -> BTreeMap<i32, BTreeSet<i32>> {
+            m.0.iter()
+                .map(|(k, v)| (*k, v.iter().copied().collect()))
+                .collect()
+        };
+        let mut patches = Patches {
+            map_files: a.map_files.0.iter().cloned().collect(),
+            dropped: by_map(&a.dropped),
+            boxed_exits: by_map(&a.boxed_exits),
+            boxes: a
+                .boxes
                 .iter()
-                .enumerate()
-            {
-                if let Some(n) = m.get("replaces_common").and_then(Value::as_i64) {
-                    r.patches.menus.replaced.insert(n as i32, k as u8);
-                }
-                for b in m
-                    .get("before")
-                    .and_then(Value::as_array)
-                    .cloned()
-                    .unwrap_or_default()
-                {
-                    r.patches.menus.before.insert(int(&b, whose)? as i32);
-                }
-            }
-        }
-        if let Some(p) = data.get("panoramas") {
-            r.panoramas = by_map(p, whose, |v| {
-                v.as_array()
-                    .ok_or_else(|| {
-                        Bad::answer(format!("{whose}: a map's panoramas are not a list"))
-                    })?
-                    .iter()
-                    .map(|n| text(n, whose))
-                    .collect()
-            })?;
-        }
-        if let Some(t) = data.get("tilesets") {
-            r.tilesets = by_map(t, whose, |v| {
-                v.as_array()
-                    .ok_or_else(|| {
-                        Bad::answer(format!("{whose}: a map's tilesets are not a list"))
-                    })?
-                    .iter()
-                    .map(|n| int(n, whose).map(|x| x as i32))
-                    .collect()
-            })?;
-        }
-        if let Some(p) = data.get("pictures") {
-            r.pictures = by_map(p, whose, |v| pictures_of(v, whose))?;
-        }
-        if let Some(p) = data.get("common_pictures") {
-            r.common_pictures = pictures_of(p, whose)?;
-        }
-        if let Some(sets) = data.get("common_sets") {
-            for (k, set) in sets
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `common_sets` is not a list")))?
+                .map(|b| (b.from.clone(), b.to.clone()))
+                .collect(),
+            names: a
+                .names
                 .iter()
-                .enumerate()
-            {
-                let parallel = field(set, "parallel", whose)?.as_bool().unwrap_or(false);
-                for n in list(set, "commons", whose)? {
-                    r.common_sets.insert((parallel, int(n, whose)? as i32), k);
-                }
-            }
-        }
-        if let Some(s) = data.get("sound_effects") {
-            for a in list(s, "per_map", whose)? {
-                r.sound.per_map.push((
-                    text(field(a, "effect", whose)?, whose)?,
-                    int(field(a, "map", whose)?, whose)?,
-                    text(field(a, "sample", whose)?, whose)?,
-                ));
-            }
-            for m in list(s, "route_effects_left_out", whose)? {
-                let effects = field(m, "effects", whose)?;
-                let which = if effects.as_str() == Some("all") {
-                    None
-                } else {
-                    Some(strings(effects, whose)?.into_iter().collect())
-                };
-                r.sound
-                    .route_left_out
-                    .push((int(field(m, "map", whose)?, whose)?, which));
-            }
-            r.sound.troop_in_package =
-                strings(field(s, "troop_effects_in_package", whose)?, whose)?
-                    .into_iter()
-                    .collect();
-        }
-        if let Some(cases) = data.get("cases") {
-            for c in cases
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `cases` is not a list")))?
-            {
-                r.cases.push((
-                    int(field(c, "map", whose)?, whose)? as i32,
-                    commands(field(c, "commands", whose)?, whose)?,
-                ));
-            }
-        }
-        if let Some(g) = data.get("test_graphics") {
-            r.test_graphics = by_map(g, whose, |v| {
-                v.as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: test_graphics")))?
-                    .iter()
-                    .map(|p| pair(p, whose))
-                    .collect()
-            })?;
-        }
-        if let Some(g) = data.get("route_graphics") {
-            r.route_graphics = by_map(g, whose, |v| {
-                v.as_array()
-                    .ok_or_else(|| Bad::answer(format!("{whose}: route_graphics")))?
-                    .iter()
-                    .map(|p| pair(p, whose))
-                    .collect()
-            })?;
-        }
-        if let Some(s) = data.get("messages_step") {
-            r.messages_step = int(s, whose)? as usize;
-        }
-        if let Some(t) = data.get("encounter_troops") {
-            r.encounter_troops = t
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: encounter_troops")))?
+                .map(|(m, e, p, n)| ((*m, *e, *p), n.clone()))
+                .collect(),
+            systems: a.systems.clone(),
+            counters: a
+                .counters
                 .iter()
-                .map(|m| int(m, whose).map(|x| x as i32))
-                .collect::<Result<_>>()?;
+                .map(|c| (c.common_event, c.variable))
+                .collect(),
+            ..Patches::default()
+        };
+        // Each custom menu, in the order the cartridge numbers them: the
+        // common event it replaces, if any, and the ones it runs before a
+        // page.
+        for (k, m) in a.menus.iter().enumerate() {
+            if let Some(n) = m.replaces_common {
+                patches.menus.replaced.insert(n, k as u8);
+            }
+            patches.menus.before.extend(m.before.iter().copied());
         }
-        Ok(r)
+        let mut common_sets = BTreeMap::new();
+        for (k, set) in a.common_sets.iter().enumerate() {
+            for &n in &set.commons {
+                common_sets.insert((set.parallel, n), k);
+            }
+        }
+        let tables = |m: &Option<request::ByMap<Vec<(String, i32)>>>| {
+            m.iter()
+                .flat_map(|m| m.0.iter().cloned())
+                .collect::<BTreeMap<_, _>>()
+        };
+        Ok(Request {
+            patches,
+            window: Some(window(&a.window, whose)?),
+            troop_window: a
+                .troop_window
+                .as_ref()
+                .map(|w| window(w, whose))
+                .transpose()?,
+            maps: a.maps.clone(),
+            test_commands: a.test_commands.clone(),
+            extra_variables: a.extra_variables.iter().copied().collect(),
+            extra_switches: a.extra_switches.iter().copied().collect(),
+            test_switch: a.test_switch,
+            test_event_map: a.test_event_map,
+            common_pages: a
+                .common_pages
+                .as_ref()
+                .map(|c| c.commons.clone())
+                .unwrap_or_default(),
+            common_page_maps: a
+                .common_pages
+                .iter()
+                .flat_map(|c| c.maps.iter().copied())
+                .collect(),
+            substitutions: a
+                .substitutions
+                .iter()
+                .flat_map(|s| s.0.iter())
+                .map(|(m, list)| {
+                    let table: SubstitutionTable = list
+                        .iter()
+                        .map(|s| ((s.upper, s.old, s.new), s.pairs.clone()))
+                        .collect();
+                    (*m, table)
+                })
+                .collect(),
+            pictures: a
+                .pictures
+                .iter()
+                .flat_map(|p| p.0.iter())
+                .map(|(m, list)| Ok((*m, pictures_of(list, whose)?)))
+                .collect::<Result<_>>()?,
+            common_pictures: pictures_of(&a.common_pictures, whose)?,
+            common_sets,
+            panoramas: a
+                .panoramas
+                .iter()
+                .flat_map(|p| p.0.iter().cloned())
+                .collect(),
+            tilesets: a
+                .tilesets
+                .iter()
+                .flat_map(|t| t.0.iter().cloned())
+                .collect(),
+            sound: a
+                .sound_effects
+                .as_ref()
+                .map(|s| SoundSettings {
+                    per_map: s
+                        .per_map
+                        .iter()
+                        .map(|e| (e.effect.clone(), e.map, e.sample.clone()))
+                        .collect(),
+                    route_left_out: s
+                        .route_effects_left_out
+                        .iter()
+                        .map(|r| {
+                            let which = match &r.effects {
+                                request::Effects::All(_) => None,
+                                request::Effects::These(e) => Some(e.iter().cloned().collect()),
+                            };
+                            (r.map, which)
+                        })
+                        .collect(),
+                    troop_in_package: s.troop_effects_in_package.iter().cloned().collect(),
+                })
+                .unwrap_or_default(),
+            cases: a
+                .cases
+                .iter()
+                .flatten()
+                .map(|c| (c.map, c.commands.clone()))
+                .collect(),
+            test_graphics: tables(&a.test_graphics),
+            route_graphics: tables(&a.route_graphics),
+            messages_step: a.messages_step.unwrap_or(1),
+            encounter_troops: a.encounter_troops.clone().unwrap_or_default(),
+        })
     }
 
     fn window(&self) -> Window {

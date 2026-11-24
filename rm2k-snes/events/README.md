@@ -61,7 +61,9 @@ cartridge loads in another.
 
 ## The request
 
-Both calls read these:
+One type for both calls, `request::Asked` in `src/request.rs`: the converter
+builds it as that type and the compiler reads it with serde, so a field
+renamed on one side does not compile on the other. Both calls read these:
 
     {"map_files": {"11": "path/Map0011.json"},
      "boxes": [{"from": ["KERSH", "a line too long"], "to": [["KERSH", "a line"], ["KERSH", "too long"]]}],
