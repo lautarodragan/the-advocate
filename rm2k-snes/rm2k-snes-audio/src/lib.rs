@@ -31,6 +31,7 @@ pub mod samples;
 pub mod sdsp;
 pub mod song;
 pub mod spc700;
+pub mod stage;
 pub mod stream;
 pub mod tracks;
 pub mod voices;
