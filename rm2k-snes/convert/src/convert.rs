@@ -733,17 +733,14 @@ pub fn run(options: Options) -> Result<()> {
         let n = c.common;
         let bigs = pictures::big_for_map(
             &game.game_dir,
-            &c.pictures,
+            &pictures::keys(&c.pictures)?,
             &c.zooms,
             &format!("common event {n}"),
             &game.cropped,
             &|_| false,
             None,
         )?;
-        let numbers: BTreeSet<i64> = bigs
-            .iter()
-            .filter_map(|b| b.key["number"].as_i64())
-            .collect();
+        let numbers: BTreeSet<i64> = bigs.iter().map(|b| b.key.number).collect();
         if numbers.len() > 1 {
             println!(
                 "  common event {n}: its {} big pictures are not shown: they are under {} \
@@ -1667,7 +1664,7 @@ pub fn run(options: Options) -> Result<()> {
             scene::CGRAM_BASE,
             scene::FALLBACK_WIDTH,
             scene::FALLBACK_HEIGHT,
-            b.light["palette"].as_array().map_or(0, Vec::len),
+            b.light.palette.len(),
             rom_tiles.len() + rom_colors.len(),
             scene::COLORS,
             msu_tiles.len() + msu_colors.len()

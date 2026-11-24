@@ -281,15 +281,16 @@ struct Shown {
 impl Shown {
     /// The key the scan would answer for it, as [`crate::pictures`] reads
     /// one: its file, where its `ShowPicture` puts it, and how.
-    fn key(&self) -> Value {
-        json!({
-            "number": self.number,
-            "name": self.name,
-            "at": [self.screen.0, self.screen.1],
-            "zoom": self.zoom,
-            "transparent_color": self.transparent_color,
-            "map_fixed": self.on_map,
-        })
+    fn key(&self) -> crate::pictures::Key {
+        crate::pictures::Key {
+            number: i64::from(self.number),
+            name: self.name.clone(),
+            at: Some((i64::from(self.screen.0), i64::from(self.screen.1))),
+            zoom: i64::from(self.zoom),
+            transparent_color: self.transparent_color,
+            map_fixed: self.on_map,
+            ..Default::default()
+        }
     }
 }
 

@@ -18,6 +18,7 @@ clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 rm2k-render = { path = "../../rm2k/rm2k-render" }
 rm2k-rules = { path = "../../rm2k/rules" }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 voodoo = { path = "../../snes/voodoo" }
 

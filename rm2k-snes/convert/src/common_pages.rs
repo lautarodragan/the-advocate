@@ -175,7 +175,8 @@ impl CommonPages {
             if !self.commons.contains(&c.common) {
                 continue;
             }
-            if !crate::pictures::any_small(&game.game_dir, &c.pictures, &game.cropped)? {
+            let keys = crate::pictures::keys(&c.pictures)?;
+            if !crate::pictures::any_small(&game.game_dir, &keys, &game.cropped)? {
                 nothing.push(c.common);
             }
         }

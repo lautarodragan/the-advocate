@@ -60,8 +60,10 @@ pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
     for set in &scan.common_sets {
         let names = set.commons.iter().map(i32::to_string).collect::<Vec<_>>();
         let whose = format!("common events {}", names.join(", "));
-        let (keys, tinted) = (&set.pictures, &set.tinted);
-        if let Some(cut) = pictures::for_map(&game.game_dir, keys, tinted, &whose, &game.cropped)? {
+        let keys = pictures::keys(&set.pictures)?;
+        let tinted = &set.tinted;
+        if let Some(cut) = pictures::for_map(&game.game_dir, &keys, tinted, &whose, &game.cropped)?
+        {
             cuts.push((whose, set.parallel, &set.commons, cut));
         }
     }

@@ -748,6 +748,7 @@ dependencies = [
  "ditto",
  "rm2k-render",
  "rm2k-rules",
+ "serde",
  "serde_json",
  "voodoo",
 ]
