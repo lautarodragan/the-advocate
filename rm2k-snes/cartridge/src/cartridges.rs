@@ -5,8 +5,8 @@
 //! **What each cartridge carries belongs to the game**, and is in its project
 //! file: which maps go in, which are left out, which cartridges exist and
 //! which cases each one carries. What lives here is the mechanism that reads
-//! it and builds: the converter, the assembler and the MSU-1 tracks, each
-//! run from the PATH.
+//! it and builds: the converter and the MSU-1 tracks, each run from the
+//! PATH, and the assembler, which is this crate's.
 //!
 //! **The maps are expanded here and passed to the converter as flags**, on
 //! purpose: the stamp carries the flags and not the game's data, so a tree
@@ -26,7 +26,7 @@ use rm2k_rules::tree::Tree;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use crate::assemble::which;
+use crate::assemble::{assemble, which, Failure};
 
 /// The cartridge that is played: the one that carries the ROM with the
 /// game's name, its MSU-1 tracks, and all the cases. The project file has to
@@ -72,11 +72,10 @@ pub fn variables_stamp(lookup: impl Fn(&str) -> Option<String>) -> String {
 const TO_TRACKS: &[&str] = &["game_dir", "rtp_dir", "soundfont", "replacements", "cache"];
 
 /// The executables of the suite this one runs, by name, and the
-/// subcommand when it is one: the assembler is this same program's, and
-/// the tracks the music's.
+/// subcommand when it is one: the tracks are the music's. And this one's
+/// own name, which the fingerprint hashes: the assembler is its code.
 pub const CONVERT: &str = "rm2k-snes-convert";
 pub const CARTRIDGES: &str = "rm2k-snes-cartridges";
-pub const ASSEMBLE: [&str; 2] = [CARTRIDGES, "assemble"];
 pub const TRACKS: [&str; 2] = ["rm2k-snes-audio", "msu"];
 
 /// The subcommands of `rm2k-snes-cartridges`, which no cartridge can be
@@ -628,6 +627,10 @@ impl Cartridges {
         // cartridge stale.
         let mut parts = files_below(runtime)?;
         // What assembles, what the converter runs, and what packs the banks.
+        // That last one is this program, which assembles in-process since
+        // 2026-11-24, and it still goes by its name on the PATH, as when the
+        // assembler ran from there, and not by `current_exe`: they are the
+        // same file unless this binary is run from somewhere else.
         for name in ["ca65", "ld65"]
             .iter()
             .chain(CONVERTER_TOOLS)
@@ -924,28 +927,43 @@ impl Cartridges {
                 log.display()
             ));
         }
-        let status = Command::new(ASSEMBLE[0])
-            .arg(ASSEMBLE[1])
-            .arg(self.runtime.join("main.s"))
-            .arg("-I")
-            .arg(dest)
-            .arg("-o")
-            .arg(sfc)
-            .arg("--symbols")
-            .arg(with_suffix(sfc, ".sym"))
-            // The same cache the converter uses, for `ca65`'s objects.
-            .arg("--cache")
-            .arg(
-                self.environment
-                    .cache(&self.project)
-                    .map_err(|e| e.to_string())?,
-            )
-            .status()
-            .map_err(|e| format!("{}: {e}", ASSEMBLE.join(" ")))?;
-        if !status.success() {
-            return Err(format!("{name}: the assembler failed"));
+        // The assembler is called, not run: it is this crate's code. Until
+        // 2026-11-23 it was a command of its own, `rm2k-snes-assemble`, and
+        // the call stayed a process when it became `assemble`, a subcommand
+        // of this same program. It gets what that subcommand made of its
+        // flags, and says what it said: its lines on this one's stdout,
+        // where `ca65` and `ld65` still write theirs.
+        let cache_dir = self
+            .environment
+            .cache(&self.project)
+            .map_err(|e| e.to_string())?;
+        // The same cache the converter uses, for `ca65`'s objects; none with
+        // `NO_CACHE=1`.
+        let cache_dir = (!cache::disabled()).then(|| rm2k_project::absolute(&cache_dir));
+        match assemble(
+            &self.runtime.join("main.s"),
+            dest,
+            sfc,
+            Some(&with_suffix(sfc, ".sym")),
+            &self.root,
+            cache_dir.as_deref(),
+        ) {
+            Ok(from_the_cache) => {
+                if from_the_cache {
+                    println!("ca65: the object came from the cache");
+                }
+                Ok(())
+            }
+            Err(failure) => {
+                // `ca65` and `ld65` said why on their own stderr. A message
+                // of the assembler's own is said now, as the process said
+                // it, and not when the build thread is joined.
+                if let Failure::Message(message) = failure {
+                    eprintln!("{message}");
+                }
+                Err(format!("{name}: the assembler failed"))
+            }
         }
-        Ok(())
     }
 
     /// The MSU-1 tracks next to the ROM that is played. They go outside the

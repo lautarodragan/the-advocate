@@ -14,9 +14,10 @@ one. Until 2026-11-23 they were three executables, the other two
 
 It reads the game's `advocate.toml` through `rm2k-project` (see
 `../project/`), and runs the rest of the suite **from the PATH**: the converter
-(`rm2k-snes-convert`), the MSU-1 tracks (`rm2k-snes-audio msu`), `ca65`/`ld65`,
-from the cc65 project, and its own `assemble`, as a process and by its name,
-so that what builds is the binary the fingerprint hashes.
+(`rm2k-snes-convert`), the MSU-1 tracks (`rm2k-snes-audio msu`) and
+`ca65`/`ld65`, from the cc65 project. Its own `assemble` it calls as a
+function: until 2026-11-24 it ran it as a process, a leftover of when it was
+`rm2k-snes-assemble`.
 
 ## `rm2k-snes-cartridges`
 
