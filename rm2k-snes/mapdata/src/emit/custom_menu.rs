@@ -2,7 +2,7 @@
 //! runtime's `custom_menu.s` reads it. A cartridge without any still gets
 //! the labels, empty, so the runtime assembles the same.
 
-use crate::asm::block;
+use crate::asm::Inc;
 use crate::compress::compress_many;
 use crate::fail::{Bad, Result};
 use crate::json::{bytes, colors, ints, list, list_at, tiles};
@@ -18,7 +18,7 @@ fn words(v: &Value) -> Result<Vec<u8>> {
 
 /// The section, after the pause menu's tables: `custom` is the screens
 /// stage's `custom_menus`, null if the project declares none.
-pub fn section(out: &mut String, custom: &Value) -> Result<()> {
+pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     out.push_str("\n; --- the custom menus: see custom_menu.s ---\n");
     out.push_str(".segment \"RODATA\"\n");
     let empty = custom.is_null() || list_at(custom, "labels").map_or(true, |l| l.is_empty());
@@ -85,8 +85,7 @@ pub fn section(out: &mut String, custom: &Value) -> Result<()> {
     ));
     // The data the screen walks, in one block: it reads it with
     // `lda f:cmenu_data, x`, and its offsets are sixteen bits.
-    out.push_str(&block("cmenu_data", &blob));
-    out.push('\n');
+    out.block("cmenu_data", &blob);
     // Each arrangement of windows, a whole BG1 tilemap uploaded at once.
     for (k, layout) in layouts.iter().enumerate() {
         let data = words(layout)?;
@@ -96,61 +95,43 @@ pub fn section(out: &mut String, custom: &Value) -> Result<()> {
                 data.len()
             )));
         }
-        out.push_str(&block(&format!("cm_layout_{k}"), &data));
-        out.push('\n');
+        out.block(format!("cm_layout_{k}"), &data);
     }
     let names: Vec<String> = (0..layouts.len())
         .map(|k| format!("cm_layout_{k}"))
         .collect();
-    out.push_str(&format!(
-        ".block {}\ncm_layout_lo:\n    .word {}\n",
-        2 * names.len(),
-        names
-            .iter()
-            .map(|n| format!(".loword({n})"))
-            .collect::<Vec<_>>()
-            .join(", ")
-    ));
-    out.push_str(&format!(
-        ".block {}\ncm_layout_bk:\n    .byte {}\n",
-        names.len(),
-        names
-            .iter()
-            .map(|n| format!("^{n}"))
-            .collect::<Vec<_>>()
-            .join(", ")
-    ));
+    out.words(
+        "cm_layout_lo",
+        names.iter().map(|n| format!(".loword({n})")),
+    );
+    out.bytes("cm_layout_bk", names.iter().map(|n| format!("^{n}")));
     // The bar on each tab: its two cell rows of the subjects' tilemap.
     let mut bars = Vec::new();
     for bar in list_at(custom, "bars")? {
         bars.extend(words(bar)?);
     }
-    out.push_str(&block(
+    out.block(
         "cm_bars",
         &bars
             .clone()
             .into_iter()
             .chain(std::iter::once(0))
             .collect::<Vec<_>>(),
-    ));
-    out.push('\n');
+    );
     let packed: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 8)).collect();
-    out.push_str(&block("cm_border_tiles", &packed));
-    out.push('\n');
-    out.push_str(&block("cm_border_cgram", &cgram_bytes(&border_colors)));
-    out.push('\n');
+    out.block("cm_border_tiles", &packed);
+    out.block("cm_border_cgram", &cgram_bytes(&border_colors));
     let mut ink_colors = Vec::new();
     for ink in inks {
         ink_colors.extend(colors(ink)?);
     }
-    out.push_str(&block(
+    out.block(
         "cm_inks_cgram",
         &cgram_bytes(&ink_colors)
             .into_iter()
             .chain(std::iter::once(0))
             .collect::<Vec<_>>(),
-    ));
-    out.push('\n');
+    );
     // The portraits: their tiles in LZ2, which the screen decompresses
     // into WRAM and uploads a few rows per vblank, and their palettes.
     let mut raws = Vec::new();
@@ -169,37 +150,26 @@ pub fn section(out: &mut String, custom: &Value) -> Result<()> {
     let refs: Vec<&[u8]> = raws.iter().map(|r| r.as_slice()).collect();
     let streams = compress_many(&refs)?;
     for (k, s) in streams.iter().enumerate() {
-        out.push_str(&block(&format!("cm_portrait_{k}"), s));
-        out.push('\n');
+        out.block(format!("cm_portrait_{k}"), s);
     }
     let names: Vec<String> = (0..streams.len())
         .map(|k| format!("cm_portrait_{k}"))
         .collect();
-    let or_zero = |v: Vec<String>| {
-        if v.is_empty() {
-            "0".to_string()
-        } else {
-            v.join(", ")
-        }
-    };
-    out.push_str(&format!(
-        ".block {}\ncm_portrait_lo:\n    .word {}\n",
-        (2 * names.len()).max(2),
-        or_zero(names.iter().map(|n| format!(".loword({n})")).collect())
-    ));
-    out.push_str(&format!(
-        ".block {}\ncm_portrait_bk:\n    .byte {}\n",
-        names.len().max(1),
-        or_zero(names.iter().map(|n| format!("^{n}")).collect())
-    ));
-    out.push_str(&block(
+    out.words(
+        "cm_portrait_lo",
+        names.iter().map(|n| format!(".loword({n})")),
+    );
+    out.bytes(
+        "cm_portrait_bk",
+        super::or_zero(names.iter().map(|n| format!("^{n}")).collect()),
+    );
+    out.block(
         "cm_portrait_cgram",
         &cgram_bytes(&palettes)
             .into_iter()
             .chain(std::iter::once(0))
             .collect::<Vec<_>>(),
-    ));
-    out.push('\n');
+    );
     let _ = list;
     Ok(())
 }
