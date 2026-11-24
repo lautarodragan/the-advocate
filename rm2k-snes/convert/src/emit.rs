@@ -154,24 +154,30 @@ pub struct Emitted {
     pub losses: Vec<Value>,
 }
 
+/// The emission, a function of `rm2k-snes-mapdata`.
+const EMIT: crate::stage::Stage = crate::stage::Stage {
+    binary: "rm2k-snes-mapdata",
+    command: "emit",
+};
+
 /// Runs the emission and writes the `.inc` at `path`, with what the console
 /// decompresses of each map, uncompressed, in `raw/` next to it.
 pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> Result<Emitted> {
     let directory = rm2k_project::absolute(path.parent().unwrap_or(std::path::Path::new(".")));
-    // Not from the disk cache: besides its answer it writes `raw/`, which
-    // an answer from the cache would leave out.
-    let written = crate::stage::run_uncached(
-        "rm2k-snes-mapdata",
-        "mapdata",
-        "emit",
-        request,
-        &[
-            "--data".into(),
-            dump.as_os_str().to_owned(),
-            "--raw".into(),
-            directory.join("raw").into_os_string(),
-        ],
-    )?;
+    // Not from the disk cache, which never kept it: it is asked once per
+    // cartridge, and its request carries what every other stage answered,
+    // so it changes whenever any of them does.
+    let written =
+        crate::stage::call_uncached(EMIT, || rm2k_snes_mapdata::stage::emit(dump, request))?;
+    let raw = written
+        .iter()
+        .filter_map(|(name, bytes)| {
+            let name = name.strip_prefix(rm2k_snes_mapdata::stage::RAW)?;
+            Some((name.to_string(), bytes.clone()))
+        })
+        .collect();
+    rm2k_snes_mapdata::materials::write_raw(&directory.join("raw"), &raw)
+        .map_err(|bad| crate::fail::Stop::new(bad.to_string()))?;
     let text = crate::stage::text(&written, "mapdata.inc")?;
     std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
     let answer = crate::stage::json(&written, "mapdata.json")?;

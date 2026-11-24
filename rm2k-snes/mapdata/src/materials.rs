@@ -305,28 +305,36 @@ pub fn decompress_frames(blocks: &RawBlocks, compressed: &HashMap<Vec<u8>, Vec<u
     cycles as f64 / CYCLES_PER_FRAME as f64
 }
 
-/// Leaves in `directory` what the console has to have in VRAM and WRAM
-/// after loading each map, uncompressed: `<index>.<class>.bin`, with the
-/// map's index in the cartridge. It is the other end of the compression's
-/// tests, which compare what the console decompressed against this: it
-/// comes from the converter and not from the console precisely so that the
-/// console is not answering itself.
+/// What the console has to have in VRAM and WRAM after loading each map,
+/// uncompressed, as files by name: `<index>.<class>.bin`, with the map's
+/// index in the cartridge. It is the other end of the compression's tests,
+/// which compare what the console decompressed against this: it comes from
+/// the converter and not from the console precisely so that the console is
+/// not answering itself.
+pub fn raw_files(raw: &[RawBlocks]) -> BTreeMap<String, Vec<u8>> {
+    let mut files = BTreeMap::new();
+    for (number, blocks) in raw.iter().enumerate() {
+        for kind in COMPRESSED_KINDS {
+            let data = blocks.get(kind).cloned().unwrap_or_default();
+            files.insert(format!("{number}.{kind}.bin"), data);
+        }
+    }
+    files
+}
+
+/// Leaves the [`raw_files`] in `directory`.
 ///
 /// The directory is emptied first: a map that left the cartridge would
 /// leave its files, and a test that walks it would look at them.
-pub fn write_raw(directory: &std::path::Path, raw: &[RawBlocks]) -> Result<()> {
+pub fn write_raw(directory: &std::path::Path, files: &BTreeMap<String, Vec<u8>>) -> Result<()> {
     let bad = |e: std::io::Error| Bad::usage(format!("{}: {e}", directory.display()));
     if directory.is_dir() {
         std::fs::remove_dir_all(directory).map_err(bad)?;
     }
     std::fs::create_dir_all(directory).map_err(bad)?;
-    for (number, blocks) in raw.iter().enumerate() {
-        for kind in COMPRESSED_KINDS {
-            let path = directory.join(format!("{number}.{kind}.bin"));
-            let data = blocks.get(kind).map(Vec::as_slice).unwrap_or(&[]);
-            std::fs::write(&path, data)
-                .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-        }
+    for (name, data) in files {
+        let path = directory.join(name);
+        std::fs::write(&path, data).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     }
     Ok(())
 }
