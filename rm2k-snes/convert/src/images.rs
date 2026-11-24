@@ -14,12 +14,32 @@ use serde_json::{json, Value};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-const BINARY: &str = "rm2k-snes-images";
-const PROJECT: &str = "images";
+/// The six commands the converter asks, each a function of the stage's
+/// crate.
+const FULLSCREEN: stage::Stage = images("fullscreen");
+const PICTURE: stage::Stage = images("picture");
+const BACKGROUND: stage::Stage = images("background");
+const BACKDROPS: stage::Stage = images("backdrops");
+const BATTLERS: stage::Stage = images("battlers");
+const ANIMATIONS: stage::Stage = images("animations");
 
-fn answer(command: &str, request: &Value, flags: &[OsString]) -> Result<Value> {
-    let written = stage::run(BINARY, PROJECT, command, request, flags)?;
-    stage::json(&written, &format!("{command}.json"))
+const fn images(command: &'static str) -> stage::Stage {
+    stage::Stage {
+        binary: "rm2k-snes-images",
+        command,
+    }
+}
+
+/// `the_stage` asked `request` —with `flags`, which the key reads and
+/// `answer` must read nothing beyond—, and its `<command>.json` read back.
+fn answer(
+    the_stage: stage::Stage,
+    request: &Value,
+    flags: &[OsString],
+    answer: impl FnOnce() -> rm2k_snes_images::Result<stage::Files>,
+) -> Result<Value> {
+    let written = stage::call(the_stage, request, flags, answer)?;
+    stage::json(&written, &format!("{}.json", the_stage.command))
 }
 
 fn file(path: &Path) -> String {
@@ -37,12 +57,11 @@ pub fn fullscreen(
     first_color: i64,
     cap: i64,
 ) -> Result<Value> {
-    answer(
-        "fullscreen",
-        &json!({"file": file(path), "width": width, "height": height, "cell": cell,
-                "first_color": first_color, "cap": cap}),
-        &[],
-    )
+    let request = json!({"file": file(path), "width": width, "height": height, "cell": cell,
+                         "first_color": first_color, "cap": cap});
+    answer(FULLSCREEN, &request, &[], || {
+        rm2k_snes_images::stage::fullscreen(&request)
+    })
 }
 
 /// The picture of a `ShowPicture` centred at `(cx, cy)` of RM2k's screen,
@@ -75,7 +94,9 @@ pub fn picture(
     if for_console {
         request["for_console"] = json!(true);
     }
-    answer("picture", &request, &[])
+    answer(PICTURE, &request, &[], || {
+        rm2k_snes_images::stage::picture(&request)
+    })
 }
 
 /// The picture of a `ShowPicture` too big for the sprites, as a 4bpp
@@ -124,7 +145,9 @@ pub fn background(
             "layer_rows": crate::pictures::M7_LAYER_ROWS,
         });
     }
-    let a = answer("background", &request, &[])?;
+    let a = answer(BACKGROUND, &request, &[], || {
+        rm2k_snes_images::stage::background(&request)
+    })?;
     Ok((!a.is_null()).then_some(a))
 }
 
@@ -133,15 +156,14 @@ pub fn backdrops(scene: &Value, wanted: &[(PathBuf, bool, bool)]) -> Result<Vec<
     if wanted.is_empty() {
         return Ok(Vec::new());
     }
-    let a = answer(
-        "backdrops",
-        &json!({
-            "scene": scene,
-            "backdrops": wanted.iter().map(|(p, q, l)| json!({"file": file(p), "quality": q, "light": l}))
-                .collect::<Vec<_>>(),
-        }),
-        &[],
-    )?;
+    let request = json!({
+        "scene": scene,
+        "backdrops": wanted.iter().map(|(p, q, l)| json!({"file": file(p), "quality": q, "light": l}))
+            .collect::<Vec<_>>(),
+    });
+    let a = answer(BACKDROPS, &request, &[], || {
+        rm2k_snes_images::stage::backdrops(&request)
+    })?;
     Ok(a.as_array().cloned().unwrap_or_default())
 }
 
@@ -150,15 +172,14 @@ pub fn battlers(scene: &Value, wanted: &[(PathBuf, i64)]) -> Result<Vec<Value>> 
     if wanted.is_empty() {
         return Ok(Vec::new());
     }
-    let a = answer(
-        "battlers",
-        &json!({
-            "scene": scene,
-            "battlers": wanted.iter().map(|(p, hue)| json!({"file": file(p), "hue": hue}))
-                .collect::<Vec<_>>(),
-        }),
-        &[],
-    )?;
+    let request = json!({
+        "scene": scene,
+        "battlers": wanted.iter().map(|(p, hue)| json!({"file": file(p), "hue": hue}))
+            .collect::<Vec<_>>(),
+    });
+    let a = answer(BATTLERS, &request, &[], || {
+        rm2k_snes_images::stage::battlers(&request)
+    })?;
     Ok(a.as_array().cloned().unwrap_or_default())
 }
 
@@ -174,14 +195,16 @@ pub fn animations(
     if wanted.is_empty() {
         return Ok(Vec::new());
     }
+    let request = json!({
+        "side": side, "colors": colors, "alpha_min": alpha_min,
+        "animations": wanted.iter().map(|(n, s)| json!({"number": n, "sheet": file(s)}))
+            .collect::<Vec<_>>(),
+    });
     let a = answer(
-        "animations",
-        &json!({
-            "side": side, "colors": colors, "alpha_min": alpha_min,
-            "animations": wanted.iter().map(|(n, s)| json!({"number": n, "sheet": file(s)}))
-                .collect::<Vec<_>>(),
-        }),
+        ANIMATIONS,
+        &request,
         &["--data".into(), dump.as_os_str().to_owned()],
+        || rm2k_snes_images::stage::animations(dump, &request),
     )?;
     Ok(a.as_array().cloned().unwrap_or_default())
 }

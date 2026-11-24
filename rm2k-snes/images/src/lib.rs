@@ -38,6 +38,7 @@ pub mod pixels;
 pub mod request;
 pub mod scene;
 pub mod show_picture;
+pub mod stage;
 pub mod tint;
 
 pub use fail::{Bad, Result};

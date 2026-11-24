@@ -24,6 +24,8 @@ rm2k-snes-battle = { path = "../battle" }
 # The command codes; and how the compiler reads a map, which this reads the
 # same way.
 rm2k-snes-events = { path = "../events" }
+# The pictures, a stage the converter calls as functions.
+rm2k-snes-images = { path = "../images" }
 # The engine's numbers, the VRAM layouts and the console's formats —a tile,
 # a colour, an LZ2 stream—: the emission's, which publishes them.
 rm2k-snes-mapdata = { path = "../mapdata" }
