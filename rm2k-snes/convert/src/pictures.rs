@@ -169,10 +169,6 @@ pub fn png_size(path: &Path) -> Result<(i64, i64)> {
     Ok((info.width as i64, info.height as i64))
 }
 
-fn int(v: &Value) -> i64 {
-    v.as_i64().unwrap_or(0)
-}
-
 /// A picture as the scan answers it —its [`PictureKey`], whose fields read
 /// through this one—, and what the converter learns of it on the map that
 /// shows it: `path` and `with_map` for a part, `behind_map`,
@@ -504,10 +500,10 @@ pub struct Big {
 /// Whether a `MovePicture` of the map zooms the picture `key`: one under
 /// its number that goes to another size than the one it was shown at.
 /// `zooms` is what the scan wrote down, `[number, zoom]` per move.
-fn moved_to_another_size(key: &Key, zooms: &[Value]) -> bool {
+fn moved_to_another_size(key: &Key, zooms: &[(i32, i32)]) -> bool {
     zooms
         .iter()
-        .any(|z| int(&z[0]) == i64::from(key.number) && int(&z[1]) != i64::from(key.zoom))
+        .any(|&(number, zoom)| number == key.number && zoom != key.zoom)
 }
 
 /// The big pictures of `keys`. The ones that do not fit even cut to the
@@ -525,7 +521,7 @@ fn moved_to_another_size(key: &Key, zooms: &[Value]) -> bool {
 pub fn big_for_map(
     game_dir: &Path,
     keys: &[Key],
-    zooms: &[Value],
+    zooms: &[(i32, i32)],
     whose: &str,
     cropped: &Cropped,
     small: &dyn Fn(&Key) -> bool,
@@ -850,7 +846,10 @@ pub fn keep_objects(layers: &mut [Value]) {
         if layer.get("under").is_none() {
             continue;
         }
-        let tiles = int(&layer["tile_count"]);
+        // The images' `request::Layer`, serialized: it has its count.
+        let tiles = layer["tile_count"]
+            .as_i64()
+            .expect("a big picture's layer has its tile count");
         if tiles <= BIG_KEEP_TILES {
             layer["keeps_objects"] = json!(true);
         } else {
@@ -936,6 +935,10 @@ pub const SMALL_BIT: i64 = 0x8000;
 /// One converted picture of the map, before its tiles are placed.
 struct Shown {
     entry: Map<String, Value>,
+    /// Its number, and the palette [`share_palettes`] put it in: in its
+    /// `entry` too, which goes on to the compiler.
+    number: i64,
+    palette: usize,
     name: String,
     info: Converted,
 }
@@ -966,8 +969,7 @@ fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<[u8; 3]>> {
     let mut owners: Vec<Option<i64>> = Vec::new();
     for s in shown.iter_mut() {
         let own = s.info.palette.clone();
-        let number = s.entry.get("number").map_or(0, int);
-        let owner = tinted.contains(&number).then_some(number);
+        let owner = tinted.contains(&s.number).then_some(s.number);
         let found = palettes
             .iter()
             .enumerate()
@@ -988,6 +990,7 @@ fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<[u8; 3]>> {
                 *v = to.get(*v as usize).copied().unwrap_or(0);
             }
         }
+        s.palette = at;
         s.entry.insert("palette".into(), json!(at));
     }
     palettes
@@ -1233,6 +1236,8 @@ pub fn for_map(
         }
         shown.push(Shown {
             entry: entry_of(key),
+            number,
+            palette: 0,
             name: name.to_string(),
             info,
         });
@@ -1244,8 +1249,7 @@ pub fn for_map(
     // RM2k the highest number.
     slots.sort_by(|a, b| b.cmp(a));
     for s in shown.iter_mut() {
-        let number = int(&s.entry["number"]);
-        let slot = slots.iter().position(|n| *n == number).unwrap();
+        let slot = slots.iter().position(|n| *n == s.number).unwrap();
         s.entry.insert("slot".into(), json!(slot));
     }
     let palettes = share_palettes(&mut shown, tinted);
@@ -1256,7 +1260,7 @@ pub fn for_map(
     let mut images = Vec::new();
     let mut objects = 0;
     for (s, cut) in shown.iter().zip(&cuts) {
-        let palette = int(&s.entry["palette"]);
+        let palette = s.palette;
         // `behind_map`: a picture under a lower number than one its map
         // draws opaque —`map_pictures`, which `maps.rs` marks— goes at the
         // characters' priority, behind the cells that one raised, as RM2k
@@ -1268,7 +1272,7 @@ pub fn for_map(
         images.push(json!({
             "half": [s.info.half.0, s.info.half.1],
             "objects": cut.iter().map(|&(dx, dy, piece)| json!([dx, dy, bank.word(piece, &cell_tiles)])).collect::<Vec<_>>(),
-            "palette": palettes[palette as usize],
+            "palette": palettes[palette],
             "palette_index": palette,
             "behind_map": s.entry.get("behind_map") == Some(&json!(true)),
         }));
@@ -1660,9 +1664,9 @@ mod tests {
             "and the still one is a single layer"
         );
         // Which moves zoom: another size than the one shown, under its number.
-        let zooms = [json!([20, 100]), json!([3, 0])];
+        let zooms = [(20, 100), (3, 0)];
         assert!(!moved_to_another_size(&key("Photo"), &zooms));
-        assert!(moved_to_another_size(&key("Photo"), &[json!([20, 0])]));
+        assert!(moved_to_another_size(&key("Photo"), &[(20, 0)]));
     }
 
     #[test]
@@ -1746,6 +1750,8 @@ mod tests {
     fn pictures_whose_colours_fit_together_share_a_palette() {
         let shown = |palette: Vec<[u8; 3]>| Shown {
             entry: Map::new(),
+            number: 0,
+            palette: 0,
             name: String::new(),
             info: info(8, 8, palette, &[(0, 0, 1), (1, 0, 2)]),
         };
@@ -1782,7 +1788,7 @@ mod tests {
         // A toned number has its own, which its other pictures share.
         let numbered = |number: i64| {
             let mut s = shown(vec![[1, 1, 1]]);
-            s.entry.insert("number".into(), json!(number));
+            s.number = number;
             s
         };
         let mut pictures = vec![numbered(1), numbered(3), numbered(2), numbered(3)];

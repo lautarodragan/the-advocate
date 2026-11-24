@@ -151,7 +151,7 @@ pub struct ScanMap {
     /// The picture keys its pages and test pages can show.
     pub pictures: Vec<PictureKey>,
     /// `[number, zoom]` of each `MovePicture` that zooms.
-    pub zooms: Vec<Value>,
+    pub zooms: Vec<(i32, i32)>,
     /// The numbers it tones.
     pub tinted: Vec<i64>,
     /// How many of `pictures` are its own, before the copies': only on a
@@ -168,7 +168,7 @@ pub struct ScanMap {
 pub struct CommonPictures {
     pub common: i32,
     pub pictures: Vec<PictureKey>,
-    pub zooms: Vec<Value>,
+    pub zooms: Vec<(i32, i32)>,
 }
 
 /// A set of the common events' small pictures: see

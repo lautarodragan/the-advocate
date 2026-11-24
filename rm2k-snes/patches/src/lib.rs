@@ -109,7 +109,7 @@ mod text;
 pub use check::{check, versioned, Checked, Own};
 pub use text::{animation_text, battler_text, map_text, window_text};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -228,7 +228,7 @@ pub type Rgb = [i64; 3];
 /// One colour change. A global merge is `[from, to, pixels]`; a tile-palette
 /// reduction is `[palette, from, to, pixels]`, because one source colour may
 /// go to different targets in different palettes.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Merge {
     Global((Rgb, Rgb, i64)),
@@ -246,7 +246,7 @@ impl Merge {
 
 /// What the converter decided for one build: the request of
 /// `--request`, as JSON.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
     #[serde(default)]
@@ -261,7 +261,7 @@ pub struct Request {
 
 /// The colours the message window lost: what a System that does not fit in
 /// one palette was reduced to. Only a System that did not fit has one.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WindowDecision {
     /// The System's name in the database.
@@ -275,7 +275,7 @@ pub struct WindowDecision {
 }
 
 /// The colors a map's two layers lost.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MapDecision {
     /// The game's map id.
@@ -298,7 +298,7 @@ pub struct MapDecision {
 
 /// A map's panorama: the way Wally chose and, if it got a layer of its
 /// own, the tiles it was grouped into and the colours it merged.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PanoramaDecision {
     pub way: String,
@@ -322,7 +322,7 @@ pub struct PanoramaDecision {
 }
 
 /// The size a battle animation is drawn at.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AnimationDecision {
     /// The RM2k animation number.
@@ -342,7 +342,7 @@ pub struct AnimationDecision {
 }
 
 /// The fifteen colors a battler kept.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BattlerDecision {
     /// Its image and its hue, which is what tells it from another with the

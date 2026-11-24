@@ -14,6 +14,8 @@ use crate::fail::{Bad, Result};
 use crate::msu::Effects;
 use crate::msu_data;
 use rm2k_snes_bytecode::level::Level;
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
@@ -23,16 +25,64 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 pub const NONE: usize = 0xFF;
 
 /// A package the event compiler noted: a map, by its index in the map
-/// table, or the battle.
+/// table, or the battle. In the JSON, the index or `"battle"`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Key {
     Map(usize),
     Battle,
 }
 
+impl Serialize for Key {
+    fn serialize<S: Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
+        match self {
+            Key::Map(i) => s.serialize_u64(*i as u64),
+            Key::Battle => s.serialize_str("battle"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Key {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> std::result::Result<Key, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Wire {
+            Map(usize),
+            Name(String),
+        }
+        match Wire::deserialize(d)? {
+            Wire::Map(i) => Ok(Key::Map(i)),
+            Wire::Name(n) if n == "battle" => Ok(Key::Battle),
+            Wire::Name(n) => Err(D::Error::custom(format!("{n:?} is not a package"))),
+        }
+    }
+}
+
+/// A map by package as the JSON writes it, a list of `[key, value]`
+/// pairs; written back sorted by key.
+mod by_key {
+    use super::Key;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::HashMap;
+
+    pub fn serialize<V: Serialize, S: Serializer>(
+        map: &HashMap<Key, V>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
+        let mut pairs: Vec<(&Key, &V)> = map.iter().collect();
+        pairs.sort_by_key(|(k, _)| **k);
+        pairs.serialize(s)
+    }
+
+    pub fn deserialize<'de, V: Deserialize<'de>, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<HashMap<Key, V>, D::Error> {
+        Ok(Vec::<(Key, V)>::deserialize(d)?.into_iter().collect())
+    }
+}
+
 /// What one package's pages ask for: songs by index, sound effects by name,
 /// and the maps they jump to, by index in the map table.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Wants {
     pub songs: Vec<usize>,
     pub sounds: Vec<String>,
@@ -40,20 +90,24 @@ pub struct Wants {
 }
 
 /// The songs and sounds the event compiler numbered, as it hands them over.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Songs {
     pub names: Vec<String>,
     /// Each sound: its effect, volume, tempo and pan.
     pub sounds: Vec<(String, i64, i64, i64)>,
+    #[serde(with = "by_key")]
     pub per_package: HashMap<Key, Wants>,
     /// Per package, each song a `PlayBGM` of it turns on, and whether it only
     /// turns it on to leave: see [`Songs::exit_songs`].
+    #[serde(with = "by_key")]
     pub exits: HashMap<Key, Vec<(usize, bool)>>,
     /// Per package, each map it jumps to and with which songs —None is
     /// whatever is playing—.
+    #[serde(with = "by_key")]
     pub jumps: HashMap<Key, Vec<(usize, Vec<Option<usize>>)>>,
     /// The songs a troop page's `PlayBGM` starts: in the battle's package,
     /// they go apart. A request without them has none.
+    #[serde(default)]
     pub troop_songs: Vec<usize>,
 }
 
@@ -80,127 +134,6 @@ impl Songs {
 
     fn wants(&self, map: usize) -> Option<&Wants> {
         self.per_package.get(&Key::Map(map))
-    }
-
-    /// The event compiler's answer, `songs` of it.
-    pub fn from_json(v: &Value) -> Result<Songs> {
-        let bad = |what: &str| {
-            Bad::usage(format!(
-                "the request's songs: {what} is not what it should be"
-            ))
-        };
-        let key = |k: &Value| -> Result<Key> {
-            match k {
-                Value::String(s) if s == "battle" => Ok(Key::Battle),
-                k => k
-                    .as_u64()
-                    .map(|i| Key::Map(i as usize))
-                    .ok_or_else(|| bad("a package")),
-            }
-        };
-        let index = |v: &Value, what: &str| v.as_u64().map(|i| i as usize).ok_or_else(|| bad(what));
-        let list = |v: Option<&Value>, what: &str| -> Result<Vec<Value>> {
-            v.and_then(Value::as_array)
-                .cloned()
-                .ok_or_else(|| bad(what))
-        };
-        let indices = |v: Option<&Value>, what: &str| -> Result<Vec<usize>> {
-            list(v, what)?.iter().map(|i| index(i, what)).collect()
-        };
-        let pairs = |what: &str| -> Result<Vec<(Key, Value)>> {
-            list(v.get(what), what)?
-                .iter()
-                .map(|p| {
-                    Ok((
-                        key(p.get(0).ok_or_else(|| bad(what))?)?,
-                        p.get(1).cloned().ok_or_else(|| bad(what))?,
-                    ))
-                })
-                .collect()
-        };
-        let names = list(v.get("names"), "names")?
-            .iter()
-            .map(|n| n.as_str().map(String::from).ok_or_else(|| bad("names")))
-            .collect::<Result<_>>()?;
-        let sounds = list(v.get("sounds"), "sounds")?
-            .iter()
-            .map(|s| {
-                let int = |k: usize| {
-                    s.get(k)
-                        .and_then(Value::as_i64)
-                        .ok_or_else(|| bad("sounds"))
-                };
-                Ok((
-                    s.get(0)
-                        .and_then(Value::as_str)
-                        .ok_or_else(|| bad("sounds"))?
-                        .to_string(),
-                    int(1)?,
-                    int(2)?,
-                    int(3)?,
-                ))
-            })
-            .collect::<Result<_>>()?;
-        let mut per_package = HashMap::new();
-        for (k, w) in pairs("per_package")? {
-            let wants = Wants {
-                songs: indices(w.get("songs"), "songs")?,
-                sounds: list(w.get("sounds"), "sounds")?
-                    .iter()
-                    .map(|s| s.as_str().map(String::from).ok_or_else(|| bad("sounds")))
-                    .collect::<Result<_>>()?,
-                destinations: indices(w.get("destinations"), "destinations")?,
-            };
-            per_package.insert(k, wants);
-        }
-        let mut exits = HashMap::new();
-        for (k, e) in pairs("exits")? {
-            let theirs = list(Some(&e), "exits")?
-                .iter()
-                .map(|p| {
-                    Ok((
-                        index(p.get(0).ok_or_else(|| bad("exits"))?, "exits")?,
-                        p.get(1)
-                            .and_then(Value::as_bool)
-                            .ok_or_else(|| bad("exits"))?,
-                    ))
-                })
-                .collect::<Result<_>>()?;
-            exits.insert(k, theirs);
-        }
-        let mut jumps = HashMap::new();
-        for (k, j) in pairs("jumps")? {
-            let theirs = list(Some(&j), "jumps")?
-                .iter()
-                .map(|p| {
-                    let dest = index(p.get(0).ok_or_else(|| bad("jumps"))?, "jumps")?;
-                    let songs = list(p.get(1), "jumps")?
-                        .iter()
-                        .map(|s| {
-                            if s.is_null() {
-                                Ok(None)
-                            } else {
-                                index(s, "jumps").map(Some)
-                            }
-                        })
-                        .collect::<Result<_>>()?;
-                    Ok((dest, songs))
-                })
-                .collect::<Result<_>>()?;
-            jumps.insert(k, theirs);
-        }
-        let troop_songs = match v.get("troop_songs") {
-            None => Vec::new(),
-            some => indices(some, "troop_songs")?,
-        };
-        Ok(Songs {
-            names,
-            sounds,
-            per_package,
-            exits,
-            jumps,
-            troop_songs,
-        })
     }
 }
 
