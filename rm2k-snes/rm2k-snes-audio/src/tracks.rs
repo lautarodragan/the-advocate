@@ -499,7 +499,7 @@ impl Tracks {
     /// Puts at `out_path` the track another build made from the same
     /// sources, if the cache keeps it and it is still what was stored —its
     /// sha256, `stored`—. Says whether it did.
-    fn from_the_cache(&self, key: &str, stored: &str, out_path: &Path) -> bool {
+    fn restore_from_the_cache(&self, key: &str, stored: &str, out_path: &Path) -> bool {
         let Some(dir) = &self.cache else {
             return false;
         };
@@ -537,7 +537,7 @@ impl Tracks {
         // shared, a worktree finds every track another one already rendered.
         if let Some(stored) = self.cached(&key) {
             if file_fingerprint(&out_path).as_ref() == Some(&stored)
-                || self.from_the_cache(&key, &stored, &out_path)
+                || self.restore_from_the_cache(&key, &stored, &out_path)
             {
                 return Ok(Outcome::Already);
             }
