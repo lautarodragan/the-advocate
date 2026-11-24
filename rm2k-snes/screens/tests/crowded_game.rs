@@ -62,6 +62,12 @@ fn what_a_crowded_game_is_told() {
         debug: false,
     };
     let answer = convert::convert(&game(), &request).unwrap();
+    // And the answer reads back as what was written: the emission takes it
+    // through these same types, and a field one side flattens or leaves
+    // out has to come back the same.
+    let written = serde_json::to_value(&answer).unwrap();
+    let read: rm2k_snes_screens::answer::Answer = serde_json::from_value(written.clone()).unwrap();
+    assert_eq!(serde_json::to_value(&read).unwrap(), written);
     assert_eq!(
         answer.says,
         [
