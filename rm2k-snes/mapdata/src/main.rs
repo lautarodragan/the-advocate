@@ -53,18 +53,6 @@ enum Command {
         no if a stream does not fit in its place in WRAM."
     )]
     Compress(Plain),
-    /// What the cartridge carries per map: its record, its data blocks, its
-    /// pages and its tables, and the poses of whoever changes pose
-    #[command(
-        after_help = "The request: {\"maps\": [a map as the conversion left it: see `Map` in \
-        request.rs]}, in the order of the cartridge's table. It writes offsets.inc —the \
-        record's fields—, maps.inc —the poses, the LZ2 caps and each map's blocks, in RODATA— \
-        and tables.inc —the map table and the ChipSet animation's—, and maps.json: {\"notes\": \
-        what it says, in order, \"report\": what was shared and compressed, \"frames\": per \
-        map, how many frames decompressing it takes}. With --raw, what the console \
-        decompresses of each map, uncompressed, into that directory."
-    )]
-    Maps(MapsArgs),
     /// One map's page table, alone
     #[command(
         after_help = "The request: {\"number\": the map's index in the cartridge, \"evcode\": \
@@ -99,12 +87,6 @@ struct EmitArgs {
     #[arg(long, value_name = "DIRECTORY")]
     data: PathBuf,
 
-    #[command(flatten)]
-    maps: MapsArgs,
-}
-
-#[derive(ClapArgs)]
-struct MapsArgs {
     #[command(flatten)]
     plain: Plain,
 
@@ -224,25 +206,6 @@ fn write_text(out: &Path, name: &str, text: &str) -> Result<()> {
     std::fs::write(&path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
 
-fn do_maps(args: &MapsArgs) -> Result<()> {
-    let mut request: request::Maps = request::read(&args.plain.request)?;
-    let mut notes = animation::fit_all(&mut request.maps);
-    let written = record::maps(&request.maps)?;
-    notes.extend(written.notes);
-    if let Some(raw) = &args.raw {
-        materials::write_raw(raw, &written.raw)?;
-    }
-    let out = &args.plain.out;
-    write_text(out, "offsets.inc", &written.offsets)?;
-    write_text(out, "maps.inc", &written.maps)?;
-    write_text(out, "tables.inc", &written.tables)?;
-    write(
-        out,
-        "maps",
-        &json!({"notes": notes, "report": written.report, "frames": written.frames}),
-    )
-}
-
 #[derive(serde::Deserialize)]
 struct PagesRequest {
     number: usize,
@@ -281,7 +244,7 @@ fn do_pages(args: &Plain) -> Result<()> {
 }
 
 fn do_emit(args: &EmitArgs) -> Result<()> {
-    let mut request: request::Emit = request::read(&args.maps.plain.request)?;
+    let mut request: request::Emit = request::read(&args.plain.request)?;
     // A ChipSet animation cut to fit is a loss, which the converter lists
     // with the cartridge's others.
     let cut = animation::fit_all_by_map(&mut request.maps);
@@ -311,10 +274,10 @@ fn do_emit(args: &EmitArgs) -> Result<()> {
         .map_err(|b| Bad::answer(b.message().to_string()))?;
     let emitted = rm2k_snes_mapdata::emit::emit(&request, &db)?;
     notes.extend(emitted.notes);
-    if let Some(raw) = &args.maps.raw {
+    if let Some(raw) = &args.raw {
         materials::write_raw(raw, &emitted.raw)?;
     }
-    let out = &args.maps.plain.out;
+    let out = &args.plain.out;
     write_text(out, "mapdata.inc", &emitted.text)?;
     write(
         out,
@@ -337,7 +300,6 @@ fn main() -> ExitCode {
     let done = match &cli.command {
         Command::Vram(args) => do_vram(args),
         Command::Compress(args) => do_compress(args),
-        Command::Maps(args) => do_maps(args),
         Command::Pages(args) => do_pages(args),
         Command::Emit(args) => do_emit(args),
         Command::Engine(args) => do_engine(args),

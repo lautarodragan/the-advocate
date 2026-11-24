@@ -3,7 +3,7 @@
 //! `skills_screen.s` reads them. What it needs of each skill goes with the
 //! battle's `skill_*` tables.
 
-use crate::asm::block;
+use crate::asm::Inc;
 use crate::fail::{Bad, Result};
 use crate::json::{colors, ints, tiles};
 use crate::snes::{cgram_bytes, pack_tile, words_le};
@@ -47,7 +47,7 @@ fn words(v: &Value) -> Result<Vec<u8>> {
 }
 
 /// The section: `screens` is the screens stage's whole answer.
-pub fn section(out: &mut String, screens: &Value) -> Result<()> {
+pub fn section(out: &mut Inc, screens: &Value) -> Result<()> {
     out.push_str("\n; --- the skills screen: see skills_screen.s ---\n");
     let layout = screens
         .get("layout")
@@ -85,12 +85,9 @@ pub fn section(out: &mut String, screens: &Value) -> Result<()> {
     // The arrangement, uploaded whole, and right after it in the same block
     // each place's bar, two half rows of sixteen words, the top one first:
     // one bank byte reads both (`SK_BARS_OFS` in the runtime).
-    out.push_str(&block("sk_layout", &[map, bars].concat()));
-    out.push('\n');
+    out.block("sk_layout", &[map, bars].concat());
     let packed: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 8)).collect();
-    out.push_str(&block("sk_border_tiles", &packed));
-    out.push('\n');
-    out.push_str(&block("sk_border_cgram", &cgram_bytes(&border_colors)));
-    out.push('\n');
+    out.block("sk_border_tiles", &packed);
+    out.block("sk_border_cgram", &cgram_bytes(&border_colors));
     Ok(())
 }

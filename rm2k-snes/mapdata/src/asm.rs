@@ -1,7 +1,123 @@
 //! The two primitives the `.inc` is written with: a data block with its
-//! placement declaration, and a symbolic 24-bit pointer.
+//! placement declaration, and a symbolic 24-bit pointer; and [`Inc`], the
+//! writer the emission puts its tables through.
 
-use std::fmt::Write;
+use std::fmt::{Display, Write};
+
+/// The `.inc` as the emission writes it: its text, and the tables and
+/// blocks it carries, each a whole line or lines.
+pub struct Inc {
+    text: String,
+}
+
+impl Inc {
+    /// An `.inc` that starts with `text`.
+    pub fn new(text: String) -> Inc {
+        Inc { text }
+    }
+
+    pub fn into_text(self) -> String {
+        self.text
+    }
+
+    pub fn push_str(&mut self, text: &str) {
+        self.text.push_str(text);
+    }
+
+    pub fn push(&mut self, c: char) {
+        self.text.push(c);
+    }
+
+    /// `text` and the end of its line.
+    pub fn line(&mut self, text: &str) {
+        self.text.push_str(text);
+        self.text.push('\n');
+    }
+
+    /// A [`block`].
+    pub fn block(&mut self, label: impl AsRef<str>, data: &[u8]) {
+        self.line(&block(label.as_ref(), data));
+    }
+
+    /// A [`msu_block`].
+    pub fn msu_block(&mut self, label: impl AsRef<str>, data: &[u8], msu: bool) {
+        self.line(&msu_block(label.as_ref(), data, msu));
+    }
+
+    /// A [`msu_only_block`].
+    pub fn msu_only_block(&mut self, label: impl AsRef<str>, data: &[u8]) {
+        self.line(&msu_only_block(label.as_ref(), data));
+    }
+
+    /// A table of bytes on one line, declared with its `.block`: what the
+    /// tables the console indexes look like. With nothing in it, one `$FF`,
+    /// so the label still has a byte under it.
+    pub fn bytes<T: Display>(
+        &mut self,
+        label: impl AsRef<str>,
+        values: impl IntoIterator<Item = T>,
+    ) {
+        self.table(label.as_ref(), ".byte", 1, "$FF", values, true);
+    }
+
+    /// The same with `.word`, and one `0` when there is nothing.
+    pub fn words<T: Display>(
+        &mut self,
+        label: impl AsRef<str>,
+        values: impl IntoIterator<Item = T>,
+    ) {
+        self.table(label.as_ref(), ".word", 2, "0", values, true);
+    }
+
+    /// [`bytes`](Self::bytes) without its `.block`, for what goes to
+    /// `TABLES`: see [`unplaced`].
+    pub fn bytes_unplaced<T: Display>(
+        &mut self,
+        label: impl AsRef<str>,
+        values: impl IntoIterator<Item = T>,
+    ) {
+        self.table(label.as_ref(), ".byte", 1, "$FF", values, false);
+    }
+
+    /// [`words`](Self::words) without its `.block`.
+    pub fn words_unplaced<T: Display>(
+        &mut self,
+        label: impl AsRef<str>,
+        values: impl IntoIterator<Item = T>,
+    ) {
+        self.table(label.as_ref(), ".word", 2, "0", values, false);
+    }
+
+    /// The two lines of a 24-bit pointer to `target`, for a table of
+    /// pointers whose entries the caller writes one by one.
+    pub fn far(&mut self, target: &str) {
+        let _ = writeln!(
+            self.text,
+            "    .word .loword({target})\n    .byte ^{target}"
+        );
+    }
+
+    fn table<T: Display>(
+        &mut self,
+        label: &str,
+        directive: &str,
+        width: usize,
+        empty: &str,
+        values: impl IntoIterator<Item = T>,
+        declare: bool,
+    ) {
+        let values: Vec<String> = values.into_iter().map(|v| v.to_string()).collect();
+        if declare {
+            let _ = writeln!(self.text, ".block {}", width * values.len().max(1));
+        }
+        let joined = if values.is_empty() {
+            empty.to_string()
+        } else {
+            values.join(", ")
+        };
+        let _ = writeln!(self.text, "{label}:\n    {directive} {joined}");
+    }
+}
 
 /// A data block with its placement declaration, sixteen bytes a line.
 ///
@@ -165,6 +281,25 @@ mod tests {
         );
         assert_eq!(unplaced("y", &[0xAB]), "y:\n    .byte $AB");
         assert_eq!(aligned("z", &[], 256), ".align 256\nz:");
+    }
+
+    /// An empty table still has something under its label: `$FF` for
+    /// bytes and `0` for words, which are in the ROM.
+    #[test]
+    fn a_table_is_declared_and_an_empty_one_has_a_filler() {
+        let mut inc = Inc::new(String::new());
+        inc.bytes("b", [1, 2]);
+        inc.bytes("e", Vec::<i64>::new());
+        inc.words("w", ["$0001"]);
+        inc.words("z", Vec::<i64>::new());
+        inc.words_unplaced("u", [7]);
+        inc.far("t");
+        assert_eq!(
+            inc.into_text(),
+            ".block 2\nb:\n    .byte 1, 2\n.block 1\ne:\n    .byte $FF\n\
+             .block 2\nw:\n    .word $0001\n.block 2\nz:\n    .word 0\n\
+             u:\n    .word 7\n    .word .loword(t)\n    .byte ^t\n"
+        );
     }
 
     #[test]

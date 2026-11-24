@@ -40,7 +40,6 @@ and writes pieces and a JSON.
   writes, what was shared and compressed, and how many frames each map
   takes to decompress; with `--raw`, each map's decompressed blocks, which
   the game's tests compare against what the console loads.
-* `maps`: only what goes per map, in three pieces of the `.inc`.
 * `pages`: one map's page table, alone, for whoever checks which label it
   names.
 * `compress`: the LZ2 streams of some maps' blocks, each part once, for

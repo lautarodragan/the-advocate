@@ -11,7 +11,7 @@
 //! advances and reaches and a table of where each page of names is. Without
 //! the MSU-1 the pause menu does not offer the screen: see `debug_screen.s`.
 
-use crate::asm::{block, msu_only_block};
+use crate::asm::Inc;
 use crate::fail::{Bad, Result};
 use crate::json::{bytes, colors, ints, list_at, tiles};
 use crate::snes::{cgram_bytes, pack_tile, words_le};
@@ -31,7 +31,7 @@ fn words(v: &Value) -> Result<Vec<u8>> {
 
 /// The section: `debug` is the screens stage's `debug_screen`, null if the
 /// cartridge does not carry it.
-pub fn section(out: &mut String, debug: &Value) -> Result<()> {
+pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
     out.push_str("\n; --- the debug screen: see debug_screen.s ---\n");
     if debug.is_null() {
         out.push_str("DEBUG_SCREEN = 0\n");
@@ -66,8 +66,7 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
     let pages = list_at(debug, "pages")?;
     let mut units = Vec::new();
     for (k, page) in pages.iter().enumerate() {
-        out.push_str(&msu_only_block(&format!("dbg_page{k}"), &bytes(page)?));
-        out.push('\n');
+        out.msu_only_block(format!("dbg_page{k}"), &bytes(page)?);
         units.push(format!(".loword(dbg_page{k})"));
     }
     out.push_str(&format!(".block {}\ndbg_pages:\n", 2 * units.len()));
@@ -101,15 +100,13 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
         frame.len(),
         layout.len()
     ));
-    out.push_str(&msu_only_block("dbg_frame", &frame));
-    out.push('\n');
+    out.msu_only_block("dbg_frame", &frame);
     // The windows' tiles —at 2bpp: BG2's in mode 5, the 512-wide mode the
     // screen runs in— and their colours behind them, one piece the screen
     // reads into WRAM and uploads when it opens.
     let mut border: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 2)).collect();
     border.extend(cgram_bytes(&border_colors));
-    out.push_str(&msu_only_block("dbg_border", &border));
-    out.push('\n');
+    out.msu_only_block("dbg_border", &border);
     // Its font, which only the text layer's 512-wide mode reads: how far
     // each letter moves the line and how far it paints, and its glyphs
     // precomposed, colour-free, a table per phase —what `font_advance`,
@@ -119,10 +116,8 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
     let small = |name: &str| -> Result<Vec<u8>> {
         Ok(ints(&font[name])?.into_iter().map(|n| n as u8).collect())
     };
-    out.push_str(&block("dbg_font_advance", &small("advances")?));
-    out.push('\n');
-    out.push_str(&block("dbg_font_reach", &small("reach")?));
-    out.push('\n');
+    out.block("dbg_font_advance", &small("advances")?);
+    out.block("dbg_font_reach", &small("reach")?);
     let phases = list_at(font, "prerender")?;
     if phases.len() != 8 {
         return Err(Bad::answer(format!(
@@ -145,8 +140,7 @@ pub fn section(out: &mut String, debug: &Value) -> Result<()> {
             )));
         }
         glyphs = Some(data.len() / FONT_PRE_CHAR);
-        out.push_str(&msu_only_block(&format!("dbg_pre{phase}"), &data));
-        out.push('\n');
+        out.msu_only_block(format!("dbg_pre{phase}"), &data);
     }
     out.push_str(&format!("DBG_GLYPHS = {}\n", glyphs.unwrap_or(0)));
     Ok(())

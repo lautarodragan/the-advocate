@@ -5,7 +5,7 @@
 //! troops and their pages, the battle scene, and the tables the console
 //! reads from bank 0.
 
-use crate::asm::{block, msu_block, unplaced};
+use crate::asm::{block, unplaced, Inc};
 use crate::cgram::{cgram_reserved, PRIORITY_ABOVE, WINDOW_PALETTE};
 use crate::engine::*;
 use crate::fail::{Bad, Result};
@@ -126,55 +126,17 @@ pub const RESULT_TERMS: [(&str, &str); 12] = [
     ("agi", "agility"),
 ];
 
-/// A term of the database, by liblcf's name.
+/// A term of the database, by liblcf's name: `Terms` serializes each field
+/// by that name. In the resolved view, or a term the game left at its
+/// default would be left out and read as no term.
 fn term(db: &Db, name: &str) -> Result<String> {
-    let t = &db.terms;
-    Ok(match name {
-        "command_attack" => &t.command_attack,
-        "command_defend" => &t.command_defend,
-        "battle_escape" => &t.battle_escape,
-        "hp_short" => &t.hp_short,
-        "attacking" => &t.attacking,
-        "defending" => &t.defending,
-        "actor_critical" => &t.actor_critical,
-        "enemy_damaged" => &t.enemy_damaged,
-        "enemy_undamaged" => &t.enemy_undamaged,
-        "actor_damaged" => &t.actor_damaged,
-        "actor_undamaged" => &t.actor_undamaged,
-        "victory" => &t.victory,
-        "defeat" => &t.defeat,
-        "escape_success" => &t.escape_success,
-        "escape_failure" => &t.escape_failure,
-        "command_item" => &t.command_item,
-        "command_skill" => &t.command_skill,
-        "use_item" => &t.use_item,
-        "hp_recovery" => &t.hp_recovery,
-        "exp_received" => &t.exp_received,
-        "level" => &t.level,
-        "level_up" => &t.level_up,
-        "skill_learned" => &t.skill_learned,
-        "gold_recieved_a" => &t.gold_recieved_a,
-        "gold" => &t.gold,
-        "gold_recieved_b" => &t.gold_recieved_b,
-        "item_recieved" => &t.item_recieved,
-        "sp_short" => &t.sp_short,
-        "normal_status" => &t.normal_status,
-        "lvl_short" => &t.lvl_short,
-        "skill_failure_a" => &t.skill_failure_a,
-        "skill_failure_b" => &t.skill_failure_b,
-        "skill_failure_c" => &t.skill_failure_c,
-        "dodge" => &t.dodge,
-        "parameter_increase" => &t.parameter_increase,
-        "parameter_decrease" => &t.parameter_decrease,
-        "health_points" => &t.health_points,
-        "spirit_points" => &t.spirit_points,
-        "attack" => &t.attack,
-        "defense" => &t.defense,
-        "spirit" => &t.spirit,
-        "agility" => &t.agility,
-        _ => return Err(Bad::usage(format!("there is no term {name:?}"))),
-    }
-    .clone())
+    let terms = ditto::lcf::as_resolved(|| serde_json::to_value(&db.terms))
+        .expect("the terms are strings, and strings go into JSON");
+    terms
+        .get(name)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| Bad::usage(format!("there is no term {name:?}")))
 }
 
 /// The terms of [`BATTLE_TERMS`] that RPG Maker 2003's battle never
@@ -466,38 +428,33 @@ impl Texts {
         self.data.extend_from_slice(&fitted);
         self.offsets.len() as i64 - 1
     }
-}
 
-fn line(out: &mut String, text: &str) {
-    out.push_str(text);
-    out.push('\n');
-}
-
-/// `label:` and a `.byte` line, or `$FF` when there is nothing: what the
-/// tables of bank 0 look like. With `declare`, its `.block` in front.
-fn bytes_asm(out: &mut String, label: &str, values: &[String], declare: bool) {
-    if declare {
-        out.push_str(&format!(".block {}\n", values.len().max(1)));
+    /// A database text per id, through [`db_text`] and [`add`](Self::add),
+    /// in the order of `ids` —which is the order they are numbered in, and
+    /// the numbers are in the ROM—: each id's number.
+    fn add_each<'t>(
+        &mut self,
+        ids: &[i64],
+        text: impl Fn(i64) -> Result<&'t str>,
+    ) -> Result<HashMap<i64, i64>> {
+        let mut numbers = HashMap::new();
+        for &id in ids {
+            let shown = db_text(&self.glyphs, text(id)?);
+            numbers.insert(id, self.add(&shown));
+        }
+        Ok(numbers)
     }
-    let joined = if values.is_empty() {
-        "$FF".to_string()
-    } else {
-        values.join(", ")
-    };
-    out.push_str(&format!("{label}:\n    .byte {joined}\n"));
 }
 
-/// The same with `.word`, and `0` when there is nothing.
-fn words_asm(out: &mut String, label: &str, values: &[String], declare: bool) {
-    if declare {
-        out.push_str(&format!(".block {}\n", (2 * values.len()).max(2)));
-    }
-    let joined = if values.is_empty() {
-        "0".to_string()
+/// What a byte table that says 0 when there is nothing, and not the `$FF`
+/// of [`Inc::bytes`], puts through it. Each of them always wrote its 0, and
+/// those bytes are in the ROM.
+fn or_zero(values: Vec<String>) -> Vec<String> {
+    if values.is_empty() {
+        vec!["0".to_string()]
     } else {
-        values.join(", ")
-    };
-    out.push_str(&format!("{label}:\n    .word {joined}\n"));
+        values
+    }
 }
 
 fn decimal<T: ToString>(values: impl IntoIterator<Item = T>) -> Vec<String> {
@@ -537,6 +494,15 @@ fn palettes_cgram(palettes: &[Vec<Color>]) -> Vec<u8> {
         ));
     }
     cgram_bytes(&all)
+}
+
+/// A sprite palette: the transparent entry, then `colors`, cut or padded
+/// with black to sixteen.
+fn palette16(colors: &[Color]) -> Vec<u8> {
+    let mut sixteen = vec![[0, 0, 0]];
+    sixteen.extend_from_slice(colors);
+    sixteen.resize(16, [0, 0, 0]);
+    cgram_bytes(&sixteen)
 }
 
 /// The CRC-32 of zlib, which signs the save format.
@@ -712,7 +678,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         None => (0, 0),
         Some(menu) => (list_at(menu, "tiles")?.len(), list_at(menu, "texts")?.len()),
     };
-    let mut out = format!(
+    let mut out = Inc::new(format!(
         header!(),
         maps = r
             .maps
@@ -918,7 +884,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             + 1),
         slot_cgram_n = (list_at(slots, "palettes")?.len() * MENU_CGRAM),
         title_menu_cgram_again = MENU_CGRAM,
-    );
+    ));
 
     // Who the cartridge is.
     out.push_str(&format!(
@@ -988,13 +954,13 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         );
     }
     // The fade ramp, in bank 0: `fade_tick` reads it with `lda fade_ramp, x`.
-    out.push_str(&format!(
+    out.push_str(
         ".segment \"TABLES\"\n\
          ; The master brightness on each frame of the ramp, from\n\
-         ; black to full. Going down it is read backwards.\n\
-         fade_ramp:\n        .byte {}\n\n",
-        decimal(fade_ramp()).join(",")
-    ));
+         ; black to full. Going down it is read backwards.\n",
+    );
+    out.bytes_unplaced("fade_ramp", fade_ramp());
+    out.push('\n');
     // The data goes in RODATA, which the linker spreads over the upper
     // banks; what stays in TABLES —bank 0— is what the console walks with a
     // bare `lda table, x`.
@@ -1031,7 +997,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     out.push_str(&per_map.tables);
     timer_and_case(&mut out, r);
     Ok(Emitted {
-        text: out,
+        text: out.into_text(),
         notes,
         report: per_map.report,
         frames: per_map.frames,
@@ -1045,13 +1011,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
 /// `font_ink.inc` composes a letter with them as immediates. And where the
 /// boxes' letters start in it. Until 2026-11-20 each writer had its own
 /// table, already coloured: `font_pre`, `scr_pre` and `slot_pre`.
-fn font_section(out: &mut String, window: &Value, screens: &Value) -> Result<()> {
+fn font_section(out: &mut Inc, window: &Value, screens: &Value) -> Result<()> {
     let font = at(screens, "font")?;
     for (phase, data) in list_at(font, "prerender")?.iter().enumerate() {
-        line(
-            out,
-            &block(&format!("font_pre{phase}"), &crate::json::bytes(data)?),
-        );
+        out.block(format!("font_pre{phase}"), &crate::json::bytes(data)?);
     }
     out.push_str(&format!(
         "; The console's glyphs, and where a box's letter k is: glyph\n\
@@ -1106,7 +1069,7 @@ fn font_section(out: &mut String, window: &Value, screens: &Value) -> Result<()>
 }
 
 fn window_section(
-    out: &mut String,
+    out: &mut Inc,
     r: &Emit,
     windows: &[Value],
     t: &Geometry,
@@ -1145,23 +1108,18 @@ fn window_section(
     out.push_str(&format!("WIDE_VARIABLES = {wide}\n"));
     let one_line = windows
         .iter()
-        .map(|w| backdrop_is_one_line(w, t))
+        .map(|w| Ok(Backdrop::of(w, t)?.is_one_line()))
         .collect::<Result<Vec<bool>>>()?
         .iter()
         .all(|&b| b);
     for (k, w) in windows.iter().enumerate() {
-        let suffix = if k == 0 {
-            String::new()
-        } else {
-            format!("_{k}")
-        };
-        window_pieces(out, r, w, t, &suffix, one_line)?;
+        window_pieces(out, r, w, t, &system_suffix(k), one_line)?;
     }
     if windows.len() > 1 {
         window_systems_table(out, windows.len(), windows[0].get("gold").is_some());
     }
     let window = &windows[0];
-    line(out, &block("font_table", &bytes_at(window, "font")?));
+    out.block("font_table", &bytes_at(window, "font")?);
     // How far each letter moves the line, and how far it paints: the
     // composer adds the first and checks the second against the edge.
     let small = |name: &str| -> Result<Vec<u8>> {
@@ -1172,11 +1130,11 @@ fn window_section(
     };
     // The message window's, with the letters its boxes draw; the text
     // screens' are `font_advance` and `font_reach`, further down.
-    line(out, &block("msg_font_advance", &small("advances")?));
-    line(out, &block("msg_font_reach", &small("reach")?));
+    out.block("msg_font_advance", &small("advances")?);
+    out.block("msg_font_reach", &small("reach")?);
 
     font_section(out, window, screens)?;
-    line(out, &block("messages", &r.messages));
+    out.block("messages", &r.messages);
     // How big it is and how big it can be, for `rm2k-snes-cartridges space`: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
     out.push_str(&format!(
@@ -1185,7 +1143,7 @@ fn window_section(
         0x10000 * MESSAGES_STEP
     ));
     // The pairs its letters are written with, for `message_tick`.
-    line(out, &block("message_pairs", &r.message_pairs.table));
+    out.block("message_pairs", &r.message_pairs.table);
     out.push_str(&format!("MESSAGE_PAIR_FIRST = {}\n", r.message_pairs.first));
     message_faces(out, &r.faces)?;
     Ok(())
@@ -1200,7 +1158,7 @@ pub const MESSAGE_FACE_BYTES: usize = 36 * 32 + 15 * 2;
 /// in one bank, and all the faces together can be more than one—, and the
 /// table of long pointers `OP_FACE` indexes, `message_face_ptr`. `faces.rs`
 /// in `rm2k-snes-screens` says what each one holds.
-fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
+fn message_faces(out: &mut Inc, faces: &[MessageFace]) -> Result<()> {
     out.push_str(&format!(
         "; The faces of the message window: `MESSAGE_FACES` of `MESSAGE_FACE_BYTES`\n\
          ; each, and a long pointer to each one. See the runtime's message_face.s.\n\
@@ -1218,7 +1176,7 @@ fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
         }
         let mut data = face.tiles.clone();
         data.extend(words_le(face.palette.iter().map(|&w| w as u32)));
-        line(out, &block(&format!("message_face_{k}"), &data));
+        out.block(format!("message_face_{k}"), &data);
     }
     // The pointers, by hand: a word and a bank each, like `window_systems`.
     out.push_str(&format!(
@@ -1229,21 +1187,29 @@ fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
         out.push_str("    .byte $FF\n");
     }
     for k in 0..faces.len() {
-        out.push_str(&format!(
-            "    .word .loword(message_face_{k})\n    .byte ^message_face_{k}\n"
-        ));
+        out.far(&format!("message_face_{k}"));
     }
     out.push('\n');
     Ok(())
 }
 
-/// One System's message window: its tiles, its palette, its two planes of
-/// cells for each window base, its arrow's cells, the text area's
-/// background and the bar over it. `suffix` goes after every label: empty
+/// What goes after the labels of the `k`-th System's window pieces: nothing
 /// for the System the cartridge starts with, `_k` for the `k`-th it
 /// switches to.
+fn system_suffix(k: usize) -> String {
+    if k == 0 {
+        String::new()
+    } else {
+        format!("_{k}")
+    }
+}
+
+/// One System's message window: its tiles, its palette, its two planes of
+/// cells for each window base, its arrow's cells, the text area's
+/// background and the bar over it. `suffix`, its [`system_suffix`], goes
+/// after every label.
 fn window_pieces(
-    out: &mut String,
+    out: &mut Inc,
     r: &Emit,
     window: &Value,
     t: &Geometry,
@@ -1251,13 +1217,7 @@ fn window_pieces(
     one_line: bool,
 ) -> Result<()> {
     let reserved = cgram_reserved(r.window_colors);
-    line(
-        out,
-        &block(
-            &format!("window_tiles{suffix}"),
-            &bytes_at(window, "tiles")?,
-        ),
-    );
+    out.block(format!("window_tiles{suffix}"), &bytes_at(window, "tiles")?);
     // Only the `reserved` at the bottom: from there up it is the
     // background's.
     let cgram = ints_at(window, "cgram")?;
@@ -1266,10 +1226,7 @@ fn window_pieces(
         .take(reserved as usize)
         .map(|&w| w as u32)
         .collect();
-    line(
-        out,
-        &block(&format!("window_cgram{suffix}"), &words_le(words)),
-    );
+    out.block(format!("window_cgram{suffix}"), &words_le(words));
     // One layout of the cells per window base the VRAM layouts use, with
     // the upper layer's priority so it covers the hero and the events.
     //
@@ -1296,7 +1253,7 @@ fn window_pieces(
             }
         }
         framed.extend(bare);
-        line(out, &block(&label, &words_le(framed)));
+        out.block(&label, &words_le(framed));
     }
     // The cells of the arrow of a message waiting for a key, per window base
     // in the order of `window_cells`: with the frame, off and on, and
@@ -1342,12 +1299,9 @@ fn window_pieces(
             arrow_table.push(cell(tile));
         }
     }
-    line(
-        out,
-        &block(
-            &format!("window_arrow_cells{suffix}"),
-            &words_le(arrow_table),
-        ),
+    out.block(
+        format!("window_arrow_cells{suffix}"),
+        &words_le(arrow_table),
     );
     // And the arrow over nothing as two objects' tiles, for a window
     // without its background in a map that has room for them: the same
@@ -1371,10 +1325,7 @@ fn window_pieces(
         bytes.resize(32, 0);
         arrow_obj.extend(bytes);
     }
-    line(
-        out,
-        &block(&format!("window_arrow_obj{suffix}"), &arrow_obj),
-    );
+    out.block(format!("window_arrow_obj{suffix}"), &arrow_obj);
     // And the gold window, which `ShowInn` opens next to its greeting, as
     // objects in the arrow's sprite palette: its 44 tiles, the fifteen words
     // of that palette from entry 1 —the window's own and the colours it
@@ -1430,41 +1381,33 @@ fn window_pieces(
                 window.get("ink").and_then(Value::as_i64).unwrap_or(0),
             ));
         }
-        line(out, &block(&format!("window_gold{suffix}"), &gold_block));
+        out.block(format!("window_gold{suffix}"), &gold_block);
     }
     // The text area's background, one line —two cell rows— after another,
     // which `prime_line` copies under each line before its letters. When
     // every line is the same —a window over one colour, `[windows.
     // background]`— only the first goes, and `prime_line` copies it under
     // all of them: a quarter of the bytes.
-    let backdrop = bytes_at(window, "background")?;
-    let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
-    let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
-    let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
-    let backdrop_lines = if one_line { 1 } else { text_lines };
+    let backdrop = Backdrop::of(window, t)?;
+    let backdrop_lines = if one_line { 1 } else { backdrop.lines };
     if suffix.is_empty() {
         out.push_str(&format!("WINDOW_BACKDROP_LINES = {backdrop_lines}\n"));
     }
-    line(
-        out,
-        &block(
-            &format!("window_backdrop{suffix}"),
-            if one_line { lines[0] } else { &backdrop },
-        ),
+    out.block(
+        format!("window_backdrop{suffix}"),
+        if one_line {
+            &backdrop.bytes[..backdrop.line]
+        } else {
+            &backdrop.bytes
+        },
     );
     // And the same background with the System's cursor on each line, and
     // one line's with the cursor over nothing: a choice's highlighted
     // option is composed over these. See `prime_line` in the runtime.
-    line(
-        out,
-        &block(&format!("window_bar{suffix}"), &bytes_at(window, "bar")?),
-    );
-    line(
-        out,
-        &block(
-            &format!("window_bar_bare{suffix}"),
-            &bytes_at(window, "bar_bare")?,
-        ),
+    out.block(format!("window_bar{suffix}"), &bytes_at(window, "bar")?);
+    out.block(
+        format!("window_bar_bare{suffix}"),
+        &bytes_at(window, "bar_bare")?,
     );
     Ok(())
 }
@@ -1513,14 +1456,32 @@ fn text_inks(window: &Value) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-/// Whether the text area's four lines have the same background: a window
-/// over one colour, `[windows.background]`.
-fn backdrop_is_one_line(window: &Value, t: &Geometry) -> Result<bool> {
-    let backdrop = bytes_at(window, "background")?;
-    let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
-    let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
-    let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
-    Ok(backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]))
+/// A window's text area background, as `prime_line` reads it: one line
+/// —two cell rows— after another.
+struct Backdrop {
+    bytes: Vec<u8>,
+    /// The bytes of a line.
+    line: usize,
+    /// How many lines the text area has.
+    lines: usize,
+}
+
+impl Backdrop {
+    fn of(window: &Value, t: &Geometry) -> Result<Backdrop> {
+        Ok(Backdrop {
+            bytes: bytes_at(window, "background")?,
+            line: (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize,
+            lines: (t.n("WINDOW_TEXT_ROWS") / 2) as usize,
+        })
+    }
+
+    /// Whether every line is the same: a window over one colour,
+    /// `[windows.background]`.
+    fn is_one_line(&self) -> bool {
+        let first = &self.bytes[..self.line.min(self.bytes.len())];
+        self.bytes.len() == self.line * self.lines
+            && self.bytes.chunks(self.line).all(|l| l == first)
+    }
 }
 
 /// How many bytes a System's entry takes in `window_systems`: the ten
@@ -1534,7 +1495,7 @@ const GOLD_TILES: usize = crate::record::GOLD_OBJ_TILES;
 
 /// The table the runtime finds each System's window in: per System, in the
 /// cartridge's order, a pointer to each of its pieces.
-fn window_systems_table(out: &mut String, systems: usize, gold: bool) {
+fn window_systems_table(out: &mut Inc, systems: usize, gold: bool) {
     // A test's made-up window has no gold window: see `window_pieces`.
     let bytes = if gold {
         WINDOW_SYSTEM_BYTES
@@ -1548,11 +1509,7 @@ fn window_systems_table(out: &mut String, systems: usize, gold: bool) {
         systems * bytes
     ));
     for k in 0..systems {
-        let suffix = if k == 0 {
-            String::new()
-        } else {
-            format!("_{k}")
-        };
+        let suffix = system_suffix(k);
         for piece in [
             "window_tiles",
             "window_cgram",
@@ -1568,9 +1525,7 @@ fn window_systems_table(out: &mut String, systems: usize, gold: bool) {
         .iter()
         .filter(|p| gold || **p != "window_gold")
         {
-            out.push_str(&format!(
-                "    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"
-            ));
+            out.far(&format!("{piece}{suffix}"));
         }
     }
     out.push('\n');
@@ -1680,38 +1635,14 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
         data.push(n as u8);
         let entries = data.len();
         data.resize(entries + n * PICTURE_ENTRY, 0);
+        // The first tile again at the end of each entry, so drawing needs
+        // the entry alone.
+        let base = i16::try_from(p.base)
+            .map_err(|_| whose(format!("a picture's {}", p.base)))?
+            .to_le_bytes();
         // Each palette's colours once, by its index.
-        let mut colors_of: std::collections::BTreeMap<i64, usize> =
-            std::collections::BTreeMap::new();
+        let mut colors_of = BTreeMap::new();
         for (i, image) in p.images.iter().enumerate() {
-            let objects_at = data.len() - start;
-            for &[dx, dy, tile] in &image.objects {
-                let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
-                data.push(byte(dx)?);
-                data.push(byte(dy)?);
-                data.extend(
-                    u16::try_from(tile)
-                        .map_err(|_| whose(format!("an object's tile {tile}")))?
-                        .to_le_bytes(),
-                );
-            }
-            let colors_at = match colors_of.get(&image.palette_index) {
-                Some(&at) => at,
-                None => {
-                    let at = data.len() - start;
-                    let mut colors = vec![[0, 0, 0]];
-                    colors.extend_from_slice(&image.palette);
-                    colors.resize(16, [0, 0, 0]);
-                    data.extend(cgram_bytes(&colors));
-                    colors_of.insert(image.palette_index, at);
-                    at
-                }
-            };
-            let word = |v: i64| -> Result<[u8; 2]> {
-                Ok(i16::try_from(v)
-                    .map_err(|_| whose(format!("a picture's {v}")))?
-                    .to_le_bytes())
-            };
             let palette = u8::try_from(image.palette_index)
                 .ok()
                 .filter(|&p| p < 8)
@@ -1721,33 +1652,81 @@ pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)
                         image.palette_index
                     ))
                 })?;
+            let entry = picture_entry(
+                &mut data,
+                image,
+                &mut colors_of,
+                palette | if image.behind_map { PICTURE_BEHIND } else { 0 },
+                [base[0], base[1], 0, 0],
+                &whose,
+            )?;
             let at = entries + i * PICTURE_ENTRY;
-            let mut entry = Vec::with_capacity(PICTURE_ENTRY);
-            entry.extend(word(image.half[0])?);
-            entry.extend(word(image.half[1])?);
-            entry.push(
-                u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
-            );
-            entry.push(palette | if image.behind_map { PICTURE_BEHIND } else { 0 });
-            // The two offsets are unsigned, as the console reads them —an
-            // index of `picture_data`—: the table reaches 64 KB, and Desert
-            // Nightmare's went past 32 KB on 2026-11-21, when the pictures of
-            // RM2k's whole screen that draw little became small ones.
-            let offset = |v: usize| -> Result<[u8; 2]> {
-                Ok(u16::try_from(v)
-                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
-                    .to_le_bytes())
-            };
-            entry.extend(offset(start + objects_at)?);
-            entry.extend(offset(start + colors_at)?);
-            entry.extend(word(p.base)?);
-            data[at..at + entry.len()].copy_from_slice(&entry);
+            data[at..at + PICTURE_ENTRY].copy_from_slice(&entry);
         }
         starts.push(
             u16::try_from(start).map_err(|_| whose("the pictures' table passes 64 KB".into()))?,
         );
     }
     Ok((words_le(starts.iter().map(|&s| u32::from(s))), data))
+}
+
+/// One picture's objects and its palette's colours, added to `data`, and
+/// its entry —see [`picture_tables`]—, whose offsets are indices of `data`.
+/// `colors_of` says where each palette's colours already are, so the
+/// pictures that share a palette point to it once. The palette byte and
+/// the entry's last four bytes are each caller's: a map's picture and a
+/// common one say different things there.
+fn picture_entry(
+    data: &mut Vec<u8>,
+    image: &crate::request::PictureImage,
+    colors_of: &mut BTreeMap<i64, usize>,
+    palette: u8,
+    tail: [u8; 4],
+    whose: &dyn Fn(String) -> Bad,
+) -> Result<[u8; PICTURE_ENTRY]> {
+    let objects_at = data.len();
+    for &[dx, dy, tile] in &image.objects {
+        let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
+        data.push(byte(dx)?);
+        data.push(byte(dy)?);
+        data.extend(
+            u16::try_from(tile)
+                .map_err(|_| whose(format!("an object's tile {tile}")))?
+                .to_le_bytes(),
+        );
+    }
+    let colors_at = match colors_of.get(&image.palette_index) {
+        Some(&at) => at,
+        None => {
+            let at = data.len();
+            data.extend(palette16(&image.palette));
+            colors_of.insert(image.palette_index, at);
+            at
+        }
+    };
+    let half = |v: i64| -> Result<[u8; 2]> {
+        Ok(i16::try_from(v)
+            .map_err(|_| whose(format!("a picture's {v}")))?
+            .to_le_bytes())
+    };
+    // The two offsets are unsigned, as the console reads them —an index of
+    // `picture_data`—: the table reaches 64 KB, and Desert Nightmare's went
+    // past 32 KB on 2026-11-21, when the pictures of RM2k's whole screen
+    // that draw little became small ones.
+    let offset = |v: usize| -> Result<[u8; 2]> {
+        Ok(u16::try_from(v)
+            .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
+            .to_le_bytes())
+    };
+    let mut entry = [0u8; PICTURE_ENTRY];
+    entry[0..2].copy_from_slice(&half(image.half[0])?);
+    entry[2..4].copy_from_slice(&half(image.half[1])?);
+    entry[4] = u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?;
+    entry[5] = palette;
+    entry[6..8].copy_from_slice(&offset(objects_at)?);
+    entry[8..10].copy_from_slice(&offset(colors_at)?);
+    entry[10..14].copy_from_slice(&tail);
+    Ok(entry)
 }
 
 /// The common events' small pictures' entries, after the maps' in
@@ -1772,61 +1751,21 @@ pub fn common_entries(sets: &[crate::request::CommonSet], data: &mut Vec<u8>) ->
     let mut at = entries;
     for (k, set) in sets.iter().enumerate() {
         let whose = |what: String| Bad::answer(format!("{}: {what}", set.name));
-        let mut colors_of: BTreeMap<i64, usize> = BTreeMap::new();
+        let mut colors_of = BTreeMap::new();
         for image in &set.images {
-            let objects_at = data.len();
-            for &[dx, dy, tile] in &image.objects {
-                let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
-                data.push(byte(dx)?);
-                data.push(byte(dy)?);
-                data.extend(
-                    u16::try_from(tile)
-                        .map_err(|_| whose(format!("an object's tile {tile}")))?
-                        .to_le_bytes(),
-                );
-            }
-            let colors_at = match colors_of.get(&image.palette_index) {
-                Some(&c) => c,
-                None => {
-                    let c = data.len();
-                    let mut colors = vec![[0, 0, 0]];
-                    colors.extend_from_slice(&image.palette);
-                    colors.resize(16, [0, 0, 0]);
-                    data.extend(cgram_bytes(&colors));
-                    colors_of.insert(image.palette_index, c);
-                    c
-                }
-            };
-            let word = |v: i64| -> Result<[u8; 2]> {
-                Ok(i16::try_from(v)
-                    .map_err(|_| whose(format!("a picture's {v}")))?
-                    .to_le_bytes())
-            };
             let palette = u8::try_from(image.palette_index)
                 .ok()
                 .filter(|&p| (p as usize) < set.palettes.max(1))
                 .ok_or_else(|| whose(format!("palette {}", image.palette_index)))?;
-            let mut entry = Vec::with_capacity(PICTURE_ENTRY);
-            entry.extend(word(image.half[0])?);
-            entry.extend(word(image.half[1])?);
-            entry.push(
-                u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?,
-            );
-            entry.push(palette);
-            entry.extend(
-                u16::try_from(objects_at)
-                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
-                    .to_le_bytes(),
-            );
-            entry.extend(
-                u16::try_from(colors_at)
-                    .map_err(|_| whose("the pictures' table passes 64 KB".into()))?
-                    .to_le_bytes(),
-            );
-            entry.extend([0, 0]);
-            entry.push(k as u8);
-            entry.push(0x80);
-            data[at..at + entry.len()].copy_from_slice(&entry);
+            let entry = picture_entry(
+                data,
+                image,
+                &mut colors_of,
+                palette,
+                [0, 0, k as u8, 0x80],
+                &whose,
+            )?;
+            data[at..at + PICTURE_ENTRY].copy_from_slice(&entry);
             at += PICTURE_ENTRY;
         }
     }
@@ -1869,12 +1808,12 @@ const COMMON_TILE: usize = 32;
 /// pictures and the arrow take and over its characters': see
 /// [`crate::record::common_room`]. Only one set is in VRAM at a time, so
 /// each is judged alone. The log says on how many maps each one fits.
-fn picture_common_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -> Result<()> {
+fn picture_common_section(out: &mut Inc, r: &Emit, notes: &mut Vec<String>) -> Result<()> {
     let sets = &r.common_pictures;
     out.push_str(&format!("PICTURE_SETS = {}\n", sets.len()));
     if sets.is_empty() {
-        line(out, &block("picture_sets", &[0]));
-        line(out, &block("picture_common_maps", &[0]));
+        out.block("picture_sets", &[0]);
+        out.block("picture_common_maps", &[0]);
         return Ok(());
     }
     if sets.len() > COMMON_SETS {
@@ -1888,9 +1827,9 @@ fn picture_common_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -
         COMMON_SET_ENTRY * sets.len()
     ));
     for (k, set) in sets.iter().enumerate() {
+        out.far(&format!("picture_set_tiles_{k}"));
         out.push_str(&format!(
-            "    .word .loword(picture_set_tiles_{k})\n    .byte ^picture_set_tiles_{k}\n\
-             \x20   .word {}\n    .byte {}\n    .res 2\n",
+            "    .word {}\n    .byte {}\n    .res 2\n",
             set.tiles * COMMON_TILE,
             set.palettes
         ));
@@ -1919,11 +1858,11 @@ fn picture_common_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -
         maps.push(mask);
         maps.extend([0, 0]);
     }
-    line(out, &block("picture_common_maps", &maps));
+    out.block("picture_common_maps", &maps);
     for (k, set) in sets.iter().enumerate() {
         // One that fits no map is never uploaded: its tiles stay out.
         if fits[k] == 0 {
-            line(out, &block(&format!("picture_set_tiles_{k}"), &[0]));
+            out.block(format!("picture_set_tiles_{k}"), &[0]);
             notes.push(format!(
                 "  {}: WARNING, their small pictures fit on none of the {} maps, and aren't shown",
                 set.name,
@@ -1943,7 +1882,7 @@ fn picture_common_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -
             }
             tiles[number * COMMON_TILE..(number + 1) * COMMON_TILE].copy_from_slice(&pack4(cell));
         }
-        line(out, &block(&format!("picture_set_tiles_{k}"), &tiles));
+        out.block(format!("picture_set_tiles_{k}"), &tiles);
         notes.push(format!(
             "  {}: their small pictures fit on {} of the {} maps",
             set.name,
@@ -1970,7 +1909,7 @@ fn pack4(cell: &[u8]) -> [u8; COMMON_TILE] {
     out
 }
 
-fn picture_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -> Result<()> {
+fn picture_section(out: &mut Inc, r: &Emit, notes: &mut Vec<String>) -> Result<()> {
     out.push_str(
         "\n; --- the ShowPicture pictures: see `picture_tables` in rm2k-snes-mapdata ---\n",
     );
@@ -1978,15 +1917,15 @@ fn picture_section(out: &mut String, r: &Emit, notes: &mut Vec<String>) -> Resul
     let (maps, mut data) = picture_tables(&r.maps)?;
     let common = common_entries(&r.common_pictures, &mut data)?;
     out.push_str(&format!("PICTURE_COMMON = {common}\n"));
-    line(out, &block("picture_maps", &maps));
-    line(out, &block("picture_data", &data));
+    out.block("picture_maps", &maps);
+    out.block("picture_data", &data);
     picture_common_section(out, r, notes)?;
     // The screen flash's products, `d * level // 31`, so the console does not
     // multiply and divide for each of its 96 entries every odd frame.
     let products: Vec<u8> = (0..32u32)
         .flat_map(|n| (0..32u32).map(move |d| (d * n / 31) as u8))
         .collect();
-    line(out, &block("prod31_table", &products));
+    out.block("prod31_table", &products);
     Ok(())
 }
 
@@ -2102,14 +2041,14 @@ pub fn big_tilemap(rows: usize, cells: &[u16], wider: bool) -> Result<(Vec<u16>,
 /// mostly empty, and its 4 KB fit in the buffer below the carried bytecode.
 ///
 /// See `big_picture.s` in the runtime.
-fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
+fn big_pictures_section(out: &mut Inc, r: &Emit) -> Result<()> {
     out.push_str("\n; --- the big pictures: see `big_pictures_section` in rm2k-snes-mapdata ---\n");
     out.push_str(&format!(
         "BIG_PICTURES = {}\nBIG_ENTRY = {BIG_ENTRY}\n",
         r.big_pictures.len()
     ));
     if r.big_pictures.is_empty() {
-        line(out, &block("big_table", &[0]));
+        out.block("big_table", &[0]);
         return Ok(());
     }
     let mut raw: Vec<Vec<u8>> = Vec::new();
@@ -2137,11 +2076,11 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
         let vofs = (-big.top - 1) as i16 as u16;
         let corner = ((big.center[1] - big.half[1]) * BIG_CONSOLE_HEIGHT).div_euclid(BIG_RM_HEIGHT);
         let j = shared[k];
+        for piece in ["big_tiles", "big_map", "big_colors"] {
+            out.far(&format!("{piece}_{j}"));
+        }
         out.push_str(&format!(
-            "    .word .loword(big_tiles_{j})\n    .byte ^big_tiles_{j}\n\
-             \x20   .word .loword(big_map_{j})\n    .byte ^big_map_{j}\n\
-             \x20   .word .loword(big_colors_{j})\n    .byte ^big_colors_{j}\n\
-             \x20   .word {}\n    .byte {}\n    .word {vofs}\n\
+            "    .word {}\n    .byte {}\n    .word {vofs}\n\
              \x20   .word {}\n    .word {}\n",
             big.tiles.len(),
             sizes[k],
@@ -2152,10 +2091,10 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
             None => out.push_str("    .res 14\n"),
             Some(t) => {
                 let rows = big.rows * BIG_M7_ROW;
+                out.far(&format!("big_m7_tiles_{k}"));
+                out.far(&format!("big_m7_rows_{k}"));
                 out.push_str(&format!(
-                    "    .word .loword(big_m7_tiles_{k})\n    .byte ^big_m7_tiles_{k}\n\
-                     \x20   .word .loword(big_m7_rows_{k})\n    .byte ^big_m7_rows_{k}\n\
-                     \x20   .word {}\n    .word {rows}\n    .word {}\n    .word {}\n",
+                    "    .word {}\n    .word {rows}\n    .word {}\n    .word {}\n",
                     t.tiles.len(),
                     t.center[0] as i16 as u16,
                     (t.center[1] - big.top) as i16 as u16,
@@ -2188,14 +2127,14 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
         // with the screen off. See `msu_block`.
         let msu = r.rom.msu != MsuData::Optional;
         if shared[k] == k {
-            line(out, &msu_block(&format!("big_tiles_{k}"), &big.tiles, msu));
-            line(out, &msu_block(&format!("big_map_{k}"), &streams[k], msu));
-            line(out, &block(&format!("big_colors_{k}"), &colors));
+            out.msu_block(format!("big_tiles_{k}"), &big.tiles, msu);
+            out.msu_block(format!("big_map_{k}"), &streams[k], msu);
+            out.block(format!("big_colors_{k}"), &colors);
         }
         if let Some(t) = &big.mode7 {
             let (tiles, rows) = big_mode7(big.rows, t)?;
-            line(out, &block(&format!("big_m7_tiles_{k}"), &tiles));
-            line(out, &block(&format!("big_m7_rows_{k}"), &rows));
+            out.block(format!("big_m7_tiles_{k}"), &tiles);
+            out.block(format!("big_m7_rows_{k}"), &rows);
         }
     }
     Ok(())
@@ -2263,7 +2202,7 @@ fn frame_without_gaps(data: &[u8], tiles: usize) -> Vec<u8> {
     out
 }
 
-fn animations_section(out: &mut String, r: &Emit) -> Result<()> {
+fn animations_section(out: &mut Inc, r: &Emit) -> Result<()> {
     let a = &r.animations;
     let mut list: Vec<&crate::request::BattleAnimation> = a.list.iter().collect();
     list.sort_by_key(|x| x.number);
@@ -2385,32 +2324,29 @@ fn animations_section(out: &mut String, r: &Emit) -> Result<()> {
     Ok(())
 }
 
-fn title_section(out: &mut String, menu: Option<&Value>) -> Result<()> {
+fn title_section(out: &mut Inc, menu: Option<&Value>) -> Result<()> {
     out.push_str("\n; --- the title screen ---\n");
     match menu {
         None => {
-            line(out, &block("title_menu_tiles", &[0]));
-            line(out, &block("title_menu_cells", &[0]));
+            out.block("title_menu_tiles", &[0]);
+            out.block("title_menu_cells", &[0]);
         }
         Some(menu) => {
             // A 4-bit tile bank and one tilemap per selected option, one after
             // the other, first the ones without a save and then the ones with:
             // the console indexes them by multiplying.
-            line(
-                out,
-                &block("title_menu_tiles", &packed(&tiles(at(menu, "tiles")?)?, 4)),
-            );
+            out.block("title_menu_tiles", &packed(&tiles(at(menu, "tiles")?)?, 4));
             let mut plane = Vec::new();
             for tilemap in list_at(menu, "tilemaps")? {
                 plane.extend(cell_words(&ints(tilemap)?, PRIORITY_ABOVE));
             }
-            line(out, &block("title_menu_cells", &plane));
+            out.block("title_menu_cells", &plane);
         }
     }
     Ok(())
 }
 
-fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
+fn full_screens_section(out: &mut Inc, r: &Emit) -> Result<()> {
     out.push_str("\n; --- the full screens ---\n");
     out.push_str(&format!(
         "GAME_OVER_TILES = {}\n",
@@ -2429,7 +2365,7 @@ fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
         rows.push(("MSU_MISSING", "msu_missing_lz2", m));
     }
     if rows.is_empty() {
-        line(out, &block("screens_table", &[0]));
+        out.block("screens_table", &[0]);
         return Ok(());
     }
     out.push_str(
@@ -2443,10 +2379,9 @@ fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     out.push_str(&format!(".block {}\nscreens_table:\n", 8 * rows.len()));
     for (_, label, data) in &rows {
+        out.far(label);
         out.push_str(&format!(
-            "    .word .loword({})\n    .byte ^{}\n    .word {}, {}\n    .byte {}\n",
-            *label,
-            *label,
+            "    .word {}, {}\n    .byte {}\n",
             data.tiles * data.bpp * 8,
             data.colors * 2,
             data.first_color
@@ -2454,7 +2389,7 @@ fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     out.push('\n');
     for (_, label, data) in &rows {
-        line(out, &block(label, &data.stream));
+        out.block(label, &data.stream);
     }
     Ok(())
 }
@@ -2474,7 +2409,7 @@ struct Rest<'a> {
 }
 
 impl Rest<'_> {
-    fn write(&self, out: &mut String, _notes: &mut Vec<String>) -> Result<()> {
+    fn write(&self, out: &mut Inc, _notes: &mut Vec<String>) -> Result<()> {
         let (r, db, slots, t) = (self.r, self.db, self.slots, self.t);
         let screens = self.screens;
         let cell = CELL;
@@ -2482,17 +2417,14 @@ impl Rest<'_> {
         // --- the slots screen, in every cartridge: the save point opens it
         // from inside the game.
         out.push_str("\n; --- the slots screen ---\n");
-        line(
-            out,
-            &block("slot_tiles", &packed(&tiles(at(slots, "tiles")?)?, 4)),
-        );
+        out.block("slot_tiles", &packed(&tiles(at(slots, "tiles")?)?, 4));
         // Each cell block with its own label, named by a pointer table. The
         // bank of the slots and the menu goes with the priority bit set: the
         // actor choice turns on BG1, which at priority 0 would cover BG2.
         let mut slot_blocks: Vec<String> = Vec::new();
         for (mode, cells) in list_at(slots, "headers")?.iter().enumerate() {
             let name = format!("slot_hdr_{mode}");
-            line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
+            out.block(&name, &cell_words(&ints(cells)?, 1));
             slot_blocks.push(name);
         }
         // Two per slot, empty and full: the cursor is the System's, on BG1
@@ -2501,7 +2433,7 @@ impl Rest<'_> {
             for full in 0..2 {
                 let name = format!("slot_{number}_{full}");
                 let cells = &list(row)?[full];
-                line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
+                out.block(&name, &cell_words(&ints(cells)?, 1));
                 slot_blocks.push(name);
             }
         }
@@ -2509,7 +2441,7 @@ impl Rest<'_> {
         let mut face_block: BTreeMap<i64, usize> = BTreeMap::new();
         for (actor, cells) in self.faces {
             let name = format!("slot_face_{actor}");
-            line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
+            out.block(&name, &cell_words(&ints(cells)?, 1));
             face_block.insert(*actor, slot_blocks.len());
             slot_blocks.push(name);
         }
@@ -2520,21 +2452,15 @@ impl Rest<'_> {
         for (order, variants) in list_at(menu, "options")?.iter().enumerate() {
             for (disabled, cells) in list(variants)?.iter().enumerate() {
                 let name = format!("menu_option_{order}_{disabled}");
-                line(out, &block(&name, &cell_words(&ints(cells)?, 1)));
+                out.block(&name, &cell_words(&ints(cells)?, 1));
                 slot_blocks.push(name);
             }
         }
         let menu_currency_block = slot_blocks.len();
-        line(
-            out,
-            &block("menu_currency", &cell_words(&ints_at(menu, "currency")?, 1)),
-        );
+        out.block("menu_currency", &cell_words(&ints_at(menu, "currency")?, 1));
         slot_blocks.push("menu_currency".into());
         let menu_row_block = slot_blocks.len();
-        line(
-            out,
-            &block("menu_row", &cell_words(&ints_at(menu, "row")?, 1)),
-        );
+        out.block("menu_row", &cell_words(&ints_at(menu, "row")?, 1));
         slot_blocks.push("menu_row".into());
 
         // The text screens' inks: a palette per colour, all with the same
@@ -2565,26 +2491,20 @@ impl Rest<'_> {
             .get(('0' as usize) - 32)
             .copied()
             .unwrap_or(0) as u8;
-        line(out, &block("font_advance", &screen_font("advances", zero)?));
-        line(out, &block("font_reach", &screen_font("reach", 0)?));
+        out.block("font_advance", &screen_font("advances", zero)?);
+        out.block("font_reach", &screen_font("reach", 0)?);
         let item_palettes: Vec<Vec<Color>> = list_at(inks, "palettes")?
             .iter()
             .map(colors)
             .collect::<Result<_>>()?;
         let up = t.n("ITEM_UP") as usize;
-        line(
-            out,
-            &block(
-                "items_cgram",
-                &palettes_cgram(&item_palettes[..up.min(item_palettes.len())]),
-            ),
+        out.block(
+            "items_cgram",
+            &palettes_cgram(&item_palettes[..up.min(item_palettes.len())]),
         );
-        line(
-            out,
-            &block(
-                "item_cgram_uploads",
-                &palettes_cgram(&item_palettes[up.min(item_palettes.len())..]),
-            ),
+        out.block(
+            "item_cgram_uploads",
+            &palettes_cgram(&item_palettes[up.min(item_palettes.len())..]),
         );
         // The windows of the item and equipment screens, on BG1.
         let border = at(screens, "items_border")?;
@@ -2602,15 +2522,12 @@ impl Rest<'_> {
             }
             Ok(all)
         };
-        line(out, &block("items_border_tiles", &packed(&border_tiles, 8)));
-        line(out, &block("items_border_map", &words(border_map)?));
-        line(out, &block("items_border_bars", &bars(border_bars)?));
-        line(out, &block("eq_border_map", &words(eq_map)?));
-        line(out, &block("eq_border_bars", &bars(eq_bars)?));
-        line(
-            out,
-            &block("items_border_cgram", &cgram_bytes(&border_colors)),
-        );
+        out.block("items_border_tiles", &packed(&border_tiles, 8));
+        out.block("items_border_map", &words(border_map)?);
+        out.block("items_border_bars", &bars(border_bars)?);
+        out.block("eq_border_map", &words(eq_map)?);
+        out.block("eq_border_bars", &bars(eq_bars)?);
+        out.block("items_border_cgram", &cgram_bytes(&border_colors));
         // The battle's windows, on BG1 at 8bpp in the cells the scene does
         // not take: see `battle.rs` in `rm2k-snes-screens`. Per layout its
         // band's rows, and per layout and set the bars, sixteen records of
@@ -2620,15 +2537,15 @@ impl Rest<'_> {
         let bw = at(screens, "battle_windows")?;
         let bw_tiles = tiles(at(bw, "tiles")?)?;
         let bw_colors = colors(at(bw, "colors")?)?;
-        line(out, &block("ba_win_tiles", &packed(&bw_tiles, 8)));
-        line(out, &block("ba_win_cgram", &cgram_bytes(&bw_colors)));
+        out.block("ba_win_tiles", &packed(&bw_tiles, 8));
+        out.block("ba_win_cgram", &cgram_bytes(&bw_colors));
         let mut band = Vec::new();
         for layout in list_at(bw, "band")? {
             band.extend(words(layout)?);
         }
-        line(out, &block("ba_win_band", &band));
-        line(out, &block("ba_win_help", &words(at(bw, "help")?)?));
-        line(out, &block("ba_win_patches", &words(at(bw, "patches")?)?));
+        out.block("ba_win_band", &band);
+        out.block("ba_win_help", &words(at(bw, "help")?)?);
+        out.block("ba_win_patches", &words(at(bw, "patches")?)?);
         let mut records = Vec::new();
         for sets in list_at(bw, "bars")? {
             let sets = list(sets)?;
@@ -2652,7 +2569,7 @@ impl Rest<'_> {
                 }
             }
         }
-        line(out, &block("ba_win_bars", &records));
+        out.block("ba_win_bars", &records);
         out.push_str(&format!(
             "BA_WIN_TILES      = {}\nBA_WIN_FIRST      = {}\nBA_WIN_CGRAM      = {}\nBA_WIN_COLORS     = {}\n\
              BA_WIN_BAND_ROW   = {}\nBA_WIN_BAND_ROWS  = {}\nBA_WIN_HELP_ROWS  = {}\n",
@@ -2668,23 +2585,17 @@ impl Rest<'_> {
         let shop = at(screens, "shop_border")?;
         let ti_tiles = tiles(at(shop, "tiles")?)?;
         let ti_colors = colors(at(shop, "colors")?)?;
-        line(out, &block("ti_border_tiles", &packed(&ti_tiles, 8)));
-        line(out, &block("ti_border_cgram", &cgram_bytes(&ti_colors)));
+        out.block("ti_border_tiles", &packed(&ti_tiles, 8));
+        out.block("ti_border_cgram", &cgram_bytes(&ti_colors));
         let mut rows_words = Vec::new();
         for f in list_at(shop, "rows")? {
             rows_words.extend(ints(f)?);
         }
-        line(
-            out,
-            &block(
-                "ti_border_rows",
-                &words_le(rows_words.iter().map(|&w| w as u32)),
-            ),
+        out.block(
+            "ti_border_rows",
+            &words_le(rows_words.iter().map(|&w| w as u32)),
         );
-        line(
-            out,
-            &block("ti_border_patches", &words(at(shop, "patches")?)?),
-        );
+        out.block("ti_border_patches", &words(at(shop, "patches")?)?);
         let ti_map = t.n("TI_MAP");
         let mut stretches: Vec<i64> = Vec::new();
         let mut layer_stretches: Vec<i64> = Vec::new();
@@ -2697,19 +2608,13 @@ impl Rest<'_> {
             }
             stretches.extend([0, 0, 0]);
         }
-        line(
-            out,
-            &block(
-                "ti_stretches",
-                &words_le(stretches.iter().map(|&w| w as u32)),
-            ),
+        out.block(
+            "ti_stretches",
+            &words_le(stretches.iter().map(|&w| w as u32)),
         );
-        line(
-            out,
-            &block(
-                "ti_layer_stretches",
-                &words_le(layer_stretches.iter().map(|&w| w as u32)),
-            ),
+        out.block(
+            "ti_layer_stretches",
+            &words_le(layer_stretches.iter().map(|&w| w as u32)),
         );
         let mut ti_bars = Vec::new();
         let mut base_bars = vec![0i64];
@@ -2722,20 +2627,17 @@ impl Rest<'_> {
             }
             base_bars.push(base_bars[base_bars.len() - 1] + layer.len() as i64);
         }
-        line(
-            out,
-            &block("ti_bars", &words_le(ti_bars.iter().map(|&w| w as u32))),
-        );
+        out.block("ti_bars", &words_le(ti_bars.iter().map(|&w| w as u32)));
         let base_bytes: Vec<u8> = base_bars[..base_bars.len() - 1]
             .iter()
             .map(|&b| b as u8)
             .collect();
-        line(out, &block("ti_bar_base", &base_bytes));
+        out.block("ti_bar_base", &base_bytes);
         let modes: Vec<u8> = ints(t.v("TI_LAYER_OF_MODE"))?
             .into_iter()
             .map(|b| b as u8)
             .collect();
-        line(out, &block("ti_layer_mode", &modes));
+        out.block("ti_layer_mode", &modes);
         out.push_str(&format!(
             "TI_BORDER_VRAM    = ${:04X}\nTI_BORDER_MAP     = ${:04X}\nTI_BORDER_TILES   = {}\n\
              TI_BORDER_COLORS  = {}\nTI_BORDER_UP      = {}\n",
@@ -2755,12 +2657,6 @@ impl Rest<'_> {
         let mut party_k = Vec::new();
         let mut party_pointers = Vec::new();
         let mut party_cgram = Vec::new();
-        let palette16 = |colors: &[Color]| {
-            let mut sixteen = vec![[0u8; 3]];
-            sixteen.extend_from_slice(colors);
-            sixteen.resize(16, [0, 0, 0]);
-            cgram_bytes(&sixteen)
-        };
         let mut members: Vec<(i64, i64)> = Vec::new();
         // Two actors drawn with the same CharSet share it: in A Blurred Line
         // there are two Kershes and three with the same sheet's index.
@@ -2783,7 +2679,7 @@ impl Rest<'_> {
             }
             let k = stored.len() as i64;
             let label = format!("ti_party_tiles_{k}");
-            line(out, &block(&label, &bytes));
+            out.block(&label, &bytes);
             party_pointers.push(format!("    .byte {}", crate::asm::pointer(&label)));
             party_cgram.extend(&cgram);
             stored.push((bytes, cgram));
@@ -2804,29 +2700,26 @@ impl Rest<'_> {
                     .map_or(0xFF, |&(_, k)| k as u8),
             );
         }
-        line(out, &block("ti_party_k", &party_k));
-        line(
-            out,
-            &format!(".block {}\nti_party_ptr:", 3 * party_pointers.len().max(1)),
-        );
+        out.block("ti_party_k", &party_k);
+        out.line(&format!(
+            ".block {}\nti_party_ptr:",
+            3 * party_pointers.len().max(1)
+        ));
         if party_pointers.is_empty() {
-            line(out, "    .byte 0, 0, 0");
+            out.line("    .byte 0, 0, 0");
         }
         for p in &party_pointers {
-            line(out, p);
+            out.line(p);
         }
         if party_cgram.is_empty() {
             party_cgram.push(0);
         }
-        line(out, &block("ti_party_cgram", &party_cgram));
+        out.block("ti_party_cgram", &party_cgram);
         let arrows = tiles(at(party, "arrows")?)?;
-        line(out, &block("ti_arrow_tiles", &packed(&arrows, 4)));
-        line(
-            out,
-            &block(
-                "ti_arrow_cgram",
-                &palette16(&colors(at(party, "arrow_colors")?)?),
-            ),
+        out.block("ti_arrow_tiles", &packed(&arrows, 4));
+        out.block(
+            "ti_arrow_cgram",
+            &palette16(&colors(at(party, "arrow_colors")?)?),
         );
         let party_tile0 = int_at(party, "tile0")?;
         // The whole OAM the shop opens with: each member's twelve objects,
@@ -2847,7 +2740,7 @@ impl Rest<'_> {
             hidden(&mut oam);
         }
         oam.resize(544, 0);
-        line(out, &block("ti_party_oam", &oam));
+        out.block("ti_party_oam", &oam);
         out.push_str(&format!(
             "TI_PARTY_ACTORS   = {}\nTI_PARTY_TILE0    = {}\nTI_PARTY_VRAM     = ${:04X}\n\
              TI_ARROW_TILE0    = {}\nTI_ARROW_VRAM     = ${:04X}\nTI_PARTY_MEMBERS  = {}\n\
@@ -2887,17 +2780,14 @@ impl Rest<'_> {
             .iter()
             .map(colors)
             .collect::<Result<_>>()?;
-        line(out, &block("end_tiles", &packed(&end_tiles, 4)));
-        line(
-            out,
-            &block("end_map", &words_le(end_rows.iter().map(|&w| w as u32))),
-        );
-        line(out, &block("end_cgram", &palettes_cgram(&end_palettes)));
+        out.block("end_tiles", &packed(&end_tiles, 4));
+        out.block("end_map", &words_le(end_rows.iter().map(|&w| w as u32)));
+        out.block("end_cgram", &palettes_cgram(&end_palettes));
         let ramp: Vec<u8> = ints(t.v("END_RAMP"))?
             .into_iter()
             .map(|b| b as u8)
             .collect();
-        line(out, &block("end_ramp", &ramp));
+        out.block("end_ramp", &ramp);
         out.push_str(&format!(
             "END_TILES   = {}\nEND_ROW0    = {}\nEND_ROWS    = {}\nEND_ENTERS  = {}\nEND_NO      = {}\n\
              END_FRAMES = {}\nEND_STEP_SONG = {}\n",
@@ -3002,36 +2892,16 @@ impl Rest<'_> {
         let victory2_text = texts.add(&db_text(&shown, victory.get(1).map_or("", String::as_str)));
         let rom_enemies = ints_at(model, "enemies")?;
         let enemy_names = at(mtexts, "enemies")?;
-        let mut enemy_text = HashMap::new();
-        for &e in &rom_enemies {
-            enemy_text.insert(
-                e,
-                texts.add(&db_text(&shown, text_at(enemy_names, &e.to_string())?)),
-            );
-        }
+        let enemy_text = texts.add_each(&rom_enemies, |e| text_at(enemy_names, &e.to_string()))?;
         let actions = at(model, "actions")?;
         let rom_skills = ints_at(model, "skills")?;
         let skill_texts = at(mtexts, "skills")?;
-        let mut skill_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_text.insert(
-                h,
-                texts.add(&db_text(
-                    &shown,
-                    text_at(at(skill_texts, &h.to_string())?, "name")?,
-                )),
-            );
-        }
-        let mut skill_desc_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_desc_text.insert(
-                h,
-                texts.add(&db_text(
-                    &shown,
-                    text_at(at(skill_texts, &h.to_string())?, "description")?,
-                )),
-            );
-        }
+        let skill_text = texts.add_each(&rom_skills, |h| {
+            text_at(at(skill_texts, &h.to_string())?, "name")
+        })?;
+        let skill_desc_text = texts.add_each(&rom_skills, |h| {
+            text_at(at(skill_texts, &h.to_string())?, "description")
+        })?;
         // An item's description whole, for the battle's help window, which
         // has one line: the item screens split it in two, `3k + 1` and `3k +
         // 2`. Only the items the battle offers; the others point to text 0.
@@ -3063,18 +2933,9 @@ impl Rest<'_> {
                 .map_err(|b| Bad::answer(b.message().to_string()))
         };
         let taught = ints_at(model, "taught")?;
-        let mut whole_skill_text = HashMap::new();
-        for &h in &taught {
-            whole_skill_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.name)));
-        }
-        let mut skill_msg1_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_msg1_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.using_message1)));
-        }
-        let mut skill_msg2_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_msg2_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.using_message2)));
-        }
+        let whole_skill_text = texts.add_each(&taught, |h| Ok(&skill(h)?.name))?;
+        let skill_msg1_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message1))?;
+        let skill_msg2_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message2))?;
         let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
         for &a in &r.actors {
@@ -3157,7 +3018,7 @@ impl Rest<'_> {
         } else {
             texts.data.clone()
         };
-        line(out, &block("item_texts", &item_texts));
+        out.block("item_texts", &item_texts);
         if slot_blocks.len() > 255 {
             return Err(Bad::answer(format!(
                 "the slots screen has {} blocks and the tables that name them are one byte",
@@ -3169,21 +3030,16 @@ impl Rest<'_> {
             .iter()
             .map(colors)
             .collect::<Result<_>>()?;
-        line(out, &block("slot_cgram", &palettes_cgram(&slot_palettes)));
+        out.block("slot_cgram", &palettes_cgram(&slot_palettes));
 
         // The tables that name the cell blocks: outside bank 0, read with
         // `lda f:slot_block_lo, x`, because they grow with every face.
         out.push_str("\n.segment \"RODATA\"\n");
         for (field, prefix) in [("lo", "<"), ("hi", ">"), ("bk", "^")] {
-            out.push_str(&format!(
-                ".block {}\nslot_block_{field}:\n       .byte {}\n",
-                slot_blocks.len(),
-                slot_blocks
-                    .iter()
-                    .map(|e| format!("{prefix}{e}"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ));
+            out.bytes(
+                format!("slot_block_{field}"),
+                slot_blocks.iter().map(|e| format!("{prefix}{e}")),
+            );
         }
         // Where each row goes in the tilemap: in bank 0.
         out.push_str("\n.segment \"TABLES\"\n");
@@ -3192,10 +3048,7 @@ impl Rest<'_> {
                 i64::from(SLOT_MAP) + (t.n("SLOT_Y") + n * t.n("SLOT_STEP")).div_euclid(cell) * 32
             })
             .collect();
-        out.push_str(&format!(
-            "slot_vram:\n      .word {}\n",
-            decimal(row_of.iter()).join(", ")
-        ));
+        out.words_unplaced("slot_vram", &row_of);
         let faces_max = t.n("FACES_MAX");
         let face_vram: Vec<i64> = (0..SLOTS as usize)
             .flat_map(|n| {
@@ -3210,18 +3063,12 @@ impl Rest<'_> {
                 })
             })
             .collect();
-        out.push_str(&format!(
-            "slot_face_vram:\n      .word {}\n",
-            decimal(face_vram).join(", ")
-        ));
+        out.words_unplaced("slot_face_vram", face_vram);
         let name_vram: Vec<i64> = row_of
             .iter()
             .map(|r| r + t.n("NAME_ROW") * 32 + t.n("NAME_COL"))
             .collect();
-        out.push_str(&format!(
-            "slot_name_vram:\n        .word {}\n",
-            decimal(name_vram).join(", ")
-        ));
+        out.words_unplaced("slot_name_vram", name_vram);
         // A renamed actor that never joins has its row too: a message's
         // `\N[n]` and the slot screen look its name up there.
         let n_actors_slots = face_block
@@ -3233,13 +3080,12 @@ impl Rest<'_> {
             .unwrap_or(-1)
             .max(-1)
             + 1;
-        let face_blocks: Vec<String> = (0..n_actors_slots)
-            .map(|a| face_block.get(&a).map_or(0xFF, |&b| b as i64).to_string())
-            .collect();
+        let face_blocks =
+            (0..n_actors_slots).map(|a| face_block.get(&a).map_or(0xFF, |&b| b as i64));
         // By actor id: outside bank 0, read with `lda f:slot_face_block, x`,
         // because it grows with every actor.
         out.push_str(".segment \"RODATA\"\n");
-        bytes_asm(out, "slot_face_block", &face_blocks, true);
+        out.bytes("slot_face_block", face_blocks);
         out.push_str(".segment \"TABLES\"\n");
         // The pause menu: its blocks, and where each thing goes, in words.
         let vram_cell = |row: i64, col: i64| i64::from(SLOT_MAP) + row * 32 + col;
@@ -3292,44 +3138,32 @@ impl Rest<'_> {
             t.n("MENU_OPTIONS") + custom_n
         ));
         let done: BTreeSet<i64> = ints(t.v("MENU_DONE"))?.into_iter().collect();
-        out.push_str(&format!(
-            "menu_done:\n     .byte {}\n",
+        out.bytes_unplaced(
+            "menu_done",
             (0..t.n("MENU_OPTIONS") + custom_n)
-                .map(|n| if done.contains(&n) || n >= t.n("MENU_OPTIONS") {
-                    "1"
-                } else {
-                    "0"
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-        out.push_str(&format!(
-            "menu_option_vram:\n    .word {}\n",
-            decimal(
-                option_rows
-                    .iter()
-                    .map(|&f| vram_cell(f, t.n("MENU_OPT_COL")))
-            )
-            .join(", ")
-        ));
+                .map(|n| u8::from(done.contains(&n) || n >= t.n("MENU_OPTIONS"))),
+        );
+        out.words_unplaced(
+            "menu_option_vram",
+            option_rows
+                .iter()
+                .map(|&f| vram_cell(f, t.n("MENU_OPT_COL"))),
+        );
         // Where a party row's first cell goes: the actor choice's four
         // rows, and after them, at `MENU_ROWS_PARTY`, the pause menu's
         // first row, where it paints each member's to keep it —see
         // `menu_list_paint`—.
-        out.push_str(&format!(
-            "menu_row_vram:\n     .word {}\n",
-            decimal(
-                (0..t.n("MENU_PARTY_ROWS"))
-                    .map(|r| {
-                        vram_cell(
-                            t.n("TARGET_PARTY_ROW") + r * t.n("TARGET_ROW_CELLS"),
-                            t.n("TARGET_ACTOR_COL"),
-                        )
-                    })
-                    .chain([vram_cell(0, t.n("MENU_ACTOR_COL"))])
-            )
-            .join(", ")
-        ));
+        out.words_unplaced(
+            "menu_row_vram",
+            (0..t.n("MENU_PARTY_ROWS"))
+                .map(|r| {
+                    vram_cell(
+                        t.n("TARGET_PARTY_ROW") + r * t.n("TARGET_ROW_CELLS"),
+                        t.n("TARGET_ACTOR_COL"),
+                    )
+                })
+                .chain([vram_cell(0, t.n("MENU_ACTOR_COL"))]),
+        );
         // What the screen composes on the fly goes outside bank 0: it is read
         // with `lda f:`. The glyphs are indexed by character, and the ones
         // this cartridge does not use stay in the empty cell.
@@ -3340,104 +3174,65 @@ impl Rest<'_> {
         let target = at(screens, "target")?;
         let bg1_cell = |row: i64, col: i64| t.n("TARGET_MAP") + row * 32 + col;
         let cmd_at = ints_at(target, "menu_cmd_at")?;
-        let cmd_vram: Vec<String> = (0..t.n("MENU_OPTIONS") + custom_n)
-            .map(|n| {
+        out.words(
+            "menu_cursor_vram",
+            (0..t.n("MENU_OPTIONS") + custom_n).map(|n| {
                 bg1_cell(
                     cmd_at[0] + n * t.n("MENU_OPT_STEP").div_euclid(cell),
                     cmd_at[2],
                 )
-                .to_string()
-            })
-            .collect();
-        words_asm(out, "menu_cursor_vram", &cmd_vram, true);
+            }),
+        );
         let slot_at = ints_at(target, "slot_bar_at")?;
-        let slot_bar_vram: Vec<String> = (0..i64::from(SLOTS))
-            .map(|n| {
+        out.words(
+            "slot_bar_vram",
+            (0..i64::from(SLOTS)).map(|n| {
                 bg1_cell(
                     slot_at[0] + n * t.n("SLOT_STEP").div_euclid(cell),
                     slot_at[2],
                 )
-                .to_string()
-            })
-            .collect();
-        words_asm(out, "slot_bar_vram", &slot_bar_vram, true);
-        let empty = format!(
-            "${:04X}, ${:04X}",
-            entry(0, false, false, 0),
-            entry(0, false, false, 0)
+            }),
         );
+        // A cell's word, in the palette `palette` counts.
+        let cells = |cells: Vec<i64>, palette: u32| {
+            hex4(
+                cells
+                    .into_iter()
+                    .map(move |c| i64::from(entry(c as u32, false, false, palette))),
+            )
+        };
+        // Two cells a letter, the top and the bottom; the empty cell for the
+        // letters the cartridge does not use.
         let glyphs = at(menu, "glyphs")?;
         let first = t.n("ITEM_FIRST_CHAR");
         let chars = t.n("ITEM_CHARS");
         let mut glyph_cells = Vec::new();
         for n in first..first + chars {
             let letter = char::from_u32(n as u32).unwrap_or('?').to_string();
-            glyph_cells.push(match glyphs.get(&letter) {
-                Some(cells) => hex4(
-                    ints(cells)?
-                        .into_iter()
-                        .map(|c| i64::from(entry(c as u32, false, false, 1))),
-                )
-                .join(", "),
-                None => empty.clone(),
+            glyph_cells.extend(match glyphs.get(&letter) {
+                Some(letter) => cells(ints(letter)?, 1),
+                None => cells(vec![0, 0], 0),
             });
         }
-        out.push_str(&format!(
-            ".block {}\nslot_glyph_cells:\n        .word {}\n",
-            chars * 4,
-            glyph_cells.join(", ")
-        ));
-        let exp_term = ints_at(menu, "exp_term")?;
-        out.push_str(&format!(
-            ".block {}\nmenu_exp_finished:\n    .word {}\n",
-            2 * exp_term.len(),
-            hex4(
-                exp_term
-                    .into_iter()
-                    .map(|c| i64::from(entry(c as u32, false, false, 0)))
-            )
-            .join(", ")
-        ));
+        out.words("slot_glyph_cells", glyph_cells);
+        out.words("menu_exp_finished", cells(ints_at(menu, "exp_term")?, 0));
         // The SP term the same way: the actor choice's fourth line.
-        let sp_term = ints_at(menu, "sp_term")?;
-        out.push_str(&format!(
-            ".block {}\nmenu_sp_finished:\n    .word {}\n",
-            2 * sp_term.len(),
-            hex4(
-                sp_term
-                    .into_iter()
-                    .map(|c| i64::from(entry(c as u32, false, false, 0)))
-            )
-            .join(", ")
-        ));
+        out.words("menu_sp_finished", cells(ints_at(menu, "sp_term")?, 0));
         // And the pause menu's arrows, which go in sprites in a palette of
         // their own: see `MENU_ARROW_Y`.
-        let arrows = ints_at(menu, "arrows")?;
-        out.push_str(&format!(
-            ".block {}\nmenu_arrow_cells:\n    .word {}\n",
-            2 * arrows.len(),
-            hex4(
-                arrows
-                    .into_iter()
-                    .map(|c| i64::from(entry(c as u32, false, false, 0)))
-            )
-            .join(", ")
-        ));
+        out.words("menu_arrow_cells", cells(ints_at(menu, "arrows")?, 0));
         let mut arrow_colors = colors(at(menu, "arrow_colors")?)?;
         arrow_colors.resize(16, [0, 0, 0]);
-        line(out, &block("menu_arrow_cgram", &cgram_bytes(&arrow_colors)));
+        out.block("menu_arrow_cgram", &cgram_bytes(&arrow_colors));
         // The actor choice: its windows on BG1, a single tilemap and the bar
         // only where it changes; and each medicine's name in two lines.
         let target = at(screens, "target")?;
         let obj_tiles = tiles(at(target, "tiles")?)?;
         let obj_colors = colors(at(target, "colors")?)?;
-        line(out, &block("target_tiles", &packed(&obj_tiles, 8)));
-        line(out, &block("target_map", &words(at(target, "map")?)?));
-        line(out, &block("target_bars", &bars(at(target, "bars")?)?));
-        line(
-            out,
-            &block("menu_bar_cells", &words(at(target, "menu_bar")?)?),
-        );
+        out.block("target_tiles", &packed(&obj_tiles, 8));
+        out.block("target_map", &words(at(target, "map")?)?);
+        out.block("target_bars", &bars(at(target, "bars")?)?);
+        out.block("menu_bar_cells", &words(at(target, "menu_bar")?)?);
         let bar_at = ints_at(target, "menu_bar_at")?;
         out.push_str(&format!(
             "MENU_BAR_ROW0 = {}\nMENU_BAR_ROWS = {}\nMENU_BAR_COL0 = {}\nMENU_BAR_COLS = {}\n",
@@ -3450,14 +3245,14 @@ impl Rest<'_> {
             ("menu_cmd", "menu_cmd_at", "menu_cmd_cells", "MENU_CMD"),
             ("slot_bar", "slot_bar_at", "slot_bar_cells", "SLOT_BAR"),
         ] {
-            line(out, &block(name, &words(at(target, cells)?)?));
+            out.block(name, &words(at(target, cells)?)?);
             let bar_at = ints_at(target, at_key)?;
             out.push_str(&format!(
                 "{prefix}_ROW0 = {}\n{prefix}_ROWS = {}\n{prefix}_COL0 = {}\n{prefix}_COLS = {}\n",
                 bar_at[0], bar_at[1], bar_at[2], bar_at[3]
             ));
         }
-        line(out, &block("target_cgram", &cgram_bytes(&obj_colors)));
+        out.block("target_cgram", &cgram_bytes(&obj_colors));
         // The same choice for a skill: the cost's term over the count's,
         // and the bar over the whole party as its distinct cell rows and,
         // per party size, which goes on each row. See
@@ -3465,16 +3260,13 @@ impl Rest<'_> {
         let skill = at(target, "skill")?;
         let term_at = ints_at(skill, "term_at")?;
         let all_at = ints_at(skill, "all_at")?;
-        line(out, &block("target_term", &words(at(skill, "term")?)?));
-        line(
-            out,
-            &block("target_all_rows", &bars(at(skill, "all_rows")?)?),
-        );
+        out.block("target_term", &words(at(skill, "term")?)?);
+        out.block("target_all_rows", &bars(at(skill, "all_rows")?)?);
         let mut all_index = Vec::new();
         for which in list_at(skill, "all")? {
             all_index.extend(ints(which)?.into_iter().map(|k| k as u8));
         }
-        line(out, &block("target_all", &all_index));
+        out.block("target_all", &all_index);
         out.push_str(&format!(
             "TARGET_TERM_ROW0 = {}\nTARGET_TERM_ROWS = {}\nTARGET_TERM_COL0 = {}\nTARGET_TERM_COLS = {}\n\
              TARGET_ALL_ROW0 = {}\nTARGET_ALL_ROWS = {}\nTARGET_ALL_COL0 = {}\nTARGET_ALL_COLS = {}\n",
@@ -3519,7 +3311,7 @@ impl Rest<'_> {
                     .map_or(0xFF, |k| k as u8)
             })
             .collect();
-        line(out, &block("target_name", &target_name));
+        out.block("target_name", &target_name);
         let mut names: Vec<u8> = medicines
             .iter()
             .flat_map(|n| medicine_names[n].iter().copied())
@@ -3527,7 +3319,7 @@ impl Rest<'_> {
         if names.is_empty() {
             names.push(b' '); // a label over nothing would be no `.block`
         }
-        line(out, &block("target_names", &names));
+        out.block("target_names", &names);
         out.push_str(&format!(
             "TARGET_VRAM       = ${:04X}\nTARGET_MAP        = ${:04X}\nTARGET_TILES      = {}\n\
              TARGET_CGRAM      = {}\nTARGET_COLORS     = {}\nTARGET_NAME_WIDTH = {}\n\
@@ -3651,21 +3443,8 @@ impl Rest<'_> {
              NAME_SLOTS = {}\nSLOT_TEXT_ROWS = {n_actors_slots}\n",
             renamed_actors.len()
         ));
-        words_asm(
-            out,
-            "name_actor",
-            &decimal(renamed_actors.iter().copied()),
-            true,
-        );
-        out.push_str(&format!(
-            ".block {}\nslot_actor_text:\n        .byte {}\n",
-            strip.len().max(1),
-            if strip.is_empty() {
-                "0".to_string()
-            } else {
-                decimal(strip.iter()).join(", ")
-            }
-        ));
+        out.words("name_actor", renamed_actors.iter().copied());
+        out.bytes("slot_actor_text", or_zero(decimal(strip)));
         out.push_str(".segment \"TABLES\"\n");
         self.items_and_battle(
             out,
@@ -3752,7 +3531,7 @@ impl Rest<'_> {
     /// `tl_strip` reads as many letters as fit— and its length, and its
     /// ink; per ink, the palette entry of each glyph row, the cells'
     /// palette and the colour the skills screen uploads.
-    fn menu_states(&self, out: &mut String, t: &Geometry, states: &Value) -> Result<()> {
+    fn menu_states(&self, out: &mut Inc, t: &Geometry, states: &Value) -> Result<()> {
         let names: Vec<String> = list_at(states, "names")?
             .iter()
             .map(|n| text(n).map(str::to_string))
@@ -3797,17 +3576,12 @@ impl Rest<'_> {
             inks.len(),
             t.n("SK_STATE_PALETTE"),
         ));
-        bytes_asm(out, "state_names", &decimal(padded.iter()), true);
-        bytes_asm(
-            out,
-            "state_name_n",
-            &decimal(names.iter().map(|n| n.chars().count())),
-            true,
-        );
-        bytes_asm(out, "state_ink", &decimal(ints_at(states, "ink")?), true);
-        bytes_asm(out, "state_ink_rows", &decimal(rows), true);
-        words_asm(out, "state_ink_attr", &hex4(attr), true);
-        words_asm(out, "state_ink_cgram", &hex4(cgram), true);
+        out.bytes("state_names", padded.iter());
+        out.bytes("state_name_n", names.iter().map(|n| n.chars().count()));
+        out.bytes("state_ink", ints_at(states, "ink")?);
+        out.bytes("state_ink_rows", rows);
+        out.words("state_ink_attr", hex4(attr));
+        out.words("state_ink_cgram", hex4(cgram));
         out.push_str("; The end of the party's conditions.\n");
         Ok(())
     }
@@ -3818,7 +3592,7 @@ impl Rest<'_> {
     /// outside bank 0: what `battle_states.s` does with them. Every one of
     /// the database's goes, and not only the ones the troop pages give: the
     /// tables are a byte a field, and the bytecode names them by number.
-    fn states(&self, out: &mut String, x: &ItemTexts, n_actors: i64) -> Result<()> {
+    fn states(&self, out: &mut Inc, x: &ItemTexts, n_actors: i64) -> Result<()> {
         let db = self.db;
         let n = x.state_affected_text.len();
         if n > 256 {
@@ -3827,65 +3601,43 @@ impl Rest<'_> {
                 n - 1
             )));
         }
-        let per = |f: &dyn Fn(&ditto::schema::State) -> i64| -> Vec<String> {
-            decimal((0..n).map(|k| {
-                db.states
-                    .get(&(k as i32))
-                    .map_or(0, |st| f(st).clamp(0, 255))
-            }))
+        let per = |f: &dyn Fn(&ditto::schema::State) -> i64| -> Vec<i64> {
+            (0..n)
+                .map(|k| {
+                    db.states
+                        .get(&(k as i32))
+                        .map_or(0, |st| f(st).clamp(0, 255))
+                })
+                .collect()
         };
         out.push_str(&format!(
             "STATES_N = {n}
 "
         ));
-        bytes_asm(out, "state_priority", &per(&|st| st.priority.into()), true);
-        bytes_asm(
-            out,
-            "state_restrict",
-            &per(&|st| st.restriction.to_i32().into()),
-            true,
-        );
-        bytes_asm(out, "state_hold", &per(&|st| st.hold_turn.into()), true);
-        bytes_asm(
-            out,
-            "state_auto",
-            &per(&|st| st.auto_release_prob.into()),
-            true,
-        );
-        bytes_asm(
-            out,
-            "state_damage",
-            &per(&|st| st.release_by_damage.into()),
-            true,
-        );
-        bytes_asm(
-            out,
-            "state_hit",
-            &per(&|st| st.reduce_hit_ratio.into()),
-            true,
-        );
+        out.bytes("state_priority", per(&|st| st.priority.into()));
+        out.bytes("state_restrict", per(&|st| st.restriction.to_i32().into()));
+        out.bytes("state_hold", per(&|st| st.hold_turn.into()));
+        out.bytes("state_auto", per(&|st| st.auto_release_prob.into()));
+        out.bytes("state_damage", per(&|st| st.release_by_damage.into()));
+        out.bytes("state_hit", per(&|st| st.reduce_hit_ratio.into()));
         // Which parameters it halves, one bit each in the order of
         // `BA_ATK`, `BA_DEF`, `BA_SPI`, `BA_AGI`.
-        bytes_asm(
-            out,
+        out.bytes(
             "state_halves",
-            &per(&|st| {
+            per(&|st| {
                 i64::from(st.affect_attack)
                     | i64::from(st.affect_defense) << 1
                     | i64::from(st.affect_spirit) << 2
                     | i64::from(st.affect_agility) << 3
             }),
-            true,
         );
         // Whether the battle's end takes it away from an actor:
         // `State::RemoveAllBattle`, which keeps only the ones that persist
         // —`type` 1— and never wear off on their own —`auto_release_prob`
         // 0—.
-        bytes_asm(
-            out,
+        out.bytes(
             "state_end",
-            &per(&|st| i64::from(st.r#type.to_i32() != 1 || st.auto_release_prob > 0)),
-            true,
+            per(&|st| i64::from(st.r#type.to_i32() != 1 || st.auto_release_prob > 0)),
         );
         // What it does to its holder on the map, `Game_Party::
         // ApplyStateDamage`: four words per condition —every how many of
@@ -3919,7 +3671,7 @@ impl Rest<'_> {
             })
             .map(|v| v & 0xFFFF)
             .collect();
-        words_asm(out, "state_map", &decimal(map), true);
+        out.words("state_map", map);
         // And what it does each time its holder acts in battle,
         // `ApplyConditions`: four words per condition —the HP's
         // `hp_change_val` and `hp_change_max`, a percentage of the maximum,
@@ -3950,47 +3702,20 @@ impl Rest<'_> {
                 })
             })
             .collect();
-        words_asm(out, "state_turn", &decimal(turn), true);
-        bytes_asm(
-            out,
+        out.words("state_turn", turn);
+        out.bytes(
             "state_turn_loss",
-            &per(&|st| {
+            per(&|st| {
                 i64::from(st.hp_change_type.to_i32() == 0)
                     | i64::from(st.sp_change_type.to_i32() == 0) << 1
             }),
-            true,
         );
         self.state_odds(out, x, n_actors)?;
-        words_asm(
-            out,
-            "state_affected",
-            &decimal(x.state_affected_text.iter()),
-            true,
-        );
-        words_asm(
-            out,
-            "state_recovery",
-            &decimal(x.state_recovery_text.iter()),
-            true,
-        );
-        words_asm(
-            out,
-            "state_actor",
-            &decimal(x.state_actor_text.iter()),
-            true,
-        );
-        words_asm(
-            out,
-            "state_enemy",
-            &decimal(x.state_enemy_text.iter()),
-            true,
-        );
-        words_asm(
-            out,
-            "state_already",
-            &decimal(x.state_already_text.iter()),
-            true,
-        );
+        out.words("state_affected", x.state_affected_text.iter());
+        out.words("state_recovery", x.state_recovery_text.iter());
+        out.words("state_actor", x.state_actor_text.iter());
+        out.words("state_enemy", x.state_enemy_text.iter());
+        out.words("state_already", x.state_already_text.iter());
         Ok(())
     }
 }
@@ -4013,7 +3738,7 @@ impl Rest<'_> {
     /// * `st_ranks`: rows of `ST_USED_N` ranks, one per actor —its own,
     ///   before its armor— and then one per enemy, in `enemy_*` order: the
     ///   enemy `k`'s row is `ACTORS_N + k`.
-    fn state_odds(&self, out: &mut String, x: &ItemTexts, n_actors: i64) -> Result<()> {
+    fn state_odds(&self, out: &mut Inc, x: &ItemTexts, n_actors: i64) -> Result<()> {
         use rm2k_snes_battle::states as st;
         let (r, db) = (self.r, self.db);
         let mut lists: Vec<i64> = vec![0];
@@ -4087,26 +3812,24 @@ impl Rest<'_> {
             return Err(Bad::answer(format!("{} conditions given", used.len())));
         }
         out.push_str(&format!("ST_USED_N = {}\n", used.len()));
-        bytes_asm(out, "st_lists", &decimal(lists), true);
-        words_asm(out, "skill_st_at", &decimal(skill_at), true);
-        words_asm(out, "item_st_at", &decimal(item_at), true);
-        bytes_asm(out, "item_st_pct", &decimal(item_pct), true);
+        out.bytes("st_lists", lists);
+        out.words("skill_st_at", skill_at);
+        out.words("item_st_at", item_at);
+        out.bytes("item_st_pct", item_pct);
         let states_n = x.state_affected_text.len() as i64;
-        bytes_asm(
-            out,
+        out.bytes(
             "st_used",
-            &decimal((0..states_n).map(|id| {
+            (0..states_n).map(|id| {
                 used.iter()
                     .position(|&u| u == id)
                     .map_or(0xFF, |k| k as i64)
-            })),
-            true,
+            }),
         );
         let rates: Vec<i64> = used
             .iter()
             .flat_map(|&id| (0..5).map(move |rank| st::rate(db, id, rank).clamp(0, 100)))
             .collect();
-        bytes_asm(out, "st_rate", &decimal(rates), true);
+        out.bytes("st_rate", rates);
         let mut ranks = Vec::new();
         for a in 0..n_actors {
             for &id in &used {
@@ -4124,7 +3847,7 @@ impl Rest<'_> {
         if ranks.len() > 0x10000 {
             return Err(Bad::answer("the condition ranks don't fit in a bank"));
         }
-        bytes_asm(out, "st_ranks", &decimal(ranks), true);
+        out.bytes("st_ranks", ranks);
         Ok(())
     }
 }
@@ -4134,7 +3857,7 @@ fn bad(b: rm2k_snes_battle::Bad) -> Bad {
 }
 
 impl Rest<'_> {
-    fn items_and_battle(&self, out: &mut String, texts: &mut Texts, x: ItemTexts) -> Result<()> {
+    fn items_and_battle(&self, out: &mut Inc, texts: &mut Texts, x: ItemTexts) -> Result<()> {
         let (r, db, t) = (self.r, self.db, self.t);
         let cell = CELL;
         let items = &r.items;
@@ -4180,13 +3903,11 @@ impl Rest<'_> {
         // RM2k number, $FFFF for one the cartridge does not carry: ABL's
         // whole game carries 264 items, and until 2026-10-15 it was a byte.
         out.push_str(".segment \"RODATA\"\n");
-        words_asm(
-            out,
+        out.words(
             "item_k",
-            &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFFFF, |&k| k as i64))),
-            true,
+            (0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFFFF, |&k| k as i64)),
         );
-        words_asm(out, "item_id", &decimal(items.iter()), true);
+        out.words("item_id", items.iter());
         // Whether it goes in white and does something on the map, whether
         // it opens the actor choice, and whether it is a two-handed weapon.
         // Whether using it spends it is `item_uses`'s, below.
@@ -4219,7 +3940,7 @@ impl Rest<'_> {
                     },
             );
         }
-        bytes_asm(out, "item_use", &decimal(uses), true);
+        out.bytes("item_use", uses);
         out.push_str(&format!(
             "ITEM_USE_NO_TERRAIN_DAMAGE = ${ITEM_USE_NO_TERRAIN_DAMAGE:02X}\n"
         ));
@@ -4236,7 +3957,7 @@ impl Rest<'_> {
             })
             .collect();
         out.push_str(&format!("TERRAINS_N = {}\n", damage.len()));
-        words_asm(out, "terrain_damage", &decimal(damage), true);
+        out.words("terrain_damage", damage);
         // And what each adds to the steps to a battle: its `encounter_rate`,
         // which `encounter_step` adds to the accumulated rate, and the same
         // rate as the factor in 1/256 it multiplies the chance by —see
@@ -4250,8 +3971,8 @@ impl Rest<'_> {
             })
             .collect();
         let factor: Vec<i64> = rate.iter().map(|&r| encounters::factor(r)).collect();
-        words_asm(out, "terrain_encounter_rate", &decimal(rate), true);
-        words_asm(out, "terrain_encounter_factor", &decimal(factor), true);
+        out.words("terrain_encounter_rate", rate);
+        out.words("terrain_encounter_factor", factor);
         // And how much of a character standing on it is half hidden, its
         // `bush_depth`: 0 none, 1 a third, 2 half, 3 all. See `bush_oam` in
         // runtime/terrain_steps.s.
@@ -4262,7 +3983,7 @@ impl Rest<'_> {
                     .map_or(0, |t| i64::from(t.bush_depth.to_i32()).clamp(0, 3))
             })
             .collect();
-        bytes_asm(out, "terrain_bush", &decimal(bush), true);
+        out.bytes("terrain_bush", bush);
         // The skill a special item casts from the items screen, by its RM2k
         // number, 0 for none: the battle stage's `item_map_skill`.
         let map_skills: Vec<i64> = list_at(self.model, "item_map_skill")?
@@ -4285,113 +4006,76 @@ impl Rest<'_> {
                 _ => own,
             })
         };
-        words_asm(
-            out,
+        out.words(
             "item_switch",
-            &decimal(
-                items
-                    .iter()
-                    .zip(&map_skills)
-                    .map(|(&n, &h)| switch_of(n, h))
-                    .collect::<Result<Vec<_>>>()?,
-            ),
-            true,
+            items
+                .iter()
+                .zip(&map_skills)
+                .map(|(&n, &h)| switch_of(n, h))
+                .collect::<Result<Vec<_>>>()?,
         );
-        out.push_str(".segment \"TABLES\"\n");
         // What each item does in a battle: whether it goes in the list
         // —the battle stage's rule— and how much it heals.
-        out.push_str(".segment \"RODATA\"\n");
         let item_battle: Vec<i64> = list_at(self.model, "item_battle")?
             .iter()
             .map(|v| i64::from(v.as_bool().unwrap_or(false)))
             .collect();
-        bytes_asm(out, "item_battle", &decimal(item_battle), true);
+        out.bytes("item_battle", item_battle);
         // The skill a special item casts, as its place in the cartridge's
         // skill rows —`skill_*`—, or $FF for every other item: see
         // `ba_items_list` in battle_items.s. The model puts that skill in
         // `skills`.
         let rom_skills = ints_at(self.model, "skills")?;
-        let mut item_skill = Vec::new();
-        for v in list_at(self.model, "item_skill")? {
-            let h = v.as_i64().unwrap_or(0);
-            item_skill.push(if h == 0 {
-                0xFF
-            } else {
-                rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
-                    Bad::answer(format!(
-                        "an item casts skill {h}, which the cartridge does not carry"
-                    ))
-                })? as i64
-            });
-        }
-        if item_skill.len() != items.len() {
-            return Err(Bad::answer(
-                "the battle's `item_skill` and the items are not the same list",
-            ));
-        }
-        bytes_asm(out, "item_skill", &decimal(item_skill), true);
-        // And the one it casts from the items screen, the same way: see
-        // `item_cast_use` in item_skills.s.
-        let place_of = |h: i64| -> Result<i64> {
+        let place_of = |h: i64, where_: &str| -> Result<i64> {
             if h == 0 {
                 return Ok(0xFF);
             }
             Ok(rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
                 Bad::answer(format!(
-                    "an item casts skill {h} on the map, which the cartridge does not carry"
+                    "an item casts skill {h}{where_}, which the cartridge does not carry"
                 ))
             })? as i64)
         };
+        let item_skill = list_at(self.model, "item_skill")?
+            .iter()
+            .map(|v| place_of(v.as_i64().unwrap_or(0), ""))
+            .collect::<Result<Vec<_>>>()?;
+        if item_skill.len() != items.len() {
+            return Err(Bad::answer(
+                "the battle's `item_skill` and the items are not the same list",
+            ));
+        }
+        out.bytes("item_skill", item_skill);
+        // And the one it casts from the items screen, the same way: see
+        // `item_cast_use` in item_skills.s.
         let item_map_skill = map_skills
             .iter()
-            .map(|&h| place_of(h))
+            .map(|&h| place_of(h, " on the map"))
             .collect::<Result<Vec<_>>>()?;
-        bytes_asm(out, "item_map_skill", &decimal(item_map_skill), true);
-        words_asm(
-            out,
-            "ba_item_desc",
-            &decimal(x.item_desc_battle.iter().copied()),
-            true,
-        );
-        let per_item = |f: &dyn Fn(&ditto::schema::Item) -> i64| -> Result<Vec<String>> {
-            Ok(decimal(
-                items
-                    .iter()
-                    .map(|&n| item(n).map(f))
-                    .collect::<Result<Vec<_>>>()?,
-            ))
+        out.bytes("item_map_skill", item_map_skill);
+        out.words("ba_item_desc", x.item_desc_battle.iter().copied());
+        let per_item = |f: &dyn Fn(&ditto::schema::Item) -> i64| -> Result<Vec<i64>> {
+            items.iter().map(|&n| item(n).map(f)).collect()
         };
-        bytes_asm(
-            out,
-            "item_heal_rate",
-            &per_item(&|i| i.recover_hp_rate.into())?,
-            true,
-        );
-        words_asm(
-            out,
+        out.bytes("item_heal_rate", per_item(&|i| i.recover_hp_rate.into())?);
+        out.words(
             "item_heal_hp",
-            &per_item(&|i| i64::from(i.recover_hp).min(0xFFFF))?,
-            true,
+            per_item(&|i| i64::from(i.recover_hp).min(0xFFFF))?,
         );
-        bytes_asm(
-            out,
+        out.bytes(
             "item_heal_sp_rate",
-            &per_item(&|i| i.recover_sp_rate.into())?,
-            true,
+            per_item(&|i| i.recover_sp_rate.into())?,
         );
-        words_asm(
-            out,
+        out.words(
             "item_heal_sp",
-            &per_item(&|i| i64::from(i.recover_sp).min(0xFFFF))?,
-            true,
+            per_item(&|i| i64::from(i.recover_sp).min(0xFFFF))?,
         );
         // The `MED_*` bits of the runtime. A material is only what it is
         // —the editor keeps the fields of the type it had before, and RM2k
         // reads none of them for one—.
-        bytes_asm(
-            out,
+        out.bytes(
             "item_medicine",
-            &per_item(&|i| {
+            per_item(&|i| {
                 if i.r#type.to_i32() == rm2k_snes_battle::db::ITEM_MATERIAL {
                     return 8;
                 }
@@ -4402,7 +4086,6 @@ impl Rest<'_> {
                         0
                     }
             })?,
-            true,
         );
         // How many uses spend one of the item, `uses`, which the runtime
         // counts per item in `FAR_ITEM_USAGE` —`item_spend`—: The Book of
@@ -4410,17 +4093,15 @@ impl Rest<'_> {
         // normal items and the equipment, whatever their `uses` says:
         // `Game_Party::ConsumeItemUse` returns before looking at it for
         // them. The editor stops at 99, so it is a byte.
-        bytes_asm(
-            out,
+        out.bytes(
             "item_uses",
-            &per_item(&|i| {
+            per_item(&|i| {
                 if i.r#type.to_i32() < rm2k_snes_battle::db::ITEM_MEDICINE {
                     0
                 } else {
                     i64::from(i.uses).clamp(0, 255)
                 }
             })?,
-            true,
         );
         // What a material adds to an actor for good, six words per item in
         // the order of the runtime's `level_param`: maximum HP, maximum SP,
@@ -4444,32 +4125,17 @@ impl Rest<'_> {
                 });
             }
         }
-        words_asm(out, "item_up", &decimal(up), true);
-        out.push_str(".segment \"TABLES\"\n");
-        // The four text tables outside bank 0.
-        out.push_str(".segment \"RODATA\"\n");
+        out.words("item_up", up);
+        // The four text tables outside bank 0, like the ones above.
         for (field, prefix) in [("lo", "<"), ("hi", ">"), ("bk", "^")] {
-            out.push_str(&format!(".block {}\n", texts.offsets.len().max(1)));
-            let entries: Vec<String> = texts
+            let entries = texts
                 .offsets
                 .iter()
                 .map(|(ofs, _)| format!("{prefix}(item_texts + {ofs})"))
                 .collect();
-            out.push_str(&format!(
-                "item_txt_{field}:\n    .byte {}\n",
-                if entries.is_empty() {
-                    "0".to_string()
-                } else {
-                    entries.join(", ")
-                }
-            ));
+            out.bytes(format!("item_txt_{field}"), or_zero(entries));
         }
-        bytes_asm(
-            out,
-            "item_txt_n",
-            &decimal(texts.offsets.iter().map(|(_, n)| *n)),
-            true,
-        );
+        out.bytes("item_txt_n", texts.offsets.iter().map(|(_, n)| *n));
         // --- the equipment: per item its type, what it adds and who can
         // equip it; per actor its parameters and initial equipment.
         let n_actors = db
@@ -4479,28 +4145,21 @@ impl Rest<'_> {
             .max()
             .map_or(0, |m| i64::from(m) + 1);
         let pos = |row: i64, col: i64| row * 64 + col * 2;
-        bytes_asm(
-            out,
-            "item_type",
-            &per_item(&|i| i.r#type.to_i32().into())?,
-            true,
-        );
+        out.bytes("item_type", per_item(&|i| i.r#type.to_i32().into())?);
         let mut points = Vec::new();
         for &n in items {
             points.extend(rules::points(item(n)?).map(|p| p & 0xFFFF));
         }
-        words_asm(out, "item_points", &decimal(points), true);
-        bytes_asm(
-            out,
+        out.words("item_points", points);
+        out.bytes(
             "item_sp",
-            &per_item(&|i| {
+            per_item(&|i| {
                 if i.r#type.to_i32() == rm2k_snes_battle::db::ITEM_WEAPON {
                     i.sp_cost.into()
                 } else {
                     0
                 }
             })?,
-            true,
         );
         let mut equippable = Vec::new();
         for &n in items {
@@ -4521,7 +4180,7 @@ impl Rest<'_> {
                 equippable.push(bits);
             }
         }
-        bytes_asm(out, "item_actors", &decimal(equippable), true);
+        out.bytes("item_actors", equippable);
         out.push_str(".segment \"RODATA\"\n");
         let actor = |a: i64| db.actors.get(&(a as i32));
         let param = |a: i64, which: &str| -> Result<i64> {
@@ -4536,7 +4195,7 @@ impl Rest<'_> {
                 params.push(param(a, which)? & 0xFFFF);
             }
         }
-        words_asm(out, "actor_params", &decimal(params), true);
+        out.words("actor_params", params);
         // An actor's critical hit is its own `1 / critical_hit_chance` plus
         // its best weapon's bonus, added in floating point: see
         // `critical_percent` in `rm2k-snes-battle`. So the console does not
@@ -4563,32 +4222,16 @@ impl Rest<'_> {
         bonuses.sort();
         bonuses.dedup();
         let column = |b: i32| bonuses.iter().position(|&x| x == b).unwrap_or(0) as i64;
-        bytes_asm(
-            out,
-            "item_crit_k",
-            &per_item(&|i| column(crit_bonus(i)))?,
-            true,
-        );
+        out.bytes("item_crit_k", per_item(&|i| column(crit_bonus(i)))?);
         let row = |a: i64| owns.iter().position(|&o| o == own(a)).unwrap_or(0) * bonuses.len();
-        words_asm(
-            out,
-            "actor_crit_row",
-            &decimal((0..n_actors).map(|a| row(a) as i64)),
-            true,
-        );
+        out.words("actor_crit_row", (0..n_actors).map(|a| row(a) as i64));
         let mut table = Vec::new();
         for &o in &owns {
             for &b in &bonuses {
                 table.push(rules::critical_percent(o, b).clamp(0, 255));
             }
         }
-        bytes_asm(out, "crit_table", &decimal(table), true);
-        out.push_str(".segment \"TABLES\"\n");
-        out.push_str("\n.segment \"RODATA\"\n");
-        out.push_str(&format!(
-            ".block {}\n",
-            2 * n_actors as usize * EQUIPMENT_SLOTS
-        ));
+        out.bytes("crit_table", table);
         let mut initial = Vec::new();
         for a in 0..n_actors {
             match actor(a) {
@@ -4596,20 +4239,15 @@ impl Rest<'_> {
                 None => initial.extend([0; EQUIPMENT_SLOTS]),
             }
         }
-        out.push_str(&format!(
-            "equipment_initial:\n .word {}\n",
-            decimal(initial).join(", ")
-        ));
+        out.words("equipment_initial", initial);
         out.push_str("\n.segment \"TABLES\"\n");
-        words_asm(
-            out,
+        out.words_unplaced(
             "actor_txt",
-            &hex4((0..n_actors).map(|a| x.actor_text.get(&a).copied().unwrap_or(0xFFFF))),
-            false,
+            hex4((0..n_actors).map(|a| x.actor_text.get(&a).copied().unwrap_or(0xFFFF))),
         );
         // And each rename's, which `actor_name_txt` takes instead when the
         // actor carries it: see the runtime's `actor_names.s`.
-        words_asm(out, "name_txt", &hex4(x.name_text.iter().copied()), false);
+        out.words_unplaced("name_txt", hex4(x.name_text.iter().copied()));
         let eq_params: Vec<i64> = list(t.v("EQ_PARAMS"))?
             .iter()
             .map(|p| {
@@ -4617,9 +4255,9 @@ impl Rest<'_> {
                 Ok(pos(p[0], p[1]))
             })
             .collect::<Result<_>>()?;
-        words_asm(out, "eq_param_pos", &decimal(eq_params), false);
+        out.words_unplaced("eq_param_pos", eq_params);
         out.push_str(".segment \"RODATA\"\n");
-        words_asm(out, "item_price", &per_item(&|i| i.price.into())?, true);
+        out.words("item_price", per_item(&|i| i.price.into())?);
         out.push_str(".segment \"TABLES\"\n");
         out.push_str(&format!(
             "TI_TEXT           = {}\nTI_TEXT_HAVE      = {}\nTI_TEXT_CARRIED   = {}\nTI_TEXT_CURRENCY  = {}\n\
@@ -4691,18 +4329,18 @@ impl Rest<'_> {
         let hp: Vec<i64> = (0..n_actors)
             .map(|a| Ok(param(a, "maxhp")? & 0xFFFF))
             .collect::<Result<_>>()?;
-        words_asm(out, "actor_hpmax", &decimal(hp), true);
+        out.words("actor_hpmax", hp);
         let sp: Vec<i64> = (0..n_actors)
             .map(|a| Ok(param(a, "maxsp")? & 0xFFFF))
             .collect::<Result<_>>()?;
-        words_asm(out, "actor_spmax", &decimal(sp), true);
+        out.words("actor_spmax", sp);
         // And each actor's starting level, one byte: what a `ControlVars`
         // asking for the level of an actor who never fights —no `FAR_EXP`
         // slot— answers. See `actor_stat_other` in the runtime.
         let levels: Vec<i64> = (0..n_actors)
             .map(|a| actor(a).map_or(1, rules::level_of))
             .collect();
-        bytes_asm(out, "actor_level", &decimal(levels), true);
+        out.bytes("actor_level", levels);
         // `rm2k-snes-battle` leaves the segment in RODATA.
         out.push_str(&r.battle_tables.experience);
         self.skills_and_troops(out, texts, x, n_actors)
@@ -4710,7 +4348,7 @@ impl Rest<'_> {
 
     fn skills_and_troops(
         &self,
-        out: &mut String,
+        out: &mut Inc,
         _texts: &mut Texts,
         x: ItemTexts,
         n_actors: i64,
@@ -4723,65 +4361,36 @@ impl Rest<'_> {
             .enumerate()
             .map(|(k, &h)| (h, k))
             .collect();
-        let per_skill = |f: &dyn Fn(&ditto::schema::Skill) -> i64| -> Result<Vec<String>> {
-            Ok(decimal(
-                rom_skills
-                    .iter()
-                    .map(|&h| skill(h).map(f))
-                    .collect::<Result<Vec<_>>>()?,
-            ))
+        let per_skill = |f: &dyn Fn(&ditto::schema::Skill) -> i64| -> Result<Vec<i64>> {
+            rom_skills.iter().map(|&h| skill(h).map(f)).collect()
         };
-        let from = |m: &HashMap<i64, i64>| decimal(rom_skills.iter().map(|h| m[h]));
+        let from = |m: &HashMap<i64, i64>| rom_skills.iter().map(|h| m[h]).collect::<Vec<_>>();
         // --- the skills, one row per skill the cartridge carries, outside
         // bank 0 and declared: the battle reads them with `lda f:`.
-        words_asm(out, "skill_id", &decimal(rom_skills.iter()), true);
-        words_asm(out, "skill_txt", &from(&x.skill_text), true);
-        words_asm(out, "skill_desc", &from(&x.skill_desc_text), true);
-        words_asm(out, "skill_msg1", &from(&x.skill_msg1_text), true);
-        words_asm(out, "skill_msg2", &from(&x.skill_msg2_text), true);
-        words_asm(out, "skill_power", &per_skill(&|s| s.power.into())?, true);
-        words_asm(
-            out,
-            "skill_switch",
-            &per_skill(&|s| s.switch_id.into())?,
-            true,
-        );
-        bytes_asm(out, "skill_sp", &per_skill(&|s| s.sp_cost.into())?, true);
-        bytes_asm(
-            out,
-            "skill_type",
-            &per_skill(&|s| s.r#type.to_i32().into())?,
-            true,
-        );
+        out.words("skill_id", rom_skills.iter());
+        out.words("skill_txt", from(&x.skill_text));
+        out.words("skill_desc", from(&x.skill_desc_text));
+        out.words("skill_msg1", from(&x.skill_msg1_text));
+        out.words("skill_msg2", from(&x.skill_msg2_text));
+        out.words("skill_power", per_skill(&|s| s.power.into())?);
+        out.words("skill_switch", per_skill(&|s| s.switch_id.into())?);
+        out.bytes("skill_sp", per_skill(&|s| s.sp_cost.into())?);
+        out.bytes("skill_type", per_skill(&|s| s.r#type.to_i32().into())?);
         // 1 if the battle lets it be chosen, 0 if its list carries it grey
         // for everyone: `usable_in_battle`, a switch skill for the map.
-        bytes_asm(
-            out,
+        out.bytes(
             "skill_in_battle",
-            &per_skill(&|s| rm2k_snes_battle::rules::usable_in_battle(s).into())?,
-            true,
+            per_skill(&|s| rm2k_snes_battle::rules::usable_in_battle(s).into())?,
         );
-        bytes_asm(
-            out,
-            "skill_phys",
-            &per_skill(&|s| s.physical_rate.into())?,
-            true,
-        );
-        bytes_asm(
-            out,
-            "skill_mag",
-            &per_skill(&|s| s.magical_rate.into())?,
-            true,
-        );
-        bytes_asm(out, "skill_var", &per_skill(&|s| s.variance.into())?, true);
-        bytes_asm(out, "skill_hit", &per_skill(&|s| s.hit.into())?, true);
+        out.bytes("skill_phys", per_skill(&|s| s.physical_rate.into())?);
+        out.bytes("skill_mag", per_skill(&|s| s.magical_rate.into())?);
+        out.bytes("skill_var", per_skill(&|s| s.variance.into())?);
+        out.bytes("skill_hit", per_skill(&|s| s.hit.into())?);
         // Which failure it says when it did nothing, 0 to 3: `skill_failure_a`
         // to `_c` and `dodge`, the order of `RESULT_TERMS`. Since 2026-10-20.
-        bytes_asm(
-            out,
+        out.bytes(
             "skill_fail",
-            &per_skill(&|s| s.failure_message.clamp(0, 3).into())?,
-            true,
+            per_skill(&|s| s.failure_message.clamp(0, 3).into())?,
         );
         // What it touches, one bit each in the order `Skill::vExecute` looks
         // at them; bit 6 whether it targets enemies, 7 whether it ignores
@@ -4800,24 +4409,17 @@ impl Rest<'_> {
                     | i64::from(s.ignore_defense) << 7)
             })
             .collect::<Result<_>>()?;
-        bytes_asm(out, "skill_affects", &hex2(affects), true);
+        out.bytes("skill_affects", hex2(affects));
         // Whether it shifts its target's rank in the attributes it carries,
         // `affect_attr_defence`: see `ba_attr_shift` in battle_attributes.s.
         // Without an attribute it has nothing to shift.
-        bytes_asm(
-            out,
+        out.bytes(
             "skill_shifts",
-            &per_skill(&|s| {
+            per_skill(&|s| {
                 i64::from(s.affect_attr_defence && s.attribute_effects.iter().any(|&a| a))
             })?,
-            true,
         );
-        bytes_asm(
-            out,
-            "skill_scope",
-            &per_skill(&|s| s.scope.to_i32().into())?,
-            true,
-        );
+        out.bytes("skill_scope", per_skill(&|s| s.scope.to_i32().into())?);
         // What the skills screen needs of each one, from the screens stage:
         // the description's two lines as slices of `skill_desc` —the first's
         // length, and where the second starts and its length— and whether
@@ -4863,15 +4465,15 @@ impl Rest<'_> {
                 target_index.push(0xFF);
             }
         }
-        bytes_asm(out, "skill_line1_n", &decimal(lines[0].iter()), true);
-        bytes_asm(out, "skill_line2_at", &decimal(lines[1].iter()), true);
-        bytes_asm(out, "skill_line2_n", &decimal(lines[2].iter()), true);
-        bytes_asm(out, "skill_on_map", &decimal(field), true);
-        bytes_asm(out, "skill_target_name", &decimal(target_index), true);
+        out.bytes("skill_line1_n", lines[0].iter());
+        out.bytes("skill_line2_at", lines[1].iter());
+        out.bytes("skill_line2_n", lines[2].iter());
+        out.bytes("skill_on_map", field);
+        out.bytes("skill_target_name", target_index);
         if target_names.is_empty() {
             target_names.push(b' '); // a label over nothing would be no `.block`
         }
-        line(out, &block("skill_target_names", &target_names));
+        out.block("skill_target_names", &target_names);
         self.states(out, &x, n_actors)?;
         // The parallel common events, in the order of their numbers, which
         // is the order RM2k runs them in: see `compar_tick` in
@@ -4896,15 +4498,13 @@ impl Rest<'_> {
             }
             let mask = if *switch == 0 { 0 } else { 1 << (switch & 7) };
             out.push_str(&format!(
-                "    .byte {byte}, ${mask:02X}, {}\n    .word .loword(common_parallel_{n})\n    .byte ^common_parallel_{n}\n",
+                "    .byte {byte}, ${mask:02X}, {}\n",
                 u8::from(*pure)
             ));
+            out.far(&format!("common_parallel_{n}"));
         }
         for (_, n, _, code) in parallel {
-            line(
-                out,
-                &block(&format!("common_parallel_{n}"), &crate::hex::decode(code)?),
-            );
+            out.block(format!("common_parallel_{n}"), &crate::hex::decode(code)?);
         }
         // The shared common event bodies, by index, and the automatic ones:
         // see `common_events.s`. A cartridge without them carries the
@@ -4921,56 +4521,23 @@ impl Rest<'_> {
             .iter()
             .map(|(n, _)| format!("common_body_{n}"))
             .collect();
-        let or_dummy = |v: Vec<String>, dummy: &str| {
-            if v.is_empty() {
-                vec![dummy.to_string()]
-            } else {
-                v
-            }
-        };
         // A loop of calls has no deepest chain: the ROM's stack skips what
         // does not fit.
         out.push_str(&format!("COMMON_DEPTH = {}\n", commons.depth.unwrap_or(0)));
-        words_asm(
-            out,
+        out.words(
             "common_body_lo",
-            &or_dummy(
-                labels.iter().map(|l| format!(".loword({l})")).collect(),
-                "0",
-            ),
-            true,
+            labels.iter().map(|l| format!(".loword({l})")),
         );
-        words_asm(
-            out,
-            "common_body_bank",
-            &or_dummy(labels.iter().map(|l| format!("^{l}")).collect(), "0"),
-            true,
-        );
+        out.words("common_body_bank", labels.iter().map(|l| format!("^{l}")));
         out.push_str(&format!("COMAUTO_N = {}\n", commons.autostart.len()));
-        words_asm(
-            out,
-            "comauto_byte",
-            &or_dummy(decimal(commons.autostart.iter().map(|a| a.0 >> 3)), "0"),
-            true,
-        );
-        bytes_asm(
-            out,
+        out.words("comauto_byte", commons.autostart.iter().map(|a| a.0 >> 3));
+        out.bytes(
             "comauto_mask",
-            &or_dummy(
-                commons
-                    .autostart
-                    .iter()
-                    .map(|a| format!("${:02X}", 1 << (a.0 & 7)))
-                    .collect(),
-                "0",
-            ),
-            true,
+            or_zero(hex2(commons.autostart.iter().map(|a| 1 << (a.0 & 7)))),
         );
-        bytes_asm(
-            out,
+        out.bytes(
             "comauto_body",
-            &or_dummy(decimal(commons.autostart.iter().map(|a| a.1)), "0"),
-            true,
+            or_zero(decimal(commons.autostart.iter().map(|a| a.1))),
         );
         // Which automatic ones have copies in the maps, and which maps carry
         // them, a bit per map index: see `switch_of` in `common_events.s`.
@@ -4982,7 +4549,7 @@ impl Rest<'_> {
                     .is_some_and(|(n, _)| commons.copies.commons.contains(n)),
             )
         });
-        bytes_asm(out, "comauto_copied", &or_dummy(decimal(copied), "0"), true);
+        out.bytes("comauto_copied", or_zero(decimal(copied)));
         let mut bitmap = vec![0u8; r.maps.len().div_ceil(8).max(1)];
         for &m in &commons.copies.maps {
             let m = usize::try_from(m)
@@ -4995,9 +4562,9 @@ impl Rest<'_> {
                 })?;
             bitmap[m / 8] |= 1 << (m % 8);
         }
-        bytes_asm(out, "comcopy_maps", &decimal(bitmap), true);
+        out.bytes("comcopy_maps", bitmap);
         for ((_, code), label) in commons.bodies.iter().zip(&labels) {
-            line(out, &block(label, &crate::hex::decode(code)?));
+            out.block(label, &crate::hex::decode(code)?);
         }
         // What each actor knows: one bit per (actor, skill) pair, and per
         // actor where its pairs start and how many there are.
@@ -5044,36 +4611,32 @@ impl Rest<'_> {
                 switch_bytes(r.switch_top)?
             )
         ));
-        words_asm(out, "skill_pair_init", &decimal(skill_pair_start), true);
-        bytes_asm(out, "skill_pair_n", &decimal(skill_pair_n), true);
+        out.words("skill_pair_init", skill_pair_start);
+        out.bytes("skill_pair_n", skill_pair_n);
         let actors: BTreeSet<i64> = r.actors.iter().copied().collect();
-        bytes_asm(
-            out,
+        out.bytes(
             "skill_pair_k",
-            &decimal(pairs.iter().map(|&(a, h, _)| {
+            pairs.iter().map(|&(a, h, _)| {
                 if actors.contains(&a) {
                     skill_place.get(&h).map_or(0xFF, |&k| k as i64)
                 } else {
                     0xFF
                 }
-            })),
-            true,
+            }),
         );
-        bytes_asm(out, "skill_initial", &hex2(bits), true);
+        out.bytes("skill_initial", hex2(bits));
         // At which level the learning table teaches each pair, or 0.
         let pair_levels = ints_at(self.model, "pair_levels")?;
-        bytes_asm(out, "skill_pair_level", &decimal(pair_levels.iter()), true);
+        out.bytes("skill_pair_level", pair_levels.iter());
         // And the name the victory tells it by, or $FFFF.
-        words_asm(
-            out,
+        out.words(
             "skill_pair_learns_txt",
-            &hex4(pairs.iter().zip(&pair_levels).map(|(&(a, h, _), &level)| {
+            hex4(pairs.iter().zip(&pair_levels).map(|(&(a, h, _), &level)| {
                 match x.whole_skill_text.get(&h) {
                     Some(&k) if actors.contains(&a) && level > 0 => k,
                     _ => 0xFFFF,
                 }
             })),
-            true,
         );
         // 254 and not 256: $FF is the attack and $FE "none left".
         if rom_skills.len() > 254 {
@@ -5085,14 +4648,12 @@ impl Rest<'_> {
         // Five words per actor, its commands' texts —`ba_commands` in the
         // runtime's battle_skills.s—; `$FFFF` for an actor the cartridge
         // does not carry.
-        words_asm(
-            out,
+        out.words(
             "actor_command_txt",
-            &hex4((0..n_actors).flat_map(|a| match x.command_text.get(&a) {
+            hex4((0..n_actors).flat_map(|a| match x.command_text.get(&a) {
                 Some(row) => row.clone(),
                 None => vec![0xFFFF; BA_COMMAND_TERMS.len()],
             })),
-            true,
         );
         // The troops some battle asks for, by their RM2k number, and their
         // members.
@@ -5131,7 +4692,7 @@ impl Rest<'_> {
                 members.len()
             )));
         }
-        words_asm(out, "troop_id", &decimal(used.iter()), true);
+        out.words("troop_id", used.iter());
         let model_troops = list_at(self.model, "troops")?;
         let answered: Vec<i64> = model_troops
             .iter()
@@ -5142,31 +4703,21 @@ impl Rest<'_> {
                 "the battle stage answered for troops {answered:?} and the cartridge carries {used:?}"
             )));
         }
-        let troop_exp: Vec<i64> = model_troops
-            .iter()
-            .map(|t| int_at(t, "exp"))
-            .collect::<Result<_>>()?;
-        for (n, exp) in used.iter().zip(&troop_exp) {
-            if *exp > 0xFFFF {
-                return Err(Bad::answer(format!(
-                    "troop {n} gives {exp} experience and the ROM adds it in sixteen bits"
-                )));
+        for (field, what) in [("exp", "experience"), ("gold", "gold")] {
+            let values: Vec<i64> = model_troops
+                .iter()
+                .map(|t| int_at(t, field))
+                .collect::<Result<_>>()?;
+            for (n, v) in used.iter().zip(&values) {
+                if *v > 0xFFFF {
+                    return Err(Bad::answer(format!(
+                        "troop {n} gives {v} {what} and the ROM adds it in sixteen bits"
+                    )));
+                }
             }
+            out.words(format!("troop_{field}"), values);
         }
-        words_asm(out, "troop_exp", &decimal(troop_exp.iter()), true);
-        let troop_gold: Vec<i64> = model_troops
-            .iter()
-            .map(|t| int_at(t, "gold"))
-            .collect::<Result<_>>()?;
-        for (n, gold) in used.iter().zip(&troop_gold) {
-            if *gold > 0xFFFF {
-                return Err(Bad::answer(format!(
-                    "troop {n} gives {gold} gold and the ROM adds it in sixteen bits"
-                )));
-            }
-        }
-        words_asm(out, "troop_gold", &decimal(troop_gold.iter()), true);
-        words_asm(out, "troop_init", &decimal(starts), true);
+        out.words("troop_init", starts);
         // Which members start hidden, one bit per place.
         let mut hidden = Vec::new();
         let mut counts = Vec::new();
@@ -5181,9 +4732,9 @@ impl Rest<'_> {
             );
             counts.push(ms.len() as i64);
         }
-        bytes_asm(out, "troop_hidden", &hex2(hidden), true);
-        bytes_asm(out, "troop_n", &decimal(counts), true);
-        bytes_asm(out, "troop_member", &decimal(members.iter()), true);
+        out.bytes("troop_hidden", hex2(hidden));
+        out.bytes("troop_n", counts);
+        out.bytes("troop_member", members.iter());
         self.troop_pages(out, &used)?;
         // The random encounters, which `rm2k-snes-battle` wrote; they open no
         // segment and land in this RODATA.
@@ -5224,7 +4775,7 @@ impl Rest<'_> {
     /// * `attr_ranks`: rows of `ATTR_N` ranks, one per actor —its own,
     ///   before its armor— and then one per enemy, in `enemy_*` order: the
     ///   enemy `k`'s row is `ACTORS_N + k`.
-    fn attributes(&self, out: &mut String, x: &ItemTexts, n_actors: i64) -> Result<()> {
+    fn attributes(&self, out: &mut Inc, x: &ItemTexts, n_actors: i64) -> Result<()> {
         use rm2k_snes_battle::attributes as at;
         let (r, db) = (self.r, self.db);
         let n_db = db.attributes.len();
@@ -5296,12 +4847,10 @@ impl Rest<'_> {
                 rates.push(rate.max(-1) & 0xFFFF);
             }
         }
-        words_asm(out, "attr_rate", &decimal(rates), true);
-        bytes_asm(
-            out,
+        out.words("attr_rate", rates);
+        out.bytes(
             "attr_magic",
-            &decimal(used.iter().map(|&k| i64::from(!at::physical(attrs[k])))),
-            true,
+            used.iter().map(|&k| i64::from(!at::physical(attrs[k]))),
         );
         let mut rows: Vec<i64> = vec![0; n];
         let mut row_of: HashMap<Vec<i64>, usize> = HashMap::new();
@@ -5336,10 +4885,10 @@ impl Rest<'_> {
         if rows.len() > 0x10000 {
             return Err(Bad::answer("the attribute sets don't fit in a bank"));
         }
-        bytes_asm(out, "attr_sets", &decimal(rows), true);
-        words_asm(out, "item_attr", &decimal(item_rows), true);
-        words_asm(out, "skill_attr", &decimal(skill_rows), true);
-        words_asm(out, "skill_weapon", &decimal(weapon_rows), true);
+        out.bytes("attr_sets", rows);
+        out.words("item_attr", item_rows);
+        out.words("skill_attr", skill_rows);
+        out.words("skill_weapon", weapon_rows);
         let mut ranks = Vec::new();
         for a in 0..n_actors {
             for &k in &used {
@@ -5357,11 +4906,11 @@ impl Rest<'_> {
         if ranks.len() > 0x10000 {
             return Err(Bad::answer("the attribute ranks don't fit in a bank"));
         }
-        bytes_asm(out, "attr_ranks", &decimal(ranks), true);
+        out.bytes("attr_ranks", ranks);
         Ok(())
     }
 
-    fn troop_pages(&self, out: &mut String, used: &[i64]) -> Result<()> {
+    fn troop_pages(&self, out: &mut Inc, used: &[i64]) -> Result<()> {
         // Per troop, where its pages start and how many there are; per page,
         // its trigger and where its code is inside `troop_code`. All in
         // RODATA, each table in its `.block`.
@@ -5394,29 +4943,16 @@ impl Rest<'_> {
             )));
         }
         out.push_str(".segment \"RODATA\"\n");
-        words_asm(out, "troop_page_init", &decimal(page_start), true);
-        bytes_asm(out, "troop_page_n", &decimal(page_n), true);
+        out.words("troop_page_init", page_start);
+        out.bytes("troop_page_n", page_n);
         // A trigger: flags, switch_a, switch_b, slot, value, and the rest.
-        bytes_asm(
-            out,
-            "tpage_flags",
-            &hex2(entries.iter().map(|(d, _)| d[0])),
-            true,
-        );
-        words_asm(
-            out,
-            "tpage_sw_a",
-            &decimal(entries.iter().map(|(d, _)| d[1])),
-            true,
-        );
-        words_asm(
-            out,
+        out.bytes("tpage_flags", hex2(entries.iter().map(|(d, _)| d[0])));
+        out.words("tpage_sw_a", entries.iter().map(|(d, _)| d[1]));
+        out.words(
             "tpage_code",
-            &entries
+            entries
                 .iter()
-                .map(|(_, ofs)| format!(".loword(troop_code + {ofs})"))
-                .collect::<Vec<_>>(),
-            true,
+                .map(|(_, ofs)| format!(".loword(troop_code + {ofs})")),
         );
         // `switch_b` and the variable only if some page uses them: with none
         // the console never reads them, so the label is enough.
@@ -5427,27 +4963,21 @@ impl Rest<'_> {
         ] {
             let uses_it = entries.iter().any(|(d, _)| d[0] & i64::from(bit) != 0);
             let values = if uses_it {
-                decimal(entries.iter().map(|(d, _)| d[field] & 0xFFFF))
+                entries.iter().map(|(d, _)| d[field] & 0xFFFF).collect()
             } else {
                 Vec::new()
             };
-            words_asm(out, name, &values, true);
+            out.words(name, values);
         }
         let code = crate::json::bytes_at(pt, "code")?;
-        line(
-            out,
-            &block("troop_code", if code.is_empty() { &[0] } else { &code }),
-        );
-        line(
-            out,
-            &block("messages_troop", &crate::json::bytes_at(pt, "messages")?),
-        );
+        out.block("troop_code", if code.is_empty() { &[0] } else { &code });
+        out.block("messages_troop", &crate::json::bytes_at(pt, "messages")?);
         Ok(())
     }
 
     fn enemies_and_scene(
         &self,
-        out: &mut String,
+        out: &mut Inc,
         x: &ItemTexts,
         used: &[i64],
         n_actors: i64,
@@ -5456,42 +4986,30 @@ impl Rest<'_> {
         let (r, db) = (self.r, self.db);
         let enemy = |e: i64| db.enemy(e as i32).map_err(bad);
         let rom_enemies = &x.rom_enemies;
-        let per_enemy = |f: &dyn Fn(&ditto::schema::Enemy) -> i64| -> Result<Vec<String>> {
-            Ok(decimal(
-                rom_enemies
-                    .iter()
-                    .map(|&e| enemy(e).map(f))
-                    .collect::<Result<Vec<_>>>()?,
-            ))
+        let per_enemy = |f: &dyn Fn(&ditto::schema::Enemy) -> i64| -> Result<Vec<i64>> {
+            rom_enemies.iter().map(|&e| enemy(e).map(f)).collect()
         };
-        words_asm(out, "enemy_hp", &per_enemy(&|e| e.max_hp.into())?, true);
-        words_asm(out, "enemy_atk", &per_enemy(&|e| e.attack.into())?, true);
-        words_asm(out, "enemy_def", &per_enemy(&|e| e.defense.into())?, true);
-        words_asm(out, "enemy_agi", &per_enemy(&|e| e.agility.into())?, true);
-        words_asm(out, "enemy_spi", &per_enemy(&|e| e.spirit.into())?, true);
-        words_asm(out, "enemy_sp", &per_enemy(&|e| e.max_sp.into())?, true);
+        out.words("enemy_hp", per_enemy(&|e| e.max_hp.into())?);
+        out.words("enemy_atk", per_enemy(&|e| e.attack.into())?);
+        out.words("enemy_def", per_enemy(&|e| e.defense.into())?);
+        out.words("enemy_agi", per_enemy(&|e| e.agility.into())?);
+        out.words("enemy_spi", per_enemy(&|e| e.spirit.into())?);
+        out.words("enemy_sp", per_enemy(&|e| e.max_sp.into())?);
         // `Game_Enemy::GetHitChance`: 70 if it misses, 90 if not.
         let hit = |e: &ditto::schema::Enemy| if e.miss { 70 } else { 90 };
-        bytes_asm(out, "enemy_hit", &per_enemy(&|e| hit(e))?, true);
+        out.bytes("enemy_hit", per_enemy(&|e| hit(e))?);
         // The critical hit as a whole percentage: `1 / chance` times a
         // hundred, in floating point as RM2k —see `critical_percent`—.
-        bytes_asm(
-            out,
+        out.bytes(
             "enemy_crit",
-            &per_enemy(&|e| {
+            per_enemy(&|e| {
                 rules::critical_percent(e.critical_hit.then_some(e.critical_hit_chance), 0)
                     .clamp(0, 255)
             })?,
-            true,
         );
-        words_asm(
-            out,
-            "enemy_txt",
-            &decimal(rom_enemies.iter().map(|e| x.enemy_text[e])),
-            true,
-        );
-        words_asm(out, "enemy_exp", &per_enemy(&|e| e.exp.into())?, true);
-        words_asm(out, "enemy_gold", &per_enemy(&|e| e.gold.into())?, true);
+        out.words("enemy_txt", rom_enemies.iter().map(|e| x.enemy_text[e]));
+        out.words("enemy_exp", per_enemy(&|e| e.exp.into())?);
+        out.words("enemy_gold", per_enemy(&|e| e.gold.into())?);
         let known: BTreeSet<i64> = r.items.iter().copied().collect();
         for &e in rom_enemies {
             let drop = i64::from(enemy(e)?.drop_id);
@@ -5501,13 +5019,8 @@ impl Rest<'_> {
                 )));
             }
         }
-        words_asm(out, "enemy_drop", &per_enemy(&|e| e.drop_id.into())?, true);
-        bytes_asm(
-            out,
-            "enemy_drop_pct",
-            &per_enemy(&|e| e.drop_prob.into())?,
-            true,
-        );
+        out.words("enemy_drop", per_enemy(&|e| e.drop_id.into())?);
+        out.bytes("enemy_drop_pct", per_enemy(&|e| e.drop_prob.into())?);
         // What each enemy can do on its turn: per action, the skill as a `k`
         // or $FF for the attack, and its rating with bit 7 if not effective.
         let skill_place: HashMap<i64, usize> = x
@@ -5547,10 +5060,10 @@ impl Rest<'_> {
             )));
         }
         out.push_str(&format!("ACTIONS_MAX = {}\n", bs.n("ACTIONS_MAX")));
-        words_asm(out, "enemy_acc_init", &decimal(eacc_start), true);
-        bytes_asm(out, "enemy_acc_n", &decimal(eacc_n), true);
-        bytes_asm(out, "eacc_skill", &decimal(eacc_skill), true);
-        bytes_asm(out, "eacc_weight", &decimal(eacc_weight), true);
+        out.words("enemy_acc_init", eacc_start);
+        out.bytes("enemy_acc_n", eacc_n);
+        out.bytes("eacc_skill", eacc_skill);
+        out.bytes("eacc_weight", eacc_weight);
         self.attributes(out, x, n_actors)?;
         // The battle scene: the backdrops and the battlers, in the order of
         // `troop_id`.
@@ -5756,17 +5269,15 @@ impl Rest<'_> {
             )));
         }
         let undone: BTreeSet<i64> = ints(bs.v("BA_COMMAND_UNDONE"))?.into_iter().collect();
-        bytes_asm(
-            out,
+        out.bytes(
             "ba_command_gray",
-            &decimal((0..commands.len() as i64).map(|k| i64::from(undone.contains(&k)))),
-            true,
+            (0..commands.len() as i64).map(|k| i64::from(undone.contains(&k))),
         );
         out.push_str(".segment \"TABLES\"\n");
         self.tail(out)
     }
 
-    fn tail(&self, out: &mut String) -> Result<()> {
+    fn tail(&self, out: &mut Inc) -> Result<()> {
         let r = self.r;
         // `font_color` in bank 0: the console reads it with
         // `lda font_color, y`, which addresses the data bank.
@@ -5774,7 +5285,7 @@ impl Rest<'_> {
             .into_iter()
             .map(|c| c as u8)
             .collect();
-        line(out, &unplaced("font_color", &colors));
+        out.line(&unplaced("font_color", &colors));
         // And the entries the text takes, which a cell with letters over
         // the layer above finds in the text's copy of the layer's palette:
         // see `layer_text`.
@@ -5786,28 +5297,21 @@ impl Rest<'_> {
         if r.party.is_empty() {
             out.push_str("party_initial:                ; the party starts empty\n\n");
         } else {
-            out.push_str(&format!(
-                "party_initial:\n    .byte {}\n\n",
-                decimal(r.party.iter()).join(",")
-            ));
+            out.bytes_unplaced("party_initial", &r.party);
+            out.push('\n');
         }
-        line(out, &sine_table());
+        out.line(&sine_table());
         // How many frames a character stays still after a step and after a
         // turn, per route frequency: RM2k's stop counters. 0 does not
         // compile, nor 1 in a route; 1 is there for a page that walks by a
         // movement type, with its 256 frames after a step held at the
         // byte's 255 —see `route::own` in the compiler—.
         let per_frequency = |f: fn(u32) -> u32| {
-            decimal((0..=ROUTE_FREQUENCY).map(|q| if q >= 1 { f(q).min(255) } else { 0 })).join(",")
+            (0..=ROUTE_FREQUENCY).map(move |q| if q >= 1 { f(q).min(255) } else { 0 })
         };
-        out.push_str(&format!(
-            "route_after_step:\n  .byte {}\n",
-            per_frequency(wait_after_step)
-        ));
-        out.push_str(&format!(
-            "route_after_turn:\n  .byte {}\n\n",
-            per_frequency(wait_after_turn)
-        ));
+        out.bytes_unplaced("route_after_step", per_frequency(wait_after_step));
+        out.bytes_unplaced("route_after_turn", per_frequency(wait_after_turn));
+        out.push('\n');
         Ok(())
     }
 }
@@ -5815,17 +5319,16 @@ impl Rest<'_> {
 /// What used to be appended after the `.inc`: which entries of its palette
 /// the timer's digits use, per map, and where the harness writes the case
 /// number.
-fn timer_and_case(out: &mut String, r: &Emit) {
-    let masks: Vec<String> = r
-        .maps
-        .iter()
-        .map(|m| format!("${:04X}", m.sprite.as_ref().map_or(0, |s| s.timer_mask)))
-        .collect();
-    out.push_str(&format!(
-        "\n.segment \"RODATA\"\n.block {}\ntimer_mask:\n    .word {}\n",
-        2 * masks.len(),
-        masks.join(", ")
-    ));
+fn timer_and_case(out: &mut Inc, r: &Emit) {
+    out.push_str("\n.segment \"RODATA\"\n");
+    out.words(
+        "timer_mask",
+        hex4(
+            r.maps
+                .iter()
+                .map(|m| m.sprite.as_ref().map_or(0, |s| s.timer_mask)),
+        ),
+    );
     // The sandstorm's grains, four bytes per map —first tile, palette and
     // first entry—, only in a cartridge that carries them: the runtime
     // assembles the sandstorm only if this table is there. See
@@ -5834,37 +5337,19 @@ fn timer_and_case(out: &mut String, r: &Emit) {
         .iter()
         .any(|m| m.sprite.as_ref().is_some_and(|s| s.sand.is_some()))
     {
-        let grains: Vec<String> = r
-            .maps
-            .iter()
-            .map(|m| {
-                let (base, palette, first) =
-                    m.sprite.as_ref().and_then(|s| s.sand).unwrap_or((0, 0, 0));
-                format!("${base:04X}, ${:04X}", palette | first << 8)
-            })
-            .collect();
-        out.push_str(&format!(
-            ".block {}\nsand_table:\n    .word {}\n",
-            4 * grains.len(),
-            grains.join(", ")
-        ));
+        let grains = r.maps.iter().flat_map(|m| {
+            let (base, palette, first) =
+                m.sprite.as_ref().and_then(|s| s.sand).unwrap_or((0, 0, 0));
+            [base, palette | first << 8]
+        });
+        out.words("sand_table", hex4(grains));
     }
     // And what each map forbids, one byte per map: `map_access_enter`
     // writes it over the permissions when the map is entered.
-    let access: Vec<String> = r
-        .maps
-        .iter()
-        .map(|m| format!("${:02X}", m.access))
-        .collect();
-    out.push_str(&format!(
-        ".block {}\nmap_access:\n    .byte {}\n",
-        access.len().max(1),
-        if access.is_empty() {
-            "0".to_string()
-        } else {
-            access.join(", ")
-        }
-    ));
+    out.bytes(
+        "map_access",
+        or_zero(hex2(r.maps.iter().map(|m| i64::from(m.access)))),
+    );
     if let Some(slot) = r.case_slot {
         out.push_str(&format!("\nCASE_SLOT = {slot}\n"));
     }
@@ -5941,6 +5426,33 @@ mod tests {
         assert_eq!(switch_bytes(1643).unwrap(), 206);
         assert_eq!(switch_bytes(2047).unwrap(), 256);
         assert!(switch_bytes(2048).is_err());
+    }
+
+    /// Every term the battle and the skills screen name is one of the
+    /// database's, whether the game left it at its default or wrote its
+    /// own; and a name that is no term is refused.
+    #[test]
+    fn every_term_the_tables_name_is_the_databases() {
+        let names = BATTLE_TERMS
+            .iter()
+            .chain(RESULT_TERMS.iter())
+            .map(|(_, liblcf)| *liblcf)
+            .chain(["lvl_short"]);
+        let mut db = Db::default();
+        for name in names.clone() {
+            term(&db, name).unwrap_or_else(|_| panic!("{name} at its default"));
+        }
+        db.terms.gold_recieved_a = "Found ".to_string();
+        db.terms.lvl_short = "Nv".to_string();
+        assert_eq!(term(&db, "gold_recieved_a").unwrap(), "Found ");
+        assert_eq!(term(&db, "lvl_short").unwrap(), "Nv");
+        assert!(term(&db, "gold_received_a").is_err());
+        let dump =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../battle/tests/game/dump");
+        let game = Db::from_dump(&dump, true).unwrap();
+        for name in names {
+            term(&game, name).unwrap_or_else(|_| panic!("{name} in the test game"));
+        }
     }
 
     /// Zounds' terms, which taro saw as `Kazar 3'I?_???[?W…` in every
