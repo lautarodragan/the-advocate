@@ -5,8 +5,9 @@
 //! path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use rm2k_snes_events::{compile, culprits, scan, write, Bad, Game, Request, Result};
-use std::path::PathBuf;
+use rm2k_snes_events::stage::{self, Files};
+use rm2k_snes_events::{culprits, read_request, Bad, Game, Request, Result};
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 /// "A text has a letter the font does not have" is this tool answering no;
@@ -80,15 +81,21 @@ struct Args {
     out: PathBuf,
 }
 
-fn run(args: &Args, compiling: bool) -> Result<()> {
-    let request = Request::read(&args.request)?;
-    let game = Game::from_dump(&args.data, request.patches.clone())?;
-    let answer = if compiling {
-        compile(&game, &request)?
-    } else {
-        scan(&game, &request)?
-    };
-    write(&answer, &args.out)
+/// What a command answered, into `dir`, which is created if it is not
+/// there.
+fn write(dir: &Path, files: &Files) -> Result<()> {
+    let io = |path: &Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
+    std::fs::create_dir_all(dir).map_err(|e| io(dir, e))?;
+    for (name, bytes) in files {
+        let path = dir.join(name);
+        std::fs::write(&path, bytes).map_err(|e| io(&path, e))?;
+    }
+    Ok(())
+}
+
+fn run(args: &Args, answer: fn(&Path, &serde_json::Value) -> Result<Files>) -> Result<()> {
+    let request = read_request(&args.request)?;
+    write(&args.out, &answer(&args.data, &request)?)
 }
 
 fn run_culprits(c: &CulpritArgs) -> Result<()> {
@@ -106,8 +113,7 @@ fn run_culprits(c: &CulpritArgs) -> Result<()> {
     let judged = culprits::judge_game(&game, &request, c.every_map)?;
     let report = culprits::report(&judged);
     print!("{}", culprits::table(&report));
-    let io =
-        |path: &std::path::Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
+    let io = |path: &Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
     std::fs::create_dir_all(&args.out).map_err(|e| io(&args.out, e))?;
     let path = args.out.join(culprits::ANSWER_FILE);
     std::fs::write(&path, serde_json::to_string_pretty(&report).unwrap() + "\n")
@@ -117,8 +123,8 @@ fn run_culprits(c: &CulpritArgs) -> Result<()> {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Scan(args) => run(args, false),
-        Command::Compile(args) => run(args, true),
+        Command::Scan(args) => run(args, stage::scan),
+        Command::Compile(args) => run(args, stage::compile),
         Command::Culprits(args) => run_culprits(args),
     };
     match done {

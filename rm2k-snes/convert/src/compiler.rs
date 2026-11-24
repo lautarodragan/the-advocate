@@ -23,8 +23,15 @@ use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 
-const BINARY: &str = "rm2k-snes-events";
-const PROJECT: &str = "events";
+/// The compiler's two calls: see the module's comment.
+const SCAN: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-events",
+    command: "scan",
+};
+const COMPILE: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-events",
+    command: "compile",
+};
 
 /// How many lines of text fit in the message window: the cartridge's
 /// window, which the compiler cuts the boxes for and the screens draw.
@@ -233,9 +240,16 @@ impl<'a> Compiler<'a> {
         r
     }
 
-    fn run(&self, command_name: &str, request: Value) -> Result<Value> {
-        let written = stage::run(BINARY, PROJECT, command_name, &request, &self.data())?;
-        stage::json(&written, "events.json")
+    fn run(
+        &self,
+        stage: stage::Stage,
+        answer: fn(&std::path::Path, &Value) -> rm2k_snes_events::Result<stage::Files>,
+        request: Value,
+    ) -> Result<Value> {
+        let written = stage::call(stage, &request, &self.data(), || {
+            answer(&self.game.dump, &request)
+        })?;
+        stage::json(&written, rm2k_snes_events::ANSWER_FILE)
     }
 
     /// The first call: the indices, which pages of each map compile, each
@@ -274,7 +288,7 @@ impl<'a> Compiler<'a> {
         // and its twenty `ShowPicture`s of a digit would ask for a place
         // in the sprites.
         r.insert("counters".into(), Value::Array(counters(self.settings)?));
-        self.run("scan", Value::Object(r))
+        self.run(SCAN, rm2k_snes_events::stage::scan, Value::Object(r))
     }
 
     /// The second call: every page of the cartridge. `maps` are the
@@ -387,7 +401,7 @@ impl<'a> Compiler<'a> {
             let text = serde_json::to_string(&r).expect("a request is JSON");
             std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
         }
-        self.run("compile", Value::Object(r))
+        self.run(COMPILE, rm2k_snes_events::stage::compile, Value::Object(r))
     }
 
     /// A compile of a cartridge of `maps` built without converting them: no
@@ -441,7 +455,7 @@ impl<'a> Compiler<'a> {
             let text = serde_json::to_string(&r).expect("a request is JSON");
             std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
         }
-        self.run("compile", Value::Object(r))
+        self.run(COMPILE, rm2k_snes_events::stage::compile, Value::Object(r))
     }
 
     /// The boxes the compiler is handed: every text box of the game the
