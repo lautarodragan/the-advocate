@@ -8,11 +8,9 @@ use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::game::Skin;
 use rm2k_snes_screens::request::Json;
-use rm2k_snes_screens::{
-    borders, boxes, convert, faces, fit, layout, message_window, render, Bad, Game, Result,
-};
-use rm2k_snes_text::font::Font;
-use rm2k_snes_text::refit::Measure;
+use rm2k_snes_screens::stage::{self, Files, Place};
+use rm2k_snes_screens::{borders, boxes, convert, fit, layout, render, Bad, Result};
+use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -144,18 +142,16 @@ struct GameArgs {
 }
 
 impl GameArgs {
-    /// The game, with its RTP.
-    fn game(&self) -> Result<Game> {
-        let mut game = Game::from_dump(&self.data, &self.game_dir)?;
-        game.rtp_dir = self.rtp_dir.clone();
-        game.text_ink = self.text_ink;
-        if let Some(system) = &self.system {
-            game.use_system(system);
+    /// Where the game is, and how it is drawn.
+    fn place(&self) -> Place {
+        Place {
+            data: self.data.clone(),
+            game_dir: self.game_dir.clone(),
+            rtp_dir: self.rtp_dir.clone(),
+            system: self.system.clone(),
+            window_background: self.window_background.clone(),
+            text_ink: self.text_ink,
         }
-        if let Some(background) = &self.window_background {
-            game.use_window_background(background)?;
-        }
-        Ok(game)
     }
 }
 
@@ -198,41 +194,25 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
         .map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
 }
 
-/// The game, drawing with the font the request names: `font`, which is the
-/// project file's `[text] font` —`rm2k`, one the engine carries, or the
-/// path of a sheet—, spaced by its `letter_spacing`, and with the icons of
-/// the ExFont when the request names its sheet, `exfont`.
-///
-/// And with the Latin-1 letters the text screens write, `screen_letters`,
-/// carried —see `texts::carry_letters`—: every text a screen writes keeps
-/// them from here on.
-fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
-    let mut game = args.game()?;
-    game.use_font(
-        &json.text("font")?,
-        json.number_or("letter_spacing", 0)?,
-        json.exfont()?.as_deref(),
-    )?;
-    let letters = rm2k_snes_screens::texts::screen_letters(
-        &game,
-        &json.letters("letters")?,
-        &json.letters("screen_letters")?,
-    )?;
-    rm2k_snes_screens::texts::carry_letters(&letters.screens);
-    Ok(game)
+/// What a stage answered, into `out`, which is created if it is not there.
+fn write_files(out: &Path, files: &Files) -> Result<()> {
+    std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
+    for (name, bytes) in files {
+        let path = out.join(name);
+        std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    }
+    Ok(())
 }
 
-fn do_convert(args: &GameArgs) -> Result<()> {
-    let json = Json::read(&args.request)?;
-    let game = game_with_font(args, &json)?;
-    let request = json.convert()?;
-    let answer = convert::convert(&game, &request)?;
-    write(&args.out, "screens.json", &answer.to_string())
+/// One of the commands the converter calls: its stage function asked the
+/// request in `path`, its files into `out`.
+fn asked(path: &Path, out: &Path, answer: impl FnOnce(&Value) -> Result<Files>) -> Result<()> {
+    write_files(out, &answer(&Json::read(path)?.data)?)
 }
 
 fn do_render(args: &GameArgs) -> Result<()> {
     let json = Json::read(&args.request)?;
-    let game = game_with_font(args, &json)?;
+    let game = stage::game_with_font(&args.place(), &json)?;
     let skin = game.skin()?;
     let slots = json.index_or("slots", 0)?;
     let chosen = json.index_or("chosen", 0)?;
@@ -422,83 +402,8 @@ fn do_render(args: &GameArgs) -> Result<()> {
     Ok(())
 }
 
-/// How a request's window measures a line: `font` —the project file's
-/// `[text] font`, spaced by `letter_spacing`— and `width` in pixels; or `advances`, each glyph's from
-/// the space on, and `width`, which is the window the converter hands the
-/// event compiler, with its `letters`, the Latin-1 the font draws, each with
-/// its advance; or, without either, `columns` characters of RM2k's
-/// fixed-width font, which is how it was asked until 2026-10-03.
-fn measure_of(json: &Json) -> Result<Measure> {
-    if json.data.get("advances").is_some_and(|f| !f.is_null()) {
-        let mut advances: Vec<u8> = json
-            .numbers("advances")?
-            .into_iter()
-            .map(|a| a as u8)
-            .collect();
-        let mut half = 0;
-        for pair in json
-            .data
-            .get("letters")
-            .and_then(|l| l.as_array())
-            .into_iter()
-            .flatten()
-        {
-            let letter = pair
-                .get(0)
-                .and_then(|l| l.as_str())
-                .and_then(|l| l.chars().next());
-            let advance = pair.get(1).and_then(|a| a.as_u64());
-            let (Some(letter), Some(advance)) = (letter, advance) else {
-                return Err(Bad::answer(format!(
-                    "a window's `letters` are pairs of a letter and its advance: {pair}"
-                )));
-            };
-            // An icon's half: they all move the line the same.
-            if rm2k_snes_text::exfont::is_half(letter) {
-                half = advance as u8;
-                continue;
-            }
-            let at = (letter as u32).saturating_sub(32) as usize;
-            if advances.len() <= at {
-                advances.resize(at + 1, 0);
-            }
-            advances[at] = advance as u8;
-        }
-        return Ok(Measure::from_advances(advances, json.index_or("width", 0)?).with_icons(half));
-    }
-    if json.data.get("font").is_some_and(|f| !f.is_null()) {
-        let spacing = json.number_or("letter_spacing", 0)?;
-        let exfont = json.exfont()?;
-        let font = Font::named(&json.text("font")?, rm2k_snes_text::font::MINCHO)
-            .and_then(|f| f.with_spacing(spacing))
-            .and_then(|f| f.with_exfont_of(exfont.as_deref()))
-            .map_err(Bad::answer)?;
-        Ok(Measure::new(&font, json.index_or("width", 0)?))
-    } else {
-        Ok(Measure::columns(json.index_or("columns", 0)?))
-    }
-}
-
-fn do_boxes(args: &BoxesArgs) -> Result<()> {
-    let json = Json::read(&args.request)?;
-    let table = boxes::table(
-        &args.data,
-        &json.files("map_files")?,
-        &measure_of(&json)?,
-        json.index_or("lines", 0)?,
-    )?;
-    write(&args.out, "boxes.json", &table.to_string())
-}
-
-fn do_faces(args: &GameArgs) -> Result<()> {
-    let game = args.game()?;
-    let json = Json::read(&args.request)?;
-    let drawn = faces::draw(&game, &faces::requested(&json.data, &json.whose)?)?;
-    write(&args.out, "faces.json", &faces::answer(&drawn).to_string())
-}
-
 fn do_equip(args: &GameArgs) -> Result<()> {
-    let game = args.game()?;
+    let game = args.place().game()?;
     let json = Json::read(&args.request)?;
     let mut equipment: Vec<i32> = json
         .numbers("equipment")?
@@ -528,77 +433,6 @@ fn do_equip(args: &GameArgs) -> Result<()> {
     write(&args.out, "equip.json", &answer.to_string())
 }
 
-fn do_window(args: &GameArgs) -> Result<()> {
-    let game = args.game()?;
-    let skin = game.skin()?;
-    let others = Json::read(&args.request)?.systems()?;
-    let merges_json = |merges: &[adeleine::Merge]| -> Vec<serde_json::Value> {
-        merges
-            .iter()
-            .map(|m| serde_json::json!([m.victim, m.target, m.pixels]))
-            .collect()
-    };
-    if others.is_empty() {
-        let (brought, merges) = message_window::reduction(&skin)?;
-        let answer = serde_json::json!({
-            "colors": message_window::colors(&skin)?, "brought": brought, "merges": merges_json(&merges),
-            "system": game.system.system_name,
-        });
-        return write(&args.out, "window.json", &answer.to_string());
-    }
-    // Each other System is the same game drawn with it, over its own
-    // background or none: the starting one's does not carry over.
-    let mut skins = Vec::new();
-    for other in &others {
-        let mut drawn = args.game()?;
-        drawn.system_file = None;
-        drawn.use_system(&other.system);
-        drawn.window_background = None;
-        if let Some(background) = &other.background {
-            drawn.use_window_background(background)?;
-        }
-        if let Some(stretch) = other.stretch {
-            drawn.system.message_stretch = ditto::schema::SystemStretch::from_i32(stretch);
-        }
-        skins.push((other.system.clone(), drawn.skin()?));
-    }
-    let mut each = vec![message_window::text_rows(&skin)?];
-    for (_, s) in &skins {
-        each.push(message_window::text_rows(s)?);
-    }
-    let rows = message_window::common_rows(&each);
-    // The starting System's entries are the cartridge's, and the others fit
-    // in them: see `message_window::convert_with`.
-    let colors = message_window::colors_with(&skin, Some(&rows))?;
-    let mut systems = Vec::new();
-    for (name, s) in &skins {
-        let (brought, merges) = message_window::reduction_capped(s, Some(&rows), colors)?;
-        let window = message_window::convert_with(s, colors + 1, Some(&rows))?;
-        let gold = message_window::gold(s, &window, &game.font, &game.term("gold")?)?;
-        systems.push(serde_json::json!({
-            "system": name,
-            "window": convert::window_json(&window, &gold, &message_window::inks(s, &window, &game.font)),
-            "brought": brought,
-            "merges": merges_json(&merges),
-            "colors": colors,
-            "frame_fused": window.frame_fused,
-            "mixed_text_rows": message_window::mixed_text_rows(s),
-        }));
-    }
-    let (brought, merges) = message_window::reduction_with(&skin, Some(&rows))?;
-    let answer = serde_json::json!({
-        "colors": colors, "brought": brought, "merges": merges_json(&merges),
-        "system": game.system.system_name,
-        "text_rows": rows,
-        "systems": systems,
-    });
-    write(&args.out, "window.json", &answer.to_string())
-}
-
-fn do_layout(args: &LayoutArgs) -> Result<()> {
-    write(&args.out, "layout.json", &layout::publish().to_string())
-}
-
 fn do_refit(args: &LayoutArgs) -> Result<()> {
     let path = args
         .request
@@ -626,21 +460,33 @@ fn do_refit(args: &LayoutArgs) -> Result<()> {
                 .collect()
         })
         .collect::<Result<_>>()?;
-    let answer = boxes::refit_each(&boxes, &measure_of(&json)?, json.index_or("lines", 0)?);
+    let answer = boxes::refit_each(
+        &boxes,
+        &stage::measure_of(&json)?,
+        json.index_or("lines", 0)?,
+    );
     write(&args.out, "refit.json", &answer.to_string())
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Convert(args) => do_convert(args),
+        Command::Convert(args) => asked(&args.request, &args.out, |request| {
+            stage::convert(&args.place(), request)
+        }),
         Command::Render(args) => do_render(args),
-        Command::Boxes(args) => do_boxes(args),
-        Command::Faces(args) => do_faces(args),
-        Command::Layout(args) => do_layout(args),
+        Command::Boxes(args) => asked(&args.request, &args.out, |request| {
+            stage::boxes(&args.data, request)
+        }),
+        Command::Faces(args) => asked(&args.request, &args.out, |request| {
+            stage::faces(&args.place(), request)
+        }),
+        Command::Layout(args) => write_files(&args.out, &stage::layout()),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),
-        Command::Window(args) => do_window(args),
+        Command::Window(args) => asked(&args.request, &args.out, |request| {
+            stage::window(&args.place(), request)
+        }),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

@@ -16,41 +16,68 @@ use crate::stage;
 use crate::systems::Switched;
 use rm2k_project::windows::color_text;
 use rm2k_snes_mapdata::{cgram, vram};
+use rm2k_snes_screens::stage::Place;
 use serde_json::{json, Value};
 use std::ffi::OsString;
 
-const BINARY: &str = "rm2k-snes-screens";
-const PROJECT: &str = "screens";
+/// The screens' four stages; their `layout` is constants, a plain call.
+const SCREENS_BOXES: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-screens",
+    command: "boxes",
+};
+const SCREENS_FACES: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-screens",
+    command: "faces",
+};
+const SCREENS_WINDOW: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-screens",
+    command: "window",
+};
+const SCREENS_CONVERT: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-screens",
+    command: "convert",
+};
 
-fn game_flags(game: &Game) -> Vec<OsString> {
+/// Where the game is and how its screens are drawn, twice from the same
+/// values: as the flags the binary took, which the cache key reads, and as
+/// the [`Place`] the stage is called with. Built once so the two cannot
+/// say different things.
+fn game_place(game: &Game) -> (Vec<OsString>, Place) {
     let mut flags: Vec<OsString> = vec![
         "--data".into(),
         game.dump.clone().into_os_string(),
         "--game-dir".into(),
         game.game_dir.clone().into_os_string(),
     ];
+    let mut place = Place {
+        data: game.dump.clone(),
+        game_dir: game.game_dir.clone(),
+        ..Place::default()
+    };
     if let Some(rtp) = &game.rtp_dir {
         flags.extend(["--rtp-dir".into(), rtp.clone().into_os_string()]);
+        place.rtp_dir = Some(rtp.clone());
     }
     if let Some(system) = &game.system {
         flags.extend(["--system".into(), system.into()]);
+        place.system = Some(system.clone());
     }
     // The System the cartridge starts with: every screen is drawn with it,
     // and the message window of the others it switches to is asked for
     // apart —see `window_colors`—. A gradient goes as the one colour it is
     // drawn with until the runtime draws it.
     if let Some(background) = game.window_background(&game.starting_system()) {
-        flags.extend([
-            "--window-background".into(),
-            color_text(background.flat()).into(),
-        ]);
+        let background = color_text(background.flat());
+        flags.extend(["--window-background".into(), background.clone().into()]);
+        place.window_background = Some(background);
     }
     // And the box's ink, in a cartridge whose boxes type a colour: one entry
     // of the window's palette, in every screen that counts it.
     if game.text_ink {
         flags.push("--text-ink".into());
+        place.text_ink = true;
     }
-    flags
+    (flags, place)
 }
 
 /// Every text box of the game the port rebuilds for the console's window,
@@ -66,12 +93,11 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
         "width": width,
         "lines": lines,
     });
-    let written = stage::run(
-        BINARY,
-        PROJECT,
-        "boxes",
+    let written = stage::call(
+        SCREENS_BOXES,
         &request,
         &["--data".into(), game.dump.clone().into_os_string()],
+        || rm2k_snes_screens::stage::boxes(&game.dump, &request),
     )?;
     stage::json(&written, "boxes.json")
 }
@@ -89,7 +115,10 @@ pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Value>> {
     }
     let request =
         json!({"faces": faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()});
-    let written = stage::run(BINARY, PROJECT, "faces", &request, &game_flags(game))?;
+    let (flags, place) = game_place(game);
+    let written = stage::call(SCREENS_FACES, &request, &flags, || {
+        rm2k_snes_screens::stage::faces(&place, &request)
+    })?;
     let answer = stage::json(&written, "faces.json")?;
     answer["faces"]
         .as_array()
@@ -124,7 +153,10 @@ pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)>
     } else {
         json!({"systems": crate::systems::window_request(game, switched)})
     };
-    let written = stage::run(BINARY, PROJECT, "window", &request, &game_flags(game))?;
+    let (flags, place) = game_place(game);
+    let written = stage::call(SCREENS_WINDOW, &request, &flags, || {
+        rm2k_snes_screens::stage::window(&place, &request)
+    })?;
     let answer = stage::json(&written, "window.json")?;
     let colors = answer["colors"]
         .as_u64()
@@ -138,10 +170,10 @@ pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)>
 }
 
 /// The geometry the screens are drawn with, by the names the emission
-/// writes it with.
+/// writes it with. Constants, which no game changes: not worth a cache
+/// entry.
 pub fn layout() -> Result<Value> {
-    let written = stage::run(BINARY, PROJECT, "layout", &json!({}), &[])?;
-    stage::json(&written, "layout.json")
+    stage::json(&rm2k_snes_screens::stage::layout(), "layout.json")
 }
 
 /// How many pixels a line of the message window takes: the screens'.
@@ -230,6 +262,9 @@ pub fn convert(
     if menus["debug"].as_bool() == Some(true) {
         request["debug"] = json!(true);
     }
-    let written = stage::run(BINARY, PROJECT, "convert", &request, &game_flags(game))?;
+    let (flags, place) = game_place(game);
+    let written = stage::call(SCREENS_CONVERT, &request, &flags, || {
+        rm2k_snes_screens::stage::convert(&place, &request)
+    })?;
     stage::json(&written, "screens.json")
 }
