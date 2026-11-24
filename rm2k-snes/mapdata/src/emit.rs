@@ -27,6 +27,7 @@ use crate::vram::{
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::encounters;
 use rm2k_snes_battle::rules;
+use rm2k_snes_events::answer::BattleAudio;
 use rm2k_snes_screens::answer::{Answer, OtherSystem, SystemWindow};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -4961,20 +4962,12 @@ impl Rest<'_> {
         // got, $FF or $FFFF when the database has them off. The battle's
         // package goes after the maps', so its index is how many maps there
         // are.
-        let audio = r
-            .battle_audio
-            .as_ref()
-            .filter(|a| a.as_object().is_some_and(|o| !o.is_empty()));
-        let get = |name: &str, missing: i64| -> i64 {
-            audio
-                .and_then(|a| a.get(name))
-                .and_then(Value::as_i64)
-                .unwrap_or(missing)
-        };
+        let audio = r.battle_audio.as_ref();
+        let song = |which: fn(&BattleAudio) -> usize| audio.map_or(0xFF, which);
         out.push_str(&format!(
             "BA_SONG           = ${:02X}\nBA_SONG_END       = ${:02X}\nBA_PACKAGE        = ${:04X}\n",
-            get("battle_music", 0xFF),
-            get("battle_end_music", 0xFF),
+            song(|a| a.battle_music),
+            song(|a| a.battle_end_music),
             if audio.is_some() {
                 r.maps.len() as i64
             } else {
@@ -4985,17 +4978,13 @@ impl Rest<'_> {
         // fade-in, as `OP_BGM` carries them—, which a `ChangeSystemBGM`
         // changes: see `bgm_level_reset` in runtime/bgm_level.s. A request
         // without them is the song as written.
-        for (name, prefix) in [
-            ("battle_music_level", "BA_SONG"),
-            ("battle_end_music_level", "BA_SONG_END"),
-        ] {
-            let level: Vec<i64> = audio
-                .and_then(|a| a.get(name))
-                .and_then(Value::as_array)
-                .map(|l| l.iter().filter_map(Value::as_i64).collect())
-                .filter(|l: &Vec<i64>| l.len() == 6)
-                .unwrap_or_else(|| vec![128, 128, 0, 1, 0, 0]);
-            let word = |i: usize| level[i] | level[i + 1] << 8;
+        let levels: [(fn(&BattleAudio) -> [u8; 6], &str); 2] = [
+            (|a| a.battle_music_level, "BA_SONG"),
+            (|a| a.battle_end_music_level, "BA_SONG_END"),
+        ];
+        for (which, prefix) in levels {
+            let level = audio.map_or([128, 128, 0, 1, 0, 0], which);
+            let word = |i: usize| u16::from(level[i]) | u16::from(level[i + 1]) << 8;
             out.push_str(&format!(
                 "{:<18}= ${:04X}\n{:<18}= ${:04X}\n{:<18}= ${:04X}\n",
                 format!("{prefix}_GAINS"),
@@ -5006,16 +4995,21 @@ impl Rest<'_> {
                 word(4)
             ));
         }
-        for (name, constant) in [
-            ("dodge_se", "BA_SE_MISS"),
-            ("enemy_attack_se", "BA_SE_ATTACK"),
-            ("enemy_damaged_se", "BA_SE_DAMAGE_ENEMY"),
-            ("actor_damaged_se", "BA_SE_DAMAGE_ACTOR"),
-            ("enemy_death_se", "BA_SE_DEATH"),
-            ("escape_se", "BA_SE_FLEE"),
-            ("item_se", "BA_SE_ITEM"),
-        ] {
-            out.push_str(&format!("{:<18}= ${:04X}\n", constant, get(name, 0xFFFF)));
+        let effects: [(fn(&BattleAudio) -> usize, &str); 7] = [
+            (|a| a.dodge_se, "BA_SE_MISS"),
+            (|a| a.enemy_attack_se, "BA_SE_ATTACK"),
+            (|a| a.enemy_damaged_se, "BA_SE_DAMAGE_ENEMY"),
+            (|a| a.actor_damaged_se, "BA_SE_DAMAGE_ACTOR"),
+            (|a| a.enemy_death_se, "BA_SE_DEATH"),
+            (|a| a.escape_se, "BA_SE_FLEE"),
+            (|a| a.item_se, "BA_SE_ITEM"),
+        ];
+        for (which, constant) in effects {
+            out.push_str(&format!(
+                "{:<18}= ${:04X}\n",
+                constant,
+                audio.map_or(0xFFFF, which)
+            ));
         }
         out.push_str(&format!(
             "BA_TXT_VICTORY2   = {}\nBA_VIC_FINISHED_N = {}\n",

@@ -19,6 +19,7 @@ use crate::bank::{self, Key, Samples};
 use crate::cartridge::{self, Cartridge};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
+use crate::relief::Loss;
 use crate::samples::SoundFontSamples;
 use crate::{compile as compiler, emit, job, msu, msu_data};
 use ditto::dump::Dump;
@@ -108,9 +109,8 @@ pub fn compile(
     };
     let music = compiler::build(job, game, &samples)?;
     // What a package lost to fit in the ARAM, said here and in `audio.json`
-    // —`losses`—, which is where the converter takes it from for
-    // `degradations.json`: this runs after the converter, so it cannot hand
-    // them over any other way. See `relief`.
+    // —`losses`—; `cartridge` also answers them, for `degradations.json`.
+    // See `relief`.
     for loss in &music.losses {
         println!("  WARNING, {}", loss.text);
     }
@@ -377,10 +377,18 @@ mod hex_pairs {
     }
 }
 
+/// What [`cartridge`] answers: its files, and what the music lost to fit in
+/// the ARAM —a package's songs that its `PlayBGM` uploads, its sound effects
+/// left out—, which `audio.json` also says.
+pub struct Answer {
+    pub files: Files,
+    pub losses: Vec<Loss>,
+}
+
 /// `cartridge`: a cartridge's music, from what the event compiler asked
 /// for, as `musicdata.inc`, `music.json`, `audio.json`, `audio-job.json`,
 /// `effects.json` and the `.msu` —under [`MSU`]—.
-pub fn cartridge(flags: &Flags, request: &Request) -> Result<Files> {
+pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
     let game = flags.place.game()?;
 
     // The game, from the dump, with the nodes the project added on top.
@@ -628,7 +636,10 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Files> {
             names(&all)
         }
     ));
-    Ok(files)
+    Ok(Answer {
+        files,
+        losses: music.losses.clone(),
+    })
 }
 
 fn unhex(text: &str) -> Option<Vec<u8>> {

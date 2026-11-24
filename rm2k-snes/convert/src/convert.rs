@@ -1917,7 +1917,7 @@ pub fn run(options: Options) -> Result<()> {
         msu_missing: msu_missing.as_ref().map(fullscreen::Screen::request),
         animations: animations::request(&animations)?,
         troops: troops.ids.iter().map(|&t| t.into()).collect(),
-        battle_audio: emit::typed(&compiled.battle_audio)?,
+        battle_audio: compiled.battle_audio.clone(),
         scene: scene::request(&scenes, &troops.ids, &game.db)?,
         battle_tables,
         troop_pages: Some(compiled.troop_pages.clone()),
@@ -2061,10 +2061,7 @@ pub fn run(options: Options) -> Result<()> {
         .map(rm2k_project::absolute)
         .unwrap_or_else(|| directory.join("datos.msu"));
     let request = rm2k_snes_audio::stage::Request {
-        // The event compiler's answer keeps its songs as JSON: they are read
-        // here into what the music stage asks for.
-        songs: serde_json::from_value(compiled.songs.clone())
-            .map_err(|e| Stop::new(format!("the event compiler's songs: {e}")))?,
+        songs: compiler::songs(&compiled.songs),
         maps: infos.iter().map(|m| i64::from(m.id)).collect(),
         start: start_index,
         title: title_screen.is_some(),
@@ -2094,9 +2091,10 @@ pub fn run(options: Options) -> Result<()> {
         out: directory.clone(),
         msu: msu.clone(),
     };
-    let mut files = stage::call_uncached(AUDIO_CARTRIDGE, || {
-        rm2k_snes_audio::stage::cartridge(&flags, &request)
-    })?;
+    let rm2k_snes_audio::stage::Answer { mut files, losses } =
+        stage::call_uncached(AUDIO_CARTRIDGE, || {
+            rm2k_snes_audio::stage::cartridge(&flags, &request)
+        })?;
     let blob = files
         .remove(rm2k_snes_audio::stage::MSU)
         .ok_or_else(|| Stop::new("rm2k-snes-audio cartridge answered no .msu"))?;
@@ -2110,19 +2108,13 @@ pub fn run(options: Options) -> Result<()> {
     std::fs::write(&fresh, &blob).map_err(|e| crate::fail::io(&fresh, e))?;
     std::fs::rename(&fresh, &msu).map_err(|e| crate::fail::io(&msu, e))?;
     // And what the music lost to fit in the ARAM —a package's songs that
-    // its `PlayBGM` uploads, its sound effects left out—, which the stage
-    // leaves in its `audio.json` because it runs after everything else: the
-    // one piece of its answer the conversion reads. With it, the list is
-    // complete, and it is written.
-    let audio = stage::json(&files, "audio.json")?;
-    for loss in audio["losses"].as_array().into_iter().flatten() {
-        let (kind, text) = (
-            loss["kind"].as_str().unwrap_or(""),
-            loss["text"].as_str().unwrap_or(""),
-        );
-        match loss["map"].as_i64() {
-            Some(map) => degradations.map(map, kind, text, &[]),
-            None => degradations.cartridge(kind, text),
+    // its `PlayBGM` uploads, its sound effects left out—, which only the
+    // stage knows because it runs after everything else. With it, the list
+    // is complete, and it is written.
+    for loss in &losses {
+        match loss.map {
+            Some(map) => degradations.map(map, loss.kind, &loss.text, &[]),
+            None => degradations.cartridge(loss.kind, &loss.text),
         }
     }
     degradations.write(&directory)?;

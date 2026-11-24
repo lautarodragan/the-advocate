@@ -358,8 +358,9 @@ pub struct Emit {
     pub animations: Animations,
     /// The troops some battle of the cartridge asks for, in its order.
     pub troops: Vec<i64>,
-    /// The battle's songs and sounds, as the compiler numbered them.
-    pub battle_audio: Option<serde_json::Value>,
+    /// The battle's songs and sounds, as the compiler numbered them; None
+    /// when no battle asks for a troop.
+    pub battle_audio: Option<rm2k_snes_events::answer::BattleAudio>,
     /// The battle scene: the backdrops and the battlers, already as bytes.
     pub scene: Scene,
     /// What `rm2k-snes-battle tables` wrote —the experience's and the

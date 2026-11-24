@@ -297,7 +297,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         .map_err(|e| Bad::usage(format!("{}: {e}", args.request.display())))?;
     let request: stage::Request = serde_json::from_str(&text)
         .map_err(|e| Bad::usage(format!("{}: {e}", args.request.display())))?;
-    let mut files = stage::cartridge(&flags, &request)?;
+    let mut files = stage::cartridge(&flags, &request)?.files;
     let msu = files
         .remove(stage::MSU)
         .expect("the stage always answers a .msu");

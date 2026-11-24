@@ -550,3 +550,47 @@ pub fn variable_slot(indices: &Indices, variable: i64) -> Result<i64> {
     }
     Ok(slot)
 }
+
+/// The songs the compilation numbered, as the music stage asks for them:
+/// the same lists, with its packages keyed for lookup.
+pub fn songs(answer: &rm2k_snes_events::answer::Songs) -> rm2k_snes_audio::cartridge::Songs {
+    use rm2k_snes_audio::cartridge::{Key, Wants};
+    use rm2k_snes_events::registry::Package;
+    fn by_package<V, W>(
+        list: &[(Package, V)],
+        value: impl Fn(&V) -> W,
+    ) -> std::collections::HashMap<Key, W> {
+        list.iter()
+            .map(|(package, v)| {
+                let key = match *package {
+                    Package::Map(i) => Key::Map(i),
+                    Package::Battle => Key::Battle,
+                };
+                (key, value(v))
+            })
+            .collect()
+    }
+    rm2k_snes_audio::cartridge::Songs {
+        names: answer.names.clone(),
+        sounds: answer
+            .sounds
+            .iter()
+            .map(|(name, volume, tempo, pan)| {
+                (
+                    name.clone(),
+                    (*volume).into(),
+                    (*tempo).into(),
+                    (*pan).into(),
+                )
+            })
+            .collect(),
+        per_package: by_package(&answer.per_package, |w| Wants {
+            songs: w.songs.clone(),
+            sounds: w.sounds.clone(),
+            destinations: w.destinations.clone(),
+        }),
+        exits: by_package(&answer.exits, Clone::clone),
+        jumps: by_package(&answer.jumps, Clone::clone),
+        troop_songs: answer.troop_songs.clone(),
+    }
+}
