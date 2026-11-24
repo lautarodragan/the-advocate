@@ -79,19 +79,19 @@ have layers of their own, one folder each:
       rm2k-snes-audio/  a game's music for the SPC700: the shared sample
                  bank, a stream per song, an audio package per map, and
                  the `.msu` with the data the MSU-1 serves; the converter
-                 runs it as a stage, `cartridge`, and it uses `gunter` as
+                 calls it as a stage, `cartridge`, and it uses `gunter` as
                  a library. Its subcommands `msu`, the MSU-1 tracks, and
                  `volume-ceilings`, each song's headroom, are not stages
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
                  level per actor, each map's random encounters—, its model
                  and text screen, and the battle played for the tests; the
-                 converter runs it as a stage, and its README says what
+                 converter calls it as a stage, and its README says what
                  shape a stage has
       events/    `rm2k-snes-events`: the event compiler —a game's event
                  pages to the bytecode the ROM runs—; the converter calls
                  it twice
       wally/     Wally, `wally`: a whole map —its layers, the events baked
-                 into them, its objects, its blocks—; the converter runs it
+                 into them, its objects, its blocks—; the converter calls it
                  once per map. Its two halves are modules that do not know
                  each other: `background`, the two background layers in the
                  lower half of colour memory and the 16x16 blocks, and
@@ -105,20 +105,20 @@ have layers of their own, one folder each:
                  its font, the title's menu, the save slots and the pause
                  menu, the text screens with their windows, End Game—, the
                  geometry they are drawn with, and every message box
-                 reflowed; the converter runs it once per cartridge,
+                 reflowed; the converter calls it once per cartridge,
                  and the game's tests ask it
                  for the screens they compare against
       images/    `rm2k-snes-images`: the pictures —the title and the Game
                  Over, the picture of a `ShowPicture`, the battle's
                  backdrops, battlers and animations—, scaled with the
                  `image` crate, toned and brought down to their palettes
-                 with Adeleine; the converter runs it
+                 with Adeleine; the converter calls it
       mapdata/   `rm2k-snes-mapdata`: the emission —the cartridge's data
                  `.inc`, written from what every other stage answered—,
                  the LZ2 streams of what the console decompresses, and the
                  VRAM layouts, which it publishes for the maps and the
-                 screens; the converter runs it, and reads the layouts
-                 from it as a library
+                 screens; the converter calls it, and reads the layouts
+                 from it too
       convert/   `rm2k-snes-convert`, the converter: it asks each stage
                  above, in order, what the cartridge needs and hands each
                  what the others answered; what it decides itself is what
@@ -135,18 +135,21 @@ The commands a person runs, from a game's recipes or by hand:
 `rm2k-snes-audio` (its `volume-ceilings`), `goombario`, `fxpak` and
 `rm2k-sketch`. The
 commands the pipeline runs: `rm2k-snes-convert`, which
-`rm2k-snes-cartridges` runs, and its stages —`wally`, `rm2k-snes-events`,
+`rm2k-snes-cartridges` runs, and `rm2k-snes-audio msu`, which
+`rm2k-snes-cartridges` runs after it. `rm2k-snes-cartridges assemble` is
+not one of them: the build calls its code, which is the same crate's, and
+the subcommand is for running by hand and for a game's tests, which ask it
+the memory map and the runtime's sources. **The stages are libraries the
+converter is compiled with** —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
-`rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—; and
-`rm2k-snes-audio msu`, which `rm2k-snes-cartridges` runs after it.
-`rm2k-snes-cartridges assemble` is not one of them: the build calls its
-code, which is the same crate's, and the subcommand is for running by hand
-and for a game's tests, which ask it the memory map and the runtime's
-sources. Each stage is a process on purpose:
-the conversion cache keys every answer by the binary that gave it (`key` in
-`convert/src/stage.rs`), so a stage that changes expires its own answers and
-nobody else's —the audio stage's, also when its `msu` or `volume-ceilings`
-change, which share its binary—. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
+`rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—, each
+called through its `stage` module; their binaries are a `main` over the
+same functions, for a game's tests and for a person. So a change to a
+stage reaches a ROM only through the converter: install `convert` with it.
+Until 2026-11-24 the converter ran each one as a process, and the
+conversion cache keyed every answer by the binary that gave it; now it
+keys them all by the converter's (`key` in `convert/src/stage.rs`), so any
+change to any stage expires every stage's answers. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
 LZ2, Gunter, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
 `rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto's reader. Until 2026-11-23
 Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when

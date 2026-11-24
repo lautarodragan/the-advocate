@@ -39,9 +39,9 @@ This is one domain of a game converter. The converter orchestrates, and
 calls this crate's `stage` module as functions —`tables`, `model`,
 `layout`—, each answering the files the binary writes into `--out`; the
 binary is a `main` over the same functions, for the tests and for a
-person. The other stages are still run by the PATH as separate programs,
-until each becomes a library like this one. Every stage has the same
-shape, and this crate was the first to be written to it:
+person. Every stage is called that way since 2026-11-24; until then the
+others were run from the PATH as separate programs. Every stage has the
+same shape, and this crate was the first to be written to it:
 
 * **It reads the game itself**, from a Ditto dump —`--data`—, **with
   Ditto's library**: `ditto::dump::Dump` and the schema's types, which are
