@@ -15,6 +15,8 @@
 //!   capture.
 //! * [`boxes`]: every message box of the game reflowed for the console's
 //!   window.
+//! * [`stage`]: the commands a converter calls, as functions that answer
+//!   the files the binary writes.
 
 pub mod battle;
 pub mod borders;
@@ -37,6 +39,7 @@ pub mod render;
 pub mod request;
 pub mod skills;
 pub mod slots;
+pub mod stage;
 pub mod texts;
 pub mod title;
 

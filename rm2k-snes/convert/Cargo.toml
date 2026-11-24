@@ -29,6 +29,7 @@ rm2k-snes-images = { path = "../images" }
 # The engine's numbers, the VRAM layouts and the console's formats —a tile,
 # a colour, an LZ2 stream—: the emission's, which publishes them.
 rm2k-snes-mapdata = { path = "../mapdata" }
+rm2k-snes-screens = { path = "../screens" }
 rm2k-snes-text = { path = "../text" }
 # A whole map: Wally's `map` stage, called once per map.
 wally = { path = "../wally" }
