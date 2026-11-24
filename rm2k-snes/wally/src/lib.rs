@@ -4,7 +4,8 @@
 //! It is one stage of a converter —see "One stage of a converter" in
 //! `rm2k-snes/battle/README.md`—: it reads the game from a Ditto dump
 //! ([`game`]), gets what the cartridge decided in a request ([`request`]),
-//! and writes what it made into a directory. It makes a whole map ([`map`]):
+//! and answers what it made as files by name ([`stage`]), which its binary
+//! writes into a directory. It makes a whole map ([`map`]):
 //! its two background layers ([`layers`]), the events baked into them
 //! ([`baking`]), its characters as objects, and its blocks.
 //!
