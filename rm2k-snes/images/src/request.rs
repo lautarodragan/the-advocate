@@ -131,6 +131,9 @@ pub struct Mode7Room {
 impl Paths for Background {
     fn resolve(&mut self, base: &Path) {
         resolve(&mut self.file, base);
+        if let Some(under) = &mut self.under {
+            resolve(under, base);
+        }
     }
 }
 
@@ -332,4 +335,27 @@ mod hex {
 pub struct BackdropAnswer {
     pub quality: Option<scene::Backdrop>,
     pub light: Option<scene::Light>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every path of a request is relative to its directory: the panorama
+    /// under a background too, not only its picture.
+    #[test]
+    fn a_background_s_two_paths_are_relative_to_the_request() {
+        let dir =
+            std::env::temp_dir().join(format!("rm2k-snes-images-under-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("request.json");
+        let request = r#"{"file": "a.png", "under": "b.png", "x": 0, "y": 0,
+            "rm_screen": [320, 240], "screen": [256, 224], "palettes": 1,
+            "first_palette": 0, "tiles": 1, "rows": 1}"#;
+        std::fs::write(&path, request).unwrap();
+        let background: Background = read(&path).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(background.file, dir.join("a.png"));
+        assert_eq!(background.under, Some(dir.join("b.png")));
+    }
 }
