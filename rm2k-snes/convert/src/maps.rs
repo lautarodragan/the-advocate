@@ -397,15 +397,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
-    let mut keys: Vec<Value> = scanned
-        .get("pictures")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
+    let mut keys = pictures::keys(scanned.get("pictures"))?;
     // The map's own come first, and then those only the copies of the
     // common events show, if the map carries them: the scan says how many
     // are its own. See [`crate::common_pages`].
-    let mut own_keys: Option<Vec<Value>> = scanned
+    let mut own_keys: Option<Vec<pictures::Key>> = scanned
         .get("pictures_own")
         .and_then(Value::as_u64)
         .filter(|&n| (n as usize) < keys.len())
@@ -414,19 +410,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // are accepted without being done; but a drawing's part, which is
     // shown —see [`crate::map_pictures::Parts`]—: its name can be drawn in
     // under another number.
-    let part = |k: &Value| {
-        c.map_pictures.part(
-            map_id,
-            k["number"].as_i64().unwrap_or(-1) as i32,
-            k["name"].as_str().unwrap_or(""),
-        )
-    };
-    let kept = |k: &Value| {
-        part(k).is_some()
-            || !c
-                .map_pictures
-                .done(map_id, k["name"].as_str().unwrap_or(""))
-    };
+    let part = |k: &pictures::Key| c.map_pictures.part(map_id, k.number as i32, &k.name);
+    let kept = |k: &pictures::Key| part(k).is_some() || !c.map_pictures.done(map_id, &k.name);
     keys.retain(kept);
     if let Some(own) = own_keys.as_mut() {
         own.retain(kept);
@@ -435,8 +420,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // wrote, with the map.
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
         if let Some(path) = part(k) {
-            k["path"] = json!(path.display().to_string());
-            k["with_map"] = json!(true);
+            k.path = Some(path.display().to_string());
+            k.with_map = true;
         }
     }
     // And the ones under a lower number than one the map draws opaque,
@@ -450,9 +435,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .map(|p| i64::from(p.number))
         .collect();
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
-        let number = k["number"].as_i64().unwrap_or(i64::MAX);
-        if raised.iter().any(|&n| n > number) {
-            k["behind_map"] = json!(true);
+        if raised.iter().any(|&n| n > k.number) {
+            k.behind_map = true;
         }
     }
     // And the ones with the screen that RM2k shows where its map is, which
@@ -460,7 +444,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     let on_map = pictures::screen_on_map(&map);
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
         if pictures::screen_on_map_in(k, &on_map) {
-            k["screen_on_map"] = json!(true);
+            k.screen_on_map = true;
         }
     }
     // And the numbers the map tones, which do not share a palette.
@@ -512,8 +496,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     let big_over_black = if black.is_empty() {
         Vec::new()
     } else {
-        let already: Vec<&Value> = big_pictures.iter().map(|b| &b.key).collect();
-        let small: Vec<Value> = keys
+        let already: Vec<&pictures::Key> = big_pictures.iter().map(|b| &b.key).collect();
+        let small: Vec<pictures::Key> = keys
             .iter()
             .filter(|k| pictures::shown_in(k, &black) && !already.contains(k))
             .cloned()
@@ -1016,13 +1000,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     // is all of them, the map loses none.
     let mut big_pictures = p.big_pictures;
     if let (Some(asked), None, false) = (went_in, &pictures, p.big_over_black.is_empty()) {
-        let names = |keys: &mut dyn Iterator<Item = &Value>| -> BTreeSet<String> {
-            keys.filter_map(|k| k["name"].as_str())
-                .map(str::to_lowercase)
-                .collect()
+        let names = |keys: &mut dyn Iterator<Item = &str>| -> BTreeSet<String> {
+            keys.map(str::to_lowercase).collect()
         };
-        let rescued = names(&mut p.big_over_black.iter().map(|b| &b.key));
-        let lost = names(&mut asked.table.iter());
+        let rescued = names(&mut p.big_over_black.iter().map(|b| b.key.name.as_str()));
+        let lost = names(&mut asked.table.iter().filter_map(|k| k["name"].as_str()));
         println!(
             "  map {map_id}: the pictures {} are shown in the background layer instead, over the \
              black screen they are shown on",

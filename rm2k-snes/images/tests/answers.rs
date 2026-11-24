@@ -17,11 +17,8 @@
 
 use ditto::schema::Animation;
 use rm2k_render::{battle, picture, show_picture as rm2k_picture};
-use rm2k_snes_images::request::{
-    animation_answer, backdrop_answer, battler_answer, fullscreen_answer, light_answer,
-    picture_answer,
-};
 use rm2k_snes_images::{animation, fullscreen, scene, show_picture};
+use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
@@ -73,9 +70,11 @@ fn canonical(v: &Value) -> String {
     }
 }
 
-fn check(name: &str, answer: &Value) {
+/// `answer` as the stage writes it, against its pinned hash.
+fn check(name: &str, answer: &impl Serialize) {
     let expected = ANSWERS.iter().find(|(k, _)| *k == name).expect(name).1;
-    let got = format!("{:x}", Sha256::digest(canonical(answer).as_bytes()));
+    let answer = serde_json::to_value(answer).unwrap();
+    let got = format!("{:x}", Sha256::digest(canonical(&answer).as_bytes()));
     assert_eq!(got, expected, "{name}");
 }
 
@@ -96,10 +95,7 @@ fn full_screens() {
     let title = picture::read_unkeyed(&game(&["Title", "title.png"])).unwrap();
     for (first, cap) in [(0, 256), (16, 200)] {
         let screen = fullscreen::convert(&title, 256, 224, 8, first, cap);
-        check(
-            &format!("fullscreen-{first}-{cap}"),
-            &fullscreen_answer(&screen),
-        );
+        check(&format!("fullscreen-{first}-{cap}"), &screen);
     }
 }
 
@@ -117,20 +113,17 @@ fn pictures() {
     for (cx, cy, key, trans) in [(100, 175, false, 0), (160, 120, true, 30)] {
         let drawn = rm2k_picture::picture(&plain, &keyed, key, trans);
         let converted = show_picture::convert(&drawn, cx, cy, screens, 15).unwrap();
-        check(&format!("picture-{cx}-{cy}"), &picture_answer(&converted));
+        check(&format!("picture-{cx}-{cy}"), &converted);
     }
 }
 
 #[test]
 fn backdrops() {
     let drawn = battle::backdrop(&game(&["Backdrop", "backdrop.png"])).unwrap();
-    check(
-        "backdrop-quality",
-        &backdrop_answer(&scene::backdrop(&drawn, &SCENE)),
-    );
+    check("backdrop-quality", &scene::backdrop(&drawn, &SCENE));
     check(
         "backdrop-light",
-        &light_answer(&scene::light_backdrop(&drawn, &SCENE).unwrap()),
+        &scene::light_backdrop(&drawn, &SCENE).unwrap(),
     );
 }
 
@@ -140,7 +133,7 @@ fn battlers() {
         let drawn = battle::battler(&game(&["Monster", "battler.png"]), hue).unwrap();
         check(
             &format!("battler-{hue}"),
-            &battler_answer(&scene::battler(&drawn, &SCENE).unwrap()),
+            &scene::battler(&drawn, &SCENE).unwrap(),
         );
     }
 }
@@ -156,8 +149,9 @@ fn animations() {
         alpha_min: 128,
     };
     for a in &animations {
-        let answer =
-            animation::convert(a, &sheet, &g).map_or(Value::Null, |c| animation_answer(&c));
-        check(&format!("animation-{}", a.id), &answer);
+        check(
+            &format!("animation-{}", a.id),
+            &animation::convert(a, &sheet, &g),
+        );
     }
 }

@@ -60,14 +60,6 @@ impl Screen {
     }
 }
 
-fn color(c: &Value) -> [u8; 3] {
-    [
-        c[0].as_u64().unwrap_or(0) as u8,
-        c[1].as_u64().unwrap_or(0) as u8,
-        c[2].as_u64().unwrap_or(0) as u8,
-    ]
-}
-
 /// The image at `path`, from CGRAM entry `first_color` with `cap` colours
 /// left. Index 0 is also the PPU's backdrop colour, and the reduction
 /// leaves black there. `below` are colours that are not the image's and go
@@ -82,51 +74,22 @@ pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) ->
         );
     }
     let a = images::fullscreen(path, WIDTH, HEIGHT, CELL, first_color, cap)?;
-    let tiles: Vec<Vec<Vec<u8>>> = a["tiles"]
-        .as_array()
-        .map(|cells| {
-            cells
-                .iter()
-                .map(|cell| {
-                    cell.as_array()
-                        .map(|rows| {
-                            rows.iter()
-                                .map(|r| {
-                                    r.as_array()
-                                        .map(|r| {
-                                            r.iter()
-                                                .map(|v| v.as_u64().unwrap_or(0) as u8)
-                                                .collect()
-                                        })
-                                        .unwrap_or_default()
-                                })
-                                .collect()
-                        })
-                        .unwrap_or_default()
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-    let tilemap: Vec<u32> = a["tilemap"]
-        .as_array()
-        .map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u32).collect())
-        .unwrap_or_default();
     let mut raw = Vec::new();
-    for cell in &tiles {
-        raw.extend(pack_tile(cell, 8));
+    for cell in &a.tiles {
+        let cell: Vec<Vec<u8>> = cell
+            .iter()
+            .map(|r| r.iter().map(|&v| v as u8).collect())
+            .collect();
+        raw.extend(pack_tile(&cell, 8));
     }
     // The tilemap the ROM uploads: 32x32 entries, even though the screen
     // shows 28 rows. It is the size the PPU reads.
     for index in 0..32 * 32 {
-        let number = tilemap.get(index).copied().unwrap_or(0);
+        let number = a.tilemap.get(index).map_or(0, |&n| n as u32);
         raw.extend_from_slice(&(entry(number, false, false, 0) as u16).to_le_bytes());
     }
-    let palette: Vec<[u8; 3]> = a["palette"]
-        .as_array()
-        .map(|p| p.iter().map(color).collect())
-        .unwrap_or_default();
     let mut colors: Vec<[u8; 3]> = below.to_vec();
-    colors.extend(palette);
+    colors.extend(&a.palette);
     for c in &colors {
         raw.extend_from_slice(&(cgram_word(*c) as u16).to_le_bytes());
     }
@@ -135,7 +98,7 @@ pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) ->
     Ok(Screen {
         stream,
         raw: raw.len(),
-        tiles: tiles.len(),
+        tiles: a.tiles.len(),
         colors: colors.len(),
         first_color: first_color - below.len() as i64,
         bpp: 8,
@@ -190,12 +153,7 @@ pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8
             path.display()
         ))
     })?;
-    let tiles = crate::text::unhex(layer["tiles"].as_str().unwrap_or(""));
-    let count = layer["tile_count"].as_u64().unwrap_or(0) as usize;
-    let cells: Vec<u16> = layer["tilemap"]
-        .as_array()
-        .map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u16).collect())
-        .unwrap_or_default();
+    let (tiles, count, cells) = (&layer.tiles, layer.tile_count, &layer.tilemap);
     let mut raw = tiles.clone();
     // 32x32 entries, as the 8bpp one; the rows past the layer's are tile
     // 0, blank, in palette 0: the backdrop.
@@ -204,13 +162,13 @@ pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8
     }
     let mut colors: Vec<[u8; 3]> = below.to_vec();
     colors.resize(palette_size, [0, 0, 0]);
-    for p in layer["palettes"].as_array().cloned().unwrap_or_default() {
-        colors.extend(p.as_array().cloned().unwrap_or_default().iter().map(color));
+    for p in &layer.palettes {
+        colors.extend(p);
     }
     for c in &colors {
         raw.extend_from_slice(&(cgram_word(*c) as u16).to_le_bytes());
     }
-    let png = indexed_png(&tiles, &cells, &colors)?;
+    let png = indexed_png(tiles, cells, &colors)?;
     let stream =
         rm2k_snes_mapdata::compress::compress(&raw).map_err(|e| Stop::new(e.to_string()))?;
     Ok((

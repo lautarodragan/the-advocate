@@ -23,6 +23,7 @@ use adeleine::Color;
 use ditto::schema::Animation;
 use rm2k_render::battle_animation::{frames, Piece};
 use rm2k_render::Picture;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// The box, its colours and the alpha from which a pixel is drawn, which
@@ -34,6 +35,8 @@ pub struct Geometry {
     pub alpha_min: u8,
 }
 
+/// What `animations` answers for each animation drawn.
+#[derive(Serialize, Deserialize)]
 pub struct Converted {
     /// For each of RM2k's frames, the box as indices into `palette` plus
     /// one: 0 is not drawn.

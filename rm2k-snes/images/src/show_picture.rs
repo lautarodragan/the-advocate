@@ -38,6 +38,7 @@
 use crate::pixels::{most_used, rgb_to_15_bits, scaled_rgb, scaled_rgba, to_15_bits};
 use adeleine::Color;
 use rm2k_render::Picture;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// The screens the picture goes between: RM2k's and the console's.
@@ -106,6 +107,8 @@ impl Screens {
     }
 }
 
+/// What `picture` answers.
+#[derive(Serialize, Deserialize)]
 pub struct Converted {
     pub x: i64,
     pub y: i64,

@@ -7,10 +7,16 @@
 //! cartridge decided, which travel in the request so they are written in
 //! one place.
 
-use crate::fail::Result;
+use crate::fail::{Result, Stop};
 use crate::pictures::{HEIGHT, RM_HEIGHT, RM_WIDTH, WIDTH};
 use crate::stage;
-use serde_json::{json, Value};
+use rm2k_snes_images::request::{
+    AnimationWanted, Animations, BackdropAnswer, BackdropWanted, Backdrops, Background,
+    BattlerWanted, Battlers, Fullscreen, Layer, Mode7Room, Scene, ShowPicture,
+};
+use rm2k_snes_images::{animation, fullscreen, scene, show_picture, stage as the_stage};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
@@ -30,20 +36,30 @@ const fn images(command: &'static str) -> stage::Stage {
     }
 }
 
-/// `the_stage` asked `request` —with `flags`, which the key reads and
-/// `answer` must read nothing beyond—, and its `<command>.json` read back.
-fn answer(
-    the_stage: stage::Stage,
-    request: &Value,
+/// The stage `which` asked `request` —with `flags`, which the key reads and
+/// `answer` must read nothing beyond—. Its answer goes into the cache
+/// serialized, as `<command>.json`, and is read back from there whether it
+/// was just made or found.
+fn answer<R: Serialize, A: Serialize + DeserializeOwned>(
+    which: stage::Stage,
+    request: &R,
     flags: &[OsString],
-    answer: impl FnOnce() -> rm2k_snes_images::Result<stage::Files>,
-) -> Result<Value> {
-    let written = stage::call(the_stage, request, flags, answer)?;
-    stage::json(&written, &format!("{}.json", the_stage.command))
+    answer: impl FnOnce(&R) -> rm2k_snes_images::Result<A>,
+) -> Result<A> {
+    let name = format!("{}.json", which.command);
+    let value = serde_json::to_value(request).expect("a request is JSON");
+    let written = stage::call(which, &value, flags, || {
+        answer(request).map(|a| {
+            let json = serde_json::to_vec(&a).expect("an answer is JSON");
+            stage::Files::from([(name.clone(), json)])
+        })
+    })?;
+    serde_json::from_str(&stage::text(&written, &name)?)
+        .map_err(|e| Stop::new(format!("{name}: {e}")))
 }
 
-fn file(path: &Path) -> String {
-    rm2k_project::absolute(path).to_string_lossy().to_string()
+fn file(path: &Path) -> PathBuf {
+    rm2k_project::absolute(path)
 }
 
 /// A picture that fills the screen: the distinct 8x8 cells of CGRAM
@@ -56,12 +72,16 @@ pub fn fullscreen(
     cell: i64,
     first_color: i64,
     cap: i64,
-) -> Result<Value> {
-    let request = json!({"file": file(path), "width": width, "height": height, "cell": cell,
-                         "first_color": first_color, "cap": cap});
-    answer(FULLSCREEN, &request, &[], || {
-        rm2k_snes_images::stage::fullscreen(&request)
-    })
+) -> Result<fullscreen::Screen> {
+    let request = Fullscreen {
+        file: file(path),
+        width: width as usize,
+        height: height as usize,
+        cell: cell as usize,
+        first_color: first_color as usize,
+        cap: cap as usize,
+    };
+    answer(FULLSCREEN, &request, &[], the_stage::fullscreen)
 }
 
 /// The picture of a `ShowPicture` centred at `(cx, cy)` of RM2k's screen,
@@ -70,33 +90,28 @@ pub fn fullscreen(
 pub fn picture(
     path: &Path,
     use_transparent_color: bool,
-    top_trans: i64,
+    top_trans: i32,
     cx: i64,
     cy: i64,
     colors: i64,
     zoom: i64,
     map_fixed: bool,
     for_console: bool,
-) -> Result<Value> {
-    let mut request = json!({
-        "file": file(path), "use_transparent_color": use_transparent_color,
-        "top_trans": top_trans, "x": cx, "y": cy,
-        "rm_screen": [RM_WIDTH, RM_HEIGHT], "screen": [WIDTH, HEIGHT], "colors": colors,
-    });
-    // Only when they say something, so the request of a plain picture is
-    // the one it always was.
-    if zoom != 100 {
-        request["zoom"] = json!(zoom);
-    }
-    if map_fixed {
-        request["map_fixed"] = json!(true);
-    }
-    if for_console {
-        request["for_console"] = json!(true);
-    }
-    answer(PICTURE, &request, &[], || {
-        rm2k_snes_images::stage::picture(&request)
-    })
+) -> Result<show_picture::Converted> {
+    let request = ShowPicture {
+        file: file(path),
+        use_transparent_color,
+        top_trans,
+        x: cx,
+        y: cy,
+        rm_screen: (RM_WIDTH, RM_HEIGHT),
+        screen: (WIDTH, HEIGHT),
+        colors: colors as usize,
+        zoom,
+        map_fixed,
+        for_console,
+    };
+    answer(PICTURE, &request, &[], the_stage::picture)
 }
 
 /// The picture of a `ShowPicture` too big for the sprites, as a 4bpp
@@ -117,73 +132,72 @@ pub fn background(
     rows: i64,
     mode7: bool,
     under: Option<&Path>,
-) -> Result<Option<Value>> {
-    let mut request = json!({
-        "file": file(path), "use_transparent_color": use_transparent_color,
-        "x": cx, "y": cy, "rm_screen": [RM_WIDTH, RM_HEIGHT], "screen": [WIDTH, HEIGHT],
-        "zoom": zoom, "palettes": palettes, "first_palette": first_palette,
-        "tiles": tiles, "rows": rows,
-    });
-    // Only when there is one, so a scaled picture's request is the one it
-    // always was.
-    if let Some((x, y)) = crop {
-        request["crop"] = json!([x, y]);
-    }
-    if for_console {
-        request["for_console"] = json!(true);
-    }
-    // And the panorama under it, for one shown with its holes over a map's
-    // still panorama: see `pictures::still_over`.
-    if let Some(under) = under {
-        request["under"] = json!(file(under));
-    }
-    // The same for the texture, which only a picture that zooms asks for.
-    if mode7 {
-        request["mode7"] = json!({
-            "tiles": crate::pictures::M7_TILES,
-            "layer_tiles": crate::pictures::M7_LAYER_TILES,
-            "layer_rows": crate::pictures::M7_LAYER_ROWS,
-        });
-    }
-    let a = answer(BACKGROUND, &request, &[], || {
-        rm2k_snes_images::stage::background(&request)
-    })?;
-    Ok((!a.is_null()).then_some(a))
+) -> Result<Option<Layer>> {
+    let request = Background {
+        file: file(path),
+        use_transparent_color,
+        x: cx,
+        y: cy,
+        rm_screen: (RM_WIDTH, RM_HEIGHT),
+        screen: (WIDTH, HEIGHT),
+        zoom,
+        crop,
+        for_console,
+        palettes: palettes as usize,
+        first_palette: first_palette as usize,
+        tiles: tiles as usize,
+        rows: rows as usize,
+        // The texture, which only a picture that zooms asks for.
+        mode7: mode7.then_some(Mode7Room {
+            tiles: crate::pictures::M7_TILES as usize,
+            layer_tiles: crate::pictures::M7_LAYER_TILES as usize,
+            layer_rows: crate::pictures::M7_LAYER_ROWS as usize,
+        }),
+        // And the panorama under it, for one shown with its holes over a
+        // map's still panorama: see `pictures::still_over`.
+        under: under.map(file),
+    };
+    answer(BACKGROUND, &request, &[], the_stage::background)
 }
 
 /// Each of `wanted` —`(path, quality, light)`— as the stage answers it.
-pub fn backdrops(scene: &Value, wanted: &[(PathBuf, bool, bool)]) -> Result<Vec<Value>> {
+pub fn backdrops(scene: &Scene, wanted: &[(PathBuf, bool, bool)]) -> Result<Vec<BackdropAnswer>> {
     if wanted.is_empty() {
         return Ok(Vec::new());
     }
-    let request = json!({
-        "scene": scene,
-        "backdrops": wanted.iter().map(|(p, q, l)| json!({"file": file(p), "quality": q, "light": l}))
-            .collect::<Vec<_>>(),
-    });
-    let a = answer(BACKDROPS, &request, &[], || {
-        rm2k_snes_images::stage::backdrops(&request)
-    })?;
-    Ok(a.as_array().cloned().unwrap_or_default())
+    let request = Backdrops {
+        scene: *scene,
+        backdrops: wanted
+            .iter()
+            .map(|(p, quality, light)| BackdropWanted {
+                file: file(p),
+                quality: *quality,
+                light: *light,
+            })
+            .collect(),
+    };
+    answer(BACKDROPS, &request, &[], the_stage::backdrops)
 }
 
 /// Each of `wanted` —`(path, hue)`— as the stage answers it.
-pub fn battlers(scene: &Value, wanted: &[(PathBuf, i64)]) -> Result<Vec<Value>> {
+pub fn battlers(scene: &Scene, wanted: &[(PathBuf, i64)]) -> Result<Vec<scene::Battler>> {
     if wanted.is_empty() {
         return Ok(Vec::new());
     }
-    let request = json!({
-        "scene": scene,
-        "battlers": wanted.iter().map(|(p, hue)| json!({"file": file(p), "hue": hue}))
-            .collect::<Vec<_>>(),
-    });
-    let a = answer(BATTLERS, &request, &[], || {
-        rm2k_snes_images::stage::battlers(&request)
-    })?;
-    Ok(a.as_array().cloned().unwrap_or_default())
+    let request = Battlers {
+        scene: *scene,
+        battlers: wanted
+            .iter()
+            .map(|(p, hue)| BattlerWanted {
+                file: file(p),
+                hue: *hue as i32,
+            })
+            .collect(),
+    };
+    answer(BATTLERS, &request, &[], the_stage::battlers)
 }
 
-/// Each of `wanted` —`(number, sheet)`— as the stage answers it, or null
+/// Each of `wanted` —`(number, sheet)`— as the stage answers it, or None
 /// if nothing of it is drawn. The animation itself is read from the dump.
 pub fn animations(
     side: i64,
@@ -191,20 +205,26 @@ pub fn animations(
     alpha_min: i64,
     wanted: &[(i32, PathBuf)],
     dump: &Path,
-) -> Result<Vec<Value>> {
+) -> Result<Vec<Option<animation::Converted>>> {
     if wanted.is_empty() {
         return Ok(Vec::new());
     }
-    let request = json!({
-        "side": side, "colors": colors, "alpha_min": alpha_min,
-        "animations": wanted.iter().map(|(n, s)| json!({"number": n, "sheet": file(s)}))
-            .collect::<Vec<_>>(),
-    });
-    let a = answer(
+    let request = Animations {
+        side: side as usize,
+        colors: colors as usize,
+        alpha_min: alpha_min as u8,
+        animations: wanted
+            .iter()
+            .map(|(number, s)| AnimationWanted {
+                number: *number,
+                sheet: file(s),
+            })
+            .collect(),
+    };
+    answer(
         ANIMATIONS,
         &request,
         &["--data".into(), dump.as_os_str().to_owned()],
-        || rm2k_snes_images::stage::animations(dump, &request),
-    )?;
-    Ok(a.as_array().cloned().unwrap_or_default())
+        |r| the_stage::animations(dump, r),
+    )
 }

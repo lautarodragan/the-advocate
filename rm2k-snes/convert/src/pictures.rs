@@ -39,6 +39,7 @@ use crate::game::GameMap;
 use crate::images;
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -171,6 +172,54 @@ fn int(v: &Value) -> i64 {
     v.as_i64().unwrap_or(0)
 }
 
+/// A picture as the scan answers it —`PictureKey` in rm2k-snes-events—, and
+/// what the converter learns of it on the map that shows it: `path` and
+/// `with_map` for a part, `behind_map`, `screen_on_map`. It goes on in the
+/// tables, to the compiler and the emission, as these fields; the last four
+/// only when they say something.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Key {
+    pub number: i64,
+    pub name: String,
+    pub zoom: i64,
+    pub transparent_color: bool,
+    pub map_fixed: bool,
+    pub by_variable: bool,
+    /// Its centre on RM2k's screen; None if placed by variables.
+    pub at: Option<(i64, i64)>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(skip_serializing_if = "is_false")]
+    pub with_map: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub behind_map: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub screen_on_map: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+/// The keys a scan answered, in `pictures`; none if it answered none.
+pub fn keys(pictures: Option<&Value>) -> Result<Vec<Key>> {
+    match pictures {
+        None | Some(Value::Null) => Ok(Vec::new()),
+        Some(v) => {
+            Vec::<Key>::deserialize(v).map_err(|e| Stop::new(format!("the scan's pictures: {e}")))
+        }
+    }
+}
+
+/// A key as it goes on in a table, to have more fields put after its own.
+fn entry_of(key: &Key) -> Map<String, Value> {
+    match serde_json::to_value(key) {
+        Ok(Value::Object(entry)) => entry,
+        _ => unreachable!("a key is an object"),
+    }
+}
+
 /// A picture converted, as the stage answers it plus half its size in
 /// RM2k's pixels.
 struct Converted {
@@ -179,13 +228,13 @@ struct Converted {
     width: i64,
     height: i64,
     half: (i64, i64),
-    palette: Value,
+    palette: Vec<[u8; 3]>,
     indices: Vec<Vec<i64>>,
 }
 
-fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
+fn convert(path: &Path, key: &Key, for_console: bool) -> Result<Converted> {
     let (width, height) = png_size(path)?;
-    let zoom = int(&key["zoom"]);
+    let zoom = key.zoom;
     let (zw, zh) = (zoomed(width, zoom), zoomed(height, zoom));
     // One drawn for the console is placed by the size RM2k would scale to
     // it: see `Screens::rm_size` in `rm2k-snes-images`, the same arithmetic.
@@ -197,15 +246,12 @@ fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
     } else {
         (zw, zh)
     };
-    let (cx, cy) = match key["at"].as_array() {
-        Some(at) => (int(&at[0]), int(&at[1])),
-        // Placed by variables, or with the map: converted with its corner
-        // on the grid, which is where the size comes out exact.
-        None => (zw.div_euclid(2), zh.div_euclid(2)),
-    };
+    // Placed by variables, or with the map: converted with its corner on
+    // the grid, which is where the size comes out exact.
+    let (cx, cy) = key.at.unwrap_or((zw.div_euclid(2), zh.div_euclid(2)));
     let a = images::picture(
         path,
-        truthy(&key["transparent_color"]),
+        key.transparent_color,
         0,
         cx,
         cy,
@@ -214,26 +260,15 @@ fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
         goes_with_map(key),
         for_console,
     )?;
-    let indices = a["indices"]
-        .as_array()
-        .map(|rows| {
-            rows.iter()
-                .map(|r| {
-                    r.as_array()
-                        .map(|r| r.iter().map(int).collect())
-                        .unwrap_or_default()
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    let row = |r: Vec<usize>| r.into_iter().map(|v| v as i64).collect();
     Ok(Converted {
-        x: int(&a["x"]),
-        y: int(&a["y"]),
-        width: int(&a["width"]),
-        height: int(&a["height"]),
+        x: a.x,
+        y: a.y,
+        width: a.width as i64,
+        height: a.height as i64,
         half: (rw.div_euclid(2), rh.div_euclid(2)),
-        palette: a["palette"].clone(),
-        indices,
+        palette: a.palette,
+        indices: a.indices.into_iter().map(row).collect(),
     })
 }
 
@@ -241,23 +276,20 @@ fn convert(path: &Path, key: &Value, for_console: bool) -> Result<Converted> {
 /// because it is the part of a drawing the map carries the rest of —see
 /// [`crate::map_pictures::Parts`]—, or because RM2k shows it where its map
 /// is —see [`screen_on_map`]—, both of which the compiler is told too.
-fn goes_with_map(key: &Value) -> bool {
-    truthy(&key["map_fixed"]) || is_part(key) || truthy(&key["screen_on_map"])
-}
-
-/// Whether `key` shows only its own part of one of several drawings under
-/// a number: see [`crate::map_pictures::Parts`]. Such a part is never a big
-/// one —it is what the drawings do not share, a lit option—, and its file
-/// is not the game's.
-fn is_part(key: &Value) -> bool {
-    truthy(&key["with_map"])
+fn goes_with_map(key: &Key) -> bool {
+    key.map_fixed || key.with_map || key.screen_on_map
 }
 
 /// The file of `key`'s picture: the part's, or the game's by its name.
-fn file_of(game_dir: &Path, key: &Value) -> Option<PathBuf> {
-    match key["path"].as_str() {
+///
+/// A key `with_map` shows only its own part of one of several drawings
+/// under a number: see [`crate::map_pictures::Parts`]. Such a part is never
+/// a big one —it is what the drawings do not share, a lit option—, and its
+/// file is not the game's.
+fn file_of(game_dir: &Path, key: &Key) -> Option<PathBuf> {
+    match &key.path {
         Some(path) => Some(PathBuf::from(path)),
-        None => path_of(game_dir, key["name"].as_str().unwrap_or("")),
+        None => path_of(game_dir, &key.name),
     }
 }
 
@@ -277,18 +309,7 @@ fn part_fits(info: &Converted) -> bool {
             }
         }
     }
-    any && info.palette.as_array().is_some_and(|p| !p.is_empty())
-}
-
-fn truthy(v: &Value) -> bool {
-    match v {
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64().unwrap_or(0.0) != 0.0,
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
-        Value::Null => false,
-    }
+    any && !info.palette.is_empty()
 }
 
 /// Whether the picture fits the plane of objects.
@@ -307,7 +328,7 @@ fn fits(info: &Converted) -> bool {
         && info.width <= WIDTH_MAX
         && 0 < info.height
         && info.height <= OBJECTS_HEIGHT_MAX
-        && info.palette.as_array().is_some_and(|p| !p.is_empty())
+        && !info.palette.is_empty()
 }
 
 /// The first tile of object `block` of the pictures, from their base. A
@@ -320,17 +341,13 @@ pub fn block_tile(block: i64) -> i64 {
 /// The picture's size on the console's screen, as the plane of objects
 /// would draw it: at its zoom, scaled unless it goes with the map or was
 /// drawn for the console.
-fn on_console(path: &Path, key: &Value, for_console: bool) -> Result<(i64, i64)> {
+fn on_console(path: &Path, key: &Key, for_console: bool) -> Result<(i64, i64)> {
     let (width, height) = png_size(path)?;
-    let zoom = int(&key["zoom"]);
-    let (w, h) = (zoomed(width, zoom), zoomed(height, zoom));
+    let (w, h) = (zoomed(width, key.zoom), zoomed(height, key.zoom));
     if goes_with_map(key) || for_console {
         return Ok((w, h));
     }
-    let (cx, cy) = match key["at"].as_array() {
-        None => (w.div_euclid(2), h.div_euclid(2)),
-        Some(at) => (int(&at[0]), int(&at[1])),
-    };
+    let (cx, cy) = key.at.unwrap_or((w.div_euclid(2), h.div_euclid(2)));
     let (x0, y0) = (cx - w.div_euclid(2), cy - h.div_euclid(2));
     Ok((
         ((x0 + w) * WIDTH).div_euclid(RM_WIDTH) - (x0 * WIDTH).div_euclid(RM_WIDTH),
@@ -341,11 +358,11 @@ fn on_console(path: &Path, key: &Value, for_console: bool) -> Result<(i64, i64)>
 /// Whether the picture goes in the background layer: too big for the
 /// objects, and either with the screen or covering it whole; or cropped,
 /// which is the screen.
-fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
-    if truthy(&key["by_variable"]) || is_part(key) {
+fn is_big(path: &Path, key: &Key, cropped: &Cropped) -> Result<bool> {
+    if key.by_variable || key.with_map {
         return Ok(false);
     }
-    let name = key["name"].as_str().unwrap_or("");
+    let name = key.name.as_str();
     if cropped.of(name).is_some() {
         return Ok(true);
     }
@@ -356,14 +373,14 @@ fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
     if sparse(path, key, cropped.for_console(name))? {
         return Ok(false);
     }
-    Ok(!truthy(&key["map_fixed"]) || (w >= WIDTH && h >= HEIGHT))
+    Ok(!key.map_fixed || (w >= WIDTH && h >= HEIGHT))
 }
 
 /// Whether the picture at `path`, shown as `key` says, is a small one by
 /// what it draws and not by its file: see [`sparse`]. For
 /// [`crate::map_pictures`], which says what a picture it does not take
 /// loses, and one of these hides nothing.
-pub fn draws_little(path: &Path, key: &Value) -> Result<bool> {
+pub fn draws_little(path: &Path, key: &Key) -> Result<bool> {
     let (w, h) = on_console(path, key, false)?;
     Ok((w > WIDTH_MAX || h > HEIGHT_MAX) && sparse(path, key, false)?)
 }
@@ -393,13 +410,12 @@ pub const SPARSE_OBJECTS: usize = 16;
 /// The file says it first, cheaply —[`crate::map_pictures::drawn`], twice
 /// the limit at its zoom, before the console's scale—, so that a photograph
 /// is not converted for it; the conversion says it exactly.
-fn sparse(path: &Path, key: &Value, for_console: bool) -> Result<bool> {
-    if !truthy(&key["transparent_color"]) {
+fn sparse(path: &Path, key: &Key, for_console: bool) -> Result<bool> {
+    if !key.transparent_color {
         return Ok(false);
     }
     let (dw, dh) = crate::map_pictures::drawn(path)?;
-    let zoom = int(&key["zoom"]);
-    let (dw, dh) = (zoomed(dw as i64, zoom), zoomed(dh as i64, zoom));
+    let (dw, dh) = (zoomed(dw as i64, key.zoom), zoomed(dh as i64, key.zoom));
     if dw == 0 || dw > 2 * WIDTH_MAX || dh > 2 * HEIGHT_MAX {
         return Ok(false);
     }
@@ -417,8 +433,8 @@ fn sparse(path: &Path, key: &Value, for_console: bool) -> Result<bool> {
 /// Whether the objects take a picture that is not a big one: a part, or
 /// one small by what it draws —[`sparse`]—, by what it draws; the rest, by
 /// their size.
-fn takes(info: &Converted, key: &Value) -> bool {
-    fits(info) || part_fits(info) && (is_part(key) || sparse_info(info))
+fn takes(info: &Converted, key: &Key) -> bool {
+    fits(info) || part_fits(info) && (key.with_map || sparse_info(info))
 }
 
 /// [`sparse`]'s count, on the picture converted.
@@ -431,14 +447,13 @@ fn sparse_info(info: &Converted) -> bool {
 /// the plane of objects, and not [`big_for_map`]'s. A copy of a common
 /// event into a map exists for those —see [`crate::common_pages`]—: a big
 /// one is the cartridge's, and the same with a map and without one.
-pub fn any_small(game_dir: &Path, keys: &[Value], cropped: &Cropped) -> Result<bool> {
+pub fn any_small(game_dir: &Path, keys: &[Key], cropped: &Cropped) -> Result<bool> {
     for key in keys {
-        let name = key["name"].as_str().unwrap_or("");
         let Some(path) = file_of(game_dir, key) else {
             continue;
         };
         if !is_big(&path, key, cropped)?
-            && takes(&convert(&path, key, cropped.for_console(name))?, key)
+            && takes(&convert(&path, key, cropped.for_console(&key.name))?, key)
         {
             return Ok(true);
         }
@@ -448,29 +463,28 @@ pub fn any_small(game_dir: &Path, keys: &[Value], cropped: &Cropped) -> Result<b
 
 /// Where the layer is drawn from: the key's centre, or the screen's for
 /// one that goes with the map, which covers it whole.
-fn big_center(key: &Value) -> (i64, i64) {
-    if truthy(&key["map_fixed"]) {
+fn big_center(key: &Key) -> (i64, i64) {
+    if key.map_fixed {
         return (RM_WIDTH / 2, RM_HEIGHT / 2);
     }
-    let at = key["at"].as_array().cloned().unwrap_or_default();
-    (at.first().map_or(0, int), at.get(1).map_or(0, int))
+    key.at.unwrap_or((0, 0))
 }
 
 /// A big picture of a map: its key, and its layer as the stage answered
 /// it with its half size and centre.
 #[derive(Debug, Clone)]
 pub struct Big {
-    pub key: Value,
+    pub key: Key,
     pub layer: Value,
 }
 
 /// Whether a `MovePicture` of the map zooms the picture `key`: one under
 /// its number that goes to another size than the one it was shown at.
 /// `zooms` is what the scan wrote down, `[number, zoom]` per move.
-fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
+fn moved_to_another_size(key: &Key, zooms: &[Value]) -> bool {
     zooms
         .iter()
-        .any(|z| int(&z[0]) == int(&key["number"]) && int(&z[1]) != int(&key["zoom"]))
+        .any(|z| int(&z[0]) == key.number && int(&z[1]) != key.zoom)
 }
 
 /// The big pictures of `keys`. The ones that do not fit even cut to the
@@ -487,16 +501,16 @@ fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
 /// their layer says so with `under`. See [`still_over`].
 pub fn big_for_map(
     game_dir: &Path,
-    keys: &[Value],
+    keys: &[Key],
     zooms: &[Value],
     whose: &str,
     cropped: &Cropped,
-    small: &dyn Fn(&Value) -> bool,
+    small: &dyn Fn(&Key) -> bool,
     under: Option<(&Path, &BTreeSet<(i64, String)>)>,
 ) -> Result<Vec<Big>> {
     let mut out = Vec::new();
     for key in keys {
-        let name = key["name"].as_str().unwrap_or("");
+        let name = key.name.as_str();
         let Some(path) = file_of(game_dir, key) else {
             continue;
         };
@@ -504,7 +518,7 @@ pub fn big_for_map(
             continue;
         }
         let (cx, cy) = big_center(key);
-        let zoom = int(&key["zoom"]);
+        let zoom = key.zoom;
         // Only one with holes —a quarter of it or more, as a picture that
         // is part of a map, `map_pictures`—: over an opaque one the small
         // pictures under its number would come out in front of it.
@@ -515,7 +529,7 @@ pub fn big_for_map(
                     && zoom == 100
                     && !moved_to_another_size(key, zooms)
                     && shown_in(key, still)
-                    && truthy(&key["transparent_color"])
+                    && key.transparent_color
                     && crate::map_pictures::holes(&path)?
                         >= crate::map_pictures::OPAQUE_HOLES_MIN =>
             {
@@ -525,7 +539,7 @@ pub fn big_for_map(
         };
         let layer = images::background(
             &path,
-            truthy(&key["transparent_color"]),
+            key.transparent_color,
             cx,
             cy,
             zoom,
@@ -538,7 +552,7 @@ pub fn big_for_map(
             moved_to_another_size(key, zooms),
             panorama,
         )?;
-        let Some(mut layer) = layer else {
+        let Some(layer) = layer else {
             println!(
                 "  {whose}: the picture {} doesn't fit the background layer even cut to the screen",
                 crate::text::quoted(name)
@@ -554,6 +568,7 @@ pub fn big_for_map(
                 (height * RM_HEIGHT).div_euclid(HEIGHT),
             );
         }
+        let mut layer = serde_json::to_value(layer).expect("a layer is JSON");
         let object = layer
             .as_object_mut()
             .ok_or_else(|| Stop::new("a layer is not an object"))?;
@@ -618,13 +633,8 @@ pub fn over_black(map: &GameMap) -> BTreeSet<(i64, String)> {
 /// Whether the key, as the scan answers it, is one of `shown`'s, as
 /// [`over_black`] and [`still_over`] answer them: placed by a constant and
 /// with the screen.
-pub fn shown_in(key: &Value, shown: &BTreeSet<(i64, String)>) -> bool {
-    !truthy(&key["by_variable"])
-        && !truthy(&key["map_fixed"])
-        && shown.contains(&(
-            int(&key["number"]),
-            key["name"].as_str().unwrap_or("").to_lowercase(),
-        ))
+pub fn shown_in(key: &Key, shown: &BTreeSet<(i64, String)>) -> bool {
+    !key.by_variable && !key.map_fixed && shown.contains(&(key.number, key.name.to_lowercase()))
 }
 
 /// The pictures `map`'s pages show by variables **with the screen where
@@ -676,13 +686,8 @@ pub fn screen_on_map(map: &GameMap) -> BTreeSet<(i64, String)> {
 
 /// Whether the key, as the scan answers it, is one of `on_map`'s, as
 /// [`screen_on_map`] answers them: placed by variables and with the screen.
-pub fn screen_on_map_in(key: &Value, on_map: &BTreeSet<(i64, String)>) -> bool {
-    truthy(&key["by_variable"])
-        && !truthy(&key["map_fixed"])
-        && on_map.contains(&(
-            int(&key["number"]),
-            key["name"].as_str().unwrap_or("").to_lowercase(),
-        ))
+pub fn screen_on_map_in(key: &Key, on_map: &BTreeSet<(i64, String)>) -> bool {
+    key.by_variable && !key.map_fixed && on_map.contains(&(key.number, key.name.to_lowercase()))
 }
 
 /// The big pictures `map`'s pages show **still over its panorama**, by
@@ -767,9 +772,9 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
         let mut map = Vec::new();
         for big in bigs.iter() {
             let ident = json!([
-                big.key["name"],
-                big.key["zoom"],
-                big.key["transparent_color"],
+                big.key.name,
+                big.key.zoom,
+                big.key.transparent_color,
                 big.layer["center"],
                 big.layer.get("under"),
                 textured(&big.layer)
@@ -787,7 +792,7 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
     for (bigs, map) in maps.iter().zip(&numbers) {
         let mut table = Vec::new();
         for (big, &number) in bigs.iter().zip(map) {
-            let mut entry: Map<String, Value> = big.key.as_object().cloned().unwrap_or_default();
+            let mut entry = entry_of(&big.key);
             entry.insert("plane".into(), json!("background"));
             entry.insert("image".into(), json!(number));
             entry.insert("center".into(), big.layer["center"].clone());
@@ -839,7 +844,7 @@ pub fn say_big(layers: &[Value]) {
         );
         let kept = layers
             .iter()
-            .filter(|l| truthy(&l["keeps_objects"]))
+            .filter(|l| l["keeps_objects"] == json!(true))
             .count();
         if kept > 0 {
             println!("  {kept} of them over a map's panorama, with the small pictures over them");
@@ -928,12 +933,12 @@ pub const NEAR: i64 = 2;
 /// only with itself: the console tones a picture by toning its palette, and
 /// a picture beside it in the same palette would take the tone too. Its
 /// pictures are never up at the same time, since a number holds one.
-fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<Value>> {
-    let mut palettes: Vec<Vec<Value>> = Vec::new();
+fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<[u8; 3]>> {
+    let mut palettes: Vec<Vec<[u8; 3]>> = Vec::new();
     // Whose each palette is: None for anyone's, or a toned number's.
     let mut owners: Vec<Option<i64>> = Vec::new();
     for s in shown.iter_mut() {
-        let own: Vec<Value> = s.info.palette.as_array().cloned().unwrap_or_default();
+        let own = s.info.palette.clone();
         let number = s.entry.get("number").map_or(0, int);
         let owner = tinted.contains(&number).then_some(number);
         let found = palettes
@@ -962,16 +967,10 @@ fn share_palettes(shown: &mut [Shown], tinted: &[i64]) -> Vec<Vec<Value>> {
 }
 
 /// How far apart two colours are: the most any channel differs.
-fn far(a: &Value, b: &Value) -> i64 {
-    let channels = |c: &Value| -> Vec<i64> {
-        c.as_array()
-            .map(|a| a.iter().map(int).collect())
-            .unwrap_or_default()
-    };
-    channels(a)
-        .iter()
-        .zip(channels(b))
-        .map(|(x, y)| (x - y).abs())
+fn far(a: &[u8; 3], b: &[u8; 3]) -> i64 {
+    a.iter()
+        .zip(b)
+        .map(|(&x, &y)| (i64::from(x) - i64::from(y)).abs())
         .max()
         .unwrap_or(i64::MAX)
 }
@@ -979,16 +978,16 @@ fn far(a: &Value, b: &Value) -> i64 {
 /// Where the colours `own` go in `palette`: each one's index from one —0
 /// is the transparent—, and the colours it adds; None if one is too far
 /// from every colour of a palette without room.
-fn fit(palette: &[Value], own: &[Value]) -> Option<(Vec<i64>, Vec<Value>)> {
-    let mut added: Vec<Value> = Vec::new();
+fn fit(palette: &[[u8; 3]], own: &[[u8; 3]]) -> Option<(Vec<i64>, Vec<[u8; 3]>)> {
+    let mut added: Vec<[u8; 3]> = Vec::new();
     let mut to = vec![0i64];
     for c in own {
-        let all: Vec<&Value> = palette.iter().chain(added.iter()).collect();
+        let all: Vec<&[u8; 3]> = palette.iter().chain(added.iter()).collect();
         if let Some(k) = all.iter().position(|p| *p == c) {
             to.push(k as i64 + 1);
         } else if all.len() < COLORS as usize {
             to.push(all.len() as i64 + 1);
-            added.push(c.clone());
+            added.push(*c);
         } else {
             let (k, d) = all
                 .iter()
@@ -1150,7 +1149,7 @@ impl Bank {
 /// accepted without being done.
 pub fn for_map(
     game_dir: &Path,
-    keys: &[Value],
+    keys: &[Key],
     tinted: &[i64],
     whose: &str,
     cropped: &Cropped,
@@ -1158,8 +1157,8 @@ pub fn for_map(
     let mut slots: Vec<i64> = Vec::new();
     let mut shown: Vec<Shown> = Vec::new();
     for key in keys {
-        let number = int(&key["number"]);
-        let name = key["name"].as_str().unwrap_or("");
+        let number = key.number;
+        let name = key.name.as_str();
         // The big ones are `big_for_map`'s, and take no slot.
         let Some(path) = file_of(game_dir, key) else {
             continue;
@@ -1187,11 +1186,10 @@ pub fn for_map(
             }
             slots.push(number);
         }
-        if let Some(at) = key["at"].as_array().filter(|_| !is_part(key)) {
+        if let Some((cx, cy)) = key.at.filter(|_| !key.with_map) {
             // The corner the console computes from the centre and the half
             // size —`pic_show`— has to be the one the picture was converted
             // at: the same floor of four fifths and fourteen fifteenths.
-            let (cx, cy) = (int(&at[0]), int(&at[1]));
             let (hw, hh) = info.half;
             let expected = (
                 ((cx - hw) * WIDTH).div_euclid(RM_WIDTH),
@@ -1199,15 +1197,15 @@ pub fn for_map(
             );
             if (info.x, info.y) != expected {
                 crate::stop!(
-                    "{key}: converted at ({}, {}) and the console puts it at {expected:?}",
+                    "{}: converted at ({}, {}) and the console puts it at {expected:?}",
+                    json!(key),
                     info.x,
                     info.y
                 );
             }
         }
-        let entry: Map<String, Value> = key.as_object().cloned().unwrap_or_default();
         shown.push(Shown {
-            entry,
+            entry: entry_of(key),
             name: name.to_string(),
             info,
         });
@@ -1245,7 +1243,7 @@ pub fn for_map(
             "objects": cut.iter().map(|&(dx, dy, piece)| json!([dx, dy, bank.word(piece, &cell_tiles)])).collect::<Vec<_>>(),
             "palette": palettes[palette as usize],
             "palette_index": palette,
-            "behind_map": s.entry.get("behind_map").is_some_and(truthy),
+            "behind_map": s.entry.get("behind_map") == Some(&json!(true)),
         }));
         objects += cut.len();
     }
@@ -1353,7 +1351,11 @@ mod tests {
             found,
             BTreeSet::from([(20, "quote1".to_string()), (20, "quote2".to_string())])
         );
-        let key = json!({"number": 20, "name": "QUOTE1", "by_variable": false, "map_fixed": false});
+        let key = Key {
+            number: 20,
+            name: "QUOTE1".into(),
+            ..Key::default()
+        };
         assert!(shown_in(&key, &found));
     }
 
@@ -1423,7 +1425,12 @@ mod tests {
         };
         let found = screen_on_map(&map(20, 0, dog()));
         assert_eq!(found, BTreeSet::from([(1, "hund_animation4".to_string())]));
-        let key = json!({"number": 1, "name": "Hund_Animation4", "by_variable": true, "map_fixed": false});
+        let key = Key {
+            number: 1,
+            name: "Hund_Animation4".into(),
+            by_variable: true,
+            ..Key::default()
+        };
         assert!(screen_on_map_in(&key, &found));
         assert!(screen_on_map(&map(21, 0, dog())).is_empty());
         assert!(screen_on_map(&map(20, 3, dog())).is_empty());
@@ -1586,7 +1593,13 @@ mod tests {
     fn a_layer_has_a_texture_only_on_the_maps_that_zoom_it() {
         // The same photo on three maps: still on the first, zoomed on the
         // second; and another one, still, on the third.
-        let key = |name: &str| json!({"name": name, "zoom": 100, "transparent_color": true, "number": 20});
+        let key = |name: &str| Key {
+            number: 20,
+            name: name.into(),
+            zoom: 100,
+            transparent_color: true,
+            ..Key::default()
+        };
         let layer = |texture: bool| json!({"center": [160, 120], "tiles": "00", "mode7": if texture { json!({"map": []}) } else { Value::Null }});
         let still = [Big {
             key: key("Photo"),
@@ -1639,7 +1652,12 @@ mod tests {
         assert_eq!(block_tile(5), 68);
     }
 
-    fn info(width: i64, height: i64, palette: Value, drawn: &[(usize, usize, i64)]) -> Converted {
+    fn info(
+        width: i64,
+        height: i64,
+        palette: Vec<[u8; 3]>,
+        drawn: &[(usize, usize, i64)],
+    ) -> Converted {
         let mut indices = vec![vec![0i64; width as usize]; height as usize];
         for &(x, y, v) in drawn {
             indices[y][x] = v;
@@ -1659,16 +1677,11 @@ mod tests {
     fn a_sparse_block_goes_as_cells_and_a_full_one_whole() {
         // 40x8: the first block has one cell drawn, the second (from x = 32)
         // one too; and a 32x32 with all sixteen.
-        let sparse = info(
-            40,
-            8,
-            json!([[0, 0, 0], [8, 8, 8]]),
-            &[(0, 0, 1), (39, 7, 2)],
-        );
+        let sparse = info(40, 8, vec![[0, 0, 0], [8, 8, 8]], &[(0, 0, 1), (39, 7, 2)]);
         let full: Vec<(usize, usize, i64)> = (0..32)
             .flat_map(|y| (0..32).map(move |x| (x, y, 1)))
             .collect();
-        let full = info(32, 32, json!([[0, 0, 0]]), &full);
+        let full = info(32, 32, vec![[0, 0, 0]], &full);
         let mut bank = Bank::default();
         let cut = bank.cut(&sparse);
         assert_eq!(cut, [(0, 0, Piece::Cell(0)), (32, 0, Piece::Cell(1))]);
@@ -1702,40 +1715,36 @@ mod tests {
 
     #[test]
     fn pictures_whose_colours_fit_together_share_a_palette() {
-        let shown = |palette: Value| Shown {
+        let shown = |palette: Vec<[u8; 3]>| Shown {
             entry: Map::new(),
             name: String::new(),
             info: info(8, 8, palette, &[(0, 0, 1), (1, 0, 2)]),
         };
-        let fifteen: Vec<Value> = (0..15).map(|k| json!([k, 0, 0])).collect();
+        let fifteen = || (0..15).map(|k| [k, 0, 0]).collect::<Vec<_>>();
         let mut pictures = vec![
-            shown(json!([[1, 1, 1], [2, 2, 2]])),
-            shown(json!([[2, 2, 2], [3, 3, 3]])),
-            shown(Value::Array(fifteen)),
+            shown(vec![[1, 1, 1], [2, 2, 2]]),
+            shown(vec![[2, 2, 2], [3, 3, 3]]),
+            shown(fifteen()),
         ];
         let palettes = share_palettes(&mut pictures, &[]);
         assert_eq!(palettes.len(), 2);
-        assert_eq!(
-            palettes[0],
-            [json!([1, 1, 1]), json!([2, 2, 2]), json!([3, 3, 3])]
-        );
+        assert_eq!(palettes[0], [[1, 1, 1], [2, 2, 2], [3, 3, 3]]);
         assert_eq!(pictures[1].entry["palette"], 0);
         assert_eq!(pictures[2].entry["palette"], 1);
         // The second one's indices are the shared palette's: its first
         // colour is the first one's second.
         assert_eq!(pictures[1].info.indices[0][..2], [2, 3]);
         // A full palette takes a colour within two steps of one it has.
-        let mut near: Vec<Value> = (0..15).map(|k| json!([k, 0, 0])).collect();
-        near[1] = json!([16, 2, 1]);
-        let fifteen = || Value::Array((0..15).map(|k| json!([k, 0, 0])).collect());
-        let mut pictures = vec![shown(fifteen()), shown(Value::Array(near))];
+        let mut near = fifteen();
+        near[1] = [16, 2, 1];
+        let mut pictures = vec![shown(fifteen()), shown(near)];
         assert_eq!(share_palettes(&mut pictures, &[]).len(), 1);
         assert_eq!(
             pictures[1].info.indices[0][..2],
             [1, 15],
             "[16, 2, 1] drawn as [14, 0, 0]"
         );
-        let mut pictures = vec![shown(fifteen()), shown(json!([[0, 0, 0], [20, 20, 20]]))];
+        let mut pictures = vec![shown(fifteen()), shown(vec![[0, 0, 0], [20, 20, 20]])];
         assert_eq!(
             share_palettes(&mut pictures, &[]).len(),
             2,
@@ -1743,7 +1752,7 @@ mod tests {
         );
         // A toned number has its own, which its other pictures share.
         let numbered = |number: i64| {
-            let mut s = shown(json!([[1, 1, 1]]));
+            let mut s = shown(vec![[1, 1, 1]]);
             s.entry.insert("number".into(), json!(number));
             s
         };
