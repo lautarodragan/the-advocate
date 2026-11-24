@@ -456,6 +456,7 @@ dependencies = [
  "ditto",
  "rm2k-rules",
  "rm2k-snes-text",
+ "serde",
  "serde_json",
 ]
 
@@ -496,6 +497,7 @@ dependencies = [
  "rm2k-snes-patches",
  "rm2k-snes-screens",
  "rm2k-snes-text",
+ "serde",
  "serde_json",
  "toml",
  "wally",

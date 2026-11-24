@@ -491,7 +491,7 @@ pub fn rom_scene(
     rtp: &Path,
     troops: &Troops,
     maps: &[MapInfo],
-    encounters: &Value,
+    per_map: &[i64],
 ) -> Result<Scene> {
     let named = named_backdrops(game)?;
     let names = game_backdrops(game, rtp, &named);
@@ -531,12 +531,10 @@ pub fn rom_scene(
     }
     // The map's, for random encounters and for the troops that fight with
     // the one of the place; only where some battle can look at it.
-    let per_map: Vec<i64> = match encounters.get("per_map").and_then(Value::as_array) {
-        Some(list) if !list.is_empty() => list
-            .iter()
-            .map(|v| v.as_i64().unwrap_or(NO_RECORD))
-            .collect(),
-        _ => vec![NO_RECORD; maps.len()],
+    let per_map = if per_map.is_empty() {
+        vec![NO_RECORD; maps.len()]
+    } else {
+        per_map.to_vec()
     };
     let place_ones = troop_backdrop.iter().any(|(_, k)| *k == PLACE_BACKDROP);
     let mut map_backdrop = Vec::new();

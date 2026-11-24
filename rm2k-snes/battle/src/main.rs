@@ -140,9 +140,15 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Tables(args) => model::read_request(&args.request)
+            .and_then(|request| {
+                <rm2k_snes_battle::Request as serde::Deserialize>::deserialize(&request).map_err(
+                    |e| rm2k_snes_battle::Bad::answer(format!("{}: {e}", args.request.display())),
+                )
+            })
             .and_then(|request| stage::tables(&args.data, &request))
             .and_then(|files| write(&args.out, &files)),
         Command::Model(args) => model::read_request(&args.request)
+            .and_then(|request| model::ModelRequest::of(&request))
             .and_then(|request| stage::model(&args.data, &request))
             .and_then(|files| write(&args.out, &files)),
         Command::Simulate(args) => asked(args, SIMULATE_FILE, model::simulate),

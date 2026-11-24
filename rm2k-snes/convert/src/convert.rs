@@ -831,32 +831,38 @@ pub fn run(options: Options) -> Result<()> {
     let members = scan::possible_members(every_refs.iter().copied(), &party, &file_commands);
     // The random encounters of each map, and the experience tables:
     // `rm2k-snes-battle`'s first call.
-    let request = json!({
-        "party": members,
-        "maps": infos.iter().map(|m| json!({"id": m.id, "width": m.map.width, "height": m.map.height}))
-            .collect::<Vec<_>>(),
-        "encounter_steps": options.test_encounters,
-        "tree_nodes": game.tree.added_nodes,
-    });
+    let request = rm2k_snes_battle::Request {
+        party: members.iter().map(|&a| a.into()).collect(),
+        maps: infos
+            .iter()
+            .map(|m| rm2k_snes_battle::Map {
+                id: m.id.into(),
+                width: m.map.width.into(),
+                height: m.map.height.into(),
+            })
+            .collect(),
+        encounter_steps: options.test_encounters,
+        tree_nodes: game.tree.added_nodes.clone(),
+    };
     let written = stage::call(
         BATTLE_TABLES,
-        &request,
+        &json!(request),
         &["--data".into(), game.dump.clone().into_os_string()],
         || rm2k_snes_battle::stage::tables(&game.dump, &request),
     )?;
-    let tables_answer = stage::json(&written, "battle.json")?;
-    let encounters = tables_answer["encounters"].clone();
+    let tables_answer: rm2k_snes_battle::Answer = stage::typed(&written, "battle.json")?;
+    let encounters = tables_answer.encounters;
     let battle_tables = request::BattleTables {
         experience: stage::text(&written, "experience.inc")?,
-        slots: tables_answer["experience"]["slots"].clone(),
+        slots: tables_answer.experience.slots,
         encounters: stage::text(&written, "encounters.inc")?,
     };
-    if int(&encounters["records"]) != 0 {
+    if encounters.records != 0 {
         println!(
             "  random encounters: {} map(s), {} zone(s), {} troop(s)",
-            int(&encounters["records"]),
-            int(&encounters["zones"]),
-            encounters["troops"].as_array().map_or(0, Vec::len)
+            encounters.records,
+            encounters.zones,
+            encounters.troops.len()
         );
     }
     // Every page of the cartridge, compiled: `rm2k-snes-events`' second
@@ -893,7 +899,7 @@ pub fn run(options: Options) -> Result<()> {
         &extra,
         test_event_map,
         &test_graphics,
-        &encounters["troops"],
+        &json!(encounters.troops),
     )?;
     degradations.add_compiler_answer(&compiled);
     // The events the RAM left out that Wally painted into their map lose
@@ -1709,7 +1715,14 @@ pub fn run(options: Options) -> Result<()> {
     }
     // The backdrops and the battlers the cartridge's battles ask for,
     // each one once.
-    let scenes = scene::rom_scene(&game, &settings, &rtp_dir, &troops, &infos, &encounters)?;
+    let scenes = scene::rom_scene(
+        &game,
+        &settings,
+        &rtp_dir,
+        &troops,
+        &infos,
+        &encounters.per_map,
+    )?;
     for b in &scenes.backdrops {
         let (rom_tiles, rom_colors) = scene::fallback_bytes(&b.light);
         let (msu_tiles, msu_colors) = &scenes.quality[b.number];
@@ -1782,31 +1795,40 @@ pub fn run(options: Options) -> Result<()> {
     let layout = screens::layout()?;
     let mut pairs: Vec<((i64, i64), i64)> = indices.skills.clone();
     pairs.sort_by_key(|(_, slot)| *slot);
-    let request = json!({
-        "actors": members, "troops": troops.ids, "items": items_all,
-        "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
-        "item_name_width": layout["ITEM_NAME_WIDTH"],
+    let request = rm2k_snes_battle::model::ModelRequest {
+        actors: members.clone(),
+        troops: troops.ids.clone(),
+        items: items_all.clone(),
+        skill_pairs: pairs
+            .iter()
+            .map(|&((a, h), _)| (a as i32, h as i32))
+            .collect(),
+        item_name_width: emit::typed(&layout["ITEM_NAME_WIDTH"])?,
         // The letters the text screens carry: an item's name in a
         // victory line keeps them.
-        "letters": screens_answer["font"]["screen_letters"],
-        "font": font.spec, "letter_spacing": font.spacing,
-        "exfont": font.request()["exfont"],
-    });
+        letters: emit::typed(&screens_answer["font"]["screen_letters"])?,
+        font: Some(font.spec.clone()),
+        letter_spacing: Some(font.spacing),
+        exfont: font
+            .exfont
+            .as_ref()
+            .map(|sheet| sheet.to_string_lossy().into_owned()),
+    };
     let written = stage::call(
         BATTLE_MODEL,
-        &request,
+        &json!(request),
         &["--data".into(), game.dump.clone().into_os_string()],
         || rm2k_snes_battle::stage::model(&game.dump, &request),
     )?;
-    let battle_model = stage::json(&written, "model.json")?;
-    for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
-        let line = cut_report(&place);
+    let battle_model: rm2k_snes_battle::model::Model = stage::typed(&written, "model.json")?;
+    for place in battle_model.cut.iter().flatten() {
+        let line = cut_report(place);
         println!("{line}");
         degradations.cartridge("names-cut", &line);
     }
     // The party's line, whose HP and SP the console writes as runs that do
     // not get cut: with a font too wide they would step on each other.
-    if let Some(why) = battle_model["party_line"].as_str() {
+    if let Some(why) = &battle_model.party_line {
         let line = format!("  WARNING, battle text: the party's line does not fit: {why}");
         println!("{line}");
         degradations.cartridge("names-cut", &line);
@@ -1818,9 +1840,8 @@ pub fn run(options: Options) -> Result<()> {
     // from word 0 up to the battle's windows —`TL_POOL_BATTLE` in the
     // runtime's `screen_bank.s`, and `TEXT_PAIRS_END`—.
     let pool = scene::TEXT_PAIRS_END / 32 - 1;
-    let asked = &battle_model["pairs"];
-    if !asked.is_null() {
-        let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));
+    if let Some(asked) = &battle_model.pairs {
+        let (skills, items) = (asked.skills as i64, asked.items as i64);
         let warning = if skills.max(items) > pool {
             "WARNING, "
         } else {
@@ -1830,8 +1851,7 @@ pub fn run(options: Options) -> Result<()> {
             "  {warning}battle text: the skill list asks for {skills} pairs of tiles at most \
              (actor {}, who can know {} skills) and the item list {items}, of the {pool} of \
              the pool",
-            int(&asked["skills_actor"]),
-            int(&asked["skills_known"])
+            asked.skills_actor, asked.skills_known
         );
         println!("{line}");
         if skills.max(items) > pool {
@@ -2351,26 +2371,17 @@ fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecor
 /// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
 /// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
 /// A warning: the console cuts and the battle goes on.
-fn cut_report(place: &Value) -> String {
-    let cells = int(&place["cells"]);
-    let names: Vec<String> = place["names"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
+fn cut_report(place: &rm2k_snes_battle::model::Cut) -> String {
+    let cells = place.cells;
+    let names: Vec<String> = place
+        .names
         .iter()
-        .map(|n| {
-            format!(
-                "{:?} {} px, shows {:?}",
-                n[0].as_str().unwrap_or(""),
-                int(&n[1]),
-                n[2].as_str().unwrap_or("")
-            )
-        })
+        .map(|(name, px, shows)| format!("{name:?} {px} px, shows {shows:?}"))
         .collect();
     format!(
         "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
         names.len(),
-        place["place"].as_str().unwrap_or(""),
+        place.place,
         8 * cells,
         names.join("; ")
     )

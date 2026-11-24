@@ -227,9 +227,11 @@ fn more_troops_than_a_byte_numbers_fit() {
 #[test]
 fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
     let mut request = emit_request("whole");
-    let attacks = serde_json::json!(vec![serde_json::json!([50, null, true]); 40]);
     for e in 1..=8 {
-        request.battle_model["actions"][e.to_string()] = attacks.clone();
+        request
+            .battle_model
+            .actions
+            .insert(e, vec![(50, None, true); 40]);
     }
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     let starts = text

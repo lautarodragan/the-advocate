@@ -380,7 +380,7 @@ pub struct Emit {
     #[serde(default)]
     pub commons: Option<Commons>,
     /// What `rm2k-snes-battle model` answered.
-    pub battle_model: serde_json::Value,
+    pub battle_model: rm2k_snes_battle::model::Model,
     /// The compiler's indices: each variable's slot, and each (actor,
     /// skill) pair's bit.
     pub variables: Vec<(i64, i64)>,
@@ -654,11 +654,14 @@ pub struct BattleAnimation {
     pub palette: Vec<Color>,
 }
 
+/// What `rm2k-snes-battle tables` wrote —the experience's and the
+/// encounters' pieces of the `.inc`— and its experience slots: see
+/// `ExperienceAnswer` there.
 #[derive(Serialize, Deserialize)]
 pub struct BattleTables {
     pub experience: String,
     pub encounters: String,
-    pub slots: serde_json::Value,
+    pub slots: Vec<Option<i64>>,
 }
 
 /// A family's run of the ChipSet's animation.

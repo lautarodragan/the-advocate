@@ -233,6 +233,14 @@ impl Geometry<'_> {
     }
 }
 
+/// What the battle's model answered for the number `n`, or why not.
+fn by_number<'a, T>(answered: &'a BTreeMap<i32, T>, n: i64, what: &str) -> Result<&'a T> {
+    i32::try_from(n)
+        .ok()
+        .and_then(|n| answered.get(&n))
+        .ok_or_else(|| Bad::answer(format!("the battle's model has nothing of {what} {n}")))
+}
+
 /// The text block of the text screens, which the console names by index.
 struct Texts {
     data: Vec<u8>,
@@ -540,7 +548,7 @@ pub fn switch_bytes(top: i64) -> Result<i64> {
 fn save_signature(
     variables: &[(i64, i64)],
     pairs: &[(i64, i64, i64)],
-    experience: &Value,
+    experience: &[Option<i64>],
     n_actors: i64,
     switch_bytes: i64,
 ) -> u32 {
@@ -554,7 +562,7 @@ fn save_signature(
         switches: i64,
         actors: i64,
         skills: &'a [(i64, i64, i64)],
-        experience: &'a Value,
+        experience: &'a [Option<i64>],
     }
     let shape = Shape {
         variables,
@@ -605,7 +613,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     let screens = &r.screens;
     let t = Geometry(at(screens, "layout")?);
     let model = &r.battle_model;
-    let bs = Geometry(at(model, "layout")?);
+    let bs = Geometry(&model.layout);
     let slot_text_max = SLOT_TEXT_LEVEL as i64 + t.n("LEVEL_DIGITS");
 
     // Everything that goes per map, first: it is also where what each map
@@ -2379,7 +2387,7 @@ struct Rest<'a> {
     screens: &'a Value,
     t: &'a Geometry<'a>,
     bs: &'a Geometry<'a>,
-    model: &'a Value,
+    model: &'a rm2k_snes_battle::model::Model,
     faces: &'a BTreeMap<i64, &'a Value>,
 }
 
@@ -2820,11 +2828,8 @@ impl Rest<'_> {
         // The battle's: the LDB's terms —the three commands already trimmed,
         // the victory split as the stage checked it fits— and the rest.
         let model = self.model;
-        let mtexts = at(model, "texts")?;
-        let victory: Vec<String> = list_at(mtexts, "victory")?
-            .iter()
-            .map(|v| Ok(text(v)?.to_string()))
-            .collect::<Result<_>>()?;
+        let mtexts = &model.texts;
+        let victory = &mtexts.victory;
         let mut battle_text = None;
         // The commands' texts the cartridge already has, by what they say:
         // an actor's command that says the same points to it —see
@@ -2832,7 +2837,9 @@ impl Rest<'_> {
         let mut command_texts: HashMap<String, i64> = HashMap::new();
         for (name, liblcf) in BATTLE_TERMS {
             let value = match name {
-                "attack" | "defend" | "escape" => text_at(mtexts, name)?.to_string(),
+                "attack" => mtexts.attack.clone(),
+                "defend" => mtexts.defend.clone(),
+                "escape" => mtexts.escape.clone(),
                 "victory" => victory[0].clone(),
                 _ => battle_term(&self.r.battle_terms, db, liblcf)?,
             };
@@ -2844,25 +2851,25 @@ impl Rest<'_> {
             battle_text.get_or_insert(k);
         }
         let battle_text = battle_text.unwrap_or(0);
-        let revived_text = texts.add(&db_text(&shown, text_at(mtexts, "revived")?));
-        let dead_text = texts.add(&db_text(&shown, text_at(mtexts, "dead")?));
+        let revived_text = texts.add(&db_text(&shown, &mtexts.revived));
+        let dead_text = texts.add(&db_text(&shown, &mtexts.dead));
         let victory2_text = texts.add(&db_text(&shown, victory.get(1).map_or("", String::as_str)));
-        let rom_enemies = ints_at(model, "enemies")?;
-        let enemy_names = at(mtexts, "enemies")?;
-        let enemy_text = texts.add_each(&rom_enemies, |e| text_at(enemy_names, &e.to_string()))?;
-        let actions = at(model, "actions")?;
-        let rom_skills = ints_at(model, "skills")?;
-        let skill_texts = at(mtexts, "skills")?;
+        let rom_enemies: Vec<i64> = model.enemies.iter().map(|&e| e.into()).collect();
+        let enemy_text = texts.add_each(&rom_enemies, |e| {
+            by_number(&mtexts.enemies, e, "enemy").map(String::as_str)
+        })?;
+        let actions = &model.actions;
+        let rom_skills: Vec<i64> = model.skills.iter().map(|&h| h.into()).collect();
         let skill_text = texts.add_each(&rom_skills, |h| {
-            text_at(at(skill_texts, &h.to_string())?, "name")
+            Ok(&by_number(&mtexts.skills, h, "skill")?.name)
         })?;
         let skill_desc_text = texts.add_each(&rom_skills, |h| {
-            text_at(at(skill_texts, &h.to_string())?, "description")
+            Ok(&by_number(&mtexts.skills, h, "skill")?.description)
         })?;
         // An item's description whole, for the battle's help window, which
         // has one line: the item screens split it in two, `3k + 1` and `3k +
         // 2`. Only the items the battle offers; the others point to text 0.
-        let item_battle = list_at(model, "item_battle")?;
+        let item_battle = &model.item_battle;
         let item_list = list_at(textos, "items")?;
         if item_battle.len() != item_list.len() {
             return Err(Bad::answer(
@@ -2870,8 +2877,8 @@ impl Rest<'_> {
             ));
         }
         let mut item_desc_battle = Vec::new();
-        for (item, battle) in item_list.iter().zip(item_battle) {
-            if battle.as_bool().unwrap_or(false) {
+        for (item, &battle) in item_list.iter().zip(item_battle) {
+            if battle {
                 let lines = list_at(item, "texts")?;
                 let whole: Vec<&str> = lines[1..]
                     .iter()
@@ -2889,14 +2896,16 @@ impl Rest<'_> {
             db.skill(h as i32)
                 .map_err(|b| Bad::answer(b.message().to_string()))
         };
-        let taught = ints_at(model, "taught")?;
+        let taught: Vec<i64> = model.taught.iter().map(|&h| h.into()).collect();
         let whole_skill_text = texts.add_each(&taught, |h| Ok(&skill(h)?.name))?;
         let skill_msg1_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message1))?;
         let skill_msg2_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message2))?;
-        let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
         for &a in &r.actors {
-            let name = plain(&shown, text_at(commands, &a.to_string())?);
+            let name = plain(
+                &shown,
+                by_number(&mtexts.skill_commands, a, "actor")?.as_str(),
+            );
             let k = texts.add(&name);
             command_texts.entry(name).or_insert(k);
             skill_command_text.insert(a, k);
@@ -2947,12 +2956,11 @@ impl Rest<'_> {
         // when it says the same, so a 2000 game adds none, and otherwise a
         // new one, after every other for the same reason as the result
         // terms'.
-        let actor_commands = at(mtexts, "commands")?;
         let mut command_text = HashMap::new();
         for &a in &r.actors {
             let mut row = Vec::new();
-            for (slot, name) in list_at(actor_commands, &a.to_string())?.iter().enumerate() {
-                let name = plain(&shown, text(name)?);
+            for (slot, name) in by_number(&mtexts.commands, a, "actor")?.iter().enumerate() {
+                let name = plain(&shown, name);
                 // The skill command is the one `skill_commands` gave this
                 // actor, its own text since before the other four.
                 let own = skill_command_text
@@ -3470,7 +3478,7 @@ struct ItemTexts<'a> {
     state_already_text: Vec<i64>,
     rom_enemies: Vec<i64>,
     rom_skills: Vec<i64>,
-    actions: &'a Value,
+    actions: &'a BTreeMap<i32, Vec<(i64, Option<i32>, bool)>>,
     border_tiles: usize,
     border_colors: usize,
 }
@@ -3938,9 +3946,11 @@ impl Rest<'_> {
         out.bytes("terrain_bush", bush);
         // The skill a special item casts from the items screen, by its RM2k
         // number, 0 for none: the battle stage's `item_map_skill`.
-        let map_skills: Vec<i64> = list_at(self.model, "item_map_skill")?
+        let map_skills: Vec<i64> = self
+            .model
+            .item_map_skill
             .iter()
-            .map(|v| v.as_i64().unwrap_or(0))
+            .map(|&h| h.into())
             .collect();
         if map_skills.len() != items.len() {
             return Err(Bad::answer(
@@ -3968,16 +3978,13 @@ impl Rest<'_> {
         );
         // What each item does in a battle: whether it goes in the list
         // —the battle stage's rule— and how much it heals.
-        let item_battle: Vec<i64> = list_at(self.model, "item_battle")?
-            .iter()
-            .map(|v| i64::from(v.as_bool().unwrap_or(false)))
-            .collect();
+        let item_battle: Vec<i64> = self.model.item_battle.iter().map(|&b| b.into()).collect();
         out.bytes("item_battle", item_battle);
         // The skill a special item casts, as its place in the cartridge's
         // skill rows —`skill_*`—, or $FF for every other item: see
         // `ba_items_list` in battle_items.s. The model puts that skill in
         // `skills`.
-        let rom_skills = ints_at(self.model, "skills")?;
+        let rom_skills: Vec<i64> = self.model.skills.iter().map(|&h| h.into()).collect();
         let place_of = |h: i64, where_: &str| -> Result<i64> {
             if h == 0 {
                 return Ok(0xFF);
@@ -3988,9 +3995,11 @@ impl Rest<'_> {
                 ))
             })? as i64)
         };
-        let item_skill = list_at(self.model, "item_skill")?
+        let item_skill = self
+            .model
+            .item_skill
             .iter()
-            .map(|v| place_of(v.as_i64().unwrap_or(0), ""))
+            .map(|&h| place_of(h.into(), ""))
             .collect::<Result<Vec<_>>>()?;
         if item_skill.len() != items.len() {
             return Err(Bad::answer(
@@ -4578,12 +4587,12 @@ impl Rest<'_> {
         );
         out.bytes("skill_initial", hex2(bits));
         // At which level the learning table teaches each pair, or 0.
-        let pair_levels = ints_at(self.model, "pair_levels")?;
+        let pair_levels = &self.model.pair_levels;
         out.bytes("skill_pair_level", pair_levels.iter());
         // And the name the victory tells it by, or $FFFF.
         out.words(
             "skill_pair_learns_txt",
-            hex4(pairs.iter().zip(&pair_levels).map(|(&(a, h, _), &level)| {
+            hex4(pairs.iter().zip(pair_levels).map(|(&(a, h, _), &level)| {
                 match x.whole_skill_text.get(&h) {
                     Some(&k) if actors.contains(&a) && level > 0 => k,
                     _ => 0xFFFF,
@@ -4645,11 +4654,8 @@ impl Rest<'_> {
             )));
         }
         out.words("troop_id", used.iter());
-        let model_troops = list_at(self.model, "troops")?;
-        let answered: Vec<i64> = model_troops
-            .iter()
-            .map(|t| int_at(t, "id"))
-            .collect::<Result<_>>()?;
+        let model_troops = &self.model.troops;
+        let answered: Vec<i64> = model_troops.iter().map(|t| t.id.into()).collect();
         if answered != used {
             return Err(Bad::answer(format!(
                 "the battle stage answered for troops {answered:?} and the cartridge carries {used:?}"
@@ -4658,8 +4664,8 @@ impl Rest<'_> {
         for (field, what) in [("exp", "experience"), ("gold", "gold")] {
             let values: Vec<i64> = model_troops
                 .iter()
-                .map(|t| int_at(t, field))
-                .collect::<Result<_>>()?;
+                .map(|t| if field == "exp" { t.exp } else { t.gold })
+                .collect();
             for (n, v) in used.iter().zip(&values) {
                 if *v > 0xFFFF {
                     return Err(Bad::answer(format!(
@@ -4987,19 +4993,16 @@ impl Rest<'_> {
         let mut eacc_n = Vec::new();
         for &e in rom_enemies {
             eacc_start.push(eacc_skill.len() as i64);
-            let theirs = list_at(x.actions, &e.to_string())?;
+            let theirs = by_number(x.actions, e, "enemy")?;
             eacc_n.push(theirs.len() as i64);
-            for a in theirs {
-                let a = list(a)?;
-                let rating = int(&a[0])?;
-                eacc_skill.push(match a[1].as_i64() {
+            for &(rating, skill, effective) in theirs {
+                eacc_skill.push(match skill {
                     None => 0xFF,
                     Some(h) => *skill_place
-                        .get(&h)
+                        .get(&h.into())
                         .ok_or_else(|| Bad::answer(format!("skill {h} is not the battle's")))?
                         as i64,
                 });
-                let effective = a[2].as_bool().unwrap_or(false);
                 eacc_weight.push(rating | if effective { 0 } else { 0x80 });
             }
         }

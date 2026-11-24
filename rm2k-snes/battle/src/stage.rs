@@ -9,7 +9,7 @@
 
 use crate::db::Db;
 use crate::fail::Result;
-use crate::model::{self, LAYOUT_FILE, MODEL_FILE};
+use crate::model::{self, ModelRequest, LAYOUT_FILE, MODEL_FILE};
 use crate::{screen, Game, Request, Tables};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -19,16 +19,19 @@ use std::path::Path;
 pub type Files = BTreeMap<String, Vec<u8>>;
 
 /// `tables`: the experience and encounter tables of the game in `data`,
-/// for the cartridge `request` describes —see [`Request::of`]—.
-pub fn tables(data: &Path, request: &Value) -> Result<Files> {
+/// for the cartridge `request` describes —see [`Request`]—.
+pub fn tables(data: &Path, request: &Request) -> Result<Files> {
     let mut game = Game::from_dump(data)?;
-    let request = Request::of(request, "the request", &mut game)?;
-    Ok(Tables::new(&game, &request)?.files())
+    request.put_nodes("the request", &mut game)?;
+    Ok(Tables::new(&game, request)?.files())
 }
 
 /// `model`: what the rest of the conversion writes of the battle.
-pub fn model(data: &Path, request: &Value) -> Result<Files> {
-    asked(data, request, MODEL_FILE, model::model)
+pub fn model(data: &Path, request: &ModelRequest) -> Result<Files> {
+    // The troops are most of a database: only a request that names one
+    // reads them.
+    let db = Db::from_dump(data, !request.troops.is_empty())?;
+    Ok(one(MODEL_FILE, &model::model(&db, request)?))
 }
 
 /// `layout`: the geometry of the battle's text screen, which no game
@@ -52,7 +55,7 @@ pub fn asked(
 }
 
 /// `answer` as the file `name`, as every JSON of this crate is written.
-fn one(name: &str, answer: &Value) -> Files {
+fn one(name: &str, answer: &impl serde::Serialize) -> Files {
     let text = serde_json::to_string_pretty(answer).expect("an answer is JSON") + "\n";
     Files::from([(name.to_string(), text.into_bytes())])
 }

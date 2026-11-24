@@ -180,12 +180,9 @@ fn the_model_carries_the_items_skill() {
     let db = db_with(SKILL);
     let request = json!({"actors": [1], "troops": [], "items": [MEDICINE, ITEM],
                          "skill_pairs": [], "item_name_width": 12});
-    let answer = model::model(&db, &request).unwrap();
-    assert_eq!(answer["item_battle"], json!([true, true]));
-    assert_eq!(answer["item_skill"], json!([0, SKILL]));
-    assert!(answer["skills"].as_array().unwrap().contains(&json!(SKILL)));
-    assert_eq!(
-        answer["texts"]["skills"][SKILL.to_string()]["name"],
-        json!("Skill number 9")
-    );
+    let answer = model::model(&db, &model::ModelRequest::of(&request).unwrap()).unwrap();
+    assert_eq!(answer.item_battle, [true, true]);
+    assert_eq!(answer.item_skill, [0, SKILL]);
+    assert!(answer.skills.contains(&SKILL));
+    assert_eq!(answer.texts.skills[&SKILL].name, "Skill number 9");
 }

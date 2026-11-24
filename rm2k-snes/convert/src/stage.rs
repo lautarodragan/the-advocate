@@ -313,6 +313,11 @@ pub fn text(written: &Files, name: &str) -> Result<String> {
 
 /// A JSON file a stage wrote.
 pub fn json(written: &Files, name: &str) -> Result<Value> {
+    typed(written, name)
+}
+
+/// A JSON file a stage wrote, as the type its stage answers it with.
+pub fn typed<T: serde::de::DeserializeOwned>(written: &Files, name: &str) -> Result<T> {
     serde_json::from_str(&text(written, name)?).map_err(|e| Stop::new(format!("{name}: {e}")))
 }
 
