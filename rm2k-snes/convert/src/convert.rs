@@ -21,7 +21,7 @@ use crate::scene;
 use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
-use crate::text::{hex, quoted};
+use crate::text::quoted;
 use crate::variants;
 use rm2k_project::Project;
 use rm2k_snes_bytecode::events::{
@@ -155,10 +155,6 @@ fn hero_flashes(
         }
     }
     Ok(out)
-}
-
-fn int(v: &Value) -> i64 {
-    v.as_i64().unwrap_or(0)
 }
 
 fn join<T: ToString>(items: impl IntoIterator<Item = T>, sep: &str) -> String {
@@ -308,8 +304,7 @@ pub fn run(options: Options) -> Result<()> {
     not_copied.extend(
         compiler::counters(&settings)?
             .iter()
-            .filter_map(|c| c["common_event"].as_i64())
-            .map(|n| n as i32),
+            .map(|c| c.common_event),
     );
     let mut common_pages = crate::common_pages::CommonPages::decide(
         &game,
@@ -442,7 +437,7 @@ pub fn run(options: Options) -> Result<()> {
         };
         let counters: BTreeSet<i32> = compiler::counters(&settings)?
             .iter()
-            .map(|c| int(&c["common_event"]) as i32)
+            .map(|c| c.common_event)
             .collect();
         timer_maps.extend(scan::timer_reach(
             &every_refs,
@@ -996,16 +991,13 @@ pub fn run(options: Options) -> Result<()> {
         // And which substitutions they asked for: the blocks their pairs
         // start from are the keys of the ROM's table. See `SUB_MAX`.
         let mut sub_keys = BTreeSet::new();
-        let truthy = |v: &Value| v.as_bool().unwrap_or_else(|| int(v) != 0);
         for &(upper, old, new) in &entry.substitutions {
-            let found = m.substitution_table.as_array().and_then(|t| {
-                t.iter()
-                    .find(|s| truthy(&s["upper"]) == upper && s["old"] == old && s["new"] == new)
-            });
-            if let Some(pairs) = found.and_then(|s| s["pairs"].as_array()) {
-                for pair in pairs {
-                    sub_keys.insert(int(&pair[0]));
-                }
+            let found = m
+                .substitution_table
+                .iter()
+                .find(|(u, o, n, _)| (*u, i64::from(*o), i64::from(*n)) == (upper, old, new));
+            if let Some((_, _, _, Some(pairs))) = found {
+                sub_keys.extend(pairs.iter().map(|&(from, _)| i64::from(from)));
             }
         }
         m.sub_keys = sub_keys;
@@ -1331,11 +1323,13 @@ pub fn run(options: Options) -> Result<()> {
     for ((index, given, away), &from) in &flashes {
         let m = &infos[*index];
         let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
-        for npc in m.npcs.as_array().cloned().unwrap_or_default() {
+        // `MapInfo::npcs` is Wally's rows as JSON until the emission takes
+        // its types: read by key, as every row has both.
+        for npc in m.npcs.as_array().into_iter().flatten() {
             *graphics
                 .entry((
                     npc["charset"].as_str().unwrap_or("").to_string(),
-                    int(&npc["index"]),
+                    npc["index"].as_i64().unwrap_or(0),
                 ))
                 .or_insert(0) += 1;
         }
@@ -1985,45 +1979,42 @@ pub fn run(options: Options) -> Result<()> {
     // is drawn, and which fifteen colours each battler is reduced to. What
     // travels is the decision; the text it is written as is
     // `rm2k-snes-patches`'.
-    let patches_request = json!({
-        "maps": infos.iter().map(|m| json!({
-            "id": m.id, "name": m.name, "colors": m.colors, "budget": m.budget,
-            "background": m.merges_background, "above": m.merges_above,
-            // And how it shows its panorama, and what that lost: the tiles
-            // grouped and the colours merged. See `Way` in Wally.
-            "panorama": m.panorama_way.as_str().map(|way| match &m.panorama {
-                Some(p) => json!({
-                    "way": way, "name": p["name"], "mode": p["mode"],
-                    "tiles": p["tile_count"], "distinct": p["distinct"],
-                    "colors": p["colors"], "kept": p["kept"], "merges": p["merges"],
-                }),
-                None => json!({"way": way}),
-            }),
-        })).collect::<Vec<_>>(),
-        "animations": animations.iter().map(|(number, info)| {
-            let r = animations::report(info);
-            let anim = &game.db.animations[number];
-            json!({"number": number, "name": anim.name, "sheet": anim.sheet, "side": animations::BOX,
-                   "size": [r.size.0, r.size.1], "original": [r.original.0, r.original.1], "frames": r.frames})
-        }).collect::<Vec<_>>(),
-        "battlers": scenes.battlers.iter().map(|b| json!({
-            "key": b.key, "image": b.image, "hue": b.hue, "width": b.width, "height": b.height,
-            "colors": b.colors, "palette": b.palette, "merges": b.merges,
-        })).collect::<Vec<_>>(),
+    let patches_request = rm2k_snes_patches::Request {
+        maps: infos.iter().map(|m| m.patches.clone()).collect(),
+        animations: animations
+            .iter()
+            .map(|(number, info)| {
+                let r = animations::report(info);
+                let anim = &game.db.animations[number];
+                rm2k_snes_patches::AnimationDecision {
+                    number: i64::from(*number),
+                    name: anim.name.clone(),
+                    sheet: anim.sheet.clone(),
+                    side: animations::BOX,
+                    size: [r.size.0, r.size.1],
+                    original: [r.original.0, r.original.1],
+                    frames: r.frames as i64,
+                }
+            })
+            .collect(),
+        battlers: scenes
+            .battlers
+            .iter()
+            .map(|b| rm2k_snes_patches::BattlerDecision {
+                key: b.key.clone(),
+                image: b.image.clone(),
+                hue: b.hue,
+                width: b.width,
+                height: b.height,
+                colors: b.colors,
+                palette: b.palette.iter().map(|c| c.map(i64::from)).collect(),
+                merges: b.merges,
+            })
+            .collect(),
         // And the colours the message window lost, if its System did not
         // fit in one palette: one that fits writes nothing.
-        "windows": std::iter::once(&window_answer)
-            .chain(window_answer["systems"].as_array().into_iter().flatten())
-            .filter_map(|w| match w["merges"].as_array() {
-                Some(merges) if !merges.is_empty() => Some(json!({
-                    "system": w["system"], "colors": w["brought"],
-                    "kept": if w["colors"].is_null() { json!(window_colors) } else { w["colors"].clone() },
-                    "merges": merges,
-                })),
-                _ => None,
-            })
-            .collect::<Vec<_>>(),
-    });
+        windows: screens::window_losses(&window_answer, window_colors)?,
+    };
     // Not kept in the cache, as when it was a process: it is a few
     // kilobytes of text made from the request alone.
     const PATCHES: stage::Stage = stage::Stage {
@@ -2031,7 +2022,7 @@ pub fn run(options: Options) -> Result<()> {
         command: "--request",
     };
     let patches = stage::call_uncached(PATCHES, || {
-        rm2k_snes_patches::stage::patches(&patches_request)
+        Ok::<_, String>(rm2k_snes_patches::stage::patches(&patches_request))
     })?;
     for written in rm2k_snes_patches::put(&directory, &patches).map_err(Stop::new)? {
         println!("{}", rm2k_snes_patches::report(&written));
@@ -2061,22 +2052,29 @@ pub fn run(options: Options) -> Result<()> {
         .clone()
         .map(rm2k_project::absolute)
         .unwrap_or_else(|| directory.join("datos.msu"));
-    let request = json!({
-        "songs": compiled.songs,
-        "maps": infos.iter().map(|m| m.id).collect::<Vec<_>>(),
-        "start": start_index,
-        "title": title_screen.is_some(),
-        "game_over": game_over.is_some(),
-        "decompress_frames": emitted.frames.get(start_index).cloned().unwrap_or(Value::Null),
-        "measuring_headroom": options.measure_headroom,
+    let request = rm2k_snes_audio::stage::Request {
+        // The event compiler's answer keeps its songs as JSON: they are read
+        // here into what the music stage asks for.
+        songs: serde_json::from_value(compiled.songs.clone())
+            .map_err(|e| Stop::new(format!("the event compiler's songs: {e}")))?,
+        maps: infos.iter().map(|m| i64::from(m.id)).collect(),
+        start: start_index,
+        title: title_screen.is_some(),
+        game_over: game_over.is_some(),
+        decompress_frames: emitted
+            .frames
+            .get(start_index)
+            .and_then(Value::as_f64)
+            .ok_or_else(|| Stop::new("the emission answered no frames for the boot map"))?,
+        measuring_headroom: options.measure_headroom,
         // The quality backdrops are the emission's bytes: the stage only
         // puts them in their place in the `.msu`.
-        "backdrops": scenes.quality.iter().map(|(t, c)| json!([hex(t), hex(c)])).collect::<Vec<_>>(),
-        "tree_nodes": game.tree.added_nodes,
+        backdrops: scenes.quality.clone(),
+        tree_nodes: game.tree.added_nodes.clone(),
         // Whether the samples may travel in the `.msu`, in a cartridge
         // that needs the MSU-1: see `Emit::msu_samples` in the stage.
-        "msu_samples": msu_data != "optional",
-    });
+        msu_samples: msu_data != "optional",
+    };
     let flags = rm2k_snes_audio::stage::Flags {
         place: rm2k_snes_audio::stage::Place {
             game_dir: environment.game()?.to_path_buf(),
@@ -2089,7 +2087,7 @@ pub fn run(options: Options) -> Result<()> {
         msu: msu.clone(),
     };
     let mut files = stage::call_uncached(AUDIO_CARTRIDGE, || {
-        rm2k_snes_audio::stage::cartridge(&flags, &request, "the request")
+        rm2k_snes_audio::stage::cartridge(&flags, &request)
     })?;
     let blob = files
         .remove(rm2k_snes_audio::stage::MSU)

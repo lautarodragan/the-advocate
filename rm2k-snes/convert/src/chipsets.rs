@@ -25,7 +25,7 @@
 use crate::fail::{io, Result, Stop};
 use crate::game::{Game, GameMap};
 use rm2k_rules::chipset::{common_origin, terrain_origin, TILE};
-use serde_json::Value;
+use serde::Deserialize;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -283,8 +283,106 @@ fn to_15_bits(c: [u8; 3]) -> [u8; 3] {
     [(c[0] >> 3) << 3, (c[1] >> 3) << 3, (c[2] >> 3) << 3]
 }
 
-fn int(v: &Value) -> i64 {
-    v.as_i64().unwrap_or(0)
+/// A ChipSet the project adds, as its patch writes it: the entry of the
+/// database —of which this reads its number and its name— and the recipe
+/// of its image.
+#[derive(Deserialize)]
+struct Fork {
+    chipset: Entry,
+    image: Recipe,
+}
+
+#[derive(Deserialize)]
+struct Entry {
+    id: i64,
+    chipset_name: String,
+}
+
+/// The six operations, each one optional.
+#[derive(Deserialize)]
+struct Recipe {
+    /// The original ChipSet it starts from.
+    base: String,
+    /// The map whose unused tiles are erased.
+    #[serde(default)]
+    prune: Option<i32>,
+    /// `[from, to]` terrain blocks, and upper tiles, copied within.
+    #[serde(default)]
+    lower_blocks: Vec<(i32, i32)>,
+    #[serde(default)]
+    upper_tiles: Vec<(i32, i32)>,
+    #[serde(default)]
+    from_charset: Vec<Pose>,
+    #[serde(default)]
+    from_image: Option<Drawing>,
+    #[serde(default)]
+    recolor: Vec<Recolor>,
+}
+
+/// A CharSet pose baked into upper tiles: see `build`.
+#[derive(Deserialize)]
+struct Pose {
+    charset: String,
+    character: usize,
+    pattern: usize,
+    direction: usize,
+    /// The cells it goes into; without them, `head` over `body`.
+    #[serde(default)]
+    cells: Option<Vec<Cell>>,
+    #[serde(default)]
+    head: i64,
+    #[serde(default)]
+    body: i64,
+}
+
+/// A PNG baked into upper tiles, scaled and cut into cells.
+#[derive(Deserialize)]
+struct Drawing {
+    folder: String,
+    image: String,
+    /// In percent.
+    #[serde(default = "full_size")]
+    scale: usize,
+    /// Where the drawing's pixel (0,0) lands inside its first cell.
+    #[serde(default)]
+    offset: (i64, i64),
+    /// Colours of the drawing treated as transparent besides index 0:
+    /// defects of the original art, declared in the recipe.
+    #[serde(default)]
+    transparent: Vec<[u8; 3]>,
+    cells: Vec<Cell>,
+}
+
+fn full_size() -> usize {
+    100
+}
+
+/// Upper tiles painted in other colours: `[from, to]` pairs.
+#[derive(Deserialize)]
+struct Recolor {
+    upper: Vec<i64>,
+    colors: Vec<([u8; 3], [u8; 3])>,
+}
+
+/// `[x, y, slot]`, or `[x, y, slot, under]`: a cell of a pose or of a
+/// drawing, the upper slot it goes into, and the one its background comes
+/// from, if any.
+#[derive(Clone, Copy, Deserialize)]
+#[serde(try_from = "Vec<i64>")]
+struct Cell(i64, i64, i64, Option<i64>);
+
+impl TryFrom<Vec<i64>> for Cell {
+    type Error = String;
+
+    fn try_from(v: Vec<i64>) -> std::result::Result<Cell, String> {
+        match v[..] {
+            [x, y, slot] => Ok(Cell(x, y, slot, None)),
+            [x, y, slot, under] => Ok(Cell(x, y, slot, Some(under))),
+            _ => Err(format!(
+                "a cell is [x, y, slot] or [x, y, slot, under], not {v:?}"
+            )),
+        }
+    }
 }
 
 /// Paints upper tiles in other colours: each entry names its tiles and the
@@ -297,28 +395,16 @@ fn int(v: &Value) -> i64 {
 fn recolor_tiles(
     image: &mut Indexed,
     palette: &mut Palette,
-    items: &[Value],
+    items: &[Recolor],
     number: i64,
 ) -> Result<()> {
-    let rgb = |c: &Value| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8];
     for item in items {
-        let tiles: Vec<i64> = item["upper"]
-            .as_array()
-            .map(|a| a.iter().map(int).collect())
-            .unwrap_or_default();
-        let pairs: Vec<([u8; 3], [u8; 3])> = item["colors"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|p| (rgb(&p[0]), to_15_bits(rgb(&p[1]))))
-                    .collect()
-            })
-            .unwrap_or_default();
+        let tiles = &item.upper;
         // The tiles' pixels and their colours are read before painting
         // anything, so a `to` that is another pair's `from` is not painted
         // twice.
         let mut cells = Vec::new();
-        for &upper in &tiles {
+        for &upper in tiles {
             let (x0, y0) = corner(common_box(144 + upper as i32));
             for y in y0..y0 + TILE as usize {
                 for x in x0..x0 + TILE as usize {
@@ -329,7 +415,8 @@ fn recolor_tiles(
                 }
             }
         }
-        for (from, to) in pairs {
+        for &(from, to) in &item.colors {
+            let to = to_15_bits(to);
             let at: Vec<usize> = cells
                 .iter()
                 .filter(|(_, c)| *c == from)
@@ -354,14 +441,14 @@ fn recolor_tiles(
 /// `find(folder, name)` finds the originals, and `map_of` reads the map a
 /// pruning looks at —the forked one—.
 fn build(
-    data: &Value,
+    fork: &Fork,
     out_dir: &Path,
     find: &dyn Fn(&str, &str) -> Option<PathBuf>,
     map_of: &dyn Fn(i32) -> Result<GameMap>,
 ) -> Result<PathBuf> {
-    let recipe = &data["image"];
-    let number = int(&data["chipset"]["id"]);
-    let base = recipe["base"].as_str().unwrap_or("");
+    let recipe = &fork.image;
+    let number = fork.chipset.id;
+    let base = recipe.base.as_str();
     let source = find("ChipSet", base).ok_or_else(|| {
         Stop::new(format!(
             "ChipSet {}, which {number} comes from, is missing",
@@ -371,58 +458,41 @@ fn build(
     let mut image = Indexed::read(&source)?;
     // The pruning first, because it frees palette indices the operations
     // below need, and because it reads the **forked** map.
-    if let Some(map) = recipe.get("prune") {
-        prune(&map_of(int(map) as i32)?, &mut image)?;
+    if let Some(map) = recipe.prune {
+        prune(&map_of(map)?, &mut image)?;
     }
-    for pair in recipe["lower_blocks"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-    {
-        let block = image.crop(terrain_box(int(&pair[0]) as i32));
-        image.paste(&block, corner(terrain_box(int(&pair[1]) as i32)));
+    for &(from, to) in &recipe.lower_blocks {
+        let block = image.crop(terrain_box(from));
+        image.paste(&block, corner(terrain_box(to)));
     }
-    for pair in recipe["upper_tiles"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-    {
+    for &(from, to) in &recipe.upper_tiles {
         // Upper tile `u` is common tile 144 + u.
-        let tile = image.crop(common_box(144 + int(&pair[0]) as i32));
-        image.paste(&tile, corner(common_box(144 + int(&pair[1]) as i32)));
+        let tile = image.crop(common_box(144 + from));
+        image.paste(&tile, corner(common_box(144 + to)));
     }
     // The slots `from_image` overwrites are emptied **before** looking at
     // the palette, or their colours would keep the indices the new drawing
     // needs.
-    let from_image = recipe.get("from_image").filter(|v| !v.is_null());
+    let from_image = recipe.from_image.as_ref();
     if let Some(item) = from_image {
-        for entry in item["cells"].as_array().cloned().unwrap_or_default() {
-            if entry.as_array().map_or(0, Vec::len) <= 3 {
+        for &Cell(_, _, slot, under) in &item.cells {
+            if under.is_none() {
                 image.paste(
                     &Indexed::blank(16, 16),
-                    corner(common_box(144 + int(&entry[2]) as i32)),
+                    corner(common_box(144 + slot as i32)),
                 );
             }
         }
     }
-    let from_charset = recipe
-        .get("from_charset")
-        .and_then(Value::as_array)
-        .filter(|a| !a.is_empty())
-        .cloned();
     // The two operations that bring pixels from outside, and `recolor`,
     // share **a single** palette.
-    let recolor = recipe
-        .get("recolor")
-        .and_then(Value::as_array)
-        .filter(|a| !a.is_empty())
-        .cloned();
-    let mut palette = (from_charset.is_some() || from_image.is_some() || recolor.is_some())
-        .then(|| Palette::new(&image));
-    if let Some(items) = &from_charset {
+    let mut palette =
+        (!recipe.from_charset.is_empty() || from_image.is_some() || !recipe.recolor.is_empty())
+            .then(|| Palette::new(&image));
+    if !recipe.from_charset.is_empty() {
         let palette = palette.as_mut().unwrap();
-        for item in items {
-            let name = item["charset"].as_str().unwrap_or("");
+        for item in &recipe.from_charset {
+            let name = item.charset.as_str();
             let sheet = find("CharSet", name).ok_or_else(|| {
                 Stop::new(format!(
                     "CharSet {}, which ChipSet {number} bakes, is missing",
@@ -432,9 +502,9 @@ fn build(
             let source = Indexed::read(&sheet)?;
             // A pose's 24x32 frame: a CharSet is eight characters in 4x2,
             // each with three patterns by four directions.
-            let character = int(&item["character"]) as usize;
-            let x = (character % 4) * 72 + int(&item["pattern"]) as usize * 24;
-            let y = (character / 4) * 128 + int(&item["direction"]) as usize * 32;
+            let character = item.character;
+            let x = (character % 4) * 72 + item.pattern * 24;
+            let y = (character / 4) * 128 + item.direction * 32;
             let pose = source.crop((x, y, x + 24, y + 32));
             // The sprite is drawn at `(x*16 - 4, y*16 - 16)`, so its
             // columns 4 to 19 land on the cell and its upper half on the
@@ -446,24 +516,15 @@ fn build(
             // slot the background comes from, composed **under** the pose. It
             // is read when the cell is written, so a slot an item above
             // wrote is already there: that is how two people share a cell.
-            let cells: Vec<(i64, i64, i64, Option<i64>)> = match item.get("cells") {
-                Some(list) => list
-                    .as_array()
-                    .cloned()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|c| (int(&c[0]), int(&c[1]), int(&c[2]), c.get(3).map(int)))
-                    .collect(),
-                None => vec![
-                    (0, -1, int(&item["head"]), None),
-                    (0, 0, int(&item["body"]), None),
-                ],
+            let cells: Vec<Cell> = match &item.cells {
+                Some(cells) => cells.clone(),
+                None => vec![Cell(0, -1, item.head, None), Cell(0, 0, item.body, None)],
             };
             let (left, top) = (
                 rm2k_rules::charset::OFFSET_X as i64,
                 rm2k_rules::charset::OFFSET_Y as i64,
             );
-            for (dx, dy, slot, under) in cells {
+            for Cell(dx, dy, slot, under) in cells {
                 let mut tile = match under {
                     Some(under) => image.crop(common_box(144 + under as i32)),
                     None => Indexed::blank(16, 16),
@@ -487,8 +548,7 @@ fn build(
     }
     if let Some(item) = from_image {
         let palette = palette.as_mut().unwrap();
-        let folder = item["folder"].as_str().unwrap_or("");
-        let name = item["image"].as_str().unwrap_or("");
+        let (folder, name) = (item.folder.as_str(), item.image.as_str());
         let path = find(folder, name).ok_or_else(|| {
             Stop::new(format!(
                 "{folder}/{name}, which ChipSet {number} bakes, is missing"
@@ -497,7 +557,7 @@ fn build(
         let source = Indexed::read(&path)?;
         // RM2k scales images with **nearest neighbour**, and so does this,
         // sampling each pixel at its centre.
-        let scale = item.get("scale").map_or(100, int) as usize;
+        let scale = item.scale;
         let width = source.width * scale / 100;
         let height = source.height * scale / 100;
         let (ax, ay) = (
@@ -511,28 +571,12 @@ fn build(
             .map(|y| (ay * (y as f64 + 0.5)) as usize)
             .collect();
         let small = |x: usize, y: usize| source.get(xin[x], yin[y]);
-        // Where the drawing's pixel (0,0) lands inside its first cell.
-        let (dx, dy) = item
-            .get("offset")
-            .and_then(Value::as_array)
-            .map_or((0, 0), |d| (int(&d[0]), int(&d[1])));
-        // Colours of the drawing treated as transparent besides index 0:
-        // defects of the original art, declared in the recipe.
-        let transparent: Vec<[u8; 3]> = item
-            .get("transparent")
-            .and_then(Value::as_array)
-            .map(|list| {
-                list.iter()
-                    .map(|c| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8])
-                    .collect()
-            })
-            .unwrap_or_default();
-        for entry in item["cells"].as_array().cloned().unwrap_or_default() {
-            let (column, row, slot) = (int(&entry[0]), int(&entry[1]), int(&entry[2]));
+        let (dx, dy) = item.offset;
+        for &Cell(column, row, slot, under) in &item.cells {
             // A fourth element is the slot the background comes from: the
             // drawing is composed **on top** of it.
-            let mut tile = match entry.get(3) {
-                Some(under) => image.crop(common_box(144 + int(under) as i32)),
+            let mut tile = match under {
+                Some(under) => image.crop(common_box(144 + under as i32)),
                 None => Indexed::blank(16, 16),
             };
             for y in 0..16i64 {
@@ -542,7 +586,7 @@ fn build(
                         continue;
                     }
                     let index = small(px as usize, py as usize);
-                    if index != 0 && !transparent.contains(&source.palette[index as usize]) {
+                    if index != 0 && !item.transparent.contains(&source.palette[index as usize]) {
                         tile.pixels[(y * 16 + x) as usize] =
                             palette.index(to_15_bits(source.palette[index as usize]))?;
                     }
@@ -551,13 +595,18 @@ fn build(
             image.paste(&tile, corner(common_box(144 + slot as i32)));
         }
     }
-    if let Some(items) = &recolor {
-        recolor_tiles(&mut image, palette.as_mut().unwrap(), items, number)?;
+    if !recipe.recolor.is_empty() {
+        recolor_tiles(
+            &mut image,
+            palette.as_mut().unwrap(),
+            &recipe.recolor,
+            number,
+        )?;
     }
     if let Some(palette) = palette {
         image.palette = palette.colors;
     }
-    let name = data["chipset"]["chipset_name"].as_str().unwrap_or("");
+    let name = fork.chipset.chipset_name.as_str();
     let target = out_dir.join("ChipSet").join(format!("{name}.png"));
     std::fs::create_dir_all(target.parent().unwrap()).map_err(|e| io(&target, e))?;
     // Moved into place in one go, so two builds at once do not leave each
@@ -581,7 +630,9 @@ pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Res
         // files, which are inside the game's directory by now— or the RTP
         // already has would be covered without a word. Replacing a game's
         // ChipSet is what an image in `patches/manual/ChipSet/` is for.
-        let name = data["chipset"]["chipset_name"].as_str().unwrap_or("");
+        let fork =
+            Fork::deserialize(data).map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
+        let name = fork.chipset.chipset_name.as_str();
         if let Some(there) = find("ChipSet", name) {
             crate::stop!(
                 "{}: ChipSet {} already exists, in {}: a ChipSet the project adds takes a \
@@ -591,7 +642,7 @@ pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Res
                 there.display()
             );
         }
-        build(data, out_dir, &find, &|id| game.map(id))?;
+        build(&fork, out_dir, &find, &|id| game.map(id))?;
     }
     Ok(())
 }
@@ -600,7 +651,7 @@ pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Res
 mod tests {
     use super::*;
     use crate::game::{Command, Event, Page};
-    use serde_json::json;
+    use serde_json::{json, Value};
 
     fn page(name: &str, index: i32, commands: Vec<Command>) -> Page {
         Page {
@@ -673,6 +724,10 @@ mod tests {
     }
 
     /// An indexed PNG of `width` by `height`, all `fill`, with `palette`.
+    fn fork(data: &Value) -> Fork {
+        Fork::deserialize(data).unwrap()
+    }
+
     fn indexed(width: usize, height: usize, fill: u8, palette: &[[u8; 3]]) -> Indexed {
         let mut colors = palette.to_vec();
         colors.resize(256, [0, 0, 0]);
@@ -723,7 +778,7 @@ mod tests {
                 pic.clone()
             })
         };
-        let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
+        let out = build(&fork(&data), &dir.join("build"), &find, &|_| unreachable!()).unwrap();
         let built = Indexed::read(&out).unwrap();
         let color = |slot: i32, x: usize, y: usize| {
             let (cx, cy) = corner(common_box(144 + slot));
@@ -788,7 +843,7 @@ mod tests {
                 sheet.clone()
             })
         };
-        let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
+        let out = build(&fork(&data), &dir.join("build"), &find, &|_| unreachable!()).unwrap();
         let built = Indexed::read(&out).unwrap();
         let color = |slot: i32, x: usize, y: usize| {
             let (cx, cy) = corner(common_box(144 + slot));
@@ -843,7 +898,7 @@ mod tests {
             [[203, 85, 85], [250, 50, 20]],
             [[60, 30, 20], [100, 20, 10]]
         ]));
-        let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
+        let out = build(&fork(&data), &dir.join("build"), &find, &|_| unreachable!()).unwrap();
         let built = Indexed::read(&out).unwrap();
         let color = |slot: i32, x: usize| {
             let (cx, cy) = corner(common_box(144 + slot));
@@ -861,10 +916,15 @@ mod tests {
             "the tile beside it changed too"
         );
         let stale = recipe(json!([[[1, 2, 3], [250, 50, 20]]]));
-        let refusal = build(&stale, &dir.join("build"), &find, &|_| unreachable!())
-            .err()
-            .unwrap()
-            .message;
+        let refusal = build(
+            &fork(&stale),
+            &dir.join("build"),
+            &find,
+            &|_| unreachable!(),
+        )
+        .err()
+        .unwrap()
+        .message;
         assert!(refusal.contains("no longer matches"), "{refusal}");
         let _ = std::fs::remove_dir_all(&dir);
     }

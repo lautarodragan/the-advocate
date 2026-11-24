@@ -26,6 +26,7 @@ use ditto::schema::System;
 use rm2k_project::{suite, Project};
 use rm2k_rules::tree::Tree;
 use rm2k_snes_bytecode::level::Level;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
@@ -322,26 +323,74 @@ pub fn msu_magic(project: &Project) -> Result<[u8; 4]> {
         .expect("four ASCII characters are four bytes"))
 }
 
+/// What [`cartridge`] is asked: what the cartridge decided. The binary
+/// reads it from `--request`; the converter builds it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Request {
+    /// The event compiler's `songs`, as it answers them.
+    pub songs: cartridge::Songs,
+    /// The cartridge's maps, by number, in the order of the map table.
+    pub maps: Vec<i64>,
+    /// The index of the one it boots in.
+    pub start: usize,
+    /// Whether it has those screens: their songs come from the System.
+    pub title: bool,
+    pub game_over: bool,
+    /// How many frames decompressing the boot map takes.
+    pub decompress_frames: f64,
+    /// Every song's headroom, instead of its ceiling.
+    #[serde(default)]
+    pub measuring_headroom: Option<f64>,
+    /// Every quality battle backdrop, by number: its tiles and its colours,
+    /// in hex in the JSON.
+    #[serde(with = "hex_pairs")]
+    pub backdrops: Vec<(Vec<u8>, Vec<u8>)>,
+    /// Map tree nodes in the dump's shape, over the dump's.
+    pub tree_nodes: Vec<Value>,
+    /// Whether the samples may travel in the `.msu`: see
+    /// `Emit::msu_samples`.
+    #[serde(default)]
+    pub msu_samples: bool,
+}
+
+/// The backdrops' bytes as `[[tiles, colors]]` of hex strings.
+mod hex_pairs {
+    use serde::de::Error;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    type Pairs = Vec<(Vec<u8>, Vec<u8>)>;
+
+    pub fn serialize<S: Serializer>(pairs: &Pairs, s: S) -> Result<S::Ok, S::Error> {
+        let text: Vec<(String, String)> = pairs
+            .iter()
+            .map(|(t, c)| (super::hex(t), super::hex(c)))
+            .collect();
+        text.serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Pairs, D::Error> {
+        let bytes = |text: &str| super::unhex(text).ok_or_else(|| D::Error::custom("not hex"));
+        Vec::<(String, String)>::deserialize(d)?
+            .iter()
+            .map(|(t, c)| Ok((bytes(t)?, bytes(c)?)))
+            .collect()
+    }
+}
+
 /// `cartridge`: a cartridge's music, from what the event compiler asked
 /// for, as `musicdata.inc`, `music.json`, `audio.json`, `audio-job.json`,
-/// `effects.json` and the `.msu` —under [`MSU`]—. `whose` is what its
-/// complaints call the request: its file's path in the binary.
-pub fn cartridge(flags: &Flags, request: &Value, whose: &str) -> Result<Files> {
+/// `effects.json` and the `.msu` —under [`MSU`]—.
+pub fn cartridge(flags: &Flags, request: &Request) -> Result<Files> {
     let game = flags.place.game()?;
-    let bad = |what: &str| Bad::usage(format!("{whose}: `{what}` is not what it should be"));
 
     // The game, from the dump, with the nodes the project added on top.
     let answer = |e: ditto::lcf::Error| Bad::answer(e.0);
     let dump = Dump::open(&flags.data).map_err(answer)?;
     let mut tree = Tree::from(&dump.tree().map_err(answer)?);
-    for node in request
-        .get("tree_nodes")
-        .and_then(Value::as_array)
-        .ok_or_else(|| bad("tree_nodes"))?
-    {
+    for node in &request.tree_nodes {
         tree.insert(
             serde_json::from_value(node.clone())
-                .map_err(|e| Bad::usage(format!("{whose}: tree_nodes: {e}")))?,
+                .map_err(|e| Bad::usage(format!("the request: tree_nodes: {e}")))?,
         );
     }
     let system: System = dump.section("system").map_err(answer)?;
@@ -366,44 +415,14 @@ pub fn cartridge(flags: &Flags, request: &Value, whose: &str) -> Result<Files> {
     // `Game::track_numbers`.
     let named_songs = named_songs(&dump)?;
 
-    let maps: Vec<i64> = request
-        .get("maps")
-        .and_then(Value::as_array)
-        .ok_or_else(|| bad("maps"))?
-        .iter()
-        .map(|m| m.as_i64().ok_or_else(|| bad("maps")))
-        .collect::<Result<_>>()?;
-    let start = request
-        .get("start")
-        .and_then(Value::as_u64)
-        .ok_or_else(|| bad("start"))? as usize;
+    let maps = request.maps.clone();
+    let start = request.start;
     if start >= maps.len() {
-        return Err(bad("start"));
+        return Err(Bad::usage("the request: `start` is not one of its maps"));
     }
-    let flag = |key: &str| {
-        request
-            .get(key)
-            .and_then(Value::as_bool)
-            .ok_or_else(|| bad(key))
-    };
-    let backdrops: Vec<(Vec<u8>, Vec<u8>)> = request
-        .get("backdrops")
-        .and_then(Value::as_array)
-        .ok_or_else(|| bad("backdrops"))?
-        .iter()
-        .map(|pair| {
-            let part = |k: usize| {
-                pair.get(k)
-                    .and_then(Value::as_str)
-                    .and_then(unhex)
-                    .ok_or_else(|| bad("backdrops"))
-            };
-            Ok((part(0)?, part(1)?))
-        })
-        .collect::<Result<_>>()?;
     let project = &game.project;
     let c = Cartridge {
-        songs: cartridge::Songs::from_json(request.get("songs").ok_or_else(|| bad("songs"))?)?,
+        songs: request.songs.clone(),
         map_music: maps
             .iter()
             .map(|&m| {
@@ -429,8 +448,10 @@ pub fn cartridge(flags: &Flags, request: &Value, whose: &str) -> Result<Files> {
             .collect(),
         maps,
         start,
-        title: flag("title")?.then(|| system.title_music.name.clone()),
-        game_over: flag("game_over")?.then(|| system.gameover_music.name.clone()),
+        title: request.title.then(|| system.title_music.name.clone()),
+        game_over: request
+            .game_over
+            .then(|| system.gameover_music.name.clone()),
         title_level: Level::new(
             system.title_music.fadein.into(),
             system.title_music.volume.into(),
@@ -441,15 +462,9 @@ pub fn cartridge(flags: &Flags, request: &Value, whose: &str) -> Result<Files> {
         not_given: cartridge::never_happen(project.list(&["music", "jumps_that_never_happen"])?)?,
         system_songs: system_songs.into_iter().collect(),
         named_songs: named_songs.into_iter().collect(),
-        measuring_headroom: request.get("measuring_headroom").and_then(Value::as_f64),
-        decompress_frames: request
-            .get("decompress_frames")
-            .and_then(Value::as_f64)
-            .ok_or_else(|| bad("decompress_frames"))?,
-        msu_samples: request
-            .get("msu_samples")
-            .and_then(Value::as_bool)
-            .unwrap_or(false),
+        measuring_headroom: request.measuring_headroom,
+        decompress_frames: request.decompress_frames,
+        msu_samples: request.msu_samples,
     };
     let magic = msu_magic(project)?;
 
@@ -515,7 +530,7 @@ pub fn cartridge(flags: &Flags, request: &Value, whose: &str) -> Result<Files> {
         .quality
         .as_ref()
         .expect("with emit there are quality sound effects");
-    let written = cartridge::msu(&backdrops, quality, &magic)?;
+    let written = cartridge::msu(&request.backdrops, quality, &magic)?;
     say(format!(
         "  .msu: {} backdrop(s) and {} sound effect(s) in {} B, signature {} -> {}",
         written.backdrops,

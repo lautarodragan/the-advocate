@@ -95,7 +95,7 @@ pub fn access_bits(access: rm2k_rules::tree::Access) -> u8 {
 pub fn wrap_axes(m: &MapInfo) -> ((bool, bool), Vec<String>) {
     let asks_x = matches!(m.map.scroll_type, 2 | 3);
     let asks_y = matches!(m.map.scroll_type, 1 | 3);
-    let painted = m.panorama_way.as_str() == Some("painted");
+    let painted = m.panorama_way.as_deref() == Some("painted");
     let mut why = Vec::new();
     let mut fits = |asks: bool, size: i32, least: i32, axis: &str| {
         if !asks {

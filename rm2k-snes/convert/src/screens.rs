@@ -169,6 +169,38 @@ pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)>
     Ok((colors, answer))
 }
 
+/// What the message window lost, for the patches: the starting System's
+/// and each other one's, those whose colours did not fit in one palette.
+/// A System the window answer gives no `colors` of takes the starting
+/// one's, `window_colors`.
+pub fn window_losses(
+    answer: &Value,
+    window_colors: u32,
+) -> Result<Vec<rm2k_snes_patches::WindowDecision>> {
+    #[derive(serde::Deserialize)]
+    struct Window {
+        system: String,
+        brought: i64,
+        colors: Option<i64>,
+        #[serde(default)]
+        merges: Vec<rm2k_snes_patches::Merge>,
+    }
+    let mut out = Vec::new();
+    for w in std::iter::once(answer).chain(answer["systems"].as_array().into_iter().flatten()) {
+        let w: Window = serde::Deserialize::deserialize(w)
+            .map_err(|e| Stop::new(format!("the screens' window answer: {e}")))?;
+        if !w.merges.is_empty() {
+            out.push(rm2k_snes_patches::WindowDecision {
+                system: w.system,
+                colors: w.brought,
+                kept: w.colors.unwrap_or(i64::from(window_colors)),
+                merges: w.merges,
+            });
+        }
+    }
+    Ok(out)
+}
+
 /// The geometry the screens are drawn with, by the names the emission
 /// writes it with. Constants, which no game changes: not worth a cache
 /// entry.

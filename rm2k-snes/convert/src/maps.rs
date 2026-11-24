@@ -709,15 +709,13 @@ pub struct MapInfo {
     /// Each background picture Adeleine decided, by name.
     pub pictures_bg: Vec<(String, Vec<u8>)>,
     pub runs: Vec<Value>,
-    pub colors: Value,
-    pub budget: Value,
-    pub merges_background: Value,
+    /// What its layers and its panorama lost, for the patches.
+    pub patches: rm2k_snes_patches::MapDecision,
     /// How it shows its panorama, Wally's name for it, if it has one.
-    pub panorama_way: Value,
+    pub panorama_way: Option<String>,
     /// Whether no panorama of the map is ever seen: a `ChangePBG` there
     /// that keeps the picture loses nothing. See `unseen` in Wally.
     pub panorama_unseen: bool,
-    pub merges_above: Value,
     pub start: (i64, i64),
     pub cells: Vec<u8>,
     pub blocks: Vec<u8>,
@@ -737,7 +735,9 @@ pub struct MapInfo {
     /// palette: what a page carries instead of a block. See
     /// `sprites::cache` in Wally.
     pub cached: HashMap<Graphic, (Value, Value)>,
-    pub substitution_table: Value,
+    /// `(upper, old, new, pairs)` of each substitution Wally built: see
+    /// `Substitutions` in its answer.
+    pub substitution_table: Vec<(bool, i32, i32, Option<Vec<(u16, u16)>>)>,
     pub missing_substitutions: Vec<(bool, i64, i64)>,
     pub turning: BTreeSet<i64>,
     pub changing: BTreeSet<i64>,
@@ -851,6 +851,19 @@ pub fn runs(bg: &answer::Background, written: &stage::Files) -> Result<Vec<Value
         runs.push(json!({"family": run.family, "base": run.base, "tiles": run.tiles, "drawings": drawings}));
     }
     Ok(runs)
+}
+
+/// A merge of Wally's, as the patches write it down.
+fn patches_merge(merge: &answer::Merge) -> rm2k_snes_patches::Merge {
+    let rgb = |c: &[u8; 3]| c.map(i64::from);
+    match merge {
+        answer::Merge::Local(palette, from, to, pixels) => {
+            rm2k_snes_patches::Merge::Palette((*palette as i64, rgb(from), rgb(to), *pixels as i64))
+        }
+        answer::Merge::Global(from, to, pixels) => {
+            rm2k_snes_patches::Merge::Global((rgb(from), rgb(to), *pixels as i64))
+        }
+    }
 }
 
 /// The words of a colour memory, as the bytes the console takes.
@@ -1222,14 +1235,9 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         }
     }
     let subs = &answer.substitutions;
-    let substitution_table = subs
-        .table
-        .iter()
-        .map(|(upper, old, new, pairs)| json!({"upper": upper, "old": old, "new": new, "pairs": pairs}))
-        .collect();
     Ok(MapInfo {
         id: map_id,
-        name,
+        name: name.clone(),
         route_graphics: p.route_graphics,
         tile_data,
         cgram: words(&bg.cgram),
@@ -1242,12 +1250,32 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         panorama,
         pictures_bg,
         runs,
-        colors: json!(bg.colors),
-        budget: json!(bg.budget),
-        merges_background: json!(bg.merges),
-        panorama_way: json!(layers.panorama_way),
+        patches: rm2k_snes_patches::MapDecision {
+            id: i64::from(map_id),
+            name: name.clone(),
+            colors: bg.colors as i64,
+            budget: bg.budget as i64,
+            background: bg.merges.iter().map(patches_merge).collect(),
+            above: above.merges.iter().map(patches_merge).collect(),
+            // And how it shows its panorama, and what that lost: the tiles
+            // grouped and the colours merged. See `Way` in Wally.
+            panorama: layers.panorama_way.as_ref().map(|way| {
+                let p = layers.panorama.as_ref();
+                rm2k_snes_patches::PanoramaDecision {
+                    way: way.clone(),
+                    name: p.map(|p| p.name.clone()),
+                    mode: p.map(|p| i64::from(p.mode)),
+                    tiles: p.map(|p| p.tiles as i64),
+                    distinct: p.map(|p| p.distinct as i64),
+                    colors: p.map(|p| p.colors as i64),
+                    kept: p.map(|p| p.kept as i64),
+                    merges: p
+                        .map_or_else(Vec::new, |p| p.merges.iter().map(patches_merge).collect()),
+                }
+            }),
+        },
+        panorama_way: layers.panorama_way.clone(),
         panorama_unseen: layers.panorama_unseen,
-        merges_above: json!(above.merges),
         start,
         cells: cells_list.iter().flat_map(|c| c.to_le_bytes()).collect(),
         blocks,
@@ -1264,7 +1292,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         animates_with: json!(answer.animates_with),
         where_,
         cached,
-        substitution_table: Value::Array(substitution_table),
+        substitution_table: subs.table.clone(),
         missing_substitutions: subs
             .missing
             .iter()

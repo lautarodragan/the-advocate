@@ -10,7 +10,7 @@
 //! loads— and its `.msu` read back by the console in `test_msu_data.py`
 //! and `test_msu_effects.py`.
 
-use rm2k_snes_audio::cartridge::{self, Cartridge, Songs};
+use rm2k_snes_audio::cartridge::{self, Cartridge};
 use rm2k_snes_audio::msu::{Effects, PackageEffects, Version};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -36,7 +36,7 @@ fn cartridge(name: &str) -> Cartridge {
     };
     let text = |v: &Value| v.as_str().map(String::from);
     Cartridge {
-        songs: Songs::from_json(&game["songs"]).unwrap(),
+        songs: serde_json::from_value(game["songs"].clone()).unwrap(),
         maps: c["maps"]
             .as_array()
             .unwrap()
