@@ -25,7 +25,7 @@ use crate::fail::{Result, Stop};
 use crate::images;
 use crate::pictures::png_size;
 use rm2k_snes_mapdata::snes::{cgram_word, entry, pack_tile};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::path::Path;
 
 /// The console screen, in pixels and in 8x8 cells.
@@ -54,9 +54,14 @@ pub struct Screen {
 
 impl Screen {
     /// As `rm2k-snes-mapdata emit` takes it.
-    pub fn request(&self) -> Value {
-        json!({"tiles": self.tiles, "colors": self.colors, "first_color": self.first_color,
-               "bpp": self.bpp, "stream": crate::text::hex(&self.stream)})
+    pub fn request(&self) -> rm2k_snes_mapdata::request::FullScreen {
+        rm2k_snes_mapdata::request::FullScreen {
+            tiles: self.tiles as i64,
+            colors: self.colors as i64,
+            first_color: self.first_color,
+            bpp: self.bpp as i64,
+            stream: self.stream.clone(),
+        }
     }
 }
 

@@ -29,10 +29,37 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
         .collect()
 }
 
-/// For `#[serde(deserialize_with = "hex::bytes")]`: a request's bytes.
-pub fn bytes<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Vec<u8>, D::Error> {
+/// For `#[serde(with = "hex")]`: a request's bytes, as hex text.
+pub fn deserialize<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> std::result::Result<Vec<u8>, D::Error> {
     let text: String = serde::Deserialize::deserialize(d)?;
     decode(&text).map_err(|bad| serde::de::Error::custom(bad.message()))
+}
+
+pub fn serialize<S: serde::Serializer>(bytes: &[u8], s: S) -> std::result::Result<S::Ok, S::Error> {
+    s.serialize_str(&encode(bytes))
+}
+
+/// For `#[serde(with = "hex::each")]`: a list of byte strings, each as hex
+/// text.
+pub mod each {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
+        d: D,
+    ) -> std::result::Result<Vec<Vec<u8>>, D::Error> {
+        let texts: Vec<String> = serde::Deserialize::deserialize(d)?;
+        texts
+            .iter()
+            .map(|t| super::decode(t).map_err(|bad| serde::de::Error::custom(bad.message())))
+            .collect()
+    }
+
+    pub fn serialize<S: serde::Serializer>(
+        lists: &[Vec<u8>],
+        s: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        s.collect_seq(lists.iter().map(|bytes| super::encode(bytes)))
+    }
 }
 
 #[cfg(test)]

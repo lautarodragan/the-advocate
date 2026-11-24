@@ -29,7 +29,7 @@ use rm2k_snes_bytecode::events::{
 };
 use rm2k_snes_events::codes::{ROUTE_CHANGE_GRAPHIC, TELEPORT, TIMER_OPERATION};
 use rm2k_snes_events::route;
-use rm2k_snes_mapdata::{engine, record, vram};
+use rm2k_snes_mapdata::{engine, record, request, vram};
 
 /// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
 /// below `TITLE_MENU_MAP` ($4400) and the menu's 4bpp ones (16 words) from
@@ -846,11 +846,11 @@ pub fn run(options: Options) -> Result<()> {
     )?;
     let tables_answer = stage::json(&written, "battle.json")?;
     let encounters = tables_answer["encounters"].clone();
-    let battle_tables = json!({
-        "experience": stage::text(&written, "experience.inc")?,
-        "slots": tables_answer["experience"]["slots"],
-        "encounters": stage::text(&written, "encounters.inc")?,
-    });
+    let battle_tables = request::BattleTables {
+        experience: stage::text(&written, "experience.inc")?,
+        slots: tables_answer["experience"]["slots"].clone(),
+        encounters: stage::text(&written, "encounters.inc")?,
+    };
     if int(&encounters["records"]) != 0 {
         println!(
             "  random encounters: {} map(s), {} zone(s), {} troop(s)",
@@ -946,7 +946,6 @@ pub fn run(options: Options) -> Result<()> {
     });
     let messages = unhex(compiled["messages"]["data"].as_str().unwrap_or(""));
     let message_count = int(&compiled["messages"]["count"]);
-    let message_pairs = json!({"first": compiled["messages"]["pair_first"], "table": compiled["messages"]["pairs"]});
     let troops = scene::Troops {
         ids: compiled["troops"]["ids"]
             .as_array()
@@ -1850,7 +1849,12 @@ pub fn run(options: Options) -> Result<()> {
     {
         let number = e[0].as_i64().unwrap_or(-1);
         match e[3].as_str() {
-            Some(code) => parallel_common.push(json!([e[1], number, e[2], code])),
+            Some(code) => parallel_common.push((
+                emit::typed(&e[1])?,
+                number,
+                emit::typed(&e[2])?,
+                code.to_string(),
+            )),
             None => parallel_left_out.push(number),
         }
     }
@@ -1897,112 +1901,6 @@ pub fn run(options: Options) -> Result<()> {
             gold_maps.push(m.id as i64);
         }
     }
-    let mut request = json!({
-        "maps": infos
-            .iter()
-            .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
-            .collect::<Vec<_>>(),
-        "start": start_index,
-        "hero_above": options.hero_above,
-        "speed_keys": !options.no_speed_keys,
-        "enemy_hp": options.enemy_hp,
-        "party": party,
-        // What the ROM says about itself, from the `[rom]` of the project
-        // file: the header title and the save signature in SRAM.
-        "rom": {
-            "title": settings.ascii(&["rom", "title"], None, Some(TITLE_HEADER))?,
-            "sram_signature": settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
-            "msu": msu_data,
-        },
-        "screens": screens_answer,
-        "window_colors": window_colors,
-        // The message window of every other System the cartridge switches
-        // to, in its order: the starting one's is the screens'.
-        "window_systems": window_answer.get("systems").cloned().unwrap_or_else(|| json!([])),
-        "messages": hex(&messages),
-        "message_pairs": message_pairs,
-        "title": title_screen.as_ref().map(fullscreen::Screen::request),
-        "game_over": game_over.as_ref().map(fullscreen::Screen::request),
-        "msu_missing": msu_missing.as_ref().map(fullscreen::Screen::request),
-        "animations": animations::request(&animations),
-        "troops": troops.ids,
-        "battle_audio": compiled["battle_audio"],
-        "scene": scene::request(&scenes, &troops.ids, &game.db),
-        "battle_tables": battle_tables,
-        "troop_pages": compiled["troop_pages"],
-        "parallel_common": parallel_common,
-        "commons": commons_with_copies,
-        "battle_model": battle_model,
-        // The compiler's indices: each variable's slot and each (actor,
-        // skill) pair's bit.
-        "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
-        "skill_pairs": indices.skills.iter().map(|((a, h), s)| json!([a, h, s])).collect::<Vec<_>>(),
-        "items": items_all,
-        "actors": members,
-        "text_padding": options.text_padding,
-        "case_slot": case_slot,
-        // The big pictures' layers.
-        "big_pictures": big_layers.iter().map(|l| json!({
-            "top": l["top"], "rows": l["rows"], "center": l["center"], "half": l["half"],
-            "wider": l["wider"], "tiles": l["tiles"], "tilemap": l["tilemap"], "palettes": l["palettes"],
-            "mode7": l.get("mode7").cloned().unwrap_or(Value::Null),
-        })).collect::<Vec<_>>(),
-    });
-    // Which big pictures keep the small ones over them, apart for the same
-    // reason as what follows: see `pictures::keep_objects`.
-    for (out, l) in request["big_pictures"]
-        .as_array_mut()
-        .into_iter()
-        .flatten()
-        .zip(&big_layers)
-    {
-        out["keeps_objects"] = json!(l["keeps_objects"].as_bool().unwrap_or(false));
-    }
-    // The highest switch the game names, which the table holds: apart, because
-    // the literal above is at `json!`'s recursion limit.
-    request["switch_top"] = json!(indices.switch_top);
-    // And whether Select walks the hero through everything, for debugging:
-    // apart too, for the same limit.
-    request["phasing"] = json!(options.phasing);
-    // And whether the ROM leaves the vblank's last line in RAM, for a test.
-    request["vblank_probe"] = json!(options.vblank_probe);
-    // And whether some `Teleport` asks for a facing, which the runtime
-    // assembles only then: see `scan::teleports_with_a_facing`.
-    request["teleport_facing"] = json!(scan::teleports_with_a_facing(
-        every_refs.iter().copied(),
-        &game.db.common_events,
-        &file_commands,
-    ));
-    // And whether some `MessageOptions` takes the window's background away,
-    // which bakes the maps' layers above for it: see
-    // `scan::transparent_messages`.
-    request["transparent_messages"] = json!(scan::transparent_messages(
-        every_refs.iter().copied(),
-        &game.db.common_events,
-        &file_commands,
-    ));
-    // And how many windows the game's `ShowWindow`s name, which the runtime
-    // keeps a slot for each: see `scan::window_slots`.
-    request["window_slots"] = json!(scan::window_slots(
-        every_refs.iter().copied(),
-        &game.db.common_events,
-        &file_commands,
-    ));
-    // And the common events' small pictures, by set: see
-    // [`crate::common_pictures`]. Only when there are some.
-    if !common_small.emit.is_empty() {
-        request["common_pictures"] = json!(common_small.emit);
-    }
-    // And the switch the test pages turn on, which the cartridge says to the
-    // harnesses.
-    request["test_switch"] = json!((!cases.is_empty()).then_some(compiler.test_switch));
-    // And the names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
-    // counts them, apart for the same reason.
-    request["names"] = json!(indices
-        .names
-        .iter()
-        .map(|(a, n)| json!([a, n]))
-        .collect::<Vec<_>>());
     // And the faces the message window shows, in the order `OP_FACE` counts
     // them, drawn by the screens. One whose FaceSet is nowhere comes as the
     // window's own background —blank, the text still moves over for it—
@@ -2026,12 +1924,110 @@ pub fn run(options: Options) -> Result<()> {
             missing
         );
     }
-    request["faces"] = Value::Array(faces);
-    request["gold_maps"] = json!(gold_maps);
-    // The battle terms the project gives over the database's, if any: a
-    // knob at rest when missing. See `battle_term` in the mapdata stage.
-    request["battle_terms"] = battle_terms;
-    let emitted = emit::emit(&output, &request, &game.dump)?;
+    let request = request::Emit {
+        maps: infos
+            .iter()
+            .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
+            .collect::<Result<_>>()?,
+        start: start_index as i64,
+        hero_above: options.hero_above,
+        speed_keys: !options.no_speed_keys,
+        enemy_hp: options.enemy_hp,
+        // Whether Select walks the hero through everything, for debugging.
+        phasing: options.phasing,
+        // Whether the ROM leaves the vblank's last line in RAM, for a test.
+        vblank_probe: options.vblank_probe,
+        // Whether some `Teleport` asks for a facing, which the runtime
+        // assembles only then: see `scan::teleports_with_a_facing`.
+        teleport_facing: scan::teleports_with_a_facing(
+            every_refs.iter().copied(),
+            &game.db.common_events,
+            &file_commands,
+        ),
+        // Whether some `MessageOptions` takes the window's background away,
+        // which bakes the maps' layers above for it: see
+        // `scan::transparent_messages`.
+        transparent_messages: scan::transparent_messages(
+            every_refs.iter().copied(),
+            &game.db.common_events,
+            &file_commands,
+        ),
+        // How many windows the game's `ShowWindow`s name, which the runtime
+        // keeps a slot for each: see `scan::window_slots`.
+        window_slots: scan::window_slots(
+            every_refs.iter().copied(),
+            &game.db.common_events,
+            &file_commands,
+        ),
+        party: party.iter().map(|&a| a.into()).collect(),
+        // What the ROM says about itself, from the `[rom]` of the project
+        // file: the header title and the save signature in SRAM.
+        rom: request::Rom {
+            title: settings.ascii(&["rom", "title"], None, Some(TITLE_HEADER))?,
+            sram_signature: settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
+            msu: emit::typed(&json!(msu_data))?,
+        },
+        screens: screens_answer,
+        window_colors,
+        // The message window of every other System the cartridge switches
+        // to, in its order: the starting one's is the screens'.
+        window_systems: match window_answer.get("systems") {
+            Some(systems) => emit::typed(systems)?,
+            None => Vec::new(),
+        },
+        messages,
+        message_pairs: request::MessagePairs {
+            first: emit::typed(&compiled["messages"]["pair_first"])?,
+            table: unhex(compiled["messages"]["pairs"].as_str().unwrap_or("")),
+        },
+        faces: faces.iter().map(emit::typed).collect::<Result<_>>()?,
+        title: title_screen.as_ref().map(fullscreen::Screen::request),
+        game_over: game_over.as_ref().map(fullscreen::Screen::request),
+        msu_missing: msu_missing.as_ref().map(fullscreen::Screen::request),
+        animations: animations::request(&animations)?,
+        troops: troops.ids.iter().map(|&t| t.into()).collect(),
+        battle_audio: emit::typed(&compiled["battle_audio"])?,
+        scene: scene::request(&scenes, &troops.ids, &game.db)?,
+        battle_tables,
+        troop_pages: emit::typed(&compiled["troop_pages"])?,
+        parallel_common,
+        gold_maps,
+        // The battle terms the project gives over the database's, if any: a
+        // knob at rest when missing. See `battle_term` in the mapdata stage.
+        battle_terms: emit::typed(&battle_terms)?,
+        commons: emit::typed(&commons_with_copies)?,
+        battle_model,
+        // The compiler's indices: each variable's slot and each (actor,
+        // skill) pair's bit; the highest switch the game names, which the
+        // table holds; and the names `ChangeHeroName` gives, in the order
+        // `OP_CHANGE_NAME` counts them.
+        variables: indices.variables.clone(),
+        skill_pairs: indices
+            .skills
+            .iter()
+            .map(|&((a, h), s)| (a, h, s))
+            .collect(),
+        names: indices.names.clone(),
+        switch_top: indices.switch_top,
+        items: items_all.iter().map(|&i| i.into()).collect(),
+        actors: members.iter().map(|&a| a.into()).collect(),
+        text_padding: options.text_padding as usize,
+        case_slot,
+        // The switch the test pages turn on, which the cartridge says to the
+        // harnesses.
+        test_switch: (!cases.is_empty()).then_some(compiler.test_switch.into()),
+        // The big pictures' layers, and which of them keep the small ones
+        // over them: see `pictures::keep_objects`.
+        big_pictures: big_layers.iter().map(emit::typed).collect::<Result<_>>()?,
+        // The common events' small pictures, by set: see
+        // [`crate::common_pictures`].
+        common_pictures: common_small
+            .emit
+            .iter()
+            .map(emit::typed)
+            .collect::<Result<_>>()?,
+    };
+    let emitted = emit::emit(&output, request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",
         infos.len(),
