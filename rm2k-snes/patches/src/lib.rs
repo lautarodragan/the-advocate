@@ -27,9 +27,9 @@
 //! # The three places
 //!
 //! * **The converter** decides, and hands the decisions of one build to this
-//!   in a request —`rm2k-snes-patches --request decisions.json <build>`, see
-//!   [`Request`]—: this writes them as TOML in `<build>/patches/auto/`, next
-//!   to the ROM. Which situation each one was asked for by —a map of the
+//!   in a request —[`stage::patches`], or `rm2k-snes-patches --request
+//!   decisions.json <build>`; see [`Request`]—: this makes them TOML, and
+//!   [`put`] leaves them in `<build>/patches/auto/`, next to the ROM. Which situation each one was asked for by —a map of the
 //!   game, a map or a page that only exists for a test suite— the converter
 //!   writes itself, in `<build>/patches/uses.json` ([`USES_FILE`]), and this
 //!   only reads it.
@@ -103,13 +103,14 @@
 //! game.
 
 mod check;
+pub mod stage;
 mod text;
 
 pub use check::{check, versioned, Checked, Own};
 pub use text::{animation_text, battler_text, map_text, window_text};
 
 use serde::Deserialize;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -401,10 +402,13 @@ pub(crate) fn toml_files(folder: &Path) -> Result<Vec<String>, String> {
     Ok(names)
 }
 
-/// The patches of one build, from what the converter decided, in
-/// `<build>/patches/auto/`: every kind's folder is emptied first, so what is
-/// left is exactly this request.
-pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
+/// What a stage answers: every file it makes, by name.
+pub type Files = BTreeMap<String, Vec<u8>>;
+
+/// The patches of one build, from what the converter decided, as the files
+/// [`put`] leaves in it: each named by its path relative to the build
+/// —`patches/auto/maps/0001.toml`—. Writes nothing.
+pub fn files(request: &Request) -> Files {
     let texts: [Vec<(String, String)>; 4] = [
         request
             .maps
@@ -442,23 +446,69 @@ pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
             })
             .collect(),
     ];
+    let mut out = Files::new();
+    for (kind, texts) in Kind::ALL.into_iter().zip(texts) {
+        for (name, content) in texts {
+            out.insert(format!("{}/{name}", kind.in_build()), content.into_bytes());
+        }
+    }
+    out
+}
+
+/// [`files`] written into `build`: every kind's folder is emptied first,
+/// so what is left is exactly those files. Each name has to be inside one
+/// kind's folder, as [`files`] names them.
+pub fn put(build: &Path, files: &Files) -> Result<Vec<Written>, String> {
+    if let Some(name) = files
+        .keys()
+        .find(|name| !Kind::ALL.iter().any(|k| in_folder(name, *k)))
+    {
+        return Err(format!("{name} is not inside any kind of patch's folder"));
+    }
     let mut out = Vec::new();
-    for (kind, files) in Kind::ALL.into_iter().zip(texts) {
+    for kind in Kind::ALL {
         let folder = build.join(kind.in_build());
         clear(&folder)?;
+        let mut count = 0;
         let mut bytes = 0;
-        for (name, content) in &files {
-            let path = folder.join(name);
+        for (name, content) in files.iter().filter(|(name, _)| in_folder(name, kind)) {
+            let path = build.join(name);
             std::fs::write(&path, content).map_err(io(&path))?;
+            count += 1;
             bytes += content.len();
         }
         out.push(Written {
             kind,
-            files: files.len(),
+            files: count,
             bytes,
         });
     }
     Ok(out)
+}
+
+/// Whether `name`, as [`files`] names a file, is right inside `kind`'s
+/// folder.
+fn in_folder(name: &str, kind: Kind) -> bool {
+    name.strip_prefix(&kind.in_build())
+        .and_then(|rest| rest.strip_prefix('/'))
+        .is_some_and(|file| !file.is_empty() && !file.contains('/'))
+}
+
+/// The patches of one build, from what the converter decided, in
+/// `<build>/patches/auto/`: [`files`] and [`put`].
+pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
+    put(build, &files(request))
+}
+
+/// How [`put`] reports what it left, one line per kind.
+pub fn report(written: &Written) -> String {
+    format!(
+        "patches of {} {} -> {} ({} B)",
+        written.files,
+        written.kind.plural(),
+        written.kind.in_build(),
+        written.bytes
+    )
 }
 
 /// Whether a build directory has any patches inside.

@@ -2104,13 +2104,18 @@ pub fn run(options: Options) -> Result<()> {
             })
             .collect::<Vec<_>>(),
     });
-    stage::hand_over(
-        "rm2k-snes-patches",
-        "patches",
-        &patches_request,
-        &[directory.clone().into_os_string()],
-        None,
-    )?;
+    // Not kept in the cache, as when it was a process: it is a few
+    // kilobytes of text made from the request alone.
+    const PATCHES: stage::Stage = stage::Stage {
+        binary: "rm2k-snes-patches",
+        command: "--request",
+    };
+    let patches = stage::call_uncached(PATCHES, || {
+        rm2k_snes_patches::stage::patches(&patches_request)
+    })?;
+    for written in rm2k_snes_patches::put(&directory, &patches).map_err(Stop::new)? {
+        println!("{}", rm2k_snes_patches::report(&written));
+    }
     // And who asked for each one, which isn't versioned: what separates, in
     // the ROM that is played, what belongs to the game from what only
     // exists because of the suite.
