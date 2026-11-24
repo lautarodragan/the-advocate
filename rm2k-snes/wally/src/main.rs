@@ -7,8 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use std::path::PathBuf;
 use std::process::ExitCode;
-use wally::map::{self, MapRequest};
-use wally::{inspect, layers, request, Bad, Game, LayersRequest, Result};
+use wally::{request, stage, Bad, Result};
 
 /// "The map's colours cannot be split" is this tool answering no; "that
 /// flag makes no sense" is the call being wrong.
@@ -112,69 +111,27 @@ struct MapArgs {
     place: Where,
 }
 
-fn game(place: &Where) -> Result<(Game, serde_json::Value, String)> {
-    let (data, whose) = request::read(&place.request)?;
-    let mut game = Game {
-        data: place.data.clone(),
-        search_dirs: place.search_dirs.clone(),
-        ..Game::default()
-    };
-    request::patches(&data, &whose, &mut game)?;
-    Ok((game, data, whose))
-}
-
-fn do_layers(args: &LayersArgs) -> Result<()> {
-    let (game, data, whose) = game(&args.place)?;
-    let request = LayersRequest::from_json(&data, &whose)?;
-    layers::run(&game, &request, &args.place.out)
-}
-
-fn do_map(args: &MapArgs) -> Result<()> {
-    let (game, data, whose) = game(&args.place)?;
-    let request = MapRequest::from_json(&data, &whose)?;
-    let done = map::convert(&game, &request)?;
-    std::fs::create_dir_all(&args.place.out)
-        .map_err(|e| Bad::usage(format!("{}: {e}", args.place.out.display())))?;
-    map::write(&args.place.out, &done)
-}
-
-fn write_answer(out: &std::path::Path, name: &str, answer: &serde_json::Value) -> Result<()> {
+/// Runs one of the [`stage`] commands on the request file `--request`, and
+/// writes what it answers into `--out`.
+fn answer(place: &Where, command: stage::Command) -> Result<()> {
+    let (request, whose) = request::read(&place.request)?;
+    let files = command(&place.data, &place.search_dirs, &request, &whose)?;
+    let out = &place.out;
     std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
-    std::fs::write(out.join(name), answer.to_string())
-        .map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
-}
-
-fn do_bakeable(args: &MapArgs) -> Result<()> {
-    let (game, data, whose) = game(&args.place)?;
-    let request = MapRequest::partial(&data, &whose)?;
-    write_answer(
-        &args.place.out,
-        "bakeable.json",
-        &inspect::bakeable_report(&game, &request)?,
-    )
-}
-
-fn do_split(args: &MapArgs) -> Result<()> {
-    let (game, data, whose) = game(&args.place)?;
-    let request = MapRequest::partial(&data, &whose)?;
-    let palettes = data
-        .get("palettes")
-        .and_then(serde_json::Value::as_u64)
-        .ok_or_else(|| Bad::answer(format!("{whose}: no `palettes`, how many the split gets")))?;
-    write_answer(
-        &args.place.out,
-        "split.json",
-        &inspect::split_report(&game, &request, palettes as usize)?,
-    )
+    for (name, bytes) in &files {
+        let path = out.join(name);
+        std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    }
+    Ok(())
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Layers(args) => do_layers(args),
-        Command::Map(args) => do_map(args),
-        Command::Bakeable(args) => do_bakeable(args),
-        Command::Split(args) => do_split(args),
+        Command::Layers(args) => answer(&args.place, stage::layers_of),
+        Command::Map(args) => answer(&args.place, stage::map_of),
+        Command::Bakeable(args) => answer(&args.place, stage::bakeable_of),
+        Command::Split(args) => answer(&args.place, stage::split_of),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

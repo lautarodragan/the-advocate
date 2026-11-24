@@ -8,12 +8,12 @@ use crate::background::{Converted, Merge, Run};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::request::LayersRequest;
+use crate::stage::Files;
 use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
-use std::path::Path;
 
 /// The file what the caller needs to know is written to.
 pub const ANSWER_FILE: &str = "layers.json";
@@ -1306,36 +1306,33 @@ fn blocks_of(
     Ok((passability, made))
 }
 
-fn write_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<()> {
-    std::fs::write(dir.join(name), bytes)
-        .map_err(|e| Bad::usage(format!("{}: {e}", dir.join(name).display())))
-}
-
-/// Writes the conversion into `out`: the tiles, the runs and the block
-/// table as binaries, what was decided as indexed PNGs, and the rest in
+/// The conversion as files by name: the tiles, the runs and the block table
+/// as binaries, what was decided as indexed PNGs, and the rest in
 /// `layers.json`.
-pub fn write(
-    out: &Path,
+pub fn files(
     converted: &Converted,
     panorama: Option<&Panorama>,
     passability: &[u8],
     made: &Blocks,
-) -> Result<()> {
-    std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
+) -> Result<Files> {
+    let mut out = Files::new();
+    let mut write_file = |name: &str, bytes: &[u8]| {
+        out.insert(name.to_string(), bytes.to_vec());
+    };
     let bg = &converted.background;
     let above = &converted.above;
-    write_file(out, BACKGROUND_TILES, &bg.tiles)?;
-    write_file(out, ABOVE_TILES, &above.tiles)?;
-    write_file(out, ABOVE_CGRAM, &above.cgram)?;
-    write_file(out, BLOCK_TABLE, &made.table)?;
-    write_file(out, BLOCK_PASSABILITY, &made.passability)?;
-    write_file(out, BLOCK_TERRAIN, &made.terrain)?;
+    write_file(BACKGROUND_TILES, &bg.tiles);
+    write_file(ABOVE_TILES, &above.tiles);
+    write_file(ABOVE_CGRAM, &above.cgram);
+    write_file(BLOCK_TABLE, &made.table);
+    write_file(BLOCK_PASSABILITY, &made.passability);
+    write_file(BLOCK_TERRAIN, &made.terrain);
     let mut runs = Vec::new();
     for run in &bg.runs {
         let mut files = Vec::new();
         for (d, drawing) in run.drawings.iter().enumerate() {
             let name = run_file(run, d);
-            write_file(out, &name, drawing)?;
+            write_file(&name, drawing);
             files.push(name);
         }
         runs.push(json!({"family": run.family.name(), "base": run.base,
@@ -1344,20 +1341,21 @@ pub fn write(
     let mut pictures = Vec::new();
     for decided in &converted.pictures {
         let name = format!("{}.png", decided.name);
-        voodoo::image::write(&out.join(&name), &decided.picture)
-            .map_err(|e| Bad::usage(e.to_string()))?;
+        let png = voodoo::image::encode(&decided.picture)
+            .map_err(|e| Bad::usage(format!("{name}: {e}")))?;
+        write_file(&name, &png);
         pictures.push(json!({"name": decided.name, "file": name}));
     }
     let pano = match (&converted.panorama, panorama) {
         (Some(p), Some(source)) => {
-            write_file(out, PANORAMA_TILES, &p.tiles)?;
+            write_file(PANORAMA_TILES, &p.tiles);
             // The other pictures its `ChangePBG`s name that it carries, in
             // the order the bytecode numbers them after this one.
             let mut images = Vec::new();
             for (extra, converted) in source.extras.iter().zip(&p.extras) {
                 let Ok(q) = converted else { continue };
                 let file = format!("panorama-{}.bin", images.len() + 1);
-                write_file(out, &file, &q.tiles)?;
+                write_file(&file, &q.tiles);
                 images.push(json!({
                     "name": extra.name,
                     "size": [extra.size.0, extra.size.1],
@@ -1429,7 +1427,8 @@ pub fn write(
             "combos": made.combos.iter().map(|&((l, u), b)| json!([l, u, b])).collect::<Vec<_>>(),
         },
     });
-    write_file(out, ANSWER_FILE, answer.to_string().as_bytes())
+    write_file(ANSWER_FILE, answer.to_string().as_bytes());
+    Ok(out)
 }
 
 /// A global merge as `[victim, target, pixels]`, or a palette-local one as
@@ -1444,19 +1443,13 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
         .collect()
 }
 
-/// The whole `layers` command: the request's map, drawn and converted,
-/// into `out`.
-pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
+/// The whole `layers` command: the request's map, drawn and converted, as
+/// files by name.
+pub fn run(game: &Game, request: &LayersRequest) -> Result<Files> {
     let (drawn, mut converted) = draw_converted(game, request)?;
     // No substitutions here: nothing is kept apart.
     let (passability, made) = blocks(&drawn, &mut converted, &BTreeSet::new())?;
-    write(
-        out,
-        &converted,
-        drawn.panorama.as_ref(),
-        &passability,
-        &made,
-    )
+    files(&converted, drawn.panorama.as_ref(), &passability, &made)
 }
 
 #[cfg(test)]

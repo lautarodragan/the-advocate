@@ -32,6 +32,7 @@ pub mod posed;
 pub mod request;
 pub mod sheets;
 pub mod sprites;
+pub mod stage;
 pub mod substitutions;
 
 pub use fail::{Bad, Result};
