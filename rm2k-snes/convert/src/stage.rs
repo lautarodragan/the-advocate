@@ -416,8 +416,11 @@ pub fn run(
 }
 
 /// [`run`], always running the stage: for one that writes something besides
-/// its answer —the emission, which leaves each map's raw data next to the
-/// `.inc`—, which a cached answer would not write.
+/// its answer, which a cached answer would not write.
+///
+/// The emission was the one, until A6 of the-stages-speak-json-nobody-types
+/// put its raw data in its answer; since then only [`run`] calls this, and
+/// it goes with it in A9.
 pub fn run_uncached(
     binary: &str,
     project: &str,
