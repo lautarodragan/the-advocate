@@ -151,10 +151,8 @@ impl<'a> Compiler<'a> {
         // pixels, which is how the console cuts them too—. The compiler
         // reflows those itself, because it is the one that knows which pages
         // a troop brings.
-        let layout = stage::json(
-            &stage::run("rm2k-snes-battle", "battle", "layout", &json!({}), &[])?,
-            "layout.json",
-        )?;
+        // Constants, which no game changes: not worth a cache entry.
+        let layout = stage::json(&rm2k_snes_battle::stage::layout(), "layout.json")?;
         let cells = layout["BA_PAGE_MSG_WIDTH"]
             .as_u64()
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;

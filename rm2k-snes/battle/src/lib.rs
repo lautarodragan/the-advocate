@@ -24,6 +24,7 @@ pub mod model;
 pub mod rules;
 pub mod screen;
 pub mod simulate;
+pub mod stage;
 pub mod states;
 
 pub use encounters::{Encounters, Map};
@@ -71,6 +72,12 @@ impl Request {
         let whose = path.display().to_string();
         let data: Value =
             serde_json::from_str(&text).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
+        Request::of(&data, &whose, game)
+    }
+
+    /// [`Request::read`], of a request already parsed; `whose` is what its
+    /// complaints start with.
+    pub fn of(data: &Value, whose: &str, game: &mut Game) -> Result<Request> {
         let field = |data: &'_ Value, name: &str, whose: &str| -> Result<Value> {
             data.get(name)
                 .cloned()
@@ -87,7 +94,7 @@ impl Request {
                 .as_i64()
                 .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not a whole number")))
         };
-        let party = list(&data, "party", &whose)?
+        let party = list(data, "party", whose)?
             .iter()
             .map(|v| {
                 v.as_i64()
@@ -95,7 +102,7 @@ impl Request {
             })
             .collect::<Result<Vec<i64>>>()?;
         let mut maps = Vec::new();
-        for m in list(&data, "maps", &whose)? {
+        for m in list(data, "maps", whose)? {
             let whose = format!("{whose}: a map");
             maps.push(Map {
                 id: number(&m, "id", &whose)?,
@@ -103,7 +110,7 @@ impl Request {
                 height: number(&m, "height", &whose)?,
             });
         }
-        let steps = field(&data, "encounter_steps", &whose)?;
+        let steps = field(data, "encounter_steps", whose)?;
         let encounter_steps = if steps.is_null() {
             None
         } else {
@@ -112,7 +119,7 @@ impl Request {
             })?)
         };
         // Nodes of the tree in the dump's shape: Ditto's type reads them.
-        for node in list(&data, "tree_nodes", &whose)? {
+        for node in list(data, "tree_nodes", whose)? {
             let node = serde_json::from_value(node)
                 .map_err(|e| Bad::answer(format!("{whose}: tree_nodes: {e}")))?;
             game.add_node(node);
@@ -160,20 +167,20 @@ impl Tables {
         })
     }
 
-    /// Writes [`EXPERIENCE_FILE`], [`ENCOUNTERS_FILE`] and [`ANSWER_FILE`]
-    /// into `dir`, which is created if it is not there.
-    pub fn write(&self, dir: &Path) -> Result<()> {
-        let io = |path: &Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
-        std::fs::create_dir_all(dir).map_err(|e| io(dir, e))?;
+    /// [`EXPERIENCE_FILE`], [`ENCOUNTERS_FILE`] and [`ANSWER_FILE`], by
+    /// name.
+    pub fn files(&self) -> stage::Files {
         let answer = serde_json::to_string_pretty(&self.answer()).unwrap() + "\n";
-        for (name, text) in [
-            (EXPERIENCE_FILE, &self.experience),
-            (ENCOUNTERS_FILE, &self.encounters.tables()),
-            (ANSWER_FILE, &answer),
-        ] {
-            let path = dir.join(name);
-            std::fs::write(&path, text).map_err(|e| io(&path, e))?;
-        }
-        Ok(())
+        stage::Files::from([
+            (
+                EXPERIENCE_FILE.to_string(),
+                self.experience.clone().into_bytes(),
+            ),
+            (
+                ENCOUNTERS_FILE.to_string(),
+                self.encounters.tables().into_bytes(),
+            ),
+            (ANSWER_FILE.to_string(), answer.into_bytes()),
+        ])
     }
 }

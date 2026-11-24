@@ -7,10 +7,9 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_battle::db::Db;
-use rm2k_snes_battle::model::{
-    self, EXPERIENCE_FILE, FIELD_SKILL_FILE, LAYOUT_FILE, LINES_FILE, MODEL_FILE, SIMULATE_FILE,
-};
-use rm2k_snes_battle::{screen, Bad, Game, Request, Result, Tables};
+use rm2k_snes_battle::model::{self, EXPERIENCE_FILE, FIELD_SKILL_FILE, LINES_FILE, SIMULATE_FILE};
+use rm2k_snes_battle::stage::{self, Files};
+use rm2k_snes_battle::{Bad, Result};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -117,38 +116,40 @@ struct LayoutArgs {
     out: PathBuf,
 }
 
-fn write(dir: &Path, name: &str, answer: &Value) -> Result<()> {
+/// What a command answered, into `dir`, which is created if it is not
+/// there.
+fn write(dir: &Path, files: &Files) -> Result<()> {
     let io = |path: &Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
     std::fs::create_dir_all(dir).map_err(|e| io(dir, e))?;
-    let path = dir.join(name);
-    let text = serde_json::to_string_pretty(answer).unwrap() + "\n";
-    std::fs::write(&path, text).map_err(|e| io(&path, e))
+    for (name, bytes) in files {
+        let path = dir.join(name);
+        std::fs::write(&path, bytes).map_err(|e| io(&path, e))?;
+    }
+    Ok(())
 }
 
-fn stage(args: &StageArgs, name: &str, answer: fn(&Db, &Value) -> Result<Value>) -> Result<()> {
+fn asked(args: &StageArgs, name: &str, answer: fn(&Db, &Value) -> Result<Value>) -> Result<()> {
     let request = model::read_request(&args.request)?;
-    // The troops are most of a database: only a request that names one
-    // reads them.
-    let db = Db::from_dump(&args.data, model::needs_troops(&request))?;
-    write(&args.out, name, &answer(&db, &request)?)
-}
-
-fn tables(args: &TablesArgs) -> Result<()> {
-    let mut game = Game::from_dump(&args.data)?;
-    let request = Request::read(&args.request, &mut game)?;
-    Tables::new(&game, &request)?.write(&args.out)
+    write(
+        &args.out,
+        &stage::asked(&args.data, &request, name, answer)?,
+    )
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Tables(args) => tables(args),
-        Command::Model(args) => stage(args, MODEL_FILE, model::model),
-        Command::Simulate(args) => stage(args, SIMULATE_FILE, model::simulate),
-        Command::Lines(args) => stage(args, LINES_FILE, model::lines),
-        Command::Experience(args) => stage(args, EXPERIENCE_FILE, model::experience),
-        Command::FieldSkill(args) => stage(args, FIELD_SKILL_FILE, model::field_skill),
-        Command::Layout(args) => write(&args.out, LAYOUT_FILE, &screen::layout()),
+        Command::Tables(args) => model::read_request(&args.request)
+            .and_then(|request| stage::tables(&args.data, &request))
+            .and_then(|files| write(&args.out, &files)),
+        Command::Model(args) => model::read_request(&args.request)
+            .and_then(|request| stage::model(&args.data, &request))
+            .and_then(|files| write(&args.out, &files)),
+        Command::Simulate(args) => asked(args, SIMULATE_FILE, model::simulate),
+        Command::Lines(args) => asked(args, LINES_FILE, model::lines),
+        Command::Experience(args) => asked(args, EXPERIENCE_FILE, model::experience),
+        Command::FieldSkill(args) => asked(args, FIELD_SKILL_FILE, model::field_skill),
+        Command::Layout(args) => write(&args.out, &stage::layout()),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
