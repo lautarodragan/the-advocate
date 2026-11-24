@@ -5,17 +5,10 @@
 //! has a default path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use ditto::dump::Dump;
-use ditto::schema::Animation;
-use rm2k_render::{battle, picture, show_picture as rm2k_picture};
-use rm2k_snes_images::request::{
-    self, Animations, Backdrops, Background, Battlers, Fullscreen, ShowPicture,
-};
-use rm2k_snes_images::{
-    animation, background, fullscreen, mode7, scene, show_picture, Bad, Result,
-};
-use serde_json::Value;
-use std::collections::HashMap;
+use rm2k_snes_images::request::{self, Paths};
+use rm2k_snes_images::stage::{self, Files};
+use rm2k_snes_images::{Bad, Result};
+use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -127,166 +120,33 @@ struct WithDump {
     out: PathBuf,
 }
 
-fn write(out: &Path, name: &str, answer: &Value) -> Result<()> {
+/// What a command answered, into `out`, which is created if it is not
+/// there.
+fn write(out: &Path, files: &Files) -> Result<()> {
     std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
-    let path = out.join(format!("{name}.json"));
-    std::fs::write(&path, answer.to_string())
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
-}
-
-fn do_fullscreen(args: &Plain) -> Result<()> {
-    let r: Fullscreen = request::read(&args.request)?;
-    let screen = fullscreen::convert(
-        &picture::read_unkeyed(&r.file)?,
-        r.width,
-        r.height,
-        r.cell,
-        r.first_color,
-        r.cap,
-    );
-    write(
-        &args.out,
-        "fullscreen",
-        &request::fullscreen_answer(&screen),
-    )
-}
-
-fn do_picture(args: &Plain) -> Result<()> {
-    let r: ShowPicture = request::read(&args.request)?;
-    let drawn = rm2k_picture::picture(
-        &picture::read_unkeyed(&r.file)?,
-        &picture::read_rm2k(&r.file)?,
-        r.use_transparent_color,
-        r.top_trans,
-    );
-    let screens = show_picture::Screens {
-        rm: r.rm_screen,
-        console: r.screen,
-    };
-    let shown = show_picture::Shown {
-        zoom: r.zoom,
-        map_fixed: r.map_fixed,
-        for_console: r.for_console,
-        ..show_picture::Shown::PLAIN
-    };
-    let converted = show_picture::convert_shown(&drawn, r.x, r.y, screens, r.colors, shown)?;
-    write(&args.out, "picture", &request::picture_answer(&converted))
-}
-
-fn do_background(args: &Plain) -> Result<()> {
-    let r: Background = request::read(&args.request)?;
-    let drawn = rm2k_picture::picture(
-        &picture::read_unkeyed(&r.file)?,
-        &picture::read_rm2k(&r.file)?,
-        r.use_transparent_color,
-        0,
-    );
-    let (drawn, x, y) = match &r.under {
-        None => (drawn, r.x, r.y),
-        Some(under) => background::over_panorama(
-            &drawn,
-            &picture::read_unkeyed(under)?,
-            r.x,
-            r.y,
-            r.rm_screen,
-        ),
-    };
-    let screens = show_picture::Screens {
-        rm: r.rm_screen,
-        console: r.screen,
-    };
-    let room = background::Room {
-        palettes: r.palettes,
-        first_palette: r.first_palette,
-        tiles: r.tiles,
-        rows: r.rows,
-    };
-    let layer = background::convert(&drawn, x, y, screens, r.zoom, r.crop, r.for_console, room)?;
-    // The texture, if asked for and the layer leaves room for it; if it
-    // does not, the answer says so with a null.
-    let texture = match (&layer, r.mode7) {
-        (Some(l), Some(m)) if l.tile_count <= m.layer_tiles && l.rows <= m.layer_rows => {
-            Some(mode7::texture(&l.pixels, l.columns, &l.colors, m.tiles))
-        }
-        _ => None,
-    };
-    let mut answer = layer.as_ref().map_or(Value::Null, |l| {
-        request::background_answer(l, texture.as_ref())
-    });
-    if r.mode7.is_some() && texture.is_none() && !answer.is_null() {
-        answer["mode7"] = Value::Null;
+    for (name, bytes) in files {
+        let path = out.join(name);
+        std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     }
-    write(&args.out, "background", &answer)
+    Ok(())
 }
 
-fn do_backdrops(args: &Plain) -> Result<()> {
-    let r: Backdrops = request::read(&args.request)?;
-    let g: scene::Geometry = r.scene.into();
-    let mut answer = Vec::with_capacity(r.backdrops.len());
-    for wanted in &r.backdrops {
-        let drawn = battle::backdrop(&wanted.file)?;
-        let quality = wanted
-            .quality
-            .then(|| request::backdrop_answer(&scene::backdrop(&drawn, &g)));
-        let light = match wanted.light {
-            true => Some(request::light_answer(&scene::light_backdrop(&drawn, &g)?)),
-            false => None,
-        };
-        answer.push(serde_json::json!({"quality": quality, "light": light}));
-    }
-    write(&args.out, "backdrops", &Value::Array(answer))
-}
-
-fn do_battlers(args: &Plain) -> Result<()> {
-    let r: Battlers = request::read(&args.request)?;
-    let g: scene::Geometry = r.scene.into();
-    let answer = r
-        .battlers
-        .iter()
-        .map(|b| {
-            Ok(request::battler_answer(&scene::battler(
-                &battle::battler(&b.file, b.hue)?,
-                &g,
-            )?))
-        })
-        .collect::<Result<Vec<_>>>()?;
-    write(&args.out, "battlers", &Value::Array(answer))
-}
-
-fn do_animations(args: &WithDump) -> Result<()> {
-    let r: Animations = request::read(&args.request)?;
-    let g = animation::Geometry::from(&r);
-    let dump = Dump::open(&args.data).map_err(|e| Bad::answer(e.0))?;
-    let all: Vec<Animation> = dump.section("animations").map_err(|e| Bad::answer(e.0))?;
-    let by_number: HashMap<i32, &Animation> = all.iter().map(|a| (a.id, a)).collect();
-    let mut sheets: HashMap<PathBuf, rm2k_render::Picture> = HashMap::new();
-    let mut answer = Vec::with_capacity(r.animations.len());
-    for wanted in &r.animations {
-        let anim = by_number.get(&wanted.number).ok_or_else(|| {
-            Bad::answer(format!(
-                "{}: the dump has no animation {}",
-                args.data.display(),
-                wanted.number
-            ))
-        })?;
-        if !sheets.contains_key(&wanted.sheet) {
-            sheets.insert(wanted.sheet.clone(), picture::read_rm2k(&wanted.sheet)?);
-        }
-        let converted = animation::convert(anim, &sheets[&wanted.sheet], &g);
-        answer.push(converted.map_or(Value::Null, |c| request::animation_answer(&c)));
-    }
-    write(&args.out, "animations", &Value::Array(answer))
+/// A command over its request file: read it, ask, write what it answered.
+fn asked<T: DeserializeOwned + Paths>(args: &Plain, answer: fn(&T) -> Result<Files>) -> Result<()> {
+    write(&args.out, &answer(&request::read(&args.request)?)?)
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Fullscreen(args) => do_fullscreen(args),
-        Command::Picture(args) => do_picture(args),
-        Command::Background(args) => do_background(args),
-        Command::Backdrops(args) => do_backdrops(args),
-        Command::Battlers(args) => do_battlers(args),
-        Command::Animations(args) => do_animations(args),
+        Command::Fullscreen(args) => asked(args, stage::fullscreen_of),
+        Command::Picture(args) => asked(args, stage::picture_of),
+        Command::Background(args) => asked(args, stage::background_of),
+        Command::Backdrops(args) => asked(args, stage::backdrops_of),
+        Command::Battlers(args) => asked(args, stage::battlers_of),
+        Command::Animations(args) => request::read(&args.request)
+            .and_then(|r| stage::animations_of(&args.data, &r))
+            .and_then(|files| write(&args.out, &files)),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
