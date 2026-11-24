@@ -35,10 +35,13 @@ still made by the converter that calls this.
 
 ## One stage of a converter
 
-This is one domain of a game converter that is moving to Rust a stage at a
-time. The converter still orchestrates, and calls each stage by the PATH as
-a separate program. Every stage has the same shape, and this crate was the
-first to be written to it:
+This is one domain of a game converter. The converter orchestrates, and
+calls this crate's `stage` module as functions —`tables`, `model`,
+`layout`—, each answering the files the binary writes into `--out`; the
+binary is a `main` over the same functions, for the tests and for a
+person. The other stages are still run by the PATH as separate programs,
+until each becomes a library like this one. Every stage has the same
+shape, and this crate was the first to be written to it:
 
 * **It reads the game itself**, from a Ditto dump —`--data`—, **with
   Ditto's library**: `ditto::dump::Dump` and the schema's types, which are

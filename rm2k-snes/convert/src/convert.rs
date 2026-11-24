@@ -38,6 +38,17 @@ use rm2k_snes_mapdata::{engine, record, vram};
 /// Past the first, the title goes at 4bpp, where it always fits.
 const TITLE_TILES_MAX: usize = 0x4400 / 32;
 const TITLE_MENU_TILES_MAX: usize = (0x7C00 - 0x5000) / 16;
+
+/// The battle's two stages: its tables, before the pages compile, and its
+/// model, after.
+const BATTLE_TABLES: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-battle",
+    command: "tables",
+};
+const BATTLE_MODEL: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-battle",
+    command: "model",
+};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsString;
@@ -817,18 +828,18 @@ pub fn run(options: Options) -> Result<()> {
     let members = scan::possible_members(every_refs.iter().copied(), &party, &file_commands);
     // The random encounters of each map, and the experience tables:
     // `rm2k-snes-battle`'s first call.
-    let written = stage::run(
-        "rm2k-snes-battle",
-        "battle",
-        "tables",
-        &json!({
-            "party": members,
-            "maps": infos.iter().map(|m| json!({"id": m.id, "width": m.map.width, "height": m.map.height}))
-                .collect::<Vec<_>>(),
-            "encounter_steps": options.test_encounters,
-            "tree_nodes": game.tree.added_nodes,
-        }),
+    let request = json!({
+        "party": members,
+        "maps": infos.iter().map(|m| json!({"id": m.id, "width": m.map.width, "height": m.map.height}))
+            .collect::<Vec<_>>(),
+        "encounter_steps": options.test_encounters,
+        "tree_nodes": game.tree.added_nodes,
+    });
+    let written = stage::call(
+        BATTLE_TABLES,
+        &request,
         &["--data".into(), game.dump.clone().into_os_string()],
+        || rm2k_snes_battle::stage::tables(&game.dump, &request),
     )?;
     let tables_answer = stage::json(&written, "battle.json")?;
     let encounters = tables_answer["encounters"].clone();
@@ -1769,21 +1780,21 @@ pub fn run(options: Options) -> Result<()> {
     let layout = screens::layout()?;
     let mut pairs: Vec<((i64, i64), i64)> = indices.skills.clone();
     pairs.sort_by_key(|(_, slot)| *slot);
-    let written = stage::run(
-        "rm2k-snes-battle",
-        "battle",
-        "model",
-        &json!({
-            "actors": members, "troops": troops.ids, "items": items_all,
-            "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
-            "item_name_width": layout["ITEM_NAME_WIDTH"],
-            // The letters the text screens carry: an item's name in a
-            // victory line keeps them.
-            "letters": screens_answer["font"]["screen_letters"],
-            "font": font.spec, "letter_spacing": font.spacing,
-            "exfont": font.request()["exfont"],
-        }),
+    let request = json!({
+        "actors": members, "troops": troops.ids, "items": items_all,
+        "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
+        "item_name_width": layout["ITEM_NAME_WIDTH"],
+        // The letters the text screens carry: an item's name in a
+        // victory line keeps them.
+        "letters": screens_answer["font"]["screen_letters"],
+        "font": font.spec, "letter_spacing": font.spacing,
+        "exfont": font.request()["exfont"],
+    });
+    let written = stage::call(
+        BATTLE_MODEL,
+        &request,
         &["--data".into(), game.dump.clone().into_os_string()],
+        || rm2k_snes_battle::stage::model(&game.dump, &request),
     )?;
     let battle_model = stage::json(&written, "model.json")?;
     for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
