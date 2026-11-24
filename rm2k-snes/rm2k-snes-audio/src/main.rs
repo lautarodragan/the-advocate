@@ -292,8 +292,12 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         out: args.out.clone(),
         msu: args.msu.clone(),
     };
-    let request = read_json(&args.request)?;
-    let mut files = stage::cartridge(&flags, &request, &args.request.display().to_string())?;
+    // Read from the text and not from a `Value`, so a bad one names its line.
+    let text = std::fs::read_to_string(&args.request)
+        .map_err(|e| Bad::usage(format!("{}: {e}", args.request.display())))?;
+    let request: stage::Request = serde_json::from_str(&text)
+        .map_err(|e| Bad::usage(format!("{}: {e}", args.request.display())))?;
+    let mut files = stage::cartridge(&flags, &request)?;
     let msu = files
         .remove(stage::MSU)
         .expect("the stage always answers a .msu");

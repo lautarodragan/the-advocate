@@ -74,7 +74,7 @@ fn run() -> Result<(), String> {
         let text = std::fs::read_to_string(request).map_err(|e| format!("{request}: {e}"))?;
         let request: Request =
             serde_json::from_str(&text).map_err(|e| format!("{request}: {e}"))?;
-        for written in put(Path::new(build), &stage::patches_of(&request))? {
+        for written in put(Path::new(build), &stage::patches(&request))? {
             println!("{}", report(&written));
         }
         return Ok(());

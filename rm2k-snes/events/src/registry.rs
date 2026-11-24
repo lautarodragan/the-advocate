@@ -585,10 +585,6 @@ impl Pictures {
         }
     }
 
-    pub fn zooms_json(&self) -> Vec<Value> {
-        self.zooms.iter().map(|(n, z)| json!([n, z])).collect()
-    }
-
     pub fn keys(&self) -> Vec<PictureKey> {
         self.table.iter().map(|(k, _)| k.clone()).collect()
     }

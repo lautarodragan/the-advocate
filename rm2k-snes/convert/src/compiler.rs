@@ -21,7 +21,7 @@ use crate::settings::Settings;
 use crate::stage;
 use rm2k_snes_events::answer::{Compiled, Indices, Scan};
 use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -103,12 +103,20 @@ pub fn names<'a>(maps: impl IntoIterator<Item = &'a GameMap>) -> Vec<Value> {
 /// The common events the project declares as the display of a variable in
 /// two digit pictures: `[events] counters`, which the compiler turns into
 /// one opcode each instead of their bodies.
-pub fn counters(settings: &Settings) -> Result<Vec<Value>> {
-    let mut out = Vec::new();
-    for c in settings.list(&["events", "counters"])? {
-        out.push(json!({"common_event": c["common_event"], "variable": c["variable"]}));
-    }
-    Ok(out)
+pub fn counters(settings: &Settings) -> Result<Vec<Counter>> {
+    settings
+        .list(&["events", "counters"])?
+        .iter()
+        .map(|c| Counter::deserialize(c).map_err(|e| Stop::new(format!("[events] counters: {e}"))))
+        .collect()
+}
+
+/// One of `[events] counters`: the common event, and the variable its
+/// digits show. The compile requests take them as they are.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Counter {
+    pub common_event: i32,
+    pub variable: i32,
 }
 
 /// What the compiler is asked for and keeps: the boxes and the battle's
@@ -294,7 +302,7 @@ impl<'a> Compiler<'a> {
         // pictures: without them its body is pasted where it is called,
         // and its twenty `ShowPicture`s of a digit would ask for a place
         // in the sprites.
-        r.insert("counters".into(), Value::Array(counters(self.settings)?));
+        r.insert("counters".into(), json!(counters(self.settings)?));
         self.run(SCAN, rm2k_snes_events::stage::scan, Value::Object(r))
     }
 
@@ -321,7 +329,10 @@ impl<'a> Compiler<'a> {
         );
         let mut substitutions = Map::new();
         for m in maps {
-            substitutions.insert(m.id.to_string(), m.substitution_table.clone());
+            let table = m.substitution_table.iter().map(|(upper, old, new, pairs)| {
+                json!({"upper": upper, "old": old, "new": new, "pairs": pairs})
+            });
+            substitutions.insert(m.id.to_string(), table.collect());
         }
         r.insert("substitutions".into(), Value::Object(substitutions));
         // The pictures each map carries, with their slots: see `pictures`.
@@ -366,7 +377,7 @@ impl<'a> Compiler<'a> {
         if !tilesets.is_empty() {
             r.insert("tilesets".into(), Value::Object(tilesets));
         }
-        r.insert("counters".into(), Value::Array(counters(self.settings)?));
+        r.insert("counters".into(), json!(counters(self.settings)?));
         r.insert("sound_effects".into(), self.sound_effects()?);
         // Each test page turns itself off first: it is a convention of the
         // harness and not of the case —see `TEST_SWITCH`—, and an automatic
@@ -441,7 +452,7 @@ impl<'a> Compiler<'a> {
         }
         r.insert("substitutions".into(), Value::Object(substitutions));
         r.insert("pictures".into(), json!({}));
-        r.insert("counters".into(), Value::Array(counters(self.settings)?));
+        r.insert("counters".into(), json!(counters(self.settings)?));
         r.insert("sound_effects".into(), self.sound_effects()?);
         r.insert(
             "cases".into(),
@@ -497,7 +508,7 @@ impl<'a> Compiler<'a> {
 pub struct CompileMap {
     pub id: i32,
     pub names: Vec<Value>,
-    pub substitution_table: Value,
+    pub substitution_table: Vec<(bool, i32, i32, Option<Vec<(u16, u16)>>)>,
     pub pictures: Option<Vec<Value>>,
     pub big_table: Vec<Value>,
     /// The panoramas it carries, in the order the bytecode numbers them:

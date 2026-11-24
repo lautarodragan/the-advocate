@@ -1015,7 +1015,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<answer::Scan> {
             pages,
             graphics: pairs(&graphics.pairs),
             pictures: pictures.keys(),
-            zooms: pictures.zooms_json(),
+            zooms: pictures.zooms.clone(),
             tinted: pictures.tinted.iter().map(|&n| n.into()).collect(),
             // Only on a map with copies, so the answer of the rest stays
             // the one it was.
@@ -1061,7 +1061,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<answer::Scan> {
             gathered.push(answer::CommonPictures {
                 common: n,
                 pictures: pictures.keys(),
-                zooms: pictures.zooms_json(),
+                zooms: pictures.zooms.clone(),
             });
         }
     }

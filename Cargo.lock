@@ -443,6 +443,7 @@ dependencies = [
  "rm2k-project",
  "rm2k-rules",
  "rm2k-snes-bytecode",
+ "serde",
  "serde_json",
  "sha2",
  "toml",
