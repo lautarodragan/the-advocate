@@ -436,7 +436,10 @@ impl Names {
             if old.is_empty() || old == new {
                 continue;
             }
-            if let Some(rest) = name.strip_prefix(old.as_str()).filter(|r| r.starts_with('/')) {
+            if let Some(rest) = name
+                .strip_prefix(old.as_str())
+                .filter(|r| r.starts_with('/'))
+            {
                 return format!("{new}{rest}");
             }
         }
