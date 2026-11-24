@@ -7,7 +7,6 @@
 use crate::fail::{Result, Stop};
 use crate::maps::{MapInfo, PageRecord};
 use rm2k_snes_mapdata::request;
-use serde_json::Value;
 use wally::answer;
 
 /// A page as the emission takes it.
@@ -291,10 +290,10 @@ pub fn map_record(m: &MapInfo, access: u8) -> Result<request::Map> {
 /// compressed, and per map how many frames decompressing it takes.
 pub struct Emitted {
     pub report: Vec<String>,
-    pub frames: Vec<Value>,
+    pub frames: Vec<f64>,
     /// What the emission cut to fit —a ChipSet animation—, for the
     /// cartridge's degradations.
-    pub losses: Vec<Value>,
+    pub losses: Vec<rm2k_snes_mapdata::answer::Loss>,
 }
 
 /// The emission, a function of `rm2k-snes-mapdata`.
@@ -327,24 +326,13 @@ pub fn emit(
         .map_err(|bad| crate::fail::Stop::new(bad.to_string()))?;
     let text = crate::stage::text(&written, "mapdata.inc")?;
     std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
-    let answer = crate::stage::json(&written, "mapdata.json")?;
-    for note in answer["notes"].as_array().cloned().unwrap_or_default() {
-        println!(
-            "{}",
-            note.as_str()
-                .map_or_else(|| note.to_string(), str::to_string)
-        );
+    let answer: rm2k_snes_mapdata::answer::Answer = crate::stage::typed(&written, "mapdata.json")?;
+    for note in &answer.notes {
+        println!("{note}");
     }
     Ok(Emitted {
-        report: answer["report"]
-            .as_array()
-            .map(|r| {
-                r.iter()
-                    .map(|l| l.as_str().unwrap_or("").to_string())
-                    .collect()
-            })
-            .unwrap_or_default(),
-        frames: answer["frames"].as_array().cloned().unwrap_or_default(),
-        losses: answer["losses"].as_array().cloned().unwrap_or_default(),
+        report: answer.report,
+        frames: answer.frames,
+        losses: answer.losses,
     })
 }

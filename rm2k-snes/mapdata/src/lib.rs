@@ -15,6 +15,7 @@
 //! [`animation`]—.
 
 pub mod animation;
+pub mod answer;
 pub mod asm;
 pub mod cgram;
 pub mod compress;

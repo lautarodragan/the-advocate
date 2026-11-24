@@ -1991,13 +1991,7 @@ pub fn run(options: Options) -> Result<()> {
         }
     }
     for loss in &emitted.losses {
-        let map = loss["map"].as_i64().unwrap_or(-1);
-        degradations.map(
-            map,
-            loss["kind"].as_str().unwrap_or(""),
-            loss["text"].as_str().unwrap_or(""),
-            &[],
-        );
+        degradations.map(loss.map, &loss.kind, &loss.text, &[]);
     }
     // `degradations.json` is written after the music, below: the audio
     // stage is the last to decide what is lost.
@@ -2092,7 +2086,7 @@ pub fn run(options: Options) -> Result<()> {
         decompress_frames: emitted
             .frames
             .get(start_index)
-            .and_then(Value::as_f64)
+            .copied()
             .ok_or_else(|| Stop::new("the emission answered no frames for the boot map"))?,
         measuring_headroom: options.measure_headroom,
         // The quality backdrops are the emission's bytes: the stage only
