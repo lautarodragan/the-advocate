@@ -32,6 +32,7 @@ pub mod messages;
 pub mod pages;
 pub mod registry;
 pub mod route;
+pub mod stage;
 pub mod troops;
 pub mod windows;
 
@@ -370,16 +371,19 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
     Ok(pictures)
 }
 
+/// A request file, as JSON: what [`Request::from_json`] reads. A file that
+/// is not there is the call being wrong; one that is not JSON, a no.
+pub fn read_request(path: &Path) -> Result<Value> {
+    let text_ = std::fs::read_to_string(path)
+        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    serde_json::from_str(&text_).map_err(|e| Bad::answer(format!("{}: {e}", path.display())))
+}
+
 impl Request {
     /// A request file. Every field is required; the ones only `compile`
     /// reads can be left out of a `scan`'s.
     pub fn read(path: &Path) -> Result<Request> {
-        let text_ = std::fs::read_to_string(path)
-            .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-        let whose = path.display().to_string();
-        let data: Value =
-            serde_json::from_str(&text_).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
-        Request::from_json(&data, &whose)
+        Request::from_json(&read_request(path)?, &path.display().to_string())
     }
 
     pub fn from_json(data: &Value, whose: &str) -> Result<Request> {
@@ -1651,14 +1655,6 @@ fn degradations(
             })
             .collect::<JsonMap<String, Value>>(),
     })
-}
-
-/// Writes the answer into `dir`, which is created if it is not there.
-pub fn write(answer: &Value, dir: &Path) -> Result<()> {
-    let io = |path: &Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
-    std::fs::create_dir_all(dir).map_err(|e| io(dir, e))?;
-    let path = dir.join(ANSWER_FILE);
-    std::fs::write(&path, serde_json::to_string(answer).unwrap() + "\n").map_err(|e| io(&path, e))
 }
 
 #[cfg(test)]
