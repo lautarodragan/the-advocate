@@ -1026,6 +1026,9 @@ pub struct Final {
 /// fitting or not. Only a map that does not fit changes: every other map
 /// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
+    // What the last map's conversion worked out of its reach is not this
+    // one's: see `Memos` in `layers`.
+    stage_layers::forget();
     let with = convert_fitting(game, request)?;
     if with.dressed.is_empty() {
         return Ok(with);

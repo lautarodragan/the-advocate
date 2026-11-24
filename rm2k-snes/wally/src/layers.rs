@@ -494,6 +494,41 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
     })
 }
 
+/// What [`below`] and [`standing`] are keyed by: the dump, the map, what
+/// the cartridge says of its reach and where the hero can start.
+type ReachKey = (
+    std::path::PathBuf,
+    i32,
+    crate::request::Reach,
+    Vec<(i32, i32)>,
+);
+
+/// What [`below`] and [`standing`] already answered **in this map's
+/// conversion**: [`forget`] empties it, and [`crate::map::convert`] calls it
+/// on entry.
+///
+/// The key does not say which ChipSet the map is read with, so kept from one
+/// conversion to the next it would answer a ChipSet variant of the map —the
+/// same map, reach and starts, read with another ChipSet's passability, see
+/// `chipsets` in the request— with the cells of the map's own. As a process
+/// the stage got it fresh for each map; as a function, a converter converts
+/// every map in one process, each on one of its threads, hence one per
+/// thread.
+#[derive(Default)]
+struct Memos {
+    below: Vec<(ReachKey, Vec<usize>)>,
+    standing: Vec<(ReachKey, Option<Vec<rm2k_rules::reach::Standing>>)>,
+}
+
+thread_local! {
+    static MEMOS: std::cell::RefCell<Memos> = std::cell::RefCell::new(Memos::default());
+}
+
+/// Empties [`Memos`]: what a map's conversion answered is not another's.
+pub fn forget() {
+    MEMOS.with_borrow_mut(|m| *m = Memos::default());
+}
+
 /// The cells of map `raw` whose tiles above the hero can go below: those
 /// no character can ever cover —`rm2k_rules::reach::covered`, with the
 /// common events and what `reach` adds—, but for a cell with a tile a
@@ -517,27 +552,21 @@ pub fn below(
     starts: &[(i32, i32)],
 ) -> Result<Vec<usize>> {
     // The conversion asks again for each mode it tries: the answer is the
-    // same, and on the biggest maps it takes seconds.
-    type Key = (
-        std::path::PathBuf,
-        i32,
-        crate::request::Reach,
-        Vec<(i32, i32)>,
-    );
-    static DONE: std::sync::Mutex<Vec<(Key, Vec<usize>)>> = std::sync::Mutex::new(Vec::new());
-    let key: Key = (
+    // same, and on the biggest maps it takes seconds. See [`Memos`].
+    let key: ReachKey = (
         game.data.clone(),
         request.map,
         reach.clone(),
         starts.to_vec(),
     );
-    if let Some((_, cells)) = DONE
-        .lock()
-        .expect("not poisoned")
-        .iter()
-        .find(|(k, _)| *k == key)
-    {
-        return Ok(cells.clone());
+    let known = MEMOS.with_borrow(|m| {
+        m.below
+            .iter()
+            .find(|(k, _)| *k == key)
+            .map(|(_, cells)| cells.clone())
+    });
+    if let Some(cells) = known {
+        return Ok(cells);
     }
     let mut commands = game.common_commands()?;
     commands.extend(reach.commands.iter().cloned());
@@ -572,9 +601,7 @@ pub fn below(
         })
         .map(|(at, _)| at)
         .collect();
-    DONE.lock()
-        .expect("not poisoned")
-        .push((key, cells.clone()));
+    MEMOS.with_borrow_mut(|m| m.below.push((key, cells.clone())));
     Ok(cells)
 }
 
@@ -589,27 +616,21 @@ pub fn standing(
     request: &crate::map::MapRequest,
     starts: &[(i32, i32)],
 ) -> Result<Option<Vec<rm2k_rules::reach::Standing>>> {
-    type Key = (
-        std::path::PathBuf,
-        i32,
-        crate::request::Reach,
-        Vec<(i32, i32)>,
-    );
-    type Done = Option<Vec<rm2k_rules::reach::Standing>>;
-    static DONE: std::sync::Mutex<Vec<(Key, Done)>> = std::sync::Mutex::new(Vec::new());
-    let key: Key = (
+    // Asked again for each mode, as [`below`] is.
+    let key: ReachKey = (
         game.data.clone(),
         request.map,
         reach.clone(),
         starts.to_vec(),
     );
-    if let Some((_, done)) = DONE
-        .lock()
-        .expect("not poisoned")
-        .iter()
-        .find(|(k, _)| *k == key)
-    {
-        return Ok(done.clone());
+    let known = MEMOS.with_borrow(|m| {
+        m.standing
+            .iter()
+            .find(|(k, _)| *k == key)
+            .map(|(_, done)| done.clone())
+    });
+    if let Some(done) = known {
+        return Ok(done);
     }
     let mut commands = game.common_commands()?;
     commands.extend(reach.commands.iter().cloned());
@@ -630,7 +651,7 @@ pub fn standing(
             sail: &sail,
         },
     );
-    DONE.lock().expect("not poisoned").push((key, done.clone()));
+    MEMOS.with_borrow_mut(|m| m.standing.push((key, done.clone())));
     Ok(done)
 }
 
