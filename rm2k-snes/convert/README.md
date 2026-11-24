@@ -10,10 +10,13 @@ A Super Nintendo cartridge converted from an RPG Maker 2000 game is the
 suite's runtime assembled together with the data the conversion writes:
 `mapdata.inc` and `musicdata.inc`, the `.msu`, and what the conversion
 decided to lose. Every domain of that conversion is a **stage** of its own,
-a program on the PATH with the shape `rm2k-snes/battle/README.md` describes
-in "One stage of a converter": it reads the game from the Ditto dump
-itself, gets in a request what the cartridge decided and the dump does not
-say, and writes what it made. This is the program that asks them, in order:
+a library this program is compiled with, with the shape
+`rm2k-snes/battle/README.md` describes in "One stage of a converter": it
+reads the game from the Ditto dump itself, gets in a request what the
+cartridge decided and the dump does not say, and answers what it made, as
+files by name. This is the program that calls them, through `stage.rs`,
+in order —each named by the subcommand of its binary that answers the
+same—:
 
 1. the text boxes reflowed for the console's window (`rm2k-snes-screens
    boxes`), and the event compiler's first call (`rm2k-snes-events scan`):

@@ -82,25 +82,6 @@ pub const TRACKS: [&str; 2] = ["rm2k-snes-audio", "msu"];
 /// called: `rm2k-snes-cartridges space` would not build it.
 pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
 
-/// The converter and the tools it runs, besides `ca65` and `ld65`: what
-/// they write goes into the ROM, so their binaries go into the fingerprint.
-/// And `rm2k-snes-patches`, whose files go next to it: the check reads them
-/// from the build, so a cartridge built by an older one is stale too.
-///
-/// Only the ones it **runs**: a library —Voodoo, LZ2, Adeleine, Gunter,
-/// `rm2k-render`— goes in through the binaries it is compiled into.
-const CONVERTER_TOOLS: &[&str] = &[
-    CONVERT,
-    "rm2k-snes-audio",
-    "rm2k-snes-battle",
-    "rm2k-snes-events",
-    "rm2k-snes-images",
-    "rm2k-snes-mapdata",
-    "wally",
-    "rm2k-snes-patches",
-    "rm2k-snes-screens",
-];
-
 /// The extensions of what the stages read from the original game, in lower
 /// case: the graphics —`.xyz` too, which the battle's lookups accept— and
 /// the songs and sounds. What else a game ships is not read, or reaches
@@ -626,16 +607,15 @@ impl Cartridges {
         // file that is added and included in the same change has to make the
         // cartridge stale.
         let mut parts = files_below(runtime)?;
-        // What assembles, what the converter runs, and what packs the banks.
-        // That last one is this program, which assembles in-process since
-        // 2026-11-24, and it still goes by its name on the PATH, as when the
-        // assembler ran from there, and not by `current_exe`: they are the
-        // same file unless this binary is run from somewhere else.
-        for name in ["ca65", "ld65"]
-            .iter()
-            .chain(CONVERTER_TOOLS)
-            .chain(&[CARTRIDGES])
-        {
+        // What assembles, the converter, and what packs the banks. The
+        // converter alone: its stages —and the patches, whose files the
+        // check reads from the build— are libraries compiled into it, as
+        // Voodoo, LZ2, Adeleine, Gunter and `rm2k-render` are into them.
+        // What packs the banks is this program, which assembles in-process
+        // since 2026-11-24, and it still goes by its name on the PATH, as
+        // when the assembler ran from there, and not by `current_exe`: they
+        // are the same file unless this binary is run from somewhere else.
+        for name in ["ca65", "ld65", CONVERT, CARTRIDGES] {
             parts.push(which(name).ok_or_else(|| {
                 format!("`{name}` is not on the PATH, and the cartridges need it")
             })?);

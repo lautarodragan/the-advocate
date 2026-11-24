@@ -1,5 +1,4 @@
-//! Running a stage of the conversion: a function of its crate, or still a
-//! program of its own.
+//! Calling a stage of the conversion: a function of its crate.
 //!
 //! Each domain reads the game from the dump itself, gets what the cartridge
 //! decided in a JSON request, and answers what it made —pieces of the `.inc`
@@ -8,12 +7,8 @@
 //! business, not this module's. See "One stage of a converter" in
 //! `rm2k-snes-battle`'s README for the shape.
 //!
-//! **The stages are becoming functions the converter calls**, one crate at
-//! a time: [`call`] calls one of those; [`run`] still runs an executable on
-//! the PATH and reads back what it wrote into `--out`. Both answer the same
-//! [`Files`], so a stage moves from one to the other without its caller
-//! reading anything differently. `run`, [`run_uncached`], [`hand_over`],
-//! [`which`] and [`Scratch`] go with the last stage that is a process.
+//! **The stages are functions the converter calls**, through [`call`]: each
+//! answers [`Files`], what its binary writes into `--out`.
 //!
 //! **What a stage answers is kept in the disk cache**, under the key of
 //! everything it can depend on: see [`key`]. A stage is a function of the
@@ -22,7 +17,7 @@
 //! same thing —in another cartridge of the same game, or in another worktree
 //! that shares the cache— the answer comes from the disk. A stage that
 //! writes anywhere else does not fit that, and goes through
-//! [`call_uncached`] or [`run_uncached`].
+//! [`call_uncached`].
 
 use crate::fail::{io, Result, Stop};
 use rm2k_project::cache;
@@ -30,10 +25,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 /// What a stage answers: every file it made, by name, as its binary wrote
@@ -164,33 +156,21 @@ fn request_in_key(value: &Value, cache_dir: &Path) -> Result<Value> {
 const PATH_FLAGS: &[&str] = &["--data", "--search-dir", "--game-dir", "--rtp-dir"];
 
 /// Everything a stage's answer can depend on: the code that answers, by
-/// content —a reinstalled stage, or a converter built again, expires its
-/// answers on its own—, the stage, the request, and the flags, each path
+/// content —a converter built again expires its answers on its own—, the stage, the request, and the flags, each path
 /// among them and in the request by what it holds —the dump, the game, the
 /// RTP, the folders searched—. **A stage reads no variable and no other
 /// file**: one that started to would have to say so here.
 ///
-/// Who answers is the stage's own binary while it is a process, keyed as it
-/// always was —`"stage 1"`, its command alone—, so its answers already on
-/// disk are still found; and the converter's, [`std::env::current_exe`],
-/// once it is a function of its crate —`"stage 2"`—, with the stage named
-/// by its binary and its command, because one binary answers every one of
-/// them: `rm2k-snes-screens layout` and `rm2k-snes-battle layout` are both
-/// asked `{}`.
-pub fn key(
-    answerer: &Answerer,
-    request: &Value,
-    flags: &[OsString],
-    cache_dir: &Path,
-) -> Result<String> {
-    let (tag, binary, name) = match answerer {
-        Answerer::Process { binary, command } => ("stage 1", binary.clone(), command.clone()),
-        Answerer::Function(stage) => ("stage 2", converter()?, stage.to_string()),
-    };
+/// Who answers is the converter, [`std::env::current_exe`], with the stage
+/// named by its binary and its command, because one binary answers every
+/// one of them: `rm2k-snes-screens layout` and `rm2k-snes-battle layout` are
+/// both asked `{}`. `"stage 2"` is from when a stage that was still a
+/// process was keyed `"stage 1"`, by its own binary.
+pub fn key(stage: Stage, request: &Value, flags: &[OsString], cache_dir: &Path) -> Result<String> {
     let mut parts = vec![
-        tag.to_string(),
-        version(&binary, Reads::Everything, cache_dir)?,
-        name,
+        "stage 2".to_string(),
+        version(&converter()?, Reads::Everything, cache_dir)?,
+        stage.to_string(),
         serde_json::to_string(&request_in_key(request, cache_dir)?).expect("a request is JSON"),
     ];
     let mut reads = Reads::Everything;
@@ -215,18 +195,6 @@ pub fn key(
         };
     }
     Ok(cache::key(&parts))
-}
-
-/// Who answers a stage, for its [`key`].
-pub enum Answerer {
-    /// Its own binary, run as a process, and the command it is run with.
-    // Nothing runs a cached stage as a process since A1-A4 of
-    // the-stages-speak-json-nobody-types; it goes in A9, with `run`, and
-    // its key stays until then for the test that keeps the two apart.
-    #[allow(dead_code)]
-    Process { binary: PathBuf, command: String },
-    /// A function of its crate, which the converter calls.
-    Function(Stage),
 }
 
 /// The binary the converter's own code is in —`rm2k-snes-convert`, or a
@@ -268,30 +236,6 @@ fn unpack(value: &[u8]) -> Option<Files> {
     Some(written)
 }
 
-/// A directory of its own for one call, removed when it is dropped.
-pub struct Scratch(pub PathBuf);
-
-impl Scratch {
-    pub fn new(prefix: &str) -> Result<Scratch> {
-        static COUNT: AtomicUsize = AtomicUsize::new(0);
-        let n = COUNT.fetch_add(1, Ordering::Relaxed);
-        let stamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.subsec_nanos())
-            .unwrap_or(0);
-        let dir =
-            std::env::temp_dir().join(format!("{prefix}-{}-{n}-{stamp:x}", std::process::id()));
-        std::fs::create_dir_all(&dir).map_err(|e| io(&dir, e))?;
-        Ok(Scratch(dir))
-    }
-}
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
 /// A stage the converter calls as a function of its crate: which binary
 /// it was and which of its commands. Both name it in the [`key`], and the
 /// binary starts what it answers no with, as its `main` did.
@@ -324,7 +268,7 @@ pub fn call<E: Display>(
     let Some(cache_dir) = CACHE.get() else {
         return call_uncached(stage, answer);
     };
-    let key = key(&Answerer::Function(stage), request, flags, cache_dir)?;
+    let key = key(stage, request, flags, cache_dir)?;
     if let Some(files) = cache::load(cache_dir, CATEGORY, &key).and_then(|v| unpack(&v)) {
         return Ok(files);
     }
@@ -359,115 +303,6 @@ pub fn call_uncached<E: Display>(
     }
 }
 
-/// The path of `binary` on the PATH, or why it is not there.
-pub fn which(binary: &str, project: &str) -> Result<PathBuf> {
-    let path = std::env::var_os("PATH").unwrap_or_default();
-    for dir in std::env::split_paths(&path) {
-        let candidate = dir.join(binary);
-        if candidate.is_file() {
-            return Ok(candidate);
-        }
-    }
-    Err(Stop::new(format!(
-        "`{binary}` is missing, one of the converter's stages.\n\nIt is a Rust binary of the \
-         suite, and is installed as a system tool:\n\n    just install {project}"
-    )))
-}
-
-fn write_request(dir: &Path, request: &Value) -> Result<PathBuf> {
-    let path = dir.join("request.json");
-    let text = serde_json::to_string(request).expect("a request is JSON");
-    std::fs::write(&path, text).map_err(|e| io(&path, e))?;
-    Ok(path)
-}
-
-/// `binary command --request <request> --out <dir> *flags`, and `{name:
-/// bytes}` of every file it wrote. `project` is the name `install` knows
-/// it by, for the message when it is not on the PATH. What it answers no
-/// to stops the conversion with its message.
-///
-/// The answer comes from the disk cache if the same thing was asked
-/// before: see the top of this module.
-///
-/// No stage is called this way since A1-A4 of
-/// the-stages-speak-json-nobody-types: it goes in A9.
-#[allow(dead_code)]
-pub fn run(
-    binary: &str,
-    project: &str,
-    command: &str,
-    request: &Value,
-    flags: &[OsString],
-) -> Result<Files> {
-    let Some(cache_dir) = CACHE.get() else {
-        return run_uncached(binary, project, command, request, flags);
-    };
-    let answerer = Answerer::Process {
-        binary: which(binary, project)?,
-        command: command.to_string(),
-    };
-    let key = key(&answerer, request, flags, cache_dir)?;
-    if let Some(written) = cache::load(cache_dir, CATEGORY, &key).and_then(|v| unpack(&v)) {
-        return Ok(written);
-    }
-    let written = run_uncached(binary, project, command, request, flags)?;
-    cache::store(cache_dir, CATEGORY, &key, &pack(&written));
-    Ok(written)
-}
-
-/// [`run`], always running the stage: for one that writes something besides
-/// its answer, which a cached answer would not write.
-///
-/// The emission was the one, until A6 of the-stages-speak-json-nobody-types
-/// put its raw data in its answer; since then only [`run`] calls this, and
-/// it goes with it in A9.
-pub fn run_uncached(
-    binary: &str,
-    project: &str,
-    command: &str,
-    request: &Value,
-    flags: &[OsString],
-) -> Result<Files> {
-    let path = which(binary, project)?;
-    let scratch = Scratch::new(binary)?;
-    let request_path = write_request(&scratch.0, request)?;
-    let out = scratch.0.join("out");
-    let _ = std::io::stdout().flush();
-    let done = Command::new(&path)
-        .arg(command)
-        .arg("--request")
-        .arg(&request_path)
-        .arg("--out")
-        .arg(&out)
-        .args(flags)
-        .stdin(Stdio::null())
-        .output()
-        .map_err(|e| Stop::new(format!("{binary}: {e}")))?;
-    if !done.status.success() {
-        let text = String::from_utf8_lossy(&done.stderr).trim().to_string();
-        return Err(Stop::new(if text.is_empty() {
-            format!(
-                "{binary} {command} exited with {}",
-                done.status.code().unwrap_or(-1)
-            )
-        } else {
-            text
-        }));
-    }
-    let mut written = BTreeMap::new();
-    let mut names: Vec<_> = std::fs::read_dir(&out)
-        .map_err(|e| io(&out, e))?
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().to_string())
-        .collect();
-    names.sort();
-    for name in names {
-        let file = out.join(&name);
-        written.insert(name, std::fs::read(&file).map_err(|e| io(&file, e))?);
-    }
-    Ok(written)
-}
-
 /// A file a stage wrote, as text.
 pub fn text(written: &Files, name: &str) -> Result<String> {
     let bytes = written
@@ -481,63 +316,15 @@ pub fn json(written: &Files, name: &str) -> Result<Value> {
     serde_json::from_str(&text(written, name)?).map_err(|e| Stop::new(format!("{name}: {e}")))
 }
 
-/// `binary [command] --request <request> *args`, for a program that writes
-/// what it makes where `args` say, and whose output goes out with what the
-/// converter prints: `rm2k-snes-patches`, which writes what the converter
-/// decided to lose next to the ROM, and the music, `rm2k-snes-audio
-/// cartridge`, of whose pieces the rest of the conversion reads only the
-/// `losses` of its `audio.json`, for `degradations.json`.
-///
-/// Neither is called this way since A7 and A8 of
-/// the-stages-speak-json-nobody-types: it goes in A9.
-#[allow(dead_code)]
-pub fn hand_over(
-    binary: &str,
-    project: &str,
-    request: &Value,
-    args: &[OsString],
-    command: Option<&str>,
-) -> Result<()> {
-    let path = which(binary, project)?;
-    let scratch = Scratch::new(binary)?;
-    let request_path = write_request(&scratch.0, request)?;
-    let _ = std::io::stdout().flush();
-    let mut call = Command::new(&path);
-    if let Some(command) = command {
-        call.arg(command);
-    }
-    let done = call
-        .arg("--request")
-        .arg(&request_path)
-        .args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|e| Stop::new(format!("{binary}: {e}")))?;
-    if !done.status.success() {
-        let text = String::from_utf8_lossy(&done.stderr).trim().to_string();
-        return Err(Stop::new(if text.is_empty() {
-            format!("{binary} exited with {}", done.status.code().unwrap_or(-1))
-        } else {
-            text
-        }));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
 
-    /// `binary map`, a stage that is a process.
-    fn process(binary: &Path) -> Answerer {
-        Answerer::Process {
-            binary: binary.to_path_buf(),
-            command: "map".to_string(),
-        }
-    }
+    const WALLY_MAP: Stage = Stage {
+        binary: "wally",
+        command: "map",
+    };
 
     fn scratch(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
@@ -558,8 +345,6 @@ mod tests {
     fn a_key_holds_what_the_paths_hold_not_where_they_are() {
         let root = scratch("key");
         let cache_dir = root.join("cache");
-        let binary = root.join("wally");
-        std::fs::write(&binary, b"a stage").unwrap();
         let mut keys = Vec::new();
         for (side, map) in [("one", "{}"), ("two", "{}"), ("three", "{\"x\": 1}")] {
             let data = root.join(side).join("data");
@@ -569,7 +354,7 @@ mod tests {
             std::fs::write(&forked, "forked").unwrap();
             let request = json!({"map": 1, "map_files": {"1": forked.display().to_string()}});
             let flags: Vec<OsString> = vec!["--data".into(), data.into_os_string()];
-            keys.push(key(&process(&binary), &request, &flags, &cache_dir).unwrap());
+            keys.push(key(WALLY_MAP, &request, &flags, &cache_dir).unwrap());
         }
         assert_eq!(keys[0], keys[1]);
         assert_ne!(keys[0], keys[2]);
@@ -597,8 +382,6 @@ mod tests {
     fn a_search_dir_goes_by_its_resource_folders_alone() {
         let root = scratch("search");
         let cache_dir = root.join("cache");
-        let binary = root.join("wally");
-        std::fs::write(&binary, b"a stage").unwrap();
         let data = root.join("data");
         std::fs::create_dir_all(&data).unwrap();
         let mut keys = Vec::new();
@@ -619,7 +402,7 @@ mod tests {
                 "--search-dir".into(),
                 tools.into_os_string(),
             ];
-            keys.push(key(&process(&binary), &json!({}), &flags, &cache_dir).unwrap());
+            keys.push(key(WALLY_MAP, &json!({}), &flags, &cache_dir).unwrap());
         }
         assert_eq!(keys[0], keys[1]);
         assert_ne!(keys[1], keys[2]);
@@ -633,8 +416,6 @@ mod tests {
     #[test]
     fn a_missing_folder_goes_as_missing_wherever_it_would_be() {
         let root = scratch("missing");
-        let binary = root.join("wally");
-        std::fs::write(&binary, b"a stage").unwrap();
         let keys: Vec<String> = ["one", "two"]
             .iter()
             .map(|side| {
@@ -645,7 +426,7 @@ mod tests {
                         .join("patches-manual")
                         .into_os_string(),
                 ];
-                key(&process(&binary), &json!({}), &flags, &root.join("cache")).unwrap()
+                key(WALLY_MAP, &json!({}), &flags, &root.join("cache")).unwrap()
             })
             .collect();
         assert_eq!(keys[0], keys[1]);
@@ -655,7 +436,7 @@ mod tests {
         let flags: Vec<OsString> = vec!["--search-dir".into(), there.into_os_string()];
         assert_ne!(
             keys[0],
-            key(&process(&binary), &json!({}), &flags, &root.join("cache")).unwrap()
+            key(WALLY_MAP, &json!({}), &flags, &root.join("cache")).unwrap()
         );
     }
 
@@ -682,47 +463,20 @@ mod tests {
         command: "layout",
     };
 
-    /// One binary answers every stage that is a function, so the stage's
-    /// name is what tells two of them apart: both layouts are asked `{}`.
-    /// And a stage that became a function does not find what its process
-    /// answered: the code that answers is another one.
+    /// One binary answers every stage, so the stage's name is what tells
+    /// two of them apart: both layouts are asked `{}`.
     #[test]
-    fn a_function_s_key_names_the_stage_and_not_its_old_binary() {
+    fn a_function_s_key_names_the_stage() {
         let root = scratch("function");
         let cache_dir = root.join("cache");
         let request = json!({});
-        let screens = key(
-            &Answerer::Function(SCREENS_LAYOUT),
-            &request,
-            &[],
-            &cache_dir,
-        )
-        .unwrap();
-        let battle = key(
-            &Answerer::Function(BATTLE_LAYOUT),
-            &request,
-            &[],
-            &cache_dir,
-        )
-        .unwrap();
+        let screens = key(SCREENS_LAYOUT, &request, &[], &cache_dir).unwrap();
+        let battle = key(BATTLE_LAYOUT, &request, &[], &cache_dir).unwrap();
         assert_ne!(screens, battle);
         assert_eq!(
             screens,
-            key(
-                &Answerer::Function(SCREENS_LAYOUT),
-                &request,
-                &[],
-                &cache_dir
-            )
-            .unwrap()
+            key(SCREENS_LAYOUT, &request, &[], &cache_dir).unwrap()
         );
-        let binary = root.join("rm2k-snes-screens");
-        std::fs::write(&binary, b"a stage").unwrap();
-        let old = Answerer::Process {
-            binary,
-            command: "layout".to_string(),
-        };
-        assert_ne!(screens, key(&old, &request, &[], &cache_dir).unwrap());
     }
 
     /// What a stage answers no to, or panics with, stops the conversion

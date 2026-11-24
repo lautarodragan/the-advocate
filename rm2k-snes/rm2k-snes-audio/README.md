@@ -146,10 +146,10 @@ the MSU-1 tracks' key, which was the running executable, only changed when
 code that went into that binary did. taro folded them in, to have fewer
 commands on the PATH; the key stopped being the executable then, which
 carries the whole compiler, and became the source of the tracks' code: a
-new flag in `compile` still does not make every track again. What does
-change with them is the audio stage's key in the converter's cache, which
-is this binary: a change to the tracks or the ceilings expires its
-answers, which cost seconds to give again.
+new flag in `compile` still does not make every track again. The
+converter's cache does not see this binary: the converter is compiled with
+this crate and calls `cartridge` as a function, and keeps none of its
+answers.
 
 ## Exit codes
 

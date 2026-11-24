@@ -43,10 +43,10 @@ is played, and its MSU-1 tracks are made with it.
     case <name> <sha256>          one line per case, in page order
 
 The fingerprint hashes everything that changes a ROM without changing its
-flags: the whole runtime, `ca65`, `ld65`, the binaries the converter runs,
-`rm2k-snes-cartridges` itself —the bank packing lives there, in `assemble`—,
-the game's dump, the hand-made patches, the project file and each song's
-volume headroom, and the
+flags: the whole runtime, `ca65`, `ld65`, the converter —with its stages,
+which are libraries compiled into it—, `rm2k-snes-cartridges` itself —the
+bank packing lives there, in `assemble`—, the game's dump, the hand-made
+patches, the project file and each song's volume headroom, and the
 original game's resources —every `.png`, `.bmp`, `.xyz`, `.mid` and `.wav`
 below `--game-dir`, with its name—. Contents, never dates. The RTP and the
 SoundFont go in **by their path**: after changing one in place, `--force`
