@@ -30,6 +30,9 @@ rm2k-snes-images = { path = "../images" }
 # a colour, an LZ2 stream—: the emission's, which publishes them.
 rm2k-snes-mapdata = { path = "../mapdata" }
 rm2k-snes-screens = { path = "../screens" }
+# The music, `rm2k-snes-audio cartridge`, a stage the converter calls as a
+# function.
+rm2k-snes-audio = { path = "../rm2k-snes-audio" }
 rm2k-snes-text = { path = "../text" }
 # A whole map: Wally's `map` stage, called once per map.
 wally = { path = "../wally" }
