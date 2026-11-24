@@ -31,6 +31,7 @@ use crate::sprites::extras::{
 use crate::sprites::npc::{map_poses, pin_walkers, pose_facings, Graphic, Npc, NPC_MAX};
 use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
 use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
+use crate::stage::Files;
 use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
 use adeleine::Color;
 use rm2k_render::picture;
@@ -38,7 +39,7 @@ use rm2k_rules::chipset::passability_table;
 use rm2k_rules::passability::ALL;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// The `ShowPicture` pictures this map carries, already decided and cut:
 /// their names, for the notes; how many objects; their tiles; and how many
@@ -1026,6 +1027,9 @@ pub struct Final {
 /// fitting or not. Only a map that does not fit changes: every other map
 /// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
+    // What the last map's conversion worked out of its reach is not this
+    // one's: see `Memos` in `layers`.
+    stage_layers::forget();
     let with = convert_fitting(game, request)?;
     if with.dressed.is_empty() {
         return Ok(with);
@@ -3248,29 +3252,27 @@ pub const ANSWER_FILE: &str = "map.json";
 /// The sprite bank's tiles.
 pub const SPRITE_TILES: &str = "sprites.bin";
 
-/// Writes the map into `out`: the layers as `layers` writes them, the
+/// The map as files by name: the layers as `layers` answers them, the
 /// sprite bank and each pose bank as binaries, and the rest in `map.json`.
-pub fn write(out: &Path, done: &Whole) -> Result<()> {
+pub fn files(done: &Whole) -> Result<Files> {
     let layers = &done.layers;
-    stage_layers::write(
-        out,
+    let mut out = stage_layers::files(
         &layers.converted,
         layers.panorama.as_ref(),
         &layers.passability,
         &layers.blocks,
     )?;
-    let file = |name: &str, bytes: &[u8]| {
-        std::fs::write(out.join(name), bytes)
-            .map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
+    let mut file = |name: &str, bytes: &[u8]| {
+        out.insert(name.to_string(), bytes.to_vec());
     };
     let objects = match &done.objects {
         None => Value::Null,
         Some(o) => {
-            file(SPRITE_TILES, &o.tiles)?;
+            file(SPRITE_TILES, &o.tiles);
             let mut banks = Vec::new();
             for (k, (key, data)) in o.banks.iter().enumerate() {
                 let name = format!("poses-{k}.bin");
-                file(&name, data)?;
+                file(&name, data);
                 banks.push(json!([key.0, key.1, name, o.shows[k]]));
             }
             json!({
@@ -3349,7 +3351,8 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
     if done.own_pictures {
         answer["pictures_own"] = json!(true);
     }
-    file(ANSWER_FILE, answer.to_string().as_bytes())
+    file(ANSWER_FILE, answer.to_string().as_bytes());
+    Ok(out)
 }
 
 #[cfg(test)]

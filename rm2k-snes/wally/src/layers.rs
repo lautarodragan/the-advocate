@@ -8,12 +8,12 @@ use crate::background::{Converted, Merge, Run};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::request::LayersRequest;
+use crate::stage::Files;
 use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
-use std::path::Path;
 
 /// The file what the caller needs to know is written to.
 pub const ANSWER_FILE: &str = "layers.json";
@@ -494,6 +494,41 @@ fn draw_with(game: &Game, request: &LayersRequest, named: bool) -> Result<Drawn>
     })
 }
 
+/// What [`below`] and [`standing`] are keyed by: the dump, the map, what
+/// the cartridge says of its reach and where the hero can start.
+type ReachKey = (
+    std::path::PathBuf,
+    i32,
+    crate::request::Reach,
+    Vec<(i32, i32)>,
+);
+
+/// What [`below`] and [`standing`] already answered **in this map's
+/// conversion**: [`forget`] empties it, and [`crate::map::convert`] calls it
+/// on entry.
+///
+/// The key does not say which ChipSet the map is read with, so kept from one
+/// conversion to the next it would answer a ChipSet variant of the map —the
+/// same map, reach and starts, read with another ChipSet's passability, see
+/// `chipsets` in the request— with the cells of the map's own. As a process
+/// the stage got it fresh for each map; as a function, a converter converts
+/// every map in one process, each on one of its threads, hence one per
+/// thread.
+#[derive(Default)]
+struct Memos {
+    below: Vec<(ReachKey, Vec<usize>)>,
+    standing: Vec<(ReachKey, Option<Vec<rm2k_rules::reach::Standing>>)>,
+}
+
+thread_local! {
+    static MEMOS: std::cell::RefCell<Memos> = std::cell::RefCell::new(Memos::default());
+}
+
+/// Empties [`Memos`]: what a map's conversion answered is not another's.
+pub fn forget() {
+    MEMOS.with_borrow_mut(|m| *m = Memos::default());
+}
+
 /// The cells of map `raw` whose tiles above the hero can go below: those
 /// no character can ever cover —`rm2k_rules::reach::covered`, with the
 /// common events and what `reach` adds—, but for a cell with a tile a
@@ -517,27 +552,21 @@ pub fn below(
     starts: &[(i32, i32)],
 ) -> Result<Vec<usize>> {
     // The conversion asks again for each mode it tries: the answer is the
-    // same, and on the biggest maps it takes seconds.
-    type Key = (
-        std::path::PathBuf,
-        i32,
-        crate::request::Reach,
-        Vec<(i32, i32)>,
-    );
-    static DONE: std::sync::Mutex<Vec<(Key, Vec<usize>)>> = std::sync::Mutex::new(Vec::new());
-    let key: Key = (
+    // same, and on the biggest maps it takes seconds. See [`Memos`].
+    let key: ReachKey = (
         game.data.clone(),
         request.map,
         reach.clone(),
         starts.to_vec(),
     );
-    if let Some((_, cells)) = DONE
-        .lock()
-        .expect("not poisoned")
-        .iter()
-        .find(|(k, _)| *k == key)
-    {
-        return Ok(cells.clone());
+    let known = MEMOS.with_borrow(|m| {
+        m.below
+            .iter()
+            .find(|(k, _)| *k == key)
+            .map(|(_, cells)| cells.clone())
+    });
+    if let Some(cells) = known {
+        return Ok(cells);
     }
     let mut commands = game.common_commands()?;
     commands.extend(reach.commands.iter().cloned());
@@ -572,9 +601,7 @@ pub fn below(
         })
         .map(|(at, _)| at)
         .collect();
-    DONE.lock()
-        .expect("not poisoned")
-        .push((key, cells.clone()));
+    MEMOS.with_borrow_mut(|m| m.below.push((key, cells.clone())));
     Ok(cells)
 }
 
@@ -589,27 +616,21 @@ pub fn standing(
     request: &crate::map::MapRequest,
     starts: &[(i32, i32)],
 ) -> Result<Option<Vec<rm2k_rules::reach::Standing>>> {
-    type Key = (
-        std::path::PathBuf,
-        i32,
-        crate::request::Reach,
-        Vec<(i32, i32)>,
-    );
-    type Done = Option<Vec<rm2k_rules::reach::Standing>>;
-    static DONE: std::sync::Mutex<Vec<(Key, Done)>> = std::sync::Mutex::new(Vec::new());
-    let key: Key = (
+    // Asked again for each mode, as [`below`] is.
+    let key: ReachKey = (
         game.data.clone(),
         request.map,
         reach.clone(),
         starts.to_vec(),
     );
-    if let Some((_, done)) = DONE
-        .lock()
-        .expect("not poisoned")
-        .iter()
-        .find(|(k, _)| *k == key)
-    {
-        return Ok(done.clone());
+    let known = MEMOS.with_borrow(|m| {
+        m.standing
+            .iter()
+            .find(|(k, _)| *k == key)
+            .map(|(_, done)| done.clone())
+    });
+    if let Some(done) = known {
+        return Ok(done);
     }
     let mut commands = game.common_commands()?;
     commands.extend(reach.commands.iter().cloned());
@@ -630,7 +651,7 @@ pub fn standing(
             sail: &sail,
         },
     );
-    DONE.lock().expect("not poisoned").push((key, done.clone()));
+    MEMOS.with_borrow_mut(|m| m.standing.push((key, done.clone())));
     Ok(done)
 }
 
@@ -1285,36 +1306,33 @@ fn blocks_of(
     Ok((passability, made))
 }
 
-fn write_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<()> {
-    std::fs::write(dir.join(name), bytes)
-        .map_err(|e| Bad::usage(format!("{}: {e}", dir.join(name).display())))
-}
-
-/// Writes the conversion into `out`: the tiles, the runs and the block
-/// table as binaries, what was decided as indexed PNGs, and the rest in
+/// The conversion as files by name: the tiles, the runs and the block table
+/// as binaries, what was decided as indexed PNGs, and the rest in
 /// `layers.json`.
-pub fn write(
-    out: &Path,
+pub fn files(
     converted: &Converted,
     panorama: Option<&Panorama>,
     passability: &[u8],
     made: &Blocks,
-) -> Result<()> {
-    std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
+) -> Result<Files> {
+    let mut out = Files::new();
+    let mut write_file = |name: &str, bytes: &[u8]| {
+        out.insert(name.to_string(), bytes.to_vec());
+    };
     let bg = &converted.background;
     let above = &converted.above;
-    write_file(out, BACKGROUND_TILES, &bg.tiles)?;
-    write_file(out, ABOVE_TILES, &above.tiles)?;
-    write_file(out, ABOVE_CGRAM, &above.cgram)?;
-    write_file(out, BLOCK_TABLE, &made.table)?;
-    write_file(out, BLOCK_PASSABILITY, &made.passability)?;
-    write_file(out, BLOCK_TERRAIN, &made.terrain)?;
+    write_file(BACKGROUND_TILES, &bg.tiles);
+    write_file(ABOVE_TILES, &above.tiles);
+    write_file(ABOVE_CGRAM, &above.cgram);
+    write_file(BLOCK_TABLE, &made.table);
+    write_file(BLOCK_PASSABILITY, &made.passability);
+    write_file(BLOCK_TERRAIN, &made.terrain);
     let mut runs = Vec::new();
     for run in &bg.runs {
         let mut files = Vec::new();
         for (d, drawing) in run.drawings.iter().enumerate() {
             let name = run_file(run, d);
-            write_file(out, &name, drawing)?;
+            write_file(&name, drawing);
             files.push(name);
         }
         runs.push(json!({"family": run.family.name(), "base": run.base,
@@ -1323,20 +1341,21 @@ pub fn write(
     let mut pictures = Vec::new();
     for decided in &converted.pictures {
         let name = format!("{}.png", decided.name);
-        voodoo::image::write(&out.join(&name), &decided.picture)
-            .map_err(|e| Bad::usage(e.to_string()))?;
+        let png = voodoo::image::encode(&decided.picture)
+            .map_err(|e| Bad::usage(format!("{name}: {e}")))?;
+        write_file(&name, &png);
         pictures.push(json!({"name": decided.name, "file": name}));
     }
     let pano = match (&converted.panorama, panorama) {
         (Some(p), Some(source)) => {
-            write_file(out, PANORAMA_TILES, &p.tiles)?;
+            write_file(PANORAMA_TILES, &p.tiles);
             // The other pictures its `ChangePBG`s name that it carries, in
             // the order the bytecode numbers them after this one.
             let mut images = Vec::new();
             for (extra, converted) in source.extras.iter().zip(&p.extras) {
                 let Ok(q) = converted else { continue };
                 let file = format!("panorama-{}.bin", images.len() + 1);
-                write_file(out, &file, &q.tiles)?;
+                write_file(&file, &q.tiles);
                 images.push(json!({
                     "name": extra.name,
                     "size": [extra.size.0, extra.size.1],
@@ -1408,7 +1427,8 @@ pub fn write(
             "combos": made.combos.iter().map(|&((l, u), b)| json!([l, u, b])).collect::<Vec<_>>(),
         },
     });
-    write_file(out, ANSWER_FILE, answer.to_string().as_bytes())
+    write_file(ANSWER_FILE, answer.to_string().as_bytes());
+    Ok(out)
 }
 
 /// A global merge as `[victim, target, pixels]`, or a palette-local one as
@@ -1423,19 +1443,13 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
         .collect()
 }
 
-/// The whole `layers` command: the request's map, drawn and converted,
-/// into `out`.
-pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
+/// The whole `layers` command: the request's map, drawn and converted, as
+/// files by name.
+pub fn run(game: &Game, request: &LayersRequest) -> Result<Files> {
     let (drawn, mut converted) = draw_converted(game, request)?;
     // No substitutions here: nothing is kept apart.
     let (passability, made) = blocks(&drawn, &mut converted, &BTreeSet::new())?;
-    write(
-        out,
-        &converted,
-        drawn.panorama.as_ref(),
-        &passability,
-        &made,
-    )
+    files(&converted, drawn.panorama.as_ref(), &passability, &made)
 }
 
 #[cfg(test)]
