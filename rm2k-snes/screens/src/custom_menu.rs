@@ -478,6 +478,13 @@ impl Menu {
                 };
                 let mut special = Vec::new();
                 if let Some(s) = table.get("special").and_then(Value::as_object) {
+                    // In the order of their keys as text —"10" before
+                    // "9"—, which is how this crate's own binary iterates
+                    // a JSON object: inside the converter, whose
+                    // `serde_json` keeps insertion order, the project
+                    // file's order would reach the ROM's bytes instead.
+                    let mut s: Vec<_> = s.iter().collect();
+                    s.sort_by(|a, b| a.0.cmp(b.0));
                     for (value, text) in s {
                         let value: i64 = value.parse().map_err(|_| {
                             r.bad(&format!("table {key:?}: special value {value:?}"))
@@ -1486,5 +1493,27 @@ mod tests {
         assert_eq!(w[1], (0, 32, 256, 160));
         assert_eq!(w[2], (0, 192, 256, 32));
         assert_eq!(lines_in(192), 1);
+    }
+
+    /// A table's special values go in the same order whether the request
+    /// was read by this crate's binary —a JSON object's keys sorted— or
+    /// handed over by the converter, whose `serde_json` keeps the project
+    /// file's order: they are bytes of the ROM. Red without the sort only
+    /// where `preserve_order` is on, which `cargo test --workspace` turns
+    /// on for every crate, since the converter is in the workspace.
+    #[test]
+    fn a_table_s_special_values_go_in_the_order_of_their_keys_as_text() {
+        let here = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/game");
+        let game = Game::from_dump(&here.join("dump"), &here.join("pictures")).unwrap();
+        let spec = json!({"label": "Auras", "table": {"auras": {
+            "columns": ["Skill", "Absorbed"],
+            "special": {"9": "Nine", "10": "Ten"},
+            "sheet": [{"rows": [["Cure", 70, 5]]}],
+        }}, "subject": [{"name": "Talan", "tab": [{"label": "Auras", "page": [{"table": "auras"}]}]}]});
+        let menu = Menu::read(&game, "auras", &spec).unwrap();
+        assert_eq!(
+            menu.tables["auras"].special,
+            [(10, "Ten".to_string()), (9, "Nine".to_string())]
+        );
     }
 }
