@@ -220,6 +220,10 @@ pub fn key(
 /// Who answers a stage, for its [`key`].
 pub enum Answerer {
     /// Its own binary, run as a process, and the command it is run with.
+    // Nothing runs a cached stage as a process since A1-A4 of
+    // the-stages-speak-json-nobody-types; it goes in A9, with `run`, and
+    // its key stays until then for the test that keeps the two apart.
+    #[allow(dead_code)]
     Process { binary: PathBuf, command: String },
     /// A function of its crate, which the converter calls.
     Function(Stage),
@@ -384,6 +388,10 @@ fn write_request(dir: &Path, request: &Value) -> Result<PathBuf> {
 ///
 /// The answer comes from the disk cache if the same thing was asked
 /// before: see the top of this module.
+///
+/// No stage is called this way since A1-A4 of
+/// the-stages-speak-json-nobody-types: it goes in A9.
+#[allow(dead_code)]
 pub fn run(
     binary: &str,
     project: &str,
