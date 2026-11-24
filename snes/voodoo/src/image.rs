@@ -57,16 +57,17 @@ pub fn read(path: &Path) -> Result<Picture> {
     })
 }
 
-/// Write an indexed PNG, with the 5-bit channels put back in the top five
-/// bits of each byte, and entries the picture has no colour for as black.
+/// Write an indexed PNG: [`encode`]'s bytes, into `path`.
 pub fn write(path: &Path, picture: &Picture) -> Result<()> {
-    let file =
-        std::fs::File::create(path).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let mut encoder = png::Encoder::new(
-        std::io::BufWriter::new(file),
-        picture.width as u32,
-        picture.height as u32,
-    );
+    let bytes = encode(picture).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    std::fs::write(path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
+}
+
+/// An indexed PNG, with the 5-bit channels put back in the top five bits of
+/// each byte, and entries the picture has no colour for as black.
+pub fn encode(picture: &Picture) -> std::result::Result<Vec<u8>, png::EncodingError> {
+    let mut bytes = Vec::new();
+    let mut encoder = png::Encoder::new(&mut bytes, picture.width as u32, picture.height as u32);
     encoder.set_color(png::ColorType::Indexed);
     encoder.set_depth(png::BitDepth::Eight);
     let mut palette = Vec::with_capacity(3 * ENTRIES);
@@ -75,12 +76,10 @@ pub fn write(path: &Path, picture: &Picture) -> Result<()> {
         palette.extend_from_slice(&[r, g, b]);
     }
     encoder.set_palette(palette);
-    let mut writer = encoder
-        .write_header()
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    writer
-        .write_image_data(&picture.pixels)
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
+    let mut writer = encoder.write_header()?;
+    writer.write_image_data(&picture.pixels)?;
+    writer.finish()?;
+    Ok(bytes)
 }
 
 /// The colour of an entry, for callers that build a picture in memory.

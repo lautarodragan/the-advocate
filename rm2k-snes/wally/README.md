@@ -46,7 +46,10 @@ per call:
 It is a stage of a converter, with the shape `rm2k-snes/battle/README.md`
 describes in "One stage of a converter": it reads the game from a Ditto
 dump itself, gets in a request what the cartridge decided and what other
-domains answered, and writes pieces and a JSON.
+domains answered, and answers pieces and a JSON. The converter calls
+`stage::map` as a function, which answers the files by name; the binary is
+a `main` over the `stage` module that writes them into `--out`, for the
+tests and for a person.
 
 ## Two halves that do not know each other
 

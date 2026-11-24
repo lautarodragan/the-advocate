@@ -25,7 +25,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-const STAGE: &str = "wally";
+/// Wally's one stage: a whole map, called once per map.
+const WALLY_MAP: stage::Stage = stage::Stage {
+    binary: "wally",
+    command: "map",
+};
 
 /// `MoveEvent`'s targets that are not an event: the hero, and "this
 /// event", the page's owner.
@@ -644,10 +648,13 @@ pub fn run_requests(
     c: &Cartridge,
     prepared: &[(i32, &Value)],
 ) -> Result<Vec<BTreeMap<String, Vec<u8>>>> {
+    let search_dirs: Vec<PathBuf> = c.search_dirs.iter().map(rm2k_project::absolute).collect();
+    // What the binary was run with, which is what the cache key reads: the
+    // call reads the same dump and search directories, and nothing else.
     let mut flags: Vec<OsString> = vec!["--data".into(), c.game.dump.clone().into_os_string()];
-    for dir in &c.search_dirs {
+    for dir in &search_dirs {
         flags.push("--search-dir".into());
-        flags.push(rm2k_project::absolute(dir).into_os_string());
+        flags.push(dir.clone().into_os_string());
     }
     let workers = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
@@ -665,8 +672,11 @@ pub fn run_requests(
                 if k >= prepared.len() {
                     break;
                 }
-                let done = stage::run(STAGE, "wally", "map", prepared[k].1, &flags)
-                    .map_err(|e| e.in_map(prepared[k].0));
+                let request = prepared[k].1;
+                let done = stage::call(WALLY_MAP, request, &flags, || {
+                    wally::stage::map(&c.game.dump, &search_dirs, request)
+                })
+                .map_err(|e| e.in_map(prepared[k].0));
                 *results[k].lock().unwrap() = Some(done);
             });
         }
@@ -811,7 +821,7 @@ pub struct MapInfo {
 fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Vec<u8>> {
     written
         .get(name)
-        .ok_or_else(|| Stop::new(format!("{STAGE} did not write {name}")))
+        .ok_or_else(|| Stop::new(format!("{} did not write {name}", WALLY_MAP.binary)))
 }
 
 fn family(name: &str) -> &str {

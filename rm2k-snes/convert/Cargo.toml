@@ -31,6 +31,8 @@ rm2k-snes-images = { path = "../images" }
 rm2k-snes-mapdata = { path = "../mapdata" }
 rm2k-snes-screens = { path = "../screens" }
 rm2k-snes-text = { path = "../text" }
+# A whole map: Wally's `map` stage, called once per map.
+wally = { path = "../wally" }
 # `preserve_order`: a request's keys go in the order they are written, as
 # they always went, and an object read from a stage's answer or from the
 # project keeps its order on the way to the next.

@@ -496,6 +496,7 @@ dependencies = [
  "rm2k-snes-text",
  "serde_json",
  "toml",
+ "wally",
 ]
 
 [[package]]
