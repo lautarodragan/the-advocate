@@ -444,7 +444,10 @@ mod tests {
         };
         let door = event(1, vec![tile(LAYER_SAME, vec![]), tile(2, vec!["switch_a"])]);
         let npcs = collect_npcs(&[door], "tiles", &[0; 10200]);
-        assert!(npcs[0].changes, "the row does not follow the page that lifts the door");
+        assert!(
+            npcs[0].changes,
+            "the row does not follow the page that lifts the door"
+        );
         // And the one that only turns translucent, which the row's
         // transparency follows too.
         let ghost = event(
@@ -460,7 +463,10 @@ mod tests {
         assert!(collect_npcs(&[ghost], "tiles", &[0; 10200])[0].changes);
         // A second page that draws the same thing the same way still does
         // not follow: there is nothing to follow.
-        let same = event(1, vec![page("Guard", vec![]), page("Guard", vec!["switch_a"])]);
+        let same = event(
+            1,
+            vec![page("Guard", vec![]), page("Guard", vec!["switch_a"])],
+        );
         assert!(!collect_npcs(&[same], "tiles", &[0; 10200])[0].changes);
     }
 }
