@@ -376,7 +376,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
-    let mut keys = pictures::keys(&scanned.pictures)?;
+    let mut keys = pictures::keys(&scanned.pictures);
     // The map's own come first, and then those only the copies of the
     // common events show, if the map carries them: the scan says how many
     // are its own. See [`crate::common_pages`].
@@ -388,7 +388,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // are accepted without being done; but a drawing's part, which is
     // shown —see [`crate::map_pictures::Parts`]—: its name can be drawn in
     // under another number.
-    let part = |k: &pictures::Key| c.map_pictures.part(map_id, k.number as i32, &k.name);
+    let part = |k: &pictures::Key| c.map_pictures.part(map_id, k.number, &k.name);
     let kept = |k: &pictures::Key| part(k).is_some() || !c.map_pictures.done(map_id, &k.name);
     keys.retain(kept);
     if let Some(own) = own_keys.as_mut() {
@@ -413,7 +413,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .map(|p| i64::from(p.number))
         .collect();
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
-        if raised.iter().any(|&n| n > k.number) {
+        if raised.iter().any(|&n| n > i64::from(k.number)) {
             k.behind_map = true;
         }
     }

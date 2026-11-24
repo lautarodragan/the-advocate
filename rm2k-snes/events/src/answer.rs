@@ -8,11 +8,13 @@
 //! —`degradations.json`, the emission's request— stay what they were.
 //!
 //! What the caller only passes on to another stage stays a JSON value
-//! here: the picture keys and zooms (the pictures' stage reads them), the
-//! songs (the audio's), the battle's audio (the emission's) and the losses
-//! (`degradations.json`'s, with every other stage's).
+//! here: the zooms (the pictures' stage reads them), the songs (the
+//! audio's), the battle's audio (the emission's) and the losses
+//! (`degradations.json`'s, with every other stage's). A picture is a
+//! [`PictureKey`].
 
 use crate::pages::hex;
+use crate::registry::PictureKey;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::BTreeSet;
@@ -147,7 +149,7 @@ pub struct ScanMap {
     /// numbers them.
     pub graphics: Vec<(String, i64)>,
     /// The picture keys its pages and test pages can show.
-    pub pictures: Vec<Value>,
+    pub pictures: Vec<PictureKey>,
     /// `[number, zoom]` of each `MovePicture` that zooms.
     pub zooms: Vec<Value>,
     /// The numbers it tones.
@@ -165,7 +167,7 @@ pub struct ScanMap {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommonPictures {
     pub common: i32,
-    pub pictures: Vec<Value>,
+    pub pictures: Vec<PictureKey>,
     pub zooms: Vec<Value>,
 }
 
@@ -175,7 +177,7 @@ pub struct CommonPictures {
 pub struct CommonSet {
     pub parallel: bool,
     pub commons: Vec<i32>,
-    pub pictures: Vec<Value>,
+    pub pictures: Vec<PictureKey>,
     pub tinted: Vec<i64>,
 }
 

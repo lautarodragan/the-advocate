@@ -8,6 +8,7 @@
 //! same order.
 
 use crate::game::Sound;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 /// Where what a page asks for plays: a map's audio package, by its index
@@ -389,7 +390,11 @@ impl Troops {
 ///   numbers is two pictures for it.
 /// * The tone and the transparency are not in it: the console changes them
 ///   while the picture is shown.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// The scan answers it as this object, and the caller hands it back in the
+/// tables of the compile's request with fields of its own after these:
+/// the converter's `pictures::Key` flattens this one.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PictureKey {
     pub number: i32,
     pub name: String,
@@ -397,21 +402,8 @@ pub struct PictureKey {
     pub transparent_color: bool,
     pub map_fixed: bool,
     pub by_variable: bool,
+    /// Its centre on RM2k's screen; None if placed by variables.
     pub at: Option<(i32, i32)>,
-}
-
-impl PictureKey {
-    pub fn to_json(&self) -> Value {
-        json!({
-            "number": self.number,
-            "name": self.name,
-            "zoom": self.zoom,
-            "transparent_color": self.transparent_color,
-            "map_fixed": self.map_fixed,
-            "by_variable": self.by_variable,
-            "at": self.at.map(|(x, y)| json!([x, y])),
-        })
-    }
 }
 
 /// A picture too big for the sprites, which the cartridge carries as a
@@ -597,8 +589,8 @@ impl Pictures {
         self.zooms.iter().map(|(n, z)| json!([n, z])).collect()
     }
 
-    pub fn keys_json(&self) -> Vec<Value> {
-        self.table.iter().map(|(k, _)| k.to_json()).collect()
+    pub fn keys(&self) -> Vec<PictureKey> {
+        self.table.iter().map(|(k, _)| k.clone()).collect()
     }
 }
 

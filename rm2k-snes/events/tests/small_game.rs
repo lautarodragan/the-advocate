@@ -87,15 +87,15 @@ fn the_scan_gathers_the_pictures() {
         .maps
         .iter()
         .map(|m| {
-            let names = m.pictures.iter().map(|p| p["name"].as_str().unwrap());
+            let names = m.pictures.iter().map(|p| p.name.as_str());
             (m.id, names.collect::<Vec<_>>())
         })
         .filter(|(_, p)| !p.is_empty())
         .collect();
     assert_eq!(names, vec![(1, vec!["Pic", "Other"]), (2, vec!["Other"])]);
     let pic = &answer.maps[0].pictures[0];
-    assert_eq!(pic["at"], serde_json::json!([160, 120]));
-    assert_eq!(pic["number"], 1);
+    assert_eq!(pic.at, Some((160, 120)));
+    assert_eq!(pic.number, 1);
 }
 
 fn game(request: &Request) -> Game {

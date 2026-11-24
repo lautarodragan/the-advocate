@@ -52,6 +52,7 @@ use crate::messages::{Messages, Window};
 use crate::pages::{map_pages, MapEvents, SubstitutionTable, Substitutions};
 use crate::registry::{BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::troops::TroopPages;
+use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -259,34 +260,6 @@ fn pair(v: &Value, whose: &str) -> Result<(String, i32)> {
     Ok((text(&a[0], whose)?, int(&a[1], whose)? as i32))
 }
 
-/// A picture as the scan answers it and the caller sends it back: see
-/// [`PictureKey::to_json`].
-fn picture_key(v: &Value, whose: &str) -> Result<PictureKey> {
-    let flag = |name: &str| -> Result<bool> {
-        field(v, name, whose)?
-            .as_bool()
-            .ok_or_else(|| Bad::answer(format!("{whose}: a picture's `{name}` is not a flag")))
-    };
-    let at = field(v, "at", whose)?;
-    Ok(PictureKey {
-        number: int(field(v, "number", whose)?, whose)? as i32,
-        name: text(field(v, "name", whose)?, whose)?,
-        zoom: int(field(v, "zoom", whose)?, whose)? as i32,
-        transparent_color: flag("transparent_color")?,
-        map_fixed: flag("map_fixed")?,
-        by_variable: flag("by_variable")?,
-        at: if at.is_null() {
-            None
-        } else {
-            let a = at
-                .as_array()
-                .filter(|a| a.len() == 2)
-                .ok_or_else(|| Bad::answer(format!("{whose}: a picture's `at` is {at}")))?;
-            Some((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
-        },
-    })
-}
-
 fn by_map<T>(
     v: &Value,
     whose: &str,
@@ -316,7 +289,8 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
         .as_array()
         .ok_or_else(|| Bad::answer(format!("{whose}: a list of pictures is not a list")))?
     {
-        let key = picture_key(e, whose)?;
+        let key = PictureKey::deserialize(e)
+            .map_err(|err| Bad::answer(format!("{whose}: a picture: {err}")))?;
         if e.get("plane").and_then(Value::as_str) == Some("background") {
             let pair = |name: &str| -> Result<(i32, i32)> {
                 let a = field(e, name, whose)?
@@ -1040,7 +1014,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<answer::Scan> {
             compiled,
             pages,
             graphics: pairs(&graphics.pairs),
-            pictures: pictures.keys_json(),
+            pictures: pictures.keys(),
             zooms: pictures.zooms_json(),
             tinted: pictures.tinted.iter().map(|&n| n.into()).collect(),
             // Only on a map with copies, so the answer of the rest stays
@@ -1086,7 +1060,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<answer::Scan> {
         if compiles.is_some() && !pictures.table.is_empty() {
             gathered.push(answer::CommonPictures {
                 common: n,
-                pictures: pictures.keys_json(),
+                pictures: pictures.keys(),
                 zooms: pictures.zooms_json(),
             });
         }
@@ -1126,7 +1100,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<answer::Scan> {
         .map(|set| answer::CommonSet {
             parallel: set.parallel,
             commons: set.commons.clone(),
-            pictures: set.pictures.keys_json(),
+            pictures: set.pictures.keys(),
             tinted: set.pictures.tinted.iter().map(|&n| n.into()).collect(),
         })
         .collect();

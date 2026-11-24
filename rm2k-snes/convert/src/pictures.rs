@@ -39,6 +39,7 @@ use crate::game::GameMap;
 use crate::images;
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
+use rm2k_snes_events::registry::PictureKey;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -172,42 +173,54 @@ fn int(v: &Value) -> i64 {
     v.as_i64().unwrap_or(0)
 }
 
-/// A picture as the scan answers it —`PictureKey` in rm2k-snes-events—, and
-/// what the converter learns of it on the map that shows it: `path` and
-/// `with_map` for a part, `behind_map`, `screen_on_map`. It goes on in the
-/// tables, to the compiler and the emission, as these fields; the last four
-/// only when they say something.
+/// A picture as the scan answers it —its [`PictureKey`], whose fields read
+/// through this one—, and what the converter learns of it on the map that
+/// shows it: `path` and `with_map` for a part, `behind_map`,
+/// `screen_on_map`. It goes on in the tables, to the compiler and the
+/// emission, as the key's fields and then these, only when they say
+/// something.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(default)]
 pub struct Key {
-    pub number: i64,
-    pub name: String,
-    pub zoom: i64,
-    pub transparent_color: bool,
-    pub map_fixed: bool,
-    pub by_variable: bool,
-    /// Its centre on RM2k's screen; None if placed by variables.
-    pub at: Option<(i64, i64)>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(flatten)]
+    pub key: PictureKey,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub with_map: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub behind_map: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub screen_on_map: bool,
+}
+
+impl From<PictureKey> for Key {
+    fn from(key: PictureKey) -> Key {
+        Key {
+            key,
+            ..Key::default()
+        }
+    }
+}
+
+impl std::ops::Deref for Key {
+    type Target = PictureKey;
+    fn deref(&self) -> &PictureKey {
+        &self.key
+    }
 }
 
 fn is_false(b: &bool) -> bool {
     !b
 }
 
-/// The keys a scan answered, in `pictures`.
-pub fn keys(pictures: &[Value]) -> Result<Vec<Key>> {
-    pictures
-        .iter()
-        .map(|v| Key::deserialize(v).map_err(|e| Stop::new(format!("the scan's pictures: {e}"))))
-        .collect()
+/// A key's centre, in the widths the converter computes with.
+fn wide((x, y): (i32, i32)) -> (i64, i64) {
+    (x.into(), y.into())
+}
+
+/// The keys a scan answered, in `pictures`, as the converter keeps them.
+pub fn keys(pictures: &[PictureKey]) -> Vec<Key> {
+    pictures.iter().cloned().map(Key::from).collect()
 }
 
 /// A key as it goes on in a table, to have more fields put after its own.
@@ -232,7 +245,7 @@ struct Converted {
 
 fn convert(path: &Path, key: &Key, for_console: bool) -> Result<Converted> {
     let (width, height) = png_size(path)?;
-    let zoom = key.zoom;
+    let zoom = i64::from(key.zoom);
     let (zw, zh) = (zoomed(width, zoom), zoomed(height, zoom));
     // One drawn for the console is placed by the size RM2k would scale to
     // it: see `Screens::rm_size` in `rm2k-snes-images`, the same arithmetic.
@@ -246,7 +259,10 @@ fn convert(path: &Path, key: &Key, for_console: bool) -> Result<Converted> {
     };
     // Placed by variables, or with the map: converted with its corner on
     // the grid, which is where the size comes out exact.
-    let (cx, cy) = key.at.unwrap_or((zw.div_euclid(2), zh.div_euclid(2)));
+    let (cx, cy) = key
+        .at
+        .map(wide)
+        .unwrap_or((zw.div_euclid(2), zh.div_euclid(2)));
     let a = images::picture(
         path,
         key.transparent_color,
@@ -341,11 +357,17 @@ pub fn block_tile(block: i64) -> i64 {
 /// drawn for the console.
 fn on_console(path: &Path, key: &Key, for_console: bool) -> Result<(i64, i64)> {
     let (width, height) = png_size(path)?;
-    let (w, h) = (zoomed(width, key.zoom), zoomed(height, key.zoom));
+    let (w, h) = (
+        zoomed(width, i64::from(key.zoom)),
+        zoomed(height, i64::from(key.zoom)),
+    );
     if goes_with_map(key) || for_console {
         return Ok((w, h));
     }
-    let (cx, cy) = key.at.unwrap_or((w.div_euclid(2), h.div_euclid(2)));
+    let (cx, cy) = key
+        .at
+        .map(wide)
+        .unwrap_or((w.div_euclid(2), h.div_euclid(2)));
     let (x0, y0) = (cx - w.div_euclid(2), cy - h.div_euclid(2));
     Ok((
         ((x0 + w) * WIDTH).div_euclid(RM_WIDTH) - (x0 * WIDTH).div_euclid(RM_WIDTH),
@@ -413,7 +435,10 @@ fn sparse(path: &Path, key: &Key, for_console: bool) -> Result<bool> {
         return Ok(false);
     }
     let (dw, dh) = crate::map_pictures::drawn(path)?;
-    let (dw, dh) = (zoomed(dw as i64, key.zoom), zoomed(dh as i64, key.zoom));
+    let (dw, dh) = (
+        zoomed(dw as i64, i64::from(key.zoom)),
+        zoomed(dh as i64, i64::from(key.zoom)),
+    );
     if dw == 0 || dw > 2 * WIDTH_MAX || dh > 2 * HEIGHT_MAX {
         return Ok(false);
     }
@@ -465,7 +490,7 @@ fn big_center(key: &Key) -> (i64, i64) {
     if key.map_fixed {
         return (RM_WIDTH / 2, RM_HEIGHT / 2);
     }
-    key.at.unwrap_or((0, 0))
+    key.at.map(wide).unwrap_or((0, 0))
 }
 
 /// A big picture of a map: its key, and its layer as the stage answered
@@ -482,7 +507,7 @@ pub struct Big {
 fn moved_to_another_size(key: &Key, zooms: &[Value]) -> bool {
     zooms
         .iter()
-        .any(|z| int(&z[0]) == key.number && int(&z[1]) != key.zoom)
+        .any(|z| int(&z[0]) == i64::from(key.number) && int(&z[1]) != i64::from(key.zoom))
 }
 
 /// The big pictures of `keys`. The ones that do not fit even cut to the
@@ -516,7 +541,7 @@ pub fn big_for_map(
             continue;
         }
         let (cx, cy) = big_center(key);
-        let zoom = key.zoom;
+        let zoom = i64::from(key.zoom);
         // Only one with holes —a quarter of it or more, as a picture that
         // is part of a map, `map_pictures`—: over an opaque one the small
         // pictures under its number would come out in front of it.
@@ -632,7 +657,9 @@ pub fn over_black(map: &GameMap) -> BTreeSet<(i64, String)> {
 /// [`over_black`] and [`still_over`] answer them: placed by a constant and
 /// with the screen.
 pub fn shown_in(key: &Key, shown: &BTreeSet<(i64, String)>) -> bool {
-    !key.by_variable && !key.map_fixed && shown.contains(&(key.number, key.name.to_lowercase()))
+    !key.by_variable
+        && !key.map_fixed
+        && shown.contains(&(i64::from(key.number), key.name.to_lowercase()))
 }
 
 /// The pictures `map`'s pages show by variables **with the screen where
@@ -685,7 +712,9 @@ pub fn screen_on_map(map: &GameMap) -> BTreeSet<(i64, String)> {
 /// Whether the key, as the scan answers it, is one of `on_map`'s, as
 /// [`screen_on_map`] answers them: placed by variables and with the screen.
 pub fn screen_on_map_in(key: &Key, on_map: &BTreeSet<(i64, String)>) -> bool {
-    key.by_variable && !key.map_fixed && on_map.contains(&(key.number, key.name.to_lowercase()))
+    key.by_variable
+        && !key.map_fixed
+        && on_map.contains(&(i64::from(key.number), key.name.to_lowercase()))
 }
 
 /// The big pictures `map`'s pages show **still over its panorama**, by
@@ -771,7 +800,7 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
         for big in bigs.iter() {
             let ident = json!([
                 big.key.name,
-                big.key.zoom,
+                i64::from(big.key.zoom),
                 big.key.transparent_color,
                 big.layer["center"],
                 big.layer.get("under"),
@@ -1155,7 +1184,7 @@ pub fn for_map(
     let mut slots: Vec<i64> = Vec::new();
     let mut shown: Vec<Shown> = Vec::new();
     for key in keys {
-        let number = key.number;
+        let number = i64::from(key.number);
         let name = key.name.as_str();
         // The big ones are `big_for_map`'s, and take no slot.
         let Some(path) = file_of(game_dir, key) else {
@@ -1184,7 +1213,7 @@ pub fn for_map(
             }
             slots.push(number);
         }
-        if let Some((cx, cy)) = key.at.filter(|_| !key.with_map) {
+        if let Some((cx, cy)) = key.at.map(wide).filter(|_| !key.with_map) {
             // The corner the console computes from the centre and the half
             // size —`pic_show`— has to be the one the picture was converted
             // at: the same floor of four fifths and fourteen fifteenths.
@@ -1349,11 +1378,11 @@ mod tests {
             found,
             BTreeSet::from([(20, "quote1".to_string()), (20, "quote2".to_string())])
         );
-        let key = Key {
+        let key = Key::from(PictureKey {
             number: 20,
             name: "QUOTE1".into(),
-            ..Key::default()
-        };
+            ..PictureKey::default()
+        });
         assert!(shown_in(&key, &found));
     }
 
@@ -1423,12 +1452,12 @@ mod tests {
         };
         let found = screen_on_map(&map(20, 0, dog()));
         assert_eq!(found, BTreeSet::from([(1, "hund_animation4".to_string())]));
-        let key = Key {
+        let key = Key::from(PictureKey {
             number: 1,
             name: "Hund_Animation4".into(),
             by_variable: true,
-            ..Key::default()
-        };
+            ..PictureKey::default()
+        });
         assert!(screen_on_map_in(&key, &found));
         assert!(screen_on_map(&map(21, 0, dog())).is_empty());
         assert!(screen_on_map(&map(20, 3, dog())).is_empty());
@@ -1591,12 +1620,14 @@ mod tests {
     fn a_layer_has_a_texture_only_on_the_maps_that_zoom_it() {
         // The same photo on three maps: still on the first, zoomed on the
         // second; and another one, still, on the third.
-        let key = |name: &str| Key {
-            number: 20,
-            name: name.into(),
-            zoom: 100,
-            transparent_color: true,
-            ..Key::default()
+        let key = |name: &str| {
+            Key::from(PictureKey {
+                number: 20,
+                name: name.into(),
+                zoom: 100,
+                transparent_color: true,
+                ..PictureKey::default()
+            })
         };
         let layer = |texture: bool| json!({"center": [160, 120], "tiles": "00", "mode7": if texture { json!({"map": []}) } else { Value::Null }});
         let still = [Big {

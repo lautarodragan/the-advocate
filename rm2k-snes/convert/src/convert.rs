@@ -733,14 +733,14 @@ pub fn run(options: Options) -> Result<()> {
         let n = c.common;
         let bigs = pictures::big_for_map(
             &game.game_dir,
-            &pictures::keys(&c.pictures)?,
+            &pictures::keys(&c.pictures),
             &c.zooms,
             &format!("common event {n}"),
             &game.cropped,
             &|_| false,
             None,
         )?;
-        let numbers: BTreeSet<i64> = bigs.iter().map(|b| b.key.number).collect();
+        let numbers: BTreeSet<i64> = bigs.iter().map(|b| i64::from(b.key.number)).collect();
         if numbers.len() > 1 {
             println!(
                 "  common event {n}: its {} big pictures are not shown: they are under {} \
