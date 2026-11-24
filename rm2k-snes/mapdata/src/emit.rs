@@ -428,6 +428,22 @@ impl Texts {
         self.data.extend_from_slice(&fitted);
         self.offsets.len() as i64 - 1
     }
+
+    /// A database text per id, through [`db_text`] and [`add`](Self::add),
+    /// in the order of `ids` —which is the order they are numbered in, and
+    /// the numbers are in the ROM—: each id's number.
+    fn add_each<'t>(
+        &mut self,
+        ids: &[i64],
+        text: impl Fn(i64) -> Result<&'t str>,
+    ) -> Result<HashMap<i64, i64>> {
+        let mut numbers = HashMap::new();
+        for &id in ids {
+            let shown = db_text(&self.glyphs, text(id)?);
+            numbers.insert(id, self.add(&shown));
+        }
+        Ok(numbers)
+    }
 }
 
 fn line(out: &mut String, text: &str) {
@@ -499,6 +515,15 @@ fn palettes_cgram(palettes: &[Vec<Color>]) -> Vec<u8> {
         ));
     }
     cgram_bytes(&all)
+}
+
+/// A sprite palette: the transparent entry, then `colors`, cut or padded
+/// with black to sixteen.
+fn palette16(colors: &[Color]) -> Vec<u8> {
+    let mut sixteen = vec![[0, 0, 0]];
+    sixteen.extend_from_slice(colors);
+    sixteen.resize(16, [0, 0, 0]);
+    cgram_bytes(&sixteen)
 }
 
 /// The CRC-32 of zlib, which signs the save format.
@@ -1107,17 +1132,12 @@ fn window_section(
     out.push_str(&format!("WIDE_VARIABLES = {wide}\n"));
     let one_line = windows
         .iter()
-        .map(|w| backdrop_is_one_line(w, t))
+        .map(|w| Ok(Backdrop::of(w, t)?.is_one_line()))
         .collect::<Result<Vec<bool>>>()?
         .iter()
         .all(|&b| b);
     for (k, w) in windows.iter().enumerate() {
-        let suffix = if k == 0 {
-            String::new()
-        } else {
-            format!("_{k}")
-        };
-        window_pieces(out, r, w, t, &suffix, one_line)?;
+        window_pieces(out, r, w, t, &system_suffix(k), one_line)?;
     }
     if windows.len() > 1 {
         window_systems_table(out, windows.len(), windows[0].get("gold").is_some());
@@ -1199,11 +1219,21 @@ fn message_faces(out: &mut String, faces: &[MessageFace]) -> Result<()> {
     Ok(())
 }
 
-/// One System's message window: its tiles, its palette, its two planes of
-/// cells for each window base, its arrow's cells, the text area's
-/// background and the bar over it. `suffix` goes after every label: empty
+/// What goes after the labels of the `k`-th System's window pieces: nothing
 /// for the System the cartridge starts with, `_k` for the `k`-th it
 /// switches to.
+fn system_suffix(k: usize) -> String {
+    if k == 0 {
+        String::new()
+    } else {
+        format!("_{k}")
+    }
+}
+
+/// One System's message window: its tiles, its palette, its two planes of
+/// cells for each window base, its arrow's cells, the text area's
+/// background and the bar over it. `suffix`, its [`system_suffix`], goes
+/// after every label.
 fn window_pieces(
     out: &mut String,
     r: &Emit,
@@ -1399,11 +1429,8 @@ fn window_pieces(
     // every line is the same —a window over one colour, `[windows.
     // background]`— only the first goes, and `prime_line` copies it under
     // all of them: a quarter of the bytes.
-    let backdrop = bytes_at(window, "background")?;
-    let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
-    let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
-    let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
-    let backdrop_lines = if one_line { 1 } else { text_lines };
+    let backdrop = Backdrop::of(window, t)?;
+    let backdrop_lines = if one_line { 1 } else { backdrop.lines };
     if suffix.is_empty() {
         out.push_str(&format!("WINDOW_BACKDROP_LINES = {backdrop_lines}\n"));
     }
@@ -1411,7 +1438,11 @@ fn window_pieces(
         out,
         &block(
             &format!("window_backdrop{suffix}"),
-            if one_line { lines[0] } else { &backdrop },
+            if one_line {
+                &backdrop.bytes[..backdrop.line]
+            } else {
+                &backdrop.bytes
+            },
         ),
     );
     // And the same background with the System's cursor on each line, and
@@ -1475,14 +1506,32 @@ fn text_inks(window: &Value) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-/// Whether the text area's four lines have the same background: a window
-/// over one colour, `[windows.background]`.
-fn backdrop_is_one_line(window: &Value, t: &Geometry) -> Result<bool> {
-    let backdrop = bytes_at(window, "background")?;
-    let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
-    let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
-    let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
-    Ok(backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]))
+/// A window's text area background, as `prime_line` reads it: one line
+/// —two cell rows— after another.
+struct Backdrop {
+    bytes: Vec<u8>,
+    /// The bytes of a line.
+    line: usize,
+    /// How many lines the text area has.
+    lines: usize,
+}
+
+impl Backdrop {
+    fn of(window: &Value, t: &Geometry) -> Result<Backdrop> {
+        Ok(Backdrop {
+            bytes: bytes_at(window, "background")?,
+            line: (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize,
+            lines: (t.n("WINDOW_TEXT_ROWS") / 2) as usize,
+        })
+    }
+
+    /// Whether every line is the same: a window over one colour,
+    /// `[windows.background]`.
+    fn is_one_line(&self) -> bool {
+        let first = &self.bytes[..self.line.min(self.bytes.len())];
+        self.bytes.len() == self.line * self.lines
+            && self.bytes.chunks(self.line).all(|l| l == first)
+    }
 }
 
 /// How many bytes a System's entry takes in `window_systems`: the ten
@@ -1510,11 +1559,7 @@ fn window_systems_table(out: &mut String, systems: usize, gold: bool) {
         systems * bytes
     ));
     for k in 0..systems {
-        let suffix = if k == 0 {
-            String::new()
-        } else {
-            format!("_{k}")
-        };
+        let suffix = system_suffix(k);
         for piece in [
             "window_tiles",
             "window_cgram",
@@ -1706,10 +1751,7 @@ fn picture_entry(
         Some(&at) => at,
         None => {
             let at = data.len();
-            let mut colors = vec![[0, 0, 0]];
-            colors.extend_from_slice(&image.palette);
-            colors.resize(16, [0, 0, 0]);
-            data.extend(cgram_bytes(&colors));
+            data.extend(palette16(&image.palette));
             colors_of.insert(image.palette_index, at);
             at
         }
@@ -2704,12 +2746,6 @@ impl Rest<'_> {
         let mut party_k = Vec::new();
         let mut party_pointers = Vec::new();
         let mut party_cgram = Vec::new();
-        let palette16 = |colors: &[Color]| {
-            let mut sixteen = vec![[0u8; 3]];
-            sixteen.extend_from_slice(colors);
-            sixteen.resize(16, [0, 0, 0]);
-            cgram_bytes(&sixteen)
-        };
         let mut members: Vec<(i64, i64)> = Vec::new();
         // Two actors drawn with the same CharSet share it: in A Blurred Line
         // there are two Kershes and three with the same sheet's index.
@@ -2951,36 +2987,16 @@ impl Rest<'_> {
         let victory2_text = texts.add(&db_text(&shown, victory.get(1).map_or("", String::as_str)));
         let rom_enemies = ints_at(model, "enemies")?;
         let enemy_names = at(mtexts, "enemies")?;
-        let mut enemy_text = HashMap::new();
-        for &e in &rom_enemies {
-            enemy_text.insert(
-                e,
-                texts.add(&db_text(&shown, text_at(enemy_names, &e.to_string())?)),
-            );
-        }
+        let enemy_text = texts.add_each(&rom_enemies, |e| text_at(enemy_names, &e.to_string()))?;
         let actions = at(model, "actions")?;
         let rom_skills = ints_at(model, "skills")?;
         let skill_texts = at(mtexts, "skills")?;
-        let mut skill_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_text.insert(
-                h,
-                texts.add(&db_text(
-                    &shown,
-                    text_at(at(skill_texts, &h.to_string())?, "name")?,
-                )),
-            );
-        }
-        let mut skill_desc_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_desc_text.insert(
-                h,
-                texts.add(&db_text(
-                    &shown,
-                    text_at(at(skill_texts, &h.to_string())?, "description")?,
-                )),
-            );
-        }
+        let skill_text = texts.add_each(&rom_skills, |h| {
+            text_at(at(skill_texts, &h.to_string())?, "name")
+        })?;
+        let skill_desc_text = texts.add_each(&rom_skills, |h| {
+            text_at(at(skill_texts, &h.to_string())?, "description")
+        })?;
         // An item's description whole, for the battle's help window, which
         // has one line: the item screens split it in two, `3k + 1` and `3k +
         // 2`. Only the items the battle offers; the others point to text 0.
@@ -3012,18 +3028,9 @@ impl Rest<'_> {
                 .map_err(|b| Bad::answer(b.message().to_string()))
         };
         let taught = ints_at(model, "taught")?;
-        let mut whole_skill_text = HashMap::new();
-        for &h in &taught {
-            whole_skill_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.name)));
-        }
-        let mut skill_msg1_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_msg1_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.using_message1)));
-        }
-        let mut skill_msg2_text = HashMap::new();
-        for &h in &rom_skills {
-            skill_msg2_text.insert(h, texts.add(&db_text(&shown, &skill(h)?.using_message2)));
-        }
+        let whole_skill_text = texts.add_each(&taught, |h| Ok(&skill(h)?.name))?;
+        let skill_msg1_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message1))?;
+        let skill_msg2_text = texts.add_each(&rom_skills, |h| Ok(&skill(h)?.using_message2))?;
         let commands = at(mtexts, "skill_commands")?;
         let mut skill_command_text = HashMap::new();
         for &a in &r.actors {
@@ -4246,10 +4253,8 @@ impl Rest<'_> {
             ),
             true,
         );
-        out.push_str(".segment \"TABLES\"\n");
         // What each item does in a battle: whether it goes in the list
         // —the battle stage's rule— and how much it heals.
-        out.push_str(".segment \"RODATA\"\n");
         let item_battle: Vec<i64> = list_at(self.model, "item_battle")?
             .iter()
             .map(|v| i64::from(v.as_bool().unwrap_or(false)))
@@ -4260,19 +4265,20 @@ impl Rest<'_> {
         // `ba_items_list` in battle_items.s. The model puts that skill in
         // `skills`.
         let rom_skills = ints_at(self.model, "skills")?;
-        let mut item_skill = Vec::new();
-        for v in list_at(self.model, "item_skill")? {
-            let h = v.as_i64().unwrap_or(0);
-            item_skill.push(if h == 0 {
-                0xFF
-            } else {
-                rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
-                    Bad::answer(format!(
-                        "an item casts skill {h}, which the cartridge does not carry"
-                    ))
-                })? as i64
-            });
-        }
+        let place_of = |h: i64, where_: &str| -> Result<i64> {
+            if h == 0 {
+                return Ok(0xFF);
+            }
+            Ok(rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
+                Bad::answer(format!(
+                    "an item casts skill {h}{where_}, which the cartridge does not carry"
+                ))
+            })? as i64)
+        };
+        let item_skill = list_at(self.model, "item_skill")?
+            .iter()
+            .map(|v| place_of(v.as_i64().unwrap_or(0), ""))
+            .collect::<Result<Vec<_>>>()?;
         if item_skill.len() != items.len() {
             return Err(Bad::answer(
                 "the battle's `item_skill` and the items are not the same list",
@@ -4281,19 +4287,9 @@ impl Rest<'_> {
         bytes_asm(out, "item_skill", &decimal(item_skill), true);
         // And the one it casts from the items screen, the same way: see
         // `item_cast_use` in item_skills.s.
-        let place_of = |h: i64| -> Result<i64> {
-            if h == 0 {
-                return Ok(0xFF);
-            }
-            Ok(rom_skills.iter().position(|&s| s == h).ok_or_else(|| {
-                Bad::answer(format!(
-                    "an item casts skill {h} on the map, which the cartridge does not carry"
-                ))
-            })? as i64)
-        };
         let item_map_skill = map_skills
             .iter()
-            .map(|&h| place_of(h))
+            .map(|&h| place_of(h, " on the map"))
             .collect::<Result<Vec<_>>>()?;
         bytes_asm(out, "item_map_skill", &decimal(item_map_skill), true);
         words_asm(
@@ -4394,9 +4390,7 @@ impl Rest<'_> {
             }
         }
         words_asm(out, "item_up", &decimal(up), true);
-        out.push_str(".segment \"TABLES\"\n");
-        // The four text tables outside bank 0.
-        out.push_str(".segment \"RODATA\"\n");
+        // The four text tables outside bank 0, like the ones above.
         for (field, prefix) in [("lo", "<"), ("hi", ">"), ("bk", "^")] {
             out.push_str(&format!(".block {}\n", texts.offsets.len().max(1)));
             let entries: Vec<String> = texts
@@ -4532,8 +4526,6 @@ impl Rest<'_> {
             }
         }
         bytes_asm(out, "crit_table", &decimal(table), true);
-        out.push_str(".segment \"TABLES\"\n");
-        out.push_str("\n.segment \"RODATA\"\n");
         out.push_str(&format!(
             ".block {}\n",
             2 * n_actors as usize * EQUIPMENT_SLOTS
@@ -5091,30 +5083,20 @@ impl Rest<'_> {
                 "the battle stage answered for troops {answered:?} and the cartridge carries {used:?}"
             )));
         }
-        let troop_exp: Vec<i64> = model_troops
-            .iter()
-            .map(|t| int_at(t, "exp"))
-            .collect::<Result<_>>()?;
-        for (n, exp) in used.iter().zip(&troop_exp) {
-            if *exp > 0xFFFF {
-                return Err(Bad::answer(format!(
-                    "troop {n} gives {exp} experience and the ROM adds it in sixteen bits"
-                )));
+        for (field, what) in [("exp", "experience"), ("gold", "gold")] {
+            let values: Vec<i64> = model_troops
+                .iter()
+                .map(|t| int_at(t, field))
+                .collect::<Result<_>>()?;
+            for (n, v) in used.iter().zip(&values) {
+                if *v > 0xFFFF {
+                    return Err(Bad::answer(format!(
+                        "troop {n} gives {v} {what} and the ROM adds it in sixteen bits"
+                    )));
+                }
             }
+            words_asm(out, &format!("troop_{field}"), &decimal(values), true);
         }
-        words_asm(out, "troop_exp", &decimal(troop_exp.iter()), true);
-        let troop_gold: Vec<i64> = model_troops
-            .iter()
-            .map(|t| int_at(t, "gold"))
-            .collect::<Result<_>>()?;
-        for (n, gold) in used.iter().zip(&troop_gold) {
-            if *gold > 0xFFFF {
-                return Err(Bad::answer(format!(
-                    "troop {n} gives {gold} gold and the ROM adds it in sixteen bits"
-                )));
-            }
-        }
-        words_asm(out, "troop_gold", &decimal(troop_gold.iter()), true);
         words_asm(out, "troop_init", &decimal(starts), true);
         // Which members start hidden, one bit per place.
         let mut hidden = Vec::new();
