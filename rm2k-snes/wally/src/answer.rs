@@ -4,10 +4,14 @@
 //! converter reads them back with [`Answer::read`] —a field renamed here
 //! does not compile there—.
 //!
-//! **The fields are in the files' key order, and it is not free**: the
-//! converter passes parts of the answer on to the emission as JSON, and its
-//! serde_json keeps the order they come in. Reordering a field reorders
-//! what the emission is asked, and what it writes on disk.
+//! **The fields are in the files' key order**, which is what the
+//! conversion cache keeps: reordering a field changes the cached answers'
+//! bytes, not what the converter makes of them. Some of these types the
+//! emission's request holds as they are —a slot's owner, a route's graphic,
+//! the cache, the shared slots, the battle animation's box, a still event
+//! drawn into the cells—, and the rest the converter turns into the
+//! emission's with plain Rust, where the emission takes the bytes of the
+//! files these name: see `emit.rs` in rm2k-snes-convert.
 
 use crate::fail::{Bad, Result};
 use crate::sprites::character::Key;
@@ -203,6 +207,30 @@ impl From<&crate::sprites::bank::Slot> for Slot {
 pub enum RouteGraphic {
     Uploads(usize, usize, Vec<u16>),
     Plain(usize, usize),
+}
+
+impl RouteGraphic {
+    /// Its entry in the pose table, or $FF.
+    pub fn entry(&self) -> usize {
+        match self {
+            RouteGraphic::Uploads(k, ..) | RouteGraphic::Plain(k, _) => *k,
+        }
+    }
+
+    pub fn palette(&self) -> usize {
+        match self {
+            RouteGraphic::Uploads(_, p, _) | RouteGraphic::Plain(_, p) => *p,
+        }
+    }
+
+    /// The colours the console uploads into the leaders' palette when the
+    /// hero takes it; none for one with a palette of its own in the map.
+    pub fn colors(&self) -> &[u16] {
+        match self {
+            RouteGraphic::Uploads(_, _, c) => c,
+            RouteGraphic::Plain(..) => &[],
+        }
+    }
 }
 
 /// The box battle animations are drawn in: how many tiles the map spends,

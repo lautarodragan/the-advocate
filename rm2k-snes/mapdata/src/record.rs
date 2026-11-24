@@ -16,12 +16,13 @@ use crate::objects::{
     block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
     POSE_BYTES, POSE_TILES, SPRITE_POSES, TILE_BYTES,
 };
-use crate::request::{Map, Page, Run, Slot, Variant};
+use crate::request::{Map, Page, Run, Variant};
 use crate::snes::{cgram_word, BYTES_PER_TILE, COLORS_PER_PALETTE};
 use crate::text::quoted;
 use crate::vram::{self, Layout};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write;
+use wally::answer::Slot;
 
 /// A map's record in the table. The stride is a power of two so that going
 /// from index to offset is shifts and not a multiplication, and there is
@@ -290,22 +291,24 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
         let walks = movable.contains(&npc.event);
         // One that takes turns in a shared slot is drawn with its own
         // character's palette: the slot's is only the first one's.
-        let turns = shared.and_then(|s| s.events.iter().find(|e| e.0 == npc.event));
+        let turns = shared.and_then(|s| s.events.iter().find(|e| e.0 as i64 == npc.event));
         let wanted = if let Some(&(_, slot, ..)) = turns {
-            Slot::Shared {
-                shared: slot as i64,
-            }
+            Slot::Shared { shared: slot }
         } else if walks {
-            Slot::Event { event: npc.event }
+            Slot::Event {
+                event: npc.event as usize,
+            }
         } else if let Some(&whose) = with.get(&npc.event) {
             // A still one that animates in its twin's slot: it shows the
             // pose the other uploads, and uploads nothing.
-            Slot::Event { event: whose }
+            Slot::Event {
+                event: whose as usize,
+            }
         } else {
             Slot::Still {
                 charset: npc.charset.clone(),
-                index: npc.index,
-                pose: npc.pose,
+                index: npc.index as i32,
+                pose: npc.pose as i32,
             }
         };
         // In a map with a cache of slots nobody has one: the row carries the
@@ -319,7 +322,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
         // first of them to come into view. See `cache_want`.
         let cached = sprite
             .and_then(|s| s.cache.as_ref())
-            .map(|c| c.events.iter().find(|e| e.0 == npc.event));
+            .map(|c| c.events.iter().find(|e| e.0 as i64 == npc.event));
         let twin = with.get(&npc.event).copied().filter(|_| cached.is_some());
         let (tile, palette) = match cached {
             Some(Some(&(_, _, palette))) if twin.is_some() => {
@@ -331,9 +334,9 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
                         map.id, npc.event
                     )));
                 }
-                (0x80 | whose as u32, palette)
+                (0x80 | whose as u32, palette as u32)
             }
-            Some(Some(&(_, key, palette))) => (key.unwrap_or(0), palette),
+            Some(Some(&(_, key, palette))) => (key.unwrap_or(0) as u32, palette as u32),
             Some(None) => {
                 return Err(Bad::answer(format!(
                     "map {}: event {} is drawn and the cache does not know it",
@@ -348,7 +351,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
                         map.id, npc.event
                     )));
                 };
-                (block_tile(block), turns.map_or(palette, |t| t.3))
+                (block_tile(block), turns.map_or(palette, |t| t.3 as u32))
             }
         };
         let poses = if walks || twin.is_some() {
@@ -1256,21 +1259,18 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
             shared
                 .slots
                 .iter()
-                .map(|&b| (block_tile(b) * 16).to_string())
+                .map(|&b| (block_tile(b as u32) * 16).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
         let mut by_event = vec![(0xFFu8, 0u8); map.events.len()];
         for &(event, slot, pose, _) in &shared.events {
-            let e = usize::try_from(event)
-                .ok()
-                .filter(|&e| e < by_event.len())
-                .ok_or_else(|| {
-                    Bad::answer(format!(
-                        "map {}: event {event} takes turns and is not in the map",
-                        map.id
-                    ))
-                })?;
+            let e = Some(event).filter(|&e| e < by_event.len()).ok_or_else(|| {
+                Bad::answer(format!(
+                    "map {}: event {event} takes turns and is not in the map",
+                    map.id
+                ))
+            })?;
             by_event[e] = (slot as u8, pose as u8);
         }
         for chunk in by_event.chunks(8) {
@@ -1288,7 +1288,7 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
             shared
                 .poses
                 .iter()
-                .map(|&(k, pose)| ((k * SPRITE_POSES + pose) * 3).to_string())
+                .map(|&(k, pose)| ((k * SPRITE_POSES + pose as usize) * 3).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
@@ -1379,7 +1379,7 @@ pub fn cache_table(maps: &[Map]) -> Result<String> {
             cache
                 .slots
                 .iter()
-                .map(|&b| block_tile(b).to_string())
+                .map(|&b| block_tile(b as u32).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
@@ -1538,7 +1538,7 @@ fn arrow_room(map: &Map) -> Result<std::result::Result<u16, String>> {
         Some(s) => (
             s.tiles.len() / TILE_BYTES,
             s.palettes.len(),
-            s.animation.as_ref().map(|a| a.palette as usize),
+            s.animation.as_ref().map(|a| a.palette),
             s.image.1.max(0) as usize,
         ),
     };
@@ -1587,7 +1587,7 @@ pub fn common_room(map: &Map) -> Result<CommonRoom> {
         Some(s) => (
             s.tiles.len() / TILE_BYTES,
             s.palettes.len(),
-            s.animation.as_ref().map(|a| a.palette as usize),
+            s.animation.as_ref().map(|a| a.palette),
             s.image.1.max(0) as usize,
         ),
     };
@@ -2356,7 +2356,7 @@ pub fn poses(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<Poses> {
     for map in maps {
         let mut own = Vec::new();
         for bank in map.sprite.as_ref().map_or(&[][..], |s| s.banks.as_slice()) {
-            let data = crate::hex::decode(bank.hex())?;
+            let data = bank.poses().to_vec();
             let (charset, index) = (bank.charset(), bank.index());
             let pair = (charset.to_string(), index);
             let found = global.iter().position(|(p, d)| *p == pair && *d == data);
@@ -2534,7 +2534,7 @@ pub fn requested(map: &Map, rows: &[NpcRow]) -> Result<BTreeMap<usize, BTreeSet<
     }
     for g in &sprite.route_gfx {
         if g.entry() != 0xFF {
-            add(g.entry() as usize, all());
+            add(g.entry(), all());
         }
     }
     let turning: BTreeSet<i64> = map.turning.iter().copied().collect();
@@ -2581,15 +2581,15 @@ pub fn requested(map: &Map, rows: &[NpcRow]) -> Result<BTreeMap<usize, BTreeSet<
     }
     if let Some(shared) = &sprite.shared {
         for &(k, pose) in &shared.poses {
-            add(k, BTreeSet::from([pose]));
+            add(k, BTreeSet::from([pose as usize]));
         }
     }
     if let Some(cache) = &sprite.cache {
-        let turners: BTreeSet<i64> = cache.turners.iter().copied().collect();
+        let turners: BTreeSet<i64> = cache.turners.iter().map(|&e| e as i64).collect();
         let mut started: Vec<(i64, u32)> = cache
             .events
             .iter()
-            .filter_map(|e| e.1.map(|key| (e.0, key)))
+            .filter_map(|e| e.1.map(|key| (e.0 as i64, key as u32)))
             .collect();
         started.extend(map.pages.iter().filter_map(|p| {
             p.draws
@@ -2618,7 +2618,7 @@ pub fn requested(map: &Map, rows: &[NpcRow]) -> Result<BTreeMap<usize, BTreeSet<
 /// Wally—: each set once for the whole cartridge, thirty bytes each, and
 /// the console uploads the one the graphic names when the hero takes it.
 pub struct HeroColors {
-    sets: Vec<Vec<u32>>,
+    sets: Vec<Vec<u16>>,
 }
 
 impl HeroColors {
@@ -2626,7 +2626,7 @@ impl HeroColors {
     pub const MAX: usize = 255;
 
     pub fn of(maps: &[Map]) -> Result<HeroColors> {
-        let mut sets: Vec<Vec<u32>> = Vec::new();
+        let mut sets: Vec<Vec<u16>> = Vec::new();
         for map in maps {
             for g in map
                 .sprite
@@ -2658,7 +2658,7 @@ impl HeroColors {
     }
 
     /// Which entry holds `colors`, from 1; 0 for none.
-    pub fn entry(&self, colors: &[u32]) -> u8 {
+    pub fn entry(&self, colors: &[u16]) -> u8 {
         if colors.is_empty() {
             return 0;
         }
@@ -2986,7 +2986,8 @@ mod tests {
         // Under two palettes of pictures, and over an animation's box.
         let sprite = map.sprite.as_mut().unwrap();
         sprite.image = (256, 2);
-        sprite.animation = Some(crate::request::Animation {
+        sprite.animation = Some(wally::answer::Animation {
+            count: 0,
             base: 192,
             palette: 3,
         });
@@ -2994,7 +2995,8 @@ mod tests {
         // With the eight taken, the cells.
         let sprite = map.sprite.as_mut().unwrap();
         sprite.palettes = vec![vec![[1, 2, 3]]; 4];
-        sprite.animation = Some(crate::request::Animation {
+        sprite.animation = Some(wally::answer::Animation {
+            count: 0,
             base: 192,
             palette: 4,
         });
@@ -3225,19 +3227,19 @@ mod tests {
             .iter()
             .position(|m| m.sprite.is_some() && !m.npcs.is_empty())
             .unwrap();
-        let events: Vec<(i64, Option<u32>, u32)> = maps[k]
+        let events: Vec<(usize, Option<usize>, usize)> = maps[k]
             .npcs
             .iter()
             .enumerate()
-            .map(|(i, n)| (n.event, (i > 0).then_some(1), 3))
+            .map(|(i, n)| (n.event as usize, (i > 0).then_some(1), 3))
             .collect();
         let walker = maps[k].npcs[0].event;
         maps[k].movable = vec![walker];
-        maps[k].sprite.as_mut().unwrap().cache = Some(crate::request::Cache {
+        maps[k].sprite.as_mut().unwrap().cache = Some(wally::answer::Cache {
             events,
             stills: vec![("Folk".into(), 0, 7, 2, 3), ("Folk".into(), 0, 4, 0, 3)],
             slots: vec![5, 6],
-            turners: vec![],
+            turners: Default::default(),
         });
         let table = cache_table(&maps).unwrap();
         let mut starts = vec!["0"; maps.len()];
@@ -3321,7 +3323,7 @@ mod tests {
             .position(|m| m.sprite.is_some() && m.events.len() >= 3)
             .unwrap();
         let events = maps[k].events.len();
-        maps[k].sprite.as_mut().unwrap().shared = Some(crate::request::Shared {
+        maps[k].sprite.as_mut().unwrap().shared = Some(wally::map::SharedObjects {
             events: vec![(0, 0, 1, 2), (1, 1, 0, 3)],
             poses: vec![(2, 7), (0, 4)],
             slots: vec![5, 6],

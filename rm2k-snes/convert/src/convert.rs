@@ -1169,6 +1169,17 @@ pub fn run(options: Options) -> Result<()> {
             {
                 continue;
             }
+            // What it draws wherever it is drawn: the pose it shows, and the
+            // passage its tile imposes.
+            let drawn = request::Draws {
+                block: None,
+                key: None,
+                palette: 0,
+                posed: None,
+                pose: graphic.2 as u32,
+                tile_pass: page.tile_pass.map(|t| t as u32),
+                translucent: page.translucent,
+            };
             // Drawn into the background: the page carries its number among
             // them and which of its characters, and the console writes its
             // cell. See `posed` in Wally.
@@ -1182,44 +1193,50 @@ pub fn run(options: Options) -> Result<()> {
                             m.id, page.event
                         ))
                     })?;
-                page.draws = Some(json!({"block": null, "posed": [p, g], "pose": graphic.2,
-                                         "tile_pass": page.tile_pass,
-                                         "translucent": page.translucent}));
+                page.draws = Some(request::Draws {
+                    posed: Some([*p as u32, g as u32]),
+                    ..drawn
+                });
                 continue;
             }
-            let (mut block, mut palette) = (Value::Null, json!(0));
+            let (mut block, mut palette) = (None, 0);
             // A map with a cache of slots: the page carries its still pose,
             // and the console finds it a slot. See `sprites::cache` in Wally.
             if continues && !m.cached.is_empty() {
                 let (key, p) = m.cached.get(graphic).cloned().ok_or_else(|| {
                     Stop::new(format!("map {}: {graphic:?} is not in the cache", m.id))
                 })?;
-                page.draws = Some(
-                    json!({"block": null, "key": key, "palette": p, "pose": graphic.2,
-                                         "tile_pass": page.tile_pass,
-                                         "translucent": page.translucent}),
-                );
+                page.draws = Some(request::Draws {
+                    key: Some(key),
+                    palette: p,
+                    ..drawn
+                });
                 continue;
             }
             if continues {
                 // The one that only appears goes without a block: its own
                 // row points at its slot of twelve poses.
                 let (b, p) = match m.shared.get(&page.event) {
-                    Some(shared) => shared.clone(),
-                    None => m.where_.get(graphic).cloned().ok_or_else(|| {
-                        Stop::new(format!(
-                            "map {}: {graphic:?} is not in the sprite bank",
-                            m.id
-                        ))
-                    })?,
+                    Some(&shared) => shared,
+                    None => m
+                        .where_
+                        .get(graphic)
+                        .map(|&(block, palette)| (Some(block), palette))
+                        .ok_or_else(|| {
+                            Stop::new(format!(
+                                "map {}: {graphic:?} is not in the sprite bank",
+                                m.id
+                            ))
+                        })?,
                 };
                 block = b;
                 palette = p;
             }
-            page.draws = Some(
-                json!({"block": block, "palette": palette, "pose": graphic.2, "tile_pass": page.tile_pass,
-                       "translucent": page.translucent}),
-            );
+            page.draws = Some(request::Draws {
+                block,
+                palette,
+                ..drawn
+            });
         }
         m.evcode = code;
         // The ROM's substitution table has a fixed cap and **doesn't warn**
@@ -1323,14 +1340,9 @@ pub fn run(options: Options) -> Result<()> {
     for ((index, given, away), &from) in &flashes {
         let m = &infos[*index];
         let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
-        // `MapInfo::npcs` is Wally's rows as JSON until the emission takes
-        // its types: read by key, as every row has both.
-        for npc in m.npcs.as_array().into_iter().flatten() {
+        for row in &m.npcs {
             *graphics
-                .entry((
-                    npc["charset"].as_str().unwrap_or("").to_string(),
-                    npc["index"].as_i64().unwrap_or(0),
-                ))
+                .entry((row.npc.charset.clone(), i64::from(row.npc.index)))
                 .or_insert(0) += 1;
         }
         // The graphic a route gave the hero, or each leader's own: the flash
@@ -1936,11 +1948,7 @@ pub fn run(options: Options) -> Result<()> {
         big_pictures: big_layers.iter().map(emit::typed).collect::<Result<_>>()?,
         // The common events' small pictures, by set: see
         // [`crate::common_pictures`].
-        common_pictures: common_small
-            .emit
-            .iter()
-            .map(emit::typed)
-            .collect::<Result<_>>()?,
+        common_pictures: common_small.emit,
     };
     let emitted = emit::emit(&output, request, &game.dump)?;
     println!(
