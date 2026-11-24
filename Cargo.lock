@@ -512,6 +512,7 @@ dependencies = [
  "rm2k-snes-battle",
  "rm2k-snes-bytecode",
  "rm2k-snes-text",
+ "serde",
  "serde_json",
 ]
 

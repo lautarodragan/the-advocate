@@ -1,6 +1,7 @@
 //! A map's events as the compiler sees them, and the pages the ROM needs
 //! to resolve them.
 
+use crate::answer;
 use crate::codes::*;
 use crate::compile::{
     compile_page, decision_key, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT,
@@ -10,7 +11,7 @@ use crate::game::{Command, Map, Page};
 use crate::losses::Origin;
 use crate::route;
 use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
-use serde_json::{json, Value};
+
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
@@ -457,7 +458,7 @@ fn turns(page: &Page) -> bool {
 ///
 /// What each page draws is not here: it is the caller's, who knows the
 /// ChipSet and what it drew.
-pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec<Value>> {
+pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec<answer::Page>> {
     let mut out = Vec::new();
     let place = |event: &crate::game::Event, page: Option<i32>| Origin::Page {
         map: map.id,
@@ -562,31 +563,31 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             let variable = match (c.variable, c.timer) {
                 (Some((v, comparison, value)), _) => {
                     let slot = variable_slot(ctx.indices, v)?;
-                    json!([slot, comparison, value])
+                    Some((slot.into(), comparison.into(), value.into()))
                 }
-                (None, Some(seconds)) => json!([TIMER_SLOT, AT_MOST, seconds]),
-                (None, None) => Value::Null,
+                (None, Some(seconds)) => Some((TIMER_SLOT.into(), AT_MOST.into(), seconds.into())),
+                (None, None) => None,
             };
-            out.push(json!({
-                "event": number,
-                "page": page_number,
-                "trigger": page.trigger,
-                "switch_a": c.switch_a.unwrap_or(0),
-                "switch_b": c.switch_b.unwrap_or(0),
-                "actor": c.actor.unwrap_or(0),
-                "variable": variable,
-                "item": c.item.unwrap_or(0),
-                "layer": page.layer,
-                "frequency": page.move_frequency,
-                "speed": page.move_speed,
-                "route_targets": code.as_deref().map(route_targets).unwrap_or_default(),
-                "route_graphics": code.as_deref().map(route_graphics).unwrap_or_default(),
-                "route_turns": code.as_deref().map(route_turns).unwrap_or_default(),
-                "code": code.map(|c| hex(&c)),
-                "own_route": route::own(page, ctx.indices),
-                "turns": turns(page),
-                "pure": page.trigger == TRIGGER_PARALLEL && crate::commons::pure_page(&page.commands),
-            }));
+            out.push(answer::Page {
+                event: number,
+                page: page_number,
+                trigger: page.trigger,
+                switch_a: c.switch_a.unwrap_or(0),
+                switch_b: c.switch_b.unwrap_or(0),
+                actor: c.actor.unwrap_or(0),
+                variable,
+                item: c.item.unwrap_or(0),
+                layer: page.layer,
+                frequency: page.move_frequency,
+                speed: page.move_speed,
+                route_targets: code.as_deref().map(route_targets).unwrap_or_default(),
+                route_graphics: code.as_deref().map(route_graphics).unwrap_or_default(),
+                route_turns: code.as_deref().map(route_turns).unwrap_or_default(),
+                code: code.map(answer::Hex),
+                own_route: route::own(page, ctx.indices),
+                turns: turns(page),
+                pure: page.trigger == TRIGGER_PARALLEL && crate::commons::pure_page(&page.commands),
+            });
             ctx.losses.leave();
         }
     }

@@ -18,6 +18,7 @@ use crate::game::{Command, Event, Game, GameMap, COPY_SUFFIX, TILE_PREFIX};
 use crate::pictures::{self, Big, ForMap};
 use crate::settings::Settings;
 use crate::stage;
+use rm2k_snes_events::answer::{OwnRoute, Page, Scan};
 use rm2k_snes_events::codes::{FLASH_SPRITE, MOVE_EVENT, TILE_SUBSTITUTION};
 use rm2k_snes_mapdata::vram;
 use serde_json::{json, Value};
@@ -200,7 +201,7 @@ pub fn common_substitutions(game: &Game) -> Vec<(bool, i32, i32)> {
 pub struct Cartridge<'a> {
     pub game: &'a Game,
     pub settings: &'a Settings<'a>,
-    pub scan: &'a Value,
+    pub scan: &'a Scan,
     pub order: Vec<i32>,
     pub start_index: usize,
     pub has_cases: bool,
@@ -327,20 +328,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // comes from the compiler's first call, which walked the bytecode.
     // **The order has to be the same as the real compilation's**, because
     // the bytecode carries the index.
-    let scanned = compiler::map_entry(c.scan, map_id)?;
-    let mut route_graphics: Vec<(String, i64)> = scanned["graphics"]
-        .as_array()
-        .map(|list| {
-            list.iter()
-                .map(|g| {
-                    (
-                        g[0].as_str().unwrap_or("").to_string(),
-                        g[1].as_i64().unwrap_or(0),
-                    )
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    let scanned = c
+        .scan
+        .map(map_id)
+        .ok_or_else(|| Stop::new(format!("map {map_id} is not in the answer")))?;
+    let mut route_graphics = scanned.graphics.clone();
     // And the ones from `--test-graphic`, only in the maps where some case
     // runs, **after** the game's, which is the order the real compilation
     // numbers them in.
@@ -357,20 +349,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // The ones no route gives an event —the scan says which ones some
     // does, the test pages' too—: only the hero shows them, and Wally can
     // draw them in the leaders' palette, like a leader.
-    let on_events: Vec<(String, i64)> = scanned
-        .get("graphics_on_events")
-        .and_then(Value::as_array)
-        .map(|list| {
-            list.iter()
-                .map(|g| {
-                    (
-                        g[0].as_str().unwrap_or("").to_string(),
-                        g[1].as_i64().unwrap_or(0),
-                    )
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    let on_events = &scanned.graphics_on_events;
     let hero_graphics: Vec<Value> = route_graphics
         .iter()
         .filter(|g| !on_events.contains(g))
@@ -397,20 +376,19 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
-    let mut keys = pictures::keys(scanned.get("pictures"))?;
+    let mut keys = pictures::keys(&scanned.pictures);
     // The map's own come first, and then those only the copies of the
     // common events show, if the map carries them: the scan says how many
     // are its own. See [`crate::common_pages`].
     let mut own_keys: Option<Vec<pictures::Key>> = scanned
-        .get("pictures_own")
-        .and_then(Value::as_u64)
-        .filter(|&n| (n as usize) < keys.len())
-        .map(|n| keys[..n as usize].to_vec());
+        .pictures_own
+        .filter(|&n| n < keys.len())
+        .map(|n| keys[..n].to_vec());
     // The ones that are part of a map are drawn into it, and their commands
     // are accepted without being done; but a drawing's part, which is
     // shown —see [`crate::map_pictures::Parts`]—: its name can be drawn in
     // under another number.
-    let part = |k: &pictures::Key| c.map_pictures.part(map_id, k.number as i32, &k.name);
+    let part = |k: &pictures::Key| c.map_pictures.part(map_id, k.number, &k.name);
     let kept = |k: &pictures::Key| part(k).is_some() || !c.map_pictures.done(map_id, &k.name);
     keys.retain(kept);
     if let Some(own) = own_keys.as_mut() {
@@ -435,7 +413,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .map(|p| i64::from(p.number))
         .collect();
     for k in keys.iter_mut().chain(own_keys.iter_mut().flatten()) {
-        if raised.iter().any(|&n| n > k.number) {
+        if raised.iter().any(|&n| n > i64::from(k.number)) {
             k.behind_map = true;
         }
     }
@@ -448,18 +426,14 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         }
     }
     // And the numbers the map tones, which do not share a palette.
-    let tinted: Vec<i64> = scanned
-        .get("tinted")
-        .and_then(Value::as_array)
-        .map(|t| t.iter().filter_map(Value::as_i64).collect())
-        .unwrap_or_default();
+    let tinted = &scanned.tinted;
     let whose = format!("map {map_id}");
-    let pictures = pictures::for_map(&game.game_dir, &keys, &tinted, &whose, &game.cropped)?;
+    let pictures = pictures::for_map(&game.game_dir, &keys, tinted, &whose, &game.cropped)?;
     let pictures_own = match &own_keys {
         Some(own) => Some(pictures::for_map(
             &game.game_dir,
             own,
-            &tinted,
+            tinted,
             &whose,
             &game.cropped,
         )?),
@@ -471,11 +445,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .filter(|(_, n)| **n == 1)
         .map(|((name, index), _)| json!([name, index]))
         .collect();
-    let zooms: Vec<Value> = scanned
-        .get("zooms")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
+    let zooms = &scanned.zooms;
     // On a map of one screen, the ones shown still over its panorama go
     // with it under them: see [`pictures::still_over`].
     let panorama = game.screen_panorama(map_id)?;
@@ -483,7 +453,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     let big_pictures = pictures::big_for_map(
         &game.game_dir,
         &keys,
-        &zooms,
+        zooms,
         &format!("map {map_id}"),
         &game.cropped,
         &|_| false,
@@ -505,7 +475,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         pictures::big_for_map(
             &game.game_dir,
             &small,
-            &zooms,
+            zooms,
             &format!("map {map_id}"),
             &game.cropped,
             &|_| true,
@@ -532,7 +502,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         "names": compiler::names([&map]).into_iter().map(|e| json!([e[1], e[2], e[3]])).collect::<Vec<_>>(),
         "test_event": test_event,
         "leaders": c.leaders,
-        "pages": scanned["pages"],
+        "pages": scanned.pages,
         "route_graphics": route_graphics.iter().map(|(g, i)| json!([g, i])).collect::<Vec<_>>(),
         "hero_graphics": hero_graphics,
         "also_walk": also_walk.into_iter().collect::<Vec<_>>(),
@@ -679,17 +649,17 @@ pub struct PageRecord {
     pub event: i64,
     pub page: i64,
     pub trigger: i64,
-    pub switch_a: Value,
-    pub switch_b: Value,
-    pub actor: Value,
-    pub variable: Value,
-    pub item: Value,
-    pub layer: Value,
-    pub frequency: Value,
-    pub speed: Value,
+    pub switch_a: i32,
+    pub switch_b: i32,
+    pub actor: i32,
+    pub variable: Option<(i64, i64, i64)>,
+    pub item: i32,
+    pub layer: i32,
+    pub frequency: i32,
+    pub speed: i32,
     pub code: Vec<u8>,
     pub has_code: bool,
-    pub own_route: Option<Value>,
+    pub own_route: Option<OwnRoute>,
     pub graphic: Option<Graphic>,
     pub tile_pass: Option<i64>,
     pub turns: bool,
@@ -832,10 +802,6 @@ fn discard_warning(text: &str, dangerous: bool) -> Result<()> {
          seen, and since the event still blocks the way and\ntriggers, what is left is an \
          invisible wall where the game expected a door."
     )))
-}
-
-fn int(v: &Value) -> i64 {
-    v.as_i64().unwrap_or(0)
 }
 
 /// The most tiles any of a map's panoramas takes: the layout holds the one
@@ -1343,14 +1309,14 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
 
 /// The records the compiler answered for a map's pages, as the converter
 /// keeps them, with what each page draws: that is the port's.
-pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
+pub fn pages(records: &[Page], info: &MapInfo) -> Result<Vec<PageRecord>> {
     let mut out = Vec::new();
-    for r in records.as_array().cloned().unwrap_or_default() {
-        let event = int(&r["event"]);
+    for r in records {
+        let event = r.event as i64;
         if info.decorative.contains(&event) {
             continue;
         }
-        let page_index = int(&r["page"]);
+        let page_index = r.page as i64;
         let page = info
             .map
             .events
@@ -1363,33 +1329,33 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
                 ))
             })?;
         let graphic = page_graphic(page, &info.chipset_filename);
-        let code = r["code"].as_str().map(crate::text::unhex);
+        let code = r.code.as_ref().map(|c| c.0.clone());
         let tile_pass = graphic
             .as_ref()
             .and_then(|g| event_tile_passability(&info.passability, &g.0, page.layer));
         out.push(PageRecord {
             event,
             page: page_index,
-            trigger: int(&r["trigger"]),
-            switch_a: r["switch_a"].clone(),
-            switch_b: r["switch_b"].clone(),
-            actor: r["actor"].clone(),
-            variable: r["variable"].clone(),
-            item: r["item"].clone(),
-            layer: r["layer"].clone(),
-            frequency: r["frequency"].clone(),
-            speed: r["speed"].clone(),
+            trigger: r.trigger.into(),
+            switch_a: r.switch_a,
+            switch_b: r.switch_b,
+            actor: r.actor,
+            variable: r.variable,
+            item: r.item,
+            layer: r.layer,
+            frequency: r.frequency,
+            speed: r.speed,
             has_code: code.as_ref().is_some_and(|c| !c.is_empty()),
             code: code.unwrap_or_default(),
-            own_route: (!r["own_route"].is_null()).then(|| r["own_route"].clone()),
+            own_route: r.own_route.clone(),
             graphic,
             tile_pass,
-            turns: r["turns"].as_bool().unwrap_or(false),
+            turns: r.turns,
             fixed_direction: matches!(page.animation_type, 2..=4),
             fixed_graphic: page.animation_type == 4,
             translucent: page.translucent,
             test: false,
-            pure: r["pure"].as_bool().unwrap_or(false),
+            pure: r.pure,
             offset: 0,
             route_offset: 0,
             draws: None,

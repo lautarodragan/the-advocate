@@ -1,11 +1,11 @@
 //! Move routes: the forced one a `MoveEvent` carries inside its integers,
 //! and the one a page walks on its own.
 
+use crate::answer::OwnRoute;
 use crate::codes::*;
 use crate::compile::Indices;
 use crate::fail::{Step, Stop};
 use crate::game::Page;
-use serde_json::{json, Value};
 
 /// The frequency a route is walked at. It governs two things: how long it
 /// waits between one command and the next —`1 << (9 - frequency)` frames,
@@ -355,7 +355,7 @@ pub const ROUTE_BY_TYPE: i32 = 48;
 /// asked for it: Sunset over Imdahl's map 56, event 5, whose long walk ends
 /// turning on switch 64, and Vampires Dawn's map 163, event 30, which
 /// flicks four switches on and off as it walks round.
-pub fn own(page: &Page, indices: &Indices) -> Option<Value> {
+pub fn own(page: &Page, indices: &Indices) -> Option<OwnRoute> {
     let spin = page.animation_type == ANIM_SPIN;
     let still_spinning = spin && page.move_type == MOVE_STATIONARY;
     let by_type = (MOVE_RANDOM..=MOVE_AWAY).contains(&page.move_type);
@@ -443,28 +443,23 @@ pub fn own(page: &Page, indices: &Indices) -> Option<Value> {
     if (commands.is_empty() && !spin) || commands.len() > 255 {
         return None;
     }
-    let mut out = json!({
-        "commands": commands,
-        "frequency": page.move_frequency,
-        "speed": page.move_speed,
-        "repeats": page.route_repeat || still_spinning || by_type,
-        "skippable": page.route_skippable,
-        "fixed_direction": matches!(
+    Some(OwnRoute {
+        commands,
+        frequency: page.move_frequency,
+        speed: page.move_speed,
+        repeats: page.route_repeat || still_spinning || by_type,
+        skippable: page.route_skippable,
+        fixed_direction: matches!(
             page.animation_type,
             ANIM_FIXED_NOT_CONTINUOUS | ANIM_FIXED_CONTINUOUS | ANIM_FIXED_GRAPHIC
         ),
-        "animation_continues": matches!(page.animation_type, ANIM_CONTINUOUS | ANIM_FIXED_CONTINUOUS),
-    });
-    // Only on the one that spins.
-    if spin {
-        out["spin"] = json!(true);
-        out["pattern"] = json!(page.character_pattern);
-    }
-    // The same for the one that walks by a type.
-    if by_type {
-        out["by_type"] = json!(true);
-    }
-    Some(out)
+        animation_continues: matches!(page.animation_type, ANIM_CONTINUOUS | ANIM_FIXED_CONTINUOUS),
+        // Only on the one that spins.
+        spin,
+        pattern: spin.then_some(page.character_pattern),
+        // The same for the one that walks by a type.
+        by_type,
+    })
 }
 
 #[cfg(test)]
@@ -525,19 +520,19 @@ mod tests {
             &Indices::default(),
         )
         .unwrap();
-        assert_eq!(r["commands"], json!([3, 2, 1, 0]));
-        assert_eq!(r["spin"], json!(true));
-        assert_eq!(r["pattern"], json!(2));
-        assert_eq!(r["fixed_direction"], json!(false));
+        assert_eq!(r.commands, [3, 2, 1, 0]);
+        assert!(r.spin);
+        assert_eq!(r.pattern, Some(2));
+        assert!(!r.fixed_direction);
     }
 
     #[test]
     fn a_still_page_that_spins_gets_an_empty_route_that_repeats() {
         // The console only animates an event with a route slot.
         let r = own(&spinning(MOVE_STATIONARY, Vec::new()), &Indices::default()).unwrap();
-        assert_eq!(r["commands"], json!([]));
-        assert_eq!(r["repeats"], json!(true));
-        assert_eq!(r["spin"], json!(true));
+        assert_eq!(r.commands, Vec::<i32>::new());
+        assert!(r.repeats);
+        assert!(r.spin);
     }
 
     #[test]
@@ -548,25 +543,22 @@ mod tests {
         marcy.animation_type = 0;
         marcy.move_frequency = 8;
         let r = own(&marcy, &Indices::default()).unwrap();
-        assert_eq!(r["commands"], json!([ROUTE_BY_TYPE + 3]));
-        assert_eq!(r["repeats"], json!(true));
-        assert_eq!(r["frequency"], json!(8));
-        assert_eq!(r["by_type"], json!(true));
-        assert!(r.get("spin").is_none());
+        assert_eq!(r.commands, [ROUTE_BY_TYPE + 3]);
+        assert!(r.repeats);
+        assert_eq!(r.frequency, 8);
+        assert!(r.by_type);
+        assert!(!r.spin);
         for move_type in MOVE_RANDOM..=MOVE_AWAY {
             marcy.move_type = move_type;
             assert_eq!(
-                own(&marcy, &Indices::default()).unwrap()["commands"],
-                json!([ROUTE_BY_TYPE + move_type])
+                own(&marcy, &Indices::default()).unwrap().commands,
+                [ROUTE_BY_TYPE + move_type]
             );
         }
         // Frequency 1 goes in, as Sunset over Imdahl's ravens: the ROM waits
         // 255 frames after each step and not 256. A route that low does not.
         marcy.move_frequency = 1;
-        assert_eq!(
-            own(&marcy, &Indices::default()).unwrap()["frequency"],
-            json!(1)
-        );
+        assert_eq!(own(&marcy, &Indices::default()).unwrap().frequency, 1);
         marcy.move_frequency = 0;
         assert!(own(&marcy, &Indices::default()).is_none());
     }
@@ -580,8 +572,8 @@ mod tests {
         guard.move_frequency = 8;
         guard.move_speed = 5;
         let r = own(&guard, &Indices::default()).unwrap();
-        assert_eq!(r["commands"], json!([9, 2, 9, 0, 9]));
-        assert_eq!(r["speed"], json!(5));
+        assert_eq!(r.commands, [9, 2, 9, 0, 9]);
+        assert_eq!(r.speed, 5);
         // Inside a jump the commands only add up: no asking about the hero.
         guard.route = vec![ROUTE_JUMP_START, 9, ROUTE_JUMP_END];
         assert!(own(&guard, &Indices::default()).is_none());
@@ -595,8 +587,8 @@ mod tests {
         ] {
             guard.route = vec![9, command];
             assert_eq!(
-                own(&guard, &Indices::default()).unwrap()["commands"],
-                json!([9, command]),
+                own(&guard, &Indices::default()).unwrap().commands,
+                [9, command],
                 "{command}"
             );
             guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
@@ -608,8 +600,8 @@ mod tests {
         for command in [ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FORWARD] {
             guard.route = vec![9, command];
             assert_eq!(
-                own(&guard, &Indices::default()).unwrap()["commands"],
-                json!([9, command]),
+                own(&guard, &Indices::default()).unwrap().commands,
+                [9, command],
                 "{command}"
             );
             guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
@@ -630,8 +622,8 @@ mod tests {
         let indices = Indices::default();
         let r = own(&walker, &indices).unwrap();
         assert_eq!(
-            r["commands"],
-            json!([
+            r.commands,
+            [
                 ROUTE_SWITCH_ON,
                 806 & 0xFF,
                 806 >> 8,
@@ -639,7 +631,7 @@ mod tests {
                 ROUTE_SWITCH_OFF,
                 806 & 0xFF,
                 806 >> 8
-            ])
+            ]
         );
         // An operand that reads as a 31 does not lower the frequency: switch
         // 31 at frequency 2 goes in.
@@ -655,8 +647,8 @@ mod tests {
         ];
         walker.route_switches = vec![5, 6];
         assert_eq!(
-            own(&walker, &indices).unwrap()["commands"],
-            json!([ROUTE_JUMP_START, ROUTE_JUMP_END, ROUTE_SWITCH_OFF, 6, 0])
+            own(&walker, &indices).unwrap().commands,
+            [ROUTE_JUMP_START, ROUTE_JUMP_END, ROUTE_SWITCH_OFF, 6, 0]
         );
         // A switch past the game's table, or one without its number, leaves
         // the route out.

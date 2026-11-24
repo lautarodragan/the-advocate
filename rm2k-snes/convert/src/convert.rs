@@ -5,7 +5,7 @@
 use crate::animations::{self, Animations};
 use crate::bytecode;
 use crate::compiler::{
-    self, CompileMap, Compiler, Indices, CASE_VARIABLE, COMPARE_AT_LEAST, TEST_SWITCH,
+    self, variable_slot, CompileMap, Compiler, CASE_VARIABLE, COMPARE_AT_LEAST, TEST_SWITCH,
 };
 use crate::degradations::Degradations;
 use crate::emit;
@@ -21,7 +21,7 @@ use crate::scene;
 use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
-use crate::text::{hex, quoted, unhex};
+use crate::text::{hex, quoted};
 use crate::variants;
 use rm2k_project::Project;
 use rm2k_snes_bytecode::events::{
@@ -366,7 +366,7 @@ pub fn run(options: Options) -> Result<()> {
             order.len()
         );
     }
-    let mut indices = Indices::from_answer(&scan_answer);
+    let mut indices = scan_answer.indices.clone();
     if !cases.is_empty() {
         // The test pages turn it on, and the table has to hold it: the one
         // the scan found free, which is `TEST_SWITCH` unless the game names
@@ -729,22 +729,18 @@ pub fn run(options: Options) -> Result<()> {
     // judged by the numbers: big pictures under two numbers can be up
     // together, under one they cannot.
     let mut common_bigs = Vec::new();
-    for c in scan_answer["commons_pictures"]
-        .as_array()
-        .into_iter()
-        .flatten()
-    {
-        let n = c["common"].as_i64().unwrap_or(0);
+    for c in &scan_answer.commons_pictures {
+        let n = c.common;
         let bigs = pictures::big_for_map(
             &game.game_dir,
-            &pictures::keys(c.get("pictures"))?,
-            c["zooms"].as_array().map_or(&[][..], Vec::as_slice),
+            &pictures::keys(&c.pictures),
+            &c.zooms,
             &format!("common event {n}"),
             &game.cropped,
             &|_| false,
             None,
         )?;
-        let numbers: BTreeSet<i64> = bigs.iter().map(|b| b.key.number).collect();
+        let numbers: BTreeSet<i64> = bigs.iter().map(|b| i64::from(b.key.number)).collect();
         if numbers.len() > 1 {
             println!(
                 "  common event {n}: its {} big pictures are not shown: they are under {} \
@@ -941,22 +937,13 @@ pub fn run(options: Options) -> Result<()> {
         (Some(m), Some(e)) => copy_events.contains(&(m, e)),
         _ => false,
     });
-    let messages = unhex(compiled["messages"]["data"].as_str().unwrap_or(""));
-    let message_count = int(&compiled["messages"]["count"]);
-    let message_pairs = json!({"first": compiled["messages"]["pair_first"], "table": compiled["messages"]["pairs"]});
+    let messages = compiled.messages.data.0.clone();
+    let message_count = compiled.messages.count as i64;
+    let message_pairs =
+        json!({"first": compiled.messages.pair_first, "table": compiled.messages.pairs});
     let troops = scene::Troops {
-        ids: compiled["troops"]["ids"]
-            .as_array()
-            .map(|a| a.iter().map(|v| int(v) as i32).collect())
-            .unwrap_or_default(),
-        backdrops: compiled["troops"]["backdrops"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|e| (int(&e[0]) as i32, e[1].as_str().map(str::to_string)))
-                    .collect()
-            })
-            .unwrap_or_default(),
+        ids: compiled.troops.ids.clone(),
+        backdrops: compiled.troops.backdrops.iter().cloned().collect(),
     };
     // A troop of the cartridge's with more members than a battle holds:
     // which ones it left out, see `rm2k_snes_battle::fit`.
@@ -966,41 +953,25 @@ pub fn run(options: Options) -> Result<()> {
             degradations.troop(*n as i64, "troop-members-left-out", &cut.text());
         }
     }
-    if let Some(commons) = compiled
-        .get("commons")
-        .filter(|c| !c.is_null() && c.as_object().is_some_and(|o| !o.is_empty()))
-    {
-        let bodies = commons["bodies"].as_array().cloned().unwrap_or_default();
+    if let Some(commons) = &compiled.commons {
+        let bodies = &commons.bodies;
         println!(
             "shared common events: {} bodies, {} bytes; automatic ones that run: {}; left out, not compiling: {}",
             bodies.len(),
-            bodies.iter().map(|b| b[1].as_str().map_or(0, |s| s.len() / 2)).sum::<usize>(),
-            join(
-                commons["autostart"].as_array().cloned().unwrap_or_default().iter().map(|a| int(&bodies[int(&a[1]) as usize][0])),
-                ", "
-            ),
-            {
-                let left: Vec<String> =
-                    commons["left_out"].as_array().cloned().unwrap_or_default().iter().map(|v| v.to_string()).collect();
-                if left.is_empty() {
-                    "none".to_string()
-                } else {
-                    left.join(", ")
-                }
+            bodies.iter().map(|(_, code)| code.0.len()).sum::<usize>(),
+            join(commons.autostart.iter().map(|(_, body)| bodies[*body as usize].0), ", "),
+            if commons.left_out.is_empty() {
+                "none".to_string()
+            } else {
+                join(&commons.left_out, ", ")
             }
         );
     }
     let mut test_code: Vec<Vec<u8>> = Vec::new();
-    for (k, code) in compiled["cases"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-        .iter()
-        .enumerate()
-    {
-        match code.as_str() {
+    for (k, code) in compiled.cases.iter().enumerate() {
+        match code {
             None => crate::stop!("{}: the test page doesn't compile", cases[k].0),
-            Some(hex) => test_code.push(unhex(hex)),
+            Some(code) => test_code.push(code.0.clone()),
         }
     }
 
@@ -1012,24 +983,20 @@ pub fn run(options: Options) -> Result<()> {
         engine::TRIGGER_PARALLEL as i64,
     ];
     for m in infos.iter_mut() {
-        let entry = compiler::map_entry(&compiled, m.id)?.clone();
+        let entry = compiled
+            .map(m.id)
+            .ok_or_else(|| Stop::new(format!("map {} is not in the answer", m.id)))?;
         // The pages of the map's events: their conditions, and the code of
         // the ones that can be run.
-        let pages = maps::pages(&entry["pages"], m)?;
+        let pages = maps::pages(&entry.pages, m)?;
         // And which substitutions they asked for: the blocks their pairs
         // start from are the keys of the ROM's table. See `SUB_MAX`.
         let mut sub_keys = BTreeSet::new();
         let truthy = |v: &Value| v.as_bool().unwrap_or_else(|| int(v) != 0);
-        for asked in entry["substitutions"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-        {
-            let upper = truthy(&asked[0]);
+        for &(upper, old, new) in &entry.substitutions {
             let found = m.substitution_table.as_array().and_then(|t| {
-                t.iter().find(|s| {
-                    truthy(&s["upper"]) == upper && s["old"] == asked[1] && s["new"] == asked[2]
-                })
+                t.iter()
+                    .find(|s| truthy(&s["upper"]) == upper && s["old"] == old && s["new"] == new)
             });
             if let Some(pairs) = found.and_then(|s| s["pairs"].as_array()) {
                 for pair in pairs {
@@ -1063,15 +1030,8 @@ pub fn run(options: Options) -> Result<()> {
         }
         // The graphics command 34 and `ChangeSpriteAssociation` carry by
         // index: the two passes have to have numbered them the same.
-        let graphics: Vec<(String, i64)> = entry["graphics"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|g| (g[0].as_str().unwrap_or("").to_string(), int(&g[1])))
-                    .collect()
-            })
-            .unwrap_or_default();
-        if graphics != m.route_graphics {
+        let graphics = &entry.graphics;
+        if *graphics != m.route_graphics {
             crate::stop!(
                 "map {}: the two passes numbered the route graphics differently: {:?} against {:?}",
                 m.id,
@@ -1079,16 +1039,10 @@ pub fn run(options: Options) -> Result<()> {
                 m.route_graphics
             );
         }
-        for g in entry["graphics_dropped"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-        {
+        for (graphic, index) in &entry.graphics_dropped {
             println!(
-                "  map {}: WARNING, a route changes to the graphic {} {} and the map's table does not have it —full at {}, or a page the scan did not get that far in—: the change is ignored",
+                "  map {}: WARNING, a route changes to the graphic {graphic} {index} and the map's table does not have it —full at {}, or a page the scan did not get that far in—: the change is ignored",
                 m.id,
-                g[0].as_str().unwrap_or(""),
-                int(&g[1]),
                 record::ROUTE_GFX_MAX
             );
         }
@@ -1122,8 +1076,7 @@ pub fn run(options: Options) -> Result<()> {
         }
         // Debts are warned about: a page accepted without doing everything
         // it asks for is a difference from the original game.
-        for code in entry["debts"].as_array().cloned().unwrap_or_default() {
-            let code = int(&code) as i32;
+        for &code in &entry.debts {
             let name = ditto::schema::EventCommandCode::from_i32(code)
                 .json_name()
                 .map_or_else(|| code.to_string(), str::to_string);
@@ -1154,20 +1107,17 @@ pub fn run(options: Options) -> Result<()> {
             // has no code.
             for (k, code) in test_code.iter().enumerate() {
                 let variable = if k > 0 {
-                    json!([
-                        indices.variable_slot(CASE_VARIABLE as i64)?,
-                        COMPARE_AT_LEAST,
-                        k
-                    ])
+                    let slot = variable_slot(&indices, CASE_VARIABLE as i64)?;
+                    Some((slot, COMPARE_AT_LEAST.into(), k as i64))
                 } else {
-                    Value::Null
+                    None
                 };
                 m.pages.push(test_page(k as i64, 0, variable, code.clone()));
             }
             m.pages.push(test_page(
                 cases.len() as i64,
-                compiler.test_switch as i64,
-                Value::Null,
+                compiler.test_switch,
+                None,
                 Vec::new(),
             ));
         }
@@ -1441,19 +1391,12 @@ pub fn run(options: Options) -> Result<()> {
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
     let font = FontChoice::of(&settings)?;
-    let menu_before: Value = compiled
-        .get("commons")
-        .and_then(|c| c.get("menu_before"))
-        .and_then(Value::as_array)
-        .map(|pairs| {
-            Value::Object(
-                pairs
-                    .iter()
-                    .map(|p| (int(&p[0]).to_string(), p[1].clone()))
-                    .collect(),
-            )
-        })
-        .unwrap_or_else(|| json!({}));
+    let menu_before: serde_json::Map<String, Value> = compiled
+        .commons
+        .iter()
+        .flat_map(|c| &c.menu_before)
+        .map(|(n, body)| (n.to_string(), json!(body)))
+        .collect();
     let menus_request = json!({
         "menus": custom_menus.iter().map(|m| json!({"name": m.name, "spec": m.spec})).collect::<Vec<_>>(),
         "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
@@ -1486,7 +1429,7 @@ pub fn run(options: Options) -> Result<()> {
         &menus_request,
         window_colors,
         &window_answer["text_rows"],
-        &compiled["messages"]["letters"],
+        &json!(compiled.messages.letters),
         &screen_letters,
     )?;
     for loss in screens_answer["losses"].as_array().into_iter().flatten() {
@@ -1748,26 +1691,24 @@ pub fn run(options: Options) -> Result<()> {
         println!("{}", scene::battler_report(b));
     }
     // The event pages of the troops some battle of the cartridge asks for.
-    let tp = &compiled["troop_pages"];
+    let tp = &compiled.troop_pages;
     println!(
         "  troop pages: {} of {} in {} distinct body(ies), {} B of code and {} B in {} message(s)",
-        int(&tp["pages"]) - int(&tp["left_out"]),
-        int(&tp["pages"]),
-        int(&tp["distinct"]),
-        tp["code"].as_str().map_or(0, |s| s.len() / 2),
-        tp["messages"].as_str().map_or(0, |s| s.len() / 2),
-        int(&tp["message_count"])
+        tp.pages - tp.left_out,
+        tp.pages,
+        tp.distinct,
+        tp.code.0.len(),
+        tp.messages.0.len(),
+        tp.message_count
     );
     // And their debts, as the maps' automatic pages': one line per command,
     // with the troops, because the game copies its systems' pages into every
     // troop and one line per troop would be the warning nobody reads.
-    for debt in tp["debts"].as_array().cloned().unwrap_or_default() {
-        let code = int(&debt[0]) as i32;
-        let name = ditto::schema::EventCommandCode::from_i32(code)
+    for (code, pages) in &tp.debts {
+        let name = ditto::schema::EventCommandCode::from_i32(*code)
             .json_name()
             .map_or_else(|| code.to_string(), str::to_string);
-        let pages = debt[1].as_array().cloned().unwrap_or_default();
-        let troops: BTreeSet<i64> = pages.iter().map(|p| int(&p[0])).collect();
+        let troops: BTreeSet<i32> = pages.iter().map(|(troop, _)| *troop).collect();
         println!(
             "  troop pages: WARNING, {} page(s) of {} troop(s) use {name} and the ROM doesn't do it; \
              see ACCEPTED_UNDONE in rm2k-snes/events. Troops: {}",
@@ -1778,11 +1719,11 @@ pub fn run(options: Options) -> Result<()> {
     }
     // The battle's model, `rm2k-snes-battle`'s second call.
     let layout = screens::layout()?;
-    let mut pairs: Vec<((i64, i64), i64)> = indices.skills.clone();
-    pairs.sort_by_key(|(_, slot)| *slot);
+    let mut pairs = indices.skills.clone();
+    pairs.sort_by_key(|(_, _, slot)| *slot);
     let request = json!({
         "actors": members, "troops": troops.ids, "items": items_all,
-        "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
+        "skill_pairs": pairs.iter().map(|(a, h, _)| json!([a, h])).collect::<Vec<_>>(),
         "item_name_width": layout["ITEM_NAME_WIDTH"],
         // The letters the text screens carry: an item's name in a
         // victory line keeps them.
@@ -1840,15 +1781,10 @@ pub fn run(options: Options) -> Result<()> {
     // switch is on: the ones that compile, and a line for those that do not.
     let mut parallel_common = Vec::new();
     let mut parallel_left_out = Vec::new();
-    for e in compiled["parallel_commons"]
-        .as_array()
-        .into_iter()
-        .flatten()
-    {
-        let number = e[0].as_i64().unwrap_or(-1);
-        match e[3].as_str() {
-            Some(code) => parallel_common.push(json!([e[1], number, e[2], code])),
-            None => parallel_left_out.push(number),
+    for (number, switch, pure, code) in &compiled.parallel_commons {
+        match code {
+            Some(code) => parallel_common.push(json!([switch, number, pure, code])),
+            None => parallel_left_out.push(*number),
         }
     }
     if !parallel_common.is_empty() || !parallel_left_out.is_empty() {
@@ -1859,13 +1795,13 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let case_slot = if cases.len() > 1 {
-        Some(indices.variable_slot(CASE_VARIABLE as i64)?)
+        Some(variable_slot(&indices, CASE_VARIABLE as i64)?)
     } else {
         None
     };
     // The shared bodies, with the copies of the automatic ones by map index:
     // see [`crate::common_pages`].
-    let mut commons_with_copies = compiled.get("commons").cloned().unwrap_or(Value::Null);
+    let mut commons_with_copies = json!(compiled.commons);
     if let (Some(c), Some(copies)) = (commons_with_copies.as_object_mut(), common_pages.to_json()) {
         let maps: Vec<usize> = order
             .iter()
@@ -1923,17 +1859,17 @@ pub fn run(options: Options) -> Result<()> {
         "msu_missing": msu_missing.as_ref().map(fullscreen::Screen::request),
         "animations": animations::request(&animations),
         "troops": troops.ids,
-        "battle_audio": compiled["battle_audio"],
+        "battle_audio": compiled.battle_audio,
         "scene": scene::request(&scenes, &troops.ids, &game.db),
         "battle_tables": battle_tables,
-        "troop_pages": compiled["troop_pages"],
+        "troop_pages": compiled.troop_pages,
         "parallel_common": parallel_common,
         "commons": commons_with_copies,
         "battle_model": battle_model,
         // The compiler's indices: each variable's slot and each (actor,
         // skill) pair's bit.
         "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
-        "skill_pairs": indices.skills.iter().map(|((a, h), s)| json!([a, h, s])).collect::<Vec<_>>(),
+        "skill_pairs": indices.skills,
         "items": items_all,
         "actors": members,
         "text_padding": options.text_padding,
@@ -2142,7 +2078,7 @@ pub fn run(options: Options) -> Result<()> {
         .map(rm2k_project::absolute)
         .unwrap_or_else(|| directory.join("datos.msu"));
     let request = json!({
-        "songs": compiled["songs"],
+        "songs": compiled.songs,
         "maps": infos.iter().map(|m| m.id).collect::<Vec<_>>(),
         "start": start_index,
         "title": title_screen.is_some(),
@@ -2255,8 +2191,7 @@ fn lay_out_code(pages: &mut [PageRecord]) -> Vec<u8> {
     for page in pages.iter_mut() {
         page.offset = place(&mut code, page.code.clone());
         if let Some(own) = &page.own_route {
-            let commands = own["commands"].as_array().cloned().unwrap_or_default();
-            page.route_offset = place(&mut code, commands.iter().map(|c| int(c) as u8).collect());
+            page.route_offset = place(&mut code, own.commands.iter().map(|&c| c as u8).collect());
         }
     }
     code
@@ -2318,19 +2253,24 @@ fn lay_out_with_copy(
 const TITLE_HEADER: usize = 21;
 
 /// A test page of the boot map's event 0.
-fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecord {
+fn test_page(
+    k: i64,
+    switch_a: i32,
+    variable: Option<(i64, i64, i64)>,
+    code: Vec<u8>,
+) -> PageRecord {
     PageRecord {
         event: 0,
         page: k,
         trigger: engine::TRIGGER_AUTOSTART as i64,
-        switch_a: json!(switch_a),
-        switch_b: json!(0),
-        actor: json!(0),
+        switch_a,
+        switch_b: 0,
+        actor: 0,
         variable,
-        item: json!(0),
-        layer: json!(0),
-        frequency: json!(engine::ROUTE_FREQUENCY),
-        speed: json!(4),
+        item: 0,
+        layer: 0,
+        frequency: engine::ROUTE_FREQUENCY as i32,
+        speed: 4,
         has_code: !code.is_empty(),
         code,
         own_route: None,
@@ -2380,6 +2320,7 @@ fn cut_report(place: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rm2k_snes_events::answer::OwnRoute;
 
     /// The cap is written on both sides, and has to be: the ROM **cannot
     /// warn** that it was exceeded, so the one that refuses a map that does
@@ -2430,14 +2371,23 @@ mod tests {
     #[test]
     fn identical_pages_and_routes_are_stored_once() {
         let mut pages = vec![
-            test_page(0, 0, Value::Null, vec![1, 2, 3]),
-            test_page(1, 0, Value::Null, vec![4, 5]),
-            test_page(2, 0, Value::Null, vec![1, 2, 3]),
-            test_page(3, 0, Value::Null, Vec::new()),
+            test_page(0, 0, None, vec![1, 2, 3]),
+            test_page(1, 0, None, vec![4, 5]),
+            test_page(2, 0, None, vec![1, 2, 3]),
+            test_page(3, 0, None, Vec::new()),
         ];
-        pages[1].own_route = Some(json!({"commands": [7, 8]}));
-        pages[2].own_route = Some(json!({"commands": [7, 8]}));
-        pages[3].own_route = Some(json!({"commands": [4, 5]}));
+        pages[1].own_route = Some(OwnRoute {
+            commands: vec![7, 8],
+            ..Default::default()
+        });
+        pages[2].own_route = Some(OwnRoute {
+            commands: vec![7, 8],
+            ..Default::default()
+        });
+        pages[3].own_route = Some(OwnRoute {
+            commands: vec![4, 5],
+            ..Default::default()
+        });
         let code = lay_out_code(&mut pages);
         assert_eq!(code, [1, 2, 3, 4, 5, 7, 8]);
         let offsets: Vec<usize> = pages.iter().map(|p| p.offset).collect();
@@ -2455,8 +2405,8 @@ mod tests {
     fn a_copy_is_kept_only_where_it_draws_and_the_code_goes_to_wram() {
         let pages = || {
             let mut pages = vec![
-                test_page(0, 0, Value::Null, vec![1, 2, 3]),
-                test_page(1, 0, Value::Null, vec![9; 8]),
+                test_page(0, 0, None, vec![1, 2, 3]),
+                test_page(1, 0, None, vec![9; 8]),
             ];
             pages[1].event = 4;
             pages

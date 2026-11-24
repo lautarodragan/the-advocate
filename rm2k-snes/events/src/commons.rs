@@ -30,6 +30,7 @@
 //! for real after every page, in the order of their numbers, with the same
 //! registries: what they number goes at the end and moves nobody's index.
 
+use crate::answer::Hex;
 use crate::codes::*;
 use crate::compile::{
     compile_page, Ctx, Indices, SoundSettings, COND_ACTOR, COND_ACTOR_EQUIPMENT, COND_SWITCH,
@@ -41,7 +42,6 @@ use crate::losses::{Losses, Origin};
 use crate::messages::Messages;
 use crate::registry::{Pictures, Songs, Troops};
 use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// The small pictures of the common events that run without a map, in
@@ -178,16 +178,24 @@ pub struct Shared {
 }
 
 impl Shared {
-    pub fn to_json(&self) -> Value {
-        json!({
-            "bodies": self.bodies.iter().map(|(n, code)| json!([n, crate::pages::hex(code)])).collect::<Vec<_>>(),
-            "autostart": self.autostart,
-            "depth": self.depth,
-            "left_out": self.left_out,
-            "menu_before": self.menu_before,
-        })
+    pub fn answer(&self) -> crate::answer::Shared {
+        crate::answer::Shared {
+            bodies: self
+                .bodies
+                .iter()
+                .map(|(n, code)| (*n, Hex(code.clone())))
+                .collect(),
+            autostart: self.autostart.clone(),
+            depth: self.depth,
+            left_out: self.left_out.clone(),
+            menu_before: self.menu_before.clone(),
+        }
     }
 }
+
+/// What [`parallel_commons`] answers of each: `(number, switch, pure,
+/// code)`.
+pub type ParallelCommons = Vec<(i32, i32, bool, Option<Hex>)>;
 
 /// The automatic common events that can run: with a switch and with
 /// something to run. One without a switch runs always, from the first
@@ -669,7 +677,7 @@ pub fn parallel_commons(
     songs: &mut Songs,
     troops: &mut Troops,
     losses: &mut Losses,
-) -> Result<(Vec<Value>, Vec<(i32, Vec<String>)>)> {
+) -> Result<(ParallelCommons, Vec<(i32, Vec<String>)>)> {
     let mut out = Vec::new();
     let mut sounds = Vec::new();
     for (&number, c) in &s.game.common_events {
@@ -720,12 +728,7 @@ pub fn parallel_commons(
             code
         };
         let switch = if c.switch_flag { c.switch_id } else { 0 };
-        out.push(json!([
-            number,
-            switch,
-            pure(&c.commands),
-            code.map(|c| crate::pages::hex(&c))
-        ]));
+        out.push((number, switch, pure(&c.commands), code.map(Hex)));
     }
     Ok((out, sounds))
 }

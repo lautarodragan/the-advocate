@@ -19,6 +19,7 @@
 //! The opcodes' numbers are not here: they are declared, once, in
 //! `rm2k-snes-bytecode`.
 
+pub mod answer;
 pub mod codes;
 pub mod commons;
 pub mod compile;
@@ -48,10 +49,11 @@ use crate::game::{Command, Event, Map, Patches};
 use crate::landings::Landings;
 use crate::losses::{Losses, Origin};
 use crate::messages::{Messages, Window};
-use crate::pages::{hex, map_pages, MapEvents, SubstitutionTable, Substitutions};
+use crate::pages::{map_pages, MapEvents, SubstitutionTable, Substitutions};
 use crate::registry::{BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::troops::TroopPages;
-use serde_json::{json, Map as JsonMap, Value};
+use serde::Deserialize;
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -258,34 +260,6 @@ fn pair(v: &Value, whose: &str) -> Result<(String, i32)> {
     Ok((text(&a[0], whose)?, int(&a[1], whose)? as i32))
 }
 
-/// A picture as the scan answers it and the caller sends it back: see
-/// [`PictureKey::to_json`].
-fn picture_key(v: &Value, whose: &str) -> Result<PictureKey> {
-    let flag = |name: &str| -> Result<bool> {
-        field(v, name, whose)?
-            .as_bool()
-            .ok_or_else(|| Bad::answer(format!("{whose}: a picture's `{name}` is not a flag")))
-    };
-    let at = field(v, "at", whose)?;
-    Ok(PictureKey {
-        number: int(field(v, "number", whose)?, whose)? as i32,
-        name: text(field(v, "name", whose)?, whose)?,
-        zoom: int(field(v, "zoom", whose)?, whose)? as i32,
-        transparent_color: flag("transparent_color")?,
-        map_fixed: flag("map_fixed")?,
-        by_variable: flag("by_variable")?,
-        at: if at.is_null() {
-            None
-        } else {
-            let a = at
-                .as_array()
-                .filter(|a| a.len() == 2)
-                .ok_or_else(|| Bad::answer(format!("{whose}: a picture's `at` is {at}")))?;
-            Some((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
-        },
-    })
-}
-
 fn by_map<T>(
     v: &Value,
     whose: &str,
@@ -315,7 +289,8 @@ fn pictures_of(v: &Value, whose: &str) -> Result<Pictures> {
         .as_array()
         .ok_or_else(|| Bad::answer(format!("{whose}: a list of pictures is not a list")))?
     {
-        let key = picture_key(e, whose)?;
+        let key = PictureKey::deserialize(e)
+            .map_err(|err| Bad::answer(format!("{whose}: a picture: {err}")))?;
         if e.get("plane").and_then(Value::as_str) == Some("background") {
             let pair = |name: &str| -> Result<(i32, i32)> {
                 let a = field(e, name, whose)?
@@ -773,58 +748,48 @@ fn common_pages(game: &Game, numbers: &[i32]) -> Vec<crate::game::Page> {
 }
 
 /// The indices, as the caller keeps them.
-fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<String, Value> {
-    let mut out = JsonMap::new();
-    out.insert(
-        "variables".into(),
-        json!(indices
+fn indices_answer(indices: &Indices, associations: &[(String, i32)]) -> answer::Indices {
+    answer::Indices {
+        variables: indices
             .variables
             .iter()
-            .map(|(v, s)| json!([v, s]))
+            .map(|(&v, &s)| (v.into(), s as i64))
             // The high words of the wide variables, as the variable's
             // number negated: the caller counts the slots by this list
             // —`VARIABLES_N`— and looks a variable up by its number, which
             // is never negative. See `indices::wide`.
-            .chain(indices.wide.iter().map(|(v, s)| json!([-v, s])))
-            .collect::<Vec<_>>()),
-    );
-    out.insert(
-        "skills".into(),
-        json!(indices
+            .chain(
+                indices
+                    .wide
+                    .iter()
+                    .map(|(&v, &s)| (-i64::from(v), s as i64)),
+            )
+            .collect(),
+        skills: indices
             .skills
             .iter()
-            .map(|((a, h), s)| json!([a, h, s]))
-            .collect::<Vec<_>>()),
-    );
-    // The highest switch the game names: the cartridge's table holds it.
-    out.insert("switch_top".into(), json!(indices.switch_top));
-    // And the one the test pages can turn on, if they asked.
-    if let Some(s) = indices.test_switch {
-        out.insert("test_switch".into(), json!(s));
-    }
-    // The names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME` counts
-    // them: the converter writes their texts and the table of the renamed
-    // actors from this.
-    out.insert(
-        "names".into(),
-        json!(indices
+            .map(|(&(a, h), &s)| (a.into(), h.into(), s as i64))
+            .collect(),
+        switch_top: indices.switch_top.into(),
+        // And the one the test pages can turn on, if they asked.
+        test_switch: indices.test_switch.map(i64::from),
+        // The names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
+        // counts them: the converter writes their texts and the table of
+        // the renamed actors from this.
+        names: indices
             .renames
             .iter()
-            .map(|(a, n)| json!([a, n]))
-            .collect::<Vec<_>>()),
-    );
-    // The faces the message window shows, as [FaceSet, index, mirrored], in
-    // the order `OP_FACE` counts them: the converter draws them from this.
-    out.insert(
-        "faces".into(),
-        json!(indices
+            .map(|(a, n)| (i64::from(*a), n.clone()))
+            .collect(),
+        // The faces the message window shows, in the order `OP_FACE`
+        // counts them: the converter draws them from this.
+        faces: indices
             .faces
             .iter()
-            .map(|(f, i, m)| json!([f, i, m]))
-            .collect::<Vec<_>>()),
-    );
-    out.insert("associations".into(), json!(associations));
-    out
+            .map(|(f, i, m)| (f.clone(), i64::from(*i), *m))
+            .collect(),
+        associations: associations.to_vec(),
+    }
 }
 
 /// The indices, the graphics actors can be given, the cartridge's maps, and
@@ -900,7 +865,7 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
 
 /// The first call: the indices, which pages of each map compile, and each
 /// map's pages compiled without songs, pictures or troops.
-pub fn scan(game: &Game, request: &Request) -> Result<Value> {
+pub fn scan(game: &Game, request: &Request) -> Result<answer::Scan> {
     let (indices, associations, maps, landings) = prepare(game, request)?;
     let order: HashMap<i64, usize> = request
         .maps
@@ -944,7 +909,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 if let Some(code) =
                     compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
                 {
-                    compiled.push(json!([e, p, hex(&code)]));
+                    compiled.push((e, p, answer::Hex(code)));
                 }
             }
         }
@@ -1044,27 +1009,21 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
             on_events.extend(graphics.on_events);
         }
-        let mut entry = json!({
-            "id": map.id,
-            "compiled": compiled,
-            "pages": pages,
-            "graphics": graphics.pairs,
-            "pictures": pictures.keys_json(),
-            "zooms": pictures.zooms_json(),
-            "tinted": pictures.tinted,
+        out.push(answer::ScanMap {
+            id: map.id,
+            compiled,
+            pages,
+            graphics: pairs(&graphics.pairs),
+            pictures: pictures.keys(),
+            zooms: pictures.zooms_json(),
+            tinted: pictures.tinted.iter().map(|&n| n.into()).collect(),
+            // Only on a map with copies, so the answer of the rest stays
+            // the one it was.
+            pictures_own: own.filter(|_| request.common_page_maps.contains(&map.id)),
+            // Which of them a route gives an event, the test pages' too:
+            // the rest only the hero shows.
+            graphics_on_events: pairs(&on_events),
         });
-        // Only on a map with copies, so the answer of the rest stays the one
-        // it was.
-        if request.common_page_maps.contains(&map.id) {
-            entry["pictures_own"] = json!(own);
-        }
-        // Which of them a route gives an event, the test pages' too: the
-        // rest only the hero shows. Only when there are some, like
-        // `graphics_dropped`.
-        if !on_events.is_empty() {
-            entry["graphics_on_events"] = json!(on_events);
-        }
-        out.push(entry);
     }
     // And the pictures the common events that run anywhere can show,
     // gathered the same way, as a real body is compiled —without a map—,
@@ -1099,11 +1058,11 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         };
         let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
         if compiles.is_some() && !pictures.table.is_empty() {
-            gathered.push(json!({
-                "common": n,
-                "pictures": pictures.keys_json(),
-                "zooms": pictures.zooms_json(),
-            }));
+            gathered.push(answer::CommonPictures {
+                common: n,
+                pictures: pictures.keys(),
+                zooms: pictures.zooms_json(),
+            });
         }
     }
     // And their small ones, by set: see [`commons::picture_sets`]. Each
@@ -1136,26 +1095,28 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         let compiles = compile_page(&mut ctx, &game.common_events[&n].commands, None, 0, 0)?;
         Ok(compiles.map(|_| pictures))
     })?;
-    let mut answer = indices_json(&indices, &associations);
-    answer.insert("maps".into(), json!(out));
-    if !gathered.is_empty() {
-        answer.insert("commons_pictures".into(), json!(gathered));
-    }
-    if !sets.is_empty() {
-        answer.insert(
-            "common_sets".into(),
-            json!(sets
-                .iter()
-                .map(|set| json!({
-                    "parallel": set.parallel,
-                    "commons": set.commons,
-                    "pictures": set.pictures.keys_json(),
-                    "tinted": set.pictures.tinted,
-                }))
-                .collect::<Vec<_>>()),
-        );
-    }
-    Ok(Value::Object(answer))
+    let common_sets = sets
+        .iter()
+        .map(|set| answer::CommonSet {
+            parallel: set.parallel,
+            commons: set.commons.clone(),
+            pictures: set.pictures.keys(),
+            tinted: set.pictures.tinted.iter().map(|&n| n.into()).collect(),
+        })
+        .collect();
+    Ok(answer::Scan {
+        indices: indices_answer(&indices, &associations),
+        maps: out,
+        commons_pictures: gathered,
+        common_sets,
+    })
+}
+
+/// `(name, index)` pairs as an answer carries them.
+fn pairs<'a>(list: impl IntoIterator<Item = &'a (String, i32)>) -> Vec<(String, i64)> {
+    list.into_iter()
+        .map(|(g, i)| (g.clone(), (*i).into()))
+        .collect()
 }
 
 /// The second call: every page of the cartridge, compiled with everything.
@@ -1177,7 +1138,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
 /// English carries none, and its cartridge is the same as before there were
 /// any. Whether a page compiles does not depend on it either: a letter not
 /// drawn is shown as its plain stand-in.
-pub fn compile(game: &Game, request: &Request) -> Result<Value> {
+pub fn compile(game: &Game, request: &Request) -> Result<answer::Compiled> {
     let window = request.window();
     let (_, gathered) = compile_pass(
         game,
@@ -1197,7 +1158,7 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
 /// The same, with one byte per letter: what the compiler answered before
 /// there were pairs. No cartridge uses it: the tests compare against it
 /// that the pairs write the same boxes.
-pub fn compile_without_pairs(game: &Game, request: &Request) -> Result<Value> {
+pub fn compile_without_pairs(game: &Game, request: &Request) -> Result<answer::Compiled> {
     let messages = Messages::new(request.messages_step, request.window());
     Ok(compile_pass(game, request, messages)?.0)
 }
@@ -1206,7 +1167,7 @@ fn compile_pass(
     game: &Game,
     request: &Request,
     mut messages: Messages,
-) -> Result<(Value, Messages)> {
+) -> Result<(answer::Compiled, Messages)> {
     let (indices, associations, maps, landings) = prepare(game, request)?;
     let order: HashMap<i64, usize> = request
         .maps
@@ -1306,7 +1267,7 @@ fn compile_pass(
     let switches_anywhere = commons::turned_on_anywhere(game, &parallel_switches);
 
     let mut maps_out = Vec::new();
-    let mut cases_out: Vec<Option<String>> = vec![None; request.cases.len()];
+    let mut cases_out: Vec<Option<answer::Hex>> = vec![None; request.cases.len()];
     for (k, map) in maps.into_iter().enumerate() {
         let map = with_test_event(map, request, game);
         let subs = Rc::new(Substitutions {
@@ -1403,7 +1364,7 @@ fn compile_pass(
             )?;
             // One that does not compile is null: what to do about it is the
             // caller's.
-            cases_out[c] = code.map(|code| hex(&code));
+            cases_out[c] = code.map(answer::Hex);
         }
         // The debts: what the automatic pages that compile accept without
         // doing. With the text block and nothing else.
@@ -1445,25 +1406,14 @@ fn compile_pass(
                 )?);
             }
         }
-        let asked: Vec<Value> = subs
-            .asked
-            .borrow()
-            .iter()
-            .map(|(u, o, n)| json!([u, o, n]))
-            .collect();
-        let mut entry = json!({
-            "id": map.id,
-            "pages": pages,
-            "graphics": numbered,
-            "debts": debts,
-            "substitutions": asked,
+        maps_out.push(answer::CompiledMap {
+            id: map.id,
+            pages,
+            graphics: pairs(&numbered),
+            debts,
+            substitutions: subs.asked.borrow().clone(),
+            graphics_dropped: pairs(&dropped),
         });
-        // Only when there are some, so the answer stays the one the test
-        // that holds its hashes expects.
-        if !dropped.is_empty() {
-            entry["graphics_dropped"] = json!(dropped);
-        }
-        maps_out.push(entry);
     }
 
     // The troops: the maps' battles, the random encounters' and the test
@@ -1545,47 +1495,46 @@ fn compile_pass(
         }
     }
     let losses = ctx.losses.take();
-    let mut answer = indices_json(&indices, &associations);
-    answer.insert("degradations".into(), degradations(game, &losses, &callers));
-    answer.insert("maps".into(), json!(maps_out));
-    answer.insert("cases".into(), json!(cases_out));
-    answer.insert(
-        "messages".into(),
-        json!({
-            "data": hex(&messages.bytes()),
-            "count": messages.count(),
-            "pairs": hex(&messages.pairs.bytes()),
-            "pair_first": messages.window.pair_first(),
-            // The Latin-1 letters the boxes draw, in the order of their
-            // indices from 96 on: the screens stage puts their glyphs there.
-            "letters": messages.window.letters().iter().map(|c| c.to_string()).collect::<Vec<_>>(),
-        }),
-    );
-    answer.insert("songs".into(), songs.to_json());
-    answer.insert(
-        "troops".into(),
-        json!({
-            "ids": troops.ids,
-            "backdrops": troops.backdrops.iter().map(|(n, b)| json!([n, match b {
-                registry::Backdrop::Named(s) => json!(s),
-                registry::Backdrop::Place => Value::Null,
-            }])).collect::<Vec<_>>(),
-        }),
-    );
-    answer.insert("troop_pages".into(), troop_pages.to_json());
-    answer.insert(
-        "battle_audio".into(),
-        match battle_audio {
+    let answer = answer::Compiled {
+        indices: indices_answer(&indices, &associations),
+        degradations: degradations(game, &losses, &callers),
+        maps: maps_out,
+        cases: cases_out,
+        messages: answer::Messages {
+            data: answer::Hex(messages.bytes()),
+            count: messages.count(),
+            pairs: answer::Hex(messages.pairs.bytes()),
+            pair_first: messages.window.pair_first(),
+            // The screens stage puts their glyphs from index 96 on.
+            letters: messages
+                .window
+                .letters()
+                .iter()
+                .map(char::to_string)
+                .collect(),
+        },
+        songs: songs.to_json(),
+        troops: answer::Troops {
+            ids: troops.ids.clone(),
+            backdrops: troops
+                .backdrops
+                .iter()
+                .map(|(n, b)| match b {
+                    registry::Backdrop::Named(s) => (*n, Some(s.clone())),
+                    registry::Backdrop::Place => (*n, None),
+                })
+                .collect(),
+        },
+        troop_pages: troop_pages.answer(),
+        battle_audio: match battle_audio {
             None => Value::Null,
             Some(a) => Value::Object(a.into_iter().collect()),
         },
-    );
-    answer.insert("parallel_commons".into(), json!(parallel));
-    // Only when there are some, like `troop_songs`.
-    if !commons.bodies.is_empty() {
-        answer.insert("commons".into(), commons.to_json());
-    }
-    Ok((Value::Object(answer), messages))
+        parallel_commons: parallel,
+        // Only when there are some, like `troop_songs`.
+        commons: (!commons.bodies.is_empty()).then(|| commons.answer()),
+    };
+    Ok((answer, messages))
 }
 
 /// Who calls each common event by number: the cartridge's maps' pages,
@@ -1626,7 +1575,7 @@ fn degradations(
     game: &Game,
     losses: &[losses::Loss],
     callers: &BTreeMap<i32, Vec<Value>>,
-) -> Value {
+) -> answer::Degradations {
     let commons: BTreeSet<i32> = losses
         .iter()
         .filter_map(|l| match l.path.first() {
@@ -1634,9 +1583,9 @@ fn degradations(
             _ => None,
         })
         .collect();
-    json!({
-        "losses": losses.iter().map(losses::Loss::to_json).collect::<Vec<_>>(),
-        "commons": commons
+    answer::Degradations {
+        losses: losses.iter().map(losses::Loss::to_json).collect(),
+        commons: commons
             .iter()
             .map(|n| {
                 let c = game.common_events.get(n);
@@ -1653,8 +1602,8 @@ fn degradations(
                 });
                 (n.to_string(), entry)
             })
-            .collect::<JsonMap<String, Value>>(),
-    })
+            .collect(),
+    }
 }
 
 #[cfg(test)]

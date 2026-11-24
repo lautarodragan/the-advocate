@@ -35,6 +35,7 @@
 //! `with_test_event` in it.
 
 use crate::game::{Command, Event, Game, GameMap, Page};
+use rm2k_snes_events::answer::Scan;
 use rm2k_snes_events::codes::{CALL_EVENT, CONTROL_SWITCHES, SHOW_PICTURE};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -168,16 +169,15 @@ impl CommonPages {
     /// Asked of the scan's `commons_pictures`, which gathers each body as it
     /// runs without a map, its calls pasted. One the scan says nothing of
     /// —its shared body does not compile— is not judged, and stays.
-    pub fn drawing_nothing(&self, game: &Game, scan: &Value) -> crate::fail::Result<Vec<i32>> {
+    pub fn drawing_nothing(&self, game: &Game, scan: &Scan) -> crate::fail::Result<Vec<i32>> {
         let mut nothing = Vec::new();
-        for c in scan["commons_pictures"].as_array().into_iter().flatten() {
-            let n = c["common"].as_i64().unwrap_or(0) as i32;
-            if !self.commons.contains(&n) {
+        for c in &scan.commons_pictures {
+            if !self.commons.contains(&c.common) {
                 continue;
             }
-            let keys = crate::pictures::keys(c.get("pictures"))?;
+            let keys = crate::pictures::keys(&c.pictures);
             if !crate::pictures::any_small(&game.game_dir, &keys, &game.cropped)? {
-                nothing.push(n);
+                nothing.push(c.common);
             }
         }
         Ok(nothing)
