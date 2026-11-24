@@ -20,6 +20,7 @@ use crate::settings::Settings;
 use crate::stage;
 use rm2k_snes_events::answer::{OwnRoute, Page, Scan};
 use rm2k_snes_events::codes::{FLASH_SPRITE, MOVE_EVENT, TILE_SUBSTITUTION};
+use rm2k_snes_events::request::Picture;
 use rm2k_snes_mapdata::{request, vram};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -499,7 +500,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // The still walls left out, which Wally closes in the passability.
         "walls": game.walls_json_of(map_id),
         "chipset_files": compiler::chipset_files(game),
-        "names": compiler::names([&map]).into_iter().map(|e| json!([e[1], e[2], e[3]])).collect::<Vec<_>>(),
+        "names": compiler::names([&map]).into_iter().map(|(_, e, p, n)| json!([e, p, n])).collect::<Vec<_>>(),
         "test_event": test_event,
         "leaders": c.leaders,
         "pages": scanned.pages,
@@ -759,13 +760,13 @@ pub struct MapInfo {
     pub shared: HashMap<i64, (Option<u32>, u32)>,
     /// The `ShowPicture` pictures that went into the sprite bank: their
     /// first tile, their table for the event compiler and their images.
-    pub pictures: Option<(i64, Vec<Value>, Vec<request::PictureImage>)>,
+    pub pictures: Option<(i64, Vec<Picture>, Vec<request::PictureImage>)>,
     /// Whether the pictures that went in are the copied common events'
     /// too, and not the map's own instead: a map keeps its copy only if it
     /// draws. See [`crate::common_pages`].
     pub copies_draw: bool,
     pub big_pictures: Vec<Big>,
-    pub big_table: Vec<Value>,
+    pub big_table: Vec<Picture>,
     pub pages: Vec<PageRecord>,
     pub sub_keys: BTreeSet<i64>,
     pub evcode: Vec<u8>,
@@ -995,7 +996,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             keys.map(str::to_lowercase).collect()
         };
         let rescued = names(&mut p.big_over_black.iter().map(|b| b.key.name.as_str()));
-        let lost = names(&mut asked.table.iter().filter_map(|k| k["name"].as_str()));
+        let lost = names(&mut asked.table.iter().map(|p| p.key.name.as_str()));
         println!(
             "  map {map_id}: the pictures {} are shown in the background layer instead, over the \
              black screen they are shown on",

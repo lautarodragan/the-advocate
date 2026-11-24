@@ -203,5 +203,5 @@ fn the_boxes_of_the_maps_and_the_common_events() {
         4,
     )
     .unwrap();
-    assert_eq!(table.as_array().unwrap().len(), 4);
+    assert_eq!(table.len(), 4);
 }

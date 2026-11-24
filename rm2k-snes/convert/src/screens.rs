@@ -85,7 +85,12 @@ fn game_place(game: &Game) -> (Vec<OsString>, Place) {
 /// with the boxes that go in its place: `[{"from": lines, "to": boxes}]`,
 /// only those that change. The window's lines are `width` pixels of
 /// `font`.
-pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result<Value> {
+pub fn boxes(
+    game: &Game,
+    font: &FontChoice,
+    width: usize,
+    lines: u32,
+) -> Result<Vec<rm2k_snes_screens::boxes::Reflowed>> {
     let request = json!({
         "map_files": compiler::map_files(game),
         "font": font.spec,
@@ -100,7 +105,7 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
         &["--data".into(), game.dump.clone().into_os_string()],
         || rm2k_snes_screens::stage::boxes(&game.dump, &request),
     )?;
-    stage::json(&written, "boxes.json")
+    stage::typed(&written, "boxes.json")
 }
 
 /// The faces the message window shows —`(FaceSet, index, mirrored)`, the

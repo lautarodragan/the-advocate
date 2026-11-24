@@ -25,8 +25,9 @@
 //! compile every page they have and play them on the console.
 
 use rm2k_snes_events::answer::Messages;
+use rm2k_snes_events::losses::EVENT_LEFT_OUT;
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::path::PathBuf;
 
 fn here() -> PathBuf {
@@ -186,37 +187,30 @@ fn the_compilation_says_what_it_degrades() {
     let find = |kind: &str| {
         losses
             .iter()
-            .find(|l| l["kind"] == kind)
+            .find(|l| l.kind == kind)
             .unwrap_or_else(|| panic!("no {kind}"))
     };
     let teleport = find("teleport-to-missing-map");
+    let p = &teleport.place;
     assert_eq!(
-        [
-            &teleport["map"],
-            &teleport["event"],
-            &teleport["page"],
-            &teleport["command"],
-            &teleport["name"]
-        ],
-        [
-            &json!(2),
-            &json!(1),
-            &json!(2),
-            &json!(1),
-            &json!("Teleport")
-        ]
+        (p.map, p.event, p.page, p.command, teleport.name.as_deref()),
+        (
+            Some(2),
+            Some(1),
+            Some(Some(2)),
+            Some(Some(1)),
+            Some("Teleport")
+        )
     );
-    let left_out = find("event-left-out");
-    assert_eq!(
-        [&left_out["map"], &left_out["event"], &left_out["page"]],
-        [&json!(1), &json!(8), &Value::Null]
-    );
+    let left_out = find(EVENT_LEFT_OUT);
+    let p = &left_out.place;
+    assert_eq!((p.map, p.event, p.page), (Some(1), Some(8), Some(None)));
     let troop = losses
         .iter()
-        .find(|l| l.get("troop").is_some())
+        .find(|l| l.place.troop.is_some())
         .expect("a troop page's loss");
     assert_eq!(
-        [&troop["page"], &troop["command"], &troop["name"]],
-        [&json!(1), &json!(2), &json!("PlaySound")]
+        (troop.place.page, troop.place.command, troop.name.as_deref()),
+        (Some(Some(1)), Some(Some(2)), Some("PlaySound"))
     );
 }

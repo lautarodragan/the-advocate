@@ -117,20 +117,26 @@ impl FontChoice {
     /// Latin-1 letters the font draws with theirs —which of them the
     /// cartridge carries, the compiler decides—, and after them the halves
     /// of the ExFont's icons, if the project names one.
-    pub fn window(&self, width: usize, lines: u32) -> Value {
-        let mut letters: Vec<Value> = self
+    pub fn window(&self, width: usize, lines: u32) -> rm2k_snes_events::request::Window {
+        let mut letters: Vec<(char, usize)> = self
             .font
             .latin_letters()
             .iter()
-            .map(|(c, a)| json!([c.to_string(), a]))
+            .map(|&(c, a)| (c, a.into()))
             .collect();
         if self.font.has_exfont() {
             for icon in 0..rm2k_snes_text::exfont::ICONS {
                 for half in rm2k_snes_text::exfont::halves(icon) {
-                    letters.push(json!([half.to_string(), self.font.advance(half)]));
+                    letters.push((half, self.font.advance(half)));
                 }
             }
         }
-        json!({"width": width, "lines": lines, "advances": self.font.console_advances(), "letters": letters})
+        rm2k_snes_events::request::Window {
+            width: Some(width),
+            columns: None,
+            lines: lines as usize,
+            advances: Some(self.font.console_advances()),
+            letters: Some(letters),
+        }
     }
 }

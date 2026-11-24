@@ -11,9 +11,9 @@
 
 use crate::answer;
 use crate::fail::Result;
+use crate::request::Asked;
 use crate::{Game, Request, ANSWER_FILE};
 use serde::Serialize;
-use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -22,20 +22,20 @@ pub type Files = BTreeMap<String, Vec<u8>>;
 
 /// `scan`: the indices of the whole game, which pages of each map compile,
 /// and each map's pages compiled without songs —see [`crate::scan`]—.
-pub fn scan(data: &Path, request: &Value) -> Result<answer::Scan> {
+pub fn scan(data: &Path, request: &Asked) -> Result<answer::Scan> {
     let (game, request) = asked(data, request)?;
     crate::scan(&game, &request)
 }
 
 /// `compile`: every page of the cartridge —see [`crate::compile()`]—.
-pub fn compile(data: &Path, request: &Value) -> Result<answer::Compiled> {
+pub fn compile(data: &Path, request: &Asked) -> Result<answer::Compiled> {
     let (game, request) = asked(data, request)?;
     crate::compile(&game, &request)
 }
 
 /// The game in `data`, and `request` read.
-fn asked(data: &Path, request: &Value) -> Result<(Game, Request)> {
-    let request = Request::from_json(request, "the request")?;
+fn asked(data: &Path, request: &Asked) -> Result<(Game, Request)> {
+    let request = Request::from_asked(request, "the request")?;
     let game = Game::from_dump(data, request.patches.clone())?;
     Ok((game, request))
 }

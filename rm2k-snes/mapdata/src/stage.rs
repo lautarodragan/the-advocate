@@ -7,10 +7,10 @@
 //! nothing**: each map's raw data, which the binary leaves in `--raw`, is in
 //! the answer too, under [`RAW`].
 
+use crate::answer::{self, Answer, Loss};
 use crate::fail::{Bad, Result};
 use crate::materials;
 use crate::{animation, layer_text, record, request};
-use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -30,24 +30,26 @@ pub fn emit(data: &Path, mut request: request::Emit) -> Result<Files> {
     // A ChipSet animation cut to fit is a loss, which the converter lists
     // with the cartridge's others.
     let cut = animation::fit_all_by_map(&mut request.maps);
-    let mut losses: Vec<Value> = cut
+    let mut losses: Vec<Loss> = cut
         .iter()
-        .map(
-            |(map, text)| json!({"map": map, "kind": "chipset-animation-cut", "text": text.trim()}),
-        )
+        .map(|(map, text)| Loss {
+            map: *map,
+            kind: answer::CHIPSET_ANIMATION_CUT.into(),
+            text: text.trim().into(),
+        })
         .collect();
     // And an inn's gold window, on a map without room for it in the sprites.
     for map in &request.maps {
         if request.gold_maps.contains(&map.id) && record::arrow_obj(map)? & record::GOLD_ROOM == 0 {
-            losses.push(json!({
-                "map": map.id,
-                "kind": "inn-no-gold-window",
-                "text": format!(
+            losses.push(Loss {
+                map: map.id,
+                kind: answer::INN_NO_GOLD_WINDOW.into(),
+                text: format!(
                     "map {}: an inn opens no gold window, which goes in objects past the sprite \
                      bank and in a sprite palette nobody takes, and the map has no room for them",
                     map.id
                 ),
-            }));
+            });
         }
     }
     let mut notes: Vec<String> = cut.into_iter().map(|(_, note)| note).collect();
@@ -56,7 +58,16 @@ pub fn emit(data: &Path, mut request: request::Emit) -> Result<Files> {
         .map_err(|b| Bad::answer(b.message().to_string()))?;
     let emitted = crate::emit::emit(&request, &db)?;
     notes.extend(emitted.notes);
-    let answer = json!({"notes": notes, "report": emitted.report, "frames": emitted.frames, "losses": losses});
+    let answer = Answer {
+        notes,
+        report: emitted.report,
+        frames: emitted.frames,
+        losses,
+    };
+    // Through a JSON value, whose keys serde_json sorts unless the binary
+    // that links it keeps their order —the converter does—: the binary's
+    // file has the keys sorted, as it always had.
+    let answer = serde_json::to_value(&answer).expect("an answer is JSON");
     let mut files = Files::from([
         ("mapdata.inc".to_string(), emitted.text.into_bytes()),
         ("mapdata.json".to_string(), answer.to_string().into_bytes()),

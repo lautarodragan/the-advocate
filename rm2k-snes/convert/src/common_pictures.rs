@@ -25,8 +25,8 @@ use crate::fail::Result;
 use crate::game::Game;
 use crate::pictures::{self, SLOTS};
 use rm2k_snes_events::answer::Scan;
+use rm2k_snes_events::request::{self, CommonPlane, Picture, Place};
 use rm2k_snes_mapdata::request::CommonSet;
-use serde_json::{json, Value};
 
 /// The bit of an image that names an entry of the common table, and how
 /// many entries it can name: $FF is the runtime's `PIC_NONE`.
@@ -38,11 +38,10 @@ const COMMON_MAX: usize = 0x7F;
 #[derive(Debug, Default)]
 pub struct CommonPictures {
     /// For the compiler's `common_pictures`, after the big ones: each picture
-    /// with `"plane": "common"`, its image, its slot and its set.
-    pub entries: Vec<Value>,
-    /// For the compiler's `common_sets`: each set kept, by its index,
-    /// `{"parallel", "commons"}`.
-    pub sets: Vec<Value>,
+    /// in the common plane, with its image, its slot and its set.
+    pub entries: Vec<Picture>,
+    /// For the compiler's `common_sets`: each set kept, by its index.
+    pub sets: Vec<request::CommonSet>,
     /// For the emission's `common_pictures`: each set's tiles, how many it
     /// reserves, its palettes and its pictures, as a map's.
     pub emit: Vec<CommonSet>,
@@ -82,20 +81,29 @@ pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
         }
         let k = out.sets.len();
         // The slots from the top: the set's `used` ones end at the last.
+        let slot_of = |p: &Picture| match p.place {
+            Place::Sprite { slot, palette } => Some((slot as usize, palette)),
+            _ => None,
+        };
         let used = cut
             .table
             .iter()
-            .filter_map(|e| e["slot"].as_u64())
+            .filter_map(slot_of)
+            .map(|(slot, _)| slot)
             .max()
-            .map_or(0, |m| m as usize + 1);
+            .map_or(0, |m| m + 1);
         for (i, entry) in cut.table.iter().enumerate() {
-            let mut entry = entry.clone();
-            let slot = entry["slot"].as_u64().unwrap_or(0) as usize + SLOTS - used;
-            entry["plane"] = json!("common");
-            entry["image"] = json!(COMMON_BIT | (first + i));
-            entry["slot"] = json!(slot);
-            entry["set"] = json!(k);
-            out.entries.push(entry);
+            let (slot, palette) = slot_of(entry).unwrap_or_default();
+            out.entries.push(Picture {
+                key: entry.key.clone(),
+                place: Place::Common {
+                    slot: (slot + SLOTS - used) as u8,
+                    palette,
+                    plane: CommonPlane::Common,
+                    image: (COMMON_BIT | (first + i)) as u8,
+                    set: k,
+                },
+            });
         }
         println!(
             "  {whose}: their small pictures {}, {} objects in {} tiles and {} palette(s), go up \
@@ -105,8 +113,10 @@ pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
             cut.tiles,
             cut.palettes
         );
-        out.sets
-            .push(json!({"parallel": parallel, "commons": commons}));
+        out.sets.push(request::CommonSet {
+            parallel,
+            commons: commons.clone(),
+        });
         out.emit.push(CommonSet {
             name: whose,
             tiles: cut.tiles as usize,

@@ -96,7 +96,7 @@ fn write(dir: &Path, files: &Files) -> Result<()> {
 
 fn run<A: Serialize>(
     args: &Args,
-    answer: fn(&Path, &serde_json::Value) -> Result<A>,
+    answer: fn(&Path, &rm2k_snes_events::request::Asked) -> Result<A>,
 ) -> Result<()> {
     let request = read_request(&args.request)?;
     write(&args.out, &stage::files(&answer(&args.data, &request)?))

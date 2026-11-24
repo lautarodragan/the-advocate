@@ -470,7 +470,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
     // An event left out whole: none of its pages runs, blocks or is drawn.
     let left_out = |ctx: &mut Ctx, event: &crate::game::Event, why: String| {
         ctx.losses.enter(place(event, None));
-        ctx.losses.lose(None, "event-left-out", why);
+        ctx.losses.lose(None, crate::losses::EVENT_LEFT_OUT, why);
         ctx.losses.leave();
     };
     // Which events are left out whole, first: the page table skips them, so

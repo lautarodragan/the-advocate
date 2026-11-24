@@ -713,18 +713,8 @@ impl Game {
         Ok(())
     }
 
-    /// [`Game::dropped`] as the stages' requests carry it: the ids by map
-    /// number as text.
-    pub fn dropped_json(&self) -> Value {
-        Value::Object(
-            self.dropped
-                .iter()
-                .map(|(m, ids)| (m.to_string(), serde_json::json!(ids)))
-                .collect(),
-        )
-    }
-
-    /// The same, only map `id`'s: what a map's own request carries.
+    /// [`Game::dropped`] of map `id` as its own request carries it: the ids
+    /// by map number as text.
     pub fn dropped_json_of(&self, id: i32) -> Value {
         Value::Object(
             self.dropped
