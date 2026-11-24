@@ -487,6 +487,10 @@ pub fn json(written: &Files, name: &str) -> Result<Value> {
 /// decided to lose next to the ROM, and the music, `rm2k-snes-audio
 /// cartridge`, of whose pieces the rest of the conversion reads only the
 /// `losses` of its `audio.json`, for `degradations.json`.
+///
+/// Neither is called this way since A7 and A8 of
+/// the-stages-speak-json-nobody-types: it goes in A9.
+#[allow(dead_code)]
 pub fn hand_over(
     binary: &str,
     project: &str,

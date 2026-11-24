@@ -18,7 +18,9 @@ use cartridge::cartridges::Cartridges;
 use clap::{Arg, ArgAction, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{relative, Project};
-use rm2k_snes_patches::{check, copy, has_patches, versioned, write, Kind, Request, PLAYABLE};
+use rm2k_snes_patches::{
+    check, copy, has_patches, put, report, stage, versioned, Kind, Request, PLAYABLE,
+};
 
 const FROM_ENVIRONMENT: &[&str] = &["test_cartridges"];
 
@@ -72,14 +74,8 @@ fn run() -> Result<(), String> {
         let text = std::fs::read_to_string(request).map_err(|e| format!("{request}: {e}"))?;
         let request: Request =
             serde_json::from_str(&text).map_err(|e| format!("{request}: {e}"))?;
-        for w in write(Path::new(build), &request)? {
-            println!(
-                "patches of {} {} -> {} ({} B)",
-                w.files,
-                w.kind.plural(),
-                w.kind.in_build(),
-                w.bytes
-            );
+        for written in put(Path::new(build), &stage::patches_of(&request))? {
+            println!("{}", report(&written));
         }
         return Ok(());
     }

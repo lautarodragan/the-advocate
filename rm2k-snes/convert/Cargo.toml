@@ -29,6 +29,9 @@ rm2k-snes-images = { path = "../images" }
 # The engine's numbers, the VRAM layouts and the console's formats —a tile,
 # a colour, an LZ2 stream—: the emission's, which publishes them.
 rm2k-snes-mapdata = { path = "../mapdata" }
+# What the converter decided to lose, written down: the patches next to the
+# ROM.
+rm2k-snes-patches = { path = "../patches" }
 rm2k-snes-screens = { path = "../screens" }
 # The music, `rm2k-snes-audio cartridge`, a stage the converter calls as a
 # function.
