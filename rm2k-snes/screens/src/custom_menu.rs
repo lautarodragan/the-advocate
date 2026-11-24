@@ -1505,14 +1505,14 @@ mod tests {
     fn a_table_s_special_values_go_in_the_order_of_their_keys_as_text() {
         let here = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/game");
         let game = Game::from_dump(&here.join("dump"), &here.join("pictures")).unwrap();
-        let spec = json!({"label": "Auras", "table": {"auras": {
-            "columns": ["Skill", "Absorbed"],
+        let spec = json!({"label": "Charms", "table": {"charms": {
+            "columns": ["Charm", "Found"],
             "special": {"9": "Nine", "10": "Ten"},
-            "sheet": [{"rows": [["Cure", 70, 5]]}],
-        }}, "subject": [{"name": "Talan", "tab": [{"label": "Auras", "page": [{"table": "auras"}]}]}]});
-        let menu = Menu::read(&game, "auras", &spec).unwrap();
+            "sheet": [{"rows": [["Glow", 70, 5]]}],
+        }}, "subject": [{"name": "Wren", "tab": [{"label": "Charms", "page": [{"table": "charms"}]}]}]});
+        let menu = Menu::read(&game, "charms", &spec).unwrap();
         assert_eq!(
-            menu.tables["auras"].special,
+            menu.tables["charms"].special,
             [(10, "Ten".to_string()), (9, "Nine".to_string())]
         );
     }
