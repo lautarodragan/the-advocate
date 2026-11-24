@@ -24,6 +24,7 @@
 //! are checked by running them: A Blurred Line's suite and the test game
 //! compile every page they have and play them on the console.
 
+use rm2k_snes_events::answer::Messages;
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -44,15 +45,12 @@ fn read(name: &str) -> Value {
 fn the_parallel_common_events_come_compiled() {
     let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
     let answer = compile(&game(&request), &request).unwrap();
-    let parallel = answer["parallel_commons"].as_array().unwrap();
+    let parallel = &answer.parallel_commons;
     assert_eq!(parallel.len(), 1);
-    assert_eq!(parallel[0][0], 2);
-    assert_eq!(parallel[0][1], 40);
-    assert_eq!(parallel[0][2], true);
-    assert!(
-        parallel[0][3].is_string(),
-        "it does not compile: {parallel:?}"
-    );
+    assert_eq!(parallel[0].0, 2);
+    assert_eq!(parallel[0].1, 40);
+    assert!(parallel[0].2);
+    assert!(parallel[0].3.is_some(), "it does not compile: {parallel:?}");
 }
 
 /// Who each page sends walking: map 1's first page routes the hero and events 1 and 3 —the hero is not
@@ -63,27 +61,18 @@ fn route_targets_are_the_routes_of_the_code() {
     let request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
     let answer = scan(&game(&request), &request).unwrap();
     let mut routed = Vec::new();
-    for map in answer["maps"].as_array().unwrap() {
-        for page in map["pages"].as_array().unwrap() {
-            let targets = page["route_targets"].as_array().unwrap();
-            if page["code"].is_null() {
+    for map in &answer.maps {
+        for page in &map.pages {
+            let targets = &page.route_targets;
+            if page.code.is_none() {
                 assert!(targets.is_empty(), "a page without code routes nobody");
             }
             if !targets.is_empty() {
-                routed.push((
-                    map["id"].clone(),
-                    page["event"].clone(),
-                    page["page"].clone(),
-                    targets.clone(),
-                ));
+                routed.push((map.id, page.event, page.page, targets.clone()));
             }
         }
     }
-    let expected: Vec<(Value, Value, Value, Vec<Value>)> = vec![
-        (1.into(), 1.into(), 0.into(), vec![1.into(), 3.into()]),
-        (3.into(), 0.into(), 0.into(), vec![0.into()]),
-    ];
-    assert_eq!(routed, expected);
+    assert_eq!(routed, vec![(1, 1, 0, vec![1, 3]), (3, 0, 0, vec![0])]);
 }
 
 /// What the scan gathers of each map's pictures: map 1 shows `Pic` and
@@ -94,25 +83,17 @@ fn route_targets_are_the_routes_of_the_code() {
 fn the_scan_gathers_the_pictures() {
     let request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
     let answer = scan(&game(&request), &request).unwrap();
-    let names: Vec<(i64, Vec<&str>)> = answer["maps"]
-        .as_array()
-        .unwrap()
+    let names: Vec<(i32, Vec<&str>)> = answer
+        .maps
         .iter()
         .map(|m| {
-            (
-                m["id"].as_i64().unwrap(),
-                m["pictures"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|p| p["name"].as_str().unwrap())
-                    .collect::<Vec<_>>(),
-            )
+            let names = m.pictures.iter().map(|p| p["name"].as_str().unwrap());
+            (m.id, names.collect::<Vec<_>>())
         })
         .filter(|(_, p)| !p.is_empty())
         .collect();
     assert_eq!(names, vec![(1, vec!["Pic", "Other"]), (2, vec!["Other"])]);
-    let pic = &answer["maps"][0]["pictures"][0];
+    let pic = &answer.maps[0].pictures[0];
     assert_eq!(pic["at"], serde_json::json!([160, 120]));
     assert_eq!(pic["number"], 1);
 }
@@ -128,31 +109,24 @@ fn game(request: &Request) -> Game {
 fn the_scan_says_the_highest_switch() {
     let mut request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
     let g = game(&request);
-    assert_eq!(scan(&g, &request).unwrap()["switch_top"], 1023);
+    assert_eq!(scan(&g, &request).unwrap().indices.switch_top, 1023);
     request.extra_switches.clear();
-    let own = scan(&g, &request).unwrap()["switch_top"].as_i64().unwrap();
+    let own = scan(&g, &request).unwrap().indices.switch_top;
     assert!((1..1023).contains(&own), "{own}");
     // Asked which switch the test pages can turn on, 1023, which this game
     // does not name: that one, and the table holds it.
     request.test_switch = Some(1023);
-    let answer = scan(&g, &request).unwrap();
-    assert_eq!(answer["test_switch"], 1023);
-    assert_eq!(answer["switch_top"], 1023);
+    let answer = scan(&g, &request).unwrap().indices;
+    assert_eq!(answer.test_switch, Some(1023));
+    assert_eq!(answer.switch_top, 1023);
 }
 
 /// The boxes of a text block, in order and as letters: each one at a
 /// multiple of `step`, its header, and each line with its length in
 /// letters, a byte from `pair_first` up being two of them.
-fn boxes(messages: &Value, step: usize) -> Vec<(u8, Vec<Vec<u8>>)> {
-    let bytes = |key: &str| -> Vec<u8> {
-        let hex = messages[key].as_str().unwrap();
-        (0..hex.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-            .collect()
-    };
-    let (data, pairs) = (bytes("data"), bytes("pairs"));
-    let first = messages["pair_first"].as_u64().unwrap() as u8;
+fn boxes(messages: &Messages, step: usize) -> Vec<(u8, Vec<Vec<u8>>)> {
+    let (data, pairs) = (&messages.data.0, &messages.pairs.0);
+    let first = messages.pair_first;
     let mut out = Vec::new();
     let mut at = 0;
     while at < data.len() {
@@ -193,15 +167,12 @@ fn the_pairs_write_the_same_boxes() {
     let plain = compile_without_pairs(&game(&request), &request).unwrap();
     let paired = compile(&game(&request), &request).unwrap();
     let step = request.messages_step;
-    let (a, b) = (
-        boxes(&plain["messages"], step),
-        boxes(&paired["messages"], step),
-    );
+    let (plain, paired) = (plain.messages, paired.messages);
+    let (a, b) = (boxes(&plain, step), boxes(&paired, step));
     assert!(!a.is_empty());
     assert_eq!(a, b);
-    let size = |v: &Value| v["messages"]["data"].as_str().unwrap().len();
-    assert!(size(&paired) < size(&plain));
-    assert_eq!(paired["messages"]["count"], plain["messages"]["count"]);
+    assert!(paired.data.0.len() < plain.data.0.len());
+    assert_eq!(paired.count, plain.count);
 }
 
 /// What the cartridge does with less than RM2k, each where it is: a map's
@@ -211,7 +182,7 @@ fn the_pairs_write_the_same_boxes() {
 fn the_compilation_says_what_it_degrades() {
     let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
     let answer = compile(&game(&request), &request).unwrap();
-    let losses = answer["degradations"]["losses"].as_array().unwrap();
+    let losses = &answer.degradations.losses;
     let find = |kind: &str| {
         losses
             .iter()

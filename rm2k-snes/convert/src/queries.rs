@@ -165,7 +165,7 @@ pub fn run(argv: Vec<String>) -> Result<()> {
                 commands.extend(commands_of(file)?);
             }
             let extra: BTreeSet<i32> = ints(m, "extra_variable").into_iter().collect();
-            compiler.scan(&maps, &commands, &extra, None, &[])?
+            json!(compiler.scan(&maps, &commands, &extra, None, &[])?)
         }
         "compile" => {
             let compiler = Compiler::new(&game, &settings)?;
@@ -179,7 +179,7 @@ pub fn run(argv: Vec<String>) -> Result<()> {
                     cases.push((map, commands_of(pair[1])?));
                 }
             }
-            compiler.loose(&ints(m, "maps"), &cases, &ints(m, "encounter_troop"))?
+            json!(compiler.loose(&ints(m, "maps"), &cases, &ints(m, "encounter_troop"))?)
         }
         "leaders" => {
             let compiler = Compiler::new(&game, &settings)?;

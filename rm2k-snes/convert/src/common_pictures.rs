@@ -24,6 +24,7 @@
 use crate::fail::Result;
 use crate::game::Game;
 use crate::pictures::{self, SLOTS};
+use rm2k_snes_events::answer::Scan;
 use serde_json::{json, Value};
 
 /// The bit of an image that names an entry of the common table, and how
@@ -54,27 +55,14 @@ pub struct CommonPictures {
 /// pass them is left out, as the log says. Zounds' pick-axe is 104 of them
 /// —a digit is a picture under each of its numbers—, and first by number it
 /// took the room the notebook needed.
-pub fn sets(game: &Game, scan: &Value) -> Result<CommonPictures> {
+pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
     let mut cuts = Vec::new();
-    for set in scan["common_sets"].as_array().into_iter().flatten() {
-        let commons: Vec<i64> = set["commons"]
-            .as_array()
-            .map(|a| a.iter().filter_map(Value::as_i64).collect())
-            .unwrap_or_default();
-        let names = commons
-            .iter()
-            .map(i64::to_string)
-            .collect::<Vec<_>>()
-            .join(", ");
-        let whose = format!("common events {names}");
-        let keys = set["pictures"].as_array().cloned().unwrap_or_default();
-        let tinted: Vec<i64> = set["tinted"]
-            .as_array()
-            .map(|a| a.iter().filter_map(Value::as_i64).collect())
-            .unwrap_or_default();
-        if let Some(cut) = pictures::for_map(&game.game_dir, &keys, &tinted, &whose, &game.cropped)?
-        {
-            cuts.push((whose, set["parallel"].clone(), commons, cut));
+    for set in &scan.common_sets {
+        let names = set.commons.iter().map(i32::to_string).collect::<Vec<_>>();
+        let whose = format!("common events {}", names.join(", "));
+        let (keys, tinted) = (&set.pictures, &set.tinted);
+        if let Some(cut) = pictures::for_map(&game.game_dir, keys, tinted, &whose, &game.cropped)? {
+            cuts.push((whose, set.parallel, &set.commons, cut));
         }
     }
     cuts.sort_by_key(|(_, _, _, cut)| cut.table.len());

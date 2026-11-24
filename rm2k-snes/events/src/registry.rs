@@ -593,20 +593,12 @@ impl Pictures {
         }
     }
 
-    pub fn zooms_json(&self) -> Value {
-        json!(self
-            .zooms
-            .iter()
-            .map(|(n, z)| json!([n, z]))
-            .collect::<Vec<_>>())
+    pub fn zooms_json(&self) -> Vec<Value> {
+        self.zooms.iter().map(|(n, z)| json!([n, z])).collect()
     }
 
-    pub fn keys_json(&self) -> Value {
-        json!(self
-            .table
-            .iter()
-            .map(|(k, _)| k.to_json())
-            .collect::<Vec<_>>())
+    pub fn keys_json(&self) -> Vec<Value> {
+        self.table.iter().map(|(k, _)| k.to_json()).collect()
     }
 }
 

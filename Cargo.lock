@@ -496,6 +496,7 @@ dependencies = [
  "rm2k-snes-patches",
  "rm2k-snes-screens",
  "rm2k-snes-text",
+ "serde",
  "serde_json",
  "toml",
  "wally",
@@ -511,6 +512,7 @@ dependencies = [
  "rm2k-snes-battle",
  "rm2k-snes-bytecode",
  "rm2k-snes-text",
+ "serde",
  "serde_json",
 ]
 
