@@ -13,7 +13,7 @@
 
 use crate::asm::Inc;
 use crate::fail::{Bad, Result};
-use crate::json::{bytes, colors, ints, list_at, tiles};
+use crate::json::{by_key, bytes, colors, ints, list_at, tiles};
 use crate::snes::{cgram_bytes, pack_tile, words_le};
 use serde_json::Value;
 
@@ -46,7 +46,7 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
     let geometry = get("geometry")?
         .as_object()
         .ok_or_else(|| Bad::answer("the debug screen's geometry is not an object"))?;
-    for (name, value) in geometry {
+    for (name, value) in by_key(geometry) {
         let n = value
             .as_i64()
             .ok_or_else(|| Bad::answer(format!("the debug screen's {name} is not a number")))?;

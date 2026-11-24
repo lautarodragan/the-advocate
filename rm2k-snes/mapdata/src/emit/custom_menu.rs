@@ -5,7 +5,7 @@
 use crate::asm::Inc;
 use crate::compress::compress_many;
 use crate::fail::{Bad, Result};
-use crate::json::{bytes, colors, ints, list, list_at, tiles};
+use crate::json::{by_key, bytes, colors, ints, list, list_at, tiles};
 use crate::snes::{cgram_bytes, pack_tile, words_le};
 use serde_json::Value;
 
@@ -24,7 +24,7 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     let empty = custom.is_null() || list_at(custom, "labels").map_or(true, |l| l.is_empty());
     if empty {
         if let Some(geometry) = custom.get("layout").and_then(Value::as_object) {
-            for (name, value) in geometry {
+            for (name, value) in by_key(geometry) {
                 out.push_str(&format!("{name} = {}\n", value.as_i64().unwrap_or(0)));
             }
         }
@@ -66,7 +66,7 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
         .as_object()
         .ok_or_else(|| Bad::answer("the custom menus' layout is not an object"))?;
     let mut equates = String::new();
-    for (name, value) in geometry {
+    for (name, value) in by_key(geometry) {
         let n = value
             .as_i64()
             .ok_or_else(|| Bad::answer(format!("the custom menus' {name} is not a number")))?;
@@ -172,4 +172,25 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     );
     let _ = list;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    /// The geometry's equates go in the order of their names, whatever
+    /// order the screens inserted them in: in the converter, with
+    /// `preserve_order`, that order reaches this crate —`cargo test
+    /// --workspace` shows it—, where the binary saw them sorted.
+    #[test]
+    fn the_geometry_goes_in_the_order_of_its_names() {
+        let custom = json!({"labels": [], "layout": {"CM_ZED": 2, "CM_ALPHA": 1}});
+        let mut out = Inc::new(String::new());
+        section(&mut out, &custom).unwrap();
+        let text = out.into_text();
+        let alpha = text.find("CM_ALPHA = 1").unwrap();
+        let zed = text.find("CM_ZED = 2").unwrap();
+        assert!(alpha < zed, "{text}");
+    }
 }
