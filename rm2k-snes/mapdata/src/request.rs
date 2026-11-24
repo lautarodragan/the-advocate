@@ -533,6 +533,17 @@ pub enum MsuData {
     Everything,
 }
 
+impl MsuData {
+    /// As the project file and the request write it.
+    pub fn name(self) -> &'static str {
+        match self {
+            MsuData::Optional => "optional",
+            MsuData::Required => "required",
+            MsuData::Everything => "everything",
+        }
+    }
+}
+
 /// The text block's pair table: the first byte value that stands for a
 /// pair, and two bytes per pair from there up.
 #[derive(Serialize, Deserialize)]

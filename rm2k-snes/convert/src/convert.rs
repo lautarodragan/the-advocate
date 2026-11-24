@@ -525,22 +525,22 @@ pub fn run(options: Options) -> Result<()> {
     // The message window's colours, from the System: once, for every map and
     // for the screens and the emission. See `screens::window_colors`.
     let (window_colors, window_answer) = screens::window_colors(&game, &switched)?;
-    for other in window_answer["systems"].as_array().into_iter().flatten() {
-        let rows = other["mixed_text_rows"].as_array().map_or(0, Vec::len);
+    for other in &window_answer.systems {
+        let rows = other.mixed_text_rows.len();
         if rows > 0 {
             let line = format!(
                 "  WARNING, System {}: {rows} row(s) of its text colour are not one colour, and its message \
                  window draws each with the one most of it has",
-                other["system"]
+                quoted(&other.other.system)
             );
             println!("{line}");
             degradations.cartridge("window-text-colour-merged", &line);
         }
-        if let Some(had) = other["frame_fused"].as_u64() {
+        if let Some(had) = other.frame_fused {
             let line = format!(
                 "  WARNING, System {}: its message window's frame and arrow took {had} tiles and were fused into \
                  bands to fit",
-                other["system"]
+                quoted(&other.other.system)
             );
             println!("{line}");
             degradations.cartridge("window-frame-fused", &line);
@@ -1419,14 +1419,7 @@ pub fn run(options: Options) -> Result<()> {
     });
     // The battle terms the project gives over the database's, if any: a
     // knob at rest when missing. See `battle_term` in the mapdata stage.
-    let battle_terms = match project
-        .settings()
-        .get("battle")
-        .and_then(|b| b.get("terms"))
-    {
-        Some(_) => settings.table(&["battle", "terms"])?,
-        None => json!({}),
-    };
+    let battle_terms = settings.battle_terms()?;
     let renames: Vec<String> = indices.names.iter().map(|(_, n)| n.clone()).collect();
     let screen_letters =
         crate::letters::screen_letters(&game.dump, &font.font, &battle_terms, &renames)?;
@@ -1438,7 +1431,7 @@ pub fn run(options: Options) -> Result<()> {
         !options.no_title,
         &menus_request,
         window_colors,
-        &window_answer["text_rows"],
+        window_answer.text_rows.as_ref(),
         &json!(compiled.messages.letters),
         &screen_letters,
     )?;
@@ -1590,12 +1583,12 @@ pub fn run(options: Options) -> Result<()> {
     // Whether the cartridge needs the MSU-1, and if it does, the screen
     // that says so when it is not there.
     let msu_data = if options.msu_everything {
-        "everything"
+        request::MsuData::Everything
     } else {
         settings.msu()?
     };
     let mut msu_missing = None;
-    if msu_data != "optional" {
+    if msu_data != request::MsuData::Optional {
         let png = output
             .parent()
             .map(rm2k_project::absolute)
@@ -1603,8 +1596,9 @@ pub fn run(options: Options) -> Result<()> {
             .join("sin-msu.png");
         let screen = crate::msu_missing::screen(&font.font, &png)?;
         println!(
-            "  the cartridge needs the MSU-1 ({msu_data}); the screen that says so when it is missing: \
+            "  the cartridge needs the MSU-1 ({}); the screen that says so when it is missing: \
              {} 8bpp tiles + {} colors, an LZ2 stream of {} B",
+            msu_data.name(),
             screen.tiles,
             screen.colors,
             screen.stream.len()
@@ -1708,7 +1702,6 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     // The battle's model, `rm2k-snes-battle`'s second call.
-    let layout = screens::layout()?;
     let mut pairs = indices.skills.clone();
     pairs.sort_by_key(|(_, _, slot)| *slot);
     let request = rm2k_snes_battle::model::ModelRequest {
@@ -1719,7 +1712,7 @@ pub fn run(options: Options) -> Result<()> {
             .iter()
             .map(|&(a, h, _)| (a as i32, h as i32))
             .collect(),
-        item_name_width: emit::typed(&layout["ITEM_NAME_WIDTH"])?,
+        item_name_width: rm2k_snes_screens::layout::ITEM_NAME_WIDTH,
         // The letters the text screens carry: an item's name in a
         // victory line keeps them.
         letters: Some(screens_answer.font.screen_letters.clone()),
@@ -1803,19 +1796,32 @@ pub fn run(options: Options) -> Result<()> {
     };
     // The shared bodies, with the copies of the automatic ones by map index:
     // see [`crate::common_pages`].
-    let mut commons_with_copies = json!(compiled.commons);
-    if let (Some(c), Some(copies)) = (commons_with_copies.as_object_mut(), common_pages.to_json()) {
-        let maps: Vec<usize> = order
+    let commons = compiled.commons.as_ref().map(|c| request::Commons {
+        bodies: c
+            .bodies
             .iter()
-            .enumerate()
-            .filter(|(_, m)| common_pages.maps.contains(m))
-            .map(|(k, _)| k)
-            .collect();
-        c.insert(
-            "copies".into(),
-            json!({"commons": copies["commons"], "maps": maps}),
-        );
-    }
+            .map(|(n, code)| (i64::from(*n), crate::text::hex(&code.0)))
+            .collect(),
+        autostart: c
+            .autostart
+            .iter()
+            .map(|&(s, b)| (i64::from(s), i64::from(b)))
+            .collect(),
+        depth: c.depth.map(|d| d as i64),
+        copies: if common_pages.maps.is_empty() {
+            request::Copies::default()
+        } else {
+            request::Copies {
+                commons: common_pages.commons.iter().map(|&n| n.into()).collect(),
+                maps: order
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, m)| common_pages.maps.contains(m))
+                    .map(|(k, _)| k as i64)
+                    .collect(),
+            }
+        },
+    });
     // The maps whose pages open an inn's gold window, `OP_INN 3`: the
     // emission says which of them have no room for it in the sprites. See
     // `arrow_obj` in rm2k-snes-mapdata and the runtime's gold_window.s.
@@ -1839,7 +1845,7 @@ pub fn run(options: Options) -> Result<()> {
     let faces = screens::faces(&game, &indices.faces)?;
     let mut missing = 0;
     for (drawn, (name, index, _)) in faces.iter().zip(&indices.faces) {
-        if drawn["missing"].as_bool().unwrap_or(false) {
+        if drawn.missing {
             missing += 1;
             degradations.cartridge(
                 "face-missing",
@@ -1896,22 +1902,29 @@ pub fn run(options: Options) -> Result<()> {
         rom: request::Rom {
             title: settings.ascii(&["rom", "title"], None, Some(TITLE_HEADER))?,
             sram_signature: settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
-            msu: emit::typed(&json!(msu_data))?,
+            msu: msu_data,
         },
         screens: screens_answer,
         window_colors,
         // The message window of every other System the cartridge switches
         // to, in its order: the starting one's is the screens'.
-        window_systems: match window_answer.get("systems") {
-            Some(systems) => emit::typed(systems)?,
-            None => Vec::new(),
-        },
+        window_systems: window_answer
+            .systems
+            .iter()
+            .map(|s| s.other.clone())
+            .collect(),
         messages,
         message_pairs: request::MessagePairs {
             first: compiled.messages.pair_first.into(),
             table: compiled.messages.pairs.0.clone(),
         },
-        faces: faces.iter().map(emit::typed).collect::<Result<_>>()?,
+        faces: faces
+            .into_iter()
+            .map(|f| request::MessageFace {
+                tiles: f.tiles,
+                palette: f.palette,
+            })
+            .collect(),
         title: title_screen.as_ref().map(fullscreen::Screen::request),
         game_over: game_over.as_ref().map(fullscreen::Screen::request),
         msu_missing: msu_missing.as_ref().map(fullscreen::Screen::request),
@@ -1925,8 +1938,8 @@ pub fn run(options: Options) -> Result<()> {
         gold_maps,
         // The battle terms the project gives over the database's, if any: a
         // knob at rest when missing. See `battle_term` in the mapdata stage.
-        battle_terms: emit::typed(&battle_terms)?,
-        commons: emit::typed(&commons_with_copies)?,
+        battle_terms,
+        commons,
         battle_model,
         // The compiler's indices: each variable's slot and each (actor,
         // skill) pair's bit; the highest switch the game names, which the
@@ -1945,7 +1958,10 @@ pub fn run(options: Options) -> Result<()> {
         test_switch: (!cases.is_empty()).then_some(compiler.test_switch.into()),
         // The big pictures' layers, and which of them keep the small ones
         // over them: see `pictures::keep_objects`.
-        big_pictures: big_layers.iter().map(emit::typed).collect::<Result<_>>()?,
+        big_pictures: big_layers
+            .into_iter()
+            .map(pictures::BigLayer::request)
+            .collect(),
         // The common events' small pictures, by set: see
         // [`crate::common_pictures`].
         common_pictures: common_small.emit,
@@ -2021,7 +2037,7 @@ pub fn run(options: Options) -> Result<()> {
             .collect(),
         // And the colours the message window lost, if its System did not
         // fit in one palette: one that fits writes nothing.
-        windows: screens::window_losses(&window_answer, window_colors)?,
+        windows: screens::window_losses(&window_answer),
     };
     // Not kept in the cache, as when it was a process: it is a few
     // kilobytes of text made from the request alone.
@@ -2078,7 +2094,7 @@ pub fn run(options: Options) -> Result<()> {
         tree_nodes: game.tree.added_nodes.clone(),
         // Whether the samples may travel in the `.msu`, in a cartridge
         // that needs the MSU-1: see `Emit::msu_samples` in the stage.
-        msu_samples: msu_data != "optional",
+        msu_samples: msu_data != request::MsuData::Optional,
     };
     let flags = rm2k_snes_audio::stage::Flags {
         place: rm2k_snes_audio::stage::Place {

@@ -16,6 +16,7 @@
 //! one cartridge's `convert` carried would still be there for the next
 //! call: see [`Fresh`].
 
+use crate::answer;
 use crate::fail::{Bad, Result};
 use crate::request::Json;
 use crate::{boxes as box_table, convert as screens, faces as face_sets};
@@ -218,7 +219,9 @@ pub fn faces_of(place: &Place, json: &Json) -> Result<Files> {
     let _fresh = Fresh::start();
     let game = place.game()?;
     let drawn = face_sets::draw(&game, &face_sets::requested(&json.data, &json.whose)?)?;
-    Ok(one("faces.json", &face_sets::answer(&drawn)))
+    // Through a `Value`, as `window`'s: the binary's keys stay sorted.
+    let answer = serde_json::to_value(face_sets::answer(&drawn)).expect("an answer is JSON");
+    Ok(one("faces.json", &answer))
 }
 
 /// `window`: how many colour-memory entries the message window takes, as
@@ -233,19 +236,31 @@ pub fn window_of(place: &Place, json: &Json) -> Result<Files> {
     let game = place.game()?;
     let skin = game.skin()?;
     let others = json.systems()?;
-    let merges_json = |merges: &[adeleine::Merge]| -> Vec<Value> {
+    let merges_of = |merges: &[adeleine::Merge]| -> Vec<answer::WindowMerge> {
         merges
             .iter()
-            .map(|m| serde_json::json!([m.victim, m.target, m.pixels]))
+            .map(|m| (m.victim, m.target, m.pixels))
             .collect()
+    };
+    // Through a `Value`, so the binary writes its keys sorted, as it did
+    // when this was `json!`; the converter's, which keeps the order they are
+    // inserted in, writes them in the fields' order, which was the macro's.
+    let written = |answer: &answer::WindowAnswer| {
+        one(
+            "window.json",
+            &serde_json::to_value(answer).expect("an answer is JSON"),
+        )
     };
     if others.is_empty() {
         let (brought, merges) = message_window::reduction(&skin)?;
-        let answer = serde_json::json!({
-            "colors": message_window::colors(&skin)?, "brought": brought, "merges": merges_json(&merges),
-            "system": game.system.system_name,
-        });
-        return Ok(one("window.json", &answer));
+        return Ok(written(&answer::WindowAnswer {
+            colors: message_window::colors(&skin)?,
+            brought,
+            merges: merges_of(&merges),
+            system: game.system.system_name.clone(),
+            text_rows: None,
+            systems: Vec::new(),
+        }));
     }
     // Each other System is the same game drawn with it, over its own
     // background or none: the starting one's does not carry over.
@@ -276,24 +291,31 @@ pub fn window_of(place: &Place, json: &Json) -> Result<Files> {
         let (brought, merges) = message_window::reduction_capped(s, Some(&rows), colors)?;
         let window = message_window::convert_with(s, colors + 1, Some(&rows))?;
         let gold = message_window::gold(s, &window, &game.font, &game.term("gold")?)?;
-        systems.push(serde_json::json!({
-            "system": name,
-            "window": screens::window_answer(&window, &gold, &message_window::inks(s, &window, &game.font)),
-            "brought": brought,
-            "merges": merges_json(&merges),
-            "colors": colors,
-            "frame_fused": window.frame_fused,
-            "mixed_text_rows": message_window::mixed_text_rows(s),
-        }));
+        systems.push(answer::SwitchedWindow {
+            other: answer::OtherSystem {
+                system: name.clone(),
+                window: screens::window_answer(
+                    &window,
+                    &gold,
+                    &message_window::inks(s, &window, &game.font),
+                ),
+            },
+            brought,
+            merges: merges_of(&merges),
+            colors,
+            frame_fused: window.frame_fused,
+            mixed_text_rows: message_window::mixed_text_rows(s),
+        });
     }
     let (brought, merges) = message_window::reduction_with(&skin, Some(&rows))?;
-    let answer = serde_json::json!({
-        "colors": colors, "brought": brought, "merges": merges_json(&merges),
-        "system": game.system.system_name,
-        "text_rows": rows,
-        "systems": systems,
-    });
-    Ok(one("window.json", &answer))
+    Ok(written(&answer::WindowAnswer {
+        colors,
+        brought,
+        merges: merges_of(&merges),
+        system: game.system.system_name.clone(),
+        text_rows: Some(rows),
+        systems,
+    }))
 }
 
 /// `layout`: the geometry the screens are drawn with, by name, as
