@@ -63,8 +63,8 @@ fn what_a_crowded_game_is_told() {
     };
     let answer = convert::convert(&game(), &request).unwrap();
     assert_eq!(
-        answer["says"],
-        serde_json::json!([
+        answer.says,
+        [
             "  menu bank: 238 tiles of 448; the composed names ask for 90 of the 210 the menu leaves \
              and 80 of the 210 the slot screen does",
             "  WARNING, 1 actor names in the menu don't fit in 13 cells (104 px) and are cut: \
@@ -79,7 +79,7 @@ fn what_a_crowded_game_is_told() {
             "  battle windows: 34 tiles of 192, 4 colours of 16, 224 words of bars",
             "  skills screen: 16 tiles of windows, and a page asks for 0 pairs of tiles at most, of \
              the 447 of its pool"
-        ])
+        ]
     );
 }
 
@@ -125,27 +125,17 @@ fn the_system_and_the_faces_come_from_the_rtp_too() {
 #[test]
 fn the_skills_screen_windows_fit() {
     let skin = game().skin().unwrap();
-    let windows = rm2k_snes_screens::skills::windows_json(&skin).unwrap();
-    let tiles = windows["tiles"].as_array().unwrap().len();
+    let windows = rm2k_snes_screens::skills::screen(&skin).unwrap();
+    let tiles = windows.tiles.len();
     assert!(tiles > 0 && tiles <= rm2k_snes_screens::skills::SK_TILES_MAX);
-    let map: Vec<i64> = windows["map"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|v| v.as_i64().unwrap())
-        .collect();
+    let map = &windows.map;
     assert_eq!(map.len(), 32 * 28);
-    let bars: Vec<i64> = windows["bars"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|v| v.as_i64().unwrap())
-        .collect();
+    let bars = &windows.bars;
     assert_eq!(bars.len(), 16 * 2 * 16);
     for (p, bar) in bars.chunks(32).enumerate() {
         let row0 = 11 + 2 * (p / 2);
         let col0 = 16 * (p % 2);
-        let under: Vec<i64> = (0..2)
+        let under: Vec<u16> = (0..2)
             .flat_map(|r| map[(row0 + r) * 32 + col0..(row0 + r) * 32 + col0 + 16].to_vec())
             .collect();
         assert_ne!(bar, under.as_slice(), "the bar on place {p} draws nothing");
@@ -158,28 +148,14 @@ fn the_skills_screen_windows_fit() {
 fn the_battle_windows_fit() {
     let skin = game().skin().unwrap();
     let windows = rm2k_snes_screens::battle::battle_windows(&skin).unwrap();
-    let tiles = windows["tiles"].as_array().unwrap().len();
+    let tiles = windows.tiles.len();
     assert!(tiles > 0 && tiles <= rm2k_snes_screens::battle::BATTLE_WINDOW_TILES_MAX);
-    let band = windows["band"].as_array().unwrap();
-    assert_eq!(band.len(), 3);
-    assert!(band.iter().all(|b| b.as_array().unwrap().len() == 12 * 32));
-    assert_eq!(windows["help"].as_array().unwrap().len(), 4 * 32);
+    assert_eq!(windows.band.len(), 3);
+    assert!(windows.band.iter().all(|b| b.len() == 12 * 32));
+    assert_eq!(windows.help.len(), 4 * 32);
     // Every bar draws something, inside the band.
-    for sets in windows["bars"].as_array().unwrap() {
-        for bar in sets
-            .as_array()
-            .unwrap()
-            .iter()
-            .flat_map(|s| s.as_array().unwrap())
-        {
-            let b: Vec<i64> = bar
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|v| v.as_i64().unwrap())
-                .collect();
-            assert!(b[0] >= 16 && b[0] + b[2] <= 28 && b[3] > 0, "{b:?}");
-        }
+    for b in windows.bars.iter().flatten().flatten() {
+        assert!(b[0] >= 16 && b[0] + b[2] <= 28 && b[3] > 0, "{b:?}");
     }
 }
 

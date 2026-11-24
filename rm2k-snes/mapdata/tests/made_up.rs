@@ -337,35 +337,25 @@ fn a_text_area_whose_lines_are_the_same_goes_as_one_line() {
 /// runtime finds each one's pieces in.
 #[test]
 fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
-    let (request, _) = with_backdrop(|_| 0xAA);
-    let mut value = serde_json::to_value(&request.screens).unwrap();
-    let first = value["window"].clone();
-    let base = first["base"].as_i64().unwrap();
+    let (mut request, _) = with_backdrop(|_| 0xAA);
+    let first = request.screens.window.system.clone();
+    let base = first.base;
     // The other System's frame, two tiles smaller.
     let mut other = first.clone();
-    let tiles = first["tiles"].as_str().unwrap();
-    other["tiles"] = tiles[..tiles.len() - 2 * 64].into();
-    other["base"] = (base - 2).into();
-    let cells: Vec<serde_json::Value> = first["cells"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|row| {
-            row.as_array()
-                .unwrap()
-                .iter()
-                .map(|c| {
-                    let c = c.as_i64().unwrap();
-                    serde_json::Value::from(if c >= base { c - 2 } else { c.min(base - 3) })
-                })
-                .collect()
-        })
-        .collect();
-    other["cells"] = cells.into();
-    value["window"] = first.clone();
-    let mut request = request;
-    request.screens = value;
-    request.window_systems = vec![serde_json::json!({"system": "Other", "window": other})];
+    other.tiles.truncate(first.tiles.len() - 2 * 32);
+    other.base = base - 2;
+    for c in other.cells.iter_mut().flatten() {
+        *c = if *c >= base {
+            *c - 2
+        } else {
+            (*c).min(base - 3)
+        };
+    }
+    request.window_systems = vec![rm2k_snes_screens::answer::OtherSystem {
+        system: "Other".into(),
+        window: other,
+    }];
+    let base = base as i64;
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains("WINDOW_SYSTEMS = 2\n"));
     assert!(
@@ -373,8 +363,8 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
         "padded to the largest frame"
     );
     assert!(
-        text.contains(".block 54\nwindow_systems:\n"),
-        "two entries of nine pointers"
+        text.contains(".block 60\nwindow_systems:\n"),
+        "two entries of ten pointers"
     );
     assert!(text.contains("    .word .loword(window_bar_bare_1)\n    .byte ^window_bar_bare_1\n"));
     // The same cells for both: the second's text renumbered back to the
@@ -402,7 +392,7 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
     assert_eq!(one.len(), two.len());
     // The tile numbers carry the window base the layout puts in front.
     let tile = |w: u16| i64::from(w & 0x3FF);
-    let at = tile(one[0]) - first["cells"][0][0].as_i64().unwrap();
+    let at = tile(one[0]) - first.cells[0][0] as i64;
     let mut frame = 0;
     for (a, b) in one.iter().zip(&two) {
         if *a == 0 || tile(*a) - at >= base {

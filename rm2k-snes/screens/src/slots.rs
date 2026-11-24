@@ -23,7 +23,7 @@ use std::collections::{BTreeMap, HashMap};
 use voodoo::pack::Indices;
 
 /// The pause menu's blocks, in the bank of the slot screen.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct MenuBlocks {
     /// `options[order][disabled]`: each command in white and, in the
     /// disabled palette, in gray.

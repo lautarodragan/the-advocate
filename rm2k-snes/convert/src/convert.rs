@@ -1497,47 +1497,33 @@ pub fn run(options: Options) -> Result<()> {
         &compiled["messages"]["letters"],
         &screen_letters,
     )?;
-    for loss in screens_answer["losses"].as_array().into_iter().flatten() {
-        degradations.cartridge(
-            loss["kind"].as_str().unwrap_or(""),
-            loss["text"].as_str().unwrap_or(""),
-        );
+    for loss in &screens_answer.losses {
+        degradations.cartridge(&loss.kind, &loss.text);
     }
-    let w = &screens_answer["window"];
+    let w = &screens_answer.window;
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",
-        w["tiles"].as_str().map_or(0, |s| s.len() / 2) / 32,
-        w["background"].as_str().map_or(0, |s| s.len() / 2) / 32,
+        w.system.tiles.len() / 32,
+        w.system.background.len() / 32,
         window_colors,
-        w["font"].as_str().map_or(0, |s| s.len() / 2),
+        w.font.len(),
         message_count,
         messages.len()
     );
-    for line in screens_answer["says"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-    {
-        println!("{}", line.as_str().unwrap_or(""));
+    for line in &screens_answer.says {
+        println!("{line}");
     }
     vram::check_splits().map_err(|e| Stop::new(e.message().to_string()))?;
-    let s = &screens_answer["slots"];
-    let slot_tiles = s["tiles"].as_array().map_or(0, Vec::len);
-    let headers = s["headers"].as_array().cloned().unwrap_or_default();
-    let mut faces: Vec<i64> = s["faces"]
-        .as_object()
-        .map(|f| f.keys().map(|k| k.parse().unwrap_or(0)).collect())
-        .unwrap_or_default();
-    faces.sort();
+    let s = &screens_answer.slots;
+    let slot_tiles = s.tiles.len();
+    let headers = &s.headers;
+    let faces: Vec<&i32> = s.faces.keys().collect();
     let face_names: Vec<String> = faces
         .iter()
         .map(|a| {
             format!(
                 "{a} {}",
-                game.db
-                    .actors
-                    .get(&(*a as i32))
-                    .map_or("", |x| x.name.as_str())
+                game.db.actors.get(a).map_or("", |x| x.name.as_str())
             )
         })
         .collect();
@@ -1546,37 +1532,24 @@ pub fn run(options: Options) -> Result<()> {
         vram::SLOTS,
         slot_tiles,
         slot_tiles * 32,
-        s["palettes"].as_array().map_or(0, Vec::len),
-        (headers.len() * headers.first().and_then(Value::as_array).map_or(0, Vec::len)
-            + vram::SLOTS as usize * 4 * s["rows"][0][0][0].as_array().map_or(0, Vec::len))
-            * 2,
+        s.palettes.len(),
+        // Only the headers': the slots' rows were never counted, see the
+        // draft `the-slots-screen-line-counts-no-row-cells`.
+        headers.len() * headers.first().map_or(0, Vec::len) * 2,
         faces.len(),
         if face_names.is_empty() { "none".to_string() } else { face_names.join(", ") }
     );
     let mut title_screen = None;
-    if !screens_answer["title"].is_null() {
-        let t = &screens_answer["title"];
+    if let Some(t) = &screens_answer.title {
         let name = &game.db.title_name;
         // The game's, or the RTP's, in any case; where it was looked for
         // when there is none.
         let picture = crate::resources::find(&[&game.game_dir, &rtp_dir], "Title", name, &[".png"])
             .unwrap_or_else(|| game.game_dir.join("Title").join(format!("{name}.png")));
-        let texts: Vec<String> = t["texts"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-            .iter()
-            .map(|v| v.as_str().unwrap_or("").to_string())
-            .collect();
-        let menu_tiles = t["tiles"].as_array().map_or(0, Vec::len);
-        let menu_palette: Vec<[u8; 3]> = t["palette"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
-            .iter()
-            .map(|c| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8])
-            .collect();
-        let menu_maps = t["tilemaps"].as_array().map_or(0, Vec::len);
+        let texts = &t.texts;
+        let menu_tiles = t.tiles.len();
+        let menu_palette = t.palette.clone();
+        let menu_maps = t.tilemaps.len();
         // The image, compressed like the Game Over one, and with the menu's
         // colours below its own in the same stream: the whole CGRAM at
         // once, the menu's palette at the bottom because a 4-bit BG only
@@ -1806,7 +1779,7 @@ pub fn run(options: Options) -> Result<()> {
         item_name_width: emit::typed(&layout["ITEM_NAME_WIDTH"])?,
         // The letters the text screens carry: an item's name in a
         // victory line keeps them.
-        letters: emit::typed(&screens_answer["font"]["screen_letters"])?,
+        letters: Some(screens_answer.font.screen_letters.clone()),
         font: Some(font.spec.clone()),
         letter_spacing: Some(font.spacing),
         exfont: font

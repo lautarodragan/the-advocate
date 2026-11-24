@@ -90,8 +90,9 @@ fn json(request: &Value) -> Json {
 
 /// `answer` as the file `name`, as every JSON of this crate is written:
 /// on one line, with no newline after it.
-fn one(name: &str, answer: &Value) -> Files {
-    Files::from([(name.to_string(), answer.to_string().into_bytes())])
+fn one(name: &str, answer: &impl serde::Serialize) -> Files {
+    let text = serde_json::to_string(answer).expect("an answer is JSON");
+    Files::from([(name.to_string(), text.into_bytes())])
 }
 
 /// The game, drawing with the font the request names: `font`, which is the
@@ -277,7 +278,7 @@ pub fn window_of(place: &Place, json: &Json) -> Result<Files> {
         let gold = message_window::gold(s, &window, &game.font, &game.term("gold")?)?;
         systems.push(serde_json::json!({
             "system": name,
-            "window": screens::window_json(&window, &gold, &message_window::inks(s, &window, &game.font)),
+            "window": screens::window_answer(&window, &gold, &message_window::inks(s, &window, &game.font)),
             "brought": brought,
             "merges": merges_json(&merges),
             "colors": colors,

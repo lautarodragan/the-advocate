@@ -5,8 +5,8 @@
 
 use crate::asm::Inc;
 use crate::fail::{Bad, Result};
-use crate::json::{colors, ints, tiles};
 use crate::snes::{cgram_bytes, pack_tile, words_le};
+use rm2k_snes_screens::answer::Answer;
 use serde_json::Value;
 
 /// How many bytes a BG1 tilemap of the screen takes: 32 by 28 words.
@@ -42,16 +42,14 @@ const GEOMETRY: [&str; 26] = [
     "ITEM_RED",
 ];
 
-fn words(v: &Value) -> Result<Vec<u8>> {
-    Ok(words_le(ints(v)?.into_iter().map(|w| w as u32)))
+fn words(v: &[u16]) -> Vec<u8> {
+    words_le(v.iter().map(|&w| w.into()))
 }
 
 /// The section: `screens` is the screens stage's whole answer.
-pub fn section(out: &mut Inc, screens: &Value) -> Result<()> {
+pub fn section(out: &mut Inc, screens: &Answer) -> Result<()> {
     out.push_str("\n; --- the skills screen: see skills_screen.s ---\n");
-    let layout = screens
-        .get("layout")
-        .ok_or_else(|| Bad::answer("the screens have no `layout`"))?;
+    let layout = &screens.layout;
     for name in GEOMETRY {
         let n = layout
             .get(name)
@@ -59,23 +57,16 @@ pub fn section(out: &mut Inc, screens: &Value) -> Result<()> {
             .ok_or_else(|| Bad::answer(format!("the screens' layout has no {name}")))?;
         out.push_str(&format!("{name} = {n}\n"));
     }
-    let sk = screens
-        .get("skills_screen")
-        .ok_or_else(|| Bad::answer("the screens have no `skills_screen`"))?;
-    let get = |key: &str| {
-        sk.get(key)
-            .ok_or_else(|| Bad::answer(format!("the skills screen has no `{key}`")))
-    };
-    let border_tiles = tiles(get("tiles")?)?;
-    let border_colors = colors(get("colors")?)?;
-    let map = words(get("map")?)?;
+    let sk = &screens.skills_screen;
+    let (border_tiles, border_colors) = (&sk.tiles, &sk.colors);
+    let map = words(&sk.map);
     if map.len() != SCREEN_MAP_BYTES {
         return Err(Bad::answer(format!(
             "the skills screen's tilemap is {} bytes and a tilemap {SCREEN_MAP_BYTES}",
             map.len()
         )));
     }
-    let bars = words(get("bars")?)?;
+    let bars = words(&sk.bars);
     out.push_str(&format!(
         "SK_BORDER_TILES = {}\nSK_BORDER_COLORS = {}\n",
         border_tiles.len(),
@@ -88,6 +79,6 @@ pub fn section(out: &mut Inc, screens: &Value) -> Result<()> {
     out.block("sk_layout", &[map, bars].concat());
     let packed: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 8)).collect();
     out.block("sk_border_tiles", &packed);
-    out.block("sk_border_cgram", &cgram_bytes(&border_colors));
+    out.block("sk_border_cgram", &cgram_bytes(border_colors));
     Ok(())
 }

@@ -23,7 +23,7 @@ use crate::render::{Grid, SYSTEM_INK};
 use crate::texts::{self, description_spans};
 use ditto::schema::State;
 use rm2k_render::picture::Picture;
-use serde_json::{json, Map, Value};
+use std::collections::BTreeMap;
 
 /// The most 8bpp tiles the windows take: from `CM_BG1_VRAM`, word $4000,
 /// up to where the custom menus' portrait would go, $6000 —this screen has
@@ -79,7 +79,7 @@ pub fn layers(skin: &Skin) -> Screen {
 /// What the cartridge stores of the windows: the tiles, their colours, the
 /// arrangement's tilemap, and per place its bar's half rows, the top row's
 /// sixteen words and then the bottom's.
-pub fn windows_json(skin: &Skin) -> Result<Value> {
+pub fn screen(skin: &Skin) -> Result<crate::answer::SkillsScreen> {
     let made = borders::borders(&[layers(skin)], 0, CM_BORDER_CGRAM, CM_BORDER_CGRAM_END)?;
     if made.tiles.len() > SK_TILES_MAX {
         return Err(Bad::answer(format!(
@@ -108,12 +108,12 @@ pub fn windows_json(skin: &Skin) -> Result<Value> {
             halves.extend(&bar[row * COLS + col0..row * COLS + col0 + SK_HALF_COLS]);
         }
     }
-    Ok(json!({
-        "tiles": crate::convert::tiles_json(&made.tiles),
-        "colors": crate::convert::colors_json(&made.colors),
-        "map": map,
-        "bars": halves,
-    }))
+    Ok(crate::answer::SkillsScreen {
+        tiles: made.tiles.clone(),
+        colors: made.colors.clone(),
+        map: map.clone(),
+        bars: halves,
+    })
 }
 
 /// A skill's name on the actor choice's line on top, as the cartridge
@@ -132,8 +132,8 @@ pub fn target_name(game: &Game, id: i32) -> Result<String> {
 /// fallen ([`rm2k_rules::skill::cures_death`]); and its name on the actor
 /// choice ([`target_name`]). By number, as text, for the emission to pick
 /// the ones the cartridge carries.
-pub fn per_skill(game: &Game) -> Result<Value> {
-    let mut out = Map::new();
+pub fn per_skill(game: &Game) -> Result<BTreeMap<i32, crate::answer::SkillRow>> {
+    let mut out = BTreeMap::new();
     for (&id, skill) in &game.skills {
         let [(s1, n1), (s2, n2)] = description_spans(&game.font, &game.skill_description(id)?);
         if s1 != 0 || s2 > 255 || n1 > 255 || n2 > 255 {
@@ -142,16 +142,16 @@ pub fn per_skill(game: &Game) -> Result<Value> {
             )));
         }
         out.insert(
-            id.to_string(),
-            json!({
-                "lines": [n1, s2, n2],
-                "field": rm2k_rules::skill::usable_on_the_map(skill, &game.states),
-                "revives": rm2k_rules::skill::cures_death(skill),
-                "target_name": target_name(game, id)?,
-            }),
+            id,
+            crate::answer::SkillRow {
+                lines: [n1, s2, n2],
+                field: rm2k_rules::skill::usable_on_the_map(skill, &game.states),
+                revives: rm2k_rules::skill::cures_death(skill),
+                target_name: target_name(game, id)?,
+            },
         );
     }
-    Ok(Value::Object(out))
+    Ok(out)
 }
 
 /// A page of the list as the text layer composes it: the description's

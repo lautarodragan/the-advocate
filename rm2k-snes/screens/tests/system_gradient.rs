@@ -84,12 +84,7 @@ fn request() -> Request {
 fn a_gradient_behind_the_frame_fits_every_bank() {
     let game = game_with(&gradient_system(), "fits");
     let answer = convert::convert(&game, &request()).unwrap();
-    let says: Vec<&str> = answer["says"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|s| s.as_str().unwrap())
-        .collect();
+    let says: Vec<&str> = answer.says.iter().map(String::as_str).collect();
     assert!(
         says.iter()
             .any(|s| s.contains("WARNING") && s.contains("the message window's frame")),
@@ -105,9 +100,13 @@ fn a_gradient_behind_the_frame_fits_every_bank() {
         "the actor choice's window should fit without fusing: {says:#?}"
     );
     // The frame and the arrow, before the text area's 240.
-    assert!(answer["window"]["base"].as_u64().unwrap() <= 16);
+    assert!(answer.window.system.base <= 16);
     // And the same System gives the same cartridge.
-    assert_eq!(convert::convert(&game, &request()).unwrap(), answer);
+    let again = convert::convert(&game, &request()).unwrap();
+    assert_eq!(
+        serde_json::to_value(again).unwrap(),
+        serde_json::to_value(&answer).unwrap()
+    );
 }
 
 /// `[windows.background]`: the same System over one colour fuses nothing,
@@ -117,12 +116,7 @@ fn over_one_colour_the_same_system_fuses_nothing() {
     let mut game = game_with(&gradient_system(), "flat");
     game.use_window_background("#102030").unwrap();
     let answer = convert::convert(&game, &request()).unwrap();
-    let says: Vec<&str> = answer["says"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|s| s.as_str().unwrap())
-        .collect();
+    let says: Vec<&str> = answer.says.iter().map(String::as_str).collect();
     let fused = |s: &&str| s.contains("as RM2k draws them") || s.contains("frame and arrow took");
     assert!(
         !says.iter().any(fused),

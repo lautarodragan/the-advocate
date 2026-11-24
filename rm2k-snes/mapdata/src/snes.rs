@@ -15,10 +15,10 @@ pub type Color = [u8; 3];
 /// leftmost pixel in the highest bit. Planes come in pairs, sixteen bytes a
 /// pair: 0 and 1 first, then 2 and 3, and so on. That is why a 4bpp tile is
 /// exactly the first half of an 8bpp one.
-pub fn pack_tile(indices: &[Vec<u8>], planes: usize) -> Vec<u8> {
+pub fn pack_tile<R: AsRef<[u8]>>(indices: &[R], planes: usize) -> Vec<u8> {
     let mut data = vec![0u8; planes * 8];
     for (y, row) in indices.iter().enumerate() {
-        for (x, &value) in row.iter().enumerate() {
+        for (x, &value) in row.as_ref().iter().enumerate() {
             let bit = 1u8 << (7 - x);
             for plane in 0..planes {
                 if (value >> plane) & 1 != 0 {

@@ -318,17 +318,16 @@ pub struct Emit {
     /// window and its font, the title's menu, the slots and the pause
     /// menu, the text screens with their windows, End Game, the texts they
     /// compose, and the geometry they were drawn with.
-    pub screens: serde_json::Value,
+    pub screens: rm2k_snes_screens::answer::Answer,
     /// The colour-memory entries the message window takes, as
     /// `rm2k-snes-screens window` counted them from the System: each map's
     /// background starts after them. See [`crate::cgram::cgram_reserved`].
     pub window_colors: u32,
     /// The message window of every other System the cartridge switches to,
     /// in its order, as `rm2k-snes-screens window` answered each in its
-    /// `systems`: `{"system": name, "window": ...}`. Empty in a cartridge
-    /// that does not switch.
+    /// `systems`. Empty in a cartridge that does not switch.
     #[serde(default)]
-    pub window_systems: Vec<serde_json::Value>,
+    pub window_systems: Vec<rm2k_snes_screens::answer::OtherSystem>,
     /// The text block of every `ShowMessage`, as the event compiler left it.
     #[serde(with = "hex")]
     pub messages: Vec<u8>,

@@ -59,30 +59,14 @@ impl Text {
     /// take other entries of the window's —its ink, its nearest—, which the
     /// layer's palettes would not hold, so its windows keep the old look and
     /// nothing is baked for them.
-    pub fn of(screens: &serde_json::Value) -> Option<Text> {
-        let window = screens.get("window")?;
-        if window
-            .get("ink")
-            .and_then(serde_json::Value::as_i64)
-            .unwrap_or(0)
-            > 0
-        {
+    pub fn of(screens: &rm2k_snes_screens::answer::Answer) -> Option<Text> {
+        let window = &screens.window.system;
+        if window.ink > 0 {
             return None;
         }
-        let cgram: Vec<u16> = window
-            .get("cgram")?
-            .as_array()?
-            .iter()
-            .map(|w| w.as_u64().unwrap_or(0) as u16)
-            .collect();
-        let mut indices: Vec<usize> = window
-            .get("color")?
-            .as_array()?
-            .iter()
-            .filter_map(|c| c.as_u64())
-            .map(|c| c as usize)
-            .collect();
-        indices.push(window.get("shadow")?.as_u64()? as usize);
+        let cgram = &window.cgram;
+        let mut indices: Vec<usize> = window.color.iter().map(|&c| c.into()).collect();
+        indices.push(window.shadow.into());
         indices.sort_unstable();
         indices.dedup();
         let entries = indices

@@ -431,7 +431,7 @@ pub fn borders(screens: &[Screen], first_tile: usize, cgram: usize, cap: usize) 
 }
 
 /// What the cartridge stores of the actor choice's windows.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CompactTarget {
     /// The tilemap, without the bar.
     pub map: Vec<u16>,
@@ -540,7 +540,7 @@ fn alone(screen: &(Vec<u16>, Vec<Vec<u16>>), first: usize, what: &str) -> Result
 
 /// What the cartridge stores of the actor choice for a skill, over the
 /// medicine's: the cost's term, and the bar over the whole party.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CompactTargetSkill {
     /// The cells where the term differs from "Owned Items", as `(row0,
     /// rows, col0, cols)`, and their words row by row: copied over the
@@ -644,7 +644,7 @@ pub fn compact_target_skill(
 pub type BarPatch = (usize, usize, usize, usize, usize);
 
 /// What the cartridge stores of the shop's windows.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CompactShop {
     /// The stored tilemap rows, 32 words each, with the help's `top` ones
     /// first.

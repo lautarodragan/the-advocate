@@ -508,7 +508,7 @@ pub struct Inks {
 }
 
 /// One text colour: see [`Inks`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Ink {
     /// The colour the ink entry takes for it: the mean of its rows'
     /// colours, weighted by how many of the font's pixels each row has.
@@ -1105,17 +1105,11 @@ pub fn font_prerender(source: &[u8]) -> Vec<Vec<u8>> {
 /// writer puts in the colour-free glyphs of [`font_prerender`]. The
 /// message window's is its gradient, the text screens' their inks' shared
 /// layout, the slot bank's its palette's.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FontInk {
     /// Row k of the glyph, the twelve of them.
     pub rows: Vec<u8>,
     pub shadow: u8,
-}
-
-impl FontInk {
-    pub fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({"rows": self.rows, "shadow": self.shadow})
-    }
 }
 
 #[cfg(test)]

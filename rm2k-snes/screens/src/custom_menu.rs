@@ -1454,22 +1454,33 @@ pub fn publish() -> Value {
 }
 
 /// The answer's part for the custom menus.
-pub fn to_json(b: &Built) -> Value {
-    json!({
-        "labels": b.menus.iter().map(|m| m.label.clone()).collect::<Vec<_>>(),
-        "blob": b.blob.iter().map(|x| format!("{x:02x}")).collect::<String>(),
-        "offsets": b.offsets,
-        "layouts": b.borders.maps.iter().map(|(map, _)| map.clone()).collect::<Vec<_>>(),
-        "bars": b.borders.maps.first().map(|(_, bars)| bars.clone()).unwrap_or_default(),
-        "tiles": crate::convert::tiles_json(&b.borders.tiles),
-        "colors": crate::convert::colors_json(&b.borders.colors),
-        "inks": b.inks,
-        "portraits": b.portraits.iter().map(|(tiles, palette)| json!({
-            "tiles": crate::convert::tiles_json(tiles),
-            "palette": palette,
-        })).collect::<Vec<_>>(),
-        "layout": publish(),
-    })
+pub fn answer(b: &Built) -> crate::answer::CustomMenus {
+    crate::answer::CustomMenus {
+        labels: b.menus.iter().map(|m| m.label.clone()).collect(),
+        built: Some(crate::answer::BuiltMenus {
+            blob: b.blob.clone(),
+            offsets: b.offsets.clone(),
+            layouts: b.borders.maps.iter().map(|(map, _)| map.clone()).collect(),
+            bars: b
+                .borders
+                .maps
+                .first()
+                .map(|(_, bars)| bars.clone())
+                .unwrap_or_default(),
+            tiles: b.borders.tiles.clone(),
+            colors: b.borders.colors.clone(),
+            inks: b.inks.clone(),
+            portraits: b
+                .portraits
+                .iter()
+                .map(|(tiles, palette)| crate::answer::Portrait {
+                    tiles: tiles.clone(),
+                    palette: palette.clone(),
+                })
+                .collect(),
+        }),
+        layout: publish(),
+    }
 }
 
 #[cfg(test)]

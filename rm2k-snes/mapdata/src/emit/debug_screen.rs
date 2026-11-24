@@ -13,9 +13,9 @@
 
 use crate::asm::Inc;
 use crate::fail::{Bad, Result};
-use crate::json::{by_key, bytes, colors, ints, list_at, tiles};
+use crate::json::by_key;
 use crate::snes::{cgram_bytes, pack_tile, words_le};
-use serde_json::Value;
+use rm2k_snes_screens::answer::DebugScreen;
 
 /// How many bytes the windows' tilemap takes: 32 by 28 words.
 const SCREEN_MAP_BYTES: usize = 32 * 28 * 2;
@@ -25,25 +25,21 @@ const BAR_BYTES: usize = 2 * 32 * 2;
 /// ink and glyph words. The runtime's `FONT_PRE_CHAR`, of the game's font.
 const FONT_PRE_CHAR: usize = 13 * 8;
 
-fn words(v: &Value) -> Result<Vec<u8>> {
-    Ok(words_le(ints(v)?.into_iter().map(|w| w as u32)))
+fn words(v: &[u16]) -> Vec<u8> {
+    words_le(v.iter().map(|&w| w.into()))
 }
 
-/// The section: `debug` is the screens stage's `debug_screen`, null if the
+/// The section: `debug` is the screens stage's `debug_screen`, none if the
 /// cartridge does not carry it.
-pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
+pub fn section(out: &mut Inc, debug: Option<&DebugScreen>) -> Result<()> {
     out.push_str("\n; --- the debug screen: see debug_screen.s ---\n");
-    if debug.is_null() {
+    let Some(debug) = debug else {
         out.push_str("DEBUG_SCREEN = 0\n");
         return Ok(());
-    }
-    let get = |key: &str| {
-        debug
-            .get(key)
-            .ok_or_else(|| Bad::answer(format!("the debug screen has no `{key}`")))
     };
     out.push_str("DEBUG_SCREEN = 1\n");
-    let geometry = get("geometry")?
+    let geometry = debug
+        .geometry
         .as_object()
         .ok_or_else(|| Bad::answer("the debug screen's geometry is not an object"))?;
     for (name, value) in by_key(geometry) {
@@ -52,8 +48,7 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
             .ok_or_else(|| Bad::answer(format!("the debug screen's {name} is not a number")))?;
         out.push_str(&format!("{name} = {n}\n"));
     }
-    let border_tiles = tiles(get("tiles")?)?;
-    let border_colors = colors(get("colors")?)?;
+    let (border_tiles, border_colors) = (&debug.tiles, &debug.colors);
     out.push_str(&format!(
         "DBG_BORDER_TILES = {}\nDBG_BORDER_COLORS = {}\n",
         border_tiles.len(),
@@ -63,17 +58,16 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
     // The names, a piece per page —its table and its strings—, which the
     // screen loads into WRAM when the page changes; and in the ROM, where
     // each one is: its unit in the `.msu`'s region.
-    let pages = list_at(debug, "pages")?;
     let mut units = Vec::new();
-    for (k, page) in pages.iter().enumerate() {
-        out.msu_only_block(format!("dbg_page{k}"), &bytes(page)?);
+    for (k, page) in debug.pages.iter().enumerate() {
+        out.msu_only_block(format!("dbg_page{k}"), page);
         units.push(format!(".loword(dbg_page{k})"));
     }
     out.push_str(&format!(".block {}\ndbg_pages:\n", 2 * units.len()));
     for line in units.chunks(8) {
         out.push_str(&format!("    .word {}\n", line.join(", ")));
     }
-    let layout = words(get("layout")?)?;
+    let layout = words(&debug.layout);
     if layout.len() != SCREEN_MAP_BYTES {
         return Err(Bad::answer(format!(
             "the debug screen's tilemap is {} bytes and a tilemap {SCREEN_MAP_BYTES}",
@@ -84,8 +78,8 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
     // when it opens, the tilemap first: `DBG_FRAME_BYTES`.
     // The bars: the ranges' ten, then the list's, two cell rows each.
     let mut bars = Vec::new();
-    for bar in list_at(debug, "bars")? {
-        let data = words(bar)?;
+    for bar in &debug.bars {
+        let data = words(bar);
         if data.len() != BAR_BYTES {
             return Err(Bad::answer(format!(
                 "a debug screen bar is {} bytes and two cell rows {BAR_BYTES}",
@@ -105,20 +99,17 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
     // screen runs in— and their colours behind them, one piece the screen
     // reads into WRAM and uploads when it opens.
     let mut border: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 2)).collect();
-    border.extend(cgram_bytes(&border_colors));
+    border.extend(cgram_bytes(border_colors));
     out.msu_only_block("dbg_border", &border);
     // Its font, which only the text layer's 512-wide mode reads: how far
     // each letter moves the line and how far it paints, and its glyphs
     // precomposed, colour-free, a table per phase —what `font_advance`,
     // `font_reach` and `font_pre0` to `font_pre7` are of the game's font—,
     // which the text layer paints with the screens' ink, `SCR_INK_*`.
-    let font = get("font")?;
-    let small = |name: &str| -> Result<Vec<u8>> {
-        Ok(ints(&font[name])?.into_iter().map(|n| n as u8).collect())
-    };
-    out.block("dbg_font_advance", &small("advances")?);
-    out.block("dbg_font_reach", &small("reach")?);
-    let phases = list_at(font, "prerender")?;
+    let font = &debug.font;
+    out.block("dbg_font_advance", &font.advances);
+    out.block("dbg_font_reach", &font.reach);
+    let phases = &font.prerender;
     if phases.len() != 8 {
         return Err(Bad::answer(format!(
             "the debug screen's font has {} phases and a cell eight",
@@ -129,7 +120,6 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
     // letter at a time into its cache in WRAM: `DBG_GLYPHS` letters each.
     let mut glyphs = None;
     for (phase, data) in phases.iter().enumerate() {
-        let data = bytes(data)?;
         if data.len() % FONT_PRE_CHAR != 0
             || glyphs.is_some_and(|g| g != data.len() / FONT_PRE_CHAR)
         {
@@ -140,7 +130,7 @@ pub fn section(out: &mut Inc, debug: &Value) -> Result<()> {
             )));
         }
         glyphs = Some(data.len() / FONT_PRE_CHAR);
-        out.msu_only_block(format!("dbg_pre{phase}"), &data);
+        out.msu_only_block(format!("dbg_pre{phase}"), data);
     }
     out.push_str(&format!("DBG_GLYPHS = {}\n", glyphs.unwrap_or(0)));
     Ok(())

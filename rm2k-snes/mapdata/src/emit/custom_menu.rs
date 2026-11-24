@@ -5,25 +5,25 @@
 use crate::asm::Inc;
 use crate::compress::compress_many;
 use crate::fail::{Bad, Result};
-use crate::json::{by_key, bytes, colors, ints, list, list_at, tiles};
+use crate::json::by_key;
 use crate::snes::{cgram_bytes, pack_tile, words_le};
-use serde_json::Value;
+use rm2k_snes_screens::answer::CustomMenus;
 
 /// How many bytes a BG1 tilemap of the screen takes: 32 by 28 words.
 const SCREEN_MAP_BYTES: usize = 32 * 28 * 2;
 
-fn words(v: &Value) -> Result<Vec<u8>> {
-    Ok(words_le(ints(v)?.into_iter().map(|w| w as u32)))
+fn words(v: &[u16]) -> Vec<u8> {
+    words_le(v.iter().map(|&w| w.into()))
 }
 
 /// The section, after the pause menu's tables: `custom` is the screens
-/// stage's `custom_menus`, null if the project declares none.
-pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
+/// stage's `custom_menus`, with no labels if the project declares none.
+pub fn section(out: &mut Inc, custom: &CustomMenus) -> Result<()> {
     out.push_str("\n; --- the custom menus: see custom_menu.s ---\n");
     out.push_str(".segment \"RODATA\"\n");
-    let empty = custom.is_null() || list_at(custom, "labels").map_or(true, |l| l.is_empty());
-    if empty {
-        if let Some(geometry) = custom.get("layout").and_then(Value::as_object) {
+    let built = custom.built.as_ref().filter(|_| !custom.labels.is_empty());
+    let Some(built) = built else {
+        if let Some(geometry) = custom.layout.as_object() {
             for (name, value) in by_key(geometry) {
                 out.push_str(&format!("{name} = {}\n", value.as_i64().unwrap_or(0)));
             }
@@ -50,19 +50,13 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
             out.push_str(&format!(".block 1\n{label}:\n    .byte 0\n"));
         }
         return Ok(());
-    }
-    let get = |key: &str| {
-        custom
-            .get(key)
-            .ok_or_else(|| Bad::answer(format!("the custom menus have no `{key}`")))
     };
-    let blob = bytes(get("blob")?)?;
-    let layouts = list_at(custom, "layouts")?;
-    let border_tiles = tiles(get("tiles")?)?;
-    let border_colors = colors(get("colors")?)?;
-    let inks = list_at(custom, "inks")?;
-    let portraits = list_at(custom, "portraits")?;
-    let geometry = get("layout")?
+    let layouts = &built.layouts;
+    let (border_tiles, border_colors) = (&built.tiles, &built.colors);
+    let inks = &built.inks;
+    let portraits = &built.portraits;
+    let geometry = custom
+        .layout
         .as_object()
         .ok_or_else(|| Bad::answer("the custom menus' layout is not an object"))?;
     let mut equates = String::new();
@@ -76,7 +70,7 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     out.push_str(&format!(
         "CM_MENUS = {}\nCM_LAYOUTS = {}\nCM_BORDER_TILES = {}\nCM_BORDER_COLORS = {}\nCM_INKS_N = {}\n\
          CM_PORTRAITS = {}\n",
-        list_at(custom, "labels")?.len(),
+        custom.labels.len(),
         layouts.len(),
         border_tiles.len(),
         border_colors.len(),
@@ -85,10 +79,10 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     ));
     // The data the screen walks, in one block: it reads it with
     // `lda f:cmenu_data, x`, and its offsets are sixteen bits.
-    out.block("cmenu_data", &blob);
+    out.block("cmenu_data", &built.blob);
     // Each arrangement of windows, a whole BG1 tilemap uploaded at once.
     for (k, layout) in layouts.iter().enumerate() {
-        let data = words(layout)?;
+        let data = words(layout);
         if data.len() != SCREEN_MAP_BYTES {
             return Err(Bad::answer(format!(
                 "custom menu arrangement {k} is {} bytes and a tilemap {SCREEN_MAP_BYTES}",
@@ -107,8 +101,8 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     out.bytes("cm_layout_bk", names.iter().map(|n| format!("^{n}")));
     // The bar on each tab: its two cell rows of the subjects' tilemap.
     let mut bars = Vec::new();
-    for bar in list_at(custom, "bars")? {
-        bars.extend(words(bar)?);
+    for bar in &built.bars {
+        bars.extend(words(bar));
     }
     out.block(
         "cm_bars",
@@ -120,11 +114,8 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     );
     let packed: Vec<u8> = border_tiles.iter().flat_map(|t| pack_tile(t, 8)).collect();
     out.block("cm_border_tiles", &packed);
-    out.block("cm_border_cgram", &cgram_bytes(&border_colors));
-    let mut ink_colors = Vec::new();
-    for ink in inks {
-        ink_colors.extend(colors(ink)?);
-    }
+    out.block("cm_border_cgram", &cgram_bytes(border_colors));
+    let ink_colors: Vec<_> = inks.iter().flatten().copied().collect();
     out.block(
         "cm_inks_cgram",
         &cgram_bytes(&ink_colors)
@@ -137,15 +128,13 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
     let mut raws = Vec::new();
     let mut palettes = Vec::new();
     for p in portraits {
-        let t = tiles(
-            p.get("tiles")
-                .ok_or_else(|| Bad::answer("a portrait has no tiles"))?,
-        )?;
-        raws.push(t.iter().flat_map(|t| pack_tile(t, 4)).collect::<Vec<u8>>());
-        palettes.extend(colors(
-            p.get("palette")
-                .ok_or_else(|| Bad::answer("a portrait has no palette"))?,
-        )?);
+        raws.push(
+            p.tiles
+                .iter()
+                .flat_map(|t| pack_tile(t, 4))
+                .collect::<Vec<u8>>(),
+        );
+        palettes.extend(&p.palette);
     }
     let refs: Vec<&[u8]> = raws.iter().map(|r| r.as_slice()).collect();
     let streams = compress_many(&refs)?;
@@ -170,7 +159,6 @@ pub fn section(out: &mut Inc, custom: &Value) -> Result<()> {
             .chain(std::iter::once(0))
             .collect::<Vec<_>>(),
     );
-    let _ = list;
     Ok(())
 }
 
@@ -185,7 +173,11 @@ mod tests {
     /// --workspace` shows it—, where the binary saw them sorted.
     #[test]
     fn the_geometry_goes_in_the_order_of_its_names() {
-        let custom = json!({"labels": [], "layout": {"CM_ZED": 2, "CM_ALPHA": 1}});
+        let custom = CustomMenus {
+            labels: Vec::new(),
+            built: None,
+            layout: json!({"CM_ZED": 2, "CM_ALPHA": 1}),
+        };
         let mut out = Inc::new(String::new());
         section(&mut out, &custom).unwrap();
         let text = out.into_text();
