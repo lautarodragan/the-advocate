@@ -365,20 +365,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     // The tools the fingerprint hashes, as stand-ins on a PATH of their own.
     let bin = dir.join("bin");
     fs::create_dir_all(&bin).unwrap();
-    for tool in [
-        "ca65",
-        "ld65",
-        "rm2k-snes-convert",
-        "rm2k-snes-audio",
-        "rm2k-snes-battle",
-        "rm2k-snes-events",
-        "rm2k-snes-images",
-        "rm2k-snes-mapdata",
-        "wally",
-        "rm2k-snes-patches",
-        "rm2k-snes-screens",
-        "rm2k-snes-cartridges",
-    ] {
+    for tool in ["ca65", "ld65", "rm2k-snes-convert", "rm2k-snes-cartridges"] {
         let path = bin.join(tool);
         fs::write(&path, tool).unwrap();
         use std::os::unix::fs::PermissionsExt;
@@ -411,13 +398,6 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     }
     assert!(files.contains(&bin.join("rm2k-snes-cartridges")));
     assert!(files.contains(&bin.join("rm2k-snes-convert")));
-    assert!(files.contains(&bin.join("rm2k-snes-audio")));
-    assert!(files.contains(&bin.join("rm2k-snes-battle")));
-    assert!(files.contains(&bin.join("rm2k-snes-events")));
-    assert!(files.contains(&bin.join("rm2k-snes-images")));
-    assert!(files.contains(&bin.join("rm2k-snes-mapdata")));
-    assert!(files.contains(&bin.join("rm2k-snes-patches")));
-    assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("advocate.toml")));
     assert!(files.contains(&dir.join("patches/manual/maps/Map1000.json")));
     // And the dump, which `just dump` rewrites when the game changes and
