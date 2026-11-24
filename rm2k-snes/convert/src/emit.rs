@@ -9,6 +9,7 @@ use crate::maps::{MapInfo, PageRecord};
 use rm2k_snes_mapdata::request;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use wally::answer;
 
 /// A piece of the request some stage answered as JSON, as the emission's
 /// type: what the emission itself did when it read the request.
@@ -60,7 +61,7 @@ pub fn page_record(page: &PageRecord) -> Result<request::Page> {
         fixed_direction: page.fixed_direction,
         fixed_graphic: page.fixed_graphic,
         own_route,
-        draws: page.draws.as_ref().map(typed).transpose()?,
+        draws: page.draws.clone(),
         variable: page.variable,
         graphic: page.graphic.clone(),
         turns: page.turns,
@@ -95,7 +96,7 @@ pub fn access_bits(access: rm2k_rules::tree::Access) -> u8 {
 pub fn wrap_axes(m: &MapInfo) -> ((bool, bool), Vec<String>) {
     let asks_x = matches!(m.map.scroll_type, 2 | 3);
     let asks_y = matches!(m.map.scroll_type, 1 | 3);
-    let painted = m.panorama_way.as_str() == Some("painted");
+    let painted = m.panorama_way.as_deref() == Some("painted");
     let mut why = Vec::new();
     let mut fits = |asks: bool, size: i32, least: i32, axis: &str| {
         if !asks {
@@ -121,6 +122,110 @@ pub fn wrap_axes(m: &MapInfo) -> ((bool, bool), Vec<String>) {
     ((x, y), why)
 }
 
+/// The objects as the emission takes them: what Wally answered, with the
+/// bank's tiles and each character's poses, which its answer names as
+/// files, as their bytes.
+pub fn sprite(s: &answer::Sprite, tiles: Vec<u8>, banks: Vec<request::Bank>) -> request::Sprite {
+    request::Sprite {
+        tiles,
+        palettes: s.palettes.clone(),
+        place: s
+            .place
+            .iter()
+            .map(|(slot, block, palette)| (slot.clone(), *block as u32, *palette as u32))
+            .collect(),
+        actors: s
+            .actors
+            .iter()
+            .map(|(actor, palette, entry, colors)| {
+                let colors = colors.iter().map(|&c| u32::from(c)).collect();
+                (i64::from(*actor), *palette as i64, *entry, colors)
+            })
+            .collect(),
+        timer: s
+            .timer
+            .map(|(tile, palette)| (tile as i64, Some(palette as i64))),
+        timer_mask: s.timer_mask.into(),
+        animated: s
+            .animated
+            .iter()
+            .map(|(charset, index)| (charset.clone(), i64::from(*index)))
+            .collect(),
+        animated_palettes: s.animated_palettes.iter().map(|&p| p as i64).collect(),
+        banks,
+        route_gfx: s.route_gfx.clone(),
+        rain: (s.rain.0 as i64, s.rain.1 as i64),
+        sand: s.sand.map(|(t, p, e)| (t as i64, p as i64, e as i64)),
+        turn_block: s.turn_block.map(|b| b as u32),
+        image: (s.image.0 as i64, s.image.1 as i64),
+        animation: s.animation,
+        shared: s.shared.clone(),
+        cache: s.cache.clone(),
+    }
+}
+
+/// The panorama as the emission takes it: what Wally answered, with its
+/// tiles and each other image's, which its answer names as files, as their
+/// bytes —`tiles`, the map's first—.
+fn panorama(p: &answer::Panorama, tiles: &[Vec<u8>]) -> request::Panorama {
+    let pair = |(a, b): (usize, usize)| [a as i64, b as i64];
+    request::Panorama {
+        name: p.name.clone(),
+        mode: p.mode,
+        size: pair(p.size),
+        stretch: pair(p.stretch),
+        looped: [p.looped.0, p.looped.1],
+        auto: [p.auto.0.into(), p.auto.1.into()],
+        tiles: tiles[0].clone(),
+        tilemap: p.tilemap.clone(),
+        backdrop: p.backdrop,
+        above_bg1: p.above_bg1,
+        first: p.first,
+        cgram: p.cgram.clone(),
+        images: p
+            .images
+            .iter()
+            .zip(&tiles[1..])
+            .map(|(image, tiles)| request::PanoramaImage {
+                name: image.name.clone(),
+                size: pair(image.size),
+                stretch: pair(image.stretch),
+                tiles: tiles.clone(),
+                tilemap: image.tilemap.clone(),
+                backdrop: image.backdrop,
+                first: image.first,
+                cgram: image.cgram.clone(),
+            })
+            .collect(),
+        none_first: p.none_first,
+    }
+}
+
+/// A drawn event as the emission takes it: the part of Wally's row it
+/// reads.
+fn npc(row: &answer::Row) -> request::Npc {
+    let n = &row.npc;
+    request::Npc {
+        event: n.event as i64,
+        x: n.x.into(),
+        y: n.y.into(),
+        charset: n.charset.clone(),
+        index: n.index.into(),
+        pose: n.pose.into(),
+        layer: n.layer.into(),
+        speed: n.speed.into(),
+        visible: n.visible,
+        translucent: n.translucent,
+        tile_pass: n.tile_pass.map(i64::from),
+        posed: row.posed.map(|(p, g)| [p as i64, g as i64]),
+    }
+}
+
+/// Events by their index, as the emission numbers them.
+fn indices<'a>(events: impl IntoIterator<Item = &'a usize>) -> Vec<i64> {
+    events.into_iter().map(|&e| e as i64).collect()
+}
+
 /// A map as the emission takes it: see `Map` in its `request.rs`. `access`
 /// is what it forbids, from [`access_bits`].
 pub fn map_record(m: &MapInfo, access: u8) -> Result<request::Map> {
@@ -136,24 +241,28 @@ pub fn map_record(m: &MapInfo, access: u8) -> Result<request::Map> {
         layout: m.layout_name.clone(),
         tiles: m.tile_data.clone(),
         bpp: m.bpp as usize,
-        panorama: m.panorama.as_ref().map(typed).transpose()?,
+        panorama: m.panorama.as_ref().map(|p| panorama(p, &m.panorama_tiles)),
         cgram: m.cgram.clone(),
         above_tiles: m.above_tiles.clone(),
         above_cgram: m.above_cgram.clone(),
         above_first: m.above_first,
-        runs: m.runs.iter().map(typed).collect::<Result<_>>()?,
+        runs: m.runs.clone(),
         cells: m.cells.clone(),
         blocks: m.blocks.clone(),
         block_pass: m.block_pass.clone(),
         block_terrain: m.block_terrain.clone(),
         terrain_outside: m.terrain_outside.into(),
         wrap: [wrap_x, wrap_y],
-        sprite: typed(&m.objects)?,
-        npcs: typed(&m.npcs)?,
-        movable: typed(&m.movable)?,
-        posed: typed(&m.posed_table)?,
-        animates_still: typed(&m.animates_still)?,
-        animates_with: typed(&m.animates_with)?,
+        sprite: Some(m.sprite.clone()),
+        npcs: m.npcs.iter().map(npc).collect(),
+        movable: indices(&m.movable),
+        posed: m.posed_table.clone(),
+        animates_still: indices(&m.animates_still),
+        animates_with: m
+            .animates_with
+            .iter()
+            .map(|&(e, whose)| [e as i64, whose as i64])
+            .collect(),
         events: events.iter().map(|e| [e.x.into(), e.y.into()]).collect(),
         // The cells that share another event's row, with that event's
         // index: see `trim::twins`.
@@ -178,13 +287,13 @@ pub fn map_record(m: &MapInfo, access: u8) -> Result<request::Map> {
         turning: m.turning.iter().copied().collect(),
         // The `ShowPicture` pictures the map carries: where they start in
         // its sprite bank, and each one's half size, objects and colours.
-        pictures: match &m.pictures {
-            None => None,
-            Some((base, _table, images)) => Some(request::MapPictures {
-                base: typed(base)?,
-                images: images.iter().map(typed).collect::<Result<_>>()?,
+        pictures: m
+            .pictures
+            .as_ref()
+            .map(|(base, _table, images)| request::MapPictures {
+                base: *base,
+                images: images.clone(),
             }),
-        },
         // Not the converter's: the emission decides it, see
         // `layer_text::bake_all` in rm2k-snes-mapdata.
         layer_text: 0,
@@ -194,7 +303,7 @@ pub fn map_record(m: &MapInfo, access: u8) -> Result<request::Map> {
             .variants
             .iter()
             .map(crate::variants::Variant::request)
-            .collect::<Result<_>>()?,
+            .collect(),
     })
 }
 

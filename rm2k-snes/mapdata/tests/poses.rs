@@ -2,9 +2,10 @@
 //! show, and the build stops when a row could ask for one it left out.
 
 use rm2k_snes_mapdata::record::{self, poses, requested, stand_in, NpcRow};
-use rm2k_snes_mapdata::request::{self, Bank, Cache, Map, Maps};
+use rm2k_snes_mapdata::request::{self, Bank, Map, Maps};
 use std::collections::BTreeSet;
 use std::path::Path;
+use wally::answer::Cache;
 
 fn maps() -> Vec<Map> {
     let maps: Maps =
@@ -20,7 +21,7 @@ fn showing(map: &mut Map, charset: &str, shows: &[i64]) {
             *bank = Bank::Shows(
                 bank.charset().to_string(),
                 bank.index(),
-                bank.hex().to_string(),
+                bank.poses().to_vec(),
                 Some(shows.to_vec()),
             );
         }
@@ -131,7 +132,7 @@ fn in_a_cache_only_the_turners_need_their_facings() {
             ("People1".into(), 1, 6, 1, 0),
         ],
         slots: vec![],
-        turners: vec![2],
+        turners: [2].into(),
     });
     let asked = requested(&map, &[]).unwrap();
     assert_eq!(asked[&1], BTreeSet::from([1, 4, 6, 7, 10]));

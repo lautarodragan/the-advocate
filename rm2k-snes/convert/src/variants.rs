@@ -176,15 +176,15 @@ pub struct Variant {
     pub above_tiles: Vec<u8>,
     pub above_cgram: Vec<u8>,
     pub above_first: i64,
-    pub runs: Vec<Value>,
+    pub runs: Vec<rm2k_snes_mapdata::request::Run>,
     pub blocks: Blocks,
     pub terrain_outside: i32,
 }
 
 impl Variant {
     /// Its entry in the emission's map request.
-    pub fn request(&self) -> crate::fail::Result<rm2k_snes_mapdata::request::Variant> {
-        Ok(rm2k_snes_mapdata::request::Variant {
+    pub fn request(&self) -> rm2k_snes_mapdata::request::Variant {
+        rm2k_snes_mapdata::request::Variant {
             chipset: self.chipset.into(),
             draws: self.draws,
             tiles: self.tile_data.clone(),
@@ -192,16 +192,12 @@ impl Variant {
             above_tiles: self.above_tiles.clone(),
             above_cgram: self.above_cgram.clone(),
             above_first: self.above_first,
-            runs: self
-                .runs
-                .iter()
-                .map(crate::emit::typed)
-                .collect::<crate::fail::Result<_>>()?,
+            runs: self.runs.clone(),
             blocks: self.blocks.table.clone(),
             block_pass: self.blocks.pass.clone(),
             block_terrain: self.blocks.terrain.clone(),
             terrain_outside: self.terrain_outside.into(),
-        })
+        }
     }
 }
 
@@ -216,13 +212,28 @@ pub struct Drawn {
     pub above_cgram: Vec<u8>,
     pub above_first: i64,
     pub bpp: i64,
-    pub runs: Vec<Value>,
+    pub runs: Vec<rm2k_snes_mapdata::request::Run>,
     pub blocks: Blocks,
     pub panorama: bool,
-    /// What it drew of the events, to hold against the map's: the events
-    /// painted into the background, those baked into the layer above, those
-    /// drawn as objects and those drawn into the background's cells.
-    pub events: Value,
+    /// What it drew of the events, to hold against the map's.
+    pub events: Events,
+}
+
+/// What a conversion drew of the events, by index: those painted into the
+/// background, those baked into the layer above, those drawn as objects
+/// and those drawn into the background's cells. A refusal says it as JSON.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct Events {
+    pub decorative: Vec<usize>,
+    pub baked: Vec<usize>,
+    pub npcs: Vec<usize>,
+    pub posed: Vec<usize>,
+}
+
+impl std::fmt::Display for Events {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&serde_json::to_string(self).map_err(|_| std::fmt::Error)?)
+    }
 }
 
 fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Vec<u8>> {
@@ -232,13 +243,13 @@ fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Ve
 }
 
 /// What the events of an answer came out as: see [`Drawn::events`].
-pub fn map_events(answer: &wally::answer::Map) -> Value {
-    json!({
-        "decorative": answer.decorative,
-        "baked": answer.baked.iter().map(|b| b.0).collect::<Vec<_>>(),
-        "npcs": answer.npcs.iter().map(|n| n.npc.event).collect::<Vec<_>>(),
-        "posed": answer.posed.iter().map(|p| p.event).collect::<Vec<_>>(),
-    })
+pub fn map_events(answer: &wally::answer::Map) -> Events {
+    Events {
+        decorative: answer.decorative.clone(),
+        baked: answer.baked.iter().map(|b| b.0).collect(),
+        npcs: answer.npcs.iter().map(|n| n.npc.event).collect(),
+        posed: answer.posed.iter().map(|p| p.event).collect(),
+    }
 }
 
 /// Reads what Wally answered for the map with `chipset`.
@@ -294,7 +305,7 @@ fn map_blocks(m: &MapInfo) -> Blocks {
 /// * **The same events drawn the same way**: painted into the background,
 ///   baked into the layer above, as objects. An event drawn with a ChipSet
 ///   tile as an object keeps the map's ChipSet's drawing.
-pub fn refused(m: &MapInfo, map_events: &Value, d: &Drawn) -> Option<String> {
+pub fn refused(m: &MapInfo, map_events: &Events, d: &Drawn) -> Option<String> {
     if !d.draws {
         return None;
     }
@@ -310,12 +321,7 @@ pub fn refused(m: &MapInfo, map_events: &Value, d: &Drawn) -> Option<String> {
     if !m.posed.is_empty() {
         return Some("the map draws still events into its background's cells".into());
     }
-    let animation: usize = d
-        .runs
-        .iter()
-        .flat_map(|r| r["drawings"].as_array().into_iter().flatten())
-        .map(|h| h.as_str().map_or(0, |h| h.len() / 2))
-        .sum();
+    let animation: usize = d.runs.iter().flat_map(|r| &r.drawings).map(Vec::len).sum();
     if animation > rm2k_snes_mapdata::materials::LZ2_CAP_ANIM {
         // The emission cuts a map's that does not fit, and not a variant's.
         return Some(format!(
@@ -335,7 +341,7 @@ pub fn refused(m: &MapInfo, map_events: &Value, d: &Drawn) -> Option<String> {
 /// The layout that holds the map and its variants that draw, if the map's
 /// does not: the first that holds the most each of them takes.
 fn layout_for(m: &MapInfo, drawn: &[&Drawn]) -> Option<&'static str> {
-    let sprites = m.objects["tiles"].as_str().map_or(0, |h| h.len() / 64) as u32;
+    let sprites = (m.sprite.tiles.len() / 32) as u32;
     let bg = drawn
         .iter()
         .map(|d| d.tile_data.len())
@@ -358,7 +364,7 @@ fn layout_for(m: &MapInfo, drawn: &[&Drawn]) -> Option<&'static str> {
 /// The variants a map takes, numbered with its blocks: on success, the
 /// map's blocks and layout are the joined ones. What is refused is printed
 /// and left out, and its `ChangeMapTileset`s keep their loss.
-pub fn take(game: &Game, m: &mut MapInfo, map_events: &Value, drawn: Vec<Drawn>) -> Vec<Variant> {
+pub fn take(game: &Game, m: &mut MapInfo, map_events: &Events, drawn: Vec<Drawn>) -> Vec<Variant> {
     let mut kept: Vec<Drawn> = Vec::new();
     for d in drawn {
         match refused(m, map_events, &d) {

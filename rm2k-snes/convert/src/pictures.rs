@@ -40,6 +40,7 @@ use crate::images;
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
 use rm2k_snes_events::registry::PictureKey;
+use rm2k_snes_mapdata::request::PictureImage;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -887,9 +888,29 @@ pub fn say_big(layers: &[Value]) {
 /// colours).
 #[derive(Debug, Clone)]
 pub struct ForMap {
-    pub asked: Value,
+    /// The pictures' names, joined; how many objects they take; the tiles
+    /// they reserve from the base, and each one's 64 colour indices from
+    /// there; and how many palettes.
+    pub name: String,
+    pub objects: usize,
+    pub tiles: i64,
+    pub cells: Vec<(usize, Vec<u8>)>,
+    pub palettes: usize,
     pub table: Vec<Value>,
-    pub images: Vec<Value>,
+    pub images: Vec<PictureImage>,
+}
+
+impl ForMap {
+    /// What `wally` is asked to reserve for them: its request's `picture`.
+    pub fn asked(&self) -> Value {
+        json!({
+            "name": self.name,
+            "objects": self.objects,
+            "tiles": self.tiles,
+            "cells": self.cells,
+            "palettes": self.palettes,
+        })
+    }
 }
 
 /// A 32x32 block with this many 8x8 cells drawn or fewer goes as that many
@@ -1142,20 +1163,22 @@ impl Bank {
 
     /// Every tile of the pictures as `[tile, cell]`, and how many tiles from
     /// the base they reserve.
-    fn tiles(&self) -> (Vec<Value>, i64) {
+    fn tiles(&self) -> (Vec<(usize, Vec<u8>)>, i64) {
         let mut out = Vec::new();
         let mut end = 0;
+        // A cell's colour indices, which are a palette's: one byte each.
+        let indices = |cell: &[i64]| cell.iter().map(|&i| i as u8).collect();
         for (b, cells) in self.blocks.iter().enumerate() {
             let start = block_tile(b as i64);
             for (k, cell) in cells.iter().enumerate() {
                 let k = k as i64;
                 let tile = start + (k / OBJ_SIDE) * GRID + k % OBJ_SIDE;
-                out.push(json!([tile, cell]));
+                out.push((tile as usize, indices(cell)));
                 end = end.max(-((-(b as i64 + 1)).div_euclid(4)) * BLOCK_ROW);
             }
         }
         for (tile, cell) in self.cell_tiles().into_iter().zip(&self.cells) {
-            out.push(json!([tile, cell]));
+            out.push((tile as usize, indices(cell)));
             end = end.max(tile + 1);
         }
         (out, end)
@@ -1265,26 +1288,27 @@ pub fn for_map(
         // picture 2, the warehouse's roof. What it loses is RM2k's "over
         // everything": it goes behind the ChipSet's layer above the hero
         // too, and the events above the hero go over it.
-        images.push(json!({
-            "half": [s.info.half.0, s.info.half.1],
-            "objects": cut.iter().map(|&(dx, dy, piece)| json!([dx, dy, bank.word(piece, &cell_tiles)])).collect::<Vec<_>>(),
-            "palette": palettes[palette as usize],
-            "palette_index": palette,
-            "behind_map": s.entry.get("behind_map") == Some(&json!(true)),
-        }));
+        images.push(PictureImage {
+            half: [s.info.half.0, s.info.half.1],
+            objects: cut
+                .iter()
+                .map(|&(dx, dy, piece)| [dx, dy, bank.word(piece, &cell_tiles)])
+                .collect(),
+            palette: palettes[palette as usize].clone(),
+            palette_index: palette,
+            behind_map: s.entry.get("behind_map") == Some(&json!(true)),
+        });
         objects += cut.len();
     }
     let names: Vec<&str> = shown.iter().map(|s| s.name.as_str()).collect();
-    let asked = json!({
-        "name": names.join(", "),
-        "objects": objects,
-        "tiles": tiles,
-        "cells": cells,
-        "palettes": palettes.len(),
-    });
+    let name = names.join(", ");
     let table = shown.into_iter().map(|s| Value::Object(s.entry)).collect();
     Ok(Some(ForMap {
-        asked,
+        name,
+        objects,
+        tiles,
+        cells,
+        palettes: palettes.len(),
         table,
         images,
     }))

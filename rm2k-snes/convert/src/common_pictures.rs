@@ -25,6 +25,7 @@ use crate::fail::Result;
 use crate::game::Game;
 use crate::pictures::{self, SLOTS};
 use rm2k_snes_events::answer::Scan;
+use rm2k_snes_mapdata::request::CommonSet;
 use serde_json::{json, Value};
 
 /// The bit of an image that names an entry of the common table, and how
@@ -44,7 +45,7 @@ pub struct CommonPictures {
     pub sets: Vec<Value>,
     /// For the emission's `common_pictures`: each set's tiles, how many it
     /// reserves, its palettes and its pictures, as a map's.
-    pub emit: Vec<Value>,
+    pub emit: Vec<CommonSet>,
 }
 
 /// The sets of the scan's `common_sets`, cut as a map's pictures are. A set
@@ -99,20 +100,20 @@ pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
         println!(
             "  {whose}: their small pictures {}, {} objects in {} tiles and {} palette(s), go up \
              when shown",
-            crate::text::quoted(cut.asked["name"].as_str().unwrap_or("")),
-            cut.asked["objects"],
-            cut.asked["tiles"],
-            cut.asked["palettes"]
+            crate::text::quoted(&cut.name),
+            cut.objects,
+            cut.tiles,
+            cut.palettes
         );
         out.sets
             .push(json!({"parallel": parallel, "commons": commons}));
-        out.emit.push(json!({
-            "name": whose,
-            "tiles": cut.asked["tiles"],
-            "cells": cut.asked["cells"],
-            "palettes": cut.asked["palettes"],
-            "images": cut.images,
-        }));
+        out.emit.push(CommonSet {
+            name: whose,
+            tiles: cut.tiles as usize,
+            cells: cut.cells,
+            palettes: cut.palettes,
+            images: cut.images,
+        });
     }
     Ok(out)
 }

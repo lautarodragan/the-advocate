@@ -7,6 +7,13 @@ use crate::snes::Color;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+// What the objects carry that Wally answered as the emission takes it —a
+// slot's owner, a route's graphic, the cache, the shared slots, the battle
+// animation's box, a still event drawn into the cells—: one type each, the
+// producer's, so a field renamed there does not compile here.
+use wally::answer::{Animation, Cache, RouteGraphic, Slot};
+use wally::map::SharedObjects;
+use wally::posed::Placed;
 
 /// A request file, read into `T`.
 pub fn read<T: DeserializeOwned>(path: &Path) -> Result<T> {
@@ -78,7 +85,7 @@ pub struct Map {
     /// The still events drawn into the background, in the order their
     /// rows number them. Missing, none.
     #[serde(default)]
-    pub posed: Vec<Posed>,
+    pub posed: Vec<Placed>,
     pub movable: Vec<i64>,
     pub animates_still: Vec<i64>,
     /// The still ones that animate in another one's slot, as `[event,
@@ -264,7 +271,7 @@ pub struct MapPictures {
 /// of the palette it shares and which palette that is, from the top; and
 /// whether it goes behind what its map draws above the hero —see
 /// `picture_tables`—.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PictureImage {
     pub half: [i64; 2],
     pub objects: Vec<[i64; 3]>,
@@ -420,7 +427,7 @@ pub struct Emit {
 /// Who shows it, the tiles from its first it reserves, its tiles as
 /// `[tile, 64 colour indices]`, its palettes and its pictures, in the order
 /// of the common table.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CommonSet {
     pub name: String,
     pub tiles: usize,
@@ -664,7 +671,7 @@ pub struct BattleTables {
 }
 
 /// A family's run of the ChipSet's animation.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Run {
     /// `water` or `animated`.
     pub family: String,
@@ -676,66 +683,8 @@ pub struct Run {
     pub drawings: Vec<Vec<u8>>,
 }
 
-/// A graphic of command 34: see [`Sprite::route_gfx`].
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum RouteGfx {
-    Colored(i64, i64, Vec<u32>),
-    Plain(i64, i64),
-}
-
-impl RouteGfx {
-    /// Its entry in the pose table, or $FF.
-    pub fn entry(&self) -> i64 {
-        match self {
-            RouteGfx::Colored(k, ..) | RouteGfx::Plain(k, _) => *k,
-        }
-    }
-
-    pub fn palette(&self) -> i64 {
-        match self {
-            RouteGfx::Colored(_, p, _) | RouteGfx::Plain(_, p) => *p,
-        }
-    }
-
-    /// The colours the console uploads into the leaders' palette when the
-    /// hero takes it; none for one with a palette of its own in the map.
-    pub fn colors(&self) -> &[u32] {
-        match self {
-            RouteGfx::Colored(_, _, c) => c,
-            RouteGfx::Plain(..) => &[],
-        }
-    }
-}
-
-/// A slot of the sprite bank, by what it holds.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum Slot {
-    Hero {
-        hero: bool,
-    },
-    Turn {
-        turn: bool,
-    },
-    Event {
-        event: i64,
-    },
-    Shared {
-        shared: i64,
-    },
-    Cache {
-        cache: i64,
-    },
-    Still {
-        charset: String,
-        index: i64,
-        pose: i64,
-    },
-}
-
 /// The objects of a map.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Sprite {
     #[serde(with = "hex")]
     pub tiles: Vec<u8>,
@@ -767,7 +716,7 @@ pub struct Sprite {
     /// The graphics command 34 changes to: `[pose table entry or $FF,
     /// palette]`, and a third element for one drawn in the leaders'
     /// palette with colours of its own: those, as CGRAM words.
-    pub route_gfx: Vec<RouteGfx>,
+    pub route_gfx: Vec<RouteGraphic>,
     /// The raindrops, the turn slot's block, the `ShowPicture` picture and
     /// the battle animation's box: `[first tile, palette]`, 0 if none.
     pub rain: (i64, i64),
@@ -782,7 +731,7 @@ pub struct Sprite {
     /// The slots still events take turns in, if the map needed them: see
     /// `sprites::share` in Wally.
     #[serde(default)]
-    pub shared: Option<Shared>,
+    pub shared: Option<SharedObjects>,
     /// The cache of slots, if the map needed one: see `sprites::cache` in
     /// Wally.
     #[serde(default)]
@@ -794,8 +743,13 @@ pub struct Sprite {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum Bank {
-    Shows(String, i64, String, Option<Vec<i64>>),
-    All(String, i64, String),
+    Shows(
+        String,
+        i64,
+        #[serde(with = "hex")] Vec<u8>,
+        Option<Vec<i64>>,
+    ),
+    All(String, i64, #[serde(with = "hex")] Vec<u8>),
 }
 
 impl Bank {
@@ -811,7 +765,8 @@ impl Bank {
         }
     }
 
-    pub fn hex(&self) -> &str {
+    /// Its twelve poses' tiles.
+    pub fn poses(&self) -> &[u8] {
         match self {
             Bank::Shows(_, _, h, _) | Bank::All(_, _, h) => h,
         }
@@ -824,41 +779,6 @@ impl Bank {
             _ => (0..12).collect(),
         }
     }
-}
-
-/// The cache of slots, as `wally` answered it.
-#[derive(Serialize, Deserialize)]
-pub struct Cache {
-    /// `[event, still pose or null, palette]`: each event drawn, with the
-    /// still pose it starts with —an index into `stills`— or nothing if it
-    /// walks.
-    pub events: Vec<(i64, Option<u32>, u32)>,
-    /// `[CharSet, index, pose, entry in the pose table, palette]`.
-    pub stills: Vec<(String, i64, i64, usize, u32)>,
-    /// Each slot's block in the sprite bank.
-    pub slots: Vec<u32>,
-    /// The still ones routes only turn, which `still_turn` moves from one
-    /// still pose to another: see `turners` in Wally. Missing, none.
-    #[serde(default)]
-    pub turners: Vec<i64>,
-}
-
-/// The slots still events take turns in, as `wally` answered them.
-#[derive(Serialize, Deserialize)]
-pub struct Shared {
-    /// `[event, slot, pose, palette]`: the pose is an index into `poses`.
-    pub events: Vec<(i64, usize, usize, u32)>,
-    /// `[entry in the pose table, pose]`.
-    pub poses: Vec<(usize, usize)>,
-    /// Each slot's block in the sprite bank.
-    pub slots: Vec<u32>,
-}
-
-/// Where the battle animation's box landed.
-#[derive(Serialize, Deserialize)]
-pub struct Animation {
-    pub base: i64,
-    pub palette: i64,
 }
 
 /// An event that is drawn.
@@ -886,22 +806,6 @@ pub struct Npc {
     /// [`crate::posed`].
     #[serde(default)]
     pub posed: Option<[i64; 2]>,
-}
-
-/// A still event drawn into the background's cells, as Wally placed it:
-/// see `posed` in Wally.
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Posed {
-    pub event: i64,
-    /// Its cell.
-    pub x: i64,
-    pub y: i64,
-    /// The block of each `(character, pose)`, twelve per character.
-    pub blocks: Vec<u32>,
-    /// The block of its cell without it, and the key it starts with:
-    /// `character * 12 + pose`, or $FF hidden.
-    pub none: u32,
-    pub start: u32,
 }
 
 /// An event page, compiled.
@@ -945,7 +849,7 @@ pub struct Page {
 
 /// What a page of an event that changes graphic draws, as the map's
 /// conversion placed it.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Draws {
     /// The 32x32 block of the sprite bank its poses start at, and its
     /// palette; no block for an event that only appears, whose own row

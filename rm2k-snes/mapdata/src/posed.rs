@@ -69,9 +69,9 @@ pub fn posed_table(maps: &[Map]) -> Result<String> {
         let width = map.size[0];
         let head = 1 + POSED_STRIDE * map.posed.len();
         let mut data = vec![map.posed.len() as u8];
-        let mut blocks = Vec::new();
+        let mut blocks: Vec<u16> = Vec::new();
         for p in &map.posed {
-            let offset = ((p.y * width + p.x) * bytes) as u32;
+            let offset = ((i64::from(p.y) * width + i64::from(p.x)) * bytes) as u32;
             let at = if offset < 0x8000 {
                 GRID + offset
             } else {
@@ -80,11 +80,11 @@ pub fn posed_table(maps: &[Map]) -> Result<String> {
             data.extend_from_slice(&at.to_le_bytes()[..3]);
             data.extend_from_slice(&((p.x * 2) as u16).to_le_bytes());
             data.extend_from_slice(&((p.y * 2) as u16).to_le_bytes());
-            data.extend_from_slice(&(p.none as u16).to_le_bytes());
+            data.extend_from_slice(&p.none.to_le_bytes());
             let from = (head + 2 * blocks.len()) as u16;
             data.extend_from_slice(&from.to_le_bytes());
-            data.push(p.start as u8);
-            blocks.extend(p.blocks.iter().map(|&b| b as u16));
+            data.push(p.start);
+            blocks.extend(&p.blocks);
         }
         for b in blocks {
             data.extend_from_slice(&b.to_le_bytes());
@@ -112,10 +112,11 @@ mod tests {
             .unwrap()
             .maps
             .remove(0);
-        let mut blocks = vec![7u32; 12];
+        let mut blocks = vec![7u16; 12];
         blocks[10] = 8;
-        map.posed = vec![crate::request::Posed {
+        map.posed = vec![wally::posed::Placed {
             event: 5,
+            graphics: Vec::new(),
             x: 3,
             y: 2,
             blocks,

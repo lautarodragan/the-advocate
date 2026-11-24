@@ -20,7 +20,7 @@ use crate::settings::Settings;
 use crate::stage;
 use rm2k_snes_events::answer::{OwnRoute, Page, Scan};
 use rm2k_snes_events::codes::{FLASH_SPRITE, MOVE_EVENT, TILE_SUBSTITUTION};
-use rm2k_snes_mapdata::vram;
+use rm2k_snes_mapdata::{request, vram};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsString;
@@ -523,7 +523,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         "map_pictures": c.map_pictures.of(map_id).iter().map(|p| p.to_json()).collect::<Vec<_>>(),
         "rain": c.with_rain,
         "sand": c.sand_maps.as_ref().map(|m| m.contains(&map_id)),
-        "picture": pictures.as_ref().map(|p| p.asked.clone()),
+        "picture": pictures.as_ref().map(ForMap::asked),
         "battle_animation": shows_animation,
         "singles": singles,
         "palette_weight": c.settings.table(&["graphics", "palette_weight"])?,
@@ -581,7 +581,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // Only on a map whose copies of common events show pictures of their
     // own: see `picture_own` in Wally.
     if let Some(own) = &pictures_own {
-        request["picture_own"] = own.as_ref().map_or(Value::Null, |p| p.asked.clone());
+        request["picture_own"] = own.as_ref().map_or(Value::Null, ForMap::asked);
     }
     Ok(Prepared {
         map,
@@ -678,7 +678,7 @@ pub struct PageRecord {
     pub pure: bool,
     pub offset: usize,
     pub route_offset: usize,
-    pub draws: Option<Value>,
+    pub draws: Option<request::Draws>,
 }
 
 /// A converted map, as the rest of the conversion reads it.
@@ -704,20 +704,22 @@ pub struct MapInfo {
     /// The background's depth: 8, or 4 in a map whose panorama goes in
     /// mode 1.
     pub bpp: i64,
-    /// The panorama, as the emission takes it, if the map shows it.
-    pub panorama: Option<Value>,
+    /// The panorama, as Wally answered it, if the map shows it; and its
+    /// tiles, then each of its other images', as Wally wrote them.
+    pub panorama: Option<answer::Panorama>,
+    pub panorama_tiles: Vec<Vec<u8>>,
     /// Each background picture Adeleine decided, by name.
     pub pictures_bg: Vec<(String, Vec<u8>)>,
-    pub runs: Vec<Value>,
-    pub colors: Value,
-    pub budget: Value,
-    pub merges_background: Value,
+    pub runs: Vec<request::Run>,
+    pub colors: usize,
+    pub budget: usize,
+    pub merges_background: Vec<answer::Merge>,
     /// How it shows its panorama, Wally's name for it, if it has one.
-    pub panorama_way: Value,
+    pub panorama_way: Option<String>,
     /// Whether no panorama of the map is ever seen: a `ChangePBG` there
     /// that keeps the picture loses nothing. See `unseen` in Wally.
     pub panorama_unseen: bool,
-    pub merges_above: Value,
+    pub merges_above: Vec<answer::Merge>,
     pub start: (i64, i64),
     pub cells: Vec<u8>,
     pub blocks: Vec<u8>,
@@ -725,18 +727,21 @@ pub struct MapInfo {
     pub block_terrain: Vec<u8>,
     pub terrain_outside: i32,
     pub layout_name: String,
-    pub objects: Value,
-    pub npcs: Value,
-    pub movable: Value,
-    pub animates_still: Value,
-    /// The still ones that animate in another one's slot: `[event, whose]`.
-    pub animates_with: Value,
-    /// Where each (CharSet, index, pose) ended up in the sprite bank.
-    pub where_: HashMap<Graphic, (Value, Value)>,
+    /// The objects, as the emission takes them: Wally's with the bytes of
+    /// the files it names.
+    pub sprite: request::Sprite,
+    pub npcs: Vec<answer::Row>,
+    pub movable: BTreeSet<usize>,
+    pub animates_still: BTreeSet<usize>,
+    /// The still ones that animate in another one's slot: `(event, whose)`.
+    pub animates_with: Vec<(usize, usize)>,
+    /// Where each (CharSet, index, pose) ended up in the sprite bank: its
+    /// block and its palette.
+    pub where_: HashMap<Graphic, (u32, u32)>,
     /// In a map with a cache of slots, each still pose's number and its
     /// palette: what a page carries instead of a block. See
     /// `sprites::cache` in Wally.
-    pub cached: HashMap<Graphic, (Value, Value)>,
+    pub cached: HashMap<Graphic, (u32, u32)>,
     pub substitution_table: Value,
     pub missing_substitutions: Vec<(bool, i64, i64)>,
     pub turning: BTreeSet<i64>,
@@ -747,10 +752,14 @@ pub struct MapInfo {
     /// order a page's graphic is numbered. See `posed` in Wally.
     pub posed: BTreeMap<i64, (usize, Vec<(String, i64)>)>,
     /// What Wally answered of them, for the emission.
-    pub posed_table: Value,
+    pub posed_table: Vec<wally::posed::Placed>,
     pub outside: HashMap<i64, HashSet<(String, i64)>>,
-    pub shared: HashMap<i64, (Value, Value)>,
-    pub pictures: Option<(Value, Vec<Value>, Vec<Value>)>,
+    /// The ones that take turns in a shared slot: its block, if Wally gave
+    /// it one, and the palette their character got.
+    pub shared: HashMap<i64, (Option<u32>, u32)>,
+    /// The `ShowPicture` pictures that went into the sprite bank: their
+    /// first tile, their table for the event compiler and their images.
+    pub pictures: Option<(i64, Vec<Value>, Vec<request::PictureImage>)>,
     /// Whether the pictures that went in are the copied common events'
     /// too, and not the map's own instead: a map keeps its copy only if it
     /// draws. See [`crate::common_pages`].
@@ -770,7 +779,7 @@ pub struct MapInfo {
     pub variants: Vec<crate::variants::Variant>,
     /// What its events came out as, to hold its variants against: see
     /// `variants::Drawn::events`.
-    pub events_drawn: Value,
+    pub events_drawn: crate::variants::Events,
 }
 
 fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Vec<u8>> {
@@ -817,19 +826,17 @@ fn panorama_tiles(pano: &answer::Panorama) -> usize {
 /// its own, or an empty name if it starts with none, and the ones its
 /// `ChangePBG`s name—; empty if it carries one at most. See
 /// `Request::panoramas` in rm2k-snes-events.
-pub fn panorama_names(panorama: Option<&Value>) -> Vec<String> {
+pub fn panorama_names(panorama: Option<&answer::Panorama>) -> Vec<String> {
     let Some(p) = panorama else { return Vec::new() };
-    let images = p["images"].as_array().cloned().unwrap_or_default();
-    if images.is_empty() && p["none_first"].as_bool() != Some(true) {
+    if p.images.is_empty() && !p.none_first {
         return Vec::new();
     }
-    let name = |v: &Value| v["name"].as_str().unwrap_or("").to_string();
     let mut out = Vec::new();
-    if p["none_first"].as_bool() == Some(true) {
+    if p.none_first {
         out.push(String::new());
     }
-    out.push(name(p));
-    out.extend(images.iter().map(name));
+    out.push(p.name.clone());
+    out.extend(p.images.iter().map(|i| i.name.clone()));
     out
 }
 
@@ -841,14 +848,19 @@ pub fn wally_answer(written: &stage::Files) -> Result<answer::Answer> {
 
 /// The background's ChipSet animation as the emission takes it: each run
 /// with its drawings' bytes.
-pub fn runs(bg: &answer::Background, written: &stage::Files) -> Result<Vec<Value>> {
+pub fn runs(bg: &answer::Background, written: &stage::Files) -> Result<Vec<request::Run>> {
     let mut runs = Vec::new();
     for run in &bg.runs {
         let mut drawings = Vec::new();
         for name in &run.drawings {
-            drawings.push(crate::text::hex(file(written, name)?));
+            drawings.push(file(written, name)?.clone());
         }
-        runs.push(json!({"family": run.family, "base": run.base, "tiles": run.tiles, "drawings": drawings}));
+        runs.push(request::Run {
+            family: run.family.clone(),
+            base: run.base as i64,
+            tiles: run.tiles as i64,
+            drawings,
+        });
     }
     Ok(runs)
 }
@@ -958,7 +970,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         _ => &p.pictures,
     };
     let pictures = match went_in {
-        Some(f) if s.image.0 != 0 => Some((json!(s.image.0), f.table.clone(), f.images.clone())),
+        Some(f) if s.image.0 != 0 => Some((s.image.0 as i64, f.table.clone(), f.images.clone())),
         _ => None,
     };
     // If it found none, the ones the map shows over a black screen go in
@@ -994,13 +1006,13 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         } = slot
         {
             let key = (charset.clone(), i64::from(*index), i64::from(*pose));
-            where_.insert(key, (json!(block), json!(palette)));
+            where_.insert(key, (*block as u32, *palette as u32));
         }
     }
     let mut cached = HashMap::new();
     for (v, still) in s.cache.iter().flat_map(|c| &c.stills).enumerate() {
         let key = (still.0.clone(), i64::from(still.1), i64::from(still.2));
-        cached.insert(key, (json!(v), json!(still.4)));
+        cached.insert(key, (v as u32, still.4 as u32));
     }
     let sprite_tiles = file(&written, &s.tiles)?.clone();
     let passable = &layers.passability;
@@ -1178,29 +1190,27 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     for (picture, why) in &layers.panorama_dropped {
         println!("  map {map_id}: its ChangePBG to {picture:?} keeps the panorama there is: {why}");
     }
-    let panorama = match &layers.panorama {
-        None => None,
-        Some(pano) => {
-            let mut record = json!(pano);
-            record["tile_count"] = json!(pano.tiles);
-            record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
-            for (k, image) in pano.images.iter().enumerate() {
-                record["images"][k]["tiles"] =
-                    json!(crate::text::hex(file(&written, &image.file)?));
-            }
-            Some(record)
+    let mut panorama_tiles = Vec::new();
+    if let Some(pano) = &layers.panorama {
+        panorama_tiles.push(file(&written, "panorama.bin")?.clone());
+        for image in &pano.images {
+            panorama_tiles.push(file(&written, &image.file)?.clone());
         }
-    };
-    let mut objects = json!(s);
-    objects["tiles"] = json!(crate::text::hex(&sprite_tiles));
+    }
     let mut banks = Vec::new();
     for (charset, index, poses, shows) in &s.banks {
         // And which of its poses the map can show: mapdata emits only
         // those, joined over the maps.
-        let data = crate::text::hex(file(&written, poses)?);
-        banks.push(json!([charset, index, data, shows]));
+        let shows = shows.iter().map(|&p| i64::from(p)).collect();
+        let data = file(&written, poses)?.clone();
+        banks.push(request::Bank::Shows(
+            charset.clone(),
+            i64::from(*index),
+            data,
+            Some(shows),
+        ));
     }
-    objects["banks"] = Value::Array(banks);
+    let sprite = crate::emit::sprite(s, sprite_tiles, banks);
     let mut changing = BTreeSet::new();
     let mut appearing = BTreeSet::new();
     let mut outside = HashMap::new();
@@ -1218,7 +1228,8 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let mut shared = HashMap::new();
     if let Some(sh) = &s.shared {
         for &(event, slot, _, palette) in &sh.events {
-            shared.insert(event as i64, (json!(sh.slots.get(slot)), json!(palette)));
+            let block = sh.slots.get(slot).map(|&b| b as u32);
+            shared.insert(event as i64, (block, palette as u32));
         }
     }
     let subs = &answer.substitutions;
@@ -1239,15 +1250,16 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         above_first,
         above_png,
         bpp: bg.bpp as i64,
-        panorama,
+        panorama: layers.panorama.clone(),
+        panorama_tiles,
         pictures_bg,
         runs,
-        colors: json!(bg.colors),
-        budget: json!(bg.budget),
-        merges_background: json!(bg.merges),
-        panorama_way: json!(layers.panorama_way),
+        colors: bg.colors,
+        budget: bg.budget,
+        merges_background: bg.merges.clone(),
+        panorama_way: layers.panorama_way.clone(),
         panorama_unseen: layers.panorama_unseen,
-        merges_above: json!(above.merges),
+        merges_above: above.merges.clone(),
         start,
         cells: cells_list.iter().flat_map(|c| c.to_le_bytes()).collect(),
         blocks,
@@ -1257,11 +1269,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         // the ChipSet's index 0, that is the first autotile.
         terrain_outside: rm2k_rules::chipset::terrain_of(chipset, 0),
         layout_name: layout.name.to_string(),
-        objects,
-        npcs: json!(answer.npcs),
-        movable: json!(answer.movable),
-        animates_still: json!(answer.animates_still),
-        animates_with: json!(answer.animates_with),
+        sprite,
+        npcs: answer.npcs.clone(),
+        movable: answer.movable.clone(),
+        animates_still: answer.animates_still.clone(),
+        animates_with: answer.animates_with.clone(),
         where_,
         cached,
         substitution_table: Value::Array(substitution_table),
@@ -1282,7 +1294,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
                 (p.event as i64, (k, graphics.collect()))
             })
             .collect(),
-        posed_table: json!(answer.posed),
+        posed_table: answer.posed.clone(),
         outside,
         shared,
         copies_draw: pictures.is_some() && !answer.pictures_own,

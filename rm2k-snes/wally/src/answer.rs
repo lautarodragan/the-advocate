@@ -205,6 +205,30 @@ pub enum RouteGraphic {
     Plain(usize, usize),
 }
 
+impl RouteGraphic {
+    /// Its entry in the pose table, or $FF.
+    pub fn entry(&self) -> usize {
+        match self {
+            RouteGraphic::Uploads(k, ..) | RouteGraphic::Plain(k, _) => *k,
+        }
+    }
+
+    pub fn palette(&self) -> usize {
+        match self {
+            RouteGraphic::Uploads(_, p, _) | RouteGraphic::Plain(_, p) => *p,
+        }
+    }
+
+    /// The colours the console uploads into the leaders' palette when the
+    /// hero takes it; none for one with a palette of its own in the map.
+    pub fn colors(&self) -> &[u16] {
+        match self {
+            RouteGraphic::Uploads(_, _, c) => c,
+            RouteGraphic::Plain(..) => &[],
+        }
+    }
+}
+
 /// The box battle animations are drawn in: how many tiles the map spends,
 /// its first tile and its palette.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
