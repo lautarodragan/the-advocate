@@ -257,22 +257,19 @@ struct ScreenGlyphs {
 
 impl ScreenGlyphs {
     /// The screens stage's: its `text_inks`' icons and its `font`'s
-    /// letters. An answer from before 2026-11-22 carries no letters.
+    /// letters.
     fn of(screens: &Value) -> Result<ScreenGlyphs> {
         let font = at(screens, "font")?;
-        let letters = match font.get("screen_letters") {
-            Some(v) => list(v)?
-                .iter()
-                .map(|l| {
-                    let mut chars = text(l)?.chars();
-                    match (chars.next(), chars.next()) {
-                        (Some(c), None) => Ok(c),
-                        _ => Err(Bad::answer(format!("a screen letter is {l}"))),
-                    }
-                })
-                .collect::<Result<Vec<char>>>()?,
-            None => Vec::new(),
-        };
+        let letters = list_at(font, "screen_letters")?
+            .iter()
+            .map(|l| {
+                let mut chars = text(l)?.chars();
+                match (chars.next(), chars.next()) {
+                    (Some(c), None) => Ok(c),
+                    _ => Err(Bad::answer(format!("a screen letter is {l}"))),
+                }
+            })
+            .collect::<Result<Vec<char>>>()?;
         Ok(ScreenGlyphs::new(
             screen_icons(screens)?,
             letters,
@@ -657,22 +654,14 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         .unwrap_or(0)
         .max(1);
 
-    // Where the slot screen's names go. An answer without it is one from
-    // before 2026-10-20, whose names went after the whole bank, up to its
-    // tilemap.
-    let slot_names = match slots.get("slot_names") {
-        Some(pair) => match ints(pair)?.as_slice() {
-            &[first, end] => (first as usize, end as usize),
-            _ => {
-                return Err(Bad::answer(
-                    "the slot screen's `slot_names` is not two numbers",
-                ))
-            }
-        },
-        None => (
-            list_at(slots, "tiles")?.len(),
-            ((SLOT_MAP - SLOT_VRAM) / 16) as usize,
-        ),
+    // Where the slot screen's names go.
+    let slot_names = match ints_at(slots, "slot_names")?.as_slice() {
+        &[first, end] => (first as usize, end as usize),
+        _ => {
+            return Err(Bad::answer(
+                "the slot screen's `slot_names` is not two numbers",
+            ))
+        }
     };
     let menu_counts = match title_menu {
         None => (0, 0),
@@ -849,10 +838,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         slot_map = SLOT_MAP,
         sram_slots_n = list_at(slots, "rows")?.len(),
         slot_tiles = list_at(slots, "tiles")?.len(),
-        slot_menu_tiles = slots
-            .get("menu_tiles")
-            .and_then(Value::as_u64)
-            .map_or(list_at(slots, "tiles")?.len(), |n| n as usize),
+        slot_menu_tiles = int_at(slots, "menu_tiles")?,
         slot_names_first = slot_names.0,
         slot_names_end = slot_names.1,
         slot_hdr_row = (t.n("HEADER_Y").div_euclid(cell)),
@@ -1418,21 +1404,10 @@ fn window_pieces(
 pub const INK_COLOURS: usize = 20;
 pub const INK_BYTES: usize = 2 + 12 + 12;
 
-/// The window's `inks` as the cartridge carries them: see [`INK_BYTES`]. A
-/// window without them —a made-up one of the tests— has every colour drawn
-/// as colour 0.
+/// The window's `inks` as the cartridge carries them: see [`INK_BYTES`].
 fn text_inks(window: &Value) -> Result<Vec<u8>> {
     let mut out = Vec::with_capacity(INK_COLOURS * INK_BYTES);
-    let Some(inks) = window.get("inks") else {
-        let color: Vec<u8> = ints_at(window, "color")?.iter().map(|&i| i as u8).collect();
-        for _ in 0..INK_COLOURS {
-            out.extend([0, 0]);
-            out.extend(&color);
-            out.extend(&color);
-        }
-        return Ok(out);
-    };
-    let inks = list(inks)?;
+    let inks = list_at(window, "inks")?;
     if inks.len() != INK_COLOURS {
         return Err(Bad::answer(format!(
             "the window has {} text colours, not {INK_COLOURS}",
@@ -2469,30 +2444,12 @@ impl Rest<'_> {
         // two cells.
         let inks = at(screens, "text_inks")?;
         // How far each of the screens' glyphs moves the line and paints:
-        // the console's, `TL_FIGURE`'s place and the icons' halves. A
-        // request from before 2026-11-02 carries none, and its screens draw
-        // the console's glyphs, which are the window's first 96.
-        let screen_font = |name: &str, figure: u8| -> Result<Vec<u8>> {
-            match inks.get(name) {
-                Some(v) => Ok(ints(v)?.into_iter().map(|n| n as u8).collect()),
-                None => {
-                    let mut out: Vec<u8> = ints_at(at(self.screens, "window")?, name)?
-                        .into_iter()
-                        .take(rm2k_snes_text::font::CONSOLE_GLYPHS)
-                        .map(|n| n as u8)
-                        .collect();
-                    out.push(figure);
-                    Ok(out)
-                }
-            }
+        // the console's, `TL_FIGURE`'s place and the icons' halves.
+        let screen_font = |name: &str| -> Result<Vec<u8>> {
+            Ok(ints_at(inks, name)?.into_iter().map(|n| n as u8).collect())
         };
-        let window_advances = ints_at(at(self.screens, "window")?, "advances")?;
-        let zero = window_advances
-            .get(('0' as usize) - 32)
-            .copied()
-            .unwrap_or(0) as u8;
-        out.block("font_advance", &screen_font("advances", zero)?);
-        out.block("font_reach", &screen_font("reach", 0)?);
+        out.block("font_advance", &screen_font("advances")?);
+        out.block("font_reach", &screen_font("reach")?);
         let item_palettes: Vec<Vec<Color>> = list_at(inks, "palettes")?
             .iter()
             .map(colors)
@@ -3403,12 +3360,7 @@ impl Rest<'_> {
         // And after the actors' rows, one per rename, with its name alone:
         // the menu and the slot screen take it instead of the actor's own
         // when the actor carries it. See the runtime's `actor_names.s`.
-        // Absent in a screens' answer from before 2026-10-15: none.
-        let none = Vec::new();
-        let renamed = match textos.get("renamed") {
-            Some(v) => list(v)?,
-            None => &none,
-        };
+        let renamed = list_at(textos, "renamed")?;
         if renamed.len() != r.names.len() {
             return Err(Bad::answer(format!(
                 "the screens wrote {} renamed names and the request has {}",
