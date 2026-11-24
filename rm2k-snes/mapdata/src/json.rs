@@ -86,6 +86,20 @@ pub fn tiles(value: &Value) -> Result<Vec<Vec<Vec<u8>>>> {
     list(value)?.iter().map(tile).collect()
 }
 
+/// An object's entries in the order of their keys as text, for what
+/// writes them out one after another.
+///
+/// Not the order the object came in: the converter links `serde_json` with
+/// `preserve_order`, and cargo turns it on for this crate too there, so in
+/// the converter an object keeps the order its stage inserted the keys in,
+/// where this crate's own binary, reading the request from a file, saw them
+/// sorted. The `.inc` has to come out the same from both.
+pub fn by_key(object: &serde_json::Map<String, Value>) -> Vec<(&String, &Value)> {
+    let mut entries: Vec<_> = object.iter().collect();
+    entries.sort_by(|a, b| a.0.cmp(b.0));
+    entries
+}
+
 fn short(value: &Value) -> String {
     let text = value.to_string();
     if text.len() > 60 {

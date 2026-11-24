@@ -32,6 +32,7 @@ pub mod record;
 pub mod request;
 pub mod scene;
 pub mod snes;
+pub mod stage;
 pub mod text;
 pub mod vram;
 

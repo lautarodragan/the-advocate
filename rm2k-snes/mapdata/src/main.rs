@@ -7,7 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_mapdata::fail::{Bad, Result};
 use rm2k_snes_mapdata::materials::{self, RawBlocks, COMPRESSED_KINDS};
-use rm2k_snes_mapdata::{animation, hex, record, request, vram};
+use rm2k_snes_mapdata::{hex, record, request, stage, vram};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -200,10 +200,10 @@ fn do_compress(args: &Plain) -> Result<()> {
     write(&args.out, "compress", &json!({"maps": answer}))
 }
 
-fn write_text(out: &Path, name: &str, text: &str) -> Result<()> {
+fn write_file(out: &Path, name: &str, bytes: impl AsRef<[u8]>) -> Result<()> {
     std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
     let path = out.join(name);
-    std::fs::write(&path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
+    std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
 
 #[derive(serde::Deserialize)]
@@ -236,54 +236,29 @@ fn do_pages(args: &Plain) -> Result<()> {
         animated: &r.animated,
         animated_palettes: &r.animated_palettes,
     };
-    write_text(
+    write_file(
         &args.out,
         "pages.inc",
-        &record::page_table(&map, r.number, &r.evcode),
+        record::page_table(&map, r.number, &r.evcode),
     )
 }
 
 fn do_emit(args: &EmitArgs) -> Result<()> {
-    let mut request: request::Emit = request::read(&args.plain.request)?;
-    // A ChipSet animation cut to fit is a loss, which the converter lists
-    // with the cartridge's others.
-    let cut = animation::fit_all_by_map(&mut request.maps);
-    let mut losses: Vec<Value> = cut
-        .iter()
-        .map(
-            |(map, text)| json!({"map": map, "kind": "chipset-animation-cut", "text": text.trim()}),
-        )
-        .collect();
-    // And an inn's gold window, on a map without room for it in the sprites.
-    for map in &request.maps {
-        if request.gold_maps.contains(&map.id) && record::arrow_obj(map)? & record::GOLD_ROOM == 0 {
-            losses.push(json!({
-                "map": map.id,
-                "kind": "inn-no-gold-window",
-                "text": format!(
-                    "map {}: an inn opens no gold window, which goes in objects past the sprite \
-                     bank and in a sprite palette nobody takes, and the map has no room for them",
-                    map.id
-                ),
-            }));
-        }
+    let request: request::Emit = request::read(&args.plain.request)?;
+    let (raw, answer): (stage::Files, stage::Files) = stage::emit_of(&args.data, request)?
+        .into_iter()
+        .partition(|(name, _)| name.starts_with(stage::RAW));
+    if let Some(directory) = &args.raw {
+        let raw = raw
+            .into_iter()
+            .map(|(name, bytes)| (name[stage::RAW.len()..].to_string(), bytes))
+            .collect();
+        materials::write_raw(directory, &raw)?;
     }
-    let mut notes: Vec<String> = cut.into_iter().map(|(_, note)| note).collect();
-    notes.extend(rm2k_snes_mapdata::layer_text::bake_all(&mut request));
-    let db = rm2k_snes_battle::db::Db::from_dump(&args.data, true)
-        .map_err(|b| Bad::answer(b.message().to_string()))?;
-    let emitted = rm2k_snes_mapdata::emit::emit(&request, &db)?;
-    notes.extend(emitted.notes);
-    if let Some(raw) = &args.raw {
-        materials::write_raw(raw, &emitted.raw)?;
+    for (name, bytes) in &answer {
+        write_file(&args.plain.out, name, bytes)?;
     }
-    let out = &args.plain.out;
-    write_text(out, "mapdata.inc", &emitted.text)?;
-    write(
-        out,
-        "mapdata",
-        &json!({"notes": notes, "report": emitted.report, "frames": emitted.frames, "losses": losses}),
-    )
+    Ok(())
 }
 
 fn do_engine(args: &Plain) -> Result<()> {
