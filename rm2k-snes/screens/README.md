@@ -70,7 +70,9 @@ not.
 
 It writes `screens.json`: the pieces above, the geometry the screens were
 drawn with —`layout`, by name, so the emission writes the same numbers and
-keeps no copy of them—, and what the conversion has to say, in order.
+keeps no copy of them—, and what the conversion has to say, in order. Its
+shape is `Answer` in `src/answer.rs`, which the emission and the converter
+read it through.
 
 `render` draws one screen as the console has to show it —the menu, the
 item screen, the actor choice, the slot screen, equipment, the shop, the

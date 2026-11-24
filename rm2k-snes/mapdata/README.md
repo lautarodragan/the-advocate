@@ -32,10 +32,13 @@ and writes pieces and a JSON.
 
 * `emit`: the whole `.inc`. The request is `Emit` in `src/request.rs`: the
   maps as `wally` and the event compiler left them, the answer of
-  `rm2k-snes-screens convert` as it came, the battle model and tables of
-  `rm2k-snes-battle`, the troops' pages of the compiler, and what other
-  domains decided already as bytes and numbers —the battle animations'
-  frames as they end up in VRAM, the scene's backdrops and battlers—. It
+  `rm2k-snes-screens convert` as its own types (`answer.rs` there), the
+  battle model and tables of `rm2k-snes-battle` as that crate's, the
+  troops' pages of the compiler, and what other domains decided already as
+  bytes and numbers —the battle animations' frames as they end up in VRAM,
+  the scene's backdrops and battlers—. The converter builds it as those
+  types and calls `stage::emit` with it; the binary reads the same types
+  from the request file. It
   writes `mapdata.inc` and `mapdata.json`, with what it says while it
   writes, what was shared and compressed, and how many frames each map
   takes to decompress; with `--raw`, each map's decompressed blocks, which
