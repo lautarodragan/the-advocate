@@ -692,6 +692,90 @@ mod tests {
         assert_eq!(compressed_parts("map_cells", &big)[1], &[7, 7]);
     }
 
+    /// Bytes that give the compressor each of its commands: runs of one
+    /// byte, of a word, increasing, repeats of what came before, and noise
+    /// for the literals.
+    fn block(len: usize, seed: u32) -> Vec<u8> {
+        let mut state = seed.wrapping_mul(2_654_435_761) | 1;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            state
+        };
+        let mut out: Vec<u8> = Vec::with_capacity(len);
+        while out.len() < len {
+            let run = 1 + (next() % 70) as usize;
+            let b = next() as u8;
+            match next() % 5 {
+                0 => out.extend(std::iter::repeat_n(b, run)),
+                1 => out.extend((0..run).map(|i| if i % 2 == 0 { b } else { !b })),
+                2 => out.extend((0..run).map(|i| b.wrapping_add(i as u8))),
+                3 if out.len() > run => {
+                    let from = next() as usize % (out.len() - run);
+                    out.extend_from_within(from..from + run);
+                }
+                _ => out.extend((0..run).map(|_| next() as u8)),
+            }
+        }
+        out.truncate(len);
+        out
+    }
+
+    /// Each block of a map comes back equal going through the streams the
+    /// cartridge carries for it —the grid in two, a background of more
+    /// than one buffer in two, each distinct part once across maps— read
+    /// one after the other by LZ2's decoder, as the console reads them.
+    ///
+    /// Until 2026-11-25 this was ABL's `tests/tooling/test_lz2.py`, over
+    /// the blocks every cartridge left in `raw/`, through `rm2k-snes-mapdata
+    /// compress` and a decoder of the harness's own. What it stops
+    /// catching: a block shape only those maps have, and a fault the two
+    /// sides of `lz2` share —the ROM's decompressor, against the same
+    /// streams, is ABL's `test_decompressed_load.py`—.
+    #[test]
+    fn each_block_comes_back_equal_through_its_streams() {
+        let sizes = [
+            ("map_tiles", LZ2_CAP_BACKDROP + 1152),
+            ("above_tiles", 3000),
+            ("sprite_tiles", 5000),
+            ("anim_tiles", 2048),
+            ("map_cells", HALF_GRID + 2000),
+            ("map_ram", 700),
+            ("map_code", 900),
+            ("map_pages", 300),
+        ];
+        assert_eq!(sizes.map(|(k, _)| k), COMPRESSED_KINDS);
+        let map = |seed: u32| -> RawBlocks {
+            sizes
+                .iter()
+                .enumerate()
+                .map(|(i, &(kind, len))| (kind.to_string(), block(len, seed * 16 + i as u32)))
+                .collect()
+        };
+        let first = map(1);
+        let mut second = map(2);
+        // Shared with the first: one stream for both, which each map's
+        // block has to find.
+        second.insert("above_tiles".into(), first["above_tiles"].clone());
+        // And a small grid, whose second half is empty.
+        second.insert("map_cells".into(), block(500, 99));
+        let maps = [(1, &first), (2, &second)];
+        let compressed = compress_blocks(&maps).unwrap();
+        for (id, blocks) in maps {
+            for kind in COMPRESSED_KINDS {
+                let joined = stream_of(kind, &blocks[kind], &compressed);
+                let (mut back, mut end) = (Vec::new(), 0);
+                while end < joined.len() {
+                    let (one, used) = lz2::decompress_prefix(&joined[end..]).unwrap();
+                    back.extend(one);
+                    end += used;
+                }
+                assert!(back == blocks[kind], "map {id}'s {kind} does not come back");
+            }
+        }
+    }
+
     #[test]
     fn a_map_with_at_most_256_blocks_goes_one_byte_a_cell() {
         // Zounds' map 30: 200x200, 2 blocks, 34 bytes behind its grid.
