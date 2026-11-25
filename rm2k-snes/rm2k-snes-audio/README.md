@@ -2,8 +2,6 @@
 
     rm2k-snes-audio compile --job job.json --out build/ \
         --game-dir game/ --rtp-dir rtp/ --soundfont bank.sf2
-    rm2k-snes-audio cartridge --request request.json --out build/ \
-        --msu build/game.msu --data dump/ --game-dir game/ --soundfont bank.sf2
     rm2k-snes-audio msu-index build/game.msu
     rm2k-snes-audio decode --stream stream.bin --sounds sounds.bin
     rm2k-snes-audio keys song-a song-b --game-dir game/ --soundfont bank.sf2
@@ -80,8 +78,9 @@ And to standard output, what each song and the bank came out as.
 
 ## A cartridge's music, as a converter's stage
 
-`cartridge` is what a converter calls, with the shape of the one described
-in `../battle/README.md`, "One stage of a converter". It builds the job
+`stage::cartridge` is what a converter calls, as a function and not a
+subcommand, with the shape of the one described in `../battle/README.md`,
+"One stage of a converter". It builds the job
 itself, compiles it in the same process, and leaves the job next to what it
 made —`audio-job.json`— so `compile` can rebuild that music alone. What it
 decides that `compile` does not:

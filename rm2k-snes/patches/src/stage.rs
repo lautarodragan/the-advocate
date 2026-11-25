@@ -1,14 +1,13 @@
 //! The patches as a stage of a converter: what the converter asks of this
-//! crate, as the files the binary writes into a build, by name. The
+//! crate, as the files the converter writes into a build, by name. The
 //! converter builds the [`Request`] and calls [`patches`] as a function,
-//! and writes the files itself with [`put`](crate::put); the binary's
-//! `--request` is a `main` over it that reads the request from its file.
+//! and writes the files itself with [`put`](crate::put).
 //!
 //! It reads nothing but the request it is given.
 
 use crate::{files, Files, Request};
 
-/// `--request`: the patches of one build, from what the converter decided,
+/// The patches of one build, from what the converter decided,
 /// each named by its path relative to the build.
 pub fn patches(request: &Request) -> Files {
     files(request)

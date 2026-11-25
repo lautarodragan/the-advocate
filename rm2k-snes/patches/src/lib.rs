@@ -27,9 +27,8 @@
 //! # The three places
 //!
 //! * **The converter** decides, and hands the decisions of one build to this
-//!   in a request —[`stage::patches`], or `rm2k-snes-patches --request
-//!   decisions.json <build>`; see [`Request`]—: this makes them TOML, and
-//!   [`put`] leaves them in `<build>/patches/auto/`, next to the ROM. Which situation each one was asked for by —a map of the
+//!   in a request —[`stage::patches`]; see [`Request`]—: this makes them
+//!   TOML, and [`put`] leaves them in `<build>/patches/auto/`, next to the ROM. Which situation each one was asked for by —a map of the
 //!   game, a map or a page that only exists for a test suite— the converter
 //!   writes itself, in `<build>/patches/uses.json` ([`USES_FILE`]), and this
 //!   only reads it.
@@ -245,7 +244,7 @@ impl Merge {
 }
 
 /// What the converter decided for one build: the request of
-/// `--request`, as JSON.
+/// [`stage::patches`].
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {

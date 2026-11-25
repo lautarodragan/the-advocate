@@ -1,8 +1,8 @@
 //! The screens as a stage of a converter: what each of the commands it
-//! calls answers, as the files the binary writes into `--out`, by name. The
-//! converter calls these as functions —`convert`, `boxes`, `faces`, `window`
-//! and `layout`—, and the binary is a `main` over them that reads the
-//! request and writes the files.
+//! calls answers, as the files they make, by name. The converter calls
+//! these as functions —`convert`, `boxes`, `faces` and `window`—, and the
+//! binary is a `main` over `window` and `layout`, which the tests ask, that
+//! reads the request and writes the files into `--out`.
 //!
 //! **They read nothing but the place and the request they are given**: the
 //! converter keeps their answers in its cache under the key of the flags

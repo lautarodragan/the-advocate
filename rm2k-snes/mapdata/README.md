@@ -1,6 +1,6 @@
 # rm2k-snes-mapdata: the data `.inc` of a converted cartridge
 
-    rm2k-snes-mapdata emit --data dump/ --request request.json --out build/ --raw build/raw/
+    rm2k-snes-mapdata vram --request request.json --out answer/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.
@@ -28,21 +28,25 @@ Ditto dump itself —with `rm2k-snes-battle`'s `Db` and its rules for what an
 actor has at its level—, gets in a request what the other stages answered,
 and writes pieces and a JSON.
 
-## The subcommands
+## What it answers
 
-* `emit`: the whole `.inc`. The request is `Emit` in `src/request.rs`: the
-  maps as `wally` and the event compiler left them, the answer of
-  `rm2k-snes-screens convert` as its own types (`answer.rs` there), the
+* `stage::emit`, a function, not a subcommand: the whole `.inc`. The
+  request is `Emit` in `src/request.rs`: the maps as `wally` and the event
+  compiler left them, the answer of `rm2k-snes-screens`' `stage::convert`
+  as its own types (`answer.rs` there), the
   battle model and tables of `rm2k-snes-battle` as that crate's, the
   troops' pages of the compiler, and what other domains decided already as
   bytes and numbers —the battle animations' frames as they end up in VRAM,
   the scene's backdrops and battlers—. The converter builds it as those
-  types and calls `stage::emit` with it; the binary reads the same types
-  from the request file. It
-  writes `mapdata.inc` and `mapdata.json`, with what it says while it
-  writes, what was shared and compressed, and how many frames each map
-  takes to decompress; with `--raw`, each map's decompressed blocks, which
-  the game's tests compare against what the console loads.
+  types and calls `stage::emit` with it. It answers `mapdata.inc` and
+  `mapdata.json`, with what it says while it writes, what was shared and
+  compressed, and how many frames each map takes to decompress; and, under
+  `raw/`, each map's decompressed blocks, which the converter leaves beside
+  the cartridge and the game's tests compare against what the console
+  loads.
+
+The binary is a `main` over the rest, which the tests ask:
+
 * `pages`: one map's page table, alone, for whoever checks which label it
   names.
 * `compress`: the LZ2 streams of some maps' blocks, each part once, for

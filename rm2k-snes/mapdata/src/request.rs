@@ -321,10 +321,10 @@ pub struct Emit {
     pub party: Vec<i64>,
     /// Who the cartridge is: its header title and its SRAM signature.
     pub rom: Rom,
-    /// What `rm2k-snes-screens convert` answered, as it is: the message
-    /// window and its font, the title's menu, the slots and the pause
-    /// menu, the text screens with their windows, End Game, the texts they
-    /// compose, and the geometry they were drawn with.
+    /// What `rm2k-snes-screens`' `stage::convert` answered, as it is: the
+    /// message window and its font, the title's menu, the slots and the
+    /// pause menu, the text screens with their windows, End Game, the texts
+    /// they compose, and the geometry they were drawn with.
     pub screens: rm2k_snes_screens::answer::Answer,
     /// The colour-memory entries the message window takes, as
     /// `rm2k-snes-screens window` counted them from the System: each map's
@@ -342,8 +342,9 @@ pub struct Emit {
     /// event compiler's `messages.rs`.
     pub message_pairs: MessagePairs,
     /// The faces the message window shows, in the order `OP_FACE` counts
-    /// them: as `rm2k-snes-screens faces` drew each, with a face the
-    /// converter could not draw already replaced by what it shows instead.
+    /// them: as `rm2k-snes-screens`' `stage::faces` drew each, with a face
+    /// the converter could not draw already replaced by what it shows
+    /// instead.
     /// Absent in a request from before 2026-10-15: none.
     #[serde(default)]
     pub faces: Vec<MessageFace>,
@@ -363,8 +364,8 @@ pub struct Emit {
     pub battle_audio: Option<rm2k_snes_events::answer::BattleAudio>,
     /// The battle scene: the backdrops and the battlers, already as bytes.
     pub scene: Scene,
-    /// What `rm2k-snes-battle tables` wrote —the experience's and the
-    /// encounters' pieces— and its experience slots.
+    /// What `rm2k-snes-battle`'s `stage::tables` answered —the experience's
+    /// and the encounters' pieces— and its experience slots.
     pub battle_tables: BattleTables,
     /// The troops' event pages, as the compiler answered them, if any.
     pub troop_pages: Option<rm2k_snes_events::answer::TroopPages>,
@@ -469,10 +470,10 @@ pub struct BigLayer {
     pub keeps_objects: bool,
 }
 
-/// A big picture as a mode 7 texture, as `rm2k-snes-images background`
-/// drew it: its tiles, a byte a pixel and the first one blank, a tile per
-/// cell of the layer, and the point of the screen a zoom shrinks it
-/// towards.
+/// A big picture as a mode 7 texture, as `rm2k-snes-images`'
+/// `stage::background` drew it: its tiles, a byte a pixel and the first one
+/// blank, a tile per cell of the layer, and the point of the screen a zoom
+/// shrinks it towards.
 #[derive(Serialize, Deserialize)]
 pub struct Mode7Texture {
     #[serde(with = "hex")]
@@ -672,8 +673,8 @@ pub struct BattleAnimation {
     pub palette: Vec<Color>,
 }
 
-/// What `rm2k-snes-battle tables` wrote —the experience's and the
-/// encounters' pieces of the `.inc`— and its experience slots: see
+/// What `rm2k-snes-battle`'s `stage::tables` answered —the experience's
+/// and the encounters' pieces of the `.inc`— and its experience slots: see
 /// `ExperienceAnswer` there.
 #[derive(Serialize, Deserialize)]
 pub struct BattleTables {

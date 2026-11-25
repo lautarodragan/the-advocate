@@ -1,11 +1,10 @@
 //! The music as a stage of a converter: what `cartridge` answers, as the
-//! files the binary writes, by name. The converter calls [`cartridge`] as a
-//! function, and the binary is a `main` over it that reads the request and
-//! writes the files; `compile`, which only a person or a test runs, goes
-//! through the same [`compile`].
+//! files it makes, by name. The converter calls [`cartridge`] as a
+//! function; `compile`, which only a person or a test runs, goes through
+//! the same [`compile`].
 //!
-//! **It writes nothing**: what went into `--out` and the `.msu` come back
-//! as [`Files`], and whoever called it writes them where they go. **What it
+//! **It writes nothing**: what goes beside the cartridge and the `.msu`
+//! come back as [`Files`], and whoever called it writes them where they go. **What it
 //! says goes to standard output**, as it did when it was a process whose
 //! output went out with the converter's: the lines `compile`'s library
 //! prints while it decides —a package that does not fit, a directory that
