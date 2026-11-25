@@ -49,7 +49,8 @@ env:
 
 jobs:
   # Apart from the tests, so that a formatting slip does not hide whether
-  # they pass. What it runs is `just lint`, the same as before pushing.
+  # they pass. What it runs is `just lint`'s Rust half; Goombario, the other,
+  # needs the runtime assembled, and goes in the test game's job.
   lint:
     name: rustfmt and clippy
     runs-on: ubuntu-24.04
@@ -71,7 +72,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends just
 
       - name: rustfmt and clippy
-        run: just lint
+        run: just lint-rust
 
   rust-and-python:
     name: Rust workspace and Python tests
@@ -194,10 +195,15 @@ jobs:
           echo "$HOME/advocate/bin" >> "$GITHUB_PATH"
           CARGO_ROOT="$HOME/advocate" just install
 
-      # Makes the game, builds its cartridge and runs its tests, Goombario's
-      # among them. A core missing would skip its half: `-rs` lists skips.
+      # Makes the game, builds its cartridges and runs its tests. A core
+      # missing would skip its half: `-rs` lists skips.
       - name: Test game
         run: just test-game -rs
+
+      # Goombario over every cartridge of the test game: `just lint`'s other
+      # half, here because this job has cc65 and the tools installed.
+      - name: Goombario
+        run: just lint-runtime
 
       - name: Captures that differ
         if: failure()

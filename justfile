@@ -82,10 +82,27 @@ rust-test *args:
 # with its why; an exception for one item goes on the item, with its own.
 # `cargo fmt --all` fixes the first.
 #
-# rustfmt and clippy over the workspace, as CI runs them.
-lint:
+# rustfmt and clippy over the workspace.
+lint-rust:
   cargo fmt --all --check
   cargo clippy --workspace --all-targets -- -D warnings
+
+# Goombario over the runtime, which needs it assembled: over every cartridge
+# of the test game, built with the installed tools —`lint` in
+# `test-game/justfile` says why every one, and which runtime—. So it needs
+# what the test game needs to build, `ca65`, `ld65` and a SoundFont in
+# `SOUNDFONT`, and no core. With the cache, after a change to the runtime it
+# is little more than assembling.
+#
+# Goombario over the runtime, in the test game's cartridges.
+lint-runtime:
+  just -f test-game/justfile lint
+
+# Both, before pushing. In CI `lint-rust` is a job of its own and
+# `lint-runtime` goes in the test game's, which has cc65 and the tools.
+#
+# rustfmt, clippy and Goombario.
+lint: lint-rust lint-runtime
 
 # One Rust project's tests, by its name in `rust_projects` —`just
 # crate-test lz2`—, standing in its directory, which tests only that one;
