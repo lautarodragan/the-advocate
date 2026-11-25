@@ -1,14 +1,15 @@
-//! `wally map` on a map with more drawn events than the console's table
+//! Wally's `map` stage on a map with more drawn events than the console's table
 //! holds: the ones that fit are drawn, and the rest lose their row —not
 //! their event— with a WARNING.
 //!
 //! A small game is generated inside each test, as in `decorative.rs`: none
 //! of this needs a game.
 
+mod common;
+
 use rm2k_render::{picture, Picture};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use wally::sprites::npc::NPC_MAX;
 
 fn scratch(name: &str) -> PathBuf {
@@ -156,22 +157,7 @@ fn convert_with(dir: &Path, dump: &Path, pictures: &Path, extra: Value) -> Value
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
     let _ = std::fs::remove_dir_all(&out);
-    let done = Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args(["map", "--data"])
-        .arg(dump)
-        .arg("--search-dir")
-        .arg(pictures)
-        .arg("--request")
-        .arg(&request)
-        .arg("--out")
-        .arg(&out)
-        .output()
-        .unwrap();
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(dump, pictures, &request, &out);
     serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap()
 }
 

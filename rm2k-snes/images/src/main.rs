@@ -1,5 +1,7 @@
-//! A game's pictures from the command line: a request in, the pictures as
-//! the console carries them out, in a JSON.
+//! A game's battle pictures from the command line: a request in, the
+//! pictures as the console carries them out, in a JSON. The three the
+//! converter alone asks —`fullscreen`, `picture`, `background`— it calls
+//! as functions, in `stage`; these are the ones the tests ask too.
 //!
 //! Where the pictures and the dump are is the caller's to say: nothing here
 //! has a default path.
@@ -33,42 +35,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// A picture that fills the screen at 8 bits a pixel: unique tiles, a
-    /// palette and a tilemap
-    #[command(
-        after_help = "The request: {\"file\", \"width\", \"height\", \"cell\", \
-        \"first_color\", \"cap\"}. The answer: {\"tiles\": [8x8 CGRAM indices], \
-        \"palette\": [[r, g, b] at five bits], \"tilemap\": [tile per cell, row by row]}."
-    )]
-    Fullscreen(Plain),
-    /// The picture of a ShowPicture: where it lands and its colours
-    #[command(
-        after_help = "The request: {\"file\", \"use_transparent_color\", \"top_trans\", \
-        \"x\", \"y\" (its centre on RM2k's screen), \"rm_screen\": [w, h], \"screen\": [w, h], \
-        \"colors\", \"zoom\" (percent, 100 by default), \"map_fixed\" (false by default: \
-        with the map it is not scaled to the console's screen)}. The answer: {\"x\", \"y\" \
-        (its corner; with the map, relative to its centre), \"width\", \"height\", \"palette\", \
-        \"indices\": rows of palette indices plus one, 0 where it is transparent}."
-    )]
-    Picture(Plain),
-    /// The picture of a ShowPicture too big for the sprites, as a 4bpp layer
-    #[command(
-        after_help = "The request: {\"file\", \"use_transparent_color\", \"x\", \"y\" (its \
-        centre on RM2k's screen), \"rm_screen\", \"screen\", \"zoom\" (100 by default), \
-        \"crop\": [x, y] (absent by default: the pixel of the picture the screen is cut \
-        from, unscaled, instead of scaling it), \"palettes\", \"first_palette\", \"tiles\" (the most distinct tiles, the blank one \
-        included), \"rows\" (the most rows of cells), \"mode7\": {\"tiles\", \"layer_tiles\", \
-        \"layer_rows\"} (absent by default: the layer as a mode 7 texture too, if it takes no more \
-        than those)}. The answer, null if not even cut to the screen do its tiles fit: {\"top\" (where the canvas \
-        starts, from the top of the screen), \"rows\", \"columns\", \"wider\" (whether it goes \
-        past the screen's sides), \"tile_count\", \"tiles\" \
-        (4bpp, hex), \"tilemap\" (an entry per cell, row by row), \"palettes\" (sixteen \
-        colours each, from first_palette on), and if asked and the layer leaves room for \
-        it, \"mode7\": {\"tile_count\", \"tiles\" (a byte a pixel, hex, tile 0 blank), \"map\" \
-        (a tile per cell, row by row), \"distinct\" (the tiles before grouping them), \"center\" \
-        (where on the screen a zoom shrinks it towards)}}."
-    )]
-    Background(Plain),
     /// Battle backdrops, in quality and in the light fallback
     #[command(
         after_help = "The request: {\"scene\": the geometry, \"backdrops\": [{\"file\", \
@@ -146,9 +112,6 @@ fn asked<T: DeserializeOwned + Paths, A: Serialize>(
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Fullscreen(args) => asked(args, "fullscreen", stage::fullscreen),
-        Command::Picture(args) => asked(args, "picture", stage::picture),
-        Command::Background(args) => asked(args, "background", stage::background),
         Command::Backdrops(args) => asked(args, "backdrops", stage::backdrops),
         Command::Battlers(args) => asked(args, "battlers", stage::battlers),
         Command::Animations(args) => request::read(&args.request)

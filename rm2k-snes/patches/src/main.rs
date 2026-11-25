@@ -1,14 +1,16 @@
 //! `rm2k-snes-patches`: what the converter decided to lose, written down,
 //! versioned and checked. See the library for what a patch is.
 //!
-//!     rm2k-snes-patches --request decisions.json BUILD
-//!                                  the converter: one build's patches
 //!     rm2k-snes-patches BUILD      the playable ROM's, to the project
 //!     rm2k-snes-patches --check [BUILD…]
 //!                                  fail if what is versioned is stale
 //!
 //! A BUILD is a cartridge's build directory, or a directory with cartridges
 //! inside. Exit code 1 when the answer is no, 2 when the call is wrong.
+//!
+//! The converter writes one build's patches itself, with
+//! `rm2k_snes_patches::stage::patches` and `put`: it calls this crate as a
+//! library.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -18,9 +20,7 @@ use cartridge::cartridges::Cartridges;
 use clap::{Arg, ArgAction, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{relative, Project};
-use rm2k_snes_patches::{
-    check, copy, has_patches, put, report, stage, versioned, Kind, Request, PLAYABLE,
-};
+use rm2k_snes_patches::{check, copy, has_patches, versioned, Kind, PLAYABLE};
 
 const FROM_ENVIRONMENT: &[&str] = &["test_cartridges"];
 
@@ -46,13 +46,6 @@ fn command() -> Command {
                 .action(ArgAction::SetTrue)
                 .help("do not write: fail if what is versioned is stale"),
         )
-        .arg(
-            Arg::new("request")
-                .long("request")
-                .value_name("FILE")
-                .conflicts_with("check")
-                .help("what the converter decided for one build, as JSON: write its patches into the one build directory given, next to its ROM. This is how the converter leaves them"),
-        )
 }
 
 fn run() -> Result<(), String> {
@@ -61,24 +54,6 @@ fn run() -> Result<(), String> {
         .get_many::<String>("builds")
         .map(|b| b.cloned().collect())
         .unwrap_or_default();
-
-    // The converter's call needs no project: it only writes into the build
-    // what it was handed.
-    if let Some(request) = matches.get_one::<String>("request") {
-        let [build] = given.as_slice() else {
-            return Err(format!(
-                "--request writes one build's patches: pass its directory, and not {}",
-                given.len()
-            ));
-        };
-        let text = std::fs::read_to_string(request).map_err(|e| format!("{request}: {e}"))?;
-        let request: Request =
-            serde_json::from_str(&text).map_err(|e| format!("{request}: {e}"))?;
-        for written in put(Path::new(build), &stage::patches(&request))? {
-            println!("{}", report(&written));
-        }
-        return Ok(());
-    }
 
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
     let auto = project.auto_patches()?;

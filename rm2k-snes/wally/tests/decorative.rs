@@ -1,14 +1,15 @@
-//! `wally map` with `decorative` on: an event that is pure decoration —one
+//! Wally's `map` stage with `decorative` on: an event that is pure decoration —one
 //! page, no commands, no conditions, nobody names it, it does not move—
 //! is painted into the background and stops being an event.
 //!
 //! A small game is generated inside each test, as in `shared_slots.rs`:
 //! none of this needs a game.
 
+mod common;
+
 use rm2k_render::{picture, Picture};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-decor-{}-{name}", std::process::id()));
@@ -167,22 +168,7 @@ fn convert_with(
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
     let _ = std::fs::remove_dir_all(&out);
-    let done = Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args(["map", "--data"])
-        .arg(dump)
-        .arg("--search-dir")
-        .arg(pictures)
-        .arg("--request")
-        .arg(&request)
-        .arg("--out")
-        .arg(&out)
-        .output()
-        .unwrap();
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(dump, pictures, &request, &out);
     let map: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     let layers: Value =

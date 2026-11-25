@@ -1,4 +1,4 @@
-//! `wally map` with a background that has more distinct tiles than any
+//! Wally's `map` stage with a background that has more distinct tiles than any
 //! layout holds: the last resort fuses the cells most alike, says so, and
 //! leaves untouched a map that already fits.
 //!
@@ -6,10 +6,11 @@
 //! are drawn with 576 distinct cells that differ a few pixels from each
 //! other. None of this needs a game.
 
+mod common;
+
 use rm2k_render::{picture, Picture};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-fused-{}-{name}", std::process::id()));
@@ -129,22 +130,7 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, layouts: Value) -> (Vec<Str
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
     let _ = std::fs::remove_dir_all(&out);
-    let done = Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args(["map", "--data"])
-        .arg(dump)
-        .arg("--search-dir")
-        .arg(pictures)
-        .arg("--request")
-        .arg(&request)
-        .arg("--out")
-        .arg(&out)
-        .output()
-        .unwrap();
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(dump, pictures, &request, &out);
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     let notes = answer["notes"]
