@@ -57,17 +57,27 @@ pub fn write(cartridges: &Cartridges) -> Result<(), String> {
 
 /// The versioned patches against what every built cartridge decided, as
 /// the file keeps it: `stale`, each complaint —empty when they match—;
-/// `versioned`, how many there are of each kind; and `own`, what only some
-/// cartridge decided and is not versioned, by kind and key, with the
-/// cartridges that did.
+/// `compared`, the cartridges whose decisions were looked at; `versioned`,
+/// how many there are of each kind; and `own`, what only some cartridge
+/// decided and is not versioned, by kind and key, with the cartridges that
+/// did. `null` when the game versions no patches, or no cartridge is
+/// built with them.
 pub fn compare(cartridges: &Cartridges) -> Result<Value, String> {
     let project = &cartridges.project;
     let auto = project.auto_patches()?;
+    // A game that versions none —every port but ABL, today— has nothing to
+    // compare against, and every decision would be a complaint on every
+    // build. `--write-patches` is how one starts.
+    if !auto.is_dir() {
+        return Ok(Value::Null);
+    }
     let mut builds = Vec::new();
+    let mut compared = Vec::new();
     for name in cartridges.names() {
         let directory = cartridges.directory(&name)?;
         if has_patches(&directory) {
             builds.push(directory);
+            compared.push(name);
         }
     }
     if builds.is_empty() {
@@ -91,6 +101,7 @@ pub fn compare(cartridges: &Cartridges) -> Result<Value, String> {
         .collect();
     Ok(json!({
         "stale": checked.complaints,
+        "compared": compared,
         "versioned": counts,
         "own": own,
     }))

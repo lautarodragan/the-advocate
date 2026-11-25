@@ -431,7 +431,7 @@ fn check_kind(
                     // hand, it is normal and nothing is said.
                     complaints.push(format!(
                         "{} {which} went into «{cartridge}», the playable ROM, and has no \
-                         versioned patch: run `rm2k-snes-patches` on its build.",
+                         versioned patch: run `advocate build --write-patches`.",
                         kind.article()
                     ));
                 } else {
@@ -447,8 +447,8 @@ fn check_kind(
                 complaints.push(format!(
                     "{} is stale (cartridge «{cartridge}» says so), and what changed in {} \
                      {which} is this:\n    {}\n  If the change is the one intended, run \
-                     `rm2k-snes-patches` on the playable ROM's build and commit; if not, \
-                     something moved what is seen.",
+                     `advocate build --write-patches` and commit; if not, something moved \
+                     what is seen.",
                     rm2k_project::relative(&versioned_path, base).display(),
                     kind.article(),
                     changes.join("\n    ")

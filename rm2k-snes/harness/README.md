@@ -26,14 +26,18 @@ title screen, its menus, its battles—, and so do the ports' other games.
     cores/                what the cores need that their packages lack: the
                           bsnes patches and Mesen2's shim, below
 
-**How a game's tests find it**: `rm2k-snes-project --harness` prints this
-directory —the one of the checkout the tools were installed from, the same
-that gives the runtime—, and they put it on their import path before their
-first import of `rm2k_snes_harness`. That way the harness and the runtime
-whose symbols it reads are always the same checkout's, and a worktree with
-its own `.local-tools/` brings its own of both. A release's archive carries
-it beside the runtime. The test game, which lives here, names it in its
-`pytest.ini` instead.
+**How a game's tests find it**: `just install` links this directory beside
+the tools' `bin/`, as `lib/advocate/harness`, and puts that on Python's
+import path with a `.pth` in its `site-packages`; the tests `import
+rm2k_snes_harness` and ask no binary where it is. It is a link to the
+checkout the tools were installed from, the same that gives the runtime,
+so the harness and the runtime whose symbols it reads are always the same
+checkout's. A worktree's `install-local` links its own in its
+`.local-tools/`, and a game's tests take the one beside the first
+`advocate` of their PATH before the one of `site-packages`. A release's
+archive carries it beside the runtime. The test game, which lives here,
+names it in its `pytest.ini` instead. Until 2026-11-25 the tests asked
+`rm2k-snes-project --harness` where it was.
 
 **A game says once what it is**, before its first test —in its
 `conftest.py`—: `rm2k_snes_harness.use(Game(root, flags, goldens,

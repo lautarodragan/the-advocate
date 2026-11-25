@@ -124,11 +124,29 @@ crate-test project *args:
 # `rm2k-snes-<something>`: `bin/` is shared, and a bare `space` or `patches`
 # does not say what it is and can clash with anything.
 #
+# **And the games' test harness**, the Python package `rm2k_snes_harness`
+# (`rm2k-snes/harness/`), whatever the names: `_install` links it beside
+# `bin/`, and this puts that link on Python's import path with a `.pth` in
+# its `site-packages`, so a game's tests and scripts `import` it as they
+# import any package, and ask no binary where it is. taro's, 2026-11-25:
+# the tests never call a binary of ours. It is a link to this checkout, the
+# same one whose runtime the cartridges carry, so the harness and the
+# symbols it reads always come from one checkout.
+#
 # `(cargo_root)` goes in parentheses because, stuck to the parenthesis that
 # follows, `just` would read it as a call to a function `cargo_root`.
 #
 # Installs the named Rust projects, or all of them, into CARGO_ROOT.
-install *projects: (_install (cargo_root) (if projects == "" { rust_projects } else { projects }))
+install *projects: (_install (cargo_root) (if projects == "" { rust_projects } else { projects })) && _harness_on_python_path
+
+# The `.pth` that puts `CARGO_ROOT`'s harness on every Python's import path:
+# `site-packages` reads it when Python starts.
+_harness_on_python_path:
+  #!/usr/bin/env sh
+  set -eu
+  site=$(python3 -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
+  echo "{{cargo_root}}/lib/advocate/harness" >"$site/rm2k_snes_harness.pth"
+  echo "the games' harness, rm2k_snes_harness, on Python's path: $site/rm2k_snes_harness.pth"
 
 # **A worktree's tools**, for the sub-agent that modifies them. The global
 # install was built from a single checkout —the main one—, so a worktree
@@ -136,7 +154,11 @@ install *projects: (_install (cargo_root) (if projects == "" { rust_projects } e
 # `<dest>/bin/` with the Rust projects it is given, **only those**:
 # compiling Rust costs, and only makes sense if the agent is going to
 # modify that project. Without names it compiles nothing. From taro,
-# 2026-09-29.
+# 2026-09-29. It always links the worktree's harness, `rm2k_snes_harness`,
+# in `<dest>/lib/advocate/harness`, as `install` does in the global root:
+# a game's tests take the one beside the first `advocate` of their PATH
+# (Python's own path does not follow the PATH, and only the global one is
+# in its `site-packages`).
 #
 # **The destination is set by the consumer**, and it is mandatory: this file
 # does not know where the game lives, and the game does not know where this
@@ -183,3 +205,8 @@ _install root *projects:
     cargo install --locked --path "$dir" --root "{{root}}"
   done
   echo "in {{root}}/bin, from Rust: {{ if projects == "" { "none" } else { projects } }}"
+  # The games' test harness: a link, so the checkout's Python is what runs,
+  # as it is edited. See `install`.
+  mkdir -p "{{root}}/lib/advocate"
+  ln -sfn "{{justfile_directory()}}/rm2k-snes/harness" "{{root}}/lib/advocate/harness"
+  echo "in {{root}}/lib/advocate/harness, the games' test harness: this checkout's"
