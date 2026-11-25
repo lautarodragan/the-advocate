@@ -160,9 +160,6 @@ cannot be done or would take absurdly long, which it says on that line.
                         and every map is offered, and each map is reached
                         and left with the Way Home
     test_meadow.py      the meadow as it is reached, and the elder's message
-    test_round_trip.py  the game's RM2k files, unpacked and packed again by
-                        Ditto, come back byte for byte: Ditto reads what
-                        Ditto writes
     test_switches_past_1023.py
                         a switch past 1023 set, branched on and asked for
                         by a page —the meadow's invisible event at (1,1)—
