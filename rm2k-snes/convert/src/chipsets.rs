@@ -610,8 +610,10 @@ fn build(
     let target = out_dir.join("ChipSet").join(format!("{name}.png"));
     std::fs::create_dir_all(target.parent().unwrap()).map_err(|e| io(&target, e))?;
     // Moved into place in one go, so two builds at once do not leave each
-    // other a half-written PNG.
-    let temp = target.with_extension(format!("png.{}.png", std::process::id()));
+    // other a half-written PNG; written under a name of this call alone,
+    // because the cartridges convert in threads of one process, and with
+    // the process id alone two of them renamed each other's away.
+    let temp = rm2k_project::cache::aside(&target).with_extension("png");
     image.write(&temp)?;
     std::fs::rename(&temp, &target).map_err(|e| io(&target, e))?;
     Ok(target)

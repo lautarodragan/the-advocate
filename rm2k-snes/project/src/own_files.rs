@@ -348,11 +348,7 @@ pub fn merged(
 
     let fail = |e: std::io::Error, p: &Path| io(p, e);
     fs::create_dir_all(into).map_err(|e| fail(e, into))?;
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(0);
-    let aside = into.join(format!(".{game_name}.tmp-{}-{nanos}", std::process::id()));
+    let aside = crate::cache::aside(&target);
     let _ = fs::remove_dir_all(&aside);
     let built = build(game, own, &files, &hidden, &aside, &result);
     if let Err(e) = built {
