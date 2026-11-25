@@ -17,7 +17,7 @@
 //! command of its own, `rm2k-snes-volume-ceilings`.
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use rm2k_project::environment::{arguments, Environment};
+use rm2k_project::environment::{arguments, Environment, RELEASE};
 use rm2k_project::{relative, Project};
 use rm2k_snes_audio::ceilings::{self, Row, HEADROOM, MEASURING_HEADROOM};
 use rm2k_snes_audio::Bad;
@@ -32,7 +32,11 @@ use std::sync::Mutex;
 /// on to it.
 const TO_CONVERTER: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 
-const CARTRIDGES: &str = "rm2k-snes-cartridges";
+/// The program that builds the game: this runs `advocate build`, the one
+/// place outside it where one of ours runs another to build, until
+/// `the-volume-ceilings-are-measured-without-a-rom` takes it away. Until
+/// 2026-11-25 it was `rm2k-snes-cartridges`.
+const ADVOCATE: &str = "advocate";
 
 pub fn command() -> Command {
     Command::new("volume-ceilings")
@@ -162,32 +166,20 @@ struct Run {
 }
 
 impl Run {
-    /// Runs the cartridges' builder with this project and this machine's
-    /// values.
-    fn cartridges(&self, args: &[&str], capture: bool) -> Result<String, Bad> {
-        let mut cmd = std::process::Command::new(CARTRIDGES);
-        cmd.arg("--project")
+    /// Runs `advocate build` with this project and this machine's values.
+    fn cartridges(&self, args: &[&str]) -> Result<(), Bad> {
+        let status = std::process::Command::new(ADVOCATE)
+            .arg("build")
+            .arg("--project")
             .arg(self.project.directory())
             .args(self.environment.as_flags(TO_CONVERTER))
-            .args(args);
-        if capture {
-            cmd.stderr(Stdio::inherit());
-            let out = cmd
-                .output()
-                .map_err(|e| Bad::usage(format!("{CARTRIDGES}: {e}")))?;
-            if !out.status.success() {
-                return Err(Bad::usage(format!("{CARTRIDGES} failed: {}", out.status)));
-            }
-            Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-        } else {
-            let status = cmd
-                .status()
-                .map_err(|e| Bad::usage(format!("{CARTRIDGES}: {e}")))?;
-            if !status.success() {
-                return Err(Bad::usage(format!("{CARTRIDGES} failed: {status}")));
-            }
-            Ok(String::new())
+            .args(args)
+            .status()
+            .map_err(|e| Bad::usage(format!("{ADVOCATE} build: {e}")))?;
+        if !status.success() {
+            return Err(Bad::usage(format!("{ADVOCATE} build failed: {status}")));
         }
+        Ok(())
     }
 
     fn ceilings_path(&self) -> Result<PathBuf, Bad> {
@@ -222,17 +214,10 @@ pub fn run(matches: &ArgMatches) -> Result<(), Bad> {
         project,
         environment,
     };
-    let listed: Value = serde_json::from_str(&run.cartridges(&["--list", "--json"], true)?)
-        .map_err(|e| Bad::usage(format!("{CARTRIDGES} --list --json: {e}")))?;
-    let release_name = listed["release"]
-        .as_str()
-        .ok_or_else(|| Bad::usage("no release cartridge".to_string()))?;
-    let release = listed["cartridges"]
-        .as_array()
-        .and_then(|cs| cs.iter().find(|c| c["name"] == release_name))
-        .and_then(|c| c["directory"].as_str())
-        .map(PathBuf::from)
-        .ok_or_else(|| Bad::usage(format!("{release_name} is not among the cartridges")))?;
+    // Where `release` is built is the machine's and the project's to say,
+    // and nothing has to be built to know it.
+    let release_name = RELEASE;
+    let release = run.environment.cartridge(&run.project, RELEASE)?;
     if matches.get_flag("measure") {
         print!(
             "{}",
@@ -249,17 +234,14 @@ pub fn run(matches: &ArgMatches) -> Result<(), Bad> {
     );
     let _ = std::io::stdout().flush();
     let measure_dir_text = measure_dir.to_string_lossy().into_owned();
-    run.cartridges(
-        &[
-            release_name,
-            "--convert-into",
-            &measure_dir_text,
-            "--",
-            "--measure-headroom",
-            &format!("{MEASURING_HEADROOM:?}"),
-        ],
-        false,
-    )?;
+    run.cartridges(&[
+        release_name,
+        "--into",
+        &measure_dir_text,
+        "--",
+        "--measure-headroom",
+        &format!("{MEASURING_HEADROOM:?}"),
+    ])?;
     let at_half = measure(&measure_dir, &rom_name, false)?;
     let clipping: Vec<&str> = at_half
         .iter()
@@ -302,7 +284,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Bad> {
         let _ = std::io::stdout().flush();
         // Without the MSU-1 tracks: what is measured is the SPC700, and the
         // tracks do not depend on the headroom.
-        run.cartridges(&[release_name, "--without-tracks"], false)?;
+        run.cartridges(&[release_name, "--without-tracks"])?;
         measured = measure(&release, &rom_name, true)?;
         let clipping: Vec<(String, i64)> = measured
             .iter()

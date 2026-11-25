@@ -226,6 +226,15 @@ impl Environment {
         Ok(())
     }
 
+    /// Every value that is set, by name, in the order of [`FLAGS`]: after
+    /// [`Self::unpack`], the directories they are read from.
+    pub fn values(&self) -> Vec<(&'static str, &Path)> {
+        FLAGS
+            .iter()
+            .filter_map(|f| self.values.get(f.name).map(|v| (f.name, v.as_path())))
+            .collect()
+    }
+
     /// What the port's own files replaced in the game, if it has any: see
     /// [`Self::unpack`].
     pub fn own_files(&self) -> Option<&OwnFiles> {

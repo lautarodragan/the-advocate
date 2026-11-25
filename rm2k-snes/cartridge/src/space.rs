@@ -125,6 +125,35 @@ fn far_padding(dbg_text: &str, header: &Path) -> Result<i64, String> {
         .sum())
 }
 
+impl Measure {
+    /// The numbers, as JSON, with the ROM they measure: what `space --json`
+    /// prints for each cartridge and what the build leaves beside the ROM,
+    /// in `space.json`.
+    pub fn json(&self, rom: &Path) -> serde_json::Value {
+        serde_json::json!({
+            "rom": rom,
+            "banks": self.banks,
+            "used": self.used,
+            "slow": self.slow,
+            "free": self.free,
+            "free_fast": self.free_fast,
+            "free_halves": self.free_halves,
+            "gaps": self.gaps,
+            "largest_gap": self.largest_gap,
+            "bank0": self.bank0,
+            "bank1": self.bank1,
+            "bank_far2": self.bank_far2,
+            "bank_far3": self.bank_far3,
+            "bank_far4": self.bank_far4,
+            "bss": self.bss,
+            "far": self.far,
+            "zeropage": self.zeropage,
+            "texts": self.texts,
+            "texts_cap": self.texts_cap,
+        })
+    }
+}
+
 /// The measure of the ROM `sfc`, whose runtime has its `header.s` in
 /// `runtime`.
 pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {

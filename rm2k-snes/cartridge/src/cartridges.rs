@@ -17,6 +17,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
 
 use ditto::dump::Dump;
 use ditto::schema::{MapInfo, TreeMapMapType};
@@ -79,6 +80,17 @@ pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
 /// executable, the `.mp3` and the videos, never. A lookup that starts
 /// accepting another extension adds it here.
 pub const GAME_EXTENSIONS: &[&str] = &["png", "bmp", "xyz", "mid", "wav"];
+
+/// The file beside each built cartridge's ROM with what it has left: see
+/// [`Cartridges::measure_space`].
+pub const SPACE: &str = "space.json";
+
+/// What a build thread leaves: whether it built —`release` says that
+/// through a channel instead, earlier— and the tracks' line.
+struct Outcome {
+    built: Option<Result<bool, String>>,
+    tracks: Option<Result<String, String>>,
+}
 
 /// One cartridge of the file.
 #[derive(Debug, Clone)]
@@ -831,11 +843,128 @@ impl Cartridges {
             return Ok(false);
         }
         let directory = self.directory(name)?;
-        self.convert(name, &directory, &self.rom_of(name)?, &[])?;
+        // The stamp goes before converting: a build that fails half-way
+        // with the same inputs would otherwise leave the old one, which
+        // still matches, and the cartridge would say "up to date" over
+        // whatever the failure left. And so does the space it had.
         let stamp = directory.join("stamp.txt");
+        let space = directory.join(SPACE);
+        for old in [&stamp, &space] {
+            match std::fs::remove_file(old) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                    return Err(format!("{}: {e}", old.display()))
+                }
+                _ => {}
+            }
+        }
+        let rom = self.rom_of(name)?;
+        self.convert(name, &directory, &rom, &[])?;
+        self.measure_space(name)?;
         std::fs::write(&stamp, self.stamp(name, inputs)?)
             .map_err(|e| format!("{}: {e}", stamp.display()))?;
         Ok(true)
+    }
+
+    /// What the built cartridge has left, measured from what its build
+    /// left beside the ROM, into [`SPACE`] there: see `space` for each
+    /// number. Measured when it is built because it reads the whole `.dbg`,
+    /// which takes a fifth of a second a cartridge, and every test session
+    /// would otherwise ask it again of a ROM that did not change.
+    pub fn measure_space(&self, name: &str) -> Result<serde_json::Value, String> {
+        let rom = self.rom_of(name)?;
+        let measured = crate::space::measure(&rom, &self.runtime)?.json(&rom);
+        let file = self.directory(name)?.join(SPACE);
+        std::fs::write(&file, format!("{measured:#}\n"))
+            .map_err(|e| format!("{}: {e}", file.display()))?;
+        Ok(measured)
+    }
+
+    /// The space [`Self::measure_space`] left beside the cartridge, or None
+    /// if it left none.
+    pub fn space(&self, name: &str) -> Result<Option<serde_json::Value>, String> {
+        let file = self.directory(name)?.join(SPACE);
+        match std::fs::read_to_string(&file) {
+            Ok(text) => serde_json::from_str(&text)
+                .map(Some)
+                .map_err(|e| format!("{}: {e}", file.display())),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(format!("{}: {e}", file.display())),
+        }
+    }
+
+    /// Builds `names`, each if it is not up to date or if `force` says so,
+    /// and the MSU-1 tracks after `release` if `tracks` says so; prints
+    /// each one's "built" or "up to date", and the tracks' line. Every one
+    /// is tried: the first failure is answered once all have finished.
+    pub fn build_these(
+        &self,
+        names: &[String],
+        inputs: &str,
+        force: bool,
+        tracks: bool,
+    ) -> Result<(), String> {
+        // The cartridges and the tracks are built at the same time, in
+        // threads: each one writes in its own directory, and converts into
+        // its own log —see `rm2k_project::log`—. What they share is the disk
+        // cache, which writes aside and renames. What is printed stays in
+        // the usual order.
+        //
+        // The tracks, **after `release`** and not alongside it: they are its
+        // songs', which the converter leaves next to its ROM. Meanwhile the
+        // other cartridges get built.
+        std::thread::scope(|scope| {
+            let (release_built, release_done) = mpsc::channel();
+            let handles: Vec<_> = names
+                .iter()
+                .map(|name| {
+                    let sender = (name == RELEASE).then(|| release_built.clone());
+                    scope.spawn(move || {
+                        let built = self.build(name, inputs, force);
+                        let Some(sender) = sender else {
+                            return Outcome {
+                                built: Some(built),
+                                tracks: None,
+                            };
+                        };
+                        // `release` says it is built before its tracks start.
+                        let ok = built.is_ok();
+                        let _ = sender.send(built);
+                        Outcome {
+                            built: None,
+                            tracks: (ok && tracks).then(|| self.msu_tracks()),
+                        }
+                    })
+                })
+                .collect();
+            drop(release_built);
+            // Every thread is joined before answering, so a failure does not
+            // leave a conversion half-way through a directory; the first
+            // failure is the answer.
+            let mut failed = None;
+            for (name, handle) in names.iter().zip(handles) {
+                let mut said = |done: Result<String, String>| match done {
+                    Ok(line) => println!("{line}"),
+                    Err(e) => {
+                        failed.get_or_insert(e);
+                    }
+                };
+                let state = |built: bool| if built { "built" } else { "up to date" };
+                if name == RELEASE {
+                    let built = release_done
+                        .recv()
+                        .unwrap_or_else(|_| Err(format!("{RELEASE}: the build did not finish")));
+                    said(built.map(|b| format!("{name}: {}", state(b))));
+                }
+                let outcome = handle.join().expect("a build thread panicked");
+                if let Some(built) = outcome.built {
+                    said(built.map(|b| format!("{name}: {}", state(b))));
+                }
+                if let Some(line) = outcome.tracks {
+                    said(line);
+                }
+            }
+            failed.map_or(Ok(()), Err)
+        })
     }
 
     /// Converts and assembles the cartridge in `dest`, without a stamp and

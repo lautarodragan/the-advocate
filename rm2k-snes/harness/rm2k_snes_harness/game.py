@@ -1,18 +1,24 @@
-"""A game, as its tests see it: where it is, how its cartridges are built,
-and each cartridge as the builder answers for it.
+"""A game, as its tests see it: where it is, and each cartridge as its last
+build left it.
 
-A game says it once, before its first test, with `use(Game(...))`: its root,
-the flags `rm2k-snes-cartridges` builds it with —the builder's answer depends
-on them, so they are the ones its `just cartridges` passes—, and where its
-goldens and its red captures go. From then on `cartridge()` is its
-`release`, built, read through the symbols and the map table it leaves.
+A game says it once, before its first test, with `use(Game(...))`: its root
+and where its goldens and its red captures go. From then on `cartridge()`
+is its `release`, built, read through the symbols and the map table it
+leaves.
+
+**What the build left is read, not asked**: every `advocate build` writes
+`build/advocate.json` beside the project's `advocate.toml`, with its
+cartridges, whether each one was up to date when it ended, and the
+project as the tools resolve it. Until 2026-11-25 this ran
+`rm2k-snes-cartridges --list --json` and `rm2k-snes-project`, and had to be
+given the machine's flags the game was built with for the first to answer
+the same.
 """
 
 import functools
 import json
 import os
 import re
-import subprocess
 import tempfile
 
 # The cartridge the tests run unless they ask for another: the one the tools
@@ -23,40 +29,35 @@ RELEASE = "release"
 class Game:
     """A game's project, for its tests.
 
-    `root` is the directory with its `advocate.toml`; `flags` what
-    `rm2k-snes-cartridges` is given besides `--list --json`, or a function
-    that returns it —so a variable the machine has to set is asked for only
-    when a test needs a cartridge, and not on import—; `goldens` the folder
+    `root` is the directory with its `advocate.toml`; `goldens` the folder
     of its frozen captures, and `snapshots` the one where the red ones are
     left to look at, which is not versioned."""
 
-    def __init__(self, root, flags, goldens, snapshots):
+    def __init__(self, root, goldens, snapshots):
         self.root = root
-        self._flags = flags
         self.goldens = goldens
         self.snapshots = snapshots
 
-    def flags(self):
-        return list(self._flags() if callable(self._flags) else self._flags)
-
     @functools.cached_property
+    def built(self):
+        """What the last `advocate build` left in `build/advocate.json`."""
+        path = os.path.join(self.root, "build", "advocate.json")
+        assert os.path.exists(path), (
+            "%s is not there: build the game first, with `just cartridges` "
+            "in %s" % (path, self.root))
+        with open(path) as file:
+            return json.load(file)
+
+    @property
     def listing(self):
-        """What the builder answers about the project: its cartridges, and
-        where `ca65` ran and the runtime is."""
-        done = subprocess.run(
-            ["rm2k-snes-cartridges", *self.flags(), "--list", "--json"],
-            cwd=self.root, capture_output=True, text=True)
-        assert done.returncode == 0, done.stderr
-        return json.loads(done.stdout)
+        """Its cartridges, and where `ca65` ran and the runtime is."""
+        return self.built["listing"]
 
-    @functools.cached_property
+    @property
     def project(self):
         """What the tools resolve of its project —`project`, `suite`,
-        `settings`—, as `rm2k-snes-project` prints it."""
-        done = subprocess.run(["rm2k-snes-project", "--project", self.root],
-                              capture_output=True, text=True)
-        assert done.returncode == 0, done.stderr
-        return json.loads(done.stdout)
+        `settings`—."""
+        return self.built
 
     @functools.lru_cache(maxsize=None)
     def cartridge(self, name=RELEASE):

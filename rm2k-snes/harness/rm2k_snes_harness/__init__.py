@@ -13,8 +13,8 @@ harness adds what only it knows on top.
 
 Nothing here is written by hand about a cartridge: which symbols there are
 in RAM is said by its `.sym`, which map each index is by its `mapdata.inc`,
-and where the cartridge is and whether it is up to date by
-`rm2k-snes-cartridges`.
+and where the cartridge is and whether it is up to date by the
+`build/advocate.json` its build left.
 
 **How a game's tests find it**: `rm2k-snes-project --harness` prints the
 directory to put on the import path, the one of the checkout the tools were

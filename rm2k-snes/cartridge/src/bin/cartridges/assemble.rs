@@ -18,10 +18,8 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use cartridge::assemble::{self, Failure};
-use cartridge::banks;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::{cache, environment, suite};
-use serde_json::json;
 
 pub fn command() -> Command {
     Command::new("assemble")
@@ -70,17 +68,7 @@ pub fn command() -> Command {
 
 pub fn run(matches: &ArgMatches) -> ExitCode {
     if matches.get_flag("memory_map") {
-        let map = json!({
-            "bank_size": banks::BANK_SIZE,
-            "rom_size": banks::ROM_SIZE,
-            "data_banks": banks::slots().len(),
-            "stack": banks::STACK,
-            "far_pool": {"start": banks::FAR_POOL_START, "size": banks::FAR_POOL_SIZE},
-            "wram": banks::WRAM_AREAS
-                .iter()
-                .map(|a| json!({"area": a.name, "start": a.start, "size": a.size, "segments": a.segments}))
-                .collect::<Vec<_>>(),
-        });
+        let map = cartridge::assemble::memory_map();
         println!("{map}");
         return ExitCode::SUCCESS;
     }

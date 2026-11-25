@@ -46,6 +46,24 @@ PATH:
     # and put cc65/bin/ca65 and cc65/bin/ld65 on the PATH";
 
 /// The first executable called `name` on the PATH.
+/// The machine's memory as the packing lays it out —the bank size, how many
+/// data banks, the stack, the far pool and each WRAM area—, as JSON: for a
+/// game's tests, which check what the runtime writes against it.
+pub fn memory_map() -> serde_json::Value {
+    use crate::banks;
+    serde_json::json!({
+        "bank_size": banks::BANK_SIZE,
+        "rom_size": banks::ROM_SIZE,
+        "data_banks": banks::slots().len(),
+        "stack": banks::STACK,
+        "far_pool": {"start": banks::FAR_POOL_START, "size": banks::FAR_POOL_SIZE},
+        "wram": banks::WRAM_AREAS
+            .iter()
+            .map(|a| serde_json::json!({"area": a.name, "start": a.start, "size": a.size, "segments": a.segments}))
+            .collect::<Vec<_>>(),
+    })
+}
+
 pub fn which(name: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path)

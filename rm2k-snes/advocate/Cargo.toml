@@ -1,0 +1,22 @@
+[package]
+name = "advocate"
+version = "0.1.0"
+edition = "2021"
+description = "Builds an rm2k-snes game: its cartridges from its advocate.toml, the converter and the assembler called as libraries, and a file in its build/ with everything a test suite needs to know"
+
+[[bin]]
+name = "advocate"
+path = "src/main.rs"
+
+[dependencies]
+# The cartridges: which ones the project declares, the fingerprint, the
+# converter and the assembler they call, the space each one has left.
+rm2k-snes-cartridge = { path = "../cartridge" }
+clap = "4"
+rm2k-project = { path = "../project" }
+# `preserve_order`: the file keeps the order of the project file's tables,
+# as `rm2k-snes-project` printed them.
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[lints]
+workspace = true

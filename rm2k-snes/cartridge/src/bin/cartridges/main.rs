@@ -22,7 +22,6 @@
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::mpsc;
 
 mod assemble;
 mod space;
@@ -155,67 +154,7 @@ fn run(matches: &ArgMatches) -> Result<(), String> {
     };
     let force = matches.get_flag("force");
     let tracks = names.iter().any(|n| n == RELEASE) && !matches.get_flag("without_tracks");
-    // The cartridges and the tracks are built at the same time, in threads:
-    // each one writes in its own directory, and converts into its own log
-    // —see `rm2k_project::log`—. What they share is the disk cache, which
-    // writes aside and renames. What is printed stays in the usual order.
-    //
-    // The tracks, **after `release`** and not alongside it: they are its
-    // songs', which the converter leaves next to its ROM. Meanwhile the other
-    // cartridges get built.
-    std::thread::scope(|scope| {
-        let (release_built, release_done) = mpsc::channel();
-        let handles: Vec<_> = names
-            .iter()
-            .map(|name| {
-                let cartridges = &cartridges;
-                let inputs = &inputs;
-                let sender = (name == RELEASE).then(|| release_built.clone());
-                scope.spawn(move || {
-                    let built = cartridges.build(name, inputs, force);
-                    let Some(sender) = sender else {
-                        return Outcome {
-                            built: Some(built),
-                            tracks: None,
-                        };
-                    };
-                    // `release` says it is built before its tracks start.
-                    let ok = built.is_ok();
-                    let _ = sender.send(built);
-                    Outcome {
-                        built: None,
-                        tracks: (ok && tracks).then(|| cartridges.msu_tracks()),
-                    }
-                })
-            })
-            .collect();
-        drop(release_built);
-        // The scope waits for the builds still running before it returns, so
-        // a failure does not leave a converter half-way through a directory.
-        for (name, handle) in names.iter().zip(handles) {
-            if name == RELEASE {
-                let built = release_done
-                    .recv()
-                    .unwrap_or_else(|_| Err(format!("{RELEASE}: the build did not finish")))?;
-                println!("{name}: {}", if built { "built" } else { "up to date" });
-            }
-            let outcome = handle.join().expect("a build thread panicked");
-            if let Some(built) = outcome.built {
-                println!("{name}: {}", if built? { "built" } else { "up to date" });
-            }
-            if let Some(line) = outcome.tracks {
-                println!("{}", line?);
-            }
-        }
-        Ok(())
-    })
-}
-
-/// What a build thread leaves: whether it built —`release` says that
-/// through a channel instead, earlier— and the tracks' line.
-struct Outcome {
-    built: Option<Result<bool, String>>,
-    tracks: Option<Result<String, String>>,
+    cartridges.build_these(&names, &inputs, force, tracks)
 }
 
 fn main() -> ExitCode {
