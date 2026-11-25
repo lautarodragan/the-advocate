@@ -10,7 +10,7 @@
 //! cell with that tile's bits, which are the ones the event's row imposed.
 
 use crate::events::{route_target, tile_name, unbaked, Event, LAYER_BELOW, UPPER_BASE};
-use crate::fail::Result;
+use crate::fail::{Bad, Result};
 use crate::sheets::Drawer;
 use crate::sprites::npc::Npc;
 use crate::sprites::split::TILE_PREFIX;
@@ -185,4 +185,66 @@ pub fn bakeable(
         out.insert(number, (at, tile));
     }
     Ok(out)
+}
+
+/// Checks what [`bakeable`] decided against the two invariants that make
+/// hiding the row safe, and stops the build if one does not hold: it is a
+/// bug in the rule, not a limit of the game, so there is no loss to
+/// declare —the rule is what has to be fixed—. Neither shows on screen,
+/// which is why it is checked at every build and not by a golden:
+///
+/// * **the cell's passability does not change**: the event's row imposed
+///   its tile's bits and `pass_with_event` skips the hidden rows, so the
+///   map's table has to give the same once the tile is in it; otherwise the
+///   cell is walked differently with no pixel to give it away;
+/// * **the tile covers the 16x16**, and tile 0 —an empty cell— draws
+///   nothing: a transparent pixel would let what is below show, a few
+///   pixels in one cell that a capped golden does not charge for.
+///
+/// The rule looks at both before baking; this looks again, on its own, at
+/// what it answered. Until 2026-11-25 it was ABL's
+/// `tests/tooling/test_baked.py`, which asked `wally bakeable` about every
+/// map of the cartridge, once in each of its tests.
+pub fn hold(
+    drawer: &mut Drawer,
+    map: &Map,
+    events: &[Event],
+    npcs: &[Npc],
+    baked: &BTreeMap<usize, (usize, i32)>,
+) -> Result<()> {
+    if baked.is_empty() {
+        return Ok(());
+    }
+    let broken = |what: String| Err(Bad::answer(format!("baking an event broke {what}")));
+    let zero = tile_alphas(drawer, map.chipset, 0)?;
+    if zero.is_none_or(|a| a.iter().any(|&v| v != 0)) {
+        return broken(format!(
+            "its rule: tile 0 of ChipSet {} draws something, so the empty cell an event is \
+             baked into was not empty",
+            map.chipset
+        ));
+    }
+    for (&event, &(at, tile)) in baked {
+        let opaque = tile_alphas(drawer, map.chipset, tile - UPPER_BASE)?
+            .is_some_and(|a| a.iter().all(|&v| v == 255));
+        if !opaque {
+            return broken(format!(
+                "its rule: event {} is baked with tile {tile}, which has transparent pixels",
+                events[event].id
+            ));
+        }
+        let imposed = npcs
+            .iter()
+            .find(|n| n.event == event)
+            .and_then(|n| n.tile_pass);
+        let after = cell(map.flags, map.lower[at], tile);
+        if imposed != Some(after) {
+            return broken(format!(
+                "the cell's passability: event {} imposed {imposed:?} on cell {at} and, baked, \
+                 the map's table says {after:#x}",
+                events[event].id
+            ));
+        }
+    }
+    Ok(())
 }

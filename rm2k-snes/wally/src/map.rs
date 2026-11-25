@@ -1666,6 +1666,9 @@ fn convert_with(
         chipset: &chipset_name,
     };
     let mut baked = bakeable(&mut drawer, &map, &events, &npcs0)?;
+    // What is baked later is a part of this, never more.
+    baking::hold(&mut drawer, &map, &events, &npcs0, &baked)
+        .map_err(|b| Bad::answer(format!("map {id}: {b}")))?;
     let wanted_decor = if request.decorative {
         let common = game.common_commands()?;
         let named = decor::named(&events, &common, &request.test_commands);
