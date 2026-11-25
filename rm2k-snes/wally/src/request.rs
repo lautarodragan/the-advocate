@@ -1,8 +1,26 @@
 //! What the cartridge decided about a map, which the game's dump does not
-//! say.
+//! say: the request, as the caller writes it —[`Asked`] for a whole map,
+//! [`LayersAsked`] for its layers alone—, and what this stage makes of it,
+//! [`MapRequest`] and [`LayersRequest`]. The converter builds an [`Asked`]
+//! and this stage reads it back with serde, so a field renamed on one side
+//! does not compile on the other; the binary reads the same types from the
+//! request file.
+//!
+//! **The fields go in the order the converter wrote them by hand** when
+//! the request was a `json!`: the request is part of the key the
+//! converter caches the answer under, and a field moved is every answer
+//! computed again once.
 
+use crate::background::panorama::Way;
 use crate::fail::{Bad, Result};
 use crate::game::Game;
+use crate::map::{MapRequest, PictureAsked};
+use crate::map_pictures::MapPicture;
+use crate::moves::ScannedPage;
+use crate::sprites::character::Key;
+use crate::sprites::extras::Image;
+use crate::substitutions::Triple;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -113,77 +131,177 @@ impl PanoramaBudget {
     }
 }
 
-/// `panorama`, which may be missing: see [`LayersRequest`].
-pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudget>> {
-    let p = match data.get("panorama") {
-        None | Some(Value::Null) => return Ok(None),
-        Some(p) => p,
-    };
-    let layouts = list(p, "layouts", whose)?
-        .iter()
-        .map(|l| {
-            let bad = || Bad::answer(format!("{whose}: a panorama layout is {l}"));
-            let a = l.as_array().filter(|a| a.len() == 5).ok_or_else(bad)?;
-            let mode = u8::try_from(number(&a[0], "a layout's mode", whose)?).map_err(|_| bad())?;
-            if mode != 1 && mode != 3 && mode != 4 {
-                return Err(bad());
-            }
-            Ok(PanoramaLayout {
-                mode,
-                background: index(&a[1], "a layout's tiles", whose)?,
-                sprites: index(&a[2], "a layout's sprites", whose)?,
-                above: index(&a[3], "a layout's upper tiles", whose)?,
-                panorama: index(&a[4], "a layout's panorama tiles", whose)?,
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-    let way = match p.get("way") {
-        None | Some(Value::Null) => None,
-        Some(w) => Some(
-            w.as_str()
-                .and_then(crate::background::panorama::Way::from_name)
-                .ok_or_else(|| Bad::answer(format!("{whose}: `way` is {w}")))?,
-        ),
-    };
-    let baked = index(field(p, "baked_tiles", whose)?, "`baked_tiles`", whose)?;
-    let painted = p.get("painted").and_then(Value::as_bool).unwrap_or(false);
-    Ok(Some(PanoramaBudget {
-        layouts,
-        baked,
-        way,
-        painted,
-    }))
+/// A request for a whole map:
+///
+/// ```json
+/// {"map": 7, "map_files": {}, "dropped_events": {}, "walls": {},
+///  "chipset_files": {}, "names": [[3, 1, "Ghost~horneado:7:4:5"]],
+///  "test_event": false, "leaders": [10, 1],
+///  "pages": [{"event": 2, "page": 0, "trigger": 0, "compiles": true,
+///             "route_targets": [2], "route_graphics": [[2, 0]],
+///             "route_turns": [], "own_route": false, "turns": true}],
+///  "route_graphics": [["People1", 3]], "hero_graphics": [], "also_walk": [],
+///  "decorative": false, "posed_stills": false, "baked_events_nudge": 0,
+///  "test_commands": [], "timer": null, "map_pictures": [], "rain": false,
+///  "sand": null, "picture": null, "battle_animation": false,
+///  "singles": [["People1", 3]], "palette_weight": {"savept": 1},
+///  "dither": "five_of_eight", "substitutions": [[false, 80, 81]],
+///  "common_substitutions": [], "layouts": [[448, 448, 128], [480, 256, 128]],
+///  "panorama": {"layouts": [[3, 256, 384, 1, 576]], "baked_tiles": 544,
+///               "way": null},
+///  "window_colors": 13}
+/// ```
+///
+/// What a request leaves out is empty, nothing or no, but for the fields
+/// without a default, which it has to say. What each one is for, in
+/// [`MapRequest`]; how they become it, in [`Asked::request`].
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Asked {
+    pub map: i32,
+    /// The project's maps and ChipSets over the dump's: see
+    /// [`Game::map_files`] and [`Game::chipset_files`].
+    pub map_files: BTreeMap<i32, PathBuf>,
+    /// [`Game::dropped`], of the request's map alone.
+    #[serde(default)]
+    pub dropped_events: BTreeMap<i32, BTreeSet<i32>>,
+    /// [`Game::walls`], of the request's map alone.
+    #[serde(default)]
+    pub walls: BTreeMap<i32, Vec<(usize, usize)>>,
+    pub chipset_files: BTreeMap<i32, PathBuf>,
+    /// `(event id, page id, name)`: [`MapRequest::names`].
+    pub names: Vec<(i32, i32, String)>,
+    pub test_event: bool,
+    pub leaders: Vec<i32>,
+    pub pages: Vec<ScannedPage>,
+    pub route_graphics: Vec<Key>,
+    #[serde(default)]
+    pub hero_graphics: Vec<Key>,
+    pub also_walk: BTreeSet<usize>,
+    #[serde(default)]
+    pub decorative: bool,
+    /// [`MapRequest::posed`].
+    #[serde(default)]
+    pub posed_stills: bool,
+    #[serde(default)]
+    pub baked_events_nudge: i32,
+    #[serde(default)]
+    pub test_commands: Vec<(i32, Vec<i32>)>,
+    pub timer: Option<PathBuf>,
+    /// [`Game::map_pictures`].
+    #[serde(default)]
+    pub map_pictures: Vec<MapPicture>,
+    pub rain: bool,
+    #[serde(default)]
+    pub sand: Option<bool>,
+    pub picture: Option<Picture>,
+    pub battle_animation: bool,
+    pub singles: Vec<Key>,
+    /// [`MapRequest::weights`].
+    pub palette_weight: BTreeMap<String, i64>,
+    pub dither: String,
+    pub substitutions: Vec<Triple>,
+    pub common_substitutions: Vec<Triple>,
+    pub layouts: Vec<(usize, usize, usize)>,
+    #[serde(default)]
+    pub panorama: Option<Panorama>,
+    pub window_colors: usize,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub painted_events: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reach: Option<Reach>,
+    /// [`MapRequest::lowers`]: yes if it does not say, as a request from
+    /// before 2026-11-18, which sent `reach` only to lower.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reach_lowers: Option<bool>,
+    /// [`MapRequest::boots_here`]: yes if it does not say.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub boots_here: Option<bool>,
+    /// [`MapRequest::picture_own`]: missing is none, null is a map without
+    /// pictures of its own.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present"
+    )]
+    pub picture_own: Option<Option<Picture>>,
+    /// [`Game::chipsets`]: a variant of the map, read with another ChipSet.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub chipsets: BTreeMap<i32, i32>,
 }
 
-fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {
-    data.get(name)
-        .ok_or_else(|| Bad::answer(format!("{whose}: no `{name}`")))
+/// A request's `picture`: the map's pictures already cut by whoever
+/// decided them —the tiles they reserve from the base, and each one's 64
+/// colour indices from there—, and how many sprite palettes they share.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Picture {
+    pub name: String,
+    pub objects: usize,
+    pub tiles: usize,
+    pub cells: Vec<(usize, Vec<u8>)>,
+    /// One if it does not say; a request from before 2026-10-16 said
+    /// `slots`, one palette each.
+    #[serde(default = "one", alias = "slots")]
+    pub palettes: usize,
 }
 
-fn number(v: &Value, what: &str, whose: &str) -> Result<i64> {
-    v.as_i64()
-        .ok_or_else(|| Bad::answer(format!("{whose}: {what} is {v}, not a whole number")))
+/// A request's `panorama`: see [`LayersRequest`].
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Panorama {
+    /// `(mode, background, sprites, upper, panorama)`: a [`PanoramaLayout`].
+    pub layouts: Vec<(u8, usize, usize, usize, usize)>,
+    pub baked_tiles: usize,
+    #[serde(default)]
+    pub way: Option<Way>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub painted: bool,
 }
 
-/// `{"<id>": "<path>"}` into a map by number.
-fn files(v: &Value, whose: &str) -> Result<BTreeMap<i32, PathBuf>> {
-    let obj = v
-        .as_object()
-        .ok_or_else(|| Bad::answer(format!("{whose}: not an object: {v}")))?;
-    obj.iter()
-        .map(|(k, v)| {
-            let id = k
-                .parse::<i32>()
-                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
-            let path = v
-                .as_str()
-                .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a path")))?;
-            Ok((id, PathBuf::from(path)))
-        })
-        .collect()
+/// A request for one map's layers: see [`LayersRequest`].
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct LayersAsked {
+    pub map: i32,
+    pub map_files: BTreeMap<i32, PathBuf>,
+    pub chipset_files: BTreeMap<i32, PathBuf>,
+    #[serde(default)]
+    pub dropped_events: BTreeMap<i32, BTreeSet<i32>>,
+    #[serde(default)]
+    pub walls: BTreeMap<i32, Vec<(usize, usize)>>,
+    #[serde(default)]
+    pub map_pictures: Vec<MapPicture>,
+    #[serde(default)]
+    pub chipsets: BTreeMap<i32, i32>,
+    pub baked: Vec<(usize, i16)>,
+    pub window_colors: usize,
+    #[serde(default)]
+    pub panorama: Option<Panorama>,
+    #[serde(default)]
+    pub fuse_tiles: Option<usize>,
 }
 
-/// Reads a request file: the JSON, and the project's files into `game`.
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+fn one() -> usize {
+    1
+}
+
+/// A field that is there, null included, as `Some`: serde's own takes null
+/// for missing.
+fn present<'de, D, T>(d: D) -> std::result::Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    T::deserialize(d).map(Some)
+}
+
+/// `T` out of the request `data`, with `whose` starting what is wrong.
+pub fn typed<T: serde::de::DeserializeOwned>(data: &Value, whose: &str) -> Result<T> {
+    T::deserialize(data).map_err(|e| Bad::answer(format!("{whose}: {e}")))
+}
+
+/// Reads a request file.
 pub fn read(path: &Path) -> Result<(Value, String)> {
     let whose = path.display().to_string();
     let text = std::fs::read_to_string(path).map_err(|e| Bad::usage(format!("{whose}: {e}")))?;
@@ -191,242 +309,117 @@ pub fn read(path: &Path) -> Result<(Value, String)> {
     Ok((data, whose))
 }
 
-/// The project's patches every request carries: its map and ChipSet files.
-pub fn patches(data: &Value, whose: &str, game: &mut Game) -> Result<()> {
-    game.map_files = files(field(data, "map_files", whose)?, whose)?;
-    game.chipset_files = files(field(data, "chipset_files", whose)?, whose)?;
-    game.map_pictures = crate::map_pictures::from_json(data, whose)?;
-    // Not required: a request that leaves nothing out does not have to say
-    // it, and the ones written before it existed stay as they were.
-    if let Some(d) = data.get("dropped_events") {
-        let obj = d
-            .as_object()
-            .ok_or_else(|| Bad::answer(format!("{whose}: `dropped_events` is not an object")))?;
-        for (k, v) in obj {
-            let map = k
-                .parse::<i32>()
-                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
-            let ids = v
-                .as_array()
-                .ok_or_else(|| {
-                    Bad::answer(format!("{whose}: map {k}'s `dropped_events` is not a list"))
-                })?
-                .iter()
-                .map(|e| {
-                    e.as_i64()
-                        .map(|e| e as i32)
-                        .ok_or_else(|| Bad::answer(format!("{whose}: {e} is not an event")))
-                })
-                .collect::<Result<_>>()?;
-            game.dropped.insert(map, ids);
-        }
-    }
-    // Not required either, the same way: `{"<map>": [[x, y], …]}`.
-    if let Some(w) = data.get("walls") {
-        let obj = w
-            .as_object()
-            .ok_or_else(|| Bad::answer(format!("{whose}: `walls` is not an object")))?;
-        for (k, v) in obj {
-            let map = k
-                .parse::<i32>()
-                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
-            let cells = v
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: map {k}'s `walls` is not a list")))?
-                .iter()
-                .map(|c| {
-                    let bad = || Bad::answer(format!("{whose}: a wall's cell is {c}"));
-                    let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
-                    let at = |v: &Value| v.as_u64().map(|n| n as usize).ok_or_else(bad);
-                    Ok((at(&c[0])?, at(&c[1])?))
-                })
-                .collect::<Result<_>>()?;
-            game.walls.insert(map, cells);
-        }
-    }
-    // Not required either: `{"<map>": <ChipSet>}`, the maps read with
-    // another ChipSet than their own. See `Game::chipsets`.
-    if let Some(c) = data.get("chipsets") {
-        let obj = c
-            .as_object()
-            .ok_or_else(|| Bad::answer(format!("{whose}: `chipsets` is not an object")))?;
-        for (k, v) in obj {
-            let map = k
-                .parse::<i32>()
-                .map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
-            let chipset = v
-                .as_i64()
-                .and_then(|c| i32::try_from(c).ok())
-                .ok_or_else(|| Bad::answer(format!("{whose}: map {k}'s ChipSet is {v}")))?;
-            game.chipsets.insert(map, chipset);
-        }
-    }
-    Ok(())
-}
-
-impl LayersRequest {
-    pub fn from_json(data: &Value, whose: &str) -> Result<LayersRequest> {
-        let map = number(field(data, "map", whose)?, "`map`", whose)?;
-        let baked = field(data, "baked", whose)?
-            .as_array()
-            .ok_or_else(|| Bad::answer(format!("{whose}: `baked` is not a list")))?
+impl Panorama {
+    fn budget(&self, whose: &str) -> Result<PanoramaBudget> {
+        let layouts = self
+            .layouts
             .iter()
-            .map(|pair| {
-                let bad = || Bad::answer(format!("{whose}: a baked cell is {pair}"));
-                let pair = pair.as_array().filter(|p| p.len() == 2).ok_or_else(bad)?;
-                let cell =
-                    usize::try_from(number(&pair[0], "a cell", whose)?).map_err(|_| bad())?;
-                let tile = i16::try_from(number(&pair[1], "a tile", whose)?).map_err(|_| bad())?;
-                Ok((cell, tile))
+            .map(|&(mode, background, sprites, above, panorama)| {
+                if mode != 1 && mode != 3 && mode != 4 {
+                    return Err(Bad::answer(format!(
+                        "{whose}: a panorama layout's mode is {mode}"
+                    )));
+                }
+                Ok(PanoramaLayout {
+                    mode,
+                    background,
+                    sprites,
+                    above,
+                    panorama,
+                })
             })
             .collect::<Result<_>>()?;
-        Ok(LayersRequest {
-            map: i32::try_from(map).map_err(|_| Bad::answer(format!("{whose}: map {map}")))?,
-            baked,
-            window_colors: index(
-                field(data, "window_colors", whose)?,
-                "`window_colors`",
-                whose,
-            )?,
-            panorama: panorama_budget(data, whose)?,
-            fuse_tiles: match data.get("fuse_tiles") {
-                None | Some(Value::Null) => None,
-                Some(v) => Some(index(v, "`fuse_tiles`", whose)?),
-            },
-            decor: Vec::new(),
-            extra: Vec::new(),
-            extra_needed: false,
-            below: Vec::new(),
-            posed: Vec::new(),
-            spills: Vec::new(),
-            pieces: None,
+        Ok(PanoramaBudget {
+            layouts,
+            baked: self.baked_tiles,
+            way: self.way,
+            painted: self.painted,
         })
     }
 }
 
-fn list<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Vec<Value>> {
-    field(data, name, whose)?
-        .as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not a list")))
+fn budget(p: &Option<Panorama>, whose: &str) -> Result<Option<PanoramaBudget>> {
+    p.as_ref().map(|p| p.budget(whose)).transpose()
 }
 
-fn text(v: &Value, what: &str, whose: &str) -> Result<String> {
-    v.as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Bad::answer(format!("{whose}: {what} is {v}, not text")))
-}
-
-fn index(v: &Value, what: &str, whose: &str) -> Result<usize> {
-    usize::try_from(number(v, what, whose)?)
-        .map_err(|_| Bad::answer(format!("{whose}: {what} is {v}")))
-}
-
-fn small(v: &Value, what: &str, whose: &str) -> Result<i32> {
-    i32::try_from(number(v, what, whose)?)
-        .map_err(|_| Bad::answer(format!("{whose}: {what} is {v}")))
-}
-
-/// `[charset, index]`.
-fn key(v: &Value, whose: &str) -> Result<(String, i32)> {
-    let pair = v
-        .as_array()
-        .filter(|p| p.len() == 2)
-        .ok_or_else(|| Bad::answer(format!("{whose}: a graphic is {v}, not [CharSet, index]")))?;
-    Ok((
-        text(&pair[0], "a CharSet", whose)?,
-        small(&pair[1], "an index", whose)?,
-    ))
-}
-
-fn keys(v: &Value, whose: &str) -> Result<Vec<(String, i32)>> {
-    v.as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a list of graphics")))?
-        .iter()
-        .map(|k| key(k, whose))
-        .collect()
-}
-
-fn indices(data: &Value, name: &str, whose: &str) -> Result<std::collections::BTreeSet<usize>> {
-    list(data, name, whose)?
-        .iter()
-        .map(|v| index(v, &format!("an entry of `{name}`"), whose))
-        .collect()
-}
-
-/// `[[upper layer, old tile, new tile]]`: `TileSubstitution`s.
-fn triples(data: &Value, name: &str, whose: &str) -> Result<Vec<crate::substitutions::Triple>> {
-    list(data, name, whose)?
-        .iter()
-        .map(|t| {
-            let bad = || {
-                Bad::answer(format!(
-                    "{whose}: a substitution is {t}, not [upper, old, new]"
-                ))
-            };
-            let a = t.as_array().filter(|a| a.len() == 3).ok_or_else(bad)?;
-            Ok((
-                a[0].as_bool().ok_or_else(bad)?,
-                small(&a[1], "an old tile", whose)?,
-                small(&a[2], "a new tile", whose)?,
-            ))
-        })
-        .collect()
-}
-
-/// A page record of the event compiler's scan.
-fn scanned_page(p: &Value, whose: &str) -> Result<crate::moves::ScannedPage> {
-    let flag = |name: &str| -> Result<bool> {
-        field(p, name, whose)?
-            .as_bool()
-            .ok_or_else(|| Bad::answer(format!("{whose}: a page's `{name}` is not true or false")))
-    };
-    Ok(crate::moves::ScannedPage {
-        event: index(field(p, "event", whose)?, "a page's event", whose)?,
-        page: index(field(p, "page", whose)?, "a page's number", whose)?,
-        trigger: small(field(p, "trigger", whose)?, "a page's trigger", whose)?,
-        compiles: !field(p, "code", whose)?.is_null(),
-        route_targets: list(p, "route_targets", whose)?
+impl Picture {
+    fn asked(&self, whose: &str) -> Result<PictureAsked> {
+        let cells = self
+            .cells
             .iter()
-            .map(|v| index(v, "a route target", whose))
-            .collect::<Result<_>>()?,
-        // Optional: a request from before 2026-10-19 does not carry it.
-        route_graphics: match p.get("route_graphics") {
-            None => Vec::new(),
-            Some(v) => v
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `route_graphics` is not a list")))?
-                .iter()
-                .map(|pair| {
-                    let a = pair.as_array().filter(|a| a.len() == 2).ok_or_else(|| {
-                        Bad::answer(format!("{whose}: a route graphic is {pair}"))
-                    })?;
-                    Ok((
-                        index(&a[0], "a route graphic's event", whose)?,
-                        index(&a[1], "a route graphic's index", whose)?,
-                    ))
-                })
-                .collect::<Result<_>>()?,
-        },
-        // Optional: a request from before 2026-11-02 does not carry it.
-        route_turns: match p.get("route_turns") {
-            None => Vec::new(),
-            Some(v) => v
-                .as_array()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `route_turns` is not a list")))?
-                .iter()
-                .map(|v| index(v, "an event a route only turns", whose))
-                .collect::<Result<_>>()?,
-        },
-        own_route: !field(p, "own_route", whose)?.is_null(),
-        turns: flag("turns")?,
-    })
+            .map(|(tile, values)| {
+                if values.len() != 64 {
+                    return Err(Bad::answer(format!(
+                        "{whose}: picture tile {tile} has {} colours, not 64",
+                        values.len()
+                    )));
+                }
+                let mut cell = [[0u8; 8]; 8];
+                for (i, &v) in values.iter().enumerate() {
+                    cell[i / 8][i % 8] = v;
+                }
+                Ok((*tile, cell))
+            })
+            .collect::<Result<_>>()?;
+        Ok(PictureAsked {
+            name: self.name.clone(),
+            objects: self.objects,
+            image: Image {
+                tiles: self.tiles,
+                cells,
+            },
+            palettes: self.palettes,
+        })
+    }
 }
 
-impl crate::map::MapRequest {
+impl LayersAsked {
+    /// The game in `data`, its pictures looked up in `search_dirs`, with
+    /// the project's files the request names over the dump's.
+    pub fn game(&self, data: &Path, search_dirs: &[PathBuf]) -> Game {
+        Game {
+            data: data.to_path_buf(),
+            search_dirs: search_dirs.to_vec(),
+            map_files: self.map_files.clone(),
+            chipset_files: self.chipset_files.clone(),
+            dropped: self.dropped_events.clone(),
+            walls: self.walls.clone(),
+            map_pictures: self.map_pictures.clone(),
+            chipsets: self.chipsets.clone(),
+        }
+    }
+
+    pub fn request(&self, whose: &str) -> Result<LayersRequest> {
+        Ok(LayersRequest {
+            map: self.map,
+            baked: self.baked.clone(),
+            window_colors: self.window_colors,
+            panorama: budget(&self.panorama, whose)?,
+            fuse_tiles: self.fuse_tiles,
+            ..LayersRequest::default()
+        })
+    }
+}
+
+impl Asked {
+    /// [`LayersAsked::game`], with this request's files.
+    pub fn game(&self, data: &Path, search_dirs: &[PathBuf]) -> Game {
+        Game {
+            data: data.to_path_buf(),
+            search_dirs: search_dirs.to_vec(),
+            map_files: self.map_files.clone(),
+            chipset_files: self.chipset_files.clone(),
+            dropped: self.dropped_events.clone(),
+            walls: self.walls.clone(),
+            map_pictures: self.map_pictures.clone(),
+            chipsets: self.chipsets.clone(),
+        }
+    }
+
     /// A request that only says some of what a whole map's says —the
     /// questions of [`crate::inspect`] need less—: what it leaves out is
     /// empty, nothing, or no.
-    pub fn partial(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
+    pub fn partial(data: &Value, whose: &str) -> Result<Asked> {
         let mut full = serde_json::json!({
             "map_files": {}, "chipset_files": {}, "names": [], "test_event": false,
             "leaders": [], "pages": [], "route_graphics": [], "also_walk": [],
@@ -444,302 +437,159 @@ impl crate::map::MapRequest {
         for (k, v) in given {
             full[k] = v.clone();
         }
-        Self::from_json(&full, whose)
+        typed(&full, whose)
     }
 
-    /// A request for a whole map:
-    ///
-    /// ```json
-    /// {"map": 7, "map_files": {}, "chipset_files": {},
-    ///  "names": [[3, 1, "Ghost~horneado:7:4:5"]], "test_event": false,
-    ///  "leaders": [10, 1],
-    ///  "pages": [{"event": 2, "page": 0, "trigger": 0, "code": "0600…",
-    ///             "route_targets": [2], "route_graphics": [[2, 0]],
-    ///             "own_route": null, "turns": true}],
-    ///  "route_graphics": [["People1", 3]], "hero_graphics": [],
-    ///  "also_walk": [],
-    ///  "timer": null, "rain": false, "picture": null,
-    ///  "battle_animation": false, "singles": [["People1", 3]],
-    ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight",
-    ///  "substitutions": [[false, 80, 81]], "common_substitutions": [],
-    ///  "layouts": [[448, 448, 128], [480, 256, 128]], "window_colors": 13}
-    /// ```
-    ///
-    /// `window_colors` are the colour-memory entries the message window
-    /// takes after the backdrop, as the `layers` request carries them.
+    /// What the conversion makes of the request.
     ///
     /// `layouts` are the VRAM layouts the cartridge can give a map, as
-    /// `[background tiles, sprite tiles, upper tiles]`: a map that fits none
-    /// of them with every still pose in VRAM is converted again with the
-    /// still ones that are never on screen together sharing slots —see
+    /// `(background tiles, sprite tiles, upper tiles)`: a map that fits
+    /// none of them with every still pose in VRAM is converted again with
+    /// the still ones that are never on screen together sharing slots —see
     /// `crate::sprites::share`—. Empty, nothing is shared.
     ///
     /// `substitutions` are the `TileSubstitution`s the map's events and its
-    /// test pages can run, as `[upper layer, old tile, new tile]`: their
-    /// blocks are built. `common_substitutions` are the common events', which
-    /// a `CallEvent` can bring into any map: they are only translated, with
-    /// the blocks there are.
+    /// test pages can run, as `(upper layer, old tile, new tile)`: their
+    /// blocks are built. `common_substitutions` are the common events',
+    /// which a `CallEvent` can bring into any map: they are only translated,
+    /// with the blocks there are.
     ///
-    /// `pages` are the records the event compiler's scan answered for this
-    /// map, as it wrote them: of each, only `event`, `page`, `trigger`,
-    /// whether `code` is null, `route_targets`, `route_graphics` —which a
-    /// request from before 2026-10-19 lacks—, `route_turns` —which one from
-    /// before 2026-11-02 lacks—, whether `own_route` is null and `turns`
-    /// are read.
-    ///
-    /// `reach`, if it is there and not null, is what the cartridge knows of
-    /// where characters can be on the map —see [`Reach`]—, as
-    /// `{"entries": [[x, y], ...] or null, "any_open": false, "vehicles":
-    /// ["boat"], "commands": [[code, [parameters]], ...]}`. With it the
-    /// tiles above the hero no character can cover are drawn below; a
-    /// request without it, from before 2026-11-02, draws all of them above.
-    ///
-    /// A `picture` is `{"name", "objects", "tiles", "cells": [[tile,
-    /// [64 indices]], ...], "palettes"}`, the map's pictures already cut by
-    /// whoever decided them, and how many sprite palettes they share —one if
-    /// it does not say; a request from before 2026-10-16 said `slots`, one
-    /// palette each—.
-    pub fn from_json(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
-        use crate::map::MapRequest;
-        let mut names = BTreeMap::new();
-        for n in list(data, "names", whose)? {
-            let a = n
-                .as_array()
-                .filter(|a| a.len() == 3)
-                .ok_or_else(|| Bad::answer(format!("{whose}: a name is {n}")))?;
-            names.insert(
-                (
-                    small(&a[0], "an event", whose)?,
-                    small(&a[1], "a page", whose)?,
-                ),
-                text(&a[2], "a name", whose)?,
-            );
+    /// `picture_own` is only there when the map carries copies of common
+    /// events with pictures: the map's own pictures without theirs, which go
+    /// in instead when theirs do not fit —see [`crate::map::convert`]—.
+    pub fn request(&self, whose: &str) -> Result<MapRequest> {
+        if self.baked_events_nudge < 0 {
+            return Err(Bad::answer(format!(
+                "{whose}: `baked_events_nudge` is {}, not a number of pixels",
+                self.baked_events_nudge
+            )));
         }
-        let pages = list(data, "pages", whose)?
-            .iter()
-            .map(|p| scanned_page(p, whose))
-            .collect::<Result<_>>()?;
-        let picture = picture_asked(field(data, "picture", whose)?, whose)?;
-        // Only when the map carries copies of common events with pictures:
-        // the map's own pictures without theirs, which go in instead when
-        // theirs do not fit —see [`crate::map::convert`]—. Null if the map
-        // has none of its own.
-        let picture_own = match data.get("picture_own") {
-            None => None,
-            Some(p) => Some(picture_asked(p, whose)?),
-        };
-        let weights = field(data, "palette_weight", whose)?
-            .as_object()
-            .ok_or_else(|| Bad::answer(format!("{whose}: `palette_weight` is not an object")))?
-            .iter()
-            .map(|(k, v)| Ok((k.clone(), number(v, "a weight", whose)?)))
-            .collect::<Result<_>>()?;
-        let flag = |name: &str| -> Result<bool> {
-            field(data, name, whose)?
-                .as_bool()
-                .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not true or false")))
-        };
+        let picture = |p: &Option<Picture>| p.as_ref().map(|p| p.asked(whose)).transpose();
         Ok(MapRequest {
-            map: small(field(data, "map", whose)?, "`map`", whose)?,
-            names,
-            test_event: flag("test_event")?,
-            leaders: list(data, "leaders", whose)?
+            map: self.map,
+            names: self
+                .names
                 .iter()
-                .map(|v| small(v, "a leader", whose))
-                .collect::<Result<_>>()?,
-            pages,
-            route_graphics: keys(field(data, "route_graphics", whose)?, whose)?,
-            hero_graphics: match data.get("hero_graphics") {
-                None | Some(Value::Null) => BTreeSet::new(),
-                Some(v) => keys(v, whose)?.into_iter().collect(),
-            },
-            also_walk: indices(data, "also_walk", whose)?,
-            timer: match field(data, "timer", whose)? {
-                Value::Null => None,
-                v => Some(PathBuf::from(text(v, "`timer`", whose)?)),
-            },
-            rain: flag("rain")?,
-            sand: match data.get("sand") {
-                None | Some(Value::Null) => None,
-                Some(_) => Some(flag("sand")?),
-            },
-            picture,
-            picture_own,
-            battle_animation: flag("battle_animation")?,
-            singles: keys(field(data, "singles", whose)?, whose)?
-                .into_iter()
+                .map(|(event, page, name)| ((*event, *page), name.clone()))
                 .collect(),
-            weights,
-            dither: text(field(data, "dither", whose)?, "`dither`", whose)?,
-            substitutions: triples(data, "substitutions", whose)?,
-            common_substitutions: triples(data, "common_substitutions", whose)?,
-            layouts: list(data, "layouts", whose)?
-                .iter()
-                .map(|l| {
-                    let bad = || Bad::answer(format!("{whose}: a layout is {l}"));
-                    let a = l.as_array().filter(|a| a.len() == 3).ok_or_else(bad)?;
-                    Ok((
-                        index(&a[0], "a layout's tiles", whose)?,
-                        index(&a[1], "a layout's sprites", whose)?,
-                        index(&a[2], "a layout's upper tiles", whose)?,
-                    ))
-                })
-                .collect::<Result<_>>()?,
-            window_colors: index(
-                field(data, "window_colors", whose)?,
-                "`window_colors`",
-                whose,
-            )?,
-            panorama: panorama_budget(data, whose)?,
+            test_event: self.test_event,
+            leaders: self.leaders.clone(),
+            pages: self.pages.clone(),
+            route_graphics: self.route_graphics.clone(),
+            hero_graphics: self.hero_graphics.iter().cloned().collect(),
+            also_walk: self.also_walk.clone(),
+            timer: self.timer.clone(),
+            rain: self.rain,
+            sand: self.sand,
+            picture: picture(&self.picture)?,
+            picture_own: self.picture_own.as_ref().map(picture).transpose()?,
+            battle_animation: self.battle_animation,
+            singles: self.singles.iter().cloned().collect(),
+            weights: self.palette_weight.clone(),
+            dither: self.dither.clone(),
+            substitutions: self.substitutions.clone(),
+            common_substitutions: self.common_substitutions.clone(),
+            layouts: self.layouts.clone(),
+            window_colors: self.window_colors,
+            panorama: budget(&self.panorama, whose)?,
             fuse_tiles: None,
-            decorative: data
-                .get("decorative")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            test_commands: match data.get("test_commands") {
-                None | Some(Value::Null) => Vec::new(),
-                Some(v) => commands(v, "test_commands", whose)?,
-            },
-            reach: match data.get("reach") {
-                None | Some(Value::Null) => None,
-                Some(r) => Some(Reach {
-                    entries: match field(r, "entries", whose)? {
-                        Value::Null => None,
-                        v => Some(
-                            v.as_array()
-                                .ok_or_else(|| Bad::answer(format!("{whose}: `entries` is {v}")))?
-                                .iter()
-                                .map(|c| {
-                                    let bad = || Bad::answer(format!("{whose}: an entry is {c}"));
-                                    let a =
-                                        c.as_array().filter(|a| a.len() == 2).ok_or_else(bad)?;
-                                    Ok((
-                                        small(&a[0], "an entry's x", whose)?,
-                                        small(&a[1], "an entry's y", whose)?,
-                                    ))
-                                })
-                                .collect::<Result<_>>()?,
-                        ),
-                    },
-                    commands: commands(field(r, "commands", whose)?, "reach's commands", whose)?,
-                    any_open: r.get("any_open").and_then(Value::as_bool).unwrap_or(false),
-                    vehicles: match r.get("vehicles") {
-                        None | Some(Value::Null) => Vec::new(),
-                        Some(v) => v
-                            .as_array()
-                            .ok_or_else(|| Bad::answer(format!("{whose}: `vehicles` is {v}")))?
-                            .iter()
-                            .map(|n| text(n, "a vehicle", whose))
-                            .collect::<Result<_>>()?,
-                    },
-                }),
-            },
-            // One from before 2026-11-18 did not say: as if it did.
-            boots_here: data
-                .get("boots_here")
-                .and_then(Value::as_bool)
-                .unwrap_or(true),
-            // A request from before 2026-11-18 sent `reach` only to lower.
-            lowers: data
-                .get("reach_lowers")
-                .and_then(Value::as_bool)
-                .unwrap_or(true),
-            posed: data
-                .get("posed_stills")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            painted_events: data
-                .get("painted_events")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            baked_events_nudge: match data.get("baked_events_nudge") {
-                None | Some(Value::Null) => 0,
-                Some(v) => v
-                    .as_i64()
-                    .filter(|n| (0..=i32::MAX as i64).contains(n))
-                    .ok_or_else(|| {
-                        Bad::answer(format!(
-                            "{whose}: `baked_events_nudge` is {v}, not a number of pixels"
-                        ))
-                    })? as i32,
-            },
+            decorative: self.decorative,
+            test_commands: self.test_commands.clone(),
+            reach: self.reach.clone(),
+            lowers: self.reach_lowers.unwrap_or(true),
+            boots_here: self.boots_here.unwrap_or(true),
+            posed: self.posed_stills,
+            painted_events: self.painted_events,
+            baked_events_nudge: self.baked_events_nudge,
         })
     }
 }
 
 /// What the caller knows of where characters can be on a map that the map
 /// itself does not say, for `rm2k_rules::reach::covered`: where the hero
-/// can arrive from outside its pages —`None`: anywhere—, the commands it
-/// runs there besides its pages' and the common events', and the vehicles
-/// that can carry him over water.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// can arrive from outside its pages —`None`: anywhere—, whether also on
+/// any cell one can step on, the vehicles that can carry him over water,
+/// and the commands it runs there besides its pages' and the common
+/// events'. With it the tiles above the hero no character can cover are
+/// drawn below; without it, all of them above.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Reach {
     pub entries: Option<Vec<(i32, i32)>>,
-    pub commands: Vec<(i32, Vec<i32>)>,
-    /// The vehicles the hero can ride, by name: `boat`, `ship`.
-    pub vehicles: Vec<String>,
-    /// Whether he can also arrive on any cell one can step on: see
-    /// `rm2k_rules::reach::Outside::any_open`.
+    /// See `rm2k_rules::reach::Outside::any_open`.
+    #[serde(default)]
     pub any_open: bool,
+    /// By name: `boat`, `ship`.
+    #[serde(default)]
+    pub vehicles: Vec<String>,
+    /// As `(code, parameters)`.
+    pub commands: Vec<(i32, Vec<i32>)>,
 }
 
-/// A list of commands, as `[code, [parameters]]`.
-fn commands(v: &Value, name: &str, whose: &str) -> Result<Vec<(i32, Vec<i32>)>> {
-    v.as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not a list")))?
-        .iter()
-        .map(|c| {
-            let bad = || {
-                Bad::answer(format!(
-                    "{whose}: a command is {c}, not [code, [parameters]]"
-                ))
-            };
-            let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
-            let parameters = c[1]
-                .as_array()
-                .ok_or_else(bad)?
-                .iter()
-                .map(|p| small(p, "a parameter", whose))
-                .collect::<Result<_>>()?;
-            Ok((small(&c[0], "a command's code", whose)?, parameters))
-        })
-        .collect()
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// A `picture` of the request: see `MapRequest::from_json`. Null is none.
-fn picture_asked(p: &Value, whose: &str) -> Result<Option<crate::map::PictureAsked>> {
-    use crate::map::PictureAsked;
-    use crate::sprites::extras::Image;
-    Ok(match p {
-        Value::Null => None,
-        p => {
-            let mut cells = Vec::new();
-            for c in list(p, "cells", whose)? {
-                let bad = || Bad::answer(format!("{whose}: a picture cell is {c}"));
-                let a = c.as_array().filter(|a| a.len() == 2).ok_or_else(bad)?;
-                let values = a[1].as_array().filter(|v| v.len() == 64).ok_or_else(bad)?;
-                let mut cell = [[0u8; 8]; 8];
-                for (i, v) in values.iter().enumerate() {
-                    cell[i / 8][i % 8] = v
-                        .as_u64()
-                        .and_then(|n| u8::try_from(n).ok())
-                        .ok_or_else(bad)?;
-                }
-                cells.push((index(&a[0], "a picture tile", whose)?, cell));
-            }
-            Some(PictureAsked {
-                name: text(field(p, "name", whose)?, "the picture's name", whose)?,
-                objects: index(field(p, "objects", whose)?, "`objects`", whose)?,
-                image: Image {
-                    tiles: index(field(p, "tiles", whose)?, "`tiles`", whose)?,
-                    cells,
-                },
-                // One, for a request from before there were several.
-                palettes: match p.get("palettes").or_else(|| p.get("slots")) {
-                    None => 1,
-                    Some(s) => index(s, "`palettes`", whose)?,
-                },
-            })
+    /// What the converter writes the stage reads back as it was: the
+    /// fields it leaves out when they say nothing, and `picture_own`'s null,
+    /// which is not its absence.
+    #[test]
+    fn a_request_reads_back_as_it_was_written() {
+        let asked = Asked {
+            map: 7,
+            map_files: BTreeMap::from([(11, PathBuf::from("/maps/Map0011.json"))]),
+            dropped_events: BTreeMap::from([(7, BTreeSet::from([6]))]),
+            pages: vec![ScannedPage {
+                event: 2,
+                compiles: true,
+                route_graphics: vec![(2, 0)],
+                ..ScannedPage::default()
+            }],
+            map_pictures: vec![MapPicture {
+                number: 3,
+                name: "mist".to_string(),
+                corner: (-8, 0),
+                transparency: 50,
+                tone: [100; 4],
+                transparent_color: true,
+                repeat: false,
+                path: Some(PathBuf::from("/build/mist.png")),
+            }],
+            panorama: Some(Panorama {
+                layouts: vec![(3, 256, 384, 1, 576)],
+                baked_tiles: 544,
+                way: Some(Way::Mode3),
+                painted: true,
+            }),
+            reach: Some(Reach {
+                entries: None,
+                commands: vec![(11330, vec![5, 0])],
+                ..Reach::default()
+            }),
+            boots_here: Some(false),
+            picture_own: Some(None),
+            chipsets: BTreeMap::from([(7, 2)]),
+            ..Asked::default()
+        };
+        let text = serde_json::to_string(&asked).unwrap();
+        let back: Asked = serde_json::from_str(&text).unwrap();
+        assert_eq!(serde_json::to_string(&back).unwrap(), text);
+        assert_eq!(back.picture_own, Some(None));
+        let request = back.request("test").unwrap();
+        assert!(!request.boots_here && request.lowers);
+        assert!(matches!(request.picture_own, Some(None)));
+
+        let plain = serde_json::to_value(Asked::default()).unwrap();
+        for absent in [
+            "painted_events",
+            "reach",
+            "reach_lowers",
+            "boots_here",
+            "picture_own",
+            "chipsets",
+        ] {
+            assert!(plain.get(absent).is_none(), "{absent}");
         }
-    })
+        let back: Asked = typed(&plain, "test").unwrap();
+        assert_eq!(back.picture_own, None);
+    }
 }

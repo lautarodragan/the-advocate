@@ -43,7 +43,7 @@ use rm2k_snes_events::registry::PictureKey;
 use rm2k_snes_events::request::{BackgroundPlane, Picture, Place};
 use rm2k_snes_mapdata::request::{self, PictureImage};
 
-use serde_json::{json, Value};
+use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -885,14 +885,14 @@ pub struct ForMap {
 
 impl ForMap {
     /// What `wally` is asked to reserve for them: its request's `picture`.
-    pub fn asked(&self) -> Value {
-        json!({
-            "name": self.name,
-            "objects": self.objects,
-            "tiles": self.tiles,
-            "cells": self.cells,
-            "palettes": self.palettes,
-        })
+    pub fn asked(&self) -> wally::request::Picture {
+        wally::request::Picture {
+            name: self.name.clone(),
+            objects: self.objects,
+            tiles: self.tiles as usize,
+            cells: self.cells.clone(),
+            palettes: self.palettes,
+        }
     }
 }
 

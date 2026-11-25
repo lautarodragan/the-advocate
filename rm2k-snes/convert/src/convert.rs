@@ -644,7 +644,7 @@ pub fn run(options: Options) -> Result<()> {
     }
     // And each map once more for each ChipSet its pages swap in, in the
     // same run: see `variants.rs`.
-    let mut asked: Vec<(usize, i32, bool, Value)> = Vec::new();
+    let mut asked: Vec<(usize, i32, bool, wally::request::Asked)> = Vec::new();
     for (k, p) in prepared.iter().enumerate() {
         for chipset in variants::asked(&game, &p.map) {
             let draws = !variants::draws_alike(&game, p.map.chipset_id, chipset);
@@ -656,7 +656,7 @@ pub fn run(options: Options) -> Result<()> {
             ));
         }
     }
-    let requests: Vec<(i32, &Value)> = prepared
+    let requests: Vec<(i32, &wally::request::Asked)> = prepared
         .iter()
         .map(|p| (p.map.id, &p.request))
         .chain(asked.iter().map(|(k, _, _, r)| (prepared[*k].map.id, r)))

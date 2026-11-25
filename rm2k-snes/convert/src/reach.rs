@@ -25,7 +25,6 @@
 use crate::fail::Result;
 use crate::game::{Command, Game, GameMap};
 use rm2k_snes_events::codes::*;
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// The commands this reads that `codes` does not name.
@@ -209,19 +208,23 @@ impl Arrivals {
             .map(|why| (why, self.any_open_on.as_ref()))
     }
 
-    /// Map `id`'s `reach` for Wally: where the hero arrives —null if he can
-    /// be anywhere—, whether also on any cell one can step on, the vehicles
-    /// he can ride, and `commands`, what else runs there: its test pages.
-    pub fn json_of(&self, id: i32, commands: &[Command]) -> Value {
-        json!({
-            "entries": match self.anywhere {
-                Some(_) => Value::Null,
-                None => json!(self.cells.get(&id).into_iter().flatten().map(|&(x, y)| json!([x, y])).collect::<Vec<_>>()),
+    /// Map `id`'s `reach` for Wally: where the hero arrives —none if he
+    /// can be anywhere—, whether also on any cell one can step on, the
+    /// vehicles he can ride, and `commands`, what else runs there: its test
+    /// pages, as `(code, parameters)`.
+    pub fn reach(&self, id: i32, commands: &[(i32, Vec<i32>)]) -> wally::request::Reach {
+        wally::request::Reach {
+            entries: match self.anywhere {
+                Some(_) => None,
+                None => Some(self.cells.get(&id).into_iter().flatten().copied().collect()),
             },
-            "any_open": self.any_open.is_some()
-                && self.any_open_on.as_ref().is_none_or(|maps| maps.contains(&id)),
-            "vehicles": self.vehicles.iter().collect::<Vec<_>>(),
-            "commands": commands.iter().map(|c| json!([c.code, c.parameters])).collect::<Vec<_>>(),
-        })
+            any_open: self.any_open.is_some()
+                && self
+                    .any_open_on
+                    .as_ref()
+                    .is_none_or(|maps| maps.contains(&id)),
+            vehicles: self.vehicles.iter().map(|v| v.to_string()).collect(),
+            commands: commands.to_vec(),
+        }
     }
 }

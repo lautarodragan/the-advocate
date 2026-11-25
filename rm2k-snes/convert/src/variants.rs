@@ -38,7 +38,6 @@ use crate::stage;
 use rm2k_snes_events::codes::{CHANGE_MAP_TILESET, TILE_SUBSTITUTION};
 use rm2k_snes_mapdata::materials::{cell_bytes, BLOCK_BYTES};
 use rm2k_snes_mapdata::vram;
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap};
 
 /// The most blocks a map's table takes: Wally's `MAX_BLOCKS`.
@@ -77,10 +76,11 @@ pub fn draws_alike(game: &Game, own: i32, other: i32) -> bool {
 }
 
 /// Wally's request for the map with ChipSet `chipset` instead of its own.
-pub fn request(main: &Value, map: i32, chipset: i32) -> Value {
-    let mut request = main.clone();
-    request["chipsets"] = json!({ map.to_string(): chipset });
-    request
+pub fn request(main: &wally::request::Asked, map: i32, chipset: i32) -> wally::request::Asked {
+    wally::request::Asked {
+        chipsets: BTreeMap::from([(map, chipset)]),
+        ..main.clone()
+    }
 }
 
 /// A map's blocks: one per cell, and each block's sixteen bytes, its

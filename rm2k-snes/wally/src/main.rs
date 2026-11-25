@@ -104,7 +104,7 @@ struct LayersArgs {
     `route_graphics`, `also_walk`, `timer`, `rain`, `sand` —optional—, `picture`, `battle_animation`, `singles`, \
     `palette_weight`, `dither`, `window_colors` as for `layers`, and the `TileSubstitution`s it can run —`substitutions`, \
     whose blocks are built, and `common_substitutions`, only translated—. See \
-    `MapRequest::from_json`."
+    `request::Asked`."
 )]
 struct MapArgs {
     #[command(flatten)]
