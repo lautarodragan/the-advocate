@@ -399,11 +399,8 @@ pub fn with_common_events(dump: &Path, forks: &Forks, into: &Path) -> Result<Pat
             *c = ours.clone();
         }
     }
-    let stamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(0);
-    let aside = into.join(format!(".dump.tmp-{}-{stamp}", std::process::id()));
+    // Of this call alone: the cartridges convert in threads of one process.
+    let aside = rm2k_project::cache::aside(&target);
     let _ = std::fs::remove_dir_all(&aside);
     game.with_section("commonevents", &commons, &aside)?;
     if std::fs::rename(&aside, &target).is_err() {

@@ -14,9 +14,6 @@ path = "src/main.rs"
 
 [dependencies]
 clap = "4"
-# Only for which cartridges there are and where each one is built, which
-# `--check` looks at when it is given none.
-rm2k-snes-cartridge = { path = "../cartridge" }
 rm2k-project = { path = "../project" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

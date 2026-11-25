@@ -21,6 +21,7 @@
 //! text, which the converter puts into one with [`Degradations::map`] and
 //! [`Degradations::cartridge`].
 
+use rm2k_project::outln;
 use rm2k_snes_events::answer::Compiled;
 use rm2k_snes_events::losses::{CommonRun, Entry, Where, LETTER_PLAIN};
 use serde_json::json;
@@ -142,13 +143,13 @@ impl Degradations {
         let path = dir.join(FILE);
         std::fs::write(&path, serde_json::to_string_pretty(&answer).unwrap() + "\n")
             .map_err(|e| crate::fail::io(&path, e))?;
-        println!(
+        outln!(
             "  degradations: {} in {} kind(s), in {FILE}",
             self.losses.len(),
             counts.len()
         );
         if let Some(line) = self.plain_warning() {
-            println!("{line}");
+            outln!("{line}");
         }
         Ok(())
     }

@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "Converts an rm2k-snes game into a Super Nintendo cartridge's data: it asks each stage of the conversion what it needs, in order, and hands each one what the others answered"
 
+[lib]
+name = "rm2k_snes_convert"
+path = "src/lib.rs"
+
 [[bin]]
 name = "rm2k-snes-convert"
 path = "src/main.rs"

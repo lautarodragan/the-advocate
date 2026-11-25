@@ -23,7 +23,6 @@ use cartridge::space;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{absolute, relative, suite, Project};
-use serde_json::json;
 
 pub fn command() -> Command {
     Command::new("space")
@@ -81,30 +80,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         };
         let m = space::measure(&sfc, &suite::runtime())?;
         if matches.get_flag("json") {
-            report.insert(
-                which.clone(),
-                json!({
-                    "rom": sfc,
-                    "banks": m.banks,
-                    "used": m.used,
-                    "slow": m.slow,
-                    "free": m.free,
-                    "free_fast": m.free_fast,
-                    "free_halves": m.free_halves,
-                    "gaps": m.gaps,
-                    "largest_gap": m.largest_gap,
-                    "bank0": m.bank0,
-                    "bank1": m.bank1,
-                    "bank_far2": m.bank_far2,
-                    "bank_far3": m.bank_far3,
-                    "bank_far4": m.bank_far4,
-                    "bss": m.bss,
-                    "far": m.far,
-                    "zeropage": m.zeropage,
-                    "texts": m.texts,
-                    "texts_cap": m.texts_cap,
-                }),
-            );
+            report.insert(which.clone(), m.json(&sfc));
             continue;
         }
         if !first {

@@ -59,7 +59,7 @@ cartridges *args: game
     exit 1
   fi
   mkdir -p build/no-rtp
-  rm2k-snes-cartridges --game-dir build/game --rtp-dir build/no-rtp --soundfont "$SOUNDFONT" --without-tracks {{args}}
+  advocate build --game-dir build/game --rtp-dir build/no-rtp --soundfont "$SOUNDFONT" --without-tracks {{args}}
 
 # The tests run the cartridge in an emulator —a libretro core, see
 # `rm2k-snes/harness/` at the root—, and build nothing: this recipe builds
@@ -81,8 +81,8 @@ test *args: cartridges
 # `machine.just`, and this has no default. It refuses with uncommitted
 # changes in the game or in the runtime it is built with, since the README
 # names their commits: the game's, this checkout's; the runtime's, that of
-# the checkout the tools were installed from, which `rm2k-snes-project`
-# answers.
+# the checkout the tools were installed from, which the build leaves in
+# `build/advocate.json`.
 #
 #     SHARED=<where taro looks> SOUNDFONT=<a .sf2> just deliver "What changed and what to look at."
 #
@@ -93,7 +93,7 @@ deliver what_to_look_at: (cartridges "release")
   shared="${SHARED:-}"
   [ -n "$shared" ] || { echo "deliver: SHARED=<the folder taro sees> is not set" >&2; exit 1; }
   [ -d "$shared" ] || { echo "deliver: $shared does not exist" >&2; exit 1; }
-  project=$(rm2k-snes-project --project .)
+  project=$(cat build/advocate.json)
   tools=$(echo "$project" | python3 -c 'import json, sys; print(json.load(sys.stdin)["suite"]["root"])')
   name=$(echo "$project" | python3 -c 'import json, sys; print(json.load(sys.stdin)["settings"]["rom"]["name"])')
   dirty=$(git status --porcelain -- . ; git -C "$tools" status --porcelain -- runtime)

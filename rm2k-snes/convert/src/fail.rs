@@ -71,6 +71,19 @@ macro_rules! stop {
     };
 }
 
+/// A command line the flags' parser refused, or asked for its help: said
+/// as the parser says it, with its code —0 for the help—. In the binary
+/// the parser used to exit by itself; a conversion called as a library
+/// must not take its caller down for a flag a project file wrote wrong.
+impl From<clap::Error> for Stop {
+    fn from(e: clap::Error) -> Stop {
+        Stop {
+            message: e.render().to_string().trim_end().to_string(),
+            code: u8::try_from(e.exit_code()).unwrap_or(2),
+        }
+    }
+}
+
 impl From<rm2k_project::Error> for Stop {
     fn from(e: rm2k_project::Error) -> Stop {
         Stop::new(e.0)

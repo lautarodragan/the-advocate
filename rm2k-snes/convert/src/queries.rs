@@ -4,11 +4,13 @@
 //! a map—, so a test gets them from the one place that decides them and
 //! not from a copy. Each one prints its answer as JSON.
 //!
+//! ```text
 //!     rm2k-snes-convert scan [--maps M...] [--test-commands FILE...] [--extra-variable V...]
 //!     rm2k-snes-convert compile [--maps M...] [--case MAP FILE...] [--encounter-troop T...]
 //!     rm2k-snes-convert leaders --maps M... --party A...
 //!     rm2k-snes-convert map-context --map M
 //!     rm2k-snes-convert boxes
+//! ```
 //!
 //! Each takes `--project` and the machine's flags, as the conversion does.
 

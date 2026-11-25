@@ -78,11 +78,12 @@ pub fn load(directory: &Path, category: &str, key: &str) -> Option<Vec<u8>> {
     std::fs::read(entry(directory, category, key)).ok()
 }
 
-/// A name next to `target`, of this process and this call alone: two
-/// threads of one process store the same key at once —the converter runs
-/// its stages in threads, and two maps may ask for the same thing—, so the
-/// process id is not enough.
-fn aside(target: &Path) -> PathBuf {
+/// A name next to `target`, of this process and this call alone, to write
+/// there and rename over `target`: two threads of one process write the
+/// same thing at once —the converter runs its stages in threads, and two
+/// maps may ask for the same thing; the builder converts every cartridge
+/// in threads of one process—, so the process id is not enough.
+pub fn aside(target: &Path) -> PathBuf {
     static COUNT: AtomicUsize = AtomicUsize::new(0);
     let n = COUNT.fetch_add(1, Ordering::Relaxed);
     let nanos = std::time::SystemTime::now()

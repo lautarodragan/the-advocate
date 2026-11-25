@@ -49,6 +49,7 @@ use crate::maps::MapInfo;
 use crate::resources;
 use crate::settings::Settings;
 use crate::text::quoted;
+use rm2k_project::outln;
 use rm2k_snes_bytecode::events::{OP_ANIMATION, OP_BATTLE};
 use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
 use rm2k_snes_images::request::{BackdropAnswer, Scene as Geometry};
@@ -185,13 +186,18 @@ pub fn named_backdrops(game: &Game) -> Result<BTreeSet<String>> {
         let handles: Vec<_> = (0..workers)
             .map(|w| {
                 let ids = &ids;
+                // Nothing here prints or asks a stage today; carried so
+                // that whatever does later lands in this cartridge's log.
+                let carried = crate::stage::carried();
                 scope.spawn(move || {
-                    let mut names = BTreeSet::new();
-                    for id in ids.iter().skip(w).step_by(workers) {
-                        let map = game.map(*id)?;
-                        command_backdrops(map.all_commands(), &mut names);
-                    }
-                    Ok(names)
+                    carried.within(|| {
+                        let mut names = BTreeSet::new();
+                        for id in ids.iter().skip(w).step_by(workers) {
+                            let map = game.map(*id)?;
+                            command_backdrops(map.all_commands(), &mut names);
+                        }
+                        Ok(names)
+                    })
                 })
             })
             .collect();
@@ -242,7 +248,7 @@ pub fn game_backdrops(game: &Game, rtp: &Path, named: &BTreeSet<String>) -> Vec<
         )
         .is_none()
         {
-            println!(
+            outln!(
                 "  backdrop {} is neither in the game nor in the RTP",
                 quoted(name)
             );
@@ -668,7 +674,7 @@ pub fn rom_scene(
         .collect();
     for ((name, _), path) in asked.iter().zip(&paths) {
         if path.is_none() {
-            println!("  battler {} is neither in the game nor in the RTP: its enemies fight with no picture", quoted(name));
+            outln!("  battler {} is neither in the game nor in the RTP: its enemies fight with no picture", quoted(name));
         }
     }
     let mut answers = images::battlers(

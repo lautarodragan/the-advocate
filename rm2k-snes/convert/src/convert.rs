@@ -23,6 +23,7 @@ use crate::settings::Settings;
 use crate::stage;
 use crate::text::quoted;
 use crate::variants;
+use rm2k_project::outln;
 use rm2k_project::Project;
 use rm2k_snes_bytecode::events::{
     INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
@@ -176,13 +177,15 @@ pub fn run(options: Options) -> Result<()> {
     environment.unpack(&project)?;
     // The stages' answers, from the disk cache when they were already
     // asked the same thing: see `stage`. `NO_CACHE=1` runs every one.
-    if !rm2k_project::cache::disabled() {
-        crate::stage::keep_answers_in(environment.cache(&project)?);
-    }
+    let _kept = crate::stage::keep_answers_in(if rm2k_project::cache::disabled() {
+        None
+    } else {
+        Some(environment.cache(&project)?)
+    });
     if let Some(own) = environment.own_files() {
-        println!("The port's own files, in front of the game's:");
+        outln!("The port's own files, in front of the game's:");
         for line in own.lines() {
-            println!("  {line}");
+            outln!("  {line}");
         }
     }
     let order = options.map_order();
@@ -284,7 +287,7 @@ pub fn run(options: Options) -> Result<()> {
     let (switched, any_system, system_says) =
         crate::systems::switched(&game, &every_refs, &file_commands);
     for line in &system_says {
-        println!("{line}");
+        outln!("{line}");
     }
     let mut compiler = Compiler::new(&game, &settings)?;
     // And the ones the custom menus' conditions ask for, which no page may
@@ -321,7 +324,7 @@ pub fn run(options: Options) -> Result<()> {
         .parent()
         .map(|d| rm2k_project::absolute(d).join("events-request.json"));
     if !switched.is_empty() {
-        println!("  Systems: {}", compiler.systems.join(", "));
+        outln!("  Systems: {}", compiler.systems.join(", "));
     }
     let mut scan_answer =
         compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
@@ -332,7 +335,7 @@ pub fn run(options: Options) -> Result<()> {
     // A cartridge where every copy draws scans once, as before.
     let drawing_nothing = common_pages.drawing_nothing(&game, &scan_answer)?;
     if !drawing_nothing.is_empty() {
-        println!(
+        outln!(
             "  common events {}: not copied into the maps, every picture they show is big, and \
              a big one is the same with a map and without one",
             join(&drawing_nothing, ", ")
@@ -349,7 +352,7 @@ pub fn run(options: Options) -> Result<()> {
         scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
     }
     if !common_pages.maps.is_empty() {
-        println!(
+        outln!(
             "  common events {} copied into {} of the {} maps, for their pictures",
             common_pages
                 .commons
@@ -371,7 +374,7 @@ pub fn run(options: Options) -> Result<()> {
             Stop::new("the events' scan does not say which switch the test pages turn on")
         })?;
         if switch != TEST_SWITCH as i64 {
-            println!("  the test pages turn on switch {switch}: the game names {TEST_SWITCH}");
+            outln!("  the test pages turn on switch {switch}: the game names {TEST_SWITCH}");
         }
         compiler.test_switch = switch as i32;
         compiler.extra_switches.insert(switch as i32);
@@ -389,7 +392,7 @@ pub fn run(options: Options) -> Result<()> {
         .collect();
     if !lost.is_empty() {
         indices.variables.retain(|(_, s)| *s <= slot_max);
-        println!(
+        outln!(
             "WARNING: the game names {} variables and {} fit in far RAM: the pages that use one of the {} past it are left out (variables {:?})",
             indices.variables.len() + lost.len(),
             slot_max + 1,
@@ -449,7 +452,7 @@ pub fn run(options: Options) -> Result<()> {
             &counters,
         )?);
     }
-    println!(
+    outln!(
         "  the timer's digits go in {} of the {} maps: {}",
         timer_maps.len(),
         order.len(),
@@ -475,7 +478,7 @@ pub fn run(options: Options) -> Result<()> {
         )?)
     };
     if let Some(maps) = &sand_maps {
-        println!(
+        outln!(
             "  the sandstorm's grains go in {} of the {} maps: {}",
             maps.len(),
             order.len(),
@@ -503,11 +506,11 @@ pub fn run(options: Options) -> Result<()> {
         let whole: Vec<&GameMap> = every_refs.iter().copied().chain(others.iter()).collect();
         let arrivals = crate::reach::Arrivals::gather(&game, &whole, &case_pairs)?;
         if let Some(why) = arrivals.anywhere() {
-            println!("  the hero can be anywhere on every map: {why}");
+            outln!("  the hero can be anywhere on every map: {why}");
         } else if let Some((why, on)) = arrivals.any_open() {
             match on {
-                None => println!("  the hero can be on any cell one can step on: {why}"),
-                Some(maps) => println!(
+                None => outln!("  the hero can be on any cell one can step on: {why}"),
+                Some(maps) => outln!(
                     "  the hero can be on any cell one can step on of maps {}: {why}",
                     join(maps.iter().copied().collect::<Vec<_>>(), " ")
                 ),
@@ -534,7 +537,7 @@ pub fn run(options: Options) -> Result<()> {
                  window draws each with the one most of it has",
                 quoted(&other.other.system)
             );
-            println!("{line}");
+            outln!("{line}");
             degradations.cartridge("window-text-colour-merged", &line);
         }
         if let Some(had) = other.frame_fused {
@@ -543,7 +546,7 @@ pub fn run(options: Options) -> Result<()> {
                  bands to fit",
                 quoted(&other.other.system)
             );
-            println!("{line}");
+            outln!("{line}");
             degradations.cartridge("window-frame-fused", &line);
         }
     }
@@ -555,7 +558,7 @@ pub fn run(options: Options) -> Result<()> {
             .map(rm2k_project::absolute)
             .unwrap_or_default();
         let decided = crate::map_pictures::decide(&every_refs, &game.game_dir, &cartridge_dir)?;
-        println!(
+        outln!(
             "  pictures drawn into their map: {} in {} of the {} maps",
             decided.per_map.values().map(Vec::len).sum::<usize>(),
             decided.per_map.len(),
@@ -566,10 +569,10 @@ pub fn run(options: Options) -> Result<()> {
                 .iter()
                 .map(|p| format!("'{}' at {} %", p.name, 100 - p.transparency))
                 .collect();
-            println!("  map {map}: drawn into the map: {}", names.join(", "));
+            outln!("  map {map}: drawn into the map: {}", names.join(", "));
         }
         for ((map, number, name), path) in &decided.parts {
-            println!(
+            outln!(
                 "  map {map}: the picture '{name}' under {number} shows only what it has of its own: {}",
                 path.display()
             );
@@ -701,7 +704,7 @@ pub fn run(options: Options) -> Result<()> {
             "  map {id}: WARNING, it is left out: its grid of {width}x{height} cells and {blocks} blocks does not fit in \
              WRAM, neither two bytes a cell nor one; see `cell_bytes` in rm2k-snes-mapdata"
         );
-        println!("{line}");
+        outln!("{line}");
         degradations.map(id as i64, "map-left-out", &line, &[]);
     }
     let boot_map = order[start_index];
@@ -738,7 +741,7 @@ pub fn run(options: Options) -> Result<()> {
         )?;
         let numbers: BTreeSet<i64> = bigs.iter().map(|b| i64::from(b.key.number)).collect();
         if numbers.len() > 1 {
-            println!(
+            outln!(
                 "  common event {n}: its {} big pictures are not shown: they are under {} \
                  numbers, so they can be up together, and the layer holds one",
                 bigs.len(),
@@ -774,7 +777,7 @@ pub fn run(options: Options) -> Result<()> {
                 pictures::BIG_IMAGES
             );
         }
-        println!(
+        outln!(
             "  the common events: WARNING, {left_out} of their big pictures are not shown: with \
              the maps' they pass the {} the cartridge's table names",
             pictures::BIG_IMAGES
@@ -803,7 +806,7 @@ pub fn run(options: Options) -> Result<()> {
             // It doesn't stop the conversion: the page that asks for it
             // doesn't compile. But it is said, because from outside it
             // looks like an event that does nothing.
-            println!(
+            outln!(
                 "  map {}: TileSubstitution {old} -> {new} on the {} layer: the block that would be \
                  needed can't be built. Either the new tile isn't drawn in any cell of the map, or \
                  one of the two is an upper tile without 'Above' and is baked into the background. \
@@ -846,7 +849,7 @@ pub fn run(options: Options) -> Result<()> {
         encounters: stage::text(&written, "encounters.inc")?,
     };
     if encounters.records != 0 {
-        println!(
+        outln!(
             "  random encounters: {} map(s), {} zone(s), {} troop(s)",
             encounters.records,
             encounters.zones,
@@ -955,13 +958,13 @@ pub fn run(options: Options) -> Result<()> {
     // which ones it left out, see `rm2k_snes_battle::fit`.
     for (n, cut) in &game.db.troop_cuts {
         if troops.ids.contains(n) {
-            println!("{}", cut.text());
+            outln!("{}", cut.text());
             degradations.troop(*n as i64, "troop-members-left-out", &cut.text());
         }
     }
     if let Some(commons) = &compiled.commons {
         let bodies = &commons.bodies;
-        println!(
+        outln!(
             "shared common events: {} bodies, {} bytes; automatic ones that run: {}; left out, not compiling: {}",
             bodies.len(),
             bodies.iter().map(|(_, code)| code.0.len()).sum::<usize>(),
@@ -1025,7 +1028,7 @@ pub fn run(options: Options) -> Result<()> {
             );
         }
         if !with_parallel.is_empty() {
-            println!(
+            outln!(
                 "  map {}: {} event(s) with a parallel page",
                 m.id,
                 with_parallel.len()
@@ -1043,7 +1046,7 @@ pub fn run(options: Options) -> Result<()> {
             );
         }
         for (graphic, index) in &entry.graphics_dropped {
-            println!(
+            outln!(
                 "  map {}: WARNING, a route changes to the graphic {graphic} {index} and the map's table does not have it —full at {}, or a page the scan did not get that far in—: the change is ignored",
                 m.id,
                 record::ROUTE_GFX_MAX
@@ -1071,7 +1074,7 @@ pub fn run(options: Options) -> Result<()> {
             }
         }
         if !outside_of.is_empty() {
-            println!(
+            outln!(
                 "  map {}: WARNING, {how_many} teleport(s) to a map that didn't make it into the ROM, each a message box instead: {}",
                 m.id,
                 join(&outside_of, ", ")
@@ -1083,7 +1086,7 @@ pub fn run(options: Options) -> Result<()> {
             let name = ditto::schema::EventCommandCode::from_i32(code)
                 .json_name()
                 .map_or_else(|| code.to_string(), str::to_string);
-            println!(
+            outln!(
                 "  map {}: WARNING, a page uses {name} and the ROM doesn't do it; see ACCEPTED_UNDONE in rm2k-snes/events",
                 m.id
             );
@@ -1152,7 +1155,7 @@ pub fn run(options: Options) -> Result<()> {
                     m.id,
                     join(&common_pages.commons, ", "),
                 );
-                println!("{line}");
+                outln!("{line}");
                 degradations.map(m.id as i64, "pictures-not-drawn", &line, &[]);
                 copies_pushing.push(m.id);
             }
@@ -1314,18 +1317,18 @@ pub fn run(options: Options) -> Result<()> {
                 targets.len(),
                 record::ROUTE_EV_MAX
             );
-            println!("{line}");
+            outln!("{line}");
             degradations.map(m.id as i64, "route-slots-short", &line, &[]);
         }
         // A map RM2k loops on an axis the console cannot: see `wrap_axes`.
         for why in emit::wrap_axes(m).1 {
             let line = format!("  map {}: WARNING, {why}: its edges are walls", m.id);
-            println!("{line}");
+            outln!("{line}");
             degradations.map(m.id as i64, "map-does-not-wrap", &line, &[]);
         }
         let runnable = m.pages.iter().filter(|p| p.has_code).count();
         if !m.pages.is_empty() {
-            println!(
+            outln!(
                 "  map {}: {} automatic event page(s), {} runnable",
                 m.id,
                 m.pages.len(),
@@ -1334,7 +1337,7 @@ pub fn run(options: Options) -> Result<()> {
         }
     }
     if !copies_drawing_nothing.is_empty() || !copies_pushing.is_empty() {
-        println!(
+        outln!(
             "  the copy of the common events is kept in {} maps: {} draw nothing with it, {} \
              would keep their bytecode in the cartridge",
             common_pages.maps.len(),
@@ -1383,7 +1386,7 @@ pub fn run(options: Options) -> Result<()> {
                     m.id
                 );
                 if *away {
-                    println!("  WARNING, {line}");
+                    outln!("  WARNING, {line}");
                     degradations.map(m.id as i64, "flash-shared-palette", &line, &[]);
                 } else {
                     shared_flashes.push(line);
@@ -1458,7 +1461,7 @@ pub fn run(options: Options) -> Result<()> {
         degradations.cartridge(&loss.kind, &loss.text);
     }
     let w = &screens_answer.window;
-    println!(
+    outln!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",
         w.system.tiles.len() / 32,
         w.system.background.len() / 32,
@@ -1468,7 +1471,7 @@ pub fn run(options: Options) -> Result<()> {
         messages.len()
     );
     for line in &screens_answer.says {
-        println!("{line}");
+        outln!("{line}");
     }
     vram::check_splits().map_err(|e| Stop::new(e.message().to_string()))?;
     let s = &screens_answer.slots;
@@ -1484,7 +1487,7 @@ pub fn run(options: Options) -> Result<()> {
             )
         })
         .collect();
-    println!(
+    outln!(
         "  slots screen: {}, {} 4bpp tiles ({} B) + {} palettes, {} B of cells; {} actors with a face: {}",
         vram::SLOTS,
         slot_tiles,
@@ -1517,7 +1520,7 @@ pub fn run(options: Options) -> Result<()> {
         }
         let screen =
             fullscreen::compressed(&picture, fullscreen::MENU_CGRAM, fullscreen::COLORS, &below)?;
-        println!(
+        outln!(
             "  title screen {}: {} 8bpp tiles + {} colors, {} B in an LZ2 stream of {} B",
             quoted(name),
             screen.tiles,
@@ -1525,7 +1528,7 @@ pub fn run(options: Options) -> Result<()> {
             screen.raw,
             screen.stream.len()
         );
-        println!(
+        outln!(
             "    menu ({}): {} 4bpp tiles ({} B) + {} colors, {} tilemap(s)",
             texts
                 .iter()
@@ -1548,13 +1551,13 @@ pub fn run(options: Options) -> Result<()> {
             let line = format!(
                 "  WARNING, the title menu doesn't fit in VRAM ({menu_tiles} tiles of {TITLE_MENU_TILES_MAX}): the game starts without a title screen"
             );
-            println!("{line}");
+            outln!("{line}");
             degradations.cartridge("title-screen-not-drawn", &line);
         } else if screen.tiles <= TITLE_TILES_MAX && !options.title_4bpp {
             title_screen = Some(screen);
         } else {
             let (four, png) = fullscreen::compressed_4bpp(&picture, &menu_palette)?;
-            println!(
+            outln!(
                 "    {}: at 4bpp in mode 1, {} tiles + {} palette(s), {} B in an LZ2 stream of {} B",
                 if options.title_4bpp {
                     "--title-4bpp".to_string()
@@ -1589,7 +1592,7 @@ pub fn run(options: Options) -> Result<()> {
     );
     if let (false, Some(path)) = (gameover_name.is_empty(), path) {
         let screen = fullscreen::compressed(&path, 0, 256, &[])?;
-        println!(
+        outln!(
             "  Game Over screen {}: {} 8bpp tiles + {} colors, {} B in an LZ2 stream of {} B",
             quoted(&path.file_name().unwrap().to_string_lossy()),
             screen.tiles,
@@ -1614,7 +1617,7 @@ pub fn run(options: Options) -> Result<()> {
             .unwrap_or_default()
             .join("sin-msu.png");
         let screen = crate::msu_missing::screen(&font.font, &png)?;
-        println!(
+        outln!(
             "  the cartridge needs the MSU-1 ({}); the screen that says so when it is missing: \
              {} 8bpp tiles + {} colors, an LZ2 stream of {} B",
             msu_data.name(),
@@ -1639,9 +1642,16 @@ pub fn run(options: Options) -> Result<()> {
         .collect();
     for (number, info) in &animations {
         let r = animations::report(info);
-        println!(
+        outln!(
             "  animation {number}: {} frames of {}x{}, shrunk from {}x{} to {}%, {} colors, {} B",
-            r.frames, r.size.0, r.size.1, r.original.0, r.original.1, r.percent, r.colors, r.bytes
+            r.frames,
+            r.size.0,
+            r.size.1,
+            r.original.0,
+            r.original.1,
+            r.percent,
+            r.colors,
+            r.bytes
         );
     }
     // The backdrops and the battlers the cartridge's battles ask for,
@@ -1657,7 +1667,7 @@ pub fn run(options: Options) -> Result<()> {
     for b in &scenes.backdrops {
         let (rom_tiles, rom_colors) = scene::fallback_bytes(&b.light);
         let (msu_tiles, msu_colors) = &scenes.quality[b.number];
-        println!(
+        outln!(
             "  battle backdrop {} {}: {}x{}, {} tiles from CGRAM entry {}; in the ROM {}x{} at 4bpp and {} colors ({} B), in the .msu 8bpp and {} colors ({} B)",
             b.number,
             quoted(&b.name),
@@ -1687,15 +1697,15 @@ pub fn run(options: Options) -> Result<()> {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        println!("{line}");
+        outln!("{line}");
         degradations.cartridge("backdrop-only-in-msu", &line);
     }
     for b in &scenes.battlers {
-        println!("{}", scene::battler_report(b));
+        outln!("{}", scene::battler_report(b));
     }
     // The event pages of the troops some battle of the cartridge asks for.
     let tp = &compiled.troop_pages;
-    println!(
+    outln!(
         "  troop pages: {} of {} in {} distinct body(ies), {} B of code and {} B in {} message(s)",
         tp.pages - tp.left_out,
         tp.pages,
@@ -1712,7 +1722,7 @@ pub fn run(options: Options) -> Result<()> {
             .json_name()
             .map_or_else(|| code.to_string(), str::to_string);
         let troops: BTreeSet<i32> = pages.iter().map(|(troop, _)| *troop).collect();
-        println!(
+        outln!(
             "  troop pages: WARNING, {} page(s) of {} troop(s) use {name} and the ROM doesn't do it; \
              see ACCEPTED_UNDONE in rm2k-snes/events. Troops: {}",
             pages.len(),
@@ -1751,14 +1761,14 @@ pub fn run(options: Options) -> Result<()> {
     let battle_model: rm2k_snes_battle::model::Model = stage::typed(&written, "model.json")?;
     for place in battle_model.cut.iter().flatten() {
         let line = cut_report(place);
-        println!("{line}");
+        outln!("{line}");
         degradations.cartridge("names-cut", &line);
     }
     // The party's line, whose HP and SP the console writes as runs that do
     // not get cut: with a font too wide they would step on each other.
     if let Some(why) = &battle_model.party_line {
         let line = format!("  WARNING, battle text: the party's line does not fit: {why}");
-        println!("{line}");
+        outln!("{line}");
         degradations.cartridge("names-cut", &line);
     }
     // What the battle's busiest lists ask of the text layer's pool. The
@@ -1781,7 +1791,7 @@ pub fn run(options: Options) -> Result<()> {
              the pool",
             asked.skills_actor, asked.skills_known
         );
-        println!("{line}");
+        outln!("{line}");
         if skills.max(items) > pool {
             degradations.cartridge("text-pool-short", &line);
         }
@@ -1802,7 +1812,7 @@ pub fn run(options: Options) -> Result<()> {
         }
     }
     if !parallel_common.is_empty() || !parallel_left_out.is_empty() {
-        println!(
+        outln!(
             "  parallel common events: {} run, {} do not compile {parallel_left_out:?}",
             parallel_common.len(),
             parallel_left_out.len()
@@ -1873,7 +1883,7 @@ pub fn run(options: Options) -> Result<()> {
         }
     }
     if !faces.is_empty() {
-        println!(
+        outln!(
             "  message faces: {}, {} B ({} with a missing FaceSet)",
             faces.len(),
             faces.len() * rm2k_snes_mapdata::emit::MESSAGE_FACE_BYTES,
@@ -1986,7 +1996,7 @@ pub fn run(options: Options) -> Result<()> {
         common_pictures: common_small.emit,
     };
     let emitted = emit::emit(&output, request, &game.dump)?;
-    println!(
+    outln!(
         "{} map(s) -> {}, boots at {start_index} (map {})",
         infos.len(),
         output.display(),
@@ -2062,7 +2072,7 @@ pub fn run(options: Options) -> Result<()> {
         Ok::<_, String>(rm2k_snes_patches::stage::patches(&patches_request))
     })?;
     for written in rm2k_snes_patches::put(&directory, &patches).map_err(Stop::new)? {
-        println!("{}", rm2k_snes_patches::report(&written));
+        outln!("{}", rm2k_snes_patches::report(&written));
     }
     // And who asked for each one, which isn't versioned: what separates, in
     // the ROM that is played, what belongs to the game from what only
@@ -2075,9 +2085,9 @@ pub fn run(options: Options) -> Result<()> {
     )
     .map_err(|e| crate::fail::io(&uses_path, e))?;
     if !emitted.report.is_empty() {
-        println!("material compressed and shared between maps:");
+        outln!("material compressed and shared between maps:");
         for line in &emitted.report {
-            println!("{line}");
+            outln!("{line}");
         }
     }
     // The music comes from here and not from a separate recipe: emitting

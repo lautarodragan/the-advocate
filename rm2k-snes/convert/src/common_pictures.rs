@@ -24,6 +24,7 @@
 use crate::fail::Result;
 use crate::game::Game;
 use crate::pictures::{self, SLOTS};
+use rm2k_project::outln;
 use rm2k_snes_events::answer::Scan;
 use rm2k_snes_events::request::{self, CommonPlane, Picture, Place};
 use rm2k_snes_mapdata::request::CommonSet;
@@ -72,7 +73,7 @@ pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
     for (whose, parallel, commons, cut) in cuts {
         let first = out.entries.len();
         if first + cut.table.len() > COMMON_MAX {
-            println!(
+            outln!(
                 "  {whose}: WARNING, their {} small pictures aren't shown: with the ones before \
                  they pass the {COMMON_MAX} the common table names",
                 cut.table.len()
@@ -105,7 +106,7 @@ pub fn sets(game: &Game, scan: &Scan) -> Result<CommonPictures> {
                 },
             });
         }
-        println!(
+        outln!(
             "  {whose}: their small pictures {}, {} objects in {} tiles and {} palette(s), go up \
              when shown",
             crate::text::quoted(&cut.name),

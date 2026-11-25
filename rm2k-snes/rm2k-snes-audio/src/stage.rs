@@ -23,13 +23,12 @@ use crate::samples::SoundFontSamples;
 use crate::{compile as compiler, emit, job, msu, msu_data};
 use ditto::dump::Dump;
 use ditto::schema::System;
-use rm2k_project::{suite, Project};
+use rm2k_project::{outln, suite, Project};
 use rm2k_rules::tree::Tree;
 use rm2k_snes_bytecode::level::Level;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 /// What a command answers: every file it makes, by name.
@@ -111,7 +110,7 @@ pub fn compile(
     // —`losses`—; `cartridge` also answers them, for `degradations.json`.
     // See `relief`.
     for loss in &music.losses {
-        println!("  WARNING, {}", loss.text);
+        outln!("  WARNING, {}", loss.text);
     }
 
     let bank = &music.bank;
@@ -247,9 +246,8 @@ pub fn compile(
             }),
         );
         let boot = (emit.boot != 0xFF).then_some(emit.boot as usize);
-        let mut stdout = std::io::stdout().lock();
         for line in compiler::report(&music, boot) {
-            let _ = writeln!(stdout, "{line}");
+            outln!("{line}");
         }
         quality = Some(effects);
     }
@@ -492,10 +490,7 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
     );
     let music = &done.music;
     let rom = emit::rom_packages(music, &emit);
-    let mut stdout = std::io::stdout().lock();
-    let mut say = |line: String| {
-        let _ = writeln!(stdout, "{line}");
-    };
+    let say = |line: String| outln!("{line}");
     if let Some(songs) = plan.battle_songs {
         // The battle's package goes right after the maps'. Until 2026-09-30
         // this counted the last ROM package's sound effects, which is the

@@ -16,7 +16,6 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use cartridge::cartridges::Cartridges;
 use clap::{Arg, ArgAction, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{relative, Project};
@@ -62,13 +61,17 @@ fn run() -> Result<(), String> {
     let tests: BTreeSet<i64> = project.ints(&["maps", "test"])?.into_iter().collect();
     let check_only = matches.get_flag("check");
     let listed: Vec<String> = if given.is_empty() && check_only {
-        // Where each cartridge is built is said by the one that builds them.
+        // Where each cartridge is built is said by the machine's
+        // `--test-cartridges`; which ones there are, by the project file.
         let environment = Environment::from_matches(&matches, FROM_ENVIRONMENT);
-        let cartridges = Cartridges::load(project.clone(), environment)?;
-        cartridges
-            .names()
-            .iter()
-            .map(|name| cartridges.directory(name).map(|d| d.display().to_string()))
+        project
+            .table(&["cartridges"])?
+            .keys()
+            .map(|name| {
+                environment
+                    .cartridge(&project, name)
+                    .map(|d| d.display().to_string())
+            })
             .collect::<Result<_, _>>()?
     } else {
         given

@@ -37,6 +37,7 @@
 use crate::fail::{Result, Stop};
 use crate::game::GameMap;
 use crate::images;
+use rm2k_project::outln;
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{CHANGE_PBG, MOVE_PICTURE, SHOW_PICTURE, TINT_SCREEN};
 use rm2k_snes_events::registry::PictureKey;
@@ -566,7 +567,7 @@ pub fn big_for_map(
             panorama,
         )?;
         let Some(layer) = layer else {
-            println!(
+            outln!(
                 "  {whose}: the picture {} doesn't fit the background layer even cut to the screen",
                 crate::text::quoted(name)
             );
@@ -582,7 +583,7 @@ pub fn big_for_map(
             );
         }
         if let Some(panorama) = panorama {
-            println!(
+            outln!(
                 "  {whose}: the picture {} is drawn over the panorama {}, which shows through its holes",
                 crate::text::quoted(name),
                 crate::text::quoted(&panorama.file_stem().unwrap_or_default().to_string_lossy())
@@ -841,7 +842,7 @@ pub fn keep_objects(layers: &mut [BigLayer]) {
         if tiles <= BIG_KEEP_TILES {
             layer.keeps_objects = true;
         } else {
-            println!(
+            outln!(
                 "  a big picture over {} takes {tiles} tiles: past {BIG_KEEP_TILES} it would                  overwrite the sprite bank, and the small pictures are not shown over it",
                 under
             );
@@ -852,13 +853,13 @@ pub fn keep_objects(layers: &mut [BigLayer]) {
 /// What the log says of [`number_big`]'s layers, once they are final.
 pub fn say_big(layers: &[BigLayer]) {
     if !layers.is_empty() {
-        println!(
+        outln!(
             "  the cartridge carries {} big picture(s) in the background layer",
             layers.len()
         );
         let kept = layers.iter().filter(|l| l.keeps_objects).count();
         if kept > 0 {
-            println!("  {kept} of them over a map's panorama, with the small pictures over them");
+            outln!("  {kept} of them over a map's panorama, with the small pictures over them");
         }
     }
 }
@@ -1205,7 +1206,7 @@ pub fn for_map(
         }
         let info = convert(&path, key, cropped.for_console(name))?;
         if !takes(&info, key) {
-            println!(
+            outln!(
                 "  {whose}: the picture {} is {}x{} on the console: bigger than the plane of objects",
                 crate::text::quoted(name),
                 info.width,
@@ -1215,7 +1216,7 @@ pub fn for_map(
         }
         if !slots.contains(&number) {
             if slots.len() == SLOTS {
-                println!(
+                outln!(
                     "  {whose}: the picture {} (number {number}) doesn't go in: the console keeps {SLOTS} at a time",
                     crate::text::quoted(name)
                 );

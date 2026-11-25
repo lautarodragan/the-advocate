@@ -365,7 +365,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     // The tools the fingerprint hashes, as stand-ins on a PATH of their own.
     let bin = dir.join("bin");
     fs::create_dir_all(&bin).unwrap();
-    for tool in ["ca65", "ld65", "rm2k-snes-convert", "rm2k-snes-cartridges"] {
+    for tool in ["ca65", "ld65", "builder", "rm2k-snes-cartridges"] {
         let path = bin.join(tool);
         fs::write(&path, tool).unwrap();
         use std::os::unix::fs::PermissionsExt;
@@ -387,7 +387,9 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         e.set("soundfont", dir.join("bank.sf2"));
         e
     };
-    let c = Cartridges::load(Project::open(&dir).unwrap(), machine("rtp")).unwrap();
+    let mut c = Cartridges::load(Project::open(&dir).unwrap(), machine("rtp")).unwrap();
+    // The running binary is the test's: the builder, by a stand-in.
+    c.builder = bin.join("builder");
     let files = c.fingerprint_files(&runtime).unwrap();
     for source in sources(&runtime.join("main.s")).unwrap() {
         assert!(
@@ -396,8 +398,9 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
             source.display()
         );
     }
-    assert!(files.contains(&bin.join("rm2k-snes-cartridges")));
-    assert!(files.contains(&bin.join("rm2k-snes-convert")));
+    assert!(files.contains(&bin.join("builder")));
+    // Not a builder of its name on the PATH: the one that runs.
+    assert!(!files.contains(&bin.join("rm2k-snes-cartridges")));
     assert!(files.contains(&dir.join("advocate.toml")));
     assert!(files.contains(&dir.join("patches/manual/maps/Map1000.json")));
     // And the dump, which `just dump` rewrites when the game changes and
@@ -425,7 +428,9 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     fs::write(original.join("Map0001.lmu"), "edited").unwrap();
     assert_eq!(c.fingerprint().unwrap(), renamed);
     // The RTP, by its path.
-    let elsewhere = Cartridges::load(Project::open(&dir).unwrap(), machine("other-rtp")).unwrap();
+    let mut elsewhere =
+        Cartridges::load(Project::open(&dir).unwrap(), machine("other-rtp")).unwrap();
+    elsewhere.builder = c.builder.clone();
     assert_ne!(elsewhere.fingerprint().unwrap(), renamed);
 }
 
