@@ -1,14 +1,15 @@
-//! The event compiler from the command line: a dump and a request in,
-//! `events.json` out. `scan` is what the tests ask; `compile` is the
-//! converter's alone, and it calls it as a function, `stage::compile`.
+//! The event compiler's report from the command line: a dump and a
+//! request in, `culprits.json` out. Its two calls, `scan` and `compile`,
+//! are the converter's alone, and it calls them as functions,
+//! `stage::scan` and `stage::compile`; until 2026-11-25 `scan` was a
+//! subcommand too, which a game's tests asked for the variables' slots
+//! that the build now leaves beside the ROM.
 //!
 //! Where the dump is is the caller's to say: nothing here has a default
 //! path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use rm2k_snes_events::stage::{self, Files};
-use rm2k_snes_events::{culprits, read_request, Bad, Game, Request, Result};
-use serde::Serialize;
+use rm2k_snes_events::{culprits, Bad, Game, Request, Result};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -32,10 +33,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// The indices of the whole game, which pages of each map compile, and
-    /// each map's pages compiled without songs: what the caller needs
-    /// before it builds the maps
-    Scan(Args),
     /// Which commands keep each page out: every map's page, every common
     /// event and every troop page, each chased to all its culprits. A
     /// report for people, not a stage of the conversion
@@ -46,8 +43,8 @@ enum Command {
 #[command(
     after_help = "Writes culprits.json into --out and prints, per kind of page, the commands that \
                   keep some page out: how many pages each one is all that keeps out (alone), and \
-                  how many it keeps out along with something else. It takes the request `scan` \
-                  takes."
+                  how many it keeps out along with something else. It takes the request the \
+                  compiler's calls take."
 )]
 struct CulpritArgs {
     #[command(flatten)]
@@ -59,11 +56,8 @@ struct CulpritArgs {
     every_map: bool,
 }
 
+/// The request's fields are described in the crate's README.
 #[derive(ClapArgs)]
-#[command(
-    after_help = "Writes events.json into --out. The request's fields are described in the \
-                        crate's README."
-)]
 struct Args {
     /// The Ditto dump the game is read from: the directory with maps.json
     /// and db/
@@ -78,26 +72,6 @@ struct Args {
     /// The directory to write to
     #[arg(long, value_name = "DIRECTORY")]
     out: PathBuf,
-}
-
-/// What a command answered, into `dir`, which is created if it is not
-/// there.
-fn write(dir: &Path, files: &Files) -> Result<()> {
-    let io = |path: &Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
-    std::fs::create_dir_all(dir).map_err(|e| io(dir, e))?;
-    for (name, bytes) in files {
-        let path = dir.join(name);
-        std::fs::write(&path, bytes).map_err(|e| io(&path, e))?;
-    }
-    Ok(())
-}
-
-fn run<A: Serialize>(
-    args: &Args,
-    answer: fn(&Path, &rm2k_snes_events::request::Asked) -> Result<A>,
-) -> Result<()> {
-    let request = read_request(&args.request)?;
-    write(&args.out, &stage::files(&answer(&args.data, &request)?))
 }
 
 fn run_culprits(c: &CulpritArgs) -> Result<()> {
@@ -125,7 +99,6 @@ fn run_culprits(c: &CulpritArgs) -> Result<()> {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Scan(args) => run(args, stage::scan),
         Command::Culprits(args) => run_culprits(args),
     };
     match done {

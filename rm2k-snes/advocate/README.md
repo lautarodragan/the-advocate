@@ -40,7 +40,9 @@ versioned patch no longer matches what the converter decides, which ones:
 `converter.log` and the rest of what the conversion wrote, its
 `space.json` and its `culprits.json`: which commands each page of every
 map of the game, every common event and every troop page leaves out, and
-why —a report for people—.
+why —a report for people—; and its `slots.json`, where each RM2k variable
+and each (actor, skill) pair lives in the ROM, for whoever looks at it
+running by variable.
 
 It is one binary, in a crate of its own on top of the libraries, so that
 what it installs is said by its name. Until 2026-11-25 building was `rm2k-snes-cartridges`, which ran the

@@ -122,6 +122,64 @@ fn the_scan_says_the_highest_switch() {
     assert_eq!(answer.switch_top, 1023);
 }
 
+/// The records of map 1's pages of the `n`th event of its dump, from 0, as
+/// the scan answers them: the table numbers it one more, because map 1 is
+/// the request's `test_event_map` and the test pages' event goes first.
+fn records_of(n: usize) -> Vec<rm2k_snes_events::answer::Page> {
+    let request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
+    let answer = scan(&game(&request), &request).unwrap();
+    let map = answer.map(1).expect("map 1 is in the scan");
+    map.pages
+        .iter()
+        .filter(|p| p.event == n + 1)
+        .cloned()
+        .collect()
+}
+
+/// A page with an item condition carries the item in its record, and the
+/// ROM looks at its count in `FAR_ITEMS`; a page without one carries 0.
+/// Map 1's `EV0004`, the third event: its second page asks for item 3.
+/// Until 2026-11-25 A Blurred Line's `test_pages.py` looked at it on
+/// EV0041 of that game's map 8, asking the converter for the scan.
+#[test]
+fn a_page_with_an_item_condition_carries_the_item() {
+    let pages = records_of(2);
+    assert_eq!(pages.len(), 2, "{pages:?}");
+    assert_eq!(pages[0].item, 0);
+    assert_eq!(pages[1].item, 3);
+    assert!(pages[1].code.is_some(), "the page with the item compiles");
+}
+
+/// A page with a variable condition carries the variable's slot —not its
+/// number—, RM2k 2000's comparison, `>=`, and the value; one without
+/// carries none. Map 1's `EV0001`: its second page asks for switch 5 and
+/// variable 10 at 3 or more. Until 2026-11-25 A Blurred Line's
+/// `test_pages.py` looked at it on the KeyChest of that game's map 133.
+#[test]
+fn a_page_with_a_variable_condition_carries_its_slot() {
+    let request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
+    let answer = scan(&game(&request), &request).unwrap();
+    let slot = answer
+        .indices
+        .variables
+        .iter()
+        .find(|(v, _)| *v == 10)
+        .map(|(_, s)| *s)
+        .expect("variable 10 has a slot");
+    let pages = records_of(0);
+    assert_eq!(pages.len(), 2, "{pages:?}");
+    assert_eq!(pages[0].variable, None);
+    assert_eq!(
+        pages[1].variable,
+        Some((
+            slot,
+            i64::from(rm2k_snes_events::game::CONDITION_OPERATOR),
+            3
+        ))
+    );
+    assert_eq!(pages[1].switch_a, 5);
+}
+
 /// The boxes of a text block, in order and as letters: each one at a
 /// multiple of `step`, its header, and each line with its length in
 /// letters, a byte from `pair_first` up being two of them.

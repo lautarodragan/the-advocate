@@ -60,14 +60,17 @@ troop, whose names carry letters outside ASCII for the text screens.
       RPG_RT.ini        the game's title, for RPG Maker and EasyRPG
     ChipSet/, CharSet/, FaceSet/, System/
                         the pictures, from EasyRPG's RTP
-    Picture/, Panorama/ the pictures that are ours, drawn by scripts
+    Picture/, Panorama/, Title/
+                        the pictures that are ours, drawn by scripts
     AUTHORS.md          whose each picture is, its license and its link;
                         `tests/test_test_game_assets.py`, at the root,
                         fails if a picture has no line there
     LICENSE-CC-BY-4.0.txt
                         the license most of them are under
-    advocate.toml       its cartridges, like a port's: `release`, and
-                        `test-vblank` with the vblank's probe
+    advocate.toml       its cartridges, like a port's: `release`,
+                        `test-vblank` with the vblank's probe, and `lint`
+                        with every flag the runtime assembles code on, for
+                        the root's `just lint`
     hub.toml            the meadow's hub: the guide's maps and the
                         tester's menus, which `python3 tests/hub.py`
                         writes into `src/maps/Map0001.json`
@@ -205,9 +208,6 @@ cannot be done or would take absurdly long, which it says on that line.
                         dawn while a page carried from another map waits:
                         the picture before and after, and that the carried
                         bytecode comes through the swap byte for byte
-    test_linter.py      Goombario over the cartridge: the runtime falls in
-                        none of the traps it knows, but for the lines
-                        annotated as right
     test_screen_letters.py
                         Latin-1 on the text screens: Zoë's name in a box,
                         `\N[0]`, and on the menu; the Poción Ácida on the

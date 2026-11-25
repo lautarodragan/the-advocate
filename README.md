@@ -33,11 +33,12 @@ and the ROM is in `internals/pipeline.md` in the book, and the audio in
 
 **GitHub Actions checks every push to `main`**
 (`.github/workflows/ci.yml`): the Rust workspace is formatted and passes
-clippy —`just lint`—, builds without a compiler warning and its tests pass,
-`just test` passes, and the test game —made with the tools installed from
-that commit, with cc65 and the two libretro cores built from pinned
-commits and a free SoundFont— passes its tests in snes9x and in bsnes,
-Goombario over its cartridge among them. It runs no ported game, so it
+clippy —`just lint-rust`—, builds without a compiler warning and its tests
+pass, `just test` passes, and the test game —made with the tools installed
+from that commit, with cc65 and the two libretro cores built from pinned
+commits and a free SoundFont— passes its tests in snes9x and in bsnes, and
+Goombario finds nothing in its cartridges —`just lint-runtime`—. `just
+lint` is both. It runs no ported game, so it
 does not replace A Blurred Line's suite, below.
 
 A game is a directory with an `advocate.toml`, which the tools look for

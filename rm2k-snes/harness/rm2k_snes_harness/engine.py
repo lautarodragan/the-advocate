@@ -1,38 +1,66 @@
-"""The engine's numbers, as `rm2k-snes-mapdata engine` publishes them: the
-ones the `.inc` hands the runtime —the box's header, the keys, the rain, the
-fade, the troops' triggers— and the caps the compiled pages are checked
-against.
+"""The engine's numbers, as the cartridge's build left them: the equates of
+its `.inc`, which `ld65` writes into the `.dbg` and the `.sym` beside the
+ROM whether the runtime references them or not.
 
-**They live in `engine.rs` of `rm2k-snes-mapdata`, and only there.** Until
-2026-10-02 A Blurred Line's `events.py`, in the ports, had a copy of each
-one, because the converter and that game's tests read them; now the tests
-ask for them here, by the same names: `engine.PAUSE_FRAMES`. The whys of
-most of them are still in that `events.py`, next to their names.
+**They live in `engine.rs` of `rm2k-snes-mapdata`, and only there**; the
+emission hands them to the runtime by name, and this module reads them
+back by that name: `engine.PAUSE_FRAMES`. One the runtime does not name a
+test reads only if the emission writes it for it —see `for_readers` in
+`rm2k-snes-mapdata`'s `emit.rs`—. Until 2026-11-25 this module asked
+`rm2k-snes-mapdata engine`, which answered every number of `engine.rs`
+whether the ROM had it or not; now it reads what the ROM was built with.
 
-A list comes back as a tuple, which is what those names always were.
+**A name is looked up in the whole table**, labels and equates alike: the
+`.sym` does not tell them apart. A number is asked by the name the `.inc`
+gives it, and a name the ROM does not have is an `AttributeError` that
+says where to add it.
+
+Which `.sym`: the current game's `release` —see `game`—, unless the
+game's harness says another with `use_symbols`, as one that does not go
+through `game` does.
 """
 
-import json
+import functools
 
-from . import stage
+from . import game
 
-BINARY = "rm2k-snes-mapdata"
-PROJECT = "mapdata"
-
-_NUMBERS = {}
+_SOURCE = []
 
 
-def numbers():
-    """Every number by its name, asked once per process."""
-    if not _NUMBERS:
-        written = stage.run(BINARY, PROJECT, "engine", {})
-        _NUMBERS.update(
-            (name, tuple(value) if isinstance(value, list) else value)
-            for name, value in json.loads(written["engine.json"]).items())
-    return _NUMBERS
+def use_symbols(path):
+    """Read the numbers from the `.sym` `path` returns —a function, called
+    the first time a number is asked, so that importing reads nothing—."""
+    _SOURCE[:] = [path]
+    table.cache_clear()
+
+
+def symbols_of(path):
+    """{name: value} of a `.sym`."""
+    with open(path) as file:
+        return {name: int(value) for name, value
+                in (line.split() for line in file if line.strip())}
+
+
+@functools.lru_cache(maxsize=None)
+def table():
+    """The `.sym`'s table, read once per process."""
+    if _SOURCE:
+        return symbols_of(_SOURCE[0]())
+    return dict(game.cartridge().symbols)
+
+
+def number(name):
+    """The equate `name` of the cartridge."""
+    symbols = table()
+    if name not in symbols:
+        raise AttributeError(
+            "the cartridge's .sym has no %s: a number the runtime does not "
+            "name reaches it only if the emission writes it —see "
+            "`for_readers` in rm2k-snes-mapdata's emit.rs—" % name)
+    return symbols[name]
 
 
 def __getattr__(name):
-    if name.isupper() and name in numbers():
-        return numbers()[name]
+    if name.isupper():
+        return number(name)
     raise AttributeError(name)

@@ -28,7 +28,8 @@ test = []
 # `nothing`, the game as it boots. What used to be cases is played, from the
 # meadow's tester —see `hub.toml`—, and `terrace` is `test-vblank`'s alone,
 # the same teleport as the guide's.
-# `--no-title`: the game has no title picture, and starts on its map.
+# `--no-title`: the game starts on its map. Its title picture is for `lint`
+# alone, below.
 [cartridges.release]
 start_map = 1
 party = []
@@ -51,6 +52,33 @@ maps = [4, 9]
 test_graphics = []
 flags = ["--no-title", "--vblank-probe"]
 cases = ["terrace"]
+excluded_cases = []
+
+# Every flag the runtime assembles code on, at once, for the root's `just
+# lint`: Goombario only sees what was assembled, and the other cartridges
+# leave out what each flag adds —the root's `lint` goes over them too, for
+# what each flag takes away—. Not in `release`: with `--msu-everything` the
+# ROM does not start without its `.msu`, the probe costs every vblank a few
+# lines, and the debug screen's option would move every golden of the pause
+# menu. No test runs this one, so it moves none. `--title-4bpp` and not the
+# 8-bit title: its branch adds code, the other none. The title picture,
+# `Title/`, is this cartridge's alone; and the debug screen does not
+# assemble without a switch or a variable with a name, so the database
+# names switch 1 and variable 1, which nothing uses.
+#
+# The runtime's `.if`s on the game's content rather than on a flag —a
+# parallel common event, a `ChangeSystem`, a box over the layer above…— are
+# the game's to have, in every cartridge: the task
+# `the-test-game-lacks-content-abl-s-runtime-branches-need`, in
+# the-advocate-work, says which it lacks.
+[cartridges.lint]
+start_map = 1
+party = []
+maps = "game"
+test_graphics = []
+flags = ["--title-4bpp", "--debug-screen", "--phasing", "--enemy-hp",
+         "--msu-everything", "--vblank-probe"]
+cases = []
 excluded_cases = []
 
 [debug]
