@@ -61,11 +61,22 @@ pub fn runtime() -> PathBuf {
 /// The generic part of the games' test harness, in Python: the directory a
 /// game's tests put on their import path to `import rm2k_snes_harness`. It
 /// travels with the tools for the same reason the runtime does —it reads
-/// the symbols the runtime names, so both have to be the same checkout's—,
-/// and a release's archive carries it beside the runtime, at the same path.
+/// the symbols the runtime names, so both have to be the same checkout's—.
+/// A release's archive carries it where `just install` links it beside
+/// `bin/`, `lib/advocate/harness`, which is where a game's tests look first;
+/// until 2026-11-25 it went at the checkout's path, `rm2k-snes/harness`.
 pub fn harness() -> PathBuf {
-    tools().join("rm2k-snes/harness")
+    let tools = tools();
+    let laid = tools.join(HARNESS_BESIDE_BIN);
+    if laid.is_dir() {
+        return laid;
+    }
+    tools.join("rm2k-snes/harness")
 }
+
+/// Where the harness goes beside a `bin/`: `just install` links it there,
+/// and a release's archive carries it there.
+pub const HARNESS_BESIDE_BIN: &str = "lib/advocate/harness";
 
 #[cfg(test)]
 mod tests {

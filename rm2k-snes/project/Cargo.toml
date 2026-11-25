@@ -8,13 +8,6 @@ description = "Finds an rm2k-snes project, reads its settings, and knows where t
 name = "rm2k_project"
 path = "src/lib.rs"
 
-# For whoever is not a tool and needs what the tools know about a game —a
-# game's tests—: the project as this library resolves it, in JSON. See
-# `src/main.rs`.
-[[bin]]
-name = "rm2k-snes-project"
-path = "src/main.rs"
-
 [dependencies]
 clap = "4"
 # `preserve_order`, like `toml`'s: the settings come out in the order the

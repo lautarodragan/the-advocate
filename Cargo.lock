@@ -480,7 +480,6 @@ version = "0.1.0"
 name = "rm2k-snes-cartridge"
 version = "0.1.0"
 dependencies = [
- "clap",
  "ditto",
  "rm2k-project",
  "rm2k-rules",
@@ -566,7 +565,6 @@ dependencies = [
 name = "rm2k-snes-patches"
 version = "0.1.0"
 dependencies = [
- "clap",
  "rm2k-project",
  "serde",
  "serde_json",

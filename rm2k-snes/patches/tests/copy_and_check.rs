@@ -1,15 +1,18 @@
-//! The binary as its callers see it —whoever copies and checks what is
-//! versioned—, over builds written as the converter writes them, and what
-//! the tests of a cartridge carry that is not the game's.
+//! Copying and checking what is versioned, as `advocate build` does it
+//! —with `--write-patches`, and on every build—, over builds written as the
+//! converter writes them; and what the tests of a cartridge carry that is
+//! not the game's. Until 2026-11-25 this ran the `rm2k-snes-patches`
+//! binary, which did both.
 
-use rm2k_snes_patches::{only_for_tests, put, report, stage, Key, Kind, Request};
+use rm2k_snes_patches::{
+    check, copy, only_for_tests, put, report, stage, Checked, Key, Kind, Request,
+};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
-        "rm2k-snes-patches-cli-{name}-{}",
+        "rm2k-snes-patches-copy-{name}-{}",
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&dir);
@@ -17,12 +20,41 @@ fn scratch(name: &str) -> PathBuf {
     dir
 }
 
-fn run(dir: &Path, args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_rm2k-snes-patches"))
-        .current_dir(dir)
-        .args(args)
-        .output()
-        .unwrap()
+/// The project's test maps, in every test here.
+fn tests() -> BTreeSet<i64> {
+    [52].into()
+}
+
+/// Writes `build`'s decisions over `dir`'s `patches/auto/`, and says what it
+/// wrote, a line per kind, as `advocate build --write-patches` prints it.
+fn write(dir: &Path, build: &str) -> String {
+    let auto = dir.join("patches/auto");
+    Kind::ALL
+        .into_iter()
+        .map(|kind| {
+            let (count, bytes, removed) = copy(&auto, &dir.join(build), kind, &tests()).unwrap();
+            assert!(removed.is_empty(), "{removed:?}");
+            format!(
+                "{count} patch(es) in patches/auto/{}, {bytes} B\n",
+                kind.directory()
+            )
+        })
+        .collect()
+}
+
+/// `dir`'s `patches/auto/` against what the `builds` decided.
+fn checked(dir: &Path, builds: &[&str]) -> Checked {
+    let builds: Vec<PathBuf> = builds.iter().map(|b| dir.join(b)).collect();
+    check(&dir.join("patches/auto"), &builds, &tests(), dir).unwrap()
+}
+
+/// What only some cartridge decided, by kind, with its keys.
+fn own(checked: &Checked) -> Vec<(Kind, Vec<String>)> {
+    checked
+        .own
+        .iter()
+        .map(|(kind, keys)| (*kind, keys.keys().map(|k| k.to_string()).collect()))
+        .collect()
 }
 
 /// What the converter leaves in `build`, inside `dir`, for the request in
@@ -38,25 +70,12 @@ fn convert(dir: &Path, file: &str, build: &str) -> String {
         .collect()
 }
 
-fn text(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes).into_owned()
-}
-
 fn game(name: &str) -> String {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/game")
         .join(name)
         .display()
         .to_string()
-}
-
-/// A project whose test maps are `[52]`, with its patches in `patches/`.
-fn project(dir: &Path) {
-    std::fs::write(
-        dir.join("advocate.toml"),
-        "[paths]\npatches = \"patches\"\nbuild = \"build\"\n\n[maps]\ntest = [52]\n",
-    )
-    .unwrap();
 }
 
 #[test]
@@ -90,63 +109,48 @@ fn writing_a_build_again_leaves_nothing_from_the_previous_run() {
 #[test]
 fn what_is_copied_is_checked_and_what_is_touched_fails() {
     let dir = scratch("check");
-    project(&dir);
     convert(&dir, &game("release.json"), "build/release");
     std::fs::copy(
         game("uses.json"),
         dir.join("build/release/patches/uses.json"),
     )
     .unwrap();
-    let out = run(&dir, &["build/release"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
     assert_eq!(
-        text(&out.stdout),
+        write(&dir, "build/release"),
         "3 patch(es) in patches/auto/maps, 2933 B\n\
          2 patch(es) in patches/auto/animations, 1599 B\n\
          2 patch(es) in patches/auto/battlers, 1775 B\n\
          0 patch(es) in patches/auto/windows, 0 B\n"
     );
-    // A directory with cartridges inside is the same as naming them.
-    let out = run(&dir, &["--check", "build"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
+    let matching = checked(&dir, &["build/release"]);
+    assert_eq!(matching.complaints, Vec::<String>::new());
     assert_eq!(
-        text(&out.stdout),
-        "the game's 3 patch(es) of map(s) match what 1 cartridge(s) decided\n  \
-         and 1 that only exist for the suite, which decide on their own: 52\n\
-         the game's 2 patch(es) of animation(s) match what 1 cartridge(s) decided\n  \
-         and 1 that only exist for the suite, which decide on their own: 91\n\
-         the game's 2 patch(es) of battler(s) match what 1 cartridge(s) decided\n  \
-         and 1 that only exist for the suite, which decide on their own: ghost\n\
-         the game's 0 patch(es) of window(s) match what 1 cartridge(s) decided\n"
+        own(&matching),
+        [
+            (Kind::Map, vec!["52".to_string()]),
+            (Kind::Animation, vec!["91".to_string()]),
+            (Kind::Battler, vec!["ghost".to_string()]),
+        ]
     );
     let versioned = dir.join("patches/auto/animations/0001.toml");
     let touched = std::fs::read_to_string(&versioned)
         .unwrap()
         .replace("size = [56, 64]", "size = [56, 63]");
     std::fs::write(&versioned, touched).unwrap();
-    let out = run(&dir, &["--check", "build/release"]);
-    assert_eq!(out.status.code(), Some(1));
     assert_eq!(
-        text(&out.stderr),
-        "  patches/auto/animations/0001.toml is stale (cartridge «release» says so), and \
+        checked(&dir, &["build/release"]).complaints,
+        [
+            "patches/auto/animations/0001.toml is stale (cartridge «release» says so), and \
          what changed in animation 1 is this:\n    it was drawn at 56x63 and now it is drawn \
          at 56x64\n  If the change is the one intended, run `advocate build --write-patches` \
-         and commit; if not, something moved what is seen.\n1 patch(es) do not match what the converter decides\n"
-    );
-    // And copying twice is what the playable ROM gives, and nothing else.
-    let out = run(&dir, &["build/release", "build/release"]);
-    assert_eq!(out.status.code(), Some(1));
-    assert!(
-        text(&out.stderr).contains("not 2 cartridges"),
-        "{}",
-        text(&out.stderr)
+         and commit; if not, something moved what is seen."
+        ]
     );
 }
 
 #[test]
 fn a_window_that_lost_colours_is_written_and_checked() {
     let dir = scratch("window");
-    project(&dir);
     std::fs::write(
         dir.join("window.json"),
         r#"{"windows": [{"system": "Gold Skin", "colors": 17, "kept": 15,
@@ -154,8 +158,7 @@ fn a_window_that_lost_colours_is_written_and_checked() {
     )
     .unwrap();
     convert(&dir, "window.json", "build/release");
-    let out = run(&dir, &["build/release"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
+    write(&dir, "build/release");
     let versioned = dir.join("patches/auto/windows/Gold_Skin.toml");
     let written = std::fs::read_to_string(&versioned).unwrap();
     assert!(written.contains("system = \"Gold Skin\"\n"), "{written}");
@@ -163,17 +166,17 @@ fn a_window_that_lost_colours_is_written_and_checked() {
         written.contains("  { from = [9, 9, 9], to = [8, 8, 8], pixels = 7 },\n"),
         "{written}"
     );
-    let out = run(&dir, &["--check", "build/release"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(
+        checked(&dir, &["build/release"]).complaints,
+        Vec::<String>::new()
+    );
 
     std::fs::write(
         &versioned,
         written.replace("to = [8, 8, 8]", "to = [7, 7, 7]"),
     )
     .unwrap();
-    let out = run(&dir, &["--check", "build/release"]);
-    assert_eq!(out.status.code(), Some(1));
-    let said = text(&out.stderr);
+    let said = checked(&dir, &["build/release"]).complaints.join("\n");
     assert!(said.contains("in window Gold Skin is this:"), "{said}");
     assert!(
         said.contains("merges [9, 9, 9] -> [8, 8, 8], which it did not"),

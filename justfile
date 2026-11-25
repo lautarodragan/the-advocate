@@ -25,9 +25,11 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # are compiled with them. So a branch that changes a library reinstalls the
 # binaries that link it, not the library —its dependents in `cargo
 # metadata`: `gunter`'s is `rm2k-snes-audio`, `rm2k-render`'s are most of
-# the stages—; one that changes `project` reinstalls everything, and
-# `project` too, for its one binary, `rm2k-snes-project`, which answers
-# what a game's tests ask about the project.
+# the stages—; one that changes `project` reinstalls everything. `project`,
+# `cartridge` and `patches` had a binary each until 2026-11-25
+# —`rm2k-snes-project`, `rm2k-snes-cartridges`, `rm2k-snes-patches`—, which
+# `advocate` replaced: installing does not remove them, `cargo uninstall
+# rm2k-project rm2k-snes-cartridge rm2k-snes-patches --root <root>` does.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own:

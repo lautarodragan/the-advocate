@@ -20,7 +20,6 @@ use std::process::ExitCode;
 /// The subcommands written with clap's builder and not its derive, like
 /// the flags of the machine they take —`arguments` in `rm2k-project`—.
 mod commands {
-    pub mod msu;
     pub mod volume_ceilings;
 }
 
@@ -333,11 +332,9 @@ fn do_find_song(args: &FindSongArgs) -> Result<()> {
 
 fn main() -> ExitCode {
     let matches = Cli::command()
-        .subcommand(commands::msu::command())
         .subcommand(commands::volume_ceilings::command())
         .get_matches();
     let builder = match matches.subcommand() {
-        Some(("msu", sub)) => Some(("msu", commands::msu::run(sub))),
         Some(("volume-ceilings", sub)) => {
             Some(("volume-ceilings", commands::volume_ceilings::run(sub)))
         }

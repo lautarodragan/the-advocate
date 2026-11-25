@@ -252,36 +252,3 @@ fn resolved_refuses_a_project_without_its_paths() {
     let error = rm2k_project::resolved(&p).unwrap_err().to_string();
     assert!(error.ends_with("missing key paths.build"), "{error}");
 }
-
-/// The binary itself, as a game's tests run it: by `--project`, and with an
-/// error on stderr and a failing status when there is no project.
-#[test]
-fn the_binary_prints_it_and_fails_with_the_librarys_message() {
-    let root = scratch("binary");
-    fs::write(root.join(FILENAME), SETTINGS).unwrap();
-    let binary = env!("CARGO_BIN_EXE_rm2k-snes-project");
-    let done = std::process::Command::new(binary)
-        .arg("--project")
-        .arg(&root)
-        .output()
-        .unwrap();
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
-    let out: serde_json::Value = serde_json::from_slice(&done.stdout).unwrap();
-    assert_eq!(out["project"]["data"], root.join("data").to_str().unwrap());
-    assert_eq!(out["settings"]["rom"]["name"], "game");
-
-    let empty = scratch("binary_without_project");
-    let done = std::process::Command::new(binary)
-        .arg("--project")
-        .arg(&empty)
-        .output()
-        .unwrap();
-    assert!(!done.status.success());
-    let error = String::from_utf8_lossy(&done.stderr);
-    assert!(error.starts_with("rm2k-snes-project: "), "{error}");
-    assert!(error.contains("has no advocate.toml"), "{error}");
-}

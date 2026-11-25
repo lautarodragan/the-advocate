@@ -68,10 +68,6 @@ pub fn variables_stamp(lookup: impl Fn(&str) -> Option<String>) -> String {
         .collect()
 }
 
-/// The subcommands of `rm2k-snes-cartridges`, which no cartridge can be
-/// called: `rm2k-snes-cartridges space` would not build it.
-pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
-
 /// The extensions of what the stages read from the original game, in lower
 /// case: the graphics —`.xyz` too, which the battle's lookups accept— and
 /// the songs and sounds. What else a game ships is not read, or reaches
@@ -281,13 +277,6 @@ impl Cartridges {
             .cloned()
             .collect();
         for name in names {
-            if SUBCOMMANDS.contains(&name.as_str()) {
-                return Err(format!(
-                    "{}: a cartridge cannot be called {name}: `rm2k-snes-cartridges {name}` \
-                     is the subcommand",
-                    cartridges.project.file().display()
-                ));
-            }
             let c =
                 cartridges.read_cartridge(&name, with_enemy_hp, with_debug_screen, with_phasing)?;
             cartridges.cartridges.push(c);

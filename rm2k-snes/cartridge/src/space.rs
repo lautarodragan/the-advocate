@@ -33,7 +33,7 @@ use crate::assemble::MEMORY_MAP;
 use crate::banks::{self, segment_of, BANK_SIZE};
 use crate::dbg::{self, number};
 
-/// What [`show`] prints.
+/// What a ROM has left: what `space.json` keeps beside it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Measure {
     pub banks: usize,
@@ -219,69 +219,9 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
     })
 }
 
-/// `n` bytes, with dots between the thousands: `12.345 B`.
-fn b(n: i64) -> String {
-    let digits = n.unsigned_abs().to_string();
-    let mut out = String::new();
-    for (i, c) in digits.chars().enumerate() {
-        if i > 0 && (digits.len() - i).is_multiple_of(3) {
-            out.push('.');
-        }
-        out.push(c);
-    }
-    format!("{}{out} B", if n < 0 { "-" } else { "" })
-}
-
-/// The report for one ROM, headed by `title`.
-pub fn show(title: &str, m: &Measure) -> String {
-    let mut out = format!("{title}\n");
-    out += &format!(
-        "  data banks       {} of {} used, {} of them in the slow 4 MB\n",
-        m.used, m.banks, m.slow
-    );
-    out += &format!(
-        "  free             {} whole banks of 64 KB, {} of them fast; and {} halves of 32 KB\n",
-        m.free, m.free_fast, m.free_halves
-    );
-    out += &format!(
-        "  gaps             {} in the used ones, the largest {}\n",
-        b(m.gaps),
-        b(m.largest_gap)
-    );
-    out += &format!("  bank 0           {}\n", b(m.bank0));
-    out += &format!("  bank 1           {}\n", b(m.bank1));
-    out += &format!("  bank $C0         {}\n", b(m.bank_far2));
-    out += &format!("  bank $C1         {}\n", b(m.bank_far3));
-    out += &format!("  bank $FF         {}\n", b(m.bank_far4));
-    out += &format!("  BSS              {}\n", b(m.bss));
-    out += &format!("  ZEROPAGE         {}\n", b(m.zeropage));
-    out += &format!("  far RAM          {}\n", b(m.far));
-    match (m.texts, m.texts_cap) {
-        (Some(texts), Some(cap)) => {
-            out += &format!(
-                "  texts            {} of {}; {} left\n",
-                b(texts),
-                b(cap),
-                b(cap - texts)
-            );
-        }
-        _ => out += "  texts            the ROM does not say how long they are\n",
-    }
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn thousands_go_with_dots() {
-        assert_eq!(b(0), "0 B");
-        assert_eq!(b(999), "999 B");
-        assert_eq!(b(1000), "1.000 B");
-        assert_eq!(b(1234567), "1.234.567 B");
-        assert_eq!(b(-1234), "-1.234 B");
-    }
 
     #[test]
     fn the_areas_come_from_the_memory_map() {
