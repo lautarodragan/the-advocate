@@ -17,13 +17,12 @@
 
 use crate::answer;
 use crate::cells::{self, rgb15, Color, Counts};
-use crate::fail::{Bad, Result};
+use crate::fail::Result;
 use crate::game::Game;
 use crate::layout::{FACE, FACE_CELLS, MSG_FACE_X, MSG_FACE_Y, WINDOW_HEIGHT, WINDOW_WIDTH};
 use crate::message_window::cgram_word;
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::source::find_resource;
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// The colours a face has, besides index 0, which the window never shows.
@@ -43,28 +42,6 @@ pub struct DrawnFace {
 /// A face as the request names it: the FaceSet, the index in it and
 /// whether it is mirrored.
 pub type Request = (String, i32, bool);
-
-/// The `faces` of a request: `[[FaceSet, index, mirrored], ...]`.
-pub fn requested(data: &Value, whose: &str) -> Result<Vec<Request>> {
-    let bad = || {
-        Bad::answer(format!(
-            "{whose}: `faces` is not a list of [FaceSet, index, mirrored]"
-        ))
-    };
-    data.get("faces")
-        .and_then(Value::as_array)
-        .ok_or_else(bad)?
-        .iter()
-        .map(|f| {
-            let f = f.as_array().filter(|f| f.len() == 3).ok_or_else(bad)?;
-            Ok((
-                f[0].as_str().ok_or_else(bad)?.to_string(),
-                f[1].as_i64().ok_or_else(bad)? as i32,
-                f[2].as_bool().ok_or_else(bad)?,
-            ))
-        })
-        .collect()
-}
 
 /// Each requested face drawn. One whose FaceSet is neither in the game's
 /// `FaceSet/` nor in the RTP's comes out as the window's background alone,

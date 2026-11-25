@@ -13,7 +13,7 @@ use crate::fail::{Bad, Result};
 use crate::layout::*;
 
 /// What the request says of video memory.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Vram {
     /// Where the slot screen's and the menu's tiles start: the base of BG1
     /// and BG2 while they are open.

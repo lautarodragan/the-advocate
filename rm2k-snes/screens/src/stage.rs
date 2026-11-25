@@ -18,12 +18,11 @@
 
 use crate::answer;
 use crate::fail::{Bad, Result};
-use crate::request::Json;
+use crate::request;
 use crate::{boxes as box_table, convert as screens, faces as face_sets};
 use crate::{layout as geometry, message_window, texts, Game};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
-use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -78,17 +77,6 @@ impl Drop for Fresh {
     }
 }
 
-/// `request` as the screens read a request, named for their messages:
-/// the converter's has no file. Each command has a door that takes the
-/// [`Json`] instead, `<command>_of`, which the binary goes through so its
-/// complaints keep the request file's name.
-fn json(request: &Value) -> Json {
-    Json {
-        data: request.clone(),
-        whose: "the request".to_string(),
-    }
-}
-
 /// `answer` as the file `name`, as every JSON of this crate is written:
 /// on one line, with no newline after it.
 fn one(name: &str, answer: &impl serde::Serialize) -> Files {
@@ -96,129 +84,82 @@ fn one(name: &str, answer: &impl serde::Serialize) -> Files {
     Files::from([(name.to_string(), text.into_bytes())])
 }
 
-/// The game, drawing with the font the request names: `font`, which is the
-/// project file's `[text] font` —`rm2k`, one the engine carries, or the
-/// path of a sheet—, spaced by its `letter_spacing`, and with the icons of
-/// the ExFont when the request names its sheet, `exfont`.
+/// The game, drawing with `font` —see [`request::TextFont`]—.
 ///
-/// And with the Latin-1 letters the text screens write, `screen_letters`,
-/// carried —see `texts::carry_letters`—: every text a screen writes keeps
-/// them from here on, until the stage ends.
-pub fn game_with_font(place: &Place, json: &Json) -> Result<Game> {
+/// And with the Latin-1 letters the message boxes draw, `letters`, and the
+/// ones only the text screens write, `screen_letters`, carried —see
+/// `texts::carry_letters`—: every text a screen writes keeps them from
+/// here on, until the stage ends.
+pub fn game_with_font(
+    place: &Place,
+    font: &request::TextFont,
+    letters: &[char],
+    screen_letters: &[char],
+) -> Result<Game> {
     let mut game = place.game()?;
-    game.use_font(
-        &json.text("font")?,
-        json.number_or("letter_spacing", 0)?,
-        json.exfont()?.as_deref(),
-    )?;
-    let letters = texts::screen_letters(
-        &game,
-        &json.letters("letters")?,
-        &json.letters("screen_letters")?,
-    )?;
+    game.use_font(&font.font, font.letter_spacing, font.exfont.as_deref())?;
+    let letters = texts::screen_letters(&game, letters, screen_letters)?;
     texts::carry_letters(&letters.screens);
     Ok(game)
 }
 
 /// `convert`: every screen a cartridge carries, as `screens.json`.
-pub fn convert(place: &Place, request: &Value) -> Result<Files> {
-    convert_of(place, &json(request))
-}
-
-/// [`convert`], asked a request already read.
-pub fn convert_of(place: &Place, json: &Json) -> Result<Files> {
+pub fn convert(place: &Place, request: &request::Convert) -> Result<Files> {
     let _fresh = Fresh::start();
-    let game = game_with_font(place, json)?;
-    let answer = screens::convert(&game, &json.convert()?)?;
+    let game = game_with_font(
+        place,
+        &request.font,
+        &request.letters,
+        &request.screen_letters,
+    )?;
+    let answer = screens::convert(&game, &request.read()?)?;
     Ok(one("screens.json", &answer))
 }
 
-/// How a request's window measures a line: `font` —the project file's
-/// `[text] font`, spaced by `letter_spacing`— and `width` in pixels; or
-/// `advances`, each glyph's from the space on, and `width`, which is the
-/// window the converter hands the event compiler, with its `letters`, the
-/// Latin-1 the font draws, each with its advance; or, without either,
-/// `columns` characters of RM2k's fixed-width font, which is how it was
-/// asked until 2026-10-03.
-pub fn measure_of(json: &Json) -> Result<Measure> {
-    if json.data.get("advances").is_some_and(|f| !f.is_null()) {
-        let mut advances: Vec<u8> = json
-            .numbers("advances")?
-            .into_iter()
-            .map(|a| a as u8)
-            .collect();
+/// How a request's window measures a line: see [`request::Line`].
+pub fn measure_of(line: &request::Line) -> Result<Measure> {
+    if let Some(advances) = &line.advances {
+        let mut advances = advances.clone();
         let mut half = 0;
-        for pair in json
-            .data
-            .get("letters")
-            .and_then(|l| l.as_array())
-            .into_iter()
-            .flatten()
-        {
-            let letter = pair
-                .get(0)
-                .and_then(|l| l.as_str())
-                .and_then(|l| l.chars().next());
-            let advance = pair.get(1).and_then(|a| a.as_u64());
-            let (Some(letter), Some(advance)) = (letter, advance) else {
-                return Err(Bad::answer(format!(
-                    "a window's `letters` are pairs of a letter and its advance: {pair}"
-                )));
-            };
+        for &(letter, advance) in &line.letters {
             // An icon's half: they all move the line the same.
             if rm2k_snes_text::exfont::is_half(letter) {
-                half = advance as u8;
+                half = advance;
                 continue;
             }
             let at = (letter as u32).saturating_sub(32) as usize;
             if advances.len() <= at {
                 advances.resize(at + 1, 0);
             }
-            advances[at] = advance as u8;
+            advances[at] = advance;
         }
-        return Ok(Measure::from_advances(advances, json.index_or("width", 0)?).with_icons(half));
+        return Ok(Measure::from_advances(advances, line.width).with_icons(half));
     }
-    if json.data.get("font").is_some_and(|f| !f.is_null()) {
-        let spacing = json.number_or("letter_spacing", 0)?;
-        let exfont = json.exfont()?;
-        let font = Font::named(&json.text("font")?, rm2k_snes_text::font::MINCHO)
-            .and_then(|f| f.with_spacing(spacing))
-            .and_then(|f| f.with_exfont_of(exfont.as_deref()))
+    if let Some(name) = &line.font {
+        let font = Font::named(name, rm2k_snes_text::font::MINCHO)
+            .and_then(|f| f.with_spacing(line.letter_spacing))
+            .and_then(|f| f.with_exfont_of(line.exfont.as_deref()))
             .map_err(Bad::answer)?;
-        Ok(Measure::new(&font, json.index_or("width", 0)?))
+        Ok(Measure::new(&font, line.width))
     } else {
-        Ok(Measure::columns(json.index_or("columns", 0)?))
+        Ok(Measure::columns(line.columns))
     }
 }
 
 /// `boxes`: every message box of the game in `data` reflowed for the
 /// console's window, as `boxes.json`.
-pub fn boxes(data: &Path, request: &Value) -> Result<Files> {
-    boxes_of(data, &json(request))
-}
-
-/// [`boxes`], asked a request already read.
-pub fn boxes_of(data: &Path, json: &Json) -> Result<Files> {
+pub fn boxes(data: &Path, request: &request::Boxes) -> Result<Files> {
     let _fresh = Fresh::start();
-    let table = box_table::table(
-        data,
-        &json.files("map_files")?,
-        &measure_of(json)?,
-        json.index_or("lines", 0)?,
-    )?;
+    let files: Vec<PathBuf> = request.map_files.values().cloned().collect();
+    let table = box_table::table(data, &files, &measure_of(&request.line)?, request.lines)?;
     Ok(one("boxes.json", &table))
 }
 
 /// `faces`: the faces the message window shows, as `faces.json`.
-pub fn faces(place: &Place, request: &Value) -> Result<Files> {
-    faces_of(place, &json(request))
-}
-
-/// [`faces`], asked a request already read.
-pub fn faces_of(place: &Place, json: &Json) -> Result<Files> {
+pub fn faces(place: &Place, request: &request::Faces) -> Result<Files> {
     let _fresh = Fresh::start();
     let game = place.game()?;
-    let drawn = face_sets::draw(&game, &face_sets::requested(&json.data, &json.whose)?)?;
+    let drawn = face_sets::draw(&game, &request.faces)?;
     // Through a `Value`, as `window`'s: the binary's keys stay sorted.
     let answer = serde_json::to_value(face_sets::answer(&drawn)).expect("an answer is JSON");
     Ok(one("faces.json", &answer))
@@ -226,16 +167,11 @@ pub fn faces_of(place: &Place, json: &Json) -> Result<Files> {
 
 /// `window`: how many colour-memory entries the message window takes, as
 /// `window.json`; with the request's `systems`, each one's window too.
-pub fn window(place: &Place, request: &Value) -> Result<Files> {
-    window_of(place, &json(request))
-}
-
-/// [`window`], asked a request already read.
-pub fn window_of(place: &Place, json: &Json) -> Result<Files> {
+pub fn window(place: &Place, request: &request::Window) -> Result<Files> {
     let _fresh = Fresh::start();
     let game = place.game()?;
     let skin = game.skin()?;
-    let others = json.systems()?;
+    let others = &request.systems;
     let merges_of = |merges: &[adeleine::Merge]| -> Vec<answer::WindowMerge> {
         merges
             .iter()
@@ -265,7 +201,7 @@ pub fn window_of(place: &Place, json: &Json) -> Result<Files> {
     // Each other System is the same game drawn with it, over its own
     // background or none: the starting one's does not carry over.
     let mut skins = Vec::new();
-    for other in &others {
+    for other in others {
         let mut drawn = place.game()?;
         drawn.system_file = None;
         drawn.use_system(&other.system);
@@ -350,17 +286,29 @@ mod tests {
             "vram": {"slot_vram": 0x2000, "slot_map": 0x3C00,
                      "bg1_banks": [["WINDOW", 0x1000, 0x5000]]},
         });
+        // Read as the binary reads a test's file: what it leaves out takes
+        // the request's defaults.
+        let request: request::Convert = serde_json::from_value(request).unwrap();
         convert(&place, &request).unwrap();
         assert_eq!(texts::carried_letters(), Vec::<char>::new());
         assert_eq!(texts::item_text("é", 4), "e");
 
         let stages: [(&str, &dyn Fn() -> Result<Files>); 3] = [
-            ("faces", &|| {
-                faces(&place, &serde_json::json!({"faces": []}))
-            }),
-            ("window", &|| window(&place, &serde_json::json!({}))),
+            ("faces", &|| faces(&place, &request::Faces::default())),
+            ("window", &|| window(&place, &request::Window::default())),
             ("boxes", &|| {
-                boxes(&place.data, &serde_json::json!({"columns": 38, "lines": 4}))
+                let line = request::Line {
+                    columns: 38,
+                    ..request::Line::default()
+                };
+                boxes(
+                    &place.data,
+                    &request::Boxes {
+                        line,
+                        lines: 4,
+                        ..Default::default()
+                    },
+                )
             }),
         ];
         for (name, stage) in stages {

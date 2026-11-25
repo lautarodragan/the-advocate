@@ -8,7 +8,7 @@
 //! the stage does not know: which actors, which items, how many slots,
 //! where each layout puts BG1.
 
-use crate::compiler::{self, LINES};
+use crate::compiler::LINES;
 use crate::fail::{Result, Stop};
 use crate::font::FontChoice;
 use crate::game::Game;
@@ -17,8 +17,10 @@ use crate::systems::Switched;
 use rm2k_project::windows::color_text;
 use rm2k_snes_mapdata::{cgram, vram};
 use rm2k_snes_screens::answer::{Face, FacesAnswer, WindowAnswer, WindowMerge};
+use rm2k_snes_screens::request;
 use rm2k_snes_screens::stage::Place;
-use serde_json::{json, Value};
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 
 /// The screens' four stages; their `layout` is constants, a plain call.
@@ -81,6 +83,12 @@ fn game_place(game: &Game) -> (Vec<OsString>, Place) {
     (flags, place)
 }
 
+/// `request` as the stage's cache key reads it: the JSON the binary would
+/// have been handed.
+fn in_key(request: &impl serde::Serialize) -> Value {
+    serde_json::to_value(request).expect("a request is JSON")
+}
+
 /// Every text box of the game the port rebuilds for the console's window,
 /// with the boxes that go in its place: `[{"from": lines, "to": boxes}]`,
 /// only those that change. The window's lines are `width` pixels of
@@ -91,17 +99,21 @@ pub fn boxes(
     width: usize,
     lines: u32,
 ) -> Result<Vec<rm2k_snes_screens::boxes::Reflowed>> {
-    let request = json!({
-        "map_files": compiler::map_files(game),
-        "font": font.spec,
-        "letter_spacing": font.spacing,
-        "exfont": font.request()["exfont"],
-        "width": width,
-        "lines": lines,
-    });
+    let font = font.request();
+    let request = request::Boxes {
+        map_files: game.forks.map_files(),
+        line: request::Line {
+            font: Some(font.font),
+            letter_spacing: font.letter_spacing,
+            exfont: font.exfont,
+            width,
+            ..request::Line::default()
+        },
+        lines: lines as usize,
+    };
     let written = stage::call(
         SCREENS_BOXES,
-        &request,
+        &in_key(&request),
         &["--data".into(), game.dump.clone().into_os_string()],
         || rm2k_snes_screens::stage::boxes(&game.dump, &request),
     )?;
@@ -118,10 +130,14 @@ pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Face>> {
     if faces.is_empty() {
         return Ok(Vec::new());
     }
-    let request =
-        json!({"faces": faces.iter().map(|(f, i, m)| json!([f, i, m])).collect::<Vec<_>>()});
+    let request = request::Faces {
+        faces: faces
+            .iter()
+            .map(|(f, i, m)| (f.clone(), *i as i32, *m))
+            .collect(),
+    };
     let (flags, place) = game_place(game);
-    let written = stage::call(SCREENS_FACES, &request, &flags, || {
+    let written = stage::call(SCREENS_FACES, &in_key(&request), &flags, || {
         rm2k_snes_screens::stage::faces(&place, &request)
     })?;
     let answer: FacesAnswer = stage::typed(&written, "faces.json")?;
@@ -150,13 +166,11 @@ pub fn faces(game: &Game, faces: &[(String, i64, bool)]) -> Result<Vec<Face>> {
 /// —`text_rows`, which [`convert`] takes back— and each one's window comes
 /// in `systems`.
 pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, WindowAnswer)> {
-    let request = if switched.is_empty() {
-        json!({})
-    } else {
-        json!({"systems": crate::systems::window_request(game, switched)})
+    let request = request::Window {
+        systems: crate::systems::window_request(game, switched),
     };
     let (flags, place) = game_place(game);
-    let written = stage::call(SCREENS_WINDOW, &request, &flags, || {
+    let written = stage::call(SCREENS_WINDOW, &in_key(&request), &flags, || {
         rm2k_snes_screens::stage::window(&place, &request)
     })?;
     let answer: WindowAnswer = stage::typed(&written, "window.json")?;
@@ -202,6 +216,18 @@ pub fn window_losses(answer: &WindowAnswer) -> Vec<rm2k_snes_patches::WindowDeci
         .collect()
 }
 
+/// What of the screens' request the converter decides with the events
+/// compiled: the custom menus, their variables' slots and the bodies they
+/// run, the names `ChangeHeroName` gives and whether the cartridge carries
+/// the debug screen. See [`request::Convert`].
+pub struct Menus {
+    pub menus: Vec<request::Menu>,
+    pub variables: Vec<(i32, usize)>,
+    pub before_bodies: BTreeMap<i32, u8>,
+    pub names: Vec<(i32, String)>,
+    pub debug: bool,
+}
+
 /// What the cartridge carries of its screens, for `members` —the actors
 /// that can join the party— and `items` —the ones the cartridge knows—,
 /// with the title's menu if `title`. Returns the stage's answer as it came,
@@ -212,14 +238,14 @@ pub fn convert(
     members: &[i32],
     items: &[i32],
     title: bool,
-    menus: &Value,
+    menus: Menus,
     window_colors: u32,
     text_rows: Option<&Vec<Vec<usize>>>,
-    letters: &Value,
+    letters: &[String],
     screen_letters: &[char],
 ) -> Result<rm2k_snes_screens::answer::Answer> {
     let _ = LINES;
-    let bg1_banks: Vec<Value> = vram::LAYOUTS
+    let bg1_banks = vram::LAYOUTS
         .iter()
         .map(|l| {
             let mut end =
@@ -234,53 +260,55 @@ pub fn convert(
                     }
                 }
             }
-            json!([l.name, l.tiles.base, end])
+            (l.name.to_string(), l.tiles.base as usize, end as usize)
         })
         .collect();
-    let mut request = json!({
-        "font": font.spec,
-        "letter_spacing": font.spacing,
-        "exfont": font.request()["exfont"],
-        "slots": vram::SLOTS,
-        "actors": members,
-        "items": items,
-        "title": title,
+    // The Latin-1 letters the message boxes draw, as the event compiler
+    // numbered them: their glyphs go after the console's 96.
+    let letters = letters
+        .iter()
+        .map(|l| {
+            let mut chars = l.chars();
+            match (chars.next(), chars.next()) {
+                (Some(c), None) => Ok(c),
+                _ => Err(Stop::new(format!(
+                    "the event compiler's letter {l:?} is not one letter"
+                ))),
+            }
+        })
+        .collect::<Result<_>>()?;
+    let request = request::Convert {
+        font: font.request(),
+        slots: vram::SLOTS as usize,
+        actors: members.to_vec(),
+        items: items.to_vec(),
+        title,
         // The message window goes in the lowest palette, and the background
         // starts after it: see `cgram.rs` in `rm2k-snes-mapdata`.
-        "cgram_reserved": cgram::cgram_reserved(window_colors),
-        // The Latin-1 letters the message boxes draw, as the event compiler
-        // numbered them: their glyphs go after the console's 96.
-        "letters": letters,
+        cgram_reserved: cgram::cgram_reserved(window_colors) as usize,
+        letters,
         // And the ones the converter found in the texts the text screens
         // compose at run time: those go after them, and the screens write
         // both. See `letters.rs`.
-        "screen_letters": screen_letters.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
-        "vram": {
-            "slot_vram": vram::SLOT_VRAM,
-            "slot_map": vram::SLOT_MAP,
+        screen_letters: screen_letters.to_vec(),
+        vram: rm2k_snes_screens::checks::Vram {
+            slot_vram: vram::SLOT_VRAM as usize,
+            slot_map: vram::SLOT_MAP as usize,
             // Each layout's BG1 bank, which is what `load_map` restores on
             // coming back from a screen: the screens have to fall inside.
-            "bg1_banks": bg1_banks,
+            bg1_banks,
         },
-    });
-    // The text's entries, the same in every System: only a cartridge that
-    // switches has them, and the request of one that does not stays as it
-    // was.
-    if let Some(rows) = text_rows {
-        request["text_rows"] = json!(rows);
-    }
-    // The custom menus, their variables' slots and the bodies they run; and
-    // the names `ChangeHeroName` gives, which ride along in the same value.
-    for key in ["menus", "variables", "before_bodies", "names"] {
-        request[key] = menus[key].clone();
-    }
-    // And the debug screen, only when the cartridge carries it: a request
-    // without it stays as it was.
-    if menus["debug"].as_bool() == Some(true) {
-        request["debug"] = json!(true);
-    }
+        // The text's entries, the same in every System: only a cartridge
+        // that switches has them.
+        text_rows: text_rows.cloned(),
+        menus: menus.menus,
+        variables: menus.variables,
+        before_bodies: menus.before_bodies,
+        names: menus.names,
+        debug: menus.debug,
+    };
     let (flags, place) = game_place(game);
-    let written = stage::call(SCREENS_CONVERT, &request, &flags, || {
+    let written = stage::call(SCREENS_CONVERT, &in_key(&request), &flags, || {
         rm2k_snes_screens::stage::convert(&place, &request)
     })?;
     stage::typed(&written, "screens.json")
