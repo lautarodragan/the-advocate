@@ -31,6 +31,7 @@ use clap::Command;
 
 mod build;
 mod file;
+mod patches;
 
 fn command() -> Command {
     Command::new("advocate")

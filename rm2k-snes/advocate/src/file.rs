@@ -21,6 +21,9 @@
 //!   whether each one is up to date **when the build ended**—, with each
 //!   cartridge's `space`: what `space --json` printed of it, from when it was
 //!   built, or `null` if it is stale;
+//! * `patches`: the versioned patches against what the cartridges decided
+//!   —`stale`, `versioned`, `own`—, what `rm2k-snes-patches --check` said;
+//!   `null` if no cartridge is built with patches. See `patches.rs`;
 //! * `memory_map`: what `assemble --memory-map` printed;
 //! * `sources`: the runtime's `main.s` and what it includes, in `ca65`'s
 //!   order, as `assemble --sources` printed them.
@@ -76,6 +79,7 @@ pub fn write(cartridges: &Cartridges, given: &Environment) -> Result<Value, Stri
         entry["space"] = space;
     }
     out.insert("listing".into(), listing);
+    out.insert("patches".into(), crate::patches::compare(cartridges)?);
     out.insert("memory_map".into(), memory_map());
     let main = cartridges.runtime.join("main.s");
     out.insert("sources".into(), json!(sources(&main)?));

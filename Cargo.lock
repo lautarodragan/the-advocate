@@ -23,6 +23,7 @@ dependencies = [
  "clap",
  "rm2k-project",
  "rm2k-snes-cartridge",
+ "rm2k-snes-patches",
  "serde_json",
 ]
 
@@ -486,6 +487,7 @@ dependencies = [
  "rm2k-snes-audio",
  "rm2k-snes-bytecode",
  "rm2k-snes-convert",
+ "rm2k-snes-events",
  "serde_json",
  "sha2",
  "toml",

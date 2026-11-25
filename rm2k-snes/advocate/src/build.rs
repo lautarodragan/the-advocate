@@ -51,6 +51,13 @@ pub fn command() -> Command {
                 .help("do not make the MSU-1 tracks of release"),
         )
         .arg(
+            Arg::new("write_patches")
+                .long("write-patches")
+                .action(ArgAction::SetTrue)
+                .conflicts_with_all(["list", "into"])
+                .help("write release's decisions over the versioned patches, patches/auto/, once it is built: every build compares them and says which are stale"),
+        )
+        .arg(
             Arg::new("names")
                 .value_name("CARTRIDGE")
                 .num_args(0..)
@@ -119,11 +126,27 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let force = matches.get_flag("force");
     let tracks = names.iter().any(|n| n == RELEASE) && !matches.get_flag("without_tracks");
     let built = cartridges.build_these(&names, &inputs, force, tracks);
+    if built.is_ok() && matches.get_flag("write_patches") {
+        crate::patches::write(&cartridges)?;
+    }
     // The file, whatever the build answered: a cartridge that failed says
     // there why it is stale.
     let written = crate::file::write(&cartridges, &given)?;
     for name in &names {
         println!("{}", room(name, &written));
+    }
+    if let Some(stale) = written["patches"]["stale"]
+        .as_array()
+        .filter(|s| !s.is_empty())
+    {
+        println!(
+            "{} versioned patch(es) do not match what the converter decides; \
+             `advocate build --write-patches` writes {RELEASE}'s:",
+            stale.len()
+        );
+        for complaint in stale {
+            println!("  {}", complaint.as_str().unwrap_or_default());
+        }
     }
     built
 }
