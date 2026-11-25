@@ -487,7 +487,6 @@ dependencies = [
  "rm2k-snes-audio",
  "rm2k-snes-bytecode",
  "rm2k-snes-convert",
- "rm2k-snes-events",
  "serde_json",
  "sha2",
  "toml",

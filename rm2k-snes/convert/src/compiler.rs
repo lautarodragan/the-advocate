@@ -36,6 +36,12 @@ const COMPILE: stage::Stage = stage::Stage {
     binary: "rm2k-snes-events",
     command: "compile",
 };
+/// Which commands each page leaves out, and why: `culprits.json`, beside the
+/// kept request. See [`Compiler::culprits`].
+const CULPRITS: stage::Stage = stage::Stage {
+    binary: "rm2k-snes-events",
+    command: "culprits",
+};
 
 /// How many lines of text fit in the message window: the cartridge's
 /// window, which the compiler cuts the boxes for and the screens draw.
@@ -393,7 +399,46 @@ impl<'a> Compiler<'a> {
         r.messages_step = Some(rm2k_snes_mapdata::engine::MESSAGES_STEP);
         r.encounter_troops = Some(encounter_troops.to_vec());
         self.keep(&r)?;
+        self.culprits(&r)?;
         self.run(COMPILE, rm2k_snes_events::stage::compile, &r)
+    }
+
+    /// Beside the kept request, if one is kept, which commands each page of
+    /// every map of the game, every common event and every troop page
+    /// leaves out, and what keeps it out: `culprits.json`, a report for
+    /// people, left on every build as `converter.log` is (taro,
+    /// 2026-11-25). What `rm2k-snes-events culprits --every-map --request`
+    /// answered to that file, which a game's `just culprits` ran by hand.
+    ///
+    /// **A stage the cache keeps**, keyed by the request and the dump like
+    /// the compiler's two calls: it judges every map of the game, which
+    /// measured on 2026-11-25 takes 0.6 s for ABL's game and 4.5 s for The
+    /// Frozen World's, so a build whose conversion comes from the cache
+    /// would otherwise spend that on every cartridge.
+    fn culprits(&self, request: &Asked) -> Result<()> {
+        use rm2k_snes_events::{culprits, Game, Request};
+        let Some(kept) = &self.keep_request else {
+            return Ok(());
+        };
+        let value = serde_json::to_value(request).expect("a request is JSON");
+        let written = stage::call(CULPRITS, &value, &self.data(), || {
+            let mut request = Request::from_asked(request, "the events request")?;
+            let mut game = Game::from_dump(&self.game.dump, request.patches.clone())?;
+            // As the command does with a request that names no System.
+            if request.patches.systems.is_empty() {
+                request.patches.systems = game.system_names()?;
+                game.patches.systems = request.patches.systems.clone();
+            }
+            let report = culprits::report(&culprits::judge_game(&game, &request, true)?);
+            let text = serde_json::to_string_pretty(&report).expect("a report is JSON") + "\n";
+            Ok::<_, rm2k_snes_events::Bad>(stage::Files::from([(
+                culprits::ANSWER_FILE.to_string(),
+                text.into_bytes(),
+            )]))
+        })?;
+        let path = kept.with_file_name(culprits::ANSWER_FILE);
+        std::fs::write(&path, stage::text(&written, culprits::ANSWER_FILE)?)
+            .map_err(|e| crate::fail::io(&path, e))
     }
 
     /// A compile of a cartridge of `maps` built without converting them: no

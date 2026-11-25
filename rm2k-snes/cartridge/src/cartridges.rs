@@ -860,7 +860,6 @@ impl Cartridges {
         let rom = self.rom_of(name)?;
         self.convert(name, &directory, &rom, &[])?;
         self.measure_space(name)?;
-        self.culprits(name)?;
         std::fs::write(&stamp, self.stamp(name, inputs)?)
             .map_err(|e| format!("{}: {e}", stamp.display()))?;
         Ok(true)
@@ -878,35 +877,6 @@ impl Cartridges {
         std::fs::write(&file, format!("{measured:#}\n"))
             .map_err(|e| format!("{}: {e}", file.display()))?;
         Ok(measured)
-    }
-
-    /// Which commands each page of every map of the game, every common
-    /// event and every troop page leaves out, and what keeps it out, into
-    /// `culprits.json` beside the ROM: a report for people, left on every
-    /// build as `converter.log` is (taro, 2026-11-25). It asks the event
-    /// compiler what the converter asked it, from the request the
-    /// conversion left beside the ROM, about every map of the game and not
-    /// only the cartridge's —what `rm2k-snes-events culprits --every-map`
-    /// did, which a game's `just culprits` ran by hand—. Measured on
-    /// 2026-11-25: 0.6 s for ABL's game, 1.1 s for Vampires Dawn's, in the
-    /// cartridge's own thread.
-    pub fn culprits(&self, name: &str) -> Result<(), String> {
-        use rm2k_snes_events::{culprits, Game, Request};
-        let directory = self.directory(name)?;
-        let fail = |e: rm2k_snes_events::Bad| format!("{name}: culprits: {e}");
-        let mut request = Request::read(&directory.join("events-request.json")).map_err(fail)?;
-        let mut game =
-            Game::from_dump(&self.project.data()?, request.patches.clone()).map_err(fail)?;
-        // As the command did with a request that names no System.
-        if request.patches.systems.is_empty() {
-            request.patches.systems = game.system_names().map_err(fail)?;
-            game.patches.systems = request.patches.systems.clone();
-        }
-        let judged = culprits::judge_game(&game, &request, true).map_err(fail)?;
-        let report = culprits::report(&judged);
-        let file = directory.join(culprits::ANSWER_FILE);
-        std::fs::write(&file, serde_json::to_string_pretty(&report).unwrap() + "\n")
-            .map_err(|e| format!("{}: {e}", file.display()))
     }
 
     /// The space [`Self::measure_space`] left beside the cartridge, or None
