@@ -199,7 +199,7 @@ pub fn run(options: Options) -> Result<()> {
     let start_index = options.start_index as usize;
     let output = match &options.output {
         Some(o) => rm2k_project::absolute(o),
-        None => project.build()?.join("inc").join("mapdata.inc"),
+        None => project.build().join("inc").join("mapdata.inc"),
     };
     let game_dir = environment.game()?.to_path_buf();
     let rtp_dir = environment.rtp()?.to_path_buf();
@@ -2093,7 +2093,7 @@ pub fn run(options: Options) -> Result<()> {
     // The music comes from here and not from a separate recipe: emitting
     // them together is the only thing that guarantees both describe the
     // same ROM. What each map's package carries, whether the boot fits and
-    // the `.msu` are `rm2k-snes-audio cartridge`'s.
+    // the `.msu` are the music stage's, `rm2k_snes_audio::stage::cartridge`.
     let msu = options
         .msu
         .clone()
@@ -2136,7 +2136,7 @@ pub fn run(options: Options) -> Result<()> {
         })?;
     let blob = files
         .remove(rm2k_snes_audio::stage::MSU)
-        .ok_or_else(|| Stop::new("rm2k-snes-audio cartridge answered no .msu"))?;
+        .ok_or_else(|| Stop::new("the music stage answered no .msu"))?;
     for (name, bytes) in &files {
         let path = directory.join(name);
         std::fs::write(&path, bytes).map_err(|e| crate::fail::io(&path, e))?;
@@ -2158,7 +2158,7 @@ pub fn run(options: Options) -> Result<()> {
     }
     degradations.write(&directory)?;
     // The bank packing is not decided here: both files send everything to
-    // RODATA, and `rm2k-snes-cartridges assemble` spreads it into banks.
+    // RODATA, and the assembling spreads it into banks.
     Ok(())
 }
 
@@ -2175,7 +2175,7 @@ pub fn search_dirs(
         game.game_dir.clone(),
         rtp_dir.to_path_buf(),
     ];
-    let built = project.build()?.join("patches-manual");
+    let built = project.build().join("patches-manual");
     crate::chipsets::build_images(game, &built, &dirs)?;
     dirs.insert(0, built);
     Ok(dirs)

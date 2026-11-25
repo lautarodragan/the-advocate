@@ -8,12 +8,7 @@ description = "What an rm2k-snes converter decided to lose, written down as TOML
 name = "rm2k_snes_patches"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-patches"
-path = "src/main.rs"
-
 [dependencies]
-clap = "4"
 rm2k-project = { path = "../project" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

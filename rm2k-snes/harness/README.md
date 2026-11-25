@@ -11,7 +11,7 @@ title screen, its menus, its battles—, and so do the ports' other games.
                           frame: no X, no clock, no sleeps
       cores.py            which cores, and where the machine has them
       game.py             a game's project and its cartridges, as
-                          `rm2k-snes-cartridges` answers for them
+                          `build/advocate.json` says them
       session.py          a cartridge running: the tick clock, the cases,
                           the map, the switches, the control, the reset
       golden.py           a capture against its golden, at 15 bits
@@ -35,13 +35,13 @@ so the harness and the runtime whose symbols it reads are always the same
 checkout's. A worktree's `install-local` links its own in its
 `.local-tools/`, and a game's tests take the one beside the first
 `advocate` of their PATH before the one of `site-packages`. A release's
-archive carries it beside the runtime. The test game, which lives here,
+archive carries it at the same place, beside its `bin/`. The test game, which lives here,
 names it in its `pytest.ini` instead. Until 2026-11-25 the tests asked
 `rm2k-snes-project --harness` where it was.
 
 **A game says once what it is**, before its first test —in its
-`conftest.py`—: `rm2k_snes_harness.use(Game(root, flags, goldens,
-snapshots))`, with the flags its `just cartridges` builds it with. From
+`conftest.py`—: `rm2k_snes_harness.use(Game(root, goldens,
+snapshots))`. From
 then on `Session(core, case=...)` is its `release` running with that test
 page chosen, and `golden(name, image, core)` compares against its goldens.
 

@@ -1,6 +1,6 @@
 //! The 65816 side: a bytecode as `ca65` equates.
 //!
-//! `rm2k-snes-cartridges assemble` writes these next to a cartridge's other generated
+//! `advocate build` writes these next to a cartridge's other generated
 //! files every time it builds one —[`FILES`] says which and under what
 //! name—, so the runtime has no number written down and no generated file
 //! that can go stale. Nothing here knows what an opcode means: it is the
@@ -25,7 +25,7 @@ fn header(name: &str) -> Vec<String> {
     vec![
         format!("; The {name} opcodes: their numbers and their layout."),
         ";".into(),
-        "; Written by rm2k-snes-cartridges assemble, at every build, from the declaration".into(),
+        "; Written by advocate build, at every build, from the declaration".into(),
         "; in the rm2k-snes-bytecode crate. **Do not edit:** change the".into(),
         "; declaration, and the next build writes it again.".into(),
     ]

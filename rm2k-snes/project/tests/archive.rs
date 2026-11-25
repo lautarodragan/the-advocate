@@ -71,7 +71,7 @@ fn zip(path: &Path, entries: &[(&str, &[u8], bool)]) {
 }
 
 fn project(dir: &Path) -> Project {
-    Project::from_text(dir, "[paths]\nbuild = \"build\"\n").unwrap()
+    Project::from_text(dir, "").unwrap()
 }
 
 #[test]

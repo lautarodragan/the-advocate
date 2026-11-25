@@ -4,7 +4,7 @@
 //! It reads the game from the dump itself. What it is told is what the
 //! dump does not say: the cartridge's maps and test pages, and what the
 //! project changed on top of the dump —the forks' files, the text boxes
-//! rebuilt for the console's window (`rm2k-snes-screens boxes`), the names
+//! rebuilt for the console's window (`rm2k_snes_screens::stage::boxes`), the names
 //! the port gives some graphics, how a `TileSubstitution` translates to the
 //! map's blocks, which pictures each map carries, the sound effects decided
 //! by ear—. See the crate's README.

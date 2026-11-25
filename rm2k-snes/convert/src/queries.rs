@@ -24,9 +24,6 @@ use serde_json::json;
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
-/// The questions, by the word that asks each.
-pub const QUERIES: [&str; 5] = ["scan", "compile", "leaders", "map-context", "boxes"];
-
 fn common(c: clap::Command) -> clap::Command {
     let mut c = c.arg(
         Arg::new("project")

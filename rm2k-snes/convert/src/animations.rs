@@ -252,7 +252,7 @@ pub fn report(info: &Info) -> Report {
     }
 }
 
-/// The cartridge's battle animations as `rm2k-snes-mapdata emit` takes
+/// The cartridge's battle animations as `rm2k_snes_mapdata::stage::emit` takes
 /// them: the box, and per animation its frames as they end up in VRAM, its
 /// anchor as the console's table carries it and its colours.
 pub fn request(

@@ -546,7 +546,7 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
         .expect("musicdata.inc was made from a String");
     text.push_str(&written.inc);
     // With the header and not at the end: from the first `.segment` on,
-    // `rm2k-snes-cartridges assemble` packs the file into banks and the comments do
+    // the assembling packs the file into banks and the comments do
     // not survive it.
     let header = text.find("\n\n").map_or(text.len(), |i| i + 1);
     text.insert_str(

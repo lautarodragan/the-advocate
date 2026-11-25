@@ -466,7 +466,6 @@ fn soundfont() -> Vec<u8> {
 pub const PROJECT: &str = r#"[paths]
 data = "data"
 patches = "patches"
-build = "build"
 cases = "cases"
 
 [sound_effects]

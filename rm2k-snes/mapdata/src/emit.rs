@@ -1078,7 +1078,7 @@ fn window_section(
 
     font_section(out, screens)?;
     out.block("messages", &r.messages);
-    // How big it is and how big it can be, for `rm2k-snes-cartridges space`: the operand
+    // How big it is and how big it can be, for the space a build measures: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
     out.push_str(&format!(
         "MESSAGES_BYTES = {}\nMESSAGES_CAP = {}\n",

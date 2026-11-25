@@ -23,7 +23,7 @@ fn write(path: &Path, content: &str) {
 }
 
 fn project(dir: &Path) -> Project {
-    Project::from_text(dir, "[paths]\nbuild = \"build\"\npatches = \"patches\"\n").unwrap()
+    Project::from_text(dir, "[paths]\npatches = \"patches\"\n").unwrap()
 }
 
 /// A game and an RTP, below `dir`.

@@ -34,12 +34,9 @@ use rm2k_snes_audio::tracks::{Tracks, GAIN};
 
 pub use rm2k_project::environment::RELEASE;
 
-/// What the converter needs from the machine, which it receives by flags as
-/// its binary does; and what this one adds: where the test cartridges go,
-/// and the replacements for the MSU-1 tracks.
-/// `rm2k-snes-cartridges space` takes the same ones: it asks whether a
-/// cartridge is up to date, and the fingerprint reads the game, the RTP's
-/// path and the SoundFont's.
+/// What the converter needs from the machine, which it receives as flags,
+/// as its binary did until 2026-11-25; and what the builder adds: where the
+/// test cartridges go, and the replacements for the MSU-1 tracks.
 pub const TO_CONVERTER: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 pub const FROM_ENVIRONMENT: &[&str] = &[
     "game_dir",
@@ -67,10 +64,6 @@ pub fn variables_stamp(lookup: impl Fn(&str) -> Option<String>) -> String {
         })
         .collect()
 }
-
-/// The subcommands of `rm2k-snes-cartridges`, which no cartridge can be
-/// called: `rm2k-snes-cartridges space` would not build it.
-pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
 
 /// The extensions of what the stages read from the original game, in lower
 /// case: the graphics —`.xyz` too, which the battle's lookups accept— and
@@ -281,13 +274,6 @@ impl Cartridges {
             .cloned()
             .collect();
         for name in names {
-            if SUBCOMMANDS.contains(&name.as_str()) {
-                return Err(format!(
-                    "{}: a cartridge cannot be called {name}: `rm2k-snes-cartridges {name}` \
-                     is the subcommand",
-                    cartridges.project.file().display()
-                ));
-            }
             let c =
                 cartridges.read_cartridge(&name, with_enemy_hp, with_debug_screen, with_phasing)?;
             cartridges.cartridges.push(c);

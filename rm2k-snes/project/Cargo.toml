@@ -2,18 +2,11 @@
 name = "rm2k-project"
 version = "0.1.0"
 edition = "2021"
-description = "Finds an rm2k-snes project, reads its settings, and knows where the machine's things are; rm2k-snes-project prints them in JSON"
+description = "Finds an rm2k-snes project, reads its settings, and knows where the machine's things are; and all that as JSON, for whoever is not a tool"
 
 [lib]
 name = "rm2k_project"
 path = "src/lib.rs"
-
-# For whoever is not a tool and needs what the tools know about a game —a
-# game's tests—: the project as this library resolves it, in JSON. See
-# `src/main.rs`.
-[[bin]]
-name = "rm2k-snes-project"
-path = "src/main.rs"
 
 [dependencies]
 clap = "4"

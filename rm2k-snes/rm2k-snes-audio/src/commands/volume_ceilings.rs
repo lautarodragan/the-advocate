@@ -227,7 +227,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Bad> {
     }
 
     // The half-volume copy, in its own build directory.
-    let measure_dir = run.project.build()?.join("ceilings");
+    let measure_dir = run.project.build().join("ceilings");
     println!(
         "a copy of release with the headroom at {MEASURING_HEADROOM:?}, in {}",
         measure_dir.display()

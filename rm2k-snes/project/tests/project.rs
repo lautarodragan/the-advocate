@@ -21,7 +21,6 @@ const SETTINGS: &str = r#"
 [paths]
 data = "data"
 patches = "decided"
-build = "../out"
 cases = "tests/cases"
 
 [rom]
@@ -133,7 +132,7 @@ fn ascii_settings_refuse_what_the_rom_cannot_carry() {
 fn the_paths_are_relative_to_the_file() {
     let p = project();
     assert_eq!(p.data().unwrap(), PathBuf::from("/games/one/data"));
-    assert_eq!(p.build().unwrap(), PathBuf::from("/games/out"));
+    assert_eq!(p.build(), PathBuf::from("/games/one/build"));
     assert_eq!(
         p.manual_patches().unwrap(),
         PathBuf::from("/games/one/decided/manual")
@@ -165,11 +164,11 @@ fn the_cache_and_the_test_cartridges_hang_off_the_build() {
     let mut environment = Environment::default();
     assert_eq!(
         environment.cache(&p).unwrap(),
-        PathBuf::from("/games/out/cache")
+        PathBuf::from("/games/one/build/cache")
     );
     assert_eq!(
         environment.test_cartridges(&p).unwrap(),
-        PathBuf::from("/games/out/tests")
+        PathBuf::from("/games/one/build/tests")
     );
     environment.set("cache", "/elsewhere/../cache");
     assert_eq!(environment.cache(&p).unwrap(), PathBuf::from("/cache"));
@@ -220,7 +219,7 @@ fn a_version_is_the_hash_of_its_files_in_order() {
 fn resolved_has_the_paths_the_suite_and_every_setting_in_order() {
     let out = rm2k_project::resolved(&project()).unwrap();
     assert_eq!(out["project"]["file"], "/games/one/advocate.toml");
-    assert_eq!(out["project"]["build"], "/games/out");
+    assert_eq!(out["project"]["build"], "/games/one/build");
     assert_eq!(
         out["project"]["manual_patches"],
         "/games/one/decided/manual"
@@ -250,38 +249,20 @@ fn resolved_has_the_paths_the_suite_and_every_setting_in_order() {
 fn resolved_refuses_a_project_without_its_paths() {
     let p = Project::from_text(Path::new("/g"), "[paths]\ndata = \"d\"\n").unwrap();
     let error = rm2k_project::resolved(&p).unwrap_err().to_string();
-    assert!(error.ends_with("missing key paths.build"), "{error}");
+    assert!(error.ends_with("missing key paths.patches"), "{error}");
 }
 
-/// The binary itself, as a game's tests run it: by `--project`, and with an
-/// error on stderr and a failing status when there is no project.
 #[test]
-fn the_binary_prints_it_and_fails_with_the_librarys_message() {
-    let root = scratch("binary");
-    fs::write(root.join(FILENAME), SETTINGS).unwrap();
-    let binary = env!("CARGO_BIN_EXE_rm2k-snes-project");
-    let done = std::process::Command::new(binary)
-        .arg("--project")
-        .arg(&root)
-        .output()
-        .unwrap();
+fn a_project_that_still_says_where_its_build_goes_is_refused() {
+    let error = Project::from_text(Path::new("/g"), "[paths]\nbuild = \"out\"\n")
+        .unwrap_err()
+        .to_string();
     assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
+        error.starts_with("/g/advocate.toml: [paths] build is gone"),
+        "{error}"
     );
-    let out: serde_json::Value = serde_json::from_slice(&done.stdout).unwrap();
-    assert_eq!(out["project"]["data"], root.join("data").to_str().unwrap());
-    assert_eq!(out["settings"]["rom"]["name"], "game");
-
-    let empty = scratch("binary_without_project");
-    let done = std::process::Command::new(binary)
-        .arg("--project")
-        .arg(&empty)
-        .output()
-        .unwrap();
-    assert!(!done.status.success());
-    let error = String::from_utf8_lossy(&done.stderr);
-    assert!(error.starts_with("rm2k-snes-project: "), "{error}");
-    assert!(error.contains("has no advocate.toml"), "{error}");
+    assert!(
+        error.contains("always build/ beside advocate.toml"),
+        "{error}"
+    );
 }

@@ -14,7 +14,7 @@
 ;   priming each line's background, as it composes a letter, and the line
 ;   goes up as always. The cartridge carries each face the game names once,
 ;   36 tiles of 4bpp and fifteen colours —`message_face_N`, drawn by
-;   `rm2k-snes-screens faces`—, and `OP_FACE` names one by its place in
+;   `rm2k_snes_screens::stage::faces`—, and `OP_FACE` names one by its place in
 ;   `message_face_ptr`. No VRAM beyond the window's.
 ; * **Its colours go in BG palette 1, on the window's lines only.** The text
 ;   is palette 0 and the map owns every other entry, so the face's fifteen

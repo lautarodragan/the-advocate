@@ -135,7 +135,9 @@ fn program_fingerprint(program: &str, version_flag: &str, missing: &str) -> Resu
 
 /// The code a track's bytes come from, by its source: this file, what it
 /// uses from the crate —and what that uses, closed: a test checks that each
-/// `crate::` they name is here—, and the subcommand that runs it.
+/// `crate::` they name is here—. Until 2026-11-25 the subcommand that ran
+/// it, `commands/msu.rs`, was here too; the builder calls [`Tracks`] since,
+/// and its going rendered every track once more.
 ///
 /// **Not the running executable**, which is what went in until 2026-11-23:
 /// it was `rm2k-snes-msu` then, with only this code in it. Since the tracks
@@ -147,12 +149,11 @@ fn program_fingerprint(program: &str, version_flag: &str, missing: &str) -> Resu
 /// alone. The source still changes exactly when the code does, without
 /// anyone having to remember to bump a number; a comment changed in one of
 /// these files renders them again too.
-const OWN_SOURCES: [(&str, &str); 5] = [
+const OWN_SOURCES: [(&str, &str); 4] = [
     ("tracks.rs", include_str!("tracks.rs")),
     ("midi.rs", include_str!("midi.rs")),
     ("game.rs", include_str!("game.rs")),
     ("fail.rs", include_str!("fail.rs")),
-    ("commands/msu.rs", include_str!("commands/msu.rs")),
 ];
 
 /// What this program is, for the key: [`OWN_SOURCES`], hashed.
@@ -821,8 +822,8 @@ fn render(midi: &Path, out: &Path, soundfont: &Path, gain: f64) -> Result<()> {
 #[cfg(test)]
 mod tests {
     /// That [`OWN_SOURCES`] is closed: each module of the crate one of them
-    /// names —`crate::x` from the library, `rm2k_snes_audio::x` from the
-    /// subcommand— is in the list too. One that is not would change a
+    /// names —`crate::x`, or `rm2k_snes_audio::x` as the subcommand that ran
+    /// them named it until 2026-11-25— is in the list too. One that is not would change a
     /// track's bytes without expiring it.
     #[test]
     fn the_track_sources_name_no_module_outside_them() {

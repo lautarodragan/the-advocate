@@ -2,12 +2,15 @@
 # for each platform, so a machine without Rust —or without the time to
 # build the workspace— downloads them and puts their `bin/` on the PATH.
 #
-# Each archive is `the-advocate/bin/` with the binaries and
-# `the-advocate/runtime/` beside it, and the games' test harness at its own
-# path, `the-advocate/rm2k-snes/harness/`: both travel with the tools, and
-# a binary that does not find the checkout it was compiled from looks for
-# them there —see `rm2k-snes/project/src/suite.rs`—. cc65 and the rest of what
-# the README asks for are still the machine's.
+# Each archive is `the-advocate/bin/` with the binaries,
+# `the-advocate/runtime/` beside it, and the games' test harness where
+# `just install` links it, `the-advocate/lib/advocate/harness/`: both travel
+# with the tools, and a binary that does not find the checkout it was
+# compiled from looks for them there —see `rm2k-snes/project/src/suite.rs`—;
+# a game's tests look for the harness beside the `advocate` of their PATH.
+# Until 2026-11-25 the harness went at its checkout's path,
+# `the-advocate/rm2k-snes/harness/`. cc65 and the rest of what the README
+# asks for are still the machine's.
 #
 # It follows CI instead of running beside it, so that a red commit is never
 # released. The release is a draft until every platform has uploaded its
@@ -111,8 +114,8 @@ jobs:
             cp "target/${{ matrix.target }}/release/$bin" dist/the-advocate/bin/
           done
           cp -R runtime README.md dist/the-advocate/
-          mkdir -p dist/the-advocate/rm2k-snes
-          cp -R rm2k-snes/harness dist/the-advocate/rm2k-snes/
+          mkdir -p dist/the-advocate/lib/advocate
+          cp -R rm2k-snes/harness dist/the-advocate/lib/advocate/harness
           ls dist/the-advocate/bin
           archive="the-advocate-$TAG-${{ matrix.target }}.tar.gz"
           tar -czf "dist/$archive" -C dist the-advocate
@@ -121,20 +124,47 @@ jobs:
 
       # What a downloaded archive does: the checkout the binaries were
       # compiled from is not there —its runtime is moved away—, and they
-      # find the runtime and the harness of the archive.
+      # find the runtime and the harness of the archive. `advocate build`
+      # says where it found them in the file it leaves, `build/advocate.json`,
+      # also when the build fails; and it fails here, on purpose: the
+      # runners have no cc65, so `ca65` and `ld65` are stand-ins that fail,
+      # and there is no SoundFont. The test game's dump is made as `just
+      # game` makes it, in `test-game/justfile`, with the archive's
+      # `rm2k-sketch` and `ditto`: the runners have no `just` either. Until
+      # 2026-11-25 this asked `rm2k-snes-project`.
       - name: Smoke test
         if: ${{ !matrix.cross }}
         run: |
-          mkdir -p "$RUNNER_TEMP/unpacked"
+          mkdir -p "$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/stand-ins" "$RUNNER_TEMP/empty"
           tar -xzf "$ARCHIVE" -C "$RUNNER_TEMP/unpacked"
+          bin="$RUNNER_TEMP/unpacked/the-advocate/bin"
+          for tool in ca65 ld65; do
+            printf '#!/bin/sh\nexit 1\n' > "$RUNNER_TEMP/stand-ins/$tool"
+            chmod +x "$RUNNER_TEMP/stand-ins/$tool"
+          done
+          (
+            cd test-game
+            mkdir -p build
+            cp -R src build/text
+            for sketch in src/maps/Map*.toml; do
+              map=$(basename "$sketch" .toml)
+              "$bin/rm2k-sketch" "$sketch" "build/text/maps/$map.tiles"
+              rm "build/text/maps/$map.toml"
+            done
+            "$bin/ditto" pack build/text build/game
+            "$bin/ditto" unpack build/game build/exact build/data
+          )
           mv runtime/main.s "$RUNNER_TEMP/main.s.away"
-          got="$("$RUNNER_TEMP/unpacked/the-advocate/bin/rm2k-snes-project" --project test-game | jq -r .suite.runtime)"
-          harness="$("$RUNNER_TEMP/unpacked/the-advocate/bin/rm2k-snes-project" --harness)"
+          PATH="$RUNNER_TEMP/stand-ins:$PATH" "$bin/advocate" build --project test-game \
+            --game-dir "$RUNNER_TEMP/empty" --rtp-dir "$RUNNER_TEMP/empty" \
+            --soundfont "$RUNNER_TEMP/empty/none.sf2" --without-tracks || true
           mv "$RUNNER_TEMP/main.s.away" runtime/main.s
+          got="$(jq -r .suite.runtime test-game/build/advocate.json)"
+          harness="$(jq -r .suite.harness test-game/build/advocate.json)"
           want="$(cd "$RUNNER_TEMP/unpacked/the-advocate/runtime" && pwd -P)"
           echo "runtime: $got"
           [ "$got" = "$want" ]
-          want="$(cd "$RUNNER_TEMP/unpacked/the-advocate/rm2k-snes/harness" && pwd -P)"
+          want="$(cd "$RUNNER_TEMP/unpacked/the-advocate/lib/advocate/harness" && pwd -P)"
           echo "harness: $harness"
           [ "$harness" = "$want" ]
 

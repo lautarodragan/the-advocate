@@ -504,7 +504,7 @@ impl Game {
         let dump_path = crate::fork::with_common_events(
             &dump_path,
             &forks,
-            &project.build()?.join("patches-manual"),
+            &project.build().join("patches-manual"),
         )?;
         let dump = Dump::open(&dump_path)?;
         let db = database(&dump, &forks)?;
