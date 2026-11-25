@@ -1,7 +1,7 @@
 //! Wally as a stage of a converter: what each of its commands answers, as
-//! the files the binary writes into `--out`, by name. The converter calls
-//! [`map`] as a function, and the binary is a `main` over these that reads
-//! the request and writes the files.
+//! the files it makes, by name. The converter calls [`map`] as a function;
+//! the binary is a `main` over the others —the questions the tests ask—
+//! that reads the request and writes the files into `--out`.
 //!
 //! **They read nothing but the dump, the search directories and the request
 //! they are given** —and the files the request names, the project's maps,
@@ -33,18 +33,8 @@ const WHOSE: &str = "the request";
 /// cartridge `request` describes, in the game in `data` with its pictures
 /// looked up in `search_dirs`. See [`Asked`] and [`map::files`].
 pub fn map(data: &Path, search_dirs: &[PathBuf], request: &Asked) -> Result<Files> {
-    map_asked(data, search_dirs, request, WHOSE)
-}
-
-fn map_asked(data: &Path, search_dirs: &[PathBuf], request: &Asked, whose: &str) -> Result<Files> {
     let game = request.game(data, search_dirs);
-    map::files(&map::convert(&game, &request.request(whose)?)?)
-}
-
-/// [`map`], with the request as the file has it and `whose` starting its
-/// complaints.
-pub fn map_of(data: &Path, search_dirs: &[PathBuf], request: &Value, whose: &str) -> Result<Files> {
-    map_asked(data, search_dirs, &request::typed(request, whose)?, whose)
+    map::files(&map::convert(&game, &request.request(WHOSE)?)?)
 }
 
 /// `layers`: the map's two background layers, alone. See [`LayersAsked`]

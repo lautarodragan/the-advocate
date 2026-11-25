@@ -1,8 +1,8 @@
-//! The binary as its callers see it —the converter, and whoever copies and
-//! checks what is versioned—, and what the tests of a cartridge carry that is
-//! not the game's.
+//! The binary as its callers see it —whoever copies and checks what is
+//! versioned—, over builds written as the converter writes them, and what
+//! the tests of a cartridge carry that is not the game's.
 
-use rm2k_snes_patches::{only_for_tests, Key, Kind};
+use rm2k_snes_patches::{only_for_tests, put, report, stage, Key, Kind, Request};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -23,6 +23,19 @@ fn run(dir: &Path, args: &[&str]) -> Output {
         .args(args)
         .output()
         .unwrap()
+}
+
+/// What the converter leaves in `build`, inside `dir`, for the request in
+/// the file `file`, as it does it: `stage::patches` and `put`. What `put`
+/// reports, a line each.
+fn convert(dir: &Path, file: &str, build: &str) -> String {
+    let request: Request =
+        serde_json::from_str(&std::fs::read_to_string(dir.join(file)).unwrap()).unwrap();
+    put(&dir.join(build), &stage::patches(&request))
+        .unwrap()
+        .iter()
+        .map(|written| report(written) + "\n")
+        .collect()
 }
 
 fn text(bytes: &[u8]) -> String {
@@ -60,10 +73,8 @@ fn writing_a_build_again_leaves_nothing_from_the_previous_run() {
         std::fs::write(old.last().unwrap(), "from the previous run\n").unwrap();
     }
     std::fs::write(dir.join("empty.json"), "{}").unwrap();
-    let out = run(&dir, &["--request", "empty.json", "build"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
     assert_eq!(
-        text(&out.stdout),
+        convert(&dir, "empty.json", "build"),
         "patches of 0 map(s) -> patches/auto/maps (0 B)\n\
          patches of 0 animation(s) -> patches/auto/animations (0 B)\n\
          patches of 0 battler(s) -> patches/auto/battlers (0 B)\n\
@@ -77,33 +88,10 @@ fn writing_a_build_again_leaves_nothing_from_the_previous_run() {
 }
 
 #[test]
-fn the_converter_writes_one_build_and_only_one() {
-    let dir = scratch("one");
-    let out = run(&dir, &["--request", &game("release.json"), "a", "b"]);
-    assert_eq!(out.status.code(), Some(1));
-    assert!(
-        text(&out.stderr).contains("one build's patches"),
-        "{}",
-        text(&out.stderr)
-    );
-    std::fs::write(dir.join("broken.json"), "{\"maps\": [{\"id\": 1}]}").unwrap();
-    let out = run(&dir, &["--request", "broken.json", "build"]);
-    assert_eq!(out.status.code(), Some(1));
-    assert!(
-        text(&out.stderr).starts_with("broken.json: "),
-        "{}",
-        text(&out.stderr)
-    );
-    let out = run(&dir, &["--request", "broken.json", "--check"]);
-    assert_eq!(out.status.code(), Some(2), "a wrong call is 2");
-}
-
-#[test]
 fn what_is_copied_is_checked_and_what_is_touched_fails() {
     let dir = scratch("check");
     project(&dir);
-    let out = run(&dir, &["--request", &game("release.json"), "build/release"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
+    convert(&dir, &game("release.json"), "build/release");
     std::fs::copy(
         game("uses.json"),
         dir.join("build/release/patches/uses.json"),
@@ -165,8 +153,7 @@ fn a_window_that_lost_colours_is_written_and_checked() {
              "merges": [[[1, 2, 3], [1, 2, 4], 40], [[9, 9, 9], [8, 8, 8], 7]]}]}"#,
     )
     .unwrap();
-    let out = run(&dir, &["--request", "window.json", "build/release"]);
-    assert!(out.status.success(), "{}", text(&out.stderr));
+    convert(&dir, "window.json", "build/release");
     let out = run(&dir, &["build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     let versioned = dir.join("patches/auto/windows/Gold_Skin.toml");

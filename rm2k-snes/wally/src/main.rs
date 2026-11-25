@@ -31,9 +31,6 @@ struct Cli {
 enum Command {
     /// A map's two background layers, in mode 3
     Layers(LayersArgs),
-    /// A whole map: its layers, the events baked into them, its characters
-    /// as objects, its blocks and where the hero starts
-    Map(MapArgs),
     /// Which events of a map can be baked, and why that is safe
     Bakeable(MapArgs),
     /// How a map's object palettes are split with a given number of them
@@ -86,26 +83,10 @@ struct LayersArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(
-    after_help = "Writes into --out what `layers` writes, for the layers as they end \
-    up, and:\n  \
-    sprites.bin     the sprite bank, 4bpp, one pose per slot and the extras \
-                    at its end\n  \
-    poses-<k>.bin   the twelve poses of the k-th character that changes pose\n  \
-    map.json        the baked events; what the conversion says, in order, \
-                    with what stops it; the events drawn; the palettes, the \
-                    slots, the leader candidates, the timer, the rain, the \
-                    sandstorm's grains, the picture, the animation box and the table of command 34; \
-                    where the hero starts; and who walks, animates still and \
-                    turns toward the hero\n\n\
+#[command(after_help = "Writes into --out `bakeable.json` or `split.json`.\n\n\
     The request is a JSON with `map`, `map_files` and `chipset_files` as for \
-    `layers`, and what the cartridge and the other domains decided: `names`, \
-    `test_event`, `leaders`, `pages` —the event compiler's scan of the map—, \
-    `route_graphics`, `also_walk`, `timer`, `rain`, `sand` —optional—, `picture`, `battle_animation`, `singles`, \
-    `palette_weight`, `dither`, `window_colors` as for `layers`, and the `TileSubstitution`s it can run —`substitutions`, \
-    whose blocks are built, and `common_substitutions`, only translated—. See \
-    `request::Asked`."
-)]
+    `layers`, and of the rest of `request::Asked` what the question reads; \
+    `split` also takes `palettes`, how many the split gets.")]
 struct MapArgs {
     #[command(flatten)]
     place: Where,
@@ -129,7 +110,6 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Layers(args) => answer(&args.place, stage::layers_of),
-        Command::Map(args) => answer(&args.place, stage::map_of),
         Command::Bakeable(args) => answer(&args.place, stage::bakeable_of),
         Command::Split(args) => answer(&args.place, stage::split_of),
     };

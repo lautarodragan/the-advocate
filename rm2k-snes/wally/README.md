@@ -1,6 +1,6 @@
 # Wally: an RPG Maker 2000 game's maps, as a cartridge carries them
 
-    wally map --data dump/ --search-dir pictures/ --request request.json --out build/map/
+    wally bakeable --data dump/ --search-dir pictures/ --request request.json --out build/map/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes. The tests build a small game, its
@@ -47,9 +47,10 @@ It is a stage of a converter, with the shape `rm2k-snes/battle/README.md`
 describes in "One stage of a converter": it reads the game from a Ditto
 dump itself, gets in a request what the cartridge decided and what other
 domains answered, and answers pieces and a JSON. The converter calls
-`stage::map` as a function, which answers the files by name; the binary is
-a `main` over the `stage` module that writes them into `--out`, for the
-tests and for a person.
+`stage::map` as a function, which answers the files by name, and so do its
+tests; the binary is a `main` over the rest of the `stage` module —the
+layers alone, and the questions `bakeable` and `split`, which ABL's tests
+ask— that writes them into `--out`.
 
 ## Two halves that do not know each other
 

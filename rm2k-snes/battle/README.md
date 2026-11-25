@@ -1,6 +1,5 @@
 # rm2k-snes-battle: an RPG Maker 2000 game's battle, as a cartridge carries it
 
-    rm2k-snes-battle tables --data dump/ --request request.json --out build/battle/
     rm2k-snes-battle model --data dump/ --request request.json --out build/battle/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
@@ -37,9 +36,9 @@ still made by the converter that calls this.
 
 This is one domain of a game converter. The converter orchestrates, and
 calls this crate's `stage` module as functions —`tables`, `model`,
-`layout`—, each answering the files the binary writes into `--out`; the
-binary is a `main` over the same functions, for the tests and for a
-person. Every stage is called that way since 2026-11-24; until then the
+`layout`—, each answering its files by name; the binary is a `main` over
+the ones the tests ask —`model`, `layout` and the model's questions— that
+writes them into `--out`. Every stage is called that way since 2026-11-24; until then the
 others were run from the PATH as separate programs. Every stage has the
 same shape, and this crate was the first to be written to it:
 
@@ -96,7 +95,7 @@ It is `Request` in `src/lib.rs`, and `battle.json` is `Answer` there.
 
 ## What `tables` writes
 
-Into `--out`:
+Its files, by name:
 
 * `experience.inc`: `EXP_K`, `EXP_LEVEL_MAX` and the tables `actor_exp_k`,
   `exp_initial`, `exp_level_max`, `exp_curve`, `exp_table`, `level_row` and

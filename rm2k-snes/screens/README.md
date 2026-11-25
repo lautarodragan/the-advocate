@@ -1,6 +1,6 @@
 # rm2k-snes-screens: an RPG Maker 2000 game's screens, as a cartridge carries them
 
-    rm2k-snes-screens convert --data dump/ --game-dir game/ --request request.json --out build/screens/
+    rm2k-snes-screens render --data dump/ --game-dir game/ --request request.json --out shot/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.
@@ -46,9 +46,15 @@ a request what the cartridge decided, and writes a JSON.
   about menus.
 * `rm2k-snes-screens`: this one, every screen with those letters.
 
-## The subcommands
+## What it answers
 
-`convert` is the one the converter calls, once per cartridge:
+The converter calls the `stage` module as functions: `stage::convert`, the
+screens, once per cartridge; `stage::boxes` and `stage::faces`, the message
+boxes and the faces, for the event compiler; and `stage::window`, the
+message window's colours. The binary is a `main` over the questions the tests ask:
+`render`, `refit`, `layout`, `window` and `equip`.
+
+`convert`'s request:
 
     {"slots": 4, "actors": [11, 12, 14], "items": [1, 2, 7],
      "title": true, "cgram_reserved": 9,
@@ -79,7 +85,7 @@ item screen, the actor choice, the slot screen, equipment, the shop, the
 skills or End Game—, built from the same blocks `convert` makes, with the game's state it
 shows in the request. It is for whoever compares a capture against it.
 
-`boxes` reflows every box of the dump's maps and common events, and of the
+`stage::boxes` reflows every box of the dump's maps and common events, and of the
 project's maps over them, for a window of `columns` by `lines`: the table
 the event compiler reads its boxes through.
 

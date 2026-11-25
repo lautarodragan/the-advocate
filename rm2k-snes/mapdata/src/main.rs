@@ -1,5 +1,7 @@
-//! The cartridge's data `.inc` from the command line: a request in, what
-//! it made out, in a directory.
+//! Pieces of the cartridge's data `.inc` from the command line, the ones the
+//! tests ask: a request in, what it made out, in a directory. The whole
+//! `.inc` is the converter's alone, and it calls it as a function,
+//! `stage::emit`.
 //!
 //! Where anything is is the caller's to say: nothing here has a default
 //! path.
@@ -7,7 +9,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_mapdata::fail::{Bad, Result};
 use rm2k_snes_mapdata::materials::{self, RawBlocks, COMPRESSED_KINDS};
-use rm2k_snes_mapdata::{hex, record, request, stage, vram};
+use rm2k_snes_mapdata::{hex, record, request, vram};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -61,17 +63,6 @@ enum Command {
         It writes pages.inc."
     )]
     Pages(Plain),
-    /// The whole .inc of a cartridge
-    #[command(
-        after_help = "The request: what every domain of the conversion answered —see `Emit` in \
-        request.rs—. The database's items, skills, enemies, actors and troops are read from \
-        the dump in --data. It writes mapdata.inc and mapdata.json: {\"notes\": what it says, in \
-        order, \"report\": what was shared and compressed, \"frames\": per map, how many frames \
-        decompressing it takes}. With --raw, what the console decompresses of each map, \
-        uncompressed, into that directory. The answer is no if something does not fit where \
-        the console reads it."
-    )]
-    Emit(EmitArgs),
     /// The engine's numbers, by name: the ones the .inc hands the runtime
     #[command(
         after_help = "The request: {}. The answer: {\"NAME\": its value} for every number of \
@@ -79,20 +70,6 @@ enum Command {
         checked against: a number, or a list of numbers."
     )]
     Engine(Plain),
-}
-
-#[derive(ClapArgs)]
-struct EmitArgs {
-    /// The Ditto dump the database is read from: the directory with db/
-    #[arg(long, value_name = "DIRECTORY")]
-    data: PathBuf,
-
-    #[command(flatten)]
-    plain: Plain,
-
-    /// Where to leave each map's blocks, uncompressed
-    #[arg(long, value_name = "DIRECTORY")]
-    raw: Option<PathBuf>,
 }
 
 #[derive(ClapArgs)]
@@ -243,24 +220,6 @@ fn do_pages(args: &Plain) -> Result<()> {
     )
 }
 
-fn do_emit(args: &EmitArgs) -> Result<()> {
-    let request: request::Emit = request::read(&args.plain.request)?;
-    let (raw, answer): (stage::Files, stage::Files) = stage::emit(&args.data, request)?
-        .into_iter()
-        .partition(|(name, _)| name.starts_with(stage::RAW));
-    if let Some(directory) = &args.raw {
-        let raw = raw
-            .into_iter()
-            .map(|(name, bytes)| (name[stage::RAW.len()..].to_string(), bytes))
-            .collect();
-        materials::write_raw(directory, &raw)?;
-    }
-    for (name, bytes) in &answer {
-        write_file(&args.plain.out, name, bytes)?;
-    }
-    Ok(())
-}
-
 fn do_engine(args: &Plain) -> Result<()> {
     read(&args.request)?;
     let numbers: serde_json::Map<String, Value> = rm2k_snes_mapdata::engine::numbers()
@@ -276,7 +235,6 @@ fn main() -> ExitCode {
         Command::Vram(args) => do_vram(args),
         Command::Compress(args) => do_compress(args),
         Command::Pages(args) => do_pages(args),
-        Command::Emit(args) => do_emit(args),
         Command::Engine(args) => do_engine(args),
     };
     match done {

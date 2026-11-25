@@ -1,5 +1,6 @@
 //! The event compiler from the command line: a dump and a request in,
-//! `events.json` out.
+//! `events.json` out. `scan` is what the tests ask; `compile` is the
+//! converter's alone, and it calls it as a function, `stage::compile`.
 //!
 //! Where the dump is is the caller's to say: nothing here has a default
 //! path.
@@ -35,9 +36,6 @@ enum Command {
     /// each map's pages compiled without songs: what the caller needs
     /// before it builds the maps
     Scan(Args),
-    /// Every page of the cartridge, with the text block, the songs, the
-    /// troops and the troops' pages
-    Compile(Args),
     /// Which commands keep each page out: every map's page, every common
     /// event and every troop page, each chased to all its culprits. A
     /// report for people, not a stage of the conversion
@@ -128,7 +126,6 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Scan(args) => run(args, stage::scan),
-        Command::Compile(args) => run(args, stage::compile),
         Command::Culprits(args) => run_culprits(args),
     };
     match done {

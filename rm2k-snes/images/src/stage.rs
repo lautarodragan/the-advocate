@@ -1,8 +1,8 @@
 //! The pictures as a stage of a converter: what each of the six commands
 //! answers. The converter calls the six as functions —`fullscreen`,
 //! `picture`, `background`, `backdrops`, `battlers` and `animations`—, and
-//! the binary is a `main` over the same ones, with the request read from its
-//! file and the answer written as `<command>.json`.
+//! the binary is a `main` over the last three, which the tests ask, with the
+//! request read from its file and the answer written as `<command>.json`.
 //!
 //! **They read nothing but the request they are given, the pictures it
 //! names and, for `animations`, the dump**: the converter keeps their

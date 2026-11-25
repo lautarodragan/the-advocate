@@ -1,4 +1,4 @@
-//! `wally map` with still events taking turns in a slot: only when the map
+//! Wally's `map` stage with still events taking turns in a slot: only when the map
 //! fits none of the layouts it is given, only the still ones nobody moves,
 //! and only those that no camera shows together.
 //!
@@ -6,10 +6,11 @@
 //! three still events of the same CharSet, each facing another way —two
 //! at opposite ends, one next to the first—. None of this needs a game.
 
+mod common;
+
 use rm2k_render::{picture, Picture};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-shared-{}-{name}", std::process::id()));
@@ -135,22 +136,7 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, layouts: Value) -> Value {
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
     let _ = std::fs::remove_dir_all(&out);
-    let done = Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args(["map", "--data"])
-        .arg(dump)
-        .arg("--search-dir")
-        .arg(pictures)
-        .arg("--request")
-        .arg(&request)
-        .arg("--out")
-        .arg(&out)
-        .output()
-        .unwrap();
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(dump, pictures, &request, &out);
     let mut answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     answer["tiles"] = json!(std::fs::read(out.join("sprites.bin")).unwrap().len() / 32);
