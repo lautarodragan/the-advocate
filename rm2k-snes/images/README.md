@@ -7,15 +7,14 @@ converter" in `../battle/README.md`— and it answers with pixels: which
 pictures a cartridge carries, and the bytes that carry them, are its
 caller's.
 
-    rm2k-snes-images fullscreen --request r.json --out answer/
-    rm2k-snes-images picture    --request r.json --out answer/
-    rm2k-snes-images background --request r.json --out answer/
     rm2k-snes-images backdrops  --request r.json --out answer/
     rm2k-snes-images battlers   --request r.json --out answer/
     rm2k-snes-images animations --data dump/ --request r.json --out answer/
 
-Each writes `<subcommand>.json` into `--out`; `--help` on each prints the
-shape of its request and its answer. Exit code 1 is the answer being no —a
+The converter calls the six below as functions, in `stage`, each with its
+request typed in `request`; the binary is a `main` over the three the
+tests ask too. Each writes `<subcommand>.json` into `--out`; `--help` on
+each prints the shape of its request and its answer. Exit code 1 is the answer being no —a
 picture that cannot be read, a broken dump—, 2 is the call being wrong.
 
 ## The six pictures

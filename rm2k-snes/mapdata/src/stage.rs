@@ -1,11 +1,10 @@
 //! The emission as a stage of a converter: what `emit` answers, as the
-//! files the binary writes, by name. The converter calls [`emit`] as a
-//! function with the request it built, and the binary is a `main` over it
-//! that reads the request from its file and writes the files.
+//! files it makes, by name. The converter calls [`emit`] as a function with
+//! the request it built.
 //!
 //! **It reads nothing but the dump and the request it is given, and writes
-//! nothing**: each map's raw data, which the binary leaves in `--raw`, is in
-//! the answer too, under [`RAW`].
+//! nothing**: each map's raw data, which the converter leaves in `raw/`, is
+//! in the answer too, under [`RAW`].
 
 use crate::answer::{self, Answer, Loss};
 use crate::fail::{Bad, Result};

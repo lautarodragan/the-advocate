@@ -47,9 +47,6 @@ struct Cli {
 enum Command {
     /// A cartridge's music, from a job: musicdata.inc, music.json and audio.json
     Compile(CompileArgs),
-    /// A cartridge's music as a stage of its converter: from what the event compiler asked for
-    /// to musicdata.inc, the .msu and what goes with them
-    Cartridge(CartridgeArgs),
     /// The entries of a .msu with data, as JSON: [where, length] each; refuses one that is not
     /// valid
     MsuIndex(MsuFileArgs),
@@ -137,43 +134,6 @@ struct CompileArgs {
     /// Also each song's notes, writes and voice allocation, in audio.json
     #[arg(long)]
     detail: bool,
-}
-
-#[derive(ClapArgs)]
-#[command(after_help = "The request is a JSON object:\n  \
-    songs               the event compiler's `songs`, as it answers them\n  \
-    maps                the cartridge's maps, by number, in the order of the map table\n  \
-    start               the index of the one it boots in\n  \
-    title, game_over    whether it has those screens: their songs come from the System\n  \
-    decompress_frames   how many frames decompressing the boot map takes\n  \
-    measuring_headroom  every song's headroom, instead of its ceiling, or null\n  \
-    backdrops           [[tiles, colors]] in hex: every quality battle backdrop, by number\n  \
-    tree_nodes          map tree nodes in the dump's shape, over the dump's\n\n\
-    It writes into --out musicdata.inc, music.json, audio.json, audio-job.json and \
-    effects.json, and the .msu to --msu.")]
-struct CartridgeArgs {
-    /// What the cartridge decided, as JSON
-    #[arg(long, value_name = "PATH")]
-    request: PathBuf,
-
-    /// The directory to write to
-    #[arg(long, value_name = "DIRECTORY")]
-    out: PathBuf,
-
-    /// Where the .msu goes
-    #[arg(long, value_name = "PATH")]
-    msu: PathBuf,
-
-    /// The game's Ditto dump: the map tree and the database's System
-    #[arg(long, value_name = "DIRECTORY")]
-    data: PathBuf,
-
-    #[command(flatten)]
-    place: Where,
-
-    /// The bank the samples come from
-    #[arg(long, value_name = "PATH")]
-    soundfont: PathBuf,
 }
 
 #[derive(ClapArgs)]
@@ -282,31 +242,6 @@ fn write_files(dir: &Path, files: &stage::Files) -> Result<()> {
         std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     }
     Ok(())
-}
-
-fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
-    let flags = stage::Flags {
-        place: args.place.place(),
-        data: args.data.clone(),
-        soundfont: args.soundfont.clone(),
-        out: args.out.clone(),
-        msu: args.msu.clone(),
-    };
-    // Read from the text and not from a `Value`, so a bad one names its line.
-    let text = std::fs::read_to_string(&args.request)
-        .map_err(|e| Bad::usage(format!("{}: {e}", args.request.display())))?;
-    let request: stage::Request = serde_json::from_str(&text)
-        .map_err(|e| Bad::usage(format!("{}: {e}", args.request.display())))?;
-    let mut files = stage::cartridge(&flags, &request)?.files;
-    let msu = files
-        .remove(stage::MSU)
-        .expect("the stage always answers a .msu");
-    write_files(&args.out, &files)?;
-    // Alongside and renamed, like the tracks: an emulator may have it open.
-    let fresh = PathBuf::from(format!("{}.nuevo", args.msu.display()));
-    std::fs::write(&fresh, &msu).map_err(|e| Bad::usage(format!("{}: {e}", fresh.display())))?;
-    std::fs::rename(&fresh, &args.msu)
-        .map_err(|e| Bad::usage(format!("{}: {e}", args.msu.display())))
 }
 
 fn do_msu_index(args: &MsuFileArgs) -> Result<()> {
@@ -421,7 +356,6 @@ fn main() -> ExitCode {
     let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|e| e.exit());
     let done = match &cli.command {
         Command::Compile(a) => do_compile(a),
-        Command::Cartridge(a) => do_cartridge(a),
         Command::MsuIndex(a) => do_msu_index(a),
         Command::MsuSign(a) => do_msu_sign(a),
         Command::Keys(a) => do_keys(a),

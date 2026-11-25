@@ -1,7 +1,6 @@
 # rm2k-snes-events: an RPG Maker 2000 game's event pages, as a cartridge's bytecode
 
     rm2k-snes-events scan    --data dump/ --request scan.json    --out build/events/
-    rm2k-snes-events compile --data dump/ --request compile.json --out build/events/
     rm2k-snes-events culprits --data dump/ --request compile.json --out report/ [--every-map]
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints

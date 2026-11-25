@@ -1,15 +1,17 @@
-//! `wally map`: a whole map from the command line —what it reads,
-//! what it bakes, the objects it makes and what it says—.
+//! Wally's `map` stage: a whole map —what it reads, what it bakes, the
+//! objects it makes and what it says—.
 //!
 //! A small game is generated inside each test: one map with an opaque tile
 //! event on an empty cell, an event with a CharSet and one that walks; its
 //! ChipSet, its CharSets and a System. None of this needs a game.
 
+mod common;
+
 use rm2k_render::{picture, Picture};
 use rm2k_rules::chipset::common_origin;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Command;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-map-{}-{name}", std::process::id()));
@@ -176,31 +178,12 @@ fn request(dir: &Path, pictures: &Path, test_event: bool) -> PathBuf {
     path
 }
 
-fn run(dump: &Path, pictures: &Path, request: &Path, out: &Path) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args(["map", "--data"])
-        .arg(dump)
-        .arg("--search-dir")
-        .arg(pictures)
-        .arg("--request")
-        .arg(request)
-        .arg("--out")
-        .arg(out)
-        .output()
-        .unwrap()
-}
-
 #[test]
 fn a_whole_map_bakes_draws_and_says_what_it_did() {
     let dir = scratch("whole");
     let (dump, pictures) = game(&dir);
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request(&dir, &pictures, false), &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request(&dir, &pictures, false), &out);
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
 
@@ -289,12 +272,7 @@ fn a_map_whose_animation_box_does_not_fit_loses_the_box() {
         let path = dir.join(format!("{name}.json"));
         std::fs::write(&path, body.to_string()).unwrap();
         let out = dir.join(name);
-        let done = run(&dump, &pictures, &path, &out);
-        assert!(
-            done.status.success(),
-            "{}",
-            String::from_utf8_lossy(&done.stderr)
-        );
+        common::map(&dump, &pictures, &path, &out);
         let answer: Value =
             serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
         (
@@ -469,12 +447,7 @@ fn the_test_event_goes_first() {
     let dir = scratch("test-event");
     let (dump, pictures) = game(&dir);
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request(&dir, &pictures, true), &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request(&dir, &pictures, true), &out);
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     let events: Vec<u64> = answer["npcs"]
@@ -510,12 +483,7 @@ fn a_leader_with_no_charset_has_no_graphic() {
     )
     .unwrap();
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request, &out);
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     let notes: Vec<&str> = answer["notes"]
@@ -565,12 +533,7 @@ fn the_baked_note_names_the_event_by_its_id() {
     let (dump, pictures) = game(&dir);
     renumbered(&dump);
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request(&dir, &pictures, false), &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request(&dir, &pictures, false), &out);
     let notes = notes_of(&out);
     assert!(
         notes.contains(&"  map 7: 1 opaque event(s) baked into the map: 3".to_string()),
@@ -621,12 +584,7 @@ fn the_lent_baked_note_names_the_event_by_its_id() {
     )
     .unwrap();
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request, &out);
     let notes = notes_of(&out);
     assert!(
         notes.contains(
@@ -696,12 +654,7 @@ fn a_tile_the_map_does_not_draw_is_drawn_below_it_for_a_substitution() {
     let path = dir.join("request.json");
     std::fs::write(&path, body.to_string()).unwrap();
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &path, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &path, &out);
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
     let subs = &answer["substitutions"];
@@ -780,12 +733,7 @@ fn a_still_event_goes_into_the_background_of_a_map_that_hides_its_panorama() {
     let request = dir.join("request.json");
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request, &out);
     let notes = notes_of(&out);
     let layers: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();
@@ -843,12 +791,7 @@ fn a_still_event_drawn_a_little_past_its_cell_goes_in_shifted() {
         let request = dir.join("request.json");
         std::fs::write(&request, body.to_string()).unwrap();
         let out = dir.join("out");
-        let done = run(&dump, &pictures, &request, &out);
-        assert!(
-            done.status.success(),
-            "{}",
-            String::from_utf8_lossy(&done.stderr)
-        );
+        common::map(&dump, &pictures, &request, &out);
         let notes = notes_of(&out);
         std::fs::remove_dir_all(&dir).unwrap();
         notes
@@ -921,12 +864,7 @@ fn baked_with(name: &str, events: Value, room: Option<usize>) -> (Vec<String>, u
     let request = dir.join("request.json");
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
-    let done = run(&dump, &pictures, &request, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    common::map(&dump, &pictures, &request, &out);
     let notes = notes_of(&out);
     let layers: Value =
         serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap()).unwrap();

@@ -35,27 +35,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Every screen a cartridge carries: the message window and its font,
-    /// the title's menu, the save slots and the pause menu, the text
-    /// screens with their windows, and End Game
-    Convert(GameArgs),
     /// One screen as the console has to show it, built from what the
     /// cartridge uploads
     Render(GameArgs),
-    /// Every message box of the game reflowed for the console's window
-    Boxes(BoxesArgs),
-    /// The faces the message window shows, as the cartridge stores them
-    #[command(
-        after_help = "Writes faces.json into --out: {\"faces\": [face, ...]}, one per \
-        entry of the request's `faces` —[FaceSet, index, mirrored], as the event compiler's \
-        indices list them—, in the same order. A face is {\"tiles\": the 36 4bpp tiles in hex, \
-        row by row, \"palette\": its 15 colour words, \"missing\": bool}: 48x48 cut from the \
-        FaceSet, mirrored if asked, its transparent pixels filled with the message window's \
-        background where RM2k draws it, and reduced to fifteen colours like the slot screen's. \
-        A FaceSet that is neither in the game's FaceSet/ nor in the RTP's gives the background \
-        alone, with `missing` set."
-    )]
-    Faces(GameArgs),
     /// The message boxes of the request reflowed for the console's window
     Refit(LayoutArgs),
     /// The geometry the screens are drawn with, by name
@@ -78,9 +60,9 @@ enum Command {
         Its request may carry `systems`, the other Systems the cartridge switches to, \
         [{\"system\": name, \"background\": \"#rrggbb\" or null, \"stretch\": n or null}]: \
         then the text takes the same entries in all of them, `text_rows` answers which glyph rows \
-        take one each —what `convert` takes back—, n is what the starting one takes with them, the \
+        take one each —what `stage::convert` takes back—, n is what the starting one takes with them, the \
         others are reduced to fit in it, and \
-        `systems` answers each one's window as `convert` writes it, without the font, with \
+        `systems` answers each one's window as `stage::convert` answers it, without the font, with \
         its `brought`, `merges`, `colors` and `frame_fused`."
     )]
     Window(GameArgs),
@@ -88,18 +70,9 @@ enum Command {
 
 #[derive(ClapArgs)]
 #[command(
-    after_help = "`convert` writes screens.json into --out: the message window \
-    (its tiles and text-area tiles in hex, its palette words, cells, the font and its four \
-    precomposed tables), the title's menu, the slot and menu bank, the text screens' font, \
-    the windows of the item, equipment, shop and actor-choice screens as the cartridge \
-    stores them, End Game, the texts the cartridge composes, the geometry, and what the \
-    conversion says. Its request carries `font` and `letter_spacing`, as `boxes` takes \
-    them, `slots`, `actors`, `items`, `title`, \
-    `cgram_reserved`, `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
-    [name, from, to]) and, optional, `letters`: the Latin-1 the message boxes draw, whose \
-    glyphs go after the console's 96 in the message window's tables.\n\n\
-    `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
-    slots, equipment, shop, end_game or title— and that screen's state: see `render.rs`."
+    after_help = "`render` writes screen.png, RGB. Its request carries `screen` —menu, \
+    items, target, slots, equipment, shop, end_game or title— and that screen's state: see \
+    `render.rs`."
 )]
 struct GameArgs {
     /// The Ditto dump the game is read from: the directory with maps/ and
@@ -158,29 +131,13 @@ impl GameArgs {
 
 #[derive(ClapArgs)]
 #[command(
-    after_help = "Writes boxes.json into --out: the boxes that change, as \
-    {\"from\": lines, \"to\": boxes}. The request carries the window: `font` —`rm2k`, \
-    one the engine carries, or a sheet's path— and `letter_spacing`, pixels more after \
-    every letter, 0 if missing; `width`, a line's pixels, and `lines`; or, without `font`, \
-    `columns` characters of RM2k's font. And `map_files`, the project's \
-    maps over the dump's, by number."
-)]
-struct BoxesArgs {
-    #[arg(long, value_name = "DIRECTORY")]
-    data: PathBuf,
-    #[arg(long, value_name = "PATH")]
-    request: PathBuf,
-    #[arg(long, value_name = "DIRECTORY")]
-    out: PathBuf,
-}
-
-#[derive(ClapArgs)]
-#[command(
     after_help = "`layout` writes layout.json into --out, and its request is \
     ignored: it is taken so every subcommand is called the same way.\n\n\
     `refit` writes refit.json: for each of the request's `boxes`, each a list of lines, \
     {\"to\": the boxes it becomes, \"speaker\": whether its first line names who speaks}. \
-    The request carries the window too, as `boxes` takes it."
+    The request carries the window too: `font` —`rm2k`, one the engine carries, or a \
+    sheet's path— and `letter_spacing`, pixels more after every letter, 0 if missing; \
+    `width`, a line's pixels; or, without `font`, `columns` characters of RM2k's font."
 )]
 struct LayoutArgs {
     #[arg(long, value_name = "PATH")]
@@ -205,8 +162,8 @@ fn write_files(out: &Path, files: &Files) -> Result<()> {
     Ok(())
 }
 
-/// One of the commands the converter calls: its stage function asked the
-/// request in `path`, its files into `out`. A request that does not read
+/// A command over a stage function: the function asked the request in
+/// `path`, its files into `out`. A request that does not read
 /// as its type is complained about with the file's name.
 fn asked<T: DeserializeOwned>(
     path: &Path,
@@ -468,16 +425,7 @@ struct Refit {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
-        Command::Convert(args) => asked(&args.request, &args.out, |request| {
-            stage::convert(&args.place(), request)
-        }),
         Command::Render(args) => do_render(args),
-        Command::Boxes(args) => asked(&args.request, &args.out, |request| {
-            stage::boxes(&args.data, request)
-        }),
-        Command::Faces(args) => asked(&args.request, &args.out, |request| {
-            stage::faces(&args.place(), request)
-        }),
         Command::Layout(args) => write_files(&args.out, &stage::layout()),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),

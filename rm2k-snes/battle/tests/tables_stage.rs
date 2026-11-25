@@ -1,13 +1,14 @@
-//! The binary as a caller sees it: what it writes, and with which exit
-//! code when it says no or the call is wrong.
+//! `stage::tables` as the converter calls it: the files it answers, and
+//! what it says no with.
 
+use rm2k_snes_battle::stage::{self, Files};
+use rm2k_snes_battle::{Bad, Request};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
-        "rm2k-snes-battle-cli-{name}-{}",
+        "rm2k-snes-battle-stage-{name}-{}",
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&dir);
@@ -47,44 +48,44 @@ fn game(dir: &Path, actors: i64) {
     );
 }
 
-fn request(dir: &Path, party: &[i64]) {
-    write(
-        &dir.join("request.json"),
-        &json!({"party": party, "maps": [{"id": 1, "width": 20, "height": 15}],
-                "encounter_steps": null, "tree_nodes": []}),
-    );
+fn request(party: &[i64]) -> Request {
+    serde_json::from_value(
+        json!({"party": party, "maps": [{"id": 1, "width": 20, "height": 15}],
+               "encounter_steps": null, "tree_nodes": []}),
+    )
+    .unwrap()
 }
 
-fn run(dir: &Path) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_rm2k-snes-battle"))
-        .arg("tables")
-        .args(["--data", dir.join("dump").to_str().unwrap()])
-        .args(["--request", dir.join("request.json").to_str().unwrap()])
-        .args(["--out", dir.join("out").to_str().unwrap()])
-        .output()
-        .unwrap()
+/// `stage::tables` on the game in `dir` for a cartridge of `party`.
+fn run(dir: &Path, party: &[i64]) -> Result<Files, Bad> {
+    stage::tables(&dir.join("dump"), &request(party))
+}
+
+fn text(files: &Files, name: &str) -> String {
+    String::from_utf8(files[name].clone()).unwrap()
+}
+
+/// What it said no with; a yes or a bad call fails the test.
+fn no(done: Result<Files, Bad>) -> String {
+    match done {
+        Err(Bad::Answer(why)) => why,
+        Err(bad) => panic!("a bad call, not a no: {bad}"),
+        Ok(_) => panic!("a yes"),
+    }
 }
 
 #[test]
-fn tables_writes_the_two_pieces_and_the_answer() {
+fn tables_answers_the_two_pieces_and_the_answer() {
     let dir = scratch("tables");
     game(&dir, 3);
-    request(&dir, &[2]);
-    let out = run(&dir);
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let experience = std::fs::read_to_string(dir.join("out/experience.inc")).unwrap();
+    let files = run(&dir, &[2]).unwrap_or_else(|bad| panic!("{bad}"));
+    let experience = text(&files, "experience.inc");
     assert!(experience.starts_with(".segment \"RODATA\"\nEXP_K = 1\n"));
     // Actors 0 to 3; only 2 has a slot.
     assert!(experience.contains("actor_exp_k:\n    .byte 255, 255, 0, 255\n"));
-    let encounters = std::fs::read_to_string(dir.join("out/encounters.inc")).unwrap();
+    let encounters = text(&files, "encounters.inc");
     assert!(encounters.starts_with(".block 2\nenc_map:\n    .word 0\n"));
-    let answer: Value =
-        serde_json::from_str(&std::fs::read_to_string(dir.join("out/battle.json")).unwrap())
-            .unwrap();
+    let answer: Value = serde_json::from_str(&text(&files, "battle.json")).unwrap();
     assert_eq!(
         answer,
         json!({"experience": {"slots": [2]},
@@ -98,23 +99,11 @@ fn a_party_too_big_for_the_save_is_a_no() {
     // 129 slots are 516 bytes, and the save has 512.
     let dir = scratch("too-big");
     game(&dir, 129);
-    request(&dir, &(1..=129).collect::<Vec<_>>());
-    let out = run(&dir);
-    assert_eq!(out.status.code(), Some(1));
-    let stderr = String::from_utf8_lossy(&out.stderr);
+    let why = no(run(&dir, &(1..=129).collect::<Vec<_>>()));
     assert!(
-        stderr.contains("129 actors with experience don't fit"),
-        "{stderr}"
+        why.contains("129 actors with experience don't fit"),
+        "{why}"
     );
-    std::fs::remove_dir_all(&dir).unwrap();
-}
-
-#[test]
-fn a_missing_request_is_a_bad_call() {
-    let dir = scratch("missing");
-    game(&dir, 1);
-    let out = run(&dir);
-    assert_eq!(out.status.code(), Some(2));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -129,10 +118,7 @@ fn a_broken_dump_is_a_no_that_says_where() {
         &dir.join("dump/db/actors.json"),
         &json!([{"id": 1, "parameters": "none"}]),
     );
-    request(&dir, &[1]);
-    let out = run(&dir);
-    assert_eq!(out.status.code(), Some(1));
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("actors.json"), "{stderr}");
+    let why = no(run(&dir, &[1]));
+    assert!(why.contains("actors.json"), "{why}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
