@@ -233,6 +233,48 @@ impl Geometry<'_> {
     }
 }
 
+/// Numbers the runtime does not name, written as equates for whoever reads
+/// the cartridge's `.dbg` and `.sym` instead of asking a stage: a game's
+/// tests, a debugger. An equate costs no ROM byte, and no `.ifdef` of the
+/// runtime looks at these names. Each one is here because a test reads it,
+/// by the name it has in its stage —`engine.rs`, the screens' and the
+/// battle's geometry—; the ones the `.inc` already writes under their own
+/// name are read from there. Until 2026-11-25 the tests asked the stages for
+/// all of them: `rm2k-snes-mapdata engine`, `rm2k-snes-screens layout` and
+/// `rm2k-snes-battle layout`.
+fn for_readers(t: &Geometry, bs: &Geometry) -> String {
+    let mut text = String::from(
+        "; For the readers of the .dbg —a game's tests, a debugger—: numbers\n\
+         ; the runtime does not name, which cost no ROM. See `for_readers`.\n",
+    );
+    let numbers = [
+        // The text block's step, which `OP_MESSAGE` counts in.
+        ("MESSAGES_STEP", MESSAGES_STEP as i64),
+        // The item screen's geometry, in pixels and cells.
+        ("ITEM_HELP_HEIGHT", t.n("ITEM_HELP_HEIGHT")),
+        ("ITEM_LIST_Y", t.n("ITEM_LIST_Y")),
+        ("ITEM_NAME_WIDTH", t.n("ITEM_NAME_WIDTH")),
+        // The battle's message rows and column, in cells; the `.inc` writes
+        // them as places in the text layer, `BA_MSG_POS1` and company.
+        ("BA_MSG_ROW1", bs.n("BA_MSG_ROW1")),
+        ("BA_PAGE_MSG_ROW0", bs.n("BA_PAGE_MSG_ROW0")),
+        ("BA_PAGE_MSG_COL", bs.n("BA_PAGE_MSG_COL")),
+        // The battle model's commands and outcomes, as its requests and
+        // answers carry them: see `simulate.rs` in rm2k-snes-battle.
+        ("COMMAND_ATTACK", bs.n("COMMAND_ATTACK")),
+        ("COMMAND_DEFEND", bs.n("COMMAND_DEFEND")),
+        ("COMMAND_ITEM", bs.n("COMMAND_ITEM")),
+        ("COMMAND_SKILL", bs.n("COMMAND_SKILL")),
+        ("VICTORY", bs.n("VICTORY")),
+        ("DEFEAT", bs.n("DEFEAT")),
+    ];
+    for (name, value) in numbers {
+        text.push_str(&format!("{name:<17} = {value}\n"));
+    }
+    text.push('\n');
+    text
+}
+
 /// What the battle's model answered for the number `n`, or why not.
 fn by_number<'a, T>(answered: &'a BTreeMap<i32, T>, n: i64, what: &str) -> Result<&'a T> {
     i32::try_from(n)
@@ -848,6 +890,8 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         slot_cgram_n = (slots.palettes.len() * MENU_CGRAM),
         title_menu_cgram_again = MENU_CGRAM,
     ));
+
+    out.push_str(&for_readers(&t, &bs));
 
     // Who the cartridge is.
     out.push_str(&format!(

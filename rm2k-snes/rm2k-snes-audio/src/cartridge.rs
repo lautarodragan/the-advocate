@@ -723,9 +723,20 @@ pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4])
          ; the tests.\n\
          MSU_BACKDROPS_N = {}\n\
          MSU_EFFECTS_N = {}\n\
+         ; And the file's layout, which the ROM does not name —it reads the\n\
+         ; backdrops from `msu_backdrop_pos`—: for the tests too, so they\n\
+         ; read it in the .dbg and not from this tool. See `msu_data.rs`.\n\
+         MSU_SIGNATURE_SIZE = {}\n\
+         MSU_BACKDROPS_START = ${:X}\n\
+         MSU_BACKDROP_SPAN = ${:X}\n\
+         MSU_COLORS_AT = ${:X}\n\
          .segment \"RODATA\"\n{}\n",
         backdrops.len(),
         effects,
+        msu_data::SIGNATURE_SIZE,
+        msu_data::BACKDROPS_START,
+        msu_data::BACKDROP_SPAN,
+        msu_data::COLORS_AT,
         blocks.join("\n")
     );
     Ok(Msu {
