@@ -1408,22 +1408,34 @@ pub fn run(options: Options) -> Result<()> {
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
     let font = FontChoice::of(&settings)?;
-    let menu_before: serde_json::Map<String, Value> = compiled
-        .commons
-        .iter()
-        .flat_map(|c| &c.menu_before)
-        .map(|(n, body)| (n.to_string(), json!(body)))
-        .collect();
-    let menus_request = json!({
-        "menus": custom_menus.iter().map(|m| json!({"name": m.name, "spec": m.spec})).collect::<Vec<_>>(),
-        "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
-        "before_bodies": menu_before,
+    let menus_request = screens::Menus {
+        menus: custom_menus
+            .iter()
+            .map(|m| rm2k_snes_screens::request::Menu {
+                name: m.name.clone(),
+                spec: m.spec.clone(),
+            })
+            .collect(),
+        variables: indices
+            .variables
+            .iter()
+            .map(|&(v, s)| (v as i32, s as usize))
+            .collect(),
+        before_bodies: compiled
+            .commons
+            .iter()
+            .flat_map(|c| c.menu_before.iter().copied())
+            .collect(),
         // And the names `ChangeHeroName` gives: one more row each of the
         // actors' text.
-        "names": indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>(),
+        names: indices
+            .names
+            .iter()
+            .map(|(a, n)| (*a as i32, n.clone()))
+            .collect(),
         // And the debug screen, which shows every variable by its slot.
-        "debug": options.debug_screen,
-    });
+        debug: options.debug_screen,
+    };
     // The battle terms the project gives over the database's, if any: a
     // knob at rest when missing. See `battle_term` in the mapdata stage.
     let battle_terms = settings.battle_terms()?;
@@ -1436,10 +1448,10 @@ pub fn run(options: Options) -> Result<()> {
         &members,
         &items_all,
         !options.no_title,
-        &menus_request,
+        menus_request,
         window_colors,
         window_answer.text_rows.as_ref(),
-        &json!(compiled.messages.letters),
+        &compiled.messages.letters,
         &screen_letters,
     )?;
     for loss in &screens_answer.losses {

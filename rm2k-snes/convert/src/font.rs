@@ -32,7 +32,6 @@
 use crate::fail::{Result, Stop};
 use crate::settings::Settings;
 use rm2k_snes_text::font::Font;
-use serde_json::{json, Value};
 use std::path::PathBuf;
 
 /// The font, as the stages are told it, and its advances.
@@ -102,14 +101,13 @@ impl FontChoice {
         })
     }
 
-    /// What a request names the font with: `font`, `letter_spacing` and,
-    /// when the project names one, `exfont`.
-    pub fn request(&self) -> Value {
-        let mut out = json!({"font": self.spec, "letter_spacing": self.spacing});
-        if let Some(sheet) = &self.exfont {
-            out["exfont"] = json!(sheet.to_string_lossy());
+    /// What the screens' requests name the font with.
+    pub fn request(&self) -> rm2k_snes_screens::request::TextFont {
+        rm2k_snes_screens::request::TextFont {
+            font: self.spec.clone(),
+            letter_spacing: self.spacing,
+            exfont: self.exfont.clone(),
         }
-        out
     }
 
     /// A message window as the event compiler takes it: `width` pixels a

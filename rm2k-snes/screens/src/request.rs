@@ -1,22 +1,199 @@
 //! What the cartridge decided, which the game's dump does not say: the
 //! requests each subcommand reads.
+//!
+//! The four a converter sends —[`Convert`], [`Boxes`], [`Faces`] and
+//! [`Window`]— are types, which it builds and the stage reads with serde:
+//! a key renamed on one side does not compile on the other. **Their
+//! `#[serde(default)]`s are what a request may leave out**, as the tests'
+//! files do. What only the tests send —`render`, `equip`— is read key by
+//! key through [`Json`].
+//!
+//! The order of the fields is the order of the keys the converter's
+//! request had when it was a `json!`, and a field it left out when empty
+//! is skipped the same: the request is part of the stage's cache key.
 
 use crate::checks::Vram;
-use crate::convert::Request;
 use crate::fail::{Bad, Result};
 use crate::render::{Party, Shop};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+/// The font a request draws with: `font`, the project file's `[text]
+/// font` —`rm2k`, one the engine carries, or the path of a sheet—, spaced
+/// by its `letter_spacing`, and the ExFont's sheet, `exfont`, null when the
+/// project names none. See `Font::with_exfont_of`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TextFont {
+    pub font: String,
+    #[serde(default)]
+    pub letter_spacing: i64,
+    #[serde(default)]
+    pub exfont: Option<PathBuf>,
+}
+
+/// How a request's window measures a line —see `stage::measure_of`—:
+/// `font`, spaced by `letter_spacing` and with the icons of `exfont`, and
+/// `width` in pixels; or `advances`, each glyph's from the space on, and
+/// `width`, which is the window the converter hands the event compiler,
+/// with its `letters`, the Latin-1 the font draws, each with its advance;
+/// or, without either, `columns` characters of RM2k's fixed-width font,
+/// which is how it was asked until 2026-10-03.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Line {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font: Option<String>,
+    #[serde(default)]
+    pub letter_spacing: i64,
+    #[serde(default)]
+    pub exfont: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub advances: Option<Vec<u8>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub letters: Vec<(char, u8)>,
+    #[serde(default)]
+    pub width: usize,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub columns: usize,
+}
+
+fn is_zero(n: &usize) -> bool {
+    *n == 0
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// `boxes`' request: the maps' files the boxes are read from, by number
+/// —a fork's, or the dump's—, and the window they are reflowed for,
+/// `lines` tall.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Boxes {
+    #[serde(default)]
+    pub map_files: BTreeMap<i32, PathBuf>,
+    #[serde(flatten)]
+    pub line: Line,
+    #[serde(default)]
+    pub lines: usize,
+}
+
+/// `faces`' request: each face as `[FaceSet, index, mirrored]`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Faces {
+    pub faces: Vec<crate::faces::Request>,
+}
+
+/// `window`'s request: the other Systems the cartridge switches to, none
+/// in one that does not.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Window {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub systems: Vec<OtherSystem>,
+}
+
 /// A System the cartridge switches to with `ChangeSystemGraphics`: its
 /// name, the colour its windows are drawn over —the project's
 /// `[windows.background]` for it— and the stretch the command asks for.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OtherSystem {
     pub system: String,
+    #[serde(default)]
     pub background: Option<String>,
+    #[serde(default)]
     pub stretch: Option<i32>,
+}
+
+/// A custom menu the project declares: its name, and its table in the
+/// project file as it is, whose shape is the game's and not a stage's
+/// —`custom_menu` reads it—.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Menu {
+    pub name: String,
+    pub spec: Value,
+}
+
+/// `convert`'s request: what the cartridge decided that the screens
+/// depend on, read into [`crate::convert::Request`], which says what each
+/// is.
+///
+/// ```json
+/// {"font": "rm2k", "slots": 4, "actors": [1, 11, 14], "items": [1, 2, 7],
+///  "title": true, "cgram_reserved": 9,
+///  "vram": {"slot_vram": 8192, "slot_map": 15360,
+///           "bg1_banks": [["WINDOW", 4096, 20480]]}}
+/// ```
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Convert {
+    #[serde(flatten)]
+    pub font: TextFont,
+    #[serde(default)]
+    pub slots: usize,
+    pub actors: Vec<i32>,
+    pub items: Vec<i32>,
+    #[serde(default)]
+    pub title: bool,
+    #[serde(default)]
+    pub cgram_reserved: usize,
+    #[serde(default)]
+    pub letters: Vec<char>,
+    #[serde(default)]
+    pub screen_letters: Vec<char>,
+    pub vram: Vram,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_rows: Option<crate::message_window::TextRows>,
+    #[serde(default)]
+    pub menus: Vec<Menu>,
+    /// Each variable a custom menu shows, and its slot.
+    #[serde(default)]
+    pub variables: Vec<(i32, usize)>,
+    /// The body each common event runs before a custom menu's page.
+    #[serde(default)]
+    pub before_bodies: BTreeMap<i32, u8>,
+    #[serde(default)]
+    pub names: Vec<(i32, String)>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub debug: bool,
+}
+
+impl Convert {
+    /// The request as the conversion takes it: `text_rows`, when there,
+    /// name every glyph row once.
+    pub fn read(&self) -> Result<crate::convert::Request> {
+        if let Some(rows) = &self.text_rows {
+            let mut all: Vec<usize> = rows.iter().flatten().copied().collect();
+            all.sort_unstable();
+            if all != (0..rm2k_snes_text::font::HEIGHT).collect::<Vec<_>>() {
+                return Err(Bad::answer(format!(
+                    "`text_rows` do not name every glyph row once: {rows:?}"
+                )));
+            }
+        }
+        Ok(crate::convert::Request {
+            slots: self.slots,
+            actors: self.actors.clone(),
+            items: self.items.clone(),
+            title: self.title,
+            cgram_reserved: self.cgram_reserved,
+            letters: self.letters.clone(),
+            screen_letters: self.screen_letters.clone(),
+            vram: self.vram.clone(),
+            menus: self
+                .menus
+                .iter()
+                .map(|m| (m.name.clone(), m.spec.clone()))
+                .collect(),
+            menu_context: crate::custom_menu::Context {
+                variables: self.variables.iter().copied().collect(),
+                before_bodies: self.before_bodies.clone(),
+            },
+            text_rows: self.text_rows.clone(),
+            names: self.names.clone(),
+            debug: self.debug,
+        })
+    }
 }
 
 /// A request file: its JSON, and whose it is for the messages.
@@ -32,6 +209,12 @@ impl Json {
             std::fs::read_to_string(path).map_err(|e| Bad::usage(format!("{whose}: {e}")))?;
         let data = serde_json::from_str(&text).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
         Ok(Json { data, whose })
+    }
+
+    /// The whole request as `T`, a complaint naming the file.
+    pub fn typed<T: DeserializeOwned>(&self) -> Result<T> {
+        serde_json::from_value(self.data.clone())
+            .map_err(|e| Bad::answer(format!("{}: {e}", self.whose)))
     }
 
     fn get(&self, name: &str) -> Option<&Value> {
@@ -68,19 +251,6 @@ impl Json {
         match self.get(name) {
             None => Ok(default),
             Some(v) => v.as_bool().ok_or_else(|| self.bad(name, v)),
-        }
-    }
-
-    /// `exfont`: the sheet of the ExFont the font draws —see
-    /// `Font::with_exfont_of`—; `None` when it is not there or is null, a
-    /// project without one.
-    pub fn exfont(&self) -> Result<Option<std::path::PathBuf>> {
-        match self.get("exfont") {
-            None | Some(Value::Null) => Ok(None),
-            Some(v) => v
-                .as_str()
-                .map(|s| Some(std::path::PathBuf::from(s)))
-                .ok_or_else(|| self.bad("exfont", v)),
         }
     }
 
@@ -170,184 +340,6 @@ impl Json {
                 Ok((key, numbers))
             })
             .collect()
-    }
-
-    /// `{"<id>": "<path>"}`, as paths in the order of their numbers.
-    pub fn files(&self, name: &str) -> Result<Vec<PathBuf>> {
-        let v = match self.get(name) {
-            None => return Ok(Vec::new()),
-            Some(v) => v,
-        };
-        let mut out: Vec<(i64, PathBuf)> = v
-            .as_object()
-            .ok_or_else(|| self.bad(name, v))?
-            .iter()
-            .map(|(k, p)| {
-                let key = k.parse::<i64>().map_err(|_| self.bad(name, v))?;
-                let path = p.as_str().ok_or_else(|| self.bad(name, v))?;
-                Ok((key, PathBuf::from(path)))
-            })
-            .collect::<Result<_>>()?;
-        out.sort();
-        Ok(out.into_iter().map(|(_, p)| p).collect())
-    }
-
-    /// The conversion's request.
-    ///
-    /// ```json
-    /// {"slots": 4, "actors": [1, 11, 14], "items": [1, 2, 7], "title": true,
-    ///  "cgram_reserved": 9,
-    ///  "vram": {"slot_vram": 8192, "slot_map": 15360,
-    ///           "bg1_banks": [["WINDOW", 4096, 20480]]}}
-    /// ```
-    pub fn convert(&self) -> Result<Request> {
-        let vram = self.field("vram")?;
-        let vram_field = |name: &str| -> Result<usize> {
-            vram.get(name)
-                .and_then(Value::as_u64)
-                .map(|n| n as usize)
-                .ok_or_else(|| Bad::answer(format!("{}: no `vram.{name}`", self.whose)))
-        };
-        let banks = vram
-            .get("bg1_banks")
-            .and_then(Value::as_array)
-            .ok_or_else(|| Bad::answer(format!("{}: no `vram.bg1_banks`", self.whose)))?
-            .iter()
-            .map(|b| {
-                let bad = || Bad::answer(format!("{}: a BG1 bank is {b}", self.whose));
-                let b = b.as_array().filter(|b| b.len() == 3).ok_or_else(bad)?;
-                Ok((
-                    b[0].as_str().ok_or_else(bad)?.to_string(),
-                    b[1].as_u64().ok_or_else(bad)? as usize,
-                    b[2].as_u64().ok_or_else(bad)? as usize,
-                ))
-            })
-            .collect::<Result<_>>()?;
-        let mut menus = Vec::new();
-        if let Some(list) = self.get("menus") {
-            for m in list.as_array().ok_or_else(|| self.bad("menus", list))? {
-                let name = m
-                    .get("name")
-                    .and_then(Value::as_str)
-                    .ok_or_else(|| self.bad("menus", m))?;
-                let spec = m.get("spec").cloned().ok_or_else(|| self.bad("menus", m))?;
-                menus.push((name.to_string(), spec));
-            }
-        }
-        let mut menu_context = crate::custom_menu::Context::default();
-        if let Some(v) = self.get("variables") {
-            for pair in v.as_array().ok_or_else(|| self.bad("variables", v))? {
-                let p = pair
-                    .as_array()
-                    .filter(|p| p.len() == 2)
-                    .ok_or_else(|| self.bad("variables", v))?;
-                let (var, slot) = (p[0].as_i64(), p[1].as_u64());
-                match (var, slot) {
-                    (Some(var), Some(slot)) => {
-                        menu_context.variables.insert(var as i32, slot as usize);
-                    }
-                    _ => return Err(self.bad("variables", v)),
-                }
-            }
-        }
-        let mut names = Vec::new();
-        if let Some(v) = self.get("names") {
-            for pair in v.as_array().ok_or_else(|| self.bad("names", v))? {
-                let p = pair
-                    .as_array()
-                    .filter(|p| p.len() == 2)
-                    .ok_or_else(|| self.bad("names", v))?;
-                match (
-                    p[0].as_i64().and_then(|a| i32::try_from(a).ok()),
-                    p[1].as_str(),
-                ) {
-                    (Some(actor), Some(name)) => names.push((actor, name.to_string())),
-                    _ => return Err(self.bad("names", v)),
-                }
-            }
-        }
-        for (common, body) in self.by_number("before_bodies")? {
-            menu_context.before_bodies.insert(common, body as u8);
-        }
-        Ok(Request {
-            menus,
-            menu_context,
-            slots: self.index_or("slots", 0)?,
-            actors: self.actors("actors")?,
-            items: self.actors("items")?,
-            title: self.flag("title", false)?,
-            cgram_reserved: self.index_or("cgram_reserved", 0)?,
-            letters: self.letters("letters")?,
-            screen_letters: self.letters("screen_letters")?,
-            text_rows: self.text_rows()?,
-            names,
-            debug: self.flag("debug", false)?,
-            vram: Vram {
-                slot_vram: vram_field("slot_vram")?,
-                slot_map: vram_field("slot_map")?,
-                bg1_banks: banks,
-            },
-        })
-    }
-
-    /// `systems`, the other Systems a cartridge switches to, for the
-    /// `window` subcommand: none if the request does not have it.
-    pub fn systems(&self) -> Result<Vec<OtherSystem>> {
-        let Some(v) = self.get("systems") else {
-            return Ok(Vec::new());
-        };
-        let bad = || self.bad("systems", v);
-        let mut out = Vec::new();
-        for s in v.as_array().ok_or_else(bad)? {
-            let system = s
-                .get("system")
-                .and_then(Value::as_str)
-                .ok_or_else(bad)?
-                .to_string();
-            let background = match s.get("background") {
-                None | Some(Value::Null) => None,
-                Some(b) => Some(b.as_str().ok_or_else(bad)?.to_string()),
-            };
-            let stretch = match s.get("stretch") {
-                None | Some(Value::Null) => None,
-                Some(n) => Some(
-                    n.as_i64()
-                        .and_then(|n| i32::try_from(n).ok())
-                        .ok_or_else(bad)?,
-                ),
-            };
-            out.push(OtherSystem {
-                system,
-                background,
-                stretch,
-            });
-        }
-        Ok(out)
-    }
-
-    /// `text_rows`, the glyph rows that take one entry each: a list of
-    /// lists of rows, or nothing.
-    pub fn text_rows(&self) -> Result<Option<crate::message_window::TextRows>> {
-        let Some(v) = self.get("text_rows").filter(|v| !v.is_null()) else {
-            return Ok(None);
-        };
-        let bad = || self.bad("text_rows", v);
-        let mut out = Vec::new();
-        for class in v.as_array().ok_or_else(bad)? {
-            let rows: Option<Vec<usize>> = class
-                .as_array()
-                .ok_or_else(bad)?
-                .iter()
-                .map(|r| r.as_u64().map(|r| r as usize))
-                .collect();
-            out.push(rows.ok_or_else(bad)?);
-        }
-        let mut all: Vec<usize> = out.iter().flatten().copied().collect();
-        all.sort_unstable();
-        if all != (0..rm2k_snes_text::font::HEIGHT).collect::<Vec<_>>() {
-            return Err(bad());
-        }
-        Ok(Some(out))
     }
 
     /// The party a screen shows: `party`, and optionally `actors`, `hp`,

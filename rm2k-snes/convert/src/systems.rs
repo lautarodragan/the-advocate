@@ -10,7 +10,7 @@
 use crate::game::{Command, Game, GameMap};
 use rm2k_project::windows::color_text;
 use rm2k_snes_events::codes::CHANGE_SYSTEM_GRAPHICS;
-use serde_json::{json, Value};
+use rm2k_snes_screens::request::OtherSystem;
 use std::path::PathBuf;
 
 /// A System the cartridge switches to.
@@ -98,17 +98,15 @@ pub fn names(game: &Game, switched: &[Switched], any: bool) -> Vec<String> {
 
 /// The `systems` the screens' `window` subcommand takes: each with the
 /// project's `[windows.background]` for it, if any.
-pub fn window_request(game: &Game, switched: &[Switched]) -> Value {
-    Value::Array(
-        switched
-            .iter()
-            .map(|s| {
-                json!({
-                    "system": s.name,
-                    "background": game.window_background(&s.name).map(|b| color_text(b.flat())),
-                    "stretch": s.stretch,
-                })
-            })
-            .collect(),
-    )
+pub fn window_request(game: &Game, switched: &[Switched]) -> Vec<OtherSystem> {
+    switched
+        .iter()
+        .map(|s| OtherSystem {
+            system: s.name.clone(),
+            background: game
+                .window_background(&s.name)
+                .map(|b| color_text(b.flat())),
+            stretch: s.stretch,
+        })
+        .collect()
 }

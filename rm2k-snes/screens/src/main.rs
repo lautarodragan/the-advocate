@@ -7,9 +7,11 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::game::Skin;
-use rm2k_snes_screens::request::Json;
+use rm2k_snes_screens::request::{self, Json};
 use rm2k_snes_screens::stage::{self, Files, Place};
 use rm2k_snes_screens::{borders, boxes, convert, fit, layout, render, Bad, Result};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -204,15 +206,24 @@ fn write_files(out: &Path, files: &Files) -> Result<()> {
 }
 
 /// One of the commands the converter calls: its stage function asked the
-/// request in `path`, its files into `out`. Through the door that takes
-/// the request read, so a complaint names the file.
-fn asked(path: &Path, out: &Path, answer: impl FnOnce(&Json) -> Result<Files>) -> Result<()> {
-    write_files(out, &answer(&Json::read(path)?)?)
+/// request in `path`, its files into `out`. A request that does not read
+/// as its type is complained about with the file's name.
+fn asked<T: DeserializeOwned>(
+    path: &Path,
+    out: &Path,
+    answer: impl FnOnce(&T) -> Result<Files>,
+) -> Result<()> {
+    write_files(out, &answer(&Json::read(path)?.typed()?)?)
 }
 
 fn do_render(args: &GameArgs) -> Result<()> {
     let json = Json::read(&args.request)?;
-    let game = stage::game_with_font(&args.place(), &json)?;
+    let game = stage::game_with_font(
+        &args.place(),
+        &json.typed()?,
+        &json.letters("letters")?,
+        &json.letters("screen_letters")?,
+    )?;
     let skin = game.skin()?;
     let slots = json.index_or("slots", 0)?;
     let chosen = json.index_or("chosen", 0)?;
@@ -438,54 +449,40 @@ fn do_refit(args: &LayoutArgs) -> Result<()> {
         .request
         .as_ref()
         .ok_or_else(|| Bad::usage("refit needs --request, with the boxes"))?;
-    let json = Json::read(path)?;
-    let bad = || {
-        Bad::answer(format!(
-            "{}: `boxes` is not a list of lists of lines",
-            json.whose
-        ))
-    };
-    let boxes: Vec<Vec<String>> = json
-        .data
-        .get("boxes")
-        .and_then(|b| b.as_array())
-        .ok_or_else(bad)?
-        .iter()
-        .map(|lines| {
-            lines
-                .as_array()
-                .ok_or_else(bad)?
-                .iter()
-                .map(|l| l.as_str().map(str::to_string).ok_or_else(bad))
-                .collect()
-        })
-        .collect::<Result<_>>()?;
-    let answer = boxes::refit_each(
-        &boxes,
-        &stage::measure_of(&json)?,
-        json.index_or("lines", 0)?,
-    );
+    let asked: Refit = Json::read(path)?.typed()?;
+    let answer = boxes::refit_each(&asked.boxes, &stage::measure_of(&asked.line)?, asked.lines);
     write(&args.out, "refit.json", &answer.to_string())
+}
+
+/// `refit`'s request: the boxes, each a list of lines, and the window they
+/// are reflowed for, `lines` tall, as in `boxes`' request.
+#[derive(Deserialize)]
+struct Refit {
+    boxes: Vec<Vec<String>>,
+    #[serde(flatten)]
+    line: request::Line,
+    #[serde(default)]
+    lines: usize,
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Convert(args) => asked(&args.request, &args.out, |request| {
-            stage::convert_of(&args.place(), request)
+            stage::convert(&args.place(), request)
         }),
         Command::Render(args) => do_render(args),
         Command::Boxes(args) => asked(&args.request, &args.out, |request| {
-            stage::boxes_of(&args.data, request)
+            stage::boxes(&args.data, request)
         }),
         Command::Faces(args) => asked(&args.request, &args.out, |request| {
-            stage::faces_of(&args.place(), request)
+            stage::faces(&args.place(), request)
         }),
         Command::Layout(args) => write_files(&args.out, &stage::layout()),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),
         Command::Window(args) => asked(&args.request, &args.out, |request| {
-            stage::window_of(&args.place(), request)
+            stage::window(&args.place(), request)
         }),
     };
     match done {
