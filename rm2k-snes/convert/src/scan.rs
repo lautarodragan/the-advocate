@@ -792,7 +792,10 @@ mod tests {
             possible_leaders(&changes, &[10])
         };
         let straight = leaders(&[&four, &opening]);
-        assert!(straight.contains(&11), "Kersh never leads: {straight:?}");
+        assert!(
+            straight.contains(&11),
+            "the opening's hero never leads: {straight:?}"
+        );
         // And the directory's order is not the order it is played in, so
         // it cannot decide who gets drawn.
         let reversed: BTreeSet<i32> = leaders(&[&opening, &four]).into_iter().collect();
