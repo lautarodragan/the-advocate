@@ -35,6 +35,7 @@ use crate::fail::Result;
 use crate::game::{Game, GameMap};
 use crate::maps::{self, MapInfo};
 use crate::stage;
+use rm2k_project::outln;
 use rm2k_snes_events::codes::{CHANGE_MAP_TILESET, TILE_SUBSTITUTION};
 use rm2k_snes_mapdata::materials::{cell_bytes, BLOCK_BYTES};
 use rm2k_snes_mapdata::vram;
@@ -368,9 +369,10 @@ pub fn take(game: &Game, m: &mut MapInfo, map_events: &Events, drawn: Vec<Drawn>
     let mut kept: Vec<Drawn> = Vec::new();
     for d in drawn {
         match refused(m, map_events, &d) {
-            Some(why) => println!(
+            Some(why) => outln!(
                 "  map {}: WARNING, ChipSet {} is not swapped in: {why}",
-                m.id, d.chipset
+                m.id,
+                d.chipset
             ),
             None => kept.push(d),
         }
@@ -385,7 +387,7 @@ pub fn take(game: &Game, m: &mut MapInfo, map_events: &Events, drawn: Vec<Drawn>
         layout_for(m, &drawing)
     };
     if !drawing.is_empty() && layout.is_none() {
-        println!(
+        outln!(
             "  map {}: WARNING, its ChipSets are not swapped in: no VRAM layout holds the map with all of them",
             m.id
         );
@@ -394,7 +396,7 @@ pub fn take(game: &Game, m: &mut MapInfo, map_events: &Events, drawn: Vec<Drawn>
     let main = map_blocks(m);
     let others: Vec<(&Blocks, bool)> = kept.iter().map(|d| (&d.blocks, d.draws)).collect();
     let Some((joined, theirs)) = join(&main, &others) else {
-        println!(
+        outln!(
             "  map {}: WARNING, its ChipSets are not swapped in: their conversions do not cover the same cells",
             m.id
         );
@@ -403,14 +405,14 @@ pub fn take(game: &Game, m: &mut MapInfo, map_events: &Events, drawn: Vec<Drawn>
     let ram = BLOCK_BYTES * joined.count() + joined.count();
     if joined.count() > MAX_BLOCKS || cell_bytes(joined.cells.len(), joined.count(), ram).is_none()
     {
-        println!(
+        outln!(
             "  map {}: WARNING, its ChipSets are not swapped in: numbered by all of them it takes {} blocks, and its grid does not fit",
             m.id,
             joined.count()
         );
         return Vec::new();
     }
-    println!(
+    outln!(
         "  map {}: ChipSets {} swapped in by its pages, its blocks numbered by all: {} where it had {}",
         m.id,
         kept.iter()

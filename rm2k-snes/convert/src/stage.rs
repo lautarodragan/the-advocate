@@ -22,11 +22,12 @@
 use crate::fail::{io, Result, Stop};
 use rm2k_project::cache;
 use serde_json::Value;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 /// What a stage answers: every file it made, by name, as its binary wrote
 /// them into `--out`.
@@ -35,13 +36,59 @@ pub type Files = BTreeMap<String, Vec<u8>>;
 /// The disk cache's category for the stages' answers.
 const CATEGORY: &str = "stages";
 
-/// The disk cache the answers are kept in: set once, by the conversion,
-/// unless `NO_CACHE=1`. Without it every stage runs.
-static CACHE: OnceLock<PathBuf> = OnceLock::new();
+thread_local! {
+    /// The disk cache the answers are kept in, for the conversion this
+    /// thread is running, unless `NO_CACHE=1`. Without it every stage runs.
+    ///
+    /// **The conversion's, not the process's**: until 2026-11-25 it was a
+    /// `OnceLock` the first conversion set, which was all one process ran.
+    /// With the builder converting every cartridge in one process, a second
+    /// conversion with another cache would have kept its answers in the
+    /// first one's.
+    static CACHE: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
+}
 
-/// Keeps the stages' answers in `directory` from here on.
-pub fn keep_answers_in(directory: PathBuf) {
-    let _ = CACHE.set(directory);
+/// Keeps the stages' answers in `directory` —in none if it is None— until
+/// what this returns is dropped, which puts back the one before.
+#[must_use = "the cache is kept only while this lives"]
+pub fn keep_answers_in(directory: Option<PathBuf>) -> Kept {
+    Kept(Some(CACHE.with(|c| c.replace(directory))))
+}
+
+/// See [`keep_answers_in`].
+pub struct Kept(Option<Option<PathBuf>>);
+
+impl Drop for Kept {
+    fn drop(&mut self) {
+        if let Some(before) = self.0.take() {
+            CACHE.with(|c| *c.borrow_mut() = before);
+        }
+    }
+}
+
+/// What a thread of the conversion carries that one it starts has to carry
+/// too, or the stages it calls would neither find the cache nor say
+/// anything in the cartridge's log: see [`carried`].
+#[derive(Clone)]
+pub struct Carried {
+    log: Option<rm2k_project::log::Log>,
+    cache: Option<PathBuf>,
+}
+
+/// This thread's [`Carried`], to hand to the threads it starts.
+pub fn carried() -> Carried {
+    Carried {
+        log: rm2k_project::log::current(),
+        cache: CACHE.with(|c| c.borrow().clone()),
+    }
+}
+
+impl Carried {
+    /// Runs `f` with what this carries, in the thread that runs it.
+    pub fn within<T>(&self, f: impl FnOnce() -> T) -> T {
+        let _kept = keep_answers_in(self.cache.clone());
+        rm2k_project::log::within(self.log.clone(), f)
+    }
 }
 
 /// How a stage reads a directory it is given, which is what of it goes into
@@ -265,9 +312,10 @@ pub fn call<E: Display>(
     flags: &[OsString],
     answer: impl FnOnce() -> std::result::Result<Files, E>,
 ) -> Result<Files> {
-    let Some(cache_dir) = CACHE.get() else {
+    let Some(cache_dir) = CACHE.with(|c| c.borrow().clone()) else {
         return call_uncached(stage, answer);
     };
+    let cache_dir = &cache_dir;
     let key = key(stage, request, flags, cache_dir)?;
     if let Some(files) = cache::load(cache_dir, CATEGORY, &key).and_then(|v| unpack(&v)) {
         return Ok(files);
@@ -498,12 +546,12 @@ mod tests {
     }
 
     /// The second time a function is asked the same thing it is not
-    /// called: its answer comes from the disk as it was. The only test that
-    /// sets the cache, which is once per process.
+    /// called: its answer comes from the disk as it was; and once the
+    /// conversion that kept them is over, nothing is kept.
     #[test]
     fn a_function_asked_again_answers_from_the_cache() {
         let root = scratch("call");
-        keep_answers_in(root.join("cache"));
+        let kept = keep_answers_in(Some(root.join("cache")));
         let calls = std::cell::Cell::new(0);
         let answer = || -> std::result::Result<Files, String> {
             calls.set(calls.get() + 1);
@@ -520,5 +568,8 @@ mod tests {
         // Another stage asked the same is called.
         call(BATTLE_LAYOUT, &request, &[], answer).unwrap();
         assert_eq!(calls.get(), 2);
+        drop(kept);
+        call(SCREENS_LAYOUT, &request, &[], answer).unwrap();
+        assert_eq!(calls.get(), 3);
     }
 }

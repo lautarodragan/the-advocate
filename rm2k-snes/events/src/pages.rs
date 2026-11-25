@@ -10,6 +10,7 @@ use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Map, Page};
 use crate::losses::Origin;
 use crate::route;
+use rm2k_project::errln;
 use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
 
 use std::cell::RefCell;
@@ -480,9 +481,10 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
     for event in &map.events {
         if let Some((why, warn)) = left_out_why(ctx.indices, event) {
             if warn {
-                eprintln!(
+                errln!(
                     "  map {}: WARNING, event {} is left out: {why}",
-                    map.id, event.id
+                    map.id,
+                    event.id
                 );
             }
             left_out(ctx, event, format!("the event is left out: {why}"));

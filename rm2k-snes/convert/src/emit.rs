@@ -6,6 +6,7 @@
 
 use crate::fail::{Result, Stop};
 use crate::maps::{MapInfo, PageRecord};
+use rm2k_project::outln;
 use rm2k_snes_mapdata::request;
 use wally::answer;
 
@@ -328,7 +329,7 @@ pub fn emit(
     std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
     let answer: rm2k_snes_mapdata::answer::Answer = crate::stage::typed(&written, "mapdata.json")?;
     for note in &answer.notes {
-        println!("{note}");
+        outln!("{note}");
     }
     Ok(Emitted {
         report: answer.report,

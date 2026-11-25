@@ -16,6 +16,7 @@ use crate::song::{self, Parsed};
 use crate::spc700;
 use crate::stream::{self, Sound, Write};
 use crate::voices::{self, Allotted, Instruments, SampleInfo};
+use rm2k_project::outln;
 use rm2k_snes_bytecode::music::OP_END;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
@@ -308,7 +309,7 @@ fn whole_effects_fit(
                 .map(|e| effects[*e].data.len() as i64)
                 .sum::<i64>();
         if before <= bank.free && bank.free < now {
-            println!(
+            outln!(
                 "  with {} playing, the whole sound effects of package {name} do not fit \
                  alongside: they wait for the PlayBGM",
                 names[*inherited]
@@ -580,7 +581,7 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
     // SoundFont lacks.
     let dropped = bank::drop_surplus(&mut keys_of_present, bank::DIRECTORY_MAX - places as i64);
     if !dropped.is_empty() {
-        println!(
+        outln!(
             "  WARNING, the directory holds {} samples and the music asks for {}: {} left out, so the \
              notes that use them are silent (the least used, ties by key order): {}",
             bank::DIRECTORY_MAX - places as i64,

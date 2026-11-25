@@ -19,6 +19,7 @@ use crate::fail::{Result, Stop};
 use crate::fork::Forks;
 use ditto::dump::{read_map, Dump};
 use ditto::schema;
+use rm2k_project::outln;
 use rm2k_project::windows::WindowBackground;
 use rm2k_project::Project;
 use serde_json::Value;
@@ -654,7 +655,7 @@ impl Game {
                 self.boxed_exits.entry(id).or_default().insert(b);
             }
             if !twins.is_empty() {
-                println!(
+                outln!(
                     "  map {id}: {} events and the console's RAM holds {cap}: {} are twins —the same pages as an \
                      earlier one, nothing drawn, still— and share the row of one of {} events",
                     raw.events.len(),
@@ -671,7 +672,7 @@ impl Game {
                     }
                 }
                 lost.sort();
-                println!(
+                outln!(
                     "{}",
                     crate::trim::warning(id, raw.events.len() - twins.len(), cap, &lost)
                 );

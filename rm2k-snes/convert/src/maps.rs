@@ -18,6 +18,7 @@ use crate::game::{Command, Event, Game, GameMap, COPY_SUFFIX, TILE_PREFIX};
 use crate::pictures::{self, Big, ForMap};
 use crate::settings::Settings;
 use crate::stage;
+use rm2k_project::outln;
 use rm2k_snes_events::answer::{OwnRoute, Page, Scan};
 use rm2k_snes_events::codes::{FLASH_SPRITE, MOVE_EVENT, TILE_SUBSTITUTION};
 use rm2k_snes_events::request::Picture;
@@ -718,20 +719,24 @@ pub fn run_requests(
         .iter()
         .map(|_| std::sync::Mutex::new(None))
         .collect();
+    // Each worker converts for this conversion: its cache, and its log.
+    let carried = stage::carried();
     std::thread::scope(|scope| {
         for _ in 0..workers {
-            scope.spawn(|| loop {
-                let k = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                if k >= prepared.len() {
-                    break;
-                }
-                let request = prepared[k].1;
-                let value = serde_json::to_value(request).expect("a request is JSON");
-                let done = stage::call(WALLY_MAP, &value, &flags, || {
-                    wally::stage::map(&c.game.dump, &search_dirs, request)
+            scope.spawn(|| {
+                carried.within(|| loop {
+                    let k = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if k >= prepared.len() {
+                        break;
+                    }
+                    let request = prepared[k].1;
+                    let value = serde_json::to_value(request).expect("a request is JSON");
+                    let done = stage::call(WALLY_MAP, &value, &flags, || {
+                        wally::stage::map(&c.game.dump, &search_dirs, request)
+                    })
+                    .map_err(|e| e.in_map(prepared[k].0));
+                    *results[k].lock().unwrap() = Some(done);
                 })
-                .map_err(|e| e.in_map(prepared[k].0));
-                *results[k].lock().unwrap() = Some(done);
             });
         }
     });
@@ -901,7 +906,7 @@ fn family(name: &str) -> &str {
 /// decorative one only says so.
 fn discard_warning(text: &str, dangerous: bool) -> Result<()> {
     if !dangerous {
-        println!("  {text}");
+        outln!("  {text}");
         return Ok(());
     }
     Err(Stop::new(format!(
@@ -1002,7 +1007,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         } else if note.stop {
             return Err(Stop::new(text));
         } else {
-            println!("{text}");
+            outln!("{text}");
         }
     }
     let (bg, above) = (&layers.background, &layers.above);
@@ -1067,7 +1072,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
                 layout.map_or(0, |l| l.sprites.count)
             );
         }
-        println!(
+        outln!(
             "  map {map_id}: battle animations are drawn in {} tiles from {}, palette {}",
             animations::TILES,
             animation.base,
@@ -1095,7 +1100,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         };
         let rescued = names(&mut p.big_over_black.iter().map(|b| b.key.name.as_str()));
         let lost = names(&mut asked.table.iter().map(|p| p.key.name.as_str()));
-        println!(
+        outln!(
             "  map {map_id}: the pictures {} are shown in the background layer instead, over the \
              black screen they are shown on",
             crate::text::quoted(&rescued.iter().cloned().collect::<Vec<_>>().join(", "))
@@ -1131,7 +1136,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let start = (i64::from(answer.start.0), i64::from(answer.start.1));
     let name = game.tree.name(map_id).to_string();
     let cells_count = bg.cells;
-    println!(
+    outln!(
         "Map {map_id} {}: {}x{} cells of {}x{} px",
         crate::text::quoted(&name),
         tilemap_dims.0,
@@ -1139,20 +1144,20 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         8,
         8
     );
-    println!(
+    outln!(
         "  {} distinct colors, {} in CGRAM of {} available, {} merged",
         bg.colors,
         bg.used,
         bg.budget,
         bg.merges.len()
     );
-    println!(
+    outln!(
         "  {} unique tiles of {} cells ({:.0}% reuse)",
         bg.tiles,
         cells_count,
         100.0 * (1.0 - bg.tiles as f64 / cells_count as f64)
     );
-    println!(
+    outln!(
         "  sprites: {} characters, {} slots, {} tiles in VRAM, {} palettes; {} with their twelve poses in the cartridge",
         s.characters,
         s.place.iter().map(|(slot, _, _)| slot).collect::<HashSet<_>>().len(),
@@ -1160,13 +1165,13 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         s.palettes.len(),
         s.animated.len()
     );
-    println!(
+    outln!(
         "  {} NPCs with a CharSet out of {} events",
         answer.npcs.len(),
         p.map.events.len()
     );
     let open_ones = passable.iter().filter(|&&b| b == 0x0F).count();
-    println!(
+    outln!(
         "  collision: {} cells, {} open on all four sides ({:.0}%), the hero starts at ({},{})",
         passable.len(),
         open_ones,
@@ -1175,7 +1180,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         start.1
     );
     let above_first = above.first as i64;
-    println!(
+    outln!(
         "  layer above the hero: {} tiles, {} colors in {} palette(s) from {}, {} merged",
         above_count,
         above_cgram.len() / 2,
@@ -1195,7 +1200,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         blocks.len() + block_pass.len(),
     )
     .unwrap_or(2);
-    println!(
+    outln!(
         "  the map fits in {} 16x16 blocks for {} cells: {} B of grid plus {} B of table, against the {} B of the expanded tilemap",
         block_pass.len(),
         cells_list.len(),
@@ -1206,7 +1211,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let windows_x = (tilemap_dims.0 as u32).div_ceil(vram::WINDOW_W);
     let windows_y = (tilemap_dims.1 as u32).div_ceil(vram::WINDOW_H);
     if windows_x > 1 || windows_y > 1 {
-        println!(
+        outln!(
             "  it doesn't fit in the {}x{} window: the ROM is going to redraw",
             vram::WINDOW_W,
             vram::WINDOW_H
@@ -1215,21 +1220,21 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let chipset = game.chipset(p.map.chipset_id)?;
     if let Some(way) = &layers.panorama_way {
         if way == "flattened" {
-            println!(
+            outln!(
                 "  map {map_id}: its panorama goes {way}, {} pixels on the wrong side of the hero",
                 layers.panorama_above_lost
             );
         } else {
-            println!("  map {map_id}: its panorama goes {way}");
+            outln!("  map {map_id}: its panorama goes {way}");
         }
         for why in &layers.panorama_tried {
-            println!("    not {why}");
+            outln!("    not {why}");
         }
     }
     // What the map's pictures put in front of the hero: see
     // `map_pictures` in Wally.
     if let Some(front) = layers.pictures_in_front {
-        println!(
+        outln!(
             "  map {map_id}: its pictures put {} pixels in front of the hero, and {} go to the wrong side of him",
             front.pixels, front.wrong
         );
@@ -1247,7 +1252,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
                 panorama_tiles(pano) as u32,
             )
             .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?;
-            println!(
+            outln!(
                 "  panorama {}: mode {} in {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged{}",
                 pano.name,
                 pano.mode,
@@ -1269,7 +1274,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             let rom =
                 |tiles: usize, (w, h): (usize, usize)| tiles * bytes_per_tile + w / 8 * (h / 8) * 2;
             for image in &pano.images {
-                println!(
+                outln!(
                     "  panorama {} too, by a ChangePBG: a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged, {} bytes of ROM",
                     image.name,
                     image.stretch.0,
@@ -1283,7 +1288,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
                 );
             }
             if !pano.images.is_empty() {
-                println!(
+                outln!(
                     "  map {map_id}: {} panoramas, {} bytes of ROM, in {} palettes from entry {}",
                     pano.images.len() + 1,
                     rom(pano.tiles, pano.stretch)
@@ -1300,7 +1305,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         }
     };
     for (picture, why) in &layers.panorama_dropped {
-        println!("  map {map_id}: its ChangePBG to {picture:?} keeps the panorama there is: {why}");
+        outln!("  map {map_id}: its ChangePBG to {picture:?} keeps the panorama there is: {why}");
     }
     let mut panorama_tiles = Vec::new();
     if let Some(pano) = &layers.panorama {

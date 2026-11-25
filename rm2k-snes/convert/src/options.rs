@@ -286,7 +286,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         .try_get_matches_from(
             std::iter::once("rm2k-snes-convert".to_string()).chain(stretches[0].clone()),
         )
-        .unwrap_or_else(|e| e.exit());
+        .map_err(Stop::from)?;
     let mut test_graphic = None;
     if let Some(occurrences) = matches.get_occurrences::<String>("test_graphic") {
         let mut graphics = Vec::new();
@@ -308,7 +308,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
             .try_get_matches_from(
                 std::iter::once("rm2k-snes-convert".to_string()).chain(stretch.clone()),
             )
-            .unwrap_or_else(|e| e.exit());
+            .map_err(Stop::from)?;
         for id in loose.ids() {
             let id = id.as_str();
             if CASE_FLAGS.contains(&id) {

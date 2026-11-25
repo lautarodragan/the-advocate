@@ -21,12 +21,16 @@
 //! And [`windows`]: `[windows.background]`, the one setting more than one
 //! stage reads with rules of its own —by System, colour or gradient—.
 //!
+//! And [`log`]: what a conversion says, into its own log and not onto the
+//! process's stdout, so that several can run in one process.
+//!
 //! And [`resolved`]: all of the above about one project, as JSON, for
 //! whoever asks from outside the tools.
 
 pub mod archive;
 pub mod cache;
 pub mod environment;
+pub mod log;
 pub mod own_files;
 mod paths;
 mod project;

@@ -1,58 +1,16 @@
 //! `rm2k-snes-convert`: an rm2k-snes game into the data a Super Nintendo
-//! cartridge carries.
-//!
-//! It is the conversion's orchestrator. Every domain is a stage of its own
-//! —a program on the PATH that reads the game from the dump itself and
-//! answers a request: the maps (`wally`), the event compiler, the screens,
-//! the pictures, the battle, the emission, the patches, the music—, and
-//! this asks each one, in order, what the cartridge needs, handing each
-//! the decisions it cannot make and what the others answered. What it
-//! decides itself is what joins them: which maps and test pages the
-//! cartridge carries, who can lead the party, which items and actors it
-//! needs, where the timer runs, which pictures, animations, backdrops and
-//! battlers go in, and the checks the compiled pages have to pass.
+//! cartridge carries, and the questions a game's tests ask the converter.
+//! What it does is the library's, `rm2k_snes_convert`: this only reads the
+//! command line and says how it went.
 
-mod animations;
-mod bytecode;
-mod chipsets;
-mod common_pages;
-mod common_pictures;
-mod compiler;
-mod convert;
-mod degradations;
-mod emit;
-mod fail;
-mod font;
-mod fork;
-mod fullscreen;
-mod game;
-mod images;
-mod letters;
-mod map_pictures;
-mod maps;
-mod msu_missing;
-mod options;
-mod pictures;
-mod queries;
-mod reach;
-mod resources;
-mod scan;
-mod scene;
-mod screens;
-mod settings;
-mod stage;
-mod systems;
-mod text;
-mod trim;
-mod variants;
-
+use rm2k_snes_convert::{convert, options, queries};
 use std::io::Write;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     // A question a game's test asks goes by its word, first; anything else
-    // is a conversion.
+    // is a conversion, onto this process's stdout.
     let done = if argv
         .first()
         .is_some_and(|a| queries::QUERIES.contains(&a.as_str()))
@@ -64,6 +22,11 @@ fn main() -> ExitCode {
     let _ = std::io::stdout().flush();
     match done {
         Ok(()) => ExitCode::SUCCESS,
+        // `--help`, which the flags' parser answers on stdout.
+        Err(stop) if stop.code == 0 => {
+            println!("{}", stop.message);
+            ExitCode::SUCCESS
+        }
         Err(stop) => {
             eprintln!("{}", stop.message);
             ExitCode::from(stop.code)

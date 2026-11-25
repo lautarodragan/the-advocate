@@ -16,6 +16,7 @@ use crate::audible::Audible;
 use crate::fail::Result;
 use crate::samples::{self, BLOCK, BLOCK_BYTES};
 use crate::sdsp;
+use rm2k_project::outln;
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
@@ -331,7 +332,7 @@ pub fn rates_per_package(
                 .collect()
         };
         let rates = fit(&own, effects, sources, room).unwrap_or_else(|| {
-            println!(
+            outln!(
                 "  high-quality sound effects: package {} does not fit even at {} Hz; the \
                  ones that do not fit do not play with MSU-1",
                 p.name,
