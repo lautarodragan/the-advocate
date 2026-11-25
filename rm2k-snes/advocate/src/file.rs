@@ -22,8 +22,10 @@
 //!   cartridge's `space`: what `space --json` printed of it, from when it was
 //!   built, or `null` if it is stale;
 //! * `patches`: the versioned patches against what the cartridges decided
-//!   —`stale`, `versioned`, `own`—, what `rm2k-snes-patches --check` said;
-//!   `null` if no cartridge is built with patches. See `patches.rs`;
+//!   —`stale`, `compared`, `versioned`, `own`—, what `rm2k-snes-patches
+//!   --check` said;
+//!   `null` if the game versions none (it has no `patches/auto/`) or no
+//!   cartridge is built with patches. See `patches.rs`;
 //! * `memory_map`: what `assemble --memory-map` printed;
 //! * `sources`: the runtime's `main.s` and what it includes, in `ca65`'s
 //!   order, as `assemble --sources` printed them.

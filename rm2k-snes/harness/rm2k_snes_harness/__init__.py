@@ -16,11 +16,14 @@ in RAM is said by its `.sym`, which map each index is by its `mapdata.inc`,
 and where the cartridge is and whether it is up to date by the
 `build/advocate.json` its build left.
 
-**How a game's tests find it**: `rm2k-snes-project --harness` prints the
-directory to put on the import path, the one of the checkout the tools were
-installed from —the same that gives the runtime—, so the harness and the
-runtime it reads the symbols of are always the same checkout's. The test
-game, which lives beside it, puts it on its path in its `pytest.ini`.
+**How a game's tests find it**: it is installed with the tools —`just
+install` links it beside their `bin/`, in `lib/advocate/harness`, and puts
+that on Python's path with a `.pth`; `install-local` gives a worktree its
+own the same way—, and they import it as any package, asking no binary.
+It is a link to the checkout the tools were installed from —the same that
+gives the runtime—, so the harness and the runtime it reads the symbols of
+are always the same checkout's. The test game, which lives beside it, puts
+it on its path in its `pytest.ini`.
 """
 
 from .cores import ACCURATE, AUDIT, BSNES, SNES9X, core_name
