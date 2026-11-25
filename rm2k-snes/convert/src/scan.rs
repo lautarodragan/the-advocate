@@ -775,6 +775,34 @@ mod tests {
     }
 
     #[test]
+    fn a_map_earlier_in_the_directory_does_not_put_its_leader_in_front() {
+        // A Blurred Line's opening, which taro found playing on 2026-09-07:
+        // at the end of the stairs Core and Manta showed and Kersh (11), the
+        // hero of the scene, did not. Map 4 comes first in the directory and
+        // its "1 year earlier" page puts Talan (14); with the party dragged
+        // from one map to the next, the opening's "puts Kersh" put him
+        // behind Talan, he was never a leader, and the hero was drawn
+        // without a graphic. Until 2026-11-25 it was that game's
+        // `tests/tooling/test_leaders.py`, which asked `rm2k-snes-convert
+        // leaders` about its opening.
+        let four = map(4, vec![vec![party(PARTY_REMOVE, 10), party(PARTY_ADD, 14)]]);
+        let opening = map(1, vec![vec![party(PARTY_REMOVE, 10), party(PARTY_ADD, 11)]]);
+        let leaders = |maps: &[&GameMap]| {
+            let changes = party_changes(maps, &everything_compiles(maps)).unwrap();
+            possible_leaders(&changes, &[10])
+        };
+        let straight = leaders(&[&four, &opening]);
+        assert!(
+            straight.contains(&11),
+            "the opening's hero never leads: {straight:?}"
+        );
+        // And the directory's order is not the order it is played in, so
+        // it cannot decide who gets drawn.
+        let reversed: BTreeSet<i32> = leaders(&[&opening, &four]).into_iter().collect();
+        assert_eq!(straight.into_iter().collect::<BTreeSet<_>>(), reversed);
+    }
+
+    #[test]
     fn rain_and_items_are_swept_over_every_page_and_the_test_pages() {
         let one = map(
             1,

@@ -122,3 +122,95 @@ fn a_character_is_lent_the_palette_it_is_drawn_nearest_with() {
         "drawn with the greys, not with the browns of the poses it does not show"
     );
 }
+
+/// A map whose characters ask for more palettes than it has, with a door
+/// drawn with a ChipSet tile and the timer on: **every event is drawn**,
+/// the ones that fit in none with someone else's palette, and none with the
+/// leader's.
+///
+/// It is the invariant taro asked for when the door Core breaks on A
+/// Blurred Line's map 2 fell out of the split and they could not get
+/// through: an event that is not drawn still takes up room, so the loss is
+/// not visual but in the gameplay, and a sprite with odd colours is a
+/// visible error where a missing one is a trap. Until 2026-11-25 it was
+/// that game's `tests/tooling/test_timer_palette.py`, which asked `wally
+/// split` about its map 2 with six palettes.
+#[test]
+fn every_event_is_drawn_when_the_palettes_fall_short() {
+    let reds = || -> Vec<[u8; 3]> { (0..15).map(|j| [64 + 8 * j, 0, 0]).collect() };
+    let blues = || -> Vec<[u8; 3]> { (0..15).map(|j| [0, 0, 64 + 8 * j]).collect() };
+    let yellows = || -> Vec<[u8; 3]> { (0..15).map(|j| [64 + 8 * j, 64 + 8 * j, 0]).collect() };
+    let door = ("@tile:chip:5".to_string(), 0);
+    let mut sheets: Sheets = Default::default();
+    sheets.insert("hero".into(), Some(sheet(move |_| reds())));
+    sheets.insert("greys".into(), Some(sheet(|_| greys())));
+    sheets.insert("browns".into(), Some(sheet(|_| browns())));
+    sheets.insert("greens".into(), Some(sheet(|_| greens())));
+    sheets.insert("blues".into(), Some(sheet(move |_| blues())));
+    sheets.insert(door.0.clone(), Some(sheet(move |_| yellows())));
+
+    let mut events: Vec<Event> = ["greys", "browns", "greens", "blues"]
+        .iter()
+        .enumerate()
+        .map(|(i, name)| Event {
+            id: i as i32 + 1,
+            x: i as i32,
+            y: 0,
+            pages: vec![page(name)],
+        })
+        .collect();
+    // The door: a page with no CharSet draws upper-layer tile `index`.
+    events.push(Event {
+        id: 5,
+        x: 4,
+        y: 0,
+        pages: vec![Page {
+            index: 5,
+            ..page("")
+        }],
+    });
+    let npcs = collect_npcs(&events, "chip", &vec![0u8; 65536]);
+    let leaders = [("hero".to_string(), 0)];
+    let poses = map_poses(
+        &leaders,
+        &npcs,
+        &BTreeSet::new(),
+        &BTreeMap::new(),
+        &[],
+        &BTreeSet::new(),
+    );
+    let only_here: HashSet<Key> = Default::default();
+    let timer = [[0, 0, 0], [248, 0, 0]];
+    let ask = Ask {
+        sheets: &sheets,
+        leaders: &leaders,
+        // The leader's and two more: two events and the door go without.
+        cap: 3,
+        route_graphics: &[],
+        hero_graphics: &Default::default(),
+        timer_colors: &timer,
+        only_here: &only_here,
+        poses: &poses,
+        weights: &Default::default(),
+    };
+    let d = drawable_npcs(&ask, npcs).unwrap();
+    let s = &d.split;
+    assert_eq!(s.palettes.len(), 3, "the map falls short: {:?}", s.palettes);
+    assert!(
+        d.discarded.is_empty(),
+        "graphics discarded instead of lent a palette: {:?}",
+        d.discarded
+    );
+    assert_eq!(d.npcs.len(), events.len(), "every event keeps its row");
+    for npc in &d.npcs {
+        for key in npc.keys() {
+            let number = s.palette_of.get(&key);
+            assert!(number.is_some(), "{key:?} was left without a palette");
+            assert!(
+                !s.leader_owned.contains(&number.unwrap()),
+                "{key:?} is drawn with the leader's palette"
+            );
+        }
+    }
+    assert!(s.lent.contains(&door), "the door is lent one: {:?}", s.lent);
+}

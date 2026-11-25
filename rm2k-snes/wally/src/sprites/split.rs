@@ -4,7 +4,7 @@
 use crate::sprites::character::{
     character_palette, nearest, sheet, sprite_colors, Key, Sheets, OBJ_COLORS, OBJ_PALETTES,
 };
-use crate::sprites::fail::Result;
+use crate::sprites::fail::{Bad, Result};
 use crate::sprites::npc::Npc;
 use adeleine::{lab_distance, merge_least_visible, Color};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -494,10 +494,42 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
         }
     }
 
+    hold(ask, &sp.split)?;
     Ok(Drawable {
         npcs: out,
         discarded,
         split: sp.split,
         notes,
     })
+}
+
+/// Stops if anyone but a leader candidate —or a look only the hero shows—
+/// went into a leader's palette. It is a bug in the split, not a limit of
+/// the map, so there is no loss to declare.
+///
+/// A flash of the hero is a tint of its palette —`paint_flash` in the
+/// runtime—, so whoever shares it flashes with them, which RM2k does not
+/// do: taro saw two tiles above some chests turn red with Talan in A
+/// Blurred Line's Emitter Room. No capture shows it unless a case puts a
+/// second sprite beside the one that flashes, so it is checked at every
+/// build. Until 2026-11-25 it was that game's
+/// `tests/tooling/test_flash_palette.py`, over three of its maps.
+///
+/// The leaders a map splits with the rest —`shared_leaders`— are not
+/// looked at: they are in a palette of the map on purpose, and the
+/// converter keeps them off the maps where something flashes the hero.
+fn hold(ask: &Ask, split: &Split) -> Result<()> {
+    for (key, number) in split.palette_of.iter() {
+        if split.leader_owned.contains(&number)
+            && !ask.leaders.contains(key)
+            && !split.own.contains(key)
+        {
+            return Err(Bad::new(format!(
+                "the split put {}:{} in palette {number}, which is a leader's: when the hero \
+                 flashes, it would flash with them",
+                key.0, key.1
+            )));
+        }
+    }
+    Ok(())
 }

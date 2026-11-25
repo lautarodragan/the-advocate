@@ -50,7 +50,8 @@ domains answered, and answers pieces and a JSON. The converter calls
 `stage::map` as a function, which answers the files by name, and so do its
 tests; the binary is a `main` over the rest of the `stage` module —the
 layers alone, and the questions `bakeable` and `split`, which ABL's tests
-ask— that writes them into `--out`.
+asked until 2026-11-25 and no test outside this crate asks any more— that
+writes them into `--out`.
 
 ## Two halves that do not know each other
 
@@ -170,7 +171,11 @@ writes the same files for the layers it ends up with.
 `bakeable` and `split` answer two questions a whole map does not show,
 for whoever checks them against a real game: which events are baked and
 what the table says of their cells, and how the palettes are split with a
-given number of them.
+given number of them. What a game's tests used to ask them for, a whole
+map now checks on its own at every build, and stops if it does not hold:
+`baking::hold`, that a baked tile covers its cell and leaves it walked as
+the event's row did, and `hold` in `sprites/split.rs`, that nobody but a
+leader goes into a leader's palette. Neither shows on screen.
 
 ## Where the numbers come from
 
