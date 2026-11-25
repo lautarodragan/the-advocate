@@ -199,7 +199,7 @@ pub fn run(options: Options) -> Result<()> {
     let start_index = options.start_index as usize;
     let output = match &options.output {
         Some(o) => rm2k_project::absolute(o),
-        None => project.build()?.join("inc").join("mapdata.inc"),
+        None => project.build().join("inc").join("mapdata.inc"),
     };
     let game_dir = environment.game()?.to_path_buf();
     let rtp_dir = environment.rtp()?.to_path_buf();
@@ -2175,7 +2175,7 @@ pub fn search_dirs(
         game.game_dir.clone(),
         rtp_dir.to_path_buf(),
     ];
-    let built = project.build()?.join("patches-manual");
+    let built = project.build().join("patches-manual");
     crate::chipsets::build_images(game, &built, &dirs)?;
     dirs.insert(0, built);
     Ok(dirs)

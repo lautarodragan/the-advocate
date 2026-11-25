@@ -39,5 +39,5 @@ pub mod suite;
 pub mod windows;
 
 pub use paths::{absolute, relative};
-pub use project::{Error, Project, FILENAME};
+pub use project::{Error, Project, BUILD, FILENAME};
 pub use resolved::resolved;

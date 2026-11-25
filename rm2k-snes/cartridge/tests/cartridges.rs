@@ -15,7 +15,6 @@ const SETTINGS: &str = r#"
 [paths]
 data = "data"
 patches = "patches"
-build = "build"
 cases = "cases"
 
 [rom]

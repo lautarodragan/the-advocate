@@ -276,7 +276,7 @@ impl Environment {
     pub fn cache(&self, project: &Project) -> Result<PathBuf, Error> {
         match self.values.get("cache") {
             Some(p) => Ok(p.clone()),
-            None => Ok(project.build()?.join("cache")),
+            None => Ok(project.build().join("cache")),
         }
     }
 
@@ -285,7 +285,7 @@ impl Environment {
     pub fn test_cartridges(&self, project: &Project) -> Result<PathBuf, Error> {
         match self.values.get("test_cartridges") {
             Some(p) => Ok(p.clone()),
-            None => Ok(project.build()?.join("tests")),
+            None => Ok(project.build().join("tests")),
         }
     }
 
@@ -297,7 +297,7 @@ impl Environment {
     /// which links the patches.
     pub fn cartridge(&self, project: &Project, name: &str) -> Result<PathBuf, Error> {
         if name == RELEASE {
-            return Ok(project.build()?.join(RELEASE));
+            return Ok(project.build().join(RELEASE));
         }
         Ok(self
             .test_cartridges(project)?

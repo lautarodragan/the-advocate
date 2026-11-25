@@ -15,6 +15,13 @@ pub const FILENAME: &str = "advocate.toml";
 /// skipped for some other project further up or reported as missing.
 const OLD_FILENAME: &str = "rm2k-snes.toml";
 
+/// Where everything a project builds goes, beside its file: fixed, the way
+/// Cargo's `target/` is, so whoever reads what a build left —a game's
+/// tests, `build/advocate.json`— finds it without reading the project
+/// file. Until 2026-11-25 `[paths] build` said where, and every project
+/// said `build` (taro's, that day).
+pub const BUILD: &str = "build";
+
 /// What stops a tool before it does anything: no project, a setting that is
 /// missing or has the wrong type, a machine value nobody passed. What fixes
 /// it is how the tool was run or what the game declares, never the tool's
@@ -113,6 +120,19 @@ impl Project {
         let settings: Table = text
             .parse()
             .map_err(|e| Error(format!("{}: {e}", directory.join(FILENAME).display())))?;
+        // Refused, not ignored: a project that still moves its build
+        // elsewhere would be built where it does not say.
+        if settings
+            .get("paths")
+            .and_then(|paths| paths.get("build"))
+            .is_some()
+        {
+            return Err(Error(format!(
+                "{}: [paths] build is gone since 2026-11-25: the build is always {BUILD}/ \
+                 beside {FILENAME}; remove the key",
+                directory.join(FILENAME).display()
+            )));
+        }
         Ok(Project {
             directory: absolute(directory),
             settings,
@@ -277,9 +297,10 @@ impl Project {
         Ok(absolute(self.directory.join(self.string(&["paths", key])?)))
     }
 
-    /// `[paths] build`: everything that gets built, and nothing versioned.
-    pub fn build(&self) -> Result<PathBuf, Error> {
-        self.path("build")
+    /// [`BUILD`], beside the project file: everything that gets built, and
+    /// nothing versioned.
+    pub fn build(&self) -> PathBuf {
+        self.directory.join(BUILD)
     }
 
     /// `[paths] data`: the game dumped to JSON.

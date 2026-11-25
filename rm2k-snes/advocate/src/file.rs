@@ -87,7 +87,7 @@ pub fn write(cartridges: &Cartridges, given: &Environment) -> Result<Value, Stri
     out.insert("sources".into(), json!(sources(&main)?));
     let out = Value::Object(out);
 
-    let build = project.build()?;
+    let build = project.build();
     std::fs::create_dir_all(&build).map_err(|e| format!("{}: {e}", build.display()))?;
     let file = build.join(NAME);
     aside_and_renamed(&file, format!("{out:#}\n").as_bytes())?;

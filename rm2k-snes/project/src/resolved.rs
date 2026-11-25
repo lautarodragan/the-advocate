@@ -31,7 +31,7 @@ pub fn resolved(project: &Project) -> Result<Value, Error> {
     let paths: [(&str, PathBuf); 8] = [
         ("directory", project.directory().to_path_buf()),
         ("file", project.file()),
-        ("build", project.build()?),
+        ("build", project.build()),
         ("data", project.data()?),
         ("patches", project.patches()?),
         ("manual_patches", project.manual_patches()?),

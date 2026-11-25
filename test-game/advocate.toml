@@ -10,7 +10,6 @@
 [paths]
 data = "build/data"
 patches = "patches"
-build = "build"
 cases = "cases"
 
 [rom]
