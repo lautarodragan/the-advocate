@@ -32,12 +32,15 @@
 //!   game, a map or a page that only exists for a test suite— the converter
 //!   writes itself, in `<build>/patches/uses.json` ([`USES_FILE`]), and this
 //!   only reads it.
-//! * **`rm2k-snes-patches <build>`** copies what the playable ROM decided
-//!   into the project's automatic patches, which is what goes to version
-//!   control, and removes what it no longer carries.
-//! * **`rm2k-snes-patches --check`** compares what is versioned against what
-//!   **every** built cartridge decided, and says **which decision changed**,
-//!   not that a file differs: see [`check`].
+//! * **[`copy`]**, `advocate build --write-patches`, copies what the
+//!   playable ROM decided into the project's automatic patches, which is
+//!   what goes to version control, and removes what it no longer carries.
+//! * **[`check`]**, on every `advocate build`, compares what is versioned
+//!   against what **every** built cartridge decided, and says **which
+//!   decision changed**, not that a file differs.
+//!
+//! Until 2026-11-25 the last two were a binary of this crate,
+//! `rm2k-snes-patches` and `rm2k-snes-patches --check`.
 //!
 //! # The key
 //!

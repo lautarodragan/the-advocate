@@ -1,10 +1,17 @@
 # rm2k-snes-convert: an RPG Maker 2000 game into a cartridge's data
 
-    rm2k-snes-convert --project game/ --game-dir original/ --rtp-dir rtp/ \
-        --soundfont bank.sf2 -o build/mapdata.inc --msu build/game.msu \
-        --map-id 4 --maps 1 2 3
+    rm2k_snes_convert::convert(["--project", "game/", "--game-dir", "original/",
+        "--soundfont", "bank.sf2", "-o", "build/mapdata.inc", "--map-id", "4", …], &log)
 
-`cargo build --release`, or `cargo test`. `--help` prints every flag.
+    rm2k-snes-convert scan --project game/ --game-dir original/ --maps 1 2
+
+A library: `advocate build` (`../advocate/`) calls `convert` once per
+cartridge, with the flags the project file writes for it, and what the
+conversion says goes into the cartridge's `converter.log` through the
+`Log`. Its binary, `rm2k-snes-convert`, is only the questions a game's
+tests ask it —`scan`, `compile`, `leaders`, `map-context`, `boxes`, in
+`src/queries.rs`—; until 2026-11-25 it converted too, and the cartridges'
+builder ran it once per cartridge. `cargo test`.
 
 A Super Nintendo cartridge converted from an RPG Maker 2000 game is the
 suite's runtime assembled together with the data the conversion writes:
@@ -14,24 +21,25 @@ a library this program is compiled with, with the shape
 `rm2k-snes/battle/README.md` describes in "One stage of a converter": it
 reads the game from the Ditto dump itself, gets in a request what the
 cartridge decided and the dump does not say, and answers what it made, as
-files by name. This is the program that calls them, through `stage.rs`,
-in order —each named by the subcommand of its binary that answers the
-same—:
+files by name. This is the library that calls them, through `stage.rs`,
+in order —each named by its crate's `stage` function—:
 
-1. the text boxes reflowed for the console's window (`rm2k-snes-screens
-   boxes`), and the event compiler's first call (`rm2k-snes-events scan`):
-   the whole game's indices and which pages of each map compile;
-2. each map (`wally map`), in parallel;
-3. the battle's tables (`rm2k-snes-battle tables`): experience and each
-   map's random encounters, with the troops they name;
-4. every page of the cartridge (`rm2k-snes-events compile`);
-5. the screens (`rm2k-snes-screens convert`), the title and the Game Over
-   (`rm2k-snes-images fullscreen`), the battle animations, backdrops and
-   battlers (`rm2k-snes-images`) and the battle's model (`rm2k-snes-battle
-   model`);
-6. the emission (`rm2k-snes-mapdata emit`), which writes the `.inc`;
-7. the patches (`rm2k-snes-patches`) and the music (`rm2k-snes-audio
-   cartridge`), which write next to it.
+1. the text boxes reflowed for the console's window
+   (`rm2k_snes_screens::stage::boxes`), and the event compiler's first
+   call (`rm2k_snes_events::stage::scan`): the whole game's indices and
+   which pages of each map compile;
+2. each map (`wally::stage::map`), in parallel;
+3. the battle's tables (`rm2k_snes_battle::stage::tables`): experience and
+   each map's random encounters, with the troops they name;
+4. every page of the cartridge (`rm2k_snes_events::stage::compile`);
+5. the screens (`rm2k_snes_screens::stage::convert`), the title and the
+   Game Over (`rm2k_snes_images::stage::fullscreen`), the battle
+   animations, backdrops and battlers (`rm2k_snes_images`) and the
+   battle's model (`rm2k_snes_battle::stage::model`);
+6. the emission (`rm2k_snes_mapdata::stage::emit`), which writes the
+   `.inc`;
+7. the patches (`rm2k_snes_patches::stage::patches`) and the music
+   (`rm2k_snes_audio::stage::cartridge`), which write next to it.
 
 What it decides itself is what joins them, and none of it is a rule of
 RPG Maker nor a format of the console —those are the stages', and
@@ -62,8 +70,8 @@ project's build, where `wally` finds it first.
 ## What the project says
 
 The project file —`advocate.toml`, found from the current directory or
-with `--project`— says where the dump, the build and the manual patches
-are, and what the game decided: the opaque translucent graphics, the
+with `--project`— says where the dump and the manual patches are —what
+gets built goes in `build/`, beside it—, and what the game decided: the opaque translucent graphics, the
 palette weights, the maps the timer never runs in, the pictures cropped to
 the console's screen instead of scaled, the counters, the sound
 effects, the fallback backdrop, the ROM's title and save signature. A key it

@@ -34,12 +34,9 @@ use rm2k_snes_audio::tracks::{Tracks, GAIN};
 
 pub use rm2k_project::environment::RELEASE;
 
-/// What the converter needs from the machine, which it receives by flags as
-/// its binary does; and what this one adds: where the test cartridges go,
-/// and the replacements for the MSU-1 tracks.
-/// `rm2k-snes-cartridges space` takes the same ones: it asks whether a
-/// cartridge is up to date, and the fingerprint reads the game, the RTP's
-/// path and the SoundFont's.
+/// What the converter needs from the machine, which it receives as flags,
+/// as its binary did until 2026-11-25; and what the builder adds: where the
+/// test cartridges go, and the replacements for the MSU-1 tracks.
 pub const TO_CONVERTER: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 pub const FROM_ENVIRONMENT: &[&str] = &[
     "game_dir",

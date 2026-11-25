@@ -85,9 +85,9 @@ fn every_stale_patch_is_told_once_and_with_what_changed() {
         copied,
         [
             "  patches/auto/maps/0500.toml: the game no longer carries it, removing it",
-            "3 patch(es) in patches/auto/maps, 2933 B",
-            "2 patch(es) in patches/auto/animations, 1599 B",
-            "2 patch(es) in patches/auto/battlers, 1775 B",
+            "3 patch(es) in patches/auto/maps, 2960 B",
+            "2 patch(es) in patches/auto/animations, 1617 B",
+            "2 patch(es) in patches/auto/battlers, 1797 B",
         ]
     );
 

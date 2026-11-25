@@ -123,8 +123,10 @@ crate-test project *args:
 # Without names, all of them.
 #
 # The suite's programs that are not a project of their own are called
-# `rm2k-snes-<something>`: `bin/` is shared, and a bare `space` or `patches`
-# does not say what it is and can clash with anything.
+# `rm2k-snes-<something>`: `bin/` is shared, and a bare `events` or `images`
+# does not say what it is and can clash with anything. `advocate` is the
+# exception, on purpose: it is the one a person types, named after the
+# project and its `advocate.toml`.
 #
 # **And the games' test harness**, the Python package `rm2k_snes_harness`
 # (`rm2k-snes/harness/`), whatever the names: `_install` links it beside

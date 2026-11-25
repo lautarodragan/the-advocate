@@ -1,5 +1,6 @@
-//! A project as the tools resolve it, as one JSON value: what
-//! `rm2k-snes-project` prints.
+//! A project as the tools resolve it, as one JSON value: what `advocate
+//! build` writes into `build/advocate.json`, and until 2026-11-25 what a
+//! binary of this crate, `rm2k-snes-project`, printed.
 //!
 //! For whatever needs to know what the tools know about a game without being
 //! one of them —a game's tests, in another language—. Answering from here

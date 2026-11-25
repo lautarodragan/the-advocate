@@ -52,7 +52,7 @@ pub struct Screen {
 }
 
 impl Screen {
-    /// As `rm2k-snes-mapdata emit` takes it.
+    /// As `rm2k_snes_mapdata::stage::emit` takes it.
     pub fn request(&self) -> rm2k_snes_mapdata::request::FullScreen {
         rm2k_snes_mapdata::request::FullScreen {
             tiles: self.tiles as i64,
@@ -120,7 +120,7 @@ pub const PALETTES_4BPP: i64 = 7;
 pub const TILES_4BPP: i64 = 1024;
 
 /// The title at `path` at four bits per pixel, for BG1 in mode 1: the
-/// layer of a big `ShowPicture` —`rm2k-snes-images background`, with its
+/// layer of a big `ShowPicture` —`rm2k_snes_images::stage::background`, with its
 /// colours chosen by Adeleine in seven palettes— with its corner at the
 /// screen's, where RM2k draws the title, and `below`, the menu's colours,
 /// as palette 0. The colours go from CGRAM 0. Also gives back the screen

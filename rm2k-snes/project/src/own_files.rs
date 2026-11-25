@@ -13,8 +13,8 @@
 //! directory listing.
 //!
 //! **Nobody looks the files up here.** The lookups are three functions in
-//! three crates and a few paths joined by hand, in separate processes —see
-//! `game_files` in `rm2k-snes-cartridges`—, all of them below `--game-dir`.
+//! three crates and a few paths joined by hand —see `game_files` in
+//! `rm2k-snes-cartridge`—, all of them below `--game-dir`.
 //! So this builds **one directory** that is the game with ours on top, and
 //! from [`crate::environment::Environment::unpack`] on `--game-dir` is that
 //! directory: every reader sees the port's file without knowing it exists.
@@ -35,7 +35,7 @@
 //!
 //! What it replaced stays written inside the directory, in [`RECORD`], so
 //! a tool that receives the directory already built —the converter, from
-//! `rm2k-snes-cartridges`— knows it is one and can say what changed.
+//! the builder— knows it is one and can say what changed.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;

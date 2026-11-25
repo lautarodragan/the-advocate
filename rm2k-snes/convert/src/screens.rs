@@ -231,7 +231,7 @@ pub struct Menus {
 /// What the cartridge carries of its screens, for `members` —the actors
 /// that can join the party— and `items` —the ones the cartridge knows—,
 /// with the title's menu if `title`. Returns the stage's answer as it came,
-/// which is what `rm2k-snes-mapdata emit` takes.
+/// which is what `rm2k_snes_mapdata::stage::emit` takes.
 pub fn convert(
     game: &Game,
     font: &FontChoice,

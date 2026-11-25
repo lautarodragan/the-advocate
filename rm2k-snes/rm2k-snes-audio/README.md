@@ -5,7 +5,6 @@
     rm2k-snes-audio msu-index build/game.msu
     rm2k-snes-audio decode --stream stream.bin --sounds sounds.bin
     rm2k-snes-audio keys song-a song-b --game-dir game/ --soundfont bank.sf2
-    rm2k-snes-audio msu build/game.sfc --game-dir game/ --soundfont bank.sf2
     rm2k-snes-audio volume-ceilings --measure
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
@@ -119,11 +118,12 @@ variable they are skipped with a message.
 
 ## The tracks and the ceilings
 
-Two more subcommands, which are not stages of the converter, live in this
-crate because they are about the same music and read what `compile` leaves
-next to a built cartridge:
+Two more jobs, which are not stages of the converter, live in this crate
+because they are about the same music and read what `compile` leaves next
+to a built cartridge:
 
-* **`msu`**, the MSU-1 tracks: one `<rom>-N.pcm` per song of the
+* **The MSU-1 tracks**, `Tracks` in `src/tracks.rs`, which `advocate
+  build` calls after building `release`: one `<rom>-N.pcm` per song of the
   cartridge, rendered from its MIDI with `fluidsynth` and the same
   SoundFont —or decoded with `ffmpeg`, from a replacement or a WAV—, and
   normalized. Both programs are looked up on the PATH. A track made from
@@ -131,7 +131,7 @@ next to a built cartridge:
   each `.pcm` under a key that carries the MIDI, the SoundFont, both
   programs and the source of the code that writes a track —`OWN_SOURCES`
   in `src/tracks.rs`—.
-* **`volume-ceilings`**, each song's volume ceiling, measured by
+* **`volume-ceilings`**, a subcommand: each song's volume ceiling, measured by
   playing it in the built ROM on a libretro core, and written to the
   project's table —the one `compile` reads—. It runs the cartridges'
   builder to make the copy it measures and to rebuild with the table, and
@@ -145,7 +145,9 @@ the MSU-1 tracks' key, which was the running executable, only changed when
 code that went into that binary did. taro folded them in, to have fewer
 commands on the PATH; the key stopped being the executable then, which
 carries the whole compiler, and became the source of the tracks' code: a
-new flag in `compile` still does not make every track again. The
+new flag in `compile` still does not make every track again. The tracks
+were the subcommand `msu` until 2026-11-25, which the cartridges' builder
+ran as a process. The
 converter's cache does not see this binary: the converter is compiled with
 this crate and calls `cartridge` as a function, and keeps none of its
 answers.

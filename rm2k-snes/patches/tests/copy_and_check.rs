@@ -117,9 +117,9 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
     .unwrap();
     assert_eq!(
         write(&dir, "build/release"),
-        "3 patch(es) in patches/auto/maps, 2933 B\n\
-         2 patch(es) in patches/auto/animations, 1599 B\n\
-         2 patch(es) in patches/auto/battlers, 1775 B\n\
+        "3 patch(es) in patches/auto/maps, 2960 B\n\
+         2 patch(es) in patches/auto/animations, 1617 B\n\
+         2 patch(es) in patches/auto/battlers, 1797 B\n\
          0 patch(es) in patches/auto/windows, 0 B\n"
     );
     let matching = checked(&dir, &["build/release"]);

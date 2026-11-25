@@ -1,4 +1,4 @@
-//! The emission, which is `rm2k-snes-mapdata emit`: what goes into its
+//! The emission, which is `rm2k_snes_mapdata::stage::emit`: what goes into its
 //! request. It writes the whole `.inc` —the header of constants, the
 //! tables of every map, the window and the font, the screens, the menus,
 //! the battle, what the save game is signed with— from what every domain

@@ -25,7 +25,7 @@ Or, without compiling: every commit to `main` that passes CI is a release
 newer, x86_64 and aarch64— and macOS —Apple silicon and Intel—. Unpack one and put
 its `the-advocate/bin` on the PATH; cc65 and the rest are still needed.
 
-The runtime travels with the tools: `rm2k-snes-cartridges` builds it from
+The runtime travels with the tools: `advocate build` builds it from
 `runtime/` of the checkout it was installed from, together with the `.inc`
 files the converter writes for each game. What happens between the game
 and the ROM is in `internals/pipeline.md` in the book, and the audio in

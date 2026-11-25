@@ -749,7 +749,7 @@ pub fn rom_scene(
     })
 }
 
-/// The cartridge's battle scene as `rm2k-snes-mapdata emit` takes it: what
+/// The cartridge's battle scene as `rm2k_snes_mapdata::stage::emit` takes it: what
 /// `rom_scene` decided, with what a backdrop and a battler look like, where
 /// each member stands and in which order the troop is drawn, already as
 /// bytes and numbers.
@@ -840,7 +840,7 @@ pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Result<request::
 /// Who asks for each animation and each battler of the cartridge, per
 /// patch class: `{key: [origin, ...]}`, the origin being the map whose page
 /// or random encounter asks for it, or "case" if a test page does. It is
-/// what lets `rm2k-snes-patches --check` know what is not the game's in the
+/// what lets the versioned patches' check know what is not the game's in the
 /// ROM that is played. The bytecode is walked, so it counts what ended up
 /// emitted.
 pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {

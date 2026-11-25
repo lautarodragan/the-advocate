@@ -1,7 +1,7 @@
 //! A whole map, converted: its layers, its sprites, its blocks and its VRAM
 //! layout, gathered into what the emission reads.
 //!
-//! **The conversion is `wally map`'s**, one call per map: it reads the map
+//! **The conversion is `wally::stage::map`'s**, one call per map: it reads the map
 //! from the dump, draws and converts its layers, bakes the opaque events
 //! into them, splits the object palettes and builds the sprite bank. What
 //! is here is what the stage gets from other domains —the event compiler's

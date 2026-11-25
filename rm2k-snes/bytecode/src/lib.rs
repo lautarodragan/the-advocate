@@ -15,7 +15,7 @@
 //! `OP_BGM`, `OP_SYSTEM_BGM` and a map's own song carry in the same units.
 //!
 //! The Rust side takes the constants with a `use`, and the 65816 side gets
-//! them from [`asm`]: `rm2k-snes-cartridges assemble` writes them next to the
+//! them from [`asm`]: `advocate build` writes them next to the
 //! cartridge's other generated files every time it builds one, so there is
 //! no generated file to keep up to date. What each opcode *does* is
 //! hand-written on both sides and stays hand-written.
@@ -26,7 +26,7 @@
 //! crate, with the opcode in the message: see [`Bytecode::check`].
 //!
 //! So the tests are those messages, the shape of the equates
-//! `rm2k-snes-cartridges assemble` writes, and that the runtime uses only declared
+//! `advocate build` writes, and that the runtime uses only declared
 //! opcodes and writes none by hand. They need no game.
 
 pub mod asm;

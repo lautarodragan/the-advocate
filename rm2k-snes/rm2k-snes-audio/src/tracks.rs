@@ -822,8 +822,8 @@ fn render(midi: &Path, out: &Path, soundfont: &Path, gain: f64) -> Result<()> {
 #[cfg(test)]
 mod tests {
     /// That [`OWN_SOURCES`] is closed: each module of the crate one of them
-    /// names —`crate::x` from the library, `rm2k_snes_audio::x` from the
-    /// subcommand— is in the list too. One that is not would change a
+    /// names —`crate::x`, or `rm2k_snes_audio::x` as the subcommand that ran
+    /// them named it until 2026-11-25— is in the list too. One that is not would change a
     /// track's bytes without expiring it.
     #[test]
     fn the_track_sources_name_no_module_outside_them() {

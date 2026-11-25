@@ -1,4 +1,4 @@
-//! What `rm2k-snes-cartridges` reads from a project, on a small game built
+//! What the cartridges' builder reads from a project, on a small game built
 //! inside the test: which maps and cases each cartridge carries, in which
 //! order, where it goes, and when it is stale.
 

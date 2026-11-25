@@ -18,10 +18,12 @@ A Blurred Line, went to its own repo, with its tests and their harness, and
 the libretro driver they run the ROM with, `emulator/`, went with them; it
 came back on 2026-11-22 with the rest of that harness that is no game's,
 `rm2k-snes/harness/`. What
-they ask the tools about their project —its paths, the suite's, its
-settings— they ask `rm2k-snes-project`, below, which answers with the same
-library every tool reads the project file with: until that day they read
-it through a second reader in Python, `common/`. What stayed here names the
+they know about their project —its paths, the suite's, its settings,
+its cartridges— they read in the `build/advocate.json` every `advocate
+build` leaves, written with the same library every tool reads the project
+file with: until that day they read it through a second reader in Python,
+`common/`, and from then until 2026-11-25 they asked a binary,
+`rm2k-snes-project`. What stayed here names the
 game only in comments —limits measured against it, the case that explained
 a rule—: a test uses invented names and a fixture invented content, and
 `tests/test_no_game_names.py` fails if anything else does.
@@ -60,22 +62,22 @@ have layers of their own, one folder each:
 
     rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
       project/   `rm2k-project`, the library: which game, its settings, the
-                 machine's flags and the disk cache's key; and
-                 `rm2k-snes-project`, which prints all that in JSON for
-                 whoever is not a tool
+                 machine's flags and the disk cache's key; and all that
+                 as JSON, which `advocate build` leaves for whoever is not
+                 a tool
       bytecode/  `rm2k-snes-bytecode`, the library that declares the two
                  bytecodes a cartridge reads —the events one and the music
                  stream—, once: the Rust side takes its constants with a
-                 `use`, and `rm2k-snes-cartridges assemble` writes the
-                 65816 side's equates at every build
-      cartridge/ `rm2k-snes-cartridges`: which cartridges there are and
-                 building them; and its subcommands `assemble`, the bank
-                 packing and ca65 + ld65, and `space`, the space left
-      patches/   `rm2k-snes-patches`: what the converter decided to lose
-                 —a map's colors, an animation's size, a battler's
+                 `use`, and `advocate build` writes the 65816 side's
+                 equates at every build
+      cartridge/ `rm2k-snes-cartridge`, a library: which cartridges there
+                 are and building them, the bank packing and ca65 + ld65,
+                 and the space left
+      patches/   `rm2k-snes-patches`, a library: what the converter decided
+                 to lose —a map's colors, an animation's size, a battler's
                  palette—, written as TOML next to each ROM, copied to the
-                 project and checked against every cartridge; the
-                 converter hands it the decisions in a request
+                 project and checked against every cartridge by `advocate
+                 build`; the converter hands it the decisions in a request
       rm2k-snes-audio/  a game's music for the SPC700: the shared sample
                  bank, a stream per song, an audio package per map, and
                  the `.msu` with the data the MSU-1 serves; the converter
@@ -124,32 +126,37 @@ have layers of their own, one folder each:
                  what the others answered; what it decides itself is what
                  joins them —which maps and test pages, who can lead the
                  party, which items, pictures, backdrops and battlers go
-                 in, the checks of the compiled pages—. It also answers
-                 the game's tests how it asks: `scan`, `compile`,
-                 `leaders`, `map-context`, `boxes`
+                 in, the checks of the compiled pages—. A library; its
+                 binary answers the game's tests how it asks: `scan`,
+                 `compile`, `leaders`, `map-context`, `boxes`
+      advocate/  `advocate`, the one command that builds a game: its
+                 cartridges, their MSU-1 tracks and `build/advocate.json`,
+                 what a game's tests and recipes read, calling the
+                 converter and the cartridges as libraries
 
 **A few of them are commands, and the rest are libraries under them.**
-The commands a person runs, from a game's recipes or by hand:
-`rm2k-snes-cartridges` (and its `space`), `rm2k-snes-patches`,
-`rm2k-snes-project`, `ditto`, `rm2k-snes-events` (its `culprits`),
+The commands a person runs, from a game's recipes or by hand: `advocate`,
+which builds a game, `ditto`, `rm2k-snes-events` (its `culprits`),
 `rm2k-snes-audio` (its `volume-ceilings`), `goombario`, `fxpak` and
-`rm2k-sketch`. The
-commands the pipeline runs: `rm2k-snes-convert`, which
-`rm2k-snes-cartridges` runs, and `rm2k-snes-audio msu`, which
-`rm2k-snes-cartridges` runs after it. `rm2k-snes-cartridges assemble` is
-not one of them: the build calls its code, which is the same crate's, and
-the subcommand is for running by hand and for a game's tests, which ask it
-the memory map and the runtime's sources. **The stages are libraries the
+`rm2k-sketch`. **The pipeline runs no command of ours**: `advocate build`
+calls the converter, the assembling and the MSU-1 tracks as libraries.
+Until 2026-11-25 it was `rm2k-snes-cartridges`, which ran
+`rm2k-snes-convert` and `rm2k-snes-audio msu` as processes and had
+`assemble` and `space` subcommands, and a game's tests asked it and
+`rm2k-snes-project` what they read in `build/advocate.json` now; and the
+versioned patches were `rm2k-snes-patches`. **The stages are libraries the
 converter is compiled with** —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
 `rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—, each
 called through its `stage` module; their binaries are a `main` over the
-same functions, for a game's tests and for a person. So a change to a
-stage reaches a ROM only through the converter: install `convert` with it.
-Until 2026-11-24 the converter ran each one as a process, and the
-conversion cache keyed every answer by the binary that gave it; now it
-keys them all by the converter's (`key` in `convert/src/stage.rs`), so any
-change to any stage expires every stage's answers. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
+same functions, for a game's tests and for a person; and the converter
+is a library `advocate` is compiled with. So a change to a stage reaches a
+ROM only through `advocate`: install `advocate` with it. Until 2026-11-24
+the converter ran each one as a process, and the conversion cache keyed
+every answer by the binary that gave it; now it keys them all by the one
+running the conversion, `advocate` (`key` in `convert/src/stage.rs`), so
+any change to any stage, or to the builder, expires every stage's
+answers. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
 LZ2, Gunter, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
 `rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto's reader. Until 2026-11-23
 Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when
@@ -207,9 +214,11 @@ not run them: `just test-game` does.
 The test game's tests use it as it is, and a port's harness puts its own on
 top. It is not a Rust project, so it is not in the workspace; it lives in
 `rm2k-snes/` because it knows both sides —RPG Maker's rules and the
-runtime's symbols—. A game's tests find it by asking `rm2k-snes-project
---harness`, which answers for the checkout the tools were installed from,
-like the runtime, and a release's archive carries it beside the runtime.
+runtime's symbols—. `just install` links it beside the tools' `bin/`,
+as `lib/advocate/harness`, and puts it on Python's import path, so a
+game's tests `import` it from the checkout the tools were installed from,
+like the runtime; a release's archive carries it at the same place. Until
+2026-11-25 the tests asked `rm2k-snes-project --harness` where it was.
 Until 2026-11-22 it was A Blurred Line's, in the ports, and the test game
 had a copy of the driver and a small harness of its own.
 
@@ -222,15 +231,18 @@ Python scripts too, installed as symlinks next to them: the last ones were
 `rm2k-snes-python-path`, which told a game's tests where to import
 `common/` and `emulator/` from, and went with them.
 
-The binaries are `rm2k-snes-convert`, from
-`rm2k-snes/convert/`; `rm2k-snes-cartridges`, from `rm2k-snes/cartridge/`,
-which finds the runtime through the checkout it was installed from;
-`rm2k-snes-audio`, from `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
-`rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`;
-`wally`, from `rm2k-snes/wally/`; `rm2k-snes-mapdata`, from
-`rm2k-snes/mapdata/`; `rm2k-snes-patches`, from
-`rm2k-snes/patches/`; and `rm2k-snes-project`, from `rm2k-snes/project/`,
-which prints for a game's tests what the tools know about their project.
+The binaries of `rm2k-snes/` are `advocate`, from `rm2k-snes/advocate/`,
+which builds a game and finds the runtime through the checkout it was
+installed from; `rm2k-snes-convert`, from `rm2k-snes/convert/`, the
+questions a game's tests ask the converter; `rm2k-snes-audio`, from
+`rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from `rm2k-snes/battle/`;
+`rm2k-snes-events`, from `rm2k-snes/events/`; `wally`, from
+`rm2k-snes/wally/`; `rm2k-snes-mapdata`, from `rm2k-snes/mapdata/`;
+`rm2k-snes-screens`, from `rm2k-snes/screens/`; and `rm2k-snes-images`,
+from `rm2k-snes/images/`. Until 2026-11-25 there were also
+`rm2k-snes-cartridges`, `rm2k-snes-patches` and `rm2k-snes-project`:
+`just install` does not remove a binary that stopped existing, and the
+`justfile` says what does.
 
 The reason for the names is in `justfile`. **Where everything is** is
 answered by `rm2k-project`, the library in `rm2k-snes/project/`: what
@@ -253,7 +265,8 @@ header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
 palettes. The game declares it at its root, in `advocate.toml`, and it is
 read by one reader, `rm2k-project`: `project.int(&["maps", "below"])`.
-Whoever is not a tool asks `rm2k-snes-project` instead of reading it.
+Whoever is not a tool reads it in the `build/advocate.json` a build
+leaves, instead of reading the file.
 
 * **A missing key is an error**, with its name, and not a default value: a
   default in a tool would be ABL's value, and another game would be built
@@ -278,10 +291,13 @@ directory upwards, or receive it through `--project <directory>`; if they do
 not find it, they stop and say where they searched from.
 
 **How the game is laid out inside is declared by its file**, in `[paths]`,
-relative to it: the dump (`data`), what was decided (`patches`), what was
-built (`build`) and the suite's cases (`cases`). What goes inside —`manual/`
-and `auto/` in the decided part, one directory per cartridge in the built
-part— is the shape the tools give it. What only the game's tests read —their
+relative to it: the dump (`data`), what was decided (`patches`) and the
+suite's cases (`cases`). What gets built goes in `build/`, beside the
+file, always, the way Cargo's `target/` is, so whoever reads what a build
+left finds it without reading the file; until 2026-11-25 `[paths] build`
+said where. What goes inside —`manual/` and `auto/` in the decided part,
+one directory per cartridge and `advocate.json` in the built part— is the
+shape the tools give it. What only the game's tests read —their
 goldens, what they leave to look at— does not go there: they know it by
 their location.
 
@@ -291,7 +307,7 @@ and not from the MIDI), `--cache`, `--test-cartridges` and `--shared`, where
 a game delivers its builds. Each executable adds the ones it uses with
 `environment::arguments` and reads them back with `Environment`, both in
 `rm2k-project`. **None has a default value**, except the cache and the test
-cartridges, which have their place in the project's `build`: a machine's
+cartridges, which have their place in the project's `build/`: a machine's
 value belongs to the caller. A Blurred Line's `justfile`, in its repo,
 translates its variables into flags. That nothing here reads one of its
 `ABL_*` variables is part of what `tests/test_no_game_names.py` checks.

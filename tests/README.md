@@ -21,7 +21,7 @@ the game.
 
 They run no ROM and take less than a second, so they run serially and
 without xdist. ABL's suite does not run them, and they need nothing from
-ABL: that is why they do not ask `rm2k-snes-cartridges` anything either.
+ABL: that is why they do not read any build's `advocate.json` either.
 
 What they do use from outside: `test_layers.py` runs `cargo metadata`,
 which reads only the workspace's manifests. The music stream's tests, which
