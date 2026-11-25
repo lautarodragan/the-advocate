@@ -904,6 +904,48 @@ mod tests {
         }
     }
 
+    /// The turn goes base first and multiple second, and the base is
+    /// `turn_b`: ABL's agents' liftoff page —`turn_a` 0, `turn_b` 1— runs
+    /// on the first turn only. Until 2026-11-25 ABL's
+    /// `test_troop_events.py` asked the compiler for it.
+    #[test]
+    fn the_turn_s_base_is_turn_b() {
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+            face: None,
+            landings: None,
+            jump: None,
+            decision_key: None,
+        };
+        let mut condition = ditto::schema::TroopPageCondition::default();
+        condition.flags.turn = true;
+        (condition.turn_a, condition.turn_b) = (3, 1);
+        let t = trigger(
+            &ctx,
+            &TroopPage {
+                condition,
+                commands: vec![],
+            },
+        )
+        .unwrap();
+        assert_eq!((t.flags, t.turn_base, t.turn_mult), (TURN, 1, 3));
+        assert_eq!(&t.header()[..4], &[1, 0, 3, 0]);
+    }
+
     #[test]
     fn a_comment_runs_in_battle_as_nothing() {
         for code in [COMMENT, COMMENT_2] {

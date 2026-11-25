@@ -9,10 +9,11 @@ A library: `advocate build` (`../advocate/`) calls `convert` once per
 cartridge, with the flags the project file writes for it, and what the
 conversion says goes into the cartridge's `converter.log` through the
 `Log`. Its binary, `rm2k-snes-convert`, is only the questions a game's
-tests ask it —`compile`, `leaders`, `map-context`, `boxes`, in
-`src/queries.rs`—; until 2026-11-25 it converted too, and the cartridges'
-builder ran it once per cartridge, and it answered a `scan` as well, which
-the `slots.json` the build leaves beside each ROM replaced. `cargo test`.
+tests ask it —`leaders`, `map-context`, `boxes`, in `src/queries.rs`—;
+until 2026-11-25 it converted too, and the cartridges' builder ran it once
+per cartridge, and it answered a `scan` as well, which the `slots.json` the
+build leaves beside each ROM replaced, and a `compile`, which ABL's troop
+tests asked for a troop's page triggers and now read from the LDB. `cargo test`.
 
 A Super Nintendo cartridge converted from an RPG Maker 2000 game is the
 suite's runtime assembled together with the data the conversion writes:
