@@ -43,7 +43,7 @@ game:
   done
   ditto pack build/text build/game
   cp src/RPG_RT.ini build/game/
-  cp -r ChipSet CharSet FaceSet Monster Panorama Picture System build/game/
+  cp -r ChipSet CharSet FaceSet Monster Panorama Picture System Title build/game/
   ditto unpack build/game build/exact build/data
 
 # `--rtp-dir` an empty directory: the game uses nothing from any RTP, and
@@ -68,6 +68,59 @@ cartridges *args: game
 # Builds the cartridges and runs the game's tests.
 test *args: cartridges
   pytest tests {{args}}
+
+# **Goombario over every cartridge**, for the root's `just lint`: the traps
+# that assemble fine and are wrong —a conditional branch on a flag a `pl*`
+# left, a routine entered with `jsl` that returns with `rts`, a path that
+# leaves bytes on the stack, a width that is not the one the source
+# declares—. What is fine and flagged anyway says so on its own line of the
+# runtime, `; goombario: <check>: <why>`; one that allows nothing any more
+# is red too. Only the runtime is looked at: what the converter generates
+# is data. Its README, in `snes/goombario/`, says what it does not see.
+#
+# Every cartridge, because Goombario sees only what was assembled: `lint`
+# carries every flag the runtime assembles code on, and the others what
+# those flags leave out —see `advocate.toml`—. It is a lint and not a test:
+# until 2026-11-25 it was `tests/test_linter.py` here, and A Blurred Line's
+# over its own cartridges.
+#
+# **The runtime it lints is the one the tools were installed from**, which
+# is the one the build assembles, so it refuses when that is not this
+# checkout's: in a worktree, `just install-local .local-tools advocate`
+# first.
+#
+# Builds the cartridges and runs Goombario over each.
+lint: cartridges
+  #!/usr/bin/env python3
+  import json, os, re, subprocess, sys
+  listing = json.load(open("build/advocate.json"))["listing"]
+  here = os.path.realpath("..")
+  if os.path.realpath(listing["root"]) != here:
+      sys.exit(f"lint: the tools assemble the runtime of {listing['root']}, not this "
+               f"checkout's ({here}): `just install-local .local-tools advocate` here")
+  # Where `ca65` ran: the source paths in the `.dbg` are relative to it.
+  runtime = os.path.relpath(listing["runtime"], listing["root"]) + "/"
+  failed = []
+  for c in listing["cartridges"]:
+      done = subprocess.run(
+          ["goombario", c["rom"], "--root", listing["root"], "--only", runtime, "--stats"],
+          capture_output=True, text=True)
+      # And that it looked at something: a badly read `.dbg` gives zero
+      # without checking anything, which is what happened to the first
+      # version of the banks' guard, in A Blurred Line.
+      seen = {k: int(v) for k, v in re.findall(
+          r"(instructions|pulls|entries|returns reached) (\d+)", done.stderr)}
+      blind = [k for k in ("instructions", "pulls", "entries", "returns reached")
+               if seen.get(k, 0) <= 100]
+      if done.returncode != 0 or blind:
+          failed.append(c["name"])
+          print(f"{c['name']}: goombario exited {done.returncode}"
+                + (f", and looked at too little: {', '.join(blind)}" if blind else ""))
+          sys.stdout.write(done.stdout + done.stderr)
+      else:
+          print(f"{c['name']}: {done.stderr.splitlines()[0]}")
+  if failed:
+      sys.exit(f"lint: goombario is red on {', '.join(failed)}")
 
 # **Leaves `release` for taro in `$SHARED/builds/test-game/`**, the shape of
 # the ports' `just deliver`: `test-game.sfc`, its `.sfc.dbg` for Mesen2's
