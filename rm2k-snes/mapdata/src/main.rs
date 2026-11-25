@@ -8,8 +8,7 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_mapdata::fail::{Bad, Result};
-use rm2k_snes_mapdata::materials::{self, RawBlocks, COMPRESSED_KINDS};
-use rm2k_snes_mapdata::{hex, record, request, vram};
+use rm2k_snes_mapdata::vram;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -46,23 +45,6 @@ enum Command {
         against the hardware on every call."
     )]
     Vram(Plain),
-    /// The blocks the console decompresses, as LZ2 streams, each part once
-    #[command(
-        after_help = "The request: {\"maps\": [{\"id\", \"map_tiles\", \"above_tiles\", \
-        \"sprite_tiles\", \"anim_tiles\", \"map_cells\": hex}]}. The answer: {\"maps\": \
-        [{the same classes: the stream, in hex, its parts' streams stuck together; \
-        \"frames\": how many frames the console takes to decompress the map}]}. The answer is \
-        no if a stream does not fit in its place in WRAM."
-    )]
-    Compress(Plain),
-    /// One map's page table, alone
-    #[command(
-        after_help = "The request: {\"number\": the map's index in the cartridge, \"evcode\": \
-        the label of its code block, \"pages\": [a page: see `Page` in request.rs], \
-        \"changing\", \"appearing\", \"turning\": [events], \"animated\": [[CharSet, index]]}. \
-        It writes pages.inc."
-    )]
-    Pages(Plain),
 }
 
 #[derive(ClapArgs)]
@@ -137,88 +119,10 @@ fn do_vram(args: &Plain) -> Result<()> {
     )
 }
 
-fn do_compress(args: &Plain) -> Result<()> {
-    let request = read(&args.request)?;
-    let mut maps: Vec<(i64, RawBlocks)> = Vec::new();
-    for m in request["maps"].as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        let id = m["id"]
-            .as_i64()
-            .ok_or_else(|| Bad::answer("a map without an id"))?;
-        let mut blocks = RawBlocks::new();
-        for kind in COMPRESSED_KINDS {
-            let text = m[kind].as_str().unwrap_or("");
-            blocks.insert(kind.to_string(), hex::decode(text)?);
-        }
-        maps.push((id, blocks));
-    }
-    let refs: Vec<(i64, &RawBlocks)> = maps.iter().map(|(id, b)| (*id, b)).collect();
-    let compressed = materials::compress_blocks(&refs)?;
-    let answer: Vec<Value> = maps
-        .iter()
-        .map(|(_, blocks)| {
-            let mut entry = json!({"frames": materials::decompress_frames(blocks, &compressed)});
-            for kind in COMPRESSED_KINDS {
-                entry[kind] = json!(hex::encode(&materials::stream_of(
-                    kind,
-                    &blocks[kind],
-                    &compressed
-                )));
-            }
-            entry
-        })
-        .collect();
-    write(&args.out, "compress", &json!({"maps": answer}))
-}
-
-fn write_file(out: &Path, name: &str, bytes: impl AsRef<[u8]>) -> Result<()> {
-    std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
-    let path = out.join(name);
-    std::fs::write(&path, bytes).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
-}
-
-#[derive(serde::Deserialize)]
-struct PagesRequest {
-    number: usize,
-    evcode: String,
-    pages: Vec<request::Page>,
-    #[serde(default)]
-    changing: Vec<i64>,
-    #[serde(default)]
-    appearing: Vec<i64>,
-    #[serde(default)]
-    turning: Vec<i64>,
-    #[serde(default)]
-    movable: Vec<i64>,
-    #[serde(default)]
-    animated: Vec<(String, i64)>,
-    #[serde(default)]
-    animated_palettes: Vec<i64>,
-}
-
-fn do_pages(args: &Plain) -> Result<()> {
-    let r: PagesRequest = request::read(&args.request)?;
-    let map = record::PageMap {
-        pages: &r.pages,
-        changing: &r.changing,
-        appearing: &r.appearing,
-        turning: &r.turning,
-        movable: &r.movable,
-        animated: &r.animated,
-        animated_palettes: &r.animated_palettes,
-    };
-    write_file(
-        &args.out,
-        "pages.inc",
-        record::page_table(&map, r.number, &r.evcode),
-    )
-}
-
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Vram(args) => do_vram(args),
-        Command::Compress(args) => do_compress(args),
-        Command::Pages(args) => do_pages(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

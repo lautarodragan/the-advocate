@@ -2961,6 +2961,70 @@ mod tests {
         assert!(table.contains(".word 299 ; +26 against what"), "{table}");
     }
 
+    /// A page with its own route carries two pointers inside the map's
+    /// event code —+8 its code, +16 the orders of its route— and both have
+    /// to come from the label `page_table` receives, not from the map's
+    /// number. The label is set by `Materials`, which numbers by kind and
+    /// shares the equal blocks: with a shared code block before this map's,
+    /// `evcode_<map>` is **another** map's, or does not exist and `ca65`
+    /// falls over with "Symbol 'evcode_82' is undefined".
+    ///
+    /// The +16 rebuilt the name until 2026-09-27: the deduplication of
+    /// 2026-09-07 fixed the +8 and did not see it, because no cartridge had
+    /// a shared code block before a map with its own routes. A `release`
+    /// with the maps up to 85 uncovered it. Until 2026-11-25 this was ABL's
+    /// `tests/tooling/test_pages.py`, through `rm2k-snes-mapdata pages`.
+    #[test]
+    fn the_own_route_points_to_the_block_it_receives() {
+        let pages = [Page {
+            event: 0,
+            page: 1,
+            trigger: crate::engine::TRIGGER_PARALLEL.into(),
+            layer: 1,
+            has_code: true,
+            offset: 0,
+            route_offset: 1,
+            frequency: 3,
+            speed: 4,
+            own_route: Some(crate::request::OwnRoute {
+                repeats: true,
+                skippable: false,
+                fixed_direction: false,
+                animation_continues: false,
+                spin: false,
+                pattern: 0,
+                by_type: false,
+                frequency: 3,
+                speed: 4,
+                orders: 1,
+            }),
+            ..Page::default()
+        }];
+        let map = PageMap {
+            pages: &pages,
+            changing: &[],
+            appearing: &[],
+            turning: &[],
+            movable: &[],
+            animated: &[],
+            animated_palettes: &[],
+        };
+        // Map 7, whose code is the block evcode_3.
+        let table = page_table(&map, 7, "evcode_3");
+        let named: BTreeSet<&str> = table
+            .match_indices("evcode_")
+            .map(|(at, _)| {
+                let end = table[at + 7..]
+                    .find(|c: char| !c.is_ascii_digit())
+                    .map_or(table.len(), |n| at + 7 + n);
+                &table[at..end]
+            })
+            .collect();
+        assert_eq!(named, BTreeSet::from(["evcode_3"]), "{table}");
+        // Both pointers, the code's and the route's.
+        assert!(table.matches("evcode_3").count() >= 2, "{table}");
+    }
+
     /// The arrow's objects take the two tiles past the bank and the top
     /// palette the pictures leave, and nothing when one of the two is not
     /// there: the tiles past the layout's sprites, or the palettes all
