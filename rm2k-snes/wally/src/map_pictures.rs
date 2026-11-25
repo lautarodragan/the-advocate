@@ -29,11 +29,10 @@ use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::layers::Panorama;
 use rm2k_render::{picture, Layers, Picture};
-use serde_json::Value;
 use std::path::PathBuf;
 
-/// One picture of the map: see `map_pictures` in the request.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// One picture of the map: an entry of `map_pictures` in the request.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MapPicture {
     pub number: i32,
     pub name: String,
@@ -49,53 +48,10 @@ pub struct MapPicture {
     pub repeat: bool,
     /// The file to draw instead of the one `name` names: the part that
     /// several drawings under one number have in common, which the
-    /// converter writes —see `map_pictures` in rm2k-snes-convert—.
+    /// converter writes —see `map_pictures` in rm2k-snes-convert—. Not
+    /// in the request when it is the game's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<PathBuf>,
-}
-
-/// `map_pictures`, which can be missing: a list of
-/// `{"number", "name", "corner": [x, y], "transparency", "tone": [r, g, b,
-/// s], "transparent_color", "repeat"}`, and a `"path"` when the file is
-/// not the game's —see [`MapPicture::path`]—.
-pub fn from_json(data: &Value, whose: &str) -> Result<Vec<MapPicture>> {
-    let Some(list) = data.get("map_pictures").filter(|v| !v.is_null()) else {
-        return Ok(Vec::new());
-    };
-    let bad = |what: &str| Bad::answer(format!("{whose}: a map picture's {what}"));
-    let int = |v: &Value, what: &str| v.as_i64().ok_or_else(|| bad(what));
-    list.as_array()
-        .ok_or_else(|| Bad::answer(format!("{whose}: `map_pictures` is not a list")))?
-        .iter()
-        .map(|p| {
-            let corner = p["corner"]
-                .as_array()
-                .filter(|a| a.len() == 2)
-                .ok_or_else(|| bad("corner"))?;
-            let tone = p["tone"]
-                .as_array()
-                .filter(|a| a.len() == 4)
-                .ok_or_else(|| bad("tone"))?;
-            let mut t = [0; 4];
-            for (k, v) in tone.iter().enumerate() {
-                t[k] = int(v, "tone")? as i32;
-            }
-            Ok(MapPicture {
-                number: int(&p["number"], "number")? as i32,
-                name: p["name"].as_str().ok_or_else(|| bad("name"))?.to_string(),
-                corner: (int(&corner[0], "corner")?, int(&corner[1], "corner")?),
-                transparency: int(&p["transparency"], "transparency")? as i32,
-                tone: t,
-                transparent_color: p["transparent_color"]
-                    .as_bool()
-                    .ok_or_else(|| bad("transparent colour"))?,
-                repeat: p["repeat"].as_bool().ok_or_else(|| bad("repeat"))?,
-                path: match &p["path"] {
-                    Value::Null => None,
-                    v => Some(PathBuf::from(v.as_str().ok_or_else(|| bad("path"))?)),
-                },
-            })
-        })
-        .collect()
 }
 
 /// RM2k's screen: a map no bigger than it is never scrolled.

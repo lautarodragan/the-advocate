@@ -11,8 +11,8 @@
 //! event compiler's to know: its scan answers, for each page of the map,
 //! whether it compiled, the events its code sends a route to, whether it
 //! walks a route of its own and whether it turns. Those records come in the
-//! request as they came out of the compiler; what they draw is read here,
-//! from the map.
+//! request as [`ScannedPage`]s, what the converter keeps of the compiler's;
+//! what they draw is read here, from the map.
 
 use crate::events::{page_graphic, unbaked, Event};
 use crate::sprites::character::Key;
@@ -21,8 +21,8 @@ use crate::sprites::split::TILE_PREFIX;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A page as the event compiler's scan answered it, with what this stage
-/// reads of it.
-#[derive(Clone, Debug, Default)]
+/// reads of it: a request's `pages`.
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct ScannedPage {
     /// The event's index in the map's table —not its RM2k id— and the
     /// page's among the event's.
@@ -35,9 +35,11 @@ pub struct ScannedPage {
     pub route_targets: Vec<usize>,
     /// The graphics those routes give events —command 34—, as `(event
     /// index, index in the map's route graphics)`.
+    #[serde(default)]
     pub route_graphics: Vec<(usize, usize)>,
     /// The ones of `route_targets` that every route of the page only turns:
     /// no step, no jump, no graphic.
+    #[serde(default)]
     pub route_turns: Vec<usize>,
     /// Whether it walks a route of its own.
     pub own_route: bool,

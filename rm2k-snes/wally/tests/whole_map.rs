@@ -163,8 +163,8 @@ fn request(dir: &Path, pictures: &Path, test_event: bool) -> PathBuf {
         "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
         "test_event": test_event, "leaders": [1, 2],
         // The hero-looking event's page sends the other one walking.
-        "pages": [{"event": first + 1, "page": 0, "trigger": 3, "code": "00",
-                   "route_targets": [first + 2], "own_route": null, "turns": false}],
+        "pages": [{"event": first + 1, "page": 0, "trigger": 3, "compiles": true,
+                   "route_targets": [first + 2], "own_route": false, "turns": false}],
         "route_graphics": [], "also_walk": [],
         "timer": pictures.join("System/system.png"), "rain": true, "picture": null,
         "battle_animation": true, "singles": [["Hero", 0]], "palette_weight": {},
@@ -276,8 +276,8 @@ fn a_map_whose_animation_box_does_not_fit_loses_the_box() {
         json!({
             "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
             "test_event": false, "leaders": [1, 2],
-            "pages": [{"event": 1, "page": 0, "trigger": 3, "code": "00",
-                       "route_targets": [2], "own_route": null, "turns": false}],
+            "pages": [{"event": 1, "page": 0, "trigger": 3, "compiles": true,
+                       "route_targets": [2], "own_route": false, "turns": false}],
             "route_graphics": [], "also_walk": [],
             "timer": pictures.join("System/system.png"), "rain": true, "picture": null,
             "battle_animation": animation, "singles": [["Hero", 0]], "palette_weight": {},

@@ -22,7 +22,7 @@ use rm2k_snes_events::answer::{OwnRoute, Page, Scan};
 use rm2k_snes_events::codes::{FLASH_SPRITE, MOVE_EVENT, TILE_SUBSTITUTION};
 use rm2k_snes_events::request::Picture;
 use rm2k_snes_mapdata::{request, vram};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -262,7 +262,7 @@ pub struct Prepared {
     /// what goes in the background layer if the sprites have no room for the
     /// map's pictures. See [`pictures::over_black`].
     pub big_over_black: Vec<Big>,
-    pub request: Value,
+    pub request: wally::request::Asked,
 }
 
 /// The game's System, for the timer's digits: in the game's `System/`,
@@ -351,10 +351,10 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // does, the test pages' too—: only the hero shows them, and Wally can
     // draw them in the leaders' palette, like a leader.
     let on_events = &scanned.graphics_on_events;
-    let hero_graphics: Vec<Value> = route_graphics
+    let hero_graphics = route_graphics
         .iter()
         .filter(|g| !on_events.contains(g))
-        .map(|(g, i)| json!([g, i]))
+        .map(graphic)
         .collect();
     // And the ones the test pages send walking, which don't come from the
     // map's pages: they have to be added by hand or the NPC would walk
@@ -371,9 +371,9 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     }
 
     let timer = if c.timer_maps.contains(&map_id) {
-        Value::String(system_path(game)?.to_string_lossy().to_string())
+        Some(system_path(game)?)
     } else {
-        Value::Null
+        None
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
@@ -440,11 +440,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         )?),
         None => None,
     };
-    let singles: Vec<Value> = c
+    let singles = c
         .maps_per_character
         .iter()
         .filter(|(_, n)| **n == 1)
-        .map(|((name, index), _)| json!([name, index]))
+        .map(|(key, _)| key.clone())
         .collect();
     let zooms = &scanned.zooms;
     // On a map of one screen, the ones shown still over its panorama go
@@ -493,97 +493,144 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         }
     }
     substitution_triples(lists, &mut triples);
-    let mut request = json!({
-        "map": map_id,
-        "map_files": compiler::map_files(game),
-        "dropped_events": game.dropped_json_of(map_id),
-        // The still walls left out, which Wally closes in the passability.
-        "walls": game.walls_json_of(map_id),
-        "chipset_files": compiler::chipset_files(game),
-        "names": compiler::names([&map]).into_iter().map(|(_, e, p, n)| json!([e, p, n])).collect::<Vec<_>>(),
-        "test_event": test_event,
-        "leaders": c.leaders,
-        "pages": scanned.pages,
-        "route_graphics": route_graphics.iter().map(|(g, i)| json!([g, i])).collect::<Vec<_>>(),
-        "hero_graphics": hero_graphics,
-        "also_walk": also_walk.into_iter().collect::<Vec<_>>(),
-        // What the test pages name, so a decorative event is never one a
-        // test moves: only when the project asks for them.
-        "decorative": game.decorative,
-        // And the still events that change pose, into the background: not
-        // on a map that loops, whose cells the console builds elsewhere —see
-        // `wrap.s`—.
-        "posed_stills": game.posed.on(map_id) && map.scroll_type == 0,
-        "baked_events_nudge": game.nudge,
-        "test_commands": if game.decorative || game.posed.on(map_id) {
-            case_commands.iter().map(|c| json!([c.code, c.parameters])).collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        },
-        "timer": timer,
-        "map_pictures": c.map_pictures.of(map_id).iter().map(|p| p.to_json()).collect::<Vec<_>>(),
-        "rain": c.with_rain,
-        "sand": c.sand_maps.as_ref().map(|m| m.contains(&map_id)),
-        "picture": pictures.as_ref().map(ForMap::asked),
-        "battle_animation": shows_animation,
-        "singles": singles,
-        "palette_weight": c.settings.table(&["graphics", "palette_weight"])?,
-        "dither": std::env::var("DITHER_PATTERN").unwrap_or_else(|_| "five_of_eight".to_string()),
-        // The `TileSubstitution`s that can run here, whose blocks the stage
-        // builds before any page compiles, and the common events', which it
-        // only translates.
-        "substitutions": triples.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
-        "common_substitutions": c.common_substitutions.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
-        // The VRAM layouts a map can get, and the ones for a map that shows
-        // its panorama, which Wally decides.
-        "layouts": vram::LAYOUTS
-            .iter()
-            .filter(|l| l.panorama.is_none())
-            .map(|l| json!([l.tiles.count, l.sprites.count, l.above.count]))
-            .collect::<Vec<_>>(),
-        "panorama": {
-            "layouts": vram::LAYOUTS
-                .iter()
-                .filter_map(|l| l.panorama.map(|p| json!([p.mode, l.tiles.count, l.sprites.count, l.above.count, p.count()])))
-                .collect::<Vec<_>>(),
-            "baked_tiles": vram::LAYOUTS.iter().filter(|l| l.panorama.is_none()).map(|l| l.tiles.count).max(),
-            "way": c.panorama_ways.get(&map_id),
-        },
-        // Where the background starts: after the backdrop and the window.
-        "window_colors": c.window_colors,
-    });
-    // Only when the project asks: a request without the key is the one a
-    // game always got.
     // A map whose still pieces are painted into it is one picture, and goes
     // painted even if the project does not ask it of the others; and what
     // the test pages name stays an object.
     let painting = game.painted_events.on(map_id);
-    if game.painted_maps || painting {
-        request["panorama"]["painted"] = json!(true);
-    }
-    if painting {
-        request["painted_events"] = json!(true);
-        request["test_commands"] = case_commands
+    let commands = || {
+        case_commands
             .iter()
-            .map(|c| json!([c.code, c.parameters]))
-            .collect();
-    }
+            .map(|c| (c.code, c.parameters.clone()))
+            .collect::<Vec<_>>()
+    };
     // Where characters can be, with what the map does not say: Wally draws
     // below the tiles above the hero that none can ever cover. Only when
     // the project asks, as the painted maps. And where the still events go
     // into the background, for those drawn past their cells, without the
     // lowering if the project does not ask for it; and the pieces painted,
     // for what goes in front of the hero.
-    if game.unreachable_above_below || game.posed.on(map_id) || painting {
-        request["reach"] = c.arrivals.json_of(map_id, &case_commands);
-        request["reach_lowers"] = json!(game.unreachable_above_below);
-        request["boots_here"] = json!(map_id == c.order[c.start_index]);
-    }
-    // Only on a map whose copies of common events show pictures of their
-    // own: see `picture_own` in Wally.
-    if let Some(own) = &pictures_own {
-        request["picture_own"] = own.as_ref().map_or(Value::Null, ForMap::asked);
-    }
+    let reach = game.unreachable_above_below || game.posed.on(map_id) || painting;
+    let without_layer = || vram::LAYOUTS.iter().filter(|l| l.panorama.is_none());
+    let request = wally::request::Asked {
+        map: map_id,
+        map_files: game.forks.map_files(),
+        dropped_events: game
+            .dropped
+            .get(&map_id)
+            .map(|ids| (map_id, ids.clone()))
+            .into_iter()
+            .collect(),
+        // The still walls left out, which Wally closes in the passability.
+        walls: game
+            .walls
+            .get(&map_id)
+            .map(|cells| {
+                (
+                    map_id,
+                    cells
+                        .iter()
+                        .map(|&(x, y)| (x as usize, y as usize))
+                        .collect(),
+                )
+            })
+            .into_iter()
+            .collect(),
+        chipset_files: game
+            .forks
+            .chipsets
+            .iter()
+            .map(|(m, (path, _))| (*m, path.clone()))
+            .collect(),
+        names: compiler::names([&map])
+            .into_iter()
+            .map(|(_, e, p, n)| (e, p, n))
+            .collect(),
+        test_event,
+        leaders: c.leaders.clone(),
+        pages: scanned.pages.iter().map(scanned_page).collect(),
+        route_graphics: route_graphics.iter().map(graphic).collect(),
+        hero_graphics,
+        also_walk,
+        // What the test pages name, so a decorative event is never one a
+        // test moves: only when the project asks for them.
+        decorative: game.decorative,
+        // And the still events that change pose, into the background: not
+        // on a map that loops, whose cells the console builds elsewhere —see
+        // `wrap.s`—.
+        posed_stills: game.posed.on(map_id) && map.scroll_type == 0,
+        baked_events_nudge: game.nudge,
+        test_commands: if game.decorative || game.posed.on(map_id) || painting {
+            commands()
+        } else {
+            Vec::new()
+        },
+        timer,
+        map_pictures: c
+            .map_pictures
+            .of(map_id)
+            .iter()
+            .map(|p| p.asked())
+            .collect(),
+        rain: c.with_rain,
+        sand: c.sand_maps.as_ref().map(|m| m.contains(&map_id)),
+        picture: pictures.as_ref().map(ForMap::asked),
+        battle_animation: shows_animation,
+        singles,
+        palette_weight: palette_weights(c.settings)?,
+        dither: std::env::var("DITHER_PATTERN").unwrap_or_else(|_| "five_of_eight".to_string()),
+        // The `TileSubstitution`s that can run here, whose blocks the stage
+        // builds before any page compiles, and the common events', which it
+        // only translates.
+        substitutions: triples,
+        common_substitutions: c.common_substitutions.clone(),
+        // The VRAM layouts a map can get, and the ones for a map that shows
+        // its panorama, which Wally decides.
+        layouts: without_layer()
+            .map(|l| {
+                (
+                    l.tiles.count as usize,
+                    l.sprites.count as usize,
+                    l.above.count as usize,
+                )
+            })
+            .collect(),
+        panorama: Some(wally::request::Panorama {
+            layouts: vram::LAYOUTS
+                .iter()
+                .filter_map(|l| {
+                    let p = l.panorama?;
+                    let count = |n: u32| n as usize;
+                    Some((
+                        p.mode,
+                        count(l.tiles.count),
+                        count(l.sprites.count),
+                        count(l.above.count),
+                        count(p.count()),
+                    ))
+                })
+                .collect(),
+            baked_tiles: without_layer()
+                .map(|l| l.tiles.count as usize)
+                .max()
+                .unwrap_or(0),
+            way: c.panorama_ways.get(&map_id).map(|w| way(w)).transpose()?,
+            // Only when the project asks: a request without the key is the
+            // one a game always got.
+            painted: game.painted_maps || painting,
+        }),
+        // Where the background starts: after the backdrop and the window.
+        window_colors: c.window_colors as usize,
+        painted_events: painting,
+        reach: reach.then(|| c.arrivals.reach(map_id, &commands())),
+        reach_lowers: reach.then_some(game.unreachable_above_below),
+        boots_here: reach.then_some(map_id == c.order[c.start_index]),
+        // Only on a map whose copies of common events show pictures of their
+        // own: see `picture_own` in Wally.
+        picture_own: pictures_own
+            .as_ref()
+            .map(|own| own.as_ref().map(ForMap::asked)),
+        chipsets: BTreeMap::new(),
+    };
     Ok(Prepared {
         map,
         chipset_filename,
@@ -597,12 +644,62 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     })
 }
 
+/// A route graphic as Wally's request carries it.
+fn graphic((charset, index): &(String, i64)) -> (String, i32) {
+    (charset.clone(), *index as i32)
+}
+
+/// What Wally reads of a page the scan answered.
+fn scanned_page(p: &Page) -> wally::moves::ScannedPage {
+    wally::moves::ScannedPage {
+        event: p.event,
+        page: p.page,
+        trigger: p.trigger,
+        compiles: p.code.is_some(),
+        route_targets: p.route_targets.clone(),
+        route_graphics: p.route_graphics.iter().map(|&[e, g]| (e, g)).collect(),
+        route_turns: p.route_turns.clone(),
+        own_route: p.own_route.is_some(),
+        turns: p.turns,
+    }
+}
+
+/// `[graphics] palette_weight`: how much each CharSet weighs when Wally
+/// splits the object palettes, by name.
+fn palette_weights(settings: &Settings) -> Result<BTreeMap<String, i64>> {
+    let table = settings.table(&["graphics", "palette_weight"])?;
+    let Value::Object(table) = table else {
+        return Ok(BTreeMap::new());
+    };
+    table
+        .iter()
+        .map(|(name, weight)| {
+            let weight = weight.as_i64().ok_or_else(|| {
+                Stop::new(format!(
+                    "`graphics.palette_weight.{name}` of the project file is {weight}, not a whole number"
+                ))
+            })?;
+            Ok((name.clone(), weight))
+        })
+        .collect()
+}
+
+/// A way of showing a panorama the project forces, by its name.
+fn way(name: &str) -> Result<wally::background::panorama::Way> {
+    wally::background::panorama::Way::from_name(name).ok_or_else(|| {
+        Stop::new(format!(
+            "`maps.panorama_ways` names {}, which is no way of showing a panorama",
+            crate::text::quoted(name)
+        ))
+    })
+}
+
 /// Runs the stage on each `(map, request)` —every prepared map's, and the
 /// ones of its ChipSet variants, see `variants.rs`—, in parallel, and hands
 /// back what each wrote, in order.
 pub fn run_requests(
     c: &Cartridge,
-    prepared: &[(i32, &Value)],
+    prepared: &[(i32, &wally::request::Asked)],
 ) -> Result<Vec<BTreeMap<String, Vec<u8>>>> {
     let search_dirs: Vec<PathBuf> = c.search_dirs.iter().map(rm2k_project::absolute).collect();
     // What the binary was run with, which is what the cache key reads: the
@@ -629,7 +726,8 @@ pub fn run_requests(
                     break;
                 }
                 let request = prepared[k].1;
-                let done = stage::call(WALLY_MAP, request, &flags, || {
+                let value = serde_json::to_value(request).expect("a request is JSON");
+                let done = stage::call(WALLY_MAP, &value, &flags, || {
                     wally::stage::map(&c.game.dump, &search_dirs, request)
                 })
                 .map_err(|e| e.in_map(prepared[k].0));

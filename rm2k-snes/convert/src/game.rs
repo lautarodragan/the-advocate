@@ -567,7 +567,7 @@ impl Game {
 
     /// Decides which events of `maps` do not fit in the console's RAM, and
     /// says it: from here on [`Game::map`] reads them without those, and
-    /// the requests carry them —[`Game::dropped_json`]—. The map where the
+    /// the requests carry them —[`Game::dropped`]—. The map where the
     /// test page runs, `test_event_map`, keeps one place for its event.
     /// `test_commands` are the test pages', which can name events too.
     /// `events_max` is how many the RAM holds: `EV_MAX`, unless a test
@@ -711,36 +711,6 @@ impl Game {
             }
         }
         Ok(())
-    }
-
-    /// [`Game::dropped`] of map `id` as its own request carries it: the ids
-    /// by map number as text.
-    pub fn dropped_json_of(&self, id: i32) -> Value {
-        Value::Object(
-            self.dropped
-                .get(&id)
-                .map(|ids| (id.to_string(), serde_json::json!(ids)))
-                .into_iter()
-                .collect(),
-        )
-    }
-
-    /// Map `id`'s [`Game::walls`] as its Wally request carries them:
-    /// `{"<id>": [[x, y], …]}`, empty if it leaves none out.
-    pub fn walls_json_of(&self, id: i32) -> Value {
-        Value::Object(
-            self.walls
-                .get(&id)
-                .map(|cells| {
-                    let cells: Vec<Value> = cells
-                        .iter()
-                        .map(|&(x, y)| serde_json::json!([x, y]))
-                        .collect();
-                    (id.to_string(), Value::Array(cells))
-                })
-                .into_iter()
-                .collect(),
-        )
     }
 
     /// The panorama RM2k draws still behind map `id`, if the map is one

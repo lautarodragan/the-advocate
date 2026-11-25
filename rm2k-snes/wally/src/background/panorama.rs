@@ -104,7 +104,10 @@ pub(crate) fn reduce(
 ///   [`crate::background::painted`]. Only if the project asks for it;
 /// * **black**: it fits none of those, and the map is black where it would
 ///   show, as before there were panoramas.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+///
+/// A request names one by [`Way::name`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Way {
     Hidden,
     Baked,

@@ -10,8 +10,9 @@
 //! hand back a stale answer.
 
 use crate::fail::Result;
-use crate::map::{self, MapRequest};
-use crate::{inspect, layers, request, Bad, Game, LayersRequest};
+use crate::map;
+use crate::request::{self, Asked, LayersAsked};
+use crate::{inspect, layers, Bad};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -27,45 +28,35 @@ pub type Command = fn(&Path, &[PathBuf], &Value, &str) -> Result<Files>;
 /// from a file.
 const WHOSE: &str = "the request";
 
-/// The game in `data`, its pictures looked up in `search_dirs`, with the
-/// project's files `request` names over the dump's —see
-/// [`request::patches`]—.
-pub fn game(data: &Path, search_dirs: &[PathBuf], request: &Value, whose: &str) -> Result<Game> {
-    let mut game = Game {
-        data: data.to_path_buf(),
-        search_dirs: search_dirs.to_vec(),
-        ..Game::default()
-    };
-    request::patches(request, whose, &mut game)?;
-    Ok(game)
-}
-
 /// `map`: a whole map —its layers, the events baked into them, its
 /// characters as objects, its blocks and where the hero starts—, for the
-/// cartridge `request` describes. See [`MapRequest::from_json`] and
-/// [`map::files`].
-pub fn map(data: &Path, search_dirs: &[PathBuf], request: &Value) -> Result<Files> {
-    map_of(data, search_dirs, request, WHOSE)
+/// cartridge `request` describes, in the game in `data` with its pictures
+/// looked up in `search_dirs`. See [`Asked`] and [`map::files`].
+pub fn map(data: &Path, search_dirs: &[PathBuf], request: &Asked) -> Result<Files> {
+    map_asked(data, search_dirs, request, WHOSE)
 }
 
-/// [`map`], with `whose` starting its complaints.
+fn map_asked(data: &Path, search_dirs: &[PathBuf], request: &Asked, whose: &str) -> Result<Files> {
+    let game = request.game(data, search_dirs);
+    map::files(&map::convert(&game, &request.request(whose)?)?)
+}
+
+/// [`map`], with the request as the file has it and `whose` starting its
+/// complaints.
 pub fn map_of(data: &Path, search_dirs: &[PathBuf], request: &Value, whose: &str) -> Result<Files> {
-    let game = game(data, search_dirs, request, whose)?;
-    let request = MapRequest::from_json(request, whose)?;
-    map::files(&map::convert(&game, &request)?)
+    map_asked(data, search_dirs, &request::typed(request, whose)?, whose)
 }
 
-/// `layers`: the map's two background layers, alone. See
-/// [`LayersRequest::from_json`] and [`layers::files`].
+/// `layers`: the map's two background layers, alone. See [`LayersAsked`]
+/// and [`layers::files`].
 pub fn layers_of(
     data: &Path,
     search_dirs: &[PathBuf],
     request: &Value,
     whose: &str,
 ) -> Result<Files> {
-    let game = game(data, search_dirs, request, whose)?;
-    let request = LayersRequest::from_json(request, whose)?;
-    layers::run(&game, &request)
+    let asked: LayersAsked = request::typed(request, whose)?;
+    layers::run(&asked.game(data, search_dirs), &asked.request(whose)?)
 }
 
 /// `bakeable`: which events of a map can be baked, and why that is safe.
@@ -75,11 +66,10 @@ pub fn bakeable_of(
     request: &Value,
     whose: &str,
 ) -> Result<Files> {
-    let game = game(data, search_dirs, request, whose)?;
-    let asked = MapRequest::partial(request, whose)?;
+    let asked = Asked::partial(request, whose)?;
     Ok(one(
         "bakeable.json",
-        &inspect::bakeable_report(&game, &asked)?,
+        &inspect::bakeable_report(&asked.game(data, search_dirs), &asked.request(whose)?)?,
     ))
 }
 
@@ -91,15 +81,20 @@ pub fn split_of(
     request: &Value,
     whose: &str,
 ) -> Result<Files> {
-    let game = game(data, search_dirs, request, whose)?;
-    let asked = MapRequest::partial(request, whose)?;
-    let palettes = request
-        .get("palettes")
-        .and_then(Value::as_u64)
-        .ok_or_else(|| Bad::answer(format!("{whose}: no `palettes`, how many the split gets")))?;
+    #[derive(serde::Deserialize)]
+    struct Split {
+        palettes: usize,
+    }
+    let asked = Asked::partial(request, whose)?;
+    let Split { palettes } = request::typed(request, whose)
+        .map_err(|_| Bad::answer(format!("{whose}: no `palettes`, how many the split gets")))?;
     Ok(one(
         "split.json",
-        &inspect::split_report(&game, &asked, palettes as usize)?,
+        &inspect::split_report(
+            &asked.game(data, search_dirs),
+            &asked.request(whose)?,
+            palettes,
+        )?,
     ))
 }
 

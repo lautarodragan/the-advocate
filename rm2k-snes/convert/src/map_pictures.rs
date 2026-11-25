@@ -51,7 +51,6 @@ use rm2k_snes_events::codes::{
     COND_BRANCH, COND_ELSE, DEFEAT_HANDLER, ERASE_PICTURE, ESCAPE_HANDLER, MOVE_PICTURE,
     SHOW_CHOICE, SHOW_CHOICE_OPTION, SHOW_PICTURE, TELEPORT, VICTORY_HANDLER,
 };
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -100,20 +99,18 @@ pub struct OnMap {
 }
 
 impl OnMap {
-    pub fn to_json(&self) -> Value {
-        let mut out = json!({
-            "number": self.number,
-            "name": self.name,
-            "corner": [self.corner.0, self.corner.1],
-            "transparency": self.transparency,
-            "tone": self.tone,
-            "transparent_color": self.transparent_color,
-            "repeat": self.repeat,
-        });
-        if self.derived {
-            out["path"] = json!(self.path.display().to_string());
+    /// As Wally's request carries it.
+    pub fn asked(&self) -> wally::map_pictures::MapPicture {
+        wally::map_pictures::MapPicture {
+            number: self.number,
+            name: self.name.clone(),
+            corner: (i64::from(self.corner.0), i64::from(self.corner.1)),
+            transparency: self.transparency,
+            tone: self.tone,
+            transparent_color: self.transparent_color,
+            repeat: self.repeat,
+            path: self.derived.then(|| self.path.clone()),
         }
-        out
     }
 }
 
