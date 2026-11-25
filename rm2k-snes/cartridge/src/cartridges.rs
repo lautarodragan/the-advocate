@@ -5,8 +5,9 @@
 //! **What each cartridge carries belongs to the game**, and is in its project
 //! file: which maps go in, which are left out, which cartridges exist and
 //! which cases each one carries. What lives here is the mechanism that reads
-//! it and builds: the converter and the MSU-1 tracks, each run from the
-//! PATH, and the assembler, which is this crate's.
+//! it and builds: the converter, the MSU-1 tracks and the assembler, each
+//! called as a library, in this process. Until 2026-11-25 the first two
+//! were run from the PATH, `rm2k-snes-convert` and `rm2k-snes-audio msu`.
 //!
 //! **The maps are expanded here and passed to the converter as flags**, on
 //! purpose: the stamp carries the flags and not the game's data, so a tree
@@ -14,28 +15,27 @@
 //! travels expanded.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 
 use ditto::dump::Dump;
 use ditto::schema::{MapInfo, TreeMapMapType};
 use rm2k_project::environment::Environment;
-use rm2k_project::{cache, relative, suite, Project};
+use rm2k_project::log::{self, Log};
+use rm2k_project::{cache, suite, Project};
 use rm2k_rules::tree::Tree;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 use crate::assemble::{assemble, which, Failure};
+use rm2k_snes_audio::game::Game;
+use rm2k_snes_audio::tracks::{Tracks, GAIN};
 
-/// The cartridge that is played: the one that carries the ROM with the
-/// game's name, its MSU-1 tracks, and all the cases. The project file has to
-/// declare it.
-pub const RELEASE: &str = "release";
+pub use rm2k_project::environment::RELEASE;
 
-/// What the converter needs from the machine, since it runs in another
-/// process and receives it by flags; and what this one adds: where the test
-/// cartridges go, and the replacements for the MSU-1 tracks.
+/// What the converter needs from the machine, which it receives by flags as
+/// its binary does; and what this one adds: where the test cartridges go,
+/// and the replacements for the MSU-1 tracks.
 /// `rm2k-snes-cartridges space` takes the same ones: it asks whether a
 /// cartridge is up to date, and the fingerprint reads the game, the RTP's
 /// path and the SoundFont's.
@@ -67,17 +67,6 @@ pub fn variables_stamp(lookup: impl Fn(&str) -> Option<String>) -> String {
         .collect()
 }
 
-/// What the MSU-1 tracks need: the RTP too, because a song can come from
-/// there; and the cache, where they remember which tracks are already there.
-const TO_TRACKS: &[&str] = &["game_dir", "rtp_dir", "soundfont", "replacements", "cache"];
-
-/// The executables of the suite this one runs, by name, and the
-/// subcommand when it is one: the tracks are the music's. And this one's
-/// own name, which the fingerprint hashes: the assembler is its code.
-pub const CONVERT: &str = "rm2k-snes-convert";
-pub const CARTRIDGES: &str = "rm2k-snes-cartridges";
-pub const TRACKS: [&str; 2] = ["rm2k-snes-audio", "msu"];
-
 /// The subcommands of `rm2k-snes-cartridges`, which no cartridge can be
 /// called: `rm2k-snes-cartridges space` would not build it.
 pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
@@ -90,9 +79,6 @@ pub const SUBCOMMANDS: &[&str] = &["assemble", "space"];
 /// executable, the `.mp3` and the videos, never. A lookup that starts
 /// accepting another extension adds it here.
 pub const GAME_EXTENSIONS: &[&str] = &["png", "bmp", "xyz", "mid", "wav"];
-
-/// The line the tracks end with, which this prints in its place.
-const TRACKS_SUMMARY: &str = "MSU-1 tracks, ";
 
 /// One cartridge of the file.
 #[derive(Debug, Clone)]
@@ -129,6 +115,10 @@ pub struct Cartridges {
     excluded_cases: BTreeSet<String>,
     pub real_game: String,
     pub debug_map_entry: String,
+    /// The program that builds: the converter, the bank packing and the
+    /// assembler are its code, so the fingerprint hashes it. The running
+    /// one, set by [`Cartridges::load`]; a test sets a stand-in.
+    pub builder: PathBuf,
     /// The map tree, with the new maps' nodes in it.
     tree: Tree,
 }
@@ -264,6 +254,8 @@ impl Cartridges {
             excluded_cases: BTreeSet::new(),
             real_game: p.string(&["cases", "real_game"])?.to_string(),
             debug_map_entry: p.string(&["cases", "debug_map_entry"])?.to_string(),
+            builder: std::env::current_exe()
+                .map_err(|e| format!("the builder cannot find its own binary: {e}"))?,
             tree,
             project: project.clone(),
             environment,
@@ -549,13 +541,7 @@ impl Cartridges {
     /// The cartridge's directory: `release` in the project's build, the
     /// others with the test cartridges.
     pub fn directory(&self, name: &str) -> Result<PathBuf, String> {
-        if name == RELEASE {
-            return Ok(self.project.build()?.join(RELEASE));
-        }
-        Ok(self
-            .environment
-            .test_cartridges(&self.project)?
-            .join(name.replacen("test-", "", 1)))
+        Ok(self.environment.cartridge(&self.project, name)?)
     }
 
     /// The ROM. `release`'s carries the game's name, because the MSU-1 looks
@@ -607,19 +593,20 @@ impl Cartridges {
         // file that is added and included in the same change has to make the
         // cartridge stale.
         let mut parts = files_below(runtime)?;
-        // What assembles, the converter, and what packs the banks. The
-        // converter alone: its stages —and the patches, whose files the
-        // check reads from the build— are libraries compiled into it, as
+        // What assembles, and the program that converts and packs the
+        // banks: this one, the running binary and not one of its name on
+        // the PATH. The converter, its stages —and the patches, whose files
+        // the check reads from the build— are libraries compiled into it, as
         // Voodoo, LZ2, Adeleine, Gunter and `rm2k-render` are into them.
-        // What packs the banks is this program, which assembles in-process
-        // since 2026-11-24, and it still goes by its name on the PATH, as
-        // when the assembler ran from there, and not by `current_exe`: they
-        // are the same file unless this binary is run from somewhere else.
-        for name in ["ca65", "ld65", CONVERT, CARTRIDGES] {
+        // Until 2026-11-25 the converter ran from the PATH and went in by
+        // its name there, and so did this one, which it then was the same
+        // file as unless run from somewhere else.
+        for name in ["ca65", "ld65"] {
             parts.push(which(name).ok_or_else(|| {
                 format!("`{name}` is not on the PATH, and the cartridges need it")
             })?);
         }
+        parts.push(self.builder.clone());
         // The dump, whole: the converter and its stages read it, and it
         // changes without touching any of the above.
         parts.extend(files_below(&self.project.data()?)?);
@@ -864,48 +851,72 @@ impl Cartridges {
     ) -> Result<(), String> {
         let cartridge = self.cartridge(name)?;
         std::fs::create_dir_all(dest).map_err(|e| format!("{}: {e}", dest.display()))?;
-        let log = dest.join("converter.log");
-        let mut command = Command::new(CONVERT);
-        // With `--project`, because it runs standing in the root, and from
-        // there it would not find the file by searching.
-        command
-            .arg("--project")
-            .arg(self.project.directory())
-            .args(self.environment.as_flags(TO_CONVERTER))
-            .arg("-o")
-            .arg(dest.join("mapdata.inc"))
-            .arg("--msu")
-            .arg(sfc.with_extension("msu"))
-            .args(&cartridge.flags)
-            .args(extra);
+        let log_file = dest.join("converter.log");
+        // The converter's flags, as its binary takes them.
+        let mut argv: Vec<String> = vec!["--project".into(), text(self.project.directory())];
+        argv.extend(
+            self.environment
+                .as_flags(TO_CONVERTER)
+                .iter()
+                .map(|f| f.to_string_lossy().into_owned()),
+        );
+        argv.extend([
+            "-o".into(),
+            text(&dest.join("mapdata.inc")),
+            "--msu".into(),
+            text(&sfc.with_extension("msu")),
+        ]);
+        argv.extend(cartridge.flags.iter().cloned());
+        argv.extend(extra.iter().cloned());
         // The cases go at the end: after a `--case`, any cartridge flag would
-        // belong to that case, and the converter rejects it.
+        // belong to that case, and the converter rejects it. By their whole
+        // path: the converter ran standing in the suite's root and was given
+        // them relative to it, and a call runs wherever this was run. They
+        // are only printed in what the converter answers no with.
         for (k, case) in self.cases(name)?.iter().enumerate() {
             if k > 0 {
-                command.arg("--case");
+                argv.push("--case".into());
             }
-            command
-                .arg("--test-commands")
-                .arg(relative(self.case_path(case), &self.root));
+            argv.extend(["--test-commands".into(), text(&self.case_path(case))]);
         }
-        let result = command
-            .current_dir(&self.root)
-            .output()
-            .map_err(|e| format!("{CONVERT}: {e}"))?;
-        let mut text = result.stdout.clone();
-        text.extend(&result.stderr);
-        std::fs::write(&log, &text).map_err(|e| format!("{}: {e}", log.display()))?;
-        if !result.status.success() {
-            let stdout = String::from_utf8_lossy(&result.stdout);
-            let chars: Vec<char> = stdout.chars().collect();
+        // What it says goes into its own log, not onto this one's stdout:
+        // the cartridges convert at the same time, in threads. And a panic
+        // stops this cartridge, not the build, as a converter process that
+        // died did; it is said in its log, as the process said it on the
+        // stderr that went there.
+        log::panics_into_logs();
+        let said = Log::new();
+        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            rm2k_snes_convert::convert(argv, &said)
+        }));
+        let failure = match done {
+            Ok(Ok(())) => None,
+            // As the binary said it: last, on its stderr.
+            Ok(Err(stop)) => {
+                said.during(|| rm2k_project::errln!("{}", stop.message));
+                Some(format!("{name}: the converter failed; everything is in"))
+            }
+            Err(panic) => {
+                let what = panic
+                    .downcast_ref::<&str>()
+                    .map(|s| s.to_string())
+                    .or_else(|| panic.downcast_ref::<String>().cloned())
+                    .unwrap_or_default();
+                Some(format!(
+                    "{name}: the converter panicked: {what}; everything is in"
+                ))
+            }
+        };
+        std::fs::write(&log_file, said.bytes())
+            .map_err(|e| format!("{}: {e}", log_file.display()))?;
+        if let Some(failure) = failure {
+            let out = String::from_utf8_lossy(&said.out()).into_owned();
+            let chars: Vec<char> = out.chars().collect();
             let tail: String = chars[chars.len().saturating_sub(3000)..].iter().collect();
             let mut stderr = std::io::stderr();
             let _ = stderr.write_all(tail.as_bytes());
-            let _ = stderr.write_all(&result.stderr);
-            return Err(format!(
-                "{name}: the converter failed; everything is in {}",
-                log.display()
-            ));
+            let _ = stderr.write_all(&said.err());
+            return Err(format!("{failure} {}", log_file.display()));
         }
         // The assembler is called, not run: it is this crate's code. Until
         // 2026-11-23 it was a command of its own, `rm2k-snes-assemble`, and
@@ -954,33 +965,39 @@ impl Cartridges {
     /// which is printed in its place; the tracks it makes are printed as
     /// they come.
     pub fn msu_tracks(&self) -> Result<String, String> {
-        let tracks = TRACKS.join(" ");
-        let mut child = Command::new(TRACKS[0])
-            .arg(TRACKS[1])
-            .arg(self.rom_of(RELEASE)?)
-            .arg("--project")
-            .arg(self.project.directory())
-            .args(self.environment.as_flags(TO_TRACKS))
-            .arg("--quiet")
-            .stdout(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("{tracks}: {e}"))?;
-        let mut summary = None;
-        for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-            let line = line.map_err(|e| format!("{tracks}: {e}"))?;
-            if line.starts_with(TRACKS_SUMMARY) {
-                summary = Some(line);
-            } else {
-                println!("{line}");
-            }
-        }
-        let status = child.wait().map_err(|e| format!("{tracks}: {e}"))?;
-        if !status.success() {
-            return Err(format!("{RELEASE}: the MSU-1 tracks failed"));
-        }
-        let summary =
-            summary.ok_or_else(|| format!("{tracks} did not say how many tracks it made"))?;
-        Ok(format!("{RELEASE}: {summary}"))
+        // A call of the music's library since 2026-11-25; until then
+        // `rm2k-snes-audio msu`, run from the PATH, whose last line this
+        // printed in its place. Its cache keys on what the tracks are made
+        // from and with —see `tracks.rs`—, not on a binary.
+        let failed = |e: String| format!("{RELEASE}: the MSU-1 tracks failed: {e}");
+        let e = &self.environment;
+        let game = Game {
+            game_dir: e.game().map_err(|e| failed(e.to_string()))?.to_path_buf(),
+            rtp_dir: e.rtp().ok().map(Path::to_path_buf),
+            project: self.project.clone(),
+        };
+        let soundfont = e
+            .soundfont()
+            .map_err(|e| failed(e.to_string()))?
+            .to_path_buf();
+        let replacements = e.msu_replacements().map(Path::to_path_buf);
+        let cache_dir = if cache::disabled() {
+            None
+        } else {
+            Some(e.cache(&self.project).map_err(|e| failed(e.to_string()))?)
+        };
+        let tracks = Tracks::new(game, soundfont, GAIN, replacements, cache_dir);
+        // The tracks it makes, as they come; not the ones already there.
+        let (made, already) = tracks
+            .build(&self.rom_of(RELEASE)?, false, &mut |line| {
+                let mut stdout = std::io::stdout().lock();
+                let _ = writeln!(stdout, "{line}");
+                let _ = stdout.flush();
+            })
+            .map_err(|e| failed(e.to_string()))?;
+        Ok(format!(
+            "{RELEASE}: MSU-1 tracks, {made} made and {already} that were already there"
+        ))
     }
 
     // --- What the tests read -------------------------------------------------
@@ -1068,6 +1085,11 @@ fn files_below(directory: &Path) -> Result<Vec<PathBuf>, String> {
 /// order a listing prints.
 fn sort_as_text(paths: &mut [PathBuf]) {
     paths.sort_by(|a, b| a.as_os_str().cmp(b.as_os_str()));
+}
+
+/// A path as the converter's flags take it.
+fn text(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
 }
 
 fn with_suffix(path: &Path, suffix: &str) -> PathBuf {

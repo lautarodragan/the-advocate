@@ -156,9 +156,9 @@ fn run(matches: &ArgMatches) -> Result<(), String> {
     let force = matches.get_flag("force");
     let tracks = names.iter().any(|n| n == RELEASE) && !matches.get_flag("without_tracks");
     // The cartridges and the tracks are built at the same time, in threads:
-    // each one writes in its own directory, and the heavy work runs in the
-    // tools this runs. What they share is the disk cache, which writes aside
-    // and renames. What is printed stays in the usual order.
+    // each one writes in its own directory, and converts into its own log
+    // —see `rm2k_project::log`—. What they share is the disk cache, which
+    // writes aside and renames. What is printed stays in the usual order.
     //
     // The tracks, **after `release`** and not alongside it: they are its
     // songs', which the converter leaves next to its ROM. Meanwhile the other

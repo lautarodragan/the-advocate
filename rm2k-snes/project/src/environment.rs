@@ -279,4 +279,24 @@ impl Environment {
             None => Ok(project.build()?.join("tests")),
         }
     }
+
+    /// Where the cartridge `name` is built: `release` in the project's
+    /// build, the others with the test cartridges, without their `test-`.
+    ///
+    /// Here and not with the cartridges' builder because the patches'
+    /// `--check` asks it too, and the builder's crate links the converter,
+    /// which links the patches.
+    pub fn cartridge(&self, project: &Project, name: &str) -> Result<PathBuf, Error> {
+        if name == RELEASE {
+            return Ok(project.build()?.join(RELEASE));
+        }
+        Ok(self
+            .test_cartridges(project)?
+            .join(name.replacen("test-", "", 1)))
+    }
 }
+
+/// The cartridge that is played: the one that carries the ROM with the
+/// game's name, its MSU-1 tracks, and all the cases. The project file has
+/// to declare it.
+pub const RELEASE: &str = "release";
