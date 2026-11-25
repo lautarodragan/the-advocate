@@ -19,6 +19,7 @@ import functools
 import json
 import os
 import re
+import subprocess
 import tempfile
 
 # The cartridge the tests run unless they ask for another: the one the tools
