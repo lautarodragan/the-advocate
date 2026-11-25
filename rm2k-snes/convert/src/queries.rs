@@ -1,11 +1,9 @@
 //! What a game's tests ask the converter, without converting anything: the
-//! questions whose answer is the converter's —how it asks the event
-//! compiler, who it decides can lead the party, what it hands `wally` about
-//! a map—, so a test gets them from the one place that decides them and
+//! questions whose answer is the converter's —who it decides can lead the
+//! party, what it hands `wally` about a map, the boxes it rebuilds—, so a test gets them from the one place that decides them and
 //! not from a copy. Each one prints its answer as JSON.
 //!
 //! ```text
-//!     rm2k-snes-convert compile [--maps M...] [--case MAP FILE...] [--encounter-troop T...]
 //!     rm2k-snes-convert leaders --maps M... --party A...
 //!     rm2k-snes-convert map-context --map M
 //!     rm2k-snes-convert boxes
@@ -16,13 +14,17 @@
 //! Until 2026-11-25 there was a `scan` too, the compiler's first answer,
 //! which the tests asked for each variable's slot and which pages
 //! compile; the build leaves both beside the ROM now —`slots.json`,
-//! `culprits.json`—.
+//! `culprits.json`—. And until the same day a `compile`, the compiler's
+//! second answer for a cartridge built without converting its maps, which
+//! ABL's tests asked for a troop's page triggers; they read them from the
+//! LDB with RM2k's rule now, and `the_turn_s_base_is_turn_b` in the event
+//! compiler holds the order.
 
 use crate::compiler::Compiler;
 use crate::fail::{Result, Stop};
-use crate::game::{Command, Game};
+use crate::game::Game;
 use crate::settings::Settings;
-use clap::{value_parser, Arg, ArgAction, ArgMatches};
+use clap::{value_parser, Arg, ArgMatches};
 use rm2k_project::{environment, Project};
 use serde_json::json;
 use std::collections::BTreeSet;
@@ -57,29 +59,6 @@ fn command() -> clap::Command {
     clap::Command::new("rm2k-snes-convert")
         .about("What a game's tests ask the converter, as JSON on standard output")
         .subcommand_required(true)
-        .subcommand(
-            common(clap::Command::new("compile"))
-                .about(
-                    "The event compiler's second answer for a cartridge of --maps built without \
-                     converting them: each --case is a page compiled in a map, and each \
-                     --encounter-troop a troop the cartridge carries",
-                )
-                .arg(maps_arg(false))
-                .arg(
-                    Arg::new("case")
-                        .long("case")
-                        .num_args(2)
-                        .value_names(["MAP", "FILE"])
-                        .action(ArgAction::Append),
-                )
-                .arg(
-                    Arg::new("encounter_troop")
-                        .long("encounter-troop")
-                        .value_name("T")
-                        .action(ArgAction::Append)
-                        .value_parser(value_parser!(i32)),
-                ),
-        )
         .subcommand(
             common(clap::Command::new("leaders"))
                 .about("The actors that can lead the party in a cartridge of these maps")
@@ -119,10 +98,6 @@ fn ints(m: &ArgMatches, id: &str) -> Vec<i32> {
         .unwrap_or_default()
 }
 
-fn commands_of(file: &str) -> Result<Vec<Command>> {
-    crate::convert::handwritten_commands(std::path::Path::new(file))
-}
-
 pub fn run(argv: Vec<String>) -> Result<()> {
     let matches = command()
         .try_get_matches_from(std::iter::once("rm2k-snes-convert".to_string()).chain(argv))
@@ -134,20 +109,6 @@ pub fn run(argv: Vec<String>) -> Result<()> {
     environment.unpack(&project)?;
     let game = Game::read(environment.game()?, &project)?;
     let answer = match name {
-        "compile" => {
-            let compiler = Compiler::new(&game, &settings)?;
-            let mut cases = Vec::new();
-            if let Some(occurrences) = m.get_occurrences::<String>("case") {
-                for pair in occurrences {
-                    let pair: Vec<&String> = pair.collect();
-                    let map: i32 = pair[0]
-                        .parse()
-                        .map_err(|_| Stop::usage(format!("--case: {} is not a map", pair[0])))?;
-                    cases.push((map, commands_of(pair[1])?));
-                }
-            }
-            json!(compiler.loose(&ints(m, "maps"), &cases, &ints(m, "encounter_troop"))?)
-        }
         "leaders" => {
             let compiler = Compiler::new(&game, &settings)?;
             let maps = ints(m, "maps");

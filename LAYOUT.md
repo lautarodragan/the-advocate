@@ -127,8 +127,8 @@ have layers of their own, one folder each:
                  joins them —which maps and test pages, who can lead the
                  party, which items, pictures, backdrops and battlers go
                  in, the checks of the compiled pages—. A library; its
-                 binary answers the game's tests how it asks: `scan`,
-                 `compile`, `leaders`, `map-context`, `boxes`
+                 binary answers the game's tests how it asks: `leaders`,
+                 `map-context`, `boxes`
       advocate/  `advocate`, the one command that builds a game: its
                  cartridges, their MSU-1 tracks and `build/advocate.json`,
                  what a game's tests and recipes read, calling the

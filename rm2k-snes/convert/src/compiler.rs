@@ -441,44 +441,6 @@ impl<'a> Compiler<'a> {
             .map_err(|e| crate::fail::io(&path, e))
     }
 
-    /// A compile of a cartridge of `maps` built without converting them: no
-    /// picture, no graphic renamed, no substitution resolved —without the
-    /// maps' blocks a page that asks for one does not compile—, and `cases`
-    /// as they are, with nothing put in front. It is how a test asks what
-    /// the compiler does with one page, or with a troop's.
-    pub fn loose(
-        &self,
-        maps: &[i32],
-        cases: &[(i32, Vec<Command>)],
-        encounter_troops: &[i32],
-    ) -> Result<Compiled> {
-        let test_commands: Vec<Command> =
-            cases.iter().flat_map(|(_, c)| c.iter().cloned()).collect();
-        let mut r = self.request(maps, &test_commands, &BTreeSet::new(), None)?;
-        let common = crate::maps::common_substitutions(self.game);
-        let mut substitutions = ByMap::default();
-        for m in maps {
-            let mut mine = common.clone();
-            crate::maps::substitution_triples(self.game.map(*m)?.all_commands(), &mut mine);
-            let table = mine.iter().map(|&(upper, old, new)| request::Substitution {
-                upper,
-                old: old.into(),
-                new: new.into(),
-                pairs: None,
-            });
-            substitutions.insert(*m, table.collect());
-        }
-        r.substitutions = Some(substitutions);
-        r.pictures = Some(ByMap::default());
-        r.sound_effects = Some(self.sound_effects()?);
-        r.cases = Some(self::cases(cases));
-        r.test_graphics = Some(ByMap::default());
-        r.messages_step = Some(rm2k_snes_mapdata::engine::MESSAGES_STEP);
-        r.encounter_troops = Some(encounter_troops.to_vec());
-        self.keep(&r)?;
-        self.run(COMPILE, rm2k_snes_events::stage::compile, &r)
-    }
-
     /// The boxes the compiler is handed: every text box of the game the
     /// port rebuilds for the console's window.
     pub fn boxes(&self) -> &[request::MessageBox] {
