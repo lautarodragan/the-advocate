@@ -73,7 +73,8 @@ def test_holding_the_key_does_not_answer(core):
 def test_the_d_pad_stores_each_directions_number(core):
     """The four, each on a console of its own: the command answers once and
     the page goes on, so nobody looks at a second press."""
-    assert engine.KEY_VALUE_DIR == (4, 3, 1, 2)
+    assert (engine.KEY_VALUE_UP, engine.KEY_VALUE_RIGHT, engine.KEY_VALUE_DOWN,
+            engine.KEY_VALUE_LEFT) == (4, 3, 1, 2)
     for button, expected in (("up", 4), ("right", 3), ("down", 1), ("left", 2)):
         sess = waiting(core, "key-wait-for-dir")
         sess.press(button)

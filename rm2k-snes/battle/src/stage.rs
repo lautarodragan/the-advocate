@@ -10,8 +10,8 @@
 
 use crate::db::Db;
 use crate::fail::Result;
-use crate::model::{self, ModelRequest, LAYOUT_FILE, MODEL_FILE};
-use crate::{screen, Game, Request, Tables};
+use crate::model::{self, ModelRequest, MODEL_FILE};
+use crate::{Game, Request, Tables};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -33,12 +33,6 @@ pub fn model(data: &Path, request: &ModelRequest) -> Result<Files> {
     // reads them.
     let db = Db::from_dump(data, !request.troops.is_empty())?;
     Ok(one(MODEL_FILE, &model::model(&db, request)?))
-}
-
-/// `layout`: the geometry of the battle's text screen, which no game
-/// changes.
-pub fn layout() -> Files {
-    one(LAYOUT_FILE, &screen::layout())
 }
 
 /// One of the commands that answer a JSON from the database: `answer` asked

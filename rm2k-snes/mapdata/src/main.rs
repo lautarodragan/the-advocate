@@ -63,13 +63,6 @@ enum Command {
         It writes pages.inc."
     )]
     Pages(Plain),
-    /// The engine's numbers, by name: the ones the .inc hands the runtime
-    #[command(
-        after_help = "The request: {}. The answer: {\"NAME\": its value} for every number of \
-        engine.rs, and for PARALLEL_MAX and ROUTE_EV_MAX, the caps a map's compiled pages are \
-        checked against: a number, or a list of numbers."
-    )]
-    Engine(Plain),
 }
 
 #[derive(ClapArgs)]
@@ -220,22 +213,12 @@ fn do_pages(args: &Plain) -> Result<()> {
     )
 }
 
-fn do_engine(args: &Plain) -> Result<()> {
-    read(&args.request)?;
-    let numbers: serde_json::Map<String, Value> = rm2k_snes_mapdata::engine::numbers()
-        .into_iter()
-        .map(|(name, value)| (name.to_string(), value))
-        .collect();
-    write(&args.out, "engine", &Value::Object(numbers))
-}
-
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Vram(args) => do_vram(args),
         Command::Compress(args) => do_compress(args),
         Command::Pages(args) => do_pages(args),
-        Command::Engine(args) => do_engine(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

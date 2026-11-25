@@ -35,10 +35,10 @@ still made by the converter that calls this.
 ## One stage of a converter
 
 This is one domain of a game converter. The converter orchestrates, and
-calls this crate's `stage` module as functions —`tables`, `model`,
-`layout`—, each answering its files by name; the binary is a `main` over
-the ones the tests ask —`model`, `layout` and the model's questions— that
-writes them into `--out`. Every stage is called that way since 2026-11-24; until then the
+calls this crate's `stage` module as functions —`tables` and `model`—,
+each answering its files by name; the binary is a `main` over the ones the
+tests ask —`model` and the model's questions— that writes them into
+`--out`. Every stage is called that way since 2026-11-24; until then the
 others were run from the PATH as separate programs. Every stage has the
 same shape, and this crate was the first to be written to it:
 
@@ -195,7 +195,7 @@ calls: whoever wants to look at a battle turn by turn sends it again with
 one more step, and it comes out the same, because the randomness is the
 battle's own.
 
-## `lines` and `layout`
+## `lines`
 
 `lines` builds the victory's lines as the console does:
 
@@ -203,8 +203,10 @@ battle's own.
      "lines": [["victory"], ["exp", 90], ["gold", 285], ["item", 257],
                ["level", 11, 21], ["skill", 148]]}
 
-`layout` writes the battle screen's geometry, in cells, and the model's
-constants —the seed, the commands, the outcomes—, by name.
+The battle screen's geometry, in cells, and the model's constants —the
+seed, the commands, the outcomes— go to the emission inside `model.json`,
+and a game's tests read the ones they need from a built cartridge's
+`.sym`. Until 2026-11-25 the binary wrote them alone, with `layout`.
 
 ## `experience`
 

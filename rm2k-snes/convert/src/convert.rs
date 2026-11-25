@@ -901,6 +901,7 @@ pub fn run(options: Options) -> Result<()> {
             .collect::<Vec<_>>(),
     )?;
     degradations.add_compiler_answer(&compiled);
+    write_slots(&output, &compiled.indices)?;
     // The events the RAM left out that Wally painted into their map lose
     // nothing: see `Loss::Painted` in [`crate::trim`].
     let painted: BTreeSet<(i64, i64)> = infos
@@ -2160,6 +2161,42 @@ pub fn run(options: Options) -> Result<()> {
     // The bank packing is not decided here: both files send everything to
     // RODATA, and the assembling spreads it into banks.
     Ok(())
+}
+
+/// The file beside the ROM that says where each RM2k variable and each
+/// (actor, skill) pair lives in it.
+pub const SLOTS_FILE: &str = "slots.json";
+
+/// `slots.json`, beside the ROM: the slot of each variable in
+/// `FAR_VARIABLES` and the bit of each (actor, skill) pair in `FAR_SKILL`,
+/// as the compiler numbered them for this cartridge —the game's, its test
+/// pages' and the case variable—. The ROM keeps only the variables the game
+/// names, packed, so a variable's number is not its place, and nothing in
+/// the ROM says which is which: whoever looks at a running cartridge by
+/// variable —a game's tests, a debugger— reads it here. Until 2026-11-25
+/// the tests asked the compiler again, with `rm2k-snes-events scan` or
+/// `rm2k-snes-convert scan`, and had to build the same request to get the
+/// same answer.
+///
+/// `variables` is `[[variable, slot]]`, with the high word of a wide
+/// variable as the variable negated —see `indices::wide` in
+/// rm2k-snes-events—; `skills` is `[[actor, skill, bit]]`.
+fn write_slots(
+    output: &std::path::Path,
+    indices: &rm2k_snes_events::answer::Indices,
+) -> Result<()> {
+    let directory = output
+        .parent()
+        .map(rm2k_project::absolute)
+        .unwrap_or_default();
+    let path = directory.join(SLOTS_FILE);
+    let text = serde_json::to_string(&json!({
+        "variables": indices.variables,
+        "skills": indices.skills,
+    }))
+    .expect("the slots are JSON")
+        + "\n";
+    std::fs::write(&path, text).map_err(|e| crate::fail::io(&path, e))
 }
 
 /// Where the pictures are looked for: the images of the ChipSets the

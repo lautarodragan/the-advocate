@@ -3,11 +3,14 @@
 //!
 //! This is the only place they are written. They lived in the converter's
 //! `events.py` until 2026-10-01, where the long comment of most still is,
-//! next to its name; the converter and the game's tests ask for them by
-//! name —`engine`, [`numbers`]— and the runtime only names them. The ones
-//! marked as measured against A
-//! Blurred Line are assumptions of the engine, not facts of a game: see
-//! `decisions/the-tools-split-from-abl.md` in the book.
+//! next to its name; the emission hands them to the runtime as equates of
+//! the `.inc`, and a game's tests read them back by name from the
+//! cartridge's `.sym` —the ones the runtime does not name, from
+//! `for_readers` in `emit.rs`—. Until 2026-11-25 the tests asked this
+//! crate's binary for every one, `rm2k-snes-mapdata engine`. The ones
+//! marked as measured against A Blurred Line are assumptions of the
+//! engine, not facts of a game: see `decisions/the-tools-split-from-abl.md`
+//! in the book.
 
 /// A text box's header: the lines in the low three bits, the auto-close of
 /// `\^` in bit 3, the `\|` pauses in the high nibble.
@@ -183,129 +186,6 @@ pub const ENEMIES_MAX: usize = rm2k_snes_battle::db::ENEMIES_MAX;
 pub const OBJ_SIDE: u32 = 4;
 pub const GRID: u32 = 16;
 
-/// Each number by its name, as a list of pairs.
-macro_rules! by_name {
-    ($($name:ident),* $(,)?) => {
-        vec![$((stringify!($name), serde_json::json!($name))),*]
-    };
-}
-
-/// Every number above by its name, and the two caps of `record.rs` the
-/// converter checks the compiled pages against: what `engine` answers, so
-/// a program that is not this one —the converter, a game's tests— reads
-/// them from here instead of writing them again.
-pub fn numbers() -> Vec<(&'static str, serde_json::Value)> {
-    use crate::record::{PARALLEL_MAX, ROUTE_EV_MAX};
-    by_name![
-        HEADER_LINES,
-        HEADER_AUTO_CLOSE,
-        PAUSE_FRAMES,
-        VAR_REFRESH,
-        VAR_SLOT_MAX,
-        ANIM_ENTRY_BYTES,
-        ANIM_SOUND,
-        ANIM_SCREEN_FLASH,
-        KEY_WAIT,
-        KEY_DIRS,
-        KEY_DECISION,
-        KEY_CANCEL,
-        KEY_START,
-        KEY_VALUE_DECISION,
-        KEY_VALUE_CANCEL,
-        KEY_VALUE_DIR,
-        WEATHER_RAIN,
-        WEATHER_SAND,
-        RAIN_DROPS,
-        RAIN_LIFE,
-        RAIN_SPAWN,
-        RAIN_SEED,
-        ITEMS_N,
-        ITEM_MAX,
-        VAR_ADD,
-        VAR_VARIABLE,
-        VAR_RANDOM,
-        VAR_OTHER,
-        VAR_CHARACTER,
-        CHARACTER_X,
-        CHARACTER_Y,
-        VAR_ACTOR,
-        CELL_Y,
-        CELL_REFRESH,
-        RANDOM_SEED,
-        ENC_SEED,
-        TIMER_SET_VAR,
-        TIMER_SLOT,
-        COND_TIMER,
-        COND_GOLD,
-        COND_ITEM,
-        COND_ACTOR,
-        COND_ACTOR_SKILL,
-        COND_ACTOR_EQUIPMENT,
-        COND_ACTOR_HP,
-        COND_ACTOR_STATE,
-        GOLD_MAX,
-        PAN_LOCK,
-        PAN_UNLOCK,
-        PAN_SHIFT,
-        PAN_RETURN,
-        TIMER_SET,
-        TIMER_START,
-        FRAMES_PER_SECOND,
-        TIMER_EXTRA_FRAMES,
-        TRIGGER_ACTION,
-        TRIGGER_TOUCH_HERO,
-        TRIGGER_COLLISION,
-        TRIGGER_AUTOSTART,
-        TRIGGER_PARALLEL,
-        FRAMES_PER_CELL,
-        ROUTE_FREQUENCY,
-        ROUTE_FREQUENCY_MIN,
-        ROUTE_WAIT_FRAMES,
-        JUMP_STEP,
-        FADE_TOTAL,
-        FADE_RAMP,
-        BRIGHTNESS_MAX,
-        TRANSITION_MOSAIC,
-        TRANSITION_CUT,
-        PARTY_MAX,
-        MESSAGES_STEP,
-        TROOP_PAGES_MAX,
-        TROOP_TRIGGER_SWITCH_A,
-        TROOP_TRIGGER_SWITCH_B,
-        TROOP_TRIGGER_VARIABLE,
-        TROOP_TRIGGER_TURN,
-        TROOP_TRIGGER_ENEMY,
-        TROOP_TRIGGER_ACTOR,
-        TROOP_WITH_HEADER,
-        TROOP_HEADER_BYTES,
-        ANIM_NO_DRAWING,
-        ANIM_TARGET_SCREEN,
-        NEUTRAL_TINT,
-        LUMA_R,
-        LUMA_G,
-        LUMA_B,
-        TIMER_GLYPHS,
-        TIMER_GLYPH_W,
-        TIMER_X,
-        TIMER_Y,
-        WATER_FRAMES_SLOW,
-        WATER_CYCLE,
-        ANIMATED_FRAMES,
-        ANIMATED_STEPS,
-        COLUMNS,
-        CELL,
-        COLS,
-        ROWS,
-        MENU_CGRAM,
-        EQUIPMENT_SLOTS,
-        ENEMIES_MAX,
-        OBJ_SIDE,
-        GRID,
-        PARALLEL_MAX,
-        ROUTE_EV_MAX,
-    ]
-}
-
 /// The INIDISP brightness on each frame of the fade's ramp, from black to
 /// full: a rounded straight line over the sixteen steps.
 pub fn fade_ramp() -> Vec<u32> {
@@ -358,21 +238,6 @@ pub fn shake_sine() -> Vec<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn every_number_is_answered_by_its_name() {
-        let answered: Vec<&str> = numbers().iter().map(|(n, _)| *n).collect();
-        let declared: Vec<&str> = include_str!("engine.rs")
-            .lines()
-            .filter_map(|l| l.strip_prefix("pub const "))
-            .filter_map(|l| l.split(':').next())
-            .collect();
-        assert!(!declared.is_empty());
-        for name in &declared {
-            assert!(answered.contains(name), "`numbers` does not answer {name}");
-        }
-        assert_eq!(numbers().len(), declared.len() + 2, "a name answered twice");
-    }
 
     #[test]
     fn the_fade_ramp_goes_from_black_to_full() {

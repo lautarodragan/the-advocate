@@ -52,7 +52,7 @@ The converter calls the `stage` module as functions: `stage::convert`, the
 screens, once per cartridge; `stage::boxes` and `stage::faces`, the message
 boxes and the faces, for the event compiler; and `stage::window`, the
 message window's colours. The binary is a `main` over the questions the tests ask:
-`render`, `refit`, `layout`, `window` and `equip`.
+`render`, `refit`, `window` and `equip`.
 
 `convert`'s request:
 
@@ -93,7 +93,9 @@ the event compiler reads its boxes through.
 first line names who speaks: it is for whoever checks the reflow over a
 whole game.
 
-`layout` writes the geometry alone.
+The geometry alone is not asked of the binary: a game's tests read the
+numbers a built cartridge has in its `.sym`, where the emission writes
+them. Until 2026-11-25 there was a `layout` that wrote it.
 
 `window` counts the colour-memory entries the message window takes after
 the backdrop: every colour of the empty window, its arrow, its cursor, the

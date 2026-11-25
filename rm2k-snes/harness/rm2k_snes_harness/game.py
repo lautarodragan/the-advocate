@@ -19,8 +19,6 @@ import functools
 import json
 import os
 import re
-import subprocess
-import tempfile
 
 # The cartridge the tests run unless they ask for another: the one the tools
 # demand of every project.
@@ -77,7 +75,7 @@ class Game:
 
 class Cartridge:
     """A cartridge, built: the ROM, its symbols and its maps. `dump` is the
-    game's dump it was converted from, for what is asked of the stages."""
+    game's dump it was converted from, for the tests that read it."""
 
     def __init__(self, data, dump=None):
         self.dump = dump
@@ -103,17 +101,12 @@ class Cartridge:
     def variable_slots(self):
         """{RM2k variable: its slot in `FAR_VARIABLES`}: the ROM keeps only
         the variables the game names, packed, so the number is not the
-        place. Asked of the events compiler with the request the converter
-        left beside the ROM, so it is the answer the ROM was built with."""
-        assert self.dump, "this cartridge was not given its game's dump"
-        with tempfile.TemporaryDirectory() as out:
-            subprocess.run(
-                ["rm2k-snes-events", "scan", "--data", self.dump,
-                 "--request", os.path.join(self.directory,
-                                           "events-request.json"),
-                 "--out", out], check=True, capture_output=True)
-            with open(os.path.join(out, "events.json")) as file:
-                return dict(json.load(file)["variables"])
+        place. Read from the `slots.json` the converter leaves beside the
+        ROM, which is the answer the ROM was built with. Until 2026-11-25
+        it was asked of `rm2k-snes-events scan` again, with the request the
+        converter left there."""
+        with open(os.path.join(self.directory, "slots.json")) as file:
+            return dict(json.load(file)["variables"])
 
 
 _current = None

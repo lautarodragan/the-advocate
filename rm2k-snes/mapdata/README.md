@@ -54,10 +54,6 @@ The binary is a `main` over the rest, which the tests ask:
 * `vram`: the VRAM layouts, the constants of the cartridge's memory, and
   which layout each of the request's maps gets. The layouts are checked
   against the hardware on every call.
-* `engine`: the engine's numbers by name —every one of `src/engine.rs`,
-  and the caps of `src/record.rs` the compiled pages are checked
-  against—, for whoever needs one of them and is not this program: so
-  they are written in a single place.
 
 ## Where the numbers come from
 
@@ -66,6 +62,10 @@ and the console's caps— are in `src/engine.rs` and `src/record.rs`; the
 ones measured against A Blurred Line say so. The header of constants
 that opens the `.inc` is a format string, in `src/emit/header.rs`, with a
 named argument per constant.
+A program that is not this one reads them from a built cartridge's
+`.sym`, where `ld65` writes every equate: the ones the runtime does not
+name are written for it by `for_readers`, in `src/emit.rs`. Until
+2026-11-25 it asked this binary, `engine`.
 
 ## Its tests
 

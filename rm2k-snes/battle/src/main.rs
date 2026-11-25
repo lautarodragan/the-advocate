@@ -48,8 +48,6 @@ enum Command {
     /// What a skill used from the pause menu, outside battle, leaves the
     /// party with
     FieldSkill(StageArgs),
-    /// The geometry of the battle's text screen
-    Layout(LayoutArgs),
 }
 
 #[derive(ClapArgs)]
@@ -66,21 +64,6 @@ struct StageArgs {
     /// What is asked: see the README
     #[arg(long, value_name = "PATH")]
     request: PathBuf,
-
-    /// The directory to write to
-    #[arg(long, value_name = "DIRECTORY")]
-    out: PathBuf,
-}
-
-#[derive(ClapArgs)]
-#[command(
-    after_help = "Writes layout.json into --out. The request is ignored: the geometry \
-    does not depend on any game."
-)]
-struct LayoutArgs {
-    /// Ignored: it is there so that every subcommand is called the same way
-    #[arg(long, value_name = "PATH")]
-    request: Option<PathBuf>,
 
     /// The directory to write to
     #[arg(long, value_name = "DIRECTORY")]
@@ -118,7 +101,6 @@ fn main() -> ExitCode {
         Command::Lines(args) => asked(args, LINES_FILE, model::lines),
         Command::Experience(args) => asked(args, EXPERIENCE_FILE, model::experience),
         Command::FieldSkill(args) => asked(args, FIELD_SKILL_FILE, model::field_skill),
-        Command::Layout(args) => write(&args.out, &stage::layout()),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
