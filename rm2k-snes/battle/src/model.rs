@@ -27,8 +27,6 @@ pub const MODEL_FILE: &str = "model.json";
 pub const SIMULATE_FILE: &str = "simulate.json";
 /// The file `lines` writes.
 pub const LINES_FILE: &str = "lines.json";
-/// The file `layout` writes.
-pub const LAYOUT_FILE: &str = "layout.json";
 /// The file `experience` writes.
 pub const EXPERIENCE_FILE: &str = "experience.json";
 /// The file `field-skill` writes.

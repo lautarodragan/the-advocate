@@ -20,7 +20,7 @@ use crate::answer;
 use crate::fail::{Bad, Result};
 use crate::request;
 use crate::{boxes as box_table, convert as screens, faces as face_sets};
-use crate::{layout as geometry, message_window, texts, Game};
+use crate::{message_window, texts, Game};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
 use std::collections::BTreeMap;
@@ -252,12 +252,6 @@ pub fn window(place: &Place, request: &request::Window) -> Result<Files> {
         text_rows: Some(rows),
         systems,
     }))
-}
-
-/// `layout`: the geometry the screens are drawn with, by name, as
-/// `layout.json`; constants, which no game changes.
-pub fn layout() -> Files {
-    one("layout.json", &geometry::publish())
 }
 
 #[cfg(test)]

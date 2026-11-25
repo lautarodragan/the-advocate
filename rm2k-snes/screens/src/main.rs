@@ -39,9 +39,7 @@ enum Command {
     /// cartridge uploads
     Render(GameArgs),
     /// The message boxes of the request reflowed for the console's window
-    Refit(LayoutArgs),
-    /// The geometry the screens are drawn with, by name
-    Layout(LayoutArgs),
+    Refit(RefitArgs),
     /// What equipping an item leaves, as the equipment screen does it
     #[command(
         after_help = "Writes equip.json into --out: {\"equipment\": the five slots, \
@@ -131,15 +129,13 @@ impl GameArgs {
 
 #[derive(ClapArgs)]
 #[command(
-    after_help = "`layout` writes layout.json into --out, and its request is \
-    ignored: it is taken so every subcommand is called the same way.\n\n\
-    `refit` writes refit.json: for each of the request's `boxes`, each a list of lines, \
+    after_help = "`refit` writes refit.json: for each of the request's `boxes`, each a list of lines, \
     {\"to\": the boxes it becomes, \"speaker\": whether its first line names who speaks}. \
     The request carries the window too: `font` —`rm2k`, one the engine carries, or a \
     sheet's path— and `letter_spacing`, pixels more after every letter, 0 if missing; \
     `width`, a line's pixels; or, without `font`, `columns` characters of RM2k's font."
 )]
-struct LayoutArgs {
+struct RefitArgs {
     #[arg(long, value_name = "PATH")]
     request: Option<PathBuf>,
     #[arg(long, value_name = "DIRECTORY")]
@@ -401,7 +397,7 @@ fn do_equip(args: &GameArgs) -> Result<()> {
     write(&args.out, "equip.json", &answer.to_string())
 }
 
-fn do_refit(args: &LayoutArgs) -> Result<()> {
+fn do_refit(args: &RefitArgs) -> Result<()> {
     let path = args
         .request
         .as_ref()
@@ -426,7 +422,6 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Render(args) => do_render(args),
-        Command::Layout(args) => write_files(&args.out, &stage::layout()),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),
         Command::Window(args) => asked(&args.request, &args.out, |request| {

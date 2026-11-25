@@ -5,7 +5,6 @@
 //! not from a copy. Each one prints its answer as JSON.
 //!
 //! ```text
-//!     rm2k-snes-convert scan [--maps M...] [--test-commands FILE...] [--extra-variable V...]
 //!     rm2k-snes-convert compile [--maps M...] [--case MAP FILE...] [--encounter-troop T...]
 //!     rm2k-snes-convert leaders --maps M... --party A...
 //!     rm2k-snes-convert map-context --map M
@@ -13,6 +12,11 @@
 //! ```
 //!
 //! Each takes `--project` and the machine's flags, as the conversion does.
+//!
+//! Until 2026-11-25 there was a `scan` too, the compiler's first answer,
+//! which the tests asked for each variable's slot and which pages
+//! compile; the build leaves both beside the ROM now —`slots.json`,
+//! `culprits.json`—.
 
 use crate::compiler::Compiler;
 use crate::fail::{Result, Stop};
@@ -53,28 +57,6 @@ fn command() -> clap::Command {
     clap::Command::new("rm2k-snes-convert")
         .about("What a game's tests ask the converter, as JSON on standard output")
         .subcommand_required(true)
-        .subcommand(
-            common(clap::Command::new("scan"))
-                .about(
-                    "The event compiler's first answer, as the converter asks for it: the \
-                     indices, and which pages compile. Without --maps, every map of the dump; \
-                     with --maps and no number, none —the indices are the whole game's anyway—",
-                )
-                .arg(maps_arg(false))
-                .arg(
-                    Arg::new("test_commands")
-                        .long("test-commands")
-                        .value_name("FILE")
-                        .action(ArgAction::Append),
-                )
-                .arg(
-                    Arg::new("extra_variable")
-                        .long("extra-variable")
-                        .value_name("V")
-                        .action(ArgAction::Append)
-                        .value_parser(value_parser!(i32)),
-                ),
-        )
         .subcommand(
             common(clap::Command::new("compile"))
                 .about(
@@ -152,20 +134,6 @@ pub fn run(argv: Vec<String>) -> Result<()> {
     environment.unpack(&project)?;
     let game = Game::read(environment.game()?, &project)?;
     let answer = match name {
-        "scan" => {
-            let compiler = Compiler::new(&game, &settings)?;
-            let maps = if m.value_source("maps") == Some(clap::parser::ValueSource::CommandLine) {
-                ints(m, "maps")
-            } else {
-                game.dump_map_ids()?
-            };
-            let mut commands = Vec::new();
-            for file in m.get_many::<String>("test_commands").into_iter().flatten() {
-                commands.extend(commands_of(file)?);
-            }
-            let extra: BTreeSet<i32> = ints(m, "extra_variable").into_iter().collect();
-            json!(compiler.scan(&maps, &commands, &extra, None, &[])?)
-        }
         "compile" => {
             let compiler = Compiler::new(&game, &settings)?;
             let mut cases = Vec::new();

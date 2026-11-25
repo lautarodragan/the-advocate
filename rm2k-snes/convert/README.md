@@ -3,15 +3,16 @@
     rm2k_snes_convert::convert(["--project", "game/", "--game-dir", "original/",
         "--soundfont", "bank.sf2", "-o", "build/mapdata.inc", "--map-id", "4", …], &log)
 
-    rm2k-snes-convert scan --project game/ --game-dir original/ --maps 1 2
+    rm2k-snes-convert leaders --project game/ --game-dir original/ --maps 1 2 --party 1
 
 A library: `advocate build` (`../advocate/`) calls `convert` once per
 cartridge, with the flags the project file writes for it, and what the
 conversion says goes into the cartridge's `converter.log` through the
 `Log`. Its binary, `rm2k-snes-convert`, is only the questions a game's
-tests ask it —`scan`, `compile`, `leaders`, `map-context`, `boxes`, in
+tests ask it —`compile`, `leaders`, `map-context`, `boxes`, in
 `src/queries.rs`—; until 2026-11-25 it converted too, and the cartridges'
-builder ran it once per cartridge. `cargo test`.
+builder ran it once per cartridge, and it answered a `scan` as well, which
+the `slots.json` the build leaves beside each ROM replaced. `cargo test`.
 
 A Super Nintendo cartridge converted from an RPG Maker 2000 game is the
 suite's runtime assembled together with the data the conversion writes:
