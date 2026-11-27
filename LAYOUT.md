@@ -112,7 +112,8 @@ have layers of their own, one folder each:
                  Over, the picture of a `ShowPicture`, the battle's
                  backdrops, battlers and animations—, scaled with the
                  `image` crate, toned and brought down to their palettes
-                 with Adeleine; the converter calls it
+                 with Adeleine; the converter calls it, and it has no
+                 binary
       mapdata/   `rm2k-snes-mapdata`: the emission —the cartridge's data
                  `.inc`, written from what every other stage answered—,
                  the LZ2 streams of what the console decompresses, and the
@@ -145,9 +146,10 @@ converter is compiled with** —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
 `rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—, each
 called through its `stage` module; the binaries some still have are a
-`main` over the same functions, for a game's tests and for a person —the
-screens', the emission's and the converter's went on 2026-11-27, when no
-test asked them anything—; and the converter
+`main` over the same functions, for a game's tests and for a person
+—`rm2k-snes-images`, `rm2k-snes-screens`, `rm2k-snes-mapdata` and the
+converter's went on 2026-11-27, when their tests stopped asking them—;
+and the converter
 is a library `advocate` is compiled with. So a change to a stage reaches a
 ROM only through `advocate`: install `advocate` with it. Until 2026-11-24
 the converter ran each one as a process, and the conversion cache keyed
@@ -233,11 +235,11 @@ The binaries of `rm2k-snes/` are `advocate`, from `rm2k-snes/advocate/`,
 which builds a game and finds the runtime through the checkout it was
 installed from; `rm2k-snes-audio`, from
 `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from `rm2k-snes/battle/`;
-`rm2k-snes-events`, from `rm2k-snes/events/`; `wally`, from
-`rm2k-snes/wally/`; and `rm2k-snes-images`, from `rm2k-snes/images/`.
-Until 2026-11-25 there were also `rm2k-snes-cartridges`,
-`rm2k-snes-patches` and `rm2k-snes-project`, and until 2026-11-27
-`rm2k-snes-convert`, `rm2k-snes-mapdata` and `rm2k-snes-screens`:
+`rm2k-snes-events`, from `rm2k-snes/events/`; and `wally`, from
+`rm2k-snes/wally/`. Until 2026-11-25 there were also
+`rm2k-snes-cartridges`, `rm2k-snes-patches` and `rm2k-snes-project`, and
+until 2026-11-27 `rm2k-snes-images`, `rm2k-snes-convert`,
+`rm2k-snes-mapdata` and `rm2k-snes-screens`:
 `just install` does not remove a binary that stopped existing, and the
 `justfile` says what does.
 

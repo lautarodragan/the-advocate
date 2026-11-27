@@ -8,14 +8,9 @@ description = "An rm2k-snes game's pictures brought to the console: the full scr
 name = "rm2k_snes_images"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-images"
-path = "src/main.rs"
-
 [dependencies]
 adeleine = { path = "../../snes/adeleine" }
 voodoo = { path = "../../snes/voodoo" }
-clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 rm2k-render = { path = "../../rm2k/rm2k-render" }
 serde = { version = "1", features = ["derive"] }

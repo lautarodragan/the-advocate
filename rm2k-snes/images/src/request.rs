@@ -1,38 +1,15 @@
-//! The requests each subcommand reads, and the answers it writes that are
-//! not a library type of their own.
+//! The requests each stage function takes, and the answers it gives that
+//! are not a library type of their own.
 //!
 //! A request names the pictures —by path: finding a game's file, in its
 //! folder or in the RTP, is the caller's— and carries the sizes the
-//! cartridge decided. A relative path is relative to the request.
+//! cartridge decided. Until 2026-11-27 they were also read from a file, by
+//! the crate's binary, which the tests ran; nothing does any more.
 
-use crate::fail::{Bad, Result};
 use crate::{animation, background, mode7, scene};
 use adeleine::Color;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-
-/// A request file, read into `T`, with its paths made absolute.
-pub fn read<T: DeserializeOwned + Paths>(path: &Path) -> Result<T> {
-    let whose = path.display();
-    let text = std::fs::read_to_string(path).map_err(|e| Bad::usage(format!("{whose}: {e}")))?;
-    let mut request: T =
-        serde_json::from_str(&text).map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
-    let base = path.parent().unwrap_or(Path::new("."));
-    request.resolve(base);
-    Ok(request)
-}
-
-/// The paths of a request, which are made relative to its directory.
-pub trait Paths {
-    fn resolve(&mut self, base: &Path);
-}
-
-fn resolve(path: &mut PathBuf, base: &Path) {
-    if path.is_relative() {
-        *path = base.join(&*path);
-    }
-}
+use std::path::PathBuf;
 
 /// `fullscreen`: one picture, the screen's size and the cell's, and the
 /// palette: how many colours and from which CGRAM entry.
@@ -44,12 +21,6 @@ pub struct Fullscreen {
     pub cell: usize,
     pub first_color: usize,
     pub cap: usize,
-}
-
-impl Paths for Fullscreen {
-    fn resolve(&mut self, base: &Path) {
-        resolve(&mut self.file, base);
-    }
 }
 
 /// `picture`: the file and what the `ShowPicture` says of it —its
@@ -128,23 +99,8 @@ pub struct Mode7Room {
     pub layer_rows: usize,
 }
 
-impl Paths for Background {
-    fn resolve(&mut self, base: &Path) {
-        resolve(&mut self.file, base);
-        if let Some(under) = &mut self.under {
-            resolve(under, base);
-        }
-    }
-}
-
 fn hundred() -> i64 {
     100
-}
-
-impl Paths for ShowPicture {
-    fn resolve(&mut self, base: &Path) {
-        resolve(&mut self.file, base);
-    }
 }
 
 /// The scene's geometry, as `scene::Geometry` names it.
@@ -194,14 +150,6 @@ pub struct BackdropWanted {
     pub light: bool,
 }
 
-impl Paths for Backdrops {
-    fn resolve(&mut self, base: &Path) {
-        for b in &mut self.backdrops {
-            resolve(&mut b.file, base);
-        }
-    }
-}
-
 /// `battlers`: each battler's file and its `battler_hue`.
 #[derive(Serialize, Deserialize)]
 pub struct Battlers {
@@ -214,14 +162,6 @@ pub struct BattlerWanted {
     pub file: PathBuf,
     #[serde(default)]
     pub hue: i32,
-}
-
-impl Paths for Battlers {
-    fn resolve(&mut self, base: &Path) {
-        for b in &mut self.battlers {
-            resolve(&mut b.file, base);
-        }
-    }
 }
 
 /// `animations`: the box, and each animation by its number in the dump
@@ -238,14 +178,6 @@ pub struct Animations {
 pub struct AnimationWanted {
     pub number: i32,
     pub sheet: PathBuf,
-}
-
-impl Paths for Animations {
-    fn resolve(&mut self, base: &Path) {
-        for a in &mut self.animations {
-            resolve(&mut a.sheet, base);
-        }
-    }
 }
 
 impl From<&Animations> for animation::Geometry {
@@ -335,27 +267,4 @@ mod hex {
 pub struct BackdropAnswer {
     pub quality: Option<scene::Backdrop>,
     pub light: Option<scene::Light>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Every path of a request is relative to its directory: the panorama
-    /// under a background too, not only its picture.
-    #[test]
-    fn a_background_s_two_paths_are_relative_to_the_request() {
-        let dir =
-            std::env::temp_dir().join(format!("rm2k-snes-images-under-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("request.json");
-        let request = r#"{"file": "a.png", "under": "b.png", "x": 0, "y": 0,
-            "rm_screen": [320, 240], "screen": [256, 224], "palettes": 1,
-            "first_palette": 0, "tiles": 1, "rows": 1}"#;
-        std::fs::write(&path, request).unwrap();
-        let background: Background = read(&path).unwrap();
-        std::fs::remove_dir_all(&dir).unwrap();
-        assert_eq!(background.file, dir.join("a.png"));
-        assert_eq!(background.under, Some(dir.join("b.png")));
-    }
 }
