@@ -42,7 +42,6 @@ mod maps;
 mod msu_missing;
 pub mod options;
 mod pictures;
-pub mod queries;
 mod reach;
 mod resources;
 mod scan;

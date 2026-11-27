@@ -1,9 +1,10 @@
 # rm2k-snes-mapdata: the data `.inc` of a converted cartridge
 
-    rm2k-snes-mapdata vram --request request.json --out answer/
+    rm2k_snes_mapdata::stage::emit(&data, request)
 
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes.
+A library, `cargo test`. Until 2026-11-27 it had a binary too, whose last
+subcommand was `vram`, which ABL's tests asked how many save slots a
+cartridge has: it is `SRAM_SLOTS` in the `.sym` beside the ROM.
 
 A Super Nintendo cartridge converted from an RPG Maker 2000 game is its
 runtime —the engine, in 65816 assembly— assembled together with one `.inc`

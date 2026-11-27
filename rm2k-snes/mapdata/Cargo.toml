@@ -8,12 +8,7 @@ description = "The data .inc of an rm2k-snes cartridge: what every domain of the
 name = "rm2k_snes_mapdata"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-mapdata"
-path = "src/main.rs"
-
 [dependencies]
-clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 lz2 = { path = "../../snes/lz2" }
 # The database as the battle reads it, and its rules for what an actor has

@@ -1,9 +1,8 @@
 # rm2k-snes-screens: an RPG Maker 2000 game's screens, as a cartridge carries them
 
-    rm2k-snes-screens render --data dump/ --game-dir game/ --request request.json --out shot/
+    rm2k_snes_screens::stage::convert(&place, &request)
 
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes.
+A library, `cargo test`.
 
 Everything the console shows that is not a map or a battle scene, drawn
 once when the cartridge is built:
@@ -51,8 +50,13 @@ a request what the cartridge decided, and writes a JSON.
 The converter calls the `stage` module as functions: `stage::convert`, the
 screens, once per cartridge; `stage::boxes` and `stage::faces`, the message
 boxes and the faces, for the event compiler; and `stage::window`, the
-message window's colours. The binary is a `main` over the questions the tests ask:
-`render`, `refit`, `window` and `equip`.
+message window's colours. `stage::boxes` checks every box it reflows
+against the reflow's promise —`refit::holds` in `rm2k-snes-text`— and
+stops the build on one that breaks it. Until 2026-11-27 it had a binary
+too, a `main` over the questions a game's tests asked —`render`, a screen
+as the console has to show it, `refit`, `window` and `equip`—: the tests
+compare the screens against goldens of what the ROM showed now, and read
+the rest from what the build leaves.
 
 `convert`'s request:
 

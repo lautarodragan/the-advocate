@@ -28,8 +28,11 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # the stages—; one that changes `project` reinstalls everything. `project`,
 # `cartridge` and `patches` had a binary each until 2026-11-25
 # —`rm2k-snes-project`, `rm2k-snes-cartridges`, `rm2k-snes-patches`—, which
-# `advocate` replaced: installing does not remove them, `cargo uninstall
-# rm2k-project rm2k-snes-cartridge rm2k-snes-patches --root <root>` does.
+# `advocate` replaced, and `convert`, `mapdata` and `screens` until
+# 2026-11-27, when no test asked them anything: installing does not remove
+# them, `cargo uninstall rm2k-project rm2k-snes-cartridge rm2k-snes-patches
+# rm2k-snes-convert rm2k-snes-mapdata rm2k-snes-screens --root <root>`
+# does.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own:
