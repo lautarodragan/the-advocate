@@ -10,9 +10,6 @@
 //! and the geometry they were drawn with.
 //!
 //! * [`convert`]: everything a cartridge carries, in one answer.
-//! * [`render`]: a screen as the console has to show it, built from the
-//!   same blocks the cartridge uploads, for whoever compares against a
-//!   capture.
 //! * [`boxes`]: every message box of the game reflowed for the console's
 //!   window.
 //! * [`stage`]: the commands a converter calls, as functions that answer
@@ -36,6 +33,8 @@ pub mod items;
 pub mod layout;
 pub mod message_window;
 pub mod party;
+// Not `pub`: nothing outside the crate calls it, and so whatever of it
+// stops being called inside is a dead-code warning.
 pub(crate) mod render;
 pub mod request;
 pub mod skills;

@@ -9,9 +9,9 @@
 //!
 //!
 //! **The paths they guard**: what a game's build does not reach, or does
-//! not say. A Blurred Line's suite holds the console's screens against
-//! `render` —menu, items, target, slots, equipment, shop, End Game,
-//! title— and the message window against its goldens; what is here is what
+//! not say. A Blurred Line's suite holds the console's screens —menu,
+//! items, target, slots, equipment, shop, End Game, title— and the message
+//! window against its goldens; what is here is what
 //! that game does not have: names that do not fit, a face with no palette
 //! of its own, a bank that runs out of room, the System and the faces
 //! found in the RTP, and the windows' geometry.

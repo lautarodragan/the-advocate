@@ -3,8 +3,7 @@
 //! asks of the text layer.
 //!
 //! Where everything goes is `SK_*` in [`crate::layout`]; the runtime's
-//! `skills_screen.s` writes with those numbers, and [`crate::render`] draws
-//! the screen as the console has to show it.
+//! `skills_screen.s` writes with those numbers.
 //!
 //! **The windows take the custom menus' VRAM**: tiles from `CM_BG1_VRAM`,
 //! colours from [`CM_BORDER_CGRAM`], the tilemap at `SCENE_MAP` —see

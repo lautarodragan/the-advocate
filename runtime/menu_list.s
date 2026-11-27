@@ -21,8 +21,7 @@
 ;   scrolls a whole row when the bar goes past them —`menu_list_paint`,
 ;   `menu_choose`—. Four of its rows would be 288 lines.
 ;
-; The geometry and the why are in `MENU_LIST_ROWS` of `rm2k-snes-screens`,
-; whose `render` is the reference for both.
+; The geometry and the why are in `MENU_LIST_ROWS` of `rm2k-snes-screens`.
 ;
 ; **A scroll writes nothing but its three rows' cells.** Nothing of VRAM can
 ; be written outside the vblank, and three rows painted again —three names
@@ -816,9 +815,8 @@ letter:
 ; the row's text —`UpdateActorSelection`—. It is the actor choice's bar,
 ; with its tiles and colours, but over nothing: the menu has no windows, so
 ; outside the bar BG1 is empty and erasing it is writing zeros. The geometry
-; is `MENU_BAR` of `rm2k-snes-screens`, whose `render` of the menu is the
-; reference. Its tiles and colours are uploaded by `menu_bar_upload`, in
-; `actor_choice.s`.
+; is `MENU_BAR` of `rm2k-snes-screens`. Its tiles and colours are uploaded
+; by `menu_bar_upload`, in `actor_choice.s`.
 
 ; The bar on panel row A —0 to `MENU_SHOWN - 1`, a row seen, not a
 ; member—: `temp + 3` at 1 paints it and at 0 erases it. One DMA per row of

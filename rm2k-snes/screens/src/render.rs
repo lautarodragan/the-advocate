@@ -1,16 +1,11 @@
-//! A screen as the console has to show it, for whoever compares a capture
-//! against it.
+//! The text screens' text as the cartridge's text layer composes it
+//! —[`Grid`]—, and what the item screen and the shop write in it: the
+//! converter measures with them how many tiles the text layer can take.
 //!
-//! **It is built with the same blocks the cartridge uploads**, not by
-//! drawing the text again: the tiles, the palettes and the cells of
-//! [`crate::convert`], put where the cartridge puts them. Drawing it here
-//! with the font and there with the tiles would leave out exactly the step
-//! that can go wrong —cutting, deduplicating, the palettes—.
-//!
-//! What a screen shows depends on the game's state —the party, the gold,
-//! the inventory, where the cursor is—, which comes in the request. The
-//! rules that decide what is written —what can be equipped, what can be
-//! bought— are RM2k's, and are here in the shape the cartridge runs them.
+//! What a screen shows depends on the game's state —the gold, the
+//! inventory, where the cursor is—. The rules that decide what is written
+//! —what can be bought— are RM2k's, and are here in the shape the
+//! cartridge runs them.
 
 use crate::borders;
 use crate::cells::CELL;

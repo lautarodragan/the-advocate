@@ -1,12 +1,11 @@
 //! What the cartridge decided, which the game's dump does not say: the
-//! requests each subcommand reads.
+//! requests the stage reads.
 //!
 //! The four a converter sends —[`Convert`], [`Boxes`], [`Faces`] and
 //! [`Window`]— are types, which it builds and the stage reads with serde:
 //! a key renamed on one side does not compile on the other. **Their
 //! `#[serde(default)]`s are what a request may leave out**, as the tests'
-//! files do. What only the tests send —`render`, `equip`— is read key by
-//! key through [`Json`].
+//! files do.
 //!
 //! The order of the fields is the order of the keys the converter's
 //! request had when it was a `json!`, and a field it left out when empty

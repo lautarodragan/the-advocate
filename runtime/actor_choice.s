@@ -7,10 +7,9 @@
 ; one line, below it the party the whole width, and the red bar over the
 ; selected row. The screen is still `target_screen`, in bank 0, with the
 ; menu's bank on BG2; this is what it adds, outside bank 0. The geometry and
-; the why are in `TARGET_WINDOWS` of `rm2k-snes-screens`, whose `render` is
-; the reference. Until 2026-11-02 the name and the count were two windows on
-; the left and the party a window on the right, which at 256 wide did not
-; fit.
+; the why are in `TARGET_WINDOWS` of `rm2k-snes-screens`. Until 2026-11-02
+; the name and the count were two windows on the left and the party a
+; window on the right, which at 256 wide did not fit.
 ;
 ; BG1 has **its own base**, `TARGET_VRAM`, behind the menu's tilemap: there
 ; is no room left in BG2's, because the menu's bank reaches almost up to its
@@ -337,7 +336,6 @@ bar_ofs:
 ; `target_bar` covers the whole party for a skill on everyone, and the
 ; arrows stop for a skill on oneself or on the party, whose bar does not
 ; move —`Window_ActorTarget`'s `SetIndex(-100)` and `SetIndex(-actor - 1)`—.
-; `render` of `rm2k-snes-screens` with a `skill` is the reference.
 
 ; The skill's scope, in A: `skill_scope` of `sk_used`, or $FF for a
 ; medicine. A special item that casts a skill —`item_map_skill`— has its
@@ -645,8 +643,7 @@ in:
 ; the row's text —`UpdateActorSelection`—. It is the actor choice's bar,
 ; with its tiles and colours, but over nothing: the menu has no windows, so
 ; outside the bar BG1 is empty and erasing it is writing zeros. The geometry
-; is `MENU_BAR` of `rm2k-snes-screens`, whose `render` of the menu is the
-; reference.
+; is `MENU_BAR` of `rm2k-snes-screens`.
 ;
 ; Its colours go in 128..143, the sprites' palette 0: that is why the
 ; menu's experience goes in palette 1 —see `menu_exp_paint`—. Everything is

@@ -5,7 +5,7 @@
 ; `Scene_Shop`, opened by `OP_SHOP` from the interpreter, like saving: the
 ; screen blocks inside the page, it costs no tick, and on exit the map comes
 ; back and the page goes on. It is a text screen —see "the text
-; screens"— and `shop_screen` of `rm2k-snes-screens` is the reference. The
+; screens"— and `shop_text` of `rm2k-snes-screens` composes the same text. The
 ; System's windows and the bar go on BG1, with their own base: see
 ; `ti_screen_upload` and `ti_windows`, and the stage's `ti_windows`. What
 ; it sells goes as `k` in `FAR_SHOP`; the selling list, in
@@ -404,7 +404,7 @@ sale:
     rts
 .endproc
 
-; The whole screen, in the buffer: the stage's `shop_screen`. The windows and
+; The whole screen, in the buffer: the stage's `shop_text`. The windows and
 ; the bar are not: they go on BG1, and `ti_windows` puts them there every frame.
 ; Nor is the party, which goes in objects: what it shows is decided first.
 .proc ti_compose

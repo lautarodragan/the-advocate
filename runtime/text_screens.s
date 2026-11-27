@@ -6,8 +6,7 @@
 ; windows. What they write goes through these, which since 2026-10-03 hand it
 ; to the text layer —`text_layer.s`—: each write is a run of letters of the
 ; variable-width font that starts at a cell, and each row is composed into
-; tiles of its own when what it says changes. The screens stage's `render`
-; is the reference.
+; tiles of its own when what it says changes.
 ;
 ; A position is still a byte of the 32 by 28 cell tilemap, `pick_table`: row *
 ; 64 + column * 2. It is where a run starts, not where each letter goes.
