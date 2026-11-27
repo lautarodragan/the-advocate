@@ -1151,7 +1151,7 @@ pub fn holds(
             return Err(format!("{frame:?} does not fit the window"));
         }
         let again = refit_measured(frame, measure, rows);
-        if again != [frame.clone()] {
+        if again != std::slice::from_ref(frame) {
             return Err(format!("{frame:?} is refitted again into {again:?}"));
         }
         let lines = untailed(frame)?;
@@ -1187,7 +1187,7 @@ mod tests {
             s(&["supercalifragilistic is long"]),
         ] {
             let to = refit_measured(&b, &m, 2);
-            assert_ne!(to, [b.clone()], "{b:?} had to change");
+            assert_ne!(to, std::slice::from_ref(&b), "{b:?} had to change");
             assert_eq!(holds(&b, &to, &m, 2), Ok(()), "{b:?} into {to:?}");
         }
         let b = s(&["MARA", "one two three four five six"]);
