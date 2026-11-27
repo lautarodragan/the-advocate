@@ -449,6 +449,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "ditto",
+ "flate2",
  "gunter",
  "libc",
  "rm2k-project",

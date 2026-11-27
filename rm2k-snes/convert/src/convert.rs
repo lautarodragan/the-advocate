@@ -2138,8 +2138,17 @@ pub fn run(options: Options) -> Result<()> {
     let blob = files
         .remove(rm2k_snes_audio::stage::MSU)
         .ok_or_else(|| Stop::new("the music stage answered no .msu"))?;
+    // The songs' writes are a directory, one file per song: emptied first,
+    // so that a song the cartridge no longer has does not stay behind.
+    let writes = directory.join(rm2k_snes_audio::stage::WRITES);
+    if writes.exists() {
+        std::fs::remove_dir_all(&writes).map_err(|e| crate::fail::io(&writes, e))?;
+    }
     for (name, bytes) in &files {
         let path = directory.join(name);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| crate::fail::io(parent, e))?;
+        }
         std::fs::write(&path, bytes).map_err(|e| crate::fail::io(&path, e))?;
     }
     // Alongside and renamed, and not overwritten in place: an emulator may

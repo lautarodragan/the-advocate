@@ -1,14 +1,11 @@
 # rm2k-snes-audio: a game's music, for the SPC700
 
-    rm2k-snes-audio compile --job job.json --out build/ \
-        --game-dir game/ --rtp-dir rtp/ --soundfont bank.sf2
-    rm2k-snes-audio msu-index build/game.msu
-    rm2k-snes-audio decode --stream stream.bin --sounds sounds.bin
-    rm2k-snes-audio keys song-a song-b --game-dir game/ --soundfont bank.sf2
     rm2k-snes-audio volume-ceilings --measure
 
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes.
+`cargo build --release`, or `cargo test`. It is a library a converter is
+compiled with —see "A cartridge's music, as a converter's stage"—, and its
+binary has one subcommand, `volume-ceilings`; `--help` prints what it
+takes and what it writes.
 
 An RPG Maker 2000 game's songs are MIDIs, written for a General MIDI
 synthesizer with as many voices as it wants; the Super Nintendo has an
@@ -26,7 +23,7 @@ path.
 
 ## The job
 
-`compile` reads what to build from a JSON, which is what a cartridge's
+`compile` builds from a job, a JSON object, which is what a cartridge's
 compiler knows and this does not: which songs, in the order its bytecode
 already numbers them; which sound effects, from most to least requested;
 and **the packages** —which songs and sound effects each map can play,
@@ -34,11 +31,11 @@ which songs it starts only to leave (`exits`), which ones go up alone with
 its sound effects (`separate`)—, and which song may already be playing when
 each one loads (`inheritance`). With `emit`, it also writes what goes into
 the cartridge besides the music: which song plays at boot, which one each
-map starts, the table of sounds. `--help` lists every field.
+map starts, the table of sounds. `job.rs` lists every field.
 
 ## What comes out
 
-Into `--out`:
+As files, by name, for its caller to write:
 
 * `musicdata.inc`, with `emit`: the driver, the sample directory and every
   sample, each song's stream and its table of sounds, the packages, the
@@ -51,8 +48,7 @@ Into `--out`:
 * `audio.json`, always: the bank —which sample each song plays each key
   with, what each one weighs and which package limited it—, each song and
   each sound effect, the boot's estimate, and each package's MSU-1 versions
-  of its sound effects; with `--detail`, each song's notes, writes and voice
-  allocation too.
+  of its sound effects.
 
 And to standard output, what each song and the bank came out as.
 
@@ -70,8 +66,9 @@ And to standard output, what each song and the bank came out as.
   note takes a free voice, or steals the weakest that is not a channel's
   last, or does not play.
 * **The stream is per note**, and expands into exactly the DSP writes it
-  stands for: `decode` is the model of the console's decoder, and `compile`
-  stops if a song's stream does not decode to what it has to write.
+  stands for: `stream::decode` is the model of the console's decoder, and
+  `compile` stops if a song's stream does not decode to what it has to
+  write.
 * **Sound effects share the directory's last entries**: two that are never
   in the same package go to the same place.
 
@@ -81,8 +78,8 @@ And to standard output, what each song and the bank came out as.
 subcommand, with the shape of the one described in `../battle/README.md`,
 "One stage of a converter". It builds the job
 itself, compiles it in the same process, and leaves the job next to what it
-made —`audio-job.json`— so `compile` can rebuild that music alone. What it
-decides that `compile` does not:
+made —`audio-job.json`—, which says what it was asked. What it decides
+that `compile` does not:
 
 * **Which songs the cartridge carries**: the ones the event compiler
   numbered, and after them —so as not to renumber what the bytecode
@@ -101,17 +98,20 @@ decides that `compile` does not:
   package's quality sound effects —see `msu_data.rs` for the format—, and
   the tables the ROM reads it with, at the end of `musicdata.inc`.
 
-It reads the map tree and the database's `System` from a Ditto dump
-(`--data`), with Ditto's library and `rm2k-rules`' tree. `--help` lists what
-the request carries. `msu-index` and `msu-sign` are for whoever looks
-inside a `.msu`: its entries, and the same file signed again.
+It reads the map tree and the database's `System` from a Ditto dump,
+with Ditto's library and `rm2k-rules`' tree; `Request` says what it is
+asked. And it leaves what a game's tests read of the music without
+asking it: the `.msu`'s index, `msu-index.json`, and what each song's
+stream writes to the DSP, `music-writes/<song>.json.gz` —see
+`song_writes`—.
 
 ## Its tests
 
 The tests compile a small game generated inside them —see `tests/fixture/` and
-`tests/small_game.rs`— and plan the small cartridge of
-`tests/cartridge.json`, so they need neither a game nor a SoundFont of
-one's own.
+`tests/small_game.rs`—, songs made in the test with the shapes a real
+game's showed —`tests/real_shapes.rs`: a crowded frame, packages that do
+not fit—, and plan the small cartridge of `tests/cartridge.json`, so they
+need neither a game nor a SoundFont of one's own.
 
 Two tests read a real SoundFont's envelopes, in `SOUNDFONT`; without the
 variable they are skipped with a message.

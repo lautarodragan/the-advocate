@@ -1,7 +1,7 @@
 //! The music as a stage of a converter: what `cartridge` answers, as the
 //! files it makes, by name. The converter calls [`cartridge`] as a
-//! function; `compile`, which only a person or a test runs, goes through
-//! the same [`compile`].
+//! function, which compiles its job through [`compile`]; the crate's tests
+//! call [`compile`] with jobs of their own.
 //!
 //! **It writes nothing**: what goes beside the cartridge and the `.msu`
 //! come back as [`Files`], and whoever called it writes them where they go. **What it
@@ -20,7 +20,7 @@ use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::relief::Loss;
 use crate::samples::SoundFontSamples;
-use crate::{compile as compiler, emit, job, msu, msu_data};
+use crate::{compile as compiler, emit, job, msu, msu_data, stream};
 use ditto::dump::Dump;
 use ditto::schema::System;
 use rm2k_project::{outln, suite, Project};
@@ -37,6 +37,18 @@ pub type Files = BTreeMap<String, Vec<u8>>;
 /// The name the `.msu` goes by among [`cartridge`]'s files: it does not go
 /// into `--out` with the rest, but where `--msu` says.
 pub const MSU: &str = ".msu";
+
+/// The `.msu`'s index, `[[where, length]]` per entry, as JSON beside the
+/// ROM: what a game's tests read to find an entry of the `.msu` they look
+/// at, instead of a reader of the format of their own. Until 2026-11-27
+/// they asked `rm2k-snes-audio msu-index`.
+pub const MSU_INDEX: &str = "msu-index.json";
+
+/// The directory beside the ROM with what each song's stream writes to the
+/// DSP, one `<song index>.json.gz` each: see [`song_writes`]. Whoever
+/// writes the files empties it first, so a cartridge with fewer songs
+/// leaves no song of the last build behind.
+pub const WRITES: &str = "music-writes";
 
 /// Where the game, its RTP and its project are, as the binary's flags give
 /// them.
@@ -100,7 +112,6 @@ pub fn compile(
     emit: Option<&emit::Emit>,
     game: &Game,
     soundfont: &Path,
-    detail: bool,
 ) -> Result<Compiled> {
     let samples = Samples {
         font: SoundFontSamples::open(soundfont)?,
@@ -121,7 +132,7 @@ pub fn compile(
             .songs
             .iter()
             .map(|t| {
-                let mut s = json!({
+                Ok(json!({
                     "name": t.name,
                     "track": t.track,
                     "samples": t.samples()?,
@@ -133,39 +144,7 @@ pub fn compile(
                     "notes_sound": t.notes_sound,
                     "lost": t.lost.map(|(l, f)| vec![l, f]),
                     "length": t.length(),
-                });
-                if detail {
-                    let m = s.as_object_mut().unwrap();
-                    m.insert("writes".into(), json!(t.writes));
-                    if let Some(p) = &t.parsed {
-                        m.insert(
-                            "notes".into(),
-                            json!(p
-                                .notes
-                                .iter()
-                                .map(|n| (n.start, n.end, n.channel, n.pitch, n.velocity))
-                                .collect::<Vec<_>>()),
-                        );
-                        m.insert(
-                            "programs".into(),
-                            Value::Object(
-                                p.programs
-                                    .iter()
-                                    .map(|(c, p)| (c.to_string(), json!(p)))
-                                    .collect(),
-                            ),
-                        );
-                    }
-                    m.insert(
-                        "allocation".into(),
-                        json!(t
-                            .allocation
-                            .iter()
-                            .map(|a| (a.note, a.voice, a.stolen, a.end))
-                            .collect::<Vec<_>>()),
-                    );
-                }
-                Ok(s)
+                }))
             })
             .collect::<Result<Vec<Value>>>()?
             .into(),
@@ -384,7 +363,8 @@ pub struct Answer {
 
 /// `cartridge`: a cartridge's music, from what the event compiler asked
 /// for, as `musicdata.inc`, `music.json`, `audio.json`, `audio-job.json`,
-/// `effects.json` and the `.msu` —under [`MSU`]—.
+/// `effects.json`, the `.msu` —under [`MSU`]—, its index and each song's
+/// writes.
 pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
     let game = flags.place.game()?;
 
@@ -473,13 +453,13 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
     };
     let magic = msu_magic(project)?;
 
-    // The job stays next to what it makes, so the music of a cartridge can
-    // be rebuilt alone with `compile`.
+    // The job stays next to what it makes: what the music was asked for,
+    // for whoever wonders why a song or a sound effect is where it is.
     let plan = cartridge::plan(&c)?;
     let job_text = pretty(&plan.job);
     let (job, emit) = job::parse(&plan.job, bank::ARAM_END)?;
     let emit = emit.expect("the plan always says what to emit");
-    let done = compile(&job, Some(&emit), &game, &flags.soundfont, false)?;
+    let done = compile(&job, Some(&emit), &game, &flags.soundfont)?;
     let mut files = done.files;
     files.insert("audio-job.json".into(), job_text.into_bytes());
     files.insert(
@@ -559,7 +539,13 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
         ),
     );
     files.insert("musicdata.inc".into(), text.into_bytes());
+    files.insert(
+        MSU_INDEX.into(),
+        (serde_json::to_string(&msu_data::index(&written.blob, &magic)?).unwrap() + "\n")
+            .into_bytes(),
+    );
     files.insert(MSU.into(), written.blob);
+    files.extend(song_writes(music)?);
     let rates = &done.audio["msu"]["rates"];
     files.insert(
         "effects.json".into(),
@@ -634,6 +620,60 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
         files,
         losses: music.losses.clone(),
     })
+}
+
+/// What each song's stream writes to the DSP, as `WRITES/<song index>.json.gz`:
+/// `{"name", "length", "repeats", "writes"}`, being `writes` each
+/// `[frame, register, value]` of one pass, `length` how many bytes the
+/// stream takes, its `OP_END` included, and `repeats` each `OP_REPEAT` as
+/// `[where it is, where it goes back to]`, in bytes from the stream's start.
+///
+/// It is the compiler's spec of the song, which a game's tests hold the
+/// 65816's decoder to: they record what `music_frame` sends the DSP and
+/// compare it with this. **The writes are the stream's with each repeat
+/// unfolded** —decoded without following a single jump—, and they are
+/// checked here against the writes the compiler kept, which are decoded
+/// following them, as the 65816 does: so the file does not lean on the
+/// model's handling of the repeats, which could be wrong the same way as
+/// the console's.
+///
+/// One file per song and compressed, because of the size: a whole game's
+/// songs write millions, tens of megabytes of JSON, which a test asking for
+/// one song would otherwise read whole. Until 2026-11-27
+/// the tests decoded the ROM's streams with `rm2k-snes-audio decode`.
+pub fn song_writes(music: &compiler::Music) -> Result<Files> {
+    use flate2::{write::GzEncoder, Compression};
+    use std::io::Write as _;
+    let mut files = Files::new();
+    for (i, song) in music.songs.iter().enumerate() {
+        let (writes, length, repeats) = if song.stream.is_empty() {
+            (Vec::new(), 0, Vec::new())
+        } else {
+            let unfolded = stream::decode(&stream::unfold(&song.stream)?, &song.sounds)?;
+            if unfolded != song.writes {
+                return Err(Bad::answer(format!(
+                    "{}: its stream with the repeats unfolded does not write what it writes \
+                     following them",
+                    song.name
+                )));
+            }
+            let length = stream::decode_counting(&song.stream, &song.sounds)?.1;
+            (unfolded, length, stream::repeats(&song.stream)?)
+        };
+        let text = serde_json::to_vec(&json!({
+            "name": song.name,
+            "length": length,
+            "repeats": repeats,
+            "writes": writes,
+        }))
+        .unwrap();
+        let mut gz = GzEncoder::new(Vec::new(), Compression::fast());
+        gz.write_all(&text)
+            .and_then(|()| gz.finish())
+            .map(|bytes| files.insert(format!("{WRITES}/{i}.json.gz"), bytes))
+            .map_err(|e| Bad::usage(format!("compressing {}'s writes: {e}", song.name)))?;
+    }
+    Ok(files)
 }
 
 fn unhex(text: &str) -> Option<Vec<u8>> {
