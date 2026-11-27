@@ -337,7 +337,10 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
     // No picture for the ChipSet anywhere.
     let req = request(&dir, plain.clone());
     let done = layers(&dump, &[&dir.join("nowhere")], &req, &out);
-    assert!(matches!(&done, Err(Bad::Answer(m)) if m.contains("chipset of map 7")), "{done:?}");
+    assert!(
+        matches!(&done, Err(Bad::Answer(m)) if m.contains("chipset of map 7")),
+        "{done:?}"
+    );
 
     // A ChipSet the project adds that the dump already has.
     let added = dir.join("0002.json");
@@ -349,7 +352,10 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
     let mut both = plain.clone();
     both["chipset_files"] = json!({"2": added});
     let done = layers(&dump, &[&pictures], &request(&dir, both), &out);
-    assert!(matches!(&done, Err(Bad::Answer(m)) if m.contains("does not replace")), "{done:?}");
+    assert!(
+        matches!(&done, Err(Bad::Answer(m)) if m.contains("does not replace")),
+        "{done:?}"
+    );
 
     // A baked cell past the map.
     let mut past = plain.clone();

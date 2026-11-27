@@ -315,8 +315,8 @@ fn ask(command: &str, dump: &Path, pictures: &Path, dir: &Path, body: Value) -> 
         _ => panic!("no question {command}"),
     };
     let (asked, whose) = wally::request::read(&request).unwrap();
-    let files = question(dump, &[pictures.to_path_buf()], &asked, &whose)
-        .unwrap_or_else(|e| panic!("{e}"));
+    let files =
+        question(dump, &[pictures.to_path_buf()], &asked, &whose).unwrap_or_else(|e| panic!("{e}"));
     serde_json::from_slice(&files[&format!("{command}.json")]).unwrap()
 }
 
