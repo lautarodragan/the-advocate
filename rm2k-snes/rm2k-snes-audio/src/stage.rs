@@ -1,7 +1,7 @@
 //! The music as a stage of a converter: what `cartridge` answers, as the
 //! files it makes, by name. The converter calls [`cartridge`] as a
-//! function; `compile`, which only a person or a test runs, goes through
-//! the same [`compile`].
+//! function, which compiles its job through [`compile`]; the crate's tests
+//! call [`compile`] with jobs of their own.
 //!
 //! **It writes nothing**: what goes beside the cartridge and the `.msu`
 //! come back as [`Files`], and whoever called it writes them where they go. **What it
@@ -112,7 +112,6 @@ pub fn compile(
     emit: Option<&emit::Emit>,
     game: &Game,
     soundfont: &Path,
-    detail: bool,
 ) -> Result<Compiled> {
     let samples = Samples {
         font: SoundFontSamples::open(soundfont)?,
@@ -133,7 +132,7 @@ pub fn compile(
             .songs
             .iter()
             .map(|t| {
-                let mut s = json!({
+                Ok(json!({
                     "name": t.name,
                     "track": t.track,
                     "samples": t.samples()?,
@@ -145,39 +144,7 @@ pub fn compile(
                     "notes_sound": t.notes_sound,
                     "lost": t.lost.map(|(l, f)| vec![l, f]),
                     "length": t.length(),
-                });
-                if detail {
-                    let m = s.as_object_mut().unwrap();
-                    m.insert("writes".into(), json!(t.writes));
-                    if let Some(p) = &t.parsed {
-                        m.insert(
-                            "notes".into(),
-                            json!(p
-                                .notes
-                                .iter()
-                                .map(|n| (n.start, n.end, n.channel, n.pitch, n.velocity))
-                                .collect::<Vec<_>>()),
-                        );
-                        m.insert(
-                            "programs".into(),
-                            Value::Object(
-                                p.programs
-                                    .iter()
-                                    .map(|(c, p)| (c.to_string(), json!(p)))
-                                    .collect(),
-                            ),
-                        );
-                    }
-                    m.insert(
-                        "allocation".into(),
-                        json!(t
-                            .allocation
-                            .iter()
-                            .map(|a| (a.note, a.voice, a.stolen, a.end))
-                            .collect::<Vec<_>>()),
-                    );
-                }
-                Ok(s)
+                }))
             })
             .collect::<Result<Vec<Value>>>()?
             .into(),
@@ -486,13 +453,13 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
     };
     let magic = msu_magic(project)?;
 
-    // The job stays next to what it makes, so the music of a cartridge can
-    // be rebuilt alone with `compile`.
+    // The job stays next to what it makes: what the music was asked for,
+    // for whoever wonders why a song or a sound effect is where it is.
     let plan = cartridge::plan(&c)?;
     let job_text = pretty(&plan.job);
     let (job, emit) = job::parse(&plan.job, bank::ARAM_END)?;
     let emit = emit.expect("the plan always says what to emit");
-    let done = compile(&job, Some(&emit), &game, &flags.soundfont, false)?;
+    let done = compile(&job, Some(&emit), &game, &flags.soundfont)?;
     let mut files = done.files;
     files.insert("audio-job.json".into(), job_text.into_bytes());
     files.insert(
@@ -674,7 +641,7 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
 /// songs write millions, tens of megabytes of JSON, which a test asking for
 /// one song would otherwise read whole. Until 2026-11-27
 /// the tests decoded the ROM's streams with `rm2k-snes-audio decode`.
-fn song_writes(music: &compiler::Music) -> Result<Files> {
+pub fn song_writes(music: &compiler::Music) -> Result<Files> {
     use flate2::{write::GzEncoder, Compression};
     use std::io::Write as _;
     let mut files = Files::new();
