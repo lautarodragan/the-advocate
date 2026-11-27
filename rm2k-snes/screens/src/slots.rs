@@ -445,35 +445,6 @@ impl Slots {
     pub fn fits(&self) -> bool {
         self.tiles.len() <= SLOT_TILES_MAX
     }
-
-    /// The error a bank that does not fit is reported with.
-    pub fn too_many(&self) -> Bad {
-        Bad::answer(format!(
-            "the slot screen and the menu gather {} tiles and their bank fits {SLOT_TILES_MAX}",
-            self.tiles.len()
-        ))
-    }
-}
-
-/// The slot screen's and the menu's bank, for `slots` save slots and the
-/// `actors` that can be in the party, whose faces it carries; an error if
-/// it does not fit its VRAM.
-///
-/// A face that finds no free palette **borrows one**: without it, a game
-/// with more actors that can join than palettes would have to leave some
-/// out, and they can be the path of the story.
-pub fn slots_screen(
-    game: &Game,
-    skin: &Skin,
-    slots: usize,
-    actors: &[i32],
-    order: Order,
-) -> Result<Slots> {
-    let bank = slots_screen_with(game, skin, slots, actors, order, &[])?;
-    if !bank.fits() {
-        return Err(bank.too_many());
-    }
-    Ok(bank)
 }
 
 /// The same, with the pause menu's options the custom menus add: their

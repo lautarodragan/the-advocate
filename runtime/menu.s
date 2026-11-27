@@ -3,7 +3,7 @@
 ; --- the pause menu ----------------------------------------------------------
 ;
 ; `Scene_Menu`, over the bank of the slot screen: the geometry and the blocks
-; come from `rm2k-snes-screens`, whose `render` is the reference. It opens
+; come from `rm2k-snes-screens`. It opens
 ; with B, when the hero is standing still: `request_menu` notes the request and
 ; `move_hero` serves it, which is how RM2k does it with `menu_calling`. The
 ; game clock does not run while it is shown —as on the slot screen— so the
@@ -625,7 +625,7 @@ move:
 ; medicine `k` in `item_sel` —or, since 2026-10-13, for the skill the
 ; skills screen says, `sk_heal`—: A uses it on the row —`target_use`— and
 ; **stays**, with that row's HP repainted, which is what `UpdateItem` does.
-; B returns. The screens stage's `render` is the reference. Whom to equip
+; B returns. Whom to equip
 ; is not chosen here but on the menu itself: see `menu_choose`.
 ;
 ; Until 2026-09-21 A did nothing with a medicine: it was written when outside

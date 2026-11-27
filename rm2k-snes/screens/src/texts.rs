@@ -4,7 +4,7 @@
 use crate::fail::Result;
 use crate::game::{Game, ITEM_MATERIAL, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
-use ditto::schema::{Actor, Item, Skill, SkillType, State};
+use ditto::schema::{Actor, Item, Skill, SkillType};
 use rm2k_rules::actor as rules;
 use rm2k_snes_text::exfont;
 use rm2k_snes_text::font::Font;
@@ -179,31 +179,6 @@ pub fn state_text(font: &Font, name: &str) -> String {
     fitted.trim_end_matches(' ').to_string()
 }
 
-/// The condition `DrawActorState` shows for an actor holding `held` with
-/// `hp` HP: `GetSignificantState`. The dead one if it holds it —here, at
-/// zero HP: the dead one is not one of the places, see `party_states.s`—;
-/// otherwise the one of highest priority, the later on a tie, even at
-/// priority 0. None is `normal_status`.
-pub fn shown_state<'a>(game: &'a Game, held: &[i32], hp: i64) -> Option<&'a State> {
-    let of = |id: i32| game.states.iter().find(|s| s.id == id);
-    if hp <= 0 {
-        if let Some(dead) = of(1) {
-            return Some(dead);
-        }
-    }
-    let mut ids: Vec<i32> = held.to_vec();
-    ids.sort_unstable();
-    let mut shown: Option<&State> = None;
-    for id in ids {
-        if let Some(st) = of(id) {
-            if shown.is_none_or(|s| st.priority >= s.priority) {
-                shown = Some(st);
-            }
-        }
-    }
-    shown
-}
-
 /// As much of `text` as fits in `cells` cells: the letters whose advances
 /// add up to `8 * cells` pixels at most. It is the console's `scr_cap`,
 /// which until 2026-10-03 counted letters, one per cell.
@@ -339,24 +314,6 @@ pub fn max_hp(actor: &Actor, level: Option<i64>) -> i64 {
     rules::curve_at(&actor.parameters.maxhp, level).unwrap_or(0)
 }
 
-/// An actor's four parameters at its starting level with this equipment
-/// on: RM2k's ([`rules::with_equipment`]), with a curve that has nothing
-/// at the level read as 0 and an item the database lacks left out.
-pub fn equipped_params(game: &Game, actor: i32, equipment: &[i32]) -> Vec<i64> {
-    let a = &game.actors[&actor];
-    let level = rules::level_of(a);
-    let base = rules::EQUIPPED.map(|which| {
-        rules::curve(a, which)
-            .and_then(|values| rules::curve_at(values, level))
-            .unwrap_or(0)
-    });
-    let items = equipment
-        .iter()
-        .filter(|&&item| item != 0)
-        .filter_map(|item| game.items.get(item));
-    rules::with_equipment(base, items).to_vec()
-}
-
 /// The actor's name as the cartridge composes it: one letter per cell,
 /// with the ones the font lacks turned into '?' and padded with spaces to
 /// `cols`. The padding erases whatever was there.
@@ -384,49 +341,6 @@ pub fn max_text(game: &Game, actor: i32, level: Option<i64>) -> String {
     let maximum = game.actors.get(&actor).map_or(0, |a| max_hp(a, level));
     let text = padded(&format!("/{maximum}"), MENU_MAX_DIGITS);
     text.chars().take(MENU_MAX_DIGITS).collect()
-}
-
-/// An actor's max SP at `level` —its starting one without it—, like
-/// [`max_hp`].
-pub fn max_sp(actor: &Actor, level: Option<i64>) -> i64 {
-    let level = level.unwrap_or_else(|| rules::level_of(actor));
-    rules::curve_at(&actor.parameters.maxsp, level).unwrap_or(0)
-}
-
-/// The SP line's number on the actor choice, as the HP's is written: the
-/// current one in three places —capped at 999, as the cartridge caps it—,
-/// and the maximum after its slash, left-aligned in four: " 20/30 ".
-/// Without `sp`, full; without `level`, the starting one.
-pub fn sp_text(game: &Game, actor: i32, level: Option<i64>, sp: Option<i64>) -> String {
-    let maximum = game.actors.get(&actor).map_or(0, |a| max_sp(a, level));
-    let current = sp.unwrap_or(maximum).clamp(0, 999);
-    let after = padded(&format!("/{}", maximum.min(999)), MENU_MAX_DIGITS);
-    format!(
-        "{}{}",
-        right(current, MENU_HP_DIGITS),
-        after.chars().take(MENU_MAX_DIGITS).collect::<String>()
-    )
-}
-
-/// The experience as `DrawActorExp` writes it: `"%6d/%6d"`, the current one
-/// and the one the next level asks for, or dashes at the cap. Without
-/// `level` or `exp`, the starting ones.
-pub fn exp_text(game: &Game, actor: i32, level: Option<i64>, exp: Option<i64>) -> String {
-    let a = &game.actors[&actor];
-    let level = level.unwrap_or_else(|| rules::initial_level(a));
-    let exp = exp.unwrap_or_else(|| rules::initial_exp(a));
-    let next = rules::next_exp(a, level);
-    if next == -1 {
-        let dashes = "-".repeat(MENU_EXP_DIGITS);
-        return format!("{dashes}/{dashes}");
-    }
-    format!("{exp:>w$}/{next:>w$}", w = MENU_EXP_DIGITS)
-}
-
-/// The digits of a number capped at `how_many`, without leading zeros: 0 is
-/// "0". The menu's gold and each actor's HP use it.
-pub fn digits_of(value: i64, how_many: u32) -> String {
-    value.clamp(0, 10_i64.pow(how_many) - 1).to_string()
 }
 
 /// The letters the menu's bank carries as glyphs, one per cell: those of
@@ -552,8 +466,6 @@ mod tests {
     fn numbers_as_rm2k_writes_them() {
         assert_eq!(right(7, 2), " 7");
         assert_eq!(right(123, 2), "23");
-        assert_eq!(digits_of(1_234_567, 6), "999999");
-        assert_eq!(digits_of(-5, 3), "0");
         assert_eq!(item_text("Café ア", 10), "Cafe ?");
     }
 }

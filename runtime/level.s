@@ -254,8 +254,7 @@ full:
 ;
 ; The digits are the same glyphs as the gold —`slot_glyph_cells`, one per
 ; cell— and they line up without touching anything because both lines are
-; drawn two pixels from the top edge of their cell. The screens stage's
-; `actor_row` is the reference, with the same columns.
+; drawn two pixels from the top edge of their cell.
 ;
 ; It lives outside bank 0 for the same reason as `hp_initial_set`: there are
 ; tens of bytes left there and this is over a hundred. It is entered with

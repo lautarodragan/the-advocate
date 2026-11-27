@@ -12,7 +12,7 @@
 ; menu with the cursor on the command; A on a switch skill uses it and goes
 ; straight to the map, and on a heal opens the actor choice for it —see
 ; `sk_heal`—, and comes back here. The geometry is `SK_*` of
-; `rm2k-snes-screens`, whose `render` is the reference; eight rows and two
+; `rm2k-snes-screens`; eight rows and two
 ; lines of description where RM2k has ten and one is the divergence
 ; `the-skills-screen` in the book.
 ;

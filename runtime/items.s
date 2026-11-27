@@ -5,7 +5,7 @@
 ; `Scene_Item`: at the top the description of the highlighted item, below the
 ; inventory list with how many there are. The text —name and two lines of
 ; description per item— goes in ASCII in `item_texts`. The geometry comes
-; from `rm2k-snes-screens`, whose `render` is the reference.
+; from `rm2k-snes-screens`.
 ;
 ; The screen is written **whole** on each change, like the equipment and
 ; shop screens, with `text_screens.s`'s writers; what that means —only the

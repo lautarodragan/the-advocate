@@ -9,7 +9,7 @@
 ; screens have nothing else on BG1, so erasing it is writing zeros. Their
 ; text, on BG2, goes over it: the bank of the slots and the menu carries the
 ; priority bit. The geometry is `MENU_CMD_BAR` and `slot_bar` in
-; `rm2k-snes-screens`, whose `render` is the reference, and where each one
+; `rm2k-snes-screens`, and where each one
 ; starts on each row is a table the converter writes: `menu_cursor_vram`
 ; and `slot_bar_vram`.
 ;

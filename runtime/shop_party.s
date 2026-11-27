@@ -6,8 +6,8 @@
 ; CharSet facing down and walking —frames 0, 1, 2, 1, twelve frames each—,
 ; still and in grey whoever cannot equip the item the cursor marks, and next
 ; to each one the System's arrow that says whether the item raises or lowers
-; their parameters: `party.rs` in `rm2k-snes-screens` is the reference, and
-; `TI_PARTY_*` its geometry.
+; their parameters: `party.rs` in `rm2k-snes-screens` makes their tiles, and
+; `TI_PARTY_*` is their geometry.
 ;
 ; **They are objects**, 8x8: a member is twelve, three across by four down, and
 ; its arrow one more. The object base is the windows' —`TI_BORDER_VRAM`, which
@@ -67,8 +67,8 @@ TI_PARTY_LAST_SMALL = 258
 .assert TI_PARTY_OAM_ARROWS + TI_PARTY_MEMBERS <= 128, error, "the shop's party takes more objects than there are"
 .assert TI_PARTY_ACTORS <= 255, error, "the shop's party names its actors with a byte"
 
-; Who can equip the item the cursor marks and what it does to them: the
-; stage's `party::shown`, for each member. From `ti_compose`, before it
+; Who can equip the item the cursor marks and what it does to them:
+; `Window_ShopParty::Refresh`, for each member. From `ti_compose`, before it
 ; writes anything: it borrows the equipment screen's `eq_parameter`, which
 ; reads `comp_char`, `comp_col`, `comp_col + 1` and `comp_mask`, so those go
 ; on the stack and come back. Only when the item or the layer changed: the

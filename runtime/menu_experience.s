@@ -15,7 +15,7 @@
 ; one the next level asks for, `"%6d/%6d"`. **It goes in sprites**, eleven
 ; pixels below the SP and at the font's six-pixel pitch: in the cell grid
 ; there was no room. The why and the geometry are in `MENU_EXP_X`, in
-; `rm2k-snes-screens`, whose `render` is the reference. Only the rows the
+; `rm2k-snes-screens`. Only the rows the
 ; menu shows have theirs —see `menu_list.s`—, and under them goes the arrow
 ; that says there are more, in sprites too.
 ;

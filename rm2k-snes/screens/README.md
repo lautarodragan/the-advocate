@@ -84,33 +84,24 @@ keeps no copy of them—, and what the conversion has to say, in order. Its
 shape is `Answer` in `src/answer.rs`, which the emission and the converter
 read it through.
 
-`render` draws one screen as the console has to show it —the menu, the
-item screen, the actor choice, the slot screen, equipment, the shop, the
-skills or End Game—, built from the same blocks `convert` makes, with the game's state it
-shows in the request. It is for whoever compares a capture against it.
-
 `stage::boxes` reflows every box of the dump's maps and common events, and of the
 project's maps over them, for a window of `columns` by `lines`: the table
 the event compiler reads its boxes through.
 
-`refit` reflows the boxes of the request, and says of each whether its
-first line names who speaks: it is for whoever checks the reflow over a
-whole game.
-
-The geometry alone is not asked of the binary: a game's tests read the
+The geometry alone is not asked of the stage: a game's tests read the
 numbers a built cartridge has in its `.sym`, where the emission writes
 them. Until 2026-11-25 there was a `layout` that wrote it.
 
-`window` counts the colour-memory entries the message window takes after
-the backdrop: every colour of the empty window, its arrow, its cursor, the
+`stage::window` counts the colour-memory entries the message window
+takes after the backdrop: every colour of the empty window, its arrow, its cursor, the
 text and the shadow, from the game's System. It is what the caller passes
 back as `cgram_reserved`, plus one, and what the maps' backgrounds start
 after; asked once, so every domain that shares colour memory with the
 window gets the same number.
 
 With the other Systems a cartridge switches to in its request —`systems`,
-each with its background and its stretch—, `window` also answers the
-message window of each, as `convert` writes the starting one's without the
+each with its background and its stretch—, `stage::window` also answers
+the message window of each, as `convert` writes the starting one's without the
 font; and `text_rows`, the glyph rows that take one palette entry each,
 the same in every System, so the font's composed tables are one. `convert`
 takes `text_rows` back and draws the starting System's window with them.
@@ -118,14 +109,9 @@ The count is the starting System's with those rows, and the others are
 reduced to fit in it: the maps start after the window, and a second System
 takes no colours from them.
 
-`equip` answers what equipping an item leaves —the five slots and the
-inventory—, with the rule the equipment screen draws its list with,
-`Game_Actor::ChangeEquipment` of `rm2k-rules`: for whoever predicts what a
-console that runs the same rule keeps.
-
 ## Its tests
 
 They need no game: `tests/game/` is a small one made to crowd the
 screens, with its System and FaceSet. What a screen looks like is A
-Blurred Line's suite's, which holds the console's screens against
-`render`.
+Blurred Line's suite's, which holds the console's screens against goldens
+of what the ROM showed.

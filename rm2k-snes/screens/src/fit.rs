@@ -15,10 +15,8 @@
 //!
 //! **What is redrawn is decided here and only here**, with what each
 //! screen's bank holds by itself, and it travels in the System —see
-//! `Skin::redraw`—, so that `convert` —what the cartridge carries— and
-//! `render` —what the console has to show— draw the same. The converter
-//! then checks the same screens against the maps' layouts, as it did
-//! before. A screen that fits is not touched.
+//! `Skin::redraw`—. The converter then checks the same screens against the
+//! maps' layouts, as it did before. A screen that fits is not touched.
 
 use crate::borders::{self, Screen as Layer};
 use crate::cells::{self, BLACK, COLS, ROWS};
