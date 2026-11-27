@@ -1182,7 +1182,7 @@ mod tests {
     fn the_reflow_keeps_its_promise() {
         let m = Measure::columns(12);
         for b in [
-            s(&["TALAN", "one two three four five six seven eight nine ten"]),
+            s(&["MARA", "one two three four five six seven eight nine ten"]),
             s(&["a \\c[2]red\\c[0] word\\. and more words to go\\|\\^"]),
             s(&["supercalifragilistic is long"]),
         ] {
@@ -1190,15 +1190,15 @@ mod tests {
             assert_ne!(to, [b.clone()], "{b:?} had to change");
             assert_eq!(holds(&b, &to, &m, 2), Ok(()), "{b:?} into {to:?}");
         }
-        let b = s(&["TALAN", "one two three four five six"]);
+        let b = s(&["MARA", "one two three four five six"]);
         let mut to = refit_measured(&b, &m, 2);
         assert!(to.len() > 1, "{to:?}");
         to.pop();
         assert!(holds(&b, &to, &m, 2).unwrap_err().contains("says"));
-        let wide = vec![s(&["TALAN", "one two three four"])];
+        let wide = vec![s(&["MARA", "one two three four"])];
         assert!(holds(&b, &wide, &m, 2).unwrap_err().contains("fit"));
         let mut lost = refit_measured(&b, &m, 2);
-        lost[1][0] = "KERSH".into();
+        lost[1][0] = "OTTO".into();
         assert!(holds(&b, &lost, &m, 2).unwrap_err().contains("speaker"));
     }
 
