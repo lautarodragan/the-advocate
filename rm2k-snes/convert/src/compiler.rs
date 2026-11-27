@@ -23,7 +23,6 @@ use rm2k_snes_events::answer::{Compiled, Indices, Scan};
 use rm2k_snes_events::request::{self, Asked, ByMap, Counter};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 
@@ -84,26 +83,6 @@ fn cases(list: &[(i32, Vec<Command>)]) -> Vec<request::Case> {
             commands: commands(c),
         })
         .collect()
-}
-
-/// The maps read from the project's files and not from the dump, by map
-/// number as text.
-pub fn map_files(game: &Game) -> Value {
-    let mut out = Map::new();
-    for (m, path) in game.forks.map_files() {
-        out.insert(m.to_string(), json!(path.to_string_lossy()));
-    }
-    Value::Object(out)
-}
-
-/// The ChipSets the project adds to the database, by the file each one is
-/// in.
-pub fn chipset_files(game: &Game) -> Value {
-    let mut out = Map::new();
-    for (m, (path, _)) in &game.forks.chipsets {
-        out.insert(m.to_string(), json!(path.to_string_lossy()));
-    }
-    Value::Object(out)
 }
 
 /// The graphics the port calls by another name than the dump's, in these
@@ -439,18 +418,6 @@ impl<'a> Compiler<'a> {
         let path = kept.with_file_name(culprits::ANSWER_FILE);
         std::fs::write(&path, stage::text(&written, culprits::ANSWER_FILE)?)
             .map_err(|e| crate::fail::io(&path, e))
-    }
-
-    /// The boxes the compiler is handed: every text box of the game the
-    /// port rebuilds for the console's window.
-    pub fn boxes(&self) -> &[request::MessageBox] {
-        &self.boxes
-    }
-
-    /// The map's message window, as the compiler is told it: `width`,
-    /// `lines` and `advances`.
-    pub fn window(&self) -> &request::Window {
-        &self.window
     }
 
     /// `[sound_effects]`, what of it the compiler reads.

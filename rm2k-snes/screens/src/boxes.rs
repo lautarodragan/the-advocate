@@ -10,7 +10,6 @@ use ditto::dump::{read_map, Dump};
 use ditto::schema::{CommonEvent, EventCommand};
 use rm2k_snes_text::refit::{refit_measured, Measure};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -37,24 +36,6 @@ fn boxes_of(commands: &[EventCommand], out: &mut Vec<Vec<String>>) {
         out.push(commands[i..j].iter().map(|c| c.string.clone()).collect());
         i = j;
     }
-}
-
-/// Each of `boxes` reflowed for a window whose lines `measure` measures
-/// and that shows `rows`, as `{"to": boxes, "speaker": whether its first
-/// line names who speaks}`: a box that fits comes back as itself. It is for
-/// whoever checks the reflow over a whole game.
-pub fn refit_each(boxes: &[Vec<String>], measure: &Measure, rows: usize) -> Value {
-    Value::from(
-        boxes
-            .iter()
-            .map(|lines| {
-                json!({
-                    "to": refit_measured(lines, measure, rows),
-                    "speaker": lines.len() > 1 && rm2k_snes_text::refit::is_speaker(&lines[0]),
-                })
-            })
-            .collect::<Vec<_>>(),
-    )
 }
 
 /// A box that changes: its lines as they are in the dump, and the boxes
@@ -99,6 +80,13 @@ pub fn table(
             continue;
         }
         let frames = refit_measured(&lines, measure, rows);
+        // The reflow's promise, at every build: a box that loses words or
+        // does not fit is a bug in the rule, so it stops the build.
+        rm2k_snes_text::refit::holds(&lines, &frames, measure, rows).map_err(|e| {
+            Bad::answer(format!(
+                "the reflow of a message box broke its promise: {e}"
+            ))
+        })?;
         if frames != [lines.clone()] {
             out.push(Reflowed {
                 from: lines,

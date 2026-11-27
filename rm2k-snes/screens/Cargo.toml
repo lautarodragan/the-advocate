@@ -8,13 +8,8 @@ description = "An rm2k-snes game's screens as a cartridge carries them: the mess
 name = "rm2k_snes_screens"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-screens"
-path = "src/main.rs"
-
 [dependencies]
 adeleine = { path = "../../snes/adeleine" }
-clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 rm2k-render = { path = "../../rm2k/rm2k-render" }
 rm2k-snes-battle = { path = "../battle" }

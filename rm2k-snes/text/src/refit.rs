@@ -1107,9 +1107,100 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
     frames
 }
 
+/// What a reader sees of a box's lines without its tail: its letters in
+/// order, without the spaces and the marks that take no room —the waits,
+/// the colour, the speed, the instant text—. A literal backslash is a
+/// letter.
+fn seen(lines: &[String]) -> String {
+    lines
+        .iter()
+        .flat_map(|l| l.chars())
+        .filter(|&c| c != ' ' && !is_control(c) && wait_of(c).is_none())
+        .collect()
+}
+
+/// Whether `to`, the boxes [`refit_measured`] made of `from` for a window
+/// `measure` measures and that shows `rows`, keep the reflow's promise:
+/// every box fits, refitting one again leaves it as it is, and together
+/// they say what `from` says —the same letters in the same order, with
+/// the speaker's line on top of each box when `from` names one—. A box
+/// that comes back as itself holds. The answer no says which part broke.
+///
+/// The converter asks it of every box of the game at every build, and a
+/// no stops it: it is a bug in the rule, not a limit of the game. Until
+/// 2026-11-27 ABL's `test_game_texts.py` checked it, over ABL's boxes alone.
+pub fn holds(
+    from: &[String],
+    to: &[Vec<String>],
+    measure: &Measure,
+    rows: usize,
+) -> Result<(), String> {
+    if to == [from.to_vec()] {
+        return Ok(());
+    }
+    let untailed = |lines: &[String]| -> Result<Vec<String>, String> {
+        escape_tail(lines)
+            .map(|u| u.lines)
+            .map_err(|_| format!("{lines:?} cannot be compiled"))
+    };
+    let original = untailed(from)?;
+    let head = original.len() > 1 && is_speaker(&original[0]);
+    let mut said = String::new();
+    for frame in to {
+        if fits(frame, measure, rows) != Ok(true) {
+            return Err(format!("{frame:?} does not fit the window"));
+        }
+        let again = refit_measured(frame, measure, rows);
+        if again != std::slice::from_ref(frame) {
+            return Err(format!("{frame:?} is refitted again into {again:?}"));
+        }
+        let lines = untailed(frame)?;
+        if head {
+            if lines.first() != original.first() {
+                return Err(format!("{frame:?} does not start with its speaker"));
+            }
+            said += &seen(&lines[1..]);
+        } else {
+            said += &seen(&lines);
+        }
+    }
+    let wanted = seen(&original[usize::from(head)..]);
+    if said != wanted {
+        return Err(format!("{to:?} says {said:?} and {from:?} {wanted:?}"));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The reflow's promise, over boxes that change: a speaker's, one with
+    /// escapes in the middle and in its tail, and a word wider than the
+    /// window, which is cut; and what breaks it, said.
+    #[test]
+    fn the_reflow_keeps_its_promise() {
+        let m = Measure::columns(12);
+        for b in [
+            s(&["MARA", "one two three four five six seven eight nine ten"]),
+            s(&["a \\c[2]red\\c[0] word\\. and more words to go\\|\\^"]),
+            s(&["supercalifragilistic is long"]),
+        ] {
+            let to = refit_measured(&b, &m, 2);
+            assert_ne!(to, std::slice::from_ref(&b), "{b:?} had to change");
+            assert_eq!(holds(&b, &to, &m, 2), Ok(()), "{b:?} into {to:?}");
+        }
+        let b = s(&["MARA", "one two three four five six"]);
+        let mut to = refit_measured(&b, &m, 2);
+        assert!(to.len() > 1, "{to:?}");
+        to.pop();
+        assert!(holds(&b, &to, &m, 2).unwrap_err().contains("says"));
+        let wide = vec![s(&["MARA", "one two three four"])];
+        assert!(holds(&b, &wide, &m, 2).unwrap_err().contains("fit"));
+        let mut lost = refit_measured(&b, &m, 2);
+        lost[1][0] = "OTTO".into();
+        assert!(holds(&b, &lost, &m, 2).unwrap_err().contains("speaker"));
+    }
 
     fn s(lines: &[&str]) -> Vec<String> {
         lines.iter().map(|l| l.to_string()).collect()

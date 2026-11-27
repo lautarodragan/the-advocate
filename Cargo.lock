@@ -549,7 +549,6 @@ dependencies = [
 name = "rm2k-snes-mapdata"
 version = "0.1.0"
 dependencies = [
- "clap",
  "ditto",
  "lz2",
  "rm2k-snes-battle",
@@ -576,7 +575,6 @@ name = "rm2k-snes-screens"
 version = "0.1.0"
 dependencies = [
  "adeleine",
- "clap",
  "ditto",
  "rm2k-render",
  "rm2k-rules",

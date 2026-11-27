@@ -8,10 +8,6 @@ description = "Converts an rm2k-snes game into a Super Nintendo cartridge's data
 name = "rm2k_snes_convert"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-convert"
-path = "src/main.rs"
-
 [dependencies]
 clap = "4"
 ditto = { path = "../../rm2k/ditto" }
