@@ -1,9 +1,6 @@
 # rm2k-snes-events: an RPG Maker 2000 game's event pages, as a cartridge's bytecode
 
-    rm2k-snes-events culprits --data dump/ --request compile.json --out report/ [--every-map]
-
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes.
+A library, which the converter is compiled with: `cargo test`.
 
 RM2k has about 130 event commands, and a page is a script of them. The
 console runs a bytecode of its own, one opcode per thing it knows how to do
@@ -26,7 +23,7 @@ It has the shape of `rm2k-snes-battle` —see its README, "One stage of a
 converter"—: it reads the game from a Ditto dump with Ditto's library, the
 rules of the format are `rm2k-rules`' and the ones of RM2k's engine come
 with the source they were taken from, what the dump does not say comes in a
-request, and what it makes goes into `--out` as a JSON, `events.json`.
+request, and what it makes is a JSON, `events.json`.
 
 What is different is that the caller needs it twice. It needs to know which
 pages compile, and what they send walking, **before** it builds each map's
@@ -186,7 +183,10 @@ is not here: that is the caller's, who knows the ChipSet and what it drew.
 
 Not a stage of the conversion but a report for people: which commands keep
 pages out, over every page of the maps —the request's, or every map of the
-game with `--every-map`—, every common event and every troop page. It takes
+game with `every_map`—, every common event and every troop page. The
+converter writes it beside every ROM, `culprits.json`, and a game's `just
+culprits` prints it; until 2026-11-27 it was also this crate's binary's
+only subcommand, which nothing ran. It takes
 the request `scan` or `compile` takes; with `compile`'s, a
 `TileSubstitution` is resolved as the cartridge resolves it, and without it
 one never compiles.
@@ -204,8 +204,8 @@ It also says what no count of pages shows: the calls from a map's page to a
 common event whose body does not compile with that page's map, which are
 skipped without the page being left out.
 
-It prints a table per kind of page and writes everything, page by page, to
-`culprits.json`.
+`report` is everything, page by page, which is `culprits.json`, and
+`table` a table per kind of page.
 
 ## Where the numbers come from
 

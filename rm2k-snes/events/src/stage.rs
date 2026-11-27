@@ -1,8 +1,8 @@
 //! The event compiler as a stage of a converter: its two calls, `scan` and
 //! `compile`, from a dump and a request to the typed answer —see
-//! [`crate::answer`]—. The converter calls these as functions, and the
-//! binary is a `main` over [`scan`], which the tests ask, that reads the
-//! request and writes [`files`].
+//! [`crate::answer`]—. The converter calls these as functions, and
+//! [`files`] writes an answer as its file. Until 2026-11-27 a binary was a
+//! `main` over the culprits report, for a person.
 //!
 //! **They read nothing but the dump and the request they are given** —and
 //! the map files the request names—: the converter keeps their answers in
@@ -42,8 +42,7 @@ fn asked(data: &Path, request: &Asked) -> Result<(Game, Request)> {
 
 /// An answer as the file it is written to, on one line. Through a JSON
 /// value, whose keys serde_json sorts unless the binary that links it keeps
-/// their order —the converter does—: the binary's file has the keys sorted,
-/// as it always had.
+/// their order —the converter does—.
 pub fn files(answer: &impl Serialize) -> Files {
     let value = serde_json::to_value(answer).expect("an answer is JSON");
     let text = serde_json::to_string(&value).expect("an answer is JSON") + "\n";

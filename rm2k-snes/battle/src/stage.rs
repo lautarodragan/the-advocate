@@ -1,8 +1,9 @@
 //! The battle as a stage of a converter: what each of its commands answers,
 //! as the files it makes, by name. The converter calls these as functions
-//! —`tables`, `model` and `layout`—, and the binary is a `main` over the
-//! last two, which the tests ask, that reads the request and writes the
-//! files into `--out`.
+//! —`tables` and `model`—; `asked` answers the model's JSON questions
+//! —`simulate`, `lines`, `experience`, `field-skill`—, which the crate's
+//! tests ask. Until 2026-11-27 a binary was a `main` over them, for a
+//! game's tests.
 //!
 //! **They read nothing but the dump and the request they are given**: the
 //! converter keeps their answers in its cache under the key of those two,

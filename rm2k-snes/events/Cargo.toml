@@ -8,15 +8,10 @@ description = "An rm2k-snes game's event pages, compiled to the bytecode a Super
 name = "rm2k_snes_events"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-events"
-path = "src/main.rs"
-
 [dependencies]
-clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 # Where a warning goes: the conversion's log when the converter calls
-# this, stderr when this crate's binary runs. See `rm2k_project::log`.
+# this, stderr otherwise. See `rm2k_project::log`.
 rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
 rm2k-snes-bytecode = { path = "../bytecode" }

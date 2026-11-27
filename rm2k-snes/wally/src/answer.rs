@@ -1,6 +1,6 @@
 //! What [`crate::stage::map`] answers of a map, as types: `map.json` is a
-//! [`Map`], `layers.json` a [`Layers`], and the binaries they name go
-//! beside them, by name. Wally builds these and serde writes them; the
+//! [`Map`], `layers.json` a [`Layers`], and the binary files they name
+//! go beside them, by name. Wally builds these and serde writes them; the
 //! converter reads them back with [`Answer::read`] —a field renamed here
 //! does not compile there—.
 //!

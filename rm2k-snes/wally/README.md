@@ -1,10 +1,7 @@
 # Wally: an RPG Maker 2000 game's maps, as a cartridge carries them
 
-    wally bakeable --data dump/ --search-dir pictures/ --request request.json --out build/map/
-
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes. The tests build a small game, its
-ChipSets and CharSets inside the test: they need no game.
+A library: `cargo test`. The tests build a small game, its ChipSets and
+CharSets inside the test: they need no game.
 
 A map on the console is two background layers in mode 3 —the one behind the
 hero at 8 bits a pixel, the one in front at 4—, the events drawn as 32x32
@@ -48,10 +45,10 @@ describes in "One stage of a converter": it reads the game from a Ditto
 dump itself, gets in a request what the cartridge decided and what other
 domains answered, and answers pieces and a JSON. The converter calls
 `stage::map` as a function, which answers the files by name, and so do its
-tests; the binary is a `main` over the rest of the `stage` module —the
-layers alone, and the questions `bakeable` and `split`, which ABL's tests
-asked until 2026-11-25 and no test outside this crate asks any more— that
-writes them into `--out`.
+tests; the rest of the `stage` module —the layers alone, and the
+questions `bakeable` and `split`, which ABL's tests asked until
+2026-11-25— only this crate's tests ask. Until 2026-11-27 a binary,
+`wally`, was a `main` over them that wrote them into `--out`.
 
 ## Two halves that do not know each other
 
@@ -140,7 +137,7 @@ some page draws a battle animation, is the animations'.
 
 ## What comes out
 
-Into `--out`: what `layers` writes —the tiles of both layers, their
+By name: what `layers` answers —the tiles of both layers, their
 colour-memory words and tilemaps, the runs, the block table, the pictures
 of what Adeleine decided, and `layers.json`—, `sprites.bin` and
 `poses-<k>.bin`, and `map.json`, with the events baked, the events drawn,

@@ -86,9 +86,9 @@ have layers of their own, one folder each:
                  `volume-ceilings`, each song's headroom, are not stages
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
                  level per actor, each map's random encounters—, its model
-                 and text screen, and the battle played for the tests; the
-                 converter calls it as a stage, and its README says what
-                 shape a stage has
+                 and text screen, and the battle played turn by turn, which
+                 the model is built on; the converter calls it as a stage,
+                 and its README says what shape a stage has
       events/    `rm2k-snes-events`: the event compiler —a game's event
                  pages to the bytecode the ROM runs—; the converter calls
                  it twice
@@ -133,9 +133,8 @@ have layers of their own, one folder each:
 
 **A few of them are commands, and the rest are libraries under them.**
 The commands a person runs, from a game's recipes or by hand: `advocate`,
-which builds a game, `ditto`, `rm2k-snes-events` (its `culprits`),
-`rm2k-snes-audio` (its `volume-ceilings`), `goombario`, `fxpak` and
-`rm2k-sketch`. **The pipeline runs no command of ours**: `advocate build`
+which builds a game, `ditto`, `rm2k-snes-audio` (its `volume-ceilings`),
+`goombario`, `fxpak` and `rm2k-sketch`. **The pipeline runs no command of ours**: `advocate build`
 calls the converter, the assembling and the MSU-1 tracks as libraries.
 Until 2026-11-25 it was `rm2k-snes-cartridges`, which ran
 `rm2k-snes-convert` and `rm2k-snes-audio msu` as processes and had
@@ -145,11 +144,11 @@ versioned patches were `rm2k-snes-patches`. **The stages are libraries the
 converter is compiled with** —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
 `rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—, each
-called through its `stage` module; the binaries some still have are a
-`main` over the same functions, for a game's tests and for a person
-—`rm2k-snes-images`, `rm2k-snes-screens`, `rm2k-snes-mapdata` and the
-converter's went on 2026-11-27, when their tests stopped asking them—;
-and the converter
+called through its `stage` module; `rm2k-snes-audio` still has a binary
+for a person, a `main` over its `volume-ceilings` —`rm2k-snes-images`,
+`rm2k-snes-screens`, `rm2k-snes-mapdata`, `rm2k-snes-battle`, `wally`,
+`rm2k-snes-events` and the converter's went on 2026-11-27, when no test
+or recipe asked them any more—; and the converter
 is a library `advocate` is compiled with. So a change to a stage reaches a
 ROM only through `advocate`: install `advocate` with it. Until 2026-11-24
 the converter ran each one as a process, and the conversion cache keyed
@@ -234,12 +233,11 @@ Python scripts too, installed as symlinks next to them: the last ones were
 The binaries of `rm2k-snes/` are `advocate`, from `rm2k-snes/advocate/`,
 which builds a game and finds the runtime through the checkout it was
 installed from; `rm2k-snes-audio`, from
-`rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from `rm2k-snes/battle/`;
-`rm2k-snes-events`, from `rm2k-snes/events/`; and `wally`, from
-`rm2k-snes/wally/`. Until 2026-11-25 there were also
+`rm2k-snes/rm2k-snes-audio/`. Until 2026-11-25 there were also
 `rm2k-snes-cartridges`, `rm2k-snes-patches` and `rm2k-snes-project`, and
 until 2026-11-27 `rm2k-snes-images`, `rm2k-snes-convert`,
-`rm2k-snes-mapdata` and `rm2k-snes-screens`:
+`rm2k-snes-mapdata`, `rm2k-snes-screens`, `rm2k-snes-battle`,
+`rm2k-snes-events` and `wally`:
 `just install` does not remove a binary that stopped existing, and the
 `justfile` says what does.
 

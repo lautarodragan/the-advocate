@@ -6,8 +6,9 @@ symbols and the map table it leaves (`game`), the tick clock and the
 questions any game is asked —which map, which switch, whether the player
 has control— (`session`), the goldens compared at 15 bits (`golden`),
 RPG Maker 2000's own rules the tests compute what to expect with (`rm2k`),
-the engine's numbers as the build wrote them (`engine`), and asking a
-stage something (`stage`).
+and the engine's numbers as the build wrote them (`engine`). Until
+2026-11-27 it also ran a stage's binary to ask it something (`stage`):
+the last one a test asked was `rm2k-snes-battle`.
 It knows no game: each one says, once, where it is and how its cartridges
 are built —a `Game`, handed to `use` before the first test—, and its own
 harness adds what only it knows on top.

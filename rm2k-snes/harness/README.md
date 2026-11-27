@@ -21,8 +21,6 @@ title screen, its menus, its battles—, and so do the ports' other games.
       engine.py           the engine's numbers, as the build wrote them
                           into the cartridge's `.sym`: the keys' values,
                           the random seed, the caps
-      stage.py            running one of the converter's stages to ask it
-                          something
     cores/                what the cores need that their packages lack: the
                           bsnes patches and Mesen2's shim, below
 

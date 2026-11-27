@@ -1,6 +1,6 @@
 //! What the compiler's two calls answer, as the types its caller reads:
-//! [`Scan`] and [`Compiled`]. serde writes them as the JSON the binary
-//! writes into `--out`, and reads them back from the converter's cache.
+//! [`Scan`] and [`Compiled`]. serde writes them as JSON, and reads them
+//! back from the converter's cache.
 //!
 //! **The fields go in the order the answer always wrote them**, and the
 //! ones written only when there are some are skipped the same way: the

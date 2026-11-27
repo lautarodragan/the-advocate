@@ -8,13 +8,8 @@ description = "An rm2k-snes game's maps as a cartridge carries them: the backgro
 name = "wally"
 path = "src/lib.rs"
 
-[[bin]]
-name = "wally"
-path = "src/main.rs"
-
 [dependencies]
 adeleine = { path = "../../snes/adeleine" }
-clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 rm2k-render = { path = "../../rm2k/rm2k-render" }
 rm2k-rules = { path = "../../rm2k/rules" }

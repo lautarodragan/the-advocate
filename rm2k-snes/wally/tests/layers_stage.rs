@@ -1,29 +1,24 @@
-//! The executable: the map it reads —the dump's, the project's, with what
-//! was baked into it—, what it writes, and how it says no.
+//! The layers' stage on a request file: the map it reads —the dump's, the
+//! project's, with what was baked into it—, what it writes, and how it
+//! says no. Until 2026-11-27 these ran the `wally` binary's `layers`,
+//! which went with the binary: nothing ran it.
 //!
 //! A small game —one map, one ChipSet entry and its picture— is generated
-//! inside each test, so none of this needs a game. What the executable
-//! writes is checked against the libraries it is made of, called here
-//! directly on the map the test knows it should have read.
+//! inside each test, so none of this needs a game. What the stage writes is
+//! checked against the libraries it is made of, called here directly on
+//! the map the test knows it should have read.
 
 use rm2k_render::{picture, Atlas, Map, Picture};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 use wally::background::convert;
+use wally::{request, stage, Bad};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-cli-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
-}
-
-fn run(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args(args)
-        .output()
-        .unwrap()
 }
 
 /// A ChipSet whose pixels come from a formula, written as
@@ -151,24 +146,20 @@ fn request(dir: &Path, body: Value) -> PathBuf {
     path
 }
 
-fn layers(dump: &Path, search: &[&Path], request: &Path, out: &Path) -> Output {
-    let mut args = vec![
-        "layers".to_string(),
-        "--data".to_string(),
-        dump.display().to_string(),
-        "--request".to_string(),
-        request.display().to_string(),
-        "--out".to_string(),
-        out.display().to_string(),
-    ];
-    for dir in search {
-        args.push("--search-dir".to_string());
-        args.push(dir.display().to_string());
+/// `stage::layers_of` on the request file `request`, its files written
+/// into `out`.
+fn layers(dump: &Path, search: &[&Path], request: &Path, out: &Path) -> wally::Result<()> {
+    let (asked, whose) = request::read(request)?;
+    let dirs: Vec<PathBuf> = search.iter().map(|d| d.to_path_buf()).collect();
+    let files = stage::layers_of(dump, &dirs, &asked, &whose)?;
+    std::fs::create_dir_all(out).unwrap();
+    for (name, bytes) in &files {
+        std::fs::write(out.join(name), bytes).unwrap();
     }
-    run(&args.iter().map(String::as_str).collect::<Vec<_>>())
+    Ok(())
 }
 
-/// What the libraries make of this map, to hold the executable's files
+/// What the libraries make of this map, to hold the stage's files
 /// against.
 fn expected(chipset: &Path, lower: Vec<i64>, upper: Vec<i64>) -> wally::background::Converted {
     let (passable_lower, passable_upper) = passability();
@@ -272,11 +263,7 @@ fn the_dumps_map_is_drawn_and_converted() {
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&dir.join("nowhere"), &pictures], &req, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    assert!(done.is_ok(), "{:?}", done.err());
     let want = expected(&pictures.join("ChipSet/Tiles.png"), lower(), upper());
     assert!(!want.background.runs.is_empty(), "the map should animate");
     check(&out, &want);
@@ -309,11 +296,7 @@ fn the_projects_map_and_chipset_win_over_the_dumps() {
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&built, &pictures], &req, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    assert!(done.is_ok(), "{:?}", done.err());
     check(
         &out,
         &expected(&built.join("ChipSet/other.png"), changed, upper()),
@@ -332,11 +315,7 @@ fn a_baked_cell_is_painted_into_the_upper_layer() {
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&pictures], &req, &out);
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
+    assert!(done.is_ok(), "{:?}", done.err());
     let mut baked = upper();
     baked[3] = 10004;
     baked[8] = 10006;
@@ -358,8 +337,10 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
     // No picture for the ChipSet anywhere.
     let req = request(&dir, plain.clone());
     let done = layers(&dump, &[&dir.join("nowhere")], &req, &out);
-    assert_eq!(done.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&done.stderr).contains("chipset of map 7"));
+    assert!(
+        matches!(&done, Err(Bad::Answer(m)) if m.contains("chipset of map 7")),
+        "{done:?}"
+    );
 
     // A ChipSet the project adds that the dump already has.
     let added = dir.join("0002.json");
@@ -371,23 +352,23 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
     let mut both = plain.clone();
     both["chipset_files"] = json!({"2": added});
     let done = layers(&dump, &[&pictures], &request(&dir, both), &out);
-    assert_eq!(done.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&done.stderr).contains("does not replace"));
+    assert!(
+        matches!(&done, Err(Bad::Answer(m)) if m.contains("does not replace")),
+        "{done:?}"
+    );
 
     // A baked cell past the map.
     let mut past = plain.clone();
     past["baked"] = json!([[WIDTH * HEIGHT, 10001]]);
     let done = layers(&dump, &[&pictures], &request(&dir, past), &out);
-    assert_eq!(done.status.code(), Some(1));
+    assert!(matches!(done, Err(Bad::Answer(_))), "{done:?}");
 
     // A request without what it has to say.
     let done = layers(&dump, &[&pictures], &request(&dir, json!({"map": 7})), &out);
-    assert_eq!(done.status.code(), Some(1));
+    assert!(matches!(done, Err(Bad::Answer(_))), "{done:?}");
 
-    // No request file, and no --out.
+    // No request file.
     let done = layers(&dump, &[&pictures], &dir.join("missing.json"), &out);
-    assert_eq!(done.status.code(), Some(2));
-    let done = run(&["layers", "--data", dump.to_str().unwrap()]);
-    assert_eq!(done.status.code(), Some(2));
+    assert!(matches!(done, Err(Bad::Usage(_))), "{done:?}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
