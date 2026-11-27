@@ -2,7 +2,7 @@
 //! carries, the box the ROM draws them in, and their frames as they end up
 //! in VRAM.
 //!
-//! **The drawing is `rm2k-snes-images animations`'**: RM2k's part —which
+//! **The drawing is `rm2k-snes-images`'**, its `animation`: RM2k's part —which
 //! cells each frame has, cut from the sheet, zoomed, faded, and where they
 //! go in the animation's box— and the port's after it: toning each cell
 //! with the console's tint, stacking them, shrinking the whole into the box
