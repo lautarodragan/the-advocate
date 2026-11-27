@@ -537,7 +537,6 @@ name = "rm2k-snes-images"
 version = "0.1.0"
 dependencies = [
  "adeleine",
- "clap",
  "ditto",
  "rm2k-render",
  "serde",
