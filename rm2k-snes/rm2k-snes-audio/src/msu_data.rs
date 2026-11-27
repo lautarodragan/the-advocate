@@ -217,19 +217,21 @@ fn signed_end(entries: &[(u32, u32)]) -> usize {
         .fold(HEADER_SIZE + ENTRY_SIZE * entries.len(), usize::max)
 }
 
-/// The same `.msu`, signed again: what whoever changes its bytes has to do
-/// for it to pass as the `.msu` of another build.
-pub fn sign(blob: &[u8]) -> Result<Vec<u8>> {
-    let end = signed_end(&raw_index(blob)?);
-    let mut out = blob.to_vec();
-    let signature = signature_of(&out[SIGNATURE_SIZE..end]);
-    out[..SIGNATURE_SIZE].copy_from_slice(&signature);
-    Ok(out)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The same `.msu`, signed again: what whoever changes its bytes has
+    /// to do for it to pass as the `.msu` of another build. Until
+    /// 2026-11-27 it was the library's, for `rm2k-snes-audio msu-sign`; a
+    /// game's tests sign their own by the format's rule now.
+    fn sign(blob: &[u8]) -> Result<Vec<u8>> {
+        let end = signed_end(&raw_index(blob)?);
+        let mut out = blob.to_vec();
+        let signature = signature_of(&out[SIGNATURE_SIZE..end]);
+        out[..SIGNATURE_SIZE].copy_from_slice(&signature);
+        Ok(out)
+    }
 
     #[test]
     fn what_it_builds_it_reads_back() {

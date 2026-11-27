@@ -23,6 +23,9 @@ rm2k-snes-bytecode = { path = "../bytecode" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
+# Each song's writes beside the ROM, compressed: see `song_writes` in
+# `src/stage.rs`.
+flate2 = "1"
 toml = "1"
 
 [lints]
