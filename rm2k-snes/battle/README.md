@@ -1,9 +1,6 @@
 # rm2k-snes-battle: an RPG Maker 2000 game's battle, as a cartridge carries it
 
-    rm2k-snes-battle model --data dump/ --request request.json --out build/battle/
-
-`cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes.
+A library, which the converter is compiled with: `cargo test`.
 
 A cartridge's battle is RM2k's, computed ahead of time into what the
 console only reads. `tables` makes two tables:
@@ -26,8 +23,11 @@ writes into its tables:
   commands, the victory's lines, the names—, already cut to what fits.
 
 And `simulate` **plays a battle**, turn by turn, with the same rules and
-the same randomness as the console, for whoever compares a console's
-battle against it; `lines` builds the victory's lines the same way.
+the same randomness as the console; `lines` builds the victory's lines the
+same way. The model is built on it, and this crate's tests ask it; a
+game's tests asked it too, through a binary, until 2026-11-27, when they
+moved to RM2k's rules written in the harness —see the task
+[`battle-tests-without-simulate`](https://github.com/lautarodragan/the-advocate-work/blob/main/tasks/battle-tests-without-simulate.md)—.
 
 The battle's pictures —the backdrops, the battlers, the animations— are
 still made by the converter that calls this.
@@ -36,13 +36,14 @@ still made by the converter that calls this.
 
 This is one domain of a game converter. The converter orchestrates, and
 calls this crate's `stage` module as functions —`tables` and `model`—,
-each answering its files by name; the binary is a `main` over the ones the
-tests ask —`model` and the model's questions— that writes them into
-`--out`. Every stage is called that way since 2026-11-24; until then the
-others were run from the PATH as separate programs. Every stage has the
+each answering its files by name. Every stage is called that way since
+2026-11-24; until then the others were run from the PATH as separate
+programs, and until 2026-11-27 this crate's binary was a `main` over the
+ones a game's tests asked —`model` and the model's questions— that wrote
+them into `--out`. Every stage has the
 same shape, and this crate was the first to be written to it:
 
-* **It reads the game itself**, from a Ditto dump —`--data`—, **with
+* **It reads the game itself**, from a Ditto dump —the `data` path—, **with
   Ditto's library**: `ditto::dump::Dump` and the schema's types, which are
   liblcf's names. It keeps no model of the format and no reader of its
   own, and it reads only the sections it uses —here `actors` and the
@@ -63,12 +64,13 @@ same shape, and this crate was the first to be written to it:
   for the caller to hand over. A constant of the engine comes along, with a
   comment that says where it was measured.
 * **What it writes is pieces of the `.inc`**, text for ca65, one file per
-  piece, which the caller puts where they go —`--out`—; **and a JSON** with
+  piece, which the caller puts where they go; **and a JSON** with
   what the rest of the conversion needs to know about them —`battle.json`—.
   Nothing in it knows where a cartridge is built.
-* **Two exit codes**: `1` when the answer is no —it does not fit, the dump
-  is broken—, `2` when the call is wrong. The message goes to standard
-  error.
+* **Two kinds of no**: `Bad::Answer` when the answer is no —it does not
+  fit, the dump is broken—, `Bad::Usage` when the call is wrong. A binary
+  over a stage exits with `1` and `2` for them, and the message goes to
+  standard error.
 * **Its tests need no game**: a small one is built inside the test, made
   to touch the tables' edges (`tests/tables.rs`). The model's game is
   bigger and lives in `tests/game/`, with four hundred battles and
@@ -137,8 +139,7 @@ the compiler gave a slot.
   item's name in a victory line keeps.
 
 The request is `ModelRequest` in `src/model.rs`, and the answer `Model`:
-the converter builds and reads those types, and the binary reads and
-writes the same keys.
+the converter builds and reads those types.
 
 It writes `model.json`: `layout`, the geometry and the model's constants
 —see `layout`—; `enemies`, those of the troops, and `actions`, what each
@@ -206,7 +207,8 @@ battle's own.
 The battle screen's geometry, in cells, and the model's constants —the
 seed, the commands, the outcomes— go to the emission inside `model.json`,
 and a game's tests read the ones they need from a built cartridge's
-`.sym`. Until 2026-11-25 the binary wrote them alone, with `layout`.
+`.sym`. Until 2026-11-25 the binary, which went on 2026-11-27, wrote them
+alone, with `layout`.
 
 ## `experience`
 

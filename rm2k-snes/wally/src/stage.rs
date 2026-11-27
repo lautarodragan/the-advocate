@@ -1,7 +1,8 @@
 //! Wally as a stage of a converter: what each of its commands answers, as
 //! the files it makes, by name. The converter calls [`map`] as a function;
-//! the binary is a `main` over the others —the questions the tests ask—
-//! that reads the request and writes the files into `--out`.
+//! the others —`layers_of`, `bakeable_of`, `split_of`— are the crate's
+//! tests' questions. Until 2026-11-27 a binary was a `main` over them, for
+//! a game's tests.
 //!
 //! **They read nothing but the dump, the search directories and the request
 //! they are given** —and the files the request names, the project's maps,
@@ -20,8 +21,8 @@ use std::path::{Path, PathBuf};
 /// What a command answers: every file it makes, by name.
 pub type Files = BTreeMap<String, Vec<u8>>;
 
-/// One of the commands, as the binary calls them: the dump, the search
-/// directories, the request and what its complaints start with.
+/// One of the questions on a request: the dump, the search directories,
+/// the request and what its complaints start with.
 pub type Command = fn(&Path, &[PathBuf], &Value, &str) -> Result<Files>;
 
 /// What a request's complaints start with when it comes as a value and not

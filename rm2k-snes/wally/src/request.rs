@@ -3,7 +3,7 @@
 //! [`LayersAsked`] for its layers alone—, and what this stage makes of it,
 //! [`MapRequest`] and [`LayersRequest`]. The converter builds an [`Asked`]
 //! and this stage reads it back with serde, so a field renamed on one side
-//! does not compile on the other; the binary reads the same types from the
+//! does not compile on the other; [`read`] reads the same types from a
 //! request file.
 //!
 //! **The fields go in the order the converter wrote them by hand** when

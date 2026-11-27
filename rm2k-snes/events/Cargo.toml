@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 ditto = { path = "../../rm2k/ditto" }
 # Where a warning goes: the conversion's log when the converter calls
-# this, stderr when this crate's binary runs. See `rm2k_project::log`.
+# this, stderr otherwise. See `rm2k_project::log`.
 rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
 rm2k-snes-bytecode = { path = "../bytecode" }

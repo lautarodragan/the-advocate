@@ -5,8 +5,7 @@
 //! `rm2k-snes/battle/README.md`—: it reads the game from a Ditto dump
 //! ([`game`]), gets what the cartridge decided in a request ([`request`]),
 //! and answers what it made as files by name ([`stage`]), its two JSON
-//! files typed ([`answer`]), which its binary
-//! writes into a directory. It makes a whole map ([`map`]):
+//! files typed ([`answer`]). It makes a whole map ([`map`]):
 //! its two background layers ([`layers`]), the events baked into them
 //! ([`baking`]), its characters as objects, and its blocks.
 //!
