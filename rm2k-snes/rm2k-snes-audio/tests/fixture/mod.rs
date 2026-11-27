@@ -39,7 +39,7 @@ fn track(events: &[(u32, Vec<u8>)]) -> Vec<u8> {
     chunk
 }
 
-fn midi(tracks: &[Vec<(u32, Vec<u8>)>]) -> Vec<u8> {
+pub fn midi(tracks: &[Vec<(u32, Vec<u8>)>]) -> Vec<u8> {
     let mut data = b"MThd".to_vec();
     data.extend(6u32.to_be_bytes());
     data.extend(1u16.to_be_bytes());
@@ -51,7 +51,7 @@ fn midi(tracks: &[Vec<(u32, Vec<u8>)>]) -> Vec<u8> {
     data
 }
 
-fn note(
+pub fn note(
     events: &mut Vec<(u32, Vec<u8>)>,
     channel: u8,
     start: u32,
