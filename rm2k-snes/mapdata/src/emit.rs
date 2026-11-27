@@ -5403,4 +5403,90 @@ mod tests {
         let k = texts.add(&db_text(&glyphs, "\u{f3}\u{fa}"));
         assert_eq!(text_bytes(&texts, k), [255, b'u']);
     }
+
+    /// What `anim_frame_build` in runtime/battle_animation_frames.s does
+    /// with a stored frame: erase the tiles the previous one wrote, then
+    /// write this one's, each record a tile number and its 32 bytes, up to
+    /// the `$FF`. The buffer is never cleared whole, so a frame is right
+    /// only if the previous one's tiles are all it has to undo.
+    fn build_in(buffer: &mut [u8], previous: Option<&[u8]>, stored: &[u8]) {
+        if let Some(previous) = previous {
+            for record in previous.chunks(33).take_while(|r| r[0] != 0xFF) {
+                let at = record[0] as usize * 32;
+                buffer[at..at + 32].fill(0);
+            }
+        }
+        let mut k = 0;
+        while stored[k] != 0xFF {
+            let at = stored[k] as usize * 32;
+            buffer[at..at + 32].copy_from_slice(&stored[k + 1..k + 33]);
+            k += 33;
+        }
+        assert_eq!(k + 1, stored.len(), "bytes after the $FF");
+    }
+
+    /// Every frame comes back whole through what the ROM does with it, one
+    /// after another in the same buffer: frames with every tile, with none,
+    /// with only the first or the last, a tile whose only set byte is its
+    /// last or its first, and a run of pseudo-random ones. It was ABL's
+    /// `test_animation_frames.py`, against every frame of the game's
+    /// animations through the converter's binary, until 2026-11-27; the
+    /// ROM side of it stays there, against goldens.
+    #[test]
+    fn an_animation_frame_comes_back_whole_without_its_gaps() {
+        const TILES: usize = 64;
+        let empty = vec![0u8; TILES * 32];
+        let mut frames: Vec<Vec<u8>> = vec![
+            (0..TILES * 32).map(|b| (b % 251) as u8 | 1).collect(),
+            empty.clone(),
+            {
+                let mut f = empty.clone();
+                f[..32].fill(0x55);
+                f
+            },
+            {
+                let mut f = empty.clone();
+                f[(TILES - 1) * 32..].fill(0xAA);
+                f
+            },
+            {
+                let mut f = empty.clone();
+                f[5 * 32 + 31] = 1;
+                f[6 * 32] = 0x80;
+                f
+            },
+        ];
+        // A little xorshift: about half the tiles of each frame drawn, so
+        // frames in a row share some tiles and not others.
+        let mut seed = 0x2545_F491u32;
+        let mut next = || {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            seed
+        };
+        for _ in 0..40 {
+            let mut f = empty.clone();
+            for tile in 0..TILES {
+                if next() % 2 == 0 {
+                    for b in &mut f[tile * 32..(tile + 1) * 32] {
+                        *b = if next() % 4 == 0 { next() as u8 } else { 0 };
+                    }
+                }
+            }
+            frames.push(f);
+        }
+        let stored: Vec<Vec<u8>> = frames
+            .iter()
+            .map(|f| frame_without_gaps(f, TILES))
+            .collect();
+        assert_eq!(stored[1], [0xFF], "an empty frame is only its end");
+        assert_eq!(stored[0].len(), TILES * 33 + 1, "a full one, every tile");
+        let mut buffer = vec![0u8; TILES * 32];
+        for (k, frame) in frames.iter().enumerate() {
+            let previous = k.checked_sub(1).map(|p| stored[p].as_slice());
+            build_in(&mut buffer, previous, &stored[k]);
+            assert!(buffer == *frame, "frame {k} does not come back whole");
+        }
+    }
 }
