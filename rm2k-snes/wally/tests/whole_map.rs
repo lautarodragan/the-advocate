@@ -11,7 +11,6 @@ use rm2k_render::{picture, Picture};
 use rm2k_rules::chipset::common_origin;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("wally-map-{}-{name}", std::process::id()));
@@ -305,28 +304,20 @@ fn a_map_whose_animation_box_does_not_fit_loses_the_box() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+/// The stage's question `command` —`bakeable` or `split`— on `body`, as
+/// the `wally` binary asked it until 2026-11-27: its JSON answer.
 fn ask(command: &str, dump: &Path, pictures: &Path, dir: &Path, body: Value) -> Value {
     let request = dir.join(format!("{command}.request.json"));
     std::fs::write(&request, body.to_string()).unwrap();
-    let out = dir.join(format!("{command}-out"));
-    let done = Command::new(env!("CARGO_BIN_EXE_wally"))
-        .args([command, "--data"])
-        .arg(dump)
-        .arg("--search-dir")
-        .arg(pictures)
-        .arg("--request")
-        .arg(&request)
-        .arg("--out")
-        .arg(&out)
-        .output()
-        .unwrap();
-    assert!(
-        done.status.success(),
-        "{}",
-        String::from_utf8_lossy(&done.stderr)
-    );
-    serde_json::from_str(&std::fs::read_to_string(out.join(format!("{command}.json"))).unwrap())
-        .unwrap()
+    let question: wally::stage::Command = match command {
+        "bakeable" => wally::stage::bakeable_of,
+        "split" => wally::stage::split_of,
+        _ => panic!("no question {command}"),
+    };
+    let (asked, whose) = wally::request::read(&request).unwrap();
+    let files = question(dump, &[pictures.to_path_buf()], &asked, &whose)
+        .unwrap_or_else(|e| panic!("{e}"));
+    serde_json::from_slice(&files[&format!("{command}.json")]).unwrap()
 }
 
 #[test]

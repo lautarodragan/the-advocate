@@ -465,7 +465,6 @@ dependencies = [
 name = "rm2k-snes-battle"
 version = "0.1.0"
 dependencies = [
- "clap",
  "ditto",
  "rm2k-rules",
  "rm2k-snes-text",
@@ -521,7 +520,6 @@ dependencies = [
 name = "rm2k-snes-events"
 version = "0.1.0"
 dependencies = [
- "clap",
  "ditto",
  "rm2k-project",
  "rm2k-rules",
@@ -758,7 +756,6 @@ name = "wally"
 version = "0.1.0"
 dependencies = [
  "adeleine",
- "clap",
  "ditto",
  "rm2k-render",
  "rm2k-rules",
