@@ -30,10 +30,11 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # —`rm2k-snes-project`, `rm2k-snes-cartridges`, `rm2k-snes-patches`—, which
 # `advocate` replaced, and `images`, `convert`, `mapdata`, `screens`,
 # `battle`, `events` and `wally` until 2026-11-27, when the tests stopped
-# asking them: installing does not remove them, `cargo uninstall
-# rm2k-project rm2k-snes-cartridge rm2k-snes-patches rm2k-snes-images
-# rm2k-snes-convert rm2k-snes-mapdata rm2k-snes-screens rm2k-snes-battle
-# rm2k-snes-events wally --root <root>` does.
+# asking them, and `sketch` went whole that day: installing does not
+# remove them, `cargo uninstall rm2k-project rm2k-snes-cartridge
+# rm2k-snes-patches rm2k-snes-images rm2k-snes-convert rm2k-snes-mapdata
+# rm2k-snes-screens rm2k-snes-battle rm2k-snes-events wally rm2k-sketch
+# --root <root>` does.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own:

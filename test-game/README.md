@@ -32,9 +32,8 @@ pacer erase themselves, and a loop leads back to the same map. And the
 anvil, where a battle animation falls on a crate and a slab drawn with a
 ChipSet tile, and flashes them. And the frost, a field with a hedge down
 the middle whose events swap its ChipSet for a winter's and for one that
-lets the hero through the hedge, and back. And the forest, 30x22, written straight
-as `.tiles`: 2x2 trees whose crowns the hero walks behind and whose
-trunks block, a pond with deep water in the middle and a dirt path, on
+lets the hero through the hedge, and back. And the forest, 30x22: 2x2
+trees whose crowns the hero walks behind and whose trunks block, a pond with deep water in the middle and a dirt path, on
 its own ChipSet entry, the Exterior with those trunks and the water not
 walkable. The showcase's ChipSet gives its first four tiles a
 terrain each. And the crossing, four cells
@@ -57,12 +56,9 @@ troop, whose names carry letters outside ASCII for the text screens.
                         names, enums by name, and every field that holds its
                         default left out. `rm2k/ditto/README.md` says the
                         format
-      maps/MapNNNN.toml each map's tile layers, sketched: a grid of
-                        characters and a legend of the tiles each one stands
-                        for, which `rm2k-sketch` makes into the dump's
-                        `.tiles`. See `rm2k/sketch/`
-      maps/MapNNNN.tiles a map's two tile layers written straight in
-                        Ditto's text, where there is no sketch: the forest
+      maps/MapNNNN.tiles each map's two tile layers, in Ditto's text: one
+                        id per cell, aligned, under a comment that says
+                        what the map is for
       RPG_RT.ini        the game's title, for RPG Maker and EasyRPG
     ChipSet/, CharSet/, FaceSet/, System/
                         the pictures, from EasyRPG's RTP
@@ -133,8 +129,8 @@ pictures beside them: that folder opens in RPG Maker 2000 or in EasyRPG
 Player— and dumps them back into `build/data/`, which is what the converter
 reads, the same path as a port's dump. The editor can be used to draw: what
 it saves, `ditto unpack` turns back into an exact dump, which is copied into
-`src/` by hand —and a map drawn there loses its sketch, since the editor
-writes ids—.
+`src/` by hand —and a map's `.tiles` loses the comment that says what it
+is for, which the editor does not keep—.
 
 **The SoundFont** belongs to the machine and comes in `SOUNDFONT`, with no
 default. The game has no music yet, but the converter asks for one; once it

@@ -51,10 +51,6 @@ have layers of their own, one folder each:
                  passability, which layer covers which, the page a new
                  game starts on and what it draws, the experience curve,
                  what a map inherits from the tree
-      sketch/    `rm2k-sketch`: a map's tile layers drawn as text —a grid of
-                 characters and a legend of the tiles each one stands for—
-                 made into the `.tiles` of a dump; the test game's maps are
-                 written that way
       rm2k-render/  a library: a map's tile layers, its CharSets, what its
                  battles are drawn with —animation cells, backdrops,
                  enemies—, and the faces, windows and pictures of the
@@ -134,7 +130,7 @@ have layers of their own, one folder each:
 **A few of them are commands, and the rest are libraries under them.**
 The commands a person runs, from a game's recipes or by hand: `advocate`,
 which builds a game, `ditto`, `rm2k-snes-audio` (its `volume-ceilings`),
-`goombario`, `fxpak` and `rm2k-sketch`. **The pipeline runs no command of ours**: `advocate build`
+`goombario` and `fxpak`. **The pipeline runs no command of ours**: `advocate build`
 calls the converter, the assembling and the MSU-1 tracks as libraries.
 Until 2026-11-25 it was `rm2k-snes-cartridges`, which ran
 `rm2k-snes-convert` and `rm2k-snes-audio msu` as processes and had
@@ -162,7 +158,10 @@ Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when
 the converter was Python and could only reach Rust through a process; and
 `assemble`, `space`, `msu` and `volume-ceilings` were commands of their own,
 `rm2k-snes-assemble`, `rm2k-snes-space`, `rm2k-snes-msu` and
-`rm2k-snes-volume-ceilings`.
+`rm2k-snes-volume-ceilings`. And `rm2k-sketch`, in `rm2k/`, made the
+test game's maps out of a grid of characters until 2026-11-27, when they
+became the `.tiles` it wrote: its legend never chose an autotile's
+variant, which is what is hard in writing a map.
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
