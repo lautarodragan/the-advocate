@@ -3,6 +3,7 @@ name = "rm2k-project"
 version = "0.1.0"
 edition = "2021"
 description = "Finds an rm2k-snes project, reads its settings, and knows where the machine's things are; and all that as JSON, for whoever is not a tool"
+license.workspace = true
 
 [lib]
 name = "rm2k_project"

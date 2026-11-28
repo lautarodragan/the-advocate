@@ -3,6 +3,7 @@ name = "rm2k-snes-battle"
 version = "0.1.0"
 edition = "2021"
 description = "An rm2k-snes game's battle: its tables, its model and text screen, and the battle played turn by turn"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_battle"

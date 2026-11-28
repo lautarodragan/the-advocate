@@ -3,6 +3,7 @@ name = "rm2k-snes-audio"
 version = "0.1.0"
 edition = "2021"
 description = "Compiles an rm2k-snes game's music for the SPC700: the shared sample bank, one stream per song, one audio package per map"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_audio"

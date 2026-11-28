@@ -3,6 +3,7 @@ name = "rm2k-snes-images"
 version = "0.1.0"
 edition = "2021"
 description = "An rm2k-snes game's pictures brought to the console: the full screens, the picture of a ShowPicture, the battle backdrops and battlers, and the battle animations, scaled, toned and down to their palettes"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_images"

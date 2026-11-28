@@ -3,6 +3,7 @@ name = "rm2k-snes-events"
 version = "0.1.0"
 edition = "2021"
 description = "An rm2k-snes game's event pages, compiled to the bytecode a Super Nintendo cartridge runs"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_events"

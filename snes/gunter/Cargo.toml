@@ -3,6 +3,7 @@ name = "gunter"
 version = "0.1.0"
 edition = "2021"
 description = "Encodes PCM into the SPC700's BRR blocks, and pulls samples out of SoundFonts"
+license.workspace = true
 
 [lib]
 name = "gunter"

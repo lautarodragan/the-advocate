@@ -3,6 +3,7 @@ name = "rm2k-snes-patches"
 version = "0.1.0"
 edition = "2021"
 description = "What an rm2k-snes converter decided to lose, written down as TOML, versioned, and checked against every built cartridge"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_patches"

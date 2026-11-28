@@ -3,6 +3,7 @@ name = "adeleine"
 version = "0.1.0"
 edition = "2021"
 description = "Decides which colours a picture loses and how the ones left are grouped into palettes: the half of a graphics pipeline that changes what is seen"
+license.workspace = true
 
 [lib]
 name = "adeleine"

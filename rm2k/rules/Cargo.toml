@@ -3,6 +3,7 @@ name = "rm2k-rules"
 version = "0.1.0"
 edition = "2021"
 description = "What the data of an RPG Maker 2000 game means: where one can walk, which layer covers which, which page is active and what it draws, the experience curve, the encounters of a map"
+license.workspace = true
 
 [lib]
 name = "rm2k_rules"

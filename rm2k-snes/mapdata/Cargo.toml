@@ -3,6 +3,7 @@ name = "rm2k-snes-mapdata"
 version = "0.1.0"
 edition = "2021"
 description = "The data .inc of an rm2k-snes cartridge: what every domain of the conversion answered, written for ca65, with the cartridge's memory laid out"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_mapdata"
