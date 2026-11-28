@@ -19,9 +19,9 @@ cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 local_tools := justfile_directory() / ".local-tools"
 export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
-# The Rust projects, in the order they are installed. `project`, `rules`,
-# `gunter`, `adeleine`, `voodoo`, `lz2`, `rm2k-render`, `bytecode` and
-# `text` are libraries, and they go into the binaries that use them, which
+# The Rust projects, in the order they are installed. `ditto`, `project`,
+# `rules`, `gunter`, `adeleine`, `voodoo`, `lz2`, `rm2k-render`, `bytecode`
+# and `text` are libraries, and they go into the binaries that use them, which
 # are compiled with them. So a branch that changes a library reinstalls the
 # binaries that link it, not the library —its dependents in `cargo
 # metadata`: `gunter`'s is `rm2k-snes-audio`, `rm2k-render`'s are most of
@@ -30,11 +30,12 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # —`rm2k-snes-project`, `rm2k-snes-cartridges`, `rm2k-snes-patches`—, which
 # `advocate` replaced, and `images`, `convert`, `mapdata`, `screens`,
 # `battle`, `events` and `wally` until 2026-11-27, when the tests stopped
-# asking them, and `sketch` went whole that day: installing does not
-# remove them, `cargo uninstall rm2k-project rm2k-snes-cartridge
-# rm2k-snes-patches rm2k-snes-images rm2k-snes-convert rm2k-snes-mapdata
-# rm2k-snes-screens rm2k-snes-battle rm2k-snes-events wally rm2k-sketch
-# --root <root>` does.
+# asking them, and `ditto` that day too, when `advocate import` took its
+# place; `sketch` went whole. Installing does not remove them, `cargo
+# uninstall rm2k-project rm2k-snes-cartridge rm2k-snes-patches
+# rm2k-snes-images rm2k-snes-convert rm2k-snes-mapdata rm2k-snes-screens
+# rm2k-snes-battle rm2k-snes-events wally rm2k-sketch ditto --root <root>`
+# does.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own:

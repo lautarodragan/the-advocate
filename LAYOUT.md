@@ -45,7 +45,7 @@ have layers of their own, one folder each:
       lz2/       a library: Nintendo's LC_LZ2, with an optimal parser
 
     rm2k/        RPG Maker 2000's, knowing nothing of the console
-      ditto/     reads and writes its formats; and as a library, the one
+      ditto/     a library: reads and writes its formats, and the one
                  place in Rust that reads a dump, with the schema's types
       rules/     `rm2k-rules`, the library of what the format means:
                  passability, which layer covers which, the page a new
@@ -125,12 +125,13 @@ have layers of their own, one folder each:
       advocate/  `advocate`, the one command that builds a game: its
                  cartridges, their MSU-1 tracks and `build/advocate.json`,
                  what a game's tests and recipes read, calling the
-                 converter and the cartridges as libraries
+                 converter and the cartridges as libraries; and `import`,
+                 an RPG Maker game into its dump, and `export`, back
 
 **A few of them are commands, and the rest are libraries under them.**
 The commands a person runs, from a game's recipes or by hand: `advocate`,
-which builds a game, `ditto`, `rm2k-snes-audio` (its `volume-ceilings`),
-`goombario` and `fxpak`. **The pipeline runs no command of ours**: `advocate build`
+which builds a game and imports one, `rm2k-snes-audio` (its
+`volume-ceilings`), `goombario` and `fxpak`. **The pipeline runs no command of ours**: `advocate build`
 calls the converter, the assembling and the MSU-1 tracks as libraries.
 Until 2026-11-25 it was `rm2k-snes-cartridges`, which ran
 `rm2k-snes-convert` and `rm2k-snes-audio msu` as processes and had
@@ -153,7 +154,7 @@ running the conversion, `advocate` (`key` in `convert/src/stage.rs`), so
 any change to any stage, or to the builder, expires every stage's
 answers. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
 LZ2, Gunter, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
-`rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto's reader. Until 2026-11-23
+`rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto. Until 2026-11-23
 Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when
 the converter was Python and could only reach Rust through a process; and
 `assemble`, `space`, `msu` and `volume-ceilings` were commands of their own,
@@ -161,7 +162,10 @@ the converter was Python and could only reach Rust through a process; and
 `rm2k-snes-volume-ceilings`. And `rm2k-sketch`, in `rm2k/`, made the
 test game's maps out of a grid of characters until 2026-11-27, when they
 became the `.tiles` it wrote: its legend never chose an autotile's
-variant, which is what is hard in writing a map.
+variant, which is what is hard in writing a map. And Ditto had a
+binary, `ditto`, until that same day: what a game's `just dump` asked it
+is `advocate import`, and what the test game's `just game` asked it,
+`advocate export` and `import`.
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
@@ -173,8 +177,8 @@ depending on it, by reading its files, it also fails if anything in
 
 They are one Cargo workspace, `Cargo.toml` here: one `Cargo.lock` and one
 `target/`, so what they share is compiled once and at one version. The
-build profiles are the workspace's too, because Cargo ignores a member's;
-`ditto` keeps optimizing for size there. They are still
+build profiles are the workspace's too, because Cargo ignores a member's.
+They are still
 separate projects, installed and tested one by one:
 
     just install wally    one, with `cargo install --locked

@@ -124,11 +124,13 @@ From the repository's root, `just test-game` is the same `test`. The tools
 come from the PATH, like for any game, and a worktree's `.local-tools/`
 first.
 
-`just game` makes the RM2k files out of `src/` into `build/game/` —with the
-pictures beside them: that folder opens in RPG Maker 2000 or in EasyRPG
-Player— and dumps them back into `build/data/`, which is what the converter
-reads, the same path as a port's dump. The editor can be used to draw: what
-it saves, `ditto unpack` turns back into an exact dump, which is copied into
+`just game` makes the RM2k files out of `src/` into `build/game/` with
+`advocate export` —with the pictures beside them: that folder opens in RPG
+Maker 2000 or in EasyRPG Player— and imports them back into `build/data/`
+with `advocate import`, which is what the converter reads, the same path as
+a port's dump, and checks they come back byte for byte. The editor can be
+used to draw: what it saves, `advocate import --game-dir build/game` turns
+back into an exact dump in `build/exact/`, which is copied into
 `src/` by hand —and a map's `.tiles` loses the comment that says what it
 is for, which the editor does not keep—.
 

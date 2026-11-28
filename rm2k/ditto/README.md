@@ -2,24 +2,32 @@
 
 Reads the RPG Maker 2000 and 2003 files —`.ldb`, `.lmu`, `.lmt`— and dumps
 them to JSON, **and writes them back from the JSON**. It is called that because
-it does one thing only: copy somebody else's shape.
+it does one thing only: copy somebody else's shape. **It is a library**:
 
-    cargo run --release -- read   Map0001.lmu map1.json
-    cargo run --release -- write  map1.json   Map0001.lmu
+    let doc = ditto::file::read(&bytes)?;          // one file, to a Document
+    let bytes = ditto::file::write(&doc)?;         // and back
 
-    cargo run --release -- unpack ./game      ./exact ./resolved
-    cargo run --release -- pack   ./exact     ./game-again
+    ditto::dump::unpack(game, exact, resolved)?;   // a whole game, to a tree
+    ditto::dump::pack(exact, game_again)?;         // and back
+    ditto::dump::round_trip(game, exact, again)?;  // and whether it came back
 
-    cargo run --release -- schema schema.json
+    let schema = ditto::describe::to_json();       // the schema, as data
 
-`read`/`write` do one file, which is what one wants in order to look at a single
-map. `unpack`/`pack` do a whole game as **a tree of files**, which is what one
-wants in order to keep it in a repository; that layout has [its own
+`file` does one file, which serde turns into one JSON. `dump` does a whole
+game as **a tree of files**, which is what one wants in order to keep it in a
+repository; that layout has [its own
 section](#a-game-as-a-directory-and-not-one-big-json). `unpack` writes that tree
 **twice, in one run**, in the two views of [the next
-section](#two-views-of-the-same-document). `schema` writes out what the exact
-dump does not carry and a reader of it needs: see
+section](#two-views-of-the-same-document). `describe` is what the exact dump
+does not carry and a reader of it needs: see
 [below](#the-schema-is-published-as-data).
+
+The command a person runs is `advocate`, in the-advocate's
+`rm2k-snes/advocate/`: `advocate import` is `unpack` and `round_trip` over a
+game, a directory or a `.zip`, into a project's dump, and `advocate export`
+is `pack`. Until 2026-11-27 Ditto had a binary of its own, `ditto`, with
+`read`, `write`, `unpack`, `pack` and `schema`; taro's, that day: `advocate
+import` instead, and Ditto a library.
 
 ## Two views of the same document
 
@@ -71,7 +79,7 @@ types too.
 `tests/library.rs` requires the two views of a game written in the test to
 read into the same values, with no corpus; with one, `there_and_back`
 requires the same of the whole game. `pack` reads through `Dump` too, so
-the binary and a consumer read a dump with the same code.
+the way back and a consumer read a dump with the same code.
 
 ## The only thing that makes it worth anything: the way back is byte for byte
 
@@ -242,9 +250,9 @@ is not Ditto cannot know what an absent `max_hp` holds, nor what number
 file wrong. (A reader that wants none of this reads the resolved view instead,
 and that is what it is for.)
 
-    cargo run --release -- schema schema.json
+    ditto::describe::to_json()
 
-writes it out: every struct, and per field its chunk, its default as JSON,
+gives it as JSON: every struct, and per field its chunk, its default as JSON,
 the enum its values are names of, whether the binary stores it even when it
 holds the default, and the struct it nests; plus every enum table. The same
 `cargo xtask generate` run emits both this and the structs above, from the
