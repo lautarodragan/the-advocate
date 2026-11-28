@@ -32,7 +32,11 @@ pacer erase themselves, and a loop leads back to the same map. And the
 anvil, where a battle animation falls on a crate and a slab drawn with a
 ChipSet tile, and flashes them. And the frost, a field with a hedge down
 the middle whose events swap its ChipSet for a winter's and for one that
-lets the hero through the hedge, and back. The showcase's ChipSet gives its first four tiles a
+lets the hero through the hedge, and back. And the forest, 30x22, written straight
+as `.tiles`: 2x2 trees whose crowns the hero walks behind and whose
+trunks block, a pond with deep water in the middle and a dirt path, on
+its own ChipSet entry, the Exterior with those trunks and the water not
+walkable. The showcase's ChipSet gives its first four tiles a
 terrain each. And the crossing, four cells
 with two events standing on each, where every one whose trigger matches
 fires. And a common event that shows a box with escapes the console
@@ -57,6 +61,8 @@ troop, whose names carry letters outside ASCII for the text screens.
                         characters and a legend of the tiles each one stands
                         for, which `rm2k-sketch` makes into the dump's
                         `.tiles`. See `rm2k/sketch/`
+      maps/MapNNNN.tiles a map's two tile layers written straight in
+                        Ditto's text, where there is no sketch: the forest
       RPG_RT.ini        the game's title, for RPG Maker and EasyRPG
     ChipSet/, CharSet/, FaceSet/, System/
                         the pictures, from EasyRPG's RTP
