@@ -580,7 +580,7 @@ const BESIDE_TRIGGERS: std::ops::RangeInclusive<i32> = 0..=2;
 const PARALLEL: i32 = 4;
 const AUTOSTART: i32 = 3;
 /// `ControlSwitches`, and its operations that may turn a switch off.
-const CONTROL_SWITCHES: i32 = 10110;
+const CONTROL_SWITCHES: i32 = 10210;
 const SWITCH_OFF_OP: i32 = 1;
 const SWITCH_TOGGLE_OP: i32 = 2;
 
@@ -1686,8 +1686,10 @@ mod tests {
             hero.cells.into_iter().filter(|&c| c < 6).collect()
         };
         assert_eq!(top(&[]), [2].into());
-        // A common event that turns switch 7 off.
-        let off = vec![(CONTROL_SWITCHES, vec![0, 7, 7, SWITCH_OFF_OP])];
+        // A common event that turns switch 7 off: its code from Ditto, not
+        // from the constant under test.
+        let control_switches = EventCommandCode::ControlSwitches.to_i32();
+        let off = vec![(control_switches, vec![0, 7, 7, SWITCH_OFF_OP])];
         // (The scene's own cell, a tile, is one he can step on.)
         assert_eq!(top(&off), [2, 3, 4, 5].into());
     }
