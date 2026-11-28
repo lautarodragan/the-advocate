@@ -182,6 +182,11 @@ impl Environment {
     /// same goes for the tools this one runs. A game that already is one,
     /// because whoever ran this tool built it, is kept as it comes.
     pub fn unpack(&mut self, project: &Project) -> Result<(), Error> {
+        // Held for the whole process, before anything is unpacked: whoever
+        // reads the game reads it below the cache, also a tool that was
+        // handed the unpacked directory and unpacks nothing. See
+        // `cache::hold`.
+        crate::cache::hold(&self.cache(project)?);
         for name in PACKABLE {
             let Some(value) = self.values.get(name).cloned() else {
                 continue;
