@@ -213,6 +213,8 @@ fn a_cached_object_gives_the_dbg_a_fresh_one_gives() {
                 }
             }
         }
+        let date = |p: &Path| fs::metadata(p).unwrap().modified().unwrap();
+        let before = date(&build.join("mapdata.inc"));
         let hit = assemble(
             &runtime.join("main.s"),
             &build,
@@ -223,6 +225,17 @@ fn a_cached_object_gives_the_dbg_a_fresh_one_gives() {
         )
         .unwrap();
         assert_eq!(hit, side == "two" && cached, "{side}");
+        // The packing leaves a generated file it does not change as it
+        // was, date included: the date is in the `.dbg`, so a build that
+        // rewrote it would give the next build's `.dbg` another one. The
+        // fresh build finds it already packed by the cached one.
+        if side == "two" && !cached {
+            assert_eq!(
+                before,
+                date(&build.join("mapdata.inc")),
+                "the build rewrote mapdata.inc"
+            );
+        }
         dbgs.push(fs::read_to_string(build.join("game.sfc.dbg")).unwrap());
     }
     let files = |dbg: &str| -> Vec<String> {

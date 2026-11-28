@@ -518,7 +518,13 @@ pub fn resolve<P: AsRef<Path>>(paths: &[P], msu: Option<&Path>) -> Result<Packin
         _ => None,
     };
     let (kept, packing, spill) = pack_with_msu(&names, &refs, &slots(), start)?;
-    for (path, own) in paths.iter().zip(kept) {
+    for ((path, own), was) in paths.iter().zip(kept).zip(&texts) {
+        // Only what the packing changed: an unchanged file keeps its date,
+        // which `ca65` writes into the debug info, so a build served from
+        // the cache and a fresh one give the same `.dbg`.
+        if own == *was {
+            continue;
+        }
         let path = path.as_ref();
         std::fs::write(path, own).map_err(|e| format!("{}: {e}", path.display()))?;
     }
