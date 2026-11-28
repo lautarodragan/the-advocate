@@ -42,6 +42,12 @@ const VARIABLE_RANGE: i32 = 1;
 /// number.
 const VARIABLE_SET: i32 = 0;
 const OPERAND_NUMBER: i32 = 0;
+/// `ControlSwitches`' first parameter —one switch, a range— and its
+/// operations that turn a switch off or may.
+const SWITCH_SINGLE: i32 = 0;
+const SWITCH_RANGE: i32 = 1;
+const SWITCH_OFF: i32 = 1;
+const SWITCH_TOGGLE: i32 = 2;
 /// The vehicles, as `SetVehicleLocation` numbers them.
 const VEHICLES: [&str; 3] = ["boat", "ship", "airship"];
 
@@ -59,6 +65,9 @@ pub struct Arrivals {
     any_open_on: Option<BTreeSet<i32>>,
     /// The vehicles he can ride.
     vehicles: BTreeSet<&'static str>,
+    /// The switches a command of the game can turn off, as inclusive
+    /// ranges; `None` if any can be, one picked by a variable.
+    off: Option<Vec<(i32, i32)>>,
 }
 
 impl Arrivals {
@@ -97,6 +106,7 @@ impl Arrivals {
         // writes it too.
         let mut numbers: BTreeMap<i32, Option<BTreeSet<i32>>> = BTreeMap::new();
         let mut any_written = false;
+        let mut off: Option<Vec<(i32, i32)>> = Some(Vec::new());
         for c in commands {
             let p = &c.parameters;
             let get = |k: usize| p.get(k).copied();
@@ -116,6 +126,15 @@ impl Arrivals {
                 }
                 (RECALL_TO_LOCATION, Some(m), Some(x), Some(y), _) => {
                     recalls.insert((m, x, y));
+                }
+                (CONTROL_SWITCHES, Some(mode), Some(first), Some(last), Some(op))
+                    if op == SWITCH_OFF || op == SWITCH_TOGGLE =>
+                {
+                    match (mode, off.as_mut()) {
+                        (SWITCH_SINGLE, Some(o)) => o.push((first, first)),
+                        (SWITCH_RANGE, Some(o)) => o.push((first, last.max(first))),
+                        _ => off = None,
+                    }
                 }
                 (CONTROL_VARS, Some(VARIABLE_INDIRECT), ..) => any_written = true,
                 (CONTROL_VARS, Some(mode), Some(first), Some(last), _) => {
@@ -176,6 +195,7 @@ impl Arrivals {
         if out.any_open.is_some() {
             out.any_open_on = on;
         }
+        out.off = off;
         if out.vehicles.contains("airship") {
             out.anywhere
                 .get_or_insert_with(|| "an airship flies over everything".to_string());
@@ -210,8 +230,9 @@ impl Arrivals {
 
     /// Map `id`'s `reach` for Wally: where the hero arrives —none if he
     /// can be anywhere—, whether also on any cell one can step on, the
-    /// vehicles he can ride, and `commands`, what else runs there: its test
-    /// pages, as `(code, parameters)`.
+    /// vehicles he can ride, `commands`, what else runs there: its test
+    /// pages, as `(code, parameters)`; and the switches the game can turn
+    /// off, which say whether a scene runs once.
     pub fn reach(&self, id: i32, commands: &[(i32, Vec<i32>)]) -> wally::request::Reach {
         wally::request::Reach {
             entries: match self.anywhere {
@@ -225,6 +246,7 @@ impl Arrivals {
                     .is_none_or(|maps| maps.contains(&id)),
             vehicles: self.vehicles.iter().map(|v| v.to_string()).collect(),
             commands: commands.to_vec(),
+            off: self.off.clone(),
         }
     }
 }

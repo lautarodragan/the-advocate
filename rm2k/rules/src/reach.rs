@@ -606,6 +606,12 @@ pub struct Outside<'a> {
     /// The cells a vehicle he rides carries him over besides where he
     /// walks —a boat's or a ship's water—, or none.
     pub sail: &'a [bool],
+    /// The switches some command of the whole game can turn off, wherever
+    /// it runs, as inclusive ranges; `None` if any can be —one picked by a
+    /// variable— or nobody looked. A scene runs once only if the switches
+    /// that keep it from running again stay on for good: see `once` in
+    /// [`standing`].
+    pub off: Option<&'a [(i32, i32)]>,
 }
 
 /// Where each character's feet can ever be on map `id`, or `None` if
@@ -831,13 +837,15 @@ pub fn standing(
     };
     // Whether page `k` of `event`, one that starts only as the hero
     // arrives, runs once in the whole game: it turns on, for sure, every
-    // switch a page above it asks for, and that page asks for nothing
-    // else. Nothing turns those switches off —`on_arrival` asked—, so the
-    // page above holds from then on and this one never starts again: it
-    // starts the first time the hero arrives, from where he comes from
-    // outside, and not from every cell a recalled place can put him on
-    // later. A Blurred Line's Hover-Tram: the trip turns on switch 69,
-    // which its page 2 asks for, and takes him away.
+    // switch a page above it asks for, that page asks for nothing else,
+    // and no command of the game turns those switches off —not only the
+    // map's, which is what `on_arrival` asked: Vampires Dawn turns every
+    // switch off on its map 69—. So the page above holds from then on and
+    // this one never starts again: it starts the first time the hero
+    // arrives, from where he comes from outside, and not from every cell a
+    // recalled place can put him on later. A Blurred Line's Hover-Tram:
+    // the trip turns on switch 69, which its page 2 asks for, and takes
+    // him away.
     //
     // For sure: by number, at the list's top level, with no
     // `EndEventProcessing` or `JumpToLabel` before it, which could end the
@@ -860,13 +868,18 @@ pub fn standing(
                 _ => {}
             }
         }
+        let Some(game_off) = outside.off else {
+            return false;
+        };
+        let stays =
+            |s: i32| on.contains(&s) && !game_off.iter().any(|&(a, b)| (a..=b).contains(&s));
         event.pages[k + 1..].iter().any(|p| {
             let c = &p.condition;
             let f = &c.flags;
             (f.switch_a || f.switch_b)
                 && !(f.variable || f.item || f.actor || f.timer || f.timer2)
-                && (!f.switch_a || on.contains(&c.switch_a_id))
-                && (!f.switch_b || on.contains(&c.switch_b_id))
+                && (!f.switch_a || stays(c.switch_a_id))
+                && (!f.switch_b || stays(c.switch_b_id))
         })
     };
     for event in &map.events {
@@ -1759,7 +1772,8 @@ mod tests {
     /// computed places, so he can be on any aisle cell; but the scene runs
     /// once, as he first arrives on (1, 2), and seats him only on (3, 1).
     /// Without the switch it runs every time he arrives, a recall included,
-    /// and can seat him on any seat two cells right of the aisle.
+    /// and can seat him on any seat two cells right of the aisle; the same
+    /// if a command anywhere in the game can turn the switch off.
     #[test]
     fn a_scene_that_runs_once_starts_where_the_hero_first_arrives() {
         let (mut m, flags) = map(&[
@@ -1770,7 +1784,7 @@ mod tests {
         ]);
         const AUTOSTART: i32 = 3;
         let control_switches = EventCommandCode::ControlSwitches.to_i32();
-        let mut seats = |switch_on: bool| -> BTreeSet<usize> {
+        let mut seats = |switch_on: bool, off: &[(i32, i32)]| -> BTreeSet<usize> {
             let mut commands = vec![(MOVE_EVENT, vec![HERO, 8, 0, 0, 1, 1, THROUGH_ON, 0])];
             if switch_on {
                 commands.push((control_switches, vec![0, 69, 69, 0]));
@@ -1786,6 +1800,7 @@ mod tests {
             let outside = Outside {
                 entries: Some(&[(1, 2)]),
                 any_open: true,
+                off: Some(off),
                 ..Default::default()
             };
             let all = standing(1, &m, &flags, &[], outside).expect("nobody anywhere");
@@ -1798,8 +1813,12 @@ mod tests {
                 .filter(|&c| (9..18).contains(&c))
                 .collect()
         };
-        assert_eq!(seats(true), [12].into());
-        assert_eq!(seats(false), [12, 13, 14, 15, 16].into());
+        let anywhere: BTreeSet<usize> = [12, 13, 14, 15, 16].into();
+        assert_eq!(seats(true, &[]), [12].into());
+        assert_eq!(seats(false, &[]), anywhere);
+        // A map elsewhere in the game turns every switch off: the scene
+        // runs again on a later arrival, a recall's too.
+        assert_eq!(seats(true, &[(1, 100)]), anywhere);
     }
 
     /// The hero walks in four directions: a floor he could only step onto

@@ -535,6 +535,9 @@ pub struct Reach {
     pub vehicles: Vec<String>,
     /// As `(code, parameters)`.
     pub commands: Vec<(i32, Vec<i32>)>,
+    /// See `rm2k_rules::reach::Outside::off`.
+    #[serde(default)]
+    pub off: Option<Vec<(i32, i32)>>,
 }
 
 #[cfg(test)]

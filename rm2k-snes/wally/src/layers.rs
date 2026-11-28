@@ -587,6 +587,7 @@ pub fn below(
             entries: entries.as_deref(),
             any_open: reach.any_open,
             sail: &sail,
+            off: reach.off.as_deref(),
         },
     );
     let apart = crate::substitutions::apart(&request.substitutions, &request.common_substitutions);
@@ -651,6 +652,7 @@ pub fn standing(
             entries: entries.as_deref(),
             any_open: reach.any_open,
             sail: &sail,
+            off: reach.off.as_deref(),
         },
     );
     MEMOS.with_borrow_mut(|m| m.standing.push((key, done.clone())));
