@@ -562,6 +562,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // on a map that loops, whose cells the console builds elsewhere —see
         // `wrap.s`—.
         posed_stills: game.posed.on(map_id) && map.scroll_type == 0,
+        posed_over_panoramas: game.posed_over_panoramas.on(map_id),
         baked_events_nudge: game.nudge,
         test_commands: if game.decorative || game.posed.on(map_id) || painting {
             commands()

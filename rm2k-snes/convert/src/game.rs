@@ -341,6 +341,14 @@ pub struct Game {
     /// cells, a block per pose, instead of as objects: see `posed` in Wally.
     /// Off when the key is missing, for the same reason.
     pub posed: OnMaps,
+    /// `[graphics] baked_events_over_panoramas`: on which of those maps
+    /// they go into the background also when the map's panorama shows —in
+    /// mode 3, flattened, mode 1 or baked into the background, every cell
+    /// they are drawn on hiding the panorama—. Off when the key is missing:
+    /// it spends background tiles on maps that `baked_events` alone leaves
+    /// as they were, and a game whose cartridge has no room for them says
+    /// nothing. taro's, on 2026-11-28.
+    pub posed_over_panoramas: OnMaps,
     /// `[graphics] baked_events_nudge`: how many pixels, in x and in y, the
     /// poses of one of those may be moved to fit its 16x16 cell when they
     /// are drawn a little past it —see `posed::shift_into_the_cell` in
@@ -544,6 +552,10 @@ impl Game {
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
             },
             posed: baked_events(project)?,
+            posed_over_panoramas: OnMaps::read(
+                project,
+                &["graphics", "baked_events_over_panoramas"],
+            )?,
             nudge: nudge(project)?,
             map_pictures: match project.value(&["graphics", "map_pictures"]) {
                 Err(_) => false,
@@ -949,6 +961,23 @@ mod tests {
         assert!(posed("[graphics]\nbaked_events = 8").is_err());
         // The old name is refused, not ignored.
         assert!(posed("[graphics]\nposed_events = true").is_err());
+    }
+
+    /// Off when the key is missing: it spends background tiles where
+    /// `baked_events` alone spends none.
+    #[test]
+    fn baked_events_over_panoramas_is_off_unless_the_project_says() {
+        let read = |text: &str| {
+            OnMaps::read(
+                &Project::from_text(Path::new("/nowhere"), text).unwrap(),
+                &["graphics", "baked_events_over_panoramas"],
+            )
+        };
+        assert_eq!(read("").unwrap(), OnMaps::Nowhere);
+        assert!(read("[graphics]\nbaked_events_over_panoramas = true")
+            .unwrap()
+            .on(2));
+        assert!(read("[graphics]\nbaked_events_over_panoramas = 2").is_err());
     }
 
     /// On by default; 0 turns it off; a negative number, or more than the

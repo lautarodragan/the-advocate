@@ -55,8 +55,9 @@ pub struct Drawn {
     /// blocks it needs are drawn here, converted with the map and cut off
     /// after the blocks are made. A map with a panorama uses them
     /// flattened, and in mode 3 or 1 only if halves are not enough
-    /// (`LayersRequest::extra_needed`); baked, hidden or black it converts
-    /// the map as it is.
+    /// (`LayersRequest::extra_needed`); black it converts the map as it is,
+    /// and baked too unless still events' poses need the rows and no
+    /// substitution does —see `convert_ways`—.
     pub extended: Option<(Map, Layers)>,
     /// The cells a decorative event on the hero's layer closes, and the
     /// walls the caller left out —[`Game::walls`]—: the map's passability
@@ -860,9 +861,18 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
                 return painted(drawn, p, wc, above);
             }
             Way::Baked => {
-                let done =
-                    crate::background::convert_with(&baked(&drawn.layers, &p.whole), wc, None)
-                        .map_err(|e| e.to_string())?;
+                // With the rows of the still events' poses, if there are any
+                // and no substitution's: the panorama is drawn under them at
+                // their place, not at the event's cell, and the cells they
+                // copy hide it whole —see `posed_events` in `map.rs`—, which
+                // a substitution's rows do not. `blocks` cuts them off again.
+                let rows = drawn
+                    .extended
+                    .as_ref()
+                    .filter(|_| !request.posed.is_empty() && request.extra.is_empty())
+                    .map_or(&drawn.layers, |(_, l)| l);
+                let done = crate::background::convert_with(&baked(rows, &p.whole), wc, None)
+                    .map_err(|e| e.to_string())?;
                 if done.background.tiles.len() / 64 > budget.baked {
                     return Err(format!(
                         "baked, the background spends {} tiles and the most it can get is {}",

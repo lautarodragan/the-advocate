@@ -182,6 +182,9 @@ pub struct Asked {
     /// [`MapRequest::posed`].
     #[serde(default)]
     pub posed_stills: bool,
+    /// [`MapRequest::posed_over_panoramas`].
+    #[serde(default)]
+    pub posed_over_panoramas: bool,
     #[serde(default)]
     pub baked_events_nudge: i32,
     #[serde(default)]
@@ -503,6 +506,7 @@ impl Asked {
             lowers: self.reach_lowers.unwrap_or(true),
             boots_here: self.boots_here.unwrap_or(true),
             posed: self.posed_stills,
+            posed_over_panoramas: self.posed_over_panoramas,
             painted_events: self.painted_events,
             baked_events_nudge: self.baked_events_nudge,
         })
