@@ -34,7 +34,7 @@ use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
 use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
 use crate::stage::Files;
 use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
-use adeleine::Color;
+use adeleine::{lab_distance, Color};
 use rm2k_render::picture;
 use rm2k_rules::chipset::passability_table;
 use rm2k_rules::passability::ALL;
@@ -81,6 +81,11 @@ pub struct MapRequest {
     /// The System picture, if the cartridge carries the timer in this map.
     pub timer: Option<PathBuf>,
     pub rain: bool,
+    /// Whether some page can make it rain on this map —the converter's
+    /// `rain_reach`—, where `rain` carries the drops on every map of a game
+    /// that sets rain anywhere. A drop drawn with a colour not its own is
+    /// only weighed here: see [`loses_more`].
+    pub rain_falls: bool,
     /// The sandstorm: `None` when the cartridge has none —missing or
     /// null—, and otherwise whether this map carries its grains, which go
     /// only where it can blow.
@@ -169,6 +174,10 @@ pub struct Note {
     pub stop: bool,
     pub loss: Option<&'static str>,
     pub events: Vec<i32>,
+    /// For a loss that draws colours with others —`rain-colors-lent`—, how
+    /// far the farthest one is drawn from its own, as `lab_distance`
+    /// measures it; 0 for every other note. See [`loses_more`].
+    pub distance: i64,
 }
 
 fn note(text: String) -> Note {
@@ -1059,7 +1068,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         .filter(|n| n.dressed())
         .map(|n| (n.charset.clone(), n.index))
         .collect();
-    let Some(what) = loses_more(&with, &without, &dressing) else {
+    let Some(what) = loses_more(&with, &without, &dressing, request.rain_falls) else {
         return Ok(with);
     };
     without.notes.push(lost(
@@ -1082,27 +1091,25 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
 /// waiting for a slot of the cache, are their own cost and go; the map's
 /// pictures, its animations or its characters' colours are not paid for
 /// them.
-fn loses_more(with: &Whole, without: &Whole, dressing: &BTreeSet<Key>) -> Option<String> {
-    let losses = |w: &Whole| -> BTreeSet<(&'static str, Option<i32>)> {
-        let mut out = BTreeSet::new();
-        for n in &w.notes {
-            let Some(kind) = n.loss else { continue };
-            if kind == "palette-lent" {
-                continue;
-            }
-            if n.events.is_empty() {
-                out.insert((kind, None));
-            }
-            for e in &n.events {
-                if !with.dressed.contains(e) {
-                    out.insert((kind, Some(*e)));
-                }
-            }
-        }
-        out
-    };
-    let before = losses(without);
-    let mut more: Vec<String> = losses(with)
+///
+/// **Nor the raindrops lent a palette, unless they can be seen and look like
+/// another colour**: a `rain-colors-lent` counts only on a map where some
+/// page can make it rain —`rain_falls`—, and there only when a drop is drawn
+/// farther than [`RAIN_SHADE`] from its grey. Every map of a game that sets
+/// rain anywhere carries the drops, so without this a character a route
+/// dresses was left out of a map it never rains on, for drops nobody sees:
+/// A Blurred Line's Forem —Kersh, by his sprite— at the factory, map 83,
+/// for `(6, 6, 7)` drawn `(6, 6, 6)`. taro chose the drops paying over
+/// Kersh missing or the pump's red light, and asked for it as a rule for
+/// every map (2026-11-27).
+fn loses_more(
+    with: &Whole,
+    without: &Whole,
+    dressing: &BTreeSet<Key>,
+    rain_falls: bool,
+) -> Option<String> {
+    let before = losses(&without.notes, &with.dressed, rain_falls);
+    let mut more: Vec<String> = losses(&with.notes, &with.dressed, rain_falls)
         .difference(&before)
         .map(|(kind, e)| match e {
             Some(e) => format!("{kind} (event {e})"),
@@ -1113,6 +1120,43 @@ fn loses_more(with: &Whole, without: &Whole, dressing: &BTreeSet<Key>) -> Option
     more.dedup();
     (!more.is_empty()).then(|| more.join(", "))
 }
+
+/// The losses `notes` say that [`loses_more`] weighs, by kind and event: not
+/// the `dressed` events' own, nor a palette lent —[`lent_more`] weighs
+/// those—, nor the raindrops' colours lent where they do not count.
+fn losses(
+    notes: &[Note],
+    dressed: &[i32],
+    rain_falls: bool,
+) -> BTreeSet<(&'static str, Option<i32>)> {
+    let mut out = BTreeSet::new();
+    for n in notes {
+        let Some(kind) = n.loss else { continue };
+        if kind == "palette-lent" {
+            continue;
+        }
+        if kind == "rain-colors-lent" && (!rain_falls || n.distance <= RAIN_SHADE) {
+            continue;
+        }
+        if n.events.is_empty() {
+            out.insert((kind, None));
+        }
+        for e in &n.events {
+            if !dressed.contains(e) {
+                out.insert((kind, Some(*e)));
+            }
+        }
+    }
+    out
+}
+
+/// How far a raindrop drawn with someone else's colour may be from its own
+/// grey and still weigh less than a character a route dresses, as
+/// `lab_distance` measures it: a CIE76 difference of 10, squared and in
+/// tenths. Under it the drop reads as its grey a shade off —at the factory,
+/// `(6, 6, 7)` drawn `(6, 6, 6)` is 5.5—; past it, as another colour, and
+/// the character goes as before. See [`loses_more`].
+const RAIN_SHADE: i64 = 100 * 100;
 
 /// The graphics drawn with someone else's palette `with` the dressed rows
 /// that were not `without` them, as [`loses_more`] names them: not the
@@ -2293,6 +2337,7 @@ fn convert_with(
             stop,
             loss: Some("event-not-drawn"),
             events: vec![events[*event].id],
+            ..Default::default()
         });
         if stop {
             return Ok(done);
@@ -3054,12 +3099,18 @@ fn extras(
                     .map(|c| format!("{c:?} as {:?}", nearest(palette, *c)))
                     .collect();
                 if !drawn.is_empty() {
-                    notes.push(lost("rain-colors-lent", vec![], format!(
+                    let mut note = lost("rain-colors-lent", vec![], format!(
                         "  map {id}: WARNING, the raindrops have no palette with room and are lent {}, \
                          drawn with its nearest colors: {}",
                         at.1,
                         drawn.join(", ")
-                    )));
+                    ));
+                    note.distance = RAIN_COLORS
+                        .iter()
+                        .map(|c| lab_distance(nearest(palette, *c), *c))
+                        .max()
+                        .unwrap_or(0);
+                    notes.push(note);
                 }
                 rain = at;
             }
@@ -3485,5 +3536,48 @@ mod tests {
     fn what_was_lent_without_them_is_not_theirs() {
         let with = keys(&[("Monster1", 5)]);
         assert!(lent_more(&with, &with, &BTreeSet::new()).is_empty());
+    }
+
+    /// A `rain-colors-lent` note whose farthest drop is `distance` away.
+    fn rain_lent(distance: i64) -> Note {
+        Note {
+            distance,
+            ..lost("rain-colors-lent", vec![], String::new())
+        }
+    }
+
+    // A Blurred Line's factory, map 83: with Forem the drops are lent a
+    // palette, `(6, 6, 7)` drawn `(6, 6, 6)`, and no page makes it rain there.
+    #[test]
+    fn the_rain_lent_where_it_cannot_rain_weighs_nothing() {
+        let factory = lab_distance([6, 6, 7], [6, 6, 6]);
+        assert!(factory > 0);
+        assert!(losses(&[rain_lent(factory)], &[13], false).is_empty());
+        assert!(losses(&[rain_lent(RAIN_SHADE * 4)], &[13], false).is_empty());
+    }
+
+    #[test]
+    fn where_it_can_rain_it_weighs_its_distance() {
+        let factory = lab_distance([6, 6, 7], [6, 6, 6]);
+        assert!(factory <= RAIN_SHADE, "a shade off: {factory}");
+        assert!(losses(&[rain_lent(factory)], &[13], true).is_empty());
+        // A grey drawn as a colour of someone else's palette is not a shade.
+        let olive = lab_distance([16, 16, 18], [16, 18, 8]);
+        assert!(olive > RAIN_SHADE, "another colour: {olive}");
+        assert_eq!(
+            losses(&[rain_lent(olive)], &[13], true),
+            BTreeSet::from([("rain-colors-lent", None)])
+        );
+    }
+
+    #[test]
+    fn the_other_losses_still_weigh_without_rain() {
+        let timer = lost("timer-colors-lent", vec![], String::new());
+        let theirs = lost("pose-not-drawn", vec![13], String::new());
+        let another = lost("pose-not-drawn", vec![4], String::new());
+        assert_eq!(
+            losses(&[timer, theirs, another], &[13], false),
+            BTreeSet::from([("pose-not-drawn", Some(4)), ("timer-colors-lent", None)])
+        );
     }
 }

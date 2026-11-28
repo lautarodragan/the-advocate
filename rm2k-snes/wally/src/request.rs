@@ -191,6 +191,9 @@ pub struct Asked {
     #[serde(default)]
     pub map_pictures: Vec<MapPicture>,
     pub rain: bool,
+    /// [`MapRequest::rain_falls`].
+    #[serde(default)]
+    pub rain_falls: bool,
     #[serde(default)]
     pub sand: Option<bool>,
     pub picture: Option<Picture>,
@@ -480,6 +483,7 @@ impl Asked {
             also_walk: self.also_walk.clone(),
             timer: self.timer.clone(),
             rain: self.rain,
+            rain_falls: self.rain_falls,
             sand: self.sand,
             picture: picture(&self.picture)?,
             picture_own: self.picture_own.as_ref().map(picture).transpose()?,

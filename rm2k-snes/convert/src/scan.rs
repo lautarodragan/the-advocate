@@ -243,6 +243,38 @@ pub fn sandstorm_reach(
     scan: &Scan,
     common_events: &BTreeMap<i32, Vec<Command>>,
 ) -> Result<BTreeSet<i32>> {
+    weather_reach(maps, scan, common_events, WEATHER_SAND)
+}
+
+/// The maps of the ROM where it can be raining, walked as
+/// [`sandstorm_reach`] walks the sandstorm; every map if a common event or
+/// a test page sets rain, since those can run anywhere. It does not decide
+/// where the drops go —every map carries them if some page sets rain, see
+/// [`has_rain`]—, only whether a raindrop drawn with a colour that is not
+/// its own can ever be seen on a map: Wally weighs it against a character
+/// a route dresses there (`loses_more`).
+pub fn rain_reach(
+    maps: &[&GameMap],
+    scan: &Scan,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    extra: &[Command],
+) -> Result<BTreeSet<i32>> {
+    let rains =
+        |c: &Command| c.code == WEATHER_EFFECTS && c.parameters.first() == Some(&WEATHER_RAIN);
+    if extra.iter().any(rains) || common_events.values().flatten().any(rains) {
+        return Ok(maps.iter().map(|m| m.id).collect());
+    }
+    weather_reach(maps, scan, common_events, WEATHER_RAIN)
+}
+
+/// The maps of the ROM a `WeatherEffects` of type `weather` can reach: see
+/// [`sandstorm_reach`].
+fn weather_reach(
+    maps: &[&GameMap],
+    scan: &Scan,
+    common_events: &BTreeMap<i32, Vec<Command>>,
+    weather: i32,
+) -> Result<BTreeSet<i32>> {
     let in_rom: BTreeSet<i32> = maps.iter().map(|m| m.id).collect();
     let walked = walked_pages(maps, scan, common_events)?;
     let mut reach = BTreeSet::new();
@@ -263,7 +295,7 @@ pub fn sandstorm_reach(
                         found.push(here);
                     }
                 } else if cmd.code == WEATHER_EFFECTS && !p.is_empty() {
-                    blowing = p[0] == WEATHER_SAND;
+                    blowing = p[0] == weather;
                     started_here = blowing;
                 }
             }
@@ -857,6 +889,35 @@ mod tests {
         let refs: Vec<&GameMap> = maps.iter().collect();
         let reach = sandstorm_reach(&refs, &everything_compiles(&refs), &BTreeMap::new()).unwrap();
         assert_eq!(reach, BTreeSet::from([2, 3, 5]));
+    }
+
+    #[test]
+    fn the_rain_reaches_as_the_sandstorm_does_and_everywhere_from_a_common_event() {
+        // 1 sets rain and jumps to 2; 3 never sees it; 4 starts a sandstorm.
+        let maps = [
+            map(
+                1,
+                vec![vec![
+                    cmd(WEATHER_EFFECTS, &[WEATHER_RAIN, 2]),
+                    cmd(TELEPORT, &[2, 0, 0, 0]),
+                ]],
+            ),
+            map(2, vec![vec![]]),
+            map(3, vec![vec![]]),
+            map(4, vec![vec![cmd(WEATHER_EFFECTS, &[WEATHER_SAND, 0])]]),
+        ];
+        let refs: Vec<&GameMap> = maps.iter().collect();
+        let scan = everything_compiles(&refs);
+        let none = BTreeMap::new();
+        assert_eq!(
+            rain_reach(&refs, &scan, &none, &[]).unwrap(),
+            BTreeSet::from([2])
+        );
+        let common = BTreeMap::from([(7, vec![cmd(WEATHER_EFFECTS, &[WEATHER_RAIN, 0])])]);
+        assert_eq!(
+            rain_reach(&refs, &scan, &common, &[]).unwrap(),
+            BTreeSet::from([1, 2, 3, 4])
+        );
     }
 
     #[test]

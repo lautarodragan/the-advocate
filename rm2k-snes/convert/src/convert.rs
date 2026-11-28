@@ -460,6 +460,26 @@ pub fn run(options: Options) -> Result<()> {
     );
     // If some map sets rain, all of them carry the drops.
     let with_rain = scan::has_rain(every_refs.iter().copied(), &file_commands);
+    // And where it can rain, which is fewer: what a drop drawn with a colour
+    // not its own costs a map is weighed only there.
+    let rain_maps: BTreeSet<i32> = if with_rain {
+        scan::rain_reach(
+            &every_refs,
+            &scan_answer,
+            &game.db.common_events,
+            &file_commands,
+        )?
+    } else {
+        BTreeSet::new()
+    };
+    if with_rain {
+        outln!(
+            "  it can rain in {} of the {} maps: {}",
+            rain_maps.len(),
+            order.len(),
+            join(&rain_maps, " ")
+        );
+    }
     // And the sandstorm's grains, where it can blow. A common event or a
     // test page that starts one can run on any map: then all of them.
     let sand_maps: Option<BTreeSet<i32>> = if !scan::has_sandstorm(
@@ -611,6 +631,7 @@ pub fn run(options: Options) -> Result<()> {
         leaders: leaders.clone(),
         timer_maps: timer_maps.clone(),
         with_rain,
+        rain_maps,
         sand_maps,
         // How a map shows its panorama is Wally's to decide; the project
         // can only force it, by map, and does not have to say anything.
