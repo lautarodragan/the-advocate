@@ -13,13 +13,6 @@ pub struct Game {
     pub project: Project,
 }
 
-/// Where a project's measured volume ceilings are: with what was decided
-/// automatically, in its patches. Whoever reads the table and whoever
-/// writes it ask here.
-pub fn ceilings_path(project: &Project) -> Result<PathBuf> {
-    Ok(project.auto_patches()?.join("music").join("ceilings.toml"))
-}
-
 /// A file name's stem and its extension with the dot, `Path`'s: a name
 /// that starts with its only dot has none.
 fn splitext(name: &str) -> (&str, &str) {
@@ -270,46 +263,6 @@ impl Game {
         Ok(self
             .project
             .int(&["music", "effect_slots_of_first_copies"])?)
-    }
-
-    /// Where each song's measured volume ceiling is: a table the game
-    /// versions.
-    pub fn ceilings_path(&self) -> Result<PathBuf> {
-        ceilings_path(&self.project)
-    }
-
-    /// {song: headroom} from the versioned table; empty if it does not
-    /// exist. A song that is not there goes with `sdsp::HEADROOM`.
-    ///
-    /// **It is not written by hand**: a tool measures it by playing each
-    /// song in the ROM, and what remains is versioned data. Every change to
-    /// the mix —the samples, the envelopes, the allocation— makes it stale,
-    /// and each song's `fingerprint` is what says so.
-    pub fn ceilings(&self) -> Result<BTreeMap<String, f64>> {
-        let path = self.ceilings_path()?;
-        let text = match std::fs::read_to_string(&path) {
-            Ok(t) => t,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
-            Err(e) => return Err(Bad::usage(format!("{}: {e}", path.display()))),
-        };
-        let table: toml::Table = text
-            .parse()
-            .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-        let songs = table
-            .get("songs")
-            .and_then(|t| t.as_table())
-            .ok_or_else(|| Bad::usage(format!("{}: has no [songs]", path.display())))?;
-        songs
-            .iter()
-            .map(|(name, row)| {
-                row.get("headroom")
-                    .and_then(|v| v.as_float().or_else(|| v.as_integer().map(|i| i as f64)))
-                    .map(|v| (name.clone(), v))
-                    .ok_or_else(|| {
-                        Bad::usage(format!("{}: {name} has no headroom", path.display()))
-                    })
-            })
-            .collect()
     }
 }
 

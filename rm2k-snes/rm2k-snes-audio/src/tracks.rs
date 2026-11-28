@@ -140,12 +140,12 @@ fn program_fingerprint(program: &str, version_flag: &str, missing: &str) -> Resu
 /// and its going rendered every track once more.
 ///
 /// **Not the running executable**, which is what went in until 2026-11-23:
-/// it was `rm2k-snes-msu` then, with only this code in it. Since the tracks
-/// are a subcommand of `rm2k-snes-audio` the executable carries the whole
-/// compiler, and a change to it would have rendered every track again for
-/// nothing —measured over the seven weeks before: 18 of the crate's 31
-/// commits— and left one more copy of them in the cache, which keeps them
-/// as hard links and has no eviction: 2.4 GB each time, A Blurred Line's
+/// it was `rm2k-snes-msu` then, with only this code in it. Since then the
+/// executable that renders them —`advocate`, which links this crate— carries
+/// the whole converter, and a change to it would render every track again
+/// for nothing —measured over the seven weeks before 2026-11-23: 18 of this
+/// crate's 31 commits— and leave one more copy of them in the cache until
+/// its eviction takes the old one: 2.4 GB each time, A Blurred Line's
 /// alone. The source still changes exactly when the code does, without
 /// anyone having to remember to bump a number; a comment changed in one of
 /// these files renders them again too.

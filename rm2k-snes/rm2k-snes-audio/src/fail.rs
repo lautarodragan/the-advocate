@@ -1,8 +1,11 @@
 //! The one error type.
 //!
-//! Two kinds, because a build script wants to tell them apart without
-//! reading the message: the music does not fit or a song does not encode —
-//! this tool answering no— and a call that makes no sense.
+//! Two kinds: the music does not fit or a song does not encode —this
+//! crate answering no— and a call that makes no sense. They were the two
+//! exit codes of the `rm2k-snes-audio` binary, gone on 2026-11-28, which a
+//! build script told apart without reading the message; whether the split
+//! still earns its keep is
+//! `tasks/the-stages-error-kinds-outlived-their-exit-codes.md`.
 
 use std::fmt;
 
