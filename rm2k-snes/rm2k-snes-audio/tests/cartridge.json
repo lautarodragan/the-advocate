@@ -25,7 +25,6 @@
    "apart": [[20, ["B"]], [60, ["E"]]],
    "not_given": [[30, 50], [99, 10]],
    "system_songs": ["GO", "T", "X"],
-   "measuring_headroom": null,
    "decompress_frames": 2.542840700201702
   },
   "sparse": {
@@ -37,7 +36,6 @@
    "apart": [],
    "not_given": [],
    "system_songs": [],
-   "measuring_headroom": 0.5,
    "decompress_frames": 0.0
   }
  },

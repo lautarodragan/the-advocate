@@ -769,7 +769,7 @@ pub struct Bank {
     /// DSP only reads the BRR and the loop, and each sound brings its pitch.
     ///
     /// The songs are built with the key indices —what the allocation and
-    /// `mix_fingerprint` count with— and renumbered to these afterwards:
+    /// the volume ceilings count with— and renumbered to these afterwards:
     /// see `merge_identical` in `compile`.
     pub directory: Vec<usize>,
     /// Which constraint set each sample, for the report.

@@ -479,11 +479,6 @@ Chime = 11025
 effect_slots_of_first_copies = 3
 "#;
 
-pub const CEILINGS: &str = r#"[songs.alpha]
-headroom = 0.4
-peak = -3.0
-"#;
-
 /// The job the tests compile.
 pub const JOB: &str = r#"{
  "songs": ["alpha", "beta", "gamma", "delta", ""],
@@ -495,7 +490,7 @@ pub const JOB: &str = r#"{
   {"name": "titulo", "songs": [4, 0], "effects": ["Ping", "Rumble"]}
  ],
  "inheritance": [["2", 0], ["1", 1]],
- "measuring_headroom": null,
+ "fixed_headroom": null,
  "system_songs": ["alpha", "Zeta", "Other"],
  "emit": {
   "packages": 3,
@@ -518,12 +513,7 @@ pub const ARAM_END: i64 = 0x0400 + 4 * 16 + 9 + 22000;
 /// `soundfont.sf2`.
 pub fn write(dir: &Path) -> PathBuf {
     let game = dir.join("game");
-    for d in [
-        "game/Music",
-        "game/Sound",
-        "rtp/Music",
-        "project/patches/auto/music",
-    ] {
+    for d in ["game/Music", "game/Sound", "rtp/Music", "project"] {
         std::fs::create_dir_all(dir.join(d)).unwrap();
     }
     std::fs::write(game.join("Music/alpha.mid"), alpha()).unwrap();
@@ -553,11 +543,6 @@ pub fn write(dir: &Path) -> PathBuf {
     )
     .unwrap();
     std::fs::write(dir.join("project/advocate.toml"), PROJECT).unwrap();
-    std::fs::write(
-        dir.join("project/patches/auto/music/ceilings.toml"),
-        CEILINGS,
-    )
-    .unwrap();
     std::fs::write(dir.join("soundfont.sf2"), soundfont()).unwrap();
     std::fs::write(dir.join("job.json"), JOB).unwrap();
     game

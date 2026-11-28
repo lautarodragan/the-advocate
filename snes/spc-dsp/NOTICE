@@ -1,0 +1,13 @@
+The Advocate is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version. Its text is LICENSE, beside this file.
+
+The Advocate's binaries contain the S-DSP emulator of snes_spc 0.9.0,
+SPC_DSP, Copyright (C) 2007 Shay Green, which is free software under the
+GNU Lesser General Public License, version 2.1 or (at your option) any
+later version. Its text is LICENSE.snes_spc, beside this file.
+
+The source of every binary, snes_spc's included, is the repository at
+https://github.com/lautarodragan/the-advocate, at the commit the release
+names; snes_spc's is in snes/spc-dsp/vendor/snes_spc/ there, as it came.

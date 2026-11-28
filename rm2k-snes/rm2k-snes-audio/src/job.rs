@@ -6,7 +6,8 @@
 //!   packages            [{name, songs, effects, exits, separate}]; without
 //!                       it, each song is a package
 //!   inheritance         [[package, song that may be playing when it loads]]
-//!   measuring_headroom  every song's headroom, instead of its ceiling
+//!   fixed_headroom      every song's headroom, instead of its measured
+//!                       ceiling: for the tests
 //!   system_songs        the songs the database's `System` names
 //!   named_songs         every song the game's events and maps name
 //!   emit                {packages, boot, title, title_level, game_over,
@@ -103,7 +104,8 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
         effects: strings(v.get("effects"), "effects")?,
         packages,
         inheritance,
-        measuring_headroom: v.get("measuring_headroom").and_then(Value::as_f64),
+        fixed_headroom: v.get("fixed_headroom").and_then(Value::as_f64),
+        cache: None,
         system_songs: strings(v.get("system_songs"), "system songs")?,
         named_songs: strings(v.get("named_songs"), "named songs")?,
         aram_end,

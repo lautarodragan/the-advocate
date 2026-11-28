@@ -203,9 +203,9 @@ pub fn pitch_for(mut note: f64, root: f64, rate: f64) -> i64 {
 // as it goes: the register is signed and does not go past $7F.
 //
 // **It is the ceiling, not everyone's**: a song that would clip at 0.5 gets
-// a lower one, its own, measured and versioned by the game —see
-// `game::read_ceilings`—. What does not clip stays at 0.5. Measured against
-// one game: an assumption of the engine, not data from any game.
+// a lower one, its own, measured while it compiles —see `ceilings`—. What
+// does not clip stays at 0.5. Measured against one game: an assumption of
+// the engine, not data from any game.
 pub const HEADROOM: f64 = 0.5;
 
 /// The master volume: `$60` raised by the headroom, as far as $7F.

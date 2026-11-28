@@ -20,28 +20,29 @@ local_tools := justfile_directory() / ".local-tools"
 export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # The Rust projects, in the order they are installed. `ditto`, `project`,
-# `rules`, `gunter`, `adeleine`, `voodoo`, `lz2`, `rm2k-render`, `bytecode`
-# and `text` are libraries, and they go into the binaries that use them, which
-# are compiled with them. So a branch that changes a library reinstalls the
+# `rules`, `gunter`, `adeleine`, `voodoo`, `lz2`, `spc-dsp`, `rm2k-render`,
+# `bytecode` and `text` are libraries, and they go into the binaries that use
+# them, which are compiled with them. So a branch that changes a library reinstalls the
 # binaries that link it, not the library —its dependents in `cargo
-# metadata`: `gunter`'s is `rm2k-snes-audio`, `rm2k-render`'s are most of
-# the stages—; one that changes `project` reinstalls everything. `project`,
+# metadata`: `gunter`'s and `spc-dsp`'s are `rm2k-snes-audio`, and
+# through it `advocate`, `rm2k-render`'s are most of the stages—; one that changes `project` reinstalls everything. `project`,
 # `cartridge` and `patches` had a binary each until 2026-11-25
 # —`rm2k-snes-project`, `rm2k-snes-cartridges`, `rm2k-snes-patches`—, which
 # `advocate` replaced, and `images`, `convert`, `mapdata`, `screens`,
 # `battle`, `events` and `wally` until 2026-11-27, when the tests stopped
 # asking them, and `ditto` that day too, when `advocate import` took its
-# place; `sketch` went whole. Installing does not remove them, `cargo
+# place; `sketch` went whole. `rm2k-snes-audio` had one until 2026-11-28,
+# for its `volume-ceilings`. Installing does not remove them, `cargo
 # uninstall rm2k-project rm2k-snes-cartridge rm2k-snes-patches
 # rm2k-snes-images rm2k-snes-convert rm2k-snes-mapdata rm2k-snes-screens
-# rm2k-snes-battle rm2k-snes-events wally rm2k-sketch ditto --root <root>`
-# does.
+# rm2k-snes-battle rm2k-snes-events wally rm2k-sketch ditto rm2k-snes-audio
+# --root <root>` does.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own:
 # `crate-test` runs `cargo test` standing in the project, which tests only
 # that one, and `cargo install --locked --path` takes the workspace's lock.
-rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 fxpak rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert advocate"
+rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 spc-dsp fxpak rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert advocate"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.

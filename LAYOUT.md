@@ -43,6 +43,11 @@ have layers of their own, one folder each:
       voodoo/    Voodoo, a library: from an image to tiles, palettes and
                  tilemap
       lz2/       a library: Nintendo's LC_LZ2, with an optimal parser
+      spc-dsp/   a library: the S-DSP, the console's sound chip, on its
+                 own —ARAM in, register writes, samples out—, blargg's
+                 `SPC_DSP` from snes_spc 0.9.0, vendored in C++ under the
+                 LGPL, behind a small Rust wrapper; its README says where
+                 the sources come from and what was checked of them
 
     rm2k/        RPG Maker 2000's, knowing nothing of the console
       ditto/     a library: reads and writes its formats, and the one
@@ -78,8 +83,9 @@ have layers of their own, one folder each:
                  bank, a stream per song, an audio package per map, and
                  the `.msu` with the data the MSU-1 serves; the converter
                  calls it as a stage, `cartridge`, and it uses `gunter` as
-                 a library. Its subcommands `msu`, the MSU-1 tracks, and
-                 `volume-ceilings`, each song's headroom, are not stages
+                 a library, and `spc-dsp` to measure each song's volume
+                 ceiling while it compiles it. The MSU-1 tracks, which
+                 `advocate build` asks it for, are not a stage
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
                  level per actor, each map's random encounters—, its model
                  and text screen, and the battle played turn by turn, which
@@ -130,8 +136,7 @@ have layers of their own, one folder each:
 
 **A few of them are commands, and the rest are libraries under them.**
 The commands a person runs, from a game's recipes or by hand: `advocate`,
-which builds a game and imports one, `rm2k-snes-audio` (its
-`volume-ceilings`), `goombario` and `fxpak`. **The pipeline runs no command of ours**: `advocate build`
+which builds a game and imports one, `goombario` and `fxpak`. **The pipeline runs no command of ours**: `advocate build`
 calls the converter, the assembling and the MSU-1 tracks as libraries.
 Until 2026-11-25 it was `rm2k-snes-cartridges`, which ran
 `rm2k-snes-convert` and `rm2k-snes-audio msu` as processes and had
@@ -141,11 +146,12 @@ versioned patches were `rm2k-snes-patches`. **The stages are libraries the
 converter is compiled with** —`wally`, `rm2k-snes-events`,
 `rm2k-snes-screens`, `rm2k-snes-images`, `rm2k-snes-battle`,
 `rm2k-snes-mapdata`, `rm2k-snes-patches` and `rm2k-snes-audio`—, each
-called through its `stage` module; `rm2k-snes-audio` still has a binary
-for a person, a `main` over its `volume-ceilings` —`rm2k-snes-images`,
+called through its `stage` module —their binaries went on 2026-11-27,
+when no test or recipe asked them any more: `rm2k-snes-images`,
 `rm2k-snes-screens`, `rm2k-snes-mapdata`, `rm2k-snes-battle`, `wally`,
-`rm2k-snes-events` and the converter's went on 2026-11-27, when no test
-or recipe asked them any more—; and the converter
+`rm2k-snes-events` and the converter's; and `rm2k-snes-audio`'s on
+2026-11-28, with its last subcommand, `volume-ceilings`, when each song's
+ceiling came to be measured while the music compiles—; and the converter
 is a library `advocate` is compiled with. So a change to a stage reaches a
 ROM only through `advocate`: install `advocate` with it. Until 2026-11-24
 the converter ran each one as a process, and the conversion cache keyed
@@ -153,7 +159,7 @@ every answer by the binary that gave it; now it keys them all by the one
 running the conversion, `advocate` (`key` in `convert/src/stage.rs`), so
 any change to any stage, or to the builder, expires every stage's
 answers. Everything else is a library, compiled into the commands that use it: Adeleine, Voodoo,
-LZ2, Gunter, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
+LZ2, Gunter, `spc-dsp`, `rm2k-rules`, `rm2k-render`, `rm2k-project`,
 `rm2k-snes-bytecode`, `rm2k-snes-text`, and Ditto. Until 2026-11-23
 Adeleine, Voodoo, LZ2, Gunter and `rm2k-render` were commands too, from when
 the converter was Python and could only reach Rust through a process; and
