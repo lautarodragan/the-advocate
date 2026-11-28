@@ -741,6 +741,128 @@ fn a_still_event_goes_into_the_background_of_a_map_that_hides_its_panorama() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+/// A still event on a map whose panorama shows goes into the background
+/// only if the project asks for it too —`posed_over_panoramas`, the
+/// converter's `[graphics] baked_events_over_panoramas`—, on every way that
+/// converts the map with the rows of its poses —baked, which this small
+/// still map goes when the way is not forced, mode 3, flattened and mode
+/// 1—, and only on a cell that hides the panorama: one on the cell it shows
+/// through stays an object.
+#[test]
+fn a_still_event_goes_into_the_background_over_a_panorama_that_shows_if_asked() {
+    let dir = scratch("posed-seen-panorama");
+    let (dump, pictures) = game(&dir);
+    // Lower tile 5001 draws nothing: the panorama shows on its cell.
+    let (zx, zy) = common_origin(144);
+    let (tx, ty) = common_origin(1);
+    let tiles = picture_of(480, 256, |x, y| {
+        let (x, y) = (x as i32, y as i32);
+        let empty = |ox: i32, oy: i32| (ox..ox + 16).contains(&x) && (oy..oy + 16).contains(&y);
+        if empty(zx, zy) || empty(tx, ty) {
+            [0, 0, 0, 0]
+        } else {
+            let k = (x / 4 + y / 4) % 7;
+            [(k * 36) as u8, (k * 20) as u8, (200 - k * 24) as u8, 255]
+        }
+    });
+    write(&pictures.join("ChipSet/tiles.png"), &tiles);
+    let small = picture_of(288, 256, |x, y| {
+        let (px, py) = (x % 24, y % 32);
+        if (4..20).contains(&px) && (16..32).contains(&py) {
+            [200, (x * 3 % 256) as u8, 40, 255]
+        } else {
+            [0, 0, 0, 0]
+        }
+    });
+    write(&pictures.join("CharSet/Small.png"), &small);
+    write(
+        &pictures.join("Panorama/pano.png"),
+        &picture_of(320, 240, |x, _| [10, 200, (x % 2 * 40) as u8, 255]),
+    );
+    let mut lower: Vec<String> = (0..4).map(|_| ["  5000"; 6].concat()).collect();
+    lower[0] = format!("  5001{}", ["  5000"; 5].concat());
+    let upper: Vec<String> = (0..4).map(|_| [" 10000"; 6].concat()).collect();
+    std::fs::write(
+        dump.join("maps/Map0007.tiles"),
+        format!(
+            "# 6x4\n# lower\n{}\n# upper\n{}\n",
+            lower.join("\n"),
+            upper.join("\n")
+        ),
+    )
+    .unwrap();
+    let path = dump.join("maps/Map0007.json");
+    let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    map["parallax_flag"] = json!(true);
+    map["parallax_name"] = json!("pano");
+    map["events"] = json!([
+        {"id": 6, "x": 2, "y": 2, "pages": [page("Small", 0, 0, 0)]},
+        {"id": 7, "x": 0, "y": 0, "pages": [page("Small", 1, 0, 0)]},
+    ]);
+    std::fs::write(&path, map.to_string()).unwrap();
+    std::fs::write(dump.join("db/commonevents.json"), "[]").unwrap();
+    let run = |way: Value, over: bool| -> (Value, Vec<String>) {
+        let body = json!({
+            "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+            "test_event": false, "leaders": [1],
+            "pages": [], "route_graphics": [], "also_walk": [],
+            "timer": null, "rain": false, "picture": null,
+            "battle_animation": false, "singles": [], "palette_weight": {},
+            "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+            "layouts": [], "window_colors": 13, "posed_stills": true,
+            "posed_over_panoramas": over,
+            "panorama": {"layouts": [[3, 256, 384, 1, 576], [1, 512, 384, 64, 256]],
+                         "baked_tiles": 544, "way": way},
+        });
+        let request = dir.join("request.json");
+        std::fs::write(&request, body.to_string()).unwrap();
+        let out = dir.join("out");
+        let _ = std::fs::remove_dir_all(&out);
+        common::map(&dump, &pictures, &request, &out);
+        let layers: Value =
+            serde_json::from_str(&std::fs::read_to_string(out.join("layers.json")).unwrap())
+                .unwrap();
+        (layers, notes_of(&out))
+    };
+    let went =
+        "  map 7: 1 still event(s) drawn into the background, a block per pose: 6".to_string();
+    let through =
+        "  map 7: 1 event(s) stay objects, the panorama shows through a cell it is drawn on: 7"
+            .to_string();
+    // Without the project asking, the panorama keeps them objects.
+    let (layers, notes) = run(Value::Null, false);
+    assert_eq!(layers["panorama_way"], json!("baked"), "{notes:?}");
+    assert!(
+        !notes
+            .iter()
+            .any(|n| n.contains("drawn into the background")),
+        "{notes:?}"
+    );
+    for (way, name) in [
+        (Value::Null, "baked"),
+        (json!("mode3"), "mode3"),
+        (json!("flattened"), "flattened"),
+        (json!("mode1"), "mode1"),
+    ] {
+        let (layers, notes) = run(way, true);
+        assert_eq!(layers["panorama_way"], json!(name), "{notes:?}");
+        assert!(notes.contains(&went), "{name}: {notes:?}");
+        assert!(notes.contains(&through), "{name}: {notes:?}");
+        // And the map is the map: the poses' rows are not in its cells.
+        assert_eq!(
+            layers["blocks"]["cells"].as_array().unwrap().len(),
+            24,
+            "{name}"
+        );
+        assert_eq!(
+            layers["background"]["tilemap"].as_array().unwrap().len(),
+            8,
+            "{name}"
+        );
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
 /// `baked_events_nudge`: a still event whose poses are drawn a pixel right
 /// and two up of its cell —A Blurred Line's chests, `BLObjs` character 2—
 /// goes into the background moved back into its cell when the request

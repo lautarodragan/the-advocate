@@ -144,6 +144,10 @@ pub struct MapRequest {
     /// background's cells, a block per pose: see [`crate::posed`]. A
     /// project's choice, off unless it says so.
     pub posed: bool,
+    /// Whether those go into the background also on a map whose panorama
+    /// shows: see [`posed_events`]. A project's choice, off unless it says
+    /// so —it costs background tiles where `posed` alone costs none—.
+    pub posed_over_panoramas: bool,
     /// Whether the still pieces are painted into the map's panorama, with
     /// its ChipSet's layers, so the map is one picture: see
     /// [`crate::pieces`]. A project's choice, map by map, off unless it says
@@ -596,16 +600,29 @@ fn posed_events(
     // A panorama the map covers everywhere is never seen, and the map is
     // drawn as one without it: see `Way::Hidden`. Any other gets its cells
     // from elsewhere —a layer of its own, or baked into the background—.
-    // Over one that shows, only on a layer of its own beside an 8-bit
-    // background —the ways that draw the map with the rows of its
-    // extension, which hold the poses—, and only cells it never shows
-    // through: see below.
+    // Over one that shows, only if the project asks for it too, on the
+    // ways that convert the map with the rows of its extension, which hold
+    // the poses —mode 3, flattened, mode 1 and baked—, and only cells it
+    // never shows through: see below. Mode 1 puts the map at 4 bits, and
+    // the poses' colours have to fit the cells' palettes: the colour check
+    // below refuses any that merges a colour more or takes another palette.
+    // Baked draws the panorama under the extension's rows at *their* place,
+    // not at the event's cell, which an opaque cell never lets through; but
+    // a substitution's rows there would carry the wrong stretch of it, so
+    // a baked map with them keeps its events as objects —see
+    // `convert_ways` in `layers.rs`—. Painted builds no blocks in BG1, and
+    // black is a fallback with no panorama to hide.
     use crate::background::panorama::Way;
     let way = layers.converted.way;
     let seen = layers.drawn.panorama.is_some() && way != Some(Way::Hidden);
+    let over = match way {
+        Some(Way::Mode3 | Way::Flattened | Way::Mode1) => true,
+        Some(Way::Baked) => extra.rows.is_empty(),
+        _ => false,
+    };
     if !request.posed
         || !game.map_pictures.is_empty()
-        || (seen && !matches!(way, Some(Way::Mode3 | Way::Flattened)))
+        || (seen && !(request.posed_over_panoramas && over))
     {
         return Ok(Vec::new());
     }
