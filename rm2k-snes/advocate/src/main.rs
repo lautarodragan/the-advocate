@@ -7,6 +7,10 @@
 //!     advocate build --list           which case goes in which cartridge
 //!     advocate build release --into DIR -- --some-converter-flag
 //!                                     a copy, somewhere else, with more flags
+//!     advocate import --game-dir GAME the game's .ldb, .lmt and .lmu into
+//!                                     the dump in [paths] data, checking
+//!                                     they come back byte for byte
+//!     advocate export EXACT DIR       an exact dump back as RPG Maker's files
 //!
 //! **One program, and it runs no other of ours**: the converter, its
 //! stages, the bank packing, the assembler and the MSU-1 tracks are
@@ -23,28 +27,35 @@
 //! Until 2026-11-25 building was `rm2k-snes-cartridges`, which ran
 //! `rm2k-snes-convert` per cartridge; and what is now the file the tests
 //! asked `rm2k-snes-cartridges --list --json`, `space --json`, `assemble
-//! --memory-map` and `--sources`, and `rm2k-snes-project`.
+//! --memory-map` and `--sources`, and `rm2k-snes-project`. And until 2026-11-27
+//! `import` and `export` were `ditto unpack` and `ditto pack`.
 
 use std::process::ExitCode;
 
 use clap::Command;
 
 mod build;
+mod export;
 mod file;
+mod import;
 mod patches;
 
 fn command() -> Command {
     Command::new("advocate")
-        .about("Builds an rm2k-snes game from its advocate.toml")
+        .about("Builds an rm2k-snes game from its advocate.toml, and imports an RPG Maker game into it")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(build::command())
+        .subcommand(import::command())
+        .subcommand(export::command())
 }
 
 fn main() -> ExitCode {
     let matches = command().get_matches();
     let done = match matches.subcommand() {
         Some(("build", sub)) => build::run(sub),
+        Some(("import", sub)) => import::run(sub),
+        Some(("export", sub)) => export::run(sub),
         _ => unreachable!("clap requires a subcommand"),
     };
     match done {

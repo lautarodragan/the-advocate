@@ -1,10 +1,10 @@
 //! A whole game as a directory of JSON, and back.
 //!
-//! `ditto read` gives one JSON per binary file, which is right for looking at a
-//! single map and wrong for keeping a game in a repository: the database alone
-//! is one 17 MB file, and a one-line edit to a term shows up in a diff next to
-//! every enemy in the game. So `ditto unpack` lays a game out as a tree, and
-//! `ditto pack` builds the binaries back from that tree.
+//! `file` reads one binary file into one document, which is right for looking
+//! at a single map and wrong for keeping a game in a repository: the database
+//! alone is one 17 MB file, and a one-line edit to a term shows up in a diff
+//! next to every enemy in the game. So `unpack` lays a game out as a tree, and
+//! `pack` builds the binaries back from that tree.
 //!
 //! `unpack` writes that tree **twice**, in one run: the *exact* dump, which is
 //! the binary's own shape —a field holding its default left out, an enum by
@@ -518,6 +518,68 @@ pub fn pack(dump: &Path, out: &Path) -> Result<Vec<PathBuf>> {
     Ok(written)
 }
 
+/// **Whether the exact dump `exact` writes back `game`'s binaries byte for
+/// byte**: packs it into `again` —emptied first, and removed once they
+/// compare equal— and compares every `.ldb`, `.lmt` and `.lmu` of the two by
+/// their name in lowercase: the original's case is its author's, and `pack`
+/// writes its own. A file that differs, or that only one of them has, is the
+/// error, with which.
+///
+/// It is what makes a dump the game and not an approximate reading of it: a
+/// field the schema reads wrong shows here and nowhere else. On an error
+/// `again` stays, to compare by hand.
+pub fn round_trip(game: &Path, exact: &Path, again: &Path) -> Result<()> {
+    if again.exists() {
+        std::fs::remove_dir_all(again)?;
+    }
+    pack(exact, again)?;
+    let files = |dir: &Path| -> Result<std::collections::BTreeMap<String, PathBuf>> {
+        let mut found = std::collections::BTreeMap::new();
+        for ext in ["ldb", "lmt", "lmu"] {
+            for p in by_extension(dir, ext)? {
+                let name = p
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_lowercase())
+                    .unwrap_or_default();
+                found.insert(name, p);
+            }
+        }
+        Ok(found)
+    };
+    let (before, after) = (files(game)?, files(again)?);
+    if before.is_empty() {
+        return error(format!("{}: it has no RPG Maker files", game.display()));
+    }
+    let mut different = Vec::new();
+    for (name, path) in &before {
+        if let Some(other) = after.get(name) {
+            if std::fs::read(path)? != std::fs::read(other)? {
+                different.push(name.as_str());
+            }
+        }
+    }
+    let only = |a: &std::collections::BTreeMap<String, PathBuf>,
+                b: &std::collections::BTreeMap<String, PathBuf>| {
+        a.keys()
+            .filter(|n| !b.contains_key(*n))
+            .cloned()
+            .collect::<Vec<String>>()
+    };
+    let (missing, extra) = (only(&before, &after), only(&after, &before));
+    if different.is_empty() && missing.is_empty() && extra.is_empty() {
+        std::fs::remove_dir_all(again)?;
+        return Ok(());
+    }
+    error(format!(
+        "{} does not come back byte for byte from {} (packed into {}): of {} files, \
+         different {different:?}, missing {missing:?}, extra {extra:?}",
+        game.display(),
+        exact.display(),
+        again.display(),
+        before.len()
+    ))
+}
+
 /// The sections back into one object. `database.json` carries the scalars; a
 /// file whose name the schema does not know is a mistake worth reporting, not a
 /// file to ignore in silence.
@@ -675,8 +737,8 @@ fn flat_object(o: &serde_json::Map<String, Value>, indent: usize) -> Option<Stri
     if !o.values().all(plain) {
         return None;
     }
-    let body: Vec<String> = o
-        .iter()
+    let body: Vec<String> = in_order(o)
+        .into_iter()
         .map(|(k, v)| {
             let mut rendered = String::new();
             write_value(&mut rendered, v, indent);
@@ -685,6 +747,21 @@ fn flat_object(o: &serde_json::Map<String, Value>, indent: usize) -> Option<Stri
         .collect();
     let line = format!("{{{}}}", body.join(", "));
     (indent * 2 + line.len() <= WIDTH && !line.contains('\n')).then_some(line)
+}
+
+/// An object's keys in alphabetical order, whatever order the map keeps.
+///
+/// `serde_json`'s map is a `BTreeMap`, alphabetical, unless some crate of
+/// the same binary turns on its `preserve_order` feature, and then it keeps
+/// the order the keys went in —a struct's fields in declaration order—.
+/// Cargo unifies features across a binary, and `advocate`, which links
+/// this, turns it on: without this a dump would come out of `advocate
+/// import` in another order than out of Ditto's own tests, and every
+/// `data/` would show a diff with nothing changed.
+fn in_order(o: &serde_json::Map<String, Value>) -> Vec<(&String, &Value)> {
+    let mut v: Vec<(&String, &Value)> = o.iter().collect();
+    v.sort_by(|a, b| a.0.cmp(b.0));
+    v
 }
 
 fn write_value(s: &mut String, v: &Value, indent: usize) {
@@ -743,7 +820,7 @@ fn write_value(s: &mut String, v: &Value, indent: usize) {
                 return;
             }
             s.push_str("{\n");
-            for (i, (k, e)) in o.iter().enumerate() {
+            for (i, (k, e)) in in_order(o).into_iter().enumerate() {
                 pad(s, indent + 1);
                 s.push_str(&Value::String(k.clone()).to_string());
                 s.push_str(": ");

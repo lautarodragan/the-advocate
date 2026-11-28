@@ -280,3 +280,84 @@ fn another_version_is_refused() {
         .expect("version 1 should be refused");
     assert!(e.0.contains("version 1"), "{}", e.0);
 }
+
+/// Every object of both views with its keys in alphabetical order. Only
+/// worth anything when `serde_json`'s `preserve_order` is on —its map keeps
+/// insertion order then, and parsing a file keeps the file's—: Cargo turns
+/// it on for every crate of a build when one turns it on, as `advocate` and
+/// the converter do, so `just rust-test`, which builds the whole workspace,
+/// runs this with the feature, and so does `cargo test -p ditto -F
+/// serde_json/preserve_order`. Without it a dump written by `advocate
+/// import` came out in each struct's field order.
+#[test]
+fn the_keys_come_out_in_alphabetical_order() {
+    fn sorted(v: &serde_json::Value, at: &str) {
+        match v {
+            serde_json::Value::Object(o) => {
+                let keys: Vec<&String> = o.keys().collect();
+                let mut want = keys.clone();
+                want.sort();
+                assert_eq!(keys, want, "{at}: the keys are not in order");
+                for (k, e) in o {
+                    sorted(e, &format!("{at}.{k}"));
+                }
+            }
+            serde_json::Value::Array(a) => {
+                for (i, e) in a.iter().enumerate() {
+                    sorted(e, &format!("{at}[{i}]"));
+                }
+            }
+            _ => {}
+        }
+    }
+    fn every_json(dir: &Path, out: &mut Vec<PathBuf>) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                every_json(&p, out);
+            } else if p.extension().is_some_and(|x| x == "json") {
+                out.push(p);
+            }
+        }
+    }
+    let tmp = Temp::new("library-order");
+    let (exact, resolved) = both_views(&tmp);
+    let mut files = Vec::new();
+    every_json(&exact, &mut files);
+    every_json(&resolved, &mut files);
+    assert!(files.len() > 6, "{files:?}");
+    for f in files {
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&f).unwrap()).unwrap();
+        sorted(&v, &f.display().to_string());
+    }
+}
+
+/// `round_trip` passes over a game its exact dump writes back, and over one
+/// it does not says which file, also when one is missing or extra.
+#[test]
+fn round_trip_says_which_file_does_not_come_back() {
+    let tmp = Temp::new("library-round-trip");
+    let (exact, _) = both_views(&tmp);
+    let game = tmp.0.join("game");
+    let again = tmp.0.join("again");
+    ditto::dump::round_trip(&game, &exact, &again).unwrap();
+    assert!(
+        !again.exists(),
+        "it removes what it packed when it is the same"
+    );
+
+    let mut map = std::fs::read(game.join("Map0001.lmu")).unwrap();
+    map.push(0);
+    std::fs::write(game.join("Map0001.lmu"), &map).unwrap();
+    std::fs::write(game.join("Map0002.lmu"), b"").unwrap();
+    let e = ditto::dump::round_trip(&game, &exact, &again)
+        .unwrap_err()
+        .to_string();
+    assert!(e.contains(r#"different ["map0001.lmu"]"#), "{e}");
+    assert!(e.contains(r#"missing ["map0002.lmu"]"#), "{e}");
+    assert!(
+        again.join("Map0001.lmu").is_file(),
+        "it keeps what it packed, to compare"
+    );
+}

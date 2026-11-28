@@ -1,4 +1,4 @@
-//! The schema, published as JSON: what `ditto schema` writes.
+//! The schema, published as JSON.
 //!
 //! Ditto's JSON is not self-describing, and on purpose: it **omits every
 //! field that holds its default** —the same rule the binary follows, and what
