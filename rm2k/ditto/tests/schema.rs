@@ -1,8 +1,8 @@
-//! What `ditto schema` publishes, checked against the schema itself.
+//! What `describe::to_json` publishes, checked against the schema itself.
 //!
 //! The JSON Ditto writes omits every field holding its default and stores
 //! enums by name, so it cannot be read without knowing the defaults and the
-//! tables. `ditto schema` hands both out, and these tests are there so that
+//! tables. `describe::to_json` hands both out, and these tests are there so that
 //! what it hands out is the same thing the codec actually uses.
 //!
 //! The one that carries the weight is `every_declared_default_is_the_real
@@ -240,7 +240,7 @@ fn the_chunks_and_the_persist_flags_are_pinned() {
 #[test]
 fn the_published_json_says_what_the_tables_say() {
     let document: serde_json::Value = serde_json::from_str(&ditto::describe::to_json())
-        .expect("`ditto schema` did not write valid JSON");
+        .expect("`describe::to_json` did not write valid JSON");
     let fields = document["fields"].as_object().unwrap();
     assert_eq!(fields.len(), STRUCTS.len());
     for (name, described) in STRUCTS {

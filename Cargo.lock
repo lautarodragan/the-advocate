@@ -21,6 +21,7 @@ name = "advocate"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "ditto",
  "rm2k-project",
  "rm2k-snes-cartridge",
  "rm2k-snes-patches",
@@ -431,16 +432,6 @@ name = "rm2k-rules"
 version = "0.1.0"
 dependencies = [
  "ditto",
-]
-
-[[package]]
-name = "rm2k-sketch"
-version = "0.1.0"
-dependencies = [
- "ditto",
- "rm2k-rules",
- "serde",
- "toml",
 ]
 
 [[package]]
