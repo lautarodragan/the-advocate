@@ -8,7 +8,7 @@
 //! `rm2k-snes-battle`'s README for the shape.
 //!
 //! **The stages are functions the converter calls**, through [`call`]: each
-//! answers [`Files`], what its binary writes into `--out`.
+//! answers [`Files`], what its binary wrote into `--out` when it was one.
 //!
 //! **What a stage answers is kept in the disk cache**, under the key of
 //! everything it can depend on: see [`key`]. A stage is a function of the
@@ -251,8 +251,8 @@ pub fn key(stage: Stage, request: &Value, flags: &[OsString], cache_dir: &Path) 
     Ok(cache::key(&parts))
 }
 
-/// The binary the converter's own code is in —`rm2k-snes-convert`, or a
-/// test's—, which is what answers every stage that is a function.
+/// The binary the converter's own code is in —`advocate`, or a test's—,
+/// which is what answers every stage that is a function.
 fn converter() -> Result<PathBuf> {
     std::env::current_exe()
         .map_err(|e| Stop::new(format!("the converter cannot find its own binary: {e}")))

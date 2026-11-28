@@ -1,10 +1,9 @@
 //! What goes wrong, and which of the two kinds of wrong it is.
 //!
 //! "The window uses more colours than a palette holds" is this tool
-//! answering no about its input; "`--out` is missing" is the call being
-//! wrong. A script wants to
-//! tell those apart without reading the message, so they get different exit
-//! codes.
+//! answering no about its input; a missing file or a request that is not
+//! JSON is the call being wrong. They were the binary's two exit codes
+//! until it went, on 2026-11-27.
 
 use std::fmt;
 

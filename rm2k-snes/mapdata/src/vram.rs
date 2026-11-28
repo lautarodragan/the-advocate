@@ -106,7 +106,8 @@ impl PanoramaPieces {
 
 impl Layout {
     /// The pieces by their names, as the keys of each layout in the JSON that
-    /// `rm2k-snes-mapdata vram` prints.
+    /// `rm2k-snes-mapdata vram` printed until 2026-11-27, when the binary
+    /// went: nothing calls it since.
     pub fn pieces(&self) -> [(&'static str, Piece); 6] {
         [
             ("sprites", self.sprites),

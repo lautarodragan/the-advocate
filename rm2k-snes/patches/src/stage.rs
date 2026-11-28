@@ -26,7 +26,8 @@ mod tests {
     }
 
     /// A request written as JSON and read back answers what it answered
-    /// —what the binary reads is what the converter builds—; and `put`
+    /// —what the binary read until 2026-11-25 was what the converter
+    /// built—; and `put`
     /// leaves in a build exactly those files, over what a previous run left
     /// there.
     #[test]
@@ -64,7 +65,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&build);
     }
 
-    /// A request that is not one says so, as the binary does for its file.
+    /// A request that is not one says so, as the binary did for its file
+    /// until 2026-11-25.
     #[test]
     fn a_bad_request_is_a_no() {
         let no = serde_json::from_str::<Request>(r#"{"maps": [{"id": 1}]}"#).unwrap_err();

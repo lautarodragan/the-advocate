@@ -64,8 +64,9 @@ pub fn emit(data: &Path, mut request: request::Emit) -> Result<Files> {
         losses,
     };
     // Through a JSON value, whose keys serde_json sorts unless the binary
-    // that links it keeps their order —the converter does—: the binary's
-    // file has the keys sorted, as it always had.
+    // that links it keeps their order —`advocate` does, for the
+    // converter—. Until 2026-11-27 this crate's own binary wrote this file,
+    // with the keys sorted.
     let answer = serde_json::to_value(&answer).expect("an answer is JSON");
     let mut files = Files::from([
         ("mapdata.inc".to_string(), emitted.text.into_bytes()),

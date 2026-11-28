@@ -12,7 +12,8 @@
 //!
 //! **So they write through [`outln!`] and [`errln!`]**, which go to the
 //! [`Log`] the thread is converting into, or to stdout and stderr when it
-//! is converting into none —a stage's own binary, the converter's—, as
+//! is converting into none —a stage called from its crate's tests, and
+//! until 2026-11-27 a stage's own binary or the converter's—, as
 //! `println!` and `eprintln!` did. Two buffers and not one, because the
 //! process's log was its stdout first and its stderr after it, and
 //! `converter.log` keeps those bytes.

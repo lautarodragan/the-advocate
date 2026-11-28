@@ -187,7 +187,7 @@ build profiles are the workspace's too, because Cargo ignores a member's.
 They are still
 separate projects, installed and tested one by one:
 
-    just install wally    one, with `cargo install --locked
+    just install advocate one, with `cargo install --locked
                                           --path`, from the workspace's lock
     just crate-test lz2   one project's tests
     just rust-test        all of them, `cargo test --workspace`
@@ -239,14 +239,14 @@ Python scripts too, installed as symlinks next to them: the last ones were
 `rm2k-snes-python-path`, which told a game's tests where to import
 `common/` and `emulator/` from, and went with them.
 
-The binaries of `rm2k-snes/` are `advocate`, from `rm2k-snes/advocate/`,
+The binary of `rm2k-snes/` is `advocate`, from `rm2k-snes/advocate/`,
 which builds a game and finds the runtime through the checkout it was
-installed from; `rm2k-snes-audio`, from
-`rm2k-snes/rm2k-snes-audio/`. Until 2026-11-25 there were also
-`rm2k-snes-cartridges`, `rm2k-snes-patches` and `rm2k-snes-project`, and
-until 2026-11-27 `rm2k-snes-images`, `rm2k-snes-convert`,
-`rm2k-snes-mapdata`, `rm2k-snes-screens`, `rm2k-snes-battle`,
-`rm2k-snes-events` and `wally`:
+installed from; the other two are `goombario` and `fxpak`, in `snes/`.
+Until 2026-11-25 there were also `rm2k-snes-cartridges`,
+`rm2k-snes-patches` and `rm2k-snes-project`, until 2026-11-27
+`rm2k-snes-images`, `rm2k-snes-convert`, `rm2k-snes-mapdata`,
+`rm2k-snes-screens`, `rm2k-snes-battle`, `rm2k-snes-events` and `wally`,
+and until 2026-11-28 `rm2k-snes-audio`:
 `just install` does not remove a binary that stopped existing, and the
 `justfile` says what does.
 
