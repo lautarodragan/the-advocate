@@ -479,8 +479,9 @@ impl Menu {
                 let mut special = Vec::new();
                 if let Some(s) = table.get("special").and_then(Value::as_object) {
                     // In the order of their keys as text —"10" before
-                    // "9"—, which is how this crate's own binary iterates
-                    // a JSON object: inside the converter, whose
+                    // "9"—, which is how this crate's own binary iterated
+                    // a JSON object until 2026-11-27, and so what the ROMs
+                    // carry: inside the converter, whose
                     // `serde_json` keeps insertion order, the project
                     // file's order would reach the ROM's bytes instead.
                     let mut s: Vec<_> = s.iter().collect();
@@ -1507,9 +1508,10 @@ mod tests {
     }
 
     /// A table's special values go in the same order whether the request
-    /// was read by this crate's binary —a JSON object's keys sorted— or
-    /// handed over by the converter, whose `serde_json` keeps the project
-    /// file's order: they are bytes of the ROM. Red without the sort only
+    /// was read from a file without `preserve_order` —a JSON object's keys
+    /// sorted, as this crate's binary read it until 2026-11-27— or handed
+    /// over by the converter, whose `serde_json` keeps the project file's
+    /// order: they are bytes of the ROM. Red without the sort only
     /// where `preserve_order` is on, which `cargo test --workspace` turns
     /// on for every crate, since the converter is in the workspace.
     #[test]

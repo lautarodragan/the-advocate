@@ -214,6 +214,9 @@ pub struct Cartridge<'a> {
     pub leaders: Vec<i32>,
     pub timer_maps: BTreeSet<i32>,
     pub with_rain: bool,
+    /// The maps where it can rain —see `scan::rain_reach`—: empty without
+    /// `with_rain`.
+    pub rain_maps: BTreeSet<i32>,
     /// The maps that carry the sandstorm's grains —see
     /// `scan::sandstorm_reach`—, or `None` if no page starts one.
     pub sand_maps: Option<BTreeSet<i32>>,
@@ -573,6 +576,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
             .map(|p| p.asked())
             .collect(),
         rain: c.with_rain,
+        rain_falls: c.rain_maps.contains(&map_id),
         sand: c.sand_maps.as_ref().map(|m| m.contains(&map_id)),
         picture: pictures.as_ref().map(ForMap::asked),
         battle_animation: shows_animation,
@@ -712,8 +716,9 @@ pub fn run_requests(
     prepared: &[(i32, &wally::request::Asked)],
 ) -> Result<Vec<BTreeMap<String, Vec<u8>>>> {
     let search_dirs: Vec<PathBuf> = c.search_dirs.iter().map(rm2k_project::absolute).collect();
-    // What the binary was run with, which is what the cache key reads: the
-    // call reads the same dump and search directories, and nothing else.
+    // What the binary was run with when it was one, which is what the cache
+    // key reads: the call reads the same dump and search directories, and
+    // nothing else.
     let mut flags: Vec<OsString> = vec!["--data".into(), c.game.dump.clone().into_os_string()];
     for dir in &search_dirs {
         flags.push("--search-dir".into());

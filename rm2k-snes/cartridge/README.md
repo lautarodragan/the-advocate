@@ -41,10 +41,9 @@ The fingerprint hashes everything that changes a ROM without changing its
 flags: the whole runtime, `ca65`, `ld65`, the running builder —with the
 converter, its stages and the bank packing, which are libraries compiled
 into it; not whichever is first on the PATH—, the game's dump, the
-hand-made patches, the project file and each song's volume headroom, and
-the original game's resources —every `.png`, `.bmp`, `.xyz`, `.mid` and
-`.wav` below `--game-dir`, with its name—. Contents, never dates. The RTP
-and the SoundFont go in **by their path**: after changing one in place,
+hand-made patches, the project file and the original game's resources
+—every `.png`, `.bmp`, `.xyz`, `.mid` and `.wav` below `--game-dir`, with
+its name—. Contents, never dates. The RTP and the SoundFont go in **by their path**: after changing one in place,
 `--force` builds even what is up to date. Without `--game-dir` the
 fingerprint is an error.
 

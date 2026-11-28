@@ -68,9 +68,9 @@ same shape, and this crate was the first to be written to it:
   what the rest of the conversion needs to know about them —`battle.json`—.
   Nothing in it knows where a cartridge is built.
 * **Two kinds of no**: `Bad::Answer` when the answer is no —it does not
-  fit, the dump is broken—, `Bad::Usage` when the call is wrong. A binary
-  over a stage exits with `1` and `2` for them, and the message goes to
-  standard error.
+  fit, the dump is broken—, `Bad::Usage` when the call is wrong. The
+  converter stops with the message, after the stage's name; a binary over
+  a stage, while there were any, exited with `1` and `2` for them.
 * **Its tests need no game**: a small one is built inside the test, made
   to touch the tables' edges (`tests/tables.rs`). The model's game is
   bigger and lives in `tests/game/`, with four hundred battles and

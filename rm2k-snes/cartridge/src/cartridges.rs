@@ -660,7 +660,7 @@ impl Cartridges {
         // sheet's path when it is a PNG —see `font.rs` in
         // `rm2k-snes-convert`—, and retouching the sheet changes the ROM
         // without touching the project file. A font the engine carries is
-        // inside the converter's binaries, which are above.
+        // inside the running binary, which is above.
         if let Ok(font) = self.project.string(&["text", "font"]) {
             if font.to_ascii_lowercase().ends_with(".png") {
                 parts.push(self.project.directory().join(font));
@@ -998,10 +998,10 @@ impl Cartridges {
         }
         // The assembler is called, not run: it is this crate's code. Until
         // 2026-11-23 it was a command of its own, `rm2k-snes-assemble`, and
-        // the call stayed a process when it became `assemble`, a subcommand
-        // of this same program. It gets what that subcommand made of its
-        // flags, and says what it said: its lines on this one's stdout,
-        // where `ca65` and `ld65` still write theirs.
+        // until 2026-11-25 the call stayed a process, `assemble`, a
+        // subcommand of the builder this was. It gets what that subcommand
+        // made of its flags, and says what it said: its lines on this one's
+        // stdout, where `ca65` and `ld65` still write theirs.
         let cache_dir = self
             .environment
             .cache(&self.project)

@@ -1,10 +1,10 @@
 //! What stops a conversion, and how it says so.
 //!
-//! The converter answers no in one way only: it prints why and exits
-//! with 1. It is what the cartridges' builder looks at, and what it shows: the
-//! message goes to standard error, after everything the conversion printed.
-//! A command line that makes no sense exits with 2, the way the flags'
-//! parser does.
+//! The converter answers no in one way only: a [`Stop`], with why and the
+//! code 1, which the binary exited with until 2026-11-27. The cartridges'
+//! builder shows it: the message goes last in the cartridge's
+//! `converter.log`, after everything the conversion printed. A command
+//! line that makes no sense carries 2, the way the flags' parser says.
 
 use std::fmt;
 

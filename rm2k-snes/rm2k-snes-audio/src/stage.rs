@@ -35,7 +35,7 @@ use std::path::{Path, PathBuf};
 pub type Files = BTreeMap<String, Vec<u8>>;
 
 /// The name the `.msu` goes by among [`cartridge`]'s files: it does not go
-/// into `--out` with the rest, but where `--msu` says.
+/// into [`Flags::out`] with the rest, but where [`Flags::msu`] says.
 pub const MSU: &str = ".msu";
 
 /// The `.msu`'s index, `[[where, length]]` per entry, as JSON beside the
@@ -50,8 +50,8 @@ pub const MSU_INDEX: &str = "msu-index.json";
 /// leaves no song of the last build behind.
 pub const WRITES: &str = "music-writes";
 
-/// Where the game, its RTP and its project are, as the binary's flags give
-/// them.
+/// Where the game, its RTP and its project are, as the converter's flags
+/// give them.
 #[derive(Debug, Clone, Default)]
 pub struct Place {
     pub game_dir: PathBuf,
@@ -71,7 +71,8 @@ impl Place {
     }
 }
 
-/// What [`cartridge`] reads besides its request: the binary's flags.
+/// What [`cartridge`] reads besides its request: what the converter hands
+/// it, which were the binary's flags while the crate had one.
 #[derive(Debug, Clone)]
 pub struct Flags {
     pub place: Place,
@@ -303,8 +304,9 @@ pub fn msu_magic(project: &Project) -> Result<[u8; 4]> {
         .expect("four ASCII characters are four bytes"))
 }
 
-/// What [`cartridge`] is asked: what the cartridge decided. The binary
-/// reads it from `--request`; the converter builds it.
+/// What [`cartridge`] is asked: what the cartridge decided. The converter
+/// builds it; the binary, while the crate had one, read it from
+/// `--request`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {
     /// The event compiler's `songs`, as it answers them.

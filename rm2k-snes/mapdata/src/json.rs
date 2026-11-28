@@ -36,7 +36,8 @@ pub fn text(value: &Value) -> Result<&str> {
 /// `preserve_order`, and cargo turns it on for this crate too there, so in
 /// the converter an object keeps the order its stage inserted the keys in,
 /// where this crate's own binary, reading the request from a file, saw them
-/// sorted. The `.inc` has to come out the same from both.
+/// sorted until 2026-11-27. The `.inc` had to come out the same from both,
+/// and with the sort it still comes out as it did.
 pub fn by_key(object: &serde_json::Map<String, Value>) -> Vec<(&String, &Value)> {
     let mut entries: Vec<_> = object.iter().collect();
     entries.sort_by(|a, b| a.0.cmp(b.0));

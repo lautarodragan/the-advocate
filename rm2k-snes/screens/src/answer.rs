@@ -380,8 +380,9 @@ pub struct OtherSystem {
 /// them, `text_rows`, and each one's window in `systems`; without them,
 /// neither.
 ///
-/// The stage writes it through a `Value`, so the binary's keys stay sorted
-/// as they were when it was built with `json!`: see `stage::window_of`.
+/// The stage writes it through a `Value`, as when it was built with
+/// `json!` and the crate's binary wrote its keys sorted: see
+/// `stage::window_of`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WindowAnswer {
     pub colors: usize,

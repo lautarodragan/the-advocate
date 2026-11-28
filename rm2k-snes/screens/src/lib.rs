@@ -13,7 +13,7 @@
 //! * [`boxes`]: every message box of the game reflowed for the console's
 //!   window.
 //! * [`stage`]: the commands a converter calls, as functions that answer
-//!   the files the binary writes.
+//!   the files they make, by name.
 
 pub mod answer;
 pub mod battle;

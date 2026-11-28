@@ -24,8 +24,9 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `bytecode` and `text` are libraries, and they go into the binaries that use
 # them, which are compiled with them. So a branch that changes a library reinstalls the
 # binaries that link it, not the library —its dependents in `cargo
-# metadata`: `gunter`'s and `spc-dsp`'s are `rm2k-snes-audio`, and
-# through it `advocate`, `rm2k-render`'s are most of the stages—; one that changes `project` reinstalls everything. `project`,
+# metadata` that have one: `advocate`, for `gunter` and `spc-dsp` through
+# `rm2k-snes-audio`, and for `rm2k-render` through most of the stages—;
+# one that changes `project` reinstalls everything. `project`,
 # `cartridge` and `patches` had a binary each until 2026-11-25
 # —`rm2k-snes-project`, `rm2k-snes-cartridges`, `rm2k-snes-patches`—, which
 # `advocate` replaced, and `images`, `convert`, `mapdata`, `screens`,
@@ -142,15 +143,16 @@ crate-test project *args:
 # They are installed once and stay. Nothing else is installed: since
 # 2026-10-02 the suite has no Python scripts.
 #
-# With Rust project names —`just install wally`— it installs only those: that
-# is what whoever merges a branch runs, with the Rust the branch touched.
-# Without names, all of them.
+# With Rust project names —`just install advocate`— it installs only those:
+# that is what whoever merges a branch runs, with the binaries the Rust the
+# branch touched goes into. Without names, all of them.
 #
-# The suite's programs that are not a project of their own are called
+# A program of the suite that is not a project of its own is called
 # `rm2k-snes-<something>`: `bin/` is shared, and a bare `events` or `images`
-# does not say what it is and can clash with anything. `advocate` is the
-# exception, on purpose: it is the one a person types, named after the
-# project and its `advocate.toml`.
+# does not say what it is and can clash with anything. There is none left
+# since 2026-11-28: the programs are `advocate`, `goombario` and `fxpak`.
+# `advocate` is the exception, on purpose: it is the one a person types,
+# named after the project and its `advocate.toml`.
 #
 # **And the games' test harness**, the Python package `rm2k_snes_harness`
 # (`rm2k-snes/harness/`), whatever the names: `_install` links it beside

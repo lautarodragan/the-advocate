@@ -4,8 +4,9 @@
 //!
 //! **It arrives by flags, not by environment variables.** Each executable
 //! adds the flags it uses —[`arguments`]—, reads them back into an
-//! [`Environment`], and passes on to the tools it runs the ones they need
-//! —[`Environment::as_flags`]—. Which variable holds which value, and this
+//! [`Environment`], and passes on the ones another tool needs as flags
+//! —[`Environment::as_flags`]—: the converter, which the builder calls
+//! with a command line. Which variable holds which value, and this
 //! machine's values, belong to the caller.
 //!
 //! **A value nobody set is an error, not a default**, except the ones that
@@ -127,7 +128,8 @@ impl Environment {
     }
 
     /// The set values of `names`, as flags, in the order of [`FLAGS`]: to
-    /// pass them on to another tool that runs in a separate process.
+    /// pass them on to another tool that takes a command line —the
+    /// converter, called as a library—.
     pub fn as_flags(&self, names: &[&str]) -> Vec<OsString> {
         let mut out = Vec::new();
         for f in FLAGS {

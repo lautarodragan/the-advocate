@@ -46,15 +46,11 @@ and writes pieces and a JSON.
   the cartridge and the game's tests compare against what the console
   loads.
 
-The binary is a `main` over the rest, which the tests ask:
-
-* `pages`: one map's page table, alone, for whoever checks which label it
-  names.
-* `compress`: the LZ2 streams of some maps' blocks, each part once, for
-  whoever round-trips them through another decompressor.
-* `vram`: the VRAM layouts, the constants of the cartridge's memory, and
-  which layout each of the request's maps gets. The layouts are checked
-  against the hardware on every call.
+The binary was a `main` over the rest, which the tests asked: `pages`,
+one map's page table alone, and `compress`, the LZ2 streams of some maps'
+blocks, until 2026-11-25, when the crate's own tests took them; and
+`vram`, the VRAM layouts, until 2026-11-27. The layouts are
+`src/vram.rs`, checked against the hardware.
 
 ## Where the numbers come from
 
