@@ -23,9 +23,8 @@ export SOUNDFONT := env_var_or_default("SOUNDFONT", "")
 # assets beside them, which is what RPG Maker or EasyRPG open— and dumped
 # back into `build/data/`, the dump the converter reads.
 #
-# `src/` is a Ditto exact dump written by hand, except the maps' tile layers:
-# each `maps/MapNNNN.toml` is a sketch that `rm2k-sketch` makes into its
-# `.tiles`. Dumping back what was just packed instead of handing the
+# `src/` is a Ditto exact dump written by hand, the maps' tile layers too,
+# in their `.tiles`. Dumping back what was just packed instead of handing the
 # converter `src/` is on purpose: the converter reads what the RM2k files
 # say, as it does for a port, and a field `pack` drops is seen.
 #
@@ -40,15 +39,9 @@ export SOUNDFONT := env_var_or_default("SOUNDFONT", "")
 game:
   #!/usr/bin/env sh
   set -eu
-  rm -rf build/text build/game build/exact build/data
+  rm -rf build/game build/exact build/data
   mkdir -p build
-  cp -r src build/text
-  for sketch in src/maps/Map*.toml; do
-    map=$(basename "$sketch" .toml)
-    rm2k-sketch "$sketch" "build/text/maps/$map.tiles"
-    rm "build/text/maps/$map.toml"
-  done
-  ditto pack build/text build/game
+  ditto pack src build/game
   cp src/RPG_RT.ini build/game/
   cp -r ChipSet CharSet FaceSet Monster Panorama Picture System Title build/game/
   ditto unpack build/game build/exact build/data

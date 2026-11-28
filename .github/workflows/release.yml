@@ -130,7 +130,7 @@ jobs:
       # runners have no cc65, so `ca65` and `ld65` are stand-ins that fail,
       # and there is no SoundFont. The test game's dump is made as `just
       # game` makes it, in `test-game/justfile`, with the archive's
-      # `rm2k-sketch` and `ditto`: the runners have no `just` either. Until
+      # `ditto`: the runners have no `just` either. Until
       # 2026-11-25 this asked `rm2k-snes-project`.
       - name: Smoke test
         if: ${{ !matrix.cross }}
@@ -145,13 +145,7 @@ jobs:
           (
             cd test-game
             mkdir -p build
-            cp -R src build/text
-            for sketch in src/maps/Map*.toml; do
-              map=$(basename "$sketch" .toml)
-              "$bin/rm2k-sketch" "$sketch" "build/text/maps/$map.tiles"
-              rm "build/text/maps/$map.toml"
-            done
-            "$bin/ditto" pack build/text build/game
+            "$bin/ditto" pack src build/game
             "$bin/ditto" unpack build/game build/exact build/data
           )
           mv runtime/main.s "$RUNNER_TEMP/main.s.away"
