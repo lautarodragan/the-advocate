@@ -83,19 +83,31 @@ attack:
     ; The second line: the result on the target.
     jsr ba_mnext
 damage:
-    ; `<target> <damage><enemy_damaged>`, or `<target><enemy_undamaged>` when
-    ; it missed —`BA_MDMG` at $FFFF—. A skill's damage comes here too, from
-    ; `result`.
+    ; `<target> <damage><enemy_damaged>`, as `GetDamagedMessage`; at zero
+    ; `<target><enemy_undamaged>`, `GetUndamagedMessage`; and when the attack
+    ; missed —`BA_MDMG` at $FFFF— `<target><dodge>`, which is
+    ; `GetPhysicalFailureMessage`: RM2k sends a miss to
+    ; `ProcessBattleActionFailure` and a hit of zero to
+    ; `ProcessBattleActionDamage`. A skill's damage comes here too, from
+    ; `result`, and never at $FFFF: its miss is `missed`.
     lda BA_MTGT
     jsr ba_put_name
     rep #$20
 .a16
     lda BA_MDMG
+    beq undamaged
     cmp #$FFFF
     sep #$20
 .a8
     bne stuck
-    jmp failed
+    ldx #BA_TXT_DODGE
+    jsr ba_put_text
+    jmp ba_flow
+undamaged:
+.a16
+    sep #$20
+.a8
+    jmp no_damage
 stuck:
     ; `<name> <damage> health lost.`
     lda #$20                    ; the space between the name and the number
@@ -304,14 +316,11 @@ up:
     jsr ba_put_stat
     jmp ba_flow
 damaged:
-    ; `GetDamagedMessage`, the attack's, and at zero `GetUndamagedMessage`,
-    ; which the attack writes for a miss.
+    ; `GetDamagedMessage`, the attack's, and at zero `GetUndamagedMessage`:
+    ; `damage` tells them apart.
     rep #$20
 .a16
     lda BA_T0
-    bne hurt
-    dec a
-hurt:
     sta BA_MDMG
     sep #$20
 .a8
@@ -378,7 +387,8 @@ st_text:
 .a8
     jsr ba_put_text
     jmp ba_flow
-failed:
+no_damage:
+    ; `<target><enemy_undamaged>`, or `actor_undamaged` by the side.
     lda BA_MTGT
     cmp #BA_PARTY_MAX
     bcs fails_enemy
