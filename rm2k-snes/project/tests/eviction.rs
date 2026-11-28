@@ -1,4 +1,4 @@
-//! The cache forgets what nobody used in two weeks, and never what a
+//! The cache forgets what nobody used in four days, and never what a
 //! process that may still read it is alive for: the sweep with the clock
 //! ahead and with stamps set back, and the lock between two processes.
 
@@ -32,7 +32,7 @@ fn used_days_ago(path: &Path, days: u32) {
         .unwrap();
 }
 
-/// What each kind of entry is left with after a sweep two weeks after the
+/// What each kind of entry is left with after a sweep four days after the
 /// fact: a value nobody read in twenty days goes, also a whole directory
 /// —a game unpacked in `zip/`—; one read three days ago stays; one left
 /// half written goes whatever its age; and the lock and the sweep's own
@@ -144,7 +144,7 @@ fn reading_fetching_or_touching_a_value_keeps_it() {
     assert!(!cache::entry(&dir, "stages", "forgotten").exists());
 }
 
-/// With the clock two weeks and a day ahead, what was stored today goes;
+/// With the clock four days and a day ahead, what was stored today goes;
 /// and a build sweeps once a day, not every time: the next one, an hour
 /// later, finds it not due. Whatever it answers, the process holds the
 /// cache after, so a second sweep in it cannot lock it.
