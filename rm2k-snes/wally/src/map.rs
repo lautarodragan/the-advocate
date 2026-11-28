@@ -31,7 +31,7 @@ use crate::sprites::extras::{
 };
 use crate::sprites::npc::{map_poses, pin_walkers, pose_facings, Graphic, Npc, NPC_MAX};
 use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
-use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
+use crate::sprites::split::{drawable_npcs, join_two, Ask, TILE_PREFIX};
 use crate::stage::Files;
 use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
 use adeleine::Color;
@@ -94,6 +94,11 @@ pub struct MapRequest {
     pub picture_own: Option<Option<PictureAsked>>,
     /// Whether some page of the map can draw a battle animation.
     pub battle_animation: bool,
+    /// Whether some page of the map opens an inn's gold window, which takes
+    /// a sprite palette of its own above the characters' —see `arrow_obj`
+    /// in rm2k-snes-mapdata—: when they take them all, two of them share
+    /// one. See [`crate::sprites::split::join_two`].
+    pub gold_window: bool,
     /// The characters that appear in no other map of the cartridge.
     pub singles: HashSet<Key>,
     pub weights: BTreeMap<String, i64>,
@@ -2105,8 +2110,74 @@ fn convert_with(
     };
     let d = drawable_npcs(&ask(palette_cap), npcs0.clone()).map_err(|b| Bad::answer(b.0))?;
     notes.extend(d.notes.iter().cloned().map(note));
-    let split = d.split;
+    let mut split = d.split;
     let mut npcs = d.npcs;
+    // An inn's gold window wants a sprite palette above everything else's
+    // —see `arrow_obj` in rm2k-snes-mapdata—: the characters', the timer's,
+    // the rain's and the sand's, the battle animation's box and the
+    // pictures, which count only if they are drawn, as they are while they
+    // fit with the box (see `extras`). The extras yield first: the timer,
+    // the rain and the sand are lent the nearest colours of a palette there
+    // is, as when there are none left, instead of taking one of their own
+    // —they are not on screen all the time, and the characters are—. Then,
+    // while the characters alone leave none, the pair of theirs that loses
+    // least becomes one.
+    let box_palette = usize::from(request.battle_animation);
+    let pictures = request.picture.as_ref().map_or(0, |p| p.palettes);
+    let leaves_room = |palettes: usize| {
+        let used = palettes + box_palette;
+        let top = if used + pictures <= OBJ_PALETTES {
+            pictures
+        } else {
+            0
+        };
+        used + top < OBJ_PALETTES
+    };
+    if request.gold_window {
+        let baked_keys: BTreeSet<Key> = npcs
+            .iter()
+            .filter(|n| baked.contains_key(&n.event))
+            .map(|n| (n.charset.clone(), n.index))
+            .collect();
+        while !leaves_room(split.palettes.len()) {
+            let Some(joined) = join_two(&ask(palette_cap), &mut split, &baked_keys)
+                .map_err(|b| Bad::answer(b.0))?
+            else {
+                break;
+            };
+            let names = |keys: &[Key]| {
+                keys.iter()
+                    .map(|k| format!("{}:{}", k.0, k.1))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            notes.push(lost(
+                "palette-shared",
+                vec![],
+                format!(
+                    "  map {id}: two sprite palettes share one to leave the inn's gold window its \
+                     own: {} with {}, {} colour(s) lost, {} of their {} shown pixels ({:.2}%) \
+                     drawn in another colour",
+                    names(&joined.kept),
+                    names(&joined.joined),
+                    joined.colors_lost,
+                    joined.moved,
+                    joined.total,
+                    100.0 * joined.moved as f64 / joined.total.max(1) as f64
+                ),
+            ));
+        }
+    }
+    // How many palettes the extras may reach: one fewer than the gold window
+    // needs, but never fewer than the characters already have.
+    let extras_cap = if request.gold_window {
+        (split.palettes.len()..=palette_cap)
+            .rev()
+            .find(|&n| leaves_room(n))
+            .unwrap_or(palette_cap)
+    } else {
+        palette_cap
+    };
     if !split.lent.is_empty() {
         let mut names: Vec<String> = split
             .lent
@@ -2750,7 +2821,7 @@ fn convert_with(
                 tiles,
                 bank.palettes.clone(),
                 &split.leader_owned,
-                palette_cap,
+                extras_cap,
             )
             .is_ok_and(|e| {
                 fits_in(
@@ -2801,7 +2872,7 @@ fn convert_with(
         bank_tiles,
         bank.palettes,
         &split.leader_owned,
-        palette_cap,
+        extras_cap,
     ) {
         Ok(e) => e,
         Err(stop) => {

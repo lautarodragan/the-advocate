@@ -30,3 +30,12 @@ pub fn walk(code: &[u8]) -> Result<Vec<usize>> {
 pub fn at(code: &[u8], i: usize) -> u8 {
     code.get(i).copied().unwrap_or(0)
 }
+
+/// Whether a compiled page opens an inn's gold window, `OP_INN 3`: see
+/// `arrow_obj` in rm2k-snes-mapdata and the runtime's gold_window.s.
+pub fn opens_gold_window(code: &[u8]) -> Result<bool> {
+    use rm2k_snes_bytecode::events::{INN_GOLD_WINDOW, OP_INN};
+    Ok(walk(code)?
+        .into_iter()
+        .any(|i| code[i] == OP_INN && at(code, i + 1) == INN_GOLD_WINDOW))
+}
