@@ -126,9 +126,9 @@ pub struct Compiler<'a> {
     /// The Systems the cartridge carries a message window for, in its
     /// order: see `systems::names`. Empty if it does not switch.
     pub systems: Vec<String>,
-    /// Where to leave the `compile` request, if anywhere: `rm2k-snes-events
-    /// culprits` takes the same request, and it is otherwise written to a
-    /// temporary directory and deleted.
+    /// Where to leave the `compile` request, if anywhere: `culprits.json`
+    /// goes beside it, from the same request, and without it neither is
+    /// written. Until 2026-11-27 `rm2k-snes-events culprits` read it.
     pub keep_request: Option<std::path::PathBuf>,
     /// Switches no page names that the ROM's table has to hold anyway:
     /// the test pages', in a cartridge with them.
@@ -234,7 +234,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// The answer to `request`, from the cache if it is there: kept as the
-    /// file the binary writes.
+    /// file the binary wrote.
     fn run<A: Serialize + DeserializeOwned>(
         &self,
         stage: stage::Stage,
@@ -403,7 +403,8 @@ impl<'a> Compiler<'a> {
         let written = stage::call(CULPRITS, &value, &self.data(), || {
             let mut request = Request::from_asked(request, "the events request")?;
             let mut game = Game::from_dump(&self.game.dump, request.patches.clone())?;
-            // As the command does with a request that names no System.
+            // As the binary's `culprits` did, until 2026-11-27, with a
+            // request that names no System.
             if request.patches.systems.is_empty() {
                 request.patches.systems = game.system_names()?;
                 game.patches.systems = request.patches.systems.clone();

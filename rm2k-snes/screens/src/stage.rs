@@ -1,13 +1,15 @@
 //! The screens as a stage of a converter: what each of the commands it
 //! calls answers, as the files they make, by name. The converter calls
-//! these as functions —`convert`, `boxes`, `faces` and `window`—, and the
-//! binary is a `main` over `window` and `layout`, which the tests ask, that
-//! reads the request and writes the files into `--out`.
+//! these as functions —`convert`, `boxes`, `faces` and `window`—. Until
+//! 2026-11-27 the crate also had a binary, a `main` over `window` and
+//! `layout` that the tests asked, which read the request from a file and
+//! wrote the files into `--out`.
 //!
 //! **They read nothing but the place and the request they are given**: the
-//! converter keeps their answers in its cache under the key of the flags
-//! the binary took —which [`Place`] holds— and the request, and a function
-//! that read anything else would hand back a stale answer.
+//! converter keeps their answers in its cache under the key of the place,
+//! written as the flags that binary took —see `game_place` in the
+//! converter's `screens.rs`—, and the request, and a function that read
+//! anything else would hand back a stale answer.
 //!
 //! **And each starts and ends with no letters carried**: [`convert`] carries
 //! the Latin-1 the text screens write in a `thread_local!` —see
@@ -29,16 +31,29 @@ use std::path::{Path, PathBuf};
 /// What a command answers: every file it makes, by name.
 pub type Files = BTreeMap<String, Vec<u8>>;
 
-/// The game a command draws, as the binary's flags give it: the dump, the
-/// game's folder, the RTP, and the three ways a cartridge draws it other
-/// than the database says. See the binary's `--help` for each.
+/// The game a command draws: the dump, the game's folder, the RTP, and the
+/// three ways a cartridge draws it other than the database says. Until
+/// 2026-11-27 they were the binary's flags, and their help is the fields'.
 #[derive(Debug, Clone, Default)]
 pub struct Place {
+    /// The Ditto dump the game is read from: the directory with `maps/`
+    /// and `db/`.
     pub data: PathBuf,
+    /// The game's folder, with `System/` and `FaceSet/` inside.
     pub game_dir: PathBuf,
+    /// The RTP the game was made with: the System and the faces the game
+    /// does not ship are looked for there.
     pub rtp_dir: Option<PathBuf>,
+    /// The System to draw with instead of the one the database names: a
+    /// name, looked for like the database's, or the path of a picture.
     pub system: Option<String>,
+    /// The colour every window is drawn over instead of the System's
+    /// background, `#rrggbb`: the System keeps giving its frame, cursor,
+    /// arrow and text colours.
     pub window_background: Option<String>,
+    /// The message window keeps an entry of its palette for the ink of a
+    /// box that types a text colour other than 0: the cartridge's messages
+    /// use one.
     pub text_ink: bool,
 }
 
@@ -160,7 +175,8 @@ pub fn faces(place: &Place, request: &request::Faces) -> Result<Files> {
     let _fresh = Fresh::start();
     let game = place.game()?;
     let drawn = face_sets::draw(&game, &request.faces)?;
-    // Through a `Value`, as `window`'s: the binary's keys stay sorted.
+    // Through a `Value`, as `window`'s, from when the crate's binary wrote
+    // its keys sorted.
     let answer = serde_json::to_value(face_sets::answer(&drawn)).expect("an answer is JSON");
     Ok(one("faces.json", &answer))
 }
@@ -178,9 +194,10 @@ pub fn window(place: &Place, request: &request::Window) -> Result<Files> {
             .map(|m| (m.victim, m.target, m.pixels))
             .collect()
     };
-    // Through a `Value`, so the binary writes its keys sorted, as it did
-    // when this was `json!`; the converter's, which keeps the order they are
-    // inserted in, writes them in the fields' order, which was the macro's.
+    // Through a `Value`, as when this was `json!`: the crate's binary wrote
+    // its keys sorted until 2026-11-27; the converter, which keeps the
+    // order they are inserted in, writes them in the fields' order, which
+    // was the macro's.
     let written = |answer: &answer::WindowAnswer| {
         one(
             "window.json",
@@ -280,7 +297,8 @@ mod tests {
             "vram": {"slot_vram": 0x2000, "slot_map": 0x3C00,
                      "bg1_banks": [["WINDOW", 0x1000, 0x5000]]},
         });
-        // Read as the binary reads a test's file: what it leaves out takes
+        // Read as the binary read a test's file until 2026-11-27, and as
+        // serde reads any request: what it leaves out takes
         // the request's defaults.
         let request: request::Convert = serde_json::from_value(request).unwrap();
         convert(&place, &request).unwrap();

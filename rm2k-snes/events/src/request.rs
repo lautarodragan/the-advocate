@@ -7,7 +7,8 @@
 //! **The fields go in the order the request file writes them**, which is
 //! the order the converter used to insert them by hand: the file the
 //! converter leaves beside the cartridge, `events-request.json`, is the
-//! same byte for byte, and what `rm2k-snes-events culprits` reads.
+//! same byte for byte, and what `rm2k-snes-events culprits` read until
+//! 2026-11-27.
 
 use crate::game::Command;
 use crate::registry::PictureKey;

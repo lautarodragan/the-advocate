@@ -96,7 +96,7 @@ pub fn names(game: &Game, switched: &[Switched], any: bool) -> Vec<String> {
     out
 }
 
-/// The `systems` the screens' `window` subcommand takes: each with the
+/// The `systems` the screens' `window` stage takes: each with the
 /// project's `[windows.background]` for it, if any.
 pub fn window_request(game: &Game, switched: &[Switched]) -> Vec<OtherSystem> {
     switched

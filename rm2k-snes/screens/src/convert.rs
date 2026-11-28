@@ -53,7 +53,7 @@ pub struct Request {
     /// The glyph rows the message window's text takes an entry each for,
     /// the same in every System the cartridge switches between, or None if
     /// it never switches: see `message_window::TextRows`. The `window`
-    /// subcommand answers it.
+    /// stage answers it.
     pub text_rows: Option<message_window::TextRows>,
     /// Every name a `ChangeHeroName` of the game gives, as (actor, name), in
     /// the order the event compiler counts them: each is one more row of the

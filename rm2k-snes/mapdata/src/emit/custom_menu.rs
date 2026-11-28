@@ -170,7 +170,8 @@ mod tests {
     /// The geometry's equates go in the order of their names, whatever
     /// order the screens inserted them in: in the converter, with
     /// `preserve_order`, that order reaches this crate —`cargo test
-    /// --workspace` shows it—, where the binary saw them sorted.
+    /// --workspace` shows it—, where the crate's binary saw them sorted
+    /// until 2026-11-27.
     #[test]
     fn the_geometry_goes_in_the_order_of_its_names() {
         let custom = CustomMenus {

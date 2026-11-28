@@ -703,8 +703,9 @@ pub fn run_requests(
     prepared: &[(i32, &wally::request::Asked)],
 ) -> Result<Vec<BTreeMap<String, Vec<u8>>>> {
     let search_dirs: Vec<PathBuf> = c.search_dirs.iter().map(rm2k_project::absolute).collect();
-    // What the binary was run with, which is what the cache key reads: the
-    // call reads the same dump and search directories, and nothing else.
+    // What the binary was run with when it was one, which is what the cache
+    // key reads: the call reads the same dump and search directories, and
+    // nothing else.
     let mut flags: Vec<OsString> = vec!["--data".into(), c.game.dump.clone().into_os_string()];
     for dir in &search_dirs {
         flags.push("--search-dir".into());

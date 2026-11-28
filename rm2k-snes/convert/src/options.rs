@@ -12,15 +12,17 @@ pub const MACHINE: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 
 const ABOUT: &str = "Converts an rm2k-snes game into the data a Super Nintendo cartridge carries.
 
-It reads the command line, asks the game what it needs to know, has each map
+It reads its flags, asks the game what it needs to know, has each map
 converted and hands everything to the emission, calling each stage of the
-conversion —each one a program on the PATH— in order.
+conversion —each one a library it is compiled with— in order. `advocate
+build` calls it once per cartridge, with the flags the project file writes
+for that cartridge.
 
 With a test page, which is the list of RM2k commands from a JSON file; several
 in one cartridge, each one after a `--case`, and the cartridge flags before
 the first:
 
-    rm2k-snes-convert -o … --map-id 6 \\
+    -o … --map-id 6 \\
         --test-commands pan.json --case --test-commands pan-vuelve.json";
 
 fn command() -> clap::Command {

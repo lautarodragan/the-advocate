@@ -318,8 +318,8 @@ pub fn run(options: Options) -> Result<()> {
         events_max,
     )?;
     compiler.common_pages = common_pages.request();
-    // For `rm2k-snes-events culprits --request`, which asks the same thing
-    // of the same dump.
+    // For `culprits.json`, which asks the same thing of the same dump, and
+    // for whoever wants to see what the compiler was asked.
     compiler.keep_request = output
         .parent()
         .map(|d| rm2k_project::absolute(d).join("events-request.json"));
