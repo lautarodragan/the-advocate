@@ -2405,6 +2405,27 @@ mod tests {
         assert!(line("sub_value:").contains(".res SUB_MAX * 2"));
     }
 
+    /// The game's text block, as the converter numbers it —in steps of
+    /// `MESSAGES_STEP`—, reaches past 256 KB: Vampires Dawn's, with all the
+    /// maps that fit VRAM, is 262,216 bytes, which the 16-bit `OP_MESSAGE`
+    /// operand did not reach counting by four. Distinct boxes, so that none is
+    /// stored only once, until the block is 300,000 bytes.
+    #[test]
+    fn the_game_s_text_block_reaches_past_256_kb() {
+        use rm2k_snes_events::messages::{Messages, Window};
+        let mut messages = Messages::new(engine::MESSAGES_STEP, Window::columns(39, 4));
+        let mut k = 0;
+        while messages.mark() < 300_000 {
+            let line = format!("{k:>39}");
+            let size = messages.mark();
+            assert!(
+                messages.add(&[line.clone(), line]).is_ok(),
+                "a box past {size} bytes does not fit OP_MESSAGE's operand"
+            );
+            k += 1;
+        }
+    }
+
     /// The call stack's depth is written on both sides for the same reason:
     /// the ROM skips a call past it without saying, and the compiler is the
     /// one that says which chains go past it, in the degradations. The
