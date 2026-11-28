@@ -1520,7 +1520,10 @@ pub const GOLD_ROOM: u16 = 0x4000;
 /// cache's, the animation's box, a picture's 8x8 objects— is inside its
 /// length, so what is past it nobody touches. **The palette is the top one
 /// the pictures leave**, if it is above the characters' and the animation
-/// box's: the pictures take theirs from 7 down and the rest from 0 up. The
+/// box's: the pictures take theirs from 7 down and the rest from 0 up. On a
+/// map whose pages open an inn's gold window Wally leaves one free —the
+/// timer, the rain and the sand lent colours, and two characters' palettes
+/// made one if that is not enough—: see `gold_window` in its request. The
 /// console copies the window's colours into it, and the arrow's tiles from
 /// the window's own, when the window appears: see `arrow_obj_load` in the
 /// runtime's message_arrow.s. Nobody tints it —the tint runs over the

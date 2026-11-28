@@ -25,9 +25,7 @@ use crate::text::quoted;
 use crate::variants;
 use rm2k_project::outln;
 use rm2k_project::Project;
-use rm2k_snes_bytecode::events::{
-    INN_GOLD_WINDOW, OP_FLASH, OP_INN, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING,
-};
+use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE, OP_TELEPORT, OP_TELEPORT_FACING};
 use rm2k_snes_events::codes::{ROUTE_CHANGE_GRAPHIC, TELEPORT, TIMER_OPERATION};
 use rm2k_snes_events::losses::{EVENT_LEFT_OUT, PANORAMA_NOT_CHANGED, PICTURE_NOT_SHOWN};
 use rm2k_snes_events::request::{Picture, Place};
@@ -1880,10 +1878,7 @@ pub fn run(options: Options) -> Result<()> {
     for m in &infos {
         let mut wants = false;
         for page in &m.pages {
-            let code = page.code.as_slice();
-            for i in bytecode::walk(code)? {
-                wants |= code[i] == OP_INN && bytecode::at(code, i + 1) == INN_GOLD_WINDOW;
-            }
+            wants |= bytecode::opens_gold_window(page.code.as_slice())?;
         }
         if wants {
             gold_maps.push(m.id as i64);

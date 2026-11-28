@@ -201,6 +201,9 @@ pub struct Asked {
     pub sand: Option<bool>,
     pub picture: Option<Picture>,
     pub battle_animation: bool,
+    /// [`MapRequest::gold_window`].
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub gold_window: bool,
     pub singles: Vec<Key>,
     /// [`MapRequest::weights`].
     pub palette_weight: BTreeMap<String, i64>,
@@ -491,6 +494,7 @@ impl Asked {
             picture: picture(&self.picture)?,
             picture_own: self.picture_own.as_ref().map(picture).transpose()?,
             battle_animation: self.battle_animation,
+            gold_window: self.gold_window,
             singles: self.singles.iter().cloned().collect(),
             weights: self.palette_weight.clone(),
             dither: self.dither.clone(),
@@ -589,6 +593,7 @@ mod tests {
         let plain = serde_json::to_value(Asked::default()).unwrap();
         for absent in [
             "painted_events",
+            "gold_window",
             "reach",
             "reach_lowers",
             "boots_here",

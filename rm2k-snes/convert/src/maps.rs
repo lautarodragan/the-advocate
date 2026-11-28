@@ -581,6 +581,15 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         sand: c.sand_maps.as_ref().map(|m| m.contains(&map_id)),
         picture: pictures.as_ref().map(ForMap::asked),
         battle_animation: shows_animation,
+        // The inn's gold window takes a sprite palette of its own: from the
+        // compiler's first call, as the routes' graphics. The emission
+        // checks it got one, with the pages of the real compilation.
+        gold_window: scanned
+            .compiled
+            .iter()
+            .map(|(_, _, code)| crate::bytecode::opens_gold_window(&code.0))
+            .collect::<Result<Vec<bool>>>()?
+            .contains(&true),
         singles,
         palette_weight: palette_weights(c.settings)?,
         dither: std::env::var("DITHER_PATTERN").unwrap_or_else(|_| "five_of_eight".to_string()),

@@ -503,6 +503,172 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
     })
 }
 
+/// What [`join_two`] did: the characters of the two palettes that became one,
+/// and what the screen loses for it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Joined {
+    /// The characters of the palette that stays, and of the one that went
+    /// into it.
+    pub kept: Vec<Key>,
+    pub joined: Vec<Key>,
+    /// How many distinct colours the two had together, past the fifteen a
+    /// palette holds: the ones lost.
+    pub colors_lost: usize,
+    /// Of the pixels of their poses the map shows, how many are drawn in
+    /// another colour than before, and of how many.
+    pub moved: u64,
+    pub total: u64,
+}
+
+/// Each character of `members` with the pixels of the poses the map shows,
+/// by colour, and the colour each is drawn in with `palette` —its own
+/// quantized one if the palette has it, the nearest otherwise, as
+/// `build_characters` draws it—.
+fn shown(ask: &Ask, members: &[Key], palette: &[Color]) -> Result<Vec<(Color, u64, Color)>> {
+    let mut out = Vec::new();
+    for key in members {
+        let image = sheet(ask.sheets, &key.0)?;
+        let poses = ask.poses.get(key);
+        let (_, _, mapping) = character_palette(image, key.1, None, poses)?;
+        for (c, n) in sprite_colors(image, key.1, poses) {
+            let own = mapping[&c];
+            let drawn = if palette.contains(&own) {
+                own
+            } else {
+                nearest(palette, own)
+            };
+            out.push((c, n, drawn));
+        }
+    }
+    Ok(out)
+}
+
+/// What drawing those pixels that way costs, as [`Splitter::lend`] counts
+/// it: each pixel times how far its colour lands.
+fn cost(pixels: &[(Color, u64, Color)]) -> u64 {
+    pixels
+        .iter()
+        .map(|&(c, n, drawn)| n * (lab_distance(c, drawn) as u64).isqrt())
+        .sum()
+}
+
+/// Makes two of the map's palettes one, to leave one free for something
+/// that needs a whole one —an inn's gold window, see `arrow_obj` in
+/// rm2k-snes-mapdata—: of every pair it can join, **the one that loses
+/// least**, counted as [`Splitter::lend`] counts a lent palette, over the
+/// pixels the map shows. The fifteen colours of the pair are the ones
+/// Adeleine's merge keeps of both, weighed by those pixels, and each of
+/// their characters is drawn with the nearest of them.
+///
+/// Not a leader's palette, which the console overwrites; nor one with a
+/// character in `keep` —baked into the background, whose tiles keep its
+/// colours—, nor one brought below fifteen for the timer, nor one with a
+/// colour no character of it draws —the timer's—. `None` when no pair is
+/// left.
+///
+/// The palette past the joined one moves down one, so the numbers stay
+/// contiguous: the characters keep their colours, not their number.
+pub fn join_two(ask: &Ask, split: &mut Split, keep: &BTreeSet<Key>) -> Result<Option<Joined>> {
+    let mut members: Vec<Vec<Key>> = vec![Vec::new(); split.palettes.len()];
+    for (key, n) in split.palette_of.iter() {
+        if !split.own.contains(key) {
+            members[n].push(key.clone());
+        }
+    }
+    // Each candidate's pixels by the colour its palette draws them in.
+    let mut weights: BTreeMap<usize, BTreeMap<Color, u64>> = BTreeMap::new();
+    for (n, palette) in split.palettes.iter().enumerate() {
+        let who = &members[n];
+        if split.leader_owned.contains(&n)
+            || who.is_empty()
+            || who
+                .iter()
+                .any(|k| keep.contains(k) || split.caps.contains_key(k))
+        {
+            continue;
+        }
+        let mut w: BTreeMap<Color, u64> = BTreeMap::new();
+        for (_, count, drawn) in shown(ask, who, palette)? {
+            *w.entry(drawn).or_default() += count;
+        }
+        if palette.iter().all(|c| w.get(c).is_some_and(|&v| v > 0)) {
+            weights.insert(n, w);
+        }
+    }
+    let numbers: Vec<usize> = weights.keys().copied().collect();
+    let mut best: Option<(u64, usize, usize, Vec<Color>, usize)> = None;
+    for (a, &i) in numbers.iter().enumerate() {
+        for &j in &numbers[a + 1..] {
+            let mut both = weights[&i].clone();
+            for (c, v) in &weights[&j] {
+                *both.entry(*c).or_default() += v;
+            }
+            let counts: Vec<(Color, u64)> = both.into_iter().collect();
+            let palette: Vec<Color> = if counts.len() <= OBJ_COLORS {
+                counts.iter().map(|&(c, _)| c).collect()
+            } else {
+                let merged = merge_least_visible(&counts, OBJ_COLORS)?;
+                let set: BTreeSet<Color> = merged.mapping.into_iter().collect();
+                set.into_iter().collect()
+            };
+            let who: Vec<Key> = members[i].iter().chain(&members[j]).cloned().collect();
+            let before = cost(&shown(ask, &members[i], &split.palettes[i])?)
+                + cost(&shown(ask, &members[j], &split.palettes[j])?);
+            let after = cost(&shown(ask, &who, &palette)?);
+            let delta = after.saturating_sub(before);
+            if best.as_ref().is_none_or(|b| delta < b.0) {
+                let lost = counts.len().saturating_sub(OBJ_COLORS);
+                best = Some((delta, i, j, palette, lost));
+            }
+        }
+    }
+    let Some((_, i, j, palette, colors_lost)) = best else {
+        return Ok(None);
+    };
+    let old: Vec<(Color, u64, Color)> = shown(ask, &members[i], &split.palettes[i])?
+        .into_iter()
+        .chain(shown(ask, &members[j], &split.palettes[j])?)
+        .collect();
+    let who: Vec<Key> = members[i].iter().chain(&members[j]).cloned().collect();
+    let new = shown(ask, &who, &palette)?;
+    let moved = old
+        .iter()
+        .zip(&new)
+        .filter(|(o, n)| o.2 != n.2)
+        .map(|(o, _)| o.1)
+        .sum();
+    let total = old.iter().map(|o| o.1).sum();
+    split.palettes[i] = palette;
+    split.palettes.remove(j);
+    let renumbered: Vec<(Key, usize)> = split
+        .palette_of
+        .iter()
+        .map(|(k, n)| {
+            let n = match n {
+                n if n == j => i,
+                n if n > j => n - 1,
+                n => n,
+            };
+            (k.clone(), n)
+        })
+        .collect();
+    for (k, n) in renumbered {
+        split.palette_of.set(k, n);
+    }
+    split.leader_owned = split
+        .leader_owned
+        .iter()
+        .map(|&n| if n > j { n - 1 } else { n })
+        .collect();
+    Ok(Some(Joined {
+        kept: members[i].clone(),
+        joined: members[j].clone(),
+        colors_lost,
+        moved,
+        total,
+    }))
+}
+
 /// Stops if anyone but a leader candidate —or a look only the hero shows—
 /// went into a leader's palette. It is a bug in the split, not a limit of
 /// the map, so there is no loss to declare.
@@ -532,4 +698,116 @@ fn hold(ask: &Ask, split: &Split) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rm2k_render::Picture;
+
+    /// A sheet of eight characters, each drawing `colours[k]` in stripes
+    /// over every pose, in 5-bit colour.
+    fn sheet_of(colours: &[Vec<Color>]) -> Picture {
+        let mut picture = Picture::transparent(288, 256);
+        for (k, palette) in colours.iter().enumerate() {
+            let (ox, oy) = ((k % 4) * 72, (k / 4) * 128);
+            for y in 0..128 {
+                for x in 0..72 {
+                    let c = palette[(x + y) % palette.len()];
+                    let at = ((oy + y) * 288 + ox + x) * 4;
+                    picture.rgba[at..at + 4].copy_from_slice(&[
+                        c[0] << 3,
+                        c[1] << 3,
+                        c[2] << 3,
+                        255,
+                    ]);
+                }
+            }
+        }
+        picture
+    }
+
+    /// Fifteen colours of a ramp of one hue, from dark to full.
+    fn ramp(hue: Color) -> Vec<Color> {
+        (1..16u16)
+            .map(|i| hue.map(|h| (u16::from(h) * i / 15) as u8))
+            .collect()
+    }
+
+    /// Each of the eight characters in a palette of its own.
+    fn one_each(sheets: &Sheets) -> Split {
+        let mut split = Split::default();
+        for k in 0..8 {
+            let image = sheet(sheets, "C").unwrap();
+            let (palette, _, _) = character_palette(image, k, None, None).unwrap();
+            split.palette_of.set(("C".to_string(), k), k as usize);
+            split.palettes.push(palette);
+        }
+        split
+    }
+
+    #[test]
+    fn two_palettes_join_where_they_lose_least() {
+        // 6 is 2 with its two lightest colours a step off: theirs is the
+        // pair that loses least.
+        let mut near = ramp([0, 0, 31]);
+        near[13][0] = 1;
+        near[14][0] = 1;
+        let colours: Vec<Vec<Color>> = vec![
+            ramp([31, 0, 0]),
+            ramp([0, 31, 0]),
+            ramp([0, 0, 31]),
+            ramp([31, 31, 0]),
+            ramp([31, 0, 31]),
+            ramp([0, 31, 31]),
+            near,
+            ramp([31, 31, 31]),
+        ];
+        let sheets: Sheets = HashMap::from([("C".to_string(), Some(sheet_of(&colours)))]);
+        let poses = BTreeMap::new();
+        let leaders = [("C".to_string(), 0)];
+        let (hero, here, weights) = (BTreeSet::new(), HashSet::new(), BTreeMap::new());
+        let ask = Ask {
+            sheets: &sheets,
+            leaders: &leaders,
+            cap: OBJ_PALETTES,
+            route_graphics: &[],
+            hero_graphics: &hero,
+            timer_colors: &[],
+            only_here: &here,
+            poses: &poses,
+            weights: &weights,
+        };
+        let c = |k: i32| ("C".to_string(), k);
+
+        // Character 0 leads: its palette is never joined.
+        let mut split = one_each(&sheets);
+        split.leader_owned.insert(0);
+        let joined = join_two(&ask, &mut split, &BTreeSet::new())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (joined.kept.clone(), joined.joined.clone()),
+            (vec![c(2)], vec![c(6)])
+        );
+        assert_eq!(joined.colors_lost, 2);
+        assert!(
+            joined.moved > 0 && joined.moved < joined.total,
+            "{joined:?}"
+        );
+        assert_eq!(split.palettes.len(), 7);
+        assert!(split.palettes[2].len() <= OBJ_COLORS);
+        assert_eq!(split.palette_of.get(&c(6)), Some(2));
+        assert_eq!(split.palette_of.get(&c(7)), Some(6));
+        assert_eq!(split.leader_owned, BTreeSet::from([0]));
+
+        // Baked into the background, 2 keeps its palette: another pair
+        // joins, and loses more.
+        let mut again = one_each(&sheets);
+        let other = join_two(&ask, &mut again, &BTreeSet::from([c(2)]))
+            .unwrap()
+            .unwrap();
+        assert!(!other.kept.contains(&c(2)) && !other.joined.contains(&c(2)));
+        assert!(other.moved > joined.moved, "{other:?} against {joined:?}");
+    }
 }
