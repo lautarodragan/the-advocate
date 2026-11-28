@@ -542,6 +542,10 @@ struct Run {
     /// Whether it starts only as the hero arrives on the map: an autostart
     /// page nothing can turn on while he is there. See `on_arrival`.
     on_arrival: bool,
+    /// Whether, starting so, it runs once in the whole game: it turns on
+    /// the switches of a page above it, which then holds for good. See
+    /// `once`.
+    once: bool,
     moves: Vec<Move>,
 }
 
@@ -568,6 +572,7 @@ const CALL_EVENT: i32 = 12330;
 const END_EVENT_PROCESSING: i32 = 12310;
 const LOOP: i32 = 12210;
 const LABEL: i32 = 12110;
+const JUMP_TO_LABEL: i32 = 12120;
 /// `CallEvent`'s first parameter for a map event's page, by number and by
 /// variables.
 const CALL_MAP_EVENT: i32 = 1;
@@ -581,6 +586,7 @@ const PARALLEL: i32 = 4;
 const AUTOSTART: i32 = 3;
 /// `ControlSwitches`, and its operations that may turn a switch off.
 const CONTROL_SWITCHES: i32 = 10210;
+const SWITCH_ON_OP: i32 = 0;
 const SWITCH_OFF_OP: i32 = 1;
 const SWITCH_TOGGLE_OP: i32 = 2;
 
@@ -691,6 +697,7 @@ pub fn standing(
                     beside: bool,
                     holds: bool,
                     on_arrival: bool,
+                    once: bool,
                     list: &mut dyn Iterator<Item = (i32, &[i32], bool)>,
                     routes: &mut Vec<Route>,
                     runs: &mut Vec<Run>,
@@ -769,6 +776,7 @@ pub fn standing(
                 beside,
                 holds,
                 on_arrival,
+                once,
                 moves,
             });
         }
@@ -821,6 +829,46 @@ pub fn standing(
             && !called.contains(&event.id)
             && event.pages[k + 1..].iter().all(|p| quiet(&p.condition))
     };
+    // Whether page `k` of `event`, one that starts only as the hero
+    // arrives, runs once in the whole game: it turns on, for sure, every
+    // switch a page above it asks for, and that page asks for nothing
+    // else. Nothing turns those switches off —`on_arrival` asked—, so the
+    // page above holds from then on and this one never starts again: it
+    // starts the first time the hero arrives, from where he comes from
+    // outside, and not from every cell a recalled place can put him on
+    // later. A Blurred Line's Hover-Tram: the trip turns on switch 69,
+    // which its page 2 asks for, and takes him away.
+    //
+    // For sure: by number, at the list's top level, with no
+    // `EndEventProcessing` or `JumpToLabel` before it, which could end the
+    // list or jump past it.
+    let once = |event: &ditto::schema::Event, k: usize| -> bool {
+        let mut on: BTreeSet<i32> = BTreeSet::new();
+        for c in &event.pages[k].event_commands {
+            let (code, p) = (c.code.to_i32(), &c.parameters[..]);
+            if code == END_EVENT_PROCESSING || code == JUMP_TO_LABEL {
+                break;
+            }
+            if code != CONTROL_SWITCHES || c.indent != 0 || p.get(3) != Some(&SWITCH_ON_OP) {
+                continue;
+            }
+            match (p.first(), p.get(1), p.get(2)) {
+                (Some(&0), Some(&a), _) => {
+                    on.insert(a);
+                }
+                (Some(&1), Some(&a), Some(&b)) => on.extend(a..=b),
+                _ => {}
+            }
+        }
+        event.pages[k + 1..].iter().any(|p| {
+            let c = &p.condition;
+            let f = &c.flags;
+            (f.switch_a || f.switch_b)
+                && !(f.variable || f.item || f.actor || f.timer || f.timer2)
+                && (!f.switch_a || on.contains(&c.switch_a_id))
+                && (!f.switch_b || on.contains(&c.switch_b_id))
+        })
+    };
     for event in &map.events {
         for (k, page) in event.pages.iter().enumerate() {
             if page.move_type.to_i32() == MOVE_CUSTOM {
@@ -840,6 +888,7 @@ pub fn standing(
                     beside: false,
                     holds: false,
                     on_arrival: false,
+                    once: false,
                     moves: vec![Move::Route(routes.len() - 1)],
                 });
             }
@@ -855,6 +904,7 @@ pub fn standing(
                 beside,
                 page.trigger.to_i32() != PARALLEL,
                 on_arrival(event, k),
+                on_arrival(event, k) && once(event, k),
                 &mut list,
                 &mut routes,
                 &mut runs,
@@ -865,6 +915,7 @@ pub fn standing(
     let mut list = commands.iter().map(|(code, p)| (*code, &p[..], false));
     read(
         None,
+        false,
         false,
         false,
         false,
@@ -903,6 +954,9 @@ pub fn standing(
             .extend(cells.iter().filter_map(|&(x, y)| grid.at(x, y))),
         None => hero.anywhere = true,
     }
+    // Where he enters the map from outside, before a recalled place can
+    // put him anywhere: where a scene that runs once starts.
+    let entered: BTreeSet<usize> = hero.cells.clone();
     if outside.any_open {
         hero.cells.extend((0..cells).filter(|&c| open[c]));
     }
@@ -1069,10 +1123,15 @@ pub fn standing(
                             // they do.
                             // One that starts only as he arrives and takes
                             // him away before it ends starts where he
-                            // arrives: see `Run::on_arrival`.
+                            // arrives: see `Run::on_arrival`. If it runs
+                            // once, where he first arrives: `Run::once`.
                             let here = now.entry(w).or_insert_with(|| {
                                 if w == Who::Hero && run.on_arrival && run.leaves_from(0) {
-                                    arrival.clone()
+                                    if run.once {
+                                        entered.clone()
+                                    } else {
+                                        arrival.clone()
+                                    }
                                 } else if run.holds {
                                     place.cells.difference(&place.held).copied().collect()
                                 } else {
@@ -1692,6 +1751,55 @@ mod tests {
         let off = vec![(control_switches, vec![0, 7, 7, SWITCH_OFF_OP])];
         // (The scene's own cell, a tile, is one he can step on.)
         assert_eq!(top(&off), [2, 3, 4, 5].into());
+    }
+
+    /// The Hover-Tram's shape: an autostart scene walks the hero two cells
+    /// along the aisle and up through the wall onto a seat, turns on switch
+    /// 69, which its page 2 asks for, and takes him away. The game recalls
+    /// computed places, so he can be on any aisle cell; but the scene runs
+    /// once, as he first arrives on (1, 2), and seats him only on (3, 1).
+    /// Without the switch it runs every time he arrives, a recall included,
+    /// and can seat him on any seat two cells right of the aisle.
+    #[test]
+    fn a_scene_that_runs_once_starts_where_the_hero_first_arrives() {
+        let (mut m, flags) = map(&[
+            "#########", //
+            "#########", //
+            "#.......#", //
+            "#########", //
+        ]);
+        const AUTOSTART: i32 = 3;
+        let control_switches = EventCommandCode::ControlSwitches.to_i32();
+        let mut seats = |switch_on: bool| -> BTreeSet<usize> {
+            let mut commands = vec![(MOVE_EVENT, vec![HERO, 8, 0, 0, 1, 1, THROUGH_ON, 0])];
+            if switch_on {
+                commands.push((control_switches, vec![0, 69, 69, 0]));
+            }
+            commands.push((TELEPORT, vec![2, 0, 0, 0]));
+            let mut scene = event(1, 7, 0, 0, commands);
+            scene.pages[0].trigger = ditto::schema::EventPageTrigger::from_i32(AUTOSTART);
+            let mut after = EventPage::default();
+            after.condition.flags.switch_a = true;
+            after.condition.switch_a_id = 69;
+            scene.pages.push(after);
+            m.events = vec![scene];
+            let outside = Outside {
+                entries: Some(&[(1, 2)]),
+                any_open: true,
+                ..Default::default()
+            };
+            let all = standing(1, &m, &flags, &[], outside).expect("nobody anywhere");
+            let hero = all
+                .into_iter()
+                .find(|s| s.who == Stander::Hero)
+                .expect("the hero");
+            hero.cells
+                .into_iter()
+                .filter(|&c| (9..18).contains(&c))
+                .collect()
+        };
+        assert_eq!(seats(true), [12].into());
+        assert_eq!(seats(false), [12, 13, 14, 15, 16].into());
     }
 
     /// The hero walks in four directions: a floor he could only step onto
