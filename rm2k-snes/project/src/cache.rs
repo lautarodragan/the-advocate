@@ -19,7 +19,7 @@
 //! written in place**: a file is replaced whole, by a rename, so one that
 //! was linked out of the cache into a build stays what it was.
 //!
-//! **And it forgets what nobody used in two weeks**: see
+//! **And it forgets what nobody used in four days**: see
 //! [`evict_and_hold`], which `advocate build` calls before it touches the
 //! cache. Every key carries the binaries and sources that made its value,
 //! so each new converter leaves the whole previous set of answers behind,
@@ -210,12 +210,14 @@ pub fn tree_version(directory: &Path) -> Result<String, Error> {
     Ok(hex(&h.finalize()))
 }
 
-/// How long an entry nobody used stays: about two weeks, taro's
-/// (2026-11-28). A worktree a fortnight old rebuilds what it needs in the
-/// minutes of a cold build; each new converter left a gigabyte behind.
-pub const UNUSED_FOR: Duration = Duration::from_secs(14 * 24 * 60 * 60);
+/// How long an entry nobody used stays: four days, taro's (2026-11-28),
+/// after the cache was measured growing some 18 GB a day —each new
+/// converter leaves a gigabyte behind— and four days would have settled it
+/// at a couple of hundred. A worktree older than that rebuilds what it
+/// needs in the minutes of a cold build.
+pub const UNUSED_FOR: Duration = Duration::from_secs(4 * 24 * 60 * 60);
 
-/// How often a build sweeps: once a day is plenty against two weeks, and
+/// How often a build sweeps: once a day is plenty against four days, and
 /// a sweep stats every entry —some hundred and seventy thousand on
 /// 2026-11-28, most of them stage answers—.
 pub const SWEEP_EVERY: Duration = Duration::from_secs(24 * 60 * 60);
@@ -343,7 +345,7 @@ pub struct Swept {
 /// [`SWEEP_EVERY`] or more before `now`; whatever it answers, the cache is
 /// held after. It has to come before anything in this process touches the
 /// cache, or its own shared lock is in the way. `now` is the clock, so
-/// that a test can be two weeks ahead.
+/// that a test can be four days ahead.
 pub fn evict_and_hold(directory: &Path, now: SystemTime) -> Eviction {
     let name = held_name(directory);
     let mut held = HELD.lock().unwrap_or_else(|e| e.into_inner());
