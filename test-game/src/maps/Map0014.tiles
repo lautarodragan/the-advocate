@@ -1,3 +1,8 @@
+# The erasure's two tile layers. The map is `Map0014.json`, and what it is
+# for is there: two events that `EraseEvent` themselves and a jump to this
+# same map, `tests/test_erase_event.py`. The field is bare so that a cell
+# where nothing is drawn looks like any other.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

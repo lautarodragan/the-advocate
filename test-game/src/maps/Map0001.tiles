@@ -1,3 +1,15 @@
+# The meadow, map 1, where the game starts: a field of light grass
+# —terrain autotile 0 in its plain middle pattern— hedged by bushes, with
+# trees, whose crowns are drawn above the hero and whose trunks block, and
+# flowers. The signpost at (7, 10) and the board at (10, 11) are the
+# hub's: each is under an event of the same name with no graphic —see
+# `hub.toml`—, which is what stops the hero in front of them and answers
+# A. The map's size, its events and the rest are in `Map0001.json`, which
+# has to say the same 20x15.
+#
+# The ChipSet's own tables —which upper tile lets the hero through, which
+# is drawn above them— are in `db/chipsets.json`.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

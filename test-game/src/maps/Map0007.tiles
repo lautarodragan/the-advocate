@@ -1,3 +1,8 @@
+# The vast's two tile layers. 330x200 is 66,000 cells: not even one byte a
+# cell fits in the 64 KB WRAM has for the grid, so the converter leaves
+# the map out of the cartridge, and a teleport to it is the box that says
+# so. `tests/test_big_maps.py`.
+
 # 330x200, 66000 tiles per layer
 # The two tile layers, in reading order: one id per tile, 330 per line.
 # These are the ids the binary stores; what turns them into pictures is

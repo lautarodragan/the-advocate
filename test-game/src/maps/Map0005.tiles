@@ -1,3 +1,10 @@
+# The lantern's two tile layers. What makes it worth a map is in
+# `Map0005.json`: a parallel event lays `Picture/Night` over it, a dark
+# mask with a cone of light, fixed to the map at transparency 35. The two
+# trees are under the mask, and the one at (10, 5) is in the cone: their
+# crowns are the layer above the hero, which the mask has to shade too.
+# `tests/test_map_picture.py`.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

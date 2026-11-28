@@ -1,3 +1,14 @@
+# The lookout's two tile layers. The map is `Map0010.json`: a slab of
+# grass in the night sky, `Stars`, which does not move, and a parallel
+# page that swaps it for `Dawn` with `ChangePBG` half a second after
+# arriving. `tests/test_panorama_swap.py` says what is tested. And a
+# dispatcher, an automatic page on switch 1430 that sends the hero to the
+# clearing: `tests/test_jumps.py`.
+#
+# The sky is the transparent lower tile, as on the terrace; nothing is
+# drawn above the hero, so the panorama goes on BG2 in mode 3 and is not
+# flattened.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

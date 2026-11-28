@@ -210,7 +210,9 @@ def code(path, source):
         return strip_python(source)
     if extension in (".s", ".inc"):
         return strip_line_comments(source, ";", quotes="\"'")
-    if extension in (".toml", ".ini") or name == "justfile":
+    # A `.tiles`, a map's layers in Ditto's text, has `#` lines for comments:
+    # the test game's say what each map is for.
+    if extension in (".toml", ".ini", ".tiles") or name == "justfile":
         return strip_line_comments(source, "#", quotes="\"'")
     # JSON has no comments, and a patch is somebody else's file, whole.
     return source
@@ -280,6 +282,7 @@ def test_no_tool_names_the_game_outside_a_comment():
     ("a.toml", 'name = "Manta" # who\n'),
     ("justfile", "build:\n  convert --game abl\n"),
     ("a.json", '{"name": "Talan\'s Pad"}\n'),
+    ("a.tiles", "# lower\n  4000 Kersh\n"),
 ])
 def test_the_net_sees_every_form(path, source):
     assert names(path, source), "%s: %r went unseen" % (path, source)
@@ -294,6 +297,7 @@ def test_the_net_sees_every_form(path, source):
     ("a.py", 'def f():\n    """Measured on A Blurred Line."""\n'),
     ("a.s", "  lda #0 ; Lashe City runs at 30\n"),
     ("a.toml", "# ABL's value\nx = 1\n"),
+    ("a.tiles", "# as on A Blurred Line's map 1\n# lower\n  4000\n"),
     ("a.md", "A Blurred Line\n"),
     ("a.rs", 'let word = "Ablative"; let other = "Talanted";\n'),
 ])

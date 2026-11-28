@@ -1,3 +1,11 @@
+# The garden, map 2: the meadow's grass with a path, a fence around a well
+# and, above the hero, two roofs, a dome and a tent. The ChipSet's ★ in
+# `db/chipsets.json` puts those on the layer in front of the hero, which
+# on the console is 4 bits a pixel with a palette per cell, so they are
+# what Adeleine groups and merges: it is the map that loses a reasonable
+# amount —see the book's "The tools", the lossy examples—. The map is
+# `Map0002.json`, and the case `garden` teleports there.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

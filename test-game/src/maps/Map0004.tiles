@@ -1,3 +1,8 @@
+# The clearing's two tile layers. The map is `Map0004.json`, and what
+# makes it worth a map is there and not here: it has no events at all, so
+# `ev_total` is zero when it is entered. `tests/test_empty_map.py` says
+# why that is tested.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

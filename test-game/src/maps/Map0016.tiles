@@ -1,3 +1,7 @@
+# The frost's two tile layers. The map is `Map0016.json`: a field with a
+# hedge down the middle, whose three events swap its ChipSet when their
+# switches are on. `tests/test_tileset_swap.py` says what it asks.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is

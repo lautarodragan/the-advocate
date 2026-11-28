@@ -1,3 +1,18 @@
+# The terrace's two tile layers. The map is `Map0009.json`: a slab of
+# grass hanging in the night sky, which is its panorama, `Stars`,
+# scrolling on its own. `tests/test_terrace.py` says what is tested.
+#
+# The sky is where the lower layer draws nothing: the ChipSet's last lower
+# tile, 5143, is all transparent. It is left on purpose where a box in the
+# middle of the screen writes —rows 5 to 9—: left of the slab, where the
+# box's lines start, and in a hole in the slab's middle, so that its
+# letters go over the moving panorama, over the floor and over the walkers
+# who cross its lines. The map is wider than the screen and the hero
+# stands at (10, 12), so the camera is inside the map and not against an
+# edge, as on A Blurred Line's map 1, the case this one keeps. The two
+# trees' crowns are drawn above the hero, which makes the map flattened,
+# as that one is.
+
 # 30x15, 450 tiles per layer
 # The two tile layers, in reading order: one id per tile, 30 per line.
 # These are the ids the binary stores; what turns them into pictures is

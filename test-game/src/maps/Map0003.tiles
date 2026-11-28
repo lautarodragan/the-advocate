@@ -1,3 +1,15 @@
+# The showcase, map 3: the Exterior ChipSet's first ninety-six lower
+# tiles, one each, and its forty upper tiles with the most colours, above
+# the hero —its ChipSet entry, 2 in `db/chipsets.json`, has every upper
+# tile ★, and gives the first four lower tiles a terrain each, and the
+# first water a fifth, for `tests/test_terrain.py`—, the rest grass. No
+# game draws a map like this; it is as much as the biggest VRAM layout
+# takes —384 tiles behind the hero and 256 in front— and the map where the
+# console loses too much: the background has more colours than its budget,
+# and the layer above is left a single palette of fifteen. The book's "The
+# tools" shows what that looks like. The map is `Map0003.json`, and the
+# case `showcase` teleports there.
+
 # 20x15, 300 tiles per layer
 # The two tile layers, in reading order: one id per tile, 20 per line.
 # These are the ids the binary stores; what turns them into pictures is
