@@ -343,6 +343,7 @@ pub fn merged(
         result.over_rtp.push(ours);
     }
     if target.is_dir() {
+        cache::stamp(&target);
         return Ok(result);
     }
 

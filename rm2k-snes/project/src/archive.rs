@@ -53,6 +53,7 @@ pub fn unpacked(zip: &Path, hash: &str, into: &Path) -> Result<PathBuf, Error> {
         .unwrap_or_default();
     let target = into.join(format!("{stem}-{}", &hash[..16]));
     if target.is_dir() {
+        cache::stamp(&target);
         return Ok(target);
     }
     let fail = |e: std::io::Error, p: &Path| Error(format!("{}: {e}", p.display()));

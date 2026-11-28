@@ -537,9 +537,16 @@ impl Tracks {
         // And if it is not there, the one another build made: with the cache
         // shared, a worktree finds every track another one already rendered.
         if let Some(stored) = self.cached(&key) {
-            if file_fingerprint(&out_path).as_ref() == Some(&stored)
-                || self.restore_from_the_cache(&key, &stored, &out_path)
-            {
+            if file_fingerprint(&out_path).as_ref() == Some(&stored) {
+                // Still used, though not read from the cache: the cache's
+                // copy is what the next worktree takes instead of
+                // rendering the track again, so it must not be evicted.
+                if let Some(dir) = &self.cache {
+                    cache::touch(dir, TRACKS, &key);
+                }
+                return Ok(Outcome::Already);
+            }
+            if self.restore_from_the_cache(&key, &stored, &out_path) {
                 return Ok(Outcome::Already);
             }
         }

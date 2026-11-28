@@ -7,9 +7,11 @@
 //! cartridge is one more table in `[cartridges]`, and nothing here.
 
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use cartridge::cartridges::{Cartridges, FROM_ENVIRONMENT, RELEASE};
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use rm2k_project::cache::{self, Eviction};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::Project;
 use serde_json::Value;
@@ -78,6 +80,22 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // What the machine gave, before a `.zip` is unpacked: the file says
     // both.
     let given = Environment::from_matches(matches, FROM_ENVIRONMENT);
+    // Before anything reads the cache, which from then on this process
+    // holds: see `cache::evict_and_hold`.
+    if !matches.get_flag("list") {
+        let cache = given.cache(&project)?;
+        if let Eviction::Swept(swept) = cache::evict_and_hold(&cache, SystemTime::now()) {
+            if swept.entries > 0 {
+                println!(
+                    "cache: {} entries nobody used in {} days, {} MB freed, deleted from {}",
+                    swept.entries,
+                    cache::UNUSED_FOR.as_secs() / 86_400,
+                    swept.bytes >> 20,
+                    cache.display()
+                );
+            }
+        }
+    }
     let cartridges = Cartridges::load(project, given.clone())?;
     let names: Vec<String> = matches
         .get_many::<String>("names")
