@@ -111,7 +111,7 @@ renamed on one side does not compile on the other. Both calls read these:
                        "troop_effects_in_package": [...]},
      "cases": [{"map": 4, "commands": [...]}],
      "test_graphics": {"4": [["Extra", 0]]},
-     "messages_step": 4,
+     "messages_step": 8,
      "encounter_troops": [3, 1]}
 
 * `substitutions`: per map, every `TileSubstitution` its pages can ask for

@@ -127,9 +127,13 @@ pub const TRANSITION_MOSAIC: u32 = 1;
 pub const TRANSITION_CUT: u32 = 2;
 /// `Game_Party::AddActor` does not add a fifth.
 pub const PARTY_MAX: u32 = 4;
-/// `OP_MESSAGE`'s operand counts the text block in steps of this. Measured
-/// against A Blurred Line.
-pub const MESSAGES_STEP: usize = 4;
+/// `OP_MESSAGE`'s operand counts the text block in steps of this, so the
+/// block reaches `$10000` times it: 512 KB. It was 4 —256 KB— until
+/// 2026-11-28, when Vampires Dawn's block, with seven more maps, went 72
+/// bytes past that; taro chose eight bytes over a 24-bit operand, which costs
+/// a byte per `OP_MESSAGE` instead of some padding per box. `msg_start`, in
+/// runtime/messages.s, shifts the operand by as many bits.
+pub const MESSAGES_STEP: usize = 8;
 /// How many pages of a troop the battle notes, a far RAM cap: one byte each
 /// in `BA_PAGE_DONE`, inside the troop pages' range of far RAM. It was 32
 /// until 2026-10-12, when the agency captain's 33 pages (troop 240) all

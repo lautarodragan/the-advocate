@@ -404,7 +404,10 @@ field_same:
     plx
     phx
     ; The lines: each box's offset made a long pointer into `messages`, as
-    ; `msg_start` makes it, and its cells, which it counts.
+    ; `msg_start` makes it, and its cells, which it counts. Three shifts, as
+    ; many as `MESSAGES_STEP` asks: until 2026-11-28 it was four bytes and two
+    ; shifts, and this copy was the one missed when it changed.
+.assert MESSAGES_CAP = 8 * $10000, error, "show_window multiplies the offset by eight, as msg_start: it is MESSAGES_STEP in engine.rs of rm2k-snes/mapdata"
     lda #0
     sta f:SW_ROOM
     lda f:SW_RECS + R_N, x
@@ -421,10 +424,12 @@ field_same:
 line:
     rep #$20
 .a16
-    lda [code_ptr], y           ; the box's offset, in steps of four
+    lda [code_ptr], y           ; the box's offset, in steps of eight
     iny
     iny
     stz temp
+    asl a
+    rol temp
     asl a
     rol temp
     asl a

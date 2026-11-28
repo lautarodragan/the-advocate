@@ -299,7 +299,7 @@ ready:
 ; be added to a long pointer crossing banks: see the loop below and
 ; `msg_ptr_next`, which is the same arithmetic for advancing one byte at a
 ; time.
-.assert MESSAGES_CAP = 4 * $10000, error, "msg_start multiplies the offset by four: it is MESSAGES_STEP in engine.rs of rm2k-snes/mapdata"
+.assert MESSAGES_CAP = 8 * $10000, error, "msg_start multiplies the offset by eight: it is MESSAGES_STEP in engine.rs of rm2k-snes/mapdata"
 .proc msg_start
 .a16
 .i16
@@ -309,14 +309,16 @@ ready:
     ; text box past the first bank read from somewhere else**: the header and
     ; the line lengths came out of anything.
     ;
-    ; And the offset counts in steps of four bytes —`MESSAGES_STEP` in
-    ; events.py—, so the block reaches 256 KB: the two bits that fall out of
+    ; And the offset counts in steps of eight bytes —`MESSAGES_STEP` in
+    ; engine.rs—, so the block reaches 512 KB: the three bits that fall out of
     ; the `asl`s go to `temp`, and each unit of what it gathers is 64 KB, that
     ; is one bank. With `rol` and not with a branch per bit on purpose:
-    ; that way the top bit —more than 128 KB, which no cartridge in the suite
-    ; reaches— runs the same instructions as the bottom one, which does.
+    ; that way the top bit —more than 256 KB, which ABL does not reach and
+    ; Vampires Dawn does— runs the same instructions as the bottom one.
     phx
     stz temp
+    asl a
+    rol temp
     asl a
     rol temp
     asl a

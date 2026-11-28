@@ -709,9 +709,9 @@ pub struct Messages {
     /// starts at a multiple of it. Inside, everything is in bytes: the step
     /// is applied going in and going out.
     ///
-    /// The game's block goes by four —`MESSAGES_STEP` in the converter's
-    /// events.py, which has the why—, so the block can be 256 KB with a
-    /// 16-bit operand; the others, like the troops', by one.
+    /// The game's block goes by eight —`MESSAGES_STEP` in `engine.rs` of
+    /// rm2k-snes-mapdata, which has the why—, so the block can be 512 KB with
+    /// a 16-bit operand; the others, like the troops', by one.
     pub step: usize,
     pub window: Window,
     pub data: Vec<u8>,
@@ -755,7 +755,7 @@ impl Messages {
 
     /// One that only gathers the texts so that the pairs can be chosen over
     /// them —see `choose_pairs`—, without the cap of the operand: without
-    /// pairs the block can pass the 256 KB that it will not pass with them,
+    /// pairs the block can pass the reach that it will not pass with them,
     /// and stopping there would stop the cartridge for a block that is never
     /// emitted.
     pub fn measuring(step: usize, window: Window) -> Messages {
@@ -935,7 +935,7 @@ impl Messages {
     /// while `measuring`, and there it wraps to 16 bits on purpose: that
     /// pass's bytecode is thrown away —only its texts are kept—, but the
     /// compiler still writes each offset in a word, and a value that does not
-    /// fit would make every box past 256 KB "not compile", stopping a common
+    /// fit would make every box past the reach "not compile", stopping a common
     /// event the plan said compiles. The word's length is all that pass
     /// needs, and wrapping keeps it.
     fn operand(&self, w: usize) -> usize {
