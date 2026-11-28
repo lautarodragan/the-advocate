@@ -821,6 +821,8 @@ route_done:
     stz temp + 3
     lda ev_active
     beq none
+    jsr ends_after_jump
+    bcs none
     rep #$20
 .a16
     lda code_ptr
@@ -896,6 +898,65 @@ none:
 .a8
     rtl
 .endproc
+
+; Whether the foreground page has nothing left to run after its jump: its
+; next opcode, through up to `ENDS_HOPS` `OP_GOTO`s —the one an `else` leaves
+; behind a branch that jumps—, is an `OP_DONE` with nobody to return to. Then
+; there is nothing to carry, and `code_carry_after` does not decompress the
+; whole stream of the map being left —frames of every plain door, in a game
+; whose maps carry a lot of bytecode— for that one byte. The page is not ended
+; here but pointed at `ends_here`, an `OP_DONE` in the cartridge, so that it
+; still ends on the frame after the load, as it did when carried: the new
+; map's automatic events wait for that frame, and nothing about when they
+; start changes. With carry set if so, and `code_ptr` and `ev_cur` moved.
+;
+; A page inside a call —`call_depth` not zero— is carried as before: its end
+; returns to a caller, maybe in this map's bytecode, and what that caller
+; does next is not looked at here.
+ENDS_HOPS = 4
+.proc ends_after_jump
+.a8
+.i16
+    lda f:call_depth
+    bne carry
+    ldy ev_cur
+    ldx #ENDS_HOPS
+next:
+    lda [code_ptr], y
+    beq ends                    ; OP_DONE
+    cmp #OP_GOTO
+    bne carry
+    iny
+    rep #$20
+.a16
+    lda [code_ptr], y           ; the target, absolute inside the page
+    tay
+    sep #$20
+.a8
+    dex
+    bne next
+carry:
+    clc
+    rts
+ends:
+    rep #$20
+.a16
+    lda #.loword(ends_here)
+    sta code_ptr
+    stz ev_cur
+    sep #$20
+.a8
+    lda #^ends_here
+    sta code_ptr + 2
+    sec
+    rts
+.endproc
+.assert OP_DONE = 0, error, "ends_after_jump looks for OP_DONE with a beq"
+
+; Where a page with nothing left after its jump goes on, from
+; `ends_after_jump`: its end.
+ends_here:
+    .byte OP_DONE
 
 ; One pointer into a page's bytecode, in `temp` to `temp + 2`: if it is in
 ; the bytecode of the map being left, it moves to the same byte where it
