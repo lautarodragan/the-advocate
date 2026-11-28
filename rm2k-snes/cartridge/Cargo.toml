@@ -3,6 +3,7 @@ name = "rm2k-snes-cartridge"
 version = "0.1.0"
 edition = "2021"
 description = "Builds an rm2k-snes game's cartridges: bank packing, ca65 + ld65, checksum, symbols, and how much space is left"
+license.workspace = true
 
 [lib]
 name = "cartridge"

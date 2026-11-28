@@ -71,7 +71,6 @@ fn cartridge(name: &str) -> Cartridge {
         system_songs: strings(&c["system_songs"]),
         // The fixture is older than them: none, which is what keeps its job.
         named_songs: Vec::new(),
-        measuring_headroom: c["measuring_headroom"].as_f64(),
         decompress_frames: c["decompress_frames"].as_f64().unwrap(),
         msu_samples: false,
     }

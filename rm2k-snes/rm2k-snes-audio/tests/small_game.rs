@@ -120,7 +120,7 @@ fn identical_samples_are_one_entry_and_sound_the_same() {
         let sample = |all: &[(&'static [u8], usize)], i: u8| all.get(i as usize).copied();
         let (x, y) = (leak(&before), leak(&after));
         compile::sounds_the_same(&a.name, &wa, |i| sample(&x, i), &wb, |i| sample(&y, i)).unwrap();
-        assert_eq!(a.fingerprint, b.fingerprint, "{}: the fingerprint", a.name);
+        assert_eq!(a.headroom, b.headroom, "{}: the volume ceiling", a.name);
     }
     // What the sound effects get is the same, numbered after fewer entries.
     for e in &merged.effects {
@@ -197,5 +197,52 @@ fn the_music_s_sounds_take_a_whole_bank_and_no_more() {
     assert!(
         format!("{error:?}").contains("the music's sounds go over one bank"),
         "{error:?}"
+    );
+}
+
+/// Each song's volume ceiling, measured while compiling: played in the
+/// model of the S-DSP with its ceiling, no song reaches the cap, and one
+/// whose ceiling went down is left close to it —it lost no more than it
+/// had to—.
+#[test]
+fn every_song_gets_the_highest_ceiling_that_does_not_clip() {
+    use rm2k_snes_audio::ceilings::{self, Song};
+    use rm2k_snes_audio::samples::BLOCK_BYTES;
+    let dir = scratch("ceilings");
+    let (music, _, _) = music_of(&dir, false);
+    let mut seen = Vec::new();
+    for song in music.songs.iter().filter(|s| s.headroom.is_some()) {
+        let headroom = song.headroom.unwrap();
+        let played = ceilings::loudest(
+            &Song::new(&song.name, song.writes.clone(), |srcn| {
+                music
+                    .bank
+                    .voices
+                    .get(srcn as usize)
+                    .map(|v| (v.data.as_slice(), v.loop_block * BLOCK_BYTES))
+            })
+            .unwrap(),
+        );
+        eprintln!(
+            "{}: headroom {headroom}, peak {:.2} dB",
+            song.name,
+            ceilings::db(played.peak)
+        );
+        assert_eq!(played.clipped, 0, "{} clips with its ceiling", song.name);
+        assert!(headroom <= ceilings::HEADROOM);
+        if headroom < ceilings::HEADROOM {
+            assert!(
+                ceilings::db(played.peak) > -1.0,
+                "{}'s ceiling went down to {headroom}, and it peaks at {:.2} dB",
+                song.name,
+                ceilings::db(played.peak)
+            );
+        }
+        seen.push(headroom);
+    }
+    assert!(
+        seen.iter().any(|&h| h < ceilings::HEADROOM),
+        "no song of the fixture comes close enough to the cap to have its ceiling lowered: \
+         {seen:?}"
     );
 }

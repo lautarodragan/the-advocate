@@ -3,6 +3,7 @@ name = "rm2k-snes-text"
 version = "0.1.0"
 edition = "2021"
 description = "Text on an rm2k-snes console's screens: its fonts —a sheet drawn by hand, or easyrpg-player's 6x12—, a line of text drawn over an RPG Maker 2000 System, and message boxes reflowed for a narrower window"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_text"

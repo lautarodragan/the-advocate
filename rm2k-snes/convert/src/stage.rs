@@ -55,6 +55,13 @@ pub fn keep_answers_in(directory: Option<PathBuf>) -> Kept {
     Kept(Some(CACHE.with(|c| c.replace(directory))))
 }
 
+/// The disk cache this thread's conversion keeps its answers in, if any:
+/// for a stage that keeps values of its own there, as the music keeps each
+/// song's peak.
+pub fn cache_directory() -> Option<PathBuf> {
+    CACHE.with(|c| c.borrow().clone())
+}
+
 /// See [`keep_answers_in`].
 pub struct Kept(Option<Option<PathBuf>>);
 

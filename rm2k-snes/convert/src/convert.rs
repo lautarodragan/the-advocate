@@ -2111,7 +2111,6 @@ pub fn run(options: Options) -> Result<()> {
             .get(start_index)
             .copied()
             .ok_or_else(|| Stop::new("the emission answered no frames for the boot map"))?,
-        measuring_headroom: options.measure_headroom,
         // The quality backdrops are the emission's bytes: the stage only
         // puts them in their place in the `.msu`.
         backdrops: scenes.quality.clone(),
@@ -2130,6 +2129,7 @@ pub fn run(options: Options) -> Result<()> {
         soundfont: environment.soundfont()?.to_path_buf(),
         out: directory.clone(),
         msu: msu.clone(),
+        cache: stage::cache_directory(),
     };
     let rm2k_snes_audio::stage::Answer { mut files, losses } =
         stage::call_uncached(AUDIO_CARTRIDGE, || {

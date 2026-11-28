@@ -3,26 +3,23 @@ name = "rm2k-snes-audio"
 version = "0.1.0"
 edition = "2021"
 description = "Compiles an rm2k-snes game's music for the SPC700: the shared sample bank, one stream per song, one audio package per map"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_audio"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rm2k-snes-audio"
-path = "src/main.rs"
-
 [dependencies]
-clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 gunter = { path = "../../snes/gunter" }
-libc = "0.2"
 rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
 rm2k-snes-bytecode = { path = "../bytecode" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
+# The S-DSP each song's volume ceiling is measured in: see `src/ceilings.rs`.
+spc-dsp = { path = "../../snes/spc-dsp" }
 # Each song's writes beside the ROM, compressed: see `song_writes` in
 # `src/stage.rs`.
 flate2 = "1"

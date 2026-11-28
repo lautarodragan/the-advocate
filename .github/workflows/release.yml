@@ -10,7 +10,9 @@
 # a game's tests look for the harness beside the `advocate` of their PATH.
 # Until 2026-11-25 the harness went at its checkout's path,
 # `the-advocate/rm2k-snes/harness/`. cc65 and the rest of what the README
-# asks for are still the machine's.
+# asks for are still the machine's. At its top go the licence, `LICENSE`,
+# and what the LGPL asks for the snes_spc code the binaries carry:
+# `NOTICE` and `LICENSE.snes_spc`.
 #
 # It follows CI instead of running beside it, so that a red commit is never
 # released. The release is a draft until every platform has uploaded its
@@ -70,11 +72,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # glibc and not musl: rm2k-snes-audio volume-ceilings plays the songs
-          # in a libretro core it loads with dlopen, and a static musl
-          # binary cannot load one ("Dynamic loading not supported"). Built
-          # on the oldest runner, so they run on any distribution with a
-          # glibc at least that old (2.35).
+          # glibc and not musl since 2026-10-31, when `rm2k-snes-audio
+          # volume-ceilings` played the songs in a libretro core it loaded
+          # with dlopen, which a static musl binary cannot do. That went on
+          # 2026-11-28 —the ceilings are measured in `spc-dsp`, linked in—,
+          # and nothing loads a library at run time any more, so musl would
+          # work now; it stays glibc until someone has a reason to move.
+          # Built on the oldest runner, so they run on any distribution with
+          # a glibc at least that old (2.35).
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-22.04
           - target: aarch64-unknown-linux-gnu
@@ -114,6 +119,12 @@ jobs:
             cp "target/${{ matrix.target }}/release/$bin" dist/the-advocate/bin/
           done
           cp -R runtime README.md dist/the-advocate/
+          # The licence, and what the LGPL asks of the binaries for the
+          # snes_spc they carry, `spc-dsp`'s: its text, and a notice that
+          # they contain it and where its source is. See that crate's
+          # README.
+          cp LICENSE snes/spc-dsp/NOTICE dist/the-advocate/
+          cp snes/spc-dsp/vendor/snes_spc/license.txt dist/the-advocate/LICENSE.snes_spc
           mkdir -p dist/the-advocate/lib/advocate
           cp -R rm2k-snes/harness dist/the-advocate/lib/advocate/harness
           ls dist/the-advocate/bin

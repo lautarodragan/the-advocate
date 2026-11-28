@@ -3,6 +3,7 @@ name = "rm2k-snes-screens"
 version = "0.1.0"
 edition = "2021"
 description = "An rm2k-snes game's screens as a cartridge carries them: the message window and its font, the title's menu, the save slots and the pause menu, the text screens with their windows, and End Game"
+license.workspace = true
 
 [lib]
 name = "rm2k_snes_screens"

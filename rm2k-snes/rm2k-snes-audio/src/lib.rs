@@ -26,7 +26,6 @@ pub mod midi;
 pub mod msu;
 pub mod msu_data;
 pub mod relief;
-pub mod retro;
 pub mod samples;
 pub mod sdsp;
 pub mod song;

@@ -637,14 +637,15 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     Ok(out)
 }
 
-/// `music.json`: what the MSU-1 tracks and the volume ceilings need from
-/// each song —how long it lasts, the fingerprint of its mix, its track—.
+/// `music.json`: what the MSU-1 tracks need from each song —how long it
+/// lasts, its track—. Until 2026-11-28 it also carried the fingerprint of
+/// each song's mix, which the versioned table of volume ceilings was
+/// checked against.
 pub fn songs_json(songs: &[Built]) -> serde_json::Value {
     serde_json::json!({
         "songs": songs.iter().map(|t| serde_json::json!({
             "name": t.name,
             "length": t.length(),
-            "fingerprint": t.fingerprint.clone().unwrap_or_default(),
             "track": t.track,
         })).collect::<Vec<_>>()
     })

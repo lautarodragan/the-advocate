@@ -111,7 +111,7 @@ fn crowd_compiled(name: &str, headroom: Option<f64>) -> Music {
     let music = compile(
         &game,
         &samples,
-        serde_json::json!({"songs": ["crowd"], "measuring_headroom": headroom}),
+        serde_json::json!({"songs": ["crowd"], "fixed_headroom": headroom}),
         bank::ARAM_END,
     );
     let _ = std::fs::remove_dir_all(&dir);
@@ -409,5 +409,71 @@ fn a_program_does_not_pay_for_a_package_where_it_does_not_play() {
         trimmed.is_empty(),
         "the light song pays for the busy one's full package, where it is not: {}",
         trimmed.join(", ")
+    );
+}
+
+/// Eight voices of the same program playing the same note at once, at full
+/// velocity and with CC7 at its top: their waves add up in phase, which is
+/// as loud as eight voices get.
+fn wall() -> Vec<u8> {
+    let mut tracks = Vec::new();
+    for channel in 0..8u8 {
+        let mut events = vec![program(channel, 33), (0, vec![0xB0 | channel, 7, 127])];
+        for beat in 0..8u32 {
+            note(&mut events, channel, beat * BEAT, 80, 40, 127);
+        }
+        tracks.push(events);
+    }
+    midi(&tracks)
+}
+
+/// A song that clips even with every voice at half the headroom —three
+/// songs of two other games do— is measured again at half that, and gets a
+/// ceiling that does not clip, instead of stopping the build.
+#[test]
+fn a_song_that_clips_at_half_the_headroom_is_measured_lower() {
+    use rm2k_snes_audio::ceilings::{self, Song};
+    use rm2k_snes_audio::samples::BLOCK_BYTES;
+    let dir = scratch("wall-ceiling");
+    let (game, samples) = game(&dir, &[("wall", wall())]);
+    let play = |music: &Music| {
+        let song = &music.songs[0];
+        ceilings::loudest(
+            &Song::new(&song.name, song.writes.clone(), |srcn| {
+                music
+                    .bank
+                    .voices
+                    .get(srcn as usize)
+                    .map(|v| (v.data.as_slice(), v.loop_block * BLOCK_BYTES))
+            })
+            .unwrap(),
+        )
+    };
+    let at_half = compile(
+        &game,
+        &samples,
+        serde_json::json!({"songs": ["wall"], "fixed_headroom": ceilings::MEASURING_HEADROOM}),
+        bank::ARAM_END,
+    );
+    assert_ne!(
+        play(&at_half).clipped,
+        0,
+        "the wall does not clip at half the headroom"
+    );
+    let music = compile(
+        &game,
+        &samples,
+        serde_json::json!({"songs": ["wall"]}),
+        bank::ARAM_END,
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    let headroom = music.songs[0].headroom.unwrap();
+    assert!(headroom < ceilings::MEASURING_HEADROOM, "{headroom}");
+    let played = play(&music);
+    assert_eq!(played.clipped, 0, "it clips with its ceiling, {headroom}");
+    assert!(
+        ceilings::db(played.peak) > -1.0,
+        "its ceiling, {headroom}, leaves it at {:.2} dB",
+        ceilings::db(played.peak)
     );
 }

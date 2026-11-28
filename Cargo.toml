@@ -13,6 +13,7 @@ members = [
     "snes/goombario",
     "snes/gunter",
     "snes/lz2",
+    "snes/spc-dsp",
     "snes/voodoo",
     "rm2k/ditto",
     "rm2k/ditto/xtask",
@@ -36,6 +37,12 @@ members = [
 # A virtual manifest has no edition to take the resolver from, and would fall
 # back to the old one. "2" is what every member, on edition 2021, used alone.
 resolver = "2"
+
+# What every member says of itself unless it says otherwise: the licence,
+# taro's, from 2026-11-28 —`LICENSE`, at the root—. `spc-dsp` says its own,
+# because it carries LGPL code.
+[workspace.package]
+license = "GPL-3.0-or-later"
 
 # The clippy lints the workspace does not follow, on purpose, because they
 # fight how this code is written and not what it does. Each member takes

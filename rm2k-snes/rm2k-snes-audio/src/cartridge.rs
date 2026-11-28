@@ -167,7 +167,6 @@ pub struct Cartridge {
     pub system_songs: Vec<String>,
     /// And every song the game's events and maps name, for the same.
     pub named_songs: Vec<String>,
-    pub measuring_headroom: Option<f64>,
     /// How many frames decompressing the boot map takes.
     pub decompress_frames: f64,
     /// Whether the samples may travel in the `.msu`: in a cartridge that
@@ -426,7 +425,6 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
             .map(|(p, t)| json!([p, t]))
             .collect::<Vec<_>>()),
     );
-    job.insert("measuring_headroom".into(), json!(c.measuring_headroom));
     job.insert("system_songs".into(), json!(c.system_songs));
     // Only when there are some: a job without them is the one it always was.
     if !c.named_songs.is_empty() {

@@ -3,6 +3,7 @@ name = "goombario"
 version = "0.1.0"
 edition = "2021"
 description = "Static checks for 65816 code assembled with ca65: what assembles and links fine and is wrong"
+license.workspace = true
 
 [lib]
 name = "goombario"

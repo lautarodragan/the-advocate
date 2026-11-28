@@ -738,44 +738,7 @@ impl Cartridges {
             "soundfont {}\n",
             self.environment.soundfont()?.display()
         ));
-        // And each song's volume ceiling, which changes the streams: by its
-        // values and not by the file, because the tool that measures them
-        // rewrites it after building with what it measured —the peak, the
-        // mix fingerprint—, and that does not change the ROM.
-        for (song, headroom) in self.ceilings()? {
-            h.update(format!("{song}={headroom}\n"));
-        }
         Ok(cache::hex(&h.finalize())[..16].to_string())
-    }
-
-    /// {song: headroom} from the versioned table of volume ceilings; empty if
-    /// it does not exist.
-    fn ceilings(&self) -> Result<BTreeMap<String, String>, String> {
-        let path = self
-            .project
-            .auto_patches()?
-            .join("music")
-            .join("ceilings.toml");
-        let text = match std::fs::read_to_string(&path) {
-            Ok(text) => text,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
-            Err(e) => return Err(format!("{}: {e}", path.display())),
-        };
-        let table: toml::Table = text
-            .parse()
-            .map_err(|e| format!("{}: {e}", path.display()))?;
-        let songs = table
-            .get("songs")
-            .and_then(toml::Value::as_table)
-            .ok_or_else(|| format!("{}: has no [songs]", path.display()))?;
-        songs
-            .iter()
-            .map(|(name, row)| {
-                row.get("headroom")
-                    .map(|v| (name.clone(), v.to_string()))
-                    .ok_or_else(|| format!("{}: {name} has no headroom", path.display()))
-            })
-            .collect()
     }
 
     /// What the cartridge's stamp has to say for it to be up to date: the

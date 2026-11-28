@@ -83,6 +83,11 @@ pub struct Flags {
     /// prints names them: it writes nothing there.
     pub out: PathBuf,
     pub msu: PathBuf,
+    /// The converter's disk cache, where each song's volume ceiling is kept
+    /// per mix —see `ceilings`—; None with `NO_CACHE=1`. What it keeps is
+    /// a value of what was played, so the answer is the same with it and
+    /// without it.
+    pub cache: Option<PathBuf>,
 }
 
 /// What a person may open: indented, with a newline at the end.
@@ -140,7 +145,6 @@ pub fn compile(
                     "stream": t.stream.len(),
                     "sounds": t.sounds.len(),
                     "headroom": t.headroom,
-                    "fingerprint": t.fingerprint,
                     "notes_sound": t.notes_sound,
                     "lost": t.lost.map(|(l, f)| vec![l, f]),
                     "length": t.length(),
@@ -314,9 +318,6 @@ pub struct Request {
     pub game_over: bool,
     /// How many frames decompressing the boot map takes.
     pub decompress_frames: f64,
-    /// Every song's headroom, instead of its ceiling.
-    #[serde(default)]
-    pub measuring_headroom: Option<f64>,
     /// Every quality battle backdrop, by number: its tiles and its colours,
     /// in hex in the JSON.
     #[serde(with = "hex_pairs")]
@@ -447,7 +448,6 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
         not_given: cartridge::never_happen(project.list(&["music", "jumps_that_never_happen"])?)?,
         system_songs: system_songs.into_iter().collect(),
         named_songs: named_songs.into_iter().collect(),
-        measuring_headroom: request.measuring_headroom,
         decompress_frames: request.decompress_frames,
         msu_samples: request.msu_samples,
     };
@@ -457,7 +457,8 @@ pub fn cartridge(flags: &Flags, request: &Request) -> Result<Answer> {
     // for whoever wonders why a song or a sound effect is where it is.
     let plan = cartridge::plan(&c)?;
     let job_text = pretty(&plan.job);
-    let (job, emit) = job::parse(&plan.job, bank::ARAM_END)?;
+    let (mut job, emit) = job::parse(&plan.job, bank::ARAM_END)?;
+    job.cache = flags.cache.clone();
     let emit = emit.expect("the plan always says what to emit");
     let done = compile(&job, Some(&emit), &game, &flags.soundfont)?;
     let mut files = done.files;

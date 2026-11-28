@@ -3,6 +3,7 @@ name = "advocate"
 version = "0.1.0"
 edition = "2021"
 description = "Builds an rm2k-snes game: its cartridges from its advocate.toml, the converter and the assembler called as libraries, and a file in its build/ with everything a test suite needs to know; and imports an RPG Maker game into its dump, and back"
+license.workspace = true
 
 [[bin]]
 name = "advocate"

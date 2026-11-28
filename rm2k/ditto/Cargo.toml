@@ -3,6 +3,7 @@ name = "ditto"
 version = "0.1.0"
 edition = "2021"
 description = "Reads the RPG Maker 2000 files and dumps them to JSON, and back"
+license.workspace = true
 
 [lib]
 name = "ditto"

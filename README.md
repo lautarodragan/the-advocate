@@ -10,7 +10,9 @@ divergences from RPG Maker and the research— is in the book:
 ## How it is installed
 
 **It needs `python`, a libretro core and `ca65` + `ld65`**, and the tools
-—the Rust projects, which `LAYOUT.md` lists— are installed on the PATH. A
+—the Rust projects, which `LAYOUT.md` lists— are installed on the PATH;
+compiling them takes a C++ compiler too, for the S-DSP `snes/spc-dsp/`
+vendors. A
 game consumes them from there, and no script or test of a game calls
 `cargo`: the why is in `AGENTS.md`. `ca65` and `ld65` come from cc65,
 which is not packaged in every distribution and is compiled from its
@@ -65,3 +67,11 @@ cartridge here and in CI —phase 2 of the study that planned the split,
 first ten engine tests—. The rest are still ABL's, so **a change in the
 tools is still verified by running ABL's suite with the tools of the
 change** as well: how, in "Where this runs" in `AGENTS.md`.
+
+## Licence
+
+The Advocate is free software, under the **GNU General Public License,
+version 3 or any later version**: `LICENSE`. taro's, from 2026-11-28.
+`snes/spc-dsp/vendor/snes_spc/` is blargg's snes_spc, under the GNU LGPL
+2.1 or later, which lets it go into a GPL work: its README says so, and
+`snes/spc-dsp/NOTICE` is what the releases carry about it.

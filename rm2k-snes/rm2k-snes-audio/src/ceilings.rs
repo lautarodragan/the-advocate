@@ -1,53 +1,89 @@
-//! Each song's volume ceiling, measured by playing it in the ROM.
+//! Each song's volume ceiling, measured while the music is compiled, by
+//! playing what the song writes to the S-DSP in a model of the chip.
 //!
 //! The S-DSP adds up the eight voices and saturates the sum before the
 //! master volume, so what keeps a song from clipping is each voice's
-//! ceiling —its headroom—; this measures, per song, the highest one that
-//! does not clip. The reason for the table is in `ceilings`, in [`game`],
-//! which is what reads it; how it is measured, here:
+//! ceiling —its headroom, see `HEADROOM` in [`sdsp`]—; this gives each song
+//! the highest one that does not clip, no higher than the usual:
 //!
-//! 1. **A copy of the cartridge with every song at half the headroom**
-//!    ([`MEASURING_HEADROOM`]). With that none clips, so the peak measured is
-//!    the true one, and since each voice's volume is linear in the ceiling,
-//!    each song's with the full headroom is double.
-//! 2. **Each whole song on the title screen**, in a libretro core without
-//!    MSU-1, and its peak. Each one's headroom is the highest that keeps
-//!    that peak [`MARGIN`] below the cap, without going past the usual
-//!    [`HEADROOM`]: the ones that do not clip stay as they were.
-//! 3. **The table is written, the cartridge rebuilt and measured again.**
-//!    Each voice's volume is rounded to an integer, so the arithmetic is
-//!    approximate: if some song still clipped, it is lowered by as much as
-//!    it went over and the round repeats.
+//! 1. **The song at half the headroom** ([`MEASURING_HEADROOM`]), or at
+//!    half that again for one that clips even so, up to [`HALVINGS`] times.
+//!    Without clipping the peak measured is the true one, and since each
+//!    voice's volume is linear in the headroom, the full one's scales.
+//! 2. **Played in the S-DSP**, blargg's `SPC_DSP` in `spc-dsp`, from the
+//!    writes the song's stream makes, frame by frame —the SPC700 driver
+//!    only forwards them, see `runtime/spc700.s`—, with the samples it
+//!    plays in the ARAM. **Six times**, each with the writes of a frame
+//!    spread differently ([`TIMINGS`]), and the loudest is the peak.
+//! 3. **The ceiling** leaves that peak [`margin`] below the cap.
+//! 4. **The songs that end close to the cap are played again with their
+//!    ceiling**: each voice's volume is rounded to an integer, so the
+//!    arithmetic is approximate. One that clips is lowered by as much as it
+//!    went over, and played again.
 //!
-//! What stays in the table, besides the headroom: each song's peak and
-//! level (LUFS) with it, **up to which frame it has to be played to go
-//! through its peak** —with that a test does not play the whole songs— and
-//! the fingerprint of its mix, which is how a test knows the table is
-//! stale.
+//! **What the model does not see is when each write lands inside its
+//! frame**: the 65816 sends a frame's writes one after another, through
+//! the driver, so a KON after thirty writes reaches the DSP later than one
+//! alone, and that moves a peak by up to 2.85 dB. Played with every write
+//! of a frame at its start, the model is equal to the ROM sample for sample
+//! until the first write that lands elsewhere, and the peak comes out
+//! between 1.40 dB below the ROM's and 1.30 dB above. The loudest of six
+//! timings left every song of the first game measured within 0.36 dB of
+//! the ROM's peak, inside the margin, at the cost of songs 0.42 dB quieter
+//! on average: measured on 2026-11-27, in
+//! `tasks/the-volume-ceilings-are-measured-without-a-rom.md` of
+//! the-advocate-work. A song that turned the echo on would need the echo
+//! buffer modelled; the stream turns it off (`init_writes` in [`stream`]).
 //!
-//! [`game`]: crate::game
+//! **Each song's peak is kept per mix**, in the converter's cache: what it
+//! writes, the samples it plays and this model's code are its key, so a
+//! change to one song plays only that one again, and every cartridge of a
+//! game shares the songs they have in common. Until 2026-11-28 the table
+//! was measured by hand, building a copy of the cartridge and playing each
+//! song on its title screen in a libretro core —`rm2k-snes-audio
+//! volume-ceilings`—, and versioned in the game's automatic patches, where
+//! it went stale with every change to the mix.
+//!
+//! [`sdsp`]: crate::sdsp
+//! [`stream`]: crate::stream
 
+use crate::bank::SAMPLES_ADDR;
 use crate::fail::{Bad, Result};
-use crate::retro::Console;
 use crate::sdsp;
-use serde_json::Value;
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use crate::stream::Write;
+use rm2k_project::cache;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 
 /// The usual headroom: what a song that does not clip keeps.
 pub const HEADROOM: f64 = sdsp::HEADROOM;
 
 /// Half the usual headroom: measured on 2026-09-26, with 0.25 none of the
-/// 32 songs of the game's cartridge clips, and the loudest one stays 3.9 dB
-/// below the cap.
+/// 32 songs of the first game's cartridge clips, and the loudest one stays
+/// 3.9 dB below the cap.
 pub const MEASURING_HEADROOM: f64 = HEADROOM / 2.0;
 
-/// How far the peak is allowed to go: 0.5 dB below the cap. What it absorbs
-/// is the rounding of each voice's volume to an integer, which makes the
-/// peak not scale exactly with the headroom.
+/// How many times a song that clips at [`MEASURING_HEADROOM`] is measured
+/// again at half: three songs of two other games clip at 0.25 (measured on
+/// 2026-11-28). One that still clips at 0.25/16 stops the build.
+pub const HALVINGS: u32 = 4;
+
+/// How far below the cap the peak is allowed to go: 0.5 dB. What it
+/// absorbs is how far the console's peak may be above the model's
+/// loudest timing —0.36 dB, measured—, and the rounding of each voice's
+/// volume to an integer.
 pub fn margin() -> f64 {
     10.0f64.powf(-0.5 / 20.0)
+}
+
+/// How close to the cap a song's peak, scaled to its ceiling, has to come
+/// for the song to be played again with it: the rounding moves a peak by
+/// tenths of a dB, so 1.5 dB leaves it out of reach.
+pub fn close() -> f64 {
+    10.0f64.powf(-1.5 / 20.0)
 }
 
 /// Where the cap lies in what comes out of the console: the DSP saturates
@@ -57,257 +93,299 @@ pub fn cap() -> i64 {
     (32767 * sdsp::master()) >> 7
 }
 
-/// How many frames before the end of boot —`BOOT_FRAMES`, read from the
-/// ROM— recording starts: the title screen starts its song afterwards, so
-/// it is slack. A fixed number from power-on would cut off the start of
-/// each song whenever boot got shorter.
-pub const BEFORE_TITLE: i64 = 22;
+/// How many frames past its last write a song is played: its last notes
+/// ring on.
+pub const AFTER_END: i64 = 60;
 
-/// How many frames past the peak a test plays.
-pub const AFTER_PEAK: i64 = 60;
+/// The S-DSP's clocks in one of the console's frames: it runs at
+/// 1,024,000 Hz, and an NTSC frame lasts 1/60.0988 s.
+pub const CLOCKS_PER_FRAME: f64 = spc_dsp::CLOCKS_PER_SECOND as f64 / 60.0988;
 
-/// The core the songs are played in. It is the suite's, and the fastest by
-/// far; any other would need the options the harness forces on it.
-pub const CORE: &str = "/usr/lib/libretro/snes9x_libretro.so";
+/// How many DSP clocks each write takes in each of the six runs: the
+/// writes of a frame land one after another, that far apart, from its
+/// start. Six spreads were enough: eighteen —these, each also from a
+/// third and two thirds into the frame— did not bring any song closer to
+/// the ROM's peak than 0.36 dB, and three left one 0.66 dB past the
+/// margin. Measured on 2026-11-27, see the top of this module.
+pub const TIMINGS: [f64; 6] = [0.0, 25.0, 50.0, 75.0, 100.0, 125.0];
 
-fn io(path: &Path, e: std::io::Error) -> Bad {
-    Bad::usage(format!("{}: {e}", path.display()))
+/// Where the directory goes in the model's ARAM, and where the samples
+/// start: after room for every entry a byte can name. Where a sample sits
+/// does not change what it sounds like, so they are not placed where the
+/// ROM places them.
+const DIRECTORY: usize = SAMPLES_ADDR as usize;
+const FIRST_SAMPLE: usize = DIRECTORY + 4 * 256;
+
+/// What is played: a song's writes, frame by frame, and the ARAM with the
+/// samples they name.
+pub struct Song {
+    pub writes: Vec<Write>,
+    pub aram: Vec<u8>,
+    /// How many frames: the song's length and [`AFTER_END`].
+    pub frames: i64,
 }
 
-/// The names of the cartridge's songs, in the order of their indices, from
-/// the `; Songs:` line of its `musicdata.inc`: "" for "no music".
-pub fn song_names(directory: &Path) -> Result<Vec<String>> {
-    let path = directory.join("musicdata.inc");
-    let text = std::fs::read_to_string(&path).map_err(|e| io(&path, e))?;
-    let line = text
-        .lines()
-        .find_map(|l| l.strip_prefix("; Songs: "))
-        .ok_or_else(|| Bad::usage(format!("{}: no \"; Songs:\" line", path.display())))?;
-    Ok(line
-        .split(", ")
-        .map(|n| {
-            if n == "no music" {
-                String::new()
-            } else {
-                n.to_string()
-            }
-        })
-        .collect())
-}
-
-/// One song as the compiler built it: from the `music.json` next to
-/// `musicdata.inc`.
-pub struct Built {
-    pub name: String,
-    /// One pass, in frames; 0 for a song without a stream.
-    pub length: i64,
-    pub fingerprint: String,
-}
-
-/// The cartridge's songs as the compiler built them, in the order of their
-/// indices.
-pub fn built_songs(directory: &Path) -> Result<Vec<Built>> {
-    let path = directory.join("music.json");
-    let text = std::fs::read_to_string(&path).map_err(|e| io(&path, e))?;
-    let json: Value =
-        serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let songs = json["songs"]
-        .as_array()
-        .ok_or_else(|| Bad::usage(format!("{}: no \"songs\"", path.display())))?;
-    Ok(songs
-        .iter()
-        .map(|t| Built {
-            name: t["name"].as_str().unwrap_or_default().to_string(),
-            length: t["length"].as_i64().unwrap_or(0),
-            fingerprint: t["fingerprint"].as_str().unwrap_or_default().to_string(),
-        })
-        .collect())
-}
-
-/// {symbol: value}, from the `.sym` next to the ROM.
-fn symbols_of(sfc: &Path) -> Result<BTreeMap<String, i64>> {
-    let path = PathBuf::from(format!("{}.sym", sfc.display()));
-    let text = std::fs::read_to_string(&path).map_err(|e| io(&path, e))?;
-    let mut table = BTreeMap::new();
-    for line in text.lines() {
-        let mut parts = line.split_whitespace();
-        if let (Some(name), Some(value)) = (parts.next(), parts.next()) {
-            let value = value
-                .parse()
-                .map_err(|_| Bad::usage(format!("{}: {line:?}", path.display())))?;
-            table.insert(name.to_string(), value);
+impl Song {
+    /// `writes`, with the ARAM made of the samples each SRCN they write
+    /// names: `sample(srcn)` gives its BRR and where it loops, in bytes from
+    /// its start. One the song names and `sample` lacks plays silence, as a
+    /// key the SoundFont lacks.
+    pub fn new<'a>(
+        name: &str,
+        writes: Vec<Write>,
+        sample: impl Fn(u8) -> Option<(&'a [u8], usize)>,
+    ) -> Result<Song> {
+        let mut aram = vec![0u8; spc_dsp::ARAM];
+        let mut used: Vec<u8> = writes
+            .iter()
+            .filter(|(_, r, _)| *r < 0x80 && r & 0x0F == sdsp::V_SRCN)
+            .map(|w| w.2)
+            .collect();
+        used.sort_unstable();
+        used.dedup();
+        // Two keys may carry the same BRR and loop: placed once.
+        let mut placed: HashMap<(&[u8], usize), usize> = HashMap::new();
+        let mut at = FIRST_SAMPLE;
+        for srcn in used {
+            let Some((data, loop_at)) = sample(srcn) else {
+                continue;
+            };
+            let start = match placed.get(&(data, loop_at)) {
+                Some(&start) => start,
+                None => {
+                    if at + data.len() > aram.len() {
+                        return Err(Bad::answer(format!(
+                            "{name}: its samples do not fit in the ARAM of the model that \
+                             measures its volume ceiling"
+                        )));
+                    }
+                    aram[at..at + data.len()].copy_from_slice(data);
+                    placed.insert((data, loop_at), at);
+                    at += data.len();
+                    at - data.len()
+                }
+            };
+            let entry = DIRECTORY + 4 * srcn as usize;
+            aram[entry..entry + 2].copy_from_slice(&(start as u16).to_le_bytes());
+            aram[entry + 2..entry + 4].copy_from_slice(&((start + loop_at) as u16).to_le_bytes());
         }
+        let frames = writes.last().map_or(0, |w| w.0 + 1) + AFTER_END;
+        Ok(Song {
+            writes,
+            aram,
+            frames,
+        })
     }
-    Ok(table)
+
+    /// The key it is kept under: what is played, and the code that plays
+    /// it.
+    fn key(&self) -> String {
+        let writes: Vec<u8> = self
+            .writes
+            .iter()
+            .flat_map(|&(f, r, v)| {
+                let mut bytes = f.to_le_bytes().to_vec();
+                bytes.extend([r, v]);
+                bytes
+            })
+            .collect();
+        cache::key(&[
+            model_version().as_bytes(),
+            &self.frames.to_le_bytes(),
+            &writes,
+            &self.aram,
+        ])
+    }
 }
 
-fn symbol(symbols: &BTreeMap<String, i64>, name: &str) -> Result<i64> {
-    symbols
-        .get(name)
-        .copied()
-        .ok_or_else(|| Bad::usage(format!("the ROM has no {name}")))
+/// What a song gave: its loudest sample, and how many reached the cap.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Played {
+    pub peak: i64,
+    pub clipped: usize,
 }
 
-/// How far apart the two copies of the code are in an 8 MB ExHiROM: the
-/// console runs it from the first 4 MB and takes the vectors from the
-/// second, so the cartridge carries it in both.
-const CODE_COPY: usize = 0x400000;
-
-/// The ROM with the title screen playing `song`: the immediate of the
-/// `lda #SONG_TITLE` it starts it with is changed —in each copy of the
-/// code, if there are two—. It is the only way for a song to play on its
-/// own, with its samples uploaded, without playing anything.
-pub fn with_song_on_title(rom: &[u8], song_title: u8, song: u8) -> Result<Vec<u8>> {
-    let pattern = [0xA9, song_title, 0xC9, 0xFF, 0xF0];
-    let found: Vec<usize> = rom
-        .windows(pattern.len())
-        .enumerate()
-        .filter(|(_, w)| *w == pattern)
-        .map(|(i, _)| i)
-        .collect();
-    let one_place = match found[..] {
-        [_] => true,
-        [a, b] => b - a == CODE_COPY,
-        _ => false,
+/// `song` played once, with each write of a frame taking `per_write` DSP
+/// clocks from the start of the frame.
+///
+/// **Frame 0's writes land before any clock runs**: they are what the ROM
+/// writes at boot, long before a song starts, and the DSP's power-on
+/// registers would play otherwise —see `Dsp::new`—.
+pub fn play(song: &Song, per_write: f64) -> Played {
+    let mut dsp = spc_dsp::Dsp::new(song.aram.clone());
+    let cap = cap();
+    let mut played = Played {
+        peak: 0,
+        clipped: 0,
     };
-    if !one_place {
-        return Err(Bad::usage(
-            "cannot find the title screen's `lda #SONG_TITLE`: how it starts its song has changed, \
-             and this has to change too"
-                .to_string(),
-        ));
+    // The clocks are fractional, and what is not run yet carries on.
+    let mut owed = 0.0f64;
+    let mut run = |dsp: &mut spc_dsp::Dsp, clocks: f64| {
+        owed += clocks;
+        let whole = owed.floor();
+        owed -= whole;
+        for &s in dsp.run(whole as u32) {
+            let s = s as i64;
+            played.peak = played.peak.max(s.abs());
+            // `< -cap` is the negative rail, as -32768 is 16 bits'.
+            if s >= cap || s < -cap {
+                played.clipped += 1;
+            }
+        }
+    };
+    let mut next = 0;
+    for frame in 0..song.frames {
+        let per_write = if frame == 0 { 0.0 } else { per_write };
+        let mut spent = 0.0;
+        while let Some(&(at, register, value)) = song.writes.get(next) {
+            if at != frame {
+                break;
+            }
+            dsp.write(register, value);
+            next += 1;
+            if per_write > 0.0 {
+                run(&mut dsp, per_write);
+                spent += per_write;
+            }
+        }
+        run(&mut dsp, (CLOCKS_PER_FRAME - spent).max(0.0));
     }
-    let mut patched = rom.to_vec();
-    for at in found {
-        patched[at + 1] = song;
-    }
-    Ok(patched)
-}
-
-/// (the samples, stereo interleaved, and the rate): `frames` frames of the
-/// song from when the title starts it, without MSU-1. One per process: see
-/// [`Console`].
-pub fn play(sfc: &Path, song: u8, frames: i64) -> Result<(Vec<i16>, f64)> {
-    let symbols = symbols_of(sfc)?;
-    let rom = std::fs::read(sfc).map_err(|e| io(sfc, e))?;
-    let rom = with_song_on_title(&rom, symbol(&symbols, "SONG_TITLE")? as u8, song)?;
-    // A directory of its own, with nothing but the ROM: the core looks for
-    // the `.msu` and the tracks next to it.
-    let dir = std::env::temp_dir().join(format!("rm2k-snes-ceilings-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).map_err(|e| io(&dir, e))?;
-    let path = dir.join("tema.sfc");
-    let played = (|| {
-        std::fs::write(&path, &rom).map_err(|e| io(&path, e))?;
-        let mut console = Console::open(Path::new(CORE), &path)?;
-        let rate = console.sample_rate();
-        console.run((symbol(&symbols, "BOOT_FRAMES")? - BEFORE_TITLE).max(0) as usize);
-        console.take_audio();
-        console.run(frames.max(0) as usize);
-        Ok((console.take_audio(), rate))
-    })();
-    let _ = std::fs::remove_dir_all(&dir);
     played
 }
 
-/// How many samples ended up at the cap.
-// `-cap - 1` is the negative rail, as -32768 is 16 bits': written as `< -cap`
-// the two rails no longer read as the pair they are.
-#[allow(clippy::int_plus_one)]
-pub fn clipped(samples: &[i16]) -> usize {
-    let cap = cap();
-    samples
-        .iter()
-        .filter(|&&s| s as i64 >= cap || (s as i64) <= -cap - 1)
-        .count()
+/// `song` played with each of the [`TIMINGS`]: the loudest peak, and the
+/// most samples at the cap.
+///
+/// The six at once, each in a thread: a long song is several seconds of
+/// each, and one after another the longest song of a game was what
+/// [`measure`] waited on at the end, with the rest of the threads idle.
+pub fn loudest(song: &Song) -> Played {
+    std::thread::scope(|scope| {
+        let runs: Vec<_> = TIMINGS
+            .iter()
+            .map(|&t| scope.spawn(move || play(song, t)))
+            .collect();
+        runs.into_iter()
+            .map(|run| run.join().expect("a play of the S-DSP panicked"))
+            .fold(
+                Played {
+                    peak: 0,
+                    clipped: 0,
+                },
+                |a, b| Played {
+                    peak: a.peak.max(b.peak),
+                    clipped: a.clipped.max(b.clipped),
+                },
+            )
+    })
 }
 
-/// What one song gave: the samples at the cap, the peak and in which frame.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Row {
-    pub clipped: usize,
-    pub peak: i64,
-    pub frame: i64,
-    pub lufs: Option<f64>,
-}
-
-/// The row of what was played.
-pub fn row(samples: &[i16], rate: f64) -> Row {
-    let mut peak = 0i64;
-    let mut at = 0usize;
-    for (i, &s) in samples.iter().enumerate() {
-        let m = (s as i64).abs();
-        // The first of the loudest, as `argmax` gives it.
-        if m > peak {
-            peak = m;
-            at = i;
+/// What this model is, for the key: the S-DSP's sources and this module's,
+/// hashed. A change to either plays every song again; nothing has to be
+/// remembered to be bumped.
+fn model_version() -> &'static str {
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION.get_or_init(|| {
+        let mut h = Sha256::new();
+        for source in spc_dsp::SOURCES {
+            h.update((source.len() as u64).to_le_bytes());
+            h.update(source);
         }
-    }
-    // The samples are left/right pairs.
-    let frame = (at / 2) as i64 * 60 / rate.round() as i64;
-    Row {
-        clipped: clipped(samples),
-        peak,
-        frame,
-        lufs: None,
-    }
+        h.update(include_str!("ceilings.rs").as_bytes());
+        cache::hex(&h.finalize())
+    })
 }
 
-/// The integrated loudness, from ffmpeg's `ebur128`.
-pub fn lufs(samples: &[i16], rate: f64) -> Result<f64> {
-    let dir = std::env::temp_dir().join(format!("rm2k-snes-lufs-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).map_err(|e| io(&dir, e))?;
-    let path = dir.join("t.wav");
-    let rate = rate.round() as u32;
-    let data_len = (samples.len() * 2) as u32;
-    let mut wav = Vec::with_capacity(44 + samples.len() * 2);
-    wav.extend_from_slice(b"RIFF");
-    wav.extend_from_slice(&(36 + data_len).to_le_bytes());
-    wav.extend_from_slice(b"WAVEfmt ");
-    wav.extend_from_slice(&16u32.to_le_bytes());
-    wav.extend_from_slice(&1u16.to_le_bytes());
-    wav.extend_from_slice(&2u16.to_le_bytes());
-    wav.extend_from_slice(&rate.to_le_bytes());
-    wav.extend_from_slice(&(rate * 4).to_le_bytes());
-    wav.extend_from_slice(&4u16.to_le_bytes());
-    wav.extend_from_slice(&16u16.to_le_bytes());
-    wav.extend_from_slice(b"data");
-    wav.extend_from_slice(&data_len.to_le_bytes());
-    for s in samples {
-        wav.extend_from_slice(&s.to_le_bytes());
-    }
-    let measured = (|| {
-        std::fs::write(&path, &wav).map_err(|e| io(&path, e))?;
-        let out = Command::new("ffmpeg")
-            .args(["-nostats", "-i"])
-            .arg(&path)
-            .args(["-af", "ebur128", "-f", "null", "-"])
-            .output()
-            .map_err(|e| Bad::usage(format!("ffmpeg: {e}")))?;
-        last_integrated(&String::from_utf8_lossy(&out.stderr))
-            .ok_or_else(|| Bad::usage("ffmpeg's ebur128 said no integrated loudness".to_string()))
-    })();
-    let _ = std::fs::remove_dir_all(&dir);
-    measured
+/// The disk cache's category for the songs' peaks.
+const CATEGORY: &str = "ceilings";
+
+/// What this process already played, by key, so that the cartridges a
+/// build converts at once, in threads, play a song they share once: the
+/// second waits for the first.
+type Memo = HashMap<String, Arc<OnceLock<Played>>>;
+static PLAYED: Mutex<Option<Memo>> = Mutex::new(None);
+
+/// What [`measure`] gave: each song's [`Played`], and how many of them it
+/// had to play —the rest came from the cache, or from another cartridge of
+/// the same process—, which is what the time went on.
+pub struct Measured {
+    pub played: Vec<Played>,
+    pub new: usize,
 }
 
-/// The last `I: <number> LUFS` of ebur128's report, which is the summary.
-fn last_integrated(text: &str) -> Option<f64> {
-    let mut last = None;
-    let mut rest = text;
-    while let Some(i) = rest.find("I:") {
-        rest = &rest[i + 2..];
-        let after = rest.trim_start();
-        let end = after
-            .find(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-'))
-            .unwrap_or(after.len());
-        let (number, tail) = after.split_at(end);
-        if tail.trim_start().starts_with("LUFS") && tail.starts_with(char::is_whitespace) {
-            if let Ok(v) = number.parse() {
-                last = Some(v);
+/// Each of `songs` [`loudest`], in threads, from the cache in `cache` when
+/// it has it —and into it when it did not—.
+pub fn measure(songs: &[Song], cache: Option<&Path>) -> Measured {
+    let keys: Vec<String> = songs.iter().map(Song::key).collect();
+    let cells: Vec<Arc<OnceLock<Played>>> = {
+        let mut played = PLAYED.lock().unwrap_or_else(|e| e.into_inner());
+        let played = played.get_or_insert_with(HashMap::new);
+        keys.iter()
+            .map(|k| played.entry(k.clone()).or_default().clone())
+            .collect()
+    };
+    let new = AtomicUsize::new(0);
+    let one = |i: usize| -> Played {
+        *cells[i].get_or_init(|| {
+            if let Some(stored) = cache
+                .and_then(|dir| cache::load(dir, CATEGORY, &keys[i]))
+                .and_then(|v| parse(&v))
+            {
+                return stored;
             }
+            let played = loudest(&songs[i]);
+            new.fetch_add(1, Ordering::Relaxed);
+            if let Some(dir) = cache {
+                cache::store(
+                    dir,
+                    CATEGORY,
+                    &keys[i],
+                    format!("{} {}\n", played.peak, played.clipped).as_bytes(),
+                );
+            }
+            played
+        })
+    };
+    let threads = std::thread::available_parallelism()
+        .map_or(1, |n| n.get())
+        .min(songs.len().max(1));
+    let next = Mutex::new(0usize);
+    let out: Mutex<Vec<Option<Played>>> = Mutex::new(vec![None; songs.len()]);
+    std::thread::scope(|scope| {
+        for _ in 0..threads {
+            scope.spawn(|| loop {
+                let i = {
+                    let mut n = next.lock().unwrap_or_else(|e| e.into_inner());
+                    *n += 1;
+                    *n - 1
+                };
+                if i >= songs.len() {
+                    break;
+                }
+                let played = one(i);
+                out.lock().unwrap_or_else(|e| e.into_inner())[i] = Some(played);
+            });
         }
+    });
+    let played = out
+        .into_inner()
+        .unwrap_or_else(|e| e.into_inner())
+        .into_iter()
+        .map(|p| p.expect("every song was played"))
+        .collect();
+    Measured {
+        played,
+        new: new.into_inner(),
     }
-    last
+}
+
+/// A stored `<peak> <clipped>`.
+fn parse(value: &[u8]) -> Option<Played> {
+    let text = std::str::from_utf8(value).ok()?;
+    let mut parts = text.split_whitespace();
+    let peak = parts.next()?.parse().ok()?;
+    let clipped = parts.next()?.parse().ok()?;
+    Some(Played { peak, clipped })
 }
 
 /// The peak in dB against the cap.
@@ -330,146 +408,97 @@ pub fn lowered(current: f64, peak: i64) -> f64 {
     (1000.0 * current * cap() as f64 * margin() / peak as f64).floor() / 1000.0
 }
 
-/// The table, with its reason on top.
-pub fn table(
-    ceilings: &BTreeMap<String, f64>,
-    measured: &BTreeMap<String, Row>,
-    fingerprints: &BTreeMap<String, String>,
-) -> String {
-    let mut lines: Vec<String> = [
-        "# The volume ceiling of each song of `release`: the headroom the",
-        "# converter builds its stream with, instead of `sdsp::HEADROOM`.",
-        "#",
-        "# **Not edited by hand**: `rm2k-snes-audio volume-ceilings` writes it,",
-        "# playing each song in the ROM and giving it the highest headroom",
-        "# that does not clip; the reason and how it is measured are in it.",
-        "# The table is stale if any song clips or if the mix of any of them",
-        "# is no longer the one measured: the fingerprint. Any change to the",
-        "# mix —the samples, the envelopes, the allocation— calls for running",
-        "# it again.",
-        "#",
-        "# Per song: `headroom`, the ceiling; `peak`, in dB against the cap, and",
-        "# `lufs`, the level, both measured with that headroom; `until`, how",
-        "# many frames from the start it has to be played to go through its",
-        "# peak; and `fingerprint`, that of `mix_fingerprint`.",
-        "",
-        "[measurement]",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect();
-    lines.push(format!("measuring_headroom = {MEASURING_HEADROOM:?}"));
-    lines.push("margin_db = -0.5".to_string());
-    lines.push(String::new());
-    for (name, headroom) in ceilings {
-        let row = &measured[name];
-        lines.push(format!("[songs.\"{name}\"]"));
-        lines.push(format!("headroom = {headroom:.3}"));
-        lines.push(format!("peak = {:.1}", db(row.peak)));
-        lines.push(format!("lufs = {:.1}", row.lufs.unwrap_or(0.0)));
-        lines.push(format!("until = {}", row.frame + AFTER_PEAK));
-        lines.push(format!(
-            "fingerprint = \"{}\"",
-            fingerprints.get(name).map(String::as_str).unwrap_or("")
-        ));
-        lines.push(String::new());
-    }
-    lines.join("\n")
-}
-
-/// One line per song: its headroom if there is one, its peak, how many
-/// samples clipped and its level.
-pub fn report(
-    measured: &BTreeMap<String, Row>,
-    ceilings: Option<&BTreeMap<String, f64>>,
-) -> String {
-    let mut out = String::new();
-    for (name, row) in measured {
-        let short: String = name.chars().take(45).collect();
-        let headroom = ceilings
-            .map(|c| format!("headroom {:.3},", c[name]))
-            .unwrap_or_default();
-        let level = row
-            .lufs
-            .map(|l| format!(", {l:.1} LUFS"))
-            .unwrap_or_default();
-        out.push_str(&format!(
-            "  {short:<45} {headroom} peak {:+5.1} dB, {:5} clipped{level}\n",
-            db(row.peak),
-            row.clipped
-        ));
-    }
-    out
+/// Whether a song whose peak was `peak` with `measured_with` comes close
+/// enough to the cap with `headroom` to be played again with it.
+pub fn is_close(peak: i64, measured_with: f64, headroom: f64) -> bool {
+    peak as f64 * headroom / measured_with >= cap() as f64 * close()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn the_title_song_is_found_once_and_patched() {
-        let rom = [0u8, 0xA9, 7, 0xC9, 0xFF, 0xF0, 3];
-        assert_eq!(
-            with_song_on_title(&rom, 7, 12).unwrap(),
-            vec![0, 0xA9, 12, 0xC9, 0xFF, 0xF0, 3]
-        );
-        let twice = [0xA9, 7, 0xC9, 0xFF, 0xF0, 0xA9, 7, 0xC9, 0xFF, 0xF0];
-        assert!(with_song_on_title(&twice, 7, 12).is_err());
-        assert!(with_song_on_title(&rom, 8, 12).is_err());
-    }
+    static SQUARE: [u8; 9] = [0xB3, 0x77, 0x77, 0x77, 0x77, 0x99, 0x99, 0x99, 0x99];
 
-    #[test]
-    fn both_copies_of_the_code_are_patched() {
-        let mut rom = vec![0u8; 2 * CODE_COPY];
-        for base in [0x9000, 0x9000 + CODE_COPY] {
-            rom[base..base + 5].copy_from_slice(&[0xA9, 7, 0xC9, 0xFF, 0xF0]);
+    /// A looping square wave in entry 7, keyed on at frame 1 on voice 0 at
+    /// `volume`, and off at frame 30.
+    fn square(volume: u8) -> Song {
+        let mut writes: Vec<Write> = crate::stream::init_writes()
+            .into_iter()
+            .map(|(r, v)| (0, r, v))
+            .collect();
+        for (r, v) in [
+            (0x00, volume),
+            (0x01, volume),
+            (0x02, 0x00),
+            (0x03, 0x10),
+            (0x04, 7),
+            (0x05, 0x00),
+            (0x07, 0x7F),
+        ] {
+            writes.push((0, r, v));
         }
-        let patched = with_song_on_title(&rom, 7, 12).unwrap();
-        assert_eq!((patched[0x9001], patched[0x9001 + CODE_COPY]), (12, 12));
-        rom[0x9000 + CODE_COPY..0x9005 + CODE_COPY].fill(0);
-        rom[0x9100..0x9105].copy_from_slice(&[0xA9, 7, 0xC9, 0xFF, 0xF0]);
-        assert!(
-            with_song_on_title(&rom, 7, 12).is_err(),
-            "two places that are not the copies"
-        );
+        writes.push((1, sdsp::KON, 0x01));
+        writes.push((30, sdsp::KOF, 0x01));
+        Song::new("square", writes, |srcn| {
+            (srcn == 7).then_some((&SQUARE[..], 0))
+        })
+        .unwrap()
     }
 
     #[test]
-    fn the_peak_is_the_first_loudest_and_its_frame() {
-        // 32040 samples per second: 534 per frame, a pair each.
-        let mut x = vec![0i16; 2 * 534 * 3];
-        x[2 * 534 * 2 + 1] = -900;
-        x[2 * 534 * 2 + 9] = 900;
-        let r = row(&x, 32040.0);
-        assert_eq!((r.peak, r.frame, r.clipped), (900, 2, 0));
+    fn a_song_sounds_and_a_louder_one_peaks_higher() {
+        let soft = loudest(&square(0x20));
+        let loud = loudest(&square(0x40));
+        assert!(soft.peak > 0, "it sounds");
+        assert!(loud.peak > soft.peak + soft.peak / 2, "{loud:?} {soft:?}");
+        assert_eq!(soft.clipped, 0);
     }
 
     #[test]
-    fn ebur128s_summary_is_the_last_integrated_loudness() {
-        let text = "t: 0.4  M: -40.1 S:-120.7  I: -40.1 LUFS  LRA: 0.0 LU\n\
-                    Summary:\n\n  Integrated loudness:\n    I:         -20.5 LUFS\n    Threshold: -30.6 LUFS\n";
-        assert_eq!(last_integrated(text), Some(-20.5));
+    fn the_samples_go_where_the_directory_says() {
+        let song = square(0x20);
+        let entry = DIRECTORY + 4 * 7;
+        let at = (FIRST_SAMPLE as u16).to_le_bytes();
+        assert_eq!(&song.aram[entry..entry + 4], &[at[0], at[1], at[0], at[1]]);
+        assert_eq!(song.aram[FIRST_SAMPLE], 0xB3);
+        assert_eq!(song.frames, 31 + AFTER_END);
     }
 
     #[test]
-    fn the_report_keeps_its_columns() {
-        let mut m = BTreeMap::new();
-        m.insert(
-            "song".to_string(),
-            Row {
-                clipped: 3,
-                peak: cap(),
-                frame: 0,
-                lufs: Some(-20.46),
-            },
-        );
-        let line = report(&m, None);
+    fn what_is_measured_is_kept_and_found_again() {
+        let dir = std::env::temp_dir().join(format!("ceilings-cache-{}", std::process::id()));
+        let songs = [square(0x30)];
+        let first = measure(&songs, Some(&dir));
+        assert_eq!(first.new, 1);
+        let stored = cache::load(&dir, CATEGORY, &songs[0].key()).expect("it was stored");
+        assert_eq!(parse(&stored), Some(first.played[0]));
+        // What is stored is what is read, with the process's memo
+        // forgotten.
+        *PLAYED.lock().unwrap() = None;
+        cache::store(&dir, CATEGORY, &songs[0].key(), b"123 4\n");
+        let again = measure(&songs, Some(&dir));
+        assert_eq!(again.new, 0);
         assert_eq!(
-            line,
-            format!(
-                "  {:<45}  peak  +0.0 dB,     3 clipped, -20.5 LUFS\n",
-                "song"
-            )
+            again.played[0],
+            Played {
+                peak: 123,
+                clipped: 4
+            }
+        );
+        *PLAYED.lock().unwrap() = None;
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_ceiling_leaves_the_peak_half_a_db_below_the_cap() {
+        let peak = cap() as f64 / 4.0;
+        let c = ceiling(peak, MEASURING_HEADROOM, 10.0);
+        let full = peak * c / MEASURING_HEADROOM;
+        assert!((db(full as i64) + 0.5).abs() < 0.01, "{}", db(full as i64));
+        assert_eq!(
+            ceiling(cap() as f64 / 100.0, MEASURING_HEADROOM, HEADROOM),
+            HEADROOM
         );
     }
 }

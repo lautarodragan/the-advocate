@@ -1,0 +1,20 @@
+[package]
+name = "spc-dsp"
+version = "0.1.0"
+edition = "2021"
+description = "The S-DSP, the Super NES's sound chip, on its own: blargg's SPC_DSP from snes_spc 0.9.0 behind a small safe wrapper"
+# The wrapper is the workspace's licence; what it wraps, `vendor/snes_spc/`,
+# is LGPL 2.1 or later, which lets it go into a GPL work: see the README.
+license = "GPL-3.0-or-later AND LGPL-2.1-or-later"
+
+[lib]
+name = "spc_dsp"
+path = "src/lib.rs"
+
+[dependencies]
+
+[build-dependencies]
+cc = "1"
+
+[lints]
+workspace = true

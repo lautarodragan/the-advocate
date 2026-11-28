@@ -1,11 +1,9 @@
 # rm2k-snes-audio: a game's music, for the SPC700
 
-    rm2k-snes-audio volume-ceilings --measure
-
-`cargo build --release`, or `cargo test`. It is a library a converter is
-compiled with —see "A cartridge's music, as a converter's stage"—, and its
-binary has one subcommand, `volume-ceilings`; `--help` prints what it
-takes and what it writes.
+`cargo test`. It is a library a converter is compiled with —see "A
+cartridge's music, as a converter's stage"—, and has no binary since
+2026-11-28, when its last subcommand, `volume-ceilings`, went: see "The
+tracks and the ceilings".
 
 An RPG Maker 2000 game's songs are MIDIs, written for a General MIDI
 synthesizer with as many voices as it wants; the Super Nintendo has an
@@ -118,10 +116,18 @@ variable they are skipped with a message.
 
 ## The tracks and the ceilings
 
-Two more jobs, which are not stages of the converter, live in this crate
-because they are about the same music and read what `compile` leaves next
-to a built cartridge:
-
+* **Each song's volume ceiling**, in `src/ceilings.rs`: the highest
+  headroom that does not clip, measured while `compile` builds the song, by
+  playing what it writes to the S-DSP in a model of the chip —blargg's,
+  in [`spc-dsp`](../../snes/spc-dsp/)— with the samples it plays. Each
+  song's peak is kept per mix in the converter's disk cache, so a change to
+  one song plays only that one again. How it measures, and how far the
+  model is from the console, is at the top of `src/ceilings.rs`. Until
+  2026-11-28 it was a subcommand, `volume-ceilings`, which built a copy of
+  the cartridge, played each song on its title screen in a libretro core
+  —one process per song—, and wrote a table into the game's automatic
+  patches, which `compile` read and which went stale with every change to
+  the mix.
 * **The MSU-1 tracks**, `Tracks` in `src/tracks.rs`, which `advocate
   build` calls after building `release`: one `<rom>-N.pcm` per song of the
   cartridge, rendered from its MIDI with `fluidsynth` and the same
@@ -130,14 +136,7 @@ to a built cartridge:
   the same sources is not made again: the disk cache keeps the sha256 of
   each `.pcm` under a key that carries the MIDI, the SoundFont, both
   programs and the source of the code that writes a track —`OWN_SOURCES`
-  in `src/tracks.rs`—.
-* **`volume-ceilings`**, a subcommand: each song's volume ceiling, measured by
-  playing it in the built ROM on a libretro core, and written to the
-  project's table —the one `compile` reads—. It runs the cartridges'
-  builder to make the copy it measures and to rebuild with the table, and
-  plays each song in a process of its own —itself, with `volume-ceilings
-  --play`—, because a libretro core is one console per process. `--play`
-  is also what a test asks when it wants a single song.
+  in `src/tracks.rs`—. It is not a stage of the converter.
 
 Until 2026-11-23 they were binaries of their own, `rm2k-snes-msu` and
 `rm2k-snes-volume-ceilings`, so the game's recipes kept their names and so
@@ -147,14 +146,13 @@ commands on the PATH; the key stopped being the executable then, which
 carries the whole compiler, and became the source of the tracks' code: a
 new flag in `compile` still does not make every track again. The tracks
 were the subcommand `msu` until 2026-11-25, which the cartridges' builder
-ran as a process. The
-converter's cache does not see this binary: the converter is compiled with
-this crate and calls `cartridge` as a function, and keeps none of its
-answers.
+ran as a process.
 
-## Exit codes
+## Its errors
 
-`1` when the answer is no: the samples do not fit in the ARAM even at the
-minimum, a song's stream would not write what it has to, a song or a WAV
-is not there. `2` when the call is wrong: a job that does not parse, a file
-that cannot be read.
+`Bad::Answer` when the answer is no: the samples do not fit in the ARAM
+even at the minimum, a song's stream would not write what it has to, a song
+or a WAV is not there, a song that still clips with its volume ceiling.
+`Bad::Usage` when the call is wrong: a job that does not parse, a file that
+cannot be read. Until 2026-11-28, when the binary went, they were its exit
+codes, `1` and `2`.

@@ -6,11 +6,13 @@
 //! package —one per map—: see [`crate::bank`].
 
 use crate::bank::{self, Assignment, Bank, Group, Key, Samples};
+use crate::ceilings;
 use crate::effects::{self, SoundEffect};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::midi::{self, TICKS_PER_SECOND};
 use crate::relief::{self, Loss, Sizes};
+use crate::samples::BLOCK_BYTES;
 use crate::sdsp;
 use crate::song::{self, Parsed};
 use crate::spc700;
@@ -18,7 +20,6 @@ use crate::stream::{self, Sound, Write};
 use crate::voices::{self, Allotted, Instruments, SampleInfo};
 use rm2k_project::outln;
 use rm2k_snes_bytecode::music::OP_END;
-use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -50,9 +51,13 @@ pub struct Job {
     /// samples have to fit alongside that song's —the sound effects do not:
     /// they wait for the next `PlayBGM`—.
     pub inheritance: Vec<(String, usize)>,
-    /// Every song's headroom, instead of its measured ceiling: what the
-    /// ceilings are measured with.
-    pub measuring_headroom: Option<f64>,
+    /// Every song's headroom, instead of the ceiling measured for each:
+    /// what the crate's tests compile with when the ceiling is not what
+    /// they look at.
+    pub fixed_headroom: Option<f64>,
+    /// The converter's disk cache, where each song's measured peak is kept:
+    /// see [`ceilings`]. Without it, a song is played again in each process.
+    pub cache: Option<std::path::PathBuf>,
     /// The songs the database's `System` names, for the MSU-1 numbering.
     pub system_songs: Vec<String>,
     /// And every song the game's events and maps name: see
@@ -77,7 +82,6 @@ pub struct Built {
     pub writes: Vec<Write>,
     /// None for a song without a MIDI.
     pub headroom: Option<f64>,
-    pub fingerprint: Option<String>,
     pub seconds: f64,
     /// The MSU-1 track, if it has something to come from.
     pub track: Option<u8>,
@@ -182,32 +186,6 @@ impl Instruments for SongBank<'_> {
         self.envelopes.borrow_mut().insert((program, key), e);
         Ok(e)
     }
-}
-
-/// What a song's peak depends on, summarized: what it writes to the DSP
-/// —with its headroom already applied— and the samples it plays, with their
-/// loop. Whatever changes this can move the peak, and the table of volume
-/// ceilings stores it so the game knows whether what was measured is still
-/// what plays. The driver does not count: it mixes nothing.
-pub fn mix_fingerprint(writes: &[Write], bank: &Bank) -> String {
-    let mut h = Sha256::new();
-    h.update(format!("{writes:?}").as_bytes());
-    let used: BTreeSet<u8> = writes
-        .iter()
-        .filter(|(_, r, _)| *r < 0x80 && r & 0x0F == sdsp::V_SRCN)
-        .map(|w| w.2)
-        .collect();
-    for i in used {
-        if let Some(v) = bank.voices.get(i as usize) {
-            h.update(format!("{i}:{}:", v.loop_block).as_bytes());
-            h.update(&v.data);
-        }
-    }
-    h.finalize()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect::<String>()[..16]
-        .to_string()
 }
 
 /// That the extra space the whole sound effects take fits, in each package,
@@ -356,7 +334,6 @@ fn in_song(bad: Bad, packages: &[Package], i: usize, name: &str) -> Bad {
 pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     let names = &job.songs;
     let driver = spc700::driver();
-    let ceilings = game.ceilings()?;
     let whole = game.whole_effects()?;
     let paid = game.paid_by_music()?;
 
@@ -624,34 +601,14 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
 
     let tracks = game.track_numbers(&job.system_songs, &job.named_songs)?;
     let envelopes = RefCell::new(HashMap::new());
-    let mut songs = Vec::new();
-    for (i, (name, parsed)) in names.iter().zip(parsed).enumerate() {
-        let track = if name.is_empty() {
-            None
-        } else {
-            tracks.get(&name.to_lowercase()).copied()
-        };
-        let Some(parsed) = parsed else {
-            songs.push(Built {
-                name: name.clone(),
-                stream: vec![OP_END],
-                sounds: Vec::new(),
-                writes: Vec::new(),
-                headroom: None,
-                fingerprint: None,
-                seconds: 0.0,
-                track,
-                notes_sound: None,
-                lost: None,
-                allocation: Vec::new(),
-                parsed: None,
-            });
-            continue;
-        };
-        let headroom = job
-            .measuring_headroom
-            .filter(|h| *h != 0.0)
-            .unwrap_or_else(|| *ceilings.get(name).unwrap_or(&sdsp::HEADROOM));
+    let init = stream::init_writes();
+    // What song `i` makes with `headroom`: its frames of writes, and with
+    // `allocation`, which voice each note got.
+    let frames_of = |i: usize,
+                     name: &str,
+                     parsed: &Parsed,
+                     headroom: f64,
+                     allocation: Option<&mut Vec<Allotted>>| {
         let (melodic, hits) = bank.for_song(i);
         let view = SongBank {
             bank: &bank,
@@ -660,18 +617,31 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             hits,
             envelopes: &envelopes,
         };
-        let mut allocation = Vec::new();
-        let frames = voices::build_events(
+        voices::build_events(
             &parsed.notes,
             &parsed.voices,
             &parsed.programs,
             &view,
             &parsed.controls,
-            Some(&mut allocation),
+            allocation,
             headroom,
         )
-        .map_err(|e| in_song(e, &packages, i, name))?;
-        let init = stream::init_writes();
+        .map_err(|e| in_song(e, &packages, i, name))
+    };
+    // A song's writes as the model of the S-DSP plays them, with the
+    // samples they name: by key index, as `bank.voices` has them, which is
+    // what the songs are built with until `merge_identical`.
+    let to_play = |name: &str, writes: Vec<Write>| {
+        ceilings::Song::new(name, writes, |srcn| {
+            bank.voices
+                .get(srcn as usize)
+                .map(|v| (v.data.as_slice(), v.loop_block * BLOCK_BYTES))
+        })
+    };
+    let build_song = |i: usize, name: &String, parsed: Parsed, headroom: f64| -> Result<Built> {
+        let track = tracks.get(&name.to_lowercase()).copied();
+        let mut allocation = Vec::new();
+        let frames = frames_of(i, name, &parsed, headroom, Some(&mut allocation))?;
         let reference = stream::writes(&frames, parsed.length, &init);
         let (flat, sounds) = stream::pack(&frames, parsed.length, &init)
             .map_err(|e| in_song(e, &packages, i, name))?;
@@ -681,9 +651,9 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
         // does, write by write and frame by frame.
         let bytes = stream::fold(&flat).map_err(|e| in_song(e, &packages, i, name))?;
         stream::check(name, &bytes, &sounds, &reference)?;
-        let fingerprint = mix_fingerprint(&reference, &bank);
         // How many of its notes reach the stream. A note whose program is not
         // in the bank **does not play quieter: it does not exist**.
+        let (melodic, hits) = bank.for_song(i);
         let (mut total, mut sounding) = (0usize, 0usize);
         for note in &parsed.notes {
             if !parsed.voices.contains_key(&note.channel) {
@@ -691,18 +661,17 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             }
             total += 1;
             let has = if note.channel == midi::DRUM_CHANNEL {
-                view.hits.contains_key(&note.pitch)
+                hits.contains_key(&note.pitch)
             } else {
-                view.melodic.contains_key(&parsed.program(note.channel))
+                melodic.contains_key(&parsed.program(note.channel))
             };
             sounding += has as usize;
         }
-        songs.push(Built {
+        Ok(Built {
             name: name.clone(),
             stream: bytes,
             sounds,
             headroom: Some(headroom),
-            fingerprint: Some(fingerprint),
             seconds: parsed.length as f64 / TICKS_PER_SECOND as f64,
             track,
             notes_sound: Some(sounding as f64 / total.max(1) as f64),
@@ -710,7 +679,155 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             writes: reference,
             allocation,
             parsed: Some(parsed),
-        });
+        })
+    };
+
+    // Each song's volume ceiling: played at half the headroom in the model
+    // of the S-DSP —at half that again if it clips even so—, and the highest
+    // that leaves its peak below the cap. See `ceilings`.
+    let fixed = job.fixed_headroom.filter(|h| *h != 0.0);
+    let mut measured: Vec<Option<ceilings::Played>> = vec![None; names.len()];
+    let mut measured_with = vec![ceilings::MEASURING_HEADROOM; names.len()];
+    let started = std::time::Instant::now();
+    let (mut how_many, mut new) = (0, 0);
+    if fixed.is_none() {
+        let mut pending: Vec<usize> = (0..names.len()).filter(|&i| parsed[i].is_some()).collect();
+        for _halving in 0..=ceilings::HALVINGS {
+            if pending.is_empty() {
+                break;
+            }
+            let mut to_measure = Vec::new();
+            for &i in &pending {
+                let parsed = parsed[i].as_ref().expect("only songs with a MIDI");
+                let frames = frames_of(i, &names[i], parsed, measured_with[i], None)?;
+                to_measure.push(to_play(
+                    &names[i],
+                    stream::writes(&frames, parsed.length, &init),
+                )?);
+            }
+            let ceilings::Measured { played, new: n } =
+                ceilings::measure(&to_measure, job.cache.as_deref());
+            how_many += played.len();
+            new += n;
+            let mut clipping = Vec::new();
+            for (&i, p) in pending.iter().zip(played) {
+                if p.clipped == 0 {
+                    measured[i] = Some(p);
+                } else {
+                    measured_with[i] /= 2.0;
+                    clipping.push(i);
+                }
+            }
+            pending = clipping;
+        }
+        if !pending.is_empty() {
+            return Err(Bad::answer(format!(
+                "these songs clip even with every voice at a headroom of {:?}, so their volume \
+                 ceiling cannot be measured: {}",
+                ceilings::MEASURING_HEADROOM / 2f64.powi(ceilings::HALVINGS as i32),
+                pending
+                    .iter()
+                    .map(|&i| names[i].as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
+    }
+    let headroom_of = |i: usize| -> f64 {
+        fixed.unwrap_or_else(|| {
+            measured[i].map_or(sdsp::HEADROOM, |p| {
+                ceilings::ceiling(p.peak as f64, measured_with[i], sdsp::HEADROOM)
+            })
+        })
+    };
+
+    let mut songs = Vec::new();
+    for (i, (name, parsed)) in names.iter().zip(parsed).enumerate() {
+        let Some(parsed) = parsed else {
+            songs.push(Built {
+                name: name.clone(),
+                stream: vec![OP_END],
+                sounds: Vec::new(),
+                writes: Vec::new(),
+                headroom: None,
+                seconds: 0.0,
+                track: if name.is_empty() {
+                    None
+                } else {
+                    tracks.get(&name.to_lowercase()).copied()
+                },
+                notes_sound: None,
+                lost: None,
+                allocation: Vec::new(),
+                parsed: None,
+            });
+            continue;
+        };
+        songs.push(build_song(i, name, parsed, headroom_of(i))?);
+    }
+
+    // The songs whose ceiling brings them close to the cap, played again
+    // with it: each voice's volume is rounded to an integer, so the peak
+    // does not scale exactly. One that clips is lowered by as much as it
+    // went over, and played again.
+    let mut again: Vec<usize> = (0..songs.len())
+        .filter(|&i| {
+            measured[i]
+                .is_some_and(|p| ceilings::is_close(p.peak, measured_with[i], headroom_of(i)))
+        })
+        .collect();
+    let mut went_down = BTreeSet::new();
+    for _round in 0..4 {
+        if again.is_empty() {
+            break;
+        }
+        let to_measure = again
+            .iter()
+            .map(|&i| to_play(&songs[i].name, songs[i].writes.clone()))
+            .collect::<Result<Vec<_>>>()?;
+        let ceilings::Measured { played, new: n } =
+            ceilings::measure(&to_measure, job.cache.as_deref());
+        how_many += played.len();
+        new += n;
+        let mut lowered = Vec::new();
+        for (&i, p) in again.iter().zip(played) {
+            if p.clipped == 0 {
+                continue;
+            }
+            let current = songs[i].headroom.expect("a measured song has a headroom");
+            let parsed = songs[i]
+                .parsed
+                .take()
+                .expect("a measured song has its MIDI");
+            let name = songs[i].name.clone();
+            songs[i] = build_song(i, &name, parsed, ceilings::lowered(current, p.peak))?;
+            lowered.push(i);
+            went_down.insert(name);
+        }
+        again = lowered;
+    }
+    if how_many != 0 {
+        outln!(
+            "  volume ceilings: {how_many} plays of a song in the S-DSP, {new} of them new and the \
+             rest from the cache, in {:.1} s",
+            started.elapsed().as_secs_f64()
+        );
+    }
+    if !went_down.is_empty() {
+        outln!(
+            "  volume ceilings that went down again, played with theirs: {}",
+            went_down.into_iter().collect::<Vec<_>>().join(", ")
+        );
+    }
+    if !again.is_empty() {
+        return Err(Bad::answer(format!(
+            "these songs still clip after their volume ceiling went down four times: {}",
+            again
+                .iter()
+                .map(|&i| songs[i].name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )));
     }
     Ok(Music {
         driver,
@@ -738,10 +855,10 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
 /// sound and each write sends to SRCN. The streams do not change, since
 /// they name sounds and not samples.
 ///
-/// After the fingerprint, on purpose: `mix_fingerprint` hashes the SRCN
-/// values with the key numbering, which is the one the ceilings table was
-/// measured with, and what is heard is the same —the same BRR and loop
-/// behind each note—, so the table is still the one measured.
+/// After the volume ceilings, on purpose: they are measured with the key
+/// numbering, and what is heard is the same —the same BRR and loop behind
+/// each note, which `sounds_the_same` checks—, so each song's ceiling is
+/// still the one measured.
 pub fn merge_identical(music: &mut Music) -> Result<()> {
     let bank = &mut music.bank;
     bank.directory = bank::directory(&bank.voices);

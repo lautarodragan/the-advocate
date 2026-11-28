@@ -3,6 +3,7 @@ name = "wally"
 version = "0.1.0"
 edition = "2021"
 description = "An rm2k-snes game's maps as a cartridge carries them: the background layers, the sprites and the VRAM each map gets"
+license.workspace = true
 
 [lib]
 name = "wally"

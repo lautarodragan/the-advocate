@@ -3,6 +3,7 @@ name = "fxpak"
 version = "0.1.0"
 edition = "2021"
 description = "Talks usb2snes to an FX Pak (sd2snes) over its USB serial port: info, peek, get, put, ls, mkdir, boot"
+license.workspace = true
 
 [lib]
 name = "fxpak"

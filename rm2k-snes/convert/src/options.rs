@@ -93,17 +93,6 @@ fn command() -> clap::Command {
             ),
     )
     .arg(
-        Arg::new("measure_headroom")
-            .long("measure-headroom")
-            .value_name("HEADROOM")
-            .value_parser(value_parser!(f64))
-            .help(
-                "the same headroom for every song, instead of the volume ceiling table: it is \
-                 what `rm2k-snes-audio volume-ceilings` builds the ROM where it measures each song's \
-                 peak with",
-            ),
-    )
-    .arg(
         Arg::new("msu_everything")
             .long("msu-everything")
             .action(ArgAction::SetTrue)
@@ -249,7 +238,6 @@ pub struct Options {
     pub text_padding: i64,
     pub no_title: bool,
     pub title_4bpp: bool,
-    pub measure_headroom: Option<f64>,
     pub msu_everything: bool,
     pub enemy_hp: bool,
     pub debug_screen: bool,
@@ -338,7 +326,6 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         text_padding: *matches.get_one::<i64>("text_padding").unwrap(),
         no_title: matches.get_flag("no_title"),
         title_4bpp: matches.get_flag("title_4bpp"),
-        measure_headroom: matches.get_one::<f64>("measure_headroom").copied(),
         msu_everything: matches.get_flag("msu_everything"),
         enemy_hp: matches.get_flag("enemy_hp"),
         debug_screen: matches.get_flag("debug_screen"),
